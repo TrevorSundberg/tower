@@ -1730,3 +1730,19 @@ cases do not close lifecycle scheduling, typed entity allocation, final clean
 bootstrap/browser/generation, independent review or hosted publication. Fixed-path
 performance control awaits a fresh A2 grant; no obsolete sanitizer rerun is used
 as acceptance of the incoming layout union.
+
+Capture fixed-path32+canonical/reparse/resource control now PASS on immutable
+376fa7da/769c489e (commit2872820b delta). Journal table records all wall/CPU/RSS
+medians, including small/4 control's +0.02s/+0.03s and the lack of a neutrality or
+speedup claim. Complete ROOT565 joined0362eb08 without conflicts; its changed
+IMState has not yet received this lane's coherent runtime acceptance. Durable
+pool-budget registration is reused for the next92-case milestone. This does not
+resolve the remaining unchecked executable/flow/body/declaration graph paths.
+
+ROOT565/capture287 joined0362 native92focused+12caller/query/resource/control/
+capture-policy/type now PASS (type223.91s, no timeout increase). These are coherent
+IMState providers rebuilt through the public bootstrap. The next ROOTbff/A2dfcef
+history union is queued after drain; this lane intentionally avoids an obsolete
+premerge sanitizer matrix. Typed entity producers are available, but checked
+semantic callers and failure cleanup remain implementation work, not an inferred
+pass from new API signatures. Journal records exact identities, timings and gaps.

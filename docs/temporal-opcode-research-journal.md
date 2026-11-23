@@ -74107,3 +74107,70 @@ open; no A2 publication lease exists. No todo or another owner's production edit
 ### 2026-11-23T10:45:31.0103565Z ROOT: Integrate checked borrowed scheduling reservations
 
 Reviewed complete A2 ddefda0e, bundlec91fea22. Shared validate_result checks exact owner/revision/slot/generation/lanes/bytes under the existing gate without changing receipts, diagnostics or counters; release reuses the internal entry validation within its locked transaction. No pointer escapes the transaction. Native, malformed/stale/no-allocation cases, real four-worker churn,18 supported sanitizer invocations and actual WASI pass on owner's source. Selected ledger microcosts remain+0.49%/+1.61%; final fixed-path32 compiler outputs/canonical/reparse pass. Borrowers still require an executing parent lane and caller-owned immutable receipt/ledger lifetime through joins and publication: validation neither pins nor admits work. The eight-stage node observer checks stable identities and real intervals; it does not implement charged node pages. Typed staged create/attach/references producers and reference-counter ownership remain open. Root review passes, with combined runtime/release acceptance still pending and todo untouched.
+
+A1 capture-continuation fixed-path control completed after commit2872820b:
+32 checked outputs, canonical1/4 equality, Foundation reparse and unchanged
+resource hashes PASS, session57882 exit0/drained. Fresh A2 grant11:08:55 and
+automatic release11:10:12 include every canonical child. Same fixed installation
+/cache/semantic_capture_continuation_fixed/towerc, cwd and manifest
+bcb931ded43b503a69a73c9b166ba4faba6cf00e81c5477e240c01c222ba52ec;
+atomic replacement/hash outside measurement. Native Linuxx64 compiler376fa7da
+before /769c489e after, interpreted wasm32 target, CPU0-11/24GiB, jobs1/4,
+one excluded warmup and three alternating pairs per cell.
+
+| Input/workers | Before median wall/CPU/RSS KiB | After median wall/CPU/RSS KiB |
+| --- | --- | --- |
+| small/1 | 1.18/1.09/178816 | 1.18/1.09/177976 |
+| small/4 | 1.05/1.19/196420 | 1.07/1.22/195632 |
+| large/1 | 1.18/1.09/178140 | 1.19/1.10/178260 |
+| large/4 | 1.08/1.22/197896 | 1.08/1.22/196568 |
+
+The small input is the unchanged literal `comptime(40+2)` control; the larger
+input actually captures module and local aggregates, types/functions/pointers,
+checks lexical shallow-copy ownership and executes32 nested capture_sum calls.
+Small/4 rises0.02s wall/0.03s CPU in this short control sample; large/1 rises0.01s,
+large/4 is unchanged. Source inspection finds no new normal-path allocation in
+the helper; it returns immediately on successful graph operations. These noisy
+three-pair results do not establish exact neutrality or attribute the control's
+increase to a capture transition. The affected large4 samples all measure1.08s;
+large1 before/after ranges overlap at1.22s. No excessive retention is observed in
+the targeted ledger assertions, but they are not a whole-heap allocation census.
+No broad speedup, scheduling-idle/critical-path or cross-language claim is made.
+
+Complete ROOT565cd436 was merged cleanly as0362eb0825224aa12cb0be550d371426295d9ea6
+while only frozen cached compilers/resources awaited this window. Neither timing
+binary reads the merged compiler source. The merge preserves d60 proof/signature
+and287 capture histories. Changed IMState requires new coherent native/fixture
+providers and sanitizer checks; those gates remain pending. D1's incoming durable
+pool-budget target is reused in the planned92-case check instead of duplicating
+its standalone build. A2 reciprocal profile windows are honored before heavy
+validation resumes. No publication request or lease.
+
+A1 coherent ROOT565 plus capture287 native validation completed on0362eb08:
+32-action public-bootstrap build144.85wall/104.48user/8.29sys/749984KiB; all76
+fresh direct cases plus durable pool16 and caller12, query/resource24/control/
+capture-policy/type-smoke PASS. Control33.18wall/36.08CPU/279476KiB; policy53.01/
+56.97CPU/232460KiB; type223.91wall/240.50CPU/282072KiB within its240s bound.
+All children/session51565 drained before any merge. Four pristine public LLVM
+fixture providers are hash-recorded as *_join_original for this exact source;
+future changed semantic imports require regeneration, not stale-object reuse.
+
+During this freeze complete ROOTbffbd3f7 (SHA2561a5c7c49091715447834bbab5bb70b9844258d9f4946e62bb5071666fd5b3137)
+and A2dfcef909 (SHA256688c2ca07397567cc34ef351c1f070130a638aa49120b16202bff3087dba79c8)
+were verified/fetched read-only. Both have sole published60741 prerequisite.
+ROOT adds direct-return failure protection, exact tree/component results and D1
+capture registration; A2 adds typed attachment/staged creation/reference APIs
+and affected-lease checks. They do not change IMState layout after565. Both are
+queued for the next coherence boundary; neither is substituted into the running
+0362 tests. No obsolete565 ASan/TSan matrix was started. The next instrumented
+refresh will validate the complete joined source instead. A2's bounded15s node
+variance control received a fresh grant only after all A1 jobs drained.
+
+A2's now-adoptable result contracts permit checked semantic construction, but
+existing sem_create/sem_control_node callers still assume success. Adoption must
+propagate each null/error through immediate dereferences; a signature-only change
+is unsafe. Coordinator-created unattached nodes must be released on failed
+attachment; staged partial nodes remain stage-discard-owned. Hold-counter
+exhaustion and node-page adoption are not covered by this producer checkpoint.
+The cache-only semantic_executable_admission_probe.tower is a prepared hypothesis
+for the next own query-request/take audit, UNCOMPILED/UNRUN at this receipt.
