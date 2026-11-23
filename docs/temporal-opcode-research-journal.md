@@ -81921,3 +81921,14 @@ not relabeled for the merged scheduler. ROOT's incoming execution pump now holds
 before view close using the void wrapper; checked-result failure adoption remains
 ROOT's explicitly assigned follow-up. All owned jobs drained before commit/push;
 final deployment remains ROOT-owned.
+
+Final publication integration also preserved A2's complete0aee8b07 ownership
+batch as e30efe5f. Its provider/provenance/generic-body changes are separate from
+this lane's unchanged constructor/evaluation hunks. A2's audit confirms the
+other preparation publication paths do not themselves enqueue provenance borrows;
+those compatibility stage wrappers were preserved. Affected18926 rebuilt six
+dependency actions:34.00wall/38.11CPU seconds/767456KiB, then full storage
+(.28/.22/98012), query-smoke(.19/.22/75236) and constructor --jobs1/4 exact0
+oracles passed, empty stderr and source0. All jobs drained. No repeated comparison
+or broad matrix; the committed receipts and earlier remaining-gap list retain
+their precise scopes. Normal push includes both complete histories and journals.
