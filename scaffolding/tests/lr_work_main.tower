@@ -15,6 +15,7 @@ import .compiler.format_types;
 
 extern fn lr_work_tests(): u32;
 extern fn evaluation_query_tests(width: u32, workers: usize): u32;
+extern fn semantic_resource_tests(width: u32, workers: usize): u32;
 
 extern fn work_thread_available(): bool;
 
@@ -58,6 +59,24 @@ fn lr_lifecycle_range(root: u8*, first: SemanticLifecycleCase, last: SemanticLif
     }
 }
 
+fn lr_resource_cases(width: u32, workers: usize): void {
+    var started = unit_stream_clock();
+    utility_check(semantic_resource_tests(width, workers) == 0,
+        "Semantic resource phase, deterministic failure and ownership checks");
+    var elapsed = unit_stream_elapsed(started);
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var out: FormatEngine = {result: &text, ..default};
+    format_text(&out, "Resource cases width=");
+    format_unsigned(&out, convert(u64, width));
+    format_text(&out, " workers=");
+    format_unsigned(&out, convert(u64, workers));
+    format_text(&out, " wall_ns=");
+    format_unsigned(&out, elapsed);
+    utility_check(!text.failed && vector_push(&text.text, 0), "Resource measurement formatting");
+    puts(text.text.data);
+}
+
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     if argc >= 3 && strcmp(argv[2], "lifecycle") == 0 {
         if argc < 4 || argc > 5 {
@@ -77,7 +96,7 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         return 0;
     }
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|backend-overlap-calibrated|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|lifecycle FIRST [LAST]]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|backend|backend-overlap|backend-overlap-calibrated|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|resource-smoke|lifecycle FIRST [LAST]]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
@@ -96,7 +115,8 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
     var capture_policy = strcmp(suite, "capture-policy") == 0;
     var control_smoke = strcmp(suite, "control-smoke") == 0;
     var queries = strcmp(suite, "query-smoke") == 0;
-    if !all && !lr && !units && !backend && !backend_overlap && !backend_overlap_calibrated && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries {
+    var resources = strcmp(suite, "resource-smoke") == 0;
+    if !all && !lr && !units && !backend && !backend_overlap && !backend_overlap_calibrated && !editor && !bodies && !smoke && !type_smoke && !type_errors && !capture_policy && !control_smoke && !queries && !resources {
         puts("Unknown worker test suite");
         return 1;
     }
@@ -117,6 +137,14 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
             }
         }
         puts("Query smoke: serial/threaded 32/64-bit staging, lazy dependencies and resumable phase readiness passed.");
+    }
+    if resources {
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            for(var workers: usize = 1; workers <= 4; workers *= 4) {
+                lr_resource_cases(width, workers);
+            }
+        }
+        puts("Resource smoke: 24 startup/growth cases at 32/64 bits and workers 1/4 passed.");
     }
     if all || units { frontend_units_tests(argv[1]); }
     if all || backend { backend_units_tests(argv[1]); }

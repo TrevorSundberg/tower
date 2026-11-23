@@ -20,11 +20,55 @@ extern fn compiler_world_dispose(world: void*): bool;
 extern fn entity_create(store: void*): void*;
 extern fn puts(text: u8*): i32;
 
+var ResourceBudgetBytes: usize = 16384;
+var ResourceGrowthFrameBytes: usize = 8192;
+var ResourceEntryGateQuery: u32 = 1000;
+
+struct ResourceProbe {
+    invocation: IMInvocation*;
+    entry: void*;
+    growth: bool;
+    observed: bool;
+}
+
 fn resource_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); (*failures)++; }
 }
 
-fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bool): SemanticEvaluation* {
+// Only the transport payload is opaque. Each worker owns its probe flag and
+// delegates the actual invocation to the unchanged production Evaluate kernel.
+// Observe the precise phase before the coordinator replaces/disposes its error.
+fn resource_probe_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    if kernel.kind != CompilerKernelKind.Evaluate { work_kernel_execute(payload); return; }
+    var probe = bits(ResourceProbe*, kernel.payload);
+    var invocation = probe.invocation;
+    var original: CompilerKernel = {kind: CompilerKernelKind.Evaluate, payload: bits(void*, invocation)};
+    work_kernel_execute(bits(void*, &original));
+    var state = &invocation.state;
+    if !state.failed || state.storage_error != WorkBudgetError.Capacity
+        || invocation.context.error.data == null { return; }
+    if probe.growth {
+        probe.observed = state.steps != 0 && state.frames.length == 1
+            && state.frames.data[0].function == probe.entry && state.memory.data != null
+            && sem_equal(invocation.context.error.data, "Cannot grow strict evaluation stack");
+    } else {
+        probe.observed = state.steps == 0 && state.frames.length == 0 && state.memory.data == null
+            && sem_equal(invocation.context.error.data, "Cannot allocate interpreter memory");
+    }
+}
+
+fn resource_entry_ready(result: SemanticEvaluation*): bool {
+    var invocation = &result.invocation;
+    var state = &invocation.state;
+    return result.started && !state.failed && state.storage_error == WorkBudgetError.None
+        && state.steps == 0 && state.memory.data != null && state.frames.length == 1
+        && state.frames.data[0].function == result.function
+        && state.frames.data[0].tasks.length != 0 && invocation.context.root == result.function
+        && invocation.context.error.length == 0 && invocation.context.output.length == 0;
+}
+
+fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bool, gate: usize): SemanticEvaluation* {
     var subject = sem_create(c.program.root);
     var value = sem_attach(subject, KOperand);
     value.type.scalar = SI32;
@@ -42,7 +86,7 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bo
         var callee = sem_create(c.program.root);
         var function = sem_attach(callee, KFunction);
         function.type = value.type;
-        function.frame_size = 8192;
+        function.frame_size = ResourceGrowthFrameBytes;
         function.body = sem_create(callee);
         var body = sem_attach(function.body, KBlock);
         var returned = sem_create(function.body);
@@ -67,6 +111,12 @@ fn resource_stage(c: SemanticContext*, offset: usize, inferred: bool, growth: bo
     result.kernel.kind = CompilerKernelKind.Evaluate;
     result.kernel.payload = bits(void*, &result.invocation);
     sem_push(&c.evaluation_jobs, bits(void*, result));
+    if gate != 0 {
+        // Add the fixture prerequisite while Evaluation is still Building;
+        // ordinary request registration owns its preparation edge and seal.
+        var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.Evaluation), 0);
+        sem_require(query != 0 && work_depend(&c.queries, query, gate));
+    }
     sem_evaluation_request(c, result);
     if growth && !inferred {
         // The required stage consumes the existing production helper-readiness
@@ -87,13 +137,9 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     sem_require(gate != null);
     defer work_signal_close(gate);
     work_signal_post(gate);
-    sem_require(work_budget_init(&budget, workers, 16384, 91)
+    sem_require(work_budget_init(&budget, workers, ResourceBudgetBytes, 91)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
-    // Each request fits the configured limit, but an existing live owner leaves
-    // insufficient available capacity. A request larger than the total limit
-    // is correctly classified Invalid by the common budget contract instead.
     var occupied: WorkReservation = default;
-    sem_require(work_budget_reserve_result(&budget, 0, 0, growth ? 15360 : 16383, &occupied) == WorkBudgetError.None);
     var world = compiler_world_create_workers(workers);
     sem_require(world != null && compiler_world_bind_budget(world, &budget));
     var root = entity_create(compiler_world_store(world));
@@ -112,12 +158,45 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
             && work_take_task(&context.queries, &ticket, proof));
         sem_require(work_finish(&context.queries, &ticket, true));
     }
-    var first = resource_stage(&context, 11, inferred, growth);
-    var second = resource_stage(&context, 29, inferred, growth);
+    var prerequisite: usize = 0;
+    if growth {
+        prerequisite = work_request(&context.queries, root, ResourceEntryGateQuery, 0);
+        sem_require(prerequisite != 0 && work_seal(&context.queries, prerequisite));
+    }
+    var first = resource_stage(&context, 11, inferred, growth, prerequisite);
+    var second = resource_stage(&context, 29, inferred, growth, prerequisite);
+    var first_probe: ResourceProbe = {invocation: &first.invocation, growth: growth, ..default};
+    var second_probe: ResourceProbe = {invocation: &second.invocation, growth: growth, ..default};
+    first.kernel.payload = bits(void*, &first_probe);
+    second.kernel.payload = bits(void*, &second_probe);
+    // Constructors and pool storage succeed before either denial phase. Both
+    // stack-owned probes remain alive through pool drain and world retirement.
+    sem_require(work_pool_open_kernel_budget(&context.workers, workers, resource_probe_execute, &budget));
     context.declaration_isolated = isolated;
+    if growth {
+        var prepared = sem_evaluation_pump(&context);
+        resource_check(prepared == SemanticPumpResult.Waiting && context.workers.running == 0
+            && program.error.length == 0 && resource_entry_ready(first) && resource_entry_ready(second),
+            "Nested-growth setup did not prepare both owning entry frames before pressure", &failures);
+        first_probe.entry = first.function;
+        second_probe.entry = second.function;
+        var ticket: WorkTicket = default;
+        sem_require(work_take_task(&context.queries, &ticket, prerequisite)
+            && work_finish(&context.queries, &ticket, true));
+    }
+    // Each intended request fits the total limit. Consume the measured remaining
+    // capacity only after setup (and, for growth, successful joined entry prep).
+    // No guessed residual allowance can turn entry denial into growth coverage.
+    var available: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &available) && available.used_bytes < available.bytes
+        && work_budget_reserve_result(&budget, 0, 0, available.bytes - available.used_bytes, &occupied)
+            == WorkBudgetError.None);
     sem_evaluation_pump(&context);
     resource_check(context.workers.running == 0 && first.started && second.started,
         "Resource denial joins every admitted preparation/evaluation peer", &failures);
+    resource_check(first_probe.observed && second_probe.observed,
+        growth ? "Missing exact executed nested-memory growth denial in one or both workers"
+            : "Missing exact invocation startup-memory denial in one or both workers", &failures);
     if isolated {
         resource_check(program.error.length == 0, "Isolated resource receipts wait for owning diagnostic selection", &failures);
         context.declaration_isolated = false;
@@ -153,8 +232,6 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     resource_check(compiler_world_dispose(world), "Resource-denied stages release their world", &failures);
     var snapshot: WorkBudgetSnapshot = default;
     sem_require(work_budget_snapshot(&budget, &snapshot));
-    resource_check(!growth || snapshot.peak_bytes > occupied.bytes,
-        "Nested growth denial follows successful charged entry storage", &failures);
     resource_check(snapshot.used_bytes == occupied.bytes && snapshot.live == 1,
         "Only the independent capacity holder remains after semantic cleanup", &failures);
     sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None
@@ -165,7 +242,7 @@ fn resource_trial(width: u32, workers: usize, inferred: bool, isolated: bool, gr
     return failures;
 }
 
-fn semantic_resource_tests(width: u32, workers: usize): u32 {
+export fn semantic_resource_tests(width: u32, workers: usize): u32 {
     var failures: u32 = 0;
     for(var mode: usize = 0; mode < 2; mode++) {
         failures += resource_trial(width, workers, false, false, mode != 0);
