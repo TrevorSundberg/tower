@@ -95182,3 +95182,28 @@ D2 reconciliation preserves upstream4a8694da and its later inline entity-index
 producer/tests. Those are not adopted here; the measured resource snapshot stays
 0fe314ef. Selected tests/host/reactors and guest imports tower/vector/platform
 remain unchanged after merge; existing evidence is reused without another run.
+
+
+## 2026-11-23 D2: measured browser package size and redundant raw LLVM removal
+
+[Scoped distribution receipt](compiler_distribution_size_25dddd04.md) separates
+exact25 raw/gzip/Brotli, older published installed tree, ROOT's32-file input
+snapshot and live memory. Audited callers/archive recipe before changing behavior:
+all browser consumers use LLVM gzip; raw build inputs remain for Node/native tools.
+Removed only the redundant raw LLVM dist copy after successful gzip write;
+35,416,018 payload bytes plus85 manifest bytes saved on the exact25 artifact,
+with byte-identical gzip and decoded original equality. No runtime/compiler change.
+Baseline focused gate passes; added absent-raw regression fails against old tool
+(exit1, Missing expected rejection), then final gate passes with91/79 hashes,
+all required-input/stale/CNAME contracts and production gzip loader checks.
+Only public768 tool target rebuilt, jobs1/CPU0,2/8GiB:4.94wall/4.80CPU s,
+218804KiB. Real artifact package before3.87/3.82s/63752KiB, after3.33/3.31s/66128KiB;
+final gate2.97wall/1.92CPU s/74356KiB. All are n1 costs, not compiler speed claims.
+Logs/manifests/failure and source identities: build/d2_ecs/distribution_25_6019450c.
+No LLVM/reactor/full runtime/generation/sanitizer rebuild or hosted verification.
+Full changed-file review: packager0578e9bc preserves write-before-unlink, error
+propagation/cleanup and manifest-last ownership; filesystem/loader fixturebc992af0
+preserves synthetic-only boundary and every rejection. No scheduler/world change.
+The measured gzip9 transfer gap motivates shared Tower deflate work later, not a
+new external packaging dependency. Owned work drained, lock released; ROOT owns
+final publication/adoption. Original immutable pair and prior receipts preserved.
