@@ -206,6 +206,29 @@ frontier executables; it does not run them. Their existing CTest selection is
 
 ### Full-file inventory ownership and review freshness
 
+The current finite adoption checkpoint is published main
+ec01291eaf8706c29f3bec62ec85a2e7561530d4. ROOT delegated independent review of the
+entire51-path union to D1, whose [path/blob receipts](compiler_ecs_audit_d1.md#delegated-finite-source-adoption-at-ec01291-2026-11-23)
+close all26 earlier freshness actions and33 later deltas (eight overlaps),
+including all15 later D1 fixtures and the three composed semantic/frontend
+exceptions. Zero substantive adoption actions remain in that frozen set. The
+[roster closure](compiler_ecs_file_roster.md#finite-review-closure-at-published-ec01291-2026-11-23)
+retains exact1146 ownership coverage: A1 45, A2 43, B1 102, B2 277, L1 26,
+L2 17, D1 551, D2 85. Unchanged reviews and matching B1 wrapper receipts remain
+reusable; later compiler changes need their own receipts at final integration.
+
+This closes source adoption, not runtime acceptance. The demonstrated raw Entity
+allocation bypass of a fully consumed store ledger remains an A2 accounting
+defect: the existing entity_accounting cap target fails nonzero after cleanup.
+The structure-reuse, unit-admission and backend-ir regressions require explicit
+selectors outside default frontend/units/backend CTest routes. Existing assertions,
+raw-storage omissions and integrated instrument/bootstrap/browser/generation/
+deployment limits remain explicit. This docs-only review ran no builds or
+runtime profiles; ROOT retains final integrated validation and publication.
+
+The following records the prior5b05/36ad reconciliation history, superseded only
+for source-adoption status by the ec01291 receipt above:
+
 Frozen published source `5b05d6bb5288591794d378c1802c2a790357b204` contains
 **1,144 tracked `.tower` paths**. ROOT assigned the bounded reconciliation to D1.
 The [current roster](compiler_ecs_file_roster.md#frozen-adoption-reconciliation-at-5b05d6bb-2026-11-23)

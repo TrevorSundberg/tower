@@ -84139,3 +84139,40 @@ frontend_main and executable-admission fixture). Normal push succeeded
 33 paths/15 D1, with51 unique paths in its union with the frozen26 actions.
 Whitespace, exact inventory and preserved todo hash pass. This final receipt
 changes documentation only and does not reopen the bounded5b05 source review.
+
+## 2026-11-23 D1 delegated finite51 source adoption at published ec01291
+
+Freeze: ec01291eaf8706c29f3bec62ec85a2e7561530d4, unchanged for this review.
+ROOT expressly delegated all26 prior production freshness actions and33 later
+deltas (eight overlaps), not another assignment inventory. D1 read their changed
+hunks with complete relevant producer/caller/lifetime/query context and compared
+exact blobs/receipts. All51 path-specific dispositions are in
+[the D1 audit](compiler_ecs_audit_d1.md#delegated-finite-source-adoption-at-ec01291-2026-11-23);
+the roster and handoff freshness section adopt them. All15 later D1 fixtures and
+the three original merged-source exceptions are included. Current exact comparison
+also resolves symbol-policy/test and lr_work registration compositions.
+
+Findings: checked stage waves hold before closing pins, cancel borrowed buffers
+before discard and publish before readiness; inferred staging retains its own
+proof/clone/owner gates and ordinary executed-helper requests; nested lane returns
+wake the existing shared coordinator; object-only backend policy retains
+verification and rejects later reconfiguration. Existing owner execution receipts
+retain their identities. The known whole-store budget defect is independently
+confirmed in source against D2's existing cap repro: raw Entity allocation ignores
+an exhausted ledger and publishes identity. No new hypothesis is called a defect.
+Three focused regression routes (structure-reuse, unit-admission, backend-ir)
+remain explicit invocation gaps. Zero substantive source-adoption actions remain
+in the assigned51; this does not close implementation or release acceptance.
+
+Commands/evidence: required git pull --rebase=merges --autostash --ff-only
+(initially already current), git diff/show/log/rev-parse/ls-tree, exact sorted
+path/blob comparisons, source/registration reads and git diff --check. Frozen
+inventory1146, D1551; no new inventory growth. Corrected read-only path/pathspec
+mistakes produced no false missing-file or zero-count conclusion. Metadata:
+build/d1_ecs/review_ec01291/. Deck PID3065791, same thread
+01a2046a-4644-7ab1-a0ae-abd80210f013; no owned child build, D2 heavy lock untouched;
+about130GiB disk and9.7GiB RAM available. Todo, prior changes/history and runtime
+logs preserved. Documentation-only profiling is inapplicable; no build,
+benchmark, sanitizer or browser run. Normal main reconciliation/push publishes
+this review; after-freeze sources and ROOT's final runtime deployment stay outside
+its evidence boundary.
