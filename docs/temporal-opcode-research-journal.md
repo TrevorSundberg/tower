@@ -96141,4 +96141,6 @@ absence checked. CPU12-23/24GiB; static28.188321wall/15.955930CPU/375748KiB.
 Automatic review rejected verifier-output preparation/launch: "blocked by policy".
 Verifier UNSTARTED; no retry/reconstruction/alternate host; hosted release pending.
 Publication-only turn: inputs/output hashes rechecked, owned jobs drained, no
-runtime changes or performance rerun. Later source identities are not relabeled.
+runtime changes or performance rerun. Later source identities are not relabeled.Final integration preserves complete68345ada after routine ff-only refusal;
+both reviewed blobs and actual source/caller closure are unchanged. No runtime
+rerun or adoption of unrelated incoming static-app receipts; normal push follows.
