@@ -74158,3 +74158,78 @@ public export, grammar syntax or shared layout is introduced. No lease/push.
 ### 2026-11-23T10:53:34.0618145Z ROOT: Integrate exact parse-tree creation resource causes
 
 Complete B1 61476fbd (bundled01fea62) reviewed: shifts and reductions preserve existing typed entity/component allocation causes in the request-owned LRParser field before error formatting. Required ordinary/specialized shift and empty-reduction component-page Capacity/no-publication/retry tests reproduce before and pass after. Coherent native, focused ASan/LSan/TSan real overlap, independent LR/tree reference tests and public WASI/IDE pass on owner source. Fixed-path20 samples preserve canonical output/retention, with small n2 mean wall changes -0.58/-0.18/+0.26/-0.67%; no broad performance claim. Forest and attachment admission are still separate gaps. Root review/diff checks pass; no combined release or publication acceptance, todo unchanged.
+### L2 scratch fixed-path costs and preserved overlap failure (2026-11-23)
+
+Quiet86934 completed after native99552, with9cedd12 committed and the shared
+host exclusively reserved. All32 processes, exact outputs, package/resource/
+input hashes and final checks pass. The two immutable compiler packages were
+copied and byte-checked outside timing at ONE actual executable/resource path,
+/root/.cache/tower/l2_generic_scratch_profile_fixed. Each prior child had exited
+before replacement. Linux6.18.33.2 WSL2 x86_64, glibc2.39-0ubuntu8.12, default
+allocator environment, Release native compiler, --interpret --timings, requested
+jobs1/4. One discarded warmup and three alternating retained pairs per case:
+
+| Workload/jobs | Wall seconds before -> after | CPU seconds before -> after | Peak RSS KiB before -> after |
+| --- | --- | --- | --- |
+| constructor/1 | 1.53 -> 1.55 | 1.52 -> 1.52 | 179812 -> 179836 |
+| constructor/4 | 1.28 -> 1.30 | 1.59 -> 1.61 | 199280 -> 198448 |
+| generic/1 | 1.54 -> 1.58 | 1.52 -> 1.57 | 184592 -> 184496 |
+| generic/4 | 1.30 -> 1.32 | 1.62 -> 1.65 | 206028 -> 205988 |
+
+These are medians, not a zero-cost or speedup claim. The serial generic median
+increases2.6% wall/3.3% CPU; compile phase1391.139626->1427.950542ms. Wall ranges
+are1.41-1.56 before and1.49-1.59 after. Source review identifies the extra
+source-window revisit as possible work alongside the new budget admission;
+these timings do not isolate either cause. No favorable-only repeats or new
+optimization candidate were adopted. RSS shows no excessive growth in these
+observations; native scratch fixtures separately prove zero selected retained
+grants. Four requested lanes do not independently establish useful overlap;
+the separate99552 clone intervals do. Neither is a general scaling claim.
+
+The constructor input is3846 bytes, SHA256
+bbc45255c61f02573a69d63c628869280a38bf754fc555c34c9b017001214071,
+with output0. Generic input is4613 bytes, SHA256
+c7348160a58a5dfd987a8a96a705e6ddb92f3d7586d42448928f94fb5087e41f,
+with output28/36/504/504/73. Compiler identities are the beforedbaad653 and
+after379f7097 recorded above. The117-file complete profile receipt is
+L2_generic_scratch_86934_profile_receipt.tgz, SHA256
+3073a8d3104a67e19ba3830a019e51903ece41880dc209c0d00ab62ef6261061.
+This supplements, without overwriting, native receipt4e0f3a3b. Current supported
+instruments remain pending; the next unstarted boundary will join the settled
+L1 function-table/return correction rather than rebuild an obsolete IMState ABI.
+
+ROOT transferred diagnosis of D1's preserved ff3a0bb47f98ed1f3a42072744171e3d9810539d
+Cancel4 failure to L2. The actual receipt, not a repeated test, shows Docker
+cpuset0,2 (two physical cores), no quota, eight online logical CPUs. The runner
+SHA256 is1d01b2e141c76f07546d94fc9b6499a17b8299c40a646cf90e34b60e569b6a91.
+Frozen/current generic_clone_parallel source is identical, SHA256
+f06c32d201934386cf98b5019c330fddf7032521983a193d24ab73cfb8dec5af.
+work_linux.work_thread_capacity calls get_nprocs and admits4 despite the2-core
+affinity limit. This is a real admission mismatch, not proof it alone caused
+the failed overlap. Upstream glibc explains get_nprocs prefers system online
+CPU sources before affinity:
+https://sourceware.org/pipermail/glibc-cvs/2022q1/076629.html.
+The Linux sched_getaffinity contract covers the calling thread's permitted mask,
+cpuset restrictions and undersized-buffer EINVAL:
+https://man7.org/linux/man-pages/man2/sched_getaffinity.2.html.
+ROOT assigned D2 the Linux provider correction and restricted/unrestricted
+validation; L2 will not independently edit that shared host boundary.
+
+Serial calibration chose width256/depth8 at fastest2.069996ms against the2ms
+threshold, yet one Publish4 worker needed only0.693642ms. Thus serial caller
+timing is demonstrably not a worker-duration lower bound. Publish2/4 overlapped.
+Cancel4 copied all2048 nodes per job on four distinct threads, with prior
+correctness/cleanup assertions passing, but its intervals were sequential in
+order3/0/2/1:1.420365/2.004646/1.547747/1.375564ms. Gaps were9.710/12.730/20.340us,
+total6.391102ms, selected frame peak416B (one live frame). The strict overlap
+assertion correctly failed SIG6/process134: .76s wall/.14s CPU/55588KiB. This is
+neither semantic-corruption evidence nor a sanitizer race report. Raw logs,
+binary, fixture and topology remain in capture_overlap_ff3_receipt. No rerun,
+weakened oracle or artificial delay was used. Calibration/scheduling diagnosis
+remains open after the real host-capacity correction; merely reducing selected
+workers cannot establish that the original overlap concern is resolved.
+
+This entry and the audit update only preserve existing evidence; no runtime
+code changed, so new runtime performance tests for this documentation commit
+are inapplicable. Public-bootstrap, current union instruments and integrated
+atomic publication/hosted verification remain open under ROOT's lease.
