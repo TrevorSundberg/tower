@@ -35,5 +35,6 @@ Compatibility executable `446d150977fc017aa82845d47555b0709754d387cda9b0ad5393c3
 Raw commands, original failure, every exit/output/time, draft sources and complete manifests: `C:/Sandbox/build/codex_ecs_20261122/L1/path_lexical_effab4bd/`.
 Ignored binaries/depfiles: `build/l1_path_lexical_effab4bd/`; OS fixture: `/root/.cache/tower/l1_path_lexical_effab4bd/`; no owned jobs remain.
 Limits: native POSIX paths stable across check/read, as before; no filesystem-race protection, non-POSIX runtime, full package/browser adoption or global allocation census claimed.
-Integration: implementation `e82d11e9` merged published `027a87be` as `023663b5`; both actual depfile closures and tested binaries remain byte-identical (`merged_dependencies.json`).
-Incoming bootstrap adoption/query-denial fixture changes are excluded from the eeb-built evidence; no passing run repeated or relabeled. ROOT/B2 retain full-package adoption.
+Integration: `e82d11e9` joined `027a87be`, then `2c22fdff`; B2's concurrent first-anchor correction is retained by the same provider behavior, with its enlarged six-key compatibility fixture preserved. Dedicated fixture/dependencies/binary unchanged; prior eeb-built evidence remains source-bound.
+Only changed compatibility fixture rebuilt with incoming public `44ae8f73`: four spellings and three expected failures PASS; compile/link 2.92/.02 s wall, 1.94/.01 s CPU, 335780/51636 KiB; checks <.01 s/1792 KiB, scope 408469504 B/OOM0. Full inputs/binary `2aec30af` in `merged_inputs.sha256`/`merged_artifacts.sha256`.
+Bootstrap/query-denial adoption is not inferred from old checks; no broad rerun. B2's separately published complete-recipe byte comparison remains its own evidence; ROOT/B2 retain full-package adoption of this normalized helper.
