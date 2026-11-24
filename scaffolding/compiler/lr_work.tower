@@ -13,6 +13,7 @@ import .library.work_vector;
 import .library.work_vector_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
+import .library.work_arena_api;
 import .library.work_graph;
 import .library.work_pool;
 
@@ -386,6 +387,7 @@ struct LRPropagationTask {
     resource_error: WorkBudgetError;
     observer: GrammarObserver;
     ordinal: usize;
+    scratch: WorkArena;
 }
 
 export fn compiler_lr_propagation_kernel(payload: void*): void {
@@ -398,7 +400,7 @@ export fn compiler_lr_propagation_kernel(payload: void*): void {
         var source = &task.propagation.nodes[node].ranges;
         var result = &task.results[node];
         result.length = 0;
-        task.resource_error = lr_reserve_result(result, source.length, task.propagation.budget);
+        task.resource_error = lr_reserve_arena_result(result, source.length, &task.scratch, null);
         if task.resource_error != WorkBudgetError.None { return; }
         if source.length != 0 {
             copy(result.data, source.data, source.length *sizeof(SymbolRange));
@@ -406,7 +408,8 @@ export fn compiler_lr_propagation_kernel(payload: void*): void {
         result.length = source.length;
         task.changed[node] = false;
         foreach(var input in &task.incoming[node]) {
-            task.resource_error = lr_range_merge_result(result, &task.propagation.nodes[input].ranges, &task.changed[node], task.propagation.budget);
+            task.resource_error = lr_range_merge_arena_result(result, &task.propagation.nodes[input].ranges,
+                &task.changed[node], task.propagation.budget, null, &task.scratch, null);
             if task.resource_error != WorkBudgetError.None { return; }
         }
     }
@@ -443,18 +446,19 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
     var changed = bits(bool*, changed_storage.data);
     fill(incoming, 0, value.count *sizeof(work_vector(usize)));
     fill(results, 0, value.count *sizeof(work_vector(SymbolRange)));
-    defer {
-        for(var i: usize = 0; i < value.count; i++) {
-            work_vector_dispose(&incoming[i]);
-            work_vector_dispose(&results[i]);
-        }
-    }
+    // Incoming lists are coordinator scratch; workers only borrow them until
+    // join. Charge their common lifetime once through the existing arena.
+    var incoming_arena: WorkArena = default;
+    if !work_arena_init(&incoming_arena, value.budget, value.scratch.chunk_bytes) { return WorkBudgetError.Invalid; }
+    defer work_arena_dispose(&incoming_arena);
     var targets: work_vector(usize);
     work_vector_init(&targets);
     defer work_vector_dispose(&targets);
     var kind: void* = null;
     var nodes: void*[WorkPoolMaximumCapacity];
     var jobs: LRPropagationTask*[WorkPoolMaximumCapacity];
+    var initialized: usize = 0;
+    defer { for(var i: usize = 0; i < initialized; i++) { work_arena_dispose(&jobs[i].scratch); } }
     if pool.count > sizeof(decltype(jobs)) / sizeof(LRPropagationTask*) { return WorkBudgetError.Invalid; }
     while value.pending.length != 0 {
         targets.length = 0;
@@ -470,7 +474,7 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
                     error = lr_push_result(&targets, destination, value.budget);
                     if error != WorkBudgetError.None { return error; }
                 }
-                error = lr_push_result(&incoming[destination], index, value.budget);
+                error = lr_push_arena_result(&incoming[destination], index, &incoming_arena, null);
                 if error != WorkBudgetError.None { return error; }
             }
         }
@@ -509,7 +513,8 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
                 job.changed = changed;
                 job.observer = observer;
                 job.ordinal = i;
-                jobs[i] = job;
+                if !work_arena_init(&job.scratch, value.budget, value.scratch.chunk_bytes) { return WorkBudgetError.Invalid; }
+                jobs[initialized++] = job;
             }
         }
         if !work_reset(graph, graph.revision + 1, graph.profile) {
@@ -556,6 +561,11 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
         for(var i: usize = 0; i < count; i++) {
             if jobs[i].resource_error != WorkBudgetError.None { return jobs[i].resource_error; }
         }
+        // All private writers have joined. Transfer charged chunks before
+        // publishing any borrowed result; no worker mutates the graph arena.
+        for(var i: usize = 0; i < count; i++) {
+            if !work_arena_append(&value.scratch, &jobs[i].scratch) { return WorkBudgetError.Invalid; }
+        }
         foreach(var index in &value.pending) {
             value.nodes[index].queued = false;
         }
@@ -566,13 +576,11 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
                 continue;
             }
             var row = &value.nodes[index];
-            if !row.range_owned {
-                // Retire the borrow without freeing inline storage; transfer
-                // the worker's single owned receipt after every reader joins.
-                row.ranges = results[index];
-                row.range_owned = true;
-                results[index] = default;
-            } else { work_vector_swap(&row.ranges, &results[index]); }
+            // Both buffers remain graph-owned across later waves. An older
+            // independent buffer must retire once before becoming scratch.
+            if row.range_owned { work_vector_dispose(&row.ranges); }
+            work_vector_swap(&row.ranges, &results[index]);
+            row.range_owned = false;
             lr_propagation_queue(value, index);
         }
     }
