@@ -55,7 +55,11 @@ fn compiler_project_file(project: CompilerProjectFiles*, name: u8*, data: u8*, l
     }
     var index = wasm_names_get(&project.names, name_bytes);
     var file: CompilerProjectFile* = null;
-    if index != WasmNoIndex { file = project.files.data[convert(usize, index)]; }
+    if index != WasmNoIndex {
+        file = project.files.data[convert(usize, index)];
+        if file.text.length == normalized.length && (normalized.length == 0 || memcmp(file.text.data, normalized.data, normalized.length) == 0) { return true; }
+        puts("Conflicting compiler project source content:"); puts(name); return false;
+    }
     else {
         if project.files.length >= convert(usize, WasmNoIndex) { return false; }
         file = alloc(CompilerProjectFile, 1); if file == null { return false; } *file = default;
@@ -120,24 +124,70 @@ fn compiler_project_tower_object(name: u8*): bool {
 }
 fn compiler_project_dependencies(project: CompilerProjectFiles*, build: u8*, object: u8*): bool {
     var path: ByteBuffer = default; var input: ByteBuffer = default; var words: vector(ByteBuffer) = default;
-    var runtime_path: ByteBuffer = default; defer bytes_dispose(&runtime_path);
+    var runtime_path: ByteBuffer = default; var source_root: ByteBuffer = default; var build_root: ByteBuffer = default;
+    var physical: ByteBuffer = default; var name: ByteBuffer = default; var generated: ByteBuffer = default;
+    defer bytes_dispose(&runtime_path); defer bytes_dispose(&source_root); defer bytes_dispose(&build_root);
+    defer bytes_dispose(&physical); defer bytes_dispose(&name); defer bytes_dispose(&generated);
     defer bytes_dispose(&path); defer bytes_dispose(&input); defer tool_words_close(&words);
-    if !tool_join(&runtime_path, build, "tower_runtime.tower")
+    if !tool_path_identity(&source_root, project.source.data) || !tool_path_identity(&build_root, build)
+        || !tool_join(&runtime_path, build_root.data, "tower_runtime.tower")
         || !compiler_project_text(&path, object) || !compiler_project_text(&path, ".d") || !host_text_terminate(&path)
         || !tool_read_file(path.data, CompilerProjectCommandBytes, &input) || !tool_depfile_words(input.data, input.length, &words) { return false; }
     foreach(var & word in &words) {
+        if !compiler_project_suffix(word.data, ".tower") { continue; }
         if !compiler_project_path(&path, build, word.data) { return false; }
-        if compiler_project_prefix(path.data, project.source.data) && path.data[project.source.length] == *"/"
-            && compiler_project_suffix(path.data, ".tower") {
-            if !compiler_project_read_source(project, path.data + project.source.length + 1, path.data) { return false; }
+        if !tool_path_identity(&physical, path.data) {
+            puts("Cannot resolve required compiler project dependency:"); puts(path.data); puts(strerror(*__errno_location())); return false;
+        }
+        if tool_path_relative(&name, path.data, source_root.data) {
+            if !compiler_project_read_source(project, name.data, path.data) { return false; }
         } else {
-            // Generated runtime bytes are a normal imported module alongside the
-            // packaged unit, not source text concatenated by a CMake program.
-            if strcmp(path.data, runtime_path.data) == 0
-                && !compiler_project_read_source(project, "units/tower_runtime.tower", path.data) { return false; }
+            // Admit only the exact build runtime and this object's generated
+            // source (including CMake's foreign-expansion copy), never basename
+            // matches or arbitrary files outside the source root.
+            var candidate: ByteBuffer = default; defer bytes_dispose(&candidate);
+            var runtime = tool_path_identity(&candidate, runtime_path.data) && strcmp(physical.data, candidate.data) == 0;
+            var own_source = false;
+            if compiler_project_unit_source(compiler_project_basename(object)) == null {
+                if !compiler_project_generated_path(&generated, object, ".tower") { return false; }
+                own_source = tool_path_identity(&candidate, generated.data) && strcmp(candidate.data, physical.data) == 0;
+                if !own_source {
+                    if !compiler_project_generated_path(&generated, object, "_expanded.tower") { return false; }
+                    own_source = tool_path_identity(&candidate, generated.data) && strcmp(candidate.data, physical.data) == 0;
+                }
+            }
+            if (!runtime && !own_source) || !tool_path_inside(physical.data, build_root.data) {
+                puts("Unmapped required compiler project dependency:"); puts(path.data); return false;
+            }
+            if runtime {
+                if !compiler_project_read_source(project, "units/tower_runtime.tower", path.data) { return false; }
+            } else {
+                // The owning unit packages this entry text under its recipe
+                // name below. CMake's expansion must be the identical copy;
+                // otherwise packaging the unexpanded entry would lose content.
+                var entry: ByteBuffer = default; var dependency: ByteBuffer = default;
+                defer bytes_dispose(&entry); defer bytes_dispose(&dependency);
+                if !compiler_project_generated_path(&generated, object, ".tower")
+                    || !tool_read_file(generated.data, CompilerProjectFileBytes, &entry)
+                    || !tool_read_file(path.data, CompilerProjectFileBytes, &dependency)
+                    || entry.length != dependency.length
+                    || (entry.length != 0 && memcmp(entry.data, dependency.data, entry.length) != 0) {
+                    puts("Generated compiler project entry differs from dependency:"); puts(path.data); return false;
+                }
+            }
         }
     }
     return true;
+}
+
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+extern fn strerror(error: i32): u8*;
+fn compiler_project_generated_path(out: ByteBuffer*, object: u8*, suffix: u8*): bool {
+    var name = compiler_project_basename(object);
+    if !bytes_assign_text(out, object, strlen(object) - strlen(".o")) { return false; }
+    var basename_offset = bits(usize, name) - bits(usize, object);
+    for(var at = basename_offset; at < out.length; at++) { if out.data[at] == *"-" { out.data[at] = *"_"; } }
+    return compiler_project_text(out, suffix) && host_text_terminate(out);
 }
 
 // Unit keys/object filenames retain the browser recipe contract. Module entry
@@ -176,10 +226,7 @@ fn compiler_project_unit(project: CompilerProjectFiles*, build: u8*, object: u8*
         }
         if !compiler_project_text(&text, ";\n") { return null; }
     } else {
-        if !bytes_append(&path, object, strlen(object) - suffix_bytes) { return null; }
-        var basename_offset = bits(usize, name) - bits(usize, object);
-        for(var at = basename_offset; at < path.length; at++) { if path.data[at] == *"-" { path.data[at] = *"_"; } }
-        if !compiler_project_text(&path, ".tower") || !host_text_terminate(&path)
+        if !compiler_project_generated_path(&path, object, ".tower")
             || !tool_read_file(path.data, CompilerProjectFileBytes, &input) || !bytes_append(&text, input.data, input.length) { return null; }
     }
     if !compiler_project_file(project, unit.entry.data, text.data, text.length) { return null; }

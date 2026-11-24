@@ -16,6 +16,34 @@ extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn statx(directory: i32, path: u8*, flags: i32, mask: u32, output: void*): i32;
 extern fn __errno_location(): i32*;
 
+// Physical identity is only for native file admission. Keep the lexical suffix
+// below a matching root for packaged imports, including in-root symlink names.
+fn tool_path_identity(out: ByteBuffer*, path: u8*): bool {
+    var resolved = realpath(path, null); defer free(resolved);
+    return resolved != null && bytes_assign_text(out, resolved, strlen(resolved));
+}
+fn tool_path_inside(path: u8*, root: u8*): bool {
+    var length = strlen(root);
+    return strlen(path) > length && strncmp(path, root, length) == 0 && path[length] == *"/";
+}
+extern fn strncmp(left: u8*, right: u8*, length: usize): i32;
+fn tool_path_relative(out: ByteBuffer*, path: u8*, root: u8*): bool {
+    var physical: ByteBuffer = default; var prefix: ByteBuffer = default;
+    defer bytes_dispose(&physical); defer bytes_dispose(&prefix);
+    if !tool_path_identity(&physical, path) || !tool_path_inside(physical.data, root)
+        || !bytes_assign_text(&prefix, path, strlen(path)) { return false; }
+    var at = prefix.length;
+    while at != 0 {
+        at--;
+        if prefix.data[at] != *"/" { continue; }
+        prefix.data[at] = 0;
+        var matches = tool_path_identity(&physical, prefix.data) && strcmp(physical.data, root) == 0;
+        prefix.data[at] = *"/";
+        if matches { return bytes_assign_text(out, path + at + 1, strlen(path + at + 1)); }
+    }
+    return false;
+}
+
 // Owned NUL-terminated path; length excludes the terminator. Inputs may borrow
 // out until successful publication. Filesystem paths do not change module identity.
 fn tool_join(out: ByteBuffer*, left: u8*, right: u8*): bool {
