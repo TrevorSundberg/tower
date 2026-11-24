@@ -1,0 +1,35 @@
+# Frozen bd86046f reactors / 35c04415 static application
+
+- Scope: prepare ROOT's static artifact; no hosted publication or deployment-verifier operation.
+- UI/resource/asset-tool/test source: `35c04415ca5a59e67ee0fef3ad5b082a27bccb98`, tree `4897e6c6f8924a96ab5aedf94c60e606a00099cd`.
+- Reactor/project source: `bd86046fa3c1c3ce76854bbc2330a8d0c04a02df`; complete supplied 24 files / 163932330 B verified before staging and after tests.
+- Input manifest SHA256: `c43893d91f2fc719c7a98f7b03af68b3c6d9da72077e55822142110c18391b31`; original B2 provenance retained.
+- Intervening changes are target-pack invocation, fixtures and documentation; no UI, embedded compiler-source or builtin-resource drift. Later fixture/tool sources are not relabeled inside reactors.
+- Public default compiler SHA256 `44ae8f731d8991e5cd063e86512923ac5f9c1bd151943c8f235ee4025de11c44`; bootstrap override unset.
+- Only `build-bootstrap.sh --tools package_playground_assets` built, reusing B1's existing tools cache. No reactor, vendor, project or target regeneration.
+- Asset tool SHA256 `d5eee8bc73135eefeaa844db72e5b22c8c2c526c8c017cf450e3e9a76a4199ea`; original Tower manifest asset mapping preserved, explicit assembly provenance appended before tests.
+- Existing five clone input directories, previous dist and browser results preserved under `prior_*`; B2's immutable directory/cache untouched.
+- All 536 embedded source texts match the checkout exactly with UTF-8 decoding; all 26 generated entries remain in the byte-identical supplied project.
+- Recipe closure: 25 unit entries, portable/LLVM/cross unit references, generated runtime, 10 support archives and one imports file present. Shared reactor included separately.
+- All seven native target products match supplied lengths/hashes. Existing target warnings were previously resolved by edf6cc44; these already-built payloads were not substituted.
+- Output: 104 assets plus manifest, 105 files / 105745567 B. Exact membership, every length/hash, CNAME `tower-lang.org`, `.nojekyll`, builtin/foreign grammar resources and notices retained.
+- Thirteen gzip streams pass integrity checks; decoded hashes recorded. LLVM 12788704 -> 35425351 B and cross 17684403 -> 56581243 B compare byte-for-byte with supplied reactors.
+- No raw LLVM/cross duplicates or stale dist files. Support/import gzip streams total with reactors: 93725293 compressed / 292930524 decoded B.
+- Dist with those streams decoded would total 304950798 B. This includes editable compiler sources, LLVM/linker support, UI and native packs, unlike the 1670512 B portable reactor or 2299088 B native compiler executable alone.
+- Host: KinmenB `tower_ecs_b1`, CPUs 0–11 / 25769803776 B; Node 22.23.5, esbuild 0.25.12, Playwright 1.65.1, Chromium 159.0.8154.6; public native Clang19 tools boundary.
+- Selection listed exactly four tests in `playground/tests/browser/compiler-threads.spec.mjs`: desktop/mobile shared-isolation and blocked-service-worker portable fallback.
+- Unchanged assertions: actual shared workers, no page errors, staged `decltype`/`comptime` execution `42\n`, isolated reload and portable fallback with zero compiler thread workers.
+- PASS 4 / FAIL 0 / SKIP 0 / FLAKY 0; one test worker, zero retries, max-failures 1; original 120/90/60-second test/load/execute limits and 540-second aggregate guard retained.
+- Validation costs, wall / CPU / maximum process RSS: tool build 1.78 / 0.95 s / 199708 KiB; static assembly 16.64 / 7.25 s / 145420 KiB.
+- Four checks: 29.74 / 16.41 s / 352788 KiB (Playwright 26.821 s); archive creation 2.94 / 2.82 s / 2508 KiB. GNU time process maxima are not summed process/container memory.
+- Host-only setup: Linux esbuild 1.14 / 0.68 s / 119744 KiB; Chromium download 21.49 / 10.48 s / 151224 KiB. No compiler throughput claim.
+- All 1302 frozen host/resource files, 24 supplied inputs and 105 output files remained unchanged through tests; copied handoff and extracted archive reverified completely.
+- Archive 94406232 B, SHA256 `84de801ad1cbe201d351fbdae989f486adb99d8643955d90f8c6ea49546ac2e5`; regular files 0644 / directories 0755.
+- Manifest SHA256 `3336932b66e45aaaf94baa52e254b0b040b68f67d39d1269b2b9ebfc078883fe`; complete length/hash list and separate provenance supplied.
+- Handoff: `C:/Sandbox/build/codex_ecs_20261122/B1/static_bd86046f_35c04415/tested_dist/` and adjacent `tested_dist.tar.gz`, `SHA256SUMS`, `provenance.json`, source/input manifests and logs. Tested files marked read-only.
+- Raw commands/results: `build/ecs_b1/cache/static_bd86046f_35c04415/`; handoff `logs/` includes the unchanged four-test JSON, timings, scripts, gzip hashes and archive inventory.
+- Retained non-test failure: trailing archive-script browser-version query used an obsolete executable pathname after all archive checks passed; corrected metadata query only, no build/test/archive retry. Initial non-UTF-8 source inspection was corrected to exact UTF-8 before accepting matches.
+- No production/test code changes; only this receipt/journal. Prior package/import/Node/shared/generation/large-Wasm evidence was not rerun or enlarged.
+- Deployment verifier is **UNSTARTED**: no preparation, launch, reconstruction, replacement or workaround. No gh-pages push or hosted-behavior claim.
+- B2 Node/shared/edited-generation and L1 large-Wasm receipts are separate evidence, merged during reconciliation and not rerun here. ROOT integrated adoption/publication remains outside this task.
+- Reconciled published documentation through `dfa5f285`; no frozen build input changed. All source/asset hashes rechecked, unchanged evidence reused, and both frozen source commits remain reachable from main.
