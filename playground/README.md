@@ -1018,8 +1018,10 @@ node playground/scripts/test-shared-compiler.mjs \
 This requires the installed Playwright Chromium browser. The local test server
 supplies isolation headers; unsupported shared memory is a failure. Existing
 Tower fixtures check four-worker overlap, budget/world ownership, query waits,
-cancellation and stale tickets. Three Tower language fixtures compare graph/Fast
-output and complete canonical Foundation at one/four workers. The report records
+cancellation and stale tickets. Three language fixtures and the private-stage
+descriptor growth fixture compare Graph/Fast output and complete canonical
+Foundation at one and four workers. The stage fixture exhausts the actual byte
+budget, retries on the same owners and checks the eight-row fallback. The report records
 artifact/resource hashes, browser identity, worker startup/termination, phase
 timings and monotonic Wasm memory capacity. Capacity is not process RSS; cold
 initialization and the extra parallel-only fixtures prevent interpreting total
