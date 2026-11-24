@@ -128,6 +128,116 @@ fn structure_owner_cases(world: void*, budget: WorkBudget*): void {
     parser_structure_cache_dispose(&fork);
 }
 
+// Root -> Term -> 'x' has one kernel and two closure items in state zero.
+fn structure_read_x(table: ParserHostTable*, capture: u8*): void {
+    var owner = table.structure;
+    utility_check(owner != null && owner.context_storage.reservation.active
+        && owner.context_storage.reservation.owner == table.budget
+        && table.context_storage.data == null && !table.context_storage.reservation.active
+        && table.states.data == owner.states.data && table.states.length != 0,
+        "Shared structure alone owns the context buffer");
+    var state = &table.states.data[0];
+    var input: u8* = "x";
+    var row = state.contexts;
+    utility_check(state.kernels == 1 && row.length == 3 && row.data != null
+        && bits(u8*, row.data) == owner.context_storage.data, "State zero borrows the packed context row");
+    for(var i: usize = 0; i < row.length; i++) {
+        var item = &row.data[i];
+        var terminal = i == 2;
+        var id: u32 = terminal ? convert(u32, input[0]) : 0;
+        utility_check(item.production == i && item.term == 0 && item.terminal == terminal
+            && item.first == id && item.last == id, "Surviving state preserves the ordered Root and Term contexts");
+    }
+    utility_check(parser_table_rule_next(table, 1, 0) == 1 && structure_capture(table, capture),
+        "Surviving table resolves its Root rule and private capture");
+    var stream = parser_stream_utf8_null_terminated_create(input);
+    utility_check(stream != null, "Surviving table input stream");
+    defer parser_stream_destroy(stream);
+    var error = WorkBudgetError.None;
+    var request = parser_recognizer_create_result(table, stream, &error);
+    utility_check(request != null && error == WorkBudgetError.None, "Surviving table opens a recognizer");
+    defer parser_recognizer_destroy(request);
+    var running = true;
+    var result: void* = null;
+    while running { result = parser_recognizer_step(request, &running); }
+    utility_check(result != null && parser_recognizer_resource_error(request) == WorkBudgetError.None
+        && tower_node_get_child_member(result, capture) != null, "Surviving table parses x with its private capture");
+    entity_release(result);
+}
+
+fn structure_eviction_case(world: void*, budget: WorkBudget*): void {
+    var kinds: FrontendKinds = default;
+    utility_check(frontend_world_test_kinds(world, &kinds), "Eviction fixture kinds");
+    var cache: ParserStructureCache = {world: world, budget: budget, limit: 1, ..default};
+    defer parser_structure_cache_dispose(&cache);
+    var first = structure_open(&kinds, &cache, "x", "original", ParserReadMode.WholeInput, 0);
+    utility_check(parser_table_build(first, false) && first.structure != null, "Publish eviction fixture");
+    var alias = structure_open(&kinds, &cache, "x", "alias", ParserReadMode.WholeInput, 0);
+    defer structure_close(alias);
+    utility_check(parser_table_build(alias, false) && alias.structure == first.structure
+        && cache.entries.length == 1 && cache.entries.data[0] == alias.structure && alias.structure.references == 3,
+        "Original, alias and cache pin the same structure");
+    var replacement = structure_open(&kinds, &cache, "y", "replacement", ParserReadMode.WholeInput, 0);
+    defer structure_close(replacement);
+    utility_check(parser_table_build(replacement, false) && replacement.structure != null
+        && replacement.structure != alias.structure && cache.entries.length == 1
+        && cache.entries.data[0] == replacement.structure && replacement.structure.references == 2
+        && alias.structure.references == 2, "Limit-one replacement releases exactly the evicted cache pin");
+    structure_close(first);
+    utility_check(alias.structure.references == 1, "Alias is the sole evicted structure owner");
+    structure_read_x(alias, "alias");
+}
+
+// In this single-lane fixture the first grant after table.structure is installed
+// is the empty cache index's growth. Arm the one-shot physical fault on leaving
+// that grant, independent of how many allocations the LR build needed.
+fn structure_gate_enter(context: void*): void {}
+
+fn structure_deny_index(context: void*): void {
+    var watched = bits(ParserHostTable**, context);
+    if *watched != null && (*watched).structure != null {
+        *watched = null;
+        tower_test_buffer_fail_after(0);
+    }
+}
+
+fn structure_index_failure_case(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var watched: ParserHostTable* = null;
+    var before: WorkBudgetSnapshot = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1)
+        && work_budget_synchronize(&budget, bits(void*, &watched), structure_gate_enter, structure_deny_index)
+        && work_budget_snapshot(&budget, &before), "Index failure serial ledger");
+    var world: void* = null;
+    var kinds: FrontendKinds = default;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None
+        && frontend_world_test_kinds(world, &kinds), "Index failure fixture kinds");
+    var cache: ParserStructureCache = {world: world, budget: &budget, limit: 1, ..default};
+    var first = structure_open(&kinds, &cache, "x", "uncached", ParserReadMode.WholeInput, 0);
+    watched = first;
+    var built = parser_table_build(first, false);
+    tower_test_buffer_fail_after(frontend_world_unlimited());
+    utility_check(watched == null && built && first.resource_error == WorkBudgetError.None
+        && first.structure != null && first.structure.references == 1 && cache.entries.length == 0
+        && cache.entries.data == null && !cache.entries.reservation.active,
+        "Denied optional index growth leaves one table pin and no cache entry");
+    structure_read_x(first, "uncached");
+    var retry = structure_open(&kinds, &cache, "x", "retry", ParserReadMode.WholeInput, 0);
+    utility_check(parser_table_build(retry, false) && retry.structure != null && retry.structure != first.structure
+        && cache.entries.length == 1 && cache.entries.data[0] == retry.structure && retry.structure.references == 2,
+        "Fresh table can publish to the same cache after index growth refusal");
+    structure_close(first);
+    structure_read_x(retry, "retry");
+    structure_close(retry);
+    parser_structure_cache_dispose(&cache);
+    var closed: WorkBudgetSnapshot = default;
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world) && work_budget_snapshot(&budget, &closed)
+        && closed.live == before.live && closed.used_bytes == before.used_bytes && closed.used_lanes == before.used_lanes
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Index failure and recovery return baseline grants, bytes, lanes and buffers");
+}
+
 fn structure_scope_cases(): void {
     var budget: WorkBudget = default;
     utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Session reuse explicit budget");
@@ -196,10 +306,12 @@ fn parser_structure_reuse_tests(): void {
     var world: void* = null;
     utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Structural explicit world");
     structure_owner_cases(world, &budget);
+    structure_eviction_case(world, &budget);
     utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Structural world cleanup");
     var snapshot: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0
-        && work_budget_dispose(&budget), "Final structural pin releases all physical budget owners");
+        && snapshot.used_lanes == 0 && work_budget_dispose(&budget), "Final structural pin releases all physical budget owners");
+    structure_index_failure_case();
     structure_scope_cases();
     structure_reachable_cases();
     frontend_session_world_tests(); // imported overrides, cycles, reset, independent owners
