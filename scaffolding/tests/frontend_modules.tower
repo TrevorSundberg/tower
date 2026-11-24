@@ -1,8 +1,15 @@
 import tower;
+import .compiler.component_kinds;
 import .compiler.lr_tree;
 import .compiler.frontend_modules;
+import .compiler.frontend_revision_types;
+import .compiler.parser_types;
 import .compiler.syntax_reader;
 import .compiler.syntax_version_types;
+import .compiler.syntax_session_types;
+import .compiler.syntax_types;
+import .compiler.syntax_validation;
+import .compiler.syntax_view;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
@@ -17,6 +24,14 @@ extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, outp
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn frontend_world_clear(world: void*): bool;
+extern fn compiler_world_pinned(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+extern fn frontend_revision_release(revision: FrontendRevision*): void;
+extern fn syntax_revision_rule(revision: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
+extern fn entity_references(entity: void*): usize;
+extern fn entity_retain(entity: void*): usize;
+extern fn puts(text: u8*): i32;
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool,
     diagnostic: SyntaxVersionDiagnostic*): bool;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
@@ -369,9 +384,9 @@ fn module_startup_test(): void {
         "Checked startup leaves no retained world grants");
     module_require(work_budget_dispose(&budget));
     var batch = frontend_units_create_bounded_result(1, 1, 1, 8, 1, 1, "", "", "", &error);
-    // A request larger than the entire ledger is Invalid; exhaustion of the
-    // remaining capacity is the distinct Capacity case exercised above.
-    module_startup_check(batch == null && error == WorkBudgetError.Invalid, "Unit startup preserves invalid total budget");
+    // A representable physical allocation exceeding the total byte cap is
+    // Capacity, as is exhaustion of the remaining capacity exercised above.
+    module_startup_check(batch == null && error == WorkBudgetError.Capacity, "Unit startup preserves total byte Capacity");
     batch = frontend_units_create_bounded_result(1, 1, ModuleCloneBudgetBytes, 8, 1, 1, "", "", "", &error);
     module_startup_check(batch != null && error == WorkBudgetError.None, "Unit startup admission retry");
     frontend_units_close(batch);
@@ -564,4 +579,140 @@ fn module_session_tests(): usize {
     module_session_check(frontend_modules_try_destroy(environment), 841, &result);
     module_session_check(frontend_modules_try_destroy(other), 842, &result);
     return result;
+}
+
+// Empty-cache reset with old idle and active leases shares this existing test unit.
+fn module_cache_lease_check(ok: bool, message: u8*): void {
+    if !ok { trap(message, 0); }
+}
+
+// Check the actual parsed root's world and source span against literal expected
+// output, including the old request's still-unconsumed statement after reset.
+fn module_cache_lease_next(session: void*, text: u8*): void {
+    var root = syntax_next(session);
+    module_cache_lease_check(root != null, "Lease continuation produces its expected parse root");
+    defer entity_release(root);
+    var reader = bits(SyntaxSession*, session);
+    var span = bits(ParserMatchData*, compiler_node_get(root, CompilerParserMatch));
+    module_cache_lease_check(compiler_node_world(root) == reader.inputs.world && span != null,
+        "Lease parse root belongs to its owning world");
+    var length = syntax_text_length(text);
+    module_cache_lease_check(span.start <= reader.source_length && span.length <= reader.source_length - span.start
+        && span.length == length && syntax_bytes_compare(reader.source + span.start, span.length, text, length) == 0,
+        "Lease parse output matches the exact expected source bytes");
+}
+
+fn module_cache_lease_end(module: FrontendModule*, session: void*): void {
+    module_cache_lease_check(syntax_next(session) == null && syntax_get_error(session)[0] == 0
+        && frontend_module_error(module)[0] == 0, "Lease completes without syntax or module errors");
+    frontend_module_finish(module);
+}
+
+export fn module_cache_empty_seed_leases(): void {
+    var budget: WorkBudget = default;
+    module_cache_lease_check(work_budget_init(&budget, 1, ModuleCloneBudgetBytes, 1), "Lease budget initialization");
+    var world: void* = null;
+    module_cache_lease_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Lease world creation");
+    var environment = frontend_modules_create();
+    module_cache_lease_check(environment != null && frontend_modules_bind_world(environment, world), "Lease environment binding");
+    frontend_modules_configure(environment, "main.tower", "");
+    var shared: u8* = "parse Statement = 'cached';";
+    module_cache_lease_check(frontend_modules_source(environment, "shared.tower", shared, syntax_text_length(shared)), "Lease import input");
+
+    var idle = frontend_module_root_world(world, "parse Statement = 'idle'; idle", environment);
+    var active = frontend_module_root_world(world, "parse Statement = 'old'; old old", environment);
+    module_cache_lease_check(idle != null && active != null, "Two independent seed-only requests");
+    var idle_session = frontend_module_session(idle);
+    var active_session = frontend_module_session(active);
+    module_cache_lease_check(idle_session != null && active_session != null && idle_session != active_session, "Distinct parser leases");
+    module_cache_lease_next(idle_session, "parse Statement = 'idle';");
+    module_cache_lease_next(idle_session, "idle");
+    module_cache_lease_end(idle, idle_session);
+    module_cache_lease_next(active_session, "parse Statement = 'old';");
+    module_cache_lease_next(active_session, "old");
+    var reader = bits(SyntaxSession*, active_session);
+    var old_seed = syntax_world_revision(world, SyntaxSeedBaseline);
+    module_cache_lease_check(old_seed != null && reader.pins.bedrock == old_seed
+        && bits(SyntaxSession*, idle_session).pins.bedrock == old_seed, "Both leases pin the original seed");
+    var idle_document = bits(SyntaxSession*, idle_session).inputs.document;
+    entity_retain(idle_document); // Independent witness; never dereference a retired parser.
+    frontend_module_destroy(idle);
+    var generation = environment.session_generation;
+    var cursor = reader.cursor;
+    module_cache_lease_check(environment.cache.length == 0 && environment.compilation_session == idle_session
+        && environment.active_graphs == 1 && entity_references(idle_document) == 2,
+        "Empty snapshots coexist with one idle parser and one active lease");
+
+    // No parser call/job or ECS view is outstanding. Revision/entity references
+    // keep outputs alive; they do not pin the world's cache registry against clear.
+    module_cache_lease_check(!compiler_world_pinned(world) && frontend_world_clear(world), "Quiescent world clear with retained leases");
+    module_cache_lease_check(!compiler_world_dispose(world), "Environment and leases still own the world");
+    var current_seed = syntax_world_revision(world, SyntaxSeedBaseline);
+    module_cache_lease_check(current_seed != null && current_seed != old_seed && environment.cache.length == 0
+        && environment.compilation_session == idle_session && entity_references(idle_document) == 2,
+        "Reinitialized seed leaves old idle/active owners intact before publication");
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    module_cache_lease_check(syntax_baseline_install(world, bits(void*, environment), "import shared;", true, &diagnostic),
+        "Importing Foundation publishes after empty-cache world clear");
+    syntax_version_diagnostic_dispose(&diagnostic);
+    module_cache_lease_check(environment.session_generation != generation && environment.compilation_session == null
+        && entity_references(idle_document) == 1, "Publication advances generation and releases the old idle document owner");
+    module_cache_lease_check(environment.cache.length == 1, "Initial import snapshot is retained");
+    var snapshot = environment.cache.data[0];
+    module_cache_lease_check(frontend_module_world(snapshot) == world && snapshot.declarations.length == 1,
+        "Retained snapshot owns the imported declaration in this world");
+    var declaration = snapshot.declarations.data[0];
+    module_cache_lease_check(compiler_node_world(declaration) == world, "Snapshot declaration world identity");
+    var foundation = syntax_world_revision(world, SyntaxFoundationBaseline);
+    var name: u8* = "ImportDeclaration";
+    var seed_rule = syntax_revision_rule(current_seed, name, syntax_text_length(name));
+    var old_rule = syntax_revision_rule(old_seed, name, syntax_text_length(name));
+    var installed_rule = syntax_revision_rule(foundation, name, syntax_text_length(name));
+    module_cache_lease_check(seed_rule != null && old_rule != null && installed_rule != null && seed_rule.count != 0
+        && installed_rule.count == seed_rule.count && old_rule.count == seed_rule.count, "Published seed rule shape");
+    for(var i: usize = 0; i < seed_rule.count; i++) {
+        module_cache_lease_check(installed_rule.alternatives[i] == seed_rule.alternatives[i]
+            && installed_rule.alternatives[i] != old_rule.alternatives[i], "Published grammar retains current, not retired, seed entities");
+    }
+    name = "Statement";
+    var statement = syntax_revision_rule(foundation, name, syntax_text_length(name));
+    var node = bits(SyntaxNode*, compiler_node_get(declaration, CompilerSyntax));
+    module_cache_lease_check(node != null && statement != null && statement.count == node.items.length && statement.count != 0,
+        "Published statement belongs to the retained snapshot");
+    for(var i: usize = 0; i < statement.count; i++) {
+        module_cache_lease_check(statement.alternatives[i] == node.items.data[i], "Exact cached declaration publication identity");
+    }
+
+    module_cache_lease_check(reader.pins.bedrock == old_seed && reader.cursor == cursor
+        && active.session_generation == generation, "Old active continuation retains its seed, cursor and lease generation");
+    module_cache_lease_next(active_session, "old");
+    module_cache_lease_end(active, active_session);
+    frontend_module_destroy(active);
+    module_cache_lease_check(environment.compilation_session == null, "Retired active lease cannot refill even an empty idle slot");
+    var fresh = frontend_module_root_world(world, "import shared; cached", environment);
+    module_cache_lease_check(fresh != null, "New-generation request");
+    var fresh_session = frontend_module_session(fresh);
+    module_cache_lease_check(fresh_session != null && bits(SyntaxSession*, fresh_session).pins.bedrock == current_seed,
+        "New request pins the current seed");
+    module_cache_lease_next(fresh_session, "import shared;");
+    module_cache_lease_next(fresh_session, "cached");
+    module_cache_lease_end(fresh, fresh_session);
+    module_cache_lease_check(fresh.dependencies.length == 1
+        && fresh.dependencies.data[0].declarations.length == snapshot.declarations.length
+        && fresh.dependencies.data[0].declarations.data[0] == declaration,
+        "New request reuses the exact retained declaration and parses cached");
+    frontend_module_destroy(fresh);
+    module_cache_lease_check(environment.compilation_session == fresh_session && environment.active_graphs == 0,
+        "Current-generation lease returns to idle after all requests drain");
+    entity_release(idle_document);
+    frontend_revision_release(foundation);
+    frontend_revision_release(current_seed);
+    frontend_revision_release(old_seed);
+    module_cache_lease_check(frontend_modules_try_destroy(environment) && frontend_world_clear(world) && compiler_world_dispose(world),
+        "All parser, snapshot, revision and world owners drain");
+    var final: WorkBudgetSnapshot = default;
+    module_cache_lease_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0 && final.used_lanes == 0,
+        "Lease teardown leaves zero bytes, grants and lanes");
+    module_cache_lease_check(work_budget_dispose(&budget), "Lease budget disposal");
+    puts("Empty-cache seed-clear idle/active leases, cached output and zero ownership passed.");
 }

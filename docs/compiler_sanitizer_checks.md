@@ -70,6 +70,12 @@ remains open. This receipt is for D2 `599e8a8`, whose production compiler source
 match published `60741c5`; it does not validate other lanes' pending changes.
 No source-language UBSan coverage is implemented by this mode.
 
+The [deferred-inventory repair](sanitizer_manifest_9aa534cd.md) collects after
+all root deferred producers, sorts entries and rejects conflicting descriptions
+of one object. Reconfigure an existing cache to refresh the inventory; no compiler
+rebuild is needed for this metadata change. Configured but unconsumed interface
+objects may have no reachable Ninja rule, so audit that distinction explicitly.
+
 A later unchanged-source backend diagnostic used a bounded600s run after the
 normal selector passed142.39s. It failed at458.83s with raw exit134 and
 `frontend/backend overlap deadline`, the fixture's internal30s signal wait.
@@ -281,3 +287,11 @@ Five selected positives pass; current query-smoke reaches its unchanged180s
 limit without a TSan report, while the one same-original-IR normal control passes.
 Unit-admission/backend remain unstarted. This repairs the missing-provider
 sensitivity composition, not full compiler thread-sanitizer acceptance.
+
+## c8555971 TSan completion follow-up
+
+The [measured completion receipt](compiler_thread_completion_c8555971.md) closes the frozen query/unit-admission/full-backend selection without a new sanitizer finding. Query219.10s and backend387.66s require scoped thread-mode CTest outer limits360/600s; original180s failures remain recorded. Ordinary deadlines, all internal30s overlap guards, budgets, fixtures and outputs are unchanged. Unit-admission passes its original180s registration. This reuses the existing sensitivity/five positives and actual object-hook proof; later combined sources, ASan and unsupported-host/UBSan coverage remain separate.
+
+## Integrated bucket/cache/lifetime adoption
+
+The [fca5df98 integrated TSan receipt](compiler_thread_integrated_fca5df98.md) passes all ten selected registrations, including the current bucket/model fixture and complete old-lease/module-cache suite. Query197.54s, unit-admission47.76s and full backend364.51s retain their committed outer allowances and original30s internal guards; no finding, cap change or weakened oracle. Actual42-object proof and unchanged sensitivity/runtime hashes are retained. D1's syntax typed-error delta is not yet published through fd9beae1 and remains outside this acceptance; final artifacts, other hosts and unsupported UBSan remain separate.
