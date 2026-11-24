@@ -1,0 +1,168 @@
+import tower;
+import frontend_units;
+import body_runs;
+import integer_argument_checks;
+import compiler_dependency_units;
+import world_budget;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_gate;
+import .compiler.grammar_types;
+import .compiler.format_api;
+import .compiler.format_types;
+import .compiler.interpreter_context_types;
+
+extern fn frontend_modules_world(environment: void*): void*;
+extern fn pthread_self(): usize;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn entity_component_remove(node: void*, kind: void*): bool;
+
+var StagingExtentWorkers: usize = 4;
+var StagingExtentFuel: u64 = 10000;
+var StagingExtentWaitRepetitions: usize = 3;
+
+// Use checked, lowered ordinary source, not a second hand-built function graph.
+// The controlled input publication is after compilation has joined; it proves
+// interpreter continuation behavior, not an observed compiler scheduling delay.
+fn staging_extent_resume(program: SemanticProgram*): void {
+    var ordered: void* = null; var increment: void* = null; var combine: void* = null;
+    foreach(var function in &program.functions) {
+        var name = sem_get(function).name.data;
+        if name == null { continue; }
+        if strcmp(name, "ordered_extent") == 0 { ordered = function; }
+        if strcmp(name, "increment") == 0 { increment = function; }
+        if strcmp(name, "combine") == 0 { combine = function; }
+    }
+    units_check(ordered != null && increment != null && combine != null, "Compiled staging functions");
+    var kind = entity_create(compiler_world_store(compiler_node_world(program.root)));
+    units_check(kind != null && entity_register(kind, sizeof(IMFunctionInput), alignof(IMFunctionInput), 0), "Staging executable input kind");
+    defer entity_release(kind);
+    var available = bits(IMFunctionInput*, entity_component_data(entity_component_add(increment, kind)));
+    var pending = bits(IMFunctionInput*, entity_component_data(entity_component_add(combine, kind)));
+    units_check(available != null && pending != null, "Staging executable inputs");
+    defer units_check(entity_component_remove(increment, kind) && entity_component_remove(combine, kind), "Staging input retirement");
+    *available = {function: increment, ready: true, failed: false};
+    *pending = default;
+    var invocation: IMInvocation = default;
+    units_check(interpreter_invocation_init(&invocation, ordered, convert(usize, program.pointer_bytes), null, 0, true, StagingExtentFuel), "Compiled extent invocation");
+    defer interpreter_invocation_dispose(&invocation);
+    invocation.context.type_arguments = true;
+    invocation.context.executable_functions = kind;
+    interpreter_invocation_step(&invocation, convert(usize, StagingExtentFuel));
+    units_check(!invocation.state.failed && !invocation.state.done && invocation.context.waiting_function
+        && invocation.context.waiting == combine, "Compiled helper waits after both argument effects");
+    var steps = invocation.state.steps;
+    var frames = invocation.state.frame_count;
+    var memory = invocation.state.memory.data;
+    for(var repeat: usize = 0; repeat < StagingExtentWaitRepetitions; repeat++) {
+        interpreter_invocation_step(&invocation, convert(usize, StagingExtentFuel));
+        units_check(!invocation.state.failed && invocation.context.waiting == combine && invocation.context.waiting_function
+            && invocation.state.steps == steps && invocation.state.frame_count == frames && invocation.state.memory.data == memory,
+            "Compiled helper retains its owning frame and repeated argument effects while waiting");
+    }
+    *pending = {function: combine, ready: true, failed: false};
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+    units_check(!invocation.state.failed && invocation.context.result == 12, "Compiled helper resumes with exactly two ordered increments");
+}
+
+struct StagingExtentObserver {
+    gate: void*;
+    active: usize;
+    peak: usize;
+    threads: usize[StagingExtentWorkers];
+    count: usize;
+    calls: usize;
+}
+
+fn staging_extent_event(context: void*, phase: GrammarPhase, entering: bool, ordinal: usize, kind: usize): void {
+    if phase != GrammarPhase.SemanticKernel { return; }
+    var observer = bits(StagingExtentObserver*, context);
+    work_gate_enter(observer.gate);
+    defer work_gate_leave(observer.gate);
+    if !entering { observer.active--; return; }
+    observer.calls++;
+    observer.active++;
+    if observer.active > observer.peak { observer.peak = observer.active; }
+    var thread = pthread_self();
+    for(var i: usize = 0; i < observer.count; i++) { if observer.threads[i] == thread { return; } }
+    units_check(observer.count < sizeof(decltype(observer.threads)) / sizeof(usize), "Staging kernel thread ceiling");
+    observer.threads[observer.count++] = thread;
+}
+
+fn staging_extent_observe(root: u8*, bedrock: u8*, foundation: u8*, width: u32, workers: usize): void {
+    var observer: StagingExtentObserver = {gate: work_gate_open(), ..default};
+    units_check(observer.gate != null, "Staging observer gate");
+    defer work_gate_close(observer.gate);
+    var batch = frontend_units_create(1, workers, width, 81, 23, bedrock, foundation, root);
+    units_check(batch != null, "Staging module batch");
+    defer frontend_units_close(batch);
+    var source = "import tower; import tests.staging_extent_helpers; fn answer():i32{return check_extents();}";
+    units_check(units_source(batch, 1, root, "/staging_modules.tower", source, strlen(source)), "Staging module source");
+    var world = frontend_modules_world(frontend_units_environment(batch, 1));
+    compiler_world_grammar(world).observer = {context: bits(void*, &observer), event: staging_extent_event};
+    while !frontend_units_step(batch, true) {}
+    if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+    units_check(frontend_units_failed(batch) == 0, "Staging ordinary imported module succeeds");
+    dependency_unit_answer(frontend_units_program(batch, 1), 0);
+    staging_extent_resume(frontend_units_program(batch, 1));
+    var before: WorkBudgetSnapshot = default;
+    var after: WorkBudgetSnapshot = default;
+    var calls = observer.calls;
+    units_check(work_budget_snapshot(frontend_units_work_budget(batch), &before)
+        && before.used_lanes == 0 && observer.active == 0 && observer.calls != 0
+        && frontend_units_step(batch, false) && frontend_units_step(batch, true)
+        && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+        && before.used_bytes == after.used_bytes && before.live == after.live && after.used_lanes == 0
+        && observer.calls == calls,
+        "Completed staging retry neither dispatches nor acquires owners");
+    compiler_world_grammar(world).observer = default;
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var out: FormatEngine = {result: &text, ..default};
+    format_text(&out, "Staging imported module width="); format_unsigned(&out, convert(u64, width));
+    format_text(&out, " workers="); format_unsigned(&out, convert(u64, workers));
+    format_text(&out, " semantic_threads="); format_unsigned(&out, convert(u64, observer.count));
+    format_text(&out, " peak="); format_unsigned(&out, convert(u64, observer.peak));
+    format_text(&out, " kernels="); format_unsigned(&out, convert(u64, observer.calls));
+    format_text(&out, " retained_bytes="); format_unsigned(&out, convert(u64, after.used_bytes));
+    format_text(&out, " retained_owners="); format_unsigned(&out, convert(u64, after.live));
+    units_check(!text.failed && vector_push(&text.text, 0), "Staging observation receipt");
+    puts(text.text.data);
+}
+
+fn staging_extent_checks(root: u8*): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    var source: vector(u8) = default; var computed: vector(u8) = default; var invalid: vector(u8) = default;
+    defer vector_dispose(&invalid); defer vector_dispose(&computed); defer vector_dispose(&source);
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    units_read(root, "/tests/staging_extent_helpers.tower", &source);
+    dependency_unit_append(&source, "\nprint(check_extents());");
+    units_check(vector_push(&source, 0), "Single-unit staging source");
+    units_read(root, "/tests/computed_type_arguments.tower", &computed);
+    units_read(root, "/tests/staging_extent_invalid.tower", &invalid);
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        var canonical: vector(u8) = default; var existing: vector(u8) = default; var imported: vector(u8) = default;
+        defer vector_dispose(&imported); defer vector_dispose(&existing); defer vector_dispose(&canonical);
+        var offset: usize = 0;
+        for(var workers: usize = 1; workers <= StagingExtentWorkers; workers *= StagingExtentWorkers) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
+            body_runs_trial(computed.data, workers, width, bedrock.data, foundation.data, root, &existing);
+            body_runs_trial("import tower; import tests.staging_extent_helpers; print(check_extents());",
+                workers, width, bedrock.data, foundation.data, root, &imported);
+            integer_argument_failure(root, bedrock.data, foundation.data, invalid.data,
+                "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer",
+                width, workers, &offset);
+            staging_extent_observe(root, bedrock.data, foundation.data, width, workers);
+        }
+        units_check(vector_push(&canonical, 0) && vector_push(&imported, 0), "Staging canonical terminators");
+        var roundtrip: vector(u8) = default; var module_roundtrip: vector(u8) = default;
+        defer vector_dispose(&module_roundtrip); defer vector_dispose(&roundtrip);
+        body_runs_trial(canonical.data, StagingExtentWorkers, width, bedrock.data, foundation.data, root, &roundtrip);
+        body_runs_trial(imported.data, StagingExtentWorkers, width, bedrock.data, foundation.data, root, &module_roundtrip);
+    }
+    puts("Staging extents: single/module, generic/aggregate/indirect/effects, capture rejection and canonical execution pass at widths32/64 workers1/4.");
+}
