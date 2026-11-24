@@ -38,6 +38,7 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_world_grammar", "compiler_world_grammar_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_component_owner", "entity_component_owner_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_register_stage_result", "entity_register_stage_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Interpreter, "entity_register_stage_result", "entity_register_stage_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_clone_tree_owned_result", "compiler_clone_tree_owned_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "frontend_module_cyclic_result", "frontend_module_cyclic_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "syntax_session_open_result", "syntax_session_open_result_extra");

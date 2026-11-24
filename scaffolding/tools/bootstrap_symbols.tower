@@ -101,6 +101,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // LR tasks and frontend modules preserve checked component registration
+        // failures from the entities provider, including sparse kind metadata.
+        if bootstrap_symbol_in("entity_register_stage_result", symbol, length) { return true; }
         // Diagnostic text retains the ParserFormat provider's buffer result.
         if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
         if bootstrap_symbol_in("parser_structure_cache_copy parser_structure_cache_dispose", symbol, length) { return true; }
