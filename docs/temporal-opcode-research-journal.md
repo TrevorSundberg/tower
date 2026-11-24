@@ -96448,6 +96448,26 @@ L1 final checked producer boundary b03841da includes L2's rollback to original l
 L1 signed pointer/stage ownership acceptance frozen503677d9: added verifier-kept signed LLVM ptr icmp fixture, eight independent literal high-bit/zero/equality/order rows plus trace12. Existing checked importer/formatter/fresh Graph/Fast/canonical/world-budget trial reused at32/64 workers1/4. Two new CTests pass eight execution profiles/64rows/640predicatebits; eight ordinary-invalid-pointer compiles retain exact3:19 diagnostic and zero execution/owners. No production logic/ABI change; native test fixture provider linked explicitly independently of broad backend-test option.
 Exact L2 stage953744B/f6166fc8 request now passes optimized32 source/recheck1/4, byte-identical1323476B/302e18e2 Foundation; original/rebuilt direct Graph/Fast1/4 eight executions output0/canonical equality/zeroowners. Prior browser1274972/native1291590 errors and original handoff preserved; current rawLLVM5046a5bb retains unsignedptr instruction12576. A2second-normalization work untouched/unrun. SignedLLVM32dd93b853/64bf6fff89 explicitly retains allfour signedpredicates. Current compiled source includes pagepolicy/loweringrevert.
 Costs signed1.91wall/1.51CPU/139440KiB; stageimport1 3.80/3.77/702064,4 3.16/4.00/713112; originalexecution3.29/3.76/404092,rebuilt8.33/9.30/753492. Production unchanged, no invented speedup. Two authoring build failures preserved and corrected; scopes/commands/source/artifact hashes in docs/signed_pointer_stage_503677d9.md and external L1/signed_pointer_stage_503677d9. Prior accepted entity_pages suite not rerun. ROOT current-reactor adoption/unstarted T9phases/release pending; no pin/deployment/sanitizer. Ownedjobsdrained; committing/reconciling.
+### 2026-11-23 A2: second optimized Foundation constant-address reconstruction
+
+[Exact cause, fix, measurements and receipt](backend_constant_address_e330a2c9.md).
+Native e330a2c9 reproduces ROOT's immutable 1327388-byte input and identical
+608571-byte LLVM: bi_value rejects ConstantExpr kind10/op8/i32, specifically
+ptrtoint(global.storage361)+38 in tower_main, not the reported terminal return.
+A reduced ordinary Tower program also exposes nested constant subtraction.
+The shared importer now uses existing OAdd/OSub and bi_mask; unsupported block
+addresses retain the exact diagnostic/first cause and publish no partial stage.
+Temporary rejection observation is removed; raw failed probes remain preserved.
+After adopting L1's distinct bi_compare repair and current main289185f2, all11
+focused registrations and24 direct Graph/Fast configurations pass at their
+recorded widths/workers. The exact second-normalization CLI passes1/4 with0;
+Foundation1235722B is identical across workers, all checked world owners drain.
+Healthy frozen n3 serial wall .4402->.4437s; paired four-worker .5410->.5153s,
+CPU/RSS and the earlier cold outlier are retained, with no speedup claim.
+ROOT retains browser/generation/release and the service-blocked instrumentation
+gates. CPU0-11/24GiB, public768a0cdf bootstrap, one native cache; no reactor or
+instrumentation run. Existing3 stashes and new pull-conflict autostash e9f023f0
+remain intact. Journal history, todo and sibling clones are unchanged.
 D2 final native-reference integration: complete289185f2 preserved in
 3c8cd4571a118006ab7841717e21b4a39c1c4cd4, including B2 child layout. Earlier
 d5f18abb adopted pointer ordering/page policy/lowering rollback: four actions

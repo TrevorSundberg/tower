@@ -10,6 +10,10 @@ var LLVMConstantFloatValueKind: u32 = 19;
 var LLVMPointerTypeKind: u32 = 12;
 var LLVMFirstOrderedIntegerPredicate: u32 = 34;
 
+var LLVMConstantExpressionValueKind: u32 = 10;
+var LLVMIntegerAddOpcode: u32 = 8;
+var LLVMIntegerSubtractOpcode: u32 = 10;
+
 fn bi_pow2(width: u32): u64 {
     var result: u64 = 1;
     var i: u32 = 0;
@@ -217,8 +221,16 @@ fn bi_value(c: BackendImport*, value: void*): void* {
     if integer {
         return bi_literal(c, value, scalar, LLVMConstIntGetZExtValue(value));
     }
-    if kind == 10 {
+    if kind == LLVMConstantExpressionValueKind {
         var op = LLVMGetConstOpcode(value);
+        if op == LLVMIntegerAddOpcode || op == LLVMIntegerSubtractOpcode {
+            // Optimization can make global-address arithmetic a ConstantExpr.
+            // Reconstruct the same ordinary, width-masked operation as SSA;
+            // the address still comes from its world-owned global binding.
+            var left = bi_value(c, LLVMGetOperand(value, 0));
+            var right = bi_value(c, LLVMGetOperand(value, 1));
+            return bi_mask(c, bi_binary(c, op == LLVMIntegerAddOpcode ? OAdd : OSub, left, right, scalar), type);
+        }
         if op == 29 {
             return bi_gep(c, value);
         }
@@ -247,7 +259,7 @@ fn bi_value(c: BackendImport*, value: void*): void* {
         }
     }
     backend_fail(c.backend, "Unsupported LLVM value in foundation return path");
-    return bi_const(c, scalar, 0);
+    return null;
 }
 
 fn bi_select(c: BackendImport*, condition: void*, yes: void*, no: void*, scalar: u32): void* {
