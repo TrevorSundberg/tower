@@ -31,5 +31,5 @@
 - Retained non-test failure: trailing archive-script browser-version query used an obsolete executable pathname after all archive checks passed; corrected metadata query only, no build/test/archive retry. Initial non-UTF-8 source inspection was corrected to exact UTF-8 before accepting matches.
 - No production/test code changes; only this receipt/journal. Prior package/import/Node/shared/generation/large-Wasm evidence was not rerun or enlarged.
 - Deployment verifier is **UNSTARTED**: no preparation, launch, reconstruction, replacement or workaround. No gh-pages push or hosted-behavior claim.
-- Remaining separate gates: B2 Node/shared/two edited generations, L1 large Wasm and ROOT integrated adoption/publication; this four-test result does not pass those gates.
-- Frozen build sources remain reachable from main. Subsequent reconciliation preserves this measured boundary; later sources are outside these artifacts.
+- B2 Node/shared/edited-generation and L1 large-Wasm receipts are separate evidence, merged during reconciliation and not rerun here. ROOT integrated adoption/publication remains outside this task.
+- Reconciled published documentation through `dfa5f285`; no frozen build input changed. All source/asset hashes rechecked, unchanged evidence reused, and both frozen source commits remain reachable from main.
