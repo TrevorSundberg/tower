@@ -1,0 +1,34 @@
+# Lowering cursor mechanism check: loops versus tickets
+
+**Disposition:** the rejected candidate did eliminate repeated successful Expression ticket attempts on these inputs, by source-derived proof. An absent Signature query pins the outer loop at zero, so it did not eliminate repeated function-loop visits. Both facts matter; the measured regression and rejection in [51370df1](compiler_lowering_cursor_bd05893b.md) remain unchanged.
+Review freeze `f10d363732651270e9a1ba2df963591a400da027`, tree `6646e2bf2249a8d3d73e02d65a13edb79a7506fa`. All scaffolding blobs equal the original `bd05893b` freeze; current main stayed restored throughout. No compiler build, execution, candidate observation or timing matrix was necessary.
+Reviewed rejected `semantic_lowering_work.candidate` SHA256 `fe1e855dfebef343f6e47255428b840a809fb4c5baabb57c59da2dfd096e7e95`, patch `40ad2e7b81f9b830a26c809eda9140dda90ec982926300022703852bfedd15a1`, and retained baseline observer `1d57ab55a04463eb0efc8cd145461ac8fb658328bb4b78248787df50d89a1274`.
+Retained canonical SHA256: small16 `76849f7eb1b152387a9afa31a160e20ff922940f94c4fcce6c2a74f028e04796`; single4096 `79b43b59b1adabbbc407fafd674ab534f33ddf70fe72c5ae4c529a010e1879ce`. Their full bytes already matched the rejected candidate, workers1/4, with known42 controls. No new runtime counters are claimed here.
+
+| Actual semantic function ordinal | Retained owner / evidence |
+| --- | --- |
+|0|Program root, inserted by `semantic_initialize`; Expression registration uses the subject itself, not `body`.|
+|1,2|`signed_integer`, `unsigned_integer`; emitted `control value 1.*` / `2.*`.|
+|3,4,5|`pick`, literal-return `imported_later`, `chosen_type`; neighboring control ordinals3/5 fix this source order.|
+|6,7|`answer`, literal-return `later`; answer carries control ordinal6.|
+|8 through23 /4103|`body_0` through `body_15` /`body_4095`; each canonical body carries its own contiguous control ordinal.|
+|24 /4104|`identity(i32)`; formatter prepends this generated function, but its control prefix proves its last semantic ordinal.|
+
+There are24/4104 emitted functions plus the root:25/4105 Expression owners with bodies, not an early absent Expression hole. Canonical text order is deliberately not substituted for `program.functions` order. The large observer independently records4105 Lower kernels. All signatures here use scalar/type-valued parameters/results; `semantic_aggregate` recognizes only nonpointer Struct/Array, so no Signature producer/kind exists.
+Exact producer contracts: [registration/frontier](../scaffolding/compiler/semantic_lowering_work.tower) skip root Signature unconditionally, but register root Expression and every present body. [sem_run](../scaffolding/compiler/semantic_statements.tower) completes body checking/pruning before lifecycle lowering; [KnownSnapshot](../scaffolding/compiler/semantic_known_bindings.tower) is explicitly taken/finished before [sem_phase_begin](../scaffolding/compiler/semantic_phase_work.tower) registers/demands the transform joins. Thus the retained scalar fixture has no unresolved Body/Snapshot/Aggregate prerequisite at selection.
+In the rejected snapshot, `sem_lower_selection_advance(true)` stops at root's absent query (`id == 0`), leaving Signature0 on every mixed pump. Expression instead advances over each joined/published successful prefix. `first=min(Expression,Signature)` stays0, but the inner `index < expression_next` guard executes **before** its `work_find`/`work_take_task`.
+For large4096 the existing18-call/17-window trace therefore derives Expression entry positions `0,256,512,...,4096,4105`; Signature remains0. The small16 prefix similarly moves0→25 after its one joined batch and stays there across later empty pumps. No cursor runtime trace was retained in the earlier receipt; these are deductions from the exact source, ordinal artifacts and completed batch trace.
+
+| Large4096 operation, excluding registration/finish scans | Baseline observed/derived | Rejected candidate, source-derived |
+| --- | ---: | ---: |
+|Function-loop iterations|43026|43026: Signature0 still starts every loop at0|
+|Selection Expression `work_find` / `work_take_task`|43026 /43026|4105 /4105|
+|Succeeded entries passed to `work_take_task`|38921|0|
+|Additional prefix `work_find` calls|0|Expression4122 (4105 success checks +17 Ready boundaries), Signature18 absent-root checks|
+
+This separates selection revisits from prefix validation: the candidate still checks4105 Succeeded tickets once while advancing. It removes38921 repeated successful take attempts; it does not remove38921 function-loop iterations, nor alter claims/captures/stages. `work_take_task` rejects non-Ready tickets before access admission, so the original successful revisits were not repeated expensive claim comparisons. No saved-time estimate follows from these counts.
+[D2's absent-query proposal](compiler_lowering_cursor_proposal_3e747b51.md) is materially different. Skipping current absence would move Signature to25/4105, allowing `min` to follow Expression; this fixture's large selection loop would visit4105 rather than43026 ordinals. It also adds a one-time4105 absent Signature lookups instead of18 root lookups. That tradeoff was **not** timed by the rejected implementation.
+Its absence skip is source-safe under the stated complete hooks: registration still scans before every selection; a successfully sealed/demanded new producer rewinds its phase; both compactions clear positions; revision/profile mismatch and disposal clear them; incomplete/failed registration returns before selection. Waiting/Ready/Running/Failed existing queries must still block advancement, and ordered state/error scans remain full.
+The reviewed production closure has no bypass producer: AggregatePrepare/Lowering requests are created by `sem_lower_register`; phase/executable/known consumers find existing queries, and `sem_query_input_checked` only records an existing successful read. `work_reset` requires joined terminal tasks and a different identity; Succeeded is not reopened in that identity. This is a conditional source-safety conclusion, not a new implementation or runtime acceptance of absence skipping.
+No second policy was implemented. The previous small-serial+4.34%wall/+4.80%CPU and large/four regression still reject the retained candidate; they do not measure or reject D2's distinct outer-loop reduction. Its profitability remains unmeasured and would need separate authorization and evidence.
+Raw review map, exact input/snapshot hashes, ordinal listings and retained observer reference: `C:/Sandbox/build/codex_ecs_20261122/L2/lowering_cursor_mechanism_f10d3637/`. Original binaries/artifacts/errors remain in `lowering_cursor_bd05893b/`. L2 had no surviving owned jobs; L1's separate build was observed and left untouched. Source-only profiling is inapplicable; no producer/binary/cache was changed, and ROOT retains release/performance decisions.
