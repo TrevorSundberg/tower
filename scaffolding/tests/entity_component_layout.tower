@@ -279,10 +279,11 @@ export fn main(argc: i32, argv: u8**): i32 {
         && bits(usize, large.data) % large_type.layout.data_alignment == 0
         && entity_component_from_data(large.data) == large);
     fill(large.data, 91, large_type.layout.data_size);
-    var allocation = bits(EntityComponentAllocation*, large.allocation);
+    var allocation = bits(EntityComponentAllocation*, large);
     var large_bytes = compiler_buffer_allocation_size(allocation.allocation.capacity);
     var large_receipt = allocation.allocation.reservation;
-    component_layout_check(&allocation.component == large && large_receipt.bytes == large_bytes
+    component_layout_check(&allocation.component == large
+        && allocation.allocation.data == bits(u8*, large) && large_receipt.bytes == large_bytes
         && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None
         && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
         && large.data[large_type.layout.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
@@ -292,6 +293,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     entity_view_close(view);
     print(sizeof(usize)); print(sizeof(WorkBuffer)); print(sizeof(EntityComponentPage));
     print(sizeof(EntityComponentAllocation)); print(page_bytes); print(large_bytes);
+    print(sizeof(EntityComponent));
     component_layout_check(entity_component_remove(owner, type)
         && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
         && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None);
