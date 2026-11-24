@@ -127,14 +127,14 @@ export fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
 // Those remain LALR kernels via lr_kernel, but are derived from this core and
 // must not require expansion before lookup. The initial state is distinguished
 // separately by its absent origin. All keys are local to one frozen analysis.
-fn lr_state_hash(items: LRItems*): usize {
+fn lr_state_hash(items: work_vector(LRItem)*): usize {
     var hash: usize = 2166136261;
     var index: usize = 0;
     loop {
-        if index == items.values.length {
+        if index == items.length {
             return hash;
         }
-        var item = &items.values.data[index];
+        var item = &items.data[index];
         if item.position != 0 {
             hash = hash ^ item.rule;
             hash = hash * 16777619;
@@ -145,36 +145,36 @@ fn lr_state_hash(items: LRItems*): usize {
     }
 }
 
-fn lr_state_equal(a: LRItems*, b: LRItems*): bool {
+fn lr_state_equal(a: work_vector(LRItem)*, b: work_vector(LRItem)*): bool {
     var left: usize = 0;
     var right: usize = 0;
     loop {
-        for(; left != a.values.length; left++) {
-            var kernel = a.values.data[left].position != 0;
+        for(; left != a.length; left++) {
+            var kernel = a.data[left].position != 0;
             if kernel {
                 break;
             }
         }
-        for(; right != b.values.length; right++) {
-            var kernel = b.values.data[right].position != 0;
+        for(; right != b.length; right++) {
+            var kernel = b.data[right].position != 0;
             if kernel {
                 break;
             }
         }
-        var end = left == a.values.length;
+        var end = left == a.length;
         if end {
-            var same = right == b.values.length;
+            var same = right == b.length;
             return same;
         }
-        end = right == b.values.length;
+        end = right == b.length;
         if end {
             return false;
         }
-        var different = a.values.data[left].rule != b.values.data[right].rule;
+        var different = a.data[left].rule != b.data[right].rule;
         if different {
             return false;
         }
-        different = a.values.data[left].position != b.values.data[right].position;
+        different = a.data[left].position != b.data[right].position;
         if different {
             return false;
         }
@@ -291,20 +291,7 @@ fn lr_states_rehash_result(value: LRStates*): WorkBudgetError {
     }
 }
 
-// Takes ownership of items on every path, including an existing kernel match.
-fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, closed: bool, error: WorkBudgetError*): usize {
-    defer lr_items_destroy(items);
-    *error = lr_states_rehash_result(value);
-    if *error != WorkBudgetError.None {
-        return lr_none();
-    }
-    var hash = lr_state_hash(items);
-    var bucket_count = value.buckets.length;
-    if bucket_count == 0 {
-        *error = WorkBudgetError.Invalid;
-        return lr_none();
-    }
-    var bucket = hash % bucket_count;
+fn lr_states_find(value: LRStates*, items: work_vector(LRItem)*, origin: usize, hash: usize, bucket: usize): usize {
     var index = value.buckets.data[bucket];
     loop {
         if index == lr_none() {
@@ -313,13 +300,26 @@ fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, clo
         var state = value.states.data[index];
         var same = hash == state.hash && (origin == lr_none()) == (state.origin == lr_none());
         if same {
-            same = lr_state_equal(items, state.items);
+            same = lr_state_equal(items, &state.items.values);
             if same {
                 return index;
             }
         }
         index = state.next;
     }
+    return lr_none();
+}
+
+// Takes ownership of items on every path, including an existing kernel match.
+fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, closed: bool, error: WorkBudgetError*): usize {
+    defer lr_items_destroy(items);
+    *error = lr_states_rehash_result(value);
+    if *error != WorkBudgetError.None { return lr_none(); }
+    if value.buckets.length == 0 { *error = WorkBudgetError.Invalid; return lr_none(); }
+    var hash = lr_state_hash(&items.values);
+    var bucket = hash % value.buckets.length;
+    var index = lr_states_find(value, &items.values, origin, hash, bucket);
+    if index != lr_none() { return index; }
     // Only a new serial state needs closure. Worker results are already closed
     // before their ordered join; never repeat that work or publish partial items.
     if !closed && !lr_items_close(value.analysis, items, false) {
@@ -422,6 +422,25 @@ fn lr_state_symbols_result(analysis: LRAnalysis*, state: LRState*): WorkBudgetEr
 fn lr_state_transition_result(value: LRStates*, state: LRState*, position: usize, index: LRShiftIndex*): WorkBudgetError {
     var analysis = value.analysis;
     var symbol = state.symbols.data[position];
+    // A one-item source, or a one-entry chain in the disjoint shift index,
+    // proves the complete shifted core before allocating its arena descriptor.
+    var only = lr_none();
+    if state.items.values.length == 1 { only = 0; }
+    if index.heads.length != 0 {
+        var head = index.heads.data[position];
+        if head != lr_none() && index.next.data[head] == lr_none() { only = head; }
+    }
+    if only != lr_none() {
+        var item = state.items.values.data[only];
+        item.position++;
+        var core: work_vector(LRItem) = {data: &item, length: 1, capacity: 1, ..default};
+        var hash = lr_state_hash(&core);
+        var found = lr_states_find(value, &core, symbol, hash, hash % value.buckets.length);
+        if found != lr_none() {
+            var edge: LRTransition = {symbol: symbol, state: found};
+            return lr_push_arena_result(&state.edges, edge, state.memory, null);
+        }
+    }
     var ok = true;
     var missing = false;
     var error = WorkBudgetError.None;
