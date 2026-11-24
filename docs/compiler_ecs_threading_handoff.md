@@ -1,54 +1,49 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Current integration checkpoint: local release checks pass; final acceptance remains open (2026-11-24)
+## Current integration checkpoint: combined correctness, performance and sanitizer evidence (2026-11-24)
 
-The original goal is **not complete**, and the remaining work is not only
-performance verification. World-owned ECS, lazy dependency queries, decltype/
-comptime and real within-unit/cross-unit workers are implemented and exercised.
-Current checks have also exposed a constructor error-propagation defect and
-instrumented-suite timeouts that must be resolved honestly before final acceptance.
+The original goal remains **open**. World-owned ECS, lazy decltype/comptime
+dependencies and real within-unit/cross-unit workers are implemented and exercised.
+The accepted bucket/cache/constructor batch now has ordinary native, Windows,
+browser, address-sanitizer and thread-sanitizer evidence. Two subsequently
+reproduced syntax reset/expansion typed-error defects are being repaired by D1;
+their final source, package adoption and hosted release are still pending.
 
-The 40-byte component layout passes current native, Windows, actual-Wasm,
-browser generations and the complete local deployment verifier. A complete
-native successor is independently checked but not publicly pinned. Later
-import-snapshot reuse and the pending partial-page bucket candidate require
-their own combined adoption; their source commits do not change previously
-built executable identities. Public bootstrap remains **31a385c6 / 6c83** and
-hosted runtime remains **013ae550**, build **98ade8cc**, Pages **6f142bef**.
-
-These are the same twelve acceptance requirements. Source implementation,
-independent review, execution at a named freeze, public adoption and hosted
-acceptance are separate evidence.
+The public development bootstrap remains **31a385c6 / 6c83**; hosted runtime
+remains **013ae550**, build **98ade8cc**, Pages **6f142bef**. Passing checks at
+newer source freezes do not update those published executable identities.
+The twelve requirements below retain separate source, execution and release evidence.
 
 | Original scope | Current evidence / remaining work |
 | --- | --- |
-| Authoritative ECS / storage | World-owned entities, stable payload pages and explicit relationships remain authoritative. [40-byte metadata](entity_component_metadata_45b78c48.md) saves 13,275,668 B / 2.80% retained storage on its measured large workload; [independent review](entity_component_metadata_peer_d40024c0.md) found no introduced defect. Pointer indexes are not packed payload SoA. The [promotion experiment](entity_page_search_5e981919.md) was rejected and restored; a fixed partial-page bucket candidate is being measured against its absent-class scan evidence. |
-| Lazy decltype / comptime / dependencies | Capture/alias/module repairs, retained ownership and [extent acceptance](staging_extent_acceptance_e3958206.md) retain their exact coverage. [Native selection](native_final_5dccac4b.md) passed all 64 registrations at its freeze. [Initial Foundation import reuse](compiler_baseline_imports_0a87f7b0.md) now retains only snapshots produced during an initially empty-cache installation; [actual-patch peer](baseline_import_peer_86e8d553.md) found no new defect and identified one old-lease/world-clear coverage gap being tested. Persistent semantic caching and arbitrary mid-compile edits are not claimed. |
-| Within-unit concurrency | Actual subtree/body/query overlap exists. [Combined scaling](compiler_combined_acceptance_05a23c99.md) measured only 1.036x best single4096 frontend scaling; serial preparation remains dominant. Rejected prefix/traversal/promotion candidates do not ship. [Capture attribution](compiler_capture_costs_81b7d69f.md) and page-search counts guide the current storage candidate. Full useful-core efficiency remains open. |
-| Cross-unit / shared worker budget | Combined workload reaches 2.57x at 12 workers and 2.49x at 8; twelve saves 3.1% wall but costs 67% CPU and 24% RSS versus eight. Actual threads, shared admission and refill are measured. [Current Windows controls](windows_component_adoption_d40024c0.md) retain true serial/four/full-pool and invalid-budget checks. Host/granularity limits remain explicit. |
-| Deterministic ordering / cancellation | Source-order diagnostics, dependency failure, stale-ticket and cancellation controls retain their exact source boundaries. [Current browser ABI acceptance](browser_component_abi_d40024c0.md) includes Node/full matrix, shared browser/ownership controls and real worker retirement. These passes are not universal race-freedom proof. |
-| Checked resource ownership | [Current native ABI](native_layout_d40024c0.md) passes 64 registrations, 26 pages commands, layout and historical-input controls; [actual-Wasm ABI](browser_component_abi_d40024c0.md) passes 42 phase records / 14 outputs with native-identical canonical/rebuilt hashes. A later [constructor-budget check](work_constructor_budget_86e8d553.md) exposed stale Invalid expectations and then a real discarded Capacity result reported as Memory. Corrected fixture is published; producer repair and all later original cap cases remain open. Earlier passes do not cover this newly exposed path. |
-| Source audit | Original complete audits and finite delta maps remain the base. Recent metadata, scratch, tool-path, target-pack, import-cache and [instrumentation composition](thread_instrumentation_peer_3d12a1ac.md) reviews retain named source boundaries. New bucket implementation and constructor typed-error repair need independent delta review. A proposal review is not approval of an unpublished patch. |
-| Measured serial / scaling / memory | [Guarded import reuse](compiler_baseline_imports_0a87f7b0.md) reduces CPU by 8.7% / 5.4% in small/large CLI controls; wall means improve 3.3% / 1.8% but each pair includes a 10 ms regression. Four-unit retained storage drops 7,256,232 B / 7,312 grants with exact output and real four-thread overlap. These results are not added to earlier scratch/metadata gains. Full-core efficiency and the substantial C-like fixed-cost gap remain open. |
-| Supported sanitizers | [Current storage ASan](storage_asan_1bfe0657.md): sensitivity gives the expected heap-overflow diagnostic; all 26 ownership runs pass with 17 actual instrumented Tower objects, empty sanitizer stderr and drained ownership. [Integrated compiler ASan](compiler_asan_queries_c8555971.md): all 32 linked objects instrumented; query-smoke passes, type-smoke times out at 180 s, control initially unstarted. Timeout attribution/control and the later import-cache ASan delta are active. Current TSan sensitivity/positive acceptance is separately in progress; no whole-threading pass is claimed. Physical ASan does not cover every retired pooled subslot; source-language UBSan and unsupported hosts remain explicit gaps. |
-| Whole-generation / public bootstrap | Public [6c83 package/adoption](bootstrap_adoption_6c83b118.md) remains verified. New [0a87 candidate](compiler_generation_0a87f7b0.md) converges across 39 binaries / three generations, 57 payloads and 77 checks; [independent peer](native_candidate_peer_0a87f7b0.md) checks all payloads and 1,285 source files. ROOT verifies archive, executable hash/mode and execution. Candidate compiler is 2,299,088 B / 0f9220ed, not yet pinned, and excludes later cache/bucket/constructor changes. Final combined adoption remains open. |
-| Normal / shared / browser generations | [d400 acceptance](browser_component_abi_d40024c0.md) passes Node/full matrix, browser/ownership and two actual edited generations with identical 25-object sets / three reactors. ROOT independently verifies the 24-file bundle. [Static assembly](static_app_d40024c0_1bfe0657.md) verifies all 104 assets plus manifest, 13 decoded gzip identities and four desktop/mobile controls. Later compiler changes remain excluded from those reactor identities. |
-| Final atomic hosted release | [Complete d400 local verifier](deployment_d400_c1ae62b1.md) passes all 104 served assets, full desktop/mobile and real Linux checks in 58.389 s, with original assertions/guards and zero live owned jobs. ROOT copied its 94,406,829 B archive and independently verified ff19b5a3. The older [bd860 pass](deployment_alias_acceptance_2bdb843e.md) and [original failure](deployment_verifier_bd86046f.md) remain separate history. Combined final source/native pin/reactors, atomic publication and hosted behavioral acceptance remain open; no new runtime is deployed by this ledger. |
+| Authoritative ECS / storage | World-owned entities, stable payload pages and explicit relationships remain authoritative. [40-byte metadata](entity_component_metadata_45b78c48.md) saves 13,275,668 B / 2.80% retained storage on its measured workload. [Eight-bucket page selection](entity_page_buckets_c8555971.md) removes 99.785% of measured stage candidates, with +224 B retained store metadata and a disclosed small-four regression. [ROOT independent review](entity_page_buckets_peer_3e29944b.md) found no introduced defect; the independent seeded page model passes ordinary and ASan checks. Pointer indexes are not packed payload SoA. |
+| Lazy decltype / comptime / dependencies | Capture/alias/module/extent repairs retain their exact coverage. [Guarded initial import reuse](compiler_baseline_imports_0a87f7b0.md) preserves only snapshots created from an initially empty cache. The [complete old-idle/active-lease regression](module_cache_leases_c99aba8d.md) and current TSan module-cache suite pass. Persistent semantic caching and arbitrary mid-compile edits are not claimed. |
+| Within-unit concurrency | Actual body/subtree/query overlap exists. [Joined current measurements](compiler_combined_performance_73cc82ab.md) show best large single-unit scaling of **1.249x at eight workers**, with actual distinct workers and shared admission. Parsing and coordinated preparation remain substantial serial costs; arbitrary parse-subtree and cross-phase structural overlap are not implemented guarantees. |
+| Cross-unit / shared worker budget | The same joined measurement reaches **2.456x at eight workers**. Twelve uses 65.63% more CPU and 25.27% more RSS and is 2.12% slower than eight on that host/workload. Shared lane limits, refill and cancellation are exercised; queue width is not speedup. [Current Windows controls](windows_buckets_c9a639b0.md) pass all seven original cases, including true four-thread overlap and invalid budgets. |
+| Deterministic ordering / cancellation | Source-ordered diagnostics, stale tickets, dependency failure and drain-before-release remain covered at their named freezes. [Current browser adoption](browser_bucket_adoption_fca5df98.md) passes Node3/full dependency matrix, browser3, ownership9 and two edited generations with complete object/reactor equality and retired workers. Passing stress is not universal race-freedom proof. |
+| Checked resource ownership | [Constructor first-error repair](work_constructor_results_b478b68c.md) now passes original caps, malformed Invalid cases, Memory fault sweeps, recovery and zero ownership; [independent peer](constructor_property_peer_fca5df98.md) found no concrete defect. [Current native adoption](native_buckets_28ffe2eb.md) passes all 64 registrations and 26 pages commands. D1's later reset/expansion Capacity propagation and cleanup correction remain the final unpublished correctness delta. |
+| Source audit | Original full audits and finite delta maps remain the base. ROOT independently traces bucket/link/transfer/disposal changes; D2 reviews the constructor and independent property oracle. D1 owns its reproduced syntax defects through repair; D2 is assigned the actual published patch review. No draft or proposal review is promoted to approval of unpublished code. |
+| Measured serial / scaling / memory | [Combined same-host n2 runs](compiler_combined_performance_73cc82ab.md): serial wall improves **5.64% small / 15.49% large single / 5.60% multi**; all 40 timed runs, ten observers and 20 CLI controls complete with checked output. Small four-worker execution remains 15.09% slower than serial. Required ELF/resources total 11,274,151 B; LLVM is separate. The 16/1000-function CLI means remain .410/.600 s versus Clang .020/.105 s, so C-like parity is not achieved. Gains from different experiments are not added. |
+| Supported sanitizers | [Integrated ASan](compiler_asan_integrated_28ffe2eb.md): query64.71 s, full type886.80 s and full control205.94 s all pass, 32 actual linked instrumented objects, empty sanitizer stderr and drained owners. Type/control use the explicit 1200 s instrumentation allowance; original 180 s failures remain failures. [Integrated TSan](compiler_thread_integrated_fca5df98.md): all ten registrations pass, including full backend364.51 s, 42 linked Tower objects and unchanged internal guards. [Current storage ASan](storage_asan_buckets_935ae346.md) passes28 cases; [property ASan](entity_page_property_asan_c9a639b0.md) passes3438 model operations plus real concurrency controls. D1's later delta and the additional ASan lease-cache case are assigned. Physical pooled-subslot coverage, source-language UBSan and unsupported-host gaps remain explicit. |
+| Whole-generation / public bootstrap | Public [6c83 adoption](bootstrap_adoption_6c83b118.md) remains verified. The independently checked [0a87 candidate](compiler_generation_0a87f7b0.md) predates later accepted changes and is not the final pin. A2 is assigned one combined-source 39-binary/three-generation/57-payload candidate after D1; B1 owns the independent clean default build after ROOT publishes its complete pin. |
+| Normal / shared / browser generations | [Current fca5df98 browser bundle](browser_bucket_adoption_fca5df98.md) passes two edited generations, exact 25-object/three-reactor equality and current actual-Wasm pages controls. D1 is excluded from that frozen bundle. B2 owns its affected delta rebuild, final complete bundle, static assembly and full local deployment verification in one assignment, reusing unaffected evidence. |
+| Final atomic hosted release | The [complete d400 local verifier](deployment_d400_c1ae62b1.md) passes all104 served assets, desktop/mobile and real Linux branches, with original assertions/guards and zero live jobs. It is an earlier artifact, not the combined final runtime. ROOT owns final source/build reachability, complete native pin, atomic main/Pages publication and hosted behavioral verification. No new runtime is deployed by this ledger. |
 
-The [concurrency map](compiler_concurrency_completeness_dec17663.md) traces
-within-unit and cross-unit functional paths. Ordered grammar activation,
-coarse work granularity and coordinated structural publication remain limits;
-queue width alone establishes neither concurrency nor useful speedup.
+The [concurrency map](compiler_concurrency_completeness_dec17663.md) distinguishes
+implemented producers from ordered grammar activation, coarse work granularity and
+coordinated publication. Useful-core limits and the C-like fixed-cost gap remain
+visible; functional coverage is not a claim of every possible parallel optimization.
 
-Exactly eight existing CLI contexts receive bounded tasks and stop on completion.
-ROOT replaces finished windows using the same session identities. Watchers now
-report a launch that produces no new session data, and health checks read only
-the current turn. Following the user's correction, each new assignment owns
-diagnosis, scoped repair and focused retesting before finishing; an ordinary
-failed check is not a reason to stop and request another assignment. No extra
-Codex contexts are created. Runtime work uses frozen
-inputs; this ledger changes no executable behavior, so new runtime performance
-or memory comparisons are inapplicable.
+Exactly eight existing CLI contexts receive complete inline assignments. An owner
+keeps diagnosis, scoped repair, focused retesting and normal push in the same task;
+ordinary failures are not a reason to stop for another assignment. ROOT replaces
+finished windows using those same identities, without extra contexts. Downstream
+final jobs have complete tasks and quiet waits for exact published artifact
+identities, avoiding repeated intermediate builds or new-goal polling.
+
+This ledger and independent source review change no runtime behavior; new runtime
+performance/memory measurements are inapplicable. Measurements above belong to
+their linked, immutable source/artifact receipts. Historical checkpoints follow.
 
 ## Historical fixed completion ledger — frozen a06ec4b1 (2026-11-23)
 
