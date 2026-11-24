@@ -390,7 +390,42 @@ fn lr_kernel_resize_trial(): void {
     utility_check(final_action.rule == 0 && final_action.first == 4294967294 && final_action.last == 4294967294,
         "LR kernel resize final EOF reduction");
 }
+fn lr_shift_index_failures(): void {
+    var rules: LRProduction[9] = default;
+    var symbols: LRSymbol[9] = default;
+    var count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    rules[0].count = 1; symbols[0].nonterminal = 1;
+    for(var i: usize = 1; i < count; i++) {
+        rules[i] = {owner: 1, begin: i, count: 1, ..default};
+        symbols[i] = {nonterminal: oracle_none(), first: convert(u32, i), last: convert(u32, i)};
+    }
+    var baseline = tower_test_buffer_count(); var success = false;
+    for(var attempt: usize = 0; attempt < 1024 && !success; attempt++) {
+        {
+            var analysis = lr_analysis_create(&rules[0], count, &symbols[0], count, 2);
+            utility_check(analysis != null && lr_analysis_compute(analysis), "Shift failure frozen analysis");
+            defer lr_analysis_destroy(analysis);
+            tower_test_buffer_fail_after(attempt);
+            var error = WorkBudgetError.None;
+            var states = lr_states_create_result(analysis, &error);
+            tower_test_buffer_fail_after(oracle_none());
+            defer lr_states_destroy(states);
+            success = states != null;
+            utility_check(error == (success ? WorkBudgetError.None : WorkBudgetError.Memory),
+                "Every denied state/index allocation preserves exact Memory");
+            if success { utility_check(lr_states_count(states) == count + 1, "Wide shifts retain all distinct terminal states"); }
+            for(var i: usize = 1; i < count; i++) {
+                utility_check(rules[i].begin == i && rules[i].count == 1 && symbols[i].first == convert(u32, i)
+                    && symbols[i].last == convert(u32, i), "Failed shift construction leaves borrowed source intact");
+            }
+        }
+        utility_check(tower_test_buffer_count() == baseline, "Denied shift indexes and partial states release every owner");
+    }
+    utility_check(success, "Shift allocation sweep reaches successful construction");
+}
+
 fn lr_analysis_storage_failures(): void {
+    lr_shift_index_failures();
     lr_component_owner_tests();
     lr_range_insertion_order();
     lr_range_merge_failure();

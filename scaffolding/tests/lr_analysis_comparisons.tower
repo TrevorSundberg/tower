@@ -2,6 +2,7 @@ import tower;
 import lr_graph_checks;
 import lr_analysis_api;
 import lr_analysis_oracle;
+import lr_states_oracle;
 import lr_analysis_oracle_types;
 import .library.vector;
 import .compiler.lr_types;
@@ -83,8 +84,53 @@ fn lr_closure_order_cases(): void {
         }
     }
 }
+fn lr_shift_equal_order_case(): void {
+    var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+    var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+    var branches: usize = 8;
+    lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+    for(var i: usize = 0; i < branches; i++) {
+        lr_fixture_rule(&rules, 1, symbols.length, 1); lr_fixture_symbol(&symbols, i + 2, 0, 0);
+        lr_fixture_rule(&rules, i + 2, symbols.length, 1);
+        lr_fixture_symbol(&symbols, oracle_none(), convert(u32, i + 32), convert(u32, i + 32));
+    }
+    var analysis = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
+    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
+    utility_check(analysis != null && oracle != null && lr_analysis_compute(analysis) && oracle_analysis_compute(oracle),
+        "Equal ordering keys keep distinct nonterminal identities");
+    defer lr_analysis_destroy(analysis); defer oracle_analysis_destroy(oracle);
+    for(var i: usize = 2; i < branches + 2; i++) { lr_analysis_order(analysis, i, 2); oracle.names.data[i].order = 2; }
+    var actual = lr_states_create(analysis); var reference = oracle_states_create(oracle);
+    utility_check(actual != null && lr_states_count(actual) == reference.states.length, "Equal-order state count");
+    defer lr_states_destroy(actual); defer oracle_states_destroy(reference);
+    for(var i: usize = 0; i < reference.states.length; i++) {
+        lr_check_items(lr_states_items(actual, i), &reference.states.data[i].items);
+    }
+}
+
 fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
+    lr_shift_equal_order_case();
+    // Small scans, indexed mixed-symbol fan-out, and overlapping-range fallback
+    // must match the eager oracle, including reversed nonterminal order.
+    for(var mode: usize = 0; mode < 3; mode++) {
+        var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+        var branches: usize = mode == 0 ? 3 : 8;
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        for(var branch: usize = 0; branch < branches; branch++) {
+            lr_fixture_rule(&rules, 1, symbols.length, 2);
+            lr_fixture_symbol(&symbols, branch + 2, 0, 0);
+            lr_fixture_symbol(&symbols, 1, 0, 0);
+            lr_fixture_rule(&rules, branch + 2, symbols.length, 1);
+            var first = convert(u32, branch * 4 + 32);
+            lr_fixture_symbol(&symbols, oracle_none(), first, mode == 2 && branch == 0 ? 64 : first + 2);
+        }
+        lr_fixture_rule(&rules, 1, symbols.length, 0);
+        lr_fixture_rule(&rules, 1, rules.data[1].begin, rules.data[1].count);
+        lr_check_graph(&rules, &symbols, branches + 2, current_contract);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Shift grouping and range fallback release private indexes");
     // B has empty, nonnullable FIRST in the first variant. A's dot-zero item
     // exists in LR(0), but must not introduce C's spontaneous lookahead until
     // a kernel closure actually reaches it. The second variant opens that

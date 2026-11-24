@@ -63,6 +63,8 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
     var value = lr_states_begin_result(analysis, error);
     if value == null { return null; }
     defer lr_states_destroy(value);
+    var shifts: LRShiftIndex = default;
+    defer lr_shift_index_dispose(&shifts);
     var owner: void* = null;
     defer { if owner != null { entity_release(owner); } }
     var nodes: void*[WorkPoolMaximumCapacity];
@@ -115,8 +117,10 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
             if *error != WorkBudgetError.None { return null; }
         }
         if count < 2 || admission.extra == 0 {
+            *error = lr_shift_index_result(&shifts, analysis, state);
+            if *error != WorkBudgetError.None { return null; }
             for(var i: usize = 0; i < state.symbols.length && ok; i++) {
-                *error = lr_state_transition_result(value, state, state.symbols.data[i]);
+                *error = lr_state_transition_result(value, state, i, &shifts);
                 ok = *error == WorkBudgetError.None;
             }
             continue;
