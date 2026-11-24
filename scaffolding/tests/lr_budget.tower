@@ -6,6 +6,7 @@ import .compiler.parser_workers;
 import .compiler.worker_policy;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_buffer;
 import .library.work_pool;
 
 // Separate test entry imports only types and declaration boundaries for the LR
@@ -22,6 +23,7 @@ extern fn lr_first_work_trial(root: void*, mode: usize): bool;
 extern fn lr_propagation_budget_trial(anchor: void*): bool;
 extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
     symbols: LRSymbol*, length: usize, names: usize): bool;
+extern fn lr_action_rebuild_trial(root: void*, rules: LRProduction*, count: usize, symbols: LRSymbol*, length: usize): bool;
 extern fn lr_propagation_create_budget_result(count: usize, budget: WorkBudget*, error: WorkBudgetError*): void*;
 extern fn lr_propagation_seed_result(value: void*, node: usize, first: u32, last: u32): WorkBudgetError;
 extern fn lr_propagation_count(value: void*, node: usize): usize;
@@ -312,6 +314,17 @@ fn lr_shared_worker_budget(): bool {
     }
     var rule: LRProduction = {owner: 0, begin: 0, count: count, precedence: 0, associativity: 0};
     if !lr_work_trial(root, &rule, 1, &symbols[0], count, 1) { return false; }
+    // A long start production admits action workers. Its leading choice gives
+    // construct mode more lookaheads than an EOF-only action row can hold.
+    var alternatives: LRProduction[WorkBufferInitialElements + 2] = default;
+    var rules = sizeof(decltype(alternatives)) / sizeof(LRProduction);
+    var prefix = count - (rules - 1);
+    alternatives[0].count = prefix;
+    symbols[0].nonterminal = 1;
+    for(var i: usize = 1; i < rules; i++) {
+        alternatives[i] = {owner: 1, begin: prefix + i - 1, count: 1, ..default};
+    }
+    if limit > 1 && !lr_action_rebuild_trial(root, &alternatives[0], rules, &symbols[0], count) { return false; }
     var snapshot: WorkBudgetSnapshot = default;
     var retained = &compiler_world_grammar(world).workers.storage.reservation;
     var owners: usize = (outer.active ? 1 : 0) + (retained.active ? 1 : 0);

@@ -379,6 +379,48 @@ fn lr_links_work_trial(value: LRStates*, constructs: bool, anchor: void*): bool 
     return true;
 }
 
+export fn lr_action_rebuild_trial(root: void*, rules: LRProduction*, count: usize, symbols: LRSymbol*, length: usize): bool {
+    var error = WorkBudgetError.None;
+    var budget = compiler_world_work_budget(compiler_node_world(root));
+    var analysis = lr_analysis_create_budget_result(rules, count, symbols, length, 2, budget, &error);
+    defer lr_analysis_destroy(analysis);
+    if analysis == null || !lr_analysis_compute(analysis) { return false; }
+    var states = lr_states_create(analysis);
+    defer lr_states_destroy(states);
+    var prior = lr_states_create(analysis);
+    defer lr_states_destroy(prior);
+    if prior == null || states == null || !lr_states_lalr(prior, false)
+        || !lr_states_lalr_parallel(states, false, root) || !lr_work_equal(prior, states) { return false; }
+    var original: WorkArenaSnapshot = default;
+    if !work_arena_snapshot(&states.action_storage, &original) || original.chunks == 0 { return false; }
+    var graph = lr_states_propagation_items_result(states, true, states.analysis.budget, &error);
+    defer lr_propagation_destroy(graph);
+    if graph == null || lr_propagation_solve_result(graph) != WorkBudgetError.None { return false; }
+    // Deny the next physical growth after all input is ready.
+    var tail = states.records.last;
+    var extra: u8* = null;
+    if tail.used < tail.storage.capacity && work_arena_allocate_result(&states.records,
+        tail.storage.capacity - tail.used, 1, &extra) != WorkBudgetError.None { return false; }
+    var hold: WorkReservation = default;
+    var before: WorkBudgetSnapshot = default;
+    if !lr_memory_hold(root, &hold, &before) { return false; }
+    error = lr_lalr_actions_result(states, graph);
+    if !lr_memory_release(root, &hold, &before) || error != WorkBudgetError.Capacity { return false; }
+    if !lr_work_equal(prior, states) { puts("Serial action growth changed the published EOF table on Capacity"); return false; }
+    if lr_lalr_actions_result(states, graph) != WorkBudgetError.None || states.records.last != tail { return false; }
+    var end = &states.states.data[states.states.length - 1].actions;
+    if end.length != states.analysis.rule_count { return false; }
+    for(var i: usize = 0; i < end.length; i++) {
+        var terminal = i + 1 == end.length ? LRTokenEnd : states.analysis.symbols[states.analysis.rules[i + 1].begin].first;
+        var action = &end.data[i];
+        if action.first != terminal || action.last != terminal || action.rule != 0 || action.state != lr_none() { return false; }
+    }
+    var replaced: WorkArenaSnapshot = default;
+    return lr_states_lalr_parallel(states, false, root) && lr_work_equal(prior, states)
+        && work_arena_snapshot(&states.action_storage, &replaced)
+        && replaced.retained == original.retained && replaced.payload == original.payload;
+}
+
 struct LRActionRefusal {
     budget: WorkBudget*;
     allow: usize;
