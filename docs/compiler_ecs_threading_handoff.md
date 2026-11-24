@@ -1,49 +1,47 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Current integration checkpoint — combined source and package closure (2026-11-24)
+## Current integration checkpoint: native memory repair and package adoption (2026-11-24)
 
-The original goal remains **open**. Published production through `ca1c893e`
-combines the SCC provider, scanner selection, quota diagnostics, LR prediction
-index and foreign-grammar resource fix. The native generation package, integrated
-native checks and combined performance measurement are running on recorded freezes.
-The pinned development compiler remains59d/eeb00571; no new hosted runtime is
-published. Later source commits are not silently attributed to that executable.
+The original goal remains **open**. Production through `bd86046f` includes the
+SCC/scanner/LR-index work, typed quota diagnostics, foreign grammar resources and
+the semantic scratch minimum change from 4096 to 1024 bytes. The latter closes
+the current large native pages failure without increasing its memory limit.
+The published development compiler is now **ca1c / 44ae8f73**, a 2,299,088-byte
+Linux x64 executable; it excludes that later scratch change. A replacement native
+package and the bd860 browser milestone are running. No new hosted runtime is
+published.
 
-The c934 browser bundle passes shared Node3, normal browser3 and ownership9.
-Its first edited generation **failed** because build-path aliases caused the
-packager to omit generated `tower_runtime.tower`; Gen2 never started.
-[Exact failure and accepted scope](scc_browser_acceptance_b8b3be21.md) supersede
-any implication that the earlier24-file bundle established generated-source
-closure. The producer repair and replacement coherent bundle are active.
-
-The same twelve acceptance requirements remain:
+The same twelve acceptance requirements remain. A completed source review,
+execution at a named freeze, public bootstrap adoption and hosted acceptance are
+separate evidence.
 
 | Original scope | Current evidence / remaining work |
 | --- | --- |
-| Authoritative ECS / storage | Inline-child and immutable sparse-kind changes have independent reviews. Stable payload pages and dense pointer indexes are not packed payload SoA.59d T8/large reconstruction passes; current native large ownership/backend acceptance is running. Further storage rewrites require measured benefit. |
-| Lazy decltype / comptime / dependencies | Capture/alias/module repairs and retained-owner14-output regression retain independent reviews. [Historical extent acceptance](staging_extent_acceptance_e3958206.md), published05a23c99, passes24 compilations at32/64 and workers1/4, exact generic/aggregate/indirect extents, ordered helper effects and controlled repeated waits. Escaped mutable outer-local capture remains a documented rejection. Controlled post-compile input waits are distinct from real compiler-pump coverage. Current source peer pending; no persistent semantic-cache or mid-compile edit claim. |
-| Within-unit concurrency | Actual four-thread semantic overlap is observed in imported-module extent tests. Combined59d single4096 best1.072x remains the previous whole-frontend result. SCC, scanner and LR-index changes have separate source-bound gains; current combined measurement is running. Ordered preparation/publication remains, and queue width is not throughput evidence. |
-| Cross-unit / shared worker budget | Combined59d multi12x256 reaches2.79x serial at8;12 adds CPU/memory without wall benefit. Outer/nested budget and real threads are measured. Current c934 Node/full dependency matrix and strict browser suites pass; native integrated budget/dependency selections are running. Unsupported-host limits remain. |
-| Deterministic ordering / cancellation | Source-order/error, seeded cancellation and stale-result controls retained. c934 shared normal/ownership suites pass with actual worker retirement and zero browser targets. No universal race-freedom claim. |
-| Checked resource ownership |59d T8 pair and exact972596B input/4709291B reconstruction pass below2GiB LLVM capacity. Parser trace pooled-owner oracle repair bdb0ed38 has independent peer review; retained-marker negative detects the injected leak and cleans up. Quota8eb55a6a distinguishes limit/Memory/Capacity with recovery and zero-owner checks. Current integrated native ownership work is pending. |
-| Source audit | Original full/finite audit and65-path map remain the base. SCC, scanner, retained-owner, trace, graph242-case oracle, exact Wasm symbols and quota deltas now have independent source reviews. [Quota peer](generic_quota_peer_45dbdc59.md) matches published implementation. LR-index and foreign-package peers are active; extent peer remains to run. Reviews retain finite bounds and owner-runtime attribution. |
-| Measured serial / scaling / memory | Combined59d charged peak590004506→553734297B, grants489669→285548 and ledger40→20MiB remain established. Scanner large serial/four gains4.25%/3.52% retain their freeze. [LR index](compiler_lr_prediction_index_bdb0ed38.md) improves small/large serial CLI6.0%/1.9%, but4096 serial is1.3% slower; retained ownership is unchanged. L2's access-loop candidate is rejected/restoring. No isolated gains are added; current combined measurement and substantial Clang fixed-cost gap remain open. |
-| Current supported sanitizers | OPEN/service-blocked. Do not retry, rephrase or route around the rejected operation. Historical instrumentation and ordinary functional stress do not close current threaded sanitization coverage. |
-| Whole-generation / public bootstrap | Complete59d eeb00571 executable2294024B,38-binary/54-payload convergence, relocation and [clean default adoption](bootstrap_adoption_59d7dc9e.md) pass. [Optional grammar fix](foreign_grammar_package_bdb0ed38.md) passes21 development+14 missing-Clang checks in an explicitly private resource overlay; public package is unchanged. B1 builds a coherent newer three-generation package including the repair. No standalone portable-release claim. |
-| Normal / shared / browser generations |59d complete builds, shared/T6/T7/T8 and two edited generations remain accepted at their sources. c934 shared suites pass, but edited Gen1 fails missing generated module and Gen2 is unstarted. B2 owns Tower packager repair, fresh combined bundle and edited-generation acceptance. Old static102-file105716512B package remains unchanged. |
-| Final atomic hosted release | Existing Pages6f142bef runtime013ae550/build98ade8cc retained. Local deployment verifier remains service-blocked/unstarted. Final combined artifact adoption, atomic new-runtime publication and hosted behavior acceptance remain open. |
+| Authoritative ECS / storage | World-owned entities, stable payload pages, explicit relationships and derived indexes remain the implementation. Dense pointer indexes are not packed payload SoA. Inline-child/sparse-kind changes have independent reviews. The current native pages plan is complete across explicitly recorded source boundaries; no blanket locality or vectorization claim. |
+| Lazy decltype / comptime / dependencies | Capture/alias/module repairs, retained-owner checks and [extent acceptance](staging_extent_acceptance_e3958206.md) retain their source-bound evidence. [Query-admission peer](query_admission_peer_5dccac4b.md) confirms the repaired denial fixture reaches the intended producer without weakening its 1 MiB cap. [Fresh native selection](native_final_5dccac4b.md) passes all 64 original registrations: no failures, skips or unstarted cases. Escaped mutable outer-local capture remains a documented rejection; persistent semantic caching and arbitrary mid-compile edits are not claimed. |
+| Within-unit concurrency | Actual worker overlap exists, but [combined05a measurement](compiler_combined_acceptance_05a23c99.md) gives only **1.036x** best single4096 frontend scaling. Dispatch occupies 13.46% of that observed wall interval; parsing, preparation and publication remain bottlenecks. D1/D2 are preparing bounded parser/grammar and lowering traversal candidates; proposals are not implemented gains. |
+| Cross-unit / shared worker budget | The combined workload reaches **2.57x at12** and **2.49x at8**; twelve saves 3.1% wall but costs 67% CPU and 24% RSS versus eight. Shared lane/byte admission, refill and actual threads are measured. [Windows adoption](windows_runtime_target_5dccac4b.md) retains native1/4/full-pool and invalid-budget controls. Host and granularity limits remain explicit. |
+| Deterministic ordering / cancellation | Existing source-order, dependency, stale-ticket and cancellation controls retain their identities. [887f browser generations](browser_generations_887f2539.md) include shared Node/browser and actual worker retirement. The newer bd860 acceptance is running; preliminary progress is not a completed published receipt. No universal race-freedom claim. |
+| Checked resource ownership | [Scratch repair](native_pages_scratch_effab4bd.md) makes the unchanged4,769,423-byte raw32 input pass Graph/Fast workers1/4 below the original2GiB world cap, with zero final owners. Completed world peak is about2.051GB;83.9MB ledger storage and process RSS are separate. [Remaining native phases](native_pages_resume_bd86046f.md) pass all18, completing the original26-command pages plan across named freezes. L1 owns the same current actual-Wasm semantic-port case; older972596/4709291-byte acceptance cannot substitute. |
+| Source audit | Original full audits and finite delta maps remain the base. Independent [scratch32-path review](semantic_scratch_peer_bd86046f.md) and [final lexical-helper17-blob review](tool_path_lexical_peer_bd86046f.md) found no introduced defect. The latter distinguishes the tested final normalized helper from B2's earlier full-package comparison. New test/tool deltas retain individual review/adoption boundaries. |
+| Measured serial / scaling / memory | Combined05a small serial is11.47% faster than59d, while four-worker multi is3.65% slower; large serial samples overlap. Comparable constant-function CLI controls remain substantially slower than Clang. A1 is measuring the scratch change with a matched before/after pair; a failed-before pages request is not a speedup denominator. Full-core efficiency and C-like parity remain open. |
+| Current supported sanitizers | **OPEN/service-blocked.** Do not retry, rephrase or route around the rejected operation. Historical instrumentation, source reviews and functional stress do not close current threaded instrumentation coverage. |
+| Whole-generation / public bootstrap | [ca1c package](compiler_generation_ca1c893e.md):39 actual binaries converge across3 generations;57 payloads plus checksum file converge across Gen2/3. Relocation, resources and expected15/999/42 controls pass. [ROOT clean default adoption](bootstrap_adoption_ca1c893e.md) independently rebuilt from public44ae with no private override and passed21 checks. A2 is producing the scratch-inclusive successor. This Linux/LLVM development package is not a validated standalone portable release. |
+| Normal / shared / browser generations | The previous c934 generated-module failure is repaired. [887f milestone](browser_generations_887f2539.md) passes Node3/full matrix, browser3/ownership9 and two actually edited generations with identical25-object sets/three reactors. It excludes the later scratch change. ROOT independently verified the new bd860 bundle's24 files/163932330B; B2 owns its runtime/generation acceptance. Static UI packaging has not been adopted from it. |
+| Final atomic hosted release | Native pin/receipts published through atomic5dccac4b; existing Pages6f142bef retains runtime013ae550/build98ade8cc and its verified HTTP identity. The local deployment verifier remains service-blocked/unstarted. Final combined static/runtime publication and hosted behavior acceptance remain open. |
 
-The [source-only concurrency map at dec17663](compiler_concurrency_completeness_dec17663.md)
-traces within-unit and cross-unit producers, dependencies, private ownership and
-shared admission. It finds the required functional paths present, while retaining
-coarse parse/body granularity, joined structural waves and open performance acceptance.
-The measured access-loop candidate is fully restored; no rejected runtime change ships.
+The [concurrency map](compiler_concurrency_completeness_dec17663.md) traces the
+required within-unit and cross-unit functional paths. Ordered parse activation,
+coarse parse/body granularity and joined structural waves remain implementation
+limits; neither a queue width nor a sequential loop establishes useful scaling.
+Rejected optimization candidates remain restored and do not ship.
 
-Receipts preserve exact inputs, failures, output equality, wall/CPU/memory costs
-and limits. The eight existing contexts are assigned finite implementation,
-integration, measurement or peer-review tasks; ROOT replaces completions.
-This reconciliation changes no runtime code; new runtime profiling is inapplicable.
-Historical checkpoints and the added extent disposition below remain preserved.
+Exactly eight existing CLI contexts receive bounded tasks and stop on completion;
+ROOT replaces their windows with the same session identities. A2's stalled startup
+was recovered without a new context or interrupted build. Runtime work continues
+on frozen inputs; this ledger update changes no executable behavior, so new
+runtime performance/memory measurements are inapplicable. Historical checkpoints
+below remain evidence at their original boundaries.
 
 ## Historical fixed completion ledger — frozen a06ec4b1 (2026-11-23)
 
