@@ -213,7 +213,7 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var allowance = reference.peak - base - input;
     // Preserve the original finite-budget import failure separately from the
     // later measured peak: these exercise different producer phases.
-    var import_allowance: usize = 67108864;
+    var import_allowance: usize = 62914560;
     var import_cap = base + input + import_allowance;
     units_memory_check(import_cap < reference.peak, "Import denial policy is below this source's measured requirement");
     // Baseline LR allocation can report a grammar diagnostic even though the
