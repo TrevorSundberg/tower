@@ -1,0 +1,32 @@
+# Native candidate package peer — D2, 2026-11-24
+
+**No concrete package/source defect found.** Independent archive, manifest, Git-blob and ELF-metadata inspection only; no candidate execution, build, profile, heavy lock or pin change.
+Review main `1bfe0657fbba2a39075b23df89a73d54ba11c11d`; candidate source `0a87f7b0832a58158da9677c51b9799775f382f8`, tree `f7b27dc189b0d908dea7221db4c2d1b1afa85f06`, reachable from published main. Later source is excluded.
+Inputs: `/home/deck/tower_coord_ecs_20261122/D2/candidate_0a87f7b0/`; extracted once into fresh owned `build/d2_ecs/package_peer_0a87f7b0/{package,source}/`. Original files preserved.
+
+| Independently checked artifact | Bytes / SHA256 |
+| --- | --- |
+| `generation3.tar.gz` | 2671813 / `0fffb93b33831ac1396e60a4d5896ff0146fdab34042edede74a6dbed00b7d02` |
+| `source_snapshot.tar` | 21094400 / `ec4f91c1643a8ec08318cb4c9c2679d232620ec4532adbad0e2756af97a99d1d` |
+| `linux-x64/towerc` | 2299088, mode0755 / `0f9220edff0c2ec90eefab0d5814cdbc2adaa8b2bb6fdd896231fcb04e878bd0` |
+| `development.json` | 154010 / `eabe2aebc7947260af08ce8f025a5fe5b9691e3a726f2c15f432e5f7454be8bd` |
+| `linux-x64/SHA256SUMS` | 5820 / `8a82f32c13963f999ded17522d448779a8d1b210ca85a85667845b275fd4ec33` |
+
+Archive census:150 regular files/7 directories,12972543 uncompressed bytes; no links, special entries, duplicate names, absolute paths or parent escapes. Modes preserved without adopting root ownership; evidence scripts were not executed.
+Derived runtime-package membership is exactly57 payloads/11288192B: executable,46 Tower resources,nine generated runtime IR files and LLVM license. SHA256SUMS is additional; development/evidence/README are candidate metadata, not hidden runtime payloads.
+Actual members equal manifest keys and checksum members; all57 hashes and declared sizes match. Compiler0755, every other payload0644; no missing/extra/stale payload accepted. Complete extracted-file hashes are retained separately.
+All1285 declared source hashes match extracted bytes AND exact published Git blobs; declared membership equals tracked `CMakeLists.txt`, `cmake/`, `scaffolding/`. All1368 broader snapshot files also match their recorded hashes and published blobs, with no extra snapshot file or source patch.
+All46 resources match the corresponding frozen `scaffolding/` bytes. Independently derived CMake membership is five language/prelude files,40 library files and optional `backend/foreign_grammar.tower`; required Foundation/types/work_gate/graph_components/interface/types are present. All observed resource import names have packaged providers; fixed foreign grammar imports only Tower.
+Included40-byte layout sources: `entity_types.tower` blob `10097927a6c93db32dafff19097e3d6cf16a4e0d`, `entities.tower` `cbcb1b7f56fd6a74062101ddd8f10e140967fd3f`; foreign grammar `a214b66c9caf82c16453b5e7938382279999232d`. This verifies package identity, not another layout/runtime review.
+LLVM license15141B/SHA`8d85c1057d742e597985c7d4e6320b015a9139385cff4cbae06ffc0ebe89afee` equals frozen public-bootstrap license bytes; the owner's absent-submodule license-copy boundary remains explicit.
+Nine runtime hashes match manifest AND retained `guest-NAME.ll` generation records. Triple/profile membership matches frozen `TowerGuestRuntime.cmake`: wasm32, Linux x64/arm64, hosted Linux x64/arm64, Windows x64/arm64 and macOS x64/arm64. This is resource identity, not execution on nine hosts.
+Runtime `source_filename="Tower"` and successor-build `ModuleID` paths are generated provenance, not Git source paths. Frozen CMake assembles recorded host modules, invokes predecessor plus runtime_bind, then copies IR; all underlying authored inputs are in the verified source set. Gen1/2 payload hash differences are precisely the nine runtimes; raw differences remain, never normalized.
+ELF metadata independently identifies x64 PIE, `/lib64/ld-linux-x86-64.so.2`, direct NEEDED LLVM19.1/libdl/libc and `/usr/lib/llvm-19/lib` RUNPATH. Manifest's19 dependency entries include transitive libraries, loader and vDSO; they are not19 bundled files. No ldd or loader invocation was made here.
+Release/LLVM19.1.1/Linux-Ubuntu24 contract and external Clang requirement are explicit. Expected-missing-Clang checks do not establish restricted standalone acceptance; host dependency availability/relocation execution remain owner evidence.
+Retained Gen1/2/3 binary manifests are identical and each has39 unique members:31 objects,1 archive,3 executables,4 configure probes; each belongs to its generation's complete file list. Their full build binary sets are NOT delivered, so D2 does not claim a fresh39-binary byte comparison.
+Gen2/3 payload/checksum manifests are identical; all58 records independently validate against delivered Gen3. Retained comparison/relocation diffs and before/after source patches are empty. Gen2/3 provenance differs only in the explicit predecessor command path; the executable predecessor hash equals the converged candidate.
+Owner check reports contain21+21+21 development passes and14 expected-missing-Clang passes, no FAIL records. Actual three-generation builds, full-byte comparisons, relocation, ABI42 and independent15/999 execution remain attributed to [L1's receipt](compiler_generation_0a87f7b0.md), not a D2 rerun.
+L1's build wall57.41/57.65/54.14s, CPU95.22/95.16/96.30s, peak881060/862716/862364KiB retain their recorded host/caps. Source/package-data review has no runtime wall/CPU/RSS or performance claim.
+Local metadata mistakes retained: initial jq array display rejected object fields; a relative Git stdin-path query read the live verifier and produced a false mismatch. Explicit frozen-byte cmp and absolute extracted paths with `--no-filters` resolve it; no source bytes were normalized or rewritten.
+Raw evidence: `build/d2_ecs/package_peer_0a87f7b0/` contains complete/archive/source member maps, payload size/mode/hash checks, `tower-resource-provenance.tsv`, `runtime-identities.tsv`, extracted-source Git comparisons, ELF metadata and owner manifest comparisons. `reviewed-contracts.git` records exact packager/CMake/verifier blobs; all match candidate source where applicable.
+Public pin remains31a385c6/source6c83 at review freeze. ROOT owns clean default adoption, pin replacement and publication; browser resources, current hosted behavior, supported instrumentation and later source are not accepted by this package peer. No rejected operation retried; todo/history preserved.
