@@ -1,6 +1,6 @@
 # Compiler ECS file ownership roster
 
-Current frozen inventory/adoption: [ec01291 finite review closure](#finite-review-closure-at-published-ec01291-2026-11-23), 1,146 tracked Tower paths; all51 delegated source-review actions have substantive receipts. Earlier counts below are historical; review closure is not runtime acceptance.
+Current frozen inventory/adoption: [7e9c91a0 reconciliation](compiler_ecs_reconciliation_7e9c91a0.md), 1,281 tracked Tower paths with finite blob/receipt dispositions. It preserves the [ec01291 finite review closure](#finite-review-closure-at-published-ec01291-2026-11-23), 1,146 paths/all51 substantive delegated receipts, and subsequent delta chain. Counts below are historical; review closure is not runtime acceptance.
 
 Completeness index at `6282238779034442e0578d76b921ca117df819f1`:
 1,011 tracked `.tower` files, from `git ls-files '*.tower'`.

@@ -185,9 +185,13 @@ before cross-phase mutation. Global initialization/effect proofs
 and publication remain ordered. Only the owning quiescent pipeline diagnoses cycles.
 The lifecycle/capture/type fixtures and actual mixed-kernel rendezvous have
 source-specific journal receipts. They do not prove every staging capability,
-all structural failure paths or final release equivalence. In particular,
-lowering/flow admission and executable aggregate-synthesis callers still contain
-fatal allocation assertions; checked executable startup is a narrower contract.
+all structural failure paths or final release equivalence. Current lowering/flow
+admission and executable aggregate-component admission use checked result APIs,
+typed resource failures and cancellation. Remaining invariant assertions are not
+evidence that those allocations still use the historical fatal-admission path.
+This is not a proof of every failure path; see the current
+[source/evidence reconciliation](compiler_ecs_reconciliation_7e9c91a0.md), including
+the separate uncharged LR scratch boundary.
 
 
 ## Retained source owners

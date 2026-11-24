@@ -16,9 +16,15 @@ extern fn __errno_location(): i32*;
 
 // glibc bits/pthreadtypes{,-arch}.h: LP64 pthread_mutex_t is 40 bytes on
 // x86_64 and 48 on AArch64, aligned as long. Reserve the larger supported ABI;
-// libc alone initializes/accesses the opaque storage. Null attributes select
-// the normal process-private mutex, not a recursive or custom spinning lock.
+// libc alone initializes/accesses the opaque storage. Its adaptive mutex uses
+// bounded contention handling before the ordinary blocking wait; Tower never
+// spins on opaque payloads. The gate stays process-private and nonrecursive.
 var LinuxMutexStorageBytes: usize = 48;
+var LinuxAdaptiveMutex: i32 = 3; // glibc PTHREAD_MUTEX_ADAPTIVE_NP.
+// glibc pthread_mutexattr_t is one int on both supported LP64 targets.
+extern fn pthread_mutexattr_init(attributes: i32*): i32;
+extern fn pthread_mutexattr_settype(attributes: i32*, kind: i32): i32;
+extern fn pthread_mutexattr_destroy(attributes: i32*): i32;
 extern fn pthread_mutex_init(mutex: void*, attributes: void*): i32;
 extern fn pthread_mutex_destroy(mutex: void*): i32;
 extern fn pthread_mutex_lock(mutex: void*): i32;
@@ -27,7 +33,12 @@ extern fn pthread_mutex_unlock(mutex: void*): i32;
 export fn work_gate_open(): void* {
     var gate = bits(void*, alloc(u64, LinuxMutexStorageBytes / sizeof(u64)));
     if gate == null { return null; }
-    if pthread_mutex_init(gate, null) != 0 { free(gate); return null; }
+    var attributes: i32 = 0;
+    if pthread_mutexattr_init(&attributes) != 0 { free(gate); return null; }
+    var initialized = pthread_mutexattr_settype(&attributes, LinuxAdaptiveMutex) == 0
+        && pthread_mutex_init(gate, bits(void*, &attributes)) == 0;
+    if pthread_mutexattr_destroy(&attributes) != 0 { trap("Cannot release compiler gate attributes", 0); }
+    if !initialized { free(gate); return null; }
     return gate;
 }
 export fn work_gate_close(gate: void*): void {

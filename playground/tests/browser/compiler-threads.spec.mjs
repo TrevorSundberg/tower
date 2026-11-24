@@ -1,4 +1,4 @@
-import {test, expect} from '@playwright/test';
+import {test, expect} from './worker-lifecycle.mjs';
 
 test('the static playground establishes isolation and loads the threaded compiler', async ({page}) => {
   test.setTimeout(120000);
@@ -22,6 +22,7 @@ test('the static playground establishes isolation and loads the threaded compile
   await page.keyboard.insertText('import tower; fn twice(n:i32):decltype(n) { return n * 2; } var answer = comptime(twice(21)); print(answer);');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-output')).toHaveText('42\n', {timeout:60000});
+  await test.info().attach('staged output', {body:await page.locator('#execution-output').textContent(), contentType:'text/plain'});
   await page.reload();
   await expect(page.locator('#status')).toContainText('Complete', {timeout:90000});
   expect(await page.evaluate(() => crossOriginIsolated)).toBe(true);
