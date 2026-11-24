@@ -287,3 +287,7 @@ Five selected positives pass; current query-smoke reaches its unchanged180s
 limit without a TSan report, while the one same-original-IR normal control passes.
 Unit-admission/backend remain unstarted. This repairs the missing-provider
 sensitivity composition, not full compiler thread-sanitizer acceptance.
+
+## c8555971 TSan completion follow-up
+
+The [measured completion receipt](compiler_thread_completion_c8555971.md) closes the frozen query/unit-admission/full-backend selection without a new sanitizer finding. Query219.10s and backend387.66s require scoped thread-mode CTest outer limits360/600s; original180s failures remain recorded. Ordinary deadlines, all internal30s overlap guards, budgets, fixtures and outputs are unchanged. Unit-admission passes its original180s registration. This reuses the existing sensitivity/five positives and actual object-hook proof; later combined sources, ASan and unsupported-host/UBSan coverage remain separate.
