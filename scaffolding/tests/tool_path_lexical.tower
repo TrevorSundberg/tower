@@ -1,0 +1,101 @@
+import tower;
+import .tools.tool_files_posix;
+import .tools.compiler_project_files;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+import .backend.wasm_names;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+
+extern fn puts(text: u8*): i32;
+
+struct LexicalPathCase { path: u8*; key: u8*; text: u8*; }
+
+fn lexical_write(root: u8*, name: u8*, text: u8*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    return tool_join(&path, root, name) && tool_output_parents(path.data)
+        && driver_write_file(path.data, text, strlen(text));
+}
+
+fn lexical_case(project: CompilerProjectFiles*, root: u8*, physical: u8*, value: LexicalPathCase): bool {
+    var path: ByteBuffer = default; var key: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&key);
+    if !tool_join(&path, root, value.path) || !bytes_assign_text(&key, "retained", strlen("retained")) { return false; }
+    var admitted = tool_path_relative(&key, path.data, physical);
+    if value.key == null {
+        if admitted || strcmp(key.data, "retained") != 0 { puts("Unexpected path admission:"); puts(value.path); return false; }
+        return true;
+    }
+    if !admitted || strcmp(key.data, value.key) != 0 {
+        puts("Lexical key mismatch:"); puts(value.path); puts("expected:"); puts(value.key); puts("actual:"); puts(key.data);
+        return false;
+    }
+    if !compiler_project_read_source(project, key.data, path.data) { return false; }
+    var index = wasm_names_get(&project.names, wasm_text_bytes(value.key));
+    if index == WasmNoIndex { return false; }
+    var text = &project.files.data[convert(usize, index)].text;
+    return text.length == strlen(value.text) && memcmp(text.data, value.text, text.length) == 0;
+}
+
+// The OS transport creates directory aliases only; Tower owns all fixture data,
+// expected lexical keys/content and actual package-source lookup assertions.
+// Prepare build/, outside/, source/root/nested/deeper/; source_alias -> source/root,
+// source/root/{self -> ., escape -> ../../outside, redirect -> nested/deeper},
+// and file_alias.tower -> source/root/module.tower. Run with absolute root and ".".
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { puts("Usage: tool_path_lexical FIXTURE_ROOT healthy|all"); return 2; }
+    var healthy = strcmp(argv[2], "healthy") == 0;
+    if !healthy && strcmp(argv[2], "all") != 0 { return 2; }
+    var root = argv[1];
+    var module = "import \"./nested/leaf.tower\";\nvar module_marker: i32 = 11;\n";
+    var leaf = "var nested_marker: i32 = 23;\n";
+    var other = "var root_marker: i32 = 31;\n";
+    if !lexical_write(root, "source/root/module.tower", module)
+        || !lexical_write(root, "source/root/nested/leaf.tower", leaf)
+        || !lexical_write(root, "source/root/leaf.tower", other)
+        || !lexical_write(root, "outside/outside.tower", "var outside_marker: i32 = 47;\n") { return 1; }
+    var source: ByteBuffer = default; var physical: ByteBuffer = default;
+    defer bytes_dispose(&source); defer bytes_dispose(&physical);
+    if !tool_join(&source, root, "source/root") || !tool_path_identity(&physical, source.data) { return 1; }
+    var project: CompilerProjectFiles = default; defer compiler_project_files_close(&project);
+    var controls: LexicalPathCase[4];
+    controls[0] = {path: "source/root/module.tower", key: "module.tower", text: module};
+    controls[1] = {path: "source_alias/module.tower", key: "module.tower", text: module};
+    controls[2] = {path: "source/root/nested/leaf.tower", key: "nested/leaf.tower", text: leaf};
+    controls[3] = {path: "source_alias/nested/leaf.tower", key: "nested/leaf.tower", text: leaf};
+    for(var at: usize = 0; at < sizeof(decltype(controls)) / sizeof(LexicalPathCase); at++) {
+        if !lexical_case(&project, root, physical.data, controls[at]) { return 1; }
+    }
+    if healthy { puts("Direct/outside-alias package keys and literal contents passed"); return 0; }
+    var cases: LexicalPathCase[13];
+    cases[0] = {path: "source/root/self/module.tower", key: "self/module.tower", text: module};
+    cases[1] = {path: "source/root/self/nested/leaf.tower", key: "self/nested/leaf.tower", text: leaf};
+    cases[2] = {path: "source_alias/self/module.tower", key: "self/module.tower", text: module};
+    cases[3] = {path: "source/root/nested/../module.tower", key: "module.tower", text: module};
+    cases[4] = {path: "source/root/./self/module.tower", key: "self/module.tower", text: module};
+    cases[5] = {path: "source/root//nested//leaf.tower", key: "nested/leaf.tower", text: leaf};
+    cases[6] = {path: "build/../source/root/self/module.tower", key: "self/module.tower", text: module};
+    cases[7] = {path: "source/root/missing.tower", key: null, text: null};
+    cases[8] = {path: "outside/outside.tower", key: null, text: null};
+    cases[9] = {path: "source/root/escape/outside.tower", key: null, text: null};
+    cases[10] = {path: "file_alias.tower", key: null, text: null};
+    cases[11] = {path: "source/root/nested/../../root/module.tower", key: null, text: null};
+    // Both files are inside root, but OS symlink/.. walking reads a different
+    // file than the normalized lexical key. Never publish the wrong bytes.
+    cases[12] = {path: "source/root/redirect/../leaf.tower", key: null, text: null};
+    for(var at: usize = 0; at < sizeof(decltype(cases)) / sizeof(LexicalPathCase); at++) {
+        if !lexical_case(&project, root, physical.data, cases[at]) { return 1; }
+    }
+    // Both importers retain the literal relative import; its two distinct
+    // lexical destinations are present, despite sharing physical source bytes.
+    var required: u8*[4]; required[0] = "module.tower"; required[1] = "nested/leaf.tower";
+    required[2] = "self/module.tower"; required[3] = "self/nested/leaf.tower";
+    var required_count = sizeof(decltype(required)) / sizeof(u8*);
+    if project.files.length != required_count { return 1; }
+    for(var at: usize = 0; at < required_count; at++) {
+        if wasm_names_get(&project.names, wasm_text_bytes(required[at])) == WasmNoIndex { return 1; }
+    }
+    puts("First root anchor: distinct direct/self imports, normalized keys and rejection controls passed");
+    return 0;
+}
