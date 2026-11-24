@@ -3,10 +3,15 @@ import generic_clone_fixture;
 import .compiler.semantic_query_api;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;
+import .compiler.semantic_declaration_types;
 import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_pool;
+import .library.work_graph;
+import .library.work_vector;
+import .library.work_vector_types;
 
 extern fn sem_workers_open(c: SemanticContext*): bool;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
@@ -47,12 +52,41 @@ fn pool_budget_trial(width: u32, workers: usize, entry: PoolBudgetEntry, denied:
     var context: SemanticContext = default;
     sem_context_init(&context, &program);
     context.generics = fixture.context;
+    var batch_bytes: usize = 0;
+    if entry == PoolBudgetEntry.Declarations {
+        // An empty declaration pump deliberately has no pool to admit. Check
+        // that fast path under full pressure, then queue actual pending work.
+        var empty_before: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &empty_before));
+        var empty_pressure: WorkReservation = default;
+        sem_require(work_budget_reserve_result(&budget, 0, 0,
+            empty_before.bytes - empty_before.used_bytes, &empty_pressure) == WorkBudgetError.None);
+        pool_budget_check(sem_declarations_pump(&context) == SemanticPumpResult.Complete
+            && program.resource.error == WorkBudgetError.None && context.workers.count == 0,
+            "An empty declaration pump completes without allocating a worker pool", &failures);
+        sem_require(work_budget_release_result(&budget, &empty_pressure) == WorkBudgetError.None);
+        var subject = sem_create(program.root);
+        sem_attach(subject, KDeclare).start = 83;
+        var declaration = sem_declaration_state(&context, subject);
+        sem_require(declaration != null);
+        declaration.subject = subject;
+        declaration.admission = SemanticDeclarationAdmission.Pending;
+        declaration.query = work_request(&context.queries, subject, convert(u32, SemanticQuery.Declaration), 0);
+        sem_require(declaration.query != 0 && work_seal(&context.queries, declaration.query)
+            && work_demand(&context.queries, declaration.query));
+        // Measure the existing batch container's real charge, including its
+        // allocation header. Leave exactly that room before denying the pool.
+        var batch: work_vector(SemanticDeclaration*) = default;
+        sem_require(work_vector_push_result(&batch, &budget, declaration) == WorkBudgetError.None);
+        batch_bytes = batch.reservation.bytes;
+        work_vector_dispose(&batch);
+    }
     var before: WorkBudgetSnapshot = default;
     sem_require(work_budget_snapshot(&budget, &before));
     var pressure: WorkReservation = default;
     if denied {
-        sem_require(before.used_bytes < before.bytes
-            && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &pressure)
+        sem_require(batch_bytes < before.bytes - before.used_bytes
+            && work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes - batch_bytes, &pressure)
                 == WorkBudgetError.None);
     }
     var entered = pool_budget_enter(&context, entry);
@@ -64,7 +98,9 @@ fn pool_budget_trial(width: u32, workers: usize, entry: PoolBudgetEntry, denied:
             && context.workers.resource_error == WorkBudgetError.Capacity,
             "A nested semantic pool preserves actual Capacity at each owning entry", &failures);
         pool_budget_check(context.workers.count == 0 && context.workers.running == 0
-            && context.workers.storage.data == null && after.used_bytes == before.bytes,
+            && context.workers.storage.data == null
+            && after.used_bytes == before.used_bytes + pressure.bytes
+            && after.live == before.live + 1 && after.used_lanes == before.used_lanes,
             "Denied pool construction publishes no slots or unaccounted storage", &failures);
         sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None);
         var nodes = entity_store_count(fixture.store);
