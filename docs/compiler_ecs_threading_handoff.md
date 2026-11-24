@@ -1,44 +1,50 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Frozen 03e acceptance and remaining release gates (2026-11-24)
+## Published 03e milestone and next performance work (2026-11-24)
 
-Published source `03e344d24cda60a31765b974348081fb1b2e022b`, tree
-`40d53c13732e5b216e77292cb14aefc9d464a1a5`, remains frozen. The original goal
-is **open**. Four independently reviewed lexer, lowering-frontier, capture-scan
-and LR-order changes are included; rejected pool range claims are restored to
-released611 per-job behavior, retaining stronger admission tests.
+The supported functional, instrumentation and release milestone is accepted.
+**The original performance goal remains open.** Implementation source is
+`03e344d24cda60a31765b974348081fb1b2e022b`, tree
+`40d53c13732e5b216e77292cb14aefc9d464a1a5`. Four independently reviewed lexer,
+LR-order, lowering-frontier and capture-scan improvements are included. Rejected
+pool range claims remain reverted to released per-job behavior; stronger tests remain.
 
-Current-source acceptance now passes [70 native registrations and two direct
-controls](native_combined_03e344d2.md), [20 final ASan selections](final_asan_03e344d2.md),
-[18 TSan controls including real8/12-thread overlap](compiler_thread_combined_03e344d2.md),
-and [browser generations, ownership, static and full local deployment checks](final_browser_static_03e344d2.md).
-ASan's original180s capture-policy timeout remains failed evidence; matched
-ordinary/instrumented attribution supports the documented240s instrumentation-only
-allowance. Instrumentation limits and previous-source evidence remain explicit.
+| Current-source acceptance | Evidence |
+| --- | --- |
+| Native correctness | [70 registrations and two direct controls](native_combined_03e344d2.md), exact outputs and drained ownership |
+| Supported instrumentation | [20 final ASan selections](final_asan_03e344d2.md), [18 TSan controls with real 8/12-thread overlap](compiler_thread_combined_03e344d2.md); coverage limits remain explicit |
+| Browser and generations | [Full browser/static and two edited generations](final_browser_static_03e344d2.md), [independent static review](browser_static_peer_03e344d2.md) |
+| Native package | [39 products across three generations, 57 payloads, 77 checks](compiler_generation_03e344d2.md), [independent provenance and relocated execution](native_candidate_peer_03e344d2.md) |
+| Public distribution | [Complete compiler160a5a20 and resources](bootstrap_pin_03e344d2.md) published by ce0a6fed; B1's fresh default build reproduces all 39 native products and passes 21 development plus 15/999/ABI42 controls |
+| Hosted release | Pagesab4bb7c3, exact HTTPS manifesta4115153 and [full hosted acceptance](hosted_acceptance_03e344d2.md); all 104 assets, desktop/mobile/Linux, redirects and process drain pass |
 
-[Combined ordinary measurements](compiler_combined_performance_03e344d2.md)
-complete48 paired profiles,16 separate observations, one additional diagnostic pair
-and20 CLI controls. Best eight-worker means are1.191x single-unit and2.473x
-multi-unit versus serial. Actual32-thread overlap exists but is slower and more
-CPU-intensive. Small serial improves8.25%; some four/32-worker and large serial
-CLI cases regress. The extra single4 outlier is retained. **C-like latency parity,
-full-width efficiency and a universal performance win are not achieved.**
+Public compiler is 2,303,472 B; complete 57-payload package is 11,293,548 B;
+archive is 2,757,102 B. This remains an LLVM19/Clang-dependent Linux development
+bootstrap. Raw Gen1/build-path differences and B1's nine runtime ModuleID comment
+differences remain preserved; complete resource equality is not fabricated.
+ASan's original 180-second timeout remains failed historical evidence. Matched
+ordinary/instrumented attribution supports its documented 240-second ASan-only
+allowance; internal assertions, waits and ordinary guards were unchanged.
 
-Native three-generation packaging, independent package acceptance, complete public
-pin/clean default adoption and exact new hosted acceptance remain pending.
-D1's early45-minute package wait expired without an artifact; no candidate check
-ran. ROOT will resume that same UUID when the actual package arrives.
-Static archivef04aa009/manifesta4115153 is copied to D2 for independent review.
-ROOT prepared exact Pagesab4bb7c3, not yet published; all105 Git blobs match the
-tested physical bytes after rejecting an autocrlf-normalized draft before push.
-The published runtime and public compiler below remain611/04ae.
+[Combined ordinary performance](compiler_combined_performance_03e344d2.md) covers
+48 paired profiles, 16 separate observations, an extra diagnostic pair and 20 CLI
+controls. Best eight-worker means are 1.191x within one unit and 2.473x across
+units versus serial. Actual 32-thread overlap exists but costs more wall/CPU time.
+Small serial frontend improves 8.25%; four/32-worker and large serial CLI
+regressions, including the extra single4 outlier, are retained. C-like latency
+parity, full-width efficiency and a universal performance win are not achieved.
 
-Exactly eight existing UUIDs remain the limit. Completed owners retain their
-contexts for next parser latency, semantic dispatch and ECS retention work, with
-production edits gated on this release's pin/clean-adoption closure. Owners fix
-ordinary failures in the same task. ROOT batches final adoption instead of
-repeating broad matrices per candidate. Protected todo and historical journal
-bytes remain unchanged. This reconciliation has no runtime code/profile change.
+Next baseline is published7c5cfce8 with public160a5a20. ROOT verified B1's actual
+completed adoption/rehash logs before delivering next_work_20261124_r4.json
+(SHAd9bf1011) to the three existing owners. B2 measures cold LR/parse work; L2
+measures semantic filtered-ready admission; L1 measures raw descriptor/name/query
+storage. Hypotheses are not accepted patches. A1/A2/D2 independently review those
+domains; D1 audits the joined delta. Exactly eight existing UUIDs remain the limit.
+Failures stay with their owners through repair, and final adoption is batched.
+
+Normal A/B/Deck clones were clean-pulled to7c5cfce8 and disks checked; protected
+local todo remains untouched. This handoff is documentation only. Historical611
+release evidence below remains unchanged and source-bound.
 
 ## Current integration checkpoint: published 611 compiler and runtime (2026-11-24)
 
