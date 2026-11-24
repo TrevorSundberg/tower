@@ -11,12 +11,13 @@ world-owned compiler work, dependency scheduling and the published ECS storage
 improvements, SCC provider, parser optimizations, quota diagnostics and semantic
 scratch-memory repair, guarded import reuse, component-page buckets and checked
 syntax reset/expansion ownership, literal-query filtering, lowering frontier,
-capture-scan reuse and LR range ordering at `03e344d2`. The complete executable is
-2,303,472 bytes, SHA256 `160a5a20ed1c97bb473d177ef064391c120fb247cdaff3a2c379b17a697f5ff1`.
+capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing
+at `3c0ccdce`. The complete executable is
+2,308,056 bytes, SHA256 `745afa2fcb983c289d02331f9a8b77f5e6a5da1900d05a6ade13feacfd8b1cd2`.
 All 39 actual native build binaries match across three generations; all 57 package
 payloads and their checksums match across generations two and three. Exact source,
 host dependencies, failures and relocation evidence are in the
-[generation receipt](../docs/compiler_generation_03e344d2.md). Executable and
+[generation receipt](../docs/compiler_generation_3c0ccdce.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
 browser-project packaging and test changes retain their separate source identity.

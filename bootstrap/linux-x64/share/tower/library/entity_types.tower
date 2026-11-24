@@ -50,6 +50,8 @@ struct EntityComponentPage {
     free_slot: usize;
     capacity: usize;
     stride: usize;
+    // Null for raw descriptor/name/query pages: no semantic component metadata.
+    // Their retired payload slot stores the free link; live payloads stay stable.
     components: EntityComponent*;
     data: u8*;
 }
