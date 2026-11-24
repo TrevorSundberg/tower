@@ -1,6 +1,7 @@
 # Combined r5 address and ownership acceptance
 
-Frozen published `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tree `9fa65da4d4d4ad697b4a97e56bb894021076d106`. ROOT's descriptor, all31 changed blobs and published ancestry verify; LF source archive SHA256 `75f4925da0a906211ad8efaf244c26d4860902f75e6222570d14215342144ea1`.
+Frozen published `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tree `9fa65da4d4d4ad697b4a97e56bb894021076d106`. ROOT's descriptor, all31 changed blobs and published ancestry verify; descriptor transport archive SHA256 `75f4925da0a906211ad8efaf244c26d4860902f75e6222570d14215342144ea1`.
+That descriptor archive is the preserved CRLF transport, not the canonical LF package snapshot. Actual instrumentation built the frozen clone and verified its recorded source hashes; package generation separately uses canonical LF archive `c44a6f81`.
 Public default compiler remains `745afa2fcb983c289d02331f9a8b77f5e6a5da1900d05a6ade13feacfd8b1cd2`; all57 packaged payload hashes verify. No private override, production/test edit, generation or vendor rebuild. The independent D2 ownership peer and release adoption are separate gates, not inferred here.
 
 | Prior boundary -> r5 delta | Frozen controls retained/added |
