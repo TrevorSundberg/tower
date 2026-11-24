@@ -21,7 +21,7 @@ import .compiler.semantic_declaration_types;
 // Optional coordinator census. No allocator hook, worker callback, global state,
 // mutation of compiler owners or retained query exists. Plain mode does not scan.
 extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, out: void**): WorkBudgetError;
-extern fn entity_component_from_data(data: u8*): EntityComponent*;
+extern fn entity_owned_page(data: u8*): EntityComponentPage*;
 extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
@@ -138,16 +138,16 @@ fn storage_observe(world: void*, phase: u8*, enabled: bool): void {
     var all: StorageSample = default;
     var layout_pages: usize = 0; var layout_slots: usize = 0;
     foreach(var kind in &kinds) {
-        var layout = entity_component_from_data(bits(u8*, kind.layout));
-        units_check(kind.registered && layout.page != null && layout.page.owner == &store.buffers,
+        var layout = entity_owned_page(bits(u8*, kind.layout));
+        units_check(kind.registered && layout != null && layout.owner == &store.buffers,
             "storage kind layout owner");
-        layout_slots += layout.page.stride + sizeof(EntityComponent);
+        layout_slots += layout.stride;
         var seen = false;
         foreach(var previous in &kinds) {
             if previous == kind { break; }
-            if entity_component_from_data(bits(u8*, previous.layout)).page == layout.page { seen = true; }
+            if entity_owned_page(bits(u8*, previous.layout)) == layout { seen = true; }
         }
-        if !seen { layout_pages += compiler_buffer_allocation_size(layout.page.allocation.capacity); }
+        if !seen { layout_pages += compiler_buffer_allocation_size(layout.allocation.capacity); }
         var sample: StorageSample = default;
         sample.count = kind.instance_count;
         sample.payload = sample.count * kind.layout.data_size;

@@ -31,9 +31,8 @@ fn entity_fault_index(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, 
 }
 fn entity_fault_owned(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, data: T*): void {
     if data == null { return; }
-    var block = entity_component_from_data(bits(u8*, data));
-    if block.page == null {
-        entity_fault_buffer(sample, budget, &bits(EntityComponentAllocation*, block).allocation);
+    if entity_owned_page(bits(u8*, data)) == null {
+        entity_fault_buffer(sample, budget, entity_owned_buffer(bits(u8*, data)));
     }
 }
 fn entity_fault_pages(sample: EntityFaultCensus*, budget: WorkBudget*, pool: EntityComponentPool*): void {
@@ -52,7 +51,10 @@ fn entity_fault_node(sample: EntityFaultCensus*, node: Entity*): void {
     entity_fault_index(sample, budget, node.instances);
     if node.components != &node.inline_components[0] { entity_fault_index(sample, budget, node.components); }
     for(var i: usize = 0; i < node.component_count; i++) {
-        entity_fault_owned(sample, budget, node.components[i].data);
+        var component = node.components[i];
+        if component.page == null {
+            entity_fault_buffer(sample, budget, &bits(EntityComponentAllocation*, component).allocation);
+        }
     }
     for(var i: usize = 0; i < node.child_count; i++) {
         entity_fault_owned(sample, budget, node.children[i].name);

@@ -194,8 +194,8 @@ fn component_layout_admission(capacity: bool): void {
         && budget.used_bytes == before && budget.live == live);
     component_fault_check(entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 0) == WorkBudgetError.None);
     var layout = kind.layout;
-    var metadata = entity_component_from_data(bits(u8*, layout));
-    component_fault_check(layout != null && metadata.page.owner == &store.buffers
+    var metadata = entity_owned_page(bits(u8*, layout));
+    component_fault_check(layout != null && metadata.owner == &store.buffers
         && layout.data_size == sizeof(u64) && layout.data_alignment == alignof(u64) && layout.lifecycle == 0);
     var view = entity_view_open(kind);
     component_fault_check(view != null);

@@ -48,9 +48,9 @@ export fn main(argc: i32, argv: u8**): i32 {
     // and kind. Derive the count from this real owned allocation's geometry.
     var probe = compiler_work_create(1, 1, 1, 9);
     constructor_fault_check(probe != null);
-    var component = entity_component_from_data(bits(u8*, probe.owner));
-    constructor_fault_check(component != null && component.page != null);
-    var units = component.page.capacity;
+    var page = entity_owned_page(bits(u8*, probe.owner));
+    constructor_fault_check(page != null);
+    var units = page.capacity;
     compiler_work_close(probe);
     constructor_fault_trial(units);
     puts("0");
