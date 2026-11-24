@@ -639,6 +639,9 @@ another version's userdata or semantic bindings. Authoritative grammar remains
 on ordinary Tower entities; these records are derived execution indexes.
 
 `ParserStructure` pins the frozen grammar key, runtime and context columns.
+Each state borrows its row of diagnostic positions from one table-owned buffer
+sized from the frozen LR item counts. Publishing the structure transfers that
+buffer and its byte reservation to the structure.
 Tables and cache entries own coordinator-managed references; request workers
 borrow the already frozen table. Eviction, cache reset or source-table destruction
 releases only its pin. The last pin destroys the shared payload. Cache entries,

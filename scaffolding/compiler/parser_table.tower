@@ -45,7 +45,7 @@ fn parser_table_clear_runtime(table: ParserHostTable*): void {
         table.states = default;
     } else {
         lr_runtime_destroy(table.runtime);
-        foreach(var & state in &table.states) { work_vector_dispose(&state.contexts); }
+        work_buffer_dispose(&table.context_storage);
         work_vector_dispose(&table.states);
     }
     table.runtime = null;
@@ -126,6 +126,19 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
     var bytes = count *state_size;
     fill(table.states.data, 0, bytes);
     table.states.length = count;
+    // Frozen LR items each produce one context. Charge their exact common
+    // lifetime once, before filling any row or publishing the table.
+    var total: usize = 0;
+    var limit = ~convert(usize, 0) / sizeof(FrontendContextPosition);
+    for(var i: usize = 0; i < count; i++) {
+        var size = lr_items_count(lr_states_items(states, i));
+        if size > limit - total { table.resource_error = WorkBudgetError.Invalid; return false; }
+        total += size;
+    }
+    table.resource_error = work_buffer_resize(&table.context_storage, table.budget,
+        total * sizeof(FrontendContextPosition), 0);
+    if table.resource_error != WorkBudgetError.None { return false; }
+    var next = bits(FrontendContextPosition*, table.context_storage.data);
     var rules = lr_grammar_rule_data(table.grammar);
     var symbols = lr_grammar_symbol_data(table.grammar);
     var index: usize = 0;
@@ -135,10 +148,9 @@ fn parser_table_contexts(table: ParserHostTable*, analysis: void*, states: void*
         var items = lr_states_items(states, index);
         var values = lr_items_data(items);
         var size = lr_items_count(items);
-        table.resource_error = work_vector_reserve_result(&state.contexts, table.budget, size);
-        ok = table.resource_error == WorkBudgetError.None;
-        if !ok {
-            return false;
+        if size != 0 {
+            state.contexts.data = next;
+            next += size;
         }
         var kernel: bool = true;
         loop {
