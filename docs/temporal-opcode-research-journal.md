@@ -99339,3 +99339,31 @@ On host 1 the retained shared reactor compiled ordinary 64- and 512-body modules
 In separate Chromium observations the three child threads actually overlapped inside body work. For the 512-body shape one contiguous Body group used 79.90 ms of child CPU in 31.09 ms wall. A width-one control recorded zero child kernel callbacks. The extra workers increased elapsed time even without quota throttling. Keep one worker for these measured short-body workloads. Higher-cost bodies require their own scheduling measurement.
 
 Assignment `b73267b4-b792-49a9-9799-3c754e561e13` retained separate ordinary and traced trials, complete frozen inputs, phase clocks, process memory scopes, fallback receipts and initial registration/filter failures. The 5,180,113-byte packet has SHA-256 `7c528bb6b697a8260bc3c1aeccd71992f3df33e86eef258324dba4949fcc1e96`. Fresh extraction reproduced the summaries and overlap tables. [Pairs, phase evidence and host limits](browser_within_unit_fe008af5.md)
+## 2026-11-24 — Quiet-core test of eleven short LR waves
+
+Slot 3 assignment `22cdedc3-ae95-4728-b01c-49084f36ca60` rejected the call-site change. On the quiet 1,000-function input at jobs 4, the candidate averaged 594.5 ms wall and 649.2 ms CPU. The baseline averaged 588.0 ms wall and 643.2 ms CPU. The six wall-time pairs in round order (baseline → candidate, milliseconds) were 589 → 615, 584 → 587, 588 → 596, 590 → 596, 594 → 587 and 583 → 586. Five favored the production handoff. This met the quiet large-input stop condition. The private compiler source, Release ELF and resource package were restored and byte-checked. Cutoff tuning ended there.
+
+The frozen compiler was `43b68fb47e7530a8c87fb4cdf07d307f25a9ccea`, tree `81bf870053fb1de55812afb3b2e1c9ab4d9f1e53`. Local main began at `dea7790d`. Its intervening changes touched documentation and the bootstrap packaging tool. The compiler and runtime inputs were checked against a fresh export of the assigned revision. Both arms used the same public Linux x64 bootstrap, LLVM/Clang 19.1.7, Release flags, outer build parallelism 2, compiler jobs 1 and 55 resources. The tested baseline and candidate ELF SHA-256 values were `f1caff1c2e399fb306da459a5caa12e79e68428ab27783d911171e2fc480ba3b` and `fa3aa19a7065f1bcf8a2689289480a72c64adac1b1e29bbdf69e9f5c95ac13df`.
+
+The candidate changed the extra lanes passed to `compiler_kernel_dispatch_admitted_result` at the FIRST, action and runtime-row producers. It required two payloads and two whole natural row grains before capacity clamping, with room for an additional lane in the pool, the caller's ceiling and any finite outer reservation ledger. Existing grants stayed live through publication. The three selected kernels still ran via the ordinary ticketed caller loop. The row test bounds outer iterations. An untimed trace measured actual kernel thread CPU for the two payloads combined.
+
+| Kernel | Changed waves per jobs-4 compile | Rows per wave | Observed caller CPU per wave, µs |
+| --- | ---: | ---: | ---: |
+| `compiler_lr_first_kernel` | 5 | 137–156 nonterminals | 15.7–20.4 |
+| `compiler_lr_action_kernel` | 3 | 266–271 states | 342.3–393.9 |
+| `compiler_lr_runtime_kernel` | 3 | 266–271 states | 140.3–155.0 |
+
+On each input the trace matched the prior 134 submissions at jobs 4. Only the eleven listed waves changed. All 23 previously affected two-payload `compiler_lr_propagation_kernel` waves retained their granted peer, and all 23 showed overlapping payloads on distinct threads in both arms. Jobs 2 changed zero submissions out of 134. Jobs 1 reached none. The original retained-source controls observed two and four simultaneous LR kernels at their respective widths. The one-worker control passed. Twelve nested grant cases checked lane selection and lease cleanup. Four-worker peak charge was 75,581,223 bytes, with zero live grants, lanes and bytes after close. Row refusal/retry, scratch-budget, randomized LR ordering, dependency permutations, stale dispatch and failure controls passed. The deliberate permutation mismatch and truncated trace failed as expected. Malformed syntax and range errors produced byte-identical diagnostics across arms and widths.
+
+Six adjacent counterbalanced pairs per cell ran one fresh, observer-off packaged process at a time, with warm file pages. CPUs 24–27 were four distinct AMD EPYC 7542 cores, 1.3–4.6% busy before timing, with siblings 0–2.6% busy. The wrapper ran on CPU 60, the cgroup allowed CPUs 0–63 and its quota was 1,228,800 µs per 100,000 µs. Shared memory peaked at 12,753,088,512 bytes under a 57,954,795,520-byte cap. Peak process RSS was 586,324 KiB. All 72 measured invocations had zero new quota throttles and major faults. Every object and linked ELF matched its frozen reference and fresh serial bytes. All executables returned zero and printed exactly `15\n`, `999\n` or `42\n42\n`.
+
+| Functions | Jobs | Baseline / candidate mean wall ms | Baseline / candidate mean CPU ms |
+| ---: | ---: | ---: | ---: |
+| 16 | 1 | 303.2 / 300.3 | 303.0 / 299.8 |
+| 16 | 4 | 350.8 / 347.2 | 382.0 / 377.0 |
+| 1,000 | 1 | 546.0 / 547.5 | 545.3 / 546.5 |
+| 1,000 | 4 | 588.0 / 594.5 | 643.2 / 649.2 |
+| 4,096 | 1 | 2630.8 / 2657.3 | 2628.3 / 2654.8 |
+| 4,096 | 4 | 2093.3 / 2078.8 | 3045.8 / 3003.0 |
+
+The 4,096-function jobs-4 control retained useful parallelism. Its paired wall changes ranged from −71 to +19 ms, and the serial changes ranged from −65 to +79 ms. The host cores were shared. These trials establish the observed tradeoff on this mask and input set. The stop condition ended the experiment before saturation testing. The assignment packet preserves the candidate patch, three tested compiler builds, controls, traces, per-run command lines, outputs, counters and paired observations.
