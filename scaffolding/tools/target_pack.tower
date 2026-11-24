@@ -52,8 +52,13 @@ fn target_pack_runtime(pack: TargetPack*, triple: u8*, profile: u8*): bool {
         || !target_pack_text(&name, triple) || !target_pack_text(&name, "-runtime.o")
         || !host_text_terminate(&name) || !tool_join(&output, pack.stage.data, name.data)
         || tool_file_kind(input.data, true) != ToolFileKind.Regular { return false; }
+    // These bound resources already declare this exact target. Keep Clang's
+    // frontend on it too: the driver decorates Windows/macOS triple strings.
+    // Preserve all diagnostics, including a mismatched input module.
     if !target_pack_text(&target, "--target=") || !target_pack_text(&target, triple) || !host_text_terminate(&target)
         || !tool_process_argument(&args, pack.clang) || !tool_process_argument(&args, target.data) || !tool_process_argument(&args, "-O2")
+        || !tool_process_argument(&args, "-Xclang") || !tool_process_argument(&args, "-triple")
+        || !tool_process_argument(&args, "-Xclang") || !tool_process_argument(&args, triple)
         || !tool_process_argument(&args, "-ffreestanding") || !tool_process_argument(&args, "-fno-builtin")
         || !tool_process_argument(&args, "-fno-stack-protector") || !tool_process_argument(&args, "-mllvm")
         || !tool_process_argument(&args, "-disable-loop-idiom-all")

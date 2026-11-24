@@ -1809,6 +1809,14 @@ bootstrap, browser or release verification.
 
 ### Scratch identity lookup regression
 
+`tower-storage-tests RESOURCE_ROOT scratch-boundaries` (CTest
+`tower-storage-scratch-boundaries`) checks semantic slices below, at and above
+both the actual aligned tail capacity and the configured chunk size. It derives
+the boundaries from a live private owner, verifies every retained byte and slice
+address after multi-chunk transfer/child disposal, and checks zero ownership at
+32/64-bit semantic profiles. It uses the serial storage transport; it makes no
+worker-overlap claim. The existing `scratch` selector includes this check too.
+
 `tower-storage-tests RESOURCE_ROOT scratch` runs the focused semantic scratch
 allocation/denial/retry tests and a 1,024-list ownership-index regression. It
 checks exact pointer identity, bounded lookup probes, ordinary-vector fallback,
