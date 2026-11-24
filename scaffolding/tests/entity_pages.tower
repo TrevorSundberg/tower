@@ -123,6 +123,41 @@ fn stages():void {
     check(store.storage.owned==null && entity_store_dispose(store));
 }
 
+// Exercise raw ownership at the selected target pointer width, independently
+// of semantic component back-pointers and without a host-only budget gate.
+fn owned_layout():void {
+    var pool:EntityComponentPool = default;
+    var error:WorkBudgetError;
+    var empty=entity_owned_allocate_result(u8,&pool,null,0,&error);
+    var tiny=entity_owned_allocate_result(u8,&pool,null,1,&error);
+    check(empty!=null && tiny!=null && error==WorkBudgetError.None);
+    *tiny=255;
+    var page=entity_owned_page(tiny);
+    check(page!=null && page.components==null && entity_owned_buffer(tiny)==&page.allocation);
+    entity_owned_free(u8,empty);
+    var reused=entity_owned_allocate_result(u8,&pool,null,0,&error);
+    check(reused==empty && *tiny==255 && entity_owned_page(reused)==page);
+    entity_owned_free(u8,reused);
+    entity_owned_free(u8,tiny);
+    var length=EntityOwnedPageBytes*2;
+    var large=entity_owned_allocate_result(u8,&pool,null,length,&error);
+    check(large!=null && error==WorkBudgetError.None && entity_owned_page(large)==null);
+    var receipt=entity_owned_buffer(large);
+    var alignment=compiler_buffer_alignment();
+    var prefix=(sizeof(WorkBuffer)+sizeof(EntityComponentPage*)+alignment-1)&~(alignment-1);
+    check(receipt.data==large-prefix && receipt.capacity>=prefix+length
+        && receipt.reservation.owner==null && !receipt.reservation.active
+        && bits(usize,large)%alignment==0);
+    large[0]=65; large[length-1]=255;
+    check(large[0]==65 && large[length-1]==255);
+    entity_owned_free(u8,large);
+    check(pool.owned==null);
+    for(var i:usize=0;i<sizeof(decltype(pool.available))/sizeof(EntityComponentPage*);i++) {
+        check(pool.available[i]==null);
+    }
+}
+
+owned_layout();
 pages();
 check(finalized==200);
 stages();
