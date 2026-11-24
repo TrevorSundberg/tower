@@ -307,7 +307,7 @@ export fn compiler_world_dispose(world: CompilerWorld*): bool {
     if entity_store_count(world.store) != world.registered {
         return false;
     }
-    if entity_store_component_count(world.store) != 0 || world.store.storage.first != null {
+    if entity_store_component_count(world.store) != 0 || world.store.storage.owned != null {
         return false;
     }
     var index: u32 = 0;

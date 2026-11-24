@@ -154,7 +154,7 @@ fn locality_case(count: usize): void {
     for(var i: usize = 0; i < count; i++) { entity_release(owners[i]); }
     entity_release(kind);
     locality_check(entity_store_count(store) == 0 && entity_store_component_count(store) == 0);
-    locality_check(store.storage.first == null && entity_store_dispose(store));
+    locality_check(store.storage.owned == null && entity_store_dispose(store));
 }
 
 // Bounded normal-allocator layout profile. Density describes component presence,
@@ -218,7 +218,7 @@ fn layout_node(sample: LayoutStorage*, node: Entity*): void {
 }
 fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,
     owners: Entity**, count: usize, view: EntityView*): usize {
-    // Full pages are detached from pool.first. Census live component.page
+    // Full pages are detached from the availability buckets. Census live component.page
     // pointers instead; the scratch index is derived, private and untimed.
     var scratch: WorkBuffer = default;
     locality_check(work_buffer_resize(&scratch, null,
@@ -418,7 +418,7 @@ fn layout_case(mixed: bool, columns_first: bool): void {
         reference, columns_first) == page_bytes);
     for(var i: usize = 0; i < count; i++) { entity_release(owners[i]); }
     for(var k: usize = 0; k < kind_count; k++) { entity_release(kinds[k]); }
-    locality_check(store.entity_count == 0 && store.component_count == 0 && store.storage.first == null);
+    locality_check(store.entity_count == 0 && store.component_count == 0 && store.storage.owned == null);
     locality_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
         && work_budget_dispose(&budget));
     layout_label("PASS: checked sums, reuse, stable survivors, world and ledger cleanup");
