@@ -33,3 +33,4 @@ Metrics use the existing ROOT `measure_node.ps1`, changed only to CPU0–3, expl
 E: `C:/Sandbox/build/codex_ecs_20261122/L1/entity_pages_wasm_bd86046f/`: commands/meter/setup/postcheck, all input/output manifests, byte-comparison receipts, phase logs, child/job metrics and previous installed artifacts.
 No compiler/reactor/vendor rebuild, cap/fuel/assertion change, new project logic, sanitizer or deployment. Runtime cost only; B2 shared/generations and ROOT final bundle/hosted adoption remain separate.
 All owned processes drained and source/bundle/backups reverified before reconciliation; later producer changes are excluded from this frozen acceptance.
+Integration: receipt `72cc18a4` joined published `66d15661` as `588532b2`; incoming scratch test/registration and target-pack producer changes are excluded. The19 selected Tower imports, transport and24 installed/ROOT bundle bytes remain exact (`merged_selected_inputs.json`); no runtime rerun or source relabeling.
