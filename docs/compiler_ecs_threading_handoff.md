@@ -1,35 +1,44 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Frozen next batch: 03e344d2 (2026-11-24)
+## Frozen 03e acceptance and remaining release gates (2026-11-24)
 
-The next compiler source is published and frozen at
-`03e344d24cda60a31765b974348081fb1b2e022b`, tree
-`40d53c13732e5b216e77292cb14aefc9d464a1a5`. **The original goal remains open.**
-The published runtime below is still611; this new batch is not yet released.
+Published source `03e344d24cda60a31765b974348081fb1b2e022b`, tree
+`40d53c13732e5b216e77292cb14aefc9d464a1a5`, remains frozen. The original goal
+is **open**. Four independently reviewed lexer, lowering-frontier, capture-scan
+and LR-order changes are included; rejected pool range claims are restored to
+released611 per-job behavior, retaining stronger admission tests.
 
-[Lexer](parser_literal_peer_c185948f.md),
-[lowering frontier](lowering_frontier_peer_82668bf4.md),
-[capture scratch](capture_candidate_peer_r3.md) and
-[LR range ordering](lr_range_order_peer_07589fe5.md) have independent focused
-acceptance. [Pool range claiming was rejected](work_pool_resolution_146d3f66.md):
-the original per-job producer is restored exactly, retaining stronger uneven-cost
-and ownership tests. Individual timing gains/regressions must not be added.
+Current-source acceptance now passes [70 native registrations and two direct
+controls](native_combined_03e344d2.md), [20 final ASan selections](final_asan_03e344d2.md),
+[18 TSan controls including real8/12-thread overlap](compiler_thread_combined_03e344d2.md),
+and [browser generations, ownership, static and full local deployment checks](final_browser_static_03e344d2.md).
+ASan's original180s capture-policy timeout remains failed evidence; matched
+ordinary/instrumented attribution supports the documented240s instrumentation-only
+allowance. Instrumentation limits and previous-source evidence remain explicit.
 
-A2 now owns one actual1/4/8/16/32-worker paired cohort on the32-logical-CPU host;
-ROOT verified A1 has no heavy processes and held its native checks until that
-cohort ends. L1/L2/B2 received the same fixed source for supported ASan/TSan and
-browser/static acceptance. Native generations, complete pin/package peers,
-clean public-default adoption and final hosted acceptance remain required.
-Exactly eight existing UUIDs are retained; failures stay with their owner.
+[Combined ordinary measurements](compiler_combined_performance_03e344d2.md)
+complete48 paired profiles,16 separate observations, one additional diagnostic pair
+and20 CLI controls. Best eight-worker means are1.191x single-unit and2.473x
+multi-unit versus serial. Actual32-thread overlap exists but is slower and more
+CPU-intensive. Small serial improves8.25%; some four/32-worker and large serial
+CLI cases regress. The extra single4 outlier is retained. **C-like latency parity,
+full-width efficiency and a universal performance win are not achieved.**
 
-D2's capture runtime results use its own verified-source build. ROOT separately
-resolved all nine supplied physical-source digest differences as mixed CRLF/LF:
-original physical bytes match the recorded build hashes, and Git-filtered blobs
-match28937e40. Exact original files/proof are retained in
-`ROOT_capture_build_source_crlf_overlay_r3.tar.gz` (SHA054713a6) and
-`ROOT_capture_source_newlines_r3.json`; no supplied binary was relabeled as D2
-execution and no checksum was rewritten. New runtime performance/sanitizer
-claims await their actual results; this checkpoint itself is documentation only.
+Native three-generation packaging, independent package acceptance, complete public
+pin/clean default adoption and exact new hosted acceptance remain pending.
+D1's early45-minute package wait expired without an artifact; no candidate check
+ran. ROOT will resume that same UUID when the actual package arrives.
+Static archivef04aa009/manifesta4115153 is copied to D2 for independent review.
+ROOT prepared exact Pagesab4bb7c3, not yet published; all105 Git blobs match the
+tested physical bytes after rejecting an autocrlf-normalized draft before push.
+The published runtime and public compiler below remain611/04ae.
+
+Exactly eight existing UUIDs remain the limit. Completed owners retain their
+contexts for next parser latency, semantic dispatch and ECS retention work, with
+production edits gated on this release's pin/clean-adoption closure. Owners fix
+ordinary failures in the same task. ROOT batches final adoption instead of
+repeating broad matrices per candidate. Protected todo and historical journal
+bytes remain unchanged. This reconciliation has no runtime code/profile change.
 
 ## Current integration checkpoint: published 611 compiler and runtime (2026-11-24)
 
