@@ -23,6 +23,9 @@ struct SyntaxEmissionInput {
     literals: SyntaxEmissionLiteral*;
     literal_count: usize;
     category: u8*;
+    // Ordinary construct roots only; lexical inputs still include every rule.
+    // False retains the eager emission path for general callers and oracles.
+    reachable: bool;
     root: void*;
     syntax_kind: void*;
     rule_kind: void*;

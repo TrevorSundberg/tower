@@ -25,6 +25,7 @@ import lr_analysis_comparisons;
 import lr_analysis_failures;
 import lr_components;
 import graph_components_checks;
+import syntax_emission_entry;
 
 extern fn parser_tests(): void;
 extern fn syntax_tests(): void;
@@ -38,6 +39,10 @@ extern fn puts(text: u8*): i32;
 // Focused production-API checks, including allocation-failure cleanup.
 // This entry does not walk or reformat the repository's source files.
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 3 && strcmp(argv[2], "emission") == 0 {
+        syntax_emission_test_entry();
+        return 0;
+    }
     if argc == 3 && (strcmp(argv[2], "graph-components") == 0 || strcmp(argv[2], "graph-components-wrong") == 0) {
         return graph_component_property_tests(strcmp(argv[2], "graph-components-wrong") == 0);
     }

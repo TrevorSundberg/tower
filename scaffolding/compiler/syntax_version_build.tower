@@ -94,7 +94,7 @@ export fn syntax_version_seed_result(value: SyntaxVersion*, definitions: Fronten
     var input: SyntaxEmissionInput = {
         rules: definitions.rules.data, count: definitions.rules.length,
         tokens: definitions.tokens.data, token_count: definitions.tokens.length,
-        reserved: reserved.data, reserved_count: reserved.length, category: category,
+        reserved: reserved.data, reserved_count: reserved.length, category: category, reachable: category == null,
         root: value.rules, syntax_kind: value.kinds.syntax, rule_kind: value.kinds.rule,
         reference_kind: value.kinds.reference, string_kind: value.kinds.string, range_kind: value.kinds.range, ..default
     };

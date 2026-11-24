@@ -784,7 +784,16 @@ fn emission_build(value: SyntaxEmission*, parent: SyntaxEmission*): void {
         var root = emission_helper(value, "template");
         emission_root(value, root, value.input.category);
     } else {
+        // Unreachable rules still reserve names and contribute literals/token
+        // priority. Only their parser productions can be omitted. Validate and
+        // derive declaration-start metadata before extending that same private
+        // reachability scratch with the ordinary Statement root.
         emission_collect_literals(value);
+        if value.input.reachable {
+            emission_declarations(value);
+            emission_reachable(value, false);
+        }
+        if value.failed { return; }
         var root = emission_helper(value, "document");
         emission_root(value, root, "GrammarDeclaration");
         emission_root(value, root, "GrammarTokenDeclaration");
@@ -807,6 +816,7 @@ fn emission_build(value: SyntaxEmission*, parent: SyntaxEmission*): void {
         if done {
             break;
         }
+        if !templating && value.input.reachable && !value.states.data[index].visited { index++; continue; }
         var rule = &value.input.rules[index];
         var name = emission_name(value, rule.name, rule.name_length);
         for(var alternative: usize = 0; alternative != rule.count; alternative++) {
@@ -858,12 +868,16 @@ fn emission_visit(value: SyntaxEmission*, name: usize): void {
     }
 }
 
-fn emission_reachable(value: SyntaxEmission*): void {
-    emission_visit(value, emission_cname(value, "GrammarDeclaration"));
-    emission_visit(value, emission_cname(value, "GrammarTokenDeclaration"));
-    emission_visit(value, emission_cname(value, "GrammarSkipDeclaration"));
-    emission_visit(value, emission_cname(value, "ImportDeclaration"));
-    var index: usize = 0;
+fn emission_reachable(value: SyntaxEmission*, declarations: bool): void {
+    var index = value.queue.length;
+    if declarations {
+        emission_visit(value, emission_cname(value, "GrammarDeclaration"));
+        emission_visit(value, emission_cname(value, "GrammarTokenDeclaration"));
+        emission_visit(value, emission_cname(value, "GrammarSkipDeclaration"));
+        emission_visit(value, emission_cname(value, "ImportDeclaration"));
+    } else {
+        emission_visit(value, emission_cname(value, "Statement"));
+    }
     loop {
         var done = index == value.queue.length;
         if value.failed {
@@ -882,7 +896,7 @@ fn emission_reachable(value: SyntaxEmission*): void {
                     return;
                 }
                 if term.literal {
-                    value.names.data[name].declaration = true;
+                    if declarations { value.names.data[name].declaration = true; }
                 } else {
                     emission_visit(value, name);
                 }
@@ -999,7 +1013,7 @@ fn emission_declarations(value: SyntaxEmission*): void {
     value.states.length = count;
     var bytes = count *sizeof(SyntaxEmissionState);
     fill(value.states.data, 0, bytes);
-    emission_reachable(value);
+    emission_reachable(value, true);
     if value.failed {
         return;
     }
@@ -1166,12 +1180,7 @@ export fn syntax_emit_inherit_result(input: SyntaxEmissionInput*, parent: Syntax
     value.resource_error = WorkBudgetError.Memory;
     value.input = input;
     emission_build(value, parent);
-    var ordinary = input.category == null;
-    if !value.failed {
-        if ordinary {
-            emission_declarations(value);
-        }
-    }
+    if !value.failed && input.category == null && !input.reachable { emission_declarations(value); }
     if !value.failed {
         var indexed = emission_index_helpers(value);
         indexed &&= emission_index_lexical(value);

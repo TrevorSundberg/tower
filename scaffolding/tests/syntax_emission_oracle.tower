@@ -37,6 +37,7 @@ struct OracleEmissionName {
     start: bool;
     definition: bool;
     visited: bool;
+    selected: bool;
     nullable: bool;
 }
 struct OracleEmission {
@@ -362,8 +363,32 @@ export fn reference_syntax_emit(input: SyntaxEmissionInput*): void* {
     } else {
         oracle_emission_reference(v, oracle_emission_production(v, oracle_emission_helper(v, "template"), false), oracle_emission_cname(v, input.category), "");
     }
+    if input.reachable && input.category == null {
+        var pending: vector(OracleEmissionName*) = default;
+        defer vector_dispose(&pending);
+        utility_check(vector_push(&pending, oracle_emission_cname(v, "GrammarDeclaration"))
+            && vector_push(&pending, oracle_emission_cname(v, "GrammarTokenDeclaration"))
+            && vector_push(&pending, oracle_emission_cname(v, "GrammarSkipDeclaration"))
+            && vector_push(&pending, oracle_emission_cname(v, "ImportDeclaration"))
+            && vector_push(&pending, oracle_emission_cname(v, "Statement")), "Oracle requested roots");
+        while pending.length != 0 {
+            var name = pending.data[--pending.length];
+            if !name.definition || name.selected { continue; }
+            name.selected = true;
+            foreach(var alternative in &name.alternatives) {
+                var sequence = oracle_emission_node(v, alternative);
+                foreach(var entity in &sequence.items) {
+                    var term = oracle_emission_node(v, entity);
+                    if !term.literal && !term.terminal_set {
+                        utility_check(vector_push(&pending, oracle_emission_name(v, term.text.data, term.text.length)), "Oracle rule dependency");
+                    }
+                }
+            }
+        }
+    }
     for (var i: usize = 0; i < v.definitions.length; ++i) {
         var name = v.definitions.data[i];
+        if input.reachable && input.category == null && !name.selected { continue; }
         for (var a: usize = 0; a < name.alternatives.length; ++a) { oracle_emission_emit(v, name, name.alternatives.data[a], a); }
     }
     if input.category is null { oracle_emission_declarations(v); }
