@@ -1,0 +1,10 @@
+import tower;
+import graph_components_types;
+import work_budget_types;
+
+// Output must be empty. Failure leaves it empty and releases scratch grants.
+// IDs are reverse topological; heads/next enumerate every original member.
+// Connectivity does not authorize cycles in a semantic dependency scheduler.
+extern fn graph_components_result(adjacency: GraphAdjacency*, count: usize,
+    budget: WorkBudget*, output: GraphComponents*): WorkBudgetError;
+extern fn graph_components_dispose(value: GraphComponents*): void;
