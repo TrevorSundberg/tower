@@ -17,7 +17,7 @@ Later main changes are separate candidates, not code validated by this release.
 | Browser and exact site artifacts | [B2 runtime/local-site acceptance](final_browser_static_3c0ccdce.md), [D2 independent source/artifact review](browser_static_peer_3c0ccdce.md), including actual two-generation binary sets |
 | Hosted behavior | [Full current hosted acceptance](hosted_acceptance_3c0ccdce.md):104 served members, desktop/mobile/real Linux3/3, redirects/TLS and worker drain pass. The [original input wait failure](hosted_r4_wait_6496eb01.md) remains historical, not relabeled. |
 
-The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
+The [current whole-scope audit](compiler_ecs_reconciliation_4e7ef17b.md) still requires
 cold serial cost and profitable core efficiency. Bounded LR scratch accounting
 now has implementation, independent peer and joined instrumentation evidence below.
 L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
@@ -86,16 +86,23 @@ their shared-host and counterbalanced-sample limitations. ROOT publishes one
 KinmenB-built, independently reviewed site; GitHub Pages serves the prebuilt
 gh-pages branch. Documentation-only reconciliation reuses exact tested assets.
 
-## Current scope reconciliation (2026-11-24, 7e9c91a0)
+## Current scope reconciliation (2026-11-24, 4e7ef17b)
 
-[Independent whole-scope reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
-accounts for all1281 tracked Tower paths and identifies five remaining acceptance
-items: cold serial cost, useful-core efficiency, bounded parser scratch accounting,
-independent current browser artifact peer and hosted adoption. Current r4
-native/ASan/TSan, public745afa2f clean default adoption and B2's browser/static
-controls pass at their exact boundaries; hosted03e evidence remains historical. The tables below
-retain their original source identities and pending states, superseded only by
-the linked current requirement/evidence map. There is no completion percentage.
+[Independent finite reconciliation](compiler_ecs_reconciliation_4e7ef17b.md)
+accounts for all1282 tracked Tower paths:1254 exact baseline reuses and28 current
+peer-reviewed deltas, with one addition and no deletion. No unassigned source-review
+gap remains at this freeze. Named bounded LR scratch and the old r4 browser-peer/
+hosted gaps are closed at their stated source identities. Cold serial cost, useful-core
+efficiency (including bf's measured multi32 regression) and final successor adoption
+remain open. bf native94+23, ASan60, TSan39 and complete native-package checks pass;
+public745/site6313 remain r4, not bf. Active owner repairs are later deltas requiring
+their own affected validation. Reconciliation received B1's publishedf17fee95/c49 repair
+in compiler/tests `lr_work.tower`: ROOT read its exact blobs; B2's complete peer and
+L1/L2 affected instrumentation remain assigned pending gates. These two current rows
+are explicitly separate from the frozen1282/28-path review closure. General
+specialization is a proposal outside this gate.
+The historical tables below retain their original pending states and limitations;
+this linked current map supersedes those status claims, without a completion percentage.
 
 ## Published 03e milestone and next performance work (2026-11-24)
 
