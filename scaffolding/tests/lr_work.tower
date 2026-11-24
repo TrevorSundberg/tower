@@ -379,6 +379,72 @@ fn lr_links_work_trial(value: LRStates*, constructs: bool, anchor: void*): bool 
     return true;
 }
 
+struct LRActionRefusal {
+    budget: WorkBudget*;
+    allow: usize;
+    hold: WorkReservation;
+    live: usize;
+    joined: bool;
+}
+
+// Only the coordinator touches the probe, immediately before dispatch and
+// after join, while the private chunks still belong to their jobs.
+fn lr_action_refusal_event(payload: void*, phase: GrammarPhase, entering: bool, jobs: usize, rows: usize): void {
+    if phase != GrammarPhase.ActionWave { return; }
+    var probe = bits(LRActionRefusal*, payload);
+    var budget = probe.budget;
+    if entering {
+        var free_bytes = budget.bytes - budget.used_bytes;
+        if jobs < 2 || free_bytes <= probe.allow { return; }
+        probe.live = budget.live;
+        if work_budget_reserve_result(budget, 0, 0, free_bytes - probe.allow, &probe.hold) != WorkBudgetError.None {
+            trap("LR action wave could not reserve competing bytes", 0);
+        }
+        return;
+    }
+    if probe.hold.active {
+        probe.joined = budget.used_bytes == budget.bytes && budget.live == probe.live + 1 + (probe.allow == 0 ? 0 : 1);
+        if !work_budget_release(budget, &probe.hold) { trap("LR action wave lost competing grant", 0); }
+    }
+}
+
+fn lr_action_refusal_trial(states: LRStates*, reference: LRStates*, anchor: void*): bool {
+    var cache = compiler_world_grammar(compiler_node_world(anchor));
+    var budget = states.analysis.budget;
+    var first = states.action_storage.first;
+    var last = states.action_storage.last;
+    if first == null || !first.storage.reservation.active || first.storage.reservation.bytes == 0 { return false; }
+    var independent: LRState* = null;
+    var borrowed: LRState* = null;
+    foreach(var state in &states.states) {
+        if state.actions.length == 0 { continue; }
+        if state.actions_owned { independent = state; } else { borrowed = state; }
+    }
+    if independent == null || borrowed == null { return false; }
+    var owned_data = independent.actions.data;
+    var borrowed_data = borrowed.actions.data;
+    var observer = cache.observer;
+    var before: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(budget, &before) { return false; }
+    for(var chunks: usize = 0; chunks <= 1; chunks++) {
+        var probe: LRActionRefusal = {budget: budget, allow: chunks * first.storage.reservation.bytes, ..default};
+        cache.observer = {context: bits(void*, &probe), event: lr_action_refusal_event};
+        var error = lr_states_lalr_parallel_result(states, false, anchor);
+        cache.observer = observer;
+        if probe.hold.active {
+            if !work_budget_release(budget, &probe.hold) { trap("LR action wave leaked its grant", 0); }
+            return false;
+        }
+        if error != WorkBudgetError.Capacity || !probe.joined || cache.workers.running != 0
+            || states.action_storage.first != first || states.action_storage.last != last
+            || !independent.actions_owned || independent.actions.data != owned_data
+            || borrowed.actions_owned || borrowed.actions.data != borrowed_data || !lr_work_equal(reference, states)
+            || budget.used_bytes != before.used_bytes || budget.live != before.live || budget.used_lanes != before.used_lanes { return false; }
+    }
+    return lr_states_lalr_parallel_result(states, false, anchor) == WorkBudgetError.None
+        && !independent.actions_owned && lr_work_equal(reference, states);
+}
+
 export fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
 symbols: LRSymbol*, length: usize, names: usize): bool {
     var error = WorkBudgetError.None;
@@ -444,6 +510,9 @@ symbols: LRSymbol*, length: usize, names: usize): bool {
                 state.actions = owned;
                 state.actions_owned = true;
                 break;
+            }
+            if ok && budget != null && compiler_worker_capacity(anchor) > 1 && threaded.states.length >= 2 * LRLookaheadStateGrain {
+                ok = lr_action_refusal_trial(threaded, serial, anchor);
             }
         }
         if ok {
@@ -1032,6 +1101,14 @@ fn lr_action_owner_trial(bounded: bool): bool {
     if task.resource_error != WorkBudgetError.None || result.length != 1 || state.actions.length != 0
         || state.actions.data != original || result.data[0].first != 65 || result.data[0].last != 67
         || result.data[0].rule != lr_none() || result.data[0].state != 1 { return false; }
+    if bounded {
+        var foreign: WorkArena = default;
+        if !work_arena_init(&foreign, null, states.records.chunk_bytes) { return false; }
+        defer work_arena_dispose(&foreign);
+        var chunk = task.scratch.first;
+        if work_arena_append(&foreign, &task.scratch) || foreign.first != null || foreign.last != null
+            || chunk == null || task.scratch.first != chunk || task.scratch.last != chunk { return false; }
+    }
     if !work_arena_init(&states.action_storage, ledger, states.records.chunk_bytes)
         || !work_arena_append(&states.action_storage, &task.scratch) || task.scratch.first != null { return false; }
     state.actions = result;

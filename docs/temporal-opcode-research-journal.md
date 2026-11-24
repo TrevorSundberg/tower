@@ -98358,3 +98358,7 @@ Frozen c49c8b37/public745 built native, portable, LLVM/cross and shared reactors
 ### 2026-11-24 L2 — dependency permutation and charged LR lifetime TSan acceptance
 
 At frozen e57e13dd1 with production c49, the two positive registrations passed under their 180-second guards. The registered wrong-result control exited 1 with actual 1112 versus wanted 1113 after checked close. The 16 permutation batches submitted 24 units, compared complete canonical output and cycle diagnostics, and exercised two distinct overlapping inner and outer workers in their respective trials. Charged LR reached the final original-range 32/35 reads after private disposal. No findings, timeouts, skips, remaining owners or OOM. Two changed objects rebuilt, 30 reused, prior sensitivity verified. Runtime timings, peak charge/RSS, exact source and raw proof are in [the receipt](compiler_thread_permutations_e57e13dd.md). The later browser fixture is outside this freeze.
+
+### 2026-11-24 L1 native LR action-storage replacement under ASan
+
+The published a095b0d8 selector and the focused zero/one-chunk refusal, incompatible transfer and retry regression both passed with public77, matching output, joined grants and final zero owners. The separate refreshed sensitivity control returned its expected diagnostic. [Source, costs and raw evidence](lr_action_storage_asan_a095b0d8.md). Production sources stayed at the freeze.
