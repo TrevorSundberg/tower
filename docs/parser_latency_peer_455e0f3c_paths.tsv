@@ -1,0 +1,9 @@
+path	baseline_blob	reviewed_blob	disposition
+bootstrap/linux-x64/share/tower/library/entities.tower	97207c86e8670ed4ce20037246dbb8a78c8665ac	fca415c441fb48deb593084f8eb07f1cdfc6a18e	Published745 resources: exact accepted r4 package copies; no new authored producer
+bootstrap/linux-x64/share/tower/library/entity_types.tower	594b3c7ff1627396baf4369f167173d5cc92ab90	9bfccde4f8206b8ae340f35ad3c9808c0f76b68b	Published745 resources: exact accepted r4 package copies; no new authored producer
+scaffolding/compiler/lr_lalr.tower	409cab527e43f3a1cd02f858eb4fa38451826b0e	7f0ab15baf53fc64e86f36c290a35bb69a17607d	A2 LR candidate: independently read and executed with supplied pre-gate runners
+scaffolding/host/work_linux.tower	f0ce4bf3cfc01517357337076691460f139de391	36a483de1fa95f15e6becbb4f929be3b65c89deb	Separate13b adaptive-gate delta: source boundary inspected, ARM64 attribute bug B1-owned; excluded from D1 execution/acceptance
+scaffolding/tests/entity_create_faults.tower	cf73b372251d7c65a5c517af5de51ab47e4c2cc4	476e984b679199443e9c46bf4789d64b896b391a	Independent L1 d56de4ff receipt entity_create_faults_asan_03de36a8; unchanged fixture blob, excluded from LR delta
+scaffolding/tests/entity_pages.tower	34e6f5678eafb05b50ed3ab079a765335194f7ea	9e74293e4209919439055733108c15be35da959f	Existing L1 r4 fixture overlay and ROOT review; unchanged measured-base bytes, excluded from LR delta
+scaffolding/tests/lr_analysis_comparisons.tower	35d7a1f67a0cafb181af1a0aec8f1fb68910e3f2	f8286397751d3c4677abe99b332da88a0d8ed0d2	A2 LR candidate: independently read and executed with supplied pre-gate runners
+scaffolding/tests/work_budget_shared.tower	c45267c7845c50530b439632ba119b0b9a02910a	6c809650925d0d6a931f8b357f422b0d684edcdd	Separate13b adaptive-gate delta: source boundary inspected, ARM64 attribute bug B1-owned; excluded from D1 execution/acceptance
