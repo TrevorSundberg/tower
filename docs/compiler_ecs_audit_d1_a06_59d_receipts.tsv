@@ -1,0 +1,35 @@
+key	role	author	commit	path	boundary_or_limit
+I1	owner	D1	158624c7	docs/compiler_ecs_audit_d1.md#d1-admitted-i1-overflow-repair--e637ba38-plus-focused-delta-2026-11-23	Published1e428ede;60 Graph/Fast configurations and8 rejection controls; native reference added separately
+POINTER	owner	L1	015aa9ed	docs/backend_pointer_order_6e8001fd.md	Native source/recheck/direct execution; second normalization is separate
+CONSTANT	owner	A2	13f30c25	docs/backend_constant_address_e330a2c9.md	Native reduced/large source boundaries; missing sub guard/generated-output registration retained
+SPARSE	owner	A1	8471cf97;85ab2449	docs/entity_kind_layout_a1_3011c77f.md	Internal Entity ABI;20 original blobs plus6 composed child/constant-address merge blobs at85ab2449; owner native tests/n2; ROOT independent receipt pending
+PAGES	owner	B1	31bba36a	docs/compiler_foundation_pages_1e428ede.md	Four-row Foundation private pages; source-specific memory/time tradeoff
+CODEC	owner	A1	1c919df5	docs/deflate_lazy_a1.md	161 ZIP/39 gzip reference results attributed; package cost not compiler speed
+CHILD	owner	B2	c12c2189	docs/entity_inline_children_5fc00c85.md	Inline child/page accounting; later large/fault adoption in entity_large_acceptance_d962222a.md
+NATIVE_OVERFLOW	owner	D2	84e26aac	docs/compiler_ecs_audit_d2.md#native-overflow-reference-extension--ae5d34b2-2026-11-23	Final3c8cd457;30 native/60 GraphFast; raw retains dynamic calls while O2 folds entries
+SIGNED	owner	L1	73300be3	docs/signed_pointer_stage_503677d9.md	Final95d5916c;2 CTests/8positive+8negative before counted-text correction
+TEXT_FIX	owner	D1	96d531b4	docs/compiler_ecs_audit_d1.md#d1-signed-pointer-fixture-peer-review--cee3ef7c-2026-11-23	Source-proved termination defect; build interrupted143; no corrected runtime evidence
+CENSUS	owner	A2	2bad3e52	docs/entity_pages_wasm_storage_a06ec4b1.md	Sparse histogram/capacity observation; exact native and a06 guest receipts
+SEED	owner	D1	e96d2282	docs/compiler_ecs_audit_d1.md#d1-seeded-dependencycancellation-interaction--1e428ede-2026-11-23	Publishede68981c3;15 batches/36 answers; recovery is fresh-world revision not retained-session invalidation
+FAULTS	owner	B2	2f4361f6	docs/entity_fault_accounting_6019450c.md	Full single-owner allocation-denial modes; not threaded instrumentation
+WINDOWS	owner	A1	607f9ce9	docs/windows_budget_gate_cabc2062.md	Actual Windows gate/pool plus plain Linux boundary; no macOS claim
+ABORT	owner	A2	9f379443	docs/abort_t9_a06_1e428ede.md	Unchanged a06 reactor pair plus explicit host/resource delta
+PLATFORM	owner	A2	371ef93e	docs/platform_binding_a06_26f99a40.md	Unchanged a06 pair;4 Node cases and source/canonical32/64 GraphFast+wasm32 receipt
+PACKAGE	owner	D2	03d8123d	docs/compiler_distribution_size_25dddd04.md	Historical25dddd04 artifacts; removes only redundant raw dist LLVM copy
+D2_I1	independent	D2	55b6e254	docs/compiler_ecs_audit_d2.md#independent-i1-overflow-reconstruction-review--5fc00c85-2026-11-23	Exact i1 producer/import-selector blobs; later native extension needs ROOT receipt
+D1_POINTER	independent	D1	1990c255	docs/compiler_ecs_audit_d1.md#d1-pointer-order-reconstructionrunner-peer-review--503677d9-2026-11-23	bi_compare unchanged; later bi_value and borrowed-helper deltas have separate reviews
+D2_CONSTANT	independent	D2	f28390f4	docs/compiler_ecs_audit_d2.md#independent-constexpr-address-review--d962222a-2026-11-23	Producer reviewed; sub-presence/generated-output execution registration gaps explicit
+ROOT_SPARSE_PENDING	independent_receipt_pending	ROOT	-	USER_TASK_2026_11_23	ROOT reports review at59d7dc9e of all26 authored sparse-layout/caller/observer/fault paths; no published journal identity at freeze
+L2_PAGES	independent	L2	11d7751b	docs/compiler_foundation_pages_frontend_524ad027.md	World/page policy and observer controls at524ad027; current world blob identical
+D1_CODEC	independent	D1	35268d64	docs/compiler_ecs_audit_d1.md#d1-bounded-lazy-deflate-source-review--e330a2c9-2026-11-23	Four exact codec/test/profile blobs and immediate package callers
+D1_CHILD	independent	D1	3af13f1b	docs/compiler_ecs_audit_d1.md#d1-inline-first-child-peer-review--d5c350d5-2026-11-23	Child storage/accounting reviewed; later sparse-kind delta not covered
+ROOT_NATIVE_OVERFLOW	independent	ROOT	2229cd1d	docs/temporal-opcode-research-journal.md#root-independent-test-adoption-and-joined-release-freeze-2026-11-24	Exact527f/623d/9e3f Tower blobs and6028 CMake; source review not rerun
+D1_SIGNED	independent	D1	96d531b4	docs/compiler_ecs_audit_d1.md#d1-signed-pointer-fixture-peer-review--cee3ef7c-2026-11-23	Independent review of L1 original fixture; D1-authored termination correction is not self-peer-approved
+ROOT_TEXT_TASK	task_acceptance_runtime_pending	ROOT	-	USER_TASK_2026_11_23	Narrow correction accepted for validation; L1 owns2 signed CTests plus deliberate pre-finalization negative; no published execution receipt at freeze
+D2_CENSUS	independent	D2	ed9ba645	docs/compiler_ecs_audit_d2.md#independent-reconstruction-observer-review--1e428ede-2026-11-23	Older sparse-ID histogram/capacity accessor; later page/child/kind composition explicitly chained
+ROOT_SEED	independent	ROOT	2229cd1d	docs/temporal-opcode-research-journal.md#root-independent-test-adoption-and-joined-release-freeze-2026-11-24	Exactde906/6dc0 Tower blobs and3d335 CMake; older1afe unit caller before sparse registration delta
+D2_FAULT_WINDOWS	independent	D2	5cc88766	docs/compiler_ecs_audit_d2.md#independent-faultwindows-fixture-review--6e8001fd-2026-11-23	Exact stage-fault/Windows paths; component/fault-census later changes explicitly chained
+A1_ABORT	independent	A1	8b58fa60	docs/abort_host_peer_review_a1.md	Six Tower abort/unknown fixtures and host callers; excludes later platform_calls
+D1_PLATFORM_HERE	independent_this_receipt	D1	-	docs/compiler_ecs_audit_d1.md#d1-finite-post-a06-audit-map--8771b949-2026-11-23	Source8771b949; seven-line fixture and exact current platform caller spot-reviewed; owner runtime remains attributed
+A1_PACKAGE	independent	A1	1c919df5	docs/deflate_lazy_a1.md	Opening package review explicitly covers03d8123d write/unlink/manifest and consumers; no owner self-review substitution
+B2_C_BASE	independent_base_gap_closed	B2	04b2d4e5	docs/c_fixture_split_peer_review_b2.md	Unchanged2888/2999 direct-C fixture/driver blobs close two inherited a06 gaps outside65-path delta
