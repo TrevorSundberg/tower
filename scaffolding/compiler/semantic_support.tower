@@ -20,7 +20,10 @@ extern fn compiler_buffer_allocate(bytes: usize): void*;
 extern fn compiler_buffer_free(pointer: void*): void;
 extern fn compiler_buffer_alignment(): usize;
 
-var SemanticScratchChunkBytes: usize = 4096;
+// Private declaration continuations often retain only a few table entries.
+// Keep their stable arena chunks small; larger slices still request their exact
+// required capacity through WorkArena, without changing the world byte limit.
+var SemanticScratchChunkBytes: usize = 1024;
 var SemanticTableInitialCapacity: usize = 16;
 
 // This path is also used under denied allocation. Recording the first typed
