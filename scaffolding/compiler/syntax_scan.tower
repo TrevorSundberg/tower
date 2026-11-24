@@ -56,7 +56,10 @@ fn scan_highlight(input: SyntaxScanInput*, start: usize, choice: LexiconChoice*)
     }
 }
 
-export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+// Ordinary trivia scanning already selects the first non-skipped token. Keep
+// that choice only within this call: source, revision and LR state cannot change
+// before consumption. Declaration/bootstrapping paths still select afterward.
+fn scan_skip_choice(input: SyntaxScanInput*, result: SyntaxScanResult*, choice: LexiconChoice*): bool {
     var meta = input.bootstrapping;
     meta ||= input.declaration;
     loop {
@@ -64,18 +67,17 @@ export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         if done {
             break;
         }
-        var choice: LexiconChoice;
         if meta {
-            lexicon_skip(input.lexicon, input.source, input.size, input.cursor, &choice);
+            lexicon_skip(input.lexicon, input.source, input.size, input.cursor, choice);
         } else {
             var declaration = lexicon_declaration(input.lexicon, input.source, input.size, input.cursor);
             if declaration {
                 break;
             }
-            scan_choice(input, &choice);
+            scan_choice(input, choice);
             result.checks = result.checks + choice.checks;
             if !choice.skipped {
-                break;
+                return true;
             }
         }
         done = choice.length == 0;
@@ -84,20 +86,27 @@ export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): 
         }
         var start = input.cursor;
         input.cursor = input.cursor + choice.length;
-        scan_highlight(input, start, &choice);
+        scan_highlight(input, start, choice);
     }
+    return false;
 }
 
-fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+export fn syntax_scan_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
+    var choice: LexiconChoice;
+    scan_skip_choice(input, result, &choice);
+}
+
+fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*, choice: LexiconChoice*, selected: bool): void {
     result.id = 4294967294;
     result.start = input.cursor;
     result.length = 0;
     if input.cursor == input.size {
         return;
     }
-    var choice: LexiconChoice;
-    scan_choice(input, &choice);
-    result.checks = result.checks + choice.checks;
+    if !selected {
+        scan_choice(input, choice);
+        result.checks += choice.checks;
+    }
     if choice.length == 0 {
         var codepoint: u32;
         var remaining = input.size -input.cursor;
@@ -111,12 +120,13 @@ fn scan_after_skip(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
     input.cursor = input.cursor + choice.length;
     result.length = choice.length;
     result.id = choice.id;
-    scan_highlight(input, result.start, &choice);
+    scan_highlight(input, result.start, choice);
 }
 
 export fn syntax_scan_token(input: SyntaxScanInput*, result: SyntaxScanResult*): void {
-    syntax_scan_skip(input, result);
-    scan_after_skip(input, result);
+    var choice: LexiconChoice;
+    var selected = scan_skip_choice(input, result, &choice);
+    scan_after_skip(input, result, &choice, selected);
 }
 
 export fn syntax_scan_peek(input: SyntaxScanInput*, id: u32*): bool {
@@ -183,7 +193,8 @@ fn scan_unknown(result: SyntaxScanResult*, name: vector(u8)*): void {
 }
 
 export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): void* {
-    syntax_scan_skip(input, result);
+    var choice: LexiconChoice;
+    var selected = scan_skip_choice(input, result, &choice);
     result.start = input.cursor;
     result.id = 4294967294;
     var hole = input.replacement;
@@ -210,7 +221,7 @@ export fn syntax_scan_read(input: SyntaxScanInput*, result: SyntaxScanResult*): 
             }
         }
     } else {
-        scan_after_skip(input, result);
+        scan_after_skip(input, result, &choice, selected);
     }
     var node: void* = null;
     var present = result.id != 4294967294;
