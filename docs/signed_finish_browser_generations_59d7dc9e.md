@@ -35,3 +35,5 @@ These are validation costs, not a speedup claim: different predecessor compilers
 Raw commands, initial/installed/host/output manifests, private negative, failure logs, times and process accounting: `C:/Sandbox/build/codex_ecs_20261122/L1/signed_finish_generations_59d7dc9e/`.
 Both successors/objects/edited sources/responses: `C:/Sandbox/tower-agent-1/build/l1_generations_59d7dc9e/`; initial immutable inputs remain in `ROOT_browser_inputs_59d7dc9e`.
 Old9d generation receipts remain historical; no reactor rebuild, native full-generation, browser matrix, sanitizer, deployment or pin adoption. ROOT owns final release and later-source acceptance.
+
+Integration: implementation2ee12779 joined complete561c1bb7 inb8524d43. Incoming constant-address registrations/harness and docs do not change the signed fixture or generation host/input blobs; post-merge hashes match. Those new selectors were not run or relabeled as covered.
