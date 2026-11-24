@@ -1,0 +1,10 @@
+import tower;
+fn ordinary_helper(): usize {
+    var count: usize = 0;
+    var bytes: u8[combine(increment(&count), increment(&count))];
+    return sizeof(decltype(bytes));
+}
+fn combine(left: usize, right: usize): usize { return left * 10 + right; }
+fn increment(count: usize*): usize { (*count)++; return *count; }
+var result = comptime(ordinary_helper());
+print(result);

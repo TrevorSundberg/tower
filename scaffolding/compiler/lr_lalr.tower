@@ -509,18 +509,28 @@ fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget
         if state.items.values.length > maximum { maximum = state.items.values.length; }
     }
     var stride = sizeof(usize) + sizeof(u8);
-    if maximum > ~convert(usize, 0) / stride { *error = WorkBudgetError.Invalid; return null; }
+    var rules = value.analysis.rule_count;
+    if rules > ~convert(usize, 0) / sizeof(usize) { *error = WorkBudgetError.Invalid; return null; }
+    var index_bytes = rules * sizeof(usize);
+    if maximum > (~convert(usize, 0) - index_bytes) / stride { *error = WorkBudgetError.Invalid; return null; }
     var scratch: WorkBuffer = default;
     defer work_buffer_dispose(&scratch);
-    *error = work_buffer_resize(&scratch, budget, maximum * stride, 0);
+    *error = work_buffer_resize(&scratch, budget, maximum * stride + index_bytes, 0);
     if *error != WorkBudgetError.None { return null; }
     var pending = bits(usize*, scratch.data);
-    var active = scratch.data + maximum * sizeof(usize);
+    var predictions = pending + maximum;
+    var active = bits(u8*, predictions + rules);
     for(var state_index: usize = 0; state_index < value.states.length; state_index++) {
         var state = value.states.data[state_index];
         fill(active, 0, state.items.values.length * sizeof(u8));
+        // Each frozen LR(0) state contains at most one dot-zero item for a
+        // production. Rebuild this private derived index for the current state;
+        // prediction visits need no repeated binary search or retained pointers.
+        fill(predictions, ~convert(u8, 0), index_bytes);
         var queued: usize = 0;
         for(var i: usize = 0; i < state.items.values.length; i++) {
+            var item = &state.items.values.data[i];
+            if item.position == 0 { predictions[item.rule] = i; }
             if lr_kernel(value.analysis, &state.items.values.data[i]) { active[i] = 1; pending[queued++] = i; }
         }
         for(var at: usize = 0; at < queued; at++) {
@@ -562,9 +572,9 @@ fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget
             if suffix.error != WorkBudgetError.None { *error = suffix.error; return null; }
             if suffix.count == 0 && !suffix.nullable { continue; }
             foreach(var production in &value.analysis.nonterminals[symbol.nonterminal].productions) {
-                var next: LRItem = {rule: production, position: 0, first: 0, last: 0};
-                var destination = lr_lalr_index(value, state_index, &next);
-                if destination == lr_none() { *error = WorkBudgetError.Invalid; return null; }
+                var local = predictions[production];
+                if local == lr_none() { *error = WorkBudgetError.Invalid; return null; }
+                var destination = state.base + local;
                 if suffix.nullable {
                     *error = lr_propagation_edge_result(graph, source, destination);
                     if *error != WorkBudgetError.None { return null; }
@@ -575,7 +585,6 @@ fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget
                         : lr_propagation_seed_result(graph, destination, range.first, range.last);
                     if *error != WorkBudgetError.None { return null; }
                 }
-                var local = destination - state.base;
                 if active[local] == 0 { active[local] = 1; pending[queued++] = local; }
             }
         }
