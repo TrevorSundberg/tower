@@ -78,7 +78,9 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "frontend_module_cyclic_result", "frontend_module_cyclic_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "syntax_session_open_result", "syntax_session_open_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_stage_create_result", "entity_stage_create_result_extra");
-    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "work_arena_append", "work_arena_append_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "work_arena_append", "work_arena_append_extra");
+    // Joined LR worker scratch now transfers through the existing arena provider.
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Interpreter, "work_arena_append", "work_arena_append_extra");
     symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_allocate_result", "syntax_session_allocate_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_nodes_equal_result", "syntax_nodes_equal_result_extra");
     symbol_case(BootstrapUnit.TemplateBuild, false, " U tower_trap\n", null);

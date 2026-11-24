@@ -612,6 +612,8 @@ fn lr_propagation_worker_reuse(budget: WorkBudget*): bool {
     defer work_arena_dispose(&task.scratch);
     compiler_lr_propagation_kernel(bits(void*, &task));
     if task.resource_error != WorkBudgetError.None || !changed || result.length != 2
+        || result.data[0].first != 32 || result.data[0].last != 35
+        || result.data[1].first != 34 || result.data[1].last != 36
         || !work_arena_append(&value.scratch, &task.scratch) || task.scratch.first != null { return false; }
     var borrowed = result.data;
     var capacity = result.capacity;
@@ -648,7 +650,7 @@ fn lr_propagation_worker_reuse(budget: WorkBudget*): bool {
     var last = task.scratch.last;
     var bytes = budget.used_bytes;
     var owners = budget.live;
-    if work_arena_append(&incompatible, &task.scratch) || incompatible.first != null
+    if work_arena_append(&incompatible, &task.scratch) || incompatible.first != null || incompatible.last != null
         || task.scratch.first != first || task.scratch.last != last
         || budget.used_bytes != bytes || budget.live != owners
         || !work_arena_append(&value.scratch, &task.scratch) { return false; }
@@ -660,6 +662,9 @@ fn lr_propagation_worker_reuse(budget: WorkBudget*): bool {
     for(var i: usize = 0; i < capacity; i++) {
         if rows.data[i + 2].first != convert(u32, 100 + i * 2) || rows.data[i + 2].last != rows.data[i + 2].first { return false; }
     }
+    // The retry copied this one live range into a new chunk. Its original
+    // graph-owned slice still outlives the worker's emptied arena.
+    if borrowed[0].first != 32 || borrowed[0].last != 35 { return false; }
     lr_propagation_destroy(value);
     value = null;
     return budget.used_bytes == before.used_bytes && budget.live == before.live && budget.used_lanes == before.used_lanes;
