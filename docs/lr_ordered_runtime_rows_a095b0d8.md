@@ -1,0 +1,34 @@
+# Copy strictly ordered LR actions into private runtime rows
+
+Against the published action arenas at `a095b0d8`, the corrected collector reduced multi12 wall time by 4.71%, CPU by 5.08%, maximum RSS by 31,056 KiB and retained storage by 1,358,496 bytes. Serial4096 took 4.66% longer on average across two opposite-direction pairs. Keep the runtime-row correction for its measured construction and memory benefit. The serial4096 end-to-end regression remains open.
+
+The released `c49c8b37` and arena profiles were `e732fcd8` and `944b47d2`. Their CLIs were `77f23db6` and `5fd3bd8c`. Ordinary disassembly shows two arena-push call sites in both serial collectors. The collector grew from 986 to 1,028 instruction bytes. Sorted insertion remained 418 bytes. A private Tower observer measured whole serial action-fill passes, complete serial runtime builds and private runtime-row kernels. It counted strict order with the production comparator **after** taking both clocks.
+
+* On serial4096, both original compilers produced 636,401 actions across 22,507 rows. Of those, 567,995 actions belonged to strictly ordered rows. Released → arena CPU was 11.24 → 12.01 ms for serial fill and 19.37 → 18.92 ms for runtime construction. The latter fell to **14.61 ms** with the correction. These measured differences explain little of the previous 38.7 ms serial wall gap. Its remaining cause is unresolved.
+* At multi12 the arena built 7,636,812 actions. Although outer units occupied all twelve lanes, the runtime kernel still materialized 5,860,920 actions, of which 5,204,256 were already in strictly ordered rows. Aggregate private-kernel CPU fell 305.97 → 217.25 ms, and serial runtime-build CPU fell 159.54 → 107.37 ms. The two measurements cover different construction paths. Timing a kernel entry alone does not imply an extra thread.
+* Both CLI inputs produced identical counts of 635,055 actions. In small/large order, serial-fill CPU was 12.48/11.23 ms on the release, 10.83/11.85 on the arenas, and 11.95/11.59 with the correction. Corresponding runtime construction was 17.17/18.31, 16.84/17.14, and **13.26/13.92 ms**. These were separate diagnostic processes.
+* The two producers now call the same collector on a fresh row. The full ordering check establishes uniqueness before one checked reservation and copy. Comparing equal or descending actions takes the established ordered insertion and deduplication path. The copy leaves the input alive and gives normalization its own mutable payload. Conflict selection, interning, goto processing, state-action ownership and worker admission use their existing paths.
+
+| Workload / workers | Arena → correction wall (s) | Arena → correction CPU (s) | Wall change in each pair |
+|---|---:|---:|---:|
+| 16 / 1 | .2490 → .2384 | .1874 → .1804 | −2.89%, −5.57% |
+| 16 / 4 | .2854 → .2818 | .2486 → .2424 | −1.48%, −1.04% |
+| 4096 / 1 | 1.5033 → 1.5733 | 1.4413 → 1.5106 | +10.14%, −0.71% |
+| 4096 / 8 | 1.2750 → 1.2768 | 2.2802 → 2.2735 | +1.59%, −1.29% |
+| 12×256 / 1 | 3.1071 → 3.0989 | 2.5085 → 2.5007 | +0.97%, −1.49% |
+| 12×256 / 4 | 1.3171 → 1.2988 | 4.3065 → 4.2340 | +0.02%, −2.75% |
+| 12×256 / 8 | 1.2558 → 1.2359 | 6.3893 → 6.2675 | −0.47%, −2.72% |
+| 12×256 / 12 | 1.2894 → 1.2287 | 10.5292 → 9.9947 | −3.07%, −6.35% |
+
+The 36 ordinary fresh processes comprised 32 counterbalanced arena/correction runs and four released controls on the two previously regressed configurations. Released averages were 1.5061 s for serial4096 and 1.2943 s for multi12. All source/import/canonical files matched, independent execution produced 42, and every join and teardown passed. Full per-process OS measurements and both rounds are in the [ordinary samples](lr_ordered_runtime_rows_a095b0d8.csv). The [original arena cohorts](lr_action_arena_c49c8b37.md) retain their separate identities.
+
+KinmenB CPU0–11, six physical cores/twelve logical processors, quota12, 12 GiB, zero swap, outer2/compiler1 builds, production allocation and warm filesystem. B2 owned CPU12–23. Boundary inventories recorded its idle persistent container. Separate serial phase controls dispatched zero action waves. Table CPU fell 95.92 → 88.00 ms and parse CPU 308.77 → 299.37 ms. At multi8 the phase control recorded four simultaneous action participants, outer/shared peaks of eight and four refills. Retained storage fell 113,208 bytes per unit at every width. Multi12 peak charge fell 919,543,117 → 912,614,868 bytes, with 319,919 live grants before close and zero owned lanes after join. Ordinary families used 73.14 s wall and 147.31 s CPU.
+
+The measured source overlays the two producer edits on the preserved arena freeze using its exact public745 bootstrap, provider flags, inputs and 55 packaged resources. Removing probes and rebuilding reproduced **both** ordinary arena ELFs byte-for-byte before applying the correction. Corrected profile SHA256 `77d4b8f537a0a5921af03cbb47c56bf382eb9f44ff4e0aa57d10a1250580f6ea` and CLI `b2b6f286daf982ca6a7279ca669611d202750d3c7042a25e415e7b676c1f6bf3` retained their original sizes of 2,392,568 and 2,312,384 bytes.
+
+Seven focused selectors passed, including the 150-grammar independent oracle, worker/admission, scratch and serial/worker runtime fault sweeps with conflict, refusal, retry and cleanup. All 16 ordinary CLI controls matched the complete reference objects and native 15/999. Imported-grammar Graph/Fast/native 42 matched the original foreign object and symbols. Serial CLI process means were .310 → .305 s small and .420 → .430 s large. Raw fixtures, clocks, ELFs, exact commands, complete outputs, cgroup and process inventories are in `build/ecs_b1/cache/lr_action_fill_r7/`. Whole-host timing and instrumentation belong to ROOT.
+
+
+Integration on `6c035afc` used its published c49 compiler and includes the other owners' frontend-unit retention, backend and LR refusal changes. The first build failed at `scaffolding/tests/lr_work.tower:1128:13` with `Unexpected 'token'. Expected Identifier.` Reproduce with the preserved `evidence/merged_fixture_reserved_name.tower` (SHA256 `8d403c2c569b07de77ccc0025bfbaa18a1ffef3f2924be444e314dfd61c5247a`) and the command recorded in `evidence/merged.build`. Renaming the local to `terminal` fixed the fixture. The merged LR, bounded LR, unit-admission, runtime-faults and 150-grammar order selectors then passed, including the exact-charge refusal/retry and borrowed-input check. Integrated timings were outside the wind-down. The original measured production blobs are `7bb732d171178d1b5addcfe3fefa41a97c0bf193` and `591a6a522f7fb2ff7f5595de7f838f6a596744f2`.
+
+Cloud handoff at merge 5bd947ea includes peer LR action-owner and ECS edits from 7256296b. Both runtime-row producer blobs match the tested correction. The five merged executions above cover the 6c035afc integration. Execution of the later combined tree is pending.

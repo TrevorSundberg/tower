@@ -361,7 +361,48 @@ actions: work_vector(LRAction)*, scratch: WorkArena*): WorkBudgetError {
     return WorkBudgetError.None;
 }
 
+struct LRActionGrowth { state: LRState*; row: work_vector(LRAction); }
+
+// A serial rebuild can follow parallel publication with a different lookahead.
+// Reserve only rows that must grow, before overwriting any published action.
+fn lr_lalr_prepare_action_growth(value: LRStates*, graph: LRPropagation*): WorkBudgetError {
+    var extra: WorkArena = default;
+    if !work_arena_init(&extra, value.analysis.budget, value.action_storage.chunk_bytes) { return WorkBudgetError.Invalid; }
+    defer work_arena_dispose(&extra);
+    var changes: work_vector(LRActionGrowth) = default;
+    defer work_vector_dispose(&changes);
+    foreach(var state in &value.states) {
+        var needed: usize = 0;
+        foreach(var &edge in &state.edges) {
+            if value.analysis.symbols[edge.symbol].nonterminal == lr_none() { needed++; }
+        }
+        for(var i: usize = 0; i < state.items.values.length; i++) {
+            var item = &state.items.values.data[i];
+            if item.position != value.analysis.rules[item.rule].count { continue; }
+            var count = graph.nodes[state.base + i].ranges.length;
+            if count > ~convert(usize, 0) - needed { return WorkBudgetError.Invalid; }
+            needed += count;
+        }
+        if needed <= state.actions.capacity { continue; }
+        var change: LRActionGrowth = {state: state, ..default};
+        var error = lr_reserve_arena_result(&change.row, needed, &extra, null);
+        if error == WorkBudgetError.None { error = lr_push_result(&changes, change, value.analysis.budget); }
+        if error != WorkBudgetError.None { return error; }
+    }
+    if !work_arena_append(&value.action_storage, &extra) { return WorkBudgetError.Invalid; }
+    foreach(var &change in &changes) {
+        if change.state.actions_owned { work_vector_dispose(&change.state.actions); }
+        change.state.actions = change.row;
+        change.state.actions_owned = false;
+    }
+    return WorkBudgetError.None;
+}
+
 fn lr_lalr_actions_result(value: LRStates*, graph: LRPropagation*): WorkBudgetError {
+    if value.action_storage.chunk_bytes != 0 {
+        var error = lr_lalr_prepare_action_growth(value, graph);
+        if error != WorkBudgetError.None { return error; }
+    }
     for(var i: usize = 0; i < value.states.length; i++) {
         var error = lr_lalr_state_actions_result(value, graph, i, &value.states.data[i].actions);
         if error != WorkBudgetError.None { return error; }
