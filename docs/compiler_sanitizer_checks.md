@@ -263,3 +263,16 @@ provider sensitivity limitation above remain explicit: no invalid probe was
 rerun. Source-language UBSan and other-host sanitizer coverage remain unsupported.
 Physical allocation checks do not prove every pooled-slot lifetime or universal
 race freedom.
+
+## Authorized current thread milestone (2026-11-24)
+
+ROOT explicitly superseded the historical race-control hold for the bounded
+[c8555971 milestone](compiler_thread_milestone_c8555971.md). The thread-mode-only,
+explicit `tower-sanitizer-race-control` target now links the unchanged Tower probe
+with the existing instrumented buffer provider and POSIX entry runtime; it is
+excluded from ordinary builds/tests. Expected exit66/data-race was observed on
+two real workers under unprivileged WSL without a security override.
+Five selected positives pass; current query-smoke reaches its unchanged180s
+limit without a TSan report, while the one same-original-IR normal control passes.
+Unit-admission/backend remain unstarted. This repairs the missing-provider
+sensitivity composition, not full compiler thread-sanitizer acceptance.
