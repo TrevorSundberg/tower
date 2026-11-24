@@ -54,6 +54,7 @@ struct LRActionTask {
     ticket: WorkTicket;
     states: LRStates*;
     lookahead: LRPropagation*;
+    scratch: WorkArena;
     results: work_vector(LRAction)*;
     begin: usize;
     count: usize;
@@ -68,7 +69,7 @@ export fn compiler_lr_action_kernel(payload: void*): void {
     defer { if task.observer.event != null { task.observer.event(task.observer.context, GrammarPhase.LookaheadKernel, false, task.ordinal, task.count); } }
     task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
-        task.resource_error = lr_lalr_state_actions_result(task.states, task.lookahead, i, &task.results[i]);
+        task.resource_error = lr_lalr_state_actions_arena_result(task.states, task.lookahead, i, &task.results[i], &task.scratch);
         if task.resource_error != WorkBudgetError.None { return; }
     }
 }
@@ -156,16 +157,13 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     defer work_buffer_dispose(&storage);
     var results = bits(work_vector(LRAction)*, storage.data);
     fill(results, 0, value.states.length *sizeof(work_vector(LRAction)));
-    defer {
-        for(var i: usize = 0; i < value.states.length; i++) {
-            work_vector_dispose(&results[i]);
-        }
-    }
     var kind = lr_work_node_result(owner, &error);
     if kind == null { return error; }
     var registered = entity_register_stage_result(kind, sizeof(LRActionTask), alignof(LRActionTask), 0, 0);
     if registered != WorkBudgetError.None { return registered; }
     var jobs: LRActionTask*[WorkPoolMaximumCapacity];
+    var initialized: usize = 0;
+    defer { for(var i: usize = 0; i < initialized; i++) { work_arena_dispose(&jobs[i].scratch); } }
     var position: usize = 0;
     for(var i: usize = 0; i < count; i++) {
         var node = lr_work_node_result(owner, &error);
@@ -187,7 +185,8 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
         job.begin = position;
         job.count = value.states.length / count +(i < value.states.length % count ? 1: 0);
         position += job.count;
-        jobs[i] = job;
+        if !work_arena_init(&job.scratch, value.analysis.budget, value.records.chunk_bytes) { return WorkBudgetError.Invalid; }
+        jobs[initialized++] = job;
         var id = work_request(graph, node, 2, convert(u64, job.begin));
         var ok = id != 0;
         ok &&= work_access(graph, id, 1, 3, job.begin, job.count, WorkAccessMode.Write);
@@ -220,15 +219,25 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     for(var i: usize = 0; i < count; i++) {
         if jobs[i].resource_error != WorkBudgetError.None { return jobs[i].resource_error; }
     }
+    // Keep old and new physical owners charged through joined publication.
+    // Repeated action rebuilds retire the prior set rather than accumulating
+    // its chunks in the longer-lived state-record arena.
+    var replacement: WorkArena = default;
+    if !work_arena_init(&replacement, value.analysis.budget, value.records.chunk_bytes) { return WorkBudgetError.Invalid; }
+    defer work_arena_dispose(&replacement);
+    for(var i: usize = 0; i < count; i++) {
+        if !work_arena_append(&replacement, &jobs[i].scratch) { return WorkBudgetError.Invalid; }
+    }
     for(var i: usize = 0; i < value.states.length; i++) {
         var state = value.states.data[i];
         var actions = &state.actions;
-        if !state.actions_owned {
-            *actions = results[i];
-            state.actions_owned = true;
-            results[i] = default;
-        } else { work_vector_move(actions, &results[i]); }
+        if state.actions_owned { work_vector_dispose(actions); }
+        *actions = results[i];
+        state.actions_owned = false;
     }
+    work_arena_dispose(&value.action_storage);
+    value.action_storage = replacement;
+    replacement = default;
     return WorkBudgetError.None;
 }
 

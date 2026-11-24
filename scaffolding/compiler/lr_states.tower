@@ -44,6 +44,7 @@ fn lr_state_vectors_dispose(state: LRState*): void {
 struct LRStates {
     storage: WorkBuffer;
     records: WorkArena;
+    action_storage: WorkArena;
     analysis: LRAnalysis*;
     states: work_vector(LRState*);
     pending: work_vector(usize);
@@ -253,6 +254,7 @@ export fn lr_states_destroy(value: LRStates*): void {
     foreach(var & state in &value.states) {
         lr_state_destroy(*state);
     }
+    work_arena_dispose(&value.action_storage);
     work_arena_dispose(&value.records);
     var storage = value.storage;
     work_buffer_dispose(&storage);
