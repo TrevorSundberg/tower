@@ -33,7 +33,7 @@ fn entity_fault_owned(T: type, sample: EntityFaultCensus*, budget: WorkBudget*, 
     if data == null { return; }
     var block = entity_component_from_data(bits(u8*, data));
     if block.page == null {
-        entity_fault_buffer(sample, budget, &bits(EntityComponentAllocation*, block.allocation).allocation);
+        entity_fault_buffer(sample, budget, &bits(EntityComponentAllocation*, block).allocation);
     }
 }
 fn entity_fault_pages(sample: EntityFaultCensus*, budget: WorkBudget*, pool: EntityComponentPool*): void {
