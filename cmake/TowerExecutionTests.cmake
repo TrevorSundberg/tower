@@ -24,6 +24,16 @@ function(tower_execution_tests)
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_pointer_order.tower" "${pointer_bytes}")
     set_tests_properties("tower-canonical-pointer-order-${pointer_bytes}" PROPERTIES
       TIMEOUT 180 LABELS "native;backend;focused")
+    add_test(NAME "tower-signed-pointer-order-${pointer_bytes}" COMMAND tower-execution-tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" backend-signed-pointer
+      "${CMAKE_CURRENT_BINARY_DIR}/signed_pointer_${pointer_bytes}.tower" "${pointer_bytes}")
+    set_tests_properties("tower-signed-pointer-order-${pointer_bytes}" PROPERTIES
+      TIMEOUT 180 LABELS "native;backend;focused")
+    add_test(NAME "tower-canonical-constant-address-${pointer_bytes}" COMMAND tower-execution-tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" backend-pointer-execute
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_constant_address.tower" "${pointer_bytes}")
+    set_tests_properties("tower-canonical-constant-address-${pointer_bytes}" PROPERTIES
+      TIMEOUT 90 LABELS "native;backend;focused")
   endforeach()
 
   # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
