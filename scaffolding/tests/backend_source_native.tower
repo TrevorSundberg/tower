@@ -135,7 +135,7 @@ fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
             page = page.owned_next;
         }
         printf("kind=%zu count=%zu payload=%zu pages=%zu slots=%zu page_live=%zu page_bytes=%zu\n",
-            convert(usize, id), kind.instance_count, kind.instance_count * kind.data_size, pages, slots, live, bytes);
+            convert(usize, id), kind.instance_count, kind.instance_count * kind.layout.data_size, pages, slots, live, bytes);
         if id == CompilerFoundation { reconstruction_foundation_pages(store, kind); }
     }
     var usage: ReconstructionUsage = default;

@@ -61,8 +61,9 @@ export fn sem_modules_begin(program: SemanticProgram*, base: usize): SemanticMod
     // No root component retains this registry until all its children exist.
     // Releasing the local owner therefore also retires every partial child.
     defer entity_release(registry);
-    if !entity_register(registry, sizeof(SemanticModules), alignof(SemanticModules), 0) {
-        sem_module_error(program, WorkBudgetError.Invalid, base); return null;
+    error = entity_register_stage_result(registry, sizeof(SemanticModules), alignof(SemanticModules), 0, 0);
+    if error != WorkBudgetError.None {
+        sem_module_error(program, error, base); return null;
     }
     var owner = sem_kind_result(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink), &error);
     var imports = owner == null ? null : sem_kind_result(registry, sizeof(SemanticModuleLink), alignof(SemanticModuleLink), &error);
