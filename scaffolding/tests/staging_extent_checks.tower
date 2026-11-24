@@ -144,11 +144,18 @@ fn staging_extent_checks(root: u8*): void {
     units_check(vector_push(&source, 0), "Single-unit staging source");
     units_read(root, "/tests/computed_type_arguments.tower", &computed);
     units_read(root, "/tests/staging_extent_invalid.tower", &invalid);
+    var same_body: vector(u8) = default;
+    defer vector_dispose(&same_body);
+    units_read(root, "/tests/staging_same_body.tower", &same_body);
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        var same_body_canonical: vector(u8) = default;
+        defer vector_dispose(&same_body_canonical);
         var canonical: vector(u8) = default; var existing: vector(u8) = default; var imported: vector(u8) = default;
         defer vector_dispose(&imported); defer vector_dispose(&existing); defer vector_dispose(&canonical);
         var offset: usize = 0;
         for(var workers: usize = 1; workers <= StagingExtentWorkers; workers *= StagingExtentWorkers) {
+            body_runs_trial_output(same_body.data, workers, width, bedrock.data, foundation.data, root,
+                &same_body_canonical, "528\n1552\n12\n2080\n");
             body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
             body_runs_trial(computed.data, workers, width, bedrock.data, foundation.data, root, &existing);
             body_runs_trial("import tower; import tests.staging_extent_helpers; print(check_extents());",
