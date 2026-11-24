@@ -1,5 +1,16 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Current scope reconciliation (2026-11-24, 7e9c91a0)
+
+[Independent whole-scope reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
+accounts for all1281 tracked Tower paths and identifies five remaining acceptance
+items: cold serial cost, useful-core efficiency, bounded parser scratch accounting,
+independent current browser artifact peer and hosted adoption. Current r4
+native/ASan/TSan, public745afa2f clean default adoption and B2's browser/static
+controls pass at their exact boundaries; hosted03e evidence remains historical. The tables below
+retain their original source identities and pending states, superseded only by
+the linked current requirement/evidence map. There is no completion percentage.
+
 ## Published 03e milestone and next performance work (2026-11-24)
 
 The supported functional, instrumentation and release milestone is accepted.
