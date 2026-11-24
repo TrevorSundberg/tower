@@ -17,7 +17,7 @@
 - Existing SDK10.0.26100.0 x64 imports unchanged: kernel32.lib SHA256 `341c7d56125a03b458e4d5093e4c79b33123ccfdfd610fe236937b8e6f3134bb`, ucrt.lib `7ef4eac926bf597d2f243f16cdfed7e0db22cb3ca34a1d7e088a84c994a03d66`. No SDK install or ABI guess; pointer-sized SRWLOCK and DWORD/native-word signatures remain the reviewed provider.
 - Native kernel32/UCRT versions remain10.0.26100.9278/10.0.26100.9444. Same existing assembly warning retained: `overriding the module target triple with x86_64-pc-windows-msvc19.33.0 [-Woverride-module]`; no new warning or suppression, all object/link commands exit0.
 - Gate PE SHA256 `4d28e034d6e95307f872cec651c97ad748f16f61e01ae309f7a7dc90363f729f`; pool `12c9606b475b62cd4422f35379fbdc3a7f3ac8a1e92cae8aea5f49d776e02f75`; runtime object `1142a9bd72d8bb7c9a5dc0cb3dcfc4410ae71b7c13fd181c3acb51635c52a8ba`. All source/runtime/object/EXE/import hashes checked after execution.
-- Link maps resolve work_gate_open/close/enter/leave and work_windows_entry from actual gate.obj, and the pool callback/close from pool.obj. AMD64 PE imports real Initialize/Acquire/ReleaseSRWLockExclusive, CreateThread, GetCurrentThreadId, CreateSemaphoreW/ReleaseSemaphore; work_windows_entry exported. No stub, C shim or emulated Windows runtime.
+- Link maps resolve work_gate_open/close/enter/leave and work_windows_entry from actual gate.obj, and the pool callback/close from pool.obj. AMD64 PE imports real InitializeSRWLock, AcquireSRWLockExclusive, ReleaseSRWLockExclusive, CreateThread, GetCurrentThreadId, CreateSemaphoreW/ReleaseSemaphore; work_windows_entry exported. No stub, C shim or emulated Windows runtime.
 
 | Actual native control, once each | Exit and exact output | Wall s | CPU s | Peak working set B |
 |---|---|---:|---:|---:|
@@ -33,3 +33,4 @@
 - Windows job affinity `0xFFF000`/CPU12–23,24GiB; all four jobs report activeProcesses0/guardHitfalse. Pool joins precede gate/signal release; all owned Linux/Windows processes drained, todo unchanged,312GiB free.
 - Raw build recipe, maps, PE imports, dependency/SDK hashes, four native outputs and retained-handle/job receipts: `C:/Sandbox/build/codex_ecs_20261122/A1/cache/windows_current_effab4bd/`. Prior accepted binaries still hash-match and are untouched.
 - No compiler rebuild, Linux matrix/profile rerun, browser/static/generation, sanitizer, SDK/security change or deployment. Windows ARM64, full Windows compiler and later bootstrap adoption remain outside this focused x64 closure; ROOT owns final release.
+- Integration: b5fd0987 plus complete published bb953466 preserved as d8ae653c; incoming changes are documentation-only, all source/bootstrap/build inputs unchanged. Reused the exact four executions, no rerun or shifted pin identity.
