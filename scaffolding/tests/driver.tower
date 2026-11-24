@@ -329,24 +329,40 @@ fn driver_test_outputs(compiler: u8*, source: u8*): void {
     driver_check(ok, "bytecode execution");
     driver_test_read("driver stdout.txt", "42\n", true);
     driver_arguments_dispose(&args);
+    driver_test_link_depfile(compiler);
+}
 
+fn driver_test_link_depfile(compiler: u8*): void {
     var library = "import tower;\nexport fn answer(): i32 { return 42; }\nexport fn invoke(callback:function(i32,i32),value:i32):i32{return callback(value);}\nexport fn obtain():function(i32){return answer;}\n";
     driver_check(driver_write_file("driver library.tower", library, strlen(library)), "library fixture");
-    result = driver_test_compile(compiler, "driver library.tower", "object", "driver library.o", "--library", null);
-    ok = result == 0;
-    driver_check(ok, "library object");
+    driver_check(driver_test_compile(compiler, "driver library.tower", "object", "driver library.o", "--library", null) == 0,
+        "library object");
     var program = "import tower;\nextern fn answer(): i32;\nextern fn invoke(callback:function(i32,i32),value:i32):i32;\nextern fn obtain():function(i32);\nfn twice(value:i32):i32{return value*2;}\nvar callback=obtain();\nprint(answer());print(invoke(twice,21));print(callback());\n";
     driver_check(driver_write_file("driver link.tower", program, strlen(program)), "link fixture");
-    result = driver_test_compile(compiler, "driver link.tower", "exe", "driver linked", "--link", "driver library.o");
-    ok = result == 0;
-    driver_check(ok, "separate library linking");
-    driver_arguments_init(&args);
-    driver_argument(&args, "", "./driver linked");
-    result = driver_test_capture(&args);
-    ok = result == 0;
-    driver_check(ok, "linked library execution");
-    driver_test_read("driver stdout.txt", "42\n42\n42\n", true);
-    driver_arguments_dispose(&args);
+    driver_units_fixture("driver link unit.tower", "import tower; export fn unit_value():i32{return 1;}");
+    for (var units: usize = 0; units <= 1; units++) {
+        var args: DriverArguments = default;
+        driver_arguments_init(&args);
+        driver_argument(&args, "", compiler);
+        driver_argument(&args, "", "driver link.tower");
+        if units != 0 {
+            driver_argument(&args, "", "--unit"); driver_argument(&args, "", "driver link unit.tower");
+        }
+        driver_argument(&args, "", "--jobs"); driver_argument(&args, "", "1");
+        driver_argument(&args, "", "--link"); driver_argument(&args, "", "driver library.o");
+        driver_argument(&args, "", "--depfile"); driver_argument(&args, "", "driver linked.d");
+        driver_argument(&args, "", "-o"); driver_argument(&args, "", "driver linked");
+        driver_check(driver_test_capture(&args) == 0, "separate library linking");
+        driver_arguments_dispose(&args);
+        driver_test_read("driver linked.d", "driver\\ library.o", false);
+        driver_test_read("driver linked.d", "driver\\ link.tower", false);
+        if units != 0 { driver_test_read("driver linked.d", "driver\\ link\\ unit.tower", false); }
+        driver_arguments_init(&args);
+        driver_argument(&args, "", "./driver linked");
+        driver_check(driver_test_capture(&args) == 0, "linked library execution");
+        driver_test_read("driver stdout.txt", "42\n42\n42\n", true);
+        driver_arguments_dispose(&args);
+    }
 }
 
 fn driver_test_errors(compiler: u8*, source: u8*): void {
@@ -465,6 +481,10 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--link-depfile") {
+            if argc != 3 { return 2; }
+            driver_test_link_depfile(argv[2]); return 0;
+        }
         if driver_same(argv[1], "--formatting") {
             var required_arguments: i32 = 4; var usage: i32 = 2;
             if argc != required_arguments { return usage; }

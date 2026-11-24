@@ -216,11 +216,12 @@ fn driver_compile_package(state: DriverCompilation*): bool {
     return true;
 }
 
-fn driver_compile_dependencies(state: DriverCompilation*, output: u8*): bool {
-    if frontend_modules_depfile(state.request.modules, output, state.request.options.depfile) {
+fn driver_compile_dependencies(state: DriverCompilation*, output: u8*, link_count: usize): bool {
+    var options = state.request.options;
+    if frontend_modules_depfile_inputs(state.request.modules, output, options.depfile, false, options.links, link_count) {
         return true;
     }
-    driver_error("Cannot write dependency file: ", state.request.options.depfile);
+    driver_error("Cannot write dependency file: ", options.depfile);
     return false;
 }
 
@@ -249,7 +250,7 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
         }
         output = state.output.data;
     }
-    if !driver_output_safe(options.source, output) || !driver_compile_dependencies(state, output) {
+    if !driver_output_safe(options.source, output) || !driver_compile_dependencies(state, output, 0) {
         return 1;
     }
     var program = &state.execution.program;
@@ -307,7 +308,7 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
         return 1;
     }
     var options = state.request.options;
-    if !driver_compile_dependencies(state, options.output) {
+    if !driver_compile_dependencies(state, options.output, 0) {
         return 1;
     }
     driver_timing_mark(state.timing, options.timings, "compile");
@@ -368,7 +369,10 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
         return 1;
     }
     var emitted = driver_clock();
-    if !driver_compile_dependencies(state, options.output) {
+    var wasm = strstr(options.target, "wasm") == options.target;
+    var windows = strstr(options.target, "windows") != null;
+    var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
+    if !driver_compile_dependencies(state, output, driver_same(options.emit, "exe") ? options.link_count : 0) {
         return 1;
     }
     driver_timing_mark(state.timing, options.timings, "compile");
@@ -381,9 +385,6 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
     if !driver_compile_ir(state) {
         return 1;
     }
-    var wasm = strstr(options.target, "wasm") == options.target;
-    var windows = strstr(options.target, "windows") != null;
-    var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
     if driver_same(options.emit, "object") {
         return driver_write_file(output, backend_bytes(state.backend), backend_size(state.backend)) ? 0: 1;
     }

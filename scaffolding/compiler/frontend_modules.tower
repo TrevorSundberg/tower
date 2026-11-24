@@ -1848,6 +1848,18 @@ export fn frontend_modules_depfile(environment: ModuleEnvironment*, output: u8*,
 // Separate unit prerequisites combine as ordinary make rules for one output.
 // The coordinator writes them in unit order after all frontend workers join.
 export fn frontend_modules_depfile_append(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool): bool {
+    return frontend_modules_depfile_inputs(environment, output, path, append, null, 0);
+}
+
+fn module_make_prerequisites(text: vector(u8)*, paths: u8**, count: usize): void {
+    for (var i: usize = 0; i < count; i++) {
+        module_require(bytes_append(text, " ", 1));
+        module_make_path(text, paths[i]);
+    }
+}
+
+export fn frontend_modules_depfile_inputs(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool,
+    inputs: u8**, count: usize): bool {
     if path[0] == 0 {
         return true;
     }
@@ -1855,10 +1867,8 @@ export fn frontend_modules_depfile_append(environment: ModuleEnvironment*, outpu
     vector_init(&text);
     module_make_path(&text, output);
     module_require(bytes_append(&text, ":", 1));
-    foreach(var & used_item in &environment.used) {
-        module_require(bytes_append(&text, " ", 1));
-        module_make_path(&text, *used_item);
-    }
+    module_make_prerequisites(&text, environment.used.data, environment.used.length);
+    module_make_prerequisites(&text, inputs, count);
     module_require(bytes_append(&text, "\n", 1));
     var file = fopen(path, append ? "ab" : "wb");
     var ok = file != null;

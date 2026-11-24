@@ -26,7 +26,6 @@ extern fn frontend_units_error(batch: void*): u8*;
 extern fn frontend_units_error_offset(batch: void*): usize;
 extern fn frontend_units_program(batch: void*, ordinal: usize): SemanticProgram*;
 extern fn frontend_units_close(batch: void*): void;
-extern fn frontend_modules_depfile_append(environment: void*, output: u8*, path: u8*, append: bool): bool;
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
 extern fn backend_units_retain_ir(batch: void*, retain: bool): bool;
@@ -157,7 +156,8 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     defer driver_link_close(link);
     for (var i: usize = 0; i < count; i++) {
         var ordinal = i + 1;
-        if !frontend_modules_depfile_append(frontend_units_environment(batch.frontend, ordinal), output, options.depfile, i != 0) {
+        if !frontend_modules_depfile_inputs(frontend_units_environment(batch.frontend, ordinal), output, options.depfile,
+            i != 0, options.links, i == 0 ? options.link_count : 0) {
             driver_error("Cannot write dependency file: ", options.depfile); return 1;
         }
         var program = frontend_units_program(batch.frontend, ordinal);
