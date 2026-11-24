@@ -1,0 +1,9 @@
+import tower;
+import entity_component_layout;
+
+extern fn ExitProcess(status: u32): void;
+
+// The existing layout fixture owns all payload, stage and budget oracles.
+// Windows runtime startup executes the module body, so forward main's result.
+var result = main(0, null);
+if result != 0 { ExitProcess(convert(u32, result)); }
