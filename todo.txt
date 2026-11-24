@@ -9822,6 +9822,7 @@ I want you to launch agents on KinmenA/B and steamdeck.local, you write the prom
  - Where possible, prefer to build and refactor to a unified, generic, extensible, and high performance framework
  - Be sure to have each monitor disk space occasionally and clean out old builds if needed
  - Each agent should have its own clone of tower that it can work within, make sure that all are committed entirely to clean including todo/journals/docs first and pushed/pulled (including the normal tower repo not just agents)
+ - YOU must be the one to launch the windows and codex agents on the other machines, not sub agents do not rely on that responsibility, all windows should be launched the same way on the same platforms etc
 The goal to persue is to complete the work moving our entire compiler over to ECS / threading with decltype/compiletime and the dependency system all working using maximum cores
  - profile what we can, make sure that we're taking every opportunity for core usage we can
  - but also profile individual single threaded performance too, we should be comperable or even faster than a similar small or large C like program compilation
@@ -9834,25 +9835,137 @@ The goal to persue is to complete the work moving our entire compiler over to EC
  - see docs\compiler_ecs_threading_handoff.md
  - our goal is 100% completion of all ECS and threading compiler related details, it must be done and published and all working/no warnings/errors etc!
 
-need to do a test pass, I really love the whole expected etc type text file tests
- - but also probably a ton for the internal compiler/ecs/scheduler etc
- - unify our entire testing framework
- - probably just add D style test() and use it everywhere actually
- - and we should do the minimal rebuild thing where we literally only run affected tests
-
 be sure that when we do the temporal thing, we also consider the extra metadata for that goap like thing
 
 shithub
  - ai made repostories
  - joking, but kind of not!
 
-- because of a test? continue
+now as part of moving everything into ECS, I want you to do a final audit and identify and places we can share code, remove unused or cleanup redundant code
+ - and more importanlty is there any syntax or primitives that could be introduced that would vastly simplify and cleanup a lot of the ECS use cases/threading etc
+ - and any primitives or syntax that makes using them more easy and understandable for normal humans, sometimes the threading and ecs stuff can be terse, easy understanding and dependencies etc is awesome
+ - as well as potentially make it more type safe, research common constructs in other languages as well, look for any low hanging fruit here
+ - ideally we would ultimately reduce code by introducing our own helpers/syntax or primitives for proper ecs threading (also take inspiration from FLECS/burst/entt/other ECS schedulers)
+ - and just consider new users that may not be familiar as well, any syntax that is generic but helpful for understand and gets rid of boilerplate/symbols (makes it beautiful to understand and read for a novice, etc)
+ - do another validation and audit that we're using archetypes, sparse and dense components, and even the compiletime/declytype style dependency graph where we can/should be
+ - including profiling and making sure everything we're doing is boosting the performance of our compiler
+ - have agents look over large areas to profile and examine as well as your self (you do initial audit and then let them do sub audits etc)
+ - including upgrading old code where we find places that can be fixed / upgraded
+ - review the ecs journal and all the individual journals made by all the previous agents you launched, especially for issues they collectively hit, etc
+ - also read the journal for what stronghold is inteded to be, the type safe memory safe language on top of tower.tower that removes dangerous features and props everything up with type safety primitives
+   - just consider this too because some of these primitives or syntax you may consider in this pass could be used in the future for validation and type safety, its our eventual goal to represent all threads and ECS in a type safe manner
+   - and to consider that eventually the compiler itself should be written in stronghold so that we know it's insanely fast parallel but also type safe (and has access to a bunch of type safe hyper fast thread scheduler and dependency algorithms etc)
+ - launch agents on all machines again 2x per, its ok if some of them complete soon because of the audits being good just make sure you're monitoring it all and having a more overall view to make sure all integration looks good and performant/easy and human to use
+ - also as a part of the final cleanup and perf push, be sure to measure the compiler compilation itself end to end and make sure its lightning fast (as much as we can, low memory, good cache coherency, good core utilization, etc) as its a large project itself, including in the browser test on web as well as native!)
+ - be sure warm and cold builds work as fast as they used to or way faster in browser ideally, including also ide/language features/hover/autocomplete/errors/highlighting/interpreter etc
 
+need to do a test pass, I really love the whole expected etc type text file tests
+ - move all tests and the rest of javascript (except temporal research) into .tower
+ - unify the etnire test framework, all tests should run under the same framework, part of tower, part of the compiler, part of the language/grammar, etc
+ - but also probably a ton for the internal compiler/ecs/scheduler etc
+ - unify our entire testing framework
+ - probably just add D style test() and use it everywhere actually
+ - and we should do the minimal rebuild thing where we literally only run affected tests
+add a test() feature and move all our tests into it
+really need to make sure we get to C like parity, this above is an example I didn't even think about
+probably also need to solve conditional compilation, similar to the test issue above, with test()
+ - so maybe not text files, .tower files would be good then, but where possible I don't want to just like do that annoying string encoding thing, just include other tower files as text if needed etc
+ - make sure the tests are very easy for people / humans to go throuhg and review, define tests in the appropriate place next to the things they test
+ - compiler command line flags for running tests etc, like modern languages that have test features built in, asserts, or ways to properly report failures, research
+standardize the layout for where tests belong, ideally probably not in test files but next to their respected code instead, but also if we need test helper we standardize filenames for this kind of stuff too
+ - ideally it won't be included automatically by our compiletime dependency tracking stuff as well, kind of like being unused linked out at the end for a build if we dont have any tests or exclude tests etc
+should be able to make tests with or without tests etc, this should be part of tower.tower however the testing stuff/grammar/execution (and the compiler)
 Need to make sure all array/struct initializers work, I saw this and asked, got this response
 -    var order: usize[4] = { 1, 3, 4, 2 };
 +    var order: usize[4];
 +    order[0] = 1; order[1] = 3; order[2] = 4; order[3] = 2;
   - Yes—the test used a positional array initializer that Tower’s current grammar doesn’t support. The public compiler rejected { 1, 3, 4, 2 }, so I used explicit element assignments to preserve the test’s values with supported syntax. No production behavior changed.
+I saw an instance where var & comment in &comments got rewritten to a fixed size loop
+ - foreach currently requires a nominal collection with the iteration protocol such as Vector(T)
+ - we need to unify this
+ - also ideally prefer or rewrite our iteration to be the most modern safest style of iteration (without incurring serious overhead) such as range based iterators or anything more modern, etc so that we dont have the stl different end problem etc
+compile time values currently require integer arugments?
+ - again like our determinism pass I talked about, can we make floats work too?
+ - and really just like any type, any struct, etc, even function pointers, just like I want every single named type defined within tower itself
+ - I also want everything to be able to be compiletime evaluated, including even file io etc, see journals
+ - attributes should basically just be compiletime things
 
+need a good approach to strings for our standard library / tower.tower, twines? what are modern languages doing, must be efficient and native, maybe play well with range based iterators, utf8 all that
+ - ideally a very human approach, read what users say about each language approach and if they particularly like it for being easy to use / intuitive (but make sure its native fast perf)
+ - need to audit all old code and make upgrades/replacements including example projects
+ - need to make sure it works with string literals (or we preserve behavior as needed for low level/native stuff, etc)
+ - character literals as well and whatever modern unicode literals modern languages support (Rust, D, C++, zig, just survey best generic apporaches)
 
+SENT
+kinmen cloud
+ - so what we want to design
+ - a custom codex fork that uses automatic retries for ALL errors
+ - automatic scheduling of accounts based on how soon resets will be, as well as known usage reset times etc
+ - strategies, come up with an optimal one for divying it out, maybe a little random as well just to keep it not as deterministic/hard (temperature)
+ - run on vast.ai machines, install codex just like we used to with unity
+ - but now we clone a repo and just work on it, same as our unity minion stuff just lift it over now and rename it
+ - its really just work on anything, N number of agents per machine, lets just start with 1
+ - need a perf hold on the machine, or possibly even containerize?
+ - keep the machine warm/alive, we reserve machines through our interface
+ - if they go down we could lose work, but we have them in communication with the master
+ - master should probably be a cloudflare container, very stable, or even a worker/durable object, review this
+ - allow me to login with separate openAI logins, maintain each one in kv or something like that, with refresh tokens and a cron if needed to refresh it
+ - interface on the cloud to add and remove logins (may even add claud or others later so keep it lightly generic)
+ - we reserve machines and install our codex agents on there with our customizations
+ - use a ssh terminal in browser interface to interact with any of them, including the master
+ - master needs some way to be told to keep going, automatic resume when jobs come in, and probably auto retry since codex likes to early out before finishing
+   - like a prompt to be like did you really finish, review the original prompt and everything said (maybe hand it a log of these, store them)
+   - but still make lots of individual commits one by one
+ - cron job or something to review git issues, prs, etc
+ - user trust scores, based on everything they've contributed to (some kind of automatic github profile scoring)
+ - but then trust for our individual project, use heavy review processes, etc including even for issues, users may try to manipulate you, less likely for trusted users or admins etc (contributors)
+ - for now since its just private repos and only me, I probably will just type directly to it, not using bug reports
+ - so I go on, reserve N machines with our codex images, the interface lets me connect to each one and view ssh desktop etc via browser
+ - and the main one will handle just shelling out to each and running jobs over and over with custom prompts (and handling communication, reports back and forth etc)
+ - really need a single build machine, same even for KK we can rent this as well (and make sure its tolerant of going down/coming back up etc)
+ - don't even bother to use jenkins, just write our own thing its probably way easier
+ - I mean right now they seem to be handling deploys just fine by giving it to one agent, so maybe that's all good just thinking
+ - yeah as long as a master had some kind of ssh connection
+ - I guess the other thought is I could launch either a CF container
+ - maybe we can just use openhands on kinmenkill.com
+ - yeah I like this, then I can start setting up automatic infrastructure
+ - ideally I guess just make and host the container, and ideally I can choose to deploy either to a coudflare container or to a vast one with gpus etc
+ - right now we're doing this thing where our main machine (this laptop) in C:\Sandbox\tower (see chat logs) is running 3 other computers plus itself, running 2 agents on each 8 total
+ - and its managing communicating between them, basically make sure the terminal works with each of them including the main/master controller
+ - its going to be very common for me to create tasks and I want them to just be consumed as it sees fit
+ - right now all these 8 agents are working on one task in unison wiht the 9th controller, but I want this architecture to be similar but much more flexible
+ - ability to create processes, more complex hierarchies and managers etc, I think openhands can handle all this but I'd like to get it started
+ - and again using my codex login would be ideal
+ - can it use a custom fork of codex still since it doesn't handle automatic usage reset, automatically changing accounts on exhaustion, etc
+help me plan the order for this, create a journal, I think we probably first want to just get openhands even deployed, then probably start to get logins working first and just some tests with at terminal / remote working, maybe with vast or cf containers, then probably do codex fork after, advise me
+
+also need to include false daybreak errors / work restart potentially if we see that or can't get past it
+
+thinking that in the future we should probably move this openhands stuff also to tower website itself too so we can write new tower libraries all from there etc
+ - just a centralized place for focusing on tower dev
+ - sure we can eventually try and write a lot of the site in tower itself except js bindings, replace openhands over time
+ - but for now seems good, we can use kinmen cloud but just consider it
+
+really want web hooks from github, probably
+
+I want you to examine now the logs from the local "Launch distributed coding"... codex agent, review the entire chat history from start to end including all the communication with the subagents etc
+ - can we effectively replicate this pipeline using proper openhands primitives
+ - I have stopped the development locally, I would like to you move and resume where it was so that its now being done entirely in the cloud
+ - lets actually just rent 8 stable gpu vast machines ideally from preferred locations and lets keep them alive and ahve one codex instance per and have it distributed out
+ - make sure the dashboard allows me to manage vast instances just like the cloud etc
+ - and that openhands has a manager instance and distributes out to the vast instances, manager instance could even be just a cloudflare container or a vast instance itself so 9 not sure
+ - need long term stable high 9s% stable vast instances
+ - make sure to see it deploy and run a few child agents that finish, start some new children etc and watch it for a while to confirm its stable and advancing tower as expected
+ - give me links to the terminals so I can watch the master, children as they spawn, etc
+ - make sure they can all communicate all that using openhands child parent or whatever relationships we need, not sure how children can launch of different machines etc
+ - make sure its setup and easy for me to change, all data driven in the dashboard / openhands where we can
+ - confirm that performance tests etc asan/tsan all that are passing on remote machinens and being submitted to the manager
+ - again ideally we don't relaunch and keep launching containers or vms/vast ai instances, keep them alive and reuse them where we can
+ - once we can see that multiple commits have been made and the main is making progress, stop the turn adn we can stop babysitting it, then allow it to continue coding in tower itself
+ - enable the automatic usage reset gating code now and allow it occurr (always true, safeguard off), we're at 11% now so it should happen soon on this one account automatically, and make sure that since the errors/usage stops can happen on random machines since they're all sharing the account, make sure it ONLY gets used/reset by one and that the others have a wake up/resume mechanism (probably useful for many things)
+ - Automatically choose an account for each agent turn, this should always be true, but we only have one logged in right now so it should just be the same every time
+ - remove the "Authorize one automatic reset" lets just authorize it for now, but again must be 0% run out for sure, I like the reset audit/attempts etc
+ - set default temperature to 10%
+ - remove checkbox for keep sign ins refreshed, yes we always keep them refreshed period as long as they are added here
+ - cleanup the tasks/chats you've already added on there, I want this work on tower to be the only thing on there (also make sure our agents and push/pull with our github as well, not sure how that works on openhands but make git keys if needed with gh etc, forever keys ideally)
 
