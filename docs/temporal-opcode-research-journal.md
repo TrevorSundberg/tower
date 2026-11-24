@@ -96939,3 +96939,5 @@ Freeze dec17663/tree f558f4f7, cumulative d62d/65-path/full-audit base retained.
 
 
 B1 native-generation receipt reconciliation: c540ad1c joins complete publisheddd7f5032 through f5d8e5e7. Incoming staging fixtures/documentation do not change production compiler/resources; preserved ca1c893e source/package hashes remain authoritative and later fixture coverage is not inferred. No repeated generations or pin change.
+
+L2 concurrency audit reconciliation: Integration boundary: receipt e457b999 merged published24ac43dc at79c8275c; all reviewed production blobs are unchanged. Later pool/query-denial fixtures and owner receipts are preserved, not rerun. The [incoming native milestone](native_ecs_acceptance_1072141e.md) remains incomplete:57 pass, constructor-denial1 fails before its intended producer (private interpreter Capacity),6 unstarted. Its suspension/peer-completion gate is pending, not evidence of successful idle progress or a proven missing scheduler; the owning fixture/admission follow-up must reach the intended boundary before closure. New generation/extent peer receipts remain separately source-bound.
