@@ -1,0 +1,13 @@
+import tower;
+import backend.foreign_grammar;
+
+export fn cpp_name(int: foreign_fixture :: increment(int: value))(value: i32): i32 {
+    return value + 1;
+}
+
+export fn c_name(int: foreign_twice(int: value))(value: i32): i32 {
+    return value * 2;
+}
+
+var answer = cpp_name(int: foreign_fixture :: increment(int: value))(20);
+print(c_name(int: foreign_twice(int: value))(answer));
