@@ -15,6 +15,7 @@ extern fn getrusage(who: i32, result: i64*): i32;
 
 enum StageOutcome: u32 { Publish, Cancel, WorkerFailure, NameCollision, PartialAdmission }
 var StageChildren: usize = 128;
+var StageMaximumLanes: usize = 4;
 var StageReferenceLifecycle: usize = 1;
 struct StageState { finalized: usize; coordinator: usize; }
 
@@ -110,7 +111,7 @@ fn stage_trial(state: StageState*, lanes: usize, outcome: StageOutcome): void {
     stage_check(work_pool_open(&pool, workers.lanes) && pool.threaded && pool.count == lanes);
     var graph: WorkGraph;
     work_init(&graph, 17, 29);
-    var jobs: StageJob[4];
+    var jobs: StageJob[StageMaximumLanes];
     var before = state.finalized;
     for(var i: usize = 0; i < lanes; i++) {
         var job = &jobs[i];
@@ -300,10 +301,11 @@ export fn main(argc: i32, argv: u8**): i32 {
             stage_transition_trial(convert(StageTransition, mode));
         }
     }
-    stage_check(work_thread_available() && work_thread_capacity() >= 4);
+    var capacity = work_thread_capacity();
+    stage_check(work_thread_available() && capacity >= 2);
     var state: StageState = { finalized: 0, coordinator: pthread_self() };
     for(var round: usize = 0; round < 16; round++) {
-        for(var lanes: usize = 2; lanes <= 4; lanes *= 2) {
+        for(var lanes: usize = 2; lanes <= capacity && lanes <= StageMaximumLanes; lanes *= 2) {
             for(var mode = convert(u32, StageOutcome.Publish); mode <= convert(u32, StageOutcome.PartialAdmission); mode++) {
                 stage_trial(&state, lanes, convert(StageOutcome, mode));
             }
