@@ -8,14 +8,16 @@ no installer, unpacking step, bootstrap cache or Python dependency on this path.
 
 The current pin includes the Tower hosted ELF linker and `--link-executable`,
 world-owned compiler work, dependency scheduling and the published ECS storage
-improvements at `59d7dc9e`. The complete Tower-built executable is 2,294,024 bytes,
-SHA256 `eeb005717318086c145428edc3b6b784d4729df7ef0514c7329e0a18b76dda9c`.
-All 38 actual native build binaries match across three generations; all 54 package
+improvements, SCC provider, parser optimizations and quota diagnostics at
+`ca1c893e`. The complete Tower-built executable is 2,299,088 bytes,
+SHA256 `44ae8f731d8991e5cd063e86512923ac5f9c1bd151943c8f235ee4025de11c44`.
+All 39 actual native build binaries match across three generations; all 57 package
 payloads and their checksums match across generations two and three. Exact source,
 host dependencies, failures and relocation evidence are in the
-[generation receipt](../docs/compiler_generation_59d7dc9e.md). Executable and
-adjacent resources are hashed together in `development.json`; later SCC changes
-are not part of this predecessor's frozen source identity.
+[generation receipt](../docs/compiler_generation_ca1c893e.md). Executable and
+adjacent resources are hashed together in `development.json`, including the
+shared graph-components library and corrected optional foreign grammar. Later
+browser-project packaging and test changes retain their separate source identity.
 An empty-cache successor build through the default path, without a private
 bootstrap override, builds and links the compiler and its Linux helper tools
 using Tower. The separate host linker argument has been removed from `build_tools`.
