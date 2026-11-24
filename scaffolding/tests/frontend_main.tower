@@ -23,6 +23,8 @@ import parser_diagnostic_budget;
 import frontend_diagnostic_text;
 import lr_analysis_comparisons;
 import lr_analysis_failures;
+import lr_components;
+import graph_components_checks;
 
 extern fn parser_tests(): void;
 extern fn syntax_tests(): void;
@@ -36,6 +38,14 @@ extern fn puts(text: u8*): i32;
 // Focused production-API checks, including allocation-failure cleanup.
 // This entry does not walk or reformat the repository's source files.
 export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 3 && (strcmp(argv[2], "graph-components") == 0 || strcmp(argv[2], "graph-components-wrong") == 0) {
+        return graph_component_property_tests(strcmp(argv[2], "graph-components-wrong") == 0);
+    }
+    if argc == 3 && strcmp(argv[2], "lr-components") == 0 {
+        lr_component_owner_tests();
+        puts("Existing SCC ownership and chain checks passed.");
+        return 0;
+    }
     if argc == 3 && (strcmp(argv[2], "parser-trace") == 0 || strcmp(argv[2], "parser-trace-leak-negative") == 0) {
         parser_trace_owner_tests(strcmp(argv[2], "parser-trace-leak-negative") == 0);
         return 0;
@@ -107,6 +117,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     if argc != 2 {
         return 1;
     }
+    if graph_component_property_tests(false) != 0 { return 1; }
     puts("frontend: compiler_buffer_owner_tests");
     compiler_buffer_owner_tests();
     puts("frontend: compiler_work_owner_tests");
