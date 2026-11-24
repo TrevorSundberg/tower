@@ -3,7 +3,6 @@ import syntax_scan_choice;
 import .library.vector;
 import .library.work_vector;
 import .library.work_vector_types;
-import .library.work_vector;
 import .library.work_arena_api;
 import .compiler.worker_policy;
 import .compiler.lr_work;
