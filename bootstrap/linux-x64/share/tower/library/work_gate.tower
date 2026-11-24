@@ -1,0 +1,11 @@
+import tower;
+
+// Host-owned, nonrecursive mutual exclusion, distinct from counting work
+// signals. Open returns an unlocked stable owner, or null without ownership.
+// The entering thread must leave; callbacks under the gate must not reenter.
+// Close only after all borrowers/waiters drain and the gate is unlocked.
+// Serial budgets need no gate. Unsupported hosts return null, never a no-op lock.
+extern fn work_gate_open(): void*;
+extern fn work_gate_close(gate: void*): void;
+extern fn work_gate_enter(gate: void*): void;
+extern fn work_gate_leave(gate: void*): void;
