@@ -96324,3 +96324,21 @@ B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider
 A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
 
 L2 small-serial follow-up final integration: revert647bb6fc + complete-history mergea93f5444 adoptsae99ce12, including B1Foundation stage policy and D1dependency/A2platform receipts. New world registration affects storage inputs, so one narrow query-runner dependency refresh3actions16.14s and mergedquery-smoke4.96wall/4.02CPU/350892KiB pass (ELF962c8a98). Frozen four new samples and original16 are unchanged, not relabeled new policy; restored helper matches original68345ada exactly. No further profiling/matrix; owned jobs drained, todo unchanged. Normal main push follows.
+
+### 2026-11-23 B1: measured LR SCC candidate blocked and restored
+
+Frozen3011c77f/public768, CPU0-11/24GiB. Actual16-function CLI has118 graphs,
+227631 nodes/301734 edges,147 nontrivial SCCs/19929 nodes, largest563.
+703798 edge visits carry23598805 ranges; repeated cyclic-source4369536 and
+noncyclic12851749 ranges. Temporary iterative Tower SCC traversal5.226ms versus
+46.845ms instrumented solve supports one condensation attempt, not a speedup.
+Generic and split-traversal drafts both stop at the public predecessor's
+65536-node/work-stack expansion diagnostic; fixture syntax/import failures also
+retained. No candidate executable/tests/timing acceptance. No private override.
+Exact original sources and four binaries restored; original150-grammar oracle,
+Denial/retry and small exact object/execution15 pass. Baseline cold0.40wall/
+0.35CPU/160780KiB,1947830 calls, identical canonical/live/peak/zero teardown;
+observation timings are attribution only. Planned n2/large/4096/Clang unrun.
+[Concise receipt](compiler_lr_scc_3011c77f.md) contains source/binary/patch hashes,
+actual counts, complete preserved failures and raw paths. No production delta,
+new API/helper/test hook, repeated rejected algorithm or release claim. STOP.
