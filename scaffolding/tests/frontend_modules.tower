@@ -369,9 +369,9 @@ fn module_startup_test(): void {
         "Checked startup leaves no retained world grants");
     module_require(work_budget_dispose(&budget));
     var batch = frontend_units_create_bounded_result(1, 1, 1, 8, 1, 1, "", "", "", &error);
-    // A request larger than the entire ledger is Invalid; exhaustion of the
-    // remaining capacity is the distinct Capacity case exercised above.
-    module_startup_check(batch == null && error == WorkBudgetError.Invalid, "Unit startup preserves invalid total budget");
+    // A representable physical allocation exceeding the total byte cap is
+    // Capacity, as is exhaustion of the remaining capacity exercised above.
+    module_startup_check(batch == null && error == WorkBudgetError.Capacity, "Unit startup preserves total byte Capacity");
     batch = frontend_units_create_bounded_result(1, 1, ModuleCloneBudgetBytes, 8, 1, 1, "", "", "", &error);
     module_startup_check(batch != null && error == WorkBudgetError.None, "Unit startup admission retry");
     frontend_units_close(batch);
