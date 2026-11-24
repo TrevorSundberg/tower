@@ -70,6 +70,12 @@ remains open. This receipt is for D2 `599e8a8`, whose production compiler source
 match published `60741c5`; it does not validate other lanes' pending changes.
 No source-language UBSan coverage is implemented by this mode.
 
+The [deferred-inventory repair](sanitizer_manifest_9aa534cd.md) collects after
+all root deferred producers, sorts entries and rejects conflicting descriptions
+of one object. Reconfigure an existing cache to refresh the inventory; no compiler
+rebuild is needed for this metadata change. Configured but unconsumed interface
+objects may have no reachable Ninja rule, so audit that distinction explicitly.
+
 A later unchanged-source backend diagnostic used a bounded600s run after the
 normal selector passed142.39s. It failed at458.83s with raw exit134 and
 `frontend/backend overlap deadline`, the fixture's internal30s signal wait.
