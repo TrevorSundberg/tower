@@ -115,8 +115,8 @@ fn page_serial(): void {
     page_check(large != null && large.page == null && error == WorkBudgetError.None
         && bits(usize, large.data) % 4096 == 0 && entity_component_from_data(large.data) == large);
     fill(large.data, 73, PageLargeBytes);
-    var large_bytes = compiler_buffer_allocation_size(bits(EntityComponentAllocation*, large.allocation).allocation.capacity);
-    page_check(bits(EntityComponentAllocation*, large.allocation).allocation.reservation.bytes == large_bytes
+    var large_bytes = compiler_buffer_allocation_size(bits(EntityComponentAllocation*, large).allocation.capacity);
+    page_check(bits(EntityComponentAllocation*, large).allocation.reservation.bytes == large_bytes
         && budget.used_bytes >= store_bytes + page_bytes + large_bytes);
     page_check(entity_component_remove(root, type) && type.instance_count == 1);
     page_check(entity_component_remove(other, type) && store.storage.owned == null);
@@ -255,7 +255,7 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         if job.last.page != job.first.page { retained += compiler_buffer_allocation_size(job.last.page.allocation.capacity); }
         if job.large != null {
             page_check(job.large.data[PageLargeBytes - 1] == 91);
-            retained += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, job.large.allocation).allocation.capacity);
+            retained += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, job.large).allocation.capacity);
         }
         holds += job.holds;
         entity_stage_hold(job.stage);

@@ -24,7 +24,7 @@ fn pages():void {
     var owners:Entity*[150];
     var payloads:u64*[150];
     var allocations:usize=0;
-    var last:u8* = null;
+    var last:EntityComponentPage* = null;
     for(var i:usize=0;i<150;i++) {
         owners[i]=entity_create(store);
         check(entity_attach(owners[i],root,null));
@@ -35,7 +35,7 @@ fn pages():void {
         *payloads[i]=1000+convert(u64,i);
         check(bits(usize,payloads[i])%64==0);
         check(entity_component_from_data(bits(u8*,payloads[i]))==component);
-        if component.allocation!=last { allocations++; last=component.allocation; }
+        if component.page!=last { allocations++; last=component.page; }
         else { check(bits(usize,payloads[i])-bits(usize,payloads[i-1])==component.page.stride); }
     }
     check(allocations>1 && allocations<10);
