@@ -48,16 +48,31 @@ review and combined release acceptance still pending:
   A1 received the full owner evidence and three binaries checked after the memory
   merge. The original slower draft samples remain recorded.
 
-L2's filtered-ready candidate remains under performance review; its48 ordinary
-runs pass correctness but include mixed timing results. A regression caught and
-repaired empty-index cleanup before those runs. No scheduler candidate or additive
-combined performance gain is accepted here. A2 reviews that final disposition;
-D1 audits the joined delta and B1 runs one isolated full-host timing cohort.
-L1 prepares combined memory instrumentation; B2's final browser build waits for
-that timing cohort to drain. Exactly eight existing UUIDs remain the limit;
-completed owners resume their next bounded task in the same context. Failures
-stay with their owners through repair. Public native/bootstrap/Pages identities
-remain03e until the new batch completes its final acceptance and publication.
+Both changes now have independent acceptance: [memory peer](entity_raw_pages_peer_4c38796d.md)
+passes18 focused selections, and [parser peer](lr_shift_index_peer_47e05f73.md)
+passes8 and verifies the complete owner outputs. LR index scratch uses the existing
+raw-vector contract; its allocation is not fully represented by WorkBudget peaks.
+
+The [filtered-ready experiment](compiler_semantic_selection_7c5cfce8.md) is
+**rejected and fully restored**. Copying back an old source timestamp initially
+left a stale profiler object; the first96 timing samples cannot decide acceptance.
+A corrected20-process comparison still regresses multi-unit12 wall/CPU by
+3.53%/4.70%. Exact original source, semantics object and profiler were recovered;
+no cursor, probe, phase or test delta ships. Coordinator performance remains open.
+
+The selected r4 runtime is frozen at `3c0ccdce9704cb2020d0a3df0b11235f10af1711`,
+tree `9d3aac3ba80c99f3709d50765da73b20eb3df590`:15 Tower paths differ from7c5.
+A1 native, L1 ASan, L2 TSan and B1 full-host performance gates have been consumed.
+A2 independently reconciles the rejection and D1 audits the joined interaction in
+parallel; their final receipts are not implied by the freeze. Actual B2 process
+inventory shows only its idle container keeper, and its browser build stays gated
+until B1 finishes and drains. Final testing is underway, not already accepted.
+
+Exactly eight existing UUIDs remain the limit; completed owners resume the next
+bounded task in the same context. A2's original45-minute input timeout remains a
+failed wait; it resumed only after actual artifacts arrived, with focused checks
+instead of a duplicate timing cohort. Public native/bootstrap/Pages identities
+remain03e until the new batch completes final acceptance and publication.
 
 Normal A/B/Deck clones were clean-pulled to7c5cfce8 and disks checked; protected
 local todo remains untouched. This handoff is documentation only. Historical611
