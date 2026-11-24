@@ -28,6 +28,7 @@ struct AdmissionJob {
     ordinal: usize;
     thread: usize;
     result: usize;
+    calls: usize;
     success: bool;
 }
 
@@ -52,6 +53,7 @@ export fn work_kernel_execute(payload: void*): void {
     var job = bits(AdmissionJob*, kernel.payload);
     var context = job.context;
     job.thread = pthread_self();
+    job.calls++;
     work_signal_wait(context.gate);
     context.active++;
     if context.active > context.peak { context.peak = context.active; }
@@ -118,7 +120,8 @@ fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize):
     admission_check(context.caller != 0 && context.peak <= budget.used_lanes);
     var distinct: usize = 0;
     for(var i: usize = 0; i < count; i++) {
-        admission_check(jobs[i].success && jobs[i].result == i * i + 7 && jobs[i].prefix == 12345);
+        admission_check(jobs[i].calls == 1 && jobs[i].success
+            && jobs[i].result == i * i + 7 && jobs[i].prefix == 12345);
         var first = true;
         for(var j: usize = 0; j < i; j++) { if jobs[j].thread == jobs[i].thread { first = false; } }
         if first { distinct++; }
@@ -130,7 +133,11 @@ fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize):
 
 fn admission_tests(): void {
     var pool: WorkPool = default;
-    admission_check(work_pool_open(&pool, 8) && pool.threaded && pool.count == 8);
+    var lanes = work_thread_capacity();
+    if lanes > 8 { lanes = 8; }
+    // This selector requires four actual lanes for its existing barriers;
+    // retain wider idle capacity only when the host really provides it.
+    admission_check(lanes >= 4 && work_pool_open(&pool, lanes) && pool.threaded && pool.count == lanes);
     defer work_pool_close(&pool);
     admission_check(compiler_kernel_dispatch_admitted(&pool, bits(AdmissionJob**, null), 0, 7));
     for(var round: usize = 0; round < 16; round++) {
@@ -138,6 +145,9 @@ fn admission_tests(): void {
         admitted_case(&pool, 4, 0, 8);
         admitted_case(&pool, 4, 1, 8);
         admitted_case(&pool, 4, 8, 8);
+        // Uneven range/tail division still executes every ordinal once and
+        // includes the caller under the original four-lane reservation.
+        admitted_case(&pool, 4, 8, 17);
         admitted_case(&pool, 4, 8, 1);
         admitted_case(&pool, 4, 8, 2);
         // Ordinary admission after batch must restore the pool callback.

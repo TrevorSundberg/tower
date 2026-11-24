@@ -229,10 +229,15 @@ fn work_batch_execute(payload: void*): void {
     loop {
         work_signal_wait(batch.claim);
         var next = batch.next;
-        if next < batch.count { batch.next++; }
+        // Amortize shared queue access over a range. As peers consume work,
+        // shrink the range toward one job so the tail can still refill lanes.
+        // Bounds come from this batch, not a host-specific grain threshold.
+        var count = (batch.count - next) / batch.lanes;
+        if count == 0 && next < batch.count { count = 1; }
+        batch.next += count;
         work_signal_post(batch.claim);
         if next == batch.count { return; }
-        work_batch_run(batch, next);
+        for(var i = next; i < next + count; i++) { work_batch_run(batch, i); }
     }
 }
 
