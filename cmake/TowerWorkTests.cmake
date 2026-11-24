@@ -135,6 +135,8 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
+  tower_runtime_object(tower-lr-budget-checks "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/lr_budget.tower" wasm32-unknown-unknown)
+  target_sources(tower-browser PRIVATE "${tower-lr-budget-checks_OBJECT}")
   set(work_input "${CMAKE_CURRENT_BINARY_DIR}/tower_work_tests.tower")
   file(GENERATE OUTPUT "${work_input}" CONTENT
     "import tower;\nimport tests.work_pool;\nimport host.work_wasi;\nimport host.work_memory_wasi;\nimport host.work_dispatch;\nimport host.memory;\n")
