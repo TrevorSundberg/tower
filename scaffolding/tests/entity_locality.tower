@@ -194,9 +194,8 @@ fn layout_component(owner: Entity*, kind: Entity*): EntityComponent* {
 struct LayoutStorage { bytes: usize; allocations: usize; physical: usize; }
 fn layout_owned(T: type, sample: LayoutStorage*, data: T*): void {
     if data == null { return; }
-    var block = entity_component_from_data(bits(u8*, data));
-    if block.page != null { return; } // Count the physical pool page once below.
-    sample.physical += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block).allocation.capacity);
+    if entity_owned_page(bits(u8*, data)) != null { return; } // Count the physical pool page once below.
+    sample.physical += compiler_buffer_allocation_size(entity_owned_buffer(bits(u8*, data)).capacity);
     sample.allocations++;
 }
 fn layout_buffer(T: type, sample: LayoutStorage*, data: T*): void {

@@ -41,9 +41,8 @@ fn accounting_cancel(context: void*): void {
 }
 fn accounting_owned(T: type, data: T*): usize {
     if data == null { return 0; }
-    var block = entity_component_from_data(bits(u8*, data));
-    if block.page != null { return 0; } // Counted once through its physical pool.
-    return compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block).allocation.capacity);
+    if entity_owned_page(bits(u8*, data)) != null { return 0; } // Counted once through its physical pool.
+    return compiler_buffer_allocation_size(entity_owned_buffer(bits(u8*, data)).capacity);
 }
 fn accounting_buffer(T: type, data: T*): usize {
     if data == null { return 0; }

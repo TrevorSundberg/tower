@@ -305,7 +305,7 @@ fn units_profile_children(store: EntityStore*): void {
             slots = page.capacity;
             // Conservative model within the actual current page's body bytes.
             next_slots = (page.allocation.capacity - sizeof(EntityComponentPage)
-                - sizeof(EntityComponent*) - (alignment - 1)) / (next_stride + sizeof(EntityComponent));
+                - sizeof(EntityComponent*) - (alignment - 1)) / next_stride;
             pages++; live += page.live;
             page_bytes += compiler_buffer_allocation_size(page.allocation.capacity);
         }

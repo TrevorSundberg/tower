@@ -27,6 +27,7 @@ extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_type(world: void*, kind: u32): void*;
 extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
 extern fn entity_component_from_data(data: u8*): EntityComponent*;
+extern fn entity_owned_page(data: u8*): EntityComponentPage*;
 extern fn entity_create(store: void*): void*;
 extern fn entity_retain(node: void*): usize;
 extern fn entity_release(node: void*): usize;
@@ -100,7 +101,7 @@ fn syntax_reset_resource_trial(components: bool): void {
     syntax_source_retain(source);
     entity_retain(document);
     var data = components ? compiler_world_component(world, document, CompilerSyntax) : document;
-    var page = entity_component_from_data(bits(u8*, data)).page;
+    var page = components ? entity_component_from_data(bits(u8*, data)).page : entity_owned_page(bits(u8*, data));
     utility_check(page != null, "Reset has a physical page");
     var held: vector(void*) = default;
     syntax_resource_fill(world, page, CompilerSyntax, components, &held);
@@ -178,7 +179,7 @@ fn syntax_expansion_resource_trial(mode: ExpansionResourceCase): void {
     if mode == ExpansionResourceCase.Descriptor || mode == ExpansionResourceCase.Component {
         var components = mode == ExpansionResourceCase.Component;
         var data = components ? entity_component_data(entity_component_get(f.result.root, input.match_kind)) : f.result.root;
-        var page = entity_component_from_data(bits(u8*, data)).page;
+        var page = components ? entity_component_from_data(bits(u8*, data)).page : entity_owned_page(bits(u8*, data));
         utility_check(page != null, "Expansion descriptor page");
         syntax_resource_fill(world, page, CompilerParserMatch, components, &held);
         if components {
@@ -228,7 +229,7 @@ fn syntax_expansion_resource_trial(mode: ExpansionResourceCase): void {
         if mode == ExpansionResourceCase.ChildName {
             // The name is larger than a real owned page: guaranteed standalone
             // growth, independent of any incidental free small-name slot.
-            var bytes = entity_component_from_data(bits(u8*, f.result.root)).page.allocation.capacity * 2;
+            var bytes = entity_owned_page(bits(u8*, f.result.root)).allocation.capacity * 2;
             utility_check(vector_reserve(&role, bytes + 1), "Prepare standalone child name");
             fill(role.data, 120, bytes); role.data[bytes] = 0;
             work.role = role.data;
