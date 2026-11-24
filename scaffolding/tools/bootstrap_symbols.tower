@@ -2,7 +2,7 @@ import tower;
 
 // These are reviewed cross-unit imports, not a wildcard permission for native
 // implementations. Compare each compiler component's emitted object closure.
-enum BootstrapUnit: i32 { Unknown, Utf8, Bytes, Entities, ParserNodes, Host, Interpreter, Semantics, ParserFormat, TemplateBuild }
+enum BootstrapUnit: i32 { Unknown, Utf8, Bytes, Entities, ParserNodes, Host, Interpreter, Semantics, ParserFormat, TemplateBuild, GraphComponents }
 enum SymbolByte: u8 { Nul = 0, Tab = 9, LF = 10, CR = 13, Space = 32, Underscore = 95 }
 struct BootstrapSymbol { data: u8*; length: usize; }
 
@@ -21,6 +21,7 @@ fn bootstrap_unit(name: u8*): BootstrapUnit {
     if strcmp(name, "semantics") == 0 { return BootstrapUnit.Semantics; }
     if strcmp(name, "parser-format") == 0 { return BootstrapUnit.ParserFormat; }
     if strcmp(name, "template-build") == 0 { return BootstrapUnit.TemplateBuild; }
+    if strcmp(name, "graph-components") == 0 { return BootstrapUnit.GraphComponents; }
     return BootstrapUnit.Unknown;
 }
 
@@ -51,8 +52,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     // table and its relocation base; neither is an external implementation.
     if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics)
         && bootstrap_symbol_in("indirect_function_table table_base", symbol, length) { return true; }
-    // Entity budget gates and interpreter calls use the target's function table.
-    if wasm && (unit == BootstrapUnit.Entities || unit == BootstrapUnit.Interpreter)
+    // Budget gate callbacks and interpreter calls use the target's function table.
+    if wasm && (unit == BootstrapUnit.Entities || unit == BootstrapUnit.Interpreter || unit == BootstrapUnit.GraphComponents)
         && bootstrap_symbol_in("indirect_function_table", symbol, length) { return true; }
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
@@ -101,13 +102,14 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        if bootstrap_symbol_in("graph_components_result graph_components_dispose", symbol, length) { return true; }
         // Diagnostic text retains the ParserFormat provider's buffer result.
         if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
         if bootstrap_symbol_in("parser_structure_cache_copy parser_structure_cache_dispose", symbol, length) { return true; }
         // Configured module startup fixtures consume world and unit ownership.
         if bootstrap_symbol_in("compiler_world_create_result frontend_units_close frontend_units_create_bounded_result", symbol, length) { return true; }
         // Grammar admission retains exact results from the existing entities unit.
-        if bootstrap_symbol_in("compiler_world_type_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result entity_view_open_result", symbol, length) { return true; }
+        if bootstrap_symbol_in("compiler_world_type_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result entity_view_open_result entity_register_stage_result", symbol, length) { return true; }
         // Grammar snapshots use the world ledger and the entities arena provider.
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocation_size compiler_world_bind_budget work_arena_allocate work_arena_allocate_result work_arena_dispose work_arena_init", symbol, length) { return true; }
         // Table buffers share the world ledger; frontend unit lifecycle and
@@ -139,6 +141,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     }
     // Separate native objects: reviewed nm closures, not ParserNodes imports.
     // Target-only runtime additions require their own observed object evidence.
+    if unit == BootstrapUnit.GraphComponents {
+        return bootstrap_symbol_in("compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free tower_trap", symbol, length);
+    }
     if unit == BootstrapUnit.ParserFormat {
         return bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free compiler_node_get", symbol, length)
             || bootstrap_symbol_in("entity_child_at entity_child_count entity_child_index entity_child_name entity_component_data entity_component_get entity_parent", symbol, length)

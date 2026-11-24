@@ -6,6 +6,7 @@ import lr_analysis_oracle_types;
 import lr_control_types;
 import lr_analysis_api;
 import .library.work_budget;
+import lr_components;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
@@ -355,6 +356,7 @@ fn lr_kernel_resize_trial(): void {
         "LR kernel resize final EOF reduction");
 }
 fn lr_analysis_storage_failures(): void {
+    lr_component_owner_tests();
     lr_range_merge_failure();
     lr_analysis_invalid_inputs();
     lr_suffix_budget_failure();
