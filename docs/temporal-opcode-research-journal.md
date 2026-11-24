@@ -99445,3 +99445,34 @@ recursive readers had been destroyed before the joined receipt. The current
 unit ticket records dispatch one and streamed peers can have completed backend
 work. A unit-wide retry here would need to preserve resolved reads and parser
 continuations. No earlier-unit sample can reserve a later unit's unknown peak.
+
+On slot 8, matched ordinary stock/fix runs used the same installed resources,
+default cap, Ryzen 9 7900X, affinity 0–23 and 23.04-CPU quota. Each of two
+counterbalanced pairs checked the ELF, exports, stdout and all 13 depfile rules
+on success. For both binaries at jobs 1/4/8 the completed trial counts were
+2/0/0 for light, 2/1/0 for the three-library prefix and 2/2/0 for the
+four-library holdout. Both original invoices passed twice at each width.
+Three actual frontend workers overlapped for 188 ms on small and 197 ms on
+uneven at four jobs. Their observed peaks were 239,949,373 and 222,108,447
+charged bytes respectively. The active cancellation retained its 11,279 input
+bytes across drain, then closed with zero charged bytes, grants and lanes.
+A separate eight-job trace saw Capacity during grammar installation with
+prior revisions 53 and 62 pinned. No lower-width unit retry was introduced.
+
+The later public bootstrap on `373da061` produced byte-identical stock and
+fixed drivers to the matched build on `0d573db4`. The clean default build,
+four selected native CTests and fresh driver runs on all five shapes at 1/4/8
+confirmed the same output or capacity behavior. The absolute cache path on
+line one of generated runtime IR differs between builds. The runtime bodies
+match. The raw per-process costs, load/throttling, independent C oracle,
+stderr, ownership and scheduling events are in the packet for assignment
+`bda63229-faeb-4ac8-b307-cf917b7fc6ad`.
+
+LLVM 19 address/leak and thread modes each ran the native units selector
+and fitting four-job packaged invoice with matching ELF and guest output.
+TSan initially rejected 16 starts at the container personality check. With
+the host's existing 0–11 affinity, the unit test entered on attempt 2 and
+the driver on attempt 8. Both exited zero. These instrumented receipts cover
+the earlier integrated freeze with the root countertest. The successor
+bootstrap was checked separately with ordinary binaries. Tower source-level
+UBSan remains unsupported.
