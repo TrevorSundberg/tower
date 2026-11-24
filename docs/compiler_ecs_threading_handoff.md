@@ -47,7 +47,9 @@ published as `bf9429d900`: nine focused checks and twenty paired compilations pa
 followed by nine merged-source checks and a complete four-worker multi-file comparison.
 The ownership-only cohort retains small serial11.5% and multi-file16.7% wall cost;
 those measurements cannot be combined arithmetically with the separate grammar gains.
-D2 independently reviews its actual source, seven checked executables and full evidence.
+[D2 independently accepted its accounting and lifetime contract](lr_scratch_peer_bf9429d9.md):
+ten focused selections pass, with complete source, seven executable identities and
+owner-output reconciliation; no production or fixture repair was required.
 The frozen combined candidate is `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tree
 `9fa65da4d4d4ad697b4a97e56bb894021076d106`. A1 native acceptance, A2 package
 generations, L1 address instrumentation, L2 thread instrumentation and B1 whole-host
@@ -57,7 +59,10 @@ B2 browser builds wait for its exclusive measurements and real public package in
 Final joined instrumentation and release
 must cover accepted subsequent production changes. The original goal is open.
 
-Whole-host performance runs wait for the other lane's heavy work to drain and
+ROOT starts agents only when their concrete task, inputs and host availability
+are ready. Agents never wait for release descriptors or other external prerequisites;
+their windows stay closed until ROOT can assign runnable work. Completed agents stop.
+Whole-host performance runs require the other lane's heavy work to drain and
 check actual processes; focused development uses disjoint CPU/memory partitions.
 Caches, bandwidth, power and OS work remain shared, so those measurements retain
 their shared-host and counterbalanced-sample limitations. ROOT publishes one
