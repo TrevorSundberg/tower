@@ -102,9 +102,17 @@ export fn driver_test_cli_platform(compiler: u8*): void {
     driver_check(ok, "relocate resource tree");
     driver_arguments_dispose(&args);
     bytes_dispose(&root);
-    result = driver_test_compile("./driver relocated/towerc", "driver fixture with spaces.tower", "object", "driver relocated/result.o", "", null);
+    var depfile = "driver relocated/result.d";
+    result = driver_test_compile("./driver relocated/towerc", "driver fixture with spaces.tower", "object", "driver relocated/result.o", "--depfile", depfile);
     ok = result == 0;
     driver_check(ok, "complete relocated compiler package");
+    var dependencies: ByteBuffer = default;
+    defer bytes_dispose(&dependencies);
+    driver_check(driver_read_file(depfile, &dependencies) && strstr(dependencies.data, "share/tower/runtime-") == null,
+        "object emission does not depend on a link runtime");
+    result = driver_test_compile("./driver relocated/towerc", "driver fixture with spaces.tower", "exe", "driver relocated/result", "--depfile", depfile);
+    driver_check(result == 0, "relocated executable link");
+    driver_test_read(depfile, "driver\\ relocated/share/tower/runtime-", false);
 }
 
 export fn driver_test_file(file: void*): i32 {

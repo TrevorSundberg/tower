@@ -12,6 +12,7 @@ import .compiler.execution_package;
 import driver_request;
 import driver_timing;
 import driver_link;
+import driver_depfile;
 import driver_paths;
 import driver_types;
 import driver_units;
@@ -216,15 +217,6 @@ fn driver_compile_package(state: DriverCompilation*): bool {
     return true;
 }
 
-fn driver_compile_dependencies(state: DriverCompilation*, output: u8*, link_count: usize): bool {
-    var options = state.request.options;
-    if frontend_modules_depfile_inputs(state.request.modules, output, options.depfile, false, options.links, link_count) {
-        return true;
-    }
-    driver_error("Cannot write dependency file: ", options.depfile);
-    return false;
-}
-
 fn driver_compile_text_output(state: DriverCompilation*): i32 {
     if state.execution.program.resource.error != WorkBudgetError.None {
         driver_compile_execution_report(state);
@@ -250,7 +242,7 @@ fn driver_compile_text_output(state: DriverCompilation*): i32 {
         }
         output = state.output.data;
     }
-    if !driver_output_safe(options.source, output) || !driver_compile_dependencies(state, output, 0) {
+    if !driver_output_safe(options.source, output) || !driver_depfile(state.request, state.request.modules, output, DriverDepfileRule.Source) {
         return 1;
     }
     var program = &state.execution.program;
@@ -308,7 +300,7 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
         return 1;
     }
     var options = state.request.options;
-    if !driver_compile_dependencies(state, options.output, 0) {
+    if !driver_depfile(state.request, state.request.modules, options.output, DriverDepfileRule.Source) {
         return 1;
     }
     driver_timing_mark(state.timing, options.timings, "compile");
@@ -372,7 +364,8 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
     var wasm = strstr(options.target, "wasm") == options.target;
     var windows = strstr(options.target, "windows") != null;
     var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
-    if !driver_compile_dependencies(state, output, driver_same(options.emit, "exe") ? options.link_count : 0) {
+    var rule = driver_same(options.emit, "exe") ? DriverDepfileRule.Executable : DriverDepfileRule.Source;
+    if !driver_depfile(state.request, state.request.modules, output, rule) {
         return 1;
     }
     driver_timing_mark(state.timing, options.timings, "compile");

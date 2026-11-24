@@ -6,6 +6,7 @@ import driver_support;
 import driver_platform;
 import driver_request;
 import driver_link;
+import driver_depfile;
 import driver_paths;
 import driver_timing;
 import .library.vector;
@@ -156,10 +157,8 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     defer driver_link_close(link);
     for (var i: usize = 0; i < count; i++) {
         var ordinal = i + 1;
-        if !frontend_modules_depfile_inputs(frontend_units_environment(batch.frontend, ordinal), output, options.depfile,
-            i != 0, options.links, i == 0 ? options.link_count : 0) {
-            driver_error("Cannot write dependency file: ", options.depfile); return 1;
-        }
+        var rule = i == 0 ? DriverDepfileRule.Executable : DriverDepfileRule.AdditionalUnit;
+        if !driver_depfile(request, frontend_units_environment(batch.frontend, ordinal), output, rule) { return 1; }
         var program = frontend_units_program(batch.frontend, ordinal);
         var backend = backend_units_result(batch.backend, ordinal);
         for (var f: usize = 1; f < program.functions.length; f++) {

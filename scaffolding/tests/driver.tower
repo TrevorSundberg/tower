@@ -355,6 +355,7 @@ fn driver_test_link_depfile(compiler: u8*): void {
         driver_check(driver_test_capture(&args) == 0, "separate library linking");
         driver_arguments_dispose(&args);
         driver_test_read("driver linked.d", "driver\\ library.o", false);
+        driver_test_read("driver linked.d", "share/tower/runtime-", false);
         driver_test_read("driver linked.d", "driver\\ link.tower", false);
         if units != 0 { driver_test_read("driver linked.d", "driver\\ link\\ unit.tower", false); }
         driver_arguments_init(&args);
