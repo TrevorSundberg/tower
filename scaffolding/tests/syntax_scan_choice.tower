@@ -1,0 +1,59 @@
+import tower;
+import .compiler.syntax_scan;
+import .compiler.syntax_lexer;
+import .compiler.lr_tree;
+import .compiler.lr_types;
+import .compiler.syntax_version_types;
+import utility_checks;
+
+extern fn strlen(text: u8*): usize;
+
+fn scan_choice_check(ok: bool): void { utility_check(ok, "Single-selection scan preserves token, offset, context work and ownership"); }
+
+// The split skip/selection path is an independent reference for consumption.
+// Its first selection also exposes the exact avoided contextual lookup count.
+export fn frontend_session_scan_choice_tests(version: SyntaxVersion*): void {
+    var sources: u8*[3];
+    sources[0] = "alpha"; sources[1] = " alpha"; sources[2] = "/* kept */alpha";
+    var lexicon = bits(SyntaxLexicon*, version.lexicon);
+    var runtime = bits(LRRuntime*, bits(ParserHostTable*, version.table).runtime);
+    for(var index: usize = 0; index < sizeof(decltype(sources)) / sizeof(decltype(sources[0])); index++) {
+        var source = sources[index];
+        for(var mode: usize = 0; mode < 3; mode++) {
+            var input: SyntaxScanInput = {lexicon: lexicon, source: source, size: strlen(source),
+                declaration: mode == 1, bootstrapping: mode == 2, runtime: runtime,
+                context: version.rules, match_kind: version.kinds.`match`, ..default};
+            var reference = input;
+            var skipped: SyntaxScanResult = default;
+            defer syntax_scan_dispose(&skipped);
+            syntax_scan_skip(&reference, &skipped);
+            var choice: LexiconChoice;
+            lexicon_choose(lexicon, source, input.size, reference.cursor, input.declaration, runtime, 0, &choice);
+            scan_choice_check(choice.length == strlen("alpha") && !choice.skipped && choice.checks != 0);
+            var expected_checks = skipped.checks + (mode == 0 ? 0 : choice.checks);
+            for(var nodes: usize = 0; nodes < 2; nodes++) {
+                input.cursor = 0;
+                var result: SyntaxScanResult = default;
+                defer syntax_scan_dispose(&result);
+                var node: void* = null;
+                if nodes == 0 { syntax_scan_token(&input, &result); }
+                else { node = syntax_scan_read(&input, &result); }
+                defer { if node != null { entity_release(node); } }
+                scan_choice_check(result.error == null && result.resource_error == WorkBudgetError.None
+                    && result.id == choice.id && result.start == reference.cursor
+                    && result.length == choice.length && input.cursor == input.size
+                    && result.checks == expected_checks);
+                if nodes != 0 {
+                    scan_choice_check(node != null);
+                    var data = lr_tree_match(node, input.match_kind);
+                    scan_choice_check(data.id == result.id && data.start == result.start && data.length == result.length);
+                }
+                var end: SyntaxScanResult = default;
+                syntax_scan_token(&input, &end);
+                scan_choice_check(end.id == LRTokenEnd && end.start == input.size && end.length == 0 && end.error == null);
+                syntax_scan_dispose(&end);
+            }
+        }
+    }
+}
+
