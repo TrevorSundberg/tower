@@ -4,6 +4,11 @@ import .library.entities;
 import .library.entity_types;
 import generic_body_budget;
 
+// This standalone program owns the lifecycle ABI; registry kinds use none.
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Generic registry fixture has no lifecycle payloads", 0);
+}
+
 fn registry_check(ok: bool, code: i32, failure: i32*): void {
     if !ok {
         if *failure == 0 {
