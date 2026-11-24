@@ -57,8 +57,11 @@ export fn main(argc: i32, argv: u8**): i32 {
         entity_release(nodes[i]);
     }
     var retained = store.allocation.capacity;
+    // Heap edge payload only; inline slots are included in descriptor pages.
     var slots: usize = 0;
-    for(var i: usize = 0; i < root_count; i++) { slots += roots[i].child_capacity; }
+    for(var i: usize = 0; i < root_count; i++) {
+        if roots[i].children != &roots[i].inline_children[0] { slots += roots[i].child_capacity; }
+    }
     for(var i: usize = 0; i < root_count; i++) { entity_release(roots[i]); }
     free(nodes);
     check(store.entity_count == 0 && entity_store_dispose(store));
