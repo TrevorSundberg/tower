@@ -23,6 +23,66 @@ struct LRStates {
     buckets: vector(usize);
 }
 
+// Private to one state-building coordinator; reused only after its transitions
+// finish. Entries refer to the frozen item vector, never to grammar ownership.
+struct LRShiftIndex {
+    heads: vector(usize);
+    next: vector(usize);
+}
+
+fn lr_shift_index_dispose(index: LRShiftIndex*): void {
+    vector_dispose(&index.heads);
+    vector_dispose(&index.next);
+}
+
+fn lr_shift_index_result(index: LRShiftIndex*, analysis: LRAnalysis*, state: LRState*): WorkBudgetError {
+    index.heads.length = 0;
+    // One binary lookup per item must save work over scanning it for each edge.
+    var steps: usize = 1;
+    for(var count = state.symbols.length; count != 0; count /= 2) { steps++; }
+    if state.symbols.length <= steps { return WorkBudgetError.None; }
+    for(var i: usize = 1; i < state.symbols.length; i++) {
+        var left = &analysis.symbols[state.symbols.data[i - 1]];
+        var right = &analysis.symbols[state.symbols.data[i]];
+        // A contained terminal can belong to several transitions. Keep the
+        // ordinary range-matching path rather than treating it as an exact key.
+        if left.nonterminal == lr_none() && right.nonterminal == lr_none() && left.last >= right.first {
+            return WorkBudgetError.None;
+        }
+    }
+    var error = lr_reserve_result(&index.heads, state.symbols.length);
+    if error == WorkBudgetError.None { error = lr_reserve_result(&index.next, state.items.values.length); }
+    if error != WorkBudgetError.None { return error; }
+    index.heads.length = state.symbols.length;
+    index.next.length = state.items.values.length;
+    for(var i: usize = 0; i < index.heads.length; i++) { index.heads.data[i] = lr_none(); }
+    // Prepending in reverse preserves the exact original sorted item order.
+    for(var i = state.items.values.length; i != 0; i--) {
+        var item = &state.items.values.data[i - 1];
+        var rule = &analysis.rules[item.rule];
+        if item.position >= rule.count { continue; }
+        var symbol = rule.begin + item.position;
+        var low: usize = 0; var high = state.symbols.length;
+        while low < high {
+            var middle = low + (high - low) / 2;
+            if lr_symbol_less(analysis, state.symbols.data[middle], symbol) { low = middle + 1; }
+            else { high = middle; }
+        }
+        if low == state.symbols.length || lr_symbol_less(analysis, symbol, state.symbols.data[low]) {
+            return WorkBudgetError.Invalid;
+        }
+        // Ordering is not identity. An API client can assign equal ordering
+        // keys to distinct nonterminals; preserve ordinary matching in that case.
+        if analysis.symbols[symbol].nonterminal != analysis.symbols[state.symbols.data[low]].nonterminal {
+            index.heads.length = 0;
+            return WorkBudgetError.None;
+        }
+        index.next.data[i - 1] = index.heads.data[low];
+        index.heads.data[low] = i - 1;
+    }
+    return WorkBudgetError.None;
+}
+
 export fn lr_kernel(analysis: LRAnalysis*, item: LRItem*): bool {
     if item.position != 0 {
         return true;
@@ -333,8 +393,9 @@ fn lr_state_symbols_result(analysis: LRAnalysis*, state: LRState*): WorkBudgetEr
     return WorkBudgetError.None;
 }
 
-fn lr_state_transition_result(value: LRStates*, state: LRState*, symbol: usize): WorkBudgetError {
+fn lr_state_transition_result(value: LRStates*, state: LRState*, position: usize, index: LRShiftIndex*): WorkBudgetError {
     var analysis = value.analysis;
+    var symbol = state.symbols.data[position];
     var ok = true;
     var missing = false;
     var next = lr_items_create();
@@ -342,7 +403,16 @@ fn lr_state_transition_result(value: LRStates*, state: LRState*, symbol: usize):
     if missing {
         return WorkBudgetError.Memory;
     }
-    ok = lr_items_shift(analysis, state.items, &analysis.symbols[symbol], next);
+    if index.heads.length == 0 {
+        ok = lr_items_shift(analysis, state.items, &analysis.symbols[symbol], next);
+    } else {
+        for(var at = index.heads.data[position]; at != lr_none() && ok; at = index.next.data[at]) {
+            var item = state.items.values.data[at];
+            item.position++;
+            ok = lr_items_insert(next, &item);
+        }
+        if !ok { analysis.failed = true; }
+    }
     if !ok {
         var error = lr_items_error(next);
         lr_items_destroy(next);
@@ -368,6 +438,8 @@ export fn lr_states_create_result(analysis: LRAnalysis*, error: WorkBudgetError*
     var value = lr_states_begin_result(analysis, error);
     if value == null { return null; }
     defer lr_states_destroy(value);
+    var shifts: LRShiftIndex = default;
+    defer lr_shift_index_dispose(&shifts);
     loop {
         var done = value.pending.length == 0;
         if done {
@@ -379,6 +451,7 @@ export fn lr_states_create_result(analysis: LRAnalysis*, error: WorkBudgetError*
         var index = value.pending.data[value.pending.length];
         var state = value.states.data[index];
         *error = lr_state_symbols_result(analysis, state);
+        if *error == WorkBudgetError.None { *error = lr_shift_index_result(&shifts, analysis, state); }
         if *error != WorkBudgetError.None { return null; }
         var position: usize = 0;
         loop {
@@ -386,7 +459,7 @@ export fn lr_states_create_result(analysis: LRAnalysis*, error: WorkBudgetError*
             if done {
                 break;
             }
-            *error = lr_state_transition_result(value, state, state.symbols.data[position]);
+            *error = lr_state_transition_result(value, state, position, &shifts);
             if *error != WorkBudgetError.None { return null; }
             position++;
         }
