@@ -70,6 +70,7 @@ extern fn frontend_world_clear(world: void*): bool;
 extern fn frontend_modules_create_result(error: WorkBudgetError*): void*;
 
 extern fn frontend_modules_destroy(environment: void*): void;
+extern fn frontend_modules_reset_compilation(environment: void*): void;
 
 extern fn frontend_modules_bind_world_result(environment: void*, world: void*): WorkBudgetError;
 
@@ -239,6 +240,9 @@ fn frontend_unit_compile(job: FrontendUnit*): void {
     source.length = job.source.length;
     frontend_compile_sources(&job.program, &source, 1, job.modules);
     job.success = job.program.resource.error == WorkBudgetError.None && job.program.error.length == 0;
+    // This unit has finished its only compile. The program owns its roots and
+    // the environment retains source locations and depfile names for callers.
+    if job.success { frontend_modules_reset_compilation(job.modules); }
     if !job.success && job.program.resource.error == WorkBudgetError.None {
         if vector_reserve(&job.program.error, job.program.error.length + 1) {
             job.program.error.data[job.program.error.length] = 0;

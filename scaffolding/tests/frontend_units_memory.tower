@@ -21,6 +21,8 @@ extern fn frontend_units_cancelled(batch: void*): bool;
 extern fn frontend_units_close(batch: void*): void;
 extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
 extern fn frontend_units_input_bytes(batch: void*): usize;
+extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_modules_reset_compilation(environment: void*): void;
 extern fn strlen(text: u8*): usize;
 extern fn puts(text: u8*): i32;
 extern fn abort(): void;
@@ -114,7 +116,12 @@ fn units_memory_measure(bedrock: u8*, foundation: u8*, root: u8*, path: u8*, sou
     units_memory_check(frontend_units_source(batch, 1, path, source, strlen(source)), "Reference source snapshot");
     while !frontend_units_step(batch, true) {}
     units_memory_compiled(batch, "Reference compilation measures its actual storage requirement");
-    sample.peak = units_memory_snapshot(batch).peak_bytes;
+    var joined = units_memory_snapshot(batch);
+    sample.peak = joined.peak_bytes;
+    frontend_modules_reset_compilation(frontend_units_environment(batch, 1));
+    var retired = units_memory_snapshot(batch);
+    units_memory_check(retired.used_bytes == joined.used_bytes && retired.live == joined.live,
+        "Completed one-shot unit has already retired its parser and import cache");
     var program = frontend_units_program(batch, 1);
     units_memory_check(program != null, "Reference compilation publishes its checked program");
     units_memory_answer(program);
