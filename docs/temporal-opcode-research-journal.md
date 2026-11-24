@@ -96878,3 +96878,5 @@ L1 foreign grammar integration: ffd45987 + origin/main 8eb55a6a = 587196fc; all 
 
 
 Final B1 prediction-index boundary: complete history through1072141e reconciled as9d0342c7 after one normal push race. A2 quota diagnostics changed compiler inputs, so final publiceeb dependency refresh and exact32/64 jobs1/4 quota check were run alongside affected parser/nativeLR/canonical output controls; all pass, frozen candidate timings unchanged. Final native source/binaries/manifests are retained under lr_prepare_bdb0ed38/final; receipt records costs/identities. No second optimization or broad matrix.
+
+A1 staging acceptance integration:7a0d9eff merged complete published ca1c893e as6aa2d899; incoming LR prediction/quota changes rebuilt in the same target, then query-smoke passes10.56wall/10.32CPU/405912KiB including all24 extents and real4thread/peak4. Source/runner identity and final boundary recorded once in staging_extent_acceptance_e3958206; no broad matrix or shifted historical evidence. All jobs drained, todo unchanged; normal main publication follows.
