@@ -31,6 +31,7 @@ extern fn frontend_revision_release(revision: FrontendRevision*): void;
 extern fn syntax_revision_rule(revision: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
 extern fn entity_references(entity: void*): usize;
 extern fn entity_retain(entity: void*): usize;
+extern fn entity_child_at(parent: void*, index: usize): void*;
 extern fn puts(text: u8*): i32;
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool,
     diagnostic: SyntaxVersionDiagnostic*): bool;
@@ -588,10 +589,9 @@ fn module_cache_lease_check(ok: bool, message: u8*): void {
 
 // Check the actual parsed root's world and source span against literal expected
 // output, including the old request's still-unconsumed statement after reset.
-fn module_cache_lease_next(session: void*, text: u8*): void {
+fn module_cache_lease_root(session: void*, text: u8*): void* {
     var root = syntax_next(session);
     module_cache_lease_check(root != null, "Lease continuation produces its expected parse root");
-    defer entity_release(root);
     var reader = bits(SyntaxSession*, session);
     var span = bits(ParserMatchData*, compiler_node_get(root, CompilerParserMatch));
     module_cache_lease_check(compiler_node_world(root) == reader.inputs.world && span != null,
@@ -600,6 +600,11 @@ fn module_cache_lease_next(session: void*, text: u8*): void {
     module_cache_lease_check(span.start <= reader.source_length && span.length <= reader.source_length - span.start
         && span.length == length && syntax_bytes_compare(reader.source + span.start, span.length, text, length) == 0,
         "Lease parse output matches the exact expected source bytes");
+    return root;
+}
+
+fn module_cache_lease_next(session: void*, text: u8*): void {
+    entity_release(module_cache_lease_root(session, text));
 }
 
 fn module_cache_lease_end(module: FrontendModule*, session: void*): void {
@@ -616,7 +621,7 @@ export fn module_cache_empty_seed_leases(): void {
     var environment = frontend_modules_create();
     module_cache_lease_check(environment != null && frontend_modules_bind_world(environment, world), "Lease environment binding");
     frontend_modules_configure(environment, "main.tower", "");
-    var shared: u8* = "parse Statement = 'cached';";
+    var shared: u8* = "parse Statement = 'cached' $value:Identifier;";
     module_cache_lease_check(frontend_modules_source(environment, "shared.tower", shared, syntax_text_length(shared)), "Lease import input");
 
     var idle = frontend_module_root_world(world, "parse Statement = 'idle'; idle", environment);
@@ -689,13 +694,21 @@ export fn module_cache_empty_seed_leases(): void {
     module_cache_lease_end(active, active_session);
     frontend_module_destroy(active);
     module_cache_lease_check(environment.compilation_session == null, "Retired active lease cannot refill even an empty idle slot");
-    var fresh = frontend_module_root_world(world, "import shared; cached", environment);
+    var fresh = frontend_module_root_world(world, "import shared; cached first cached second", environment);
     module_cache_lease_check(fresh != null, "New-generation request");
     var fresh_session = frontend_module_session(fresh);
     module_cache_lease_check(fresh_session != null && bits(SyntaxSession*, fresh_session).pins.bedrock == current_seed,
         "New request pins the current seed");
     module_cache_lease_next(fresh_session, "import shared;");
-    module_cache_lease_next(fresh_session, "cached");
+    var first = module_cache_lease_root(fresh_session, "cached first");
+    var second = module_cache_lease_root(fresh_session, "cached second");
+    var first_statement = entity_child_at(first, 0);
+    var second_statement = entity_child_at(second, 0);
+    var first_value = syntax_reader_member(first_statement, "value");
+    var second_value = syntax_reader_member(second_statement, "value");
+    module_cache_lease_check(first_value != null && second_value != null && first_value != second_value
+        && entity_parent(first_value) == first_statement && entity_parent(second_value) == second_statement,
+        "Each parsed value capture belongs to its own statement");
     module_cache_lease_end(fresh, fresh_session);
     module_cache_lease_check(fresh.dependencies.length == 1
         && fresh.dependencies.data[0].declarations.length == snapshot.declarations.length
@@ -704,6 +717,14 @@ export fn module_cache_empty_seed_leases(): void {
     frontend_module_destroy(fresh);
     module_cache_lease_check(environment.compilation_session == fresh_session && environment.active_graphs == 0,
         "Current-generation lease returns to idle after all requests drain");
+    frontend_modules_reset_compilation(environment);
+    module_cache_lease_check(environment.compilation_session == null && environment.cache.length == 0,
+        "Idle parser and imported snapshots are retired");
+    module_cache_lease_check(entity_release(first) == 0, "First statement root releases its last owner");
+    module_cache_lease_check(syntax_reader_member(second_statement, "value") == second_value
+        && entity_parent(second_value) == second_statement,
+        "Surviving statement resolves its value after parser, import and sibling-root release");
+    entity_release(second);
     entity_release(idle_document);
     frontend_revision_release(foundation);
     frontend_revision_release(current_seed);
