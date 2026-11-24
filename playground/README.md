@@ -1026,9 +1026,12 @@ initialization and the extra parallel-only fixtures prevent interpreting total
 trial times as a scaling benchmark. Hosted service-worker isolation, other
 browsers and the release matrix remain separate checks.
 
-Append `lr-bounded` to run only the two-worker LR fixture. It checks a caller/worker
-barrier, charged propagation failure and retry, and budget restoration after world
-disposal. The native command is `tower-lr-work-tests scaffolding lr-bounded`.
+Append `lr-bounded` to run the two-worker LR fixture. It checks a caller/worker
+barrier and charged propagation failure and retry. A serial action rebuild must
+preserve the published rows on `Capacity`, emit nine terminals plus EOF on retry,
+and restore the serial reference rows on parallel replacement. World disposal
+and caller release must return bytes, lanes and grants to zero. The native
+command is `tower-lr-work-tests scaffolding lr-bounded`.
 
 The fixture uses that same production ownership hook. After Tower joins its jobs
 and closes its owner, the test observes every compiler worker's `close` event,

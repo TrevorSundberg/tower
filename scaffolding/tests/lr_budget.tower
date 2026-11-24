@@ -220,7 +220,33 @@ fn lr_dispatch_caller_overlap(): bool {
     return budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0;
 }
 
-// Exercise the same charged propagation and overlap assertions in both hosts.
+var LRActionTrialLength: usize = 1024;
+
+fn lr_budget_terminals(symbols: LRSymbol*, count: usize): void {
+    for(var i: usize = 0; i < count; i++) {
+        var literal = convert(u32, i + 32);
+        symbols[i] = {nonterminal: ~convert(usize, 0), first: literal, last: literal};
+    }
+}
+
+// The long start production admits action workers. Its leading choice gives
+// construct mode more lookaheads than an EOF-only action row can hold.
+fn lr_budget_rebuild_rows(root: void*): bool {
+    var symbols: LRSymbol[LRActionTrialLength];
+    var count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    lr_budget_terminals(&symbols[0], count);
+    var alternatives: LRProduction[WorkBufferInitialElements + 2] = default;
+    var rules = sizeof(decltype(alternatives)) / sizeof(LRProduction);
+    var prefix = count - (rules - 1);
+    alternatives[0].count = prefix;
+    symbols[0].nonterminal = 1;
+    for(var i: usize = 1; i < rules; i++) {
+        alternatives[i] = {owner: 1, begin: prefix + i - 1, count: 1, ..default};
+    }
+    return lr_action_rebuild_trial(root, &alternatives[0], rules, &symbols[0], count);
+}
+
+// Exercise charged propagation, action replacement and overlap in both hosts.
 var LRBoundedTrialBytes: usize = 64 * 1024 * 1024;
 export fn lr_bounded_propagation_tests(): bool {
     var lanes: usize = 2;
@@ -245,7 +271,8 @@ export fn lr_bounded_propagation_tests(): bool {
         var root = entity_create(compiler_world_store(world));
         if root == null { return false; }
         defer entity_release(root);
-        if compiler_world_work_budget(compiler_node_world(root)) != &budget || !lr_propagation_budget_trial(root) { return false; }
+        if compiler_world_work_budget(compiler_node_world(root)) != &budget
+            || !lr_propagation_budget_trial(root) || !lr_budget_rebuild_rows(root) { return false; }
     }
     var after: WorkBudgetSnapshot = default;
     return work_budget_snapshot(&budget, &after) && after.peak_lanes == lanes && after.peak_bytes == before.bytes
@@ -306,25 +333,12 @@ fn lr_shared_worker_budget(): bool {
         if !admitted || !lr_state_wide_admission(root, 512, true) { return false; }
         if work_budget_release_result(&budget, &other) != WorkBudgetError.None { return false; }
     }
-    var symbols: LRSymbol[1024];
+    var symbols: LRSymbol[LRActionTrialLength];
     var count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
-    var no_nonterminal = ~convert(usize, 0);
-    for(var i: usize = 0; i < count; i++) {
-        symbols[i] = {nonterminal: no_nonterminal, first: convert(u32, i + 32), last: convert(u32, i + 32)};
-    }
+    lr_budget_terminals(&symbols[0], count);
     var rule: LRProduction = {owner: 0, begin: 0, count: count, precedence: 0, associativity: 0};
     if !lr_work_trial(root, &rule, 1, &symbols[0], count, 1) { return false; }
-    // A long start production admits action workers. Its leading choice gives
-    // construct mode more lookaheads than an EOF-only action row can hold.
-    var alternatives: LRProduction[WorkBufferInitialElements + 2] = default;
-    var rules = sizeof(decltype(alternatives)) / sizeof(LRProduction);
-    var prefix = count - (rules - 1);
-    alternatives[0].count = prefix;
-    symbols[0].nonterminal = 1;
-    for(var i: usize = 1; i < rules; i++) {
-        alternatives[i] = {owner: 1, begin: prefix + i - 1, count: 1, ..default};
-    }
-    if limit > 1 && !lr_action_rebuild_trial(root, &alternatives[0], rules, &symbols[0], count) { return false; }
+    if limit > 1 && !lr_budget_rebuild_rows(root) { return false; }
     var snapshot: WorkBudgetSnapshot = default;
     var retained = &compiler_world_grammar(world).workers.storage.reservation;
     var owners: usize = (outer.active ? 1 : 0) + (retained.active ? 1 : 0);
