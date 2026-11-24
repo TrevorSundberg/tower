@@ -34,13 +34,30 @@ Small serial frontend improves 8.25%; four/32-worker and large serial CLI
 regressions, including the extra single4 outlier, are retained. C-like latency
 parity, full-width efficiency and a universal performance win are not achieved.
 
-Next baseline is published7c5cfce8 with public160a5a20. ROOT verified B1's actual
-completed adoption/rehash logs before delivering next_work_20261124_r4.json
-(SHAd9bf1011) to the three existing owners. B2 measures cold LR/parse work; L2
-measures semantic filtered-ready admission; L1 measures raw descriptor/name/query
-storage. Hypotheses are not accepted patches. A1/A2/D2 independently review those
-domains; D1 audits the joined delta. Exactly eight existing UUIDs remain the limit.
-Failures stay with their owners through repair, and final adoption is batched.
+The next batch starts from published7c5cfce8/public160a5a20 after B1's clean
+adoption. Two improvements are now pushed through47e05f73, with independent
+review and combined release acceptance still pending:
+
+- [Raw owner pages](entity_raw_pages_7c5cfce8.md), repair4c38796d: single/multi
+  retained memory falls9.29%/8.58%; 20 paired runs preserve complete outputs.
+  Semantic component layout is unchanged. D2 received the exact source, owner
+  evidence and17 checked executables; this changes an allocator ownership contract.
+- [LR shift index](lr_shift_index_7c5cfce8.md), repaire9363377: small CLI means
+  improve5.7-6.3%, large2.2-2.4%; the eight-worker frontend is0.95% slower.
+  Equal-order nonterminals and overlapping ranges retain ordinary matching.
+  A1 received the full owner evidence and three binaries checked after the memory
+  merge. The original slower draft samples remain recorded.
+
+L2's filtered-ready candidate remains under performance review; its48 ordinary
+runs pass correctness but include mixed timing results. A regression caught and
+repaired empty-index cleanup before those runs. No scheduler candidate or additive
+combined performance gain is accepted here. A2 reviews that final disposition;
+D1 audits the joined delta and B1 runs one isolated full-host timing cohort.
+L1 prepares combined memory instrumentation; B2's final browser build waits for
+that timing cohort to drain. Exactly eight existing UUIDs remain the limit;
+completed owners resume their next bounded task in the same context. Failures
+stay with their owners through repair. Public native/bootstrap/Pages identities
+remain03e until the new batch completes its final acceptance and publication.
 
 Normal A/B/Deck clones were clean-pulled to7c5cfce8 and disks checked; protected
 local todo remains untouched. This handoff is documentation only. Historical611
