@@ -32,3 +32,9 @@ The build ran the documented `build-native.sh`, `build-wasm.sh`, `build-threads.
 - The original deployment verifier ran against the extracted archive on loopback. All 104 served hashes matched. Desktop and mobile returned 42 and the expected increment sequence, with both error arrays empty. Real Linux x64 target defaults passed. The verifier exited 0 in 83.22 s wall, 52.08 s CPU, peak RSS 336,908 KiB. The packet includes its report, downloads and screenshots. These executions cover the named release gates. Public URL behavior requires the manager's post-publication check.
 
 The first frontend-only archive and receipt remain separately available. Source and mutable caches on slot 1 are under `/home/agent/tower-browser-aeba5225`. The two reviewed validator changes have separate local commits. Later remote compiler changes, including `scaffolding/compiler/lr_states.tower`, are outside this artifact's freeze.
+
+## Public deployment
+
+The manager reconstructed tree `62b88abfbf07f5638e0bf171efbf0a67af42e940` from the previous public tree and nine replacements. The atomic push advanced Pages to `feb74cf2b480c1e6f91ab4aadd02f11dcbc1ce99` and main to `fe008af50f7ad27d6f15b86927122baf9d8051a9`. The manifest retains the build identities for `aeba5225`. The manager also ran the corrected forward-chain test on the packaged portable reactor and the symbol checker fixture with the public bootstrap and guest host library.
+
+After the new manifest reached the public URL, the unmodified deployment verifier matched all 104 files, ran desktop and mobile execution and editor checks with empty browser error arrays, and confirmed the Wasm and Linux defaults in a Linux x64 browser. All three configured redirects resolved to the HTTPS apex. The hosted report SHA-256 is `6321695015ce16ebeae0851a9fc4a34c64de8123d2b0c91f8d23001949139b47`. [Public verification receipt](evidence/browser_hosted_aeba5225.json)
