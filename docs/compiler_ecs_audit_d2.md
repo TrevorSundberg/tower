@@ -3448,3 +3448,5 @@ Focused author review, not independent peer approval. Existing execution-world f
 | `cmake/TowerExecutionTests.cmake` | `2ceb2d7eb641a6f39bba7426db7018e02e98f7b5` | Linux x64 focused registration on the existing target,90s/nonzero failure preserved, no permissive output matching. |
 
 Journal receipt and `build/d2_ecs/retained_sources_d6f7031d/` retain exact commands/costs/source maps. Source APIs reviewed at execution_session blobedf6df398ef43a4ff10a2ad9c8c8627fdcbb7563/frontend_modules3e8e71b2b83619f3b58f80b672bc4dc58abedb6a. Primitive stale revision/profile/dispatch owner evidence remains separately attributed. Retained semantic graph invalidation, mid-compilation editing/cancellation and restarting cancelled graphs are not supported contracts or claimed coverage. No producer, generic fixture roster, reactor or release changes.
+
+The journal's final integration receipt also checks this unchanged fixture on c1b9ca8d's merged LR/SCC provider closure; exact focused counts, overlap and teardown still pass. It preserves both timing samples and flags the higher merged cost without a performance claim; no unrelated provider peer review is implied.
