@@ -12,14 +12,17 @@ improvements, SCC provider, parser optimizations, quota diagnostics and semantic
 scratch-memory repair, guarded import reuse, component-page buckets and checked
 syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
-The `c49c8b37` pin adds reachable-production grammar emission, shared LR predictions
-and budgeted worker scratch that transfers to the graph after workers join.
-The executable is 2,312,440 bytes with SHA256
-`77f23db6124377e49dd677714aaca147d507a80f05928a71c3cc18faa0040a0c`.
-All 39 actual native build binaries match across three generations; all 57 package
-payloads and their checksums match across generations two and three. Exact source,
-host dependencies, failures and relocation evidence are in the
-[generation receipt](../docs/compiler_generation_c49c8b37.md). Executable and
+The predecessor at `c49c8b37` added reachable-production grammar emission, shared
+LR predictions and budgeted worker scratch that transfers to the graph after joins.
+The current compiler source is `fe008af5`. It includes exact singleton LR state
+lookup, ordered action rows, bounded stage descriptor growth and executable
+depfiles for explicitly linked objects. The Ubuntu-built executable is 2,316,904
+bytes with SHA-256 `7f3b5dacf36422255af50045c6337db213c2678099c40f1e01336cdae21bbf29`.
+Three Ubuntu builds matched on 39 native products, all 57 payloads and the
+checksum manifest. The frozen CLI and the newer driver built from main have
+separate input identities. An ordinary build from main also tracks the selected
+runtime IR in executable depfiles. See the [pin and host verification](../docs/temporal-opcode-research-journal.md#2026-11-24--ubuntu-development-bootstrap-at-fe008af5)
+and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
 browser-project packaging and test changes retain their separate source identity.

@@ -544,11 +544,16 @@ fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetErr
 // share slots safely. Oversized blocks keep the existing single-buffer owner.
 fn entity_owned_allocate_result(T: type, pool: EntityComponentPool*, budget: WorkBudget*, count: usize,
     error: WorkBudgetError*): T* {
+    return entity_owned_allocate_rows_result(T, pool, budget, count, EntityOwnedPageRows, error);
+}
+
+fn entity_owned_allocate_rows_result(T: type, pool: EntityComponentPool*, budget: WorkBudget*, count: usize,
+    rows: usize, error: WorkBudgetError*): T* {
     if count > ~convert(usize, 0) / sizeof(T) || alignof(T) > compiler_buffer_alignment() {
         *error = WorkBudgetError.Invalid; return null;
     }
     return bits(T*, entity_storage_reserve(pool, budget, 0, count * sizeof(T), compiler_buffer_alignment(),
-        EntityOwnedPageRows, EntityOwnedPageBytes, null, error));
+        rows, EntityOwnedPageBytes, null, error));
 }
 
 // Raw owners have no component identity. Their prefix is the physical page,

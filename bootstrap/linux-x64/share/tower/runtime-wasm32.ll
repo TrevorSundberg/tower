@@ -1,4 +1,4 @@
-; ModuleID = '/cache/generation_c49c8b37_r6/successor_build/guest-wasm32-unbound.ll'
+; ModuleID = '/native/guest-wasm32-unbound.ll'
 source_filename = "Tower"
 target datalayout = "e-m:e-p:32:32-p10:8:8-p20:8:8-i64:64-n32:64-S128-ni:1:10:20"
 target triple = "wasm32-unknown-unknown"
