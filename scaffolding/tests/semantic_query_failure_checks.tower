@@ -27,6 +27,7 @@ struct QueryFailureProbe {
     waiting_type: bool;
     waiting_function: bool;
     done: bool;
+    storage_error: WorkBudgetError;
 }
 
 extern fn work_kernel_execute(payload: void*): void;
@@ -40,6 +41,7 @@ fn query_failure_execute(payload: void*): void {
     probe.waiting_type = probe.invocation.context.waiting_type;
     probe.waiting_function = probe.invocation.context.waiting_function;
     probe.done = probe.invocation.state.done;
+    probe.storage_error = probe.invocation.state.storage_error;
 }
 
 fn query_failure_check(ok: bool, message: u8*, failures: u32*): void {
@@ -176,6 +178,16 @@ fn query_failure_trial(width: u32, workers: usize, mode: QueryFailureMode): u32 
     sem_require(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes < snapshot.bytes
         && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied) == WorkBudgetError.None);
     var state = mode == QueryFailureMode.Declaration ? sem_declarations_pump(&context) : sem_evaluation_pump(&context);
+    if state != SemanticPumpResult.Failed || program.resource.error != WorkBudgetError.Capacity
+        || context.queries.resource_error != WorkBudgetError.Capacity {
+        puts("Query denial receipt: width, workers, mode, pump, program, graph, first/peer interpreter storage errors");
+        generic_clone_number(convert(usize, width)); generic_clone_number(workers);
+        generic_clone_number(convert(usize, mode)); generic_clone_number(convert(usize, state));
+        generic_clone_number(convert(usize, program.resource.error));
+        generic_clone_number(convert(usize, context.queries.resource_error));
+        generic_clone_number(convert(usize, first_probe.storage_error));
+        generic_clone_number(convert(usize, peer_probe.storage_error));
+    }
     query_failure_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Capacity
         && context.queries.resource_error == WorkBudgetError.Capacity,
         "A failed dependency producer cannot become successful idle progress", &failures);
