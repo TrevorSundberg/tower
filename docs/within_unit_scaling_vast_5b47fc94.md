@@ -8,7 +8,7 @@ Each cell has six fresh-process pairs on one host. Serial ran first three times 
 
 | Workers | Paired serial wall / CPU s | Workers wall / CPU s | Paired speedup | Wall saving in individual pairs | Peak RSS KiB | Peak Tower bytes |
 |---:|---:|---:|---:|---:|---:|---:|
-| 1 (18 controls) | 1.4254 / 1.4253 | 1.4254 / 1.4253 | 1.000× | — | 585,528 | 459,241,312 |
+| 1 (18 controls) | 1.4253 / 1.4253 | 1.4253 / 1.4253 | 1.000× | — | 585,528 | 459,241,312 |
 | 2 | 1.4308 / 1.4308 | 1.3053 / 1.6695 | 1.096× | 6.20–11.14% | 591,656 | 459,219,184 |
 | 4 | 1.4259 / 1.4258 | 1.2010 / 1.8450 | 1.187× | 7.16–18.50% | 592,432 | 459,219,408 |
 | 8 | 1.4194 / 1.4193 | 1.1760 / 2.3272 | 1.207× | 8.97–20.39% | 592,864 | 459,219,632 |
@@ -27,6 +27,8 @@ One trace per width recorded one outer unit on one thread and zero ready outer v
 | 2 | 2 / 2 | 420.30 | 406.96 | 406.96 | 47 / 2 | 41 / 2 | 384.29 / 374.20 |
 | 4 | 4 / 4 | 251.86 | 247.21 | 238.81 | 47 / 4 | 41 / 4 | 393.74 / 381.59 |
 | 8 | 8 / 8 | 161.83 | 156.29 | 104.01 | 47 / 4 | 41 / 4 | 396.83 / 383.10 |
+
+An independent replay found 104,008,917 ns covered by eight simultaneous semantic job intervals. One set of eight declaration jobs on distinct pthreads shared a 4,438 ns interval. The timestamps measure elapsed job lifetimes on the monotonic clock. They include time a thread could be descheduled. The records identify the compilation unit and job kind. Locating parallel work within a single body would require body or subtree identity.
 
 The post-join Tower replay swept half-open intervals, rejected duplicate simultaneous thread IDs and reproduced all 12 phase/width totals for wave count, wall, summed job wall/CPU and union coverage. At eight workers there were 124 recorded propagation jobs and 103 action jobs. Their waves occupied 7.17 and 10.31 ms, with at least two jobs active for 3.66 and 2.63 ms respectively. Zero serial waves means the serial parser used its inline path. The raw spans include entering and leaving clocks for every observed job, their thread identities and semantic kinds.
 
