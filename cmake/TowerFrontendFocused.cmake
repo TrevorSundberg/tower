@@ -13,7 +13,7 @@ add_test(NAME tower-frontend COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURC
 add_test(NAME tower-frontend-structure-reuse COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" structure-reuse)
 # Match focused producer checks; the full frontend suite keeps its own policy.
 set_tests_properties(tower-frontend-structure-reuse PROPERTIES TIMEOUT 60 LABELS "native;focused")
-foreach(selector IN ITEMS graph-components lr-components)
+foreach(selector IN ITEMS graph-components lr-components lr-scratch-budget)
   add_test(NAME tower-frontend-${selector} COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${selector})
   set_tests_properties(tower-frontend-${selector} PROPERTIES TIMEOUT 60 LABELS "native;focused")
 endforeach()

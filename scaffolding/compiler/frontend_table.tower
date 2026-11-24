@@ -56,8 +56,8 @@ export fn frontend_table_finish_result(table: FrontendTable*, constructs: bool, 
     if lr_grammar_pending(grammar) != lr_none() {
         return convert(u32, FrontendTableStatus.Unresolved);
     }
-    var analysis = lr_analysis_create_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
-    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), error);
+    var analysis = lr_analysis_create_budget_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), grammar.budget, error);
     if analysis == null {
         return convert(u32, FrontendTableStatus.ResourceFailure);
     }

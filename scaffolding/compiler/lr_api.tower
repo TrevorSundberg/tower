@@ -44,6 +44,8 @@ extern fn lr_grammar_pending(grammar: void*): usize;
 extern fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize, names: usize): void*;
 extern fn lr_analysis_create_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
     names: usize, error: WorkBudgetError*): void*;
+extern fn lr_analysis_create_budget_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
+    names: usize, budget: WorkBudget*, error: WorkBudgetError*): void*;
 
 extern fn lr_analysis_destroy(analysis: void*): void;
 

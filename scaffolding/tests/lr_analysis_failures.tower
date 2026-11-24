@@ -116,6 +116,7 @@ fn lr_suffix_budget_failure(): void {
     utility_check(world != null && compiler_world_bind_budget(world, &budget), "Suffix world budget binding");
     var root = entity_create(compiler_world_store(world));
     utility_check(root != null, "Suffix budget anchor");
+    var world_bytes = budget.used_bytes;
     var rules: LRProduction[3] = default;
     var symbols: LRSymbol[3] = default;
     rules[0].count = 2;
@@ -123,8 +124,9 @@ fn lr_suffix_budget_failure(): void {
     rules[2] = {owner: 1, begin: 2, count: 0, precedence: 0, associativity: 0};
     symbols[0].nonterminal = 1; symbols[1].nonterminal = 1;
     symbols[2] = {nonterminal: oracle_none(), first: 10, last: 20};
-    var analysis = lr_analysis_create(&rules[0], sizeof(decltype(rules)) / sizeof(LRProduction),
-        &symbols[0], sizeof(decltype(symbols)) / sizeof(LRSymbol), rules[1].owner + 1);
+    var error = WorkBudgetError.None;
+    var analysis = lr_analysis_create_budget_result(&rules[0], sizeof(decltype(rules)) / sizeof(LRProduction),
+        &symbols[0], sizeof(decltype(symbols)) / sizeof(LRSymbol), rules[1].owner + 1, &budget, &error);
     utility_check(analysis != null, "Suffix budget analysis");
     var before: WorkBudgetSnapshot = default;
     var after: WorkBudgetSnapshot = default;
@@ -132,14 +134,13 @@ fn lr_suffix_budget_failure(): void {
     var held: WorkReservation = default;
     utility_check(work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &held), "Suffix exhausted byte allowance");
     utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.Capacity,
-        "Suffix publication reports Capacity after FIRST converges");
+        "FIRST/suffix publication preserves Capacity with no available scratch bytes");
     utility_check(work_budget_release(&budget, &held) && work_budget_snapshot(&budget, &after)
         && after.used_bytes == before.used_bytes && after.live == before.live, "Denied suffix index publishes no retained buffers");
     utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
         && work_budget_snapshot(&budget, &after) && after.used_bytes > before.used_bytes,
         "Same FIRST analysis retries and charges immutable suffix storage");
     var retained = after.used_bytes;
-    var index_bytes = retained - before.used_bytes;
     utility_check(dprintf(2, "suffix index charged_bytes=%zu\n", retained - before.used_bytes, 0, 0) >= 0,
         "Suffix charged byte report");
     utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
@@ -155,13 +156,18 @@ fn lr_suffix_budget_failure(): void {
         "Failed item graph releases all partial ownership");
     utility_check(lr_states_lalr_parallel_result(states, false, root) == WorkBudgetError.None
         && work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes && after.live == before.live,
-        "Same item graph retries without retaining scratch grants");
+        "Same item graph retries using action slots already charged with these small states");
+    var action_bytes = after.used_bytes;
+    var action_owners = after.live;
+    utility_check(lr_states_lalr_parallel_result(states, false, root) == WorkBudgetError.None
+        && work_budget_snapshot(&budget, &after) && after.used_bytes == action_bytes && after.live == action_owners,
+        "Repeated actions reuse storage and retain no graph scratch");
     utility_check(dprintf(2, "item graph ledger_live=%zu peak=%u\n", after.used_bytes, convert(u32, after.peak_bytes), 0) >= 0,
         "Item graph budget report");
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);
-    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == before.used_bytes - index_bytes,
-        "Analysis destruction retires the complete suffix owner");
+    utility_check(work_budget_snapshot(&budget, &after) && after.used_bytes == world_bytes,
+        "State and analysis destruction retire all nested LR owners");
     entity_release(root);
     utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0
         && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Suffix budget fixture cleanup");

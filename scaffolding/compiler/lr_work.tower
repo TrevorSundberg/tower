@@ -9,6 +9,10 @@ import lexer_table;
 import parser_workers;
 import grammar_observer;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_graph;
 import .library.work_pool;
 
@@ -49,7 +53,7 @@ struct LRActionTask {
     ticket: WorkTicket;
     states: LRStates*;
     lookahead: LRPropagation*;
-    results: vector(LRAction)*;
+    results: work_vector(LRAction)*;
     begin: usize;
     count: usize;
     resource_error: WorkBudgetError;
@@ -85,6 +89,8 @@ export fn compiler_lr_kernel(payload: void*): void {
     var task = bits(LRClosureTask*, payload);
     var analysis: LRAnalysis;
     copy(&analysis, task.analysis, sizeof(LRAnalysis));
+    analysis.closure_scratch = null;
+    defer lr_analysis_scratch_dispose(&analysis);
     task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
         if task.needed[i] == 0 {
@@ -142,17 +148,17 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     if !work_reset(graph, graph.revision + 1, graph.profile) {
         return lr_work_error(graph);
     }
-    if value.states.length > ~convert(usize, 0) / sizeof(vector(LRAction)) { return WorkBudgetError.Invalid; }
-    var results = alloc(vector(LRAction), value.states.length);
-    if results == null {
-        return WorkBudgetError.Memory;
-    }
-    fill(results, 0, value.states.length *sizeof(vector(LRAction)));
+    if value.states.length > ~convert(usize, 0) / sizeof(work_vector(LRAction)) { return WorkBudgetError.Invalid; }
+    var storage: WorkBuffer = default;
+    error = work_buffer_resize(&storage, value.analysis.budget, value.states.length * sizeof(work_vector(LRAction)), 0);
+    if error != WorkBudgetError.None { return error; }
+    defer work_buffer_dispose(&storage);
+    var results = bits(work_vector(LRAction)*, storage.data);
+    fill(results, 0, value.states.length *sizeof(work_vector(LRAction)));
     defer {
         for(var i: usize = 0; i < value.states.length; i++) {
-            vector_dispose(&results[i]);
+            work_vector_dispose(&results[i]);
         }
-        free(results);
     }
     var kind = lr_work_node_result(owner, &error);
     if kind == null { return error; }
@@ -214,10 +220,13 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
         if jobs[i].resource_error != WorkBudgetError.None { return jobs[i].resource_error; }
     }
     for(var i: usize = 0; i < value.states.length; i++) {
-        var actions = &value.states.data[i].actions;
-        vector_dispose(actions);
-        copy(actions, &results[i], sizeof(vector(LRAction)));
-        fill(&results[i], 0, sizeof(vector(LRAction)));
+        var state = value.states.data[i];
+        var actions = &state.actions;
+        if !state.actions_owned {
+            *actions = results[i];
+            state.actions_owned = true;
+            results[i] = default;
+        } else { work_vector_move(actions, &results[i]); }
     }
     return WorkBudgetError.None;
 }
@@ -228,7 +237,7 @@ struct LRLinkTask {
     states: LRStates*;
     cache: LRKernelClosure**;
     cache_count: usize;
-    links: vector(LRPropagationLink);
+    links: work_vector(LRPropagationLink);
     begin: usize;
     count: usize;
     resource_error: WorkBudgetError;
@@ -298,7 +307,7 @@ owner: void*, graph: WorkGraph*, pool: WorkPool*, count: usize, error: WorkBudge
     var initialized: usize = 0;
     defer {
         for(var i: usize = 0; i < initialized; i++) {
-            vector_dispose(&jobs[i].links);
+            work_vector_dispose(&jobs[i].links);
         }
     }
     var position: usize = 0;
@@ -368,9 +377,9 @@ struct LRPropagationTask {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     propagation: LRPropagation*;
-    incoming: vector(usize)*;
+    incoming: work_vector(usize)*;
     targets: usize*;
-    results: vector(SymbolRange)*;
+    results: work_vector(SymbolRange)*;
     changed: bool*;
     begin: usize;
     count: usize;
@@ -389,7 +398,7 @@ export fn compiler_lr_propagation_kernel(payload: void*): void {
         var source = &task.propagation.nodes[node].ranges;
         var result = &task.results[node];
         result.length = 0;
-        task.resource_error = lr_reserve_result(result, source.length);
+        task.resource_error = lr_reserve_result(result, source.length, task.propagation.budget);
         if task.resource_error != WorkBudgetError.None { return; }
         if source.length != 0 {
             copy(result.data, source.data, source.length *sizeof(SymbolRange));
@@ -397,7 +406,7 @@ export fn compiler_lr_propagation_kernel(payload: void*): void {
         result.length = source.length;
         task.changed[node] = false;
         foreach(var input in &task.incoming[node]) {
-            task.resource_error = lr_range_merge_result(result, &task.propagation.nodes[input].ranges, &task.changed[node]);
+            task.resource_error = lr_range_merge_result(result, &task.propagation.nodes[input].ranges, &task.changed[node], task.propagation.budget);
             if task.resource_error != WorkBudgetError.None { return; }
         }
     }
@@ -413,41 +422,40 @@ fn lr_propagation_solve_parallel(value: LRPropagation*, owner: void*, graph: Wor
 fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     if value == null || pool == null || graph == null { return WorkBudgetError.Invalid; }
     var world = compiler_node_world(owner);
+    if graph.budget != value.budget || (world != null && compiler_world_work_budget(world) != value.budget) { return WorkBudgetError.Invalid; }
     var observer: GrammarObserver = default;
     if world != null { observer = compiler_world_grammar(world).observer; }
     if pool.count < 2 || value.count < 2 * LRPropagationGrain {
         return lr_propagation_solve_components_result(value, graph.budget);
     }
-    if value.count > ~convert(usize, 0) / sizeof(vector(usize))
-        || value.count > ~convert(usize, 0) / sizeof(vector(SymbolRange)) { return WorkBudgetError.Invalid; }
-    var incoming = alloc(vector(usize), value.count);
-    var results = alloc(vector(SymbolRange), value.count);
-    var changed = alloc(bool, value.count);
-    if incoming == null || results == null || changed == null {
-        free(incoming);
-        free(results);
-        free(changed);
-        return WorkBudgetError.Memory;
-    }
-    fill(incoming, 0, value.count *sizeof(vector(usize)));
-    fill(results, 0, value.count *sizeof(vector(SymbolRange)));
+    if value.count > ~convert(usize, 0) / sizeof(work_vector(usize))
+        || value.count > ~convert(usize, 0) / sizeof(work_vector(SymbolRange)) { return WorkBudgetError.Invalid; }
+    var incoming_storage: WorkBuffer = default;
+    var result_storage: WorkBuffer = default;
+    var changed_storage: WorkBuffer = default;
+    defer { work_buffer_dispose(&incoming_storage); work_buffer_dispose(&result_storage); work_buffer_dispose(&changed_storage); }
+    var error = work_buffer_resize(&incoming_storage, value.budget, value.count * sizeof(work_vector(usize)), 0);
+    if error == WorkBudgetError.None { error = work_buffer_resize(&result_storage, value.budget, value.count * sizeof(work_vector(SymbolRange)), 0); }
+    if error == WorkBudgetError.None { error = work_buffer_resize(&changed_storage, value.budget, value.count * sizeof(bool), 0); }
+    if error != WorkBudgetError.None { return error; }
+    var incoming = bits(work_vector(usize)*, incoming_storage.data);
+    var results = bits(work_vector(SymbolRange)*, result_storage.data);
+    var changed = bits(bool*, changed_storage.data);
+    fill(incoming, 0, value.count *sizeof(work_vector(usize)));
+    fill(results, 0, value.count *sizeof(work_vector(SymbolRange)));
     defer {
         for(var i: usize = 0; i < value.count; i++) {
-            vector_dispose(&incoming[i]);
-            vector_dispose(&results[i]);
+            work_vector_dispose(&incoming[i]);
+            work_vector_dispose(&results[i]);
         }
-        free(incoming);
-        free(results);
-        free(changed);
     }
-    var targets: vector(usize);
-    vector_init(&targets);
-    defer vector_dispose(&targets);
+    var targets: work_vector(usize);
+    work_vector_init(&targets);
+    defer work_vector_dispose(&targets);
     var kind: void* = null;
     var nodes: void*[WorkPoolMaximumCapacity];
     var jobs: LRPropagationTask*[WorkPoolMaximumCapacity];
     if pool.count > sizeof(decltype(jobs)) / sizeof(LRPropagationTask*) { return WorkBudgetError.Invalid; }
-    var error = WorkBudgetError.None;
     while value.pending.length != 0 {
         targets.length = 0;
         // Keep the original pending queue intact until parallel admission is
@@ -459,10 +467,10 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
             }
             foreach(var destination in &source.edges) {
                 if incoming[destination].length == 0 {
-                    error = lr_push_result(&targets, destination);
+                    error = lr_push_result(&targets, destination, value.budget);
                     if error != WorkBudgetError.None { return error; }
                 }
-                error = lr_push_result(&incoming[destination], index);
+                error = lr_push_result(&incoming[destination], index, value.budget);
                 if error != WorkBudgetError.None { return error; }
             }
         }
@@ -557,10 +565,14 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
             if !changed[index] {
                 continue;
             }
-            var previous: vector(SymbolRange);
-            copy(&previous, &value.nodes[index].ranges, sizeof(vector(SymbolRange)));
-            copy(&value.nodes[index].ranges, &results[index], sizeof(vector(SymbolRange)));
-            copy(&results[index], &previous, sizeof(vector(SymbolRange)));
+            var row = &value.nodes[index];
+            if !row.range_owned {
+                // Retire the borrow without freeing inline storage; transfer
+                // the worker's single owned receipt after every reader joins.
+                row.ranges = results[index];
+                row.range_owned = true;
+                results[index] = default;
+            } else { work_vector_swap(&row.ranges, &results[index]); }
             lr_propagation_queue(value, index);
         }
     }
@@ -575,14 +587,17 @@ export fn lr_states_lalr_parallel(value: LRStates*, constructs: bool, anchor: vo
 }
 
 export fn lr_states_lalr_parallel_result(value: LRStates*, constructs: bool, anchor: void*): WorkBudgetError {
+    if value == null || value.analysis == null { return WorkBudgetError.Invalid; }
+    defer lr_analysis_scratch_dispose(value.analysis);
     var world = compiler_node_world(anchor);
+    if anchor != null && value.analysis.budget != compiler_world_work_budget(world) { return WorkBudgetError.Invalid; }
     if world != null { grammar_observe(world, GrammarPhase.Lookahead, true, value.states.length, 0); }
     defer { if world != null { grammar_observe(world, GrammarPhase.Lookahead, false, value.states.length, 0); } }
     var error = WorkBudgetError.None;
     var count = lr_lalr_cache_count(value, &error);
     if error != WorkBudgetError.None { return error; }
     if !lr_lalr_item_graph_safe(value) { return lr_states_lalr_closure_parallel_result(value, constructs, anchor); }
-    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    var budget = value.analysis.budget;
     var capacity = compiler_worker_capacity(anchor);
     if capacity <= 1 || anchor == null || !value.analysis.suffix_ready {
         return lr_states_lalr_owned_result(value, constructs, budget);
@@ -649,20 +664,21 @@ fn lr_states_lalr_closure_parallel_result(value: LRStates*, constructs: bool, an
     if batches > capacity {
         batches = capacity;
     }
-    var cache = alloc(LRKernelClosure*, count);
-    var items = alloc(LRItem, count);
-    var needed = alloc(u8, count);
-    if cache == null || items == null || needed == null {
-        free(cache);
-        free(items);
-        free(needed);
-        return WorkBudgetError.Memory;
-    }
+    var cache_storage: WorkBuffer = default;
+    var item_storage: WorkBuffer = default;
+    var needed_storage: WorkBuffer = default;
+    defer { work_buffer_dispose(&cache_storage); work_buffer_dispose(&item_storage); work_buffer_dispose(&needed_storage); }
+    error = work_buffer_resize(&cache_storage, value.analysis.budget, count * sizeof(LRKernelClosure*), 0);
+    if error == WorkBudgetError.None { error = work_buffer_resize(&item_storage, value.analysis.budget, count * sizeof(LRItem), 0); }
+    if error == WorkBudgetError.None { error = work_buffer_resize(&needed_storage, value.analysis.budget, count, 0); }
+    if error != WorkBudgetError.None { return error; }
+    var cache = bits(LRKernelClosure**, cache_storage.data);
+    var items = bits(LRItem*, item_storage.data);
+    var needed = needed_storage.data;
     fill(cache, 0, count *sizeof(LRKernelClosure*));
     fill(needed, 0, count);
     defer {
         for(var i: usize = 0; i < count; i++) { lr_kernel_closure_destroy(cache[i]); }
-        free(items); free(needed); free(cache);
     }
     var owner = entity_create_related_result(anchor, &error);
     if owner == null { return error; }

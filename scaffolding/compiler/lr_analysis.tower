@@ -2,9 +2,13 @@ import tower;
 import lr_types;
 import lexer_table;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
 import .library.work_budget_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
+import .library.work_arena_api;
+import .library.work_arena_types;
 import .library.graph_components_interface;
 
 struct LRSuffix {
@@ -29,11 +33,16 @@ struct LRSuffixIndex {
 struct LRNonterminal {
     nullable: bool;
     order: usize;
-    first: vector(SymbolRange);
-    productions: vector(usize);
+    first: work_vector(SymbolRange);
+    productions: work_vector(usize);
+    initial_first: SymbolRange[WorkBufferInitialElements];
+    initial_productions: usize[WorkBufferInitialElements];
 }
 
 struct LRAnalysis {
+    storage: WorkBuffer;
+    nonterminal_storage: WorkBuffer;
+    budget: WorkBudget*;
     rules: LRProduction*;
     rule_count: usize;
     symbols: LRSymbol*;
@@ -43,13 +52,20 @@ struct LRAnalysis {
     failed: bool;
     suffix_ready: bool;
     suffix: LRSuffixIndex*;
+    closure_scratch: LRClosureScratch*;
 }
 
 struct LRItems {
-    values: vector(LRItem);
-    pending: vector(LRItem);
+    storage: WorkBuffer;
+    budget: WorkBudget*;
+    scratch: WorkArena;
+    memory: WorkArena*;
+    values: work_vector(LRItem);
+    pending: work_vector(LRItem);
     failed: bool;
     resource_error: WorkBudgetError;
+    initial_values: LRItem[WorkBufferInitialElements];
+    initial_pending: LRItem[WorkBufferInitialElements];
 }
 
 fn lr_items_fail(value: LRItems*, error: WorkBudgetError): bool {
@@ -77,17 +93,83 @@ fn lr_append(T: type, values: vector(T)*, value: T*): bool {
     return ok;
 }
 
-// Existing vectors remain raw derived indexes. Validate the element bound before
-// interpreting a failed allocation; a size overflow is not allocator exhaustion.
-fn lr_reserve_result(T: type, values: vector(T)*, count: usize): WorkBudgetError {
+// Disposable indexes use the same transactional physical owner as other compiler
+// scratch. The borrowed budget is fixed before dispatch; null is standalone only.
+fn lr_reserve_result(T: type, values: work_vector(T)*, count: usize, budget: WorkBudget*): WorkBudgetError {
     if sizeof(T) == 0 || count > ~convert(usize, 0) / sizeof(T) { return WorkBudgetError.Invalid; }
-    return vector_reserve(values, count) ? WorkBudgetError.None : WorkBudgetError.Memory;
+    return work_vector_reserve_result(values, budget, count);
 }
 
-fn lr_push_result(T: type, values: vector(T)*, value: T): WorkBudgetError {
+fn lr_push_result(T: type, values: work_vector(T)*, value: T, budget: WorkBudget*): WorkBudgetError {
     var count = values.length + 1;
     if count == 0 { return WorkBudgetError.Invalid; }
-    var error = lr_reserve_result(values, count);
+    var error = lr_reserve_result(values, count, budget);
+    if error != WorkBudgetError.None { return error; }
+    values.data[values.length] = value;
+    values.length = count;
+    return WorkBudgetError.None;
+}
+
+// A propagation row initially borrows its own stable inline slots. Its node
+// buffer charges those bytes. Promote transactionally to an ordinary owner;
+// never free the borrowed slots or copy a receipt as independent ownership.
+fn lr_reserve_initial_result(T: type, values: work_vector(T)*, count: usize, budget: WorkBudget*, initial: T*): WorkBudgetError {
+    if initial == null || values.data != initial { return lr_reserve_result(values, count, budget); }
+    if count <= values.capacity { return WorkBudgetError.None; }
+    var capacity = values.capacity * 2;
+    if capacity < values.capacity || capacity < count { capacity = count; }
+    var next: work_vector(T) = default;
+    var error = lr_reserve_result(&next, capacity, budget);
+    if error != WorkBudgetError.None { return error; }
+    copy(next.data, values.data, values.length * sizeof(T));
+    next.length = values.length;
+    *values = next;
+    return WorkBudgetError.None;
+}
+
+fn lr_push_initial_result(T: type, values: work_vector(T)*, value: T, budget: WorkBudget*, initial: T*): WorkBudgetError {
+    var count = values.length + 1;
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_initial_result(values, count, budget, initial);
+    if error != WorkBudgetError.None { return error; }
+    values.data[values.length] = value;
+    values.length = count;
+    return WorkBudgetError.None;
+}
+
+// Vectors in a common-retirement arena are borrowed views, not buffer owners.
+// Growth keeps old bytes charged until that arena closes. A joined independent
+// worker buffer is released only after a successful copy into the arena.
+fn lr_reserve_arena_result(T: type, values: work_vector(T)*, count: usize, arena: WorkArena*, owned: bool*): WorkBudgetError {
+    return lr_buffer_arena_reserve(bits(u8**, &values.data), values.length, &values.capacity,
+        &values.reservation, count, sizeof(T), alignof(T), arena, owned);
+}
+
+// One synchronous field borrow keeps the ordinary generic expansion bounded.
+// The shared WorkArena still performs allocation, alignment and byte admission.
+fn lr_buffer_arena_reserve(data: u8**, length: usize, old_capacity: usize*, reservation: WorkReservation*,
+    count: usize, size: usize, alignment: usize, arena: WorkArena*, owned: bool*): WorkBudgetError {
+    if length > *old_capacity || size == 0 || count > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
+    if count <= *old_capacity { return WorkBudgetError.None; }
+    var capacity = *old_capacity * 2;
+    if capacity < *old_capacity || capacity < count || capacity > ~convert(usize, 0) / size { capacity = count; }
+    if capacity < WorkBufferInitialElements { capacity = WorkBufferInitialElements; }
+    if capacity > ~convert(usize, 0) / size { capacity = count; }
+    var next: u8* = null;
+    var error = work_arena_allocate_result(arena, capacity * size, alignment, &next);
+    if error != WorkBudgetError.None { return error; }
+    if length != 0 { copy(next, *data, length * size); }
+    if owned != null && *owned { work_buffer_release(bits(void*, *data), reservation); *owned = false; }
+    *data = next;
+    *old_capacity = capacity;
+    *reservation = default;
+    return WorkBudgetError.None;
+}
+
+fn lr_push_arena_result(T: type, values: work_vector(T)*, value: T, arena: WorkArena*, owned: bool*): WorkBudgetError {
+    var count = values.length + 1;
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_arena_result(values, count, arena, owned);
     if error != WorkBudgetError.None { return error; }
     values.data[values.length] = value;
     values.length = count;
@@ -96,11 +178,15 @@ fn lr_push_result(T: type, values: vector(T)*, value: T): WorkBudgetError {
 
 // Preserve distinct range identities here: overlapping ranges can represent
 // different parse actions. Union/partition belongs to action construction.
-fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): bool {
-    return lr_range_insert_result(values, first, last, changed) == WorkBudgetError.None;
+fn lr_range_insert_result(values: work_vector(SymbolRange)*, first: u32, last: u32, changed: bool*, budget: WorkBudget*): WorkBudgetError {
+    return lr_range_insert_storage_result(values, first, last, changed, budget, null);
 }
 
-fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): WorkBudgetError {
+fn lr_range_insert_storage_result(values: work_vector(SymbolRange)*, first: u32, last: u32, changed: bool*, budget: WorkBudget*, initial: SymbolRange*): WorkBudgetError {
+    return lr_range_insert_arena_result(values, first, last, changed, budget, initial, null, null);
+}
+
+fn lr_range_insert_arena_result(values: work_vector(SymbolRange)*, first: u32, last: u32, changed: bool*, budget: WorkBudget*, initial: SymbolRange*, arena: WorkArena*, owned: bool*): WorkBudgetError {
     var low: usize = 0;
     var high = values.length;
     // Unsigned lexicographic order of two u32 endpoints is exactly the order
@@ -133,7 +219,7 @@ fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, c
     }
     var count = values.length + 1;
     if count == 0 { return WorkBudgetError.Invalid; }
-    var error = lr_reserve_result(values, count);
+    var error = arena == null ? lr_reserve_initial_result(values, count, budget, initial) : lr_reserve_arena_result(values, count, arena, owned);
     if error != WorkBudgetError.None { return error; }
     var moved = values.length -low;
     var bytes = moved *sizeof(SymbolRange);
@@ -146,16 +232,20 @@ fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, c
     return WorkBudgetError.None;
 }
 
-fn lr_range_merge(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): bool {
-    return lr_range_merge_result(destination, source, changed) == WorkBudgetError.None;
+fn lr_range_merge_result(destination: work_vector(SymbolRange)*, source: work_vector(SymbolRange)*, changed: bool*, budget: WorkBudget*): WorkBudgetError {
+    return lr_range_merge_storage_result(destination, source, changed, budget, null);
 }
 
-fn lr_range_merge_result(destination: vector(SymbolRange)*, source: vector(SymbolRange)*, changed: bool*): WorkBudgetError {
+fn lr_range_merge_storage_result(destination: work_vector(SymbolRange)*, source: work_vector(SymbolRange)*, changed: bool*, budget: WorkBudget*, initial: SymbolRange*): WorkBudgetError {
+    return lr_range_merge_arena_result(destination, source, changed, budget, initial, null, null);
+}
+
+fn lr_range_merge_arena_result(destination: work_vector(SymbolRange)*, source: work_vector(SymbolRange)*, changed: bool*, budget: WorkBudget*, initial: SymbolRange*, arena: WorkArena*, owned: bool*): WorkBudgetError {
     if destination == source || source.length == 0 {
         return WorkBudgetError.None;
     }
     if source.length == 1 {
-        return lr_range_insert_result(destination, source.data[0].first, source.data[0].last, changed);
+        return lr_range_insert_arena_result(destination, source.data[0].first, source.data[0].last, changed, budget, initial, arena, owned);
     }
     // FIRST, suffix and propagation callers supply distinct owned vectors (or
     // the identical descriptor handled above). Both sets are already sorted.
@@ -176,7 +266,7 @@ fn lr_range_merge_result(destination: vector(SymbolRange)*, source: vector(Symbo
     if added == 0 { return WorkBudgetError.None; }
     if added > ~convert(usize, 0) - destination.length { return WorkBudgetError.Invalid; }
     var count = destination.length + added;
-    var error = lr_reserve_result(destination, count);
+    var error = arena == null ? lr_reserve_initial_result(destination, count, budget, initial) : lr_reserve_arena_result(destination, count, arena, owned);
     if error != WorkBudgetError.None { return error; }
     // Backward merge consumes each old slot before overwriting it. No scratch
     // owner or per-insert shifting is needed; denial leaves the old set intact.
@@ -204,15 +294,17 @@ export fn lr_analysis_destroy(value: LRAnalysis*): void {
     if value == null {
         return;
     }
+    lr_analysis_scratch_dispose(value);
     lr_suffix_index_dispose(value.suffix);
     var index: usize = 0;
     for(; index != value.nonterminal_count; index++) {
         var item = &value.nonterminals[index];
-        vector_dispose(&item.first);
-        vector_dispose(&item.productions);
+        if item.first.data != &item.initial_first[0] { work_vector_dispose(&item.first); }
+        if item.productions.data != &item.initial_productions[0] { work_vector_dispose(&item.productions); }
     }
-    free(value.nonterminals);
-    free(value);
+    work_buffer_dispose(&value.nonterminal_storage);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Production/symbol arrays are borrowed and immutable for this analysis lifetime.
@@ -223,6 +315,11 @@ export fn lr_analysis_create(rules: LRProduction*, rule_count: usize, symbols: L
 
 export fn lr_analysis_create_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
 nonterminal_count: usize, error: WorkBudgetError*): LRAnalysis* {
+    return lr_analysis_create_budget_result(rules, rule_count, symbols, symbol_count, nonterminal_count, null, error);
+}
+
+export fn lr_analysis_create_budget_result(rules: LRProduction*, rule_count: usize, symbols: LRSymbol*, symbol_count: usize,
+nonterminal_count: usize, budget: WorkBudget*, error: WorkBudgetError*): LRAnalysis* {
     if error == null { return null; }
     *error = WorkBudgetError.Invalid;
     if (rule_count != 0 && rules == null) || (symbol_count != 0 && symbols == null)
@@ -234,29 +331,34 @@ nonterminal_count: usize, error: WorkBudgetError*): LRAnalysis* {
         if rule.owner >= nonterminal_count || rule.begin > symbol_count
             || rule.count > symbol_count - rule.begin { return null; }
     }
-    *error = WorkBudgetError.Memory;
-    var result = alloc(LRAnalysis, 1);
-    var failed = result == null;
-    if failed {
-        return null;
-    }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(LRAnalysis), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var result = bits(LRAnalysis*, storage.data);
     *result = default;
+    result.storage = storage;
+    result.budget = budget;
     result.rules = rules;
     result.rule_count = rule_count;
     result.symbols = symbols;
     result.symbol_count = symbol_count;
-    result.nonterminals = alloc(LRNonterminal, nonterminal_count);
-    failed = result.nonterminals == null;
-    if failed {
-        free(result);
+    *error = work_buffer_resize(&result.nonterminal_storage, budget, sizeof(LRNonterminal) * nonterminal_count, 0);
+    if *error != WorkBudgetError.None {
+        lr_analysis_destroy(result);
         return null;
     }
+    result.nonterminals = bits(LRNonterminal*, result.nonterminal_storage.data);
     result.nonterminal_count = nonterminal_count;
     var bytes = sizeof(LRNonterminal) *nonterminal_count;
     fill(result.nonterminals, 0, bytes);
     var index: usize = 0;
     for(; index != nonterminal_count; index++) {
-        result.nonterminals[index].order = index;
+        var item = &result.nonterminals[index];
+        item.order = index;
+        item.first.data = &item.initial_first[0];
+        item.first.capacity = sizeof(decltype(item.initial_first)) / sizeof(SymbolRange);
+        item.productions.data = &item.initial_productions[0];
+        item.productions.capacity = sizeof(decltype(item.initial_productions)) / sizeof(usize);
     }
     index = 0;
     loop {
@@ -265,7 +367,8 @@ nonterminal_count: usize, error: WorkBudgetError*): LRAnalysis* {
             return result;
         }
         var rule = &rules[index];
-        *error = lr_push_result(&result.nonterminals[rule.owner].productions, index);
+        var item = &result.nonterminals[rule.owner];
+        *error = lr_push_initial_result(&item.productions, index, budget, &item.initial_productions[0]);
         if *error != WorkBudgetError.None {
             lr_analysis_destroy(result);
             return null;
@@ -280,7 +383,7 @@ export fn lr_analysis_compute(value: LRAnalysis*): bool {
 
 export fn lr_analysis_compute_result(value: LRAnalysis*): WorkBudgetError {
     var error = lr_analysis_first_result(value);
-    if error == WorkBudgetError.None { error = lr_suffix_index_result(value, null); }
+    if error == WorkBudgetError.None { error = lr_suffix_index_result(value, value.budget); }
     if value != null { value.failed = error != WorkBudgetError.None; }
     return error;
 }
@@ -311,7 +414,7 @@ fn lr_analysis_first_result(value: LRAnalysis*): WorkBudgetError {
                 var terminal = symbol.nonterminal == lr_none();
                 var error = WorkBudgetError.None;
                 if terminal {
-                    error = lr_range_insert_result(&owner.first, symbol.first, symbol.last, &changed);
+                    error = lr_range_insert_storage_result(&owner.first, symbol.first, symbol.last, &changed, value.budget, &owner.initial_first[0]);
                     nullable = false;
                 } else {
                     if symbol.nonterminal >= value.nonterminal_count {
@@ -319,7 +422,7 @@ fn lr_analysis_first_result(value: LRAnalysis*): WorkBudgetError {
                         return WorkBudgetError.Invalid;
                     }
                     var referenced = &value.nonterminals[symbol.nonterminal];
-                    error = lr_range_merge_result(&owner.first, &referenced.first, &changed);
+                    error = lr_range_merge_storage_result(&owner.first, &referenced.first, &changed, value.budget, &owner.initial_first[0]);
                     nullable = referenced.nullable;
                 }
                 if error != WorkBudgetError.None {
@@ -367,20 +470,61 @@ export fn lr_analysis_first_data(value: LRAnalysis*, index: usize): SymbolRange*
 }
 
 export fn lr_items_create(): LRItems* {
-    var result = alloc(LRItems, 1);
-    if result != null {
-        *result = default;
-    }
+    var error = WorkBudgetError.None;
+    return lr_items_create_result(null, &error);
+}
+
+export fn lr_items_create_result(budget: WorkBudget*, error: WorkBudgetError*): LRItems* {
+    if error == null { return null; }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(LRItems), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var result = bits(LRItems*, storage.data);
+    *result = default;
+    result.storage = storage;
+    result.budget = budget;
+    lr_items_initial(result);
     return result;
+}
+
+fn lr_items_initial(value: LRItems*): void {
+    if value.memory == null {
+        var bytes = sizeof(WorkArenaChunk) + sizeof(decltype(value.initial_values)) + sizeof(decltype(value.initial_pending));
+        if !work_arena_init(&value.scratch, value.budget, bytes) { lr_items_fail(value, WorkBudgetError.Invalid); }
+        value.memory = &value.scratch;
+    }
+    value.values.data = &value.initial_values[0];
+    value.values.capacity = sizeof(decltype(value.initial_values)) / sizeof(LRItem);
+    value.pending.data = &value.initial_pending[0];
+    value.pending.capacity = sizeof(decltype(value.initial_pending)) / sizeof(LRItem);
+}
+
+// Coordinator state/item descriptors share the state's retirement boundary.
+// The arena owns their physical bytes; each descriptor still disposes its own
+// promoted vectors. Worker results and standalone callers remain separate owners.
+fn lr_items_arena_result(arena: WorkArena*, error: WorkBudgetError*): LRItems* {
+    var data: u8* = null;
+    *error = work_arena_allocate_result(arena, sizeof(LRItems), alignof(LRItems), &data);
+    if *error != WorkBudgetError.None { return null; }
+    var value = bits(LRItems*, data);
+    *value = default;
+    value.budget = arena.budget;
+    value.memory = arena;
+    lr_items_initial(value);
+    return value;
+}
+
+fn lr_items_vectors_dispose(value: LRItems*): void {
+    work_arena_dispose(&value.scratch);
 }
 
 export fn lr_items_destroy(value: LRItems*): void {
     if value == null {
         return;
     }
-    vector_dispose(&value.values);
-    vector_dispose(&value.pending);
-    free(value);
+    lr_items_vectors_dispose(value);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 fn lr_item_less(a: LRItem*, b: LRItem*): bool {
@@ -432,8 +576,8 @@ export fn lr_items_insert(value: LRItems*, item: LRItem*): bool {
     }
     var count = value.values.length + 1;
     if count == 0 { return lr_items_fail(value, WorkBudgetError.Invalid); }
-    var error = lr_reserve_result(&value.values, count);
-    if error == WorkBudgetError.None { error = lr_push_result(&value.pending, saved); }
+    var error = lr_reserve_arena_result(&value.values, count, value.memory, null);
+    if error == WorkBudgetError.None { error = lr_push_arena_result(&value.pending, saved, value.memory, null); }
     if error != WorkBudgetError.None { return lr_items_fail(value, error); }
     var moved = value.values.length -low;
     var bytes = moved *sizeof(LRItem);
@@ -452,33 +596,33 @@ export fn lr_items_data(value: LRItems*): LRItem* {
     return value.values.data;
 }
 
-fn lr_suffix_result(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: vector(SymbolRange)*): WorkBudgetError {
+fn lr_suffix_result(value: LRAnalysis*, rule: LRProduction*, position: usize, item: LRItem*, ranges: work_vector(SymbolRange)*, initial: SymbolRange*): WorkBudgetError {
     var changed: bool = false;
     if value.suffix_ready && position != 0 && position < rule.count {
         var suffix = &value.suffix.entries[value.suffix.bases[item.rule] + position - 1];
         if suffix.error != WorkBudgetError.None { return suffix.error; }
         var needed = suffix.count + (suffix.nullable ? 1 : 0);
         if needed < suffix.count { return WorkBudgetError.Invalid; }
-        var error = lr_reserve_result(ranges, needed);
+        var error = lr_reserve_initial_result(ranges, needed, value.budget, initial);
         if error != WorkBudgetError.None { return error; }
         if suffix.count != 0 {
             copy(ranges.data, value.suffix.ranges.data + suffix.begin, suffix.count * sizeof(SymbolRange));
         }
         ranges.length = suffix.count;
-        return suffix.nullable ? lr_range_insert_result(ranges, item.first, item.last, &changed) : WorkBudgetError.None;
+        return suffix.nullable ? lr_range_insert_storage_result(ranges, item.first, item.last, &changed, value.budget, initial) : WorkBudgetError.None;
     }
     loop {
         if position >= rule.count {
-            return lr_range_insert_result(ranges, item.first, item.last, &changed);
+            return lr_range_insert_storage_result(ranges, item.first, item.last, &changed, value.budget, initial);
         }
         var index = rule.begin + position;
         var symbol = &value.symbols[index];
         if symbol.nonterminal == lr_none() {
-            return lr_range_insert_result(ranges, symbol.first, symbol.last, &changed);
+            return lr_range_insert_storage_result(ranges, symbol.first, symbol.last, &changed, value.budget, initial);
         }
         if symbol.nonterminal >= value.nonterminal_count { return WorkBudgetError.Invalid; }
         var next = &value.nonterminals[symbol.nonterminal];
-        var error = lr_range_merge_result(ranges, &next.first, &changed);
+        var error = lr_range_merge_storage_result(ranges, &next.first, &changed, value.budget, initial);
         if error != WorkBudgetError.None { return error; }
         if !next.nullable {
             return WorkBudgetError.None;
@@ -508,10 +652,13 @@ fn lr_suffix_range_result(index: LRSuffixIndex*, budget: WorkBudget*, begin: usi
     }
     // Non-owning bounded view: the work buffer reserved the insertion slot, so
     // the shared exact-range insertion cannot grow or free this borrowed slice.
-    var ranges: vector(SymbolRange) = {data: index.ranges.data + begin,
-        length: index.ranges.length - begin, capacity: index.ranges.capacity - begin};
+    var ranges = init(work_vector(SymbolRange)) {data: index.ranges.data + begin,
+        length: index.ranges.length - begin, capacity: index.ranges.capacity - begin, ..default};
+    // Borrow only: no active receipt, no disposal, and the insertion slot was
+    // reserved above. The owner check still uses the actual parent budget.
+    ranges.reservation.owner = budget;
     var changed = false;
-    error = lr_range_insert_result(&ranges, first, last, &changed);
+    error = lr_range_insert_result(&ranges, first, last, &changed, budget);
     index.ranges.length = begin + ranges.length;
     return error;
 }
@@ -591,7 +738,35 @@ fn lr_suffix_index_result(value: LRAnalysis*, budget: WorkBudget*): WorkBudgetEr
 // sorting once then restores the exact public LR order without quadratic shifts.
 // Each worker owns this scratch; grammar entities remain the semantic authority.
 struct LRItemIndex {
-    slots: vector(usize);
+    slots: work_vector(usize);
+    initial: usize*;
+}
+
+var LRItemIndexInitialSlots: usize = 32;
+
+// One charged, closure-private allocation owns the initial temporary slots.
+// Larger rows promote independently; all readers end before this owner closes.
+struct LRClosureScratch {
+    storage: WorkBuffer;
+    expanded: LRItems;
+    membership: LRItemIndex;
+    expansion: LRItemIndex;
+    ranges: work_vector(SymbolRange);
+    initial_membership: usize[LRItemIndexInitialSlots];
+    initial_expansion: usize[LRItemIndexInitialSlots];
+    initial_ranges: SymbolRange[WorkBufferInitialElements];
+}
+
+fn lr_analysis_scratch_dispose(value: LRAnalysis*): void {
+    var scratch = value.closure_scratch;
+    if scratch == null { return; }
+    value.closure_scratch = null;
+    lr_items_vectors_dispose(&scratch.expanded);
+    if scratch.membership.slots.data != scratch.membership.initial { work_vector_dispose(&scratch.membership.slots); }
+    if scratch.expansion.slots.data != scratch.expansion.initial { work_vector_dispose(&scratch.expansion.slots); }
+    if scratch.ranges.data != &scratch.initial_ranges[0] { work_vector_dispose(&scratch.ranges); }
+    var storage = scratch.storage;
+    work_buffer_dispose(&storage);
 }
 
 enum LRItemSlot: usize { Vacant = 0 }
@@ -605,8 +780,8 @@ fn lr_item_hash(item: LRItem*): usize {
     return (hash ^ convert(usize, item.last)) * multiplier;
 }
 
-fn lr_item_index_reserve_result(index: LRItemIndex*, values: vector(LRItem)*): WorkBudgetError {
-    var minimum_capacity: usize = 32;
+fn lr_item_index_reserve_result(index: LRItemIndex*, values: work_vector(LRItem)*, budget: WorkBudget*): WorkBudgetError {
+    var minimum_capacity = LRItemIndexInitialSlots;
     var load_divisor: usize = 2;
     if values.length < index.slots.length / load_divisor { return WorkBudgetError.None; }
     var capacity = index.slots.length;
@@ -616,7 +791,7 @@ fn lr_item_index_reserve_result(index: LRItemIndex*, values: vector(LRItem)*): W
         if next <= capacity { return WorkBudgetError.Invalid; }
         capacity = next;
     }
-    var error = lr_reserve_result(&index.slots, capacity);
+    var error = lr_reserve_initial_result(&index.slots, capacity, budget, index.initial);
     if error != WorkBudgetError.None { return error; }
     index.slots.length = capacity;
     // Zero is vacant; occupied slots contain the item index plus one.
@@ -632,7 +807,7 @@ fn lr_item_index_reserve_result(index: LRItemIndex*, values: vector(LRItem)*): W
 fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, queue: bool): bool {
     if items.failed { return false; }
     var saved = *item;
-    var error = lr_item_index_reserve_result(index, &items.values);
+    var error = lr_item_index_reserve_result(index, &items.values, items.budget);
     if error != WorkBudgetError.None { return lr_items_fail(items, error); }
     var mask = index.slots.length - 1;
     var slot = lr_item_hash(&saved) & mask;
@@ -644,8 +819,8 @@ fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, que
     }
     var count = items.values.length + 1;
     if count == 0 { return lr_items_fail(items, WorkBudgetError.Invalid); }
-    error = lr_reserve_result(&items.values, count);
-    if error == WorkBudgetError.None && queue { error = lr_push_result(&items.pending, saved); }
+    error = lr_reserve_arena_result(&items.values, count, items.memory, null);
+    if error == WorkBudgetError.None && queue { error = lr_push_arena_result(&items.pending, saved, items.memory, null); }
     if error != WorkBudgetError.None { return lr_items_fail(items, error); }
     items.values.data[items.values.length] = saved;
     items.values.length = count;
@@ -653,7 +828,7 @@ fn lr_item_index_insert(index: LRItemIndex*, items: LRItems*, item: LRItem*, que
     return true;
 }
 
-fn lr_items_sift(values: vector(LRItem)*, root: usize, count: usize): void {
+fn lr_items_sift(values: work_vector(LRItem)*, root: usize, count: usize): void {
     var branches: usize = 2;
     var saved = values.data[root];
     while root < count / branches {
@@ -666,7 +841,7 @@ fn lr_items_sift(values: vector(LRItem)*, root: usize, count: usize): void {
     values.data[root] = saved;
 }
 
-fn lr_items_heap_sort(values: vector(LRItem)*): void {
+fn lr_items_heap_sort(values: work_vector(LRItem)*): void {
     var branches: usize = 2;
     var root = values.length / branches;
     while root != 0 { --root; lr_items_sift(values, root, values.length); }
@@ -693,7 +868,7 @@ fn lr_items_sort_range(values: LRItem*, count: usize, depth: usize): void {
     while count > LRItemsInsertionLimit {
         if depth == 0 {
             // Borrowed descriptor only; this helper never disposes the owner.
-            var heap: vector(LRItem) = {data: values, length: count, capacity: count};
+            var heap = init(work_vector(LRItem)) {data: values, length: count, capacity: count, ..default};
             lr_items_heap_sort(&heap);
             return;
         }
@@ -726,7 +901,7 @@ fn lr_items_sort_range(values: LRItem*, count: usize, depth: usize): void {
     }
 }
 
-fn lr_items_sort(values: vector(LRItem)*): void {
+fn lr_items_sort(values: work_vector(LRItem)*): void {
     var depth: usize = 0;
     for(var count = values.length; count > 1; count /= 2) { depth += 2; }
     lr_items_sort_range(values.data, values.length, depth);
@@ -734,17 +909,23 @@ fn lr_items_sort(values: vector(LRItem)*): void {
 
 export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): bool {
     if value == null || items == null { return false; }
+    if items.budget != value.budget { return lr_items_fail(items, WorkBudgetError.Invalid); }
     if value.failed { return lr_items_fail(items, WorkBudgetError.Invalid); }
-    var ranges: vector(SymbolRange);
-    vector_init(&ranges);
     // Many items reach the same nonterminal with identical lookahead. Expand
     // each pair once, rather than inserting every production for every incoming
     // item. Exact range identities and the sorted closure remain unchanged.
-    var expanded: LRItems = default;
-    var membership: LRItemIndex = default;
-    var expansion: LRItemIndex = default;
-    defer vector_dispose(&membership.slots);
-    defer vector_dispose(&expansion.slots);
+    var scratch = value.closure_scratch;
+    if scratch != null {
+        scratch.expanded.values.length = 0;
+        scratch.expanded.pending.length = 0;
+        scratch.expanded.failed = false;
+        scratch.expanded.resource_error = WorkBudgetError.None;
+        scratch.membership.slots.length = 0;
+        scratch.expansion.slots.length = 0;
+    }
+    // A phase reuses private capacity, never checked items or effects. Failed
+    // work retires it immediately; successful phase owners dispose after join.
+    defer { if items.failed { lr_analysis_scratch_dispose(value); } }
     defer lr_items_sort(&items.values);
     var ok: bool = true;
     loop {
@@ -773,14 +954,35 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             continue;
         }
         if symbol.nonterminal >= value.nonterminal_count { lr_items_fail(items, WorkBudgetError.Invalid); break; }
+        if scratch == null {
+            var storage: WorkBuffer = default;
+            var error = work_buffer_resize(&storage, value.budget, sizeof(LRClosureScratch), 0);
+            if error != WorkBudgetError.None { lr_items_fail(items, error); break; }
+            scratch = bits(LRClosureScratch*, storage.data);
+            *scratch = default;
+            scratch.storage = storage;
+            value.closure_scratch = scratch;
+            scratch.expanded.budget = value.budget;
+            lr_items_initial(&scratch.expanded);
+            scratch.membership.initial = &scratch.initial_membership[0];
+            scratch.membership.slots.data = scratch.membership.initial;
+            scratch.membership.slots.capacity = sizeof(decltype(scratch.initial_membership)) / sizeof(usize);
+            scratch.expansion.initial = &scratch.initial_expansion[0];
+            scratch.expansion.slots.data = scratch.expansion.initial;
+            scratch.expansion.slots.capacity = sizeof(decltype(scratch.initial_expansion)) / sizeof(usize);
+            scratch.ranges.data = &scratch.initial_ranges[0];
+            scratch.ranges.capacity = sizeof(decltype(scratch.initial_ranges)) / sizeof(SymbolRange);
+        }
+        var ranges = &scratch.ranges;
+        var expanded = &scratch.expanded;
         ranges.length = 0;
         var error = WorkBudgetError.None;
         if lookahead {
             var position = item.position + 1;
-            error = lr_suffix_result(value, rule, position, &item, &ranges);
+            error = lr_suffix_result(value, rule, position, &item, ranges, &scratch.initial_ranges[0]);
         } else {
             var changed: bool = false;
-            error = lr_range_insert_result(&ranges, 0, 0, &changed);
+            error = lr_range_insert_storage_result(ranges, 0, 0, &changed, value.budget, &scratch.initial_ranges[0]);
         }
         if error != WorkBudgetError.None {
             lr_items_fail(items, error);
@@ -799,7 +1001,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             var key: LRItem = { rule: symbol.nonterminal, position: 0, first: ranges.data[range].first, last: ranges.data[range].last };
             range++;
             var previous = expanded.values.length;
-            ok = lr_item_index_insert(&expansion, &expanded, &key, false);
+            ok = lr_item_index_insert(&scratch.expansion, expanded, &key, false);
             if !ok {
                 lr_items_fail(items, expanded.resource_error);
                 break;
@@ -814,7 +1016,7 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
                     break;
                 }
                 var next: LRItem = { rule: productions.data[production], position: 0, first: key.first, last: key.last };
-                ok = lr_item_index_insert(&membership, items, &next, true);
+                ok = lr_item_index_insert(&scratch.membership, items, &next, true);
                 if !ok {
                     break;
                 }
@@ -822,9 +1024,6 @@ export fn lr_items_close(value: LRAnalysis*, items: LRItems*, lookahead: bool): 
             }
         }
     }
-    vector_dispose(&expanded.values);
-    vector_dispose(&expanded.pending);
-    vector_dispose(&ranges);
     if items.failed {
         value.failed = true;
     }
@@ -883,15 +1082,22 @@ fn lr_items_error(items: LRItems*): WorkBudgetError {
 // LALR lookahead dependencies refer to kernel items by temporary dense indices.
 // Propagate only changed sets; cyclic grammars converge without recursive calls.
 struct LRPropagationNode {
-    ranges: vector(SymbolRange);
-    edges: vector(usize);
+    ranges: work_vector(SymbolRange);
+    edges: work_vector(usize);
     queued: bool;
+    range_owned: bool;
+    initial_ranges: SymbolRange[WorkBufferInitialElements];
+    initial_edges: usize[WorkBufferInitialElements];
 }
 
 struct LRPropagation {
+    storage: WorkBuffer;
+    node_storage: WorkBuffer;
+    budget: WorkBudget*;
+    scratch: WorkArena;
     nodes: LRPropagationNode*;
     count: usize;
-    pending: vector(usize);
+    pending: work_vector(usize);
 }
 
 export fn lr_propagation_destroy(value: LRPropagation*): void {
@@ -901,12 +1107,13 @@ export fn lr_propagation_destroy(value: LRPropagation*): void {
     var index: usize = 0;
     for(; index != value.count; index++) {
         var node = &value.nodes[index];
-        vector_dispose(&node.ranges);
-        vector_dispose(&node.edges);
+        if node.range_owned { work_vector_dispose(&node.ranges); }
     }
-    free(value.nodes);
-    vector_dispose(&value.pending);
-    free(value);
+    work_buffer_dispose(&value.node_storage);
+    work_arena_dispose(&value.scratch);
+    work_vector_dispose(&value.pending);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 export fn lr_propagation_create(count: usize): LRPropagation* {
@@ -915,26 +1122,40 @@ export fn lr_propagation_create(count: usize): LRPropagation* {
 }
 
 export fn lr_propagation_create_result(count: usize, error: WorkBudgetError*): LRPropagation* {
+    return lr_propagation_create_budget_result(count, null, error);
+}
+
+export fn lr_propagation_create_budget_result(count: usize, budget: WorkBudget*, error: WorkBudgetError*): LRPropagation* {
     if error == null { return null; }
     *error = WorkBudgetError.Invalid;
     if count > ~convert(usize, 0) / sizeof(LRPropagationNode) { return null; }
-    *error = WorkBudgetError.Memory;
-    var value = alloc(LRPropagation, 1);
-    var missing = value == null;
-    if missing {
-        return null;
-    }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, budget, sizeof(LRPropagation), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var value = bits(LRPropagation*, storage.data);
     *value = default;
-    value.nodes = alloc(LRPropagationNode, count);
-    missing = value.nodes == null;
-    if missing {
+    value.storage = storage;
+    value.budget = budget;
+    var initial = count < WorkBufferInitialElements ? WorkBufferInitialElements : count;
+    var chunk_bytes = sizeof(WorkArenaChunk) + initial * sizeof(SymbolRange);
+    if !work_arena_init(&value.scratch, budget, chunk_bytes) { *error = WorkBudgetError.Invalid; lr_propagation_destroy(value); return null; }
+    *error = work_buffer_resize(&value.node_storage, budget, sizeof(LRPropagationNode) * count, 0);
+    if *error != WorkBudgetError.None {
         lr_propagation_destroy(value);
         return null;
     }
+    value.nodes = bits(LRPropagationNode*, value.node_storage.data);
     value.count = count;
     var bytes = sizeof(LRPropagationNode) *count;
     fill(value.nodes, 0, bytes);
-    *error = lr_reserve_result(&value.pending, count);
+    for(var i: usize = 0; i < count; i++) {
+        var node = &value.nodes[i];
+        node.ranges.data = &node.initial_ranges[0];
+        node.ranges.capacity = sizeof(decltype(node.initial_ranges)) / sizeof(SymbolRange);
+        node.edges.data = &node.initial_edges[0];
+        node.edges.capacity = sizeof(decltype(node.initial_edges)) / sizeof(usize);
+    }
+    *error = lr_reserve_result(&value.pending, count, budget);
     if *error != WorkBudgetError.None {
         lr_propagation_destroy(value);
         return null;
@@ -960,7 +1181,8 @@ export fn lr_propagation_seed(value: LRPropagation*, index: usize, first: u32, l
 export fn lr_propagation_seed_result(value: LRPropagation*, index: usize, first: u32, last: u32): WorkBudgetError {
     if value == null || index >= value.count { return WorkBudgetError.Invalid; }
     var changed: bool = false;
-    var error = lr_range_insert_result(&value.nodes[index].ranges, first, last, &changed);
+    var node = &value.nodes[index];
+    var error = lr_range_insert_arena_result(&node.ranges, first, last, &changed, value.budget, &node.initial_ranges[0], &value.scratch, &node.range_owned);
     if changed {
         lr_propagation_queue(value, index);
     }
@@ -974,8 +1196,13 @@ export fn lr_propagation_edge(value: LRPropagation*, source: usize, destination:
 export fn lr_propagation_edge_result(value: LRPropagation*, source: usize, destination: usize): WorkBudgetError {
     if value == null || source >= value.count || destination >= value.count { return WorkBudgetError.Invalid; }
     // Duplicate dependencies do not change the fixed point or queued work.
-    var error = lr_push_result(&value.nodes[source].edges, destination);
+    var node = &value.nodes[source];
+    var count = node.edges.length + 1;
+    if count == 0 { return WorkBudgetError.Invalid; }
+    var error = lr_reserve_arena_result(&node.edges, count, &value.scratch, null);
     if error == WorkBudgetError.None {
+        node.edges.data[node.edges.length] = destination;
+        node.edges.length = count;
         lr_propagation_queue(value, source);
     }
     return error;
@@ -1005,7 +1232,7 @@ export fn lr_propagation_solve_result(value: LRPropagation*): WorkBudgetError {
             var destination = source.edges.data[edge];
             var target = &value.nodes[destination];
             var changed: bool = false;
-            var error = lr_range_merge_result(&target.ranges, &source.ranges, &changed);
+            var error = lr_range_merge_arena_result(&target.ranges, &source.ranges, &changed, value.budget, &target.initial_ranges[0], &value.scratch, &target.range_owned);
             if error != WorkBudgetError.None { return error; }
             if changed {
                 lr_propagation_queue(value, destination);
@@ -1045,7 +1272,7 @@ export fn lr_propagation_solve_components_result(value: LRPropagation*, budget: 
         var ranges = &value.nodes[head].ranges;
         for(var member = index.nodes[head].next; member != lr_none(); member = index.nodes[member].next) {
             var changed = false;
-            error = lr_range_merge_result(ranges, &value.nodes[member].ranges, &changed);
+            error = lr_range_merge_arena_result(ranges, &value.nodes[member].ranges, &changed, value.budget, &value.nodes[head].initial_ranges[0], &value.scratch, &value.nodes[head].range_owned);
             if error != WorkBudgetError.None { return error; }
         }
         for(var member = head; member != lr_none(); member = index.nodes[member].next) {
@@ -1053,7 +1280,8 @@ export fn lr_propagation_solve_components_result(value: LRPropagation*, budget: 
                 var target = index.nodes[destination].component;
                 if target == component { continue; }
                 var changed = false;
-                error = lr_range_merge_result(&value.nodes[index.heads[target]].ranges, ranges, &changed);
+                var row = &value.nodes[index.heads[target]];
+                error = lr_range_merge_arena_result(&row.ranges, ranges, &changed, value.budget, &row.initial_ranges[0], &value.scratch, &row.range_owned);
                 if error != WorkBudgetError.None { return error; }
             }
         }
@@ -1062,7 +1290,7 @@ export fn lr_propagation_solve_components_result(value: LRPropagation*, budget: 
         // for a direct retry; no partially published index needs to be repaired.
         for(var member = index.nodes[head].next; member != lr_none(); member = index.nodes[member].next) {
             var changed = false;
-            error = lr_range_merge_result(&value.nodes[member].ranges, ranges, &changed);
+            error = lr_range_merge_arena_result(&value.nodes[member].ranges, ranges, &changed, value.budget, &value.nodes[member].initial_ranges[0], &value.scratch, &value.nodes[member].range_owned);
             if error != WorkBudgetError.None { return error; }
         }
     }

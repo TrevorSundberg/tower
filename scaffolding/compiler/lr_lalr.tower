@@ -2,9 +2,13 @@ import tower;
 import lr_analysis;
 import lr_states;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
 import lr_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
+import .library.work_arena_api;
+import .library.work_arena_types;
 
 // Build LALR lookahead dependencies from LR(1) closures of LR(0) kernels.
 // Grammar order determines indices, never conflict priority or a shift bias.
@@ -50,7 +54,7 @@ struct LRPropagationLink {
 
 struct LRLinkOutput {
     graph: LRPropagation*;
-    links: vector(LRPropagationLink)*;
+    links: work_vector(LRPropagationLink)*;
 }
 
 fn lr_lalr_apply_result(graph: LRPropagation*, link: LRPropagationLink*): WorkBudgetError {
@@ -67,7 +71,7 @@ fn lr_lalr_link_result(value: LRStates*, output: LRLinkOutput*, source: usize, s
     }
     var link: LRPropagationLink = { source: source, destination: destination, first: item.first, last: item.last };
     if output.links != null {
-        return lr_push_result(output.links, link);
+        return lr_push_result(output.links, link, value.analysis.budget);
     }
     return lr_lalr_apply_result(output.graph, &link);
 }
@@ -103,8 +107,10 @@ fn lr_lalr_destination(value: LRStates*, state: LRState*, symbol: usize): usize 
 // Memoize them only while building this table; shared grammar nodes remain the
 // authority. This avoids repeating wide operator closures in every state.
 struct LRKernelClosure {
+    storage: WorkBuffer;
+    records: WorkArena;
     state: LRState;
-    next: vector(LRItems*);
+    next: work_vector(LRItems*);
 }
 
 fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
@@ -114,10 +120,12 @@ fn lr_kernel_closure_destroy(value: LRKernelClosure*): void {
     foreach(var & next_item in &value.next) {
         lr_items_destroy(*next_item);
     }
-    vector_dispose(&value.next);
-    vector_dispose(&value.state.symbols);
+    work_vector_dispose(&value.next);
+    lr_state_vectors_dispose(&value.state);
     lr_items_destroy(value.state.items);
-    free(value);
+    work_arena_dispose(&value.records);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 // Scatter the sorted closure into its outgoing kernels once. Rescanning the
@@ -153,7 +161,8 @@ fn lr_kernel_shift_result(analysis: LRAnalysis*, cached: LRKernelClosure*): Work
             }
             // These immutable kernels are consumed by propagation, never closed
             // again. They need neither sorted insertion nor a pending work copy.
-            var error = lr_push_result(&cached.next.data[i].values, advanced);
+            var next = cached.next.data[i];
+            var error = lr_push_arena_result(&next.values, advanced, next.memory, null);
             if error != WorkBudgetError.None { return error; }
         }
     }
@@ -164,16 +173,19 @@ fn lr_kernel_closure_result(analysis: LRAnalysis*, kernel: LRItem*, error: WorkB
     *error = WorkBudgetError.Invalid;
     if analysis == null || kernel == null || kernel.rule >= analysis.rule_count
         || kernel.position > analysis.rules[kernel.rule].count { return null; }
-    *error = WorkBudgetError.Memory;
-    var cached = alloc(LRKernelClosure, 1);
-    var missing = cached == null;
-    if missing {
-        return null;
-    }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, analysis.budget, sizeof(LRKernelClosure), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var cached = bits(LRKernelClosure*, storage.data);
     *cached = default;
+    cached.storage = storage;
     var closure = &cached.state;
-    closure.items = lr_items_create();
-    missing = closure.items == null;
+    if !work_arena_init(&cached.records, analysis.budget, sizeof(WorkArenaChunk) + WorkBufferInitialElements * sizeof(LRState)) {
+        *error = WorkBudgetError.Invalid; lr_kernel_closure_destroy(cached); return null;
+    }
+    lr_state_initial(closure, &cached.records);
+    closure.items = lr_items_create_result(analysis.budget, error);
+    var missing = closure.items == null;
     if missing {
         lr_kernel_closure_destroy(cached);
         return null;
@@ -211,14 +223,13 @@ fn lr_kernel_closure_result(analysis: LRAnalysis*, kernel: LRItem*, error: WorkB
         if done {
             break;
         }
-        var next = lr_items_create();
+        var next = lr_items_create_result(analysis.budget, error);
         missing = next == null;
         if missing {
-            *error = WorkBudgetError.Memory;
             ok = false;
             break;
         }
-        *error = lr_push_result(&cached.next, next);
+        *error = lr_push_result(&cached.next, next, analysis.budget);
         ok = *error == WorkBudgetError.None;
         if !ok {
             lr_items_destroy(next);
@@ -293,7 +304,7 @@ kernel: LRItem*, cache: LRKernelClosure**, count: usize): WorkBudgetError {
 }
 
 fn lr_lalr_state_links_result(value: LRStates*, cache: LRKernelClosure**, count: usize, state_index: usize,
-links: vector(LRPropagationLink)*): WorkBudgetError {
+links: work_vector(LRPropagationLink)*): WorkBudgetError {
     var state = value.states.data[state_index];
     var output: LRLinkOutput = default;
     output.links = links;
@@ -313,14 +324,18 @@ links: vector(LRPropagationLink)*): WorkBudgetError {
 
 // The same ordered algorithm serves serial construction and private worker output.
 fn lr_lalr_state_actions_result(value: LRStates*, graph: LRPropagation*, state_index: usize,
-actions: vector(LRAction)*): WorkBudgetError {
+actions: work_vector(LRAction)*): WorkBudgetError {
     var state = value.states.data[state_index];
+    // Private worker output is an independent owner; only the state's own
+    // action descriptor may borrow slots in the charged state allocation.
+    var local = actions == &state.actions;
     actions.length = 0;
     foreach(var & edge in &state.edges) {
         var symbol = &value.analysis.symbols[edge.symbol];
         if symbol.nonterminal == lr_none() {
             var action: LRAction = { first: symbol.first, last: symbol.last, rule: lr_none(), state: edge.state };
-            var error = lr_push_result(actions, action);
+            var error = local ? lr_push_arena_result(actions, action, state.memory, &state.actions_owned)
+                : lr_push_result(actions, action, value.analysis.budget);
             if error != WorkBudgetError.None { return error; }
         }
     }
@@ -330,7 +345,8 @@ actions: vector(LRAction)*): WorkBudgetError {
             var ranges = &graph.nodes[state.base + index].ranges;
             foreach(var & range in ranges) {
                 var action: LRAction = { first: range.first, last: range.last, rule: item.rule, state: lr_none() };
-                var error = lr_push_result(actions, action);
+                var error = local ? lr_push_arena_result(actions, action, state.memory, &state.actions_owned)
+                    : lr_push_result(actions, action, value.analysis.budget);
                 if error != WorkBudgetError.None { return error; }
             }
         }
@@ -374,7 +390,7 @@ fn lr_states_propagation_begin_result(value: LRStates*, constructs: bool, error:
         if state.items.values.length > ~convert(usize, 0) - count { return null; }
         count += state.items.values.length;
     }
-    var graph = lr_propagation_create_result(count, error);
+    var graph = lr_propagation_create_budget_result(count, value.analysis.budget, error);
     if graph == null {
         return null;
     }
@@ -469,7 +485,7 @@ export fn lr_states_lalr(value: LRStates*, constructs: bool): bool {
 }
 
 export fn lr_states_lalr_result(value: LRStates*, constructs: bool): WorkBudgetError {
-    return lr_states_lalr_owned_result(value, constructs, null);
+    return lr_states_lalr_owned_result(value, constructs, value == null ? null : value.analysis.budget);
 }
 
 fn lr_lalr_item_graph_safe(value: LRStates*): bool {
@@ -620,17 +636,20 @@ fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget
 }
 
 fn lr_states_lalr_owned_result(value: LRStates*, constructs: bool, budget: WorkBudget*): WorkBudgetError {
+    defer { if value != null && value.analysis != null { lr_analysis_scratch_dispose(value.analysis); } }
     var error = WorkBudgetError.None;
     var count = lr_lalr_cache_count(value, &error);
     if error != WorkBudgetError.None { return error; }
     // Preserve standalone incomplete analysis and context-dependent range goto.
     if !lr_lalr_item_graph_safe(value) {
-        var cache = alloc(LRKernelClosure*, count);
-        if cache == null { return WorkBudgetError.Memory; }
+        var storage: WorkBuffer = default;
+        error = work_buffer_resize(&storage, budget, count * sizeof(LRKernelClosure*), 0);
+        if error != WorkBudgetError.None { return error; }
+        defer work_buffer_dispose(&storage);
+        var cache = bits(LRKernelClosure**, storage.data);
         fill(cache, 0, count * sizeof(LRKernelClosure*));
         error = lr_states_lalr_cached_result(value, constructs, cache, count);
         for(var i: usize = 0; i < count; i++) { lr_kernel_closure_destroy(cache[i]); }
-        free(cache);
         return error;
     }
     var graph = lr_states_propagation_items_result(value, constructs, budget, &error);

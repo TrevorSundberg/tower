@@ -7,6 +7,8 @@ import .library.work_budget_types;
 extern fn lr_analysis_create(rules: LRProduction*, count: usize, symbols: LRSymbol*, symbol_count: usize, names: usize): void*;
 extern fn lr_analysis_create_result(rules: LRProduction*, count: usize, symbols: LRSymbol*, symbol_count: usize,
     names: usize, error: WorkBudgetError*): void*;
+extern fn lr_analysis_create_budget_result(rules: LRProduction*, count: usize, symbols: LRSymbol*, symbol_count: usize,
+    names: usize, budget: WorkBudget*, error: WorkBudgetError*): void*;
 extern fn lr_analysis_destroy(value: void*): void;
 extern fn lr_analysis_compute(value: void*): bool;
 extern fn lr_analysis_compute_result(value: void*): WorkBudgetError;
@@ -23,6 +25,7 @@ extern fn lr_items_close(analysis: void*, items: void*, lookahead: bool): bool;
 extern fn lr_items_goto(analysis: void*, input: void*, symbol: LRSymbol*, output: void*, lookahead: bool): bool;
 extern fn lr_propagation_create(count: usize): void*;
 extern fn lr_propagation_create_result(count: usize, error: WorkBudgetError*): void*;
+extern fn lr_propagation_create_budget_result(count: usize, budget: WorkBudget*, error: WorkBudgetError*): void*;
 extern fn lr_propagation_destroy(value: void*): void;
 extern fn lr_propagation_seed(value: void*, index: usize, first: u32, last: u32): bool;
 extern fn lr_propagation_seed_result(value: void*, index: usize, first: u32, last: u32): WorkBudgetError;

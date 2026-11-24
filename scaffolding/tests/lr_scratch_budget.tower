@@ -1,0 +1,148 @@
+import tower;
+import lr_analysis_api;
+import .compiler.lr_types;
+import .library.work_budget;
+import .library.work_buffer;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_arena_types;
+import utility_checks;
+
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+// Independent literal grammar and physical-size oracle, not a second LR solver.
+fn lr_scratch_budget_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, 1048576, 1), "LR scratch budget");
+    var rules: LRProduction[2] = default;
+    var symbols: LRSymbol[2] = default;
+    rules[0].count = 1;
+    rules[1] = {owner: 1, begin: 1, count: 1, ..default};
+    symbols[0].nonterminal = 1;
+    symbols[1] = {nonterminal: ~convert(usize, 0), first: 65, last: 65};
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    var symbol_count = sizeof(decltype(symbols)) / sizeof(LRSymbol);
+    var error = WorkBudgetError.None;
+    var tiny: WorkBudget = default;
+    utility_check(work_budget_init(&tiny, 1, 1, 1), "LR one-byte budget");
+    utility_check(lr_analysis_create_budget_result(&rules[0], rule_count, &symbols[0], symbol_count,
+        rule_count, &tiny, &error) == null && error == WorkBudgetError.Capacity
+        && tiny.used_bytes == 0 && tiny.live == 0 && work_budget_dispose(&tiny), "Representable analysis is Capacity, not Invalid");
+    utility_check(lr_analysis_create_budget_result(&rules[0], ~convert(usize, 0), &symbols[0], symbol_count,
+        rule_count, &budget, &error) == null && error == WorkBudgetError.Invalid && budget.live == 0,
+        "Analysis overflow is Invalid before admission");
+
+    // Same grammar at every physical allocation boundary, including partial
+    // nested nonterminal construction. Original inputs remain borrowed/unmodified.
+    var complete = false;
+    for(var fail: usize = 0; fail < 64 && !complete; fail++) {
+        tower_test_buffer_fail_after(fail);
+        var analysis = lr_analysis_create_budget_result(&rules[0], rule_count, &symbols[0], symbol_count,
+            rule_count, &budget, &error);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        complete = analysis != null;
+        utility_check(error == (complete ? WorkBudgetError.None : WorkBudgetError.Memory), "Analysis physical denial retains Memory");
+        lr_analysis_destroy(analysis);
+        utility_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget)
+            && tower_test_buffer_count() == baseline,
+            "Partial analysis admission retires every physical receipt");
+        utility_check(work_budget_init(&budget, 1, 1048576, budget.revision + 1), "Fresh ledger after failure boundary");
+    }
+    utility_check(complete, "Analysis constructor failure sweep completes");
+    {
+        var analysis = lr_analysis_create_budget_result(&rules[0], rule_count, &symbols[0], symbol_count,
+            rule_count, &budget, &error);
+        utility_check(analysis != null && error == WorkBudgetError.None, "Bounded analysis owner");
+        defer lr_analysis_destroy(analysis);
+        utility_check(lr_analysis_compute_result(analysis) == WorkBudgetError.None
+            && lr_analysis_first_count(analysis, 0) == 1 && !lr_analysis_nullable(analysis, 0), "Literal FIRST extent");
+        var first = lr_analysis_first_data(analysis, 0);
+        utility_check(first[0].first == 65 && first[0].last == 65, "Literal FIRST endpoint");
+        var retained = budget.used_bytes;
+        var grants = budget.live;
+        var states = lr_states_create_result(analysis, &error);
+        utility_check(states != null && error == WorkBudgetError.None && lr_states_count(states) == 3,
+            "Literal three-state construction");
+        utility_check(lr_states_lalr_result(states, false) == WorkBudgetError.None && budget.used_bytes > retained,
+            "State/action payloads are charged");
+        lr_states_destroy(states);
+        utility_check(budget.used_bytes == retained && budget.live == grants, "Nested state/action owners drain to analysis baseline");
+    }
+    utility_check(budget.used_bytes == 0 && budget.live == 0, "Analysis and suffix owners fully retired");
+    {
+        var graph = lr_propagation_create_budget_result(1, &budget, &error);
+        utility_check(graph != null && error == WorkBudgetError.None, "Bounded propagation owner");
+        defer lr_propagation_destroy(graph);
+        var initial = WorkBufferInitialElements;
+        for(var i: usize = 0; i < initial; i++) {
+            utility_check(lr_propagation_seed_result(graph, 0, convert(u32, i * 2), convert(u32, i * 2)) == WorkBudgetError.None,
+                "Literal range seed");
+        }
+        var data = lr_propagation_data(graph, 0);
+        var retained = budget.used_bytes;
+        var owners = budget.live;
+        var new_bytes = compiler_buffer_allocation_size(sizeof(WorkArenaChunk)
+            + initial * 2 * sizeof(SymbolRange) + alignof(SymbolRange) - 1);
+        var held: WorkReservation = default;
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - retained - new_bytes + 1, &held) == WorkBudgetError.None,
+            "Leave one byte less than the complete replacement");
+        utility_check(lr_propagation_seed_result(graph, 0, 42, 42) == WorkBudgetError.Capacity,
+            "Replacement admits old plus new, never just the delta");
+        utility_check(work_budget_release_result(&budget, &held) == WorkBudgetError.None, "Return competing grant");
+        tower_test_buffer_fail_after(0);
+        error = lr_propagation_seed_result(graph, 0, 42, 42);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        utility_check(error == WorkBudgetError.Memory && lr_propagation_data(graph, 0) == data
+            && lr_propagation_count(graph, 0) == initial && budget.used_bytes == retained && budget.live == owners,
+            "Both denials preserve the original payload/length/owner");
+        for(var i: usize = 0; i < initial; i++) {
+            utility_check(data[i].first == convert(u32, i * 2) && data[i].last == data[i].first, "Denied growth preserves all literal contents");
+        }
+        utility_check(lr_propagation_seed_result(graph, 0, 42, 42) == WorkBudgetError.None
+            && budget.used_bytes == retained + new_bytes && budget.live == owners + 1
+            && budget.peak_bytes >= retained + new_bytes && lr_propagation_data(graph, 0)[initial].first == 42,
+            "Inline promotion retains charged node slots and admits the complete arena chunk");
+    }
+    {
+        var growth: WorkBudget = default;
+        utility_check(work_budget_init(&growth, 1, 1048576, 1), "Isolated replacement ledger");
+        var values: work_vector(usize) = default;
+        utility_check(work_vector_push_result(&values, &growth, 42) == WorkBudgetError.None, "First replacement owner");
+        var old_bytes = compiler_buffer_allocation_size(values.capacity * sizeof(usize));
+        var capacity = values.capacity;
+        utility_check(work_vector_reserve_result(&values, &growth, capacity + 1) == WorkBudgetError.None,
+            "Isolated replacement admission");
+        var new_bytes = compiler_buffer_allocation_size(values.capacity * sizeof(usize));
+        utility_check(growth.used_bytes == new_bytes && growth.peak_bytes == old_bytes + new_bytes
+            && growth.live == 1 && values.length == 1 && values.data[0] == 42, "Exact old/new coexistence peak and retained grant");
+        work_vector_dispose(&values);
+        utility_check(growth.used_bytes == 0 && growth.live == 0 && work_budget_dispose(&growth), "Isolated replacement drain");
+    }
+    {
+        var source: work_vector(usize) = default;
+        var destination: work_vector(usize) = default;
+        utility_check(work_vector_push_result(&source, &budget, 42) == WorkBudgetError.None, "Moved scratch source");
+        var data = source.data;
+        var retained = budget.used_bytes;
+        var owners = budget.live;
+        work_vector_move(&destination, &source);
+        utility_check(source.data == null && !source.reservation.active && destination.data == data
+            && destination.data[0] == 42 && budget.used_bytes == retained && budget.live == owners,
+            "Join move transfers a single receipt without copying ownership");
+        utility_check(work_vector_reserve_result(&destination, &budget, ~convert(usize, 0)) == WorkBudgetError.Invalid
+            && destination.data == data && destination.length == 1 && destination.data[0] == 42,
+            "Typed overflow preserves the moved owner");
+        work_vector_dispose(&source);
+        work_vector_dispose(&destination);
+    }
+    var standalone = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, rule_count);
+    utility_check(standalone != null && lr_analysis_compute(standalone), "Explicit no-ledger API remains supported");
+    lr_analysis_destroy(standalone);
+    utility_check(rules[0].count == 1 && rules[1].owner == 1 && symbols[1].first == 65 && symbols[1].last == 65,
+        "Borrowed grammar inputs remain unchanged");
+    utility_check(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline, "Final LR scratch owners and physical buffers zero");
+}

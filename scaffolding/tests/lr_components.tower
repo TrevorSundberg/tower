@@ -48,8 +48,13 @@ fn lr_component_owner_tests(): void {
             tower_test_buffer_fail_after(failures[i]);
             var error = lr_propagation_solve_components_result(graph, &budget);
             tower_test_buffer_fail_after(~convert(usize, 0));
-            utility_check(error == WorkBudgetError.Memory && budget.live == 0 && budget.used_bytes == 0,
-                "Physical index/range failure preserves Memory and releases scratch");
+            // Adjacency and component-index buffers are the two physical
+            // admissions. The small result now fits charged inline row slots;
+            // stopping the allocator after those buffers must permit it.
+            var index_allocations: usize = 2;
+            utility_check(error == (failures[i] < index_allocations ? WorkBudgetError.Memory : WorkBudgetError.None)
+                && budget.live == 0 && budget.used_bytes == 0,
+                "Index Memory failures and allocation-free inline materialization release scratch");
         }
         utility_check(lr_propagation_solve_components_result(graph, &budget) == WorkBudgetError.None, "Direct retry without requeue");
         for(var node: usize = 0; node < connected; node++) {

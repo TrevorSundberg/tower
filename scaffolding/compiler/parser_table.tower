@@ -203,8 +203,9 @@ export fn parser_table_build(table: ParserHostTable*, specialize: bool): bool {
     }
     if world != null { grammar_observe(world, GrammarPhase.Table, true, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); }
     defer { if world != null { grammar_observe(world, GrammarPhase.Table, false, lr_grammar_rule_count(grammar), lr_grammar_symbol_count(grammar)); } }
-    var analysis = lr_analysis_create_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
-    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar), &table.resource_error);
+    var analysis = lr_analysis_create_budget_result(lr_grammar_rule_data(grammar), lr_grammar_rule_count(grammar),
+    lr_grammar_symbol_data(grammar), lr_grammar_symbol_count(grammar), lr_grammar_name_count(grammar),
+    compiler_world_work_budget(world), &table.resource_error);
     missing = analysis == null;
     if missing {
         table.error = "Unable to create LR grammar analysis";

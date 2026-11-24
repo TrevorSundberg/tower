@@ -7,11 +7,15 @@ import lr_types;
 import lr_work;
 import parser_workers;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_graph;
 import .library.work_pool;
 
 struct LRFirstResult {
-    ranges: vector(SymbolRange);
+    ranges: work_vector(SymbolRange);
     nullable: bool;
     changed: bool;
 }
@@ -43,7 +47,7 @@ export fn compiler_lr_first_kernel(payload: void*): void {
         result.ranges.length = 0;
         result.nullable = source.nullable;
         result.changed = false;
-        task.resource_error = lr_reserve_result(&result.ranges, source.first.length);
+        task.resource_error = lr_reserve_result(&result.ranges, source.first.length, value.budget);
         if task.resource_error != WorkBudgetError.None { return; }
         if source.first.length != 0 { copy(result.ranges.data, source.first.data, source.first.length * sizeof(SymbolRange)); }
         result.ranges.length = source.first.length;
@@ -53,13 +57,13 @@ export fn compiler_lr_first_kernel(payload: void*): void {
             for(var position: usize = 0; position < rule.count && nullable; position++) {
                 var symbol = &value.symbols[rule.begin + position];
                 if symbol.nonterminal == lr_none() {
-                    task.resource_error = lr_range_insert_result(&result.ranges, symbol.first, symbol.last, &result.changed);
+                    task.resource_error = lr_range_insert_result(&result.ranges, symbol.first, symbol.last, &result.changed, value.budget);
                     if task.resource_error != WorkBudgetError.None { return; }
                     nullable = false;
                 } else {
                     if symbol.nonterminal >= value.nonterminal_count { task.resource_error = WorkBudgetError.Invalid; return; }
                     var referenced = &value.nonterminals[symbol.nonterminal];
-                    task.resource_error = lr_range_merge_result(&result.ranges, &referenced.first, &result.changed);
+                    task.resource_error = lr_range_merge_result(&result.ranges, &referenced.first, &result.changed, value.budget);
                     if task.resource_error != WorkBudgetError.None { return; }
                     nullable = referenced.nullable;
                 }
@@ -75,25 +79,29 @@ fn lr_analysis_work_result(value: LRAnalysis*, anchor: void*, capacity: usize): 
     if value == null || anchor == null || capacity == 0
         || capacity > sizeof(decltype(jobs)) / sizeof(LRFirstTask*)
         || value.nonterminal_count > ~convert(usize, 0) / sizeof(LRFirstResult)
-        || value.nonterminal_count > ~convert(usize, 0) / sizeof(vector(usize)) { return WorkBudgetError.Invalid; }
+        || value.nonterminal_count > ~convert(usize, 0) / sizeof(work_vector(usize)) { return WorkBudgetError.Invalid; }
     var error = WorkBudgetError.None;
     var owner = entity_create_related_result(anchor, &error);
     if owner == null { return error; }
     defer entity_release(owner);
-    var results = alloc(LRFirstResult, value.nonterminal_count);
-    var dependents = alloc(vector(usize), value.nonterminal_count);
-    var queued = alloc(bool, value.nonterminal_count);
-    if results == null || dependents == null || queued == null {
-        free(results); free(dependents); free(queued); return WorkBudgetError.Memory;
-    }
+    var result_storage: WorkBuffer = default;
+    var dependent_storage: WorkBuffer = default;
+    var queued_storage: WorkBuffer = default;
+    defer { work_buffer_dispose(&result_storage); work_buffer_dispose(&dependent_storage); work_buffer_dispose(&queued_storage); }
+    error = work_buffer_resize(&result_storage, value.budget, value.nonterminal_count * sizeof(LRFirstResult), 0);
+    if error == WorkBudgetError.None { error = work_buffer_resize(&dependent_storage, value.budget, value.nonterminal_count * sizeof(work_vector(usize)), 0); }
+    if error == WorkBudgetError.None { error = work_buffer_resize(&queued_storage, value.budget, value.nonterminal_count * sizeof(bool), 0); }
+    if error != WorkBudgetError.None { return error; }
+    var results = bits(LRFirstResult*, result_storage.data);
+    var dependents = bits(work_vector(usize)*, dependent_storage.data);
+    var queued = bits(bool*, queued_storage.data);
     fill(results, 0, value.nonterminal_count * sizeof(LRFirstResult));
-    fill(dependents, 0, value.nonterminal_count * sizeof(vector(usize)));
+    fill(dependents, 0, value.nonterminal_count * sizeof(work_vector(usize)));
     defer {
         for(var i: usize = 0; i < value.nonterminal_count; i++) {
-            vector_dispose(&results[i].ranges);
-            vector_dispose(&dependents[i]);
+            work_vector_dispose(&results[i].ranges);
+            work_vector_dispose(&dependents[i]);
         }
-        free(results); free(dependents); free(queued);
     }
     // Any reference can become relevant when an earlier prefix becomes nullable.
     // Invalid references are diagnosed only if reached, just as in the serial
@@ -103,18 +111,18 @@ fn lr_analysis_work_result(value: LRAnalysis*, anchor: void*, capacity: usize): 
         for(var j: usize = 0; j < rule.count; j++) {
             var referenced = value.symbols[rule.begin + j].nonterminal;
             if referenced < value.nonterminal_count {
-                error = lr_push_result(&dependents[referenced], rule.owner);
+                error = lr_push_result(&dependents[referenced], rule.owner, value.budget);
                 if error != WorkBudgetError.None { return error; }
             }
         }
     }
-    var frontier: vector(usize);
-    var next: vector(usize);
-    vector_init(&frontier);
-    vector_init(&next);
-    defer { vector_dispose(&frontier); vector_dispose(&next); }
+    var frontier: work_vector(usize);
+    var next: work_vector(usize);
+    work_vector_init(&frontier);
+    work_vector_init(&next);
+    defer { work_vector_dispose(&frontier); work_vector_dispose(&next); }
     for(var i: usize = 0; i < value.nonterminal_count; i++) {
-        error = lr_push_result(&frontier, i);
+        error = lr_push_result(&frontier, i, value.budget);
         if error != WorkBudgetError.None { return error; }
     }
     var kind = lr_work_node_result(owner, &error);
@@ -192,23 +200,20 @@ fn lr_analysis_work_result(value: LRAnalysis*, anchor: void*, capacity: usize): 
             var result = &results[index];
             if !result.changed { continue; }
             var target = &value.nonterminals[index];
-            var previous: vector(SymbolRange);
-            copy(&previous, &target.first, sizeof(vector(SymbolRange)));
-            copy(&target.first, &result.ranges, sizeof(vector(SymbolRange)));
-            copy(&result.ranges, &previous, sizeof(vector(SymbolRange)));
+            if target.first.data == &target.initial_first[0] {
+                target.first = result.ranges;
+                result.ranges = default;
+            } else { work_vector_swap(&target.first, &result.ranges); }
             target.nullable = result.nullable;
             foreach(var dependent in &dependents[index]) {
                 if !queued[dependent] {
-                    error = lr_push_result(&next, dependent);
+                    error = lr_push_result(&next, dependent, value.budget);
                     if error != WorkBudgetError.None { return error; }
                     queued[dependent] = true;
                 }
             }
         }
-        var previous: vector(usize);
-        copy(&previous, &frontier, sizeof(vector(usize)));
-        copy(&frontier, &next, sizeof(vector(usize)));
-        copy(&next, &previous, sizeof(vector(usize)));
+        work_vector_swap(&frontier, &next);
     }
     return WorkBudgetError.None;
 }
@@ -219,6 +224,7 @@ export fn lr_analysis_compute_parallel(value: LRAnalysis*, anchor: void*): bool 
 
 export fn lr_analysis_compute_parallel_result(value: LRAnalysis*, anchor: void*): WorkBudgetError {
     if value == null { return WorkBudgetError.Invalid; }
+    if anchor != null && value.budget != compiler_world_work_budget(compiler_node_world(anchor)) { return WorkBudgetError.Invalid; }
     var capacity = compiler_worker_capacity(anchor);
     var error = WorkBudgetError.None;
     if capacity < 2 || anchor == null || value.nonterminal_count < 2 * LRFirstGrain {
@@ -229,8 +235,7 @@ export fn lr_analysis_compute_parallel_result(value: LRAnalysis*, anchor: void*)
         error = lr_analysis_work_result(value, anchor, capacity);
     }
     if error == WorkBudgetError.None {
-        var budget = anchor == null ? null : compiler_world_work_budget(compiler_node_world(anchor));
-        error = lr_suffix_index_result(value, budget);
+        error = lr_suffix_index_result(value, value.budget);
     }
     value.failed = error != WorkBudgetError.None;
     return error;

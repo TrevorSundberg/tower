@@ -377,8 +377,10 @@ fn lr_links_work_trial(value: LRStates*, constructs: bool, anchor: void*): bool 
 
 export fn lr_work_trial(anchor: void*, rules: LRProduction*, count: usize,
 symbols: LRSymbol*, length: usize, names: usize): bool {
-    var analysis = lr_analysis_create(rules, count, symbols, length, names);
-    var other = lr_analysis_create(rules, count, symbols, length, names);
+    var error = WorkBudgetError.None;
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    var analysis = lr_analysis_create_budget_result(rules, count, symbols, length, names, budget, &error);
+    var other = lr_analysis_create_budget_result(rules, count, symbols, length, names, budget, &error);
     if analysis == null || other == null {
         lr_analysis_destroy(analysis);
         lr_analysis_destroy(other);
@@ -511,8 +513,10 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
         rules[5].count = 0;
         symbols[5].nonterminal = names;
     }
-    var a = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, names);
-    var b = lr_analysis_create(&rules[0], rule_count, &symbols[0], symbol_count, names);
+    var error = WorkBudgetError.None;
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    var a = lr_analysis_create_budget_result(&rules[0], rule_count, &symbols[0], symbol_count, names, budget, &error);
+    var b = lr_analysis_create_budget_result(&rules[0], rule_count, &symbols[0], symbol_count, names, budget, &error);
     defer {
         lr_analysis_destroy(a);
         lr_analysis_destroy(b);
@@ -578,6 +582,10 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     return true;
 }
 
+export fn lr_propagation_budget_trial(anchor: void*): bool {
+    return lr_propagation_work_trial(anchor, LRPropagationGrain * 2, true);
+}
+
 fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool {
     var owner = entity_create_related(anchor);
     if owner == null {
@@ -585,7 +593,8 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
     }
     defer entity_release(owner);
     var graph: WorkGraph;
-    work_init(&graph, 1, 0);
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    if !work_init_budget(&graph, 1, 0, budget) { return false; }
     defer work_dispose(&graph);
     var pool: WorkPool;
     if !work_pool_open(&pool, work_thread_capacity()) {
@@ -594,14 +603,25 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
     defer work_pool_close(&pool);
     var cycle_nodes: usize = 8;
     var count = (seeded + 1) * cycle_nodes;
-    var a = lr_propagation_create(count);
-    var b = lr_propagation_create(count);
+    var error = WorkBudgetError.None;
+    var a = lr_propagation_create_budget_result(count, budget, &error);
+    var b = lr_propagation_create_budget_result(count, budget, &error);
     defer {
         lr_propagation_destroy(a);
         lr_propagation_destroy(b);
     }
     if a == null || b == null {
         return false;
+    }
+    if budget != null {
+        var unbound: WorkGraph = default;
+        work_init(&unbound, 1, 0);
+        var bytes = budget.used_bytes;
+        var grants = budget.live;
+        var denied = lr_propagation_solve_parallel_result(b, owner, &unbound, &pool);
+        work_dispose(&unbound);
+        if denied != WorkBudgetError.Invalid || budget.used_bytes != bytes || budget.live != grants
+            || pool.running != 0 || b.pending.length != 0 { return false; }
     }
     // Many independent cyclic lanes expose a wide frontier across several
     // joined waves. Duplicate/self/diamond edges must preserve exact distinct
@@ -662,6 +682,20 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
             }
         }
     }
+    // Parallel publication transfers a real buffer owner. Later serial growth
+    // must retire that receipt once and switch to charged arena storage, even
+    // at the explicit null-budget boundary where receipt.active is false.
+    if parallel && pool.peak != 0 && seeded != 0 {
+        if !b.nodes[0].range_owned { return false; }
+        for(var i: u32 = 0; i < 33; i++) {
+            if lr_propagation_seed_result(b, 0, 100000 + i * 2, 100000 + i * 2) != WorkBudgetError.None { return false; }
+        }
+        if b.nodes[0].range_owned || b.nodes[0].ranges.length != 35 || pool.running != 0 { return false; }
+        for(var i: u32 = 0; i < 33; i++) {
+            var range = b.nodes[0].ranges.data[2 + i];
+            if range.first != 100000 + i * 2 || range.last != range.first { return false; }
+        }
+    }
     return true;
 }
 
@@ -675,7 +709,9 @@ fn lr_state_serial_admission(root: void*): bool {
     for(var i: usize = 0; i < count; i++) {
         symbols[i] = { nonterminal: lr_none(), first: convert(u32, i + 32), last: convert(u32, i + 32) };
     }
-    var analysis = lr_analysis_create(&rule, 1, &symbols[0], count, 1);
+    var error = WorkBudgetError.None;
+    var analysis = lr_analysis_create_budget_result(&rule, 1, &symbols[0], count, 1,
+        compiler_world_work_budget(compiler_node_world(root)), &error);
     defer lr_analysis_destroy(analysis);
     if analysis == null || !lr_analysis_compute(analysis) { return false; }
     var serial = lr_states_create(analysis);
@@ -713,12 +749,14 @@ export fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool 
         symbols[at + 1].nonterminal = 2;
         symbols[at + 2] = { nonterminal: lr_none(), first: convert(u32, i + 256), last: convert(u32, i + 256) };
     }
-    var analysis = lr_analysis_create(rules, count, symbols, length, 3);
+    var error = WorkBudgetError.None;
+    var analysis = lr_analysis_create_budget_result(rules, count, symbols, length, 3,
+        compiler_world_work_budget(compiler_node_world(root)), &error);
     defer lr_analysis_destroy(analysis);
     if analysis == null || !lr_analysis_compute(analysis) { return false; }
     var serial = lr_states_create(analysis);
     defer lr_states_destroy(serial);
-    var error = WorkBudgetError.None;
+    error = WorkBudgetError.None;
     if admits && compiler_worker_capacity(root) > 1
         && compiler_world_work_budget(compiler_node_world(root)) == null {
         var lease: ParserWorkers = default;

@@ -7,6 +7,10 @@ import lr_types;
 import lr_work;
 import parser_workers;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
 import .library.work_graph;
 import .library.work_pool;
 
@@ -32,11 +36,13 @@ export fn compiler_lr_state_kernel(payload: void*): void {
     var task = bits(LRStateTask*, payload);
     var analysis: LRAnalysis;
     copy(&analysis, task.analysis, sizeof(LRAnalysis));
+    analysis.closure_scratch = null;
+    defer lr_analysis_scratch_dispose(&analysis);
     task.resource_error = WorkBudgetError.None;
     for(var i = task.begin; i < task.begin + task.count; i++) {
-        var result = lr_items_create();
+        var result = lr_items_create_result(analysis.budget, &task.resource_error);
         task.results[i] = result;
-        if result == null { task.resource_error = WorkBudgetError.Memory; return; }
+        if result == null { return; }
         if !lr_items_goto(&analysis, task.source, &analysis.symbols[task.symbols[i]], result, false) {
             task.resource_error = lr_items_error(result);
             return;
@@ -56,6 +62,8 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
     if error == null { return null; }
     *error = WorkBudgetError.Invalid;
     if analysis == null || analysis.symbol_count > ~convert(usize, 0) - analysis.rule_count { return null; }
+    defer lr_analysis_scratch_dispose(analysis);
+    if anchor != null && analysis.budget != compiler_world_work_budget(compiler_node_world(anchor)) { return null; }
     var capacity = compiler_worker_capacity(anchor);
     if capacity <= 1 || anchor == null || analysis.symbol_count + analysis.rule_count < LRStateSerialMinimum {
         return lr_states_create_result(analysis, error);
@@ -77,11 +85,11 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
         *error = lr_work_error(&graph); return null;
     }
     defer work_dispose(&graph);
-    var results: vector(LRItems*);
-    vector_init(LRItems*, &results);
+    var results: work_vector(LRItems*);
+    work_vector_init(LRItems*, &results);
     defer {
         for(var i: usize = 0; i < results.length; i++) { lr_items_destroy(results.data[i]); }
-        vector_dispose(LRItems*, &results);
+        work_vector_dispose(LRItems*, &results);
     }
     var ok = true;
     while value.pending.length != 0 && ok {
@@ -149,7 +157,7 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
             if *error != WorkBudgetError.None { return null; }
         }
         var pool = workers.pool;
-        *error = lr_reserve_result(&results, state.symbols.length);
+        *error = lr_reserve_result(&results, state.symbols.length, analysis.budget);
         if *error != WorkBudgetError.None { return null; }
         results.length = state.symbols.length;
         fill(results.data, 0, results.length * sizeof(LRItems*));
@@ -194,7 +202,7 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
             edge.symbol = state.symbols.data[i];
             edge.state = lr_states_intern_result(value, items, edge.symbol, true, error);
             ok = edge.state != lr_none();
-            if ok { *error = lr_push_result(&state.edges, edge); ok = *error == WorkBudgetError.None; }
+            if ok { *error = lr_push_arena_result(&state.edges, edge, state.memory, null); ok = *error == WorkBudgetError.None; }
         }
         results.length = 0;
         // No consumer crosses this joined wave. Retain capacity while rejecting

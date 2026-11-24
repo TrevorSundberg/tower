@@ -2,37 +2,64 @@ import tower;
 import lr_types;
 import lr_analysis;
 import .library.vector;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_arena_api;
+import .library.work_arena_types;
 
 // LR(0) state construction and kernel interning. The same item operations handle
 // character ranges and token IDs; all records are disposable grammar indexes.
 struct LRState {
+    memory: WorkArena*;
+    actions_owned: bool;
     items: LRItems*;
-    symbols: vector(usize);
-    edges: vector(LRTransition);
-    actions: vector(LRAction);
+    symbols: work_vector(usize);
+    edges: work_vector(LRTransition);
+    actions: work_vector(LRAction);
     base: usize;
     origin: usize;
     hash: usize;
     next: usize;
+    initial_symbols: usize[WorkBufferInitialElements];
+    initial_edges: LRTransition[WorkBufferInitialElements];
+    initial_actions: LRAction[WorkBufferInitialElements];
+}
+
+fn lr_state_initial(state: LRState*, memory: WorkArena*): void {
+    state.memory = memory;
+    state.symbols.data = &state.initial_symbols[0];
+    state.symbols.capacity = sizeof(decltype(state.initial_symbols)) / sizeof(usize);
+    state.edges.data = &state.initial_edges[0];
+    state.edges.capacity = sizeof(decltype(state.initial_edges)) / sizeof(LRTransition);
+    state.actions.data = &state.initial_actions[0];
+    state.actions.capacity = sizeof(decltype(state.initial_actions)) / sizeof(LRAction);
+}
+
+fn lr_state_vectors_dispose(state: LRState*): void {
+    if state.actions_owned { work_vector_dispose(&state.actions); }
 }
 
 struct LRStates {
+    storage: WorkBuffer;
+    records: WorkArena;
     analysis: LRAnalysis*;
-    states: vector(LRState*);
-    pending: vector(usize);
-    buckets: vector(usize);
+    states: work_vector(LRState*);
+    pending: work_vector(usize);
+    buckets: work_vector(usize);
 }
 
 // Private to one state-building coordinator; reused only after its transitions
 // finish. Entries refer to the frozen item vector, never to grammar ownership.
 struct LRShiftIndex {
-    heads: vector(usize);
-    next: vector(usize);
+    heads: work_vector(usize);
+    next: work_vector(usize);
 }
 
 fn lr_shift_index_dispose(index: LRShiftIndex*): void {
-    vector_dispose(&index.heads);
-    vector_dispose(&index.next);
+    work_vector_dispose(&index.heads);
+    work_vector_dispose(&index.next);
 }
 
 fn lr_shift_index_result(index: LRShiftIndex*, analysis: LRAnalysis*, state: LRState*): WorkBudgetError {
@@ -50,8 +77,8 @@ fn lr_shift_index_result(index: LRShiftIndex*, analysis: LRAnalysis*, state: LRS
             return WorkBudgetError.None;
         }
     }
-    var error = lr_reserve_result(&index.heads, state.symbols.length);
-    if error == WorkBudgetError.None { error = lr_reserve_result(&index.next, state.items.values.length); }
+    var error = lr_reserve_result(&index.heads, state.symbols.length, analysis.budget);
+    if error == WorkBudgetError.None { error = lr_reserve_result(&index.next, state.items.values.length, analysis.budget); }
     if error != WorkBudgetError.None { return error; }
     index.heads.length = state.symbols.length;
     index.next.length = state.items.values.length;
@@ -203,7 +230,7 @@ fn lr_state_symbol_result(analysis: LRAnalysis*, state: LRState*, symbol: usize)
     }
     var count = state.symbols.length + 1;
     if count == 0 { return WorkBudgetError.Invalid; }
-    var error = lr_reserve_result(&state.symbols, count);
+    var error = lr_reserve_arena_result(&state.symbols, count, state.memory, null);
     if error != WorkBudgetError.None { return error; }
     var moved = state.symbols.length -low;
     var bytes = moved *sizeof(usize);
@@ -216,10 +243,7 @@ fn lr_state_symbol_result(analysis: LRAnalysis*, state: LRState*, symbol: usize)
 
 fn lr_state_destroy(state: LRState*): void {
     lr_items_destroy(state.items);
-    vector_dispose(&state.symbols);
-    vector_dispose(&state.edges);
-    vector_dispose(&state.actions);
-    free(state);
+    lr_state_vectors_dispose(state);
 }
 
 export fn lr_states_destroy(value: LRStates*): void {
@@ -229,10 +253,9 @@ export fn lr_states_destroy(value: LRStates*): void {
     foreach(var & state in &value.states) {
         lr_state_destroy(*state);
     }
-    vector_dispose(&value.states);
-    vector_dispose(&value.pending);
-    vector_dispose(&value.buckets);
-    free(value);
+    work_arena_dispose(&value.records);
+    var storage = value.storage;
+    work_buffer_dispose(&storage);
 }
 
 var LRStateBucketGrowth: usize = 2;
@@ -246,7 +269,7 @@ fn lr_states_rehash_result(value: LRStates*): WorkBudgetError {
     }
     if value.buckets.length > (~convert(usize, 0) - LRStateBucketSeed) / LRStateBucketGrowth { return WorkBudgetError.Invalid; }
     needed = value.buckets.length * LRStateBucketGrowth + LRStateBucketSeed;
-    var error = lr_reserve_result(&value.buckets, needed);
+    var error = lr_reserve_arena_result(&value.buckets, needed, &value.records, null);
     if error != WorkBudgetError.None { return error; }
     value.buckets.length = needed;
     var index: usize = 0;
@@ -301,20 +324,20 @@ fn lr_states_intern_result(value: LRStates*, items: LRItems*, origin: usize, clo
         *error = lr_items_error(items);
         return lr_none();
     }
-    var state = alloc(LRState, 1);
-    if state == null {
-        *error = WorkBudgetError.Memory;
-        return lr_none();
-    }
-    fill(state, 0, sizeof(LRState));
+    var data: u8* = null;
+    *error = work_arena_allocate_result(&value.records, sizeof(LRState), alignof(LRState), &data);
+    if *error != WorkBudgetError.None { return lr_none(); }
+    var state = bits(LRState*, data);
+    *state = default;
+    lr_state_initial(state, &value.records);
     state.items = items;
     items = null; // Ownership moved to the state.
     state.origin = origin;
     state.hash = hash;
     state.next = value.buckets.data[bucket];
     index = value.states.length;
-    *error = lr_push_result(&value.pending, index);
-    if *error == WorkBudgetError.None { *error = lr_push_result(&value.states, state); }
+    *error = lr_push_arena_result(&value.pending, index, &value.records, null);
+    if *error == WorkBudgetError.None { *error = lr_push_arena_result(&value.states, state, &value.records, null); }
     if *error != WorkBudgetError.None {
         lr_state_destroy(state);
         return lr_none();
@@ -327,17 +350,18 @@ fn lr_states_begin_result(analysis: LRAnalysis*, error: WorkBudgetError*): LRSta
     if error == null { return null; }
     *error = WorkBudgetError.Invalid;
     if analysis == null || analysis.failed || analysis.rule_count == 0 { return null; }
-    *error = WorkBudgetError.Memory;
-    var value = alloc(LRStates, 1);
-    var missing = value == null;
-    if missing {
-        return null;
-    }
+    var storage: WorkBuffer = default;
+    *error = work_buffer_resize(&storage, analysis.budget, sizeof(LRStates), 0);
+    if *error != WorkBudgetError.None { return null; }
+    var value = bits(LRStates*, storage.data);
     *value = default;
+    value.storage = storage;
     defer lr_states_destroy(value);
     value.analysis = analysis;
-    var items = lr_items_create();
-    missing = items == null;
+    var chunk_bytes = sizeof(WorkArenaChunk) + WorkBufferInitialElements * (sizeof(LRState) + sizeof(LRItems));
+    if !work_arena_init(&value.records, analysis.budget, chunk_bytes) { *error = WorkBudgetError.Invalid; return null; }
+    var items = lr_items_arena_result(&value.records, error);
+    var missing = items == null;
     if missing {
         return null;
     }
@@ -398,10 +422,11 @@ fn lr_state_transition_result(value: LRStates*, state: LRState*, position: usize
     var symbol = state.symbols.data[position];
     var ok = true;
     var missing = false;
-    var next = lr_items_create();
+    var error = WorkBudgetError.None;
+    var next = lr_items_arena_result(&value.records, &error);
     missing = next == null;
     if missing {
-        return WorkBudgetError.Memory;
+        return error;
     }
     if index.heads.length == 0 {
         ok = lr_items_shift(analysis, state.items, &analysis.symbols[symbol], next);
@@ -414,19 +439,18 @@ fn lr_state_transition_result(value: LRStates*, state: LRState*, position: usize
         if !ok { analysis.failed = true; }
     }
     if !ok {
-        var error = lr_items_error(next);
+        error = lr_items_error(next);
         lr_items_destroy(next);
         return error;
     }
     var edge: LRTransition;
     edge.symbol = symbol;
-    var error = WorkBudgetError.None;
     edge.state = lr_states_intern_result(value, next, symbol, false, &error);
     missing = edge.state == lr_none();
     if missing {
         return error;
     }
-    return lr_push_result(&state.edges, edge);
+    return lr_push_arena_result(&state.edges, edge, state.memory, null);
 }
 
 export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
@@ -435,6 +459,7 @@ export fn lr_states_create(analysis: LRAnalysis*): LRStates* {
 }
 
 export fn lr_states_create_result(analysis: LRAnalysis*, error: WorkBudgetError*): LRStates* {
+    defer { if analysis != null { lr_analysis_scratch_dispose(analysis); } }
     var value = lr_states_begin_result(analysis, error);
     if value == null { return null; }
     defer lr_states_destroy(value);

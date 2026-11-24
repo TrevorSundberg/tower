@@ -18,8 +18,14 @@ extern fn entity_create(store: void*): void*;
 extern fn entity_release(node: void*): usize;
 extern fn lr_state_wide_admission(root: void*, size: usize, admits: bool): bool;
 extern fn lr_first_work_trial(root: void*, mode: usize): bool;
+extern fn lr_propagation_budget_trial(anchor: void*): bool;
 extern fn lr_work_trial(root: void*, rules: LRProduction*, count: usize,
     symbols: LRSymbol*, length: usize, names: usize): bool;
+extern fn lr_propagation_create_budget_result(count: usize, budget: WorkBudget*, error: WorkBudgetError*): void*;
+extern fn lr_propagation_seed_result(value: void*, node: usize, first: u32, last: u32): WorkBudgetError;
+extern fn lr_propagation_count(value: void*, node: usize): usize;
+extern fn lr_propagation_data(value: void*, node: usize): SymbolRange*;
+extern fn lr_propagation_destroy(value: void*): void;
 
 fn lr_pool_memory_budget(root: void*, budget: WorkBudget*): bool {
     var before: WorkBudgetSnapshot = default;
@@ -134,6 +140,8 @@ struct LRDispatchProbe {
     active: usize*;
     peak: usize*;
     participants: usize;
+    budget: WorkBudget*;
+    result: void*;
     success: bool;
 }
 
@@ -147,10 +155,15 @@ fn lr_dispatch_probe_execute(payload: void*): void {
     }
     work_signal_post(job.gate);
     work_signal_wait(job.release);
+    var error = WorkBudgetError.None;
+    job.result = lr_propagation_create_budget_result(1, job.budget, &error);
+    job.success = job.result != null && error == WorkBudgetError.None;
+    for(var i: u32 = 0; i < 33 && job.success; i++) {
+        job.success = lr_propagation_seed_result(job.result, 0, i * 2, i * 2) == WorkBudgetError.None;
+    }
     work_signal_wait(job.gate);
     (*job.active)--;
     work_signal_post(job.gate);
-    job.success = true;
 }
 
 // A two-party barrier requires simultaneous execution. With exactly one extra
@@ -168,9 +181,14 @@ fn lr_dispatch_caller_overlap(): bool {
     defer work_signal_close(gate);
     defer work_signal_close(release);
     work_signal_post(gate);
-    var jobs: LRDispatchProbe[2];
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 2, 1048576, 1)
+        || !work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post) { return false; }
+    defer { if !work_budget_dispose(&budget) { trap("Overlapping LR scratch retained receipts", 0); } }
+    var jobs: LRDispatchProbe[2] = default;
     var pointers: LRDispatchProbe*[2];
     var count = sizeof(decltype(jobs)) / sizeof(LRDispatchProbe);
+    defer { for(var i: usize = 0; i < count; i++) { lr_propagation_destroy(jobs[i].result); } }
     var active: usize = 0;
     var peak: usize = 0;
     var pool: WorkPool = default;
@@ -178,14 +196,25 @@ fn lr_dispatch_caller_overlap(): bool {
     defer work_pool_close(&pool);
     for(var i: usize = 0; i < count; i++) {
         jobs[i] = init(LRDispatchProbe) {gate: gate, release: release, active: &active,
-            peak: &peak, participants: count, ..default};
+            peak: &peak, participants: count, budget: &budget, ..default};
         jobs[i].kernel.payload = bits(void*, &jobs[i]);
         pointers[i] = &jobs[i];
     }
     if !compiler_kernel_dispatch_admitted(&pool, &pointers[0], count, count - 1) { return false; }
     if active != 0 || peak != count || pool.peak != count - 1 { return false; }
-    for(var i: usize = 0; i < count; i++) { if !jobs[i].success { return false; } }
-    return true;
+    for(var i: usize = 0; i < count; i++) {
+        if !jobs[i].success || lr_propagation_count(jobs[i].result, 0) != 33 { return false; }
+        var data = lr_propagation_data(jobs[i].result, 0);
+        for(var at: u32 = 0; at < 33; at++) {
+            if data[at].first != at * 2 || data[at].last != at * 2 { return false; }
+        }
+    }
+    if budget.used_bytes == 0 || budget.live == 0 { return false; }
+    for(var i: usize = 0; i < count; i++) {
+        lr_propagation_destroy(jobs[i].result);
+        jobs[i].result = null;
+    }
+    return budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0;
 }
 
 fn lr_shared_worker_budget(): bool {
@@ -219,6 +248,10 @@ fn lr_shared_worker_budget(): bool {
     if !lr_pool_memory_budget(root, &budget) { return false; }
     if !lr_runtime_memory_budget(root, &budget) { return false; }
     if !lr_first_work_trial(root, 0) { return false; }
+    // One worker fails after bounded scratch admission; an unreachable bad
+    // suffix stays lazy. Both joined paths must retire every private result.
+    if !lr_first_work_trial(root, 1) || !lr_first_work_trial(root, 2) { return false; }
+    if !lr_propagation_budget_trial(root) { return false; }
     if !lr_state_wide_admission(root, 512, true) { return false; }
     var other: WorkReservation = default;
     defer {
