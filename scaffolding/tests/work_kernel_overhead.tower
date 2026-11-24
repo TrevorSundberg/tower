@@ -53,14 +53,20 @@ fn overhead_case(workers: usize, count: usize, rounds: usize): void {
         + after[1] - before[1] + after[3] - before[3]);
     print(after[4]);
     print(count * (sizeof(OverheadJob) + sizeof(OverheadJob*)) + pool.count * sizeof(WorkSlot));
+    print(after[16] - before[16]); print(after[17] - before[17]);
 }
 export fn main(argc: i32, argv: u8**): i32 {
+    // Measure only available host lanes; never mistake a clamped pool for
+    // the requested width. Keep the original eight-lane ceiling/workloads.
+    var lanes = work_thread_capacity();
+    if lanes > 8 { lanes = 8; }
+    overhead_check(lanes != 0);
     overhead_case(1, 1, 100000);
-    overhead_case(8, 1, 100000);
+    if lanes > 1 { overhead_case(lanes, 1, 100000); }
     overhead_case(1, 32, 1000);
-    overhead_case(2, 32, 1000);
-    overhead_case(4, 32, 1000);
-    overhead_case(8, 32, 1000);
-    overhead_case(8, 1024, 100);
+    for(var workers: usize = 2; workers <= lanes; workers *= 2) {
+        overhead_case(workers, 32, 1000);
+    }
+    overhead_case(lanes, 1024, 100);
     return 0;
 }
