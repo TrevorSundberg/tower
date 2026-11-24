@@ -96445,11 +96445,15 @@ sanitizer and local-deployment-verifier service blocks remain unchanged.
 No ROOT runtime code changed; documentation-only profiling is inapplicable.
 L1 final checked producer boundary b03841da includes L2's rollback to original lowering logic: changed-object refresh, worlds/recheck, exactlarge optimized4/directGraphFast1-4/backend-ir PASS, same bytes/zeroowners. Final source/binaries/costs in published_artifacts.sha256/final_*; original paired freeze retained.
 
-D2 final native-reference integration: complete503677d9 merged as d5f18abb;
-both README additions preserved. Pointer-ordering, Foundation page policy and
-lowering rollback required four affected build actions:66.23wall/64.38CPU/
-1075200KiB. Same two CTests pass at merged inputs14.80wall/14.06CPU/125540KiB,
-no skips, same30/60 positives and intentional-nonzero control/zero owners.
-Binary6c7de6923093b639baf4c7ad57236dfe6eb7078c9bc3808130f63f288c01eb0a;
-merged_* logs/source/generated hashes preserved separately, source checks pass.
-Own jobs drained/lock released; no broader acceptance or performance claim.
+D2 final native-reference integration: complete289185f2 preserved in
+3c8cd4571a118006ab7841717e21b4a39c1c4cd4, including B2 child layout. Earlier
+d5f18abb adopted pointer ordering/page policy/lowering rollback: four actions
+66.23wall/64.38CPU/1075200KiB, two checks14.80wall/14.06CPU/125540KiB, binary
+6c7de6923093b639baf4c7ad57236dfe6eb7078c9bc3808130f63f288c01eb0a retained.
+Final eight affected actions100.38wall/97.74CPU/1073896KiB; same two CTests pass
+12.48wall/11.82CPU/123764KiB, no skips, same30/60 positives and intentional
+nonzero control/zero owners. Final binary
+d6f8627aa82314cc4b9b09c94961ecf4a581eb3ac0f3bbd03cbc1cc4d433045d.
+Both README additions preserved; all own test blobs unchanged. Source checks pass;
+original, merged_* and final_* logs/generated hashes stay separate. Own jobs
+drained/lock released; no broader acceptance or performance claim.
