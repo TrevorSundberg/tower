@@ -1,0 +1,23 @@
+# ThreadSanitizer acceptance for dependency permutations and LR lifetimes
+
+All three selected registrations ran once at `e57e13dd1e7861aca452748d919dd2364837d10b`. Both positives passed and the registered wrong-result control rejected the deliberately incorrect literal. No sanitizer finding, timeout, skip or OOM occurred. All three scopes drained.
+
+| Registration | Expected / actual exit | Wall s | CPU s | Peak RSS KiB | Cgroup peak B |
+|---|---:|---:|---:|---:|---:|
+| `tower-lr-worker-equivalence` (charged `lr`) | 0 / 0 | 32.32 | 81.58 | 1,973,800 | 2,166,214,656 |
+| `tower-dependency-permutations` | 0 / 0 | 98.68 | 124.83 | 818,988 | 792,899,584 |
+| `tower-dependency-permutations-wrong-result` | 1 / 1 | 5.69 | 5.62 | 425,868 | 388,317,184 |
+
+**Dependency and effect results.** Seeds 2, 17 and 101 ran at widths of one and two workers, with local and imported declarations. The 16 batches submitted 24 units. Across the 12 success batches, all 36 literal executions passed. The two exports checked the diamond value and ordered argument effects (12). Complete Foundation bytes matched for each serial/parallel pair. The four cycle batches matched on the diagnostic bytes and source offset and published no program. The wrong-result control printed `request unit=1 first actual=1112 wanted=1113` and completed world/budget close before exit 1.
+
+Successful local parallel trials recorded two distinct semantic threads at peak two. Each successful imported parallel trial required two distinct, overlapping unit spans. Serial imports required one thread and disjoint spans. Every batch reported zero joined lanes. The completed-pump checks compared retained bytes and live grants before close, and close checked disposal. The largest reported Tower charge was 154,982,110 B. The LR selector checks exact charge deltas and final zero ownership without printing a numerical peak.
+
+**Selected lifetime assertion.** The executed `lr` branch calls `lr_shared_worker_budget → lr_propagation_budget_trial → lr_propagation_worker_reuse`. After denied growth, retry, incompatible then compatible append, row publication and private-arena disposal, it reads the original graph-owned range and requires both 32 and 35. The generated TSan IR calls `__tsan_unaligned_read4` on each final endpoint load. The synchronous capacity-denial case and the separate caller/worker overlap barrier both passed. D2 previously changed that endpoint from 35 to 36 and recorded exits 0 with the old assertion and 134 with the repair. [Peer control](lr_lifetime_peer_943201fe.md)
+
+**Build boundary.** Production matches c49. The repaired LR test blob is `ba4afae04ca8d463bfe822248c9f82607a5ae491`, and the permutation helper is `f754d3a5e73fbb600c97707f494bafc1a163ebb8`. The pull included later browser fixture work, so the build used a Git snapshot of the requested tree and fresh output paths in the retained WSL TSan cache. The actual Ninja commands rebuilt the parser provider first, then the selector object and executable. These took 23.58 and 7.45 wall seconds respectively. Public bootstrap 745, LLVM 19, CPU 4–15, quota 12, 6 GiB, zero swap and the registered 180-second guards applied throughout execution.
+
+Of 32 linked Tower objects, 30 match the previous c49 hashes, including the checked archive members. The depfiles identify the changed test roots. Nine reused semantic sources had mixed working-tree newlines in the earlier build. Their original byte hashes and normalized Git bytes both verified. All 32 objects have TSan initialization references and 29 have memory hooks. The trial and LR reuse functions contain 58/37 and 101/19 read/write calls respectively. The ELF exports the worker entry and links TSan initialization. Its SHA-256 is `f8177c3f2d9ac6002a15e7ed42254175139511a0061406d7027230e546e43e2b`.
+
+Instrumenter, runtime, transport and prior exit-66 sensitivity inputs matched. The 13 earlier c49 positives and 39 bf positives retain their original source identities. This gate covers the selected native Linux x64 executions. Browser, native ARM, foreign LLVM and source-language UBSan remain outside it. [Earlier c49 TSan receipt](compiler_thread_lr_arena_c49c8b37.md)
+
+The raw directory contains commands, original and instrumented IR identities, depfiles, object/archive/ELF evidence, hook and selector traces, full outputs, memory events and drain checks. The first symbol extraction looked for the source entry name after binding. Reading the actual bound `main` corrected the evidence check without rerunning a test. [Raw evidence](<C:/Sandbox/build/codex_ecs_20261122/L2/thread_permutations_e57e13dd>)
