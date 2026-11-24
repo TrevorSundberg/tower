@@ -46,7 +46,9 @@ export fn main(argc: i32, argv: u8**): i32 {
     check(root.child_count == 1 && root.children[0].entity == nodes[0]
         && nodes[0].parent == root && nodes[0].references == 2
         && nodes[1].parent == null && nodes[1].references == 1);
-    var retained = store.allocation.capacity + root.child_capacity * sizeof(EntityChild);
+    // Partial store/heap-index payload metric, not descriptor pages or total heap.
+    var retained = store.allocation.capacity
+        + (root.children == &root.inline_children[0] ? 0 : root.child_capacity * sizeof(EntityChild));
     for(var i: usize = 0; i < count; i++) { entity_release(nodes[i]); }
     entity_release(root);
     check(store.entity_count == 0 && entity_store_dispose(store));

@@ -1,0 +1,37 @@
+import tower;
+import module_body_type_checks;
+import frontend_units;
+import .host.driver_api;
+import .host.driver_support;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.vector;
+
+var BackendPointerExecutionFuel: usize = 100000000;
+
+// Reuse the existing bounded, world-owned Graph/Fast/canonical trial. This
+// executes already reconstructed text without another LLVM normalization pass.
+fn backend_pointer_order_execute(root: u8*, input: u8*, width: u32): i32 {
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    units_check(driver_read_file(input, &source) && host_text_terminate(&source), "Read exact pointer execution input");
+    return backend_pointer_text_execute(root, source.data, width);
+}
+
+fn backend_pointer_text_execute(root: u8*, source: u8*, width: u32): i32 {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&canonical);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var offset: usize = 0;
+    for(var workers: usize = 1; workers <= 4; workers *= 4) {
+        units_check(module_body_type_trial_steps(root, bedrock.data, foundation.data, source,
+            width, workers, "0\n", null, &canonical, &offset, BackendPointerExecutionFuel), "Pointer canonical execution");
+    }
+    puts("Canonical Graph/Fast: output0, workers1/4, identical text and zero owners passed.");
+    return 0;
+}
