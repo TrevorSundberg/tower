@@ -98494,3 +98494,68 @@ Git tree comparison against the 1,282-path audit yields 1,283 tracked Tower file
 The manager packet is `1d844df1-6345-4f2c-afaf-9206399a69ad.tar.gz`. It contains the frozen and follow-up executables, reactors, input and output hashes, exact commands, observer diff and rows, rejecting control and raw logs. Publication belongs to the manager.
 
 On the follow-up fixture, the repository's LLVM 19 ASan build passed both `lr-bounded` and `lr` with leak detection enabled and empty stderr. The latter took 14.26 s wall, 30.55 s CPU and 1,281,188 KiB peak RSS. The ordinary bounded check passed eight additional fresh processes across two- and four-CPU affinities. Restricting the same binary to one CPU correctly rejected the unmet overlap requirement, exit 134. The TSan build linked the instrumented Tower provider and worker runner. Both selectors exited 139 in TSan startup at its refused `personality(ADDR_NO_RANDOMIZE)` call, before reaching Tower. The OS also refused `setarch -R true`. Rerun the archived thread-instrumented ELF on a Linux x64 host that supports the TSan address layout. The project exposes ASan and TSan modes for generated Tower IR. Source-language UBSan and a passing TSan runtime check remain open.
+### 2026-11-24 · Vast slot 6, integrated Linux ThreadSanitizer
+
+Assignment `69752af1-331b-4221-acdc-0cb65bed7f8b` froze main at
+`12ab4cae717d4879e393704a8d3b9a1f635bd4f2`, tree
+`3b9bdf81f2c56dfd792e3053af89f3e5acb5189c`. The
+[earlier permutation receipt](compiler_thread_permutations_e57e13dd.md)
+provides the literal, overlap and cleanup expectations. The
+[cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) identifies the
+merged serial action-row refusal and zero/one private-chunk worker cases.
+Every archived tracked blob matched the freeze. The initial tar comparison
+reported extraction ownership and mode differences. The byte check used
+Git blob hashes. The slot's previous ordinary build supplied no test objects.
+
+The slot's completed TSan preflight at this freeze provided a shared-budget
+worker pass and a deliberate race. Its raw outputs, binaries, tool hashes and
+receipt checksums verified. The race exited 66 with conflicting eight-byte
+accesses from T1 and T2 in `work_kernel_execute`. Stderr also contains a
+symbolizer warning for `[stack]`. After the preflight released its lock,
+the same private Ninja cache gained the backend test registration. The public
+Linux x64 bootstrap SHA-256 was
+`77f23db6124377e49dd677714aaca147d507a80f05928a71c3cc18faa0040a0c`.
+The Release build used Clang/LLVM 19.1.7, the Tower IR instrumenter, two
+outer build jobs and one bootstrap worker. The direct worker selector passed
+its sixteen barrier rounds and both early-return drains. The intentionally
+wrong permutation rejected 1113 with actual 1112 and exited 1 after checked
+close. The raw exit and both output streams are retained for each control.
+
+All nine selected positive invocations exited 0. The two negative controls
+returned their expected diagnostics and exits. `lr` checked both merged
+action refusal paths, retry, worker join and reference equivalence in 72.68 s
+wall, 249.19 s CPU and 1,971,852 KiB peak RSS. `dependency-permutations`
+ran all 16 batches in 160.63 s wall, 200.37 s CPU and 778,864 KiB RSS.
+The 24 inputs produced 23 starts, with the second serial imported-cycle
+unit unstarted as expected. Local successful parallel cases observed two
+semantic threads at peak two. Parallel imports checked intersecting spans
+on two unit threads. Canonical bytes, effects, cycle diagnostics and all
+16 closes passed. Peak charge was 147,581,348 bytes, joined lanes zero.
+
+The wider selectors passed bounded LR denial/retry, 150 reference grammar
+trials, scratch-budget transactions, nested unit admission and query
+continuations. The LR-order driver initially rejected stderr after the test
+exited 0. Its two accounting lines matched the fixture's writes to file
+descriptor 2. Both statuses and the original bytes were kept, and the run
+resumed at the next selector. Query finished in 221.09 s wall with actual
+four-thread overlap at both target widths. Unit admission measured 182,220 ns
+from nested release to the next ready outer start and checked cancellation.
+
+Five byte-identical link-map replays established 45 unique linked Tower
+objects with TSan initialization, including 32 in the LR test executable
+(SHA-256 `efa6464013301534f2b8c6223358d6bba902c92f84a668689f00422f3841569e`).
+41 objects had access hooks. The host exposed CPUs 0–11, quota 11.52 CPUs,
+32,282,509,312 bytes of memory and zero swap. The largest sampled whole-slot
+memory.current was 8,888,057,856 bytes. The kernel supplied no memory.peak
+counter. Throttling and OOM events stayed zero. Times are one execution per
+selection on this Linux x64 host. Serial fault controls cover their own paths.
+The deliberate race was the sole TSan report. All build and test jobs drained.
+
+The manager packet `69752af1-331b-4221-acdc-0cb65bed7f8b.tar.gz`
+is 39,655,805 bytes, SHA-256
+`3132741e5a578fc45d6914d0339978629352ff55bd05c6900ae1d680d0cfc497`.
+All 506 entries verified after extraction. It contains the exact commands,
+configuration, resources' hashes, original and instrumented IR, linked
+objects and executables, raw controls and per-phase measurements.
+The manager can attach this receipt to the integrated freeze. Changed inputs,
+other schedules, foreign LLVM and other hosts require separate validation.
