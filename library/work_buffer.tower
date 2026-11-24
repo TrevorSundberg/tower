@@ -10,13 +10,31 @@ extern fn compiler_buffer_alignment(): usize;
 
 var WorkBufferInitialElements: usize = 8;
 
-fn work_buffer_dispose(buffer: WorkBuffer*): void {
-    compiler_buffer_free(bits(void*, buffer.data));
-    if buffer.reservation.active
-        && work_budget_release_result(buffer.reservation.owner, &buffer.reservation) != WorkBudgetError.None {
+fn work_buffer_release(data: void*, reservation: WorkReservation*): void {
+    compiler_buffer_free(data);
+    if reservation.active
+        && work_budget_release_result(reservation.owner, reservation) != WorkBudgetError.None {
         trap("Invalid retained buffer budget receipt", 0);
     }
+}
+
+fn work_buffer_dispose(buffer: WorkBuffer*): void {
+    work_buffer_release(bits(void*, buffer.data), &buffer.reservation);
     *buffer = default;
+}
+
+// The typed vector owns these fields. Borrow their slots synchronously instead
+// of specializing the transactional buffer protocol for every payload type.
+// No pointer or receipt escapes; failure preserves all four owner fields.
+fn work_buffer_vector_reserve(data: u8**, length: usize, capacity: usize*, reservation: WorkReservation*,
+    budget: WorkBudget*, needed: usize, size: usize, alignment: usize): WorkBudgetError {
+    var buffer = init(WorkBuffer) {data: *data, capacity: *capacity * size, reservation: *reservation};
+    var result = work_buffer_grow_elements(&buffer, budget, length, *capacity, needed, size, alignment);
+    if result != WorkBudgetError.None { return result; }
+    *data = buffer.data;
+    *capacity = buffer.capacity / size;
+    *reservation = buffer.reservation;
+    return WorkBudgetError.None;
 }
 
 // Reserve the whole replacement before allocation: old and new coexist during
