@@ -1,27 +1,30 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Current integration checkpoint — joined59d7dc9e (2026-11-24)
+## Current integration checkpoint — accepted59d and published SCC (2026-11-24)
 
 The original goal remains **open**. [Latest normal/shared artifacts and independent
 kind-layout review](entity_kind_review_release_59d7dc9e.md) cover published59d7dc9e.
-All build phases pass with public bootstrap/frozen inputs and no warning/error matches.
-The preceding d962 pair now passes full entity_pages, both large T9 cases and complete
-shared suites; later59d adoption is separate. No new hosted runtime is published.
+The59d ownership pair/large request, complete shared suites, two actual edited
+browser generations and T6/T7 selections now pass. The complete59d development
+bootstrap passes [clean default successor adoption](bootstrap_adoption_59d7dc9e.md).
+The later [SCC provider](compiler_lr_scc_provider_59d7dc9e.md) is published with
+measured serial benefit; its browser integration is running. No new hosted runtime
+is published. These source boundaries remain separate.
 The same twelve acceptance requirements remain:
 
 | Original scope | Current evidence / remaining work |
 | --- | --- |
-| Authoritative ECS / storage | Inline child c12c2189 has D1 peer review and B2 complete large/fault/manual acceptance cee3ef7c. Sparse immutable kind layout8471cf97 is published, with ROOT independent26-path review and coherent59d artifacts; current ownership adoption is running. Isolated savings remain separate. |
-| Lazy decltype / comptime / dependencies | Earlier capture/alias/module repairs remain published. Seeded three-unit cancellation/effect/false-cycle fixture e68981c3 now has ROOT source review; recovery uses fresh worlds, not retained-session invalidation coverage. |
-| Within-unit concurrency | Ready body/subtree work uses shared scheduling; measured single-unit best1.063x remains the limit. Serial parsing/preparation still dominates. B1 SCC draft was restored after public-bootstrap expansion failure; a bounded build-unblocking task is active, no candidate speedup accepted. |
-| Cross-unit / shared worker budget | Existing native/Windows/shared overlap evidence remains source-bound. Changed storage now has coherent normal/shared artifacts; current shared adoption and unsupported-host limits remain open. |
+| Authoritative ECS / storage | Inline child c12c2189 and sparse immutable kind layout8471cf97 have exact independent reviews. Current59d T8 views/registry, full shared tests and exact large reconstruction pass. Stable payload pages and dense pointer indexes are not packed payload SoA; measurements must justify further storage changes. |
+| Lazy decltype / comptime / dependencies | Earlier capture/alias/module repairs and seeded cancellation/effect/false-cycle coverage retained. D2 retained-owner regression1040c73e adds14 exact outputs, failure/repair, partial Fast replacement, actual two-kernel overlap and zero owners. It proves full recompilation on retained owners, not persistent semantic-cache invalidation or mid-compile editing; L1 peer review active. |
+| Within-unit concurrency | Combined59d single4096 best1.072x; serial parsing/preparation dominates. B1 SCC now builds through a typed budgeted provider with public768; matched serial CLI improves about7%, parallel remains flat. Independent review/browser adoption active. A1 targets measured duplicate token recognition; no speculative speedup accepted. |
+| Cross-unit / shared worker budget | Combined59d multi12x256 reaches2.79x serial at8;12 adds CPU/memory without wall benefit. Actual threads/budgets measured. New59d shared Node3/fullmatrix plus strict browser3/ownership9 and T6eight/T7seven pass; unsupported-host limits remain. |
 | Deterministic ordering / cancellation | Earlier shared retirement/error controls and new seeded ordering/cancellation fixture retained. No universal race-freedom claim or inference from queue width. |
-| Checked resource ownership | Native32/64 large optimized, second-normalization and executable paths pass at their recorded sources. d962 full entity_pages0aa8488e and T9 pair8771b949 pass126 phase records/42 output assertions combined. D1 found a counted-text termination bug in the new signed test fixture; fixa80a766f awaits L1 positive/negative runtime acceptance. Current59d ownership adoption is separate. |
-| Source audit | Earlier full/finite audits retained. ROOT seeded/native-overflow/kind-layout reviews, D1 pointer/codec/child/signed reviews and D2 constant-address review are complete at exact blobs. Signed-fixture repair and D2 durable sub/output-registration controls require execution adoption; D1 is reconciling the finite later path map. |
-| Measured serial / scaling / memory | Child large paired4.6–6.1% faster, n2 limitation retained. Foundation policy saves277357681B on reconstruction; independent frontend saves13.67MB with serial+1.37%/four−0.25% wall. Lowering guard3011c77f was reverted after small-case regression. These gains are not additive or full-core acceptance. |
+| Checked resource ownership | Earlier d962 full large cases retain126 phases/42 outputs.59d T8 pair passes12 LLVM calls/20 outputs; exact972596B reconstruction matches all4709291 reference bytes at1577844736B LLVM capacity, below2GiB. Signed-fixture a80 positive/negative/restored acceptance now passes. B1 repairs a separately preserved parser trace fault-oracle failure. |
+| Source audit | Earlier full/finite audit plus D1's65-path map retained. ROOT5a04375a independently adopts D2 sub/output registration and L1 host artifact retention; signed repair runtime closes. D1 reconciles exact receipt identities and residual storage scope; L2 reviews new SCC, L1 retained-owner fixture, D2 package provenance. |
+| Measured serial / scaling / memory | Combined59d serial4096 charged peak590004506→553734297B, live grants489669→285548, ledger40→20MiB. Multi8 wall improves18.7% versus3011 and2.79x versus current serial. Small remains fastest serial, single scaling weak, CLI still trails Clang substantially. SCC's7% serial gain is separately source-bound; isolated gains are never added. |
 | Current supported sanitizers | OPEN/service-blocked. Do not retry, rephrase or route around the rejected operation; historical checks and serial fault modes do not close current threaded coverage. |
-| Whole-generation / public bootstrap | a18 complete38-binary/54-payload candidate is superseded as a release candidate. A2 is building the complete59d native generations/package; public2013ad28/768a0cdf remains unchanged. Current pin/default adoption stays open. |
-| Normal / shared / browser generations | d962 full large cases and shared Node3/browser3+9 pass, actual worker/target drain checked.59d normal/LLVM/cross/shared builds pass; L1 edited browser generations, L2 ownership pair/large request and B2 static packaging/four scoped UI checks are active. Later-source shared adoption and final release gates remain open. |
+| Whole-generation / public bootstrap | Complete59d eeb00571 predecessor,2294024B, replaces768 with all resources/provenance;38binary/54payload generation equality and relocation pass. ROOT clean nooverride current successor53actions38.91s/896052KiB and16 host checks pass. Later SCC source is in the successor, not relabeled into the pinned predecessor. |
+| Normal / shared / browser generations | All59d builds and ownership/shared/T6/T7 gates pass; two edited browser generations match24objects/3reactors,6actual worker exits. Static package102files/105716512B passes4 scoped desktop/mobile checks. B2 builds coherent later SCC bundle; no old result automatically covers new code. |
 | Final atomic hosted release | Existing Pages6f142bef runtime source013ae550/build98ade8cc retained. Local deployment verifier remains service-blocked/unstarted; final package/atomic new-runtime/hosted behavior acceptance is open. |
 
 Individual receipts retain exact frozen sources, failed runs and validation limits.

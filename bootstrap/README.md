@@ -6,11 +6,16 @@ with the platform `sha256sum` command and returns the compiler path. There is
 no installer, unpacking step, bootstrap cache or Python dependency on this path.
 `TOWER_BOOTSTRAP_COMPILER` remains an explicit development override.
 
-The current pin includes the Tower hosted ELF linker and `--link-executable`.
-The complete compiler executable was linked by Tower against the system LLVM
-library, with source provenance refreshed to `98ade8cc` after fixture/documentation
-rebase whose compiler/build inputs are unchanged from `cbcd24a9`. Its
-executable and adjacent resources are hashed together in `development.json`.
+The current pin includes the Tower hosted ELF linker and `--link-executable`,
+world-owned compiler work, dependency scheduling and the published ECS storage
+improvements at `59d7dc9e`. The complete Tower-built executable is 2,294,024 bytes,
+SHA256 `eeb005717318086c145428edc3b6b784d4729df7ef0514c7329e0a18b76dda9c`.
+All 38 actual native build binaries match across three generations; all 54 package
+payloads and their checksums match across generations two and three. Exact source,
+host dependencies, failures and relocation evidence are in the
+[generation receipt](../docs/compiler_generation_59d7dc9e.md). Executable and
+adjacent resources are hashed together in `development.json`; later SCC changes
+are not part of this predecessor's frozen source identity.
 An empty-cache successor build through the default path, without a private
 bootstrap override, builds and links the compiler and its Linux helper tools
 using Tower. The separate host linker argument has been removed from `build_tools`.
