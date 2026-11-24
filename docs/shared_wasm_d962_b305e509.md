@@ -33,4 +33,5 @@ Existing Tower process_profile includes waited child CPU; RSS is a process high-
 These are validation costs, not throughput/scaling or child-storage savings; initialization and work differ across modes. No production edit means before/after runtime profiling is inapplicable.
 Raw `C:/Sandbox/build/codex_ecs_20261122/B2/shared_d962_b305e509` and `/cache/shared_d962_b305e509`: SOURCE/host archive, old/new artifacts, setup/node/browser/verify wrappers, all hashes/imports, TAP/phases/worker IDs, both browser reports/boundary logs and costs.
 All requested shared-thread gates complete. No static UI/package/generation/instrumentation/hosted check; rejected local deployment verification untouched. ROOT owns final release and later-source acceptance.
-Frozen artifact/resource identities remain unchanged through publication; later incoming source histories are preserved without relabeling this receipt. Owned jobs drained before publication.
+Integration `5d40aeb7` preserves published `59d7dc9e`, including A1 sparse-kind layout/caller changes. Those later sources are outside both the d962 reactor and b305 resource freeze; unchanged frozen evidence is reused, not relabeled.
+Artifact/resource/host hashes verify again after joining histories. Owned jobs drained before publication; no later-source acceptance is implied.
