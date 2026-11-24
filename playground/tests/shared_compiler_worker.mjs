@@ -49,15 +49,19 @@ self.onmessage = async ({data}) => {
         {tower:builtins.tower, builtins, threads:{capacity, workerFactory}});
       owner.configureModules({files});
       const {memory} = owner.exports;
-      for (const name of ['evaluation_query_tests', 'semantic_stage_tests']) {
+      for (const name of mode === 'lr-bounded' ? [] : ['evaluation_query_tests', 'semantic_stage_tests']) {
         const code = phase(name, memory, () => owner.exports[name](4, capacity));
         if (code !== 0) throw new Error(name+' returned '+code);
       }
-      if (capacity > 1) {
+      if (capacity > 1 && mode !== 'lr-bounded') {
         for (const name of ['lr_work_tests', 'semantic_world_tests']) {
           const code = phase(name, memory, () => owner.exports[name](4));
           if (code !== 0) throw new Error(name+' returned '+code);
         }
+      }
+      if (capacity > 1) {
+        const name = 'lr_bounded_propagation_tests';
+        if (phase(name, memory, () => owner.exports[name]()) !== 1) throw new Error(name+' failed');
       }
       for (const fixture of fixtures) for (const fast of [false, true]) {
         const result = phase(fixture.name+(fast ? ':fast' : ':graph'), memory, () => {

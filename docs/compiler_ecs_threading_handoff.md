@@ -1,5 +1,9 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Current release work (2026-11-24)
+
+The [Linux x64 bootstrap](bootstrap_pin_c49c8b37.md) now contains the c49 compiler and its complete resources. Its [ordinary native milestone](native_acceptance_c49c8b37.md) passed 94 registrations and 23 direct checks. The [bounded LR fixture](shared_browser_lr_budget_943201fe.md) subsequently exercised charged denial, retry and retirement on both native Linux and shared Chromium. The browser release and clean build using the published c49 bootstrap are tracked independently. Work on cold parsing and multi-core efficiency continues.
+
 ## R4 publication and subsequent implementation work (2026-11-24)
 
 The r4 native compiler is published and independently adopted. The exact tested
@@ -17,7 +21,7 @@ Later main changes are separate candidates, not code validated by this release.
 | Browser and exact site artifacts | [B2 runtime/local-site acceptance](final_browser_static_3c0ccdce.md), [D2 independent source/artifact review](browser_static_peer_3c0ccdce.md), including actual two-generation binary sets |
 | Hosted behavior | [Full current hosted acceptance](hosted_acceptance_3c0ccdce.md):104 served members, desktop/mobile/real Linux3/3, redirects/TLS and worker drain pass. The [original input wait failure](hosted_r4_wait_6496eb01.md) remains historical, not relabeled. |
 
-The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
+The [current whole-scope audit](compiler_ecs_reconciliation_4e7ef17b.md) still requires
 cold serial cost and profitable core efficiency. Bounded LR scratch accounting
 now has implementation, independent peer and joined instrumentation evidence below.
 L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
@@ -62,18 +66,35 @@ all source/provenance and payload identities reconcile, and five relocated
 commands pass with exact results and drained ownership. There is no new public
 native pin or browser release.
 
-B1's matched whole-host cohort preserves exact outputs and lower memory, with
-multi-file serial/four-worker means improving28.57%/29.85%. However, multi-file
-32-worker wall/CPU regress37.58%/34.18%, in both counterbalanced pairs. Existing
-phase observations concentrate the extra cost in LR lookahead solving; they do
-not prove a particular lock defect. B1 owns the scoped propagation allocation
-repair in its existing context, preserving bounded accounting and worker policy.
-The original cohort remains immutable. A2 separately owns a measured cold
-grammar-version construction improvement, excluding B1's LR work/analysis and
-shared budget/arena paths. Both tasks have complete inputs before launch.
-Closed B2 remains closed until its real browser inputs and host are available.
-Any accepted production repair needs its own source boundary and affected
-validation; passing bf instrumentation cannot be relabeled as the repair's pass.
+B1's [complete cohort and published propagation repair](compiler_combined_r5_bf9429d9.md)
+preserve the original bf multi32 regression and separate repair measurements.
+Implementation `f17fee95`, joined `c49c8b37`, moves private worker chunks into
+graph-owned scratch after joining. Final paired multi32 wall/CPU improve
+3.268/33.743 to1.612/16.583 seconds with unchanged retained bytes. Small serial
+results are mixed, and32 remains slower than8; this is not full-core profitability.
+The [affected c49 TSan gate](compiler_thread_lr_arena_c49c8b37.md) passes13 actual
+processes with observed LR4/semantic8/outer12 overlap,56 complete artifact
+comparisons and52 literal42 executions. The [affected ASan gate](lr_arena_asan_c49c8b37.md)
+passes11 executions, including partial-arena denial/retry and independent-row
+retirement. [Independent producer review](lr_arena_peer_c49c8b37.md) accepts the
+repair and adds borrowed-row reuse coverage. The later merged test overlay is
+explicitly separate from the original instrumentation inputs.
+[Actual shared-Wasm acceptance](shared_browser_c49c8b37.md) passes three strict
+trials and four ownership modes, with real overlap and complete worker retirement.
+Its unbound-world export does not execute the charged denial branch; a focused
+bounded-world test addition is underway. All instrumentation/host limits remain.
+
+A2's [cold validation queue experiment](compiler_cold_validation_bf9429d9.md)
+was rejected and restored exactly. Mismatched profiler samples remain excluded;
+the corrected cohort still did not justify adoption. A2 now builds the complete
+c49 native successor, L2 runs its ordinary native milestone, and B2 builds the
+complete c49 browser/static release. All have frozen inputs before launch.
+A1's capture-stage experiment is rejected pending its final restoration receipt;
+B1's action-allocation candidate remains separate from c49 and its validation.
+[D2's bounded dependency permutations](dependency_permutations_4e7ef17b.md)
+pass known-result, serial/parallel, within/across-unit overlap and cycle controls;
+L1 independently reviews the fixture and exact failing-oracle control. Passing bf
+checks are not relabeled as current c49 checks.
 The original performance and final public-adoption goal remains open.
 
 ROOT starts agents only when their concrete task, inputs and host availability
@@ -86,16 +107,23 @@ their shared-host and counterbalanced-sample limitations. ROOT publishes one
 KinmenB-built, independently reviewed site; GitHub Pages serves the prebuilt
 gh-pages branch. Documentation-only reconciliation reuses exact tested assets.
 
-## Current scope reconciliation (2026-11-24, 7e9c91a0)
+## Current scope reconciliation (2026-11-24, 4e7ef17b)
 
-[Independent whole-scope reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
-accounts for all1281 tracked Tower paths and identifies five remaining acceptance
-items: cold serial cost, useful-core efficiency, bounded parser scratch accounting,
-independent current browser artifact peer and hosted adoption. Current r4
-native/ASan/TSan, public745afa2f clean default adoption and B2's browser/static
-controls pass at their exact boundaries; hosted03e evidence remains historical. The tables below
-retain their original source identities and pending states, superseded only by
-the linked current requirement/evidence map. There is no completion percentage.
+[Independent finite reconciliation](compiler_ecs_reconciliation_4e7ef17b.md)
+accounts for all1282 tracked Tower paths:1254 exact baseline reuses and28 current
+peer-reviewed deltas, with one addition and no deletion. No unassigned source-review
+gap remains at this freeze. Named bounded LR scratch and the old r4 browser-peer/
+hosted gaps are closed at their stated source identities. Cold serial cost, useful-core
+efficiency (including bf's measured multi32 regression) and final successor adoption
+remain open. bf native94+23, ASan60, TSan39 and complete native-package checks pass;
+public745/site6313 remain r4, not bf. Active owner repairs are later deltas requiring
+their own affected validation. Reconciliation received B1's publishedf17fee95/c49 repair
+in compiler/tests `lr_work.tower`: ROOT read its exact blobs; B2's complete peer and
+L1/L2 affected instrumentation remain assigned pending gates. These two current rows
+are explicitly separate from the frozen1282/28-path review closure. General
+specialization is a proposal outside this gate.
+The historical tables below retain their original pending states and limitations;
+this linked current map supersedes those status claims, without a completion percentage.
 
 ## Published 03e milestone and next performance work (2026-11-24)
 
