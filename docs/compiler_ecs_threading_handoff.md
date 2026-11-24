@@ -18,8 +18,8 @@ Later main changes are separate candidates, not code validated by this release.
 | Hosted behavior | [Full current hosted acceptance](hosted_acceptance_3c0ccdce.md):104 served members, desktop/mobile/real Linux3/3, redirects/TLS and worker drain pass. The [original input wait failure](hosted_r4_wait_6496eb01.md) remains historical, not relabeled. |
 
 The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
-cold serial cost, profitable core efficiency and bounded LR scratch accounting.
-L1 owns the accounting migration through existing WorkBuffer/work_vector.
+cold serial cost, profitable core efficiency and acceptance of bounded LR scratch
+accounting. L1's published migration and pending peer are recorded below.
 L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
 has a [B1 peer and published AArch64 attribute-storage repair](worker_sync_peer_13b2d718.md).
 [D1 independently accepted that repair](worker_gate_abi_peer_740d891e.md) and
@@ -42,10 +42,18 @@ Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs.
 [D1 independently accepted the source and behavior](grammar_emission_peer_5fac6131.md):
 six focused selections pass and complete owner outputs reconcile. The performance
 measurements remain attributed to their stated source and host.
-L1's bounded parser-scratch migration still needs its concurrent overhead resolved.
-A1 native acceptance, A2 package generations, L2 thread instrumentation and B1
-whole-host performance await the actual accepted source freeze. B2 browser builds
-also wait for B1's exclusive host measurements to finish.
+[L1's bounded parser-scratch accounting](lr_scratch_accounting_b7ba9df6.md) is
+published as `bf9429d900`: nine focused checks and twenty paired compilations pass,
+followed by nine merged-source checks and a complete four-worker multi-file comparison.
+The ownership-only cohort retains small serial11.5% and multi-file16.7% wall cost;
+those measurements cannot be combined arithmetically with the separate grammar gains.
+D2 independently reviews its actual source, seven checked executables and full evidence.
+The frozen combined candidate is `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tree
+`9fa65da4d4d4ad697b4a97e56bb894021076d106`. A1 native acceptance, A2 package
+generations, L1 address instrumentation, L2 thread instrumentation and B1 whole-host
+performance are released to proceed alongside that peer. These are pending checks,
+not a validated runtime release. B1 must match provider flags and bootstrap closure;
+B2 browser builds wait for its exclusive measurements and real public package inputs.
 Final joined instrumentation and release
 must cover accepted subsequent production changes. The original goal is open.
 
