@@ -98359,3 +98359,8 @@ Frozen c49c8b37/public745 built native, portable, LLVM/cross and shared reactors
 ### 2026-11-24 L2 — dependency permutation and charged LR lifetime TSan acceptance
 
 At frozen e57e13dd1 with production c49, the two positive registrations passed under their 180-second guards. The registered wrong-result control exited 1 with actual 1112 versus wanted 1113 after checked close. The 16 permutation batches submitted 24 units, compared complete canonical output and cycle diagnostics, and exercised two distinct overlapping inner and outer workers in their respective trials. Charged LR reached the final original-range 32/35 reads after private disposal. No findings, timeouts, skips, remaining owners or OOM. Two changed objects rebuilt, 30 reused, prior sensitivity verified. Runtime timings, peak charge/RSS, exact source and raw proof are in [the receipt](compiler_thread_permutations_e57e13dd.md). The later browser fixture is outside this freeze.
+
+
+### 2026-11-24 A1 native backend execution-index preparation
+
+Filtered absent optional Foundation children before the private backend stack push. The 1,000-function object compile removed 38,032 null pushes and reduced capacity from 2,048 to 1,024 slots. Eight first-use pairs per worker count reduced median index CPU from 1.596 to 1.455 ms (jobs 1) and 1.564 to 1.370 ms (jobs 4). Whole-process results were mixed, including a 1.7 ms four-worker median increase. All 48 timed objects matched. Execution-index allocation/identity/cleanup, 32/64 canonical/Graph/Fast/LLVM, native and wasm32 execution passed. The merged frontend/LR closure reproduced the checked outputs. [Measurements, diagnostic correction and exact identities](backend_execution_children_8df35bf8.md).
