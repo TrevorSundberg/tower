@@ -25,7 +25,8 @@ extern fn semantic_program_dispose(program: SemanticProgram*): void;
 
 extern fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendSource*, count: usize, environment: void*): void;
 
-extern fn frontend_modules_depfile(environment: void*, output: u8*, path: u8*): bool;
+extern fn frontend_modules_depfile_inputs(environment: void*, output: u8*, path: u8*, append: bool,
+    inputs: u8**, count: usize): bool;
 
 extern fn sem_get(node: void*): FoundationNode*;
 
