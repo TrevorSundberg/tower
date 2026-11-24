@@ -3,6 +3,9 @@ import work_graph;
 import entities;
 import entity_types;
 import compiler_work_types;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
 
 // Coordinator metadata on ordinary ECS entities. Worker recipe/result components
 // attach to this same subject. Program graphs remain in each unit's exclusive
@@ -13,6 +16,7 @@ struct CompilerWorkUnit { ordinal: usize; task: usize; }
 // ordinals are stable recipe/source order. The host transports sources and owned
 // artifacts; it never shares entity pointers or LLVM contexts between workers.
 struct CompilerWork {
+    allocation: WorkBuffer;
     graph: WorkGraph;
     store: EntityStore*;
     owner: Entity*;
@@ -31,70 +35,91 @@ export fn compiler_work_close(work: CompilerWork*): void {
         if work.owner is not null { entity_release(work.owner); }
         if work.kind is not null { entity_release(work.kind); }
         if work.store is not null && !entity_store_dispose(work.store) { trap("Compiler unit store still borrowed", 0); }
-        free(work);
+        var allocation = work.allocation;
+        work_buffer_dispose(&allocation);
     }
 }
 
 export fn compiler_work_create(units: usize, workers: usize, revision: u64, profile: u64): CompilerWork* {
+    var work: CompilerWork* = null;
+    compiler_work_create_result(units, workers, revision, profile, null, &work);
+    return work;
+}
+
+// Used only before dispatch: release every partially constructed owner while
+// preserving the first typed failure beyond their destruction.
+fn compiler_work_create_failed(work: CompilerWork*): WorkBudgetError {
+    var result = work.graph.resource_error;
+    // Graph shape errors need no allocation receipt. Entity operations below
+    // return their own typed cause instead of consulting a shared store field.
+    if result == WorkBudgetError.None { result = WorkBudgetError.Invalid; }
+    compiler_work_close(work);
+    return result;
+}
+
+export fn compiler_work_create_result(units: usize, workers: usize, revision: u64, profile: u64,
+    budget: WorkBudget*, output: CompilerWork**): WorkBudgetError {
+    if output == null || *output != null { return WorkBudgetError.Invalid; }
     var invalid = units == 0;
     invalid ||= workers == 0;
     if invalid {
-        return null;
+        return WorkBudgetError.Invalid;
     }
-    var work = alloc(CompilerWork, 1);
-    if work == null {
-        return null;
-    }
+    var allocation: WorkBuffer = default;
+    var result = work_buffer_resize(&allocation, budget, sizeof(CompilerWork), 0);
+    if result != WorkBudgetError.None { return result; }
+    var work = bits(CompilerWork*, allocation.data);
     *work = default;
-    work_init(&work.graph, revision, profile);
-    work.store = entity_store_create();
-    if work.store is null { compiler_work_close(work); return null; }
-    work.owner = entity_create(work.store);
-    work.kind = entity_create(work.store);
-    if work.owner is null || work.kind is null
-        || !entity_register(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0) {
-        compiler_work_close(work);
-        return null;
-    }
+    work.allocation = allocation;
+    if !work_init_budget(&work.graph, revision, profile, budget) { return compiler_work_create_failed(work); }
+    result = entity_store_create_result(budget, &work.store);
+    if result != WorkBudgetError.None { compiler_work_close(work); return result; }
+    work.owner = entity_create_result(work.store, &result);
+    if work.owner is null { compiler_work_close(work); return result; }
+    work.kind = entity_create_result(work.store, &result);
+    if work.kind is null { compiler_work_close(work); return result; }
+    result = entity_register_stage_result(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0, 0);
+    if result != WorkBudgetError.None { compiler_work_close(work); return result; }
     work.units = units;
     work.workers = workers;
     var i: usize = 0;
     for(; i < units; i++) {
-        var node = entity_create(work.store);
-        if node is null { compiler_work_close(work); return null; }
-        var attached = entity_attach(node, work.owner, null);
+        var node = entity_create_result(work.store, &result);
+        if node is null { compiler_work_close(work); return result; }
+        result = entity_attach_result(node, work.owner, null);
         entity_release(node);
-        if !attached { compiler_work_close(work); return null; }
-        var unit = bits(CompilerWorkUnit*, entity_component_data(entity_component_add(node, work.kind)));
-        if unit is null { compiler_work_close(work); return null; }
+        if result != WorkBudgetError.None { compiler_work_close(work); return result; }
+        var component = entity_component_add_result(node, work.kind, &result);
+        if component is null { compiler_work_close(work); return result; }
+        var unit = bits(CompilerWorkUnit*, entity_component_data(component));
         unit.ordinal = i + 1;
         var task = work_request(&work.graph, bits(void*, node), convert(u32, CompilerQuery.Unit), convert(u64, i));
+        if task == 0 { return compiler_work_create_failed(work); }
         unit.task = task;
         // One exclusive unit recipe/result range, shared by native and isolated
         // transports. The join reads every completed range after dependencies.
         if !work_access(&work.graph, task, CompilerUnitDomain, CompilerProgramComponent, i, 1, WorkAccessMode.Write)
             || !work_seal(&work.graph, task) {
-            compiler_work_close(work);
-            return null;
+            return compiler_work_create_failed(work);
         }
     }
     var join = work_request(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
+    if join == 0 { return compiler_work_create_failed(work); }
     i = 0;
     for(; i < units; i++) {
         var task = compiler_work_unit(work, i + 1).task;
         if !work_depend(&work.graph, join, task) {
-            compiler_work_close(work);
-            return null;
+            return compiler_work_create_failed(work);
         }
     }
     var valid = work_access(&work.graph, join, CompilerUnitDomain, CompilerProgramComponent, 0, units, WorkAccessMode.Read);
     valid &&= work_seal(&work.graph, join);
     valid &&= work_demand(&work.graph, join);
     if !valid {
-        compiler_work_close(work);
-        return null;
+        return compiler_work_create_failed(work);
     }
-    return work;
+    *output = work;
+    return WorkBudgetError.None;
 }
 
 // Borrowed stable entity, valid until close. Callers attach recipes/results before

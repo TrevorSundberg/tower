@@ -8,6 +8,8 @@ import bytes_types;
 var DeflateWindow: usize = 32768;
 var DeflateHashBuckets: usize = 4096;
 var DeflateSearchLimit: usize = 64;
+// Only short matches justify another bounded search; retain long matches directly.
+var DeflateLazyLimit: usize = 32;
 var DeflateMinimumMatch: usize = 3;
 var DeflateMaximumMatch: usize = 258;
 var DeflateStoredLimit: usize = 65535;
@@ -105,10 +107,39 @@ fn deflate_match(writer: DeflateBits*, length: usize, distance: usize): void {
     }
 }
 
-fn deflate_hash(data: u8*): usize {
+fn deflate_hash(data: u8*, buckets: usize): usize {
     var multiplier: usize = 251;
     return ((convert(usize, data[0]) * multiplier + convert(usize, data[1])) * multiplier
-        + convert(usize, data[2])) & (DeflateHashBuckets - 1);
+        + convert(usize, data[2])) & (buckets - 1);
+}
+
+struct DeflateMatch { length: usize; distance: usize; }
+
+// Counts are the power-of-two capacities allocated by the owning encoder.
+fn deflate_find(data: u8*, length: usize, position: usize, heads: usize*, buckets: usize,
+    previous: usize*, window: usize): DeflateMatch {
+    var best: DeflateMatch = default;
+    if length - position < DeflateMinimumMatch { return best; }
+    var candidate = heads[deflate_hash(data + position, buckets)];
+    var maximum = length - position;
+    if maximum > DeflateMaximumMatch { maximum = DeflateMaximumMatch; }
+    var attempts: usize = 0;
+    var absent = ~convert(usize, 0);
+    while candidate != absent && candidate < position && position - candidate <= window
+        && attempts < DeflateSearchLimit {
+        var count: usize = 0;
+        while count < maximum && data[candidate + count] == data[position + count] { count++; }
+        if count > best.length && count >= DeflateMinimumMatch {
+            best.length = count;
+            best.distance = position - candidate;
+            if count == maximum { break; }
+        }
+        var next = previous[candidate & (window - 1)];
+        if next >= candidate { break; }
+        candidate = next;
+        attempts++;
+    }
+    return best;
 }
 
 fn deflate_fixed(data: u8*, length: usize, limit: usize, out: ByteBuffer*): DeflateAttempt {
@@ -127,41 +158,40 @@ fn deflate_fixed(data: u8*, length: usize, limit: usize, out: ByteBuffer*): Defl
     var block_header_bits: u32 = 3;
     deflate_put(&writer, fixed_final, block_header_bits);
     var position: usize = 0;
+    var next: DeflateMatch = default;
+    var prepared = false;
     while position < length && writer.ok && !writer.larger {
-        var matched: usize = 0;
-        var distance: usize = 0;
+        var best = prepared ? next : deflate_find(data, length, position, heads, DeflateHashBuckets, previous, DeflateWindow);
+        prepared = false;
+        // Insert this start once before lookahead, so distance-one matches remain
+        // visible. If lookahead wins, reuse its result on the next iteration.
         if length - position >= DeflateMinimumMatch {
-            var candidate = heads[deflate_hash(data + position)];
-            var maximum = length - position;
-            if maximum > DeflateMaximumMatch { maximum = DeflateMaximumMatch; }
-            var attempts: usize = 0;
-            while candidate != absent && candidate < position && position - candidate <= DeflateWindow
-                && attempts < DeflateSearchLimit {
-                var count: usize = 0;
-                while count < maximum && data[candidate + count] == data[position + count] { count++; }
-                if count > matched && count >= DeflateMinimumMatch {
-                    matched = count;
-                    distance = position - candidate;
-                    if count == maximum { break; }
-                }
-                var next = previous[candidate & (DeflateWindow - 1)];
-                if next >= candidate { break; }
-                candidate = next;
-                attempts++;
+            var hash = deflate_hash(data + position, DeflateHashBuckets);
+            previous[position & (DeflateWindow - 1)] = heads[hash];
+            heads[hash] = position;
+        }
+        if best.length >= DeflateMinimumMatch && best.length <= DeflateLazyLimit
+            && length - position > best.length {
+            next = deflate_find(data, length, position + 1, heads, DeflateHashBuckets, previous, DeflateWindow);
+            if next.length > best.length {
+                deflate_symbol(&writer, convert(u32, data[position]));
+                position++;
+                prepared = true;
+                continue;
             }
         }
         var advance: usize = 1;
-        if matched >= DeflateMinimumMatch {
-            deflate_match(&writer, matched, distance);
-            advance = matched;
+        if best.length >= DeflateMinimumMatch {
+            deflate_match(&writer, best.length, best.distance);
+            advance = best.length;
         } else { deflate_symbol(&writer, convert(u32, data[position])); }
         // Index all consumed starts, including positions inside an emitted match.
         // Each ring link holds an absolute input offset; stale/future links stop
         // traversal and cannot create a cycle after the window wraps.
-        for (var step: usize = 0; step < advance; step++) {
+        for (var step: usize = 1; step < advance; step++) {
             var at = position + step;
             if length - at < DeflateMinimumMatch { break; }
-            var hash = deflate_hash(data + at);
+            var hash = deflate_hash(data + at, DeflateHashBuckets);
             previous[at & (DeflateWindow - 1)] = heads[hash];
             heads[hash] = at;
         }

@@ -1,0 +1,80 @@
+import tower;
+import work_budget;
+import work_budget_types;
+import work_buffer_types;
+
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
+extern fn compiler_buffer_free(memory: void*): void;
+extern fn compiler_buffer_alignment(): usize;
+
+var WorkBufferInitialElements: usize = 8;
+
+fn work_buffer_dispose(buffer: WorkBuffer*): void {
+    compiler_buffer_free(bits(void*, buffer.data));
+    if buffer.reservation.active
+        && work_budget_release_result(buffer.reservation.owner, &buffer.reservation) != WorkBudgetError.None {
+        trap("Invalid retained buffer budget receipt", 0);
+    }
+    *buffer = default;
+}
+
+// Reserve the whole replacement before allocation: old and new coexist during
+// the copy. On any denial/overflow/allocation failure the old owner is intact.
+// A null budget is the explicit standalone boundary, never a global fallback.
+// Count the known compiler header, not allocator-private overhead or RSS.
+fn work_buffer_resize(buffer: WorkBuffer*, budget: WorkBudget*, bytes: usize, preserve: usize): WorkBudgetError {
+    if buffer == null || preserve > buffer.capacity || preserve > bytes
+        || (buffer.data != null && buffer.reservation.owner != budget) { return WorkBudgetError.Invalid; }
+    if bytes == buffer.capacity { return WorkBudgetError.None; }
+    if bytes == 0 { work_buffer_dispose(buffer); return WorkBudgetError.None; }
+    var allocated = compiler_buffer_allocation_size(bytes);
+    if allocated == 0 { return WorkBudgetError.Invalid; }
+    // A representable physical buffer larger than the configured cap is a
+    // capacity denial, not a malformed execution-lane reservation.
+    if budget != null && budget.initialized && allocated > budget.bytes { return WorkBudgetError.Capacity; }
+    var next: WorkBuffer = default;
+    if budget != null {
+        var result = work_budget_reserve_result(budget, 0, 0, allocated, &next.reservation);
+        if result != WorkBudgetError.None { return result; }
+    }
+    next.data = bits(u8*, compiler_buffer_allocate(bytes));
+    if next.data == null {
+        work_buffer_dispose(&next);
+        return WorkBudgetError.Memory;
+    }
+    next.capacity = bytes;
+    if preserve != 0 { copy(next.data, buffer.data, preserve); }
+    work_buffer_dispose(buffer);
+    *buffer = next;
+    return WorkBudgetError.None;
+}
+
+// The typed vector checks its owner, live length and no-growth fast path first.
+// Share the remaining growth policy without specializing it for every element
+// type. buffer is a transactional borrow; failure leaves it and its owner intact.
+fn work_buffer_grow_elements(buffer: WorkBuffer*, budget: WorkBudget*, length: usize,
+    capacity: usize, needed: usize, size: usize, alignment: usize): WorkBudgetError {
+    if size == 0 || alignment > compiler_buffer_alignment()
+        || needed > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
+    var next_capacity = capacity * 2;
+    if next_capacity < capacity { next_capacity = needed; }
+    if next_capacity < WorkBufferInitialElements { next_capacity = WorkBufferInitialElements; }
+    if next_capacity < needed || next_capacity > ~convert(usize, 0) / size { next_capacity = needed; }
+    return work_buffer_resize(buffer, budget, next_capacity * size, length * size);
+}
+
+// Both operands are independent initialized owners. Borrowed aliases are not
+// copies of these descriptors. Transfer does not acquire a second byte grant.
+fn work_buffer_move(destination: WorkBuffer*, source: WorkBuffer*): void {
+    if destination == source { return; }
+    work_buffer_dispose(destination);
+    *destination = *source;
+    *source = default;
+}
+
+fn work_buffer_swap(left: WorkBuffer*, right: WorkBuffer*): void {
+    var previous = *left;
+    *left = *right;
+    *right = previous;
+}

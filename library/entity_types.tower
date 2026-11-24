@@ -1,8 +1,15 @@
 import tower;
+import work_buffer_types;
+import work_budget_types;
 
 // Shared compiler entities. Raw pointers are valid only while their owner lives.
 // Components keep stable addresses; type indexes support component-wise queries.
 struct EntityStore {
+    // Constructor-owned storage and immutable borrowed ledger. The ledger must
+    // outlive all store allocations; this field does not itself account buffers.
+    allocation: WorkBuffer;
+    budget: WorkBudget*;
+    resource_error: WorkBudgetError;
     next_id: usize;
     entity_count: usize;
     component_count: usize;
@@ -14,19 +21,33 @@ struct EntityStore {
     // resolve node-local component identities without an ambient singleton.
     context: void*;
     storage: EntityComponentPool;
+    // Descriptor/name/query blocks reuse the stable page machinery without
+    // entering component/type indexes. Workers have a private stage pool.
+    buffers: EntityComponentPool;
     tables: EntityTable*[256];
 }
 
 // Allocation indexes only. Canonical component identity/payloads stay on entities.
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
-struct EntityComponentPool { first: EntityComponentPage*; }
+// Small fixed availability index; the owned chain includes full pages too.
+var EntityComponentPoolBuckets: usize = 8;
+struct EntityComponentPool {
+    available: EntityComponentPage*[EntityComponentPoolBuckets];
+    owned: EntityComponentPage*;
+}
 struct EntityComponentPage {
+    allocation: WorkBuffer;
     pool: EntityComponentPool*;
     previous: EntityComponentPage*;
     next: EntityComponentPage*;
+    owner: EntityComponentPool*;
+    owned_previous: EntityComponentPage*;
+    owned_next: EntityComponentPage*;
     type_id: usize;
     used: usize;
     live: usize;
+    // One-based dead slot chain; live components retain their type index.
+    free_slot: usize;
     capacity: usize;
     stride: usize;
     components: EntityComponent*;
@@ -36,6 +57,15 @@ struct EntityComponentPage {
 struct EntityChild {
     entity: Entity*;
     name: u8*;
+}
+
+// Immutable registration data. The canonical kind is still its Entity; this
+// stable, non-component block is owned by that kind in its store's buffer pool.
+// Reserved before publishing registration, never constructed by a worker.
+struct EntityLayout {
+    data_size: usize;
+    data_alignment: usize;
+    lifecycle: usize;
 }
 
 struct Entity {
@@ -54,9 +84,11 @@ struct Entity {
     instance_capacity: usize;
     registered: bool;
     queued: bool;
-    data_size: usize;
-    data_alignment: usize;
-    lifecycle: usize;
+    // Immutable after kind registration. Zero selects the default; otherwise
+    // limit newly allocated private-stage pages only. Published pages keep
+    // their capacity and may be reused by the coordinator without relocation.
+    stage_page_rows: u8;
+    layout: EntityLayout*;
     deferred: Entity*;
     // A private new entity, or an existing entity exclusively leased to one
     // stage. Component indexes publish after pinned readers join. A lease owns
@@ -66,6 +98,11 @@ struct Entity {
     table: EntityTable*;
     table_row: usize;
     pending_table: EntityTable*;
+    // Stable descriptor-owned storage for the first component index entry.
+    // Promoted indexes use the ordinary budgeted replaceable array.
+    inline_components: EntityComponent*[1];
+    // Stable first ordered/named child edge; larger indexes remain replaceable.
+    inline_children: EntityChild[1];
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the
@@ -85,13 +122,28 @@ struct EntityQuery {
 struct EntityComponent {
     owner: Entity*;
     type: Entity*;
-    allocation: u8*;
     data: u8*;
     type_index: usize;
     page: EntityComponentPage*;
 }
 
-// Stable payload columns and dense entity rows keyed by an exact type signature.
+// Oversized stable payloads own one physical allocation, like pooled pages.
+// Copy the receipt out before freeing the allocation that contains this header.
+struct EntityComponentAllocation {
+    // Standalone components are the first member of their physical owner.
+    // Pooled components use page instead; neither path needs a duplicate
+    // allocation pointer in every stable slot.
+    component: EntityComponent;
+    allocation: WorkBuffer;
+}
+
+// Independently replaceable indexes can be resized by different leased workers.
+// Their physical allocation carries its receipt; freeing one never mutates a
+// shared page. The header and old/new overlap both count against the budget.
+struct EntityBufferAllocation { allocation: WorkBuffer; }
+
+// Dense entity rows and component-pointer columns for an exact type signature.
+// Payloads remain in their stable allocations; this index does not pack them.
 struct EntityTable {
     store: EntityStore*;
     next: EntityTable*;

@@ -1,0 +1,74 @@
+import tower;
+import vector;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
+import work_vector_types;
+
+fn work_vector_init(T: type, value: work_vector(T)*): void {
+    *value = default;
+}
+
+fn work_vector_reserve(T: type, value: work_vector(T)*, budget: WorkBudget*, needed: usize): bool {
+    return work_vector_reserve_result(value, budget, needed) == WorkBudgetError.None;
+}
+
+fn work_vector_reserve_result(T: type, value: work_vector(T)*, budget: WorkBudget*, needed: usize): WorkBudgetError {
+    if value == null || value.length > value.capacity
+        || (value.data != null && value.reservation.owner != budget) { return WorkBudgetError.Invalid; }
+    if needed <= value.capacity { return WorkBudgetError.None; }
+    var size = sizeof(T);
+    // This temporary is a transactional borrow, not an independently disposable
+    // copy. resize either preserves it or retires exactly this old allocation.
+    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * size,
+        reservation: value.reservation};
+    var result = work_buffer_grow_elements(&buffer, budget, value.length, value.capacity, needed, size, alignof(T));
+    if result != WorkBudgetError.None { return result; }
+    value.data = bits(T*, buffer.data);
+    value.capacity = buffer.capacity / size;
+    value.reservation = buffer.reservation;
+    return WorkBudgetError.None;
+}
+
+fn work_vector_push(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): bool {
+    return work_vector_push_result(value, budget, element) == WorkBudgetError.None;
+}
+
+fn work_vector_push_result(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
+    var needed = value.length + 1;
+    if needed == 0 { return WorkBudgetError.Invalid; }
+    var result = work_vector_reserve_result(value, budget, needed);
+    if result != WorkBudgetError.None { return result; }
+    value.data[value.length] = element;
+    value.length = needed;
+    return WorkBudgetError.None;
+}
+
+fn work_vector_pop(T: type, value: work_vector(T)*, output: T*): bool {
+    if value.length == 0 || output == null { return false; }
+    var last = value.length - 1;
+    *output = value.data[last];
+    value.length = last;
+    return true;
+}
+
+fn work_vector_dispose(T: type, value: work_vector(T)*): void {
+    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * sizeof(T),
+        reservation: value.reservation};
+    work_buffer_dispose(&buffer);
+    *value = default;
+}
+
+fn work_vector_move(T: type, destination: work_vector(T)*, source: work_vector(T)*): void {
+    if destination == source { return; }
+    work_vector_dispose(destination);
+    *destination = *source;
+    *source = default;
+}
+
+fn work_vector_swap(T: type, left: work_vector(T)*, right: work_vector(T)*): void {
+    var previous = *left;
+    *left = *right;
+    *right = previous;
+}
