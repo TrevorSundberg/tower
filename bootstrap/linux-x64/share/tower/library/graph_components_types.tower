@@ -1,0 +1,15 @@
+import tower;
+import work_buffer_types;
+
+// Immutable borrowed adjacency for one synchronous traversal. Results retain
+// only node indices; neither graph payloads nor adjacency spans are retained.
+struct GraphAdjacency { data: usize*; count: usize; }
+struct GraphComponentNode {
+    order: usize; low: usize; edge: usize; parent: usize; component: usize; next: usize;
+}
+struct GraphComponents {
+    storage: WorkBuffer;
+    nodes: GraphComponentNode*;
+    heads: usize*;
+    count: usize;
+}
