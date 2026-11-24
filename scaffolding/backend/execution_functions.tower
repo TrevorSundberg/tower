@@ -7,6 +7,10 @@ extern fn sem_get(node: void*): FoundationNode*;
 extern fn foundation_execution_item(parent: FoundationNode*, child: FoundationNode*): bool;
 extern fn foundation_execution_reference(node: FoundationNode*): void*;
 
+fn backend_execution_child(pending: vector(void*)*, child: void*): bool {
+    return child == null || vector_push(pending, child);
+}
+
 // This is an index over frozen Foundation entities, not a rewritten program.
 // Private declarations become executable through calls or function values;
 // exported/foreign signatures retain their existing native ABI validation.
@@ -32,10 +36,10 @@ fn backend_execution_functions(root: void*, functions: void**, count: usize, ret
             if retained.data[node.index] != 0 { continue; }
             retained.data[node.index] = 1;
         }
-        if !vector_push(&pending, foundation_execution_reference(node))
-            || !vector_push(&pending, node.left) || !vector_push(&pending, node.right)
-            || !vector_push(&pending, node.value) || !vector_push(&pending, node.target)
-            || !vector_push(&pending, node.body) || !vector_push(&pending, node.otherwise) { return false; }
+        if !backend_execution_child(&pending, foundation_execution_reference(node))
+            || !backend_execution_child(&pending, node.left) || !backend_execution_child(&pending, node.right)
+            || !backend_execution_child(&pending, node.value) || !backend_execution_child(&pending, node.target)
+            || !backend_execution_child(&pending, node.body) || !backend_execution_child(&pending, node.otherwise) { return false; }
         foreach(var item in &node.items) {
             if foundation_execution_item(node, sem_get(item)) && !vector_push(&pending, item) { return false; }
         }
