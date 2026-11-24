@@ -117,7 +117,6 @@ struct EntityQuery {
 struct EntityComponent {
     owner: Entity*;
     type: Entity*;
-    allocation: u8*;
     data: u8*;
     type_index: usize;
     page: EntityComponentPage*;
@@ -126,8 +125,11 @@ struct EntityComponent {
 // Oversized stable payloads own one physical allocation, like pooled pages.
 // Copy the receipt out before freeing the allocation that contains this header.
 struct EntityComponentAllocation {
-    allocation: WorkBuffer;
+    // Standalone components are the first member of their physical owner.
+    // Pooled components use page instead; neither path needs a duplicate
+    // allocation pointer in every stable slot.
     component: EntityComponent;
+    allocation: WorkBuffer;
 }
 
 // Independently replaceable indexes can be resized by different leased workers.

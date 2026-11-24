@@ -379,7 +379,7 @@ fn backend_units_component_storage(anchor: Entity*, budget: WorkBudget*): WorkBu
         for(var index: usize = 0; index < node.component_count; index++) {
             var component = node.components[index];
             var buffer = component.page == null
-                ? &bits(EntityComponentAllocation*, component.allocation).allocation
+                ? &bits(EntityComponentAllocation*, component).allocation
                 : &component.page.allocation;
             backend_units_count_storage(&allocations, &result, buffer, budget);
             // Registered kinds own a separately charged instance index. The

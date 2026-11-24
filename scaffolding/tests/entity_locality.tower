@@ -196,7 +196,7 @@ fn layout_owned(T: type, sample: LayoutStorage*, data: T*): void {
     if data == null { return; }
     var block = entity_component_from_data(bits(u8*, data));
     if block.page != null { return; } // Count the physical pool page once below.
-    sample.physical += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block.allocation).allocation.capacity);
+    sample.physical += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block).allocation.capacity);
     sample.allocations++;
 }
 fn layout_buffer(T: type, sample: LayoutStorage*, data: T*): void {
