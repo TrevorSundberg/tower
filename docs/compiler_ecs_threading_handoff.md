@@ -57,8 +57,10 @@ The frozen combined candidate is `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tre
 [60 ASan controls](final_asan_bf9429d9.md) and
 [39 TSan positives with refreshed race sensitivity](compiler_thread_combined_r5_bf9429d9.md).
 Those source-bound results retain their stated instrumentation and host limits.
-D1 has the actual complete native package/source/metadata and is executing its
-independent relocation review; there is no new public native pin or browser release.
+[D1 independently accepted the complete native package](native_candidate_peer_bf9429d9.md):
+all source/provenance and payload identities reconcile, and five relocated
+commands pass with exact results and drained ownership. There is no new public
+native pin or browser release.
 
 B1's matched whole-host cohort preserves exact outputs and lower memory, with
 multi-file serial/four-worker means improving28.57%/29.85%. However, multi-file
