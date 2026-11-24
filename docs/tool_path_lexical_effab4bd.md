@@ -35,4 +35,5 @@ Compatibility executable `446d150977fc017aa82845d47555b0709754d387cda9b0ad5393c3
 Raw commands, original failure, every exit/output/time, draft sources and complete manifests: `C:/Sandbox/build/codex_ecs_20261122/L1/path_lexical_effab4bd/`.
 Ignored binaries/depfiles: `build/l1_path_lexical_effab4bd/`; OS fixture: `/root/.cache/tower/l1_path_lexical_effab4bd/`; no owned jobs remain.
 Limits: native POSIX paths stable across check/read, as before; no filesystem-race protection, non-POSIX runtime, full package/browser adoption or global allocation census claimed.
-ROOT/B2 retain coherent package adoption; later producer changes are outside this frozen evidence unless exact input equivalence is recorded below.
+Integration: implementation `e82d11e9` merged published `027a87be` as `023663b5`; both actual depfile closures and tested binaries remain byte-identical (`merged_dependencies.json`).
+Incoming bootstrap adoption/query-denial fixture changes are excluded from the eeb-built evidence; no passing run repeated or relabeled. ROOT/B2 retain full-package adoption.
