@@ -34,3 +34,4 @@ Original failures/bytes remain in `L1/native_ecs_b862499b/fixed/`; prior local b
 Initial read-only cache/glob/WSL quoting and guessed log-path errors were corrected before runs; no build/test phase failed and no passing runtime phase was repeated.
 No global allocator/race/noalias/packed-payload claim. Explicit32/64 interpreter/backend profiles and actual Linux x64 execution do not validate native32, other OS targets or guest Wasm memory capacity.
 No browser/reactor/generation/package/sanitizer/deployment work; ROOT retains coherent final package and hosted adoption. Later source changes are excluded unless equivalent tested inputs are recorded at integration.
+Integration: receipt `edc51f98` joined published `6c83b118` as `b74d4b04`; incoming peer reviews/journal only, all 1344 measured inputs and four cached artifacts unchanged. No runtime rerun or changed source label.
