@@ -1,7 +1,7 @@
-# Empty-cache seed-clear lease coverage; legacy suite remains failed
+# Empty-cache seed-clear lease coverage and complete merged regression
 
-- **New lifetime case PASS; complete `tower-module-cache-regressions` FAILS** at its unchanged `Unit startup preserves invalid total budget` assertion. No production cache defect was exposed.
-- Frozen published base `c99aba8d9558111f8da232a32cbff6de1a1d3fdf`, including reviewed `b36a5f7c`; only two existing test files changed.
+- **PASS: new lifetime case and complete `tower-module-cache-regressions`** on coherent merged source `d3511c519e9ded3c1e246ba868178d005132cafa`, tree `457b1e960397738173c17a7727cefbd6e9281fab`. No cache lifetime defect exposed.
+- Initial published base `c99aba8d9558111f8da232a32cbff6de1a1d3fdf` includes reviewed `b36a5f7c`; B2 changes only two existing test files. Initial full-suite failure is retained below.
 - Entry `scaffolding/tests/module_cache_checks.tower` calls the new case and then the original suite unconditionally. The body belongs to the already-linked `tests/frontend_modules.tower` fixture unit; no producer/type-layout copy or new harness.
 - Validity audit: `frontend_world_clear` rejects ECS views and busy workers; synchronous `syntax_next` returns after recognizer/worker borrows join. Retained revisions/documents are ownership references, not active ECS views.
 - `syntax_baselines_clear` retires registry ownership; session pins retain their revisions/entities. Environment/lease owners prevent world disposal. The test checks these actual preconditions and the failed-disposal guard.
@@ -15,20 +15,21 @@
 - A fresh request pins the current seed, parses exact `import shared; cached` roots and reuses the immutable cached declaration; its current-generation session returns to idle normally.
 - Seven actual parse-root spans are checked against literal expected bytes and owning worlds, including the resumed old root. This is parser output coverage, not an execution/backend throughput claim.
 - Environment, snapshot, document and revision owners then drain; world disposal succeeds; the existing 128MiB serial budget asserts **bytes=0, live grants=0, lanes=0**, then disposes.
-- Existing fixtures, caps and assertions remain unchanged. The new case runs first and flushes its success line so a later abort cannot hide its result; the old suite is neither skipped nor converted to success.
+- B2 preserves existing fixtures/caps/assertions. The new case runs first and flushes its result; the original suite always runs afterward. Reconciliation later adopted L1's independently published oracle correction, not a local bypass.
 - Build: only dependency-aware `tower-module-cache-tests` in `/cache/native`, Release, compiler jobs1/outer4, public default `31a385c616b889987d68f8eb9714020f3928aac97591a1569f905ab706f52ed6`, no override or sanitizer.
 - Host: KinmenB Linux CPU12–23/quota12/24GiB, existing native toolchain and production allocator; no overlapping cache build or other matrix.
 - Retained five draft build failures: reserved identifier, missing direct release declaration, duplicate imported provider symbol, missing component-kind import, missing puts declaration. Fixed only fixture syntax/import/unit wiring; no language/producer change or lost logs.
-- Final build (two actions): **18.040010s wall / 12.505153s child CPU / 770892KiB process peak RSS**; earlier changed-draft build costs are in `metrics.json`.
+- Merged dependency rebuild: **23.578363s wall / 48.655339s child CPU / 881632KiB process peak RSS**, same target only. Earlier draft/frozen build costs remain in `metrics.json` and raw logs.
+- Incoming A2 pool layout/world disposal and B1 typed-error changes required coherent typed consumers; existing CMake LibEdit/ZLIB/zstd/CURL missing-dependency notices are retained, with no flag suppression or vendor build.
 - Final command: existing CTest selection `^tower-module-cache-regressions$`; actual working directory `/work/scaffolding`, original computed timeout180s. No deadline/cap adjustment.
-- Final output first confirms `Empty-cache seed-clear idle/active leases, cached output and zero ownership passed.`, then traps at the legacy startup assertion. CTest reports aborted, 0/1 passed; wrapper exit1, not timeout.
-- Final run cost: **0.038592s wall / 0.036072s child CPU / 52700KiB process peak RSS**. It is a partial-suite validation cost, never a complete-suite time or speedup.
+- Final output confirms `Empty-cache seed-clear idle/active leases, cached output and zero ownership passed.` and `Module cache, resolution, immutable grammar and session checks passed.` CTest **1/1 passed**, exit0, no timeout.
+- Complete merged run cost: **0.045367s wall / 0.043776s child CPU / 56508KiB process peak RSS**. Validation cost only, not speedup versus shorter failed runs.
 - Initial original-order run hit that same assertion before the new case ran; retained `original_mode_first_failure.log`. Reordered and final bounds-checked versions both execute the new case successfully before the same old failure; no flaky retry/pass claim.
-- Exact blocking input: `frontend_units_create_bounded_result(1,1,1,8,1,1,"","", "", &error)`; untouched oracle expects null + `WorkBudgetError.Invalid`.
+- Historical blocking input: `frontend_units_create_bounded_result(1,1,1,8,1,1,"","", "", &error)`; original oracle expected null + `WorkBudgetError.Invalid`. Last initial-source failure cost .038592s/.036072s/52700KiB; wrapper1/aborted.
 - Source attribution: valid cap1 reaches `work_pool_open_impl`'s checked `WorkSlot` allocation; `work_buffer_resize` returns **Capacity** for a representable physical allocation above the initialized cap, and `frontend_units_open` forwards it. This precedes `compiler_work_create_result` and is distinct from B1's later lost Capacity-to-Memory receipt.
-- The trap does not print the enum value; Capacity is the traced producer contract, corroborated by B1's separate cap-one receipt, not a newly printed observation here. Small follow-up: correct this stale cap-one oracle/comment while retaining null-output, retry and all caps; no cache producer correction is indicated.
-- That correction is left to ROOT/B1 under this task's instruction to preserve old assertions. Remaining startup retry and `module_baseline_imports_test` are unstarted in these runs; full-suite acceptance remains open.
-- Final ELF SHA256 `3fd3b2f1953692503630ceaeab2e91ccb693004e3bc46ad2809f6f1274f6e9e5`; fixture SHA256 `1776d5453ecaf9a2eb0b78da1d4d45962b6ec2f8f7d16d3156e4f74433f1b28e`, entry `259bd170d20f3ccd77fd3810fab77e15fcac438363b99744cf6c9b5d982cff86`.
+- L1 published exactly this correction in `0d4d686d`, integrated through `73cc82ab`; all caps, null-output and healthy retry remain. The final merged run independently passes its Capacity assertion and completes the previously unstarted retry/baseline-import checks.
+- Initial trap did not print the enum; its source attribution and failures remain historical. Complete merged pass covers both clone-budget modes, startup retry, baseline import/replacement/reset and the new combined lease case; no production correction by B2.
+- Merged ELF SHA256 `e4854f78bfdd32e5ca27b511af0247828ecc331d4ed278b2c514b0fbefbecc24`; fixture `07819a6cff19daa4a5be7ae7c5b0ade3cc500a1f88fc99442f02988d60459925`, entry `259bd170d20f3ccd77fd3810fab77e15fcac438363b99744cf6c9b5d982cff86`. Initial failed ELF `3fd3b2f1…` remains preserved.
 - Raw: `C:/Sandbox/build/codex_ecs_20261122/B2/module_cache_leases_c99aba8d/` and matching `/cache/`; before/final binaries, all attempted logs/commands, depfiles, final patch, source hashes, registration and metrics retained. Inputs unchanged during each run; owned live jobs drained.
 - Test-only addition has no production performance claim. **Added-case ASan adoption is pending**; L1's older fixture binary does not cover it. No full64/query/type/browser/generation/deployment or unsupported instrumentation run.
-- D1's source-reviewed ownership argument is now exercised for this exact combined case. ROOT retains the legacy-oracle follow-up, full-suite acceptance and final release; no wait or producer overlap.
+- D1's source-reviewed ownership argument is now exercised for this exact combined case and the ordinary full suite passes. ROOT retains later added-case sanitizer adoption and final release; no wait or producer overlap.
