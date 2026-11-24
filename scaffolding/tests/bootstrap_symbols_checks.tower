@@ -257,6 +257,7 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.ParserNodes, false, " U generic_instantiate_deferred_result\n", "generic_instantiate_deferred_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U generic_instantiate_deferred_result\n", "generic_instantiate_deferred_result");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_world_component_result", "compiler_world_component_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "compiler_world_component_result", "compiler_world_component_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_attach_result", "entity_attach_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_component_add_result", "entity_component_add_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_create_related_result", "entity_create_related_result_extra");
