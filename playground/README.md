@@ -1026,6 +1026,10 @@ initialization and the extra parallel-only fixtures prevent interpreting total
 trial times as a scaling benchmark. Hosted service-worker isolation, other
 browsers and the release matrix remain separate checks.
 
+Append `lr-bounded` to run only the two-worker LR fixture. It checks a caller/worker
+barrier, charged propagation failure and retry, and budget restoration after world
+disposal. The native command is `tower-lr-work-tests scaffolding lr-bounded`.
+
 The fixture uses that same production ownership hook. After Tower joins its jobs
 and closes its owner, the test observes every compiler worker's `close` event,
 probes the coordinator's still-active message loop, then terminates it. Calling

@@ -586,8 +586,9 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
 }
 
 export fn lr_propagation_budget_trial(anchor: void*): bool {
+    var retried = false;
     return lr_propagation_worker_reuse(compiler_world_work_budget(compiler_node_world(anchor)))
-        && lr_propagation_work_trial(anchor, LRPropagationGrain * 2, true);
+        && lr_propagation_work_trial(anchor, LRPropagationGrain * 2, true, &retried) && retried;
 }
 
 // A later wave can reuse a result whose chunk already belongs to the graph.
@@ -733,7 +734,7 @@ fn lr_propagation_worker_denial(value: LRPropagation*, input: usize): bool {
         && budget.used_lanes == before.used_lanes;
 }
 
-fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool {
+fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool, retried: bool*): bool {
     var owner = entity_create_related(anchor);
     if owner == null {
         return false;
@@ -798,7 +799,10 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
             }
         }
     }
-    if budget != null && seeded != 0 && !lr_propagation_worker_denial(b, cycle_nodes - 1) { return false; }
+    if budget != null && seeded != 0 {
+        if !lr_propagation_worker_denial(b, cycle_nodes - 1) { return false; }
+        if retried != null { *retried = true; }
+    }
     if parallel && seeded != 0 {
         // Force the old independent-owner retirement branch at parallel
         // publication, separately from the later serial-growth control.
@@ -975,8 +979,8 @@ export fn lr_work_tests(): u32 {
             failures++;
         }
     }
-    if !lr_propagation_work_trial(root, 128, false)
-        || !lr_propagation_work_trial(root, LRPropagationGrain * 2, true) {
+    if !lr_propagation_work_trial(root, 128, false, null)
+        || !lr_propagation_work_trial(root, LRPropagationGrain * 2, true, null) {
         failures++;
     }
     if !lr_worker_lifetime() {
