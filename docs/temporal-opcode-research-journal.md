@@ -96044,6 +96044,9 @@ Selected test/production behavior unchanged; todo/diff checks pass. L2's two
 selected T8 successes are separately preserved, not counted as this full-file
 run. Normal push follows; no active A1 test/build or deployment.
 
+L1 optimized entity-pages reconstruction repair, frozen6e8001fd. Exact ROOT canonical request403fdc6b (972596B) reproduced native integer-operands failure at1305711, distinct from browser1290736. Private failed Foundation maps to52067:14: ordered u8* comparison; raw LLVM line12835 is icmp ugt ptr in entity_stage_references_record_result. LLVM folded explicit target-address integer comparison; importer omitted the integer operands. bi_compare now restores target-width bit casts for ordered pointer predicates, leaving equality and ordinary language admission unchanged. D1 overflow helper/A2 census untouched; no ABI change.
+Eight focused CTests passed; six direct canonical selections give24 Graph/Fast x1/4 trials over reduced32/64 and exactlarge32 source/rebuilt, output0/canonical equality/zero final budget owners. Existing backend-ir error/cancellation and ordinary-invalid-pointer32/64 controls passed. Healthy matched n1 wall .57/.65 -> .55/.64s; CPU .51/.63 -> .50/.64s; peak179264/182520 ->179424/182792KiB. Large failure->success costs and peak ledger recorded, no speedup claim. GNUtime process-tree CPU/max-child RSS scope explicit.
+All failed drafts/capture attempts preserved, temporary diagnostic hook removed. A separate second LLVM normalization of reconstructed large text still fails Unsupported LLVM value in foundation return path at53277:5; raw second_normalization.ll/input/response retained for ROOT/L2, not confused with passing direct canonical Fast. No browser/generation/sanitizer rebuild or deployment. Full source/artifact hashes, commands, failures, limits: docs/backend_pointer_order_6e8001fd.md and external L1/entity_pages_optimized_6e8001fd. Owned jobs drained, unrelated L2 build untouched; normal reconciliation/publication follows.
 ### 2026-11-23 D2: independent later fault/Windows test review
 
 Freeze6e8001fd9aaf2fa8be550fb70d4f9e052ec93fc8; seven Tower fixtures plus
@@ -96083,6 +96086,33 @@ runtime repeat; diff checks pass, todo unchanged, no owned job/lock. L2's newer
 T8 receipt remains bound to its old a06 reactor, which lacks this i1 repair.
 T9 blocker integration b7cc2b86 preserves f88dbe04; later observation/probe deltas excluded, unchanged producer evidence reused. No extra cases; normal push.
 
+### 2026-11-23 B1: Foundation private-stage page slack
+
+Frozen1e428ede, native public768/LLVM19 CPU0-11/24GiB, exact ROOT972596B
+request403fdc6b and4709291B output452132b9. One four-row Foundation policy
+uses existing immutable per-kind registration; no Entity layout/ParserMatch or
+semantic method changes. Census proves sparse private-stage origin; page bytes
+513224220->235866539, peak charged2743902878->2466545197, ledger unchanged.
+All16 paired n2 serial/four large/small outputs and zero-owner checks pass;
+large serial wall10.695->10.985s (+2.7%), four9.445->9.250s; RSS~4.2% lower.
+Retain explicit memory tradeoff, not speedup: pages4.07x/live grants3.62% higher.
+Six focused storage/concurrent/Capacity-retry CTests, grammar-resource/world
+Memory/registration checks and unchanged strict entities symbol policy pass.
+[Concise receipt](compiler_foundation_pages_1e428ede.md) retains source/binary
+hashes, original transport assertion failure, raw paths and exact limits.
+No optimized/browser/generation/sanitizer or deployment claim; ROOT owns release.
+### 2026-11-23 D1: seeded cross-unit dependency/cancellation differential
+
+At1e428ede, added one Tower fixture through existing frontend-unit/ordinary
+invocation/observer APIs and lr-work registration. Three seeds combine forward
+imported queries, shadow/capture aliases, ordered effects and untaken cycles;
+admitted cancellation then changed seed/revision under same filenames uses fresh
+worlds. Paired15-batch/36-answer check and wrong-result1215vs1216 rejecting control
+both passed, clean disposal, no skips/timeouts. [Finite receipt](compiler_ecs_audit_d1.md#d1-seeded-dependencycancellation-interaction--1e428ede-2026-11-23)
+records exact blobs and native binary. Six-batch serial11.74wall/11.52CPU/207840KiB,
+two-worker10.76/17.61/427952; increased CPU/RSS, no broad speedup claim. CTest32.13s;
+logs/failures/measurements `build/d1_ecs/dependency_stress_1e428ede/`. Production,
+importer and scheduling untouched; no sanitizer/build-generation/release claim.
 ## 2026-11-23 A1: shared bounded lazy DEFLATE improvement
 Reviewed actual03d8123d package change preserved by6b74889b, plus write/remove/
 manifest and browser/build callers. Dist-only post-gzip unlink leaves complete
@@ -96236,6 +96266,12 @@ No rerun/build/profile or instrumentation: docs-only profiling is inapplicable.
 New-path fault injection and unavailable large-request benchmark are not inferred
 from the old admission sweep. L1 pointer-ordering remains separate; ROOT owns
 integrated artifacts/release. D1 heavy job untouched; todo/ledger preserved.
+D1 final integration: implementatione96d2282, merged325db641 includes L2's
+semantic_lowering_work registration guard. Affected semantics+link rebuilt
+39.40wall/38.35CPU/1082740KiB; the same two CTests pass30.62wall/38.13CPU/574704KiB,
+with the same15 batches and rejecting1215vs1216 oracle. New artifact/source
+identity is in the finite receipt and merged_* logs. Initial timing remains
+bound to1e428ede; unrelated codec/browser changes are not independently adopted.
 
 L2 registration publication boundary: b3caffd3 plus complete-history mergec164429e adopts26f99a40 browser abort fixtures/shared codec/peer receipts after one routine push race. Selected native provider/caller/fixture/resource blobs and candidateccaeaccf are unchanged; exact output/resource hashes reverified, checked evidence reused. Unimported codec/browser adoption is excluded. All owned work drained; no extra build/matrix/deployment. Normal main push follows.
 A1 codec publication:1c919df5 preserved through complete-history merge7b2f83d1d6d76520e60f116e3189d1652d88bd82 with b4bd9980 after ff-only divergence. Accepted depfile closure/test hashes unchanged; incoming browser abort work excluded once. Reused exact native evidence without another build. Todo/diff checks pass, no owned jobs; normal push follows.
@@ -96285,3 +96321,99 @@ No previous native route exists for a comparable timing baseline; these are vali
 costs. D1's32/64 verifier-only results remain attributed, not rerun or relabeled.
 No machine32/Windows, scaling, reactor, generation or hosted claim. ROOT retains
 integrated gates; own jobs drained/lock released, todo and other owners preserved.
+### 2026-11-23 L2: reject registration candidate after bounded small-serial follow-up
+
+ROOT did not accept ae5d34b2 small neutrality. [Addendum and all values](compiler_lowering_registration_68345ada.md#small-serial-follow-up-candidate-reverted) preserves the original16 observations, exact bytes/timestamps and large-case receipts. Exactly two new16-body serial pairs run before/candidate then candidate/before with original76728e7b/ccaeaccf binaries/resources, CPU4-7 and unchanged1.25GiB ledger. Read-only actual local ROOT/L1 process inspection finds no compiler/build job; samplePIDs430/499/550/592 show4-7. Agents remain eligible0-15 (not host isolation); no other process moved/killed. UTC23:50:13.787-16.768, raw original_files.csv/process/affinity/timing/output records in L2/lowering_prepare_68345ada/small_followup_ae5d34b2.
+
+New frontend before wall0.614762/0.628318, CPU0.503438/0.515359; candidate wall0.618859/0.709885, CPU0.504224/0.558642. Paired+4.10/+81.57ms; midpoint+6.89%wall/+4.33%CPU. Whole-process before0.77/0.67s and candidate0.66/0.75s include variable startup/format/teardown: their means0.720/0.705 and CPU0.555/0.555 do not erase the compilation regression. Peaks165112/165400 vs165248/165464KiB. All four new runs exit0; full Foundation/source bytes and42/42 outputs equal, retained18,325,751B/17,119 grants and chargedpeak98,324,599B exact, joinlanes0, checked finalworld/budget disposal succeeds. No sample discarded. One transient /proc/120 disappeared during ordinary enumeration; read error retained, not runtime failure.
+
+Decision: revert precisely the five-line sem_lower_register optimization with history preserved. All four original+new frontend pairs favor before; noise precludes causal certainty, but retention acceptance is not met and the0.04ms slice is not an excuse. No second optimization or threshold. Independent producer/caller audit: sole phase creator registers both sets before join; errors cancel/retain first cause and callers reject unhealthy graphs; percompile fresh graph, no semanticreset/profile mutation, genericreset clears index/tasks and receipts validate revision/profile/dispatch. Standalone pumps preserve newly available bodies. Lifecycle existence depends on its frozen function-set boundary and is not a general late-registration version check; no concrete uncovered production invalidation found, no mirrored fake-state test. Restored scans remove reliance on the guard.
+
+One dependency restoration build3actions36.20wall/26.00CPU/1075868KiB yields byte-identical originalprofile76728e7b; focused restoredquery-smoke3.61/4.06/353512 passes. No repeated type/control/large samples, reactor/generation/sanitizer/hosted operation or unrelated edits. Original source/todo retained, all owned processes drained. Publication boundary follows after normal integration.
+## 2026-11-23 A1: independent abort capability peer review
+Reviewed9f37944356/b4bd9980 against1e428ede at freezeae5d34b2;11 scoped
+blobs unchanged. No concrete defect found. Forty-byte typed import/export
+descriptor enforces() -> void at Wasm linking; Graph/Fast forwards serialized
+returnType to the shared validator before invoking. Explicit provider precedence,
+unknown rejection, first failure/effect stop, staged capability denial and guest
+finally/handle cleanup remain. No new interpreter, permissive fallback or registry.
+[Short peer receipt](abort_host_peer_review_a1.md) maps exact blobs/all6fixtures
+and actual A2 controls/T9/profile logs; those runs remain attributed, not repeated.
+An extra ordinary enum-named-void Tower control rejects on32/64 Graph/Fast with
+empty output; initial missing-Foundation transport setup failure retained.
+No confirmed nominal-name bypass. A2 still owns the separate spelling assertion;
+host-instance lifetime/zero-owner limits and absent override/OOM controls explicit.
+Docs-only: no runtime build, performance comparison, instrumentation or release.
+Raw A1/abort_review_ae5d34b2 contains input/output/counters/hash map; owned work
+drained, todo unchanged; normal commit/reconcile/push follows.
+## A2 platform canonical binding oracle closure (2026-11-23)
+
+The stale fourth platform assertion expected recursively expanded integer_type
+at the use; retained output instead correctly declares i32 then uses i32*.
+Foundation/type-value/function contracts require preserved bindings, exact
+signatures and stable independently compilable text. Only test/fixture changed:
+exact prelude i32/usize bindings, identity usize parameter/result, array/pointer
+use and call/effect order assertions; original positive logic moved to Tower.
+Source handles retire before independent-host parse/recheck/GraphFast execution
+at32/64, exact12/24 outputs, byte-stable canonical reformat, source/canonical
+wasm32 output12. Five original malformed built-in controls remain steps0 failures.
+
+Full unfiltered platform file on exact a06 pair, host26f99a40 plus test-only edit:
+4pass/0fail/0skip/0cancelled, actualexit0,2.1922186s command wall; actualchildCPU
+3.343s/peak343556KiB.1252 frozen resource hashes unchanged. Both1083B canonical
+files SHA4d2a49dc are equal; target-layout behavior checked independently.
+Prior abort_t9_a06_1e428ede/focused.log remains3pass/1failure at its old oracle.
+Receipt docs/platform_binding_a06_26f99a40.md; raw cache/logs/platform_binding_a06_26f99a40.
+No production change, so before/after profiling inapplicable; no T9/rebuild/backend/
+sanitizer/release run. L1's separate optimization error remains outside scope.
+Owned jobs drained, three old stashes/todo preserved; final integration in status.
+
+### D1 independent lazy-DEFLATE review — e330a2c9 (2026-11-23)
+
+Reviewed A1 1c919df5/26f99a40 at e330a2c9f27f53a077dcf500519fd2df9c287355; four codec/test/profile blobs unchanged. Exact per-file receipts and immediate byte/gzip/ZIP/capture/package callers are in docs/compiler_ecs_audit_d1.md, bounded lazy-DEFLATE section; primary format contracts RFC1951/RFC1952.
+No concrete defect found: eligible starts indexed once, next-match preparation retains nearest bounded search and valid ring/overlap/tail behavior; private cleanup precedes output replacement. Independently traced the55-byte lazy token oracle; shared bit emitters require the separate reference decoder. Staging-file failure is not filesystem rollback.
+A1's161 ZIP/39 gzip/29 truncation controls and before-code abort134 remain owner evidence, not rerun/authenticated here. Owner exact a06 input reduces gzip13671333→12786963B for ~0.61s wall/~0.62s CPU packaging cost; retained capacity is not RSS or live-memory census. See owner docs/deflate_lazy_a1.md for n2 hashes/environment and Windows raw log path.
+Documentation/source review only: no new code, build, runtime profile or sanitizer; runtime profiling inapplicable. D2 heavy lock untouched; no D1 child job. Local manifest build/d1_ecs/codec_review_e330a2c9/. Current final package/hosted adoption stays ROOT-owned; later incoming inputs excluded from this fixed review.
+L1 final pointer-import integration: implementation015aa9ed preserved through complete-history mergee480b8bee15c4323f93ab711d887704c7e1bcb59 with publishede330a2c9 after required ff-only pull refused divergence. D1 overflow and L2 lowering changes adopted in one seven-action native refresh. Eight focused CTests, exactlarge32 import1/4, reduced32/64 reconstructed and large source/reconstructed directGraph/Fast1/4, backend-ir all PASS; corrected Foundation57d66511/LLVMd33c3ca2 unchanged and finalownerszero. Merged build38.66wall/57.85CPU/1075420KiB; CTests5.99/5.49/192156. Original matched measurements retain6e boundary; final mergedhashes/logs in the receipt, no broad reruns or deployment. Second LLVM normalization remains a separate recorded ROOT/L2 limitation; no claim of its acceptance. Ownedjobs drained; todo unchanged; normalpush follows.
+B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider; exact large four-worker output/zero owners, grammar-resource, Capacity/retry and strict entities/semantics symbols pass. Paired freeze remains1e428ede; final integration details recorded once in the receipt.
+A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
+L1 publication recovery: incoming A2page-policy/census adopted at5e50a5fa; five-actionrefresh/eightfocusedCTests/largeoptimized32workers4/directGraphFast1-4/backend-ir pass, bytes unchanged and ownerszero. Latestcosts/hashes in receipt pages_*; original paired freeze unchanged. No owner methods edited, no broad rerun.
+
+L2 small-serial follow-up final integration: revert647bb6fc + complete-history mergea93f5444 adoptsae99ce12, including B1Foundation stage policy and D1dependency/A2platform receipts. New world registration affects storage inputs, so one narrow query-runner dependency refresh3actions16.14s and mergedquery-smoke4.96wall/4.02CPU/350892KiB pass (ELF962c8a98). Frozen four new samples and original16 are unchanged, not relabeled new policy; restored helper matches original68345ada exactly. No further profiling/matrix; owned jobs drained, todo unchanged. Normal main push follows.
+
+### 2026-11-23 ROOT: accepted size/memory gains and rejected serial regression
+
+Accepted published source-bound receipts: codec26f99a40 reduces the exact a06 LLVM
+gzip by884370B/6.47%, with~0.61s more package time and unchanged match scratch;
+Foundation31bba36a/ae99ce12 saves277357681B charged pages (54.04% of that
+category,10.11% charged peak,~4.2% RSS), with large serial+2.7% and four-worker-2.1%.
+These are different measured tradeoffs, not a universal compiler speedup.
+Abort b4bd9980 closes both complete work_access/work_observe T9 selections;
+e330a2c9 fixes the stale platform canonical-binding oracle, full4/4 pass.
+A1 independent427d6aca found no abort defect, including four nominal-name controls.
+D1 e68981c3 adds15 seeded dependency batches/36 result checks, cancellation and
+revision recovery, real two-worker overlap and a failing wrong-result oracle.
+L2 ae5d34b2's lowering guard was NOT accepted after extra small-serial evidence:
+3011c77f reverts it; original and added timings stay preserved. No cherry-picked win.
+
+ROOT inspected the draft L1 bi_compare pointer legalization and LLVM19's primary
+[icmp contract](https://releases.llvm.org/19.1.0/docs/LangRef.html#icmp-instruction).
+Unsigned control was present; actual signed-pointer coverage remains requested.
+Correction to earlier transport evidence: native console writes recorded input
+events, but the L1/L2 follow-up text did not appear in their session logs.
+Do not treat those events as consumed instructions. L2's acceptance follow-up
+was delivered by a new bounded resume prompt and completed; L1's next full
+prompt must include signed coverage and L2's retained stage-ownership request.
+
+L1 also preserved a separate unsupported-value failure in a SECOND optimization
+of its returned1327388B Foundation. ROOT copied input,608571B IR and error to
+KinmenA root_second_normalization_l1, verified all hashes, and resumed A2 with
+the complete diagnosis task. A2 now identifies constant-expression add of a
+32-bit ptrtoint global address and38; repair/evidence are pending, not assumed.
+All8 existing UUIDs remain bounded; no additional contexts were created.
+Next memory/speed experiments are explicitly gated by measured benefit, while
+L2 independently reviews/profiles the published page policy. Final new artifacts,
+bootstrap pin, full adoption and hosted runtime remain unfinished. Earlier
+sanitizer and local-deployment-verifier service blocks remain unchanged.
+No ROOT runtime code changed; documentation-only profiling is inapplicable.
+L1 final checked producer boundary b03841da includes L2's rollback to original lowering logic: changed-object refresh, worlds/recheck, exactlarge optimized4/directGraphFast1-4/backend-ir PASS, same bytes/zeroowners. Final source/binaries/costs in published_artifacts.sha256/final_*; original paired freeze retained.

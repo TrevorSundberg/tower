@@ -87,6 +87,35 @@ fn reconstruction_storage(probe: ReconstructionProbe*, store: EntityStore*): voi
         payload_pages, descriptor_pages, store.entity_count - rows, 0, 0, 0, 0);
 }
 
+// Capacity survives publication; used is the high-water slot count, while live
+// excludes removed rows. Multiple never-filled pages cannot come solely from
+// the coordinator's fill-first pool: private stages publish their own pages.
+fn reconstruction_foundation_pages(store: EntityStore*, kind: Entity*): void {
+    var maximum: usize = 0;
+    var page = store.storage.owned;
+    while page != null {
+        if page.type_id == kind.id && page.capacity > maximum { maximum = page.capacity; }
+        page = page.owned_next;
+    }
+    for(var capacity: usize = 2; capacity <= maximum; capacity++) {
+        var pages: usize = 0; var live: usize = 0; var used: usize = 0;
+        var bytes: usize = 0; var never_full: usize = 0; var never_full_live: usize = 0;
+        page = store.storage.owned;
+        while page != null {
+            if page.type_id == kind.id && page.capacity == capacity {
+                pages++; live += page.live; used += page.used;
+                bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+                if page.used < page.capacity { never_full++; never_full_live += page.live; }
+            }
+            page = page.owned_next;
+        }
+        if pages != 0 {
+            printf("foundation_capacity=%zu pages=%zu live=%zu used=%zu physical=%zu never_full=%zu never_full_live=%zu\n",
+                capacity, pages, live, used, bytes, never_full, never_full_live);
+        }
+    }
+}
+
 fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
     var store = bits(EntityStore*, compiler_world_store(probe.world));
     reconstruction_storage(probe, store);
@@ -104,6 +133,7 @@ fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
         }
         printf("kind=%zu count=%zu payload=%zu pages=%zu slots=%zu page_live=%zu page_bytes=%zu\n",
             convert(usize, id), kind.instance_count, kind.instance_count * kind.data_size, pages, slots, live, bytes);
+        if id == CompilerFoundation { reconstruction_foundation_pages(store, kind); }
     }
     var usage: ReconstructionUsage = default;
     utility_check(getrusage(0, &usage) == 0, "Joined native process memory");
