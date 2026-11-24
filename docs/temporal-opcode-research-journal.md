@@ -99442,3 +99442,23 @@ boundary under the default cap gave Memory. A one-unit 1 MiB baseline refusal
 reached the batch through the grammar diagnostic alone. Malformed input retained
 its source diagnostic and no resource cause. Each case drained before close.
 These observations establish propagation. They do not establish retryability.
+
+The root countertest runs the native unit service with matching installed
+baselines and a live entity view. The first structural edit, creation of the
+semantic root, must return Busy. Restoring only the old root constructor made
+the new assertion fail. The integrated fix passed. A separate private
+allocator control held the remaining budget and filled the existing entity
+page before the root allocation. The old path lost Capacity and reported
+"Unable to allocate compilation unit storage". The fixed path returned
+Capacity. Both closed with zero bytes, grants and lanes.
+
+A failed 65 MiB single-unit import retained the same unit environment after
+drain. Replacing the already-read rates module and rereading through that
+environment returned the replacement bytes. The entry snapshot was unchanged.
+Fresh serial builds from the two frozen input sets agreed with their separate
+C references: invoice totals 50745 and 49798, with order checksum 1685 in
+both. The observer did not rerun the failed unit. The source graph and its
+recursive readers had been destroyed before the joined receipt. The current
+unit ticket records dispatch one and streamed peers can have completed backend
+work. A unit-wide retry here would need to preserve resolved reads and parser
+continuations. No earlier-unit sample can reserve a later unit's unknown peak.
