@@ -450,6 +450,17 @@ guest host object as the other tooling fixtures.
 decompresses support packs with gzip and compares every object payload hash as
 a multiset. Full package validation also runs the two browser generations above.
 
+`compiler_project_paths.tower FIXTURE_ROOT` exercises the actual dependency
+collector with absolute/relative depfiles and direct/symlink build roots. Create
+`FIXTURE_ROOT/build` and `source`, `alias -> build`,
+`source/borrowed.tower -> leaf $.tower`, and `source/escape.tower -> ../outside.tower`
+through the OS test transport first. The Tower fixture writes its own source and
+depfile inputs, checks exact generated-runtime closure, lexical alias names,
+byte-equivalent unit output and conflicting-content rejection. Separate `missing`,
+`outside` and `escape` selections must exit 1 with the offending dependency path;
+they are negative controls, not successful packaging. Link the fixture with the
+same guest host object used by the tooling fixtures above.
+
 Native and WASM parser builds use explicit error returns with C++ exceptions disabled.
 
 The standalone `tower-bytes-tests` and `tower-utf8-tests` targets now run Tower

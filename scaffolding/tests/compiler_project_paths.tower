@@ -1,0 +1,92 @@
+import tower;
+import utility_checks;
+import .tools.compiler_project_files;
+import .tools.tool_files_posix;
+import .tools.tool_files_linux;
+import .host.driver_files;
+import .library.bytes;
+import .library.bytes_types;
+import .backend.wasm_names;
+import .backend.wasm_bytes;
+import .backend.wasm_object_types;
+import .compiler.host_text;
+
+fn paths_write(root: u8*, name: u8*, text: u8*): void {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    utility_check(tool_join(&path, root, name) && tool_output_parents(path.data)
+        && driver_write_file(path.data, text, strlen(text)), "write package fixture");
+}
+fn paths_word(out: ByteBuffer*, word: u8*): void {
+    for(var at: usize = 0; at < strlen(word); at++) {
+        var byte = word[at];
+        if byte == *" " || byte == *"#" || byte == *"\\" { utility_check(bytes_push(out, *"\\"), "escape depfile"); }
+        if byte == *"$" { utility_check(bytes_push(out, byte), "escape dollar"); }
+        utility_check(bytes_push(out, byte), "depfile byte");
+    }
+    utility_check(bytes_push(out, *" "), "dependency separator");
+}
+fn paths_collect(root: u8*, build: u8*, relative: bool, bad: u8*, project: CompilerProjectFiles*): bool {
+    var path: ByteBuffer = default; var object: ByteBuffer = default; var dep: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&object); defer bytes_dispose(&dep);
+    utility_check(tool_join(&project.source, root, "source") && tool_join(&object, build, "tower-compiler-test.o")
+        && compiler_project_text(&dep, "ignored.o: "), "fixture roots");
+    var inputs: u8*[5]; inputs[0] = "../source/leaf $.tower"; inputs[1] = "../source/borrowed.tower";
+    inputs[2] = "tower_runtime.tower"; inputs[3] = "tower_compiler_test.tower"; inputs[4] = "tower_compiler_test_expanded.tower";
+    for(var at: usize = 0; at < sizeof(decltype(inputs)) / sizeof(u8*); at++) {
+        var input = inputs[at];
+        utility_check(tool_join(&path, build, input), "absolute dependency");
+        paths_word(&dep, relative ? input : path.data);
+    }
+    if bad != null { paths_word(&dep, bad); }
+    utility_check(host_text_terminate(&dep), "terminate depfile");
+    paths_write(build, "tower-compiler-test.o.d", dep.data);
+    return compiler_project_unit(project, build, object.data) != null;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc < 2 || argc > 3 { puts("Usage: compiler_project_paths FIXTURE_ROOT [missing|outside|escape]"); return 2; }
+    var root = argv[1]; var direct: ByteBuffer = default; var alias: ByteBuffer = default;
+    defer bytes_dispose(&direct); defer bytes_dispose(&alias);
+    utility_check(tool_join(&direct, root, "build") && tool_join(&alias, root, "alias"), "build roots");
+    paths_write(root, "source/leaf $.tower", "import tower;\n");
+    paths_write(root, "outside.tower", "import tower;\n");
+    paths_write(direct.data, "tower_runtime.tower", "var runtime_marker: i32 = 42;\n");
+    paths_write(direct.data, "tower_compiler_test.tower", "import tower_runtime;\n");
+    paths_write(direct.data, "tower_compiler_test_expanded.tower", "import tower_runtime;\n");
+    if argc == 3 {
+        var missing = strcmp(argv[2], "missing") == 0;
+        if missing {
+            var path: ByteBuffer = default; defer bytes_dispose(&path);
+            utility_check(tool_join(&path, direct.data, "tower_runtime.tower") && remove(path.data) == 0, "remove required runtime");
+        }
+        var bad = missing ? null
+            : strcmp(argv[2], "escape") == 0 ? "../source/escape.tower" : "../outside.tower";
+        var denied: CompilerProjectFiles = default; defer compiler_project_files_close(&denied);
+        return paths_collect(root, alias.data, true, bad, &denied) ? 0 : 1;
+    }
+    var reference: CompilerProjectFiles = default; defer compiler_project_files_close(&reference);
+    utility_check(paths_collect(root, direct.data, false, null, &reference), "direct absolute closure");
+    var required: u8*[4]; required[0] = "leaf $.tower"; required[1] = "borrowed.tower";
+    required[2] = "units/tower_runtime.tower"; required[3] = "units/compiler_test.tower";
+    var required_count = sizeof(decltype(required)) / sizeof(u8*);
+    utility_check(reference.files.length == required_count, "exact generated/source closure");
+    for(var at: usize = 0; at < required_count; at++) { utility_check(wasm_names_get(&reference.names, wasm_text_bytes(required[at])) != WasmNoIndex, "required source present"); }
+    var builds: u8*[2]; builds[0] = direct.data; builds[1] = alias.data;
+    for(var at: usize = 0; at < sizeof(decltype(builds)) / sizeof(u8*); at++) {
+        var build = builds[at];
+        for(var spelling: usize = 0; spelling < 2; spelling++) {
+            var actual: CompilerProjectFiles = default; defer compiler_project_files_close(&actual);
+            utility_check(paths_collect(root, build, spelling != 0, null, &actual), "direct/alias relative/absolute closure");
+            utility_check(actual.files.length == reference.files.length, "same closure count");
+            foreach(var file in &reference.files) {
+                var index = wasm_names_get(&actual.names, wasm_text_bytes(file.name.data));
+                utility_check(index != WasmNoIndex, "same lexical module identity");
+                var text = &actual.files.data[convert(usize, index)].text;
+                utility_check(text.length == file.text.length && utility_equal(text.data, file.text.data, text.length), "identical packaged output");
+            }
+        }
+    }
+    var file = reference.files.data[0]; var retained = file.text.data;
+    utility_check(!compiler_project_file(&reference, file.name.data, "changed", strlen("changed"))
+        && file.text.data == retained, "conflicting duplicate fails without replacing prior bytes");
+    puts("Package paths: four spellings, exact closure, lexical aliases and duplicate consistency passed"); return 0;
+}
