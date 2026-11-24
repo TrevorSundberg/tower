@@ -55,6 +55,7 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "puts", "puts_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "strlen", "strlen_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "entity_register_stage_result", "entity_register_stage_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "compiler_world_component_result", "compiler_world_component_result_extra");
     symbol_case(BootstrapUnit.GraphComponents, false,
         " U compiler_buffer_allocate\n U compiler_buffer_allocation_size\n U compiler_buffer_free\n U memset\n U tower_reallocate\n U tower_trap\n", null);
     symbol_case(BootstrapUnit.GraphComponents, false, " U compiler_buffer_allocate_extra\n", "compiler_buffer_allocate_extra");
