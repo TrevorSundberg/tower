@@ -1,25 +1,27 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Current integration checkpoint — joined d962222a (2026-11-24)
+## Current integration checkpoint — joined59d7dc9e (2026-11-24)
 
-The original goal remains **open**. [New normal/shared artifacts](compiler_joined_release_d962222a.md)
-built successfully from published d962222a with the public bootstrap, frozen inputs
-and no warning/error matches. Full large-case adoption is running; this is not a
-new hosted release. The same twelve acceptance requirements remain:
+The original goal remains **open**. [Latest normal/shared artifacts and independent
+kind-layout review](entity_kind_review_release_59d7dc9e.md) cover published59d7dc9e.
+All build phases pass with public bootstrap/frozen inputs and no warning/error matches.
+The preceding d962 pair now passes full entity_pages, both large T9 cases and complete
+shared suites; later59d adoption is separate. No new hosted runtime is published.
+The same twelve acceptance requirements remain:
 
 | Original scope | Current evidence / remaining work |
 | --- | --- |
-| Authoritative ECS / storage | Inline child storage c12c2189 joins existing inline components; scoped large frontend retention falls26.3MB. D1 independent child review12974bd1 found no defect; B2 large reconstruction/fault adoption is running. A1 sparse-kind candidate is excluded. |
+| Authoritative ECS / storage | Inline child c12c2189 has D1 peer review and B2 complete large/fault/manual acceptance cee3ef7c. Sparse immutable kind layout8471cf97 is published, with ROOT independent26-path review and coherent59d artifacts; current ownership adoption is running. Isolated savings remain separate. |
 | Lazy decltype / comptime / dependencies | Earlier capture/alias/module repairs remain published. Seeded three-unit cancellation/effect/false-cycle fixture e68981c3 now has ROOT source review; recovery uses fresh worlds, not retained-session invalidation coverage. |
-| Within-unit concurrency | Ready body/subtree work uses shared scheduling; measured single-unit best1.063x remains the limit. Serial parsing/preparation still dominates. B1 LR candidate is not accepted yet. |
+| Within-unit concurrency | Ready body/subtree work uses shared scheduling; measured single-unit best1.063x remains the limit. Serial parsing/preparation still dominates. B1 SCC draft was restored after public-bootstrap expansion failure; a bounded build-unblocking task is active, no candidate speedup accepted. |
 | Cross-unit / shared worker budget | Existing native/Windows/shared overlap evidence remains source-bound. Changed storage now has coherent normal/shared artifacts; current shared adoption and unsupported-host limits remain open. |
 | Deterministic ordering / cancellation | Earlier shared retirement/error controls and new seeded ordering/cancellation fixture retained. No universal race-freedom claim or inference from queue width. |
-| Checked resource ownership | i1 repair158624c7, pointer015aa9ed and constant-address13f30c25 are published; exact native32 large rechecks/GraphFast pass. Signed32/64 pointer controls73300be3 pass. Full actualWasm large cases are running on the new pair. |
-| Source audit | Earlier full/finite audits retained. ROOT independently reviews seeded dependency and D2 native overflow extension; D1 pointer, codec and child reviews closed. Signed-pointer fixture and constant-address reviews remain in progress; later candidates excluded. |
+| Checked resource ownership | Native32/64 large optimized, second-normalization and executable paths pass at their recorded sources. d962 full entity_pages0aa8488e and T9 pair8771b949 pass126 phase records/42 output assertions combined. D1 found a counted-text termination bug in the new signed test fixture; fixa80a766f awaits L1 positive/negative runtime acceptance. Current59d ownership adoption is separate. |
+| Source audit | Earlier full/finite audits retained. ROOT seeded/native-overflow/kind-layout reviews, D1 pointer/codec/child/signed reviews and D2 constant-address review are complete at exact blobs. Signed-fixture repair and D2 durable sub/output-registration controls require execution adoption; D1 is reconciling the finite later path map. |
 | Measured serial / scaling / memory | Child large paired4.6–6.1% faster, n2 limitation retained. Foundation policy saves277357681B on reconstruction; independent frontend saves13.67MB with serial+1.37%/four−0.25% wall. Lowering guard3011c77f was reverted after small-case regression. These gains are not additive or full-core acceptance. |
 | Current supported sanitizers | OPEN/service-blocked. Do not retry, rephrase or route around the rejected operation; historical checks and serial fault modes do not close current threaded coverage. |
-| Whole-generation / public bootstrap | a18 complete38-binary/54-payload candidate predates these producer/storage changes. Public2013ad28/768a0cdf unchanged; current complete generation/pin/default adoption remain open. |
-| Normal / shared / browser generations | d962 normal/LLVM/cross/shared build0; L1 entity_pages and L2 stage_ownership/compiler_work full differentials now assigned. Current shared/edited generations and final UI adoption remain open. |
+| Whole-generation / public bootstrap | a18 complete38-binary/54-payload candidate is superseded as a release candidate. A2 is building the complete59d native generations/package; public2013ad28/768a0cdf remains unchanged. Current pin/default adoption stays open. |
+| Normal / shared / browser generations | d962 full large cases and shared Node3/browser3+9 pass, actual worker/target drain checked.59d normal/LLVM/cross/shared builds pass; L1 edited browser generations, L2 ownership pair/large request and B2 static packaging/four scoped UI checks are active. Later-source shared adoption and final release gates remain open. |
 | Final atomic hosted release | Existing Pages6f142bef runtime source013ae550/build98ade8cc retained. Local deployment verifier remains service-blocked/unstarted; final package/atomic new-runtime/hosted behavior acceptance is open. |
 
 Individual receipts retain exact frozen sources, failed runs and validation limits.
