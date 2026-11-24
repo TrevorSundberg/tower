@@ -96617,3 +96617,31 @@ Joined release details/phase costs and artifacts are recorded in docs/compiler_j
 ROOT adopts D1 independent child review12974bd1: no new defect; corrected owner receipt observer wording to optional child census disabled while existing outer timing observer remains enabled. Both timed binaries use that observer; no new runtime/profile. Signed-pointer fixture peer review now D1-owned; new candidate ABI excluded. Full-history merge preserved peer evidence and todo.
 
 B1 SCC receipt integration: b790e228 + b305e509 = 58e760e6; restored LR blobs unchanged. Incoming Entity/backend/profile inputs excluded from3011 measurements and frozen binaries; no mixed-ABI or current-source runtime claim. Final boundary recorded once in the receipt.
+
+
+## D2 durable ConstantExpr add/sub and reconstructed execution gates — 59d7dc9e (2026-11-23)
+
+Frozen published `59d7dc9e995b16c785b01f40f340374dc4c73d18` plus this test-only delta; production import semantics unchanged.
+Closes both durable gaps from D2 reviewdae801f3: `constant-address` now separately asserts retained LLVM ` sub (` after existing add/ptrtoint checks; four reconstructed-output execution registrations require their own import fixture.
+Each import has a private working/output directory and source mount. CTest `FIXTURES_REQUIRED` automatically adds setup when only a consumer is selected and prevents consumption after failed setup; worker1/4 equality tests require both imports. Existing source executions and unsupported-operand controls remain registered.
+Environment: Deck Linux/Docker tower-d2-ecs, CPU0,2/8GiB, Clang/LLVM19.1.1, Release/public bootstrap SHA256 `768a0cdff2d8a903d2de64b137671412a9c19f42784c99df626b64bcf911c138`, jobs1; existing native-coherent-f13c8f6 cache, no sanitizer.
+One successful dependency-aware build of `tower-backend-source-tests tower-execution-tests`,15 actions:179.03wall/173.97CPU s/1075268KiB peak RSS. This includes incoming provider/ABI refresh, not an isolated guard compilation cost.
+An earlier orchestration error continued after lock mkdir failed; D1 was building. D2 stopped/reaped its own process groups and preserved exit143/build.log (27.93wall; wrapper CPU/RSS incomplete). D1/cache untouched. The successful build started only after D1 released and D2 atomically acquired the lock. No interrupted attempt is a passing check.
+
+| Selected boundary | Actual result | Wall / CPU s / peak RSS KiB |
+| --- | --- | --- |
+| Exact `^tower-reconstructed-constant-address-4-1$`, output initially absent |2/2 PASS: automatically added import then direct execution |1.54 /1.50 /166424 |
+| `^tower-(reconstructed-constant-address-[48]-[14]\|backend-constant-address-equal-[48])$` |10/10 PASS: four automatic imports, four executions, two byte comparisons |6.77 /6.70 /169168 |
+| Temporary grouped-subtraction input through `constant-address`, target32/workers1 |Expected nonzero134/SIGABRT at exact new subtraction assertion, after compiled response/add guard; no output published |1.96 /1.10 /166824 |
+
+Commands use `ctest --test-dir CACHE -j1 -V --output-junit ... -R PATTERN`, original90s test limits,180s outer bound; aggregate additionally `--stop-on-failure`. Negative directly invokes the same source runner with existing BEDROCK/FOUNDATION/runtime/input/output/width/workers/mode arguments and90s guard. No timeout or skipped cases.
+Aggregate imports run eight original verifier-valid blockaddress/prior-error controls: exact diagnostics/offset/resourceNone and unchanged output/census. Every import finishes `final_bytes=0 grants=0 lanes=0`; peak charged bytes95088409(serial)/95036193(four), ledger metadata5242880B before disposal.
+Four generated texts × Graph/Fast × execution workers1/4 give16 exact `0\n` executions at matching target32/64, canonical byte equality and zero owners. Standalone-selection check repeats only target32/import1's four configurations to prove prerequisite admission.
+All four actual saved IRs contain nested `sub(add(ptrtoint(@tower.global.storage),4),1)` at line15, using i32/i64 respectively. Thus the new sub guard is exercised at both widths, not inferred from source spelling.
+Generated Foundation3968B each: target32 SHA256 `7a200d2b4d973a1bb33a07dc1386b332e2eeb8a8e3516a780fcf116b292ab07f`; target64 `4810972de4199aa0aa9033b69793678928355aa8da919b2739b2ae8887849aa8`; worker1/4 bytes match within each width, not across widths.
+Negative fixture changes only `base + sizeof(decltype(storage)) - 1` to `base + (sizeof(decltype(storage)) - 1)`. The existing arithmetic/output oracle is unchanged; the subtraction folds before address construction, and the guard rejects it. Input SHA256 `54df1b70218a94016eea31282d37562358210fa54617eec590458f9d74570f94`.
+Its deliberate fatal utility assertion does not run lexical teardown; process drain is verified, but it is not zero-owner recovery evidence. Wrapper `.exit`134 is authoritative; GNU time reports signal6 despite its `%x` field0. Original nonfatal unsupported-operand cleanup remains covered by positive runs.
+Source runner SHA256 `91f1e65a87c6c5f8f1b0263762f4e8a5d24127613795aa0abbec0796191f27cb`; execution runner `2535844f5283e6c48ccb871367e65c24eae103122ad441f065878071a8e884f9`. Exact runtime, resources and all source/registration hashes are retained locally; before/after source checks match.
+Raw root `build/d2_ecs/constant_address_gate_59d7dc9e/`: `build*`, `alone*`, `focused*`, `no_sub*`, `constant_address_no_sub.tower`, `generated/`, `artifacts.sha256`, `generated.sha256`, `source_before.sha256`, `source_final_check.log`. All failures retained, no broad cleanup.
+These are fresh-process/warm-filesystem validation costs for unchanged production semantics, not throughput/overlap or whole-process budget claims. No native machine-code execution, large64, reactor, generation, instrumentation or deployment adoption; ROOT retains those gates.
+Owned jobs drained and heavy lock released; disk126GiB free/RAM9.7GiB available. Full touched-provider author review and exact changed-file blobs are in the D2 audit; independent peer approval remains separate. Todo and other owners' source changes are preserved.

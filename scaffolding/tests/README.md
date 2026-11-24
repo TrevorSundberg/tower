@@ -86,6 +86,13 @@ The source-service fixture requires the actual optimized LLVM overflow intrinsic
 and successful Foundation reconstruction. The source runner's optional `optimized`
 mode saves that exact optimized LLVM beside the reconstructed `OUTPUT` as
 `OUTPUT.ll`; without this mode it retains the existing unoptimized policy.
+The `constant-address` mode requires actual LLVM ConstantExpr add/sub and ptrtoint,
+including valid unsupported-operand controls and zero-owner teardown. CTest
+`tower-reconstructed-constant-address-{4,8}-{1,4}` executes each generated result
+through Graph/Fast at the same target width; its fixture automatically reruns the
+matching import even when only that execution test is selected. Separate output
+directories permit parallel CTest scheduling. `tower-backend-constant-address-equal-{4,8}`
+requires both imports and compares worker1/4 Foundation bytes exactly.
 For runtime boundary checks, copy that unchanged output into a fresh directory
 as `backend_unsigned_overflow.tower` and copy `backend_unsigned_overflow_calls.tower`
 beside it. Interpret the caller at the output's target width: expected output is

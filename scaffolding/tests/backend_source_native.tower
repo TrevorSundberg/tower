@@ -331,6 +331,8 @@ export fn main(argc: i32, argv: u8**): i32 {
             utility_check(backend_source_test_has(fixture.source.backend.backend.optimized, " add (")
                 && backend_source_test_has(fixture.source.backend.backend.optimized, "ptrtoint ("),
                 "Ordinary global address fixture actually emits LLVM constant addition");
+            utility_check(backend_source_test_has(fixture.source.backend.backend.optimized, " sub ("),
+                "Ordinary global address fixture actually emits LLVM constant subtraction");
         }
         printf("input_bytes=%zu output_bytes=%zu backend_resource=%zu backend_offset=%zu reserved=%zu reserved=%zu reserved=%zu\n",
             input.length, fixture.source.foundation.length, convert(usize, fixture.source.backend.backend.resource_error),

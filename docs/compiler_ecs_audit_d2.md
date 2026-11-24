@@ -3421,3 +3421,16 @@ Local source map/delta: `build/d2_ecs/constant_address_review_d962222a/{reviewed
 Disposition: independent source review complete, no demonstrated producer defect; the two durable regression gaps above remain A2/ROOT follow-ups. Existing poison/undef policy, unrelated unsupported ConstantExpr paths, L1 pointer ordering and B2 large reconstruction are not newly validated. No build/runtime/instrumentation/hosted adoption; docs-only profiling is inapplicable and ROOT retains integrated release.
 
 Integration boundary: complete published `b305e5091a5d83692f04f33054dae01f56e8b3e5` merged in `77f7d25189ea038e14171c3801dc810bbb8ae947`. The producer and new fixtures/service entry remain identical to the reviewed freeze; incoming CMake adds a separate signed-pointer selector, and its shared text-runner extraction retains the original constant-address call, bounds and assertions. This narrow merge check does not peer-approve the new signed-pointer fixture or relabel A2's runtime evidence. `git diff --check` passes; todo remains unchanged.
+
+## Durable ConstantExpr regression gates — 59d7dc9e (2026-11-23)
+
+D2 author review (not independent peer approval), frozen59d7dc9e plus delta. Full touched Tower provider reviewed: observation remains read-only, source/LLVM/result ownership and negative controls unchanged; only the separate sub-presence assertion is added. CTest fixture dependencies now connect actual generated inputs to existing Graph/Fast/canonical checks, with distinct output directories and exact worker equality. No new executable, arithmetic oracle or production importer change.
+
+| Changed path | Tested Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/tests/backend_source_native.tower` | `63575bd8346f70a3d784388f9640a311fb4a3369` | Add/ptrtoint assertion retained; sub assertion passes actual i32/i64 IR and rejects temporary grouped-subtraction input. Existing valid negatives/final budget drain preserved. |
+| `cmake/TowerBackendSourceTests.cmake` | `361c0549c81ed5bceb7cdf041a406841212b04eb` | Four distinct setup fixtures and two byte-equality consumers; only successful fresh import admits execution. No permissive output regex, timeout increase or stale-output acceptance. |
+| `cmake/TowerExecutionTests.cmake` | `de823b79a82c4b8a120af1c69d1e8fe48b666b2c` | Four same-width reconstructed consumers use the existing runner; automatically added imports verified by actual selection from absent output. Concurrent signed-pointer/source cases preserved. |
+| `scaffolding/tests/README.md` | `3af23c8a8318021e84b5cef07784018dbee9ac19` | Documents exact selector/prerequisite/equality behavior; native source-service capability limits retained. |
+
+Journal receipt records10/10 aggregate plus2/2 standalone-selection passes,16 aggregate Graph/Fast executions, eight original rejection invocations, deliberate subtraction-guard exit134, zero owners on ordinary completion and all costs/limits. Raw source/artifact/failure evidence: `build/d2_ecs/constant_address_gate_59d7dc9e/`. The earlier interrupted lock-error build remains failed. Both prior durable gaps are now covered at this source, without relabeling historical manual evidence.
