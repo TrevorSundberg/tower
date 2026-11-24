@@ -56,14 +56,23 @@ endforeach()
 foreach(width IN ITEMS 4 8)
   foreach(workers IN ITEMS 1 4)
     set(constant_test "tower-backend-constant-address-${width}-${workers}")
+    set(constant_workdir "${source_workdir}/constant_address_${width}_${workers}")
+    file(MAKE_DIRECTORY "${constant_workdir}")
+    file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${constant_workdir}/.tower" SYMBOLIC)
     add_test(NAME "${constant_test}" COMMAND tower-backend-source-tests
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" "${source_runtime}"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_constant_address.tower"
-      "${source_workdir}/constant_address_${width}_${workers}.tower" "${width}" "${workers}" constant-address)
-    set_tests_properties("${constant_test}" PROPERTIES WORKING_DIRECTORY "${source_workdir}"
-      TIMEOUT 90 LABELS "native;backend;focused")
+      "${constant_workdir}/constant_address_${width}_${workers}.tower" "${width}" "${workers}" constant-address)
+    set_tests_properties("${constant_test}" PROPERTIES WORKING_DIRECTORY "${constant_workdir}"
+      FIXTURES_SETUP "${constant_test}" TIMEOUT 90 LABELS "native;backend;focused")
   endforeach()
+  add_test(NAME "tower-backend-constant-address-equal-${width}" COMMAND "${CMAKE_COMMAND}" -E compare_files
+    "${source_workdir}/constant_address_${width}_1/constant_address_${width}_1.tower"
+    "${source_workdir}/constant_address_${width}_4/constant_address_${width}_4.tower")
+  set_tests_properties("tower-backend-constant-address-equal-${width}" PROPERTIES
+    FIXTURES_REQUIRED "tower-backend-constant-address-${width}-1;tower-backend-constant-address-${width}-4"
+    TIMEOUT 90 LABELS "native;backend;focused")
 endforeach()
 
 # Same session provider with the existing single-owner allocation-denial seam.
