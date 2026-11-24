@@ -34,6 +34,18 @@ function(tower_execution_tests)
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_constant_address.tower" "${pointer_bytes}")
     set_tests_properties("tower-canonical-constant-address-${pointer_bytes}" PROPERTIES
       TIMEOUT 90 LABELS "native;backend;focused")
+    if(TARGET tower-backend-source-tests)
+      foreach(workers IN ITEMS 1 4)
+        set(import_test "tower-backend-constant-address-${pointer_bytes}-${workers}")
+        get_test_property("${import_test}" WORKING_DIRECTORY constant_workdir)
+        set(execution_test "tower-reconstructed-constant-address-${pointer_bytes}-${workers}")
+        add_test(NAME "${execution_test}" COMMAND tower-execution-tests
+          "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" backend-pointer-execute
+          "${constant_workdir}/constant_address_${pointer_bytes}_${workers}.tower" "${pointer_bytes}")
+        set_tests_properties("${execution_test}" PROPERTIES WORKING_DIRECTORY "${constant_workdir}"
+          FIXTURES_REQUIRED "${import_test}" TIMEOUT 90 LABELS "native;backend;focused")
+      endforeach()
+    endif()
   endforeach()
 
   # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
