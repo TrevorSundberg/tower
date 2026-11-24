@@ -103,7 +103,46 @@ fn sem_lower_finish(c: SemanticContext*, signature: bool): void {
 
 // Stable per-function components allow newly ready bodies to join the same
 // phase without rebuilding jobs or lowering previously published functions.
-fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
+fn sem_lower_completed(c: SemanticContext*, result: SemanticLowering*, query: u32): bool {
+    // A retained result locates the task; only the current graph can prove it
+    // complete. Never treat an old revision/profile/dispatch as a skip receipt.
+    if result.ticket.revision != c.queries.revision || result.ticket.profile != c.queries.profile { return false; }
+    var task = work_task(&c.queries, result.ticket.task);
+    return task != null && task.subject == result.subject && task.query == query && task.argument == 0
+        && task.state == WorkState.Succeeded && task.dispatch == result.ticket.dispatch;
+}
+
+fn sem_lower_selection_sync(c: SemanticContext*): void {
+    if c.lower_selection.revision == c.queries.revision && c.lower_selection.profile == c.queries.profile { return; }
+    c.lower_selection = default;
+    c.lower_selection.revision = c.queries.revision;
+    c.lower_selection.profile = c.queries.profile;
+}
+
+fn sem_lower_selection_advance(c: SemanticContext*, signature: bool, first: usize*): void {
+    var kind = signature ? c.aggregate_preparations : c.lowering_results;
+    if kind == null { *first = c.program.functions.length; return; }
+    var query = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
+    while *first < c.program.functions.length {
+        var subject = c.program.functions.data[*first];
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, kind)));
+        if result != null {
+            if !sem_lower_completed(c, result, query) { return; }
+        } else {
+            // Absence is valid only until the next complete registration walk,
+            // which rewinds for every newly discovered producer.
+            var id = work_find(&c.queries, subject, query, 0);
+            if id != 0 && work_task(&c.queries, id).state != WorkState.Succeeded { return; }
+        }
+        (*first)++;
+    }
+}
+
+fn sem_lower_register_first(c: SemanticContext*, signature: bool, first: usize*): void* {
+    // Registration still visits every function. It invalidates the derived
+    // prefix for late bodies, appends and compaction/reordering, before taking
+    // any ticket. Completed task state is checked once as the prefix advances.
+    if *first > c.program.functions.length { *first = c.program.functions.length; }
     var kind = signature ? &c.aggregate_preparations : &c.lowering_results;
     if !sem_ok(c) || (!signature && !c.surface_expressions && !c.has_defer) { return *kind; }
     // Source spellings and names produced by earlier control lowering are frozen
@@ -113,10 +152,17 @@ fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
     var query_kind = convert(u32, signature ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering);
     for(var i: usize = 0; i < c.program.functions.length; ++i) {
         var subject = c.program.functions.data[i];
+        if *kind != null {
+            var existing = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, *kind)));
+            if existing != null {
+                if i < *first && existing.ordinal != i { *first = i; }
+                continue;
+            }
+        }
         var block = i == 0 ? subject : sem_get(subject).body;
         if block == null { continue; }
         if signature && (i == 0 || !sem_aggregate_needed(subject)) { continue; }
-        if *kind != null && entity_component_get(subject, *kind) != null { continue; }
+        if i < *first { *first = i; }
         var id = work_request(&c.queries, subject, query_kind, 0);
         if !sem_query_check(c, subject, id != 0) { return null; }
         var body = work_find(&c.queries, subject, convert(u32, SemanticQuery.Body), 0);
@@ -163,6 +209,11 @@ fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
     return *kind;
 }
 
+fn sem_lower_register(c: SemanticContext*, signature: bool): void* {
+    sem_lower_selection_sync(c);
+    return sem_lower_register_first(c, signature, signature ? &c.lower_selection.signature : &c.lower_selection.expression);
+}
+
 export fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult {
     return sem_lower_frontier(c, signature, false);
 }
@@ -196,11 +247,17 @@ fn sem_lower_state(c: SemanticContext*, signature: bool): SemanticPumpResult {
 fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): SemanticPumpResult {
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if !sem_query_check(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
+    sem_lower_selection_sync(c);
     if mixed { sem_lower_register(c, true); }
     var kind = sem_lower_register(c, signature);
     if !sem_ok(c) { work_cancel(&c.queries); return SemanticPumpResult.Failed; }
     if mixed && kind == null { kind = c.aggregate_preparations; }
     if kind == null { return SemanticPumpResult.Complete; }
+    if mixed { sem_lower_selection_advance(c, true, &c.lower_selection.signature); }
+    var selected = signature ? &c.lower_selection.signature : &c.lower_selection.expression;
+    sem_lower_selection_advance(c, signature, selected);
+    var first = *selected;
+    var signature_first = c.lower_selection.signature;
     var batch: work_vector(SemanticLowering*) = default;
     defer {
         foreach(var result in &batch) {
@@ -213,12 +270,14 @@ fn sem_lower_frontier(c: SemanticContext*, signature: bool, mixed: bool): Semant
     var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
     {
         var count: usize = 0;
-        for(var index: usize = 0; index < c.program.functions.length && count < SemanticPreparationWindow && sem_ok(c); index++) {
+        var begin = mixed && signature_first < first ? signature_first : first;
+        for(var index = begin; index < c.program.functions.length && count < SemanticPreparationWindow && sem_ok(c); index++) {
           var subject = c.program.functions.data[index];
           var phase = convert(u32, mixed || signature ? SemanticLoweringPhase.Signature : SemanticLoweringPhase.Expression);
           var end = mixed ? convert(u32, SemanticLoweringPhase.Count) : phase + 1;
           for(; phase < end && count < SemanticPreparationWindow; phase++) {
             var preparing = phase == convert(u32, SemanticLoweringPhase.Signature);
+            if index < (mixed && preparing ? signature_first : first) { continue; }
             var result_kind = preparing ? c.aggregate_preparations : c.lowering_results;
             if result_kind == null { continue; }
             var id = work_find(&c.queries, subject, convert(u32, preparing ? SemanticQuery.AggregatePrepare : SemanticQuery.Lowering), 0);
@@ -347,4 +406,5 @@ fn sem_lower_dispose(c: SemanticContext*): void {
     sem_require(c.workers.running == 0);
     sem_lower_dispose_kind(c.aggregate_preparations);
     sem_lower_dispose_kind(c.lowering_results);
+    c.lower_selection = default;
 }

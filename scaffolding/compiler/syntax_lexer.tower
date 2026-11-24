@@ -195,24 +195,24 @@ export fn lexicon_choose(value: SyntaxLexicon*, source: u8*, length: usize, star
     var punctuation = false;
     for(; index != value.literals.length; index++) {
         var literal = &value.literals.data[index];
+        // LR acceptance cannot make a nonmatching or shorter literal win.
+        // Test source bytes first; querying the frozen table is pure, and
+        // matching literals retain their original order and contextual policy.
+        if literal.length < choice.length || !lexicon_prefix(source, length, start, literal.text, literal.length) { continue; }
         var eligible = !declaration;
         if literal.declaration {
             eligible = true;
         }
         eligible ||= lexicon_accepts(runtime, state, literal.id, choice);
         if eligible {
-            eligible = literal.length >= choice.length;
-            eligible &&= lexicon_prefix(source, length, start, literal.text, literal.length);
-            if eligible {
-                choice.length = literal.length;
-                choice.id = literal.id;
-                choice.style = "operator";
-                if literal.word {
-                    choice.style = "keyword";
-                }
-                choice.skipped = false;
-                punctuation = !literal.word;
+            choice.length = literal.length;
+            choice.id = literal.id;
+            choice.style = "operator";
+            if literal.word {
+                choice.style = "keyword";
             }
+            choice.skipped = false;
+            punctuation = !literal.word;
         }
     }
     // Attributes can reuse ordinary expressions, making their punctuation
