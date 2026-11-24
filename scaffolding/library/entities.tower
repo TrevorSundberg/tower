@@ -8,6 +8,7 @@ var EntityComponentPageBytes: usize = 16384;
 var EntityComponentPageRows: usize = 64;
 var EntityOwnedPageRows: usize = 32;
 var EntityOwnedPageBytes: usize = 4096;
+var EntityChildIndexMinimum: usize = 4;
 
 // The owning Tower program supplies its lifecycle dispatch; zero means none.
 // IDs belong to that program, not to a process-wide native callback registry.
@@ -146,7 +147,7 @@ fn entity_reclaim(entity: Entity*): void {
     for(; i != entity.component_count; i++) {
         entity_component_dispose(entity.components[i]);
     }
-    entity_buffer_free(entity.children);
+    entity_children_free(entity);
     entity_components_free(entity);
     entity_buffer_free(entity.instances);
     store.entity_count--;
@@ -328,6 +329,30 @@ fn entity_buffer_resize_result(T: type, budget: WorkBudget*, data: T*, count: us
     bits(EntityBufferAllocation*, allocation.data).allocation = allocation;
     entity_buffer_free(data);
     return result;
+}
+
+fn entity_children_free(node: Entity*): void {
+    if node.children != &node.inline_children[0] { entity_buffer_free(node.children); }
+}
+
+// Preserve heap old+new admission and exact caller-selected growth. The inline
+// edge is already charged with its stable descriptor, never a buffer header.
+fn entity_children_resize_result(node: Entity*, count: usize): WorkBudgetError {
+    if count < node.child_count { return WorkBudgetError.Invalid; }
+    if count <= node.child_capacity { return WorkBudgetError.None; }
+    var inline_count = sizeof(decltype(node.inline_children)) / sizeof(EntityChild);
+    if node.children == null && count <= inline_count {
+        node.children = &node.inline_children[0]; node.child_capacity = inline_count;
+        return WorkBudgetError.None;
+    }
+    var local = node.children == &node.inline_children[0];
+    var error = WorkBudgetError.None;
+    var memory = entity_buffer_resize_result(node.store.budget, local ? null : node.children,
+        count, local ? 0 : node.child_count, &error);
+    if memory == null { return error; }
+    if local { copy(memory, node.children, node.child_count * sizeof(EntityChild)); }
+    node.children = memory; node.child_capacity = count;
+    return WorkBudgetError.None;
 }
 
 fn entity_reserve_components(budget: WorkBudget*, data: EntityComponent***, capacity: usize*, count: usize): WorkBudgetError {
@@ -779,14 +804,13 @@ export fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): Work
             var limit = maximum / sizeof(EntityChild);
             if parent.child_capacity > limit / 2 { return WorkBudgetError.Invalid; }
             var capacity = parent.child_capacity *2;
-            if capacity < 4 {
-                capacity = 4;
-            }
-            var error: WorkBudgetError;
-            var next = entity_buffer_resize_result(parent.store.budget, parent.children, capacity, parent.child_count, &error);
-            if next == null { return error; }
-            parent.children = next;
-            parent.child_capacity = capacity;
+            if parent.child_capacity == 0 {
+                capacity = sizeof(decltype(parent.inline_children)) / sizeof(EntityChild);
+            } else { if capacity < EntityChildIndexMinimum {
+                capacity = EntityChildIndexMinimum;
+            } }
+            var error = entity_children_resize_result(parent, capacity);
+            if error != WorkBudgetError.None { return error; }
         }
         var has_name = name != null;
         has_name &&= *name != 0;
