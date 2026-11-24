@@ -47,6 +47,7 @@ fn entity_fault_pages(sample: EntityFaultCensus*, budget: WorkBudget*, pool: Ent
 fn entity_fault_node(sample: EntityFaultCensus*, node: Entity*): void {
     var budget = node.store.budget;
     entity_fault_owned(sample, budget, node);
+    entity_fault_owned(sample, budget, node.layout);
     entity_fault_index(sample, budget, node.children);
     entity_fault_index(sample, budget, node.instances);
     if node.components != &node.inline_components[0] { entity_fault_index(sample, budget, node.components); }

@@ -21,6 +21,7 @@ import .compiler.semantic_declaration_types;
 // Optional coordinator census. No allocator hook, worker callback, global state,
 // mutation of compiler owners or retained query exists. Plain mode does not scan.
 extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, out: void**): WorkBudgetError;
+extern fn entity_component_from_data(data: u8*): EntityComponent*;
 extern fn compiler_world_type_existing(world: void*, kind: u32): void*;
 extern fn compiler_buffer_allocation_size(bytes: usize): usize;
 extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
@@ -58,7 +59,7 @@ fn storage_metric(phase: u8*, key: u8*, value: usize): void {
 }
 fn storage_row(phase: u8*, name: u8*, kind: Entity*, sample: StorageSample*): void {
     units_check(printf("kind,%s,%s,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu,%zu\n",
-        phase, name, kind.id, kind.data_size, sample.count, sample.payload,
+        phase, name, kind.id, kind.layout.data_size, sample.count, sample.payload,
         sample.pages, sample.slots, sample.page_live, sample.page_bytes,
         sample.stride_bytes, sample.single_pages, sample.sparse_pages,
         sample.individuals, sample.individual_bytes, sample.index_bytes) >= 0, "storage kind output");
@@ -135,10 +136,21 @@ fn storage_observe(world: void*, phase: u8*, enabled: bool): void {
     var descriptors: StorageSample = default;
     storage_pages(&store.buffers, &descriptors);
     var all: StorageSample = default;
+    var layout_pages: usize = 0; var layout_slots: usize = 0;
     foreach(var kind in &kinds) {
+        var layout = entity_component_from_data(bits(u8*, kind.layout));
+        units_check(kind.registered && layout.page != null && layout.page.owner == &store.buffers,
+            "storage kind layout owner");
+        layout_slots += layout.page.stride + sizeof(EntityComponent);
+        var seen = false;
+        foreach(var previous in &kinds) {
+            if previous == kind { break; }
+            if entity_component_from_data(bits(u8*, previous.layout)).page == layout.page { seen = true; }
+        }
+        if !seen { layout_pages += compiler_buffer_allocation_size(layout.page.allocation.capacity); }
         var sample: StorageSample = default;
         sample.count = kind.instance_count;
-        sample.payload = sample.count * kind.data_size;
+        sample.payload = sample.count * kind.layout.data_size;
         sample.index_bytes = storage_buffer(bits(u8*, kind.instances));
         var page = store.storage.owned;
         while page != null {
@@ -175,6 +187,13 @@ fn storage_observe(world: void*, phase: u8*, enabled: bool): void {
     var known = all.page_bytes + all.individual_bytes + all.index_bytes + descriptors.page_bytes + table_bytes;
     units_check(known <= budget.used_bytes, "storage categories do not double count");
     storage_metric(phase, "entities", store.entity_count);
+    storage_metric(phase, "entity_size", sizeof(Entity));
+    storage_metric(phase, "kind_count", kinds.length);
+    storage_metric(phase, "kind_layout_logical_bytes", kinds.length * sizeof(EntityLayout));
+    storage_metric(phase, "kind_layout_slot_bytes", layout_slots);
+    // Subset of descriptor_page_bytes, possibly shared with other size-class
+    // blocks; do not add this physical category to the ledger a second time.
+    storage_metric(phase, "kind_layout_page_bytes", layout_pages);
     storage_metric(phase, "entity_logical_bytes", store.entity_count * sizeof(Entity));
     storage_metric(phase, "components", all.count); storage_metric(phase, "live_payload_bytes", all.payload);
     storage_metric(phase, "payload_pages", all.pages); storage_metric(phase, "payload_page_bytes", all.page_bytes);

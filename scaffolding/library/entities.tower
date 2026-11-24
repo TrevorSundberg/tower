@@ -149,6 +149,7 @@ fn entity_reclaim(entity: Entity*): void {
     entity_buffer_free(entity.children);
     entity_components_free(entity);
     entity_buffer_free(entity.instances);
+    entity_owned_free(entity.layout);
     store.entity_count--;
     entity_owned_free(entity);
     store.reclaiming--;
@@ -251,16 +252,20 @@ export fn entity_register_stage_result(type: Entity*, size: usize, alignment: us
     var bits = alignment &mask;
     if bits != 0 { return WorkBudgetError.Invalid; }
     if type.registered {
-        var same = type.data_size == size;
-        same &&= type.data_alignment == alignment;
-        same &&= type.lifecycle == lifecycle;
+        var same = type.layout.data_size == size;
+        same &&= type.layout.data_alignment == alignment;
+        same &&= type.layout.lifecycle == lifecycle;
         same &&= type.stage_page_rows == stage_rows;
         return same ? WorkBudgetError.None : WorkBudgetError.Busy;
     }
     if type.store.views != 0 { return WorkBudgetError.Busy; }
-    type.data_size = size;
-    type.data_alignment = alignment;
-    type.lifecycle = lifecycle;
+    // Raw stable storage avoids recursive component/self-kind registration.
+    // On denial neither the kind nor its registration flag is published.
+    var error: WorkBudgetError;
+    var layout = entity_owned_allocate_result(EntityLayout, &type.store.buffers, type.store.budget, 1, &error);
+    if layout == null { return error; }
+    *layout = { data_size: size, data_alignment: alignment, lifecycle: lifecycle };
+    type.layout = layout;
     type.stage_page_rows = stage_rows;
     type.registered = true;
     return WorkBudgetError.None;
@@ -479,8 +484,8 @@ fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetErr
     if pool == null { pool = &owner.store.storage; }
     var rows = EntityComponentPageRows;
     if owner.stage != null && type.stage_page_rows != 0 { rows = convert(usize, type.stage_page_rows); }
-    var component = entity_storage_allocate(pool, owner.store.budget, type.id, type.data_size,
-        type.data_alignment, rows, EntityComponentPageBytes, error);
+    var component = entity_storage_allocate(pool, owner.store.budget, type.id, type.layout.data_size,
+        type.layout.data_alignment, rows, EntityComponentPageBytes, error);
     if component != null { component.owner = owner; component.type = type; }
     return component;
 }
@@ -615,8 +620,8 @@ fn entity_component_dispose(component: EntityComponent*): void {
     var last = type.instances[type.instance_count];
     type.instances[component.type_index] = last;
     last.type_index = component.type_index;
-    if type.lifecycle != 0 {
-        tower_entity_finalize(type.lifecycle, component, component.data);
+    if type.layout.lifecycle != 0 {
+        tower_entity_finalize(type.layout.lifecycle, component, component.data);
     }
     var store = type.store;
     store.component_count--;

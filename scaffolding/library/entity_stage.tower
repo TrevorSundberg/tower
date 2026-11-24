@@ -351,8 +351,8 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
         var node = stage.nodes.data[i].node;
         for(var j: usize = 0; j < node.component_count; ++j) {
             var component = node.components[j];
-            if component.type.lifecycle != 0 {
-                tower_entity_finalize(component.type.lifecycle, component, component.data);
+            if component.type.layout.lifecycle != 0 {
+                tower_entity_finalize(component.type.layout.lifecycle, component, component.data);
             }
             entity_component_free(component);
         }
@@ -367,8 +367,8 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
         var node = lease.node;
         for(var j = lease.components; j < node.component_count; ++j) {
             var component = node.components[j];
-            if component.type.lifecycle != 0 {
-                tower_entity_finalize(component.type.lifecycle, component, component.data);
+            if component.type.layout.lifecycle != 0 {
+                tower_entity_finalize(component.type.layout.lifecycle, component, component.data);
             }
             entity_component_free(component);
         }

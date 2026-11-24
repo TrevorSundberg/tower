@@ -54,6 +54,15 @@ struct EntityChild {
     name: u8*;
 }
 
+// Immutable registration data. The canonical kind is still its Entity; this
+// stable, non-component block is owned by that kind in its store's buffer pool.
+// Reserved before publishing registration, never constructed by a worker.
+struct EntityLayout {
+    data_size: usize;
+    data_alignment: usize;
+    lifecycle: usize;
+}
+
 struct Entity {
     store: EntityStore*;
     id: usize;
@@ -74,9 +83,7 @@ struct Entity {
     // limit newly allocated private-stage pages only. Published pages keep
     // their capacity and may be reused by the coordinator without relocation.
     stage_page_rows: u8;
-    data_size: usize;
-    data_alignment: usize;
-    lifecycle: usize;
+    layout: EntityLayout*;
     deferred: Entity*;
     // A private new entity, or an existing entity exclusively leased to one
     // stage. Component indexes publish after pinned readers join. A lease owns
