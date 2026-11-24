@@ -17,6 +17,14 @@ fn symbol_case(unit: BootstrapUnit, windows: bool, text: u8*, bad: u8*): void {
     symbol_target_case(unit, windows ? "x86_64-pc-windows-msvc" : "x86_64-unknown-linux-gnu", text, bad);
 }
 
+fn symbol_wasm_callback_case(unit: BootstrapUnit): void {
+    symbol_target_case(unit, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
+    symbol_case(unit, false, " U __indirect_function_table\n", "__indirect_function_table");
+    symbol_case(unit, true, " U __indirect_function_table\n", "__indirect_function_table");
+    symbol_target_case(unit, "wasm32-unknown-unknown", " U __indirect_function_table_extra\n", "__indirect_function_table_extra");
+    symbol_target_case(unit, "wasm32-unknown-unknown", " U __table_base\n", "__table_base");
+}
+
 // Target spellings exercise the existing portable policy, not target execution.
 fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: u8*, suffixed: u8*): void {
     symbol_target_case(unit, "x86_64-unknown-linux-gnu", name, null);
@@ -31,9 +39,21 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    symbol_wasm_callback_case(BootstrapUnit.ParserFormat);
+    symbol_wasm_callback_case(BootstrapUnit.TemplateBuild);
+    // The staged borrowed-origin finalizer carries a relative Wasm table index.
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-unknown", " U __table_base\n", null);
+    symbol_case(BootstrapUnit.Entities, false, " U __table_base\n", "__table_base");
+    symbol_case(BootstrapUnit.Entities, true, " U __table_base\n", "__table_base");
+    symbol_target_case(BootstrapUnit.GraphComponents, "wasm32-unknown-unknown", " U __table_base\n", "__table_base");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-unknown", " U __table_base_extra\n", "__table_base_extra");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-unknown", " U __table_bas\n", "__table_bas");
     utility_check(bootstrap_unit("graph-components") == BootstrapUnit.GraphComponents, "Typed connectivity provider policy");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_result", "graph_components_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_dispose", "graph_components_dispose_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "fflush", "fflush_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "puts", "puts_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "strlen", "strlen_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "entity_register_stage_result", "entity_register_stage_result_extra");
     symbol_case(BootstrapUnit.GraphComponents, false,
         " U compiler_buffer_allocate\n U compiler_buffer_allocation_size\n U compiler_buffer_free\n U memset\n U tower_reallocate\n U tower_trap\n", null);
@@ -268,7 +288,7 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Entities, true, " U __indirect_function_table\n", "__indirect_function_table");
     symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __indirect_function_tabl\n", "__indirect_function_tabl");
     symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __indirect_function_table_extra\n", "__indirect_function_table_extra");
-    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __table_base\n", "__table_base");
+    symbol_target_case(BootstrapUnit.Entities, "wasm32-unknown-wasi", " U __table_base\n", null);
     symbol_target_case(BootstrapUnit.Host, "wasm32-unknown-wasi", " U __indirect_function_table\n", "__indirect_function_table");
     symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-wasi", " U __indirect_function_table\n", null);
     symbol_case(BootstrapUnit.Interpreter, false, " U __indirect_function_table\n", "__indirect_function_table");
