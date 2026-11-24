@@ -982,6 +982,29 @@ coordinator failure terminates the entire group and rejects queued old replies.
 Node keeps its existing worker transport; explicit custom factories retain their
 own lifetime responsibility. The separate LLVM compiler-unit pool is unchanged.
 
+The four static desktop/mobile thread controls retain compact CDP worker target
+creation/change/destruction events, IDs, timestamps and final empty target sets
+as per-test `worker-lifecycle.json` attachments, plus the actual staged output.
+Run them against the already-built dist with the ordinary reporters:
+
+```sh
+DEBUG= TOWER_REQUIRE_THREADS=1 TOWER_REQUIRE_BACKENDS=1 \
+  PLAYWRIGHT_JSON_OUTPUT_FILE=../build/static-app.json \
+  timeout --signal=TERM --kill-after=5s 540s \
+  node node_modules/@playwright/test/cli.js test tests/browser/compiler-threads.spec.mjs \
+  --workers=1 --retries=0 --max-failures=1 --reporter=line,json
+```
+
+Retain the JSON result, console log and `build/playground-browser-tests` once;
+attachments are referenced by path, not copied into another aggregate archive.
+Keep the tested dist manifest and immutable input/output artifact hashes with
+those records. Full `DEBUG=pw:protocol` logging is unnecessary for this ownership
+oracle: it repeats script and transferred payloads in both the console and JSON
+report. Standard errors, assertion diagnostics, failure screenshots and retained
+failure traces remain unfiltered. The separate strict shared-worker tests still
+own cancellation/stale-reply/retirement oracles; these static observations do not
+replace them or infer overlap from target counts.
+
 For a focused current-source shared-Wasm check without LLVM reactors or UI
 packaging, build `tower-browser` and `tower-work-tests` in that threads profile,
 then run from the repository root:

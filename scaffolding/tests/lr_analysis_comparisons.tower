@@ -111,6 +111,24 @@ fn lr_shift_equal_order_case(): void {
 fn lr_analysis_comparison_tests(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
     lr_shift_equal_order_case();
+    // Multiple prediction inputs share alternatives, including a recursive
+    // representative and a nullable sibling. The initial start production's
+    // independent EOF/construct seed must not leak into its other alternatives.
+    // The eager LR(1) oracle has no prediction groups and compares every action.
+    for(var nullable: usize = 0; nullable < 2; nullable++) {
+        var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, symbols.length, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        lr_fixture_rule(&rules, 0, symbols.length, 1); lr_fixture_symbol(&symbols, oracle_none(), 41, 41);
+        lr_fixture_rule(&rules, 0, symbols.length, 2);
+        lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 47, 47);
+        lr_fixture_rule(&rules, 1, symbols.length, 2);
+        lr_fixture_symbol(&symbols, 0, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 43, 43);
+        lr_fixture_rule(&rules, 1, symbols.length, nullable != 0 ? 0 : 1);
+        if nullable == 0 { lr_fixture_symbol(&symbols, oracle_none(), 37, 37); }
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Prediction groups and independent start seed cleanup");
     // Small scans, indexed mixed-symbol fan-out, and overlapping-range fallback
     // must match the eager oracle, including reversed nonterminal order.
     for(var mode: usize = 0; mode < 3; mode++) {
