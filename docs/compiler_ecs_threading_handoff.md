@@ -1,5 +1,36 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Frozen next batch: 03e344d2 (2026-11-24)
+
+The next compiler source is published and frozen at
+`03e344d24cda60a31765b974348081fb1b2e022b`, tree
+`40d53c13732e5b216e77292cb14aefc9d464a1a5`. **The original goal remains open.**
+The published runtime below is still611; this new batch is not yet released.
+
+[Lexer](parser_literal_peer_c185948f.md),
+[lowering frontier](lowering_frontier_peer_82668bf4.md),
+[capture scratch](capture_candidate_peer_r3.md) and
+[LR range ordering](lr_range_order_peer_07589fe5.md) have independent focused
+acceptance. [Pool range claiming was rejected](work_pool_resolution_146d3f66.md):
+the original per-job producer is restored exactly, retaining stronger uneven-cost
+and ownership tests. Individual timing gains/regressions must not be added.
+
+A2 now owns one actual1/4/8/16/32-worker paired cohort on the32-logical-CPU host;
+ROOT verified A1 has no heavy processes and held its native checks until that
+cohort ends. L1/L2/B2 received the same fixed source for supported ASan/TSan and
+browser/static acceptance. Native generations, complete pin/package peers,
+clean public-default adoption and final hosted acceptance remain required.
+Exactly eight existing UUIDs are retained; failures stay with their owner.
+
+D2's capture runtime results use its own verified-source build. ROOT separately
+resolved all nine supplied physical-source digest differences as mixed CRLF/LF:
+original physical bytes match the recorded build hashes, and Git-filtered blobs
+match28937e40. Exact original files/proof are retained in
+`ROOT_capture_build_source_crlf_overlay_r3.tar.gz` (SHA054713a6) and
+`ROOT_capture_source_newlines_r3.json`; no supplied binary was relabeled as D2
+execution and no checksum was rewritten. New runtime performance/sanitizer
+claims await their actual results; this checkpoint itself is documentation only.
+
 ## Current integration checkpoint: published 611 compiler and runtime (2026-11-24)
 
 The original goal remains **open**. The combined compiler correctness batch is now

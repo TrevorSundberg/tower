@@ -23,6 +23,41 @@ extern fn lr_states_lalr_parallel_result(states: void*, constructs: bool, anchor
 var LRSuffixTestBytes: usize = 1048576;
 
 enum LRMergeNode: usize { Source, Destination, Count }
+fn lr_range_insertion_order(): void {
+    var baseline = tower_test_buffer_count();
+    var reference: SymbolRange[7] = default;
+    reference[0] = {first: 0, last: 0}; reference[1] = {first: 1, last: 3};
+    reference[2] = {first: 1, last: 4}; reference[3] = {first: 2, last: 2};
+    reference[4] = {first: 7, last: 9};
+    reference[5] = {first: ~convert(u32, 0) - 1, last: ~convert(u32, 0)};
+    reference[6] = {first: ~convert(u32, 0), last: ~convert(u32, 0)};
+    var count = sizeof(decltype(reference)) / sizeof(SymbolRange);
+    for(var order: usize = 0; order < 3; order++) {
+        var graph = lr_propagation_create(1);
+        utility_check(graph != null, "Range insertion owner");
+        defer lr_propagation_destroy(graph);
+        for(var i: usize = 0; i < count; i++) {
+            var at = order == 0 ? i : (order == 1 ? count - i - 1 : (i % 2 == 0 ? i / 2 : count - i / 2 - 1));
+            utility_check(lr_propagation_seed_result(graph, 0, reference[at].first, reference[at].last) == WorkBudgetError.None,
+                "Ascending, descending and interleaved exact-range insertion");
+        }
+        var ranges = lr_propagation_data(graph, 0);
+        tower_test_buffer_fail_after(0);
+        for(var i = count; i != 0;) {
+            i--;
+            utility_check(lr_propagation_seed_result(graph, 0, reference[i].first, reference[i].last) == WorkBudgetError.None,
+                "Duplicate exact ranges need no allocation");
+        }
+        tower_test_buffer_fail_after(oracle_none());
+        utility_check(lr_propagation_count(graph, 0) == count && lr_propagation_data(graph, 0) == ranges,
+            "Duplicate insertion preserves payload identity and extent");
+        for(var i: usize = 0; i < count; i++) {
+            utility_check(ranges[i].first == reference[i].first && ranges[i].last == reference[i].last,
+                "Literal sorted reference preserves overlapping and extreme endpoints");
+        }
+    }
+    utility_check(tower_test_buffer_count() == baseline, "Range insertion owners released");
+}
 fn lr_range_merge_failure(): void {
     var baseline = tower_test_buffer_count();
     {
@@ -357,6 +392,7 @@ fn lr_kernel_resize_trial(): void {
 }
 fn lr_analysis_storage_failures(): void {
     lr_component_owner_tests();
+    lr_range_insertion_order();
     lr_range_merge_failure();
     lr_analysis_invalid_inputs();
     lr_suffix_budget_failure();
