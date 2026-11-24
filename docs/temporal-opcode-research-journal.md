@@ -96249,6 +96249,24 @@ D2 final integration preserves complete68345ada after routine ff-only refusal;
 both reviewed blobs and actual source/caller closure are unchanged. No runtime
 rerun or adoption of unrelated incoming static-app receipts; normal push follows.
 
+### 2026-11-24 B2: measured inline first-child storage
+
+[Scoped acceptance](entity_inline_children_5fc00c85.md), frozen5fc00c85/public768.
+Joined4096 census:348824 leaves/204122 singleton/61633 many-child indexed nodes;
+one-child heaps33.7MB, descriptor192->208/stride208->224/page16->15 explicitly
+counted. Candidate preserves refcount/name/order/lease/transfer and checked heap
+old+new admission; inline storage never freed as a buffer. Private/stage ownership
+and whole-Entity initialization audited. No WorkBudget/allocator/scheduler edits.
+Retained521369982->495030649B, grants432300->230046, ledger40->20MiB. Alternating
+n2 small1wall.375164->.376073; large1 2.503750->2.387955, large4 2.355054->2.212271.
+All earlier noninterleaved slower observations retained; no observer in timing.
+Exact source/import/canonical/known42 and drained world/ledger checks pass. Focused
+promotion/old+new denial/retry/take/stage/lease/concurrent/reuse/accounting pass;
+old first-child-cap fixture corrected from actual descriptor admission, with the
+failure preserved. Small58057B reconstructed control matches known hash/zero owners.
+A2 exact large request absent locally, pending; no generation/reactor/instrumentation
+or blocked-verifier attempt. D2 old observer review not relabeled. Full source,
+commands, costs, failures and candidate binaries in B2/entity_children_5fc00c85.
 
 ### 2026-11-23 D2: independent review of D1 i1 overflow reconstruction
 
@@ -96334,8 +96352,17 @@ B1 integration31bba36a + e330a2c9 = bfa1193e: rebuilt affected semantic provider
 A1 abort review publication:8b58fa60 merged complete e330a2c9 as b2d0928e after ff-only divergence. Ten reviewed production/fixture blobs unchanged; later A2 platform spelling repair/receipt and dependency fixtures excluded once. Frozen failure stays historical; new owner receipt closes it separately. No repeated audit/runtime; todo and diff checks pass, normal push follows.
 L1 publication recovery: incoming A2page-policy/census adopted at5e50a5fa; five-actionrefresh/eightfocusedCTests/largeoptimized32workers4/directGraphFast1-4/backend-ir pass, bytes unchanged and ownerszero. Latestcosts/hashes in receipt pages_*; original paired freeze unchanged. No owner methods edited, no broad rerun.
 
+B2 child-index integration: c12c2189 preserved by complete-history merge1dcb396f
+with427d6aca. Storage/test/observer hashes unchanged. Incoming semantic lowering
+registration guard refreshed only semantics and profile/service links; merged16/w1,
+4096/w4 exact canonical/reference checks and small reconstruction/zero owners pass.
+Frozen storage-only timings are not relabeled as combined gains. Codec/browser
+changes excluded once; Entity ABI requires coherent consumer rebuild. No injected
+fault/manual profile execution or final reactor/generation release claim.
+Final B2 child-storage join b20678d3 preserves B1 Foundation stage-page/observer history ae99ce12. Affected provider refresh and joined16/w1,4096/w4/small reconstruction pass exact outputs/zero teardown; original storage timing identity unchanged. Joined profiler db002ee805fcc7d6a95720fa8d1711296e86ad2034f32525fa9579ef3876e777; raw joined logs retained. No broader acceptance claim.
 L2 small-serial follow-up final integration: revert647bb6fc + complete-history mergea93f5444 adoptsae99ce12, including B1Foundation stage policy and D1dependency/A2platform receipts. New world registration affects storage inputs, so one narrow query-runner dependency refresh3actions16.14s and mergedquery-smoke4.96wall/4.02CPU/350892KiB pass (ELF962c8a98). Frozen four new samples and original16 are unchanged, not relabeled new policy; restored helper matches original68345ada exactly. No further profiling/matrix; owned jobs drained, todo unchanged. Normal main push follows.
 
+B2 final child-storage publication boundary b21b6b80 also preserves3011c77f's owner withdrawal of the lowering guard; affected publication16/w1,4096/w4/small reconstruction still pass exact outputs/zero owners. B1 page policy retained, original timing attribution unchanged; publication_* logs saved.
 ### 2026-11-23 ROOT: accepted size/memory gains and rejected serial regression
 
 Accepted published source-bound receipts: codec26f99a40 reduces the exact a06 LLVM

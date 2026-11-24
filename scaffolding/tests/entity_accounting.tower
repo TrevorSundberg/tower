@@ -52,7 +52,8 @@ fn accounting_buffer(T: type, data: T*): usize {
 }
 fn accounting_node(sample: AccountingSample*, node: Entity*): void {
     if node == null { return; }
-    sample.buffers += accounting_owned(node) + accounting_buffer(node.children)
+    sample.buffers += accounting_owned(node)
+        + (node.children == &node.inline_children[0] ? 0 : accounting_buffer(node.children))
         + accounting_buffer(node.instances);
     if node.components != &node.inline_components[0] {
         sample.buffers += accounting_buffer(node.components);
@@ -65,7 +66,7 @@ fn accounting_node(sample: AccountingSample*, node: Entity*): void {
         }
     }
     sample.nodes += sizeof(Entity);
-    sample.children += node.child_capacity * sizeof(EntityChild);
+    if node.children != &node.inline_children[0] { sample.children += node.child_capacity * sizeof(EntityChild); }
     for(var i: usize = 0; i < node.child_count; i++) {
         if node.children[i].name != null {
             sample.children += strlen(node.children[i].name) + 1;
@@ -301,8 +302,15 @@ fn accounting_denials(): void {
     var grant: WorkReservation = default;
     accounting_stop(&budget, &grant);
     var error: WorkBudgetError;
+    var charged = budget.used_bytes; var live = budget.live;
+    accounting_check(entity_attach_result(kind, root, null) == WorkBudgetError.None
+        && root.children == &root.inline_children[0] && budget.used_bytes == charged && budget.live == live,
+        "First child reuses charged descriptor under exhausted cap");
     accounting_check(entity_attach_result(child, root, null) == WorkBudgetError.Capacity
-        && child.parent == null && child.references == 1 && root.child_count == 0, "Child growth rollback");
+        && child.parent == null && child.references == 1 && root.child_count == 1
+        && root.children[0].entity == kind && kind.references == 2, "Child growth rollback");
+    accounting_check(entity_attach_result(kind, null, null) == WorkBudgetError.None
+        && root.child_count == 0 && kind.references == 1, "Restore inline child fixture owner");
     accounting_check(entity_component_add_result(child, kind, &error) == null && error == WorkBudgetError.Capacity
         && child.component_count == 0 && kind.instance_count == 0, "Component index denial");
     accounting_check(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Capacity
