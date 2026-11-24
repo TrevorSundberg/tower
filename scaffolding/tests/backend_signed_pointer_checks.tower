@@ -1,0 +1,65 @@
+import tower;
+import backend_pointer_order_checks;
+import module_body_type_checks;
+import frontend_units;
+import .compiler.format_types;
+import .library.work_budget;
+import .library.vector;
+import .host.driver_api;
+import .host.driver_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn backend_import_fixture_pointer_order(root: void*, target: u8*): void*;
+extern fn backend_import_foundation(backend: void*, root: void*): bool;
+extern fn backend_optimized(backend: void*): u8*;
+extern fn backend_error(backend: void*): u8*;
+extern fn backend_close(backend: void*): void;
+
+var SignedPointerFixtureBytes: usize = 4194304;
+
+fn backend_signed_pointer_checks(resource: u8*, output_path: u8*, width: u32): i32 {
+    var budget: WorkBudget = default; var world: void* = null;
+    units_check(work_budget_init(&budget, 1, SignedPointerFixtureBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Signed pointer fixture world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store); var output = entity_create(store);
+    var backend = backend_import_fixture_pointer_order(root, width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown");
+    units_check(root != null && output != null && backend != null, "Signed pointer LLVM verification");
+    var ir = backend_optimized(backend);
+    units_check(ir != null && strstr(ir, "icmp sgt ptr") != null && strstr(ir, "icmp sge ptr") != null
+        && strstr(ir, "icmp slt ptr") != null && strstr(ir, "icmp sle ptr") != null, "All actual signed ptr predicates retained");
+    var path: ByteBuffer = default;
+    units_check(driver_text(&path, output_path) && driver_text(&path, ".ll") && host_text_terminate(&path)
+        && driver_write_file(path.data, ir, strlen(ir)), "Retain exact verified LLVM");
+    bytes_dispose(&path);
+    var imported = backend_import_foundation(backend, output);
+    if !imported { puts(backend_error(backend)); }
+    units_check(imported, "Signed pointer reconstruction");
+    var text: FormatResult = {checked: true, budget: &budget, ..default};
+    format_entity(&text, output, null, null, null);
+    units_check(!text.failed && driver_write_file(output_path, text.text.data, text.text.length), "Signed pointer canonical Foundation");
+    backend_close(backend); entity_release(output); entity_release(root);
+    units_check(compiler_world_dispose(world), "Original signed pointer world closes before fresh recheck");
+    var result = backend_pointer_text_execute(resource, text.text.data, width);
+    format_dispose(&text);
+    units_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget), "Signed pointer import zero final owners");
+
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    var canonical: vector(u8) = default; var offset: usize = 0;
+    units_read(resource, "/bedrock.tower", &bedrock); units_read(resource, "/foundation.tower", &foundation);
+    var invalid = "import foundation;\nvar left: u8* = null; var right: u8* = null;\nvar wrong: bool = left > right;\n";
+    var error: ModuleBodyTypeFailure = {message: "This operation requires integer operands", location: "left > right"};
+    for(var workers: usize = 1; workers <= 4; workers *= 4) {
+        units_check(module_body_type_trial(resource, bedrock.data, foundation.data, invalid, width,
+            workers, "", &error, &canonical, &offset), "Ordinary pointer ordering remains rejected");
+    }
+    vector_dispose(&canonical); vector_dispose(&foundation); vector_dispose(&bedrock);
+    puts("Signed ptr icmp: eight literal rows/effects, Graph/Fast1/4, exact ordinary rejection and zero owners passed.");
+    return result;
+}
