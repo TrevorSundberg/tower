@@ -49,9 +49,7 @@ export fn compiler_lr_runtime_kernel(payload: void*): void {
         result.row = row;
         result.conflict.state = lr_none();
         var input = task.source.states.data[i];
-        foreach(var &action in &input.actions) {
-            if !lr_action_insert(&row.actions, task.budget, action, &result.resource_error) { return; }
-        }
+        if !lr_row_collect(row, &input.actions, &result.resource_error) { return; }
         lr_row_normalize(row, &result.conflict, i, task.source);
         if result.conflict.state == lr_none() {
             row.hash = lr_row_hash(row);

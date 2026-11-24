@@ -2,6 +2,7 @@ import tower;
 import syntax_scan_choice;
 import .library.vector;
 import .library.work_vector;
+import .library.work_buffer;
 import .library.work_vector_types;
 import .library.work_arena_api;
 import .compiler.worker_policy;
@@ -1118,6 +1119,38 @@ fn lr_action_owner_trial(bounded: bool): bool {
         && state.actions.data[0].last == 67 && state.actions.data[0].rule == lr_none() && state.actions.data[0].state == 1;
 }
 
+// A non-power-of-two sorted row must fit its actual input charge. Normalizing
+// its private copy must leave the state's terminal ranges untouched.
+fn lr_ordered_row_budget_trial(): bool {
+    var entries: LRAction[17] = default;
+    var count = sizeof(decltype(entries)) / sizeof(LRAction);
+    for(var i: usize = 0; i < count; i++) {
+        var terminal = convert(u32, i);
+        entries[i] = {first: terminal, last: terminal, rule: lr_none(), state: 1};
+    }
+    var input: work_vector(LRAction) = {data: &entries[0], length: count, capacity: count, ..default};
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 1, compiler_buffer_allocation_size(sizeof(decltype(entries))), 1) { return false; }
+    defer { if !work_budget_dispose(&budget) { trap("Ordered LR row retained a grant", 0); } }
+    var row: LRRow = {budget: &budget, ..default};
+    defer work_vector_dispose(&row.actions);
+    var hold: WorkReservation = default;
+    if work_budget_reserve_result(&budget, 0, 0, 1, &hold) != WorkBudgetError.None { return false; }
+    var error = WorkBudgetError.None;
+    var refused = !lr_row_collect(&row, &input, &error) && error == WorkBudgetError.Capacity
+        && row.actions.data == null && row.actions.length == 0 && budget.used_bytes == hold.bytes;
+    if work_budget_release_result(&budget, &hold) != WorkBudgetError.None || !refused { return false; }
+    if !lr_row_collect(&row, &input, &error) || error != WorkBudgetError.None
+        || row.actions.length != count || row.actions.data == input.data { return false; }
+    for(var i: usize = 0; i < count; i++) {
+        var action = &row.actions.data[i];
+        if action.first != convert(u32, i) || action.last != action.first
+            || action.rule != lr_none() || action.state != 1 { return false; }
+    }
+    row.actions.data[0].last = row.actions.data[count - 1].last;
+    return entries[0].last == 0 && input.length == count;
+}
+
 export fn lr_work_tests(): u32 {
     var world = compiler_world_create();
     var store = compiler_world_store(world);
@@ -1125,6 +1158,7 @@ export fn lr_work_tests(): u32 {
     var entities = entity_store_count(store);
     var components = entity_store_component_count(store);
     var failures: u32 = 0;
+    if !lr_ordered_row_budget_trial() { puts("Ordered LR row budget, retry or borrowed input failed"); failures++; }
     if !lr_action_owner_trial(false) || !lr_action_owner_trial(true) {
         puts("LR action private owner, denial, transfer or stable reuse failed");
         failures++;

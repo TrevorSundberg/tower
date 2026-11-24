@@ -92,6 +92,27 @@ fn lr_action_insert(values: work_vector(LRAction)*, budget: WorkBudget*, value: 
     return true;
 }
 
+// The caller owns a fresh row. A strictly ordered input already has the exact
+// insertion order and contains no duplicates. Copy it once so normalization
+// can still modify private storage while the state's actions remain borrowed.
+fn lr_row_collect(row: LRRow*, input: work_vector(LRAction)*, error: WorkBudgetError*): bool {
+    if input.length == 0 { return true; }
+    if input.length > ~convert(usize, 0) / sizeof(LRAction) { *error = WorkBudgetError.Invalid; return false; }
+    for(var i: usize = 1; i < input.length; i++) {
+        if !lr_action_less(&input.data[i - 1], &input.data[i]) {
+            foreach(var &action in input) {
+                if !lr_action_insert(&row.actions, row.budget, action, error) { return false; }
+            }
+            return true;
+        }
+    }
+    *error = work_vector_reserve_result(&row.actions, row.budget, input.length);
+    if *error != WorkBudgetError.None { return false; }
+    copy(row.actions.data, input.data, input.length * sizeof(LRAction));
+    row.actions.length = input.length;
+    return true;
+}
+
 fn lr_row_create(budget: WorkBudget*, error: WorkBudgetError*): LRRow* {
     var storage: WorkBuffer = default;
     *error = work_buffer_resize(&storage, budget, sizeof(LRRow), 0);
@@ -459,18 +480,9 @@ fn lr_runtime_build(value: LRRuntime*, source: LRStates*, buckets: work_vector(u
             return false;
         }
         var input = source.states.data[index];
-        var position: usize = 0;
-        loop {
-            done = position == input.actions.length;
-            if done {
-                break;
-            }
-            var ok = lr_action_insert(&row.actions, value.budget, &input.actions.data[position], error);
-            if !ok {
-                lr_row_destroy(row);
-                return false;
-            }
-            position++;
+        if !lr_row_collect(row, &input.actions, error) {
+            lr_row_destroy(row);
+            return false;
         }
         lr_row_normalize(row, &value.conflict, index, source);
         var conflict = value.conflict.state != lr_none();
