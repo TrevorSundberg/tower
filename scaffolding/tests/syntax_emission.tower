@@ -407,6 +407,9 @@ fn emission_test_compare(f: EmissionFixture*, category: u8*): bool {
 
 fn emission_test_both(f: EmissionFixture*): bool {
     var ok = emission_test_compare(f, null);
+    f.input.reachable = true;
+    ok &&= emission_test_compare(f, null);
+    f.input.reachable = false;
     if !ok {
         return false;
     }
@@ -566,6 +569,9 @@ export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
     emission_test_term(&f, sequence, ";", true, 0, "");
     ok = emission_test_both(&f);
     ok &&= emission_test_failures(&f, null);
+    f.input.reachable = true;
+    ok &&= emission_test_failures(&f, null);
+    f.input.reachable = false;
     ok &&= emission_test_failures(&f, "Statement");
     emission_test_dispose(&f);
     if !ok {

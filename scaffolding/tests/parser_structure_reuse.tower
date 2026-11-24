@@ -18,6 +18,8 @@ extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
 extern fn parser_structure_cache_copy(target: ParserStructureCache*, source: ParserStructureCache*): bool;
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
 extern fn compiler_node_get(node: void*, kind: u32): void*;
+extern fn syntax_emission_rule_index(value: void*, text: u8*): usize;
+extern fn syntax_emission_literal(value: void*, text: u8*): u32;
 extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
 extern fn syntax_world_structures(world: void*, bedrock: FrontendRevision*): ParserStructureCache*;
 extern fn syntax_world_structures_clear(world: void*): void;
@@ -199,6 +201,59 @@ fn parser_structure_reuse_tests(): void {
     utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0
         && work_budget_dispose(&budget), "Final structural pin releases all physical budget owners");
     structure_scope_cases();
+    structure_reachable_cases();
     frontend_session_world_tests(); // imported overrides, cycles, reset, independent owners
     puts("Parser structural reuse, identities, metadata, cancellation and lifetime passed");
+}
+
+fn structure_reachable_next(session: SyntaxSession*): void {
+    var root = syntax_next(bits(void*, session));
+    if root == null { puts(syntax_get_error(bits(void*, session))); }
+    utility_check(root != null && syntax_get_error(bits(void*, session))[0] == 0, "Reachable grammar boundary");
+    entity_release(root);
+}
+
+fn structure_reachable_cases(): void {
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Reachable grammar budget");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Reachable grammar world");
+    var modules = frontend_modules_create();
+    utility_check(frontend_modules_bind_world(modules, world), "Reachable grammar environment");
+    var source = "parse Statement = 'base' ';';parse Dormant = Identifier;parse Dormant = 'later';parse Statement |= Dormant ';';later;";
+    var session = syntax_session_open(world, modules, source, null, SyntaxFoundationBaseline);
+    utility_check(session != null, "Reachable grammar session");
+    structure_reachable_next(session);
+    var first = syntax_version_retain(session.pins.version);
+    structure_reachable_next(session);
+    var second = syntax_version_retain(session.pins.version);
+    utility_check(first != second && first.grammar != second.grammar
+        && bits(ParserHostTable*, first.table).runtime == bits(ParserHostTable*, second.table).runtime,
+        "Unreachable rule preserves exact parser structure but not version or grammar identity");
+    utility_check(syntax_emission_rule_index(second.emission, "Dormant") == ~convert(usize, 0), "Unused production not emitted");
+    structure_reachable_next(session);
+    utility_check(bits(ParserHostTable*, second.table).runtime != bits(ParserHostTable*, session.pins.version.table).runtime
+        && syntax_emission_literal(session.pins.version.emission, "later") != convert(u32, SyntaxTokenId.End),
+        "Unreachable literal still changes lexical and declaration-token-set input");
+    structure_reachable_next(session);
+    utility_check(syntax_emission_rule_index(session.pins.version.emission, "Dormant") != ~convert(usize, 0), "Append makes producer reachable at its boundary");
+    structure_reachable_next(session);
+    utility_check(syntax_next(bits(void*, session)) == null && syntax_get_error(bits(void*, session))[0] == 0, "Newly reachable statement executes parser");
+    syntax_reset(bits(void*, session), "parse Statement = Identifier ';';parse Dormant = 'later';later;", null);
+    structure_reachable_next(session); structure_reachable_next(session);
+    utility_check(syntax_next(bits(void*, session)) == null && syntax_get_error(bits(void*, session))[0] != 0,
+        "Unused literal remains a keyword instead of silently reverting to Identifier");
+    syntax_reset(bits(void*, session), "parse Statement = 'base' ';';parse `document(0)` = Identifier;", null);
+    structure_reachable_next(session);
+    var reserved = syntax_version_retain(session.pins.version);
+    structure_reachable_next(session);
+    utility_check(bits(ParserHostTable*, reserved.table).runtime != bits(ParserHostTable*, session.pins.version.table).runtime,
+        "Unused reserved name still invalidates generated helper identity");
+    syntax_version_release(reserved);
+    syntax_destroy(bits(void*, session)); // cancel after a completed declaration
+    syntax_version_release(first); syntax_version_release(second);
+    frontend_modules_destroy(modules);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Reachable grammar owners drain");
+    utility_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget),
+        "Reachable grammar releases bytes, lanes and grants");
 }

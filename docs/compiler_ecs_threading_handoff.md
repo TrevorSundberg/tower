@@ -3,7 +3,7 @@
 ## R4 publication and subsequent implementation work (2026-11-24)
 
 The r4 native compiler is published and independently adopted. The exact tested
-site is selected for atomic publication as Pages
+site is atomically published and verified as Pages
 `6313a0a86bb18196056647adb659007b4244b848`, manifest SHA256
 `6810d9f089568d3380144b01977dfaa695bb1ad80e9b435bdb4c0591ef3f3ce1`.
 Its runtime/UI/resources remain `3c0ccdce9704cb2020d0a3df0b11235f10af1711`;
@@ -15,14 +15,38 @@ Later main changes are separate candidates, not code validated by this release.
 | Native and instrumentation | [81 registrations plus21 direct checks](native_combined_3c0ccdce.md), [ASan53](final_asan_3c0ccdce.md), [creation-fault supplement](entity_create_faults_asan_03de36a8.md), [TSan29](compiler_thread_combined_r4_3c0ccdce.md); source/host/coverage limits retained |
 | Complete native distribution | [39 products across three generations](compiler_generation_3c0ccdce.md), [independent package peer](native_candidate_peer_3c0ccdce.md), [public745afa2f pin](bootstrap_pin_3c0ccdce.md), [clean default adoption](bootstrap_adoption_5ebde29f.md) |
 | Browser and exact site artifacts | [B2 runtime/local-site acceptance](final_browser_static_3c0ccdce.md), [D2 independent source/artifact review](browser_static_peer_3c0ccdce.md), including actual two-generation binary sets |
-| Hosted behavior | Still pending A1's actual r4 run; its [original input wait expired](hosted_r4_wait_6496eb01.md) with zero hosted checks. Resume only after publication and exact HTTPS identity. |
+| Hosted behavior | [Full current hosted acceptance](hosted_acceptance_3c0ccdce.md):104 served members, desktop/mobile/real Linux3/3, redirects/TLS and worker drain pass. The [original input wait failure](hosted_r4_wait_6496eb01.md) remains historical, not relabeled. |
 
 The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
 cold serial cost, profitable core efficiency and bounded LR scratch accounting.
-L1 now owns the accounting migration through existing WorkBuffer/work_vector;
-A2 owns cold parser work. L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
-has a separate B1 peer and further transaction-cost work; local12 measurements
-do not establish32-thread efficiency. Final joined instrumentation and release
+L1 owns the accounting migration through existing WorkBuffer/work_vector.
+L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
+has a [B1 peer and published AArch64 attribute-storage repair](worker_sync_peer_13b2d718.md).
+[D1 independently accepted that repair](worker_gate_abi_peer_740d891e.md) and
+made the contention fixture respect available workers while requiring real overlap.
+Generated ARM IR is not native ARM execution.
+[Further transaction attribution](compiler_budget_transactions_13b2d718.md)
+retains no speculative budget-layer change; the next measured target is buffer
+lifetime churn. [Staged-index growth](compiler_buffer_owners_50e1a833.md) was
+rejected and restored after a reproducible serial regression despite much less
+copying. Local12 measurements do not establish32-thread efficiency.
+[A2's published LR prediction sharing](compiler_cold_prediction_d56de4ff.md) improves
+cold serial CLI means10.1%/6.0% at its frozen source and has
+[independent acceptance](parser_latency_peer_455e0f3c.md).
+[Semantic helper borrowing](compiler_semantic_scan_455e0f3c.md) and
+[startup reader reuse](compiler_startup_ba65dd1c.md) were rejected and restored;
+fewer operations alone did not establish an ordinary performance gain.
+[B2's published grammar-construction candidate](compiler_grammar_closure_1661857b.md)
+retains complete lexical inputs and emits only construct-reachable parser productions.
+Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs.
+[D1 independently accepted the source and behavior](grammar_emission_peer_5fac6131.md):
+six focused selections pass and complete owner outputs reconcile. The performance
+measurements remain attributed to their stated source and host.
+L1's bounded parser-scratch migration still needs its concurrent overhead resolved.
+A1 native acceptance, A2 package generations, L2 thread instrumentation and B1
+whole-host performance await the actual accepted source freeze. B2 browser builds
+also wait for B1's exclusive host measurements to finish.
+Final joined instrumentation and release
 must cover accepted subsequent production changes. The original goal is open.
 
 Whole-host performance runs wait for the other lane's heavy work to drain and

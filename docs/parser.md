@@ -619,6 +619,18 @@ names and name order, plus read mode and specialization profile. No padding,
 hash or rule-count approximation establishes equivalence. Compiler algorithm and
 target are fixed by the running executable; entries are never serialized.
 
+Ordinary version emission selects parser productions reachable from the four
+declaration/import roots and `Statement`. It still validates every revision,
+reserves every rule/token name and collects every literal in original order:
+an unused rule can change keywords, token sets or generated helper names.
+Declaration-start metadata is computed before extending its existing private
+reachability scratch with `Statement`; selected productions retain their input
+order. Thus an unrelated nonliteral declaration can reuse an exactly equal LR
+structure while retaining a distinct version and grammar. Category/template
+emission stays eager, as does the default general emission API. The independent
+emission oracle checks both policies; `structure-reuse` covers newly reachable
+rules, unused keywords, reserved names, reset, cancellation and zero ownership.
+
 Bedrock and ordered imported/local revision dependencies are thus evaluated
 before lookup. Their LR consequences are compared in full; their source identity,
 pending diagnostics, captures, emission, replacements and provenance remain on

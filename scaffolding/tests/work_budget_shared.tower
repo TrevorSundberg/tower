@@ -25,6 +25,13 @@ fn budget_shared_check(ok: bool): void {
     if !ok { trap("Shared work budget regression", 0); }
 }
 
+fn budget_shared_workers(capacity: usize): usize {
+    var available = work_thread_capacity();
+    var count = available < capacity ? available : capacity;
+    if count < 2 { trap("Shared work budget requires at least two available workers", 0); }
+    return count;
+}
+
 export fn work_kernel_execute(payload: void*): void {
     var job = bits(BudgetJob*, payload);
     job.thread = pthread_self();
@@ -66,7 +73,7 @@ fn budget_shared(): void {
     defer work_signal_close(entered);
     defer work_signal_close(release);
     var jobs: BudgetJob[4] = default;
-    var count = sizeof(decltype(jobs)) / sizeof(BudgetJob);
+    var count = budget_shared_workers(sizeof(decltype(jobs)) / sizeof(BudgetJob));
     var budget: WorkBudget = default;
     budget_shared_check(work_budget_init(&budget, count + BudgetSharedExtraLanes, count * BudgetSharedBytes, 1));
     budget_shared_check(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
@@ -183,13 +190,13 @@ fn budget_gate_contention(): void {
     budget_shared_check(counter.gate != null && counter.entered != null);
     defer work_gate_close(counter.gate); defer work_signal_close(counter.entered);
     var jobs: BudgetGateJob[4] = default;
-    var count = sizeof(decltype(jobs)) / sizeof(BudgetGateJob);
+    var count = budget_shared_workers(sizeof(decltype(jobs)) / sizeof(BudgetGateJob));
     var pool: WorkPool = default;
-    budget_shared_check(work_pool_open_kernel(&pool, count, budget_gate_increment) && pool.threaded);
+    budget_shared_check(work_pool_open_kernel(&pool, count, budget_gate_increment) && pool.threaded && pool.count == count);
     defer work_pool_close(&pool);
     for(var cycle: usize = 0; cycle < 2; cycle++) {
         var total = counter.value;
-        // Hold across admission: all four real workers must wait on the gate,
+        // Hold across admission: all admitted real workers must wait on the gate,
         // not an assumed short callback. Reuse it after the complete join.
         work_gate_enter(counter.gate);
         for(var i: usize = 0; i < count; i++) {
