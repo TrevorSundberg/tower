@@ -3,11 +3,11 @@
 ## Current scope reconciliation (2026-11-24, 7e9c91a0)
 
 [Independent whole-scope reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
-accounts for all1281 tracked Tower paths and identifies six remaining acceptance
+accounts for all1281 tracked Tower paths and identifies five remaining acceptance
 items: cold serial cost, useful-core efficiency, bounded parser scratch accounting,
-fresh native default adoption, current browser/artifact acceptance and hosted
-adoption. Current r4 native/ASan/TSan and public745afa2f pin are accepted at their
-exact boundaries; browser/hosted03e evidence remains historical. The tables below
+independent current browser artifact peer and hosted adoption. Current r4
+native/ASan/TSan, public745afa2f clean default adoption and B2's browser/static
+controls pass at their exact boundaries; hosted03e evidence remains historical. The tables below
 retain their original source identities and pending states, superseded only by
 the linked current requirement/evidence map. There is no completion percentage.
 
