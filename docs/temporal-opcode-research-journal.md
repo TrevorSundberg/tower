@@ -99424,3 +99424,72 @@ For the large independent case the median of the individual paired speedups was 
 The separate two-job Graph trace identified ASTs 102619 and 102659 in body 102840. All 816 paired full evaluation slices overlapped on distinct threads. They accumulated 262.323 ms of elapsed overlap. Summing the two thread CPU clocks and subtracting each pair's enclosing elapsed interval gave a 243.431 ms lower bound on simultaneous execution. Fast had 815 overlapping pairs out of 816. The dependent input had zero paired full slices. At 65,536 iterations the compiler exhausted the existing evaluation fuel and emitted no canonical file.
 
 The manager verified the 2,088 packet hashes, replayed the 180 runs and 18 trace streams, reproduced the paired ratios from the per-round readings, and confirmed rejection of a trace missing an interior ticket. Running the stock harness on an independent export of the frozen resources reproduced both 3,954-byte canonical files and the separate Graph and Fast outputs of 528, 1552, 12 and 2080. Both closes returned bytes, grants and lanes to zero. These measurements cover the two explicit staged expressions in this fixture. Receipt `ec076a2b-1af7-4850-b20f-3949d4971e54`, archive SHA-256 `041d7650d5ad88236a0ee55cb977e6d702ebd89ebcae57017ef0ed180f10ae90`. The receipt included a rebased copy of the already published regression. The measurement adds no compiler-source change.
+### 2026-11-24 · Slot 8 · Joined unit resource failure
+
+On public `2548f682`, the coordinator exposes the earliest failed unit and
+formats its diagnostic. The program can still be empty when installing the
+baseline fails. The new joined-unit accessor snapshots either the program or
+baseline resource cause at receipt, including when an earlier ordinal
+supersedes a later failure. Root entity creation now retains its allocator
+result. The native unit tests exercise the 1 MiB baseline denial, imported
+grammar denial, peak-minus-one refusal, syntax failure, cancellation and success.
+
+A private trace of held `46be1e2a` on the delayed-heavy invoice at eight jobs
+found a 1,507,264-byte LALR propagation allocation with 481,296 bytes left in
+the 256 MiB ledger. The nested import propagated Capacity through its module
+graph into ordinal 7. Refusing the same allocation at the native allocation
+boundary under the default cap gave Memory. A one-unit 1 MiB baseline refusal
+reached the batch through the grammar diagnostic alone. Malformed input retained
+its source diagnostic and no resource cause. Each case drained before close.
+These observations establish propagation. They do not establish retryability.
+
+The root countertest runs the native unit service with matching installed
+baselines and a live entity view. The first structural edit, creation of the
+semantic root, must return Busy. Restoring only the old root constructor made
+the new assertion fail. The integrated fix passed. A separate private
+allocator control held the remaining budget and filled the existing entity
+page before the root allocation. The old path lost Capacity and reported
+"Unable to allocate compilation unit storage". The fixed path returned
+Capacity. Both closed with zero bytes, grants and lanes.
+
+A failed 65 MiB single-unit import retained the same unit environment after
+drain. Replacing the already-read rates module and rereading through that
+environment returned the replacement bytes. The entry snapshot was unchanged.
+Fresh serial builds from the two frozen input sets agreed with their separate
+C references: invoice totals 50745 and 49798, with order checksum 1685 in
+both. The observer did not rerun the failed unit. The source graph and its
+recursive readers had been destroyed before the joined receipt. The current
+unit ticket records dispatch one and streamed peers can have completed backend
+work. A unit-wide retry here would need to preserve resolved reads and parser
+continuations. No earlier-unit sample can reserve a later unit's unknown peak.
+
+On slot 8, matched ordinary stock/fix runs used the same installed resources,
+default cap, Ryzen 9 7900X, affinity 0–23 and 23.04-CPU quota. Each of two
+counterbalanced pairs checked the ELF, exports, stdout and all 13 depfile rules
+on success. For both binaries at jobs 1/4/8 the completed trial counts were
+2/0/0 for light, 2/1/0 for the three-library prefix and 2/2/0 for the
+four-library holdout. Both original invoices passed twice at each width.
+Three actual frontend workers overlapped for 188 ms on small and 197 ms on
+uneven at four jobs. Their observed peaks were 239,949,373 and 222,108,447
+charged bytes respectively. The active cancellation retained its 11,279 input
+bytes across drain, then closed with zero charged bytes, grants and lanes.
+A separate eight-job trace saw Capacity during grammar installation with
+prior revisions 53 and 62 pinned. No lower-width unit retry was introduced.
+
+The later public bootstrap on `373da061` produced byte-identical stock and
+fixed drivers to the matched build on `0d573db4`. The clean default build,
+four selected native CTests and fresh driver runs on all five shapes at 1/4/8
+confirmed the same output or capacity behavior. The absolute cache path on
+line one of generated runtime IR differs between builds. The runtime bodies
+match. The raw per-process costs, load/throttling, independent C oracle,
+stderr, ownership and scheduling events are in the packet for assignment
+`bda63229-faeb-4ac8-b307-cf917b7fc6ad`.
+
+LLVM 19 address/leak and thread modes each ran the native units selector
+and fitting four-job packaged invoice with matching ELF and guest output.
+TSan initially rejected 16 starts at the container personality check. With
+the host's existing 0–11 affinity, the unit test entered on attempt 2 and
+the driver on attempt 8. Both exited zero. These instrumented receipts cover
+the earlier integrated freeze with the root countertest. The successor
+bootstrap was checked separately with ordinary binaries. Tower source-level
+UBSan remains unsupported.

@@ -42,7 +42,7 @@ extern fn compiler_work_cancel(work: void*): void;
 extern fn compiler_work_graph(work: void*): void*;
 extern fn compiler_work_plan(work: void*): void*;
 
-extern fn entity_create(store: void*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 
 extern fn entity_create_related(anchor: void*): void*;
 extern fn entity_create_related_result(anchor: void*, error: WorkBudgetError*): void*;
@@ -130,6 +130,7 @@ struct FrontendUnits {
     budget_gate: void*;
     resource_error: u8*;
     resource_offset: usize;
+    failed_resource: WorkBudgetError;
     kind: void*;
     view: void*;
     bedrock: FrontendText;
@@ -231,7 +232,7 @@ fn frontend_unit_compile(job: FrontendUnit*): void {
         }
         return;
     }
-    var root = entity_create(compiler_world_store(job.world));
+    var root = entity_create_result(compiler_world_store(job.world), &job.program.resource.error);
     if root is null {
         job.success = false;
         return;
@@ -495,6 +496,12 @@ fn frontend_unit_receive(payload: void*): void {
     if !compiler_work_accept(batch.work, job.ordinal, batch.revision, batch.profile, job.success) {
         trap("Stale compilation unit receipt", 0);
     }
+    if !job.success && compiler_work_failed(batch.work) == job.ordinal {
+        // Preserve the selected producer's cause before diagnostic formatting,
+        // which can itself allocate. An earlier source failure clears it.
+        batch.failed_resource = job.program.resource.error;
+        if batch.failed_resource == WorkBudgetError.None { batch.failed_resource = job.diagnostic.resource_error; }
+    }
     frontend_units_release(batch, &job.execution);
     if job.ordinal == 1 && batch.unit_peak != 0 && job.success {
         var snapshot: WorkBudgetSnapshot = default;
@@ -582,6 +589,12 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
 
 export fn frontend_units_failed(batch: FrontendUnits*): usize {
     return compiler_work_failed(batch.work);
+}
+
+// A joined unit failure may carry a resource cause. Capacity alone does not
+// establish that the unit would fit after another producer releases its bytes.
+export fn frontend_units_failure_resource(batch: FrontendUnits*): WorkBudgetError {
+    return batch.finished && !batch.cancelled ? batch.failed_resource : WorkBudgetError.None;
 }
 
 // Configuration and diagnostics borrow the private environment only while no
