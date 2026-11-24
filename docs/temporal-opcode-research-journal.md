@@ -99407,3 +99407,21 @@ One unit ran at a time on eight physical cores, affinity 1–8, Ryzen 9 5900XT, 
 The manager atomically published the browser compiler from `fe008af5` with its original bootstrap provenance. The first HTTPS fetch still returned the preceding manifest. After propagation the manager verified the new manifest, 103 listed public assets and all three redirects. Its own hosted UI run matched all 104 paths and timed out waiting for the parser to report completion at the 65-second limit. Host 1 independently ran the original verifier on the live site at the original deadlines with exit zero, empty stderr, expected desktop/mobile outputs and no leftover workers. The manager checked all 137 peer evidence digests and 18 download hashes. The recorded source and build commits remain reachable from main. [Hosted behavior and release bytes](browser_release_fe008af5.md#hosted-release)
 
 On Ubuntu 24.04.5, the previous and new public pins built the merged runtime-depfile driver with identical 39 native products and 57 payloads. The canonical successor was `be2fb51d51096d6fbd888fac118fcf99a33b08a7cc36e4e2abd9c5bcf4c52047`. Replacing the three platform startup objects reconciled each invoice ELF with the Debian peer. All six registered driver selections passed. The ordinary driver selection calls the linked-object test. The standalone `--link-depfile` selector was also run directly and through a lane-local registration. The manager replayed the complete Ubuntu packet across both bootstrap packages and all three dependency graphs.
+### 2026-11-24 · Slot 8 · Joined unit resource failure
+
+On public `2548f682`, the coordinator exposes the earliest failed unit and
+formats its diagnostic. The program can still be empty when installing the
+baseline fails. The new joined-unit accessor snapshots either the program or
+baseline resource cause at receipt, including when an earlier ordinal
+supersedes a later failure. Root entity creation now retains its allocator
+result. The native unit tests exercise the 1 MiB baseline denial, imported
+grammar denial, peak-minus-one refusal, syntax failure, cancellation and success.
+
+A private trace of held `46be1e2a` on the delayed-heavy invoice at eight jobs
+found a 1,507,264-byte LALR propagation allocation with 481,296 bytes left in
+the 256 MiB ledger. The nested import propagated Capacity through its module
+graph into ordinal 7. Refusing the same allocation at the native allocation
+boundary under the default cap gave Memory. A one-unit 1 MiB baseline refusal
+reached the batch through the grammar diagnostic alone. Malformed input retained
+its source diagnostic and no resource cause. Each case drained before close.
+These observations establish propagation. They do not establish retryability.
