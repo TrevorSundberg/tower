@@ -52,6 +52,10 @@ Sequential original and extended shared-fixture runs on the same host took 6.32 
 
 The first standalone WASI command linked Tower's two-argument `main` under its native spelling. The WASI startup shim trapped before reaching it. Binding the unchanged Tower body to `__main_argc_argv` with the repository's runtime binder produced the expected zero. The first input audit looked for an uncompressed support file in a directory containing compressed inputs. The corrected audit compared the compressed bytes and tested their gzip streams. For TSan, the concurrent control passed on its first launch. The page-reuse replay initialized on attempt four and the deliberate race control on attempt eight. The packet includes the original failures and the successful commands.
 
-Independent review can reconstruct the candidate site and both edited generations from the packet. Public deployment and hosted verification are reserved for the manager.
+The packet supplies the predecessor, overlay and checksums needed to reconstruct the site and both edited generations.
 
 The sealed review packet is `ad90677a-1a30-494c-8862-debd3515e6d3.tar.gz`, **71,542,868 bytes**, SHA-256 `0dc4efb12c14a794aa345077db763f0f045845aa48a3ae4e936b8524e0671feb`. A fresh extraction passed its member checks and its included reconstruction commands for the exact site, both edited reactor sets and both object sets. The packet contains the loopback downloads, screenshots, per-phase commands and resource measurements.
+
+## Hosted release
+
+Pages commit `b314040668bcfefc5118fa12f0229fef88f83b4b` serves the independently reconstructed tree. Host 1 ran the frozen deployment verifier against the HTTPS apex. All 104 served paths matched, desktop and mobile each printed 42 and then 5, 6, 7, 7, 9 in the increment case, and both page-error arrays were empty. Real Linux selected Wasm and Linux x64. All 18 browser downloads were retained. The three configured redirect endpoints returned one 301 each and reached the expected HTTPS index. The post-run inventory found zero remaining verifier or Chromium processes. The 137-member hosted receipt has SHA-256 `ff0e2b721bec218b22b065cfec41074daafd9db412abb8173c278393fe468c90`. [Live playground](https://tower-lang.org/)
