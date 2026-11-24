@@ -389,6 +389,13 @@ copied inputs/target and exposed retained objects; original driver input snapsho
 import caches, compiler/LLVM heaps and linker memory remain outside that count.
 It is neither an OS memory limit nor a promise that compilation fits in 256 MiB.
 
+The packaged driver measures the first unit's charged peak and uses it to
+estimate how many later frontends can run together. At `aeba5225`, the default
+cap admitted four later units after a light entry, then failed during their
+overlapping semantic work. Each unit fit alone, and the batch completed with
+one or two workers. The same four-job request passed on a host whose affinity
+limited the pool to two lanes. [Invoice reproduction and measured overlap](temporal-opcode-research-journal.md#a-light-invoice-entry-can-over-admit-later-compilation-units)
+
 Compiler-owned parser/diagnostic buffers use `compiler_buffer_allocate/free` and
 the ordinary compiler allocator. Their private header records allocator and
 optional diagnostic ownership so legacy host frees remain compatible. This is
