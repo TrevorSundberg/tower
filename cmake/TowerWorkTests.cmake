@@ -116,6 +116,19 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_test(NAME tower-target-registry-once COMMAND tower-target-once-tests)
   set_tests_properties(tower-target-registry-once PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
   include("${CMAKE_CURRENT_LIST_DIR}/TowerWorkPolicyTests.cmake")
+  if(TOWER_SANITIZER STREQUAL "thread")
+    # Deliberately invalid sensitivity control: explicit target only, never an
+    # ordinary passing CTest. The unchanged probe needs the buffer provider.
+    tower_guest_runtime(sanitizer-race "${work_triple}" posix ON)
+    get_property(race_runtime GLOBAL PROPERTY TOWER_GUEST_sanitizer-race_OBJECT)
+    tower_runtime_object(sanitizer-race-probe
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/sanitizer_race_probe.tower" "${work_triple}" SOURCE)
+    add_executable(tower-sanitizer-race-control EXCLUDE_FROM_ALL
+      "${sanitizer-race-probe_OBJECT}" "${host_memory_OBJECT}" "${race_runtime}")
+    set_target_properties(tower-sanitizer-race-control PROPERTIES LINKER_LANGUAGE C)
+    target_link_libraries(tower-sanitizer-race-control PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+    target_link_options(tower-sanitizer-race-control PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+  endif()
   if(work_triple MATCHES "^x86_64-.*linux")
     tower_work_fixture(entity_create_result OFF)
   endif()
