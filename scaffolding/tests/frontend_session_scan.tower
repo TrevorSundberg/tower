@@ -15,6 +15,8 @@ extern fn syntax_completion_accepts(session: void*, text: u8*, literal: bool): b
 extern fn syntax_completion_callable(session: void*): bool;
 extern fn syntax_session_lexemes(session: SyntaxSession*, result: SyntaxHighlights*): bool;
 
+extern fn frontend_session_scan_choice_tests(version: SyntaxVersion*): void;
+
 fn frontend_session_scan_tests(): void {
     var diagnostic: SyntaxVersionDiagnostic;
     fill(&diagnostic, 0, sizeof(SyntaxVersionDiagnostic));
@@ -31,6 +33,7 @@ fn frontend_session_scan_tests(): void {
     frontend_world_check(syntax_completion_identifier(session, "callable"));
     frontend_world_check(!syntax_completion_identifier(session, "two words"));
     frontend_world_check(syntax_completion_callable(session));
+    frontend_session_scan_choice_tests(bits(SyntaxSession*, session).pins.version);
     syntax_reset(session, "parse Statement = Identifier '(' ')' ';';callable(", null);
     diagnostic_revision_read(session);
     frontend_world_check(syntax_get_error(session)[0] != 0);
