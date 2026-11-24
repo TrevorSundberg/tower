@@ -35,3 +35,5 @@ Phase CPU/maxRSS has compile-call scope, distinct from these whole-file costs. N
 PE/ELF/Mach-O emission/linking is not execution on Windows/Linux/macOS target machines. No shared/browser, T8/T9, generation, instrumentation or hosted/deployment selection ran.
 Raw TAP, actual exits/accounting,32-file and1357-file manifests,18 phase receipts,52 objects,6 IR files and12 cross executables (88 output artifacts):
 `C:/Sandbox/build/codex_ecs_20261122/L1/t6_t7_59d7dc9e_80e87b34/`; previous outputs also retained there. ROOT owns final integrated publication.
+
+Integration: receiptb02483dc joined complete891ef268 in6f295488. Incoming SCC/provider and execution-fixture edits are outside the frozen80e87b34/59d acceptance; selected host/tests and all32 installed inputs remain identical. No later-source compiler adoption or runtime rerun is claimed.
