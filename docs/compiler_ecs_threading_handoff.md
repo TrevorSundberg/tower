@@ -22,18 +22,28 @@ cold serial cost, profitable core efficiency and bounded LR scratch accounting.
 L1 owns the accounting migration through existing WorkBuffer/work_vector.
 L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
 has a [B1 peer and published AArch64 attribute-storage repair](worker_sync_peer_13b2d718.md).
-D1 independently checks that repair; generated ARM IR is not native ARM execution.
+[D1 independently accepted that repair](worker_gate_abi_peer_740d891e.md) and
+made the contention fixture respect available workers while requiring real overlap.
+Generated ARM IR is not native ARM execution.
 [Further transaction attribution](compiler_budget_transactions_13b2d718.md)
 retains no speculative budget-layer change; the next measured target is buffer
-lifetime churn. Local12 measurements do not establish32-thread efficiency.
+lifetime churn. [Staged-index growth](compiler_buffer_owners_50e1a833.md) was
+rejected and restored after a reproducible serial regression despite much less
+copying. Local12 measurements do not establish32-thread efficiency.
 [A2's published LR prediction sharing](compiler_cold_prediction_d56de4ff.md) improves
 cold serial CLI means10.1%/6.0% at its frozen source and has
 [independent acceptance](parser_latency_peer_455e0f3c.md).
 [Semantic helper borrowing](compiler_semantic_scan_455e0f3c.md) and
 [startup reader reuse](compiler_startup_ba65dd1c.md) were rejected and restored;
 fewer operations alone did not establish an ordinary performance gain.
-B2 investigates ordered grammar construction. A1 native acceptance, A2 package
-generations and B1 whole-host performance await the actual accepted source freeze.
+[B2's published grammar-construction candidate](compiler_grammar_closure_1661857b.md)
+retains complete lexical inputs and emits only construct-reachable parser productions.
+Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs;
+these are owner results at the stated source and host, awaiting D1's independent peer.
+L1's bounded parser-scratch migration still needs its concurrent overhead resolved.
+A1 native acceptance, A2 package generations, L2 thread instrumentation and B1
+whole-host performance await the actual accepted source freeze. B2 browser builds
+also wait for B1's exclusive host measurements to finish.
 Final joined instrumentation and release
 must cover accepted subsequent production changes. The original goal is open.
 
