@@ -1,6 +1,8 @@
 import tower;
 import syntax_scan_choice;
 import .library.vector;
+import .library.work_vector_types;
+import .library.work_arena_api;
 import .compiler.worker_policy;
 import .compiler.lr_work;
 import .compiler.lr_state_work;
@@ -586,6 +588,45 @@ export fn lr_propagation_budget_trial(anchor: void*): bool {
     return lr_propagation_work_trial(anchor, LRPropagationGrain * 2, true);
 }
 
+// Deny the actual worker's first private chunk without altering its input graph.
+// Retry under the identical cap, then retire the unpublished borrowed result.
+fn lr_propagation_worker_denial(value: LRPropagation*, input: usize): bool {
+    var budget = value.budget;
+    var before: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(budget, &before) { return false; }
+    var hold: WorkReservation = default;
+    if work_budget_reserve_result(budget, 0, 0, before.bytes - before.used_bytes, &hold) != WorkBudgetError.None { return false; }
+    defer {
+        if hold.active && work_budget_release_result(budget, &hold) != WorkBudgetError.None {
+            trap("LR worker denial lost competing grant", 0);
+        }
+    }
+    var target: usize = 0;
+    var incoming: work_vector(usize) = {data: &input, length: 1, capacity: 1, ..default};
+    var result: work_vector(SymbolRange) = default;
+    var changed = false;
+    var task: LRPropagationTask = {propagation: value, incoming: &incoming, results: &result,
+        changed: &changed, targets: &target, count: 1, ..default};
+    if !work_arena_init(&task.scratch, budget, value.scratch.chunk_bytes) { return false; }
+    defer work_arena_dispose(&task.scratch);
+    var pending = value.pending.length;
+    compiler_lr_propagation_kernel(bits(void*, &task));
+    if task.resource_error != WorkBudgetError.Capacity || result.data != null || task.scratch.first != null
+        || value.pending.length != pending || value.nodes[target].ranges.length != 1
+        || value.nodes[input].ranges.length != 1 || budget.used_bytes != before.used_bytes + hold.bytes
+        || budget.live != before.live + 1 || budget.used_lanes != before.used_lanes { return false; }
+    if work_budget_release_result(budget, &hold) != WorkBudgetError.None { return false; }
+    compiler_lr_propagation_kernel(bits(void*, &task));
+    var valid = task.resource_error == WorkBudgetError.None && changed && result.length == 2
+        && result.data[0].first == 32 && result.data[0].last == 35
+        && result.data[1].first == 34 && result.data[1].last == 36
+        && value.pending.length == pending && value.nodes[target].ranges.length == 1
+        && value.nodes[input].ranges.length == 1 && task.scratch.first != null;
+    work_arena_dispose(&task.scratch);
+    return valid && budget.used_bytes == before.used_bytes && budget.live == before.live
+        && budget.used_lanes == before.used_lanes;
+}
+
 fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool {
     var owner = entity_create_related(anchor);
     if owner == null {
@@ -651,6 +692,7 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
             }
         }
     }
+    if budget != null && seeded != 0 && !lr_propagation_worker_denial(b, cycle_nodes - 1) { return false; }
     if !lr_propagation_solve(a) || !lr_propagation_solve_parallel(b, owner, &graph, &pool) {
         return false;
     }
@@ -682,11 +724,18 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
             }
         }
     }
-    // Parallel publication transfers a real buffer owner. Later serial growth
-    // must retire that receipt once and switch to charged arena storage, even
-    // at the explicit null-budget boundary where receipt.active is false.
+    // Joined results borrow transferred, charged arena chunks. Also exercise
+    // an independent buffer owner: later serial growth must retire its receipt
+    // once, including the null-budget boundary where receipt.active is false.
     if parallel && pool.peak != 0 && seeded != 0 {
-        if !b.nodes[0].range_owned { return false; }
+        if b.nodes[0].range_owned || b.scratch.first == null { return false; }
+        var transferred: work_vector(SymbolRange) = default;
+        if lr_reserve_result(&transferred, b.nodes[0].ranges.length, budget) != WorkBudgetError.None { return false; }
+        transferred.length = b.nodes[0].ranges.length;
+        copy(transferred.data, b.nodes[0].ranges.data, transferred.length * sizeof(SymbolRange));
+        b.nodes[0].ranges = transferred;
+        b.nodes[0].range_owned = true;
+        transferred = default;
         for(var i: u32 = 0; i < 33; i++) {
             if lr_propagation_seed_result(b, 0, 100000 + i * 2, 100000 + i * 2) != WorkBudgetError.None { return false; }
         }
