@@ -108,12 +108,16 @@ fn sem_capture_evaluation(c: SemanticContext*, evaluation: SemanticEvaluation*):
 
 // Reserve metadata before the function's exclusive lowering lease and view.
 // Only source initializers need a range; generated locals belong to that range.
-fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void {
+export fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void {
     sem_captures_begin(c);
     if !sem_ok(c) { return; }
-    var pending: vector(void*) = default;
-    defer vector_dispose(&pending);
-    if !sem_push_checked(c, &pending, block) { return; }
+    // Joined coordinator only. This walk and its resource-error paths do not
+    // collect tokens or resolve source, so the context scan is exclusively ours.
+    // Workers reset scan ownership in sem_scratch_private before dispatch.
+    sem_require(c.scan.length == 0);
+    var pending = &c.scan;
+    defer { c.scan.length = 0; }
+    if !sem_push_checked(c, pending, block) { return; }
     while pending.length != 0 {
         var node = pending.data[--pending.length];
         var value = sem_get(node);
@@ -128,7 +132,7 @@ fn sem_capture_ranges(c: SemanticContext*, block: void*, ticket: WorkTicket*, st
             var error = entity_stage_lease_result(stage, node);
             if error != WorkBudgetError.None { sem_type_resource(c, node, error); return; }
         }
-        sem_known_edges(c, &pending, value);
+        sem_known_edges(c, pending, value);
     }
 }
 
