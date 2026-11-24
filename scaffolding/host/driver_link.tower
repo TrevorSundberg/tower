@@ -91,6 +91,11 @@ export fn driver_link_input(link: DriverLink*, name: u8*): void {
     driver_argument(&link.inputs, "", name);
 }
 
+fn driver_runtime_argument(args: DriverArguments*, root: u8*, target: u8*): void {
+    var resource = driver_runtime_resource(target);
+    if resource != null { driver_argument(args, root, resource); }
+}
+
 fn driver_link_compile_arguments(link: DriverLink*, args: DriverArguments*): void {
     driver_argument(args, "", link.cc);
     driver_argument(args, "--target=", link.target);
@@ -98,7 +103,7 @@ fn driver_link_compile_arguments(link: DriverLink*, args: DriverArguments*): voi
     driver_argument(args, "", "-ffreestanding");
     driver_argument(args, "", "-fno-builtin");
     driver_argument(args, "", "-c");
-    driver_argument(args, link.root, driver_runtime_resource(link.target));
+    driver_runtime_argument(args, link.root, link.target);
     driver_argument(args, "", "-o");
     driver_argument(args, "", link.runtime.data);
     if link.sysroot[0] != 0 {
