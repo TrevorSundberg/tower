@@ -29,7 +29,12 @@ struct EntityStore {
 
 // Allocation indexes only. Canonical component identity/payloads stay on entities.
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
-struct EntityComponentPool { first: EntityComponentPage*; owned: EntityComponentPage*; }
+// Small fixed availability index; the owned chain includes full pages too.
+var EntityComponentPoolBuckets: usize = 8;
+struct EntityComponentPool {
+    available: EntityComponentPage*[EntityComponentPoolBuckets];
+    owned: EntityComponentPage*;
+}
 struct EntityComponentPage {
     allocation: WorkBuffer;
     pool: EntityComponentPool*;

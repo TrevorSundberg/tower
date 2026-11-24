@@ -380,10 +380,17 @@ fn entity_reserve_components(budget: WorkBudget*, data: EntityComponent***, capa
     return WorkBudgetError.None;
 }
 
+// Strides are pointer-aligned. Mix their slot units with the stable local kind
+// ID, then check both exact keys in the bucket; collisions never select a class.
+fn entity_component_pool_bucket(pool: EntityComponentPool*, id: usize, stride: usize): usize {
+    var mask = sizeof(decltype(pool.available)) / sizeof(EntityComponentPage*) - 1;
+    return entity_table_hash(id ^ (stride / sizeof(EntityComponent*))) & mask;
+}
+
 fn entity_component_page_detach(page: EntityComponentPage*): void {
     if page.pool == null { return; }
     if page.previous != null { page.previous.next = page.next; }
-    else { page.pool.first = page.next; }
+    else { page.pool.available[entity_component_pool_bucket(page.pool, page.type_id, page.stride)] = page.next; }
     if page.next != null { page.next.previous = page.previous; }
     page.pool = null;
     page.previous = null;
@@ -393,9 +400,10 @@ fn entity_component_page_detach(page: EntityComponentPage*): void {
 fn entity_component_page_attach(page: EntityComponentPage*, pool: EntityComponentPool*): void {
     page.pool = pool;
     page.previous = null;
-    page.next = pool.first;
-    if pool.first != null { pool.first.previous = page; }
-    pool.first = page;
+    var head = &pool.available[entity_component_pool_bucket(pool, page.type_id, page.stride)];
+    page.next = *head;
+    if *head != null { (*head).previous = page; }
+    *head = page;
 }
 
 fn entity_component_page_own(page: EntityComponentPage*, pool: EntityComponentPool*): void {
@@ -445,7 +453,7 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
     var component: EntityComponent* = null;
     var data: u8* = null;
     if capacity >= 2 {
-        var page = pool.first;
+        var page = pool.available[entity_component_pool_bucket(pool, id, stride)];
         while page != null && (page.type_id != id || page.stride != stride) { page = page.next; }
         if page == null {
             // capacity*slot is bounded by the page byte policy. Header/alignment
