@@ -1,0 +1,130 @@
+import tower;
+import generic_result_storage;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_graph;
+import .library.work_budget;
+import .library.vector;
+
+extern fn sem_capture_ranges(context: SemanticContext*, block: void*, ticket: WorkTicket*, stage: void*): void;
+extern fn entity_stage_lease_result(stage: void*, node: void*): WorkBudgetError;
+extern fn entity_attach_result(child: void*, parent: void*, name: u8*): WorkBudgetError;
+
+fn capture_scan_node(parent: void*, kind: u32): void* {
+    var error: WorkBudgetError;
+    var node = sem_create_result(parent, &error);
+    utility_check(node != null && error == WorkBudgetError.None, "Capture scan real node owner");
+    var value = sem_attach_result(node, kind, &error);
+    utility_check(value != null && error == WorkBudgetError.None, "Capture scan typed node");
+    value.start = 73;
+    return node;
+}
+
+fn capture_scan_trial(width: u32, denial: WorkBudgetError): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Capture scan bounded owner");
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 73;
+    var context: SemanticContext = {program: &program, current: root, ..default};
+    utility_check(work_init_budget(&context.queries, 1, convert(u64, width), &budget), "Capture scan graph");
+    var id = work_request(&context.queries, root, convert(u32, SemanticQuery.Lowering), 0);
+    var ticket: WorkTicket;
+    utility_check(id != 0 && work_seal(&context.queries, id) && work_demand(&context.queries, id)
+        && work_take_task(&context.queries, &ticket, id), "Capture scan real selected producer");
+    var block = capture_scan_node(root, KBlock);
+    var declaration = capture_scan_node(block, KDeclare);
+    var initial = capture_scan_node(declaration, KOperand);
+    utility_check(entity_attach_result(initial, declaration, "value") == WorkBudgetError.None,
+        "Capture scan source initializer relationship");
+    sem_get(initial).constant = true;
+    sem_get(initial).type = {scalar: SI32, pointer_bytes: width, ..default};
+    sem_get(declaration).type = sem_get(initial).type;
+    sem_get(initial).bits = 42;
+    sem_get(declaration).value = initial;
+    utility_check(vector_push(&sem_get(block).items, declaration), "Capture scan source order");
+    var stage = entity_stage_open(root);
+    utility_check(stage != null, "Capture scan owned preparation stage");
+    sem_capture_ranges(&context, block, &ticket, stage);
+    utility_check(program.resource.error == WorkBudgetError.None && context.scan.length == 0
+        && context.scan_storage.reservation.active && context.scan_storage.reservation.owner == &budget,
+        "Capture traversal retains an explicit budgeted buffer with no borrowed entries");
+    var other = entity_stage_open(root);
+    utility_check(other != null && entity_stage_lease_result(other, declaration) == WorkBudgetError.Busy,
+        "Capture declaration keeps its separate exclusive lease");
+    entity_stage_discard(other);
+    var storage = context.scan_storage;
+    var capacity = context.scan.capacity;
+    var calls = tower_test_buffer_allocations();
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        sem_capture_ranges(&context, block, &ticket, stage);
+        utility_check(context.scan.length == 0 && context.scan_storage.data == storage.data
+            && context.scan_storage.reservation.generation == storage.reservation.generation
+            && tower_test_buffer_allocations() == calls, "Repeated capture preparation reuses its admitted owner without allocation");
+    }
+    // A real wider block forces growth relative to this owner's actual capacity.
+    // It has no declarations, so the next denied reservation is scan growth.
+    var wide = capture_scan_node(root, KBlock);
+    for(var i: usize = 0; i <= capacity; i++) {
+        utility_check(vector_push(&sem_get(wide).items, capture_scan_node(wide, KOperand)), "Capture scan wide block");
+    }
+    var pressure: WorkReservation = default;
+    var spare: WorkReservation = default;
+    utility_check(work_budget_reserve_result(&budget, 0, 0, sizeof(void*), &pressure) == WorkBudgetError.None
+        && work_budget_reserve_result(&budget, 0, 0, sizeof(void*), &spare) == WorkBudgetError.None
+        && work_budget_release_result(&budget, &spare) == WorkBudgetError.None
+        && work_budget_release_result(&budget, &pressure) == WorkBudgetError.None, "Warm allocation-independent grant slots");
+    var retained = budget.used_bytes;
+    var grants = budget.live;
+    if denial == WorkBudgetError.Capacity {
+        utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &pressure)
+            == WorkBudgetError.None, "Capture scan real byte denial");
+    }
+    if denial == WorkBudgetError.Memory { tower_test_buffer_fail_after(0); }
+    if denial == WorkBudgetError.Busy { sem_resource_record(&program, denial, 29); }
+    sem_capture_ranges(&context, wide, &ticket, stage);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if pressure.active { utility_check(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None, "Release scan pressure"); }
+    if denial != WorkBudgetError.None {
+        utility_check(program.resource.error == denial && program.resource.offset == (denial == WorkBudgetError.Busy ? 29 : 73)
+            && context.scan.length == 0 && context.scan_storage.data == storage.data
+            && context.scan.capacity == capacity && budget.used_bytes == retained && budget.live == grants,
+            "Denied growth preserves first typed cause, prior buffer and exact charged ownership");
+        calls = tower_test_buffer_allocations();
+        for(var retry: usize = 0; retry < 3; retry++) { sem_capture_ranges(&context, block, &ticket, stage); }
+        utility_check(program.resource.error == denial && context.scan.length == 0
+            && tower_test_buffer_allocations() == calls, "Terminal retry cannot allocate or reuse stale pending entries");
+        work_cancel(&context.queries);
+    } else {
+        utility_check(program.resource.error == WorkBudgetError.None && context.scan.length == 0
+            && context.scan.capacity > capacity && work_finish(&context.queries, &ticket, true),
+            "Fresh healthy owner grows and completes its actual producer");
+    }
+    entity_stage_discard(stage);
+    utility_check(context.queries.running == 0 && context.workers.running == 0, "Drain before scan owner release");
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.used_lanes == 0
+        && budget.live == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Capture scans, stage leases, graph tickets and all physical buffers retire");
+}
+
+fn semantic_capture_scan_tests(): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        capture_scan_trial(width, WorkBudgetError.Capacity);
+        capture_scan_trial(width, WorkBudgetError.Memory);
+        capture_scan_trial(width, WorkBudgetError.Busy);
+        capture_scan_trial(width, WorkBudgetError.None);
+    }
+    puts("Capture scan: 8 serial ownership trials; repeated use, Capacity/Memory/prior Busy, terminal retry, fresh success, zero owners.");
+}
