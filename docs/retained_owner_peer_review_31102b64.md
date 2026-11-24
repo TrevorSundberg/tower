@@ -35,3 +35,5 @@ Joined SCC closure `c1b9ca8d722a8de464ab808c3fd41d01e1c0211b`, binary `2e6132082
 Both are n1 different-source validation costs: the higher merged observation is preserved, not an accepted performance regression, improvement or neutrality claim. All21 reviewed paths match that joined owner closure.
 No new runtime measurement is applicable to this documentation-only peer review; no native/browser/shared/generation/instrumentation build or test was run. ROOT's release adoption remains separate.
 Source/blob maps and scoped diffs: `C:/Sandbox/build/codex_ecs_20261122/L1/retained_owner_review_31102b64/`; owner raw evidence remains `build/d2_ecs/retained_sources_d6f7031d/` on Deck, referenced by the committed journal/D2 audit, not independently replayed here.
+
+Integration: reviewd6c9e025 joined complete08c75583 asd4baaf15; all21 reviewed source blobs are unchanged. ROOT bootstrap adoption and other peer receipts are preserved independently; no new-bootstrap execution or relabeling of D2 runtime evidence.
