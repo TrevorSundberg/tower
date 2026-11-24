@@ -155,9 +155,67 @@ fn budget_gate_reuse(): void {
         && snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && work_budget_dispose(&budget));
 }
 
+struct BudgetGateCounter { gate: void*; entered: void*; value: usize; inverse: usize; }
+struct BudgetGateJob {
+    counter: BudgetGateCounter*; rounds: usize; completed: usize; thread: usize; cancel: bool;
+}
+
+fn budget_gate_increment(payload: void*): void {
+    var job = bits(BudgetGateJob*, payload);
+    var counter = job.counter;
+    job.thread = pthread_self();
+    work_signal_post(counter.entered);
+    for(var round: usize = 0; round < job.rounds; round++) {
+        work_gate_enter(counter.gate);
+        // The coordinator publishes cancellation while holding this same gate.
+        if job.cancel { work_gate_leave(counter.gate); return; }
+        budget_shared_check(counter.inverse == ~counter.value);
+        counter.value++;
+        counter.inverse = ~counter.value;
+        work_gate_leave(counter.gate);
+        job.completed++;
+    }
+}
+
+fn budget_gate_contention(): void {
+    var counter = init(BudgetGateCounter) {gate: work_gate_open(), entered: work_signal_open(),
+        value: 0, inverse: ~convert(usize, 0)};
+    budget_shared_check(counter.gate != null && counter.entered != null);
+    defer work_gate_close(counter.gate); defer work_signal_close(counter.entered);
+    var jobs: BudgetGateJob[4] = default;
+    var count = sizeof(decltype(jobs)) / sizeof(BudgetGateJob);
+    var pool: WorkPool = default;
+    budget_shared_check(work_pool_open_kernel(&pool, count, budget_gate_increment) && pool.threaded);
+    defer work_pool_close(&pool);
+    for(var cycle: usize = 0; cycle < 2; cycle++) {
+        var total = counter.value;
+        // Hold across admission: all four real workers must wait on the gate,
+        // not an assumed short callback. Reuse it after the complete join.
+        work_gate_enter(counter.gate);
+        for(var i: usize = 0; i < count; i++) {
+            jobs[i] = init(BudgetGateJob) {counter: &counter,
+                rounds: BudgetSharedRounds * (i + 1) / count, ..default};
+            budget_shared_check(work_pool_submit(&pool, bits(void*, &jobs[i])));
+        }
+        for(var i: usize = 0; i < count; i++) { work_signal_wait(counter.entered); }
+        budget_shared_check(work_pool_receive(&pool, false) == null);
+        jobs[0].cancel = cycle != 0;
+        work_gate_leave(counter.gate);
+        while pool.running != 0 { work_pool_receive(&pool, true); }
+        for(var i: usize = 0; i < count; i++) {
+            var completed = jobs[i].cancel ? convert(usize, 0) : jobs[i].rounds;
+            budget_shared_check(jobs[i].completed == completed && jobs[i].thread != pthread_self());
+            for(var j: usize = 0; j < i; j++) { budget_shared_check(jobs[i].thread != jobs[j].thread); }
+            total += completed;
+        }
+        budget_shared_check(counter.value == total && counter.inverse == ~total && pool.running == 0);
+    }
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
     budget_shared();
     budget_gate_reuse();
+    budget_gate_contention();
     print(0);
     return 0;
 }
