@@ -50,10 +50,11 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     if bootstrap_symbol_in("tower_reallocate tower_deallocate memcpy memmove memset bzero stack_pointer memory_base", symbol, length) { return true; }
     // Parser/semantic jobs use typed function values. Wasm supplies the indirect
     // table and its relocation base; neither is an external implementation.
-    if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics)
+    if wasm && (unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics || unit == BootstrapUnit.Entities)
         && bootstrap_symbol_in("indirect_function_table table_base", symbol, length) { return true; }
     // Budget gate callbacks and interpreter calls use the target's function table.
-    if wasm && (unit == BootstrapUnit.Entities || unit == BootstrapUnit.Interpreter || unit == BootstrapUnit.GraphComponents)
+    if wasm && (unit == BootstrapUnit.Entities || unit == BootstrapUnit.Interpreter || unit == BootstrapUnit.GraphComponents
+        || unit == BootstrapUnit.ParserFormat || unit == BootstrapUnit.TemplateBuild)
         && bootstrap_symbol_in("indirect_function_table", symbol, length) { return true; }
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
