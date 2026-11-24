@@ -497,6 +497,7 @@ fn lr_lalr_item_graph_safe(value: LRStates*): bool {
 // closure for every kernel and flattening its transitive links. Reachability is
 // separate from lookahead: every kernel is a source, but an empty, nonnullable
 // FIRST suffix must not activate otherwise unreachable dot-zero productions.
+var LRPredictionExpanded: u8 = 2;
 fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget: WorkBudget*, error: WorkBudgetError*): LRPropagation* {
     var count = lr_lalr_cache_count(value, error);
     if *error != WorkBudgetError.None { return null; }
@@ -571,7 +572,32 @@ fn lr_states_propagation_items_result(value: LRStates*, constructs: bool, budget
             }
             if suffix.error != WorkBudgetError.None { *error = suffix.error; return null; }
             if suffix.count == 0 && !suffix.nullable { continue; }
-            foreach(var production in &value.analysis.nonterminals[symbol.nonterminal].productions) {
+            var productions = &value.analysis.nonterminals[symbol.nonterminal].productions;
+            // All dot-zero alternatives of this nonterminal receive the same
+            // closure inputs. Route them through one existing item, then fan
+            // out once per state, rather than repeating every suffix seed and
+            // nullable edge for every alternative. The initial start item has
+            // an independent EOF/construct seed, so keep that group separate.
+            var grouped = productions.length > 1 && !(state_index == 0 && productions.data[0] == 0);
+            if grouped {
+                var first = predictions[productions.data[0]];
+                if first == lr_none() { *error = WorkBudgetError.Invalid; return null; }
+                if (active[first] & LRPredictionExpanded) == 0 {
+                    foreach(var production in productions) {
+                        var local = predictions[production];
+                        if local == lr_none() { *error = WorkBudgetError.Invalid; return null; }
+                        if local != first {
+                            *error = lr_propagation_edge_result(graph, state.base + first, state.base + local);
+                            if *error != WorkBudgetError.None { return null; }
+                        }
+                        if active[local] == 0 { active[local] = 1; pending[queued++] = local; }
+                    }
+                    active[first] |= LRPredictionExpanded;
+                }
+            }
+            var targets = grouped ? 1 : productions.length;
+            for(var target: usize = 0; target < targets; target++) {
+                var production = productions.data[target];
                 var local = predictions[production];
                 if local == lr_none() { *error = WorkBudgetError.Invalid; return null; }
                 var destination = state.base + local;
