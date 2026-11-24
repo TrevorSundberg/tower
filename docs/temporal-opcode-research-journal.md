@@ -96399,3 +96399,24 @@ bootstrap pin, full adoption and hosted runtime remain unfinished. Earlier
 sanitizer and local-deployment-verifier service blocks remain unchanged.
 No ROOT runtime code changed; documentation-only profiling is inapplicable.
 L1 final checked producer boundary b03841da includes L2's rollback to original lowering logic: changed-object refresh, worlds/recheck, exactlarge optimized4/directGraphFast1-4/backend-ir PASS, same bytes/zeroowners. Final source/binaries/costs in published_artifacts.sha256/final_*; original paired freeze retained.
+
+### 2026-11-23 A2: second optimized Foundation constant-address reconstruction
+
+[Exact cause, fix, measurements and receipt](backend_constant_address_e330a2c9.md).
+Native e330a2c9 reproduces ROOT's immutable 1327388-byte input and identical
+608571-byte LLVM: bi_value rejects ConstantExpr kind10/op8/i32, specifically
+ptrtoint(global.storage361)+38 in tower_main, not the reported terminal return.
+A reduced ordinary Tower program also exposes nested constant subtraction.
+The shared importer now uses existing OAdd/OSub and bi_mask; unsupported block
+addresses retain the exact diagnostic/first cause and publish no partial stage.
+Temporary rejection observation is removed; raw failed probes remain preserved.
+After adopting L1's distinct bi_compare repair and current main289185f2, all11
+focused registrations and24 direct Graph/Fast configurations pass at their
+recorded widths/workers. The exact second-normalization CLI passes1/4 with0;
+Foundation1235722B is identical across workers, all checked world owners drain.
+Healthy frozen n3 serial wall .4402->.4437s; paired four-worker .5410->.5153s,
+CPU/RSS and the earlier cold outlier are retained, with no speedup claim.
+ROOT retains browser/generation/release and the service-blocked instrumentation
+gates. CPU0-11/24GiB, public768a0cdf bootstrap, one native cache; no reactor or
+instrumentation run. Existing3 stashes and new pull-conflict autostash e9f023f0
+remain intact. Journal history, todo and sibling clones are unchanged.

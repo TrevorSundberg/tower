@@ -1,6 +1,7 @@
 import tower;
 import backend_source;
 import backend_clock_native;
+import backend_constant_operand_checks;
 import .backend.source_session;
 import .backend.session;
 import utility_checks;
@@ -248,9 +249,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     var reconstruction = argc == 8 || argc == 9;
     var denial = argc == 9 && strcmp(argv[8], "deny-recheck") == 0;
     var census = argc == 9 && strcmp(argv[8], "census") == 0;
-    var optimized = argc == 9 && strcmp(argv[8], "optimized") == 0;
+    var constant_address = argc == 9 && strcmp(argv[8], "constant-address") == 0;
+    var optimized = argc == 9 && (strcmp(argv[8], "optimized") == 0 || constant_address);
     utility_check(argc == required_arguments || reconstruction,
-        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census|optimized]]");
+        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census|optimized|constant-address]]");
     var workers: usize = 1;
     var width: u32 = 4;
     if reconstruction {
@@ -303,6 +305,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         && syntax_baseline_install(fixture.world, fixture.modules, foundation.data, true, &diagnostic), "Source session baselines");
     if reconstruction {
         var input: ByteBuffer = default;
+        if constant_address { backend_constant_operand_rejection(fixture.world, width); }
         defer bytes_dispose(&input);
         utility_check(driver_read_file(argv[4], &input), "Read frozen reconstruction input");
         fixture.source = backend_source_create(runtime.data, runtime.length);
@@ -324,6 +327,11 @@ export fn main(argc: i32, argv: u8**): i32 {
         var result = backend_source_compile_world(fixture.source, fixture.world, input.data, input.length,
             BackendSourceImport | (optimized ? 0 : BackendSourceUnoptimized), fixture.modules, null);
         puts(result);
+        if constant_address {
+            utility_check(backend_source_test_has(fixture.source.backend.backend.optimized, " add (")
+                && backend_source_test_has(fixture.source.backend.backend.optimized, "ptrtoint ("),
+                "Ordinary global address fixture actually emits LLVM constant addition");
+        }
         printf("input_bytes=%zu output_bytes=%zu backend_resource=%zu backend_offset=%zu reserved=%zu reserved=%zu reserved=%zu\n",
             input.length, fixture.source.foundation.length, convert(usize, fixture.source.backend.backend.resource_error),
             fixture.source.backend.backend.error_offset, 0, 0, 0);
