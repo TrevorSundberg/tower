@@ -435,8 +435,9 @@ fn entity_component_pool_transfer(source: EntityComponentPool*, target: EntityCo
     }
 }
 
-fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: usize,
-    size: usize, alignment: usize, rows: usize, page_bytes: usize, error: WorkBudgetError*): EntityComponent* {
+fn entity_storage_reserve(pool: EntityComponentPool*, budget: WorkBudget*, id: usize,
+    size: usize, alignment: usize, rows: usize, page_bytes: usize,
+    output: EntityComponent**, error: WorkBudgetError*): u8* {
     *error = WorkBudgetError.Invalid;
     var pointer_size = sizeof(EntityComponent*);
     if alignment < pointer_size { alignment = pointer_size; }
@@ -446,15 +447,17 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
     var bytes = size + pointer_size;
     if bytes > maximum - mask { return null; }
     var stride = (bytes + mask) & ~mask;
-    if stride > maximum - sizeof(EntityComponent) { return null; }
-    var slot = stride + sizeof(EntityComponent);
+    var metadata = output == null ? 0 : sizeof(EntityComponent);
+    if stride > maximum - metadata { return null; }
+    var slot = stride + metadata;
     var capacity = page_bytes / slot;
     if capacity > rows { capacity = rows; }
     var component: EntityComponent* = null;
     var data: u8* = null;
     if capacity >= 2 {
         var page = pool.available[entity_component_pool_bucket(pool, id, stride)];
-        while page != null && (page.type_id != id || page.stride != stride) { page = page.next; }
+        while page != null && (page.type_id != id || page.stride != stride
+            || (page.components == null) != (output == null)) { page = page.next; }
         if page == null {
             // capacity*slot is bounded by the page byte policy. Header/alignment
             // overhead is also bounded here because at least two slots fit.
@@ -468,8 +471,8 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
             page.type_id = id;
             page.capacity = capacity;
             page.stride = stride;
-            page.components = bits(EntityComponent*, allocation.data + sizeof(EntityComponentPage));
-            var start = bits(usize, page.components + capacity) + pointer_size;
+            if output != null { page.components = bits(EntityComponent*, allocation.data + sizeof(EntityComponentPage)); }
+            var start = bits(usize, allocation.data + sizeof(EntityComponentPage) + capacity * metadata) + pointer_size;
             page.data = bits(u8*, (start + mask) & ~mask);
             entity_component_page_own(page, pool);
             entity_component_page_attach(page, pool);
@@ -477,35 +480,50 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
         var index = page.used;
         if page.free_slot != 0 {
             index = page.free_slot - 1;
-            page.free_slot = page.components[index].type_index;
+            page.free_slot = output == null ? *bits(usize*, page.data + index * page.stride)
+                : page.components[index].type_index;
         } else { page.used++; }
-        component = &page.components[index];
         data = page.data + index * page.stride;
-        component.page = page;
+        if output == null { *(bits(EntityComponentPage**, data) - 1) = page; }
+        else { component = &page.components[index]; component.page = page; }
         page.live++;
         if page.live == page.capacity { entity_component_page_detach(page); }
     } else {
         // Large or highly aligned payloads preserve the individually allocated
         // path; never reserve multiple large objects just to fill a page.
-        if bytes + mask > maximum - sizeof(EntityComponentAllocation) { return null; }
+        var header = output == null ? sizeof(WorkBuffer) : sizeof(EntityComponentAllocation);
+        if bytes + mask > maximum - header { return null; }
         var allocation: WorkBuffer = default;
         *error = work_buffer_resize(&allocation, budget,
-            bytes + mask + sizeof(EntityComponentAllocation), 0);
+            bytes + mask + header, 0);
         if *error != WorkBudgetError.None { return null; }
-        var owned = bits(EntityComponentAllocation*, allocation.data);
-        owned.allocation = allocation;
-        component = &owned.component;
-        var start = bits(usize, allocation.data + sizeof(EntityComponentAllocation)) + pointer_size;
+        var start = bits(usize, allocation.data + header) + pointer_size;
         data = bits(u8*, (start + mask) & ~mask);
-        component.page = null;
+        if output == null {
+            *bits(WorkBuffer*, allocation.data) = allocation;
+            *(bits(EntityComponentPage**, data) - 1) = null;
+        } else {
+            var owned = bits(EntityComponentAllocation*, allocation.data);
+            owned.allocation = allocation;
+            component = &owned.component;
+            component.page = null;
+        }
     }
-    var back = bits(EntityComponent**, data);
-    back--;
-    *back = component;
-    component.owner = null;
-    component.type = null;
-    component.data = data;
+    if output != null {
+        *(bits(EntityComponent**, data) - 1) = component;
+        component.owner = null;
+        component.type = null;
+        component.data = data;
+        *output = component;
+    }
     *error = WorkBudgetError.None;
+    return data;
+}
+
+fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: usize,
+    size: usize, alignment: usize, rows: usize, page_bytes: usize, error: WorkBudgetError*): EntityComponent* {
+    var component: EntityComponent* = null;
+    entity_storage_reserve(pool, budget, id, size, alignment, rows, page_bytes, &component, error);
     return component;
 }
 
@@ -529,13 +547,35 @@ fn entity_owned_allocate_result(T: type, pool: EntityComponentPool*, budget: Wor
     if count > ~convert(usize, 0) / sizeof(T) || alignof(T) > compiler_buffer_alignment() {
         *error = WorkBudgetError.Invalid; return null;
     }
-    var block = entity_storage_allocate(pool, budget, 0, count * sizeof(T), compiler_buffer_alignment(),
-        EntityOwnedPageRows, EntityOwnedPageBytes, error);
-    return block == null ? null : bits(T*, block.data);
+    return bits(T*, entity_storage_reserve(pool, budget, 0, count * sizeof(T), compiler_buffer_alignment(),
+        EntityOwnedPageRows, EntityOwnedPageBytes, null, error));
+}
+
+// Raw owners have no component identity. Their prefix is the physical page,
+// or null for a standalone receipt. Borrow these only while the block is live.
+export fn entity_owned_page(data: u8*): EntityComponentPage* {
+    return data == null ? null : *(bits(EntityComponentPage**, data) - 1);
+}
+
+export fn entity_owned_buffer(data: u8*): WorkBuffer* {
+    if data == null { return null; }
+    var page = entity_owned_page(data);
+    if page != null { return &page.allocation; }
+    var mask = compiler_buffer_alignment() - 1;
+    var header = (sizeof(WorkBuffer) + sizeof(EntityComponentPage*) + mask) & ~mask;
+    return bits(WorkBuffer*, data - header);
 }
 
 fn entity_owned_free(T: type, data: T*): void {
-    if data != null { entity_component_free(entity_component_from_data(bits(u8*, data))); }
+    if data == null { return; }
+    var page = entity_owned_page(bits(u8*, data));
+    if page == null {
+        var allocation = *entity_owned_buffer(bits(u8*, data));
+        work_buffer_dispose(&allocation);
+    } else {
+        var index = (bits(usize, data) - bits(usize, page.data)) / page.stride;
+        entity_storage_release(page, index);
+    }
 }
 
 // Called only by the coordinator, or when discarding a joined private stage.
@@ -547,6 +587,11 @@ fn entity_component_free(component: EntityComponent*): void {
         work_buffer_dispose(&allocation);
         return;
     }
+    var index = (bits(usize, component) - bits(usize, page.components)) / sizeof(EntityComponent);
+    entity_storage_release(page, index);
+}
+
+fn entity_storage_release(page: EntityComponentPage*, index: usize): void {
     page.live--;
     if page.live == 0 {
         entity_component_page_detach(page);
@@ -556,9 +601,9 @@ fn entity_component_free(component: EntityComponent*): void {
         return;
     }
     // Index removal and finalization finish before this call. Only a dead
-    // descriptor's type_index becomes a free link; surviving addresses stay put.
-    var index = (bits(usize, component) - bits(usize, page.components)) / sizeof(EntityComponent);
-    component.type_index = page.free_slot;
+    // component's type_index or raw payload becomes a free link; survivors stay put.
+    if page.components != null { page.components[index].type_index = page.free_slot; }
+    else { *bits(usize*, page.data + index * page.stride) = page.free_slot; }
     page.free_slot = index + 1;
     if page.pool == null {
         entity_component_page_attach(page, page.owner);
