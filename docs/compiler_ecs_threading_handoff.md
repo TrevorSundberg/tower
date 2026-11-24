@@ -38,8 +38,10 @@ cold serial CLI means10.1%/6.0% at its frozen source and has
 fewer operations alone did not establish an ordinary performance gain.
 [B2's published grammar-construction candidate](compiler_grammar_closure_1661857b.md)
 retains complete lexical inputs and emits only construct-reachable parser productions.
-Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs;
-these are owner results at the stated source and host, awaiting D1's independent peer.
+Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs.
+[D1 independently accepted the source and behavior](grammar_emission_peer_5fac6131.md):
+six focused selections pass and complete owner outputs reconcile. The performance
+measurements remain attributed to their stated source and host.
 L1's bounded parser-scratch migration still needs its concurrent overhead resolved.
 A1 native acceptance, A2 package generations, L2 thread instrumentation and B1
 whole-host performance await the actual accepted source freeze. B2 browser builds
