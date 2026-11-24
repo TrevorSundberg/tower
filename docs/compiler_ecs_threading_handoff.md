@@ -1,5 +1,37 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## R4 publication and subsequent implementation work (2026-11-24)
+
+The r4 native compiler is published and independently adopted. The exact tested
+site is selected for atomic publication as Pages
+`6313a0a86bb18196056647adb659007b4244b848`, manifest SHA256
+`6810d9f089568d3380144b01977dfaa695bb1ad80e9b435bdb4c0591ef3f3ce1`.
+Its runtime/UI/resources remain `3c0ccdce9704cb2020d0a3df0b11235f10af1711`;
+the reused asset packager retains actual build `1bfe0657`, not a relabeled build.
+Later main changes are separate candidates, not code validated by this release.
+
+| Accepted r4 boundary | Evidence |
+| --- | --- |
+| Native and instrumentation | [81 registrations plus21 direct checks](native_combined_3c0ccdce.md), [ASan53](final_asan_3c0ccdce.md), [creation-fault supplement](entity_create_faults_asan_03de36a8.md), [TSan29](compiler_thread_combined_r4_3c0ccdce.md); source/host/coverage limits retained |
+| Complete native distribution | [39 products across three generations](compiler_generation_3c0ccdce.md), [independent package peer](native_candidate_peer_3c0ccdce.md), [public745afa2f pin](bootstrap_pin_3c0ccdce.md), [clean default adoption](bootstrap_adoption_5ebde29f.md) |
+| Browser and exact site artifacts | [B2 runtime/local-site acceptance](final_browser_static_3c0ccdce.md), [D2 independent source/artifact review](browser_static_peer_3c0ccdce.md), including actual two-generation binary sets |
+| Hosted behavior | Still pending A1's actual r4 run; its [original input wait expired](hosted_r4_wait_6496eb01.md) with zero hosted checks. Resume only after publication and exact HTTPS identity. |
+
+The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
+cold serial cost, profitable core efficiency and bounded LR scratch accounting.
+L1 now owns the accounting migration through existing WorkBuffer/work_vector;
+A2 owns cold parser work. L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
+has a separate B1 peer and further transaction-cost work; local12 measurements
+do not establish32-thread efficiency. Final joined instrumentation and release
+must cover accepted subsequent production changes. The original goal is open.
+
+Whole-host performance runs wait for the other lane's heavy work to drain and
+check actual processes; focused development uses disjoint CPU/memory partitions.
+Caches, bandwidth, power and OS work remain shared, so those measurements retain
+their shared-host and counterbalanced-sample limitations. ROOT publishes one
+KinmenB-built, independently reviewed site; GitHub Pages serves the prebuilt
+gh-pages branch. Documentation-only reconciliation reuses exact tested assets.
+
 ## Current scope reconciliation (2026-11-24, 7e9c91a0)
 
 [Independent whole-scope reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
