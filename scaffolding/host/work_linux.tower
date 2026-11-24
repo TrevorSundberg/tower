@@ -21,10 +21,11 @@ extern fn __errno_location(): i32*;
 // spins on opaque payloads. The gate stays process-private and nonrecursive.
 var LinuxMutexStorageBytes: usize = 48;
 var LinuxAdaptiveMutex: i32 = 3; // glibc PTHREAD_MUTEX_ADAPTIVE_NP.
-// glibc pthread_mutexattr_t is one int on both supported LP64 targets.
-extern fn pthread_mutexattr_init(attributes: i32*): i32;
-extern fn pthread_mutexattr_settype(attributes: i32*, kind: i32): i32;
-extern fn pthread_mutexattr_destroy(attributes: i32*): i32;
+// glibc pthread_mutexattr_t is 4 bytes on x86_64 and 8 on AArch64.
+// Reserve aligned storage for both; only libc accesses its opaque representation.
+extern fn pthread_mutexattr_init(attributes: void*): i32;
+extern fn pthread_mutexattr_settype(attributes: void*, kind: i32): i32;
+extern fn pthread_mutexattr_destroy(attributes: void*): i32;
 extern fn pthread_mutex_init(mutex: void*, attributes: void*): i32;
 extern fn pthread_mutex_destroy(mutex: void*): i32;
 extern fn pthread_mutex_lock(mutex: void*): i32;
@@ -33,11 +34,12 @@ extern fn pthread_mutex_unlock(mutex: void*): i32;
 export fn work_gate_open(): void* {
     var gate = bits(void*, alloc(u64, LinuxMutexStorageBytes / sizeof(u64)));
     if gate == null { return null; }
-    var attributes: i32 = 0;
-    if pthread_mutexattr_init(&attributes) != 0 { free(gate); return null; }
-    var initialized = pthread_mutexattr_settype(&attributes, LinuxAdaptiveMutex) == 0
-        && pthread_mutex_init(gate, bits(void*, &attributes)) == 0;
-    if pthread_mutexattr_destroy(&attributes) != 0 { trap("Cannot release compiler gate attributes", 0); }
+    var storage: u64 = 0;
+    var attributes = bits(void*, &storage);
+    if pthread_mutexattr_init(attributes) != 0 { free(gate); return null; }
+    var initialized = pthread_mutexattr_settype(attributes, LinuxAdaptiveMutex) == 0
+        && pthread_mutex_init(gate, attributes) == 0;
+    if pthread_mutexattr_destroy(attributes) != 0 { trap("Cannot release compiler gate attributes", 0); }
     if !initialized { free(gate); return null; }
     return gate;
 }
