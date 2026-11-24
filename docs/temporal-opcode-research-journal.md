@@ -96457,3 +96457,9 @@ d6f8627aa82314cc4b9b09c94961ecf4a581eb3ac0f3bbd03cbc1cc4d433045d.
 Both README additions preserved; all own test blobs unchanged. Source checks pass;
 original, merged_* and final_* logs/generated hashes stay separate. Own jobs
 drained/lock released; no broader acceptance or performance claim.
+### D1 pointer-order reconstruction peer review — 503677d9 (2026-11-23)
+
+Independently read L1 015aa9ed/524ad027 at503677d9c8707c21bdfcfb19d20dc250ba131c31, seven unchanged authored blobs plus actual cast/stage/target/source-recheck/session/runner callees. Exact disposition in docs/compiler_ecs_audit_d1.md; LLVM19 icmp/Core.h are primary predicate contracts.
+No concrete new defect found: target-width signed/unsigned casts preserve SSA operands and existing equality; failure publication stays private/checked. Old callers retain100000 fuel, opt-in pointer selector uses100000000 with unchanged done/nonfailed/exact-output checks. Four import and two original-input execution registrations do not automatically execute reconstructed outputs; owner manual24-trial evidence is distinct.
+L1 eight CTests/zero-owner/runtime costs remain attributed to docs/backend_pointer_order_6e8001fd.md, not rerun/authenticated external logs. Signed ptr controls and953744B request remain L1 pending; A2 owns the distinct second-normalization constant-expression-add failure53277:5. No address-space-general, race-safety or release claim.
+Source/documentation only: no runtime profile/build/test required, D2 heavy lock untouched, todo preserved. Frozen caller/blob manifest build/d1_ecs/pointer_review_503677d9/; later incoming deltas excluded and final integration recorded once in D1 status.
