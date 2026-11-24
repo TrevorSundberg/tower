@@ -1957,6 +1957,7 @@ native and both interpreters must report exactly `1\n` in raw/O2, then the harne
 returns1 after cleanup. Existing scalar capability rejections and target32/64
 verifier-only Graph/Fast selectors remain separate and unchanged. These are
 single-owner validation costs, not throughput or multi-worker evidence.
+
 `tower-lr-work-tests RESOURCE_ROOT dependency-stress` runs three fixed seeds
 through three independent units with two bodies each. It combines imported
 forward `decltype`/`comptime`, nominal aliases, owning-frame/shadow captures,

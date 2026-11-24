@@ -96417,3 +96417,12 @@ bootstrap pin, full adoption and hosted runtime remain unfinished. Earlier
 sanitizer and local-deployment-verifier service blocks remain unchanged.
 No ROOT runtime code changed; documentation-only profiling is inapplicable.
 L1 final checked producer boundary b03841da includes L2's rollback to original lowering logic: changed-object refresh, worlds/recheck, exactlarge optimized4/directGraphFast1-4/backend-ir PASS, same bytes/zeroowners. Final source/binaries/costs in published_artifacts.sha256/final_*; original paired freeze retained.
+
+D2 final native-reference integration: complete503677d9 merged as d5f18abb;
+both README additions preserved. Pointer-ordering, Foundation page policy and
+lowering rollback required four affected build actions:66.23wall/64.38CPU/
+1075200KiB. Same two CTests pass at merged inputs14.80wall/14.06CPU/125540KiB,
+no skips, same30/60 positives and intentional-nonzero control/zero owners.
+Binary6c7de6923093b639baf4c7ad57236dfe6eb7078c9bc3808130f63f288c01eb0a;
+merged_* logs/source/generated hashes preserved separately, source checks pass.
+Own jobs drained/lock released; no broader acceptance or performance claim.
