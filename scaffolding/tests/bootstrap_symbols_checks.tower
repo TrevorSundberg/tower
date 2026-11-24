@@ -81,6 +81,11 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "work_arena_append", "work_arena_append_extra");
     // Joined LR worker scratch now transfers through the existing arena provider.
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Interpreter, "work_arena_append", "work_arena_append_extra");
+    symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-unknown", "work_arena_snapshot", null);
+    symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-unknown", "work_arena_snapshot_extra", "work_arena_snapshot_extra");
+    symbol_target_case(BootstrapUnit.ParserNodes, "wasm32-unknown-unknown", "work_arena_snapsho", "work_arena_snapsho");
+    symbol_target_case(BootstrapUnit.Interpreter, "wasm32-unknown-unknown", "work_arena_snapshot", "work_arena_snapshot");
+    symbol_case(BootstrapUnit.ParserNodes, false, "work_arena_snapshot", "work_arena_snapshot");
     symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_allocate_result", "syntax_session_allocate_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_nodes_equal_result", "syntax_nodes_equal_result_extra");
     symbol_case(BootstrapUnit.TemplateBuild, false, " U tower_trap\n", null);
