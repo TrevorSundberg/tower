@@ -19,15 +19,21 @@ Later main changes are separate candidates, not code validated by this release.
 
 The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
 cold serial cost, profitable core efficiency and bounded LR scratch accounting.
-L1 now owns the accounting migration through existing WorkBuffer/work_vector;
-A2 owns cold parser work. L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
-has a separate B1 peer, which found an AArch64 opaque-attribute storage defect
-requiring repair before acceptance. [Further transaction attribution](compiler_budget_transactions_13b2d718.md)
+L1 owns the accounting migration through existing WorkBuffer/work_vector.
+L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
+has a [B1 peer and published AArch64 attribute-storage repair](worker_sync_peer_13b2d718.md).
+D1 independently checks that repair; generated ARM IR is not native ARM execution.
+[Further transaction attribution](compiler_budget_transactions_13b2d718.md)
 retains no speculative budget-layer change; the next measured target is buffer
 lifetime churn. Local12 measurements do not establish32-thread efficiency.
 [A2's published LR prediction sharing](compiler_cold_prediction_d56de4ff.md) improves
-cold serial CLI means10.1%/6.0% at its frozen source; D1's independent review is
-separate. B2 now investigates bootstrap startup and A2 semantic helper costs.
+cold serial CLI means10.1%/6.0% at its frozen source and has
+[independent acceptance](parser_latency_peer_455e0f3c.md).
+[Semantic helper borrowing](compiler_semantic_scan_455e0f3c.md) and
+[startup reader reuse](compiler_startup_ba65dd1c.md) were rejected and restored;
+fewer operations alone did not establish an ordinary performance gain.
+B2 investigates ordered grammar construction. A1 native acceptance, A2 package
+generations and B1 whole-host performance await the actual accepted source freeze.
 Final joined instrumentation and release
 must cover accepted subsequent production changes. The original goal is open.
 
