@@ -12,7 +12,7 @@ fn parser_structure_release(value: ParserStructure*): void {
     value.references--;
     if value.references != 0 { return; }
     lr_runtime_destroy(value.runtime);
-    foreach(var & state in &value.states) { work_vector_dispose(&state.contexts); }
+    work_buffer_dispose(&value.context_storage);
     work_vector_dispose(&value.states);
     lr_grammar_destroy(value.grammar);
     var storage = value.storage;
@@ -103,7 +103,9 @@ fn parser_structure_publish(table: ParserHostTable*, specialize: bool): void {
     if work_buffer_resize(&storage, table.budget, sizeof(ParserStructure), 0) != WorkBudgetError.None { return; }
     var entry = bits(ParserStructure*, storage.data);
     *entry = {storage: storage, references: 1, grammar: lr_grammar_retain(table.grammar),
-        runtime: table.runtime, states: table.states, mode: table.mode, specialize: specialize};
+        runtime: table.runtime, states: table.states, context_storage: table.context_storage,
+        mode: table.mode, specialize: specialize};
+    table.context_storage = default;
     table.structure = entry;
     // Table aliases keep one pin even when the optional index cannot grow.
     if cache.entries.length < cache.limit {
