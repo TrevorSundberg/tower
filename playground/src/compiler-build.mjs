@@ -76,7 +76,7 @@ export async function buildCompiler(options) {
   return {...result,stats};
 }
 
-export async function linkCompiler({compiler, recipe, files, inputs, support, progress = () => {}}) {
+export async function linkCompiler({compiler, recipe, files, inputs, support, progress = () => {}, onReactor = () => {}}) {
   const grammar = Object.fromEntries(files.filter(file => /^(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice(0,-6),file.text]));
   const modules = {}, bytes = {};
   for (const [name, reactor] of Object.entries(recipe.reactors)) {
@@ -84,6 +84,7 @@ export async function linkCompiler({compiler, recipe, files, inputs, support, pr
     const selected = Object.fromEntries(reactor.units.map(key => [key+'.o',inputs[key+'.o']]));
     for (const file of reactor.support) selected[file.slice(0,-3)] = await support(file);
     bytes[name] = compiler.linkReactor(selected, reactor.arguments);
+    await onReactor(name, bytes[name]); // Optional retained candidate evidence, before validation/publication.
     modules[name] = await WebAssembly.compile(bytes[name]);
     const exported = new Set(WebAssembly.Module.exports(modules[name]).map(item => item.name));
     for (const symbol of reactor.exports) if (!exported.has(symbol)) throw new Error(name+' reactor is missing export '+symbol);
