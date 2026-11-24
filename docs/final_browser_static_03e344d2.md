@@ -1,0 +1,35 @@
+# Combined browser/compiler and static acceptance: 03e344d2
+
+- **PASS** on ROOT's `final_source_20261124_r3.json`: source `03e344d24cda60a31765b974348081fb1b2e022b`, tree `40d53c13732e5b216e77292cb14aefc9d464a1a5`; source archive SHA `0374f2860cdad05b58ce76e48959aa89cc214d9292593ba36b299d3b44ef827e`. Quiet45-minute wait completed before any build.
+- Five accepted compiler deltas are included; WorkPool is the Git-identical released611 per-job implementation after `3449ed88`, not the rejected range candidate. Published public04ae default, no override; CPU12–23/quota12/24GiB/swap0, outer4/compiler1, one owned family/cache.
+- Reused [tested611 workflow](final_browser_static_6117723b.md), all76 verified LLVM vendor archives/tablegen, SDK34/CMake4.2.3/Ninja1.13, Node22.23.5/Playwright1.65.1/Chromium159.0.8154.6. Browser SHA `24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b`; no install or vendor C++ rebuild.
+- Dependency-aware portable/LLVM/cross/shared builds, **30 exact symbol checks** and generated-source/support closure pass. Initial provider selection failed on nonexistent `tower-compiler-parser.o`; retained original error, selected actual parser-node target and continued the same cache. No production/policy/test change was required; CMake CMP0116 deprecation remains recorded.
+- Immutable bundle `C:/Sandbox/build/codex_ecs_20261122/B2/browser_inputs_03e344d2`: **24 files/163949528B**,25 units/562 texts/26 generated entries, ten support archives/one imports file/seven target products. Manifest SHA `aff9388b15c48a4822866f49fd2548f4f1a71440784caef18f91e0c2e8081103`; complete hashes, SOURCE/PROVENANCE/READY/ACCEPTANCE included.
+- Project packager17e225aa, exact symbol tool ed548b11 and seven target products reuse accepted611 bytes with matching dependency/source/recipe identity. New compiler inputs were rebuilt with public `04ae22d0e73e3674e43895ea2d1efc13da8b7a6b4704df5815369490e6fcfc47`; no stale-reactor/new-resource adoption.
+- Host/resources separately frozen from the same03e source:1230 Tower files/146 host modules; resource JSON SHA `922a47861c05c938c3af9b185dec7cc682071f3a78551f2e25de79ec666ff8de`. Original imports, guards and2GiB reactor limits retained.
+- Fresh Node **3/3**, no skips:128 real pool lifecycles, injected guest trap, complete1/2/4/8 dependency matrix;571 phase records, **23 created/requested/ended IDs equal**. Original30/10/120s test guards/180s aggregate; full canonical/effect/query/capture/error/stale/cancel/overlap assertions pass.
+- Strict browser **3/3** closes5/2/5 and ownership **9/9** closes1/5/5/5/5/4/5/5/10; actual close events and final empty worker/CDP-target sets, original30s retirement. Different initialization/workloads are not a scaling comparison.
+- Two **actual edited** generations pass: new LLVM→Gen1→Gen2, changed diagnostic executes; all **25 objects/three reactors byte-identical**, six created/requested/ended IDs equal. No normalization/omission; original600s guard.
+- Current `entity_pages` passes **42 phases/14 known-zero outputs**,32/64 Graph/Fast source/canonical, raw/optimized LLVM reconstruction, portable execution and both executable-Wasm controls. All17 complete Foundation/IR/Wasm artifacts retained; final store/owner assertions pass. Older retained reconstruction was not substituted.
+- Pages portable/LLVM linear capacities **1312686080/1312161792B**; process peak2791892KiB, release RSS2827100160B. Reserved linear capacity is separate from live payload/ownership and process RSS.
+- Fresh static assembly uses the same03e compiler/project/UI/resources. Asset packager SHA `d5eee8bc73135eefeaa844db72e5b22c8c2c526c8c017cf450e3e9a76a4199ea`, actual build source1bfe0657/public31a,33 source dependencies equal03e; explicit separate manifest provenance, no unchanged tool rebuild.
+- **104 assets plus manifest/105 files/105762296B**, exact CNAME/.nojekyll/licenses/type/Foundation/foreign/builtins/project/support/target membership and all three backends. Thirteen gzip streams:93726959 transfer B/292934390 decoded B; decoded LLVM/cross exactly match raw inputs, other streams match supplied compressed bytes; no raw duplicates.
+- Static controls **4/4** desktop/mobile, zero skips/retries/errors: real isolation/threaded loading, staged42/reload and blocked-isolation portable fallback. Protocol records **68 actual dedicated targets, all detached**, across complete test lifetimes, not simultaneous width.
+- COMPLETE unchanged `verify-local.mjs` **PASS once**, original600s guard, freshly extracted exact archive: all104 served hashes, full desktop/mobile backend/type/alias i32/i32*/grammar/editor/persistence/export/download checks and real Linux x64 default-target branch.47 retained outputs/6967157B; stderr0/page errors empty. No hosted operation.
+
+Validation costs: wall seconds / waited-child CPU seconds / maximum process RSS KiB; ordinary acceptance, not a throughput comparison. Full per-phase data and commands are in `final_browser_r3/costs.json` and adjacent raw logs.
+
+| Phase | Wall / CPU / peak RSS KiB |
+|---|---:|
+| Portable provider + remaining closure |49.782 /49.246 /930388|
+| LLVM/cross (configuration separate) |32.607 /71.585 /929472|
+| Shared / project packaging |34.265 /52.186 /929296;26.305 /10.447 /318480|
+| Node / browser normal / ownership |104.617 /172.479 /461488;5.803 /1.937 /225100;6.896 /3.192 /233644|
+| Edited generations / pages |64.903 /192.314 /2354988;60.510 /92.444 /2791892|
+| Static assembly / four UI controls |5.556 /5.069 /145124;30.713 /24.037 /2425300|
+| Full local verifier / archive |57.108 /30.314 /216520;2.263 /2.328 /2324|
+
+- Persistent owned-container observation window:877.073 CPU seconds including preparation/check collection, new charged peak5573550080B above prior5531684864B, includes file cache; final max/OOM counters0 and swap0. This is neither simultaneous process RSS nor retained compiler ownership. Zero active owned jobs; historical PID1 zombies distinguished.
+- **Handoff:** `C:/Sandbox/build/codex_ecs_20261122/B2/final_browser_r3/handoff.json`; complete `static/tested_dist.tar.gz` **94409139B**, SHA **`f04aa0097989d17bfc3b9e4d21bac05f87c09f1963c667b8b3964f07d96a0276`**; manifest **`a4115153da73fef32e0a64ee70f4ab1840cdb8b3e5c2ef66fd2bcae101f405b6`**. Adjacent source archive, tested_dist, SHA256SUMS, provenance and READY; archive extraction matches every tested file.
+- Raw `build/`, `acceptance/result.tar` (full objects/reactors/pages/logs), `static/`, `deployment/outputs/` and matching `/cache/final_browser_r3` preserve commands, tools, failures, actual worker sets and all checks.611 bundle/static archive81684941 and c185 performance/append evidence remain unchanged; core before/after artifact hashes rechecked.
+- All24 product inputs,105 static files, runtime/host/resources and reused tools verified after drain. Later documentation reconciliation does not relabel this freeze or restart matrices. ROOT owns independent artifact review, final native pin, atomic hosted publication and hosted acceptance; none claimed here.

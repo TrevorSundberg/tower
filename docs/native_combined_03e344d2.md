@@ -1,0 +1,29 @@
+# Combined ordinary native acceptance — 03e344d2
+
+**70 registrations +2 direct controls passed once; 0 failures, skips or unstarted selections.** No production/fixture repair, assertion, cap or timeout change was required.
+ROOT's `performance_complete_20261124_r3.json` authorized work only after A2's full32-CPU ordinary cohort drained; the supplied2700s artifact wait completed. No container/build/test work ran before that handoff.
+Frozen production source `03e344d24cda60a31765b974348081fb1b2e022b`, tree `40d53c13732e5b216e77292cb14aefc9d464a1a5`, is reachable from published main. Execution HEAD `1ee2d0a3e59a1d8d9b441b0951dc1b60c7540b32` adds only three documentation paths; all compiler/test/build/bootstrap inputs are Git-equal. All17 descriptor blobs and restored pool blob verified.
+Public default compiler SHA256 `04ae22d0e73e3674e43895ea2d1efc13da8b7a6b4704df5815369490e6fcfc47`, manifest `faba6eb45610fa8fb90fc6c2a98927138e6552042a7c546bcff25ad92be66c11`; canonical selector, no private override. Existing Linux x64 LLVM19 Release cache, CPU12-23/quota12/24GiB/swap0, outer4/compiler1, ordinary production allocator; vendor/tool binaries reused.
+Original [64-selection](native_final_6117723b.md) hash `968a50d97c31098158b2a7e21735bc2373f7dceaabaf591f09679423f8a98da8` unchanged. Exact commands/properties for all64 plus four syntax regressions match retained registration contracts before and after build.
+Added existing `tower-storage-capture-scan` and `tower-query-continuations`; original30/180s guards. Pool admission/dispatch/schedule/budget/lifetime selections already belong to the64, so no duplicate registration run. The changed checked overhead fixture runs once as a separate direct control, not a timing cohort.
+
+| Fresh validation phase | Actual result | Wall / child CPU s | Maximum process/child RSS KiB |
+|---|---|---:|---:|
+| Dependency build,29 required targets /87 actions | exit0 |59.46 /145.31|880176|
+| Original64 CTests |64/64 pass|24.81 /29.75|694708|
+| Four syntax + capture-scan + full query-smoke |6/6 pass|9.78 /8.83|383420|
+| Direct `syntax-unit-controls` |pass|2.93 /4.30|548328|
+| Direct checked pool overhead fixture |pass;7 original shapes|0.35 /0.37|1628|
+
+Configure16.92wall/2.33CPU/max74788KiB; existing optional-library notices retained. Build/configure/test stderr empty, every process status0. These are validation costs, not fresh throughput comparisons or summed simultaneous family RSS.
+Both CTest groups preserve anchored exact lists, `--stop-on-failure --no-tests=error --output-on-failure -j1`, original per-test deadlines and600s outer guards; both direct commands retain180s guards. All70 XML cases are run, with no failure/skip nodes;102 other registrations are excluded.
+The four syntax regressions retain original reset/expansion Capacity/Memory/Busy/Invalid first-cause, exact span/provenance, literal42,100-reset, recovery and zero-owner assertions. The8 capture-scan trials cover target32/64, allocation-free reuse, growth denial, prior Busy, terminal retry, stage lease and final byte/lane/grant/buffer cleanup.
+Current full query-smoke links the exact late-signature fixture: four32/64 ×1/4 configurations require first aggregate signature publication after its body receipt, nominal/target identity, dispatch-once and no replay of completed peers. Existing capture continuations, lazy/staged effects, failure ordering and cancellation remain active; no narrower union replaces the selector.
+The retained pool is released611's per-job implementation, blob `1babe23c8e2eef994f890e2ccd1ecb5dcf35d920`; range/guarded candidates are absent. Stronger exactly-once/clustered-cost, four-way barrier/distinct-thread, named-entry and post-release zero-owner checks execute in original admission selection. Seven overhead shapes check every ordinal result at available widths1/2/4/8 without a speed threshold.
+Direct unit control preserves target32/64 × requested1/4, independent worlds, full serial/parallel canonical equality, literal42/43/44 and joined lanes/owner teardown. Capacity12 permits its four-worker assertions.
+Actual dependency-unit successful observations: outer_peak/distinct_threads1/1 and4/4; charged peaks130357477/363609183B. Retained-source checks observe LR overlap0/2, exact edits/failure repair/replacement results and zero owners. Queue width is not the overlap oracle; world charge and RSS are distinct.
+LR ELF `b67f5b624895b3f9822f843bfb72e3afd7dc354a3fb6d194ea2e9c8249902056`; storage `f3bef23c646c76c9fdeae0fc7a737c72d9c5890d92a56bf08ad889079acf3ae1`; execution `f5160cc2f1e10f9cfdae0500ef3733ceb780e663e1cbfab053f4b03a9b2b5a84`.
+Input/resource manifest `cd108759894900a3bf7d8c43cc5b3ef7e0a7b1b0488a46e4c36642a5a0a08502`;29-binary manifest `b53afc4f94b52f8693de38d5725d990bf4792b9a3da1f5ace0a61c133726d804`. Raw49-line object/archive/LLVM manifest, dependency/link commands and real worker exports retained; ordinary LR has no ASan initializer.
+Post-execution source/resource/public-pin/binary hashes equal; final container has only its preexisting idle process, Windows owned heavy processes0, memory max/OOM events0, todo unchanged,330GB free. No source pull/edit during jobs.
+No new sanitizer/browser/generation/Windows/deployment or performance claim. Earlier peer/owner receipts retain their exact source boundaries; accepted611 hosted assets remain untouched. This validates ordinary native03e, not already-deployed611 bytes; ROOT owns current combined package/instrumentation/hosted adoption.
+RAW: **`C:/Sandbox/build/codex_ecs_20261122/A1/cache/final_native_r3/`** — release/source closure, exact lists/registration comparisons, prepare/build/run/verify scripts, commands/dependencies, XML/LastTest logs,72 command outcomes, metrics and terminal inventories. Documentation-only integration preserves the frozen tested source by Git equality.
