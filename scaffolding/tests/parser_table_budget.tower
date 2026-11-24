@@ -584,9 +584,7 @@ fn parser_session_budget_trial(prepare: bool): void {
 // The direct table/context owners are only part of parser memory. Keep their
 // exact receipts separate from any other world/LR buffers sharing this ledger.
 fn parser_table_direct_bytes(table: ParserHostTable*): usize {
-    var bytes = table.storage.reservation.bytes + table.states.reservation.bytes;
-    foreach(var &state in &table.states) { bytes += state.contexts.reservation.bytes; }
-    return bytes;
+    return table.storage.reservation.bytes + table.states.reservation.bytes + table.context_storage.reservation.bytes;
 }
 
 fn parser_table_budget_trial(shape: TableOwnerFixture): void {
@@ -659,6 +657,17 @@ fn parser_table_budget_trial(shape: TableOwnerFixture): void {
         "Release parser growth blocker");
 
     utility_check(parser_table_build(table, false), "Parser table retries after byte capacity becomes available");
+    var positions = bits(FrontendContextPosition*, table.context_storage.data);
+    var total: usize = 0;
+    foreach(var &state in &table.states) {
+        if state.contexts.length != 0 {
+            utility_check(state.contexts.data == positions + total, "Context rows partition the table allocation");
+        }
+        total += state.contexts.length;
+    }
+    utility_check(total != 0 && table.context_storage.capacity == total * sizeof(FrontendContextPosition)
+        && table.context_storage.reservation.bytes == compiler_buffer_allocation_size(table.context_storage.capacity),
+        "One exact charge covers all frozen context positions");
     var retained: WorkBudgetSnapshot = default;
     utility_check(work_budget_snapshot(&budget, &retained)
         && retained.used_bytes > opened.used_bytes && retained.used_lanes == before.used_lanes

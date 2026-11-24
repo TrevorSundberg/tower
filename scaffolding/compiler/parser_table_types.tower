@@ -8,10 +8,16 @@ enum ParserReadMode: u32 {
     WholeInput, Constructs
 }
 
+// A state borrows its fixed row from the table's context storage.
+struct ParserContextRow {
+    data: FrontendContextPosition*;
+    length: usize;
+}
+
 struct ParserHostState {
     origin: usize;
     kernels: usize;
-    contexts: work_vector(FrontendContextPosition);
+    contexts: ParserContextRow;
 }
 
 // Frozen derived LR data. Per-version grammar labels/captures, userdata,
@@ -23,6 +29,7 @@ struct ParserStructure {
     grammar: void*;
     runtime: void*;
     states: work_vector(ParserHostState);
+    context_storage: WorkBuffer;
     mode: u32;
     specialize: bool;
 }
@@ -50,6 +57,7 @@ struct ParserHostTable {
     grammar: void*;
     runtime: void*;
     states: work_vector(ParserHostState);
+    context_storage: WorkBuffer;
     userdata: void*;
     presentation: ParserPresentation;
     mode: u32;
