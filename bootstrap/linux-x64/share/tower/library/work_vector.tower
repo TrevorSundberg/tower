@@ -17,17 +17,8 @@ fn work_vector_reserve_result(T: type, value: work_vector(T)*, budget: WorkBudge
     if value == null || value.length > value.capacity
         || (value.data != null && value.reservation.owner != budget) { return WorkBudgetError.Invalid; }
     if needed <= value.capacity { return WorkBudgetError.None; }
-    var size = sizeof(T);
-    // This temporary is a transactional borrow, not an independently disposable
-    // copy. resize either preserves it or retires exactly this old allocation.
-    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * size,
-        reservation: value.reservation};
-    var result = work_buffer_grow_elements(&buffer, budget, value.length, value.capacity, needed, size, alignof(T));
-    if result != WorkBudgetError.None { return result; }
-    value.data = bits(T*, buffer.data);
-    value.capacity = buffer.capacity / size;
-    value.reservation = buffer.reservation;
-    return WorkBudgetError.None;
+    return work_buffer_vector_reserve(bits(u8**, &value.data), value.length, &value.capacity,
+        &value.reservation, budget, needed, sizeof(T), alignof(T));
 }
 
 fn work_vector_push(T: type, value: work_vector(T)*, budget: WorkBudget*, element: T): bool {
@@ -54,9 +45,7 @@ fn work_vector_pop(T: type, value: work_vector(T)*, output: T*): bool {
 }
 
 fn work_vector_dispose(T: type, value: work_vector(T)*): void {
-    var buffer = init(WorkBuffer) {data: bits(u8*, value.data), capacity: value.capacity * sizeof(T),
-        reservation: value.reservation};
-    work_buffer_dispose(&buffer);
+    work_buffer_release(bits(void*, value.data), &value.reservation);
     *value = default;
 }
 

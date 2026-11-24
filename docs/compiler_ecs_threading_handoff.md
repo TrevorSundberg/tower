@@ -1,5 +1,9 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Current release work (2026-11-24)
+
+The [Linux x64 bootstrap](bootstrap_pin_c49c8b37.md) now contains the c49 compiler and its complete resources. Its [ordinary native milestone](native_acceptance_c49c8b37.md) passed 94 registrations and 23 direct checks. The [bounded LR fixture](shared_browser_lr_budget_943201fe.md) subsequently exercised charged denial, retry and retirement on both native Linux and shared Chromium. The browser release and clean build using the published c49 bootstrap are tracked independently. Work on cold parsing and multi-core efficiency continues.
+
 ## R4 publication and subsequent implementation work (2026-11-24)
 
 The r4 native compiler is published and independently adopted. The exact tested
