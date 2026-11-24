@@ -1,0 +1,33 @@
+# Partial-page search: promotion experiment rejected
+
+No production or fixture change ships. The candidate and temporary Tower observations are preserved externally; all five edited inputs and the ordinary profiler ELF are restored byte-for-byte.
+Freeze `5e981919a8c17d96b2e224b68603fb5cc2cb97a3`, tree `22d0aca90ac994bcacbce42be8c0340394e16d8f`; public/default compiler SHA256 `31a385c616b889987d68f8eb9714020f3928aac97591a1569f905ab706f52ed6`, no private override. Current40B component ABI, LLVM19 Release, KinmenA Linux/WSL2 CPU0-11/24GiB, one existing `/cache/native`, build parallel4/compiler1, production allocator.
+Baseline/restored profiler SHA256 `898a4ec59e668952ca4ecaedeeea176fcff17872bd0fd4016269a17e3d7d23f3`; ordinary candidate `05449cef3dca6bd048b91a895d3aeb4601bfc88b5f9bf343b510f0e1bbbcbc37`. Earlier stage-opening27.7/88.4ms attribution is reused as motivation, not a new timing baseline.
+Observer: one coordinator-owned aggregate per store/category, passed explicitly into the actual allocation search; worker-private pools are excluded. No per-node clock/global counter. Temporary216B/store changes only the separately owned store descriptor; EntityStage/EntityComponentPage/pool layout, stride and page geometry stay unchanged. Main retained ownership rises432B for two live stores; observers are removed before ordinary samples.
+
+|4096 bodies: serial / four|Calls|Candidates before -> promotion|Matching hits / head hits before|
+|---|---:|---:|---:|
+|Stage descriptors|8269 /8269|3830558 ->3830560 /3830558 ->3830560|7298/7296 in both|
+|Other shared descriptor/name/query buffers|755388 /756979|2768859 ->1488846 /2771995 ->1492979|713667/535800;715198/536502|
+|Shared component pool|647234 /647718|7620074 ->7195950 /7622344 ->7198220|636429/525478;636724/525773|
+
+Stage searches miss971 times, maximum8212 candidates. Even charging both non-head hits that maximum, at least3806838/3830558 candidates (99.38%) belong to misses. Promotion cannot supply a missing class. Same-class consecutive sampled buffer requests inspect1984774 ->959198 candidates serial (535486 requests),1985146 ->959494 four (535754); component counterparts6822566 ->6660748 and6822861 ->6661043. Thus reuse benefits are measured, but the target stage-opening work is unchanged.
+The sole candidate detaches/reattaches a found non-head page on the existing partial list. It changes no physical-owner links, payload address, budget, ABI, authority, lease/window/publication rule or error path. No other optimization was attempted.
+Ordinary command: `tower-frontend-units-profile /work/scaffolding 1 WORKERS BODIES dependencies uniform artifacts DIR`; bodies16/4096, workers1/4, target8/revision81/profile19, unchanged1342177280B world cap. Fresh process each, warm filesystem, n2 A/B then B/A per configuration; `/cache/ecs_process_profile /usr/bin/timeout 600` measures the full child through teardown. Observed samples are separate.
+
+|Bodies/workers|Frontend mean wall / CPU s: baseline -> candidate|Full-process mean wall / CPU s|Max RSS KiB|
+|---|---|---|---|
+|16/1|.391346/.330889 ->.346249/.296560|.441181/.363704 ->.393797/.326976|159476 ->159864|
+|16/4|.421551/.403454 ->.421270/.403586|.471679/.435423 ->.470968/.434554|164484 ->164588|
+|4096/1|1.843517/1.787733 ->1.864778/1.807223|2.206827/2.110741 ->2.226895/2.129761|666668 ->666240|
+|4096/4|1.820915/2.493932 ->1.781058/2.458872|2.207716/2.839450 ->2.162046/2.798931|673104 ->673204|
+
+Disposition: reject. Large serial wall regresses in both pairs (+.52%,+1.77%; mean+1.15%,CPU+1.09%); four improves1.63%/2.73%, mean2.19%. Small serial improves but first-sample variability is visible in the raw pairs. This is a tradeoff, not a repeatable general gain without regression, and does not fix stage opening. No further tuning/sweep is justified by this bounded result; absent-class search remains the precise unresolved mechanism.
+Retained bytes/grants are identical before/after:16/1=16406719/13163,16/4=16403895/13164,4096/1=460728142/285504,4096/4=460725318/285505. Charged peaks93755133/93703029/539978348..539978812/539940604B; ledger metadata separately5MiB small/20MiB large. Joined lanes0; successful close requires final bytes/grants/lanes0. No memory-saving claim.
+All21 profile processes pass:4 aggregate observations,16 ordinary pairs,1 candidate existing grammar-overlap control. Exact42/42 execution, source/import/full Foundation bytes agree across variants/workers. The separate overlap run records semantic312 dispatches,4 threads/peak4,301.665ms interval union/1175.207ms summed kernel wall/988.403ms kernel CPU; these are not wall-idle estimates or all-core speedup/race proof.
+Exact inputs/outputs: small1559B `d7450496…`, large347291B `60ffa292…`, shared import333B `f5643e35…`; Foundation20738B `76849f7e…` /4984138B `79b43b59…`. Full SHA256 values and byte comparisons are in `input_output.sha256`/`paired.sh`; no reduced workload.
+Focused candidate checks:9/9 CTest registrations,0failed/skipped/unstarted, plus strict accounting `cap` pass. Page-reuse first; component-budget/layout/full default serial faults; stage-result/full serial faults/concurrent/reentrant; attach-leases. Existing guards and `--stop-on-failure --no-tests=error` preserved. Full serial denial is distinct from real production-allocator overlap.
+The preserved additional Tower page-reuse case alternates three actual size classes, fills/transfers a full page, frees/refills the identical slot without a new grant, checks surviving values and final empty ownership links. It is restored with the rejected candidate, not shipped as a new acceptance gate.
+Smallest owner build11.781wall/2.681CPU/244816KiB; remaining dependency build22.167/46.341/878728. Nine CTest processes together .337wall/.180CPU/max19820KiB; strict cap .007wall/.002CPU/1612KiB. Initial OS launcher lacked an absolute cmake path; the first temporary observer compile required explicit usize-to-u64 output conversion. Both failures are retained; corrected builds pass, no production test failure hidden.
+Restoration dependency build16.396wall/17.500CPU/323744KiB; `cmp` verifies all saved source files and exact baseline ELF. Paired container peak653361152B, restoration801603584B, no limit/OOM events. Disk334.88GB free; all owned jobs drained; four stashes/todo unchanged. No64/pages/generation/browser/vendor/sanitizer/rejected-operation repetition; no deployment or package claim.
+Raw scripts, all observations/patches/Tower sources, binary/source hashes,21 profile logs/artifacts/statuses, metrics CSV, focused logs and restoration proof: `C:/Sandbox/build/codex_ecs_20261122/A2/cache/logs/page_search_5e981919`. Documentation-only publication retains this frozen identity; ROOT owns later integrated release.
