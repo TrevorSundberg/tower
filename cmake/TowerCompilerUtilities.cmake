@@ -89,10 +89,11 @@ function(tower_compiler_parser_nodes)
   tower_runtime_object(tower-compiler-parser-fixtures "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/parser_integration.tower" "${triple}")
   tower_runtime_object(tower-compiler-template-build "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/template_build.tower" "${triple}")
   tower_runtime_object(tower-compiler-syntax-host "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/syntax_baseline.tower" "${triple}")
+  tower_runtime_object(tower-shared-graph-components "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/graph_components.tower" "${triple}")
   target_sources(tower-compiler-parser-nodes INTERFACE
     "${tower-compiler-parser-format_OBJECT}" "${tower-compiler-parser-integration_OBJECT}"
     "${tower-compiler-parser-fixtures_OBJECT}" "${tower-compiler-template-build_OBJECT}"
-    "${tower-compiler-syntax-host_OBJECT}")
+    "${tower-compiler-syntax-host_OBJECT}" "${tower-shared-graph-components_OBJECT}")
   include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerFrontendTests.cmake")
 endfunction()
 

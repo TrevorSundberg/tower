@@ -51,6 +51,9 @@ function(tower_execution_tests)
   # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
   # portable execution runner and reuse this same production link closure.
   if(TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND triple MATCHES "^x86_64-.*linux")
+    add_test(NAME tower-retained-source-updates COMMAND tower-execution-tests
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" retained-sources)
+    set_tests_properties(tower-retained-source-updates PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
     set(profile_input "${CMAKE_CURRENT_BINARY_DIR}/tower_type_reachability_profile.tower")
     file(GENERATE OUTPUT "${profile_input}" CONTENT "${source}import tests.type_reachability_profile;\n")
     tower_runtime_object(tower-type-reachability-profile "${profile_input}" "${triple}")
