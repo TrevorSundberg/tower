@@ -1,0 +1,22 @@
+# Semantic dispatch peer review: candidate prerequisite missing
+
+**Blocked on the supplied artifact identity, not accepted.** The original 2700-second helper wait ended with exit1: `Required release input not published by deadline: C:\Sandbox\build\codex_ecs_20261122\semantic_dispatch_candidate_20261124_r4.json`. No renewed wait, substituted source freeze or speculative build.
+
+- Preflight source `e9e4fbd3bd0f0a9020cccd24f33f77b1fd585c88`, tree `a4357e069175eba0db587e90b069b9ce50a6634b`; relevant scheduling/library/fixture blobs recorded. The helper started `2026-11-24T14:58:46.0037072Z`; exit1 was recorded after completion at `15:44:04.3464730Z` (the latter is observation time, not an exact process-exit timestamp).
+- Command: `wait_release_input.ps1 -Path C:/Sandbox/build/codex_ecs_20261122/semantic_dispatch_candidate_20261124_r4.json -Kind semantic-dispatch-candidate -TimeoutSeconds 2700`. Helper SHA256 `956b41b4f1dbf43448f799a33b60110bb1e64da57eaf732fed47b034cdf9305a`.
+- Read [lowering attribution](compiler_lowering_coordinator_e3958206.md), [concurrency contracts](compiler_concurrency_completeness_dec17663.md), [combined measurements](compiler_combined_performance_03e344d2.md), actual declaration pump/admission/completion, WorkGraph access/ticket/queue mutations and existing late-signature/dispatch registrations. No candidate implementation was available to review.
+
+| Boundary | Source-confirmed baseline / remaining candidate proof |
+|---|---|
+| Ready selection | Pump priority is Declaration, Expression, ArrayType, IntegerArgument, TypeConstruction; FIFO within each filter. `work_take_ready` checks access, reserves executing storage and advances dispatch before returning the ticket. Preserve exact order and typed denial attribution. |
+| Admission interval | Selected state/batch/stage/lease setup precedes dispatch; inspected direct calls do not release graph claims or publish prerequisites. A claim-only interval can only add conflicts, but a candidate must prove its complete callback/mutation boundary before retaining scan state. |
+| Eligibility changes | Finish/release, yield/suspend, demand/enqueue, layout publication and `work_order_ready`, reset/cancel and later pump entry invalidate assumptions. No claim that a persistent cursor would be safe across these boundaries. |
+| Ownership/errors | Existing stage wave drains under input lifetime, checks queued references and publishes/discards before continuations; completion validates revision/profile/dispatch and preserves source-order/resource errors. Candidate behavior remains untested. |
+| Focused execution | Query smoke includes D1 late-first-signature32/64 x1/4. Ready/admission/lease/cancel and production-allocator overlap controls identified; all candidate invocations unstarted, zero passes/skips claimed. |
+| Useful widths | Planned observer-off n2 counterbalanced small16 at1/4, single4096 and multi12x256 at1/8/12: all32 samples unstarted. No new wall/CPU/RSS, retention or profitability evidence. Existing03e artifacts remain immutable. |
+
+Normal reconciliation reached published `b86452a1`; the reviewed declaration/completion/query/context/WorkGraph and late-signature fixture blobs are unchanged from preflight. Incoming LR/storage/bootstrap changes are excluded from this review. No published semantic-dispatch implementation or rejection/reversion was established; its disposition remains pending, not inferred from unrelated owner commits.
+
+Raw [A2/cache/semantic_dispatch_peer_r4](C:/Sandbox/build/codex_ecs_20261122/A2/cache/semantic_dispatch_peer_r4/) retains `preflight_identity.json`, `preflight_sources.json`, `preflight_plan.txt`, exact helper/start/finish/exit and `final_state.json`. The terminating exception escaped PowerShell redirection; its tool-session error is transcribed in `wait.stderr.txt`, and the empty `release_wait.log` is retained honestly.
+
+No compiler/test/production edit, build or benchmark occurred; runtime profiling is inapplicable. No owned build/runtime worker remains; waiter session59435 exited1, disk329.6GB free, four stashes/todo/native/performance artifacts untouched. CPU0-11/quota12/24GiB/swap0 remains the prepared execution bound. ROOT must deliver the exact published candidate or final rejection identity with its finite patch, complete runner/resource identities and owner results before independent acceptance can proceed. No pin/deployment or rejected operation was attempted.
