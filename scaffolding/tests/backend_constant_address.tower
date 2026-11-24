@@ -1,0 +1,21 @@
+import tower;
+
+// The exported reader keeps this initialized global visible to optimization.
+// Integer address arithmetic becomes nested LLVM ConstantExpr add/sub.
+var storage: u8[4];
+export fn read_byte(index: usize): u8 { return storage[index]; }
+fn initialize(): void {
+    storage[0] = 7;
+    var base = bits(usize, &storage[0]);
+    *bits(u8*, base + sizeof(decltype(storage)) - 1) = 19;
+}
+initialize();
+var first = read_byte(0);
+var last = read_byte(sizeof(decltype(storage)) - 1);
+var errors: u32 = first == 7 && last == 19 ? 0 : 1;
+// Wrapping at the target width must not acquire a checked-conversion trap.
+var maximum: usize = 0; maximum--;
+var wrapped = bits(usize, &storage[0]) + maximum;
+wrapped++;
+if bits(u8*, wrapped) != &storage[0] { errors++; }
+print(errors);

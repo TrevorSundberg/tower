@@ -5,6 +5,7 @@ import .backend.import_bindings;
 import .backend.target;
 import .backend.lowering;
 import .backend.pipeline;
+import .backend.import_instructions;
 import .compiler.foundation_tags;
 
 extern fn LLVMStructTypeInContext(context: void*, elements: void**, count: u32, packed: i32): void*;
@@ -34,14 +35,14 @@ fn overflow_fixture_mismatch(b: Backend*, pair: void*, probe: void*, mode: u8*):
     return bad;
 }
 
-fn overflow_fixture_cases(b: Backend*, probe: void*, type: void*, cases: OverflowCase*, count: usize): void* {
+fn overflow_fixture_cases(b: Backend*, probe: void*, type: void*, cases: OverflowCase*, count: usize, wrong: bool): void* {
     var errors = LLVMConstInt(b.i32, 0, 0);
     for(var index: usize = 0; index < count; index++) {
         var row = &cases[index];
         var arguments: void*[4];
         arguments[0] = LLVMConstInt(type, row.left, 0);
         arguments[1] = LLVMConstInt(type, row.right, 0);
-        arguments[2] = LLVMConstInt(type, row.product, 0);
+        arguments[2] = LLVMConstInt(type, wrong && index == 0 ? row.product ^ 1 : row.product, 0);
         arguments[3] = LLVMConstInt(LLVMIntTypeInContext(b.context, 1), row.overflow ? 1 : 0, 0);
         var result = backend_call_values(b, probe, &arguments[0], convert(u32, sizeof(decltype(arguments)) / sizeof(void*)));
         errors = LLVMBuildAdd(b.builder, errors, result, "");
@@ -52,6 +53,15 @@ fn overflow_fixture_cases(b: Backend*, probe: void*, type: void*, cases: Overflo
 // Verifier-only LLVM construction retains calls with parameter operands. No
 // optimizer can fold these tests to the expected output before reconstruction.
 export fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, mode: u8*): Backend* {
+    return overflow_fixture_open(root, target, width, mode, false);
+}
+
+// One deliberately incorrect expected argument, using the same generator/oracle.
+export fn backend_import_fixture_overflow_wrong(root: void*, target: u8*, width: u32, mode: u8*): Backend* {
+    return overflow_fixture_open(root, target, width, mode, true);
+}
+
+fn overflow_fixture_open(root: void*, target: u8*, width: u32, mode: u8*, wrong: bool): Backend* {
     var b = backend_open(target);
     if b == null { return null; }
     b.source_root = root;
@@ -107,7 +117,7 @@ export fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, 
             cases[1] = {left: 0, right: 1, product: 0, overflow: false};
             cases[2] = {left: 1, right: 0, product: 0, overflow: false};
             cases[3] = {left: 1, right: 1, product: 1, overflow: false};
-            errors = overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase));
+            errors = overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase), wrong);
         } else {
             var maximum = width == 64 ? ~convert(u64, 0) : (convert(u64, 1) << width) - 1;
             var half = convert(u64, 1) << (width / 2);
@@ -125,7 +135,7 @@ export fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, 
             cases[7] = {left: half - 1, right: half + 1, product: maximum, overflow: false};
             cases[8] = {left: maximum / 2 + 1, right: 2, product: 0, overflow: true};
             cases[9] = {left: maximum, right: maximum, product: 1, overflow: true};
-            errors = overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase));
+            errors = overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase), wrong);
         }
         var print_args: void*[3]; print_args[0] = LLVMConstInt(b.i32, convert(u64, SU32), 0);
         print_args[1] = LLVMBuildZExt(b.builder, errors, b.i64, "");
@@ -135,4 +145,28 @@ export fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, 
     }
     if !backend_optimize(b, false) { backend_close(b); return null; }
     return b;
+}
+
+export fn backend_import_fixture_overflow_optimize(b: Backend*): bool {
+    // The verifier-only constructor already owns one textual snapshot.
+    LLVMDisposeMessage(b.optimized); b.optimized = null;
+    return backend_optimize(b, true);
+}
+
+export fn backend_import_fixture_overflow_calls(b: Backend*): usize {
+    var count: usize = 0;
+    var function = LLVMGetFirstFunction(b.module);
+    while function != null {
+        var block = LLVMGetFirstBasicBlock(function);
+        while block != null {
+            var instruction = LLVMGetFirstInstruction(block);
+            while instruction != null {
+                if bi_multiply_overflow_call(instruction) { count++; }
+                instruction = LLVMGetNextInstruction(instruction);
+            }
+            block = LLVMGetNextBasicBlock(block);
+        }
+        function = LLVMGetNextFunction(function);
+    }
+    return count;
 }

@@ -1,0 +1,57 @@
+import tower;
+import utility_checks;
+import .backend.bindings;
+import .backend.context;
+import .backend.target;
+import .backend.pipeline;
+import .backend.import_bindings;
+import .backend.import_module;
+import .library.entity_api;
+import .compiler.foundation_tags;
+
+extern fn LLVMBlockAddress(function: void*, block: void*): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn entity_store_count(store: EntityStore*): usize;
+extern fn entity_store_component_count(store: EntityStore*): usize;
+extern fn entity_child_count(entity: Entity*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+// A verifier-valid block address is outside Foundation's supported control-flow
+// contract. Accepting ConstantExpr add must not admit every constant operand.
+fn backend_constant_operand_rejection(world: void*, width: u32): void {
+    var store = bits(EntityStore*, compiler_world_store(world));
+    for(var prior: usize = 0; prior < 2; prior++) {
+        var error: WorkBudgetError;
+        var root = entity_create_result(store, &error);
+        var output = entity_create_result(store, &error);
+        utility_check(root != null && output != null, "Constant operand fixture roots");
+        defer { entity_release(output); entity_release(root); }
+        var b = backend_open(width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown");
+        utility_check(b != null, "Constant operand LLVM target");
+        defer backend_close(b);
+        b.source_root = bits(void*, root);
+        var program = sem_attach(b.source_root, KProgram);
+        utility_check(program != null, "Constant operand source owner");
+        program.type.scalar = SVoid; program.type.pointer_bytes = width;
+        var function = LLVMAddFunction(b.module, "unsupported_block_address",
+            LLVMFunctionType(b.pointer_type, null, 0, 0));
+        var entry = LLVMAppendBasicBlockInContext(b.context, function, "entry");
+        var exit = LLVMAppendBasicBlockInContext(b.context, function, "exit");
+        LLVMPositionBuilderAtEnd(b.builder, entry); LLVMBuildBr(b.builder, exit);
+        LLVMPositionBuilderAtEnd(b.builder, exit);
+        LLVMBuildRet(b.builder, LLVMBlockAddress(function, exit));
+        utility_check(backend_verify(b), "Unsupported constant remains valid LLVM");
+        var nodes = entity_store_count(store);
+        var components = entity_store_component_count(store);
+        var prior_offset: usize = 23;
+        if prior != 0 { b.source_offset = prior_offset; backend_fail(b, "Earlier constant operand error"); }
+        var accepted = backend_import_foundation(b, bits(void*, output));
+        var wanted = prior == 0 ? "Unsupported LLVM value in foundation return path" : "Earlier constant operand error";
+        utility_check(!accepted && strcmp(backend_error(b), wanted) == 0
+            && b.resource_error == WorkBudgetError.None && b.error_offset == (prior == 0 ? 0 : prior_offset),
+            "Constant operand exact unsupported diagnostic and first cause");
+        utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && entity_child_count(output) == 0 && sem_get(bits(void*, output)) == null,
+            "Constant operand failure publishes no partial stage");
+    }
+}

@@ -212,10 +212,8 @@ fn entity_stage_prepare_result(stage: EntityStage*): WorkBudgetError {
             break;
         }
         if children > node.child_capacity {
-            var memory = entity_buffer_resize_result(store.budget, node.children, children, node.child_count, &result);
-            if memory == null { break; }
-            node.children = memory;
-            node.child_capacity = children;
+            result = entity_children_resize_result(node, children);
+            if result != WorkBudgetError.None { break; }
         }
         if instances > node.instance_capacity {
             var memory = entity_buffer_resize_result(store.budget, node.instances, instances, node.instance_count, &result);
@@ -357,7 +355,7 @@ export fn entity_stage_discard_result(stage: EntityStage*): WorkBudgetError {
             entity_component_free(component);
         }
         entity_components_free(node);
-        entity_buffer_free(node.children);
+        entity_children_free(node);
         entity_buffer_free(node.instances);
         entity_owned_free(stage.nodes.data[i].name);
         entity_owned_free(node);

@@ -96,6 +96,8 @@ struct Entity {
     // Stable descriptor-owned storage for the first component index entry.
     // Promoted indexes use the ordinary budgeted replaceable array.
     inline_components: EntityComponent*[1];
+    // Stable first ordered/named child edge; larger indexes remain replaceable.
+    inline_children: EntityChild[1];
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the

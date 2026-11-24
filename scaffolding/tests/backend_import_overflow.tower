@@ -22,6 +22,10 @@ var OverflowCheckBytes: usize = 2147483648;
 var OverflowCheckSteps: usize = 100000;
 
 fn overflow_fixture_execute(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*): bool {
+    return overflow_fixture_execute_output(resource, text, width, integer, mode, "0\n");
+}
+
+fn overflow_fixture_execute_output(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*, wanted: u8*): bool {
     var budget: WorkBudget = default; var world: void* = null;
     utility_check(work_budget_init(&budget, 1, OverflowCheckBytes, 1)
         && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Overflow recheck world");
@@ -53,9 +57,9 @@ fn overflow_fixture_execute(resource: u8*, text: FormatResult*, width: u32, inte
                 execution_session_step(&session, 7); steps++;
             }
             if session.machine.failed { puts(session.error.data ?? "Missing execution error"); }
-            var matched = session.machine.done && !session.machine.failed && session.output.length == strlen("0\n")
-                && utility_equal(session.output.data, "0\n", session.output.length);
-            if !matched { puts("Overflow exact zero mismatch count failed"); ok = false; }
+            var matched = session.machine.done && !session.machine.failed && session.output.length == strlen(wanted)
+                && utility_equal(session.output.data, wanted, session.output.length);
+            if !matched { puts("Overflow exact reference mismatch count failed"); ok = false; }
         }
         execution_session_close(&session);
     }

@@ -17,6 +17,10 @@ import .compiler.interpreter_context_types;
 import .backend.observation_types;
 import .compiler.grammar_types;
 import .compiler.compiler_kernel;
+import .library.entity_types;
+
+extern fn compiler_buffer_allocation_size(bytes: usize): usize;
+extern fn compiler_buffer_alignment(): usize;
 
 // Linux x64 observation ABI. Each invocation owns fresh worlds; filesystem
 // caches may be warm. Timed work ends before reference execution/formatting.
@@ -265,6 +269,61 @@ fn units_profile_result(function: void*, arguments: u64*, count: usize): void {
     interpreter_invocation_dispose(&invocation);
 }
 
+// Optional joined census: no per-operation clocks or shared worker counters.
+// Heap counts are live allocations, not cumulative allocation calls. Descriptor
+// size-class pages may also contain names; report that scope explicitly.
+fn units_profile_child_number(out: ByteBuffer*, value: usize): void {
+    units_profile_text(out, ","); units_profile_number(out, convert(u64, value));
+}
+fn units_profile_children(store: EntityStore*): void {
+    var counts: usize[3] = default;
+    var heaps: usize = 0; var bytes: usize = 0; var single_bytes: usize = 0;
+    for(var bucket: usize = 0; bucket < sizeof(decltype(store.tables)) / sizeof(EntityTable*); bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            for(var i: usize = 0; i < table.length; i++) {
+                var node = table.rows[i];
+                counts[node.child_count < 2 ? node.child_count : 2]++;
+                if node.children != null && node.children != &node.inline_children[0] {
+                    var header = bits(EntityBufferAllocation*, bits(u8*, node.children) - sizeof(EntityBufferAllocation));
+                    var size = compiler_buffer_allocation_size(header.allocation.capacity);
+                    heaps++; bytes += size;
+                    if node.child_count == 1 { single_bytes += size; }
+                }
+            }
+            table = table.next;
+        }
+    }
+    var alignment = compiler_buffer_alignment();
+    var stride = (sizeof(Entity) + sizeof(EntityComponent*) + alignment - 1) & ~(alignment - 1);
+    var next_stride = (sizeof(Entity) + sizeof(EntityChild) + sizeof(EntityComponent*) + alignment - 1) & ~(alignment - 1);
+    var slots: usize = 0; var next_slots: usize = 0;
+    var pages: usize = 0; var page_bytes: usize = 0; var live: usize = 0;
+    var page = store.buffers.owned;
+    while page != null {
+        if page.stride == stride {
+            slots = page.capacity;
+            // Conservative model within the actual current page's body bytes.
+            next_slots = (page.allocation.capacity - sizeof(EntityComponentPage)
+                - sizeof(EntityComponent*) - (alignment - 1)) / (next_stride + sizeof(EntityComponent));
+            pages++; live += page.live;
+            page_bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+        }
+        page = page.owned_next;
+    }
+    puts("child_census: zero,one,many,heap_allocations,heap_bytes,single_child_heap_bytes,entities,descriptor_size,stride,next_stride,slots,next_slots,size_class_pages,size_class_live,size_class_bytes");
+    var out: ByteBuffer = default; defer bytes_dispose(&out);
+    units_profile_text(&out, "["); units_profile_number(&out, convert(u64, counts[0]));
+    for(var i: usize = 1; i < sizeof(decltype(counts)) / sizeof(usize); i++) { units_profile_child_number(&out, counts[i]); }
+    units_profile_child_number(&out, heaps); units_profile_child_number(&out, bytes);
+    units_profile_child_number(&out, single_bytes); units_profile_child_number(&out, store.entity_count);
+    units_profile_child_number(&out, sizeof(Entity)); units_profile_child_number(&out, stride);
+    units_profile_child_number(&out, next_stride); units_profile_child_number(&out, slots);
+    units_profile_child_number(&out, next_slots); units_profile_child_number(&out, pages);
+    units_profile_child_number(&out, live); units_profile_child_number(&out, page_bytes);
+    units_profile_text(&out, "]"); units_check(host_text_terminate(&out), "child census output"); puts(out.data);
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
     if argc < 5 || sizeof(usize) != 8 { return 2; }
     units_check(work_thread_available(), "profile requires production native worker transport");
@@ -274,15 +333,17 @@ export fn main(argc: i32, argv: u8**): i32 {
     var optimize = false;
     var dependencies = false;
     var grammar_profile = false;
+    var child_census = false;
     var artifacts: u8* = null;
     for(var i: i32 = 5; i < argc; i++) {
         if strcmp(argv[i], "backend") == 0 && !backend_mode { backend_mode = true; }
+        else { if strcmp(argv[i], "children") == 0 && !child_census { child_census = true; }
         else { if strcmp(argv[i], "grammar") == 0 && !grammar_profile { grammar_profile = true; }
         else { if strcmp(argv[i], "dependencies") == 0 && !dependencies { dependencies = true; }
         else { if strcmp(argv[i], "artifacts") == 0 && artifacts == null && i + 1 < argc { artifacts = argv[++i]; }
         else { if strcmp(argv[i], "spread") == 0 && !spread && !uniform { spread = true; }
         else { if strcmp(argv[i], "uniform") == 0 && !uniform && !spread { uniform = true; }
-        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } } } }
+        else { if strcmp(argv[i], "optimized") == 0 && !optimize { optimize = true; } else { return 2; } } } } } } } }
     }
     var count = units_profile_argument(argv[2]);
     var budget = units_profile_argument(argv[3]);
@@ -499,6 +560,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         var program = frontend_units_program(batch, i);
         units_check(program != null, "profile result");
         var store = compiler_world_store(compiler_node_world(program.root));
+        if child_census { units_profile_children(bits(EntityStore*, store)); }
         entities += entity_store_count(store);
         components += entity_store_component_count(store);
         var answer: void* = null;
