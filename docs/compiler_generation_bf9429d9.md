@@ -1,0 +1,31 @@
+# Complete r5 Linux x64 development candidate
+
+**39 actual native products converge across Gen1/2/3; all 57 payloads plus SHA256SUMS converge across Gen2/3. All 77 package checks, strict symbols, object/reference and canonical controls pass.** No producer change or public-pin update.
+
+Frozen published source **bf9429d900c6679724cb3c2c4c8960bcf306e83b**, tree `9fa65da4d4d4ad697b4a97e56bb894021076d106`; descriptor SHA256 `e4ad9344961c69d8e318378a84a1265e7eda379bfc7f562ab115b739368f10d3`. Includes accepted LR prediction sharing, repaired adaptive gate, grammar emission reduction and LR scratch accounting; rejected semantic/startup/budget/staged-index experiments remain absent. The single7200s input waiter completed successfully after3590.733s; no build preceded delivery.
+Reused the [r4 procedure](compiler_generation_3c0ccdce.md), installed LLVM/tools and native package volume. Gen1 ran `env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=/cache/generation_bf9429d9_r5_lf/gen1_build TOWER_BUILD_JOBS=2 bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1` with checked-in complete public745afa2f. Gen2/3 use only verified complete predecessors at the identical `successor_build` path; Gen2's entire build was preserved/hash-verified before clean. Each completed53 dependency actions. Tool reuse has67 exact dependency-blob proofs; no vendor/seed build or unpublished syntax adoption.
+Preserved failure: ROOT's archive75f4925d contained CRLF text; the exact-source check exited1 **before compilation** (24.478wall/3.561CPU s). Its archive, diff, recipe and logs remain immutable. An ignore-CR-only diff passes; `git -c core.autocrlf=false -c core.eol=lf archive` of the same published commit produced the LF snapshot below. A fresh `_lf` root has empty before/after source patches and all1292 provenance source hashes verified. No source freeze changed or old-mtime object was reused.
+Actual inventory includes31 top-level objects, one archive, three executables and four configure probes. All39 full bytes/hashes match1/2/3. Payload membership derives from manifests:46 Tower resources, nine generated runtimes, compiler and LLVM license;11305123B total. Complete package with evidence is193 files/13991389B. Types/Foundation syntax/Tower/work/graph-components/foreign grammar resources and compiler0755 are checked.
+Gen1/2 runtime ModuleID paths and corresponding SUMS differ; the raw36 changed lines contain only those paths/checksums. Gen2/3 development provenance retains predecessor-path differences. No normalization was used for binary/payload equality; raw differences are delivered.
+
+| Delivered artifact | Bytes | SHA256 |
+|---|---:|---|
+| All three compilers,0755 |2312440|`ea78d246d1c020b53a61d09bc7c30a017825290e0bcb3d2426466de32028e8f3`|
+| generation3.tar.gz |2953202|`2666f2c224ac49aa6ec59e08438323a04ec5d5330f39d024c1727fe3cc1bc8ff`|
+| LF source_snapshot.tar |37007360|`c44a6f8156dd1dba5a0e397a1bb909032cda6bc82640a04a75103c212769f114`|
+| peer_metadata_complete.tar.gz |777102|`8e4a824ed99b89a9663d290705c2bf759f55ce4ce335001e205e0c8be56c8cd0`|
+
+Fresh21 development checks per generation plus14 expected-missing-Clang controls:77 passed, zero skipped/unstarted. Fresh Gen3 relocation has spaces; original guards, invalid-option/source/offset diagnostics, repeated object bytes, Graph/Fast imported grammar and nativeABI42 remain unchanged. Ten actual object symbol closures and the exact-policy/rejection fixture pass; no wildcard relaxation. Original16/1000-function full objects match references `cdc5a6ec…fb407` / `ae9e824d…f4e08`; native output exactly15/999, exit0, empty stderr.
+Four additional existing-fixture CLI controls close explicit canonical acceptance: `distribution_program.tower` emits Foundation SHA256 `a641fe4fdb1cfa7d7a7130376b4ebdf99543bcb59c079fda14c8b8c6a5bdf867`, re-emits byte-identically, and executes42 under Graph/Fast at x64/jobs1. Full source/output hashes and commands are in `canonical/`; these four are separate from77 package checks. The immutable package is unchanged; the complete peer sidecar adds this evidence and preserves the earlier package-only metadata archive.
+
+| Phase | Wall s | Waited-child CPU s | Maximum child RSS KiB |
+|---|---:|---:|---:|
+| Gen1 / Gen2 / Gen3 build |71.328 /64.725 /64.268|78.353 /68.030 /70.896|816312 /789748 /789448|
+| Gen1 / Gen2 / relocated Gen3 checks |4.507 /4.586 /6.328|4.479 /4.569 /4.822|168796 /167408 /165492|
+| Expected-missing-Clang |4.694|3.453|166788|
+| Small / large reference object |.348 /.472|.221 /.351|149332 /159080|
+| Four canonical controls, total |1.153|.605|140916|
+
+KinmenA Linux x64/Ubuntu24, LLVM19.1.1/CMake3.28.3/Ninja1.11.1 Release; CPU0-11/quota12/24GiB/swap0, outer2/compiler1. Build-family cgroup peak1174179840B; max/OOM counters0. No observed build-memory increase over the retained r4 family1287360512B, but these are validation costs, not application throughput claims. CPU/RSS are waited-child metrics, not summed concurrent peaks; cgroup checkpoints are cumulative. Canonical family221933568B/OOM0; archive transfer16.988wall/3.254CPU s.
+[Delivery directory](C:/Sandbox/build/codex_ecs_20261122/A2/generation_bf9429d9_r5/) contains `DELIVERY.json`, hashes, complete recipes/logs/checks/costs/modes, `manifests/generations.json`, source/provenance and canonical artifacts. Full39-product sets remain under `A2/cache/generation_bf9429d9_r5_lf/{gen1_build,gen2_build,successor_build}`; peer metadata excludes generated binaries. Linux extraction verifies all193 archive files and compiler0755; Windows independently verifies delivered SHA256SUMS. Source/build commit is reachable from published main; r4 and negative performance artifacts are untouched.
+All owned build/check/delivery processes exited0/PID0 after the preserved precompile failure; disk321.8GB free. No broad native/browser/ASan/TSan/performance repetition. Host LLVM19/Clang and19 recorded dynamic dependencies are required; expected missing-Clang failures and generated other-target runtimes do not establish portable release. Independent source/package peers, B1 default adoption and ROOT pin/atomic deployment remain downstream; the descriptor authorized validation, not publication of this runtime.
