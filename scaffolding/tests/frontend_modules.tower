@@ -266,6 +266,12 @@ fn module_baseline_imports_test(): void {
     syntax_version_diagnostic_dispose(&diagnostic);
     module_startup_check(original.dependencies.data[0].declarations.data[0] == declaration,
         "Replacement does not retire a live request's declaration owner");
+    var before_clear = module_baseline_request(environment, "import shared; changed");
+    module_require(environment.cache.length != 0 && frontend_world_clear(world));
+    module_startup_check(syntax_baseline_install(world, bits(void*, environment), "import shared;", true, &diagnostic)
+        && environment.cache.length == 0, "First baseline after world clear purges pre-existing snapshots");
+    syntax_version_diagnostic_dispose(&diagnostic);
+    frontend_module_destroy(before_clear);
     frontend_module_destroy(changed);
     frontend_module_destroy(original);
     frontend_modules_destroy(environment);
