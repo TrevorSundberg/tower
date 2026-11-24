@@ -183,7 +183,10 @@ test('forward declaration queries resolve long annotated and inferred chains wit
    // uninitialized runtime storage in the inference-only variant.
    const canonical = tower.foundation(handle);
    assert.equal(typeof canonical.source, 'string', canonical.error);
-   assert.match(canonical.source, name.endsWith('_operators') ? /var value0: integer_type\(64, 0\)/ : /var value0: bool/);
+   if (name.endsWith('_operators')) {
+    assert.match(canonical.source, /^var u64: type = integer_type\(64, 0\);$/m);
+    assert.match(canonical.source, /^var value0: u64(?:;| = )/m);
+   } else assert.match(canonical.source, /var value0: bool/);
   } finally { tower.destroyExecution(handle); }
  }
 });

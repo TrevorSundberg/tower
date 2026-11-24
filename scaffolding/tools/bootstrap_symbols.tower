@@ -103,6 +103,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("node_string_set syntax_identifier_decode_in_place syntax_node_init syntax_nodes_equal tower_utf8_decode tower_utf8_encode", symbol, length);
     }
     if unit == BootstrapUnit.ParserNodes {
+        // The shared Wasm LR fixture inspects the action arena across replacement.
+        if wasm && bootstrap_symbol_in("work_arena_snapshot", symbol, length) { return true; }
         if bootstrap_symbol_in("graph_components_result graph_components_dispose", symbol, length) { return true; }
         // Configured scanner-reference fixtures use string length and the
         // existing fail-fast test reporter; these are not global allowances.
