@@ -62,18 +62,25 @@ all source/provenance and payload identities reconcile, and five relocated
 commands pass with exact results and drained ownership. There is no new public
 native pin or browser release.
 
-B1's matched whole-host cohort preserves exact outputs and lower memory, with
-multi-file serial/four-worker means improving28.57%/29.85%. However, multi-file
-32-worker wall/CPU regress37.58%/34.18%, in both counterbalanced pairs. Existing
-phase observations concentrate the extra cost in LR lookahead solving; they do
-not prove a particular lock defect. B1 owns the scoped propagation allocation
-repair in its existing context, preserving bounded accounting and worker policy.
-The original cohort remains immutable. A2 separately owns a measured cold
-grammar-version construction improvement, excluding B1's LR work/analysis and
-shared budget/arena paths. Both tasks have complete inputs before launch.
-Closed B2 remains closed until its real browser inputs and host are available.
-Any accepted production repair needs its own source boundary and affected
-validation; passing bf instrumentation cannot be relabeled as the repair's pass.
+B1's [complete cohort and published propagation repair](compiler_combined_r5_bf9429d9.md)
+preserve the original bf multi32 regression and separate repair measurements.
+Implementation `f17fee95`, joined `c49c8b37`, moves private worker chunks into
+graph-owned scratch after joining. Final paired multi32 wall/CPU improve
+3.268/33.743 to1.612/16.583 seconds with unchanged retained bytes. Small serial
+results are mixed, and32 remains slower than8; this is not full-core profitability.
+The [affected c49 TSan gate](compiler_thread_lr_arena_c49c8b37.md) passes13 actual
+processes with observed LR4/semantic8/outer12 overlap,56 complete artifact
+comparisons and52 literal42 executions. Its linked object and instrumentation
+limits remain explicit. Independent B2 peer and L1 ASan acceptance are separate.
+
+A2's [cold validation queue experiment](compiler_cold_validation_bf9429d9.md)
+was rejected and restored exactly. Mismatched profiler samples remain excluded;
+the corrected cohort still did not justify adoption. A2 now builds the complete
+c49 native successor, L2 runs its ordinary native milestone, and D1 runs focused
+actual shared-Wasm/browser adoption. All have frozen inputs before launch.
+A1's capture-stage and B1's action-allocation experiments are later candidates,
+not silently included in c49 or its validation. D2 adds bounded dependency
+permutation coverage. Passing bf checks are not relabeled as current c49 checks.
 The original performance and final public-adoption goal remains open.
 
 ROOT starts agents only when their concrete task, inputs and host availability
