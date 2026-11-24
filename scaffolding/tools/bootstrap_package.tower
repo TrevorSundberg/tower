@@ -32,6 +32,7 @@ struct BootstrapInputs {
 }
 
 extern fn chmod(path: u8*, mode: u32): i32;
+extern fn getenv(name: u8*): u8*;
 extern fn puts(text: u8*): i32;
 
 fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
@@ -177,16 +178,73 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
     return bootstrap_text(out, "}");
 }
 
+// ID and VERSION_ID in os-release are single portable tokens, optionally quoted.
+fn bootstrap_release_field(release: ByteBuffer*, key: u8*, out: ByteBuffer*): bool {
+    var key_size = strlen(key);
+    var at: usize = 0;
+    while at < release.length {
+        var begin = at;
+        while at < release.length && release.data[at] != *"\n" { at++; }
+        var end = at;
+        if at < release.length { at++; }
+        if end - begin < key_size || strncmp(release.data + begin, key, key_size) != 0 { continue; }
+        begin += key_size;
+        if end > begin && release.data[end - 1] == *"\r" { end--; }
+        var quote = begin < end ? release.data[begin] : 0;
+        if quote == *"\"" || quote == *"'" {
+            begin++;
+            if begin >= end || release.data[end - 1] != quote { return false; }
+            end--;
+        }
+        if !bytes_assign_text(out, release.data + begin, end - begin) { return false; }
+    }
+    return true;
+}
+
+fn bootstrap_profile_name(release: ByteBuffer*, llvm: ByteBuffer*, host: ByteBuffer*): bool {
+    var major: usize = 0;
+    while major < llvm.length && llvm.data[major] >= *"0" && llvm.data[major] <= *"9" { major++; }
+    if major == 0 || major + 1 >= llvm.length || llvm.data[major] != *"."
+        || llvm.data[major + 1] < *"0" || llvm.data[major + 1] > *"9" { return false; }
+    for(var i = major + 1; i < llvm.length; i++) { if llvm.data[i] <= *" " { return false; } }
+    var id: ByteBuffer = default; var version: ByteBuffer = default;
+    defer bytes_dispose(&id); defer bytes_dispose(&version);
+    if !bootstrap_release_field(release, "ID=", &id) || id.length == 0
+        || !bootstrap_release_field(release, "VERSION_ID=", &version) { return false; }
+    var length: usize = 0;
+    while length < version.length && version.data[length] != *"." { length++; }
+    return bootstrap_text(host, "linux-x64-") && bytes_append(host, id.data, id.length)
+        && bytes_append(host, version.data, length) && bootstrap_text(host, "-llvm") && bytes_append(host, llvm.data, major);
+}
+
+fn bootstrap_host_profile(host: ByteBuffer*, llvm: ByteBuffer*): bool {
+    var config = getenv("LLVM_CONFIG");
+    if config == null || *config == 0 { config = "llvm-config-19"; }
+    var args: u8*[5] = default;
+    args[0] = "/usr/bin/env"; args[1] = "--"; args[2] = config; args[3] = "--version";
+    var limit: usize = 65536;
+    if tool_capture(args[0], &args[0], limit, llvm) != 0 { return false; }
+    while llvm.length != 0 && (llvm.data[llvm.length - 1] == *"\n" || llvm.data[llvm.length - 1] == *"\r") { llvm.length--; }
+    var release: ByteBuffer = default;
+    defer bytes_dispose(&release);
+    if !tool_read_file("/etc/os-release", limit, &release) && !tool_read_file("/usr/lib/os-release", limit, &release) { return false; }
+    return bootstrap_profile_name(&release, llvm, host);
+}
+
 fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*,
     patch: ByteBuffer*, out: ByteBuffer*): bool {
     var predecessor: ByteBuffer = default; var revision: ByteBuffer = default;
     defer bytes_dispose(&predecessor); defer bytes_dispose(&revision);
+    var host: ByteBuffer = default; var llvm: ByteBuffer = default;
+    defer bytes_dispose(&host); defer bytes_dispose(&llvm);
+    if !bootstrap_host_profile(&host, &llvm) { puts("Cannot read os-release or the build LLVM_CONFIG version."); return false; }
     if !tool_read_file(input.predecessor, BootstrapInputLimit, &predecessor) || !bootstrap_git(input, "revision", &revision) { return false; }
     var lf: u8 = 10; var cr: u8 = 13;
     while revision.length != 0 && (revision.data[revision.length - 1] == lf || revision.data[revision.length - 1] == cr) { revision.length--; }
     if revision.length == 0 || !bootstrap_text(out, "{\n  \"directory\":\"linux-x64\",\n  \"executable\":\"linux-x64/towerc\",\n  \"checksums\":\"linux-x64/SHA256SUMS\",\n  \"build\":{\"command\":")
         || !bootstrap_string(out, input.command, strlen(input.command))
-        || !bootstrap_text(out, ",\"compiler\":\"Tower (LLVM object emission)\",\"configuration\":\"Release\",\"llvm\":\"19.1.1\",\"predecessor_sha256\":")
+        || !bootstrap_text(out, ",\"compiler\":\"Tower (LLVM object emission)\",\"configuration\":\"Release\",\"llvm\":")
+        || !bootstrap_string(out, llvm.data, llvm.length) || !bootstrap_text(out, ",\"predecessor_sha256\":")
         || !bootstrap_hash(out, predecessor.data, predecessor.length)
         || !bootstrap_text(out, "},\n  \"dynamic_dependencies\":") || !bootstrap_dependencies(input, out)
         || !bootstrap_text(out, ",\n  \"files\":{") { return false; }
@@ -200,7 +258,8 @@ fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*,
     }
     var compiler = files.data[files.length - 1];
     if strcmp(compiler.name.data, "towerc") != 0
-        || !bootstrap_text(out, "},\n  \"host\":\"linux-x64-ubuntu24-llvm19\",\n  \"schema\":")
+        || !bootstrap_text(out, "},\n  \"host\":") || !bootstrap_string(out, host.data, host.length)
+        || !bootstrap_text(out, ",\n  \"schema\":")
         || !host_json_unsigned(out, BootstrapSchema) || !bootstrap_text(out, ",\n  \"sha256\":")
         || !bootstrap_hash(out, compiler.data.data, compiler.data.length) || !bootstrap_text(out, ",\n  \"source_base_revision\":")
         || !bootstrap_string(out, revision.data, revision.length) || !bootstrap_text(out, ",\n  \"source_files\":")

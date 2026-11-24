@@ -225,6 +225,10 @@ codec or installer is required. SHA-256 is the small shared Tower implementation
 Git and ldd are explicit provenance tools, defaulting to `/usr/bin/git` and
 `/usr/bin/ldd` (optional final `GIT LDD` arguments override them).
 
+Run the packager on the native build host with the same `LLVM_CONFIG` as the
+build (default `llvm-config-19`). It reads the distribution ID and major
+release from `os-release` and records the selected tool's full LLVM version.
+
 Stage new source files so Git includes them in provenance, keep the source and
 compiler/resource inputs unchanged during packaging, and package the compiler
 from that exact source snapshot. The build-command argument records an already
