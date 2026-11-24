@@ -13,6 +13,79 @@ import .library.work_arena_api;
 extern fn sem_scratch_private(context: SemanticContext*, parent: SemanticContext*): void;
 extern fn sem_scratch_append(context: SemanticContext*, source: SemanticScratch*): void;
 extern fn sem_scratch_find(scratch: SemanticScratch*, value: vector(void*)*, probes: usize*): SemanticScratchList*;
+extern fn compiler_buffer_alignment(): usize;
+
+// Derive both the aligned tail boundary and the configured chunk boundary from
+// a real private semantic owner. No particular chunk size is the test oracle.
+fn semantic_scratch_boundary_slice(parent: SemanticContext*, saved: vector(void*)*, chunk: bool, delta: i32): void {
+    var child: SemanticContext = {program: parent.program, ..default};
+    sem_scratch_private(&child, parent);
+    var receipt = bits(SemanticEntry*, sem_allocate(&child, sizeof(SemanticEntry)));
+    utility_check(receipt != null, "Boundary trial admits a real semantic slice");
+    *receipt = default;
+    var alignment = compiler_buffer_alignment();
+    var tail = child.scratch.arena.last;
+    var begin = bits(usize, tail.storage.data);
+    var aligned = (begin + tail.used + alignment - 1) & ~(alignment - 1);
+    var available = tail.storage.capacity - (aligned - begin);
+    var boundary = chunk ? child.scratch.arena.chunk_bytes : available;
+    utility_check(boundary > 1, "Boundary neighbors are nonempty requests");
+    var bytes = delta < 0 ? boundary - 1 : boundary + convert(usize, delta);
+    var data = sem_allocate(&child, bytes);
+    utility_check(data != null && bits(usize, data) % alignment == 0,
+        "Below/exact/above boundary slices preserve compiler alignment");
+    receipt.text = data;
+    receipt.number = bytes;
+    receipt.value = bits(void*, receipt);
+    fill(data, convert(u8, saved.length + 1), bytes);
+    sem_scratch_append(parent, &child.scratch);
+    utility_check(child.scratch.arena.first == null && child.scratch.first == null,
+        "Boundary transfer leaves one owning arena");
+    sem_context_dispose(&child);
+    utility_check(sem_push_checked(parent, saved, bits(void*, receipt)), "Retain transferred slice identity");
+}
+
+fn semantic_scratch_boundary_tests(): void {
+    var neighbors: i32[3] = default; neighbors[0] = -1; neighbors[2] = 1;
+    var chunk_boundaries: bool[2] = default; chunk_boundaries[1] = true;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        var buffers = tower_test_buffer_count();
+        var budget: WorkBudget = default;
+        var world: void* = null;
+        utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
+            && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Boundary world owner");
+        var root = entity_create(compiler_world_store(world));
+        var program: SemanticProgram = default;
+        semantic_initialize(&program, root, width);
+        var parent: SemanticContext = {program: &program, ..default};
+        var saved = sem_list(&parent);
+        utility_check(saved != null, "Boundary receipt owner");
+        for(var edge: usize = 0; edge < sizeof(decltype(chunk_boundaries)) / sizeof(bool); edge++) {
+            for(var neighbor: usize = 0; neighbor < sizeof(decltype(neighbors)) / sizeof(i32); neighbor++) {
+                semantic_scratch_boundary_slice(&parent, saved, chunk_boundaries[edge], neighbors[neighbor]);
+            }
+        }
+        for(var i: usize = 0; i < saved.length; i++) {
+            var receipt = bits(SemanticEntry*, saved.data[i]);
+            utility_check(receipt.value == bits(void*, receipt), "Transferred descriptors keep their address");
+            for(var byte: usize = 0; byte < receipt.number; byte++) {
+                utility_check(receipt.text[byte] == convert(u8, i + 1), "All bytes survive later chunk growth and child disposal");
+            }
+        }
+        var retained: WorkArenaSnapshot = default;
+        utility_check(work_arena_snapshot(&parent.scratch.arena, &retained) && retained.chunks > 1
+            && program.resource.error == WorkBudgetError.None, "Boundary requests join multiple stable chunks");
+        puts("Scratch boundary target bytes, chunk bytes, requests, joined chunks, peak charged bytes:");
+        generic_clone_number(convert(usize, width)); generic_clone_number(parent.scratch.arena.chunk_bytes);
+        generic_clone_number(saved.length); generic_clone_number(retained.chunks); generic_clone_number(budget.peak_bytes);
+        sem_context_dispose(&parent);
+        semantic_program_dispose(&program);
+        entity_release(root);
+        utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0
+            && budget.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+            "Boundary slices and transferred descriptors retire every owner and grant");
+    }
+}
 
 fn semantic_scratch_identity_tests(): void {
     var buffers = tower_test_buffer_count();
@@ -109,6 +182,7 @@ fn semantic_scratch_identity_tests(): void {
 }
 
 fn semantic_scratch_focused_tests(): void {
+    semantic_scratch_boundary_tests();
     semantic_scratch_identity_tests();
     var unlimited = ~convert(usize, 0);
     for(var tag = convert(u32, ScratchAdmissionOperation.Initialize); tag < convert(u32, ScratchAdmissionOperation.Count); tag++) {
