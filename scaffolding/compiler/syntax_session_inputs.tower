@@ -1,4 +1,5 @@
 import tower;
+import .library.work_budget_types;
 import component_kinds;
 import frontend_modules;
 import frontend_revision_types;
@@ -13,8 +14,8 @@ import syntax_types;
 import syntax_validation;
 
 extern fn compiler_world_store(world: void*): void*;
-extern fn compiler_world_component(world: void*, entity: void*, kind: u32): void*;
-extern fn entity_create(store: void*): void*;
+extern fn compiler_world_component_result(world: void*, entity: void*, kind: u32, error: WorkBudgetError*): void*;
+extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 
 export fn syntax_session_inputs_dispose(value: SyntaxSessionInputs*): void {
     if value.owns_module { frontend_module_destroy(bits(FrontendModule*, value.module)); }
@@ -44,45 +45,52 @@ export fn syntax_session_inputs_source(value: SyntaxSessionInputs*, source: u8*,
     return true;
 }
 
-// Source allocation precedes rebuilding the owned module. A failed attempt
-// leaves enough ownership state for the next reset to rebuild that graph; no
-// failed reset may silently reuse its recorded declarations on the next parse.
 export fn syntax_session_inputs_reset(value: SyntaxSessionInputs*, source: u8*, length: usize,
 mode: u32, module: FrontendModule*): bool {
-    if module is not null && frontend_module_world(module) != value.world { return false; }
-    if !frontend_modules_bind_world(bits(ModuleEnvironment*, value.environment), value.world) { return false; }
+    return syntax_session_inputs_reset_result(value, source, length, mode, module) == WorkBudgetError.None;
+}
+
+// Prepare the replacement before retiring old source/document/module ownership.
+// The caller carries this per-call cause across progress reset and diagnostics.
+export fn syntax_session_inputs_reset_result(value: SyntaxSessionInputs*, source: u8*, length: usize,
+mode: u32, module: FrontendModule*): WorkBudgetError {
+    if value == null || value.world == null || (source == null && length != 0)
+        || length == ~convert(usize, 0) { return WorkBudgetError.Invalid; }
+    if module is not null && frontend_module_world(module) != value.world { return WorkBudgetError.Invalid; }
+    var environment = bits(ModuleEnvironment*, value.environment);
+    var error = frontend_modules_bind_world_result(environment, value.world);
+    if error != WorkBudgetError.None { return error; }
     var selected = module ?? bits(FrontendModule*, value.module);
+    var replace_owned = value.owns_module && value.source != null
+        && (module == null || bits(void*, module) == value.module);
     var name = mode == SyntaxSeedBaseline ? "bedrock.tower" : mode == SyntaxBedrockBaseline ? "foundation.tower" : "this file";
     if selected is not null { name = frontend_module_name(selected); }
+    // Root creation uses this same immutable coordinator-owned entry name.
+    // Prepare its bytes before publishing the replacement graph.
+    if replace_owned { name = environment != null && environment.entry.length != 0 ? environment.entry.data : "input.tower"; }
     var prepared = syntax_source_create(name, source, length);
-    if prepared is null { return false; }
+    if prepared is null { return WorkBudgetError.Memory; }
     defer syntax_source_release(prepared);
-    var document = entity_create(compiler_world_store(value.world));
+    var document = entity_create_result(compiler_world_store(value.world), &error);
+    if document == null { return error; }
     defer { if document is not null { entity_release(document); } }
-    var node = document is null ? null : bits(SyntaxNode*, compiler_world_component(value.world, document, CompilerSyntax));
-    if node is null { return false; }
+    var node = bits(SyntaxNode*, compiler_world_component_result(value.world, document, CompilerSyntax, &error));
+    if node is null { return error; }
     node.kind = SyntaxDocument;
-    var replace_owned = value.owns_module && value.source is not null;
-    if module is not null && bits(void*, module) != value.module {
-        if value.owns_module { frontend_module_destroy(bits(FrontendModule*, value.module)); }
-        value.module = bits(void*, module);
-        value.owns_module = false;
-        replace_owned = false;
-    }
-    var ready: bool = true;
+    var owns = value.owns_module;
+    if module != null && bits(void*, module) != value.module { owns = false; }
     if replace_owned {
-        frontend_module_destroy(bits(FrontendModule*, value.module));
-        value.module = bits(void*, frontend_module_root_world(value.world, prepared.text.data, bits(ModuleEnvironment*, value.environment)));
-        name = frontend_module_name(bits(FrontendModule*, value.module));
-        if syntax_bytes_compare(prepared.name.data, prepared.name.length, name, syntax_text_length(name)) != 0 {
-            ready = node_text_set(&prepared.name, name);
-        }
+        selected = frontend_module_root_world_size_result(value.world, prepared.text.data, length, environment, &error);
+        if selected == null { return error; }
     }
+    if value.owns_module && value.module != bits(void*, selected) { frontend_module_destroy(bits(FrontendModule*, value.module)); }
+    value.module = bits(void*, selected);
+    value.owns_module = owns;
     syntax_source_release(value.source);
     value.source = prepared;
     prepared = null;
     if value.document is not null { entity_release(value.document); }
     value.document = document;
     document = null;
-    return ready;
+    return WorkBudgetError.None;
 }

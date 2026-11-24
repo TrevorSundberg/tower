@@ -25,6 +25,9 @@ import backend_import_storage;
 import backend_import_bytes;
 import backend_import_overflow;
 import declaration_call_checks;
+extern fn syntax_reset_resource_checks(): void;
+extern fn syntax_expansion_resource_checks(): void;
+extern fn syntax_expansion_success_checks(): void;
 
 extern fn work_thread_available(): bool;
 extern fn work_thread_capacity(): usize;
@@ -32,7 +35,11 @@ extern fn work_thread_capacity(): usize;
 export fn main(argc: i32, argv: u8**): i32 {
     utility_check(!work_thread_available() && work_thread_capacity() == 1,
         "Storage fault injection requires the single-owner work host");
-    if argc == 3 {
+    var sessions_only = argc == 3 && strcmp(argv[2], "syntax-session-old") == 0;
+    if argc == 3 && !sessions_only {
+        if strcmp(argv[2], "syntax-reset-resources") == 0 { syntax_reset_resource_checks(); return 0; }
+        if strcmp(argv[2], "syntax-expansion-resources") == 0 { syntax_expansion_resource_checks(); return 0; }
+        if strcmp(argv[2], "syntax-expansion-success") == 0 { syntax_expansion_success_checks(); return 0; }
         if strcmp(argv[2], "generic-quota") == 0 { generic_clone_quota_tests(); return 0; }
         if strcmp(argv[2], "backend-import-overflow-i1") == 0 { return backend_import_overflow_tests(argv[1], "i1"); }
         if strcmp(argv[2], "backend-import-overflow-wide") == 0 { return backend_import_overflow_tests(argv[1], "wide"); }
@@ -58,7 +65,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         lr_runtime_fault_tests();
         return 0;
     }
-    utility_check(argc == 2, "Storage test resource root");
+    utility_check(argc == 2 || sessions_only, "Storage test resource root");
     var path: ByteBuffer; fill(&path, 0, sizeof(ByteBuffer));
     defer bytes_dispose(&path);
     utility_check(driver_text(&path, argv[1]) && driver_text(&path, "/foundation.tower") && host_text_terminate(&path), "Storage resource path");
@@ -75,6 +82,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     // Keep low-level sessions independent of this request's module cache.
     // The registry fixture opens and closes its own module provider.
     *request.slot = null;
+    if sessions_only { storage_warm_types(); storage_session_tests(); return 0; }
     compiler_storage_tests();
     generic_clone_storage_tests();
     known_scan_storage_tests();

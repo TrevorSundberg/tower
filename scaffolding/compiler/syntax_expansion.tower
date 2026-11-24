@@ -15,6 +15,9 @@ import .library.work_budget_types;
 // Replacement execution over shared parse entities. Rule slots and visitation
 // sets are disposable indexes; capture holes refer to the compiled template tree.
 extern fn entity_id(node: void*): usize;
+extern fn entity_create_related_result(source: void*, error: WorkBudgetError*): void*;
+extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
+extern fn entity_attach_result(node: void*, parent: void*, name: u8*): WorkBudgetError;
 
 extern fn entity_replace_child(parent: void*, index: usize, replacement: void*): bool;
 
@@ -38,36 +41,6 @@ extern fn syntax_expansion_copy_origin(source: void*, destination: void*): bool;
 extern fn syntax_expansion_copy_origin_result(source: void*, destination: void*): WorkBudgetError;
 extern fn syntax_expansion_trace_result(rule: u8*, start: usize, end: usize, invocation: void*, error: WorkBudgetError*): void*;
 extern fn syntax_expansion_origin_result(trace: void*, node: void*, template: void*, generated: bool): WorkBudgetError;
-
-struct ExpansionFrame {
-    node: void*;
-    next: usize;
-    index: usize;
-}
-
-struct ExpansionWork {
-    source: void*;
-    parent: void*;
-    role: u8*;
-}
-
-struct ExpansionCapture {
-    node: void*;
-    remaining: usize;
-}
-
-struct ExpansionState {
-    input: SyntaxExpansionInput*;
-    result: SyntaxExpansionResult*;
-    normal: vector(usize);
-    normal_count: usize;
-    frames: vector(ExpansionFrame);
-    work: vector(ExpansionWork);
-    clones: vector(ExpansionWork);
-    captures: vector(ExpansionCapture);
-    items: vector(void*);
-    traces: vector(void*);
-}
 
 fn expansion_match(state: ExpansionState*, node: void*): ParserMatchData* {
     return lr_tree_match(node, state.input.match_kind);
@@ -228,16 +201,19 @@ fn expansion_children(state: ExpansionState*, work: vector(ExpansionWork)*, sour
     }
 }
 
-fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): void* {
+export fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): void* {
     var count = state.result.generated_nodes + state.result.copied_nodes;
     if count >= 65536 {
         expansion_error(state, "Replacement output limit exceeded (65536 nodes)");
         return null;
     }
-    var node = entity_create_related(source);
+    var error = WorkBudgetError.None;
+    var node = entity_create_related_result(source, &error);
+    expansion_resource(state, error);
     var ok = node != null;
     if ok {
-        var component = entity_component_add(node, state.input.match_kind);
+        var component = entity_component_add_result(node, state.input.match_kind, &error);
+        expansion_resource(state, error);
         var data = bits(ParserMatchData*, entity_component_data(component));
         ok = data != null;
         if ok {
@@ -290,7 +266,7 @@ fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
         if ok {
             ok = expansion_mark(state, node);
             if ok {
-                ok = entity_attach(node, work.parent, work.role);
+                ok = expansion_resource(state, entity_attach_result(node, work.parent, work.role));
                 if !ok {
                     expansion_memory(state);
                 }
@@ -301,9 +277,9 @@ fn expansion_copy_tree(state: ExpansionState*, source: void*): void* {
     }
 }
 
-fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: ExpansionWork*): bool {
+export fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: ExpansionWork*): bool {
     var ok = expansion_resource(state, syntax_expansion_origin_result(trace, node, work.source, false));
-    ok &&= entity_attach(node, work.parent, work.role);
+    ok &&= expansion_resource(state, entity_attach_result(node, work.parent, work.role));
     if ok {
         return true;
     }
@@ -415,7 +391,8 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
         expansion_memory(state);
         return null;
     }
-    var container = entity_create_related(invocation);
+    var container = entity_create_related_result(invocation, &error);
+    expansion_resource(state, error);
     var missing = container == null;
     if missing {
         expansion_memory(state);
@@ -452,7 +429,7 @@ fn expansion_instantiate(state: ExpansionState*, rule: SyntaxExpansionRule*, inv
             made.start = span.start;
             made.length = span.length;
             ok = expansion_resource(state, syntax_expansion_origin_result(trace, node, work.source, true));
-            ok &&= entity_attach(node, work.parent, work.role);
+            ok &&= expansion_resource(state, entity_attach_result(node, work.parent, work.role));
             if ok {
                 ok = expansion_children(state, &state.work, work.source, node);
             } else {

@@ -34,3 +34,33 @@ struct SyntaxExpansionResult {
     error: vector(u8);
 }
 
+struct ExpansionFrame {
+    node: void*;
+    next: usize;
+    index: usize;
+}
+
+struct ExpansionWork {
+    source: void*;
+    parent: void*;
+    role: u8*;
+}
+
+struct ExpansionCapture {
+    node: void*;
+    remaining: usize;
+}
+
+struct ExpansionState {
+    input: SyntaxExpansionInput*;
+    result: SyntaxExpansionResult*;
+    normal: vector(usize);
+    normal_count: usize;
+    frames: vector(ExpansionFrame);
+    work: vector(ExpansionWork);
+    clones: vector(ExpansionWork);
+    captures: vector(ExpansionCapture);
+    items: vector(void*);
+    traces: vector(void*);
+}
+

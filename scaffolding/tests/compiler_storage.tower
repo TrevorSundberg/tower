@@ -10,6 +10,11 @@ import utility_checks;
 
 var StorageParserEof: u32 = 4294967294;
 extern fn parser_stream_resource_error(stream: void*): WorkBudgetError;
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+extern fn bytes_dispose(out: ByteBuffer*): void;
+extern fn compiler_host_world(): void*;
+extern fn syntax_world_structures_clear(world: void*): void;
 
 // Releases inside these fixtures are deliberately immediate: subsequent checks
 // observe exact ownership transitions and allocation counts before returning.
@@ -216,6 +221,9 @@ fn storage_move_tests(): void {
 }
 
 fn storage_session_tests(): void {
+    // Sessions now share optional world-owned grammar plans. Retire that owner
+    // at both joined boundaries; session destruction alone does not own it.
+    syntax_world_structures_clear(compiler_host_world());
     var baseline = tower_test_buffer_count();
     var source: u8[20]; copy(&source[0], "parse Keep = 'old';", 20);
     var allocations = tower_test_buffer_allocations();
@@ -252,6 +260,15 @@ fn storage_session_tests(): void {
     syntax_destroy(session);
     utility_check(strcmp(retained.text.data, "parse Keep = 'old';") == 0, "Session destruction preserves retained source");
     tower_node_release_ref(item); syntax_source_release(retained); tower_node_release_ref(root);
+    syntax_world_structures_clear(compiler_host_world());
+    if tower_test_buffer_count() != baseline {
+        var remaining = tower_test_buffer_count();
+        var text: ByteBuffer = default;
+        utility_check(host_json_unsigned(&text, convert(u64, baseline)) && host_text_terminate(&text), "Session baseline count diagnostic");
+        puts(text.data); bytes_dispose(&text);
+        utility_check(host_json_unsigned(&text, convert(u64, remaining)) && host_text_terminate(&text), "Session remaining count diagnostic");
+        puts(text.data); bytes_dispose(&text);
+    }
     utility_check(tower_test_buffer_count() == baseline, "Session source retention cleanup");
 }
 
@@ -282,7 +299,7 @@ fn storage_stream_tests(): void {
     utility_check(tower_test_buffer_count() == baseline, "UTF-8 stream cleanup");
 }
 
-export fn compiler_storage_tests(): void {
+fn storage_warm_types(): void {
     // The aggregate used to warm these persistent host type indexes in earlier
     // suites. Initialize them explicitly before measuring request allocations.
     var warm = tower_node_create();
@@ -290,6 +307,10 @@ export fn compiler_storage_tests(): void {
     parser_rule_create(warm); parser_reference_create(warm); parser_range_create(warm);
     parser_match_create(warm); parser_string_create(warm);
     tower_node_release_ref(warm);
+}
+
+export fn compiler_storage_tests(): void {
+    storage_warm_types();
     storage_source_tests(); storage_foundation_tests(); storage_parser_tests();
     storage_clone_tests(); storage_move_tests(); storage_session_tests(); storage_stream_tests();
     puts("Tower compiler storage: snapshots, payloads, aliases, deep clones and failure cleanup passed.");

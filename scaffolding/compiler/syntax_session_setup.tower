@@ -72,13 +72,15 @@ fn syntax_session_version_error(value: SyntaxSession*, diagnostic: SyntaxVersion
 export fn syntax_reset(opaque: void*, source: u8*, module: FrontendModule*): void {
     var value = bits(SyntaxSession*, opaque);
     if module is not null && frontend_module_world(module) != value.inputs.world {
+        value.resource_error = WorkBudgetError.Invalid;
         syntax_session_error(value, "Syntax session module belongs to another compiler world");
         return;
     }
     var mode = value.building_bedrock ? SyntaxSeedBaseline : value.bootstrapping ? SyntaxBedrockBaseline : SyntaxFoundationBaseline;
-    var ready = syntax_session_inputs_reset(&value.inputs, source, syntax_text_length(source), mode, module);
+    var error = syntax_session_inputs_reset_result(&value.inputs, source, syntax_text_length(source), mode, module);
     syntax_session_progress(value);
-    if !ready {
+    if error != WorkBudgetError.None {
+        syntax_session_resource_fail(value, error);
         syntax_session_error(value, "Unable to allocate source text");
         syntax_session_pin_version(&value.pins.version, null);
         return;
