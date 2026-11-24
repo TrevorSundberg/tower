@@ -98709,3 +98709,116 @@ Frozen `12ab4cae` and the restored ordered-row baseline. The private Tower histo
 Six counterbalanced ordinary pairs per cell gave serial 4,096 −0.19% wall, twelve-unit 4/8/30 workers +1.21%/−1.43%/−2.19%. Eight-worker order groups disagreed and all four cells had mixed pair signs. The 30-worker cell favored the candidate in five pairs. Reject for general adoption under the predeclared reproducibility criterion. Keep the histogram, source, binaries and adverse samples for independent reproduction. The [experiment receipt](lr_fallback_shifts_vast_12ab4cae.md) contains the distance distributions, output identities, memory, validation and cache restoration.
 
 Four ordinary selectors and three ASan executions passed, including duplicate/tie order, exact-charge refusal and borrowed-input checks, the old-table regression, randomized oracle and physical allocation failure sweep. TSan compiled but the runtime exited 139 before main on the denied ASLR personality request. Source-language UBSan remains unsupported. No production source was adopted.
+
+### 2026-11-24 · Slot 6 TSan follow-up for the D1 and D2 fixtures
+
+Job `4a338c42-65aa-42f6-9f05-8e6c3146a58f` supplied both test patches on
+`12ab4cae717d4879e393704a8d3b9a1f635bd4f2`. Their Git blobs matched
+`2fb874d38ced3be9d9fdf3fedd74861b2560d5b4` (LR budget) and
+`59c278bb0c1de1a9dd201597e0b268b86818a97c` (frontend module tests).
+D1 adds action-row refusal, retry and replacement to the two-lane bounded LR
+fixture. Full LR calls the same grammar builder. D2 retains two parse roots
+with separate named captures, clears the parser and import cache, drops the
+first root and checks the surviving capture's identity and parent.
+The [lease contract](module_cache_leases_c99aba8d.md) describes the original
+fixture. The manager reported a bounded LR pass and a full LR timeout on
+its host. The measurements below use the Linux slot's own binaries.
+
+The locked, private slot cache supplied the unchanged TSan compiler and
+objects. Both arms enabled module tests and used the same `parser_modules_work`
+profile. The direct `lr-bounded` selector has no CTest registration. Full
+LR is `tower-lr-worker-equivalence`. The registered
+`tower-module-cache-regressions` runner calls `module_cache_empty_seed_leases`
+before the rest of its suite and uses scaffolding as its working directory.
+
+Both arms ran all three selectors with exit 0, checked outputs and empty
+stderr. The tested candidate tree was `c4da96ec9c35955fc0d62c85f39848754aaaece6`.
+Full LR completed within the original 180-second guard. The bounded fixture
+required two real lanes, action refusal and retry, table equivalence and
+budget retirement. The module runner reached both its lease and full-suite
+success lines. The changed lease case required distinct captures before
+teardown, then resolved the second capture and checked its parent after
+retiring the parser/cache and releasing the first root. It uses one lane.
+
+| Selector | Baseline wall s | Patched wall s | Patched CPU s | Patched peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Full LR | 71.73 | 73.15 | 250.75 | 1,972,136 |
+| Extended bounded LR | 0.16 | 0.21 | 0.22 | 105,064 |
+| Module-cache regressions | 0.99 | 1.00 | 1.00 | 106,304 |
+
+One execution per selector per arm on Linux x64, Xeon E5-2680 v4,
+Clang/LLVM 19.1.7, public bootstrap `77f23db6`, outer jobs 2, compiler
+jobs 1. The slot exposed CPUs 0–11, quota 11.52 CPUs, 32,282,509,312 bytes
+of memory and zero swap. Highest candidate whole-slot memory.current sample
+was 9,465,311,232 bytes. Exact cgroup memory.peak was unavailable. No CPU
+throttling, OOM, startup failure, timeout, skip or positive TSan report
+occurred. These timings measure fixture costs on this host.
+
+Only `lr-work-main.o` and `tower-compiler-parser-nodes.o` changed.
+Link-map replays matched the executed LR ELF (32 Tower objects, SHA-256
+`2160f9a4b458fbfaed68f0e3d2a5614a126b12cad6d96b7d860c6bd7e3283387`)
+and module-cache ELF (29 objects, SHA-256
+`6e035ab0156762add49af5533d4d4ceacad5fa03515e375bc2b0d3437f47b3b8`).
+The emitted LR calls and the D2 post-release lookup and parent assertions
+are retained. The deliberate-race ELF, probe, instrumenter and runtime
+matched the previous receipt, including its exit 66 and original stderr.
+The original warm cache verified after restoration.
+
+The frozen-source packet `frozen-12ab4cae.tar.gz` contains
+21,222,173 bytes, SHA-256
+`e2e2e5f6368a3bd2cb6fa57f5c26b38b60d67ff0dd399a7cab1ecb1512b259c3`.
+All 341 manifest entries verified after extraction. The manager can use the
+receipt for these two exact fixture blobs on the integrated Linux source.
+The earlier constrained-host timeout retains its own outcome.
+
+The final pull found both fixture blobs already in upstream commits
+`4f17892b` (D1) and `c7e3e091` (D2). Production module and unit sources
+also changed. A separate warm rebuild at upstream
+`aeba5225efd6d19e05243b8bd99c7bf8c53b102d` changed the parser and
+frontend-units objects. All three selectors returned 0 again with identical
+checked output and empty stderr. Full LR took 72.75 s wall, 253.12 s CPU
+and 1,971,632 KiB RSS. Bounded LR took 0.23 s and the complete module suite
+1.00 s. Link-map replays matched the merged executables, SHA-256
+`8c1f383af4862908a6924d71f047054e0a174781ce388b3eecda0a1918dc43cc`
+and `b1635ff2bcaada41b2749f9ee104d4fe77a38ea24473c008d65033254775bf36`
+for LR and module cache respectively. Peak sampled whole-slot memory was
+9,854,717,952 bytes. The slot recorded zero throttling and OOM events.
+The manager's final `4a338c42-65aa-42f6-9f05-8e6c3146a58f.tar.gz`
+contains the byte-identical frozen packet and these merged logs and artifacts,
+29,217,751 bytes, SHA-256
+`68b04b329ef2101a9d21e253cedbcd12fb0ce6a9c32b4f002cac4f46d1b06d9c`.
+All 222 outer manifest entries verified after extraction. The manager can
+record the three merged Linux TSan selections against `aeba5225`.
+
+### 2026-11-24 · Slot 6 replay of D1's original ThreadSanitizer binary
+
+The coordinator delivered the slot 7 producer archive
+`1d844df1-6345-4f2c-afaf-9206399a69ad.tar.gz`, SHA-256
+`41aeba4281e6136b842335cf65282b47ab112ea3809cb70885da2bf268133663`.
+All 440 producer manifest entries verified. The archived ELF SHA-256 is
+`f3171a3e4a294098c4665b6bd7adac160251e8a859f085dc4337cc40acc32bbf`.
+The producer's `input/lr.sha256` matched all 39 entries on `12ab4cae`.
+Applying its `shared-row.patch` to the private resource tree produced D1
+blob `2fb874d38ced3be9d9fdf3fedd74861b2560d5b4` and matched all 1,232
+extended scaffolding inputs. The commands used that scaffolding directory
+as both the working directory and the resource root. The two slot 7 exit
+139 TSan startup failures and the manager's 120-second full-LR timeout
+retain their original attribution. Slot 6 used the archived ELF directly.
+
+Both original-binary invocations completed on their first attempt under
+D1's 180-second guard. Extended `lr-bounded` exited 0 with empty stdout
+and stderr in 0.20 s wall, 0.22 s CPU and 105,212 KiB peak RSS. Full `lr`
+exited 0 with the exact native production worker success line and empty
+stderr in 74.66 s wall, 252.74 s CPU and 1,971,636 KiB RSS. The producer
+linked with module tests disabled. Its LR test object matches the earlier
+slot 6 frozen rebuild, while the parser provider and final ELF differ.
+Checked outputs and the executable and resource hashes verified after join.
+
+CPUs 0–11, quota 11.52, 32,282,509,312 B memory and zero swap applied to
+both runs. The peak sampled whole-slot memory.current was 10,085,580,800 B.
+The kernel supplied no exact cgroup peak. Throttling and OOM counters stayed
+zero. The [raw replay receipt](evidence/d1_original_tsan_slot6.tar.gz)
+includes both commands, outputs, exits, timings, earlier startup errors and
+the producer's link/input manifests. Its 68 entries verified after extraction.
+SHA-256 is `1e9a8fad8f03b05a5a48c6aecbb519af46f80410d5c987c0d7091d90aefa67fe`.
+The manager can close the original D1 ELF gate on this host.
