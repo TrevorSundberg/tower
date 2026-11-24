@@ -74,6 +74,7 @@ fn units_memory_snapshot(batch: void*): WorkBudgetSnapshot {
 // Independent expected bytes: exact NUL-terminated payload plus the documented
 // four-word compiler buffer header. Parser/world storage is additional.
 var UnitSnapshotHeaderWords: usize = 4;
+var UnitImportRefusalBytes: usize = 67108864;
 var UnitSharedSnapshotBuffers: usize = 3;
 var UnitSourceSnapshotBuffers: usize = 2;
 
@@ -213,8 +214,7 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var allowance = reference.peak - base - input;
     // Preserve the original finite-budget import failure separately from the
     // later measured peak: these exercise different producer phases.
-    var import_allowance: usize = 67108864;
-    var import_cap = base + input + import_allowance;
+    var import_cap = base + input + UnitImportRefusalBytes;
     units_memory_check(import_cap < reference.peak, "Import denial policy is below this source's measured requirement");
     // Baseline LR allocation can report a grammar diagnostic even though the
     // byte ledger refused it, before a semantic program exists.

@@ -1,5 +1,7 @@
 import tower;
 import frontend_units;
+import frontend_units_memory;
+import .library.work_pool;
 import compiler_dependency_source;
 import backend_units;
 import .library.vector;
@@ -170,6 +172,70 @@ fn dependency_units_trial(root: u8*, bedrock: u8*, foundation: u8*, workers: usi
     return offset;
 }
 
+struct UnitReceiptGates { capacity_unit: usize; capacity: void*; peers: void*; }
+
+fn unit_receipt_observe(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
+    if phase != CompilerQuery.Unit || !entering { return; }
+    var gates = bits(UnitReceiptGates*, payload);
+    work_signal_wait(ordinal == gates.capacity_unit ? gates.capacity : gates.peers);
+}
+
+// Replay the two peer receipt orders through the actual bounded compiler and
+// coordinator. Only the Capacity producer can run until its ticket is accepted.
+fn unit_mixed_receipts(root: u8*, bedrock: u8*, foundation: u8*, capacity_unit: usize): void {
+    var sources: u8*[3];
+    var count = sizeof(decltype(sources)) / sizeof(u8*);
+    var valid = "import tower; fn answer():i32{return 42;}";
+    var invalid = "import tower; fn answer():i32{return unknownFirstUnit;}";
+    sources[0] = "";
+    sources[1] = capacity_unit == 2 ? valid : invalid;
+    sources[2] = capacity_unit == 3 ? valid : invalid;
+    var gates: UnitReceiptGates = { capacity_unit: capacity_unit, capacity: work_signal_open(), peers: work_signal_open() };
+    units_check(gates.capacity != null && gates.peers != null, "Mixed receipt gates");
+    defer work_signal_close(gates.capacity);
+    defer work_signal_close(gates.peers);
+    var batch = frontend_units_create_bounded(count, count, UnitAdmissionBytes, 8, 1, 1, bedrock, foundation, root);
+    units_check(batch != null && frontend_units_observer(batch, bits(void*, &gates), unit_receipt_observe), "Mixed receipt observer");
+    for(var i: usize = 0; i < count; i++) {
+        units_check(frontend_units_source(batch, i + 1, "receipt.tower", sources[i], strlen(sources[i])), "Mixed receipt source");
+    }
+    units_check(!frontend_units_step(batch, false), "Mixed receipts pending");
+    var admitted = units_memory_snapshot(batch);
+    // Keep the measured single-unit import allowance available to this worker.
+    var held: WorkReservation = default;
+    var budget = frontend_units_work_budget(batch);
+    units_check(admitted.used_lanes == count && admitted.bytes - admitted.used_bytes > UnitImportRefusalBytes
+        && work_budget_reserve(budget, 0, 0, admitted.bytes - admitted.used_bytes - UnitImportRefusalBytes, &held),
+        "Mixed receipts admitted with bounded import headroom");
+    work_signal_post(gates.capacity);
+    var started = unit_stream_clock();
+    while frontend_units_failed(batch) == 0 {
+        units_check(!frontend_units_step(batch, false) && unit_stream_elapsed(started) < UnitStreamTimeoutNanoseconds,
+            "Capacity unit must finish while both peers are held");
+        usleep(UnitAdmissionPauseMicroseconds);
+    }
+    var first = frontend_units_failed(batch);
+    var pending = frontend_units_failure_resource(batch);
+    units_check(work_budget_release(budget, &held), "Release held import headroom");
+    for(var i: usize = 1; i < count; i++) { work_signal_post(gates.peers); }
+    while !frontend_units_step(batch, true) {}
+    var selected = frontend_units_failed(batch);
+    var cause = frontend_units_failure_resource(batch);
+    var error = frontend_units_error(batch);
+    var message_ok = capacity_unit == 2 ? strcmp(error, sem_resource_message(WorkBudgetError.Capacity)) == 0
+        : strstr(error, "Unknown local 'unknownFirstUnit'") != null;
+    var drained = !frontend_units_cancelled(batch) && units_memory_snapshot(batch).used_lanes == 0
+        && frontend_units_program(batch, 1) == null;
+    frontend_units_close(batch);
+    units_check(first == capacity_unit && pending == WorkBudgetError.None && drained, "Mixed receipts drain before publishing the cause");
+    units_check(selected == 2 && message_ok, "Mixed receipts select the earliest failed source and diagnostic");
+    if capacity_unit == 3 {
+        units_check(cause == WorkBudgetError.None, "Unit 2 source failure must clear unit 3 Capacity");
+    } else {
+        units_check(cause == WorkBudgetError.Capacity, "Unit 3 source failure must preserve unit 2 Capacity");
+    }
+}
+
 export fn compiler_dependency_units_tests(root: u8*): void {
     compiler_dependency_units_checks(root, false);
 }
@@ -183,6 +249,10 @@ export fn compiler_dependency_units_checks(root: u8*, scaling: bool): void {
     defer vector_dispose(&bedrock);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
+    if !scaling {
+        unit_mixed_receipts(root, bedrock.data, foundation.data, 3);
+        unit_mixed_receipts(root, bedrock.data, foundation.data, 2);
+    }
     var cycle_cases: bool[2];
     cycle_cases[0] = false; cycle_cases[1] = true;
     var case_count = sizeof(decltype(cycle_cases)) / sizeof(bool);
