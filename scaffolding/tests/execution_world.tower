@@ -13,6 +13,9 @@ import .library.work_vector;
 import .library.work_vector_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
+import .library.work_gate;
+import .library.work_pool;
+import .compiler.grammar_types;
 
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_dispose(world: void*): bool;
@@ -233,4 +236,104 @@ fn execution_world_tests(request: DriverRequest*): void {
     execution_close_checked(&fast);
     frontend_modules_destroy(second_modules);
     execution_check(frontend_world_clear(second) && compiler_world_dispose(second), "second execution world drains");
+}
+
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn frontend_modules_source(environment: void*, path: u8*, text: u8*, length: usize): bool;
+extern fn printf(format: u8*, workers: usize, peak: usize): i32;
+
+struct RetainedWorldProbe { gate: void*; active: usize; peak: usize; }
+
+fn retained_world_observe(context: void*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
+    // LR kernels do not recursively dispatch LR work. Count overlapping events,
+    // under the ordinary host gate, rather than treating queue width as overlap.
+    if phase != GrammarPhase.LookaheadKernel { return; }
+    var probe = bits(RetainedWorldProbe*, context);
+    work_gate_enter(probe.gate);
+    if entering {
+        probe.active++;
+        if probe.active > probe.peak { probe.peak = probe.active; }
+    } else { probe.active--; }
+    work_gate_leave(probe.gate);
+}
+
+fn retained_world_drained(world: void*, budget: WorkBudget*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(budget, &snapshot) && snapshot.used_lanes == 0
+        && compiler_world_grammar(world).workers.running == 0, "Retained request joins before next admission");
+}
+
+fn retained_world_expect(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*,
+    source: u8*, wanted: u8*, fast: bool): void {
+    retained_world_drained(world, budget);
+    execution_compile(session, source, 8, modules);
+    execution_check(compiler_node_world(session.program.root) == world && !session.started
+        && session.machine.steps == 0 && session.output.length == 0 && session.error.length == 0
+        && session.fast == null && session.machine.memory.data == null, "Retained owner replaces previous request and execution cache");
+    retained_world_drained(world, budget);
+    if fast { execution_check(execution_session_fast(session), "Retained source Fast admission"); }
+    execution_run(session, 7, 100000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, wanted),
+        "Retained source exact layout, staged value, body and effect order");
+}
+
+fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
+    execution_check(work_thread_available() && work_thread_capacity() >= workers, "Retained source native transport capacity");
+    var signal = work_signal_open(); execution_check(signal != null, "Retained budget signal");
+    defer work_signal_close(signal); work_signal_post(signal);
+    var budget: WorkBudget = default;
+    var bytes: usize = 2147483648;
+    execution_check(work_budget_init(&budget, workers, bytes, 1)
+        && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post), "Retained world finite budget");
+    var probe: RetainedWorldProbe = {gate: work_gate_open(), ..default};
+    execution_check(probe.gate != null, "Retained observation gate"); defer work_gate_close(probe.gate);
+    var world: void* = null;
+    execution_check(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None, "Retained world creation");
+    var modules = frontend_modules_create();
+    execution_check(modules != null, "Retained module owner");
+    compiler_world_grammar(world).observer = {context: bits(void*, &probe), event: retained_world_observe};
+    execution_world_prepare(world, modules, request);
+    var name = "retained_dep.tower";
+    var first = "import tower;var seed:u8=7;fn staged():i32{return later();}fn later():i32{return 107;}fn body():i32{print(11);return convert(i32,seed);}print(1);";
+    var changed = "import tower;var seed:u64=13;fn staged():i32{return later();}fn later():i32{return 207;}fn body():i32{print(31);return convert(i32,seed);}print(3);";
+    var source = "import tower;import retained_dep as dep;struct Item{value:decltype(dep.seed);}var known=comptime(dep.staged());var item:Item=default;item.value=dep.seed;print(sizeof(Item));print(known);print(dep.body());print(item.value);print(2);";
+    var expected_first = "1\n1\n107\n11\n7\n7\n2\n";
+    var expected_changed = "3\n8\n207\n31\n13\n13\n2\n";
+    var session: ExecutionSession = default;
+    execution_check(frontend_modules_source(modules, name, first, strlen(first)), "Initial retained source snapshot");
+    retained_world_expect(&session, world, modules, &budget, source, expected_first, false);
+    retained_world_expect(&session, world, modules, &budget, source, expected_first, true);
+    execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Replace same module/declaration names");
+    retained_world_expect(&session, world, modules, &budget, source, expected_changed, false);
+    retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
+    var nul: u8[1] = default;
+    execution_check(!frontend_modules_source(modules, name, &nul[0], sizeof(decltype(nul))), "Rejected replacement preserves prior snapshot");
+    retained_world_expect(&session, world, modules, &budget, source, expected_changed, false);
+    var bad = "import tower;var broken:Missing;";
+    execution_check(frontend_modules_source(modules, name, bad, strlen(bad)), "Admit invalid semantic source snapshot");
+    execution_check(!execution_session_compile(&session, source, strlen(source), 8, modules)
+        && session.program.resource.error == WorkBudgetError.None && execution_text(&session.error, "Unknown type 'Missing'")
+        && session.machine.done && session.machine.failed && session.machine.steps == 0 && session.output.length == 0
+        && !execution_session_start(&session) && !execution_session_fast(&session), "Retained failure exact diagnostic and no execution");
+    retained_world_drained(world, &budget);
+    execution_check(frontend_modules_source(modules, name, first, strlen(first)), "Repair failed retained module");
+    retained_world_expect(&session, world, modules, &budget, source, expected_first, false);
+    // Execution is synchronous and explicitly stepped; this discards a suspended
+    // VM at a call boundary, not an unsupported mid-compilation edit/cancel.
+    execution_compile(&session, "import tower;while true {}", 8, modules);
+    execution_check(execution_session_fast(&session), "Retained suspended Fast program");
+    execution_session_step(&session, 16);
+    execution_check(!session.machine.done && session.machine.steps != 0, "Actual partial execution before replacement");
+    execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Edit after compiler workers joined");
+    retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
+    execution_close_checked(&session);
+    retained_world_drained(world, &budget);
+    execution_check(probe.active == 0 && (workers == 1 || probe.peak >= 2), "Retained native LR work actually overlaps and drains");
+    printf("Retained source workers=%zu observed_lr_overlap=%zu\n", workers, probe.peak);
+    compiler_world_grammar(world).observer = default;
+    frontend_modules_destroy(modules);
+    execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "Retained world finally closes");
+    var final: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget), "Retained source final zero owners");
 }

@@ -3436,3 +3436,17 @@ D2 author review (not independent peer approval), frozen59d7dc9e plus delta. Ful
 Journal receipt records10/10 aggregate plus2/2 standalone-selection passes,16 aggregate Graph/Fast executions, eight original rejection invocations, deliberate subtraction-guard exit134, zero owners on ordinary completion and all costs/limits. Raw source/artifact/failure evidence: `build/d2_ecs/constant_address_gate_59d7dc9e/`. The earlier interrupted lock-error build remains failed. Both prior durable gaps are now covered at this source, without relabeling historical manual evidence.
 
 Final integration: complete published8771b949 history merged in7644094b. The sole incoming Tower delta96d531b4 terminates borrowed text inside the separately selected signed-pointer fixture; the selected constant-address caller/producer/registration blobs are unchanged. Reuse the frozen59d7dc9e tests above, excluding that later fixture from this runtime receipt; no new ABI or affected constant-address code arrived. `git diff --check` passes, historical journal entries and todo preserved.
+
+## Retained source-owner acceptance — d6f7031d (2026-11-23)
+
+Focused author review, not independent peer approval. Existing execution-world file fully reviewed: new sequence retains one explicit world/environment/session variable, rebuilds only request-owned semantics/Fast storage, compares literal values/effect order, verifies exact negative state and releases all its owners. Shared LR observer uses a host gate; its frame stays alive until synchronous joins, and it records overlap only for nonrecursive LR kernels. No global unsynchronized counter or production mutation.
+
+| Changed path | Tested Git blob | Disposition |
+| --- | --- | --- |
+| `scaffolding/tests/execution_world.tower` | `de5b242470a6919e178ed6e749ae7006db233b8d` | Seven positive requests, semantic failure/repair and partial Fast replacement per retained world; target64 workers1/2, actual LR overlap2 and zero final budget owners. |
+| `scaffolding/tests/execution_main.tower` | `21a57e16f6291404d8e91ce975e3c3049695018e` | Narrow selector reuses existing resource/bootstrap transport; other selectors retained, no full-suite rerun. |
+| `cmake/TowerExecutionTests.cmake` | `2ceb2d7eb641a6f39bba7426db7018e02e98f7b5` | Linux x64 focused registration on the existing target,90s/nonzero failure preserved, no permissive output matching. |
+
+Journal receipt and `build/d2_ecs/retained_sources_d6f7031d/` retain exact commands/costs/source maps. Source APIs reviewed at execution_session blobedf6df398ef43a4ff10a2ad9c8c8627fdcbb7563/frontend_modules3e8e71b2b83619f3b58f80b672bc4dc58abedb6a. Primitive stale revision/profile/dispatch owner evidence remains separately attributed. Retained semantic graph invalidation, mid-compilation editing/cancellation and restarting cancelled graphs are not supported contracts or claimed coverage. No producer, generic fixture roster, reactor or release changes.
+
+The journal's final integration receipt also checks this unchanged fixture on c1b9ca8d's merged LR/SCC provider closure; exact focused counts, overlap and teardown still pass. It preserves both timing samples and flags the higher merged cost without a performance claim; no unrelated provider peer review is implied.

@@ -601,7 +601,7 @@ fn lr_states_lalr_owned_result(value: LRStates*, constructs: bool, budget: WorkB
     var graph = lr_states_propagation_items_result(value, constructs, budget, &error);
     if graph == null { return error; }
     defer lr_propagation_destroy(graph);
-    error = lr_propagation_solve_result(graph);
+    error = lr_propagation_solve_components_result(graph, budget);
     return error != WorkBudgetError.None ? error : lr_lalr_actions_result(value, graph);
 }
 
