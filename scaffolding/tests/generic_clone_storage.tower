@@ -179,6 +179,13 @@ fn generic_clone_tree_trial(width: usize, depth: usize, outcome: CloneTreeOutcom
         }
         utility_check(matched,
             "Public clone distinguishes node quota, capacity and allocation failure");
+        var allocations = tower_test_buffer_allocations();
+        var message = generic_clone_diagnostic(error);
+        var expected_message = outcome == CloneTreeOutcome.NodeLimit
+            ? "Template expansion exceeds 65536 nodes (cumulative GenericNodeLimit)"
+            : memory_failure ? "Cannot allocate template clone storage" : "Template clone storage exceeds its memory budget";
+        utility_check(strcmp(message, expected_message) == 0 && tower_test_buffer_allocations() == allocations,
+            "Actual clone failure selects its exact cause without a diagnostic allocation");
     }
     utility_check(entity_store_count(fixture.store) == nodes && entity_store_component_count(fixture.store) == components,
         "Public clone retires all complete or partial output ownership");
@@ -263,6 +270,32 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
     generic_clone_fixture_close(&fixture);
     if budgeted { utility_check(work_budget_dispose(&budget), "Clone budget outlives the world"); }
     utility_check(tower_test_buffer_count() == buffers, "Clone fixture releases all allocations");
+}
+
+// One ordinary success, exact quota and byte denial, and one actual allocator
+// denial per clone path. This selector uses only the existing serial transport.
+fn generic_clone_quota_tests(): void {
+    generic_clone_tree_trial(2, 2, CloneTreeOutcome.Success);
+    generic_clone_tree_trial(2, 2, CloneTreeOutcome.NodeLimit);
+    generic_clone_tree_trial(2, 2, CloneTreeOutcome.CapacityStart);
+    generic_clone_tree_trial(2, 2, CloneTreeOutcome.Memory);
+    var no_failure = ~convert(usize, 0);
+    generic_clone_storage_trial(2, 2, no_failure, false, true, false);
+    generic_clone_storage_trial(2, 2, no_failure, true, true, false);
+    generic_clone_storage_trial(2, 2, 0, false, true, false);
+    generic_clone_storage_trial(1, CloneInitialFrames + 1, no_failure, false, true, true);
+    var buffers = tower_test_buffer_count();
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 0, 0, 1, null);
+    var request: GenericBodyCopy = {context: fixture.context, node: fixture.root, ..default};
+    var allocations = tower_test_buffer_allocations();
+    compiler_generic_body_kernel(bits(void*, &request));
+    utility_check(!request.success && request.storage_error == WorkBudgetError.Invalid
+        && request.copied == 0 && tower_test_buffer_allocations() == allocations,
+        "A missing instance is Invalid, never quota exhaustion, without diagnostic allocation");
+    generic_clone_fixture_close(&fixture);
+    utility_check(tower_test_buffer_count() == buffers, "Invalid body request preserves zero owners");
+    puts("Generic clone causes: success, quota, Capacity and actual Memory; recovery and zero owners passed.");
 }
 
 fn generic_clone_storage_tests(): void {
