@@ -18,8 +18,8 @@ Later main changes are separate candidates, not code validated by this release.
 | Hosted behavior | [Full current hosted acceptance](hosted_acceptance_3c0ccdce.md):104 served members, desktop/mobile/real Linux3/3, redirects/TLS and worker drain pass. The [original input wait failure](hosted_r4_wait_6496eb01.md) remains historical, not relabeled. |
 
 The [whole-scope audit](compiler_ecs_reconciliation_7e9c91a0.md) still requires
-cold serial cost, profitable core efficiency and bounded LR scratch accounting.
-L1 owns the accounting migration through existing WorkBuffer/work_vector.
+cold serial cost and profitable core efficiency. Bounded LR scratch accounting
+now has implementation, independent peer and joined instrumentation evidence below.
 L2's [published adaptive-gate candidate](compiler_worker_gate_98624850.md)
 has a [B1 peer and published AArch64 attribute-storage repair](worker_sync_peer_13b2d718.md).
 [D1 independently accepted that repair](worker_gate_abi_peer_740d891e.md) and
@@ -42,14 +42,44 @@ Its matched CLI means improve15.64-29.10%, with lower memory and exact outputs.
 [D1 independently accepted the source and behavior](grammar_emission_peer_5fac6131.md):
 six focused selections pass and complete owner outputs reconcile. The performance
 measurements remain attributed to their stated source and host.
-L1's bounded parser-scratch migration still needs its concurrent overhead resolved.
-A1 native acceptance, A2 package generations, L2 thread instrumentation and B1
-whole-host performance await the actual accepted source freeze. B2 browser builds
-also wait for B1's exclusive host measurements to finish.
-Final joined instrumentation and release
-must cover accepted subsequent production changes. The original goal is open.
+[L1's bounded parser-scratch accounting](lr_scratch_accounting_b7ba9df6.md) is
+published as `bf9429d900`: nine focused checks and twenty paired compilations pass,
+followed by nine merged-source checks and a complete four-worker multi-file comparison.
+The ownership-only cohort retains small serial11.5% and multi-file16.7% wall cost;
+those measurements cannot be combined arithmetically with the separate grammar gains.
+[D2 independently accepted its accounting and lifetime contract](lr_scratch_peer_bf9429d9.md):
+ten focused selections pass, with complete source, seven executable identities and
+owner-output reconciliation; no production or fixture repair was required.
+The frozen combined candidate is `bf9429d900c6679724cb3c2c4c8960bcf306e83b`, tree
+`9fa65da4d4d4ad697b4a97e56bb894021076d106`. Its completed gates are
+[94 native registrations plus23 direct controls](native_combined_bf9429d9.md),
+[39 products across three generations and57 converged payloads](compiler_generation_bf9429d9.md),
+[60 ASan controls](final_asan_bf9429d9.md) and
+[39 TSan positives with refreshed race sensitivity](compiler_thread_combined_r5_bf9429d9.md).
+Those source-bound results retain their stated instrumentation and host limits.
+[D1 independently accepted the complete native package](native_candidate_peer_bf9429d9.md):
+all source/provenance and payload identities reconcile, and five relocated
+commands pass with exact results and drained ownership. There is no new public
+native pin or browser release.
 
-Whole-host performance runs wait for the other lane's heavy work to drain and
+B1's matched whole-host cohort preserves exact outputs and lower memory, with
+multi-file serial/four-worker means improving28.57%/29.85%. However, multi-file
+32-worker wall/CPU regress37.58%/34.18%, in both counterbalanced pairs. Existing
+phase observations concentrate the extra cost in LR lookahead solving; they do
+not prove a particular lock defect. B1 owns the scoped propagation allocation
+repair in its existing context, preserving bounded accounting and worker policy.
+The original cohort remains immutable. A2 separately owns a measured cold
+grammar-version construction improvement, excluding B1's LR work/analysis and
+shared budget/arena paths. Both tasks have complete inputs before launch.
+Closed B2 remains closed until its real browser inputs and host are available.
+Any accepted production repair needs its own source boundary and affected
+validation; passing bf instrumentation cannot be relabeled as the repair's pass.
+The original performance and final public-adoption goal remains open.
+
+ROOT starts agents only when their concrete task, inputs and host availability
+are ready. Agents never wait for release descriptors or other external prerequisites;
+their windows stay closed until ROOT can assign runnable work. Completed agents stop.
+Whole-host performance runs require the other lane's heavy work to drain and
 check actual processes; focused development uses disjoint CPU/memory partitions.
 Caches, bandwidth, power and OS work remain shared, so those measurements retain
 their shared-host and counterbalanced-sample limitations. ROOT publishes one

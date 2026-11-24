@@ -67,6 +67,40 @@ separate pre-LLVM folding pass. `comptime` requires evaluation at that stage;
 inferred execution preserves work and effects that must occur at runtime. This
 general inferred-execution facility is not yet implemented.
 
+### Proposed separation of staging and specialization
+
+The desired general specialization facility is adjacent to compile-time
+evaluation. These are separate, composable contracts; this section is design
+direction, not a claim that the APIs or general residualizer are implemented.
+
+| Concept | Requested result |
+| --- | --- |
+| Evaluation | Execute ordinary code with available inputs and obtain its value/effects. |
+| `comptime(expression)` | Require the expression's value at the current compilation stage, subject to its effect and dependency contract. Diagnose unavailable required inputs/capabilities. |
+| Specialization | Given ordinary code and known bindings, produce residual code accepting the remaining inputs. Bindings may include whole aggregates or known fields; preserve dynamic fields, aliases, ownership and effects. |
+| Compilation | Translate a program to an executable artifact for an explicit target/profile, whether or not the program was specialized first. |
+| Pre-initialization / snapshot | Preserve an executed prefix's state and a valid remaining entry/continuation, with explicit state ownership and effect replay rules. |
+| Optimization policy | Control profitable inlining, unrolling, vectorization, code/data growth and compilation effort without changing defined program behavior. |
+
+Evaluating a grammar builder with `comptime` produces its grammar/table value;
+it does not request a new parser implementation specialized to that value.
+Known results may enable ordinary optimization in consumers, but neither
+`comptime` nor specialization promises branch-free code or complete unrolling.
+Specialization's semantic obligation is equivalence under its fixed bindings;
+how aggressively to transform the residual code is a separate bounded policy.
+Uniform values shared by workers or shader invocations are not automatically
+compile-stage-known values.
+
+Prefer a typed compiler/library specialization API before adding syntax.
+A specialization request can itself be evaluated with `comptime`, or executed
+later when runtime inputs become known and compilation capability is available.
+Its result is an owned program/artifact, not an implicitly immortal function
+pointer capturing arbitrary storage. Scheduling it asynchronously uses the
+shared dependency/work system; scheduling is independent of what it computes.
+Optional optimization fallback and required staging failures remain distinct.
+Any eventual syntax for capture selection or a lexical continuation boundary
+should express those operations explicitly, not overload `comptime` with them.
+
 Files and explicitly enabled network capabilities, including opening a socket
 and awaiting a response, can supply tracked compile-time inputs. Recorded inputs
 support dependency invalidation, deterministic evaluation and offline replay.
