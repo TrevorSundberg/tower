@@ -922,13 +922,14 @@ Use the public Linux bootstrap with the installed Windows SDK import libraries:
 
 ```sh
 # OUT is an existing output directory; SDK contains SDK x64 kernel32.lib/ucrt.lib.
+target=x86_64-pc-windows-msvc
 for name in gate pool; do
   bootstrap/linux-x64/towerc scaffolding/tests/work_${name}_windows.tower \
-    --jobs 4 --target x86_64-pc-windows-msvc --emit object \
+    --jobs 4 --target "$target" --emit object \
     --bedrock scaffolding/bedrock.tower --foundation scaffolding/foundation.tower \
     --depfile "$OUT/$name.d" -o "$OUT/$name.obj"
 done
-clang --target=x86_64-pc-windows-msvc -O2 -c \
+clang --target="$target" -Xclang -triple -Xclang "$target" -O2 -c \
   bootstrap/linux-x64/share/tower/runtime-windows-x64.ll -o "$OUT/runtime.obj"
 for name in gate pool; do
   lld-link /machine:x64 /subsystem:console /entry:mainCRTStartup /nodefaultlib \
@@ -936,6 +937,13 @@ for name in gate pool; do
     "$OUT/$name.obj" "$OUT/runtime.obj" "$SDK/kernel32.lib" "$SDK/ucrt.lib"
 done
 ```
+
+The runtime IR declares this unversioned Windows triple. Pass it to both the
+driver and frontend: Clang19 otherwise appends its default MSVC compatibility
+version and warns that it is overriding the module target. This preserves the
+IR target and the existing optimization/ABI options; it does not suppress a
+diagnostic or rewrite a bootstrap resource. The [target-alignment receipt](../../docs/windows_runtime_target_5dccac4b.md)
+records the object comparison and native checks with the installed LLVM19 tools.
 
 Run `gate.exe` on Windows with `TOWER_GATE_WORKERS=1`, then `4`; each must exit0
 and print `0`. Run `pool.exe` with no arguments: its original pool/order/partial
