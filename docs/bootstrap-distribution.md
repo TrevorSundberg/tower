@@ -125,7 +125,11 @@ into `build/native`. Tower's `verify_compiler --development-package` consumes
 that relocated package directly, without a second temporary copy or recursive
 cleanup. It uses the existing Tower fixtures for
 diagnostics, interpretation, object compilation, separate library linking and
-executable behavior. It records compiler/object hashes, command arguments,
+executable behavior. The isolated fixture directory also imports the packaged
+optional foreign grammar: Graph/Fast must print `42`, and its C++/C exports must
+link with the existing independently quoted-name caller and execute with output `42`. No inline
+copy of that grammar or backend reader sources supplies the package check.
+It records compiler/object hashes, command arguments,
 millisecond timings, exit codes and separate stdout/stderr logs, and compares
 three fresh object emissions. Each run writes `checks.txt` and logs below a new
 `build/distribution/relocation.XXXXXX/{development,restricted}/` directory.
