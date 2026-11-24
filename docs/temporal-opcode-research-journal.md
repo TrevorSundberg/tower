@@ -96483,3 +96483,22 @@ Independently read L1 015aa9ed/524ad027 at503677d9c8707c21bdfcfb19d20dc250ba131c
 No concrete new defect found: target-width signed/unsigned casts preserve SSA operands and existing equality; failure publication stays private/checked. Old callers retain100000 fuel, opt-in pointer selector uses100000000 with unchanged done/nonfailed/exact-output checks. Four import and two original-input execution registrations do not automatically execute reconstructed outputs; owner manual24-trial evidence is distinct.
 L1 eight CTests/zero-owner/runtime costs remain attributed to docs/backend_pointer_order_6e8001fd.md, not rerun/authenticated external logs. Signed ptr controls and953744B request remain L1 pending; A2 owns the distinct second-normalization constant-expression-add failure53277:5. No address-space-general, race-safety or release claim.
 Source/documentation only: no runtime profile/build/test required, D2 heavy lock untouched, todo preserved. Frozen caller/blob manifest build/d1_ecs/pointer_review_503677d9/; later incoming deltas excluded and final integration recorded once in D1 status.
+
+### 2026-11-23 A2: large target64 native interchange acceptance
+
+[Receipt and raw paths](backend_large64_d962222a.md), frozen published d962222a.
+Fresh canonical64 from actual entity_pages/entity_stage_ownership is977812/
+958950B; optimized returned text1318427/1306888B is byte-identical at workers1/4.
+Four optimized imports/rechecks, sixteen direct Graph/Fast configurations and
+four separate CLI Fast second-normalizations pass with0; both ordinary native
+x64 executable references also exit0/output0. Checked world bytes/grants/lanes0.
+Peak charged storage506795342/502918289B; full wall/CPU/RSS and exact input,
+object/link/LLVM/result hashes are in the receipt. No before/after speedup claim.
+A raw-source canonical-helper attempt failed relative-import lookup because the
+helper uses a synthetic entry filename; exit134/logs are retained as failed.
+The supported canonical-helper inputs and original-path native references pass;
+no expected assertion, production logic, fixture, cap or optimization changed.
+One existing cache, CPU0-11/24GiB, public bootstrap; jobs drained, four stashes
+preserved. Target32/browser/generation/instrumentation/deployment are excluded;
+ROOT retains final adoption and the separate service-blocked gate. This turn
+publishes documentation only, so runtime change profiling is inapplicable.
