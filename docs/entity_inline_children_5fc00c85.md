@@ -32,7 +32,9 @@ Physical census consumers distinguish inline ownership; no second payload graph.
 Net retained reduction26,339,333B (5.05%); RSS falls about37MiB. Counts are live
 allocations/grants, not cumulative malloc calls. No retained heap is hidden.
 Frozen ordinary16/4096 inputs include decltype/comptime/import checks; target8,
-revision81/profile19, one unit/backend off. Observers disabled for timed pairs.
+revision81/profile19, one unit/backend off. Optional child census is disabled for
+timed pairs; the unchanged outer timing observer remains enabled, as independently
+clarified in D1's d5c350d5 review.
 
 | Bodies/workers, alternating n2 | Process wall s before -> after | CPU s | Peak RSS KiB |
 | --- | ---: | ---: | ---: |

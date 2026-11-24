@@ -96559,3 +96559,5 @@ The copied runner and both exact request hashes were then verified before the
 same UUID resumed its new task. No additional Codex context was created.
 
 Joined release details/phase costs and artifacts are recorded in docs/compiler_joined_release_d962222a.md; all3 builds exited0 and source hashes matched. New32-file snapshot165214964B versus old168232639B is a copied-input total, not installed size. L1/L2 full actualWasm acceptance has started on these immutable reactors. Current twelve-row handoff reconciled without erasing historical checkpoints. Existing hosted runtime/public bootstrap remain unchanged; final service-blocked verifier/instrumentation remain open.
+
+ROOT adopts D1 independent child review12974bd1: no new defect; corrected owner receipt observer wording to optional child census disabled while existing outer timing observer remains enabled. Both timed binaries use that observer; no new runtime/profile. Signed-pointer fixture peer review now D1-owned; new candidate ABI excluded. Full-history merge preserved peer evidence and todo.

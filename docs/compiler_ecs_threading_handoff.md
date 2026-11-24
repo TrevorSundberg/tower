@@ -9,13 +9,13 @@ new hosted release. The same twelve acceptance requirements remain:
 
 | Original scope | Current evidence / remaining work |
 | --- | --- |
-| Authoritative ECS / storage | Inline child storage c12c2189 joins existing inline components; scoped large frontend retention falls26.3MB. D1 independent child review and B2 large reconstruction/fault adoption are running. A1 sparse-kind candidate is excluded. |
+| Authoritative ECS / storage | Inline child storage c12c2189 joins existing inline components; scoped large frontend retention falls26.3MB. D1 independent child review12974bd1 found no defect; B2 large reconstruction/fault adoption is running. A1 sparse-kind candidate is excluded. |
 | Lazy decltype / comptime / dependencies | Earlier capture/alias/module repairs remain published. Seeded three-unit cancellation/effect/false-cycle fixture e68981c3 now has ROOT source review; recovery uses fresh worlds, not retained-session invalidation coverage. |
 | Within-unit concurrency | Ready body/subtree work uses shared scheduling; measured single-unit best1.063x remains the limit. Serial parsing/preparation still dominates. B1 LR candidate is not accepted yet. |
 | Cross-unit / shared worker budget | Existing native/Windows/shared overlap evidence remains source-bound. Changed storage now has coherent normal/shared artifacts; current shared adoption and unsupported-host limits remain open. |
 | Deterministic ordering / cancellation | Earlier shared retirement/error controls and new seeded ordering/cancellation fixture retained. No universal race-freedom claim or inference from queue width. |
 | Checked resource ownership | i1 repair158624c7, pointer015aa9ed and constant-address13f30c25 are published; exact native32 large rechecks/GraphFast pass. Signed32/64 pointer controls73300be3 pass. Full actualWasm large cases are running on the new pair. |
-| Source audit | Earlier full/finite audits retained. ROOT independently reviews seeded dependency and D2 native overflow extension; D1 pointer and codec reviews closed. New child and constant-address reviews remain in progress; later candidates excluded. |
+| Source audit | Earlier full/finite audits retained. ROOT independently reviews seeded dependency and D2 native overflow extension; D1 pointer, codec and child reviews closed. Signed-pointer fixture and constant-address reviews remain in progress; later candidates excluded. |
 | Measured serial / scaling / memory | Child large paired4.6–6.1% faster, n2 limitation retained. Foundation policy saves277357681B on reconstruction; independent frontend saves13.67MB with serial+1.37%/four−0.25% wall. Lowering guard3011c77f was reverted after small-case regression. These gains are not additive or full-core acceptance. |
 | Current supported sanitizers | OPEN/service-blocked. Do not retry, rephrase or route around the rejected operation; historical checks and serial fault modes do not close current threaded coverage. |
 | Whole-generation / public bootstrap | a18 complete38-binary/54-payload candidate predates these producer/storage changes. Public2013ad28/768a0cdf unchanged; current complete generation/pin/default adoption remain open. |
