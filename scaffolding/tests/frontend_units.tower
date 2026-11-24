@@ -176,7 +176,8 @@ fn units_syntax_failure(bedrock: u8*, foundation: u8*, root: u8*): void {
         }
         while !frontend_units_step(batch, true) {}
         units_check(frontend_units_failed(batch) == (grammar == 0 ? 2 : 1), "syntax diagnostic source order");
-        units_check(frontend_units_error(batch)[0] != 0 && frontend_units_program(batch, 1) is null, "syntax failure never publishes");
+        units_check(frontend_units_error(batch)[0] != 0 && frontend_units_program(batch, 1) is null
+            && frontend_units_failure_resource(batch) == WorkBudgetError.None, "syntax failure has no resource cause or program");
         frontend_units_close(batch);
     }
 }
@@ -193,7 +194,8 @@ fn units_cancellation(bedrock: u8*, foundation: u8*, root: u8*): void {
         units_check(frontend_units_input_bytes(batch) == input_bytes, "Exact cancellation input subtotal");
         if active != 0 { frontend_units_step(batch, false); }
         frontend_units_cancel(batch);
-        units_check(frontend_units_cancelled(batch) && frontend_units_step(batch, false), "cancel joins workers");
+        units_check(frontend_units_cancelled(batch) && frontend_units_step(batch, false)
+            && frontend_units_failure_resource(batch) == WorkBudgetError.None, "cancel joins workers without a unit failure");
         units_check(frontend_units_program(batch, 1) is null, "cancel rejects publication");
         var snapshot: WorkBudgetSnapshot;
         units_check(work_budget_snapshot(frontend_units_work_budget(batch), &snapshot)

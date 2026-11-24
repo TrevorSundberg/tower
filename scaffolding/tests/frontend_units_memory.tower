@@ -17,6 +17,7 @@ extern fn sem_resource_message(error: WorkBudgetError): u8*;
 extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, source: u8*, length: usize): bool;
 extern fn frontend_units_step(batch: void*, wait: bool): bool;
 extern fn frontend_units_failed(batch: void*): usize;
+extern fn frontend_units_failure_resource(batch: void*): WorkBudgetError;
 extern fn frontend_units_cancelled(batch: void*): bool;
 extern fn frontend_units_close(batch: void*): void;
 extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
@@ -54,7 +55,8 @@ fn units_memory_check(ok: bool, message: u8*): void {
 }
 
 fn units_memory_compiled(batch: void*, message: u8*): void {
-    var ok = !frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0;
+    var ok = !frontend_units_cancelled(batch) && frontend_units_failed(batch) == 0
+        && frontend_units_failure_resource(batch) == WorkBudgetError.None;
     if !ok { puts(frontend_units_error(batch)); }
     units_memory_check(ok, message);
 }
@@ -184,7 +186,18 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var import_allowance: usize = 67108864;
     var import_cap = base + input + import_allowance;
     units_memory_check(import_cap < reference.peak, "Import denial policy is below this source's measured requirement");
-    var denied = frontend_units_create_bounded(1, 1, import_cap,
+    // Baseline LR allocation can report a grammar diagnostic even though the
+    // byte ledger refused it, before a semantic program exists.
+    var baseline_cap: usize = 1048576;
+    var denied = frontend_units_create_bounded(1, 1, baseline_cap, 8, 1, 1, bedrock, foundation, root);
+    units_memory_check(denied != null && frontend_units_source(denied, 1, path, source, strlen(source))
+        && frontend_units_failure_resource(denied) == WorkBudgetError.None, "Baseline denial input");
+    while !frontend_units_step(denied, true) {}
+    units_memory_check(frontend_units_failed(denied) == 1 && frontend_units_error(denied)[0] != 0
+        && frontend_units_failure_resource(denied) == WorkBudgetError.Capacity
+        && frontend_units_program(denied, 1) == null, "Baseline denial preserves Capacity after formatting");
+    frontend_units_close(denied);
+    denied = frontend_units_create_bounded(1, 1, import_cap,
         8, 1, 1, bedrock, foundation, root);
     units_memory_check(denied != null && frontend_units_source(denied, 1, path, source, strlen(source)),
         "Finite import budget owns its input");
@@ -192,7 +205,8 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var resource_ok = strcmp(frontend_units_error(denied), sem_resource_message(WorkBudgetError.Capacity)) == 0;
     if !resource_ok { puts(frontend_units_error(denied)); }
     units_memory_check(!frontend_units_cancelled(denied) && frontend_units_failed(denied) == 1
-        && frontend_units_program(denied, 1) == null && resource_ok,
+        && frontend_units_program(denied, 1) == null && resource_ok
+        && frontend_units_failure_resource(denied) == WorkBudgetError.Capacity,
         "Imported parser capacity failure retains its typed cause through unit output");
     frontend_units_close(denied);
     denied = frontend_units_create_bounded(1, 1, reference.peak - 1,
@@ -205,7 +219,8 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
         "One-byte-short compilation publishes no program");
     resource_ok = strcmp(frontend_units_error(denied), sem_resource_message(WorkBudgetError.Capacity)) == 0;
     if !resource_ok { puts(frontend_units_error(denied)); }
-    units_memory_check(resource_ok, "Peak-minus-one compilation retains its Capacity cause through unit output");
+    units_memory_check(resource_ok && frontend_units_failure_resource(denied) == WorkBudgetError.Capacity,
+        "Peak-minus-one compilation retains its Capacity cause through unit output");
     frontend_units_close(denied);
     units_memory_check(frontend_units_create_bounded(1, 1, 0, 8, 1, 1, bedrock, foundation, root) == null
         && frontend_units_create_bounded(1, 1, ~convert(usize, 0), 8, 1, 1, bedrock, foundation, root) == null,

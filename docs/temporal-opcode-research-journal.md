@@ -99424,3 +99424,21 @@ For the large independent case the median of the individual paired speedups was 
 The separate two-job Graph trace identified ASTs 102619 and 102659 in body 102840. All 816 paired full evaluation slices overlapped on distinct threads. They accumulated 262.323 ms of elapsed overlap. Summing the two thread CPU clocks and subtracting each pair's enclosing elapsed interval gave a 243.431 ms lower bound on simultaneous execution. Fast had 815 overlapping pairs out of 816. The dependent input had zero paired full slices. At 65,536 iterations the compiler exhausted the existing evaluation fuel and emitted no canonical file.
 
 The manager verified the 2,088 packet hashes, replayed the 180 runs and 18 trace streams, reproduced the paired ratios from the per-round readings, and confirmed rejection of a trace missing an interior ticket. Running the stock harness on an independent export of the frozen resources reproduced both 3,954-byte canonical files and the separate Graph and Fast outputs of 528, 1552, 12 and 2080. Both closes returned bytes, grants and lanes to zero. These measurements cover the two explicit staged expressions in this fixture. Receipt `ec076a2b-1af7-4850-b20f-3949d4971e54`, archive SHA-256 `041d7650d5ad88236a0ee55cb977e6d702ebd89ebcae57017ef0ed180f10ae90`. The receipt included a rebased copy of the already published regression. The measurement adds no compiler-source change.
+### 2026-11-24 · Slot 8 · Joined unit resource failure
+
+On public `2548f682`, the coordinator exposes the earliest failed unit and
+formats its diagnostic. The program can still be empty when installing the
+baseline fails. The new joined-unit accessor snapshots either the program or
+baseline resource cause at receipt, including when an earlier ordinal
+supersedes a later failure. Root entity creation now retains its allocator
+result. The native unit tests exercise the 1 MiB baseline denial, imported
+grammar denial, peak-minus-one refusal, syntax failure, cancellation and success.
+
+A private trace of held `46be1e2a` on the delayed-heavy invoice at eight jobs
+found a 1,507,264-byte LALR propagation allocation with 481,296 bytes left in
+the 256 MiB ledger. The nested import propagated Capacity through its module
+graph into ordinal 7. Refusing the same allocation at the native allocation
+boundary under the default cap gave Memory. A one-unit 1 MiB baseline refusal
+reached the batch through the grammar diagnostic alone. Malformed input retained
+its source diagnostic and no resource cause. Each case drained before close.
+These observations establish propagation. They do not establish retryability.
