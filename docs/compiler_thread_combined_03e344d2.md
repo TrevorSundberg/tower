@@ -1,0 +1,36 @@
+# Combined compiler TSan adoption — frozen 03e344d2
+
+**PASS: 12 focused controls plus six width processes; 18 selected/executed/exit0, no findings, skips or unstarted cases.** No production/fixture repair or allowance change was needed.
+Delivered `final_source_20261124_r3.json` freezes source `03e344d24cda60a31765b974348081fb1b2e022b`, tree `40d53c13732e5b216e77292cb14aefc9d464a1a5`; all17 supplied blobs verified before building. This adopts lexer ea6fd5e0, lowering e50072cd, capture6479007d, LR8aa599b7 and late-first-signature77fd7604. Pool resolution3449ed88 restores the exact611 per-job implementation; rejected range claims are absent and stronger admission fixtures remain.
+Public/default04ae compiler SHA256 `04ae22d0e73e3674e43895ea2d1efc13da8b7a6b4704df5815369490e6fcfc47`, no private override. Descriptor manifest hash matches Git/LF bytes; physical Windows CRLF identity is separately retained. Original611 release and c185 ordinary capture samples remain untouched.
+Unprivileged Orchestral-Revng WSL2/LLVM19.1.1, existing TSan cache, CPU4–15 (six physical cores/both SMT siblings), one family,6GiB resident/swap0, unlimited VA. Smallest admission object first:5.14wall/4.03CPU seconds; affected107-action closure250.81/196.10,912360KiB peak RSS. No vendor/reactor/generation build.
+Actual link union48 Tower objects:44 with memory-access hooks; four initialization-only/no-access forwarding units.27 objects match old proof,11 changed,10 newly selected; all belong to the116-row configured inventory and four archive members match on-disk objects. Source/original-IR/instrumented-IR/object/archive/ELF hashes and link commands are retained, not inferred from CXX flags.
+Capture traversal has36 hooks including actual reads/writes; platform entry delegates to the instrumented pool callback, whose batch execution has11 hooks including reads/writes. All10 ELFs initialize TSan; six worker-capable closures export the actual worker entry. Initial supplemental inspection used the wrong forwarding provider/required writes in a read-only forwarder; corrected inspection and original errors are retained, with no compiled-code change.
+Instrumenter/runtime/transport/negative-control hashes remain byte-identical to [accepted sensitivity](compiler_thread_integrated_fca5df98.md); no negative probe repeat. Profile ELF SHA256 `8f3460738fec5532146c6c31ec86c45412fe0c3f260846392e841d6099d962f0`; other identities are in raw proof.
+
+| Selection (all exit0) | Count | Wall s | CPU s | Peak RSS KiB | Actual threads / overlap |
+|---|---:|---:|---:|---:|---:|
+| Kernel admission, dispatch result, ready, attach leases, concurrent stages, semantic pool budget |6|1.27|2.31|83984|fixture barriers/identities|
+| Native LR worker equivalence |1|83.29|129.84|367620|fixture worker oracle|
+| Frontend lr-order |1|12.35|12.32|105964|serial oracle|
+| Frontend lexicon |1|0.11|0.11|84660|serial oracle|
+| Capture scan |1|0.05|0.05|83032|serial fault transport|
+| Query-smoke |1|216.67|237.71|718940|4 /4|
+| Native unit admission |1|49.26|59.23|956508|nested/outer release oracle|
+| Single1×4096, workers1 |1|40.32|40.20|2454428|1 /1|
+| Single1×4096, workers8 |1|38.94|54.25|2478192|8 /8|
+| Single1×4096, workers12 |1|41.45|66.70|2483952|12 /12|
+| Multi12×256, workers1 |1|120.03|119.23|2410604|1 /1|
+| Multi12×256, workers8 |1|40.42|209.28|4352304|8 /8|
+| Multi12×256, workers12 |1|40.74|340.40|5862888|12 /12|
+
+Focused coverage is10 registered tests plus two existing frontend selectors, with original30/60/180s guards and committed query360s allowance. LR ordering includes150 independent randomized grammar cases; capture scan includes eight32/64-bit reuse/Capacity/Memory/prior-Busy/terminal-retry/fresh-success/lease-cleanup trials. Single-owner fault allocation stays serial.
+Production-allocator query includes D1's late first aggregate signature at1/4 workers and32/64-bit targets, captures/frames/aliases/lazy effects/continuations/cancel/source-ordered errors. Four module trials run571 kernels each; parallel trials observe four distinct threads/peak4. Admission checks skewed/exactly-once jobs, typed failure/retry and drain; native-unit admission measures98087ns from nested release to ready outer start.
+The six width controls reuse exact [73cc shapes](compiler_combined_performance_73cc82ab.md), dependencies/uniform/target64/backend0, n1, original300s outer and unchanged inner/world budgets. All84 complete source/import/Foundation artifacts compare byte-for-byte across widths **and against preserved611 files**;78 independent answer/body executions return42. No truncation or optimized substitute.
+Single overlap comes from312 semantic dispatch intervals per run; multi overlap comes from distinct outer-unit thread IDs and overlapping spans, not added nested peaks or queue widths. Reserved lanes equal each1/8/12 ceiling; post-join used lanes are0. Current inclusive phase/observer costs remain raw validation evidence, never ordinary speedup denominators.
+Charged width peaks (1/8/12) are single538406384/538368688/538368912B and multi564391980/864586004/1320890541B. Retained outputs are single458914331/458911507/458911507B and multi494068666/494035170/494035458B; live grants/ledger/entities/components are in `width_summary.csv`, explicitly pre-close, not claimed zero.
+All existing lexical closes drain/cancel workers, close pools, release stages/programs/modules/worlds/borrows and require `work_budget_dispose` with live grants0. Capture/lease/failure fixtures retain exact final zero-owner assertions. No post-close RSS-zero or global overlapping-allocation-counter claim. Final source/IR/object/archive/ELF/sensitivity checks pass; zero owned build/test scopes or heavy children remain.
+Build/control/width cgroup peaks1004531712/934924288/6163914752B stay below6442450944B; swap/max/OOM events0. Cgroup charge, compiler budget and actual child GNU-time RSS are distinct. Line-buffered/timestamped controls and sampled child activity preserve progress; all original logs/errors remain.
+[Old ten-suite acceptance](compiler_thread_integrated_fca5df98.md), [611 syntax controls](compiler_thread_syntax_delta_6117723b.md) and [611 width evidence](compiler_thread_width_6117723b.md) are reused at their original identities. Library storage/property/cache-lifetime contracts and runtime inputs are unchanged. Full backend/cache execution still includes older shared parser/semantic objects: prior complete passes stay source-bound; this fresh focused combined adoption does not pretend to rerun that matrix.
+No unsupported source-language UBSan, foreign/prebuilt LLVM instrumentation, browser/other-host or universal race-freedom claim. ROOT owns ordinary combined performance, generations and atomic publication; no external blocker remains for this slice. Later documentation reconciliation preserves this exact validation freeze.
+Raw [evidence directory](<C:/Sandbox/build/codex_ecs_20261122/L2/thread_combined_r3>): delivered descriptor, source manifests, actual link/hook proof, all commands/statuses/progress/costs, `control_summary.csv`, `width_summary.csv`, memory events and final verification. Complete artifacts remain `/home/revng/.cache/tower/l2_thread_c8555971/width_03e344d2/`.
