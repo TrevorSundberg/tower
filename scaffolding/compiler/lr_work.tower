@@ -20,7 +20,7 @@ extern fn entity_attach_result(child: void*, parent: void*, name: u8*): WorkBudg
 
 extern fn entity_release(entity: void*): usize;
 
-extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_register_stage_result(type: void*, size: usize, alignment: usize, lifecycle: usize, stage_rows: u8): WorkBudgetError;
 
 extern fn entity_component_add(node: void*, type: void*): void*;
 extern fn entity_component_add_result(node: void*, type: void*, error: WorkBudgetError*): void*;
@@ -156,7 +156,8 @@ graph: WorkGraph*, pool: WorkPool*): WorkBudgetError {
     }
     var kind = lr_work_node_result(owner, &error);
     if kind == null { return error; }
-    if !entity_register(kind, sizeof(LRActionTask), alignof(LRActionTask), 0) { return WorkBudgetError.Invalid; }
+    var registered = entity_register_stage_result(kind, sizeof(LRActionTask), alignof(LRActionTask), 0, 0);
+    if registered != WorkBudgetError.None { return registered; }
     var jobs: LRActionTask*[WorkPoolMaximumCapacity];
     var position: usize = 0;
     for(var i: usize = 0; i < count; i++) {
@@ -292,7 +293,8 @@ owner: void*, graph: WorkGraph*, pool: WorkPool*, count: usize, error: WorkBudge
     }
     var kind = lr_work_node_result(owner, error);
     if kind == null { return null; }
-    if !entity_register(kind, sizeof(LRLinkTask), alignof(LRLinkTask), 0) { *error = WorkBudgetError.Invalid; return null; }
+    *error = entity_register_stage_result(kind, sizeof(LRLinkTask), alignof(LRLinkTask), 0, 0);
+    if *error != WorkBudgetError.None { return null; }
     var initialized: usize = 0;
     defer {
         for(var i: usize = 0; i < initialized; i++) {
@@ -479,7 +481,8 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
         if kind == null {
             kind = lr_work_node_result(owner, &error);
             if kind == null { return error; }
-            if !entity_register(kind, sizeof(LRPropagationTask), alignof(LRPropagationTask), 0) { return WorkBudgetError.Invalid; }
+            var registered = entity_register_stage_result(kind, sizeof(LRPropagationTask), alignof(LRPropagationTask), 0, 0);
+            if registered != WorkBudgetError.None { return registered; }
             for(var i: usize = 0; i < pool.count; i++) {
                 nodes[i] = lr_work_node_result(owner, &error);
                 if nodes[i] == null {
@@ -666,7 +669,8 @@ fn lr_states_lalr_closure_parallel_result(value: LRStates*, constructs: bool, an
     defer entity_release(owner);
     var kind = lr_work_node_result(owner, &error);
     if kind == null { return error; }
-    if !entity_register(kind, sizeof(LRClosureTask), alignof(LRClosureTask), 0) { return WorkBudgetError.Invalid; }
+    var registered = entity_register_stage_result(kind, sizeof(LRClosureTask), alignof(LRClosureTask), 0, 0);
+    if registered != WorkBudgetError.None { return registered; }
     var graph: WorkGraph;
     if !work_init_budget(&graph, 1, 0, compiler_world_work_budget(compiler_node_world(anchor))) { return lr_work_error(&graph); }
     defer work_dispose(&graph);

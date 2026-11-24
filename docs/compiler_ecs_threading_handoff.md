@@ -1,6 +1,36 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## CURRENT fixed completion ledger — frozen a06ec4b1 (2026-11-23)
+## Current integration checkpoint — joined d962222a (2026-11-24)
+
+The original goal remains **open**. [New normal/shared artifacts](compiler_joined_release_d962222a.md)
+built successfully from published d962222a with the public bootstrap, frozen inputs
+and no warning/error matches. Full large-case adoption is running; this is not a
+new hosted release. The same twelve acceptance requirements remain:
+
+| Original scope | Current evidence / remaining work |
+| --- | --- |
+| Authoritative ECS / storage | Inline child storage c12c2189 joins existing inline components; scoped large frontend retention falls26.3MB. D1 independent child review12974bd1 found no defect; B2 large reconstruction/fault adoption is running. A1 sparse-kind candidate is excluded. |
+| Lazy decltype / comptime / dependencies | Earlier capture/alias/module repairs remain published. Seeded three-unit cancellation/effect/false-cycle fixture e68981c3 now has ROOT source review; recovery uses fresh worlds, not retained-session invalidation coverage. |
+| Within-unit concurrency | Ready body/subtree work uses shared scheduling; measured single-unit best1.063x remains the limit. Serial parsing/preparation still dominates. B1 LR candidate is not accepted yet. |
+| Cross-unit / shared worker budget | Existing native/Windows/shared overlap evidence remains source-bound. Changed storage now has coherent normal/shared artifacts; current shared adoption and unsupported-host limits remain open. |
+| Deterministic ordering / cancellation | Earlier shared retirement/error controls and new seeded ordering/cancellation fixture retained. No universal race-freedom claim or inference from queue width. |
+| Checked resource ownership | i1 repair158624c7, pointer015aa9ed and constant-address13f30c25 are published; exact native32 large rechecks/GraphFast pass. Signed32/64 pointer controls73300be3 pass. Full actualWasm large cases are running on the new pair. |
+| Source audit | Earlier full/finite audits retained. ROOT independently reviews seeded dependency and D2 native overflow extension; D1 pointer, codec and child reviews closed. Signed-pointer fixture and constant-address reviews remain in progress; later candidates excluded. |
+| Measured serial / scaling / memory | Child large paired4.6–6.1% faster, n2 limitation retained. Foundation policy saves277357681B on reconstruction; independent frontend saves13.67MB with serial+1.37%/four−0.25% wall. Lowering guard3011c77f was reverted after small-case regression. These gains are not additive or full-core acceptance. |
+| Current supported sanitizers | OPEN/service-blocked. Do not retry, rephrase or route around the rejected operation; historical checks and serial fault modes do not close current threaded coverage. |
+| Whole-generation / public bootstrap | a18 complete38-binary/54-payload candidate predates these producer/storage changes. Public2013ad28/768a0cdf unchanged; current complete generation/pin/default adoption remain open. |
+| Normal / shared / browser generations | d962 normal/LLVM/cross/shared build0; L1 entity_pages and L2 stage_ownership/compiler_work full differentials now assigned. Current shared/edited generations and final UI adoption remain open. |
+| Final atomic hosted release | Existing Pages6f142bef runtime source013ae550/build98ade8cc retained. Local deployment verifier remains service-blocked/unstarted; final package/atomic new-runtime/hosted behavior acceptance is open. |
+
+Individual receipts retain exact frozen sources, failed runs and validation limits.
+[Foundation review/profile](compiler_foundation_pages_frontend_524ad027.md),
+[child profile](entity_inline_children_5fc00c85.md), [constant address](backend_constant_address_e330a2c9.md),
+[signed pointer](signed_pointer_stage_503677d9.md) and the journal distinguish
+implementation, independent review, execution and publication. No percentage or ETA
+is inferred from commit volume. This reconciliation adds no runtime code; profiling
+is inapplicable to these documentation edits. Historical checkpoints follow unchanged.
+
+## Historical fixed completion ledger — frozen a06ec4b1 (2026-11-23)
 
 Compiler/library/backend source is published **`a06ec4b1f9f44419882477bc1a55b6ed39e2200b`**:
 compiler tree `1830db721a8d96a54a2e38a5d2ef20ece56561f3`, library tree

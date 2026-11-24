@@ -37,9 +37,10 @@ fn sem_layout_request(c: SemanticContext*, subject: void*): usize {
     if c.layout_results == null {
         var kind = sem_create_result(c.program.root, &error);
         if kind == null { sem_type_resource(c, subject, error); return 0; }
-        if !entity_register(kind, sizeof(SemanticLayoutWork), alignof(SemanticLayoutWork), 0) {
+        error = entity_register_stage_result(kind, sizeof(SemanticLayoutWork), alignof(SemanticLayoutWork), 0, 0);
+        if error != WorkBudgetError.None {
             sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
-            sem_type_resource(c, subject, WorkBudgetError.Invalid);
+            sem_type_resource(c, subject, error);
             return 0;
         }
         c.layout_results = kind;

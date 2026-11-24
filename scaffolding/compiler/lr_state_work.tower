@@ -129,7 +129,8 @@ export fn lr_states_create_parallel_result(analysis: LRAnalysis*, anchor: void*,
             if owner == null { return null; }
             var kind = lr_work_node_result(owner, error);
             if kind == null { return null; }
-            if !entity_register(kind, sizeof(LRStateTask), alignof(LRStateTask), 0) { *error = WorkBudgetError.Invalid; return null; }
+            *error = entity_register_stage_result(kind, sizeof(LRStateTask), alignof(LRStateTask), 0, 0);
+            if *error != WorkBudgetError.None { return null; }
             for(var i: usize = 0; i < capacity; i++) {
                 nodes[i] = lr_work_node_result(owner, error);
                 if nodes[i] == null { return null; }
