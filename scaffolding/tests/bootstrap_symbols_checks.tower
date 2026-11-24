@@ -51,6 +51,7 @@ export fn main(): i32 {
     utility_check(bootstrap_unit("graph-components") == BootstrapUnit.GraphComponents, "Typed connectivity provider policy");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_result", "graph_components_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_dispose", "graph_components_dispose_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "work_arena_append", "work_arena_append_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "fflush", "fflush_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "puts", "puts_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "strlen", "strlen_extra");
@@ -78,7 +79,7 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "frontend_module_cyclic_result", "frontend_module_cyclic_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "syntax_session_open_result", "syntax_session_open_result_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_stage_create_result", "entity_stage_create_result_extra");
-    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "work_arena_append", "work_arena_append_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserFormat, "work_arena_append", "work_arena_append_extra");
     symbol_admission_cases(BootstrapUnit.TemplateBuild, BootstrapUnit.ParserNodes, "syntax_session_allocate_result", "syntax_session_allocate_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserFormat, BootstrapUnit.ParserNodes, "syntax_nodes_equal_result", "syntax_nodes_equal_result_extra");
     symbol_case(BootstrapUnit.TemplateBuild, false, " U tower_trap\n", null);
