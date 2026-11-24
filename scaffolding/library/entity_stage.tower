@@ -33,6 +33,9 @@ struct EntityStageNode {
     name: u8*;
 }
 
+// Private stages publish their descriptor pages intact, including unused slots.
+var EntityStageDescriptorPageRows: usize = 8;
+
 struct EntityStageLease {
     node: Entity*;
     components: usize;
@@ -117,7 +120,8 @@ export fn entity_stage_create_result(stage: EntityStage*, parent: Entity*, error
     if *error != WorkBudgetError.None { return null; }
     *error = work_vector_reserve_result(&stage.nodes, stage.anchor.store.budget, stage.nodes.length + 1);
     if *error != WorkBudgetError.None { return null; }
-    var node = entity_owned_allocate_result(Entity, &stage.buffers, parent.store.budget, 1, error);
+    var node = entity_owned_allocate_rows_result(Entity, &stage.buffers, parent.store.budget, 1,
+        EntityStageDescriptorPageRows, error);
     if node == null { return null; }
     *node = default;
     node.store = parent.store;
