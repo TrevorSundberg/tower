@@ -473,7 +473,6 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
         } else { page.used++; }
         component = &page.components[index];
         data = page.data + index * page.stride;
-        component.allocation = bits(u8*, page);
         component.page = page;
         page.live++;
         if page.live == page.capacity { entity_component_page_detach(page); }
@@ -490,7 +489,6 @@ fn entity_storage_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: 
         component = &owned.component;
         var start = bits(usize, allocation.data + sizeof(EntityComponentAllocation)) + pointer_size;
         data = bits(u8*, (start + mask) & ~mask);
-        component.allocation = allocation.data;
         component.page = null;
     }
     var back = bits(EntityComponent**, data);
@@ -537,7 +535,7 @@ fn entity_owned_free(T: type, data: T*): void {
 fn entity_component_free(component: EntityComponent*): void {
     var page = component.page;
     if page == null {
-        var allocation = bits(EntityComponentAllocation*, component.allocation).allocation;
+        var allocation = bits(EntityComponentAllocation*, component).allocation;
         work_buffer_dispose(&allocation);
         return;
     }
