@@ -98702,3 +98702,83 @@ At `4f17892b` the integrated backend and the restored c49 indexer produced byte-
 The published bootstrap rebuilt the differing provider in separate private caches. The integrated relink exactly matched the existing ordinary compiler. All 30 ordinary object emissions were linked and executed, and all eight observation objects matched their ordinary counterparts. The audit disposition advances only for `scaffolding/backend/execution_functions.tower`, path 76 of 1,283. Production sources and todo.txt have no lane edits. The [independent receipt](backend_execution_children_peer_4f17892b.md) records the source and ELF identities, expected and observed behavior, per-width wall/CPU/RSS, host limits and reconstruction boundary. Packet `936bec94-d80b-4d70-a6ec-d8a91062b3b2.tar.gz` retains the compilers, resources, fixtures, raw objects, runs, ordered traces and commands. Publication belongs to the manager.
 
 After rebasing the receipt onto `aeba5225`, which includes newer driver and frontend sources, a fresh ordinary build reproduced the same backend provider. Its four-job objects for all three workload sizes matched the frozen peers byte-for-byte and printed 15, 999 and 42/42. The packet keeps these smoke outputs and their commands under `post-rebase`.
+
+### 2026-11-24 · Slot 6 TSan follow-up for the D1 and D2 fixtures
+
+Job `4a338c42-65aa-42f6-9f05-8e6c3146a58f` supplied both test patches on
+`12ab4cae717d4879e393704a8d3b9a1f635bd4f2`. Their Git blobs matched
+`2fb874d38ced3be9d9fdf3fedd74861b2560d5b4` (LR budget) and
+`59c278bb0c1de1a9dd201597e0b268b86818a97c` (frontend module tests).
+D1 adds action-row refusal, retry and replacement to the two-lane bounded LR
+fixture. Full LR calls the same grammar builder. D2 retains two parse roots
+with separate named captures, clears the parser and import cache, drops the
+first root and checks the surviving capture's identity and parent.
+The [lease contract](module_cache_leases_c99aba8d.md) describes the original
+fixture. The manager reported a bounded LR pass and a full LR timeout on
+its host. The measurements below use the Linux slot's own binaries.
+
+The locked, private slot cache supplied the unchanged TSan compiler and
+objects. Both arms enabled module tests and used the same `parser_modules_work`
+profile. The direct `lr-bounded` selector has no CTest registration. Full
+LR is `tower-lr-worker-equivalence`. The registered
+`tower-module-cache-regressions` runner calls `module_cache_empty_seed_leases`
+before the rest of its suite and uses scaffolding as its working directory.
+
+Both arms ran all three selectors with exit 0, checked outputs and empty
+stderr. The tested candidate tree was `c4da96ec9c35955fc0d62c85f39848754aaaece6`.
+Full LR completed within the original 180-second guard. The bounded fixture
+required two real lanes, action refusal and retry, table equivalence and
+budget retirement. The module runner reached both its lease and full-suite
+success lines. The changed lease case required distinct captures before
+teardown, then resolved the second capture and checked its parent after
+retiring the parser/cache and releasing the first root. It uses one lane.
+
+| Selector | Baseline wall s | Patched wall s | Patched CPU s | Patched peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Full LR | 71.73 | 73.15 | 250.75 | 1,972,136 |
+| Extended bounded LR | 0.16 | 0.21 | 0.22 | 105,064 |
+| Module-cache regressions | 0.99 | 1.00 | 1.00 | 106,304 |
+
+One execution per selector per arm on Linux x64, Xeon E5-2680 v4,
+Clang/LLVM 19.1.7, public bootstrap `77f23db6`, outer jobs 2, compiler
+jobs 1. The slot exposed CPUs 0–11, quota 11.52 CPUs, 32,282,509,312 bytes
+of memory and zero swap. Highest candidate whole-slot memory.current sample
+was 9,465,311,232 bytes. Exact cgroup memory.peak was unavailable. No CPU
+throttling, OOM, startup failure, timeout, skip or positive TSan report
+occurred. These timings measure fixture costs on this host.
+
+Only `lr-work-main.o` and `tower-compiler-parser-nodes.o` changed.
+Link-map replays matched the executed LR ELF (32 Tower objects, SHA-256
+`2160f9a4b458fbfaed68f0e3d2a5614a126b12cad6d96b7d860c6bd7e3283387`)
+and module-cache ELF (29 objects, SHA-256
+`6e035ab0156762add49af5533d4d4ceacad5fa03515e375bc2b0d3437f47b3b8`).
+The emitted LR calls and the D2 post-release lookup and parent assertions
+are retained. The deliberate-race ELF, probe, instrumenter and runtime
+matched the previous receipt, including its exit 66 and original stderr.
+The original warm cache verified after restoration.
+
+The frozen-source packet `frozen-12ab4cae.tar.gz` contains
+21,222,173 bytes, SHA-256
+`e2e2e5f6368a3bd2cb6fa57f5c26b38b60d67ff0dd399a7cab1ecb1512b259c3`.
+All 341 manifest entries verified after extraction. The manager can use the
+receipt for these two exact fixture blobs on the integrated Linux source.
+The earlier constrained-host timeout retains its own outcome.
+
+The final pull found both fixture blobs already in upstream commits
+`4f17892b` (D1) and `c7e3e091` (D2). Production module and unit sources
+also changed. A separate warm rebuild at upstream
+`aeba5225efd6d19e05243b8bd99c7bf8c53b102d` changed the parser and
+frontend-units objects. All three selectors returned 0 again with identical
+checked output and empty stderr. Full LR took 72.75 s wall, 253.12 s CPU
+and 1,971,632 KiB RSS. Bounded LR took 0.23 s and the complete module suite
+1.00 s. Link-map replays matched the merged executables, SHA-256
+`8c1f383af4862908a6924d71f047054e0a174781ce388b3eecda0a1918dc43cc`
+and `b1635ff2bcaada41b2749f9ee104d4fe77a38ea24473c008d65033254775bf36`
+for LR and module cache respectively. Peak sampled whole-slot memory was
+9,854,717,952 bytes. The slot recorded zero throttling and OOM events.
+The manager's final `4a338c42-65aa-42f6-9f05-8e6c3146a58f.tar.gz`
+contains the byte-identical frozen packet and these merged logs and artifacts,
+29,217,751 bytes, SHA-256
+`68b04b329ef2101a9d21e253cedbcd12fb0ce6a9c32b4f002cac4f46d1b06d9c`.
+All 222 outer manifest entries verified after extraction. The manager can
+record the three merged Linux TSan selections against `aeba5225`.
