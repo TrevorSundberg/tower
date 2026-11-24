@@ -29,20 +29,27 @@ the retained explicit shell-file retry succeeded without changing the artifact.
 L1 independently checked all 1,290 provenance inputs against published Git blobs
 and all 57 payloads, plus 20 current CLI/reference controls with exact 15/999
 execution and reference object equality. No material memory regression was found;
-its source-bound timing receipt remains separate. D1 additionally owns independent
-raw generation/package evidence review. A2's 77 package checks and 39-binary
+its [source-bound timing receipt](final_cli_6117723b.md) remains separate.
+[D1's independent review](native_candidate_peer_6117723b.md) also passes the raw
+generation/package evidence checks and actual relocated resource execution.
+A2's 77 package checks and 39-binary
 convergence are attributed evidence, not ROOT reruns.
 
 This pin changes distributed compiler/resource bytes, not compiler implementation.
 The measured CLI path and existing final611 native, ASan, TSan and browser receipts
-provide runtime evidence. B1's clean build using this newly published default pin
-is a separate pending adoption gate; the previous public pin's clean build is not
-relabeled. The original 45-minute input wait expired before publication and remains
-a timeout, with its prepared source/reference inputs retained for resumption.
+provide runtime evidence. [B1's clean public-default adoption](bootstrap_adoption_6fb57976.md)
+reproduces the exact compiler and passes all 21 development checks, original
+15/999/ABI42 references and relocated resources. Its 39-member inventory and
+runtime ModuleID path differences retain the receipt's precise comparison limits.
+The original 45-minute input wait remains a timeout; the same context resumed
+using its prepared source/reference inputs once the public pin existed.
 
 ROOT owns atomic main/Pages publication and exact hosted identity verification.
 The pin publication reuses the previously verified hosted runtime; deploying the
 final611 static artifact and full hosted behavioral acceptance are separate steps.
+Those subsequently completed: Pages `f16f1a5b` serves the exact611 manifest, and
+[full hosted acceptance](hosted_acceptance_6117723b.md) passes all asset,
+desktop/mobile/real-Linux and redirect checks with drained workers.
 This remains an LLVM19-dependent Linux x64 development bootstrap, not a standalone
 portable release. Native raw evidence is under
 `C:/Sandbox/build/codex_ecs_20261122/ROOT_native_final_611` and
