@@ -1,0 +1,26 @@
+import tower;
+import driver_api;
+import driver_request;
+import driver_link;
+import driver_support;
+
+enum DriverDepfileRule: u8 { Source, Executable, AdditionalUnit }
+
+// Only the entry unit records the executable's persistent linker inputs.
+fn driver_depfile(request: DriverRequest*, modules: void*, output: u8*, rule: DriverDepfileRule): bool {
+    var options = request.options;
+    if options.depfile[0] == 0 { return true; }
+    var inputs: DriverArguments = default;
+    driver_arguments_init(&inputs);
+    defer driver_arguments_dispose(&inputs);
+    if rule == DriverDepfileRule.Executable {
+        for (var i: usize = 0; i < options.link_count; i++) { driver_argument(&inputs, "", options.links[i]); }
+        driver_runtime_argument(&inputs, request.root, options.target);
+    }
+    if inputs.ok && frontend_modules_depfile_inputs(modules, output, options.depfile, rule == DriverDepfileRule.AdditionalUnit,
+        inputs.values.data, inputs.values.length) {
+        return true;
+    }
+    driver_error("Cannot write dependency file: ", options.depfile);
+    return false;
+}
