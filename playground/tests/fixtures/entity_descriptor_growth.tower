@@ -1,0 +1,5 @@
+import tower;
+import tests.entity_page_reuse;
+
+reuse_descriptor_growth();
+print(0);

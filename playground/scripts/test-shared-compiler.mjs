@@ -20,6 +20,8 @@ const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const compiler = await readFile(compilerPath), work = await readFile(workPath);
 const fixtures = await Promise.all(['decltype_lazy_body', 'decltype_generic_headers', 'comptime_flow'].map(async name =>
   ({name, source:await readFile(path.join(root, 'scaffolding/tests', name+'.tower'), 'utf8'), output:'0\n'})));
+fixtures.push({name:'entity_descriptor_growth', output:'0\n',
+  source:await readFile(new URL('../tests/fixtures/entity_descriptor_growth.tower', import.meta.url), 'utf8')});
 const headers = {'Cross-Origin-Opener-Policy':'same-origin', 'Cross-Origin-Embedder-Policy':'require-corp', 'Cache-Control':'no-store'};
 const server = http.createServer(async (request, response) => {
   try {
