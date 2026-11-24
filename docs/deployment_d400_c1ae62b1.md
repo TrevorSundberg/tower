@@ -1,0 +1,33 @@
+# Complete local deployment acceptance of the d400 static artifact
+
+- Result: **PASS**, original complete local verifier, exit 0; no guard expiry, stderr or reported page errors.
+- Verifier/helper freeze `c1ae62b10523976d834cb0ca594f97e51a50a562`, tree `0e39926c55ebb3a20ad62605b713a72680ab7b42`.
+- Published assertion fix `7c9b67568db2fd571f0b44cd3482618a45f82d1a`; verifier SHA256 `14effd6dcf083cb08652bf212db4796f42a8a87fa24853409f976cf9d6d11107`. Verifier and imported helpers equal that published version.
+- Actual static UI/resource/packager source remains `1bfe0657fbba2a39075b23df89a73d54ba11c11d`; reactor/project source remains `d40024c07cdfc2f3a750053e439fc31bea1c1006`.
+- Exact accepted archive: 94406829 B, SHA256 `ff19b5a3b3a90c4ea600262f780974f81509e54ace052fb265d38a3afa3c0c2f`.
+- Exact manifest SHA256 `244e66a5593a3ed5d31167bb52115ee71dfcf4254a40bd724dac04d7fa9b2251`; 105 extracted files / 105745903 B unchanged.
+- Fresh owned source/dist: `/cache/deployment_d400_c1ae62b1/workspace/`; original bundle, tested dist, archive and prior outputs preserved.
+- Existing Node dependencies linked read-only by usage; no rebuild, package installation, cleanup deletion, assertion change or deadline increase.
+- Established command from that workspace: `node playground/scripts/verify-local.mjs`; its existing server helper invokes the unchanged full `verify-deployment.mjs` against a fresh ephemeral localhost port.
+- Existing Tower `process_profile` wraps `timeout --signal=TERM --kill-after=5s 600s`; original per-assertion and compiler-response deadlines retained.
+- Host: KinmenB Linux `tower-b2-work`, CPUs 12–23 / quota 12 / 25769803776 B; one owned browser/process family.
+- Node 22.23.5 SHA256 `2f822d544601dfff107f57d945b649d15c5bf6302595735a6bd9cdc7ee9669bd`; installed Playwright 1.65.1.
+- Chromium 159.0.8154.6/headless 1255 SHA256 `24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b`; same installed host, no alternate browser.
+- All **104 served assets** match local bytes and manifest hashes: manifest included, hosting-only `.nojekyll` excluded from HTTP selection. All 105 disk files checked separately before/after.
+- Both complete desktop/mobile configurations pass backend equality, forward bindings, editable grammar, persistence/reload, project import/export/migration, formatting and exact error behavior.
+- Original known outputs retained, including Graph/LLVM inference `42\ntrue\n43\n42\n`, increment `5\n6\n7\n7\n9\n`, and other unchanged fixture/reference assertions.
+- Exact type contracts pass: signed32 `var i32: type = integer_type(32, 1);`, named `answer: i32`, `pointer: i32*`, `add_one(41)` and `&answer`; no expanded-type substitution or weakening.
+- Completion/Tab/struct-field/prepared-dot behavior, compiler highlighting, deferred diagnostics, compiler-project cancellation/lifecycle and column layout checks pass.
+- C/Roku source, optimization/comment stripping, download identity and all five native target build/download controls pass in both configurations; this does not claim execution on every native platform.
+- Desktop/mobile legacy-selection and detected-target checks pass; the additional **real Linux x64** browser branch also passes Wasm/Linux default selection.
+- Page error arrays empty for both configurations; stderr 0 B and no process warning/error text. No extra console-warning observer was installed.
+- One complete run: **58.389218 s wall / 29.739278 s waited-child CPU / 319180 KiB reported process peak RSS**.
+- Metrics are existing wrapper child usage/highwater, not sampled aggregate browser-tree RSS or Wasm capacity. Validation cost only; neither earlier failed runs nor A1's different host are speedup denominators.
+- Final owned **live jobs 0**: browser/server shutdown awaited, drain check and process inventory retained. PID1 retains non-running exited zombies; this is not universal worker race-freedom evidence.
+- All 175 frozen host files, executable hashes, archive and asset hashes verified unchanged after completion; original accepted Windows dist/archive also rechecked.
+- Retained 47 outputs / 6944289 B: full report, desktop/mobile screenshots, C/Roku text and ten native download artifacts, with exact output hash inventory.
+- Raw root `C:/Sandbox/build/codex_ecs_20261122/B2/deployment_d400_c1ae62b1/`: `run.sh`, `verify_local.out`, `.err`, `.exit`, `deployment-verification/report.json`, all outputs, process inventory and `after_checks.txt`.
+- `provenance.json`, `SHA256SUMS`, source archive, input/host/tool manifests and `results.json` retain exact source/artifact/check identities; matching original Linux cache preserved.
+- A1's older bd860 pass in `488824d2` supports the assertion correction only; this is independently executed d400 acceptance. ROOT's earlier stale-type failure remains historical, not erased.
+- No production/test edit, four-check rerun, browser generation, compiler build, pin or hosted publication. Documentation-only runtime optimization profiling is inapplicable beyond this requested validation.
+- This closes the delegated local gate on the exact tested artifact. ROOT retains public deployment and hosted acceptance; later source changes do not relabel the frozen bytes.
