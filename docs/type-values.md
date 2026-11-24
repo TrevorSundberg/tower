@@ -129,9 +129,10 @@ the complete type suite. Later matched capture integration closes the historical
 aggregate failures: compiler `30fd58bd` passes aggregate stages and the defined
 initializer-order oracle across graph, cache and native execution. Those are
 source-specific receipts in the journal, not validation of subsequent changes.
-Final coherent validation, public pin and deployment remain pending in the L2
-audit. The published bootstrap does not gain a capability merely because these
-source changes are present.
+The pending validation/pin state in those historical L2 receipts is superseded
+by the source-bound [current reconciliation](compiler_ecs_reconciliation_7e9c91a0.md)
+and [r4 native pin](bootstrap_pin_3c0ccdce.md). Current browser/hosted adoption
+remains separate; a source change alone never gives a published artifact a capability.
 
 The Tower fixture is `scaffolding/tests/type_object_values.tower`. The `types`
 execution suite checks both interpreter engines, target pointer widths 4/8,
