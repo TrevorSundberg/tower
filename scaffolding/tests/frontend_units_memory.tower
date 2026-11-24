@@ -23,6 +23,10 @@ extern fn frontend_units_close(batch: void*): void;
 extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
 extern fn frontend_units_input_bytes(batch: void*): usize;
 extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_modules_world(environment: void*): void*;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
 extern fn frontend_modules_reset_compilation(environment: void*): void;
 extern fn strlen(text: u8*): usize;
 extern fn puts(text: u8*): i32;
@@ -165,7 +169,33 @@ fn units_source_bounds_trial(bedrock: u8*, foundation: u8*, root: u8*, text: u8*
     units_memory_check(frontend_world_clear(world) && compiler_world_dispose(world), "Source bounds world cleanup");
 }
 
+fn units_root_refusal(bedrock: u8*, foundation: u8*, root: u8*): void {
+    var batch = frontend_units_create(1, 1, 8, 1, 1, bedrock, foundation, root);
+    units_memory_check(batch != null, "Root refusal batch");
+    defer frontend_units_close(batch);
+    var source = "import tower;";
+    units_memory_check(frontend_units_source(batch, 1, "root.tower", source, strlen(source)), "Root refusal input");
+    var environment = frontend_units_environment(batch, 1);
+    var world = frontend_modules_world(environment);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    units_memory_check(syntax_baseline_install(world, environment, bedrock, false, &diagnostic)
+        && syntax_baseline_install(world, environment, foundation, true, &diagnostic), "Root refusal baselines");
+    // Both baselines can be borrowed unchanged. Creating the program root is
+    // the first structural edit in this unit's store and must report Busy.
+    var anchor = entity_create(compiler_world_store(world));
+    units_memory_check(anchor != null, "Root refusal anchor");
+    defer entity_release(anchor);
+    var view = entity_view_open(anchor);
+    units_memory_check(view != null, "Root refusal view");
+    defer entity_view_close(view);
+    while !frontend_units_step(batch, true) {}
+    units_memory_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+        && frontend_units_failure_resource(batch) == WorkBudgetError.Busy, "Unit root preserves its structural refusal");
+}
+
 export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*): void {
+    units_root_refusal(bedrock, foundation, root);
     var resources = units_memory_resource_bytes(bedrock, foundation, root);
     var path = "memory.tower";
     var source = "import tower; fn answer():i32{return 42;}";
