@@ -71,8 +71,11 @@ fn lexicon_test_runtime(accepted: u32*, count: usize): void* {
 
 fn lexicon_test_equal(actual: TestLexiconChoice*, reference: TestLexiconChoice*): void {
     utility_check(actual.length == reference.length && actual.id == reference.id
-        && actual.skipped == reference.skipped && actual.checks == reference.checks
-        && strcmp(actual.style, reference.style) == 0, "Lexicon reference selection, style and work-count agreement");
+        && actual.skipped == reference.skipped
+        && strcmp(actual.style, reference.style) == 0, "Lexicon reference selection and style agreement");
+    // The independent oracle keeps its eager LR queries. Filtering impossible
+    // source matches may reduce work, but must not change any selected result.
+    utility_check(actual.checks <= reference.checks, "Lexicon selection does not add LR queries");
 }
 
 fn lexicon_test_input(actual: void*, reference: OracleLexicon*, contexts: void**, source: u8*, length: usize): void {
@@ -249,6 +252,36 @@ fn lexicon_test_declaration_prefix(): void {
     utility_check(choice.id == TestPlusPlus && choice.length == 2, "Preview without parser context retains longest punctuation");
 }
 
+fn lexicon_test_matching_queries(): void {
+    var value = lexicon_create();
+    utility_check(value is not null, "Literal query fixture");
+    defer lexicon_destroy(value);
+    utility_check(lexicon_literal(value, "for", 3, TestFor, false)
+        && lexicon_literal(value, "fn", 2, TestFn, false)
+        && lexicon_literal(value, "+", 1, TestPlus, false)
+        && lexicon_literal(value, "++", 2, TestPlusPlus, false), "Literal query registration");
+    var accepted: u32[2];
+    accepted[0] = TestFn; accepted[1] = TestPlus;
+    var runtime = lexicon_test_runtime(&accepted[0], 2);
+    defer lr_runtime_destroy(runtime);
+    var choice: TestLexiconChoice = default;
+    lexicon_choose(value, "x", 1, 0, true, runtime, 0, &choice);
+    utility_check(choice.length == 0 && choice.id == LRTokenEnd && choice.checks == 0,
+        "Unmatched literals require no LR queries");
+    lexicon_choose(value, "fn", 2, 0, true, runtime, 0, &choice);
+    utility_check(choice.length == 2 && choice.id == TestFn && choice.checks == 1,
+        "Matching literal still requires its contextual acceptance");
+    lexicon_choose(value, "for", 3, 0, true, runtime, 0, &choice);
+    utility_check(choice.length == 0 && choice.id == LRTokenEnd && choice.checks == 1,
+        "Matching but unaccepted literal cannot enter declaration grammar");
+    lexicon_choose(value, "++", 2, 0, true, runtime, 0, &choice);
+    utility_check(choice.length == 1 && choice.id == TestPlus && choice.checks == 3,
+        "Accepted short punctuation survives rejected longer match and final acceptance");
+    lexicon_choose(value, "++", 2, 0, false, runtime, 0, &choice);
+    utility_check(choice.length == 2 && choice.id == TestPlusPlus && choice.checks == 0,
+        "Ordinary longest match does not require declaration acceptance");
+}
+
 export fn syntax_lexer_tests(): void {
     test_random_check();
     var baseline = tower_test_buffer_count();
@@ -265,6 +298,7 @@ export fn syntax_lexer_tests(): void {
         var buffers = tower_test_buffer_count();
         lexicon_test_differential(world);
         lexicon_test_declaration_prefix();
+        lexicon_test_matching_queries();
         lexicon_test_failures(warm.table);
         utility_check(entity_store_count(compiler_world_store(world)) == nodes, "Lexicon fixtures release grammar references and pins");
         utility_check(tower_test_buffer_count() == buffers, "Lexicon fixtures release all temporary tables and buffers");

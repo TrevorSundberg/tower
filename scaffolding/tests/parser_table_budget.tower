@@ -460,9 +460,11 @@ fn parser_session_diagnostic_failure(session: void*): void {
     tower_test_buffer_fail_after(0);
     syntax_reset(session, "", module);
     tower_test_buffer_fail_after(frontend_world_unlimited());
-    utility_check(syntax_session_resource_error(session) == WorkBudgetError.Memory
+    // The foreign module is rejected before copying its diagnostic. Denying
+    // that later allocation must preserve the original ownership error.
+    utility_check(syntax_session_resource_error(session) == WorkBudgetError.Invalid
         && syntax_get_error(session)[0] != 0 && syntax_next(session) is null,
-        "Denied diagnostic copy retains a fixed resource failure without aborting");
+        "Denied diagnostic copy preserves the first foreign-world error without aborting");
     var formatted: FormatResult = default;
     var error: u8* = null;
     utility_check(!syntax_format_into(session, &formatted, &error) && error is not null
