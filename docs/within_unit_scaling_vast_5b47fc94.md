@@ -34,7 +34,19 @@ The post-join Tower replay swept half-open intervals, rejected duplicate simulta
 
 At eight workers the three disjoint dispatch categories covered 179.30 ms of 1,169.42 ms traced frontend wall. Only 2.53 ms inside semantic dispatch had no active job. The remaining 990.12 ms outside those dispatches includes coordinator work, other unobserved work and instrumentation. The outer thread accumulated 1,136.42 ms CPU in its 1,169.03 ms span. That 32.61 ms difference includes blocking and descheduling. It cannot identify the cause of a wait. Summed semantic job CPU rose from 558 ms serial to 1,062 ms at eight even as dispatch wall fell. Semantic post-join observation itself cost 15.2–16.4 ms across widths. The ordinary timing table excludes this instrumentation.
 
-The next measurement should divide the eight-worker parser's **250.12 ms outside observed grammar builds** among the `syntax_next` loop, module completion and root publication. Its other 146.71 ms lay inside 89 grammar-build intervals. Serial recorded 238.50 and 122.64 ms in those same two buckets. Together they account for the full frontend parse interval. Parallelizing more semantic jobs alone leaves that measured parser cost in place. [Parser call sites](../scaffolding/compiler/frontend_compilation.tower)
+## Parser time outside grammar builds
+
+The initial eight-worker trace spent 146.71 ms inside 89 grammar builds and 250.12 ms outside them. A follow-up on the same source and host timed four traces at each width. It charged nested grammar builds separately from their callers and excluded time spent inside the coarse recording hooks. About 95% of the remaining parser wall time went to advancing the 4,096 body declarations through `syntax_next`. [Parser call sites](../scaffolding/compiler/frontend_compilation.tower)
+
+| Workers | Parser wall outside builds and hooks, ms | Body loop wall, ms | Body loop coordinator CPU, ms |
+|---:|---:|---:|---:|
+| 1 | 247.59 | 235.65 | 235.65 |
+| 4 | 249.38 | 236.93 | 236.93 |
+| 8 | 250.70 | 238.37 | 238.36 |
+
+At eight workers, publishing roots and module data took 3.40 ms and module completion took 0.002 ms. All observed LR peer work fell inside grammar builds. Across the bodies the recorder counted 188,416 token reads, 188,416 shifts and zero cursor rewinds. A lighter probe attributed 3.60 of 4.03 ms across 64 bodies to recognition. Distinguishing token selection from token entity creation, and generated-rule joins from materialized reductions, requires narrower observations.
+
+All 47 profile runs on CPUs 1–8 under a 30.72-CPU quota matched the frozen source, import and canonical Foundation. Each returned 42 twice. Peak process RSS across the runs was 595,268 KiB and peak Tower charge was 459,241,312 bytes. The ordinary CLI objects at widths 1, 4 and 8 matched the earlier reference and printed both expected lines. The Tower replay checked the disjoint clock intervals and rejected a truncated stream. The evidence packet for `7675d52f-5b35-4722-b0c0-a20fb56bc469` has SHA-256 `15fe9079e855da9696f0fe4880006caf342f8b50b8abc5ca70da5bd4d87ed2ce`.
 
 ## Outputs, release and allocation
 
