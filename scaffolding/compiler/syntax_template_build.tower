@@ -93,6 +93,10 @@ fn template_build_node(node: void*, version: SyntaxVersion*): SyntaxNode* {
 // attempt. Capture rows are borrowed only until the recognizer is destroyed;
 // the adopted tree remains on the original world's shared entities.
 export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
+    return syntax_replacement_attempt_reusing(context, category, null);
+}
+
+export fn syntax_replacement_attempt_reusing(context: void*, category: u8*, structures: ParserStructureCache*): u32 {
     var owner = context;
     var replacement = syntax_replacement_candidate(owner, category);
     if replacement is null { return TemplateAttemptFailed; }
@@ -154,6 +158,12 @@ export fn syntax_replacement_attempt(context: void*, category: u8*): u32 {
     defer work_buffer_dispose(&diagnostic);
     var table = parser_table_open_result(grammar.rules, &grammar.kinds, bits(void*, grammar), ParserPresentation.Syntax, convert(u32, ParserReadMode.WholeInput), &resource_error);
     if table is null { return template_build_resource(owner, resource_error, "Unable to allocate replacement parser"); }
+    // A finite ledger must have the same headroom for a different next grammar.
+    // Names, rule order, holes, terminals and parser profile are checked at lookup.
+    if structures != null && table.budget == null {
+        if structures.world == null { *structures = {world: world, limit: 1, ..default}; }
+        table.reuse = structures;
+    }
     if table is not null { table.trace = entity_member_index(grammar.kinds.`match`, "parser.trace") != ~convert(usize, 0); }
     grammar.table = bits(void*, parser_table_finish_buffer_result(table, &diagnostic, true, &resource_error));
     if grammar.table is null {
