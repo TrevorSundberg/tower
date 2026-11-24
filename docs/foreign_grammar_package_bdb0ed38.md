@@ -34,3 +34,4 @@ Native Linux ABI/execution and packaged grammar are covered; new browser resourc
 Raw before/failures/after reports, commands, timings, public/private hashes and independent exports: `C:/Sandbox/build/codex_ecs_20261122/L1/foreign_resource_bdb0ed38/`.
 Private package/reports: `/root/.cache/tower/l1_foreign_resource_bdb0ed38/` in Orchestral-Revng; immutable original remains `/root/.cache/tower/root_candidate_59d_verify/package/linux-x64/`.
 No generation/UI/sanitizer/deployment verification was repeated. All owned processes drained; runtime/resource identity stays distinct from the newer verifier/test sources.
+Integration: implementation ffd45987 joined origin/main 8eb55a6a as 587196fc, preserving complete history. All ten recorded consumer/resource hashes and the checked-in public package are unchanged; incoming parser/generic source changes are excluded from this frozen eeb00571 runtime evidence. No runtime rerun or release relabeling.
