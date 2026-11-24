@@ -453,7 +453,8 @@ a multiset. Full package validation also runs the two browser generations above.
 `compiler_project_paths.tower FIXTURE_ROOT` exercises the actual dependency
 collector with absolute/relative depfiles and direct/symlink build roots. Create
 `FIXTURE_ROOT/build` and `source`, `alias -> build`,
-`source/borrowed.tower -> leaf $.tower`, and `source/escape.tower -> ../outside.tower`
+`source/borrowed.tower -> leaf $.tower`, `source/escape.tower -> ../outside.tower`,
+`source/again -> .`, and `source/nested/again -> ..`
 through the OS test transport first. The Tower fixture writes its own source and
 depfile inputs, checks exact generated-runtime closure, lexical alias names,
 byte-equivalent unit output and conflicting-content rejection. Separate `missing`,

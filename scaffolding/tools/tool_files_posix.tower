@@ -32,9 +32,9 @@ fn tool_path_relative(out: ByteBuffer*, path: u8*, root: u8*): bool {
     defer bytes_dispose(&physical); defer bytes_dispose(&prefix);
     if !tool_path_identity(&physical, path) || !tool_path_inside(physical.data, root)
         || !bytes_assign_text(&prefix, path, strlen(path)) { return false; }
-    var at = prefix.length;
-    while at != 0 {
-        at--;
+    // Use the first rooted prefix. A deeper directory alias back to the root
+    // still belongs to the lexical module name (for example again/file.tower).
+    for(var at: usize = 1; at < prefix.length; at++) {
         if prefix.data[at] != *"/" { continue; }
         prefix.data[at] = 0;
         var matches = tool_path_identity(&physical, prefix.data) && strcmp(physical.data, root) == 0;
