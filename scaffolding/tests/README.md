@@ -1941,6 +1941,23 @@ buffer counts and budget grants drain. The existing CTest registration includes
 all of this once; its 120-second limit is unchanged. These are single-owner
 native importer/interpreter checks, not LLVM machine execution or worker scaling.
 
+On a Linux x64 native backend/storage build, `tower-overflow-native-tests
+RESOURCE_ROOT CLANG RUNTIME_ROOT correct|wrong` adds machine-reference evidence
+for that same overflow generator. Run in a fresh artifact directory; `CLANG` is
+an explicit executable and `RUNTIME_ROOT` contains the existing
+`runtime-host-linux-x64.ll`. The focused CTests are `tower-overflow-native-correct`
+and `tower-overflow-native-wrong` (the latter requires nonzero exit).
+The correct run checks i1/i8/i16/i32/i64 × both/product/flag × raw/O2: exact native
+`0\n`, checked Foundation reconstruction and Graph/Fast equality. It retains each
+`.ll`, `.o`, executable, canonical `.tower` and `.stdout`, reports intrinsic-call
+counts before/after optimization, and checks zero retained owners. O2 may fold
+uses; emitted IR, not the request flag, determines remaining intrinsic coverage.
+The wrong run flips one expected product argument in the same i1/both generator:
+native and both interpreters must report exactly `1\n` in raw/O2, then the harness
+returns1 after cleanup. Existing scalar capability rejections and target32/64
+verifier-only Graph/Fast selectors remain separate and unchanged. These are
+single-owner validation costs, not throughput or multi-worker evidence.
+
 `tower-lr-work-tests RESOURCE_ROOT dependency-stress` runs three fixed seeds
 through three independent units with two bodies each. It combines imported
 forward `decltype`/`comptime`, nominal aliases, owning-frame/shadow captures,
