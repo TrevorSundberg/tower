@@ -70,17 +70,27 @@ graph-owned scratch after joining. Final paired multi32 wall/CPU improve
 results are mixed, and32 remains slower than8; this is not full-core profitability.
 The [affected c49 TSan gate](compiler_thread_lr_arena_c49c8b37.md) passes13 actual
 processes with observed LR4/semantic8/outer12 overlap,56 complete artifact
-comparisons and52 literal42 executions. Its linked object and instrumentation
-limits remain explicit. Independent B2 peer and L1 ASan acceptance are separate.
+comparisons and52 literal42 executions. The [affected ASan gate](lr_arena_asan_c49c8b37.md)
+passes11 executions, including partial-arena denial/retry and independent-row
+retirement. [Independent producer review](lr_arena_peer_c49c8b37.md) accepts the
+repair and adds borrowed-row reuse coverage. The later merged test overlay is
+explicitly separate from the original instrumentation inputs.
+[Actual shared-Wasm acceptance](shared_browser_c49c8b37.md) passes three strict
+trials and four ownership modes, with real overlap and complete worker retirement.
+Its unbound-world export does not execute the charged denial branch; a focused
+bounded-world test addition is underway. All instrumentation/host limits remain.
 
 A2's [cold validation queue experiment](compiler_cold_validation_bf9429d9.md)
 was rejected and restored exactly. Mismatched profiler samples remain excluded;
 the corrected cohort still did not justify adoption. A2 now builds the complete
-c49 native successor, L2 runs its ordinary native milestone, and D1 runs focused
-actual shared-Wasm/browser adoption. All have frozen inputs before launch.
-A1's capture-stage and B1's action-allocation experiments are later candidates,
-not silently included in c49 or its validation. D2 adds bounded dependency
-permutation coverage. Passing bf checks are not relabeled as current c49 checks.
+c49 native successor, L2 runs its ordinary native milestone, and B2 builds the
+complete c49 browser/static release. All have frozen inputs before launch.
+A1's capture-stage experiment is rejected pending its final restoration receipt;
+B1's action-allocation candidate remains separate from c49 and its validation.
+[D2's bounded dependency permutations](dependency_permutations_4e7ef17b.md)
+pass known-result, serial/parallel, within/across-unit overlap and cycle controls;
+L1 independently reviews the fixture and exact failing-oracle control. Passing bf
+checks are not relabeled as current c49 checks.
 The original performance and final public-adoption goal remains open.
 
 ROOT starts agents only when their concrete task, inputs and host availability
