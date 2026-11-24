@@ -18,6 +18,10 @@ fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
     var budget: WorkBudget = default;
     constructor_check(work_budget_init(&budget, 4, bytes, 1));
     var work: CompilerWork* = null;
+    constructor_check(compiler_work_create_result(8, 4, 1, 9, &budget, null) == WorkBudgetError.Invalid);
+    constructor_check(compiler_work_create_result(0, 4, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
+    constructor_check(compiler_work_create_result(8, 0, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
+    constructor_check(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0);
     var result = compiler_work_create_result(8, 4, 1, 9, &budget, &work);
     if result != wanted {
         print(bytes);
@@ -39,15 +43,15 @@ fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
         constructor_check(compiler_work_next(work) == 0 && compiler_work_done(work));
         compiler_work_close(work);
     } else { constructor_check(work == null); }
-    constructor_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    constructor_check(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget));
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
     var self_bytes = compiler_buffer_allocation_size(sizeof(CompilerWork));
     var store_bytes = compiler_buffer_allocation_size(sizeof(EntityStore));
     // Observe the physical page request rather than duplicating its layout.
-    // A request larger than the whole ledger is Invalid; a fitting request
-    // denied by other live owners is Capacity.
+    // A representable physical request over the whole byte cap is Capacity,
+    // as is a fitting request denied by other live owners.
     var probe = compiler_work_create(1, 1, 1, 9);
     constructor_check(probe != null);
     var component = entity_component_get(compiler_work_subject(probe, 1), probe.kind);
@@ -55,12 +59,12 @@ export fn main(argc: i32, argv: u8**): i32 {
     var page_bytes = compiler_buffer_allocation_size(component.page.allocation.capacity);
     var index_bytes = compiler_buffer_allocation_size(probe.graph.storage.task_index.capacity);
     compiler_work_close(probe);
-    constructor_limit(1, WorkBudgetError.Invalid);
-    constructor_limit(self_bytes, store_bytes > self_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    constructor_limit(1, WorkBudgetError.Capacity);
+    constructor_limit(self_bytes, WorkBudgetError.Capacity);
     var initial_bytes = self_bytes + store_bytes;
-    constructor_limit(initial_bytes, page_bytes > initial_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    constructor_limit(initial_bytes, WorkBudgetError.Capacity);
     var indexed_bytes = initial_bytes + index_bytes;
-    constructor_limit(indexed_bytes, page_bytes > indexed_bytes ? WorkBudgetError.Invalid : WorkBudgetError.Capacity);
+    constructor_limit(indexed_bytes, WorkBudgetError.Capacity);
     constructor_limit(initial_bytes + page_bytes, WorkBudgetError.Capacity);
     constructor_limit(1048576, WorkBudgetError.None);
     var budget: WorkBudget = default;

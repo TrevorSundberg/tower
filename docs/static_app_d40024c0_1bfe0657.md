@@ -1,0 +1,34 @@
+# Tested d400 component ABI static artifact
+
+- Scope: assemble the accepted 40-byte component ABI bundle and run only four existing static-app controls; no runtime rebuild or deployment.
+- Frozen published UI/resource/packager/test source `1bfe0657fbba2a39075b23df89a73d54ba11c11d`, tree `0fd99bd68619abf7fbe518e63b11a8cc43549baf`.
+- Reactor/project source remains `d40024c07cdfc2f3a750053e439fc31bea1c1006`; later UI metadata is not relabeled into compiled bytes.
+- All 24 supplied files / 163932187 B verified before installation and after checks; manifest SHA256 `a95efd167b409ce34c3b9b6903af7cf1a9c92d836c39992979983e8493445cf5`.
+- All 536 embedded source texts match the frozen checkout; all 26 generated entries retained, including exact generated runtime. Recipe has 25 units / 562 texts, ten support archives, one imports file and seven supplied target products.
+- Only `build-bootstrap.sh --tools package_playground_assets` built in a new tools cache, using default public `31a385c616b889987d68f8eb9714020f3928aac97591a1569f905ab706f52ed6`; override unset.
+- Asset tool SHA256 `d5eee8bc73135eefeaa844db72e5b22c8c2c526c8c017cf450e3e9a76a4199ea`; output equals the earlier verified tool. No reactor/vendor/native compiler/project/target regeneration.
+- Existing Node/esbuild/Playwright/Chromium/licenses reused without dependency installation. Assembly uses a fresh source/dist; previous bundles and static outputs remain intact.
+- Output: **104 assets plus manifest, 105 files / 105745903 B**. Exact membership and every asset length/hash verified; Tower-generated asset mapping unchanged by separate manifest provenance.
+- CNAME `tower-lang.org`, empty `.nojekyll`, third-party notices, type/Foundation/foreign/library resources, complete compiler project/support/targets and all three backend capabilities present.
+- Thirteen gzip streams pass integrity checks: 93725218 compressed transfer B / 292930418 decoded B. Dist with these streams decoded totals 304951103 B; these scopes differ from the raw 24-file build snapshot.
+- LLVM/cross gzip decoded hashes and lengths exactly equal supplied raw reactors; eleven support/import streams are byte-identical to supplied streams and independently decoded/hashed. No raw LLVM/cross duplicates.
+- Manifest SHA256 `244e66a5593a3ed5d31167bb52115ee71dfcf4254a40bd724dac04d7fa9b2251`.
+- Transfer archive `tested_dist.tar.gz`: 94406829 B, SHA256 `ff19b5a3b3a90c4ea600262f780974f81509e54ace052fb265d38a3afa3c0c2f`; extracted archive matches every tested file, regular modes 0644 / directories 0755.
+- Host: KinmenB `tower-b2-work`, CPUs 12–23 / quota 12 / 25769803776 B; Node 22.23.5, esbuild 0.25.12, Playwright 1.65.1, Chromium 159.0.8154.6.
+- Chromium executable SHA256 `24eb0a14de64ab0c9c2e283a5512ca817db64af8fd853cdb4d818f19a8e23b9b`; executable/tool/license hashes retained separately.
+- Unchanged selection: `playground/tests/browser/compiler-threads.spec.mjs`, desktop/mobile isolation plus service-worker-blocked portable fallback; one worker, zero retries, max-failures 1.
+- Original 120/90/60-second test/load/execute limits and 540-second aggregate guard retained; `TOWER_REQUIRE_THREADS=1`, `TOWER_REQUIRE_BACKENDS=1`.
+- **PASS 4 / FAIL 0 / SKIP 0 / FLAKY 0**. Both isolated cases load shared Wasm, observe actual compiler workers, execute staged `decltype`/`comptime` output `42\n`, and reload isolated without page errors.
+- Both blocked-isolation cases load portable Wasm, never request shared Wasm, and assert zero compiler-thread workers. Assertions, language input and tests were not edited.
+- Existing Playwright protocol capture observes 20 desktop / 28 mobile distinct compiler-worker targets and matching detach sets; fallback cases have zero. All 72 dedicated-worker target IDs have matching detach events.
+- These counts include reload/replacement generations, not simultaneous width. CDP attachment/detachment and final process drain are recorded; this is not another strict shared-suite/native-thread lifetime proof.
+- Validation cost (wall s / waited-child CPU s / maximum process RSS KiB): packaging-tool build 3.079777 / 2.981665 / 199720; assembly 5.457559 / 5.001573 / 172280.
+- Four UI checks: 31.551367 / 25.220415 / 2591968; Playwright reports 25.612 s. Verbose protocol capture contributes overhead; no throughput, speedup or aggregate process-tree memory claim.
+- Dist archive: 2.328004 / 2.387240 / 2268; raw-log archive: 19.838673 / 20.396749 / 2504. Original large protocol/report logs retained, not silently discarded.
+- All 1476 frozen host/resource/bootstrap files, 24 installed inputs and 105 output files unchanged through joins; Windows handoff and extracted archive reverified. No owned live build/browser job remains.
+- Retained host-only failure after passing tests: Linux `rg` missing during log extraction, exit 1; resumed that extraction with installed `grep`. No build/UI failure, test retry or timeout change.
+- Handoff: `C:/Sandbox/build/codex_ecs_20261122/B2/static_d40024c0_1bfe0657/tested_dist/`, adjacent archive, `SHA256SUMS`, `provenance.json`, `dist_files.json`, `gzip_decoded.json` and worker target records.
+- Raw logs: adjacent `logs/raw_logs.tar.gz` plus summary/cost files; original uncompressed logs and frozen inputs under `/cache/static_d40024c0_1bfe0657/`. All commands/source archive retained.
+- Existing d400 Node/shared/ownership/generation/pages acceptance remains separate exact-source evidence; none was repeated. No production or test-source change here, so runtime optimization profiling is inapplicable.
+- Deployment verifier was not run or edited for this artifact. ROOT's earlier bd860 run verified 104 hashes then failed stale expanded-type assertions; A1 owns the correction. That actual failure is preserved, not called generally service-blocked/unstarted.
+- Corrected full verification of this artifact, hosted acceptance and public pin/deployment remain ROOT-owned and pending. Reconciled later B1 import-cache producer/fixture changes are excluded from d400 runtime evidence; static UI/packager/library/builtin/bootstrap/build/test blobs remain equal. Both frozen source commits remain reachable; tested bytes are unchanged.
