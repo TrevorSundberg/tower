@@ -10,12 +10,13 @@ The current pin includes the Tower hosted ELF linker and `--link-executable`,
 world-owned compiler work, dependency scheduling and the published ECS storage
 improvements, SCC provider, parser optimizations, quota diagnostics and semantic
 scratch-memory repair, guarded import reuse, component-page buckets and checked
-syntax reset/expansion ownership at `6117723b`. The complete executable is 2,299,272 bytes,
-SHA256 `04ae22d0e73e3674e43895ea2d1efc13da8b7a6b4704df5815369490e6fcfc47`.
+syntax reset/expansion ownership, literal-query filtering, lowering frontier,
+capture-scan reuse and LR range ordering at `03e344d2`. The complete executable is
+2,303,472 bytes, SHA256 `160a5a20ed1c97bb473d177ef064391c120fb247cdaff3a2c379b17a697f5ff1`.
 All 39 actual native build binaries match across three generations; all 57 package
 payloads and their checksums match across generations two and three. Exact source,
 host dependencies, failures and relocation evidence are in the
-[generation receipt](../docs/compiler_generation_6117723b.md). Executable and
+[generation receipt](../docs/compiler_generation_03e344d2.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
 browser-project packaging and test changes retain their separate source identity.
