@@ -622,6 +622,31 @@ fn lr_propagation_worker_denial(value: LRPropagation*, input: usize): bool {
         && result.data[1].first == 34 && result.data[1].last == 36
         && value.pending.length == pending && value.nodes[target].ranges.length == 1
         && value.nodes[input].ranges.length == 1 && task.scratch.first != null;
+    if !valid { return false; }
+    // A later failed chunk must preserve earlier unpublished borrows. Fill the
+    // actual remaining slice capacity, then deny growth without changing caps.
+    var previous = result.data;
+    var first = task.scratch.first;
+    var remaining = task.scratch.last.storage.capacity - task.scratch.last.used;
+    var padding: u8* = null;
+    if remaining != 0 && work_arena_allocate_result(&task.scratch, remaining, 1, &padding) != WorkBudgetError.None { return false; }
+    var partial: WorkBudgetSnapshot = default;
+    if !work_budget_snapshot(budget, &partial)
+        || work_budget_reserve_result(budget, 0, 0, partial.bytes - partial.used_bytes, &hold) != WorkBudgetError.None { return false; }
+    result = default; // Retire only the view; its first chunk remains owned.
+    compiler_lr_propagation_kernel(bits(void*, &task));
+    if task.resource_error != WorkBudgetError.Capacity || result.data != null || task.scratch.first != first
+        || previous[0].first != 32 || previous[0].last != 35 || previous[1].first != 34 || previous[1].last != 36
+        || value.pending.length != pending || value.nodes[target].ranges.length != 1
+        || value.nodes[input].ranges.length != 1 || budget.used_bytes != partial.used_bytes + hold.bytes
+        || budget.live != partial.live + 1 || budget.used_lanes != partial.used_lanes { return false; }
+    if work_budget_release_result(budget, &hold) != WorkBudgetError.None { return false; }
+    compiler_lr_propagation_kernel(bits(void*, &task));
+    valid = task.resource_error == WorkBudgetError.None && changed && result.length == 2
+        && result.data[0].first == 32 && result.data[0].last == 35
+        && result.data[1].first == 34 && result.data[1].last == 36
+        && previous[0].first == 32 && previous[0].last == 35 && previous[1].first == 34 && previous[1].last == 36
+        && task.scratch.first == first && task.scratch.last != first;
     work_arena_dispose(&task.scratch);
     return valid && budget.used_bytes == before.used_bytes && budget.live == before.live
         && budget.used_lanes == before.used_lanes;
@@ -693,6 +718,17 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool): bool
         }
     }
     if budget != null && seeded != 0 && !lr_propagation_worker_denial(b, cycle_nodes - 1) { return false; }
+    if parallel && seeded != 0 {
+        // Force the old independent-owner retirement branch at parallel
+        // publication, separately from the later serial-growth control.
+        var independent: work_vector(SymbolRange) = default;
+        if lr_reserve_result(&independent, b.nodes[0].ranges.length, budget) != WorkBudgetError.None { return false; }
+        independent.length = b.nodes[0].ranges.length;
+        copy(independent.data, b.nodes[0].ranges.data, independent.length * sizeof(SymbolRange));
+        b.nodes[0].ranges = independent;
+        b.nodes[0].range_owned = true;
+        independent = default;
+    }
     if !lr_propagation_solve(a) || !lr_propagation_solve_parallel(b, owner, &graph, &pool) {
         return false;
     }
