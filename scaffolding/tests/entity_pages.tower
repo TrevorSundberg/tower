@@ -62,7 +62,7 @@ fn pages():void {
     entity_release(type);
     entity_release(root);
     check(entity_store_count(store)==0 && entity_store_component_count(store)==0);
-    check(store.storage.first==null && entity_store_dispose(store));
+    check(store.storage.owned==null && entity_store_dispose(store));
 }
 
 fn stages():void {
@@ -88,7 +88,7 @@ fn stages():void {
     }
     var leased=entity_component_add(existing,type);
     *bits(u64*,leased.data)=3000;
-    check(leased.page!=null && store.storage.first==null);
+    check(leased.page!=null && store.storage.owned==null);
     check(entity_query_count(type)==0 && entity_store_component_count(store)==0);
     check(!entity_stage_publish(first) && !entity_stage_publish(second));
     entity_view_close(view);
@@ -120,7 +120,7 @@ fn stages():void {
     entity_release(type);
     entity_release(root);
     check(entity_store_count(store)==0 && entity_store_component_count(store)==0);
-    check(store.storage.first==null && entity_store_dispose(store));
+    check(store.storage.owned==null && entity_store_dispose(store));
 }
 
 pages();

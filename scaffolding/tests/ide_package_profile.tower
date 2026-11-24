@@ -37,12 +37,15 @@ export fn ide_package_census(): u8* {
     pools[1] = &store.buffers;
     for(var i: usize = 0; i < sizeof(decltype(pools)) / sizeof(EntityComponentPool*); i++) {
         var pool = pools[i];
-        var page = pool.first;
-        while page != null {
-            pages++;
-            capacity += page.allocation.capacity;
-            live += page.live;
-            page = page.next;
+        // This retained observer counts available partial pages, not full owners.
+        for(var bucket: usize = 0; bucket < sizeof(decltype(pool.available)) / sizeof(EntityComponentPage*); bucket++) {
+            var page = pool.available[bucket];
+            while page != null {
+                pages++;
+                capacity += page.allocation.capacity;
+                live += page.live;
+                page = page.next;
+            }
         }
     }
     var out = &state.execution;

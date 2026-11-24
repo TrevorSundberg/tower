@@ -70,6 +70,12 @@ remains open. This receipt is for D2 `599e8a8`, whose production compiler source
 match published `60741c5`; it does not validate other lanes' pending changes.
 No source-language UBSan coverage is implemented by this mode.
 
+The [deferred-inventory repair](sanitizer_manifest_9aa534cd.md) collects after
+all root deferred producers, sorts entries and rejects conflicting descriptions
+of one object. Reconfigure an existing cache to refresh the inventory; no compiler
+rebuild is needed for this metadata change. Configured but unconsumed interface
+objects may have no reachable Ninja rule, so audit that distinction explicitly.
+
 A later unchanged-source backend diagnostic used a bounded600s run after the
 normal selector passed142.39s. It failed at458.83s with raw exit134 and
 `frontend/backend overlap deadline`, the fixture's internal30s signal wait.
@@ -268,3 +274,16 @@ provider sensitivity limitation above remain explicit: no invalid probe was
 rerun. Source-language UBSan and other-host sanitizer coverage remain unsupported.
 Physical allocation checks do not prove every pooled-slot lifetime or universal
 race freedom.
+
+## Authorized current thread milestone (2026-11-24)
+
+ROOT explicitly superseded the historical race-control hold for the bounded
+[c8555971 milestone](compiler_thread_milestone_c8555971.md). The thread-mode-only,
+explicit `tower-sanitizer-race-control` target now links the unchanged Tower probe
+with the existing instrumented buffer provider and POSIX entry runtime; it is
+excluded from ordinary builds/tests. Expected exit66/data-race was observed on
+two real workers under unprivileged WSL without a security override.
+Five selected positives pass; current query-smoke reaches its unchanged180s
+limit without a TSan report, while the one same-original-IR normal control passes.
+Unit-admission/backend remain unstarted. This repairs the missing-provider
+sensitivity composition, not full compiler thread-sanitizer acceptance.
