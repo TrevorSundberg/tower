@@ -33,3 +33,4 @@ E: `C:/Sandbox/build/codex_ecs_20261122/L1/candidate_peer_6c83b118/`: original a
 All checks above are file/source inspection; runtime wall/CPU/RSS or throughput profiling is inapplicable. No behavior change, tool rebuild, relocation test, benchmark, sanitizer/race claim, rejected operation or hosted deployment.
 Minor read-only truncated listing/Windows wildcard lookup errors are retained separately from the59-line-ending comparison failure; none are candidate runtime failures. Successful payload checks were not restarted as generation work.
 Public44ae executable/resources and todo remain unchanged; owned file jobs drained. Later source is outside candidate6c83; ROOT alone decides coherent pin/adoption.
+Integration: review `7a601ea0` joined published `0968c762` as `e030cbe1`; incoming peer/static receipts only. Candidate8a32761f, LF source06304df1, original provenance and public bootstrap stay unchanged; no verification or runtime rerun/relabeling.
