@@ -31,4 +31,4 @@ The reused overlap record comes from `../pages_memory_effab4bd/merged_query_smok
 No new native ownership/lifecycle failure was found in this selection. Native target32 fields still use the host64 allocator; this is not actual Wasm allocator/address-space or browser-worker acceptance.
 Remaining ROOT adoption: current post-scratch Wasm producer/worker cancellation and pressure retirement on B2's new bundle; no artifact polling, rejected verifier, sanitizer, browser or deployment operation occurred.
 A1 healthy combined performance, D1 independent repair review and L1's18 remaining large-native pages phases keep their separate owners/receipts. No pass is inferred for those tasks.
-Integration boundary: pending normal publication; frozen input evidence will not be relabeled.
+Integration: fixture9c622c61 joins published3e747b51 as1f6fcc44; incoming changes are receipts only and every tested source/build/bootstrap input is unchanged. Reuse all six passes. [D1 peer](semantic_scratch_peer_bd86046f.md) and [L1 completed18 phases](native_pages_resume_bd86046f.md) are attributed later receipts, not L2 reruns.
