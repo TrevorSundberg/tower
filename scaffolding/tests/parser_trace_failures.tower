@@ -1,53 +1,132 @@
 import tower;
 import utility_checks;
 import .compiler.parser_markers;
+import .library.entity_types;
+import .library.work_buffer;
 
 extern fn parser_set_debug_trace(enabled: bool): bool;
 extern fn parser_match_get_type(): void*;
 extern fn entity_member_index(node: void*, name: u8*): usize;
 extern fn entity_child_at(node: void*, index: usize): void*;
-extern fn entity_child_count(node: void*): usize;
-extern fn entity_references(node: void*): usize;
+extern fn entity_create_related_result(owner: void*, error: WorkBudgetError*): void*;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_release(node: void*): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
+extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
 
-// Single-owner failure instrumentation belongs only to serial test consumers.
-fn parser_trace_failure_tests(): void {
-    var owner = parser_match_get_type();
-    var enabled = entity_member_index(owner, "parser.trace") != ParserNoIndex();
+struct ParserTraceOwners { entities: usize; children: usize; references: usize; slots: usize; buffers: usize; }
+
+// Physical allocation counters cannot see reuse within an existing store page.
+// Count live descriptor/name slots as well as the visible registry relationship.
+fn parser_trace_owners(owner: Entity*): ParserTraceOwners {
+    var result: ParserTraceOwners = { entities: owner.store.entity_count, children: owner.child_count,
+        references: owner.references, slots: 0, buffers: tower_test_buffer_count() };
+    var page = owner.store.buffers.owned;
+    while page != null { result.slots += page.live; page = page.owned_next; }
+    return result;
+}
+fn parser_trace_clean(owner: Entity*, before: ParserTraceOwners*): bool {
+    var now = parser_trace_owners(owner);
+    return entity_member_index(bits(void*, owner), "parser.trace") == ParserNoIndex()
+        && now.entities == before.entities && now.children == before.children
+        && now.references == before.references && now.slots == before.slots && now.buffers == before.buffers;
+}
+fn parser_trace_marker(owner: Entity*, before: ParserTraceOwners*): Entity* {
+    var slot = entity_member_index(bits(void*, owner), "parser.trace");
+    var marker = slot == ParserNoIndex() ? null : bits(Entity*, entity_child_at(bits(void*, owner), slot));
+    utility_check(marker != null && marker.parent == owner && marker.references == 1
+        && owner.child_count == before.children + 1 && owner.references == before.references
+        && owner.store.entity_count == before.entities + 1, "Trace owns exactly one named marker");
+    return marker;
+}
+
+// Serial, single-owner failure injection. The legacy registry stays alive;
+// every fixture-owned marker, name and temporary buffer must return to baseline.
+fn parser_trace_owner_tests(leak_negative: bool): void {
+    var owner = bits(Entity*, parser_match_get_type());
+    var enabled = entity_member_index(bits(void*, owner), "parser.trace") != ParserNoIndex();
+    defer utility_check(parser_set_debug_trace(enabled), "Restore caller parser trace configuration");
     utility_check(parser_set_debug_trace(false) && parser_set_debug_trace(true)
         && parser_set_debug_trace(false), "Parser trace configuration warmup");
+    var before = parser_trace_owners(owner);
     var started = tower_test_buffer_allocations();
-    utility_check(parser_set_debug_trace(true), "Measure successful parser trace allocation count");
+    tower_test_buffer_fail_after(0);
+    var created = parser_set_debug_trace(true);
+    tower_test_buffer_fail_after(ParserNoIndex());
     var allocations = tower_test_buffer_allocations() - started;
-    utility_check(allocations != 0 && parser_set_debug_trace(false), "Measured parser trace toggle cleanup");
-    var children = entity_child_count(owner);
-    var references = entity_references(owner);
-    var buffers = tower_test_buffer_count();
-    var completed = false;
-    for(var failures: usize = 0; failures <= allocations; failures++) {
-        tower_test_buffer_fail_after(failures);
-        var ok = parser_set_debug_trace(true);
-        tower_test_buffer_fail_after(~convert(usize, 0));
-        var slot = entity_member_index(owner, "parser.trace");
-        var marker = slot == ParserNoIndex() ? null : entity_child_at(owner, slot);
-        utility_check(ok == (failures == allocations), "Every parser trace failure prefix precedes terminal success");
-        if ok {
-            utility_check(failures != 0 && marker != null && entity_references(marker) == 1,
-                "Parser trace fault sweep reaches owned publication after actual failures");
-            tower_test_buffer_fail_after(0);
-            var repeated = parser_set_debug_trace(true);
-            var removed = parser_set_debug_trace(false);
-            tower_test_buffer_fail_after(~convert(usize, 0));
-            utility_check(repeated && removed, "Existing parser trace toggle needs no allocation");
-        } else {
-            utility_check(marker == null, "Failed parser trace enable publishes no marker");
-        }
-        utility_check(entity_child_count(owner) == children && entity_references(owner) == references
-            && tower_test_buffer_count() == buffers, "Parser trace failure and removal release ownership");
-        completed = ok;
+    utility_check(created, "Warm trace reuses owned slots under physical allocation denial");
+    var marker = parser_trace_marker(owner, &before);
+    utility_check(!parser_trace_clean(owner, &before), "Cleanup oracle detects an enabled marker");
+    tower_test_buffer_fail_after(0);
+    var repeated = parser_set_debug_trace(true);
+    var removed = parser_set_debug_trace(false);
+    tower_test_buffer_fail_after(ParserNoIndex());
+    utility_check(dprintf(2, "trace warm allocations=%zu removed=%u\n",
+        allocations, convert(u32, removed), 0) >= 0, "Trace allocation observation");
+    utility_check(dprintf(2, "trace baseline_slots=%zu\n", before.slots, 0, 0) >= 0, "Trace slot observation");
+    utility_check(allocations == 0 && repeated && removed && parser_trace_clean(owner, &before),
+        "Warm trace identity and full owner cleanup without physical allocation");
+
+    // A detached leaked entity is invisible to child count and physical buffers.
+    // The independent negative selector intentionally expects this to be clean,
+    // after releasing the injected reference and restoring the caller setting.
+    utility_check(parser_set_debug_trace(true), "Trace cleanup negative setup");
+    marker = parser_trace_marker(owner, &before);
+    entity_retain(bits(void*, marker));
+    utility_check(parser_set_debug_trace(false) && marker.parent == null && marker.references == 1,
+        "Injected retained marker is detached but live");
+    var leaked_is_clean = parser_trace_clean(owner, &before);
+    utility_check(!leaked_is_clean, "Cleanup oracle detects an unpublished retained marker");
+    entity_release(bits(void*, marker));
+    utility_check(parser_trace_clean(owner, &before), "Injected retained marker cleanup");
+    if leak_negative {
+        utility_check(parser_set_debug_trace(enabled), "Negative restores caller trace setting");
+        utility_check(leaked_is_clean, "Injected retained trace marker rejected after cleanup");
     }
-    utility_check(completed, "Parser trace fault sweep reaches its measured successful bound");
-    utility_check(parser_set_debug_trace(enabled), "Restore caller parser trace configuration");
+
+    // Occupy only already allocated descriptor slots. The next creation must
+    // reach the real physical allocator; no page headers/counters are modified.
+    var available: usize = 0;
+    var page = owner.store.buffers.owned;
+    while page != null {
+        var free = page.capacity - page.live;
+        utility_check(available <= ParserNoIndex() - free, "Trace free-slot bound");
+        available += free; page = page.owned_next;
+    }
+    utility_check(available < ParserNoIndex() / sizeof(Entity*), "Trace held-owner bound");
+    {
+        var held: WorkBuffer = default;
+        utility_check(work_buffer_resize(&held, owner.store.budget, (available + 1) * sizeof(Entity*), 0)
+            == WorkBudgetError.None, "Trace temporary owner storage");
+        defer work_buffer_dispose(&held);
+        var nodes = bits(Entity**, held.data);
+        var count: usize = 0; var cause = WorkBudgetError.None;
+        tower_test_buffer_fail_after(0);
+        while count <= available {
+            var node = bits(Entity*, entity_create_related_result(bits(void*, owner), &cause));
+            if node == null { break; }
+            nodes[count++] = node;
+        }
+        tower_test_buffer_fail_after(ParserNoIndex());
+        utility_check(cause == WorkBudgetError.Memory && count <= available, "Real descriptor page exhaustion reports Memory");
+        var occupied = parser_trace_owners(owner);
+        started = tower_test_buffer_allocations();
+        tower_test_buffer_fail_after(0);
+        var denied = parser_set_debug_trace(true);
+        tower_test_buffer_fail_after(ParserNoIndex());
+        var attempts = tower_test_buffer_allocations() - started;
+        utility_check(!denied && attempts != 0 && parser_trace_clean(owner, &occupied),
+            "Forced trace allocation denial cannot publish success or lose ownership");
+        utility_check(parser_set_debug_trace(true), "Trace retries after physical denial");
+        parser_trace_marker(owner, &occupied);
+        utility_check(parser_set_debug_trace(false) && parser_trace_clean(owner, &occupied), "Trace retry retires its new page and marker");
+        for(var i: usize = 0; i < count; i++) { entity_release(bits(void*, nodes[i])); }
+        utility_check(dprintf(2, "trace exhausted_slots=%zu cause=%u\n",
+            count, convert(u32, cause), 0) >= 0, "Trace denial observation");
+        utility_check(dprintf(2, "trace denied_attempts=%zu\n", attempts, 0, 0) >= 0, "Trace allocator observation");
+    }
+    utility_check(parser_trace_clean(owner, &before), "Trace fixture leaves zero new entities, slots and buffers");
 }
+fn parser_trace_failure_tests(): void { parser_trace_owner_tests(false); }

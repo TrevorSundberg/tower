@@ -1,5 +1,6 @@
 import tower;
 import lr_analysis_api;
+import .compiler.lr_types;
 import utility_checks;
 import .library.vector;
 import .library.work_budget;
