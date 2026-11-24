@@ -4,6 +4,7 @@ import .library.entity_types;
 import .library.entity_stage;
 import .library.work_budget;
 import .library.work_budget_types;
+import .library.work_vector;
 import .host.memory;
 import entity_fault_accounting;
 
@@ -50,6 +51,70 @@ fn stage_fault_open(): void {
     entity_stage_discard(stage);
     entity_release(root);
     stage_fault_check(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+}
+
+fn stage_fault_descriptor_growth(): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    stage_fault_check(work_budget_init(&budget, 1, StageFaultBudgetBytes, 1));
+    var store: EntityStore* = null;
+    stage_fault_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    var stage = entity_stage_open(root);
+    var first = entity_stage_create(stage, root);
+    stage_fault_check(first != null);
+    var page = entity_owned_page(bits(u8*, first));
+    stage_fault_check(page != null && page.capacity == EntityStageInitialDescriptorRows);
+    for(var i: usize = 1; i < page.capacity; i++) { stage_fault_check(entity_stage_create(stage, root) != null); }
+    var count = stage.nodes.length;
+    stage_fault_check(page.live == page.capacity && count == page.capacity && stage.buffers.owned == page);
+
+    // The next unnamed node needs only its page. Admit the node index and
+    // prime a reusable ledger slot before counting physical allocations.
+    var slot: WorkReservation = default;
+    stage_fault_check(work_vector_reserve_result(&stage.nodes, &budget, count + 2) == WorkBudgetError.None
+        && work_budget_reserve(&budget, 0, 0, 1, &slot) && work_budget_release(&budget, &slot));
+    var nodes = stage.nodes.data;
+    var bytes = budget.used_bytes;
+    var grants = budget.live;
+    var buffers = tower_test_buffer_count();
+    var identity = store.next_id;
+    var references = root.references;
+    stage_fault_check(budget.peak_bytes < bytes + page.allocation.reservation.bytes);
+    var before = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(0);
+    var denied = entity_stage_create_result(stage, root, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var attempts = tower_test_buffer_allocations() - before;
+    stage_fault_check(denied == null && error == WorkBudgetError.Memory);
+    printf("grown descriptor Memory attempts=%zu\n", attempts); fflush(null);
+    if attempts != 1 { trap("Expected one physical attempt for a grown descriptor page", 0); }
+    var denied_peak = budget.peak_bytes;
+    stage_fault_check(stage.anchor == root && root.references == references && root.child_count == 0
+        && store.entity_count == 1 && store.component_count == 0 && store.next_id == identity
+        && stage.nodes.data == nodes && stage.nodes.length == count && nodes[0].node == first
+        && stage.buffers.owned == page && page.live == count && page.owner == &stage.buffers
+        && budget.used_bytes == bytes && budget.live == grants && budget.used_lanes == 0
+        && tower_test_buffer_count() == buffers);
+
+    before = tower_test_buffer_allocations();
+    var next = entity_stage_create_result(stage, root, &error);
+    stage_fault_check(next != null && error == WorkBudgetError.None && tower_test_buffer_allocations() - before == 1);
+    var grown = entity_owned_page(bits(u8*, next));
+    // The failed request temporarily charged the same grown page as the retry.
+    stage_fault_check(grown != null && grown != page && grown.capacity == page.capacity * 2
+        && denied_peak == bytes + grown.allocation.reservation.bytes && budget.used_bytes == denied_peak);
+    var reused = entity_stage_create_result(stage, root, &error);
+    stage_fault_check(reused != null && error == WorkBudgetError.None && entity_owned_page(bits(u8*, reused)) == grown
+        && tower_test_buffer_allocations() - before == 1);
+    stage_fault_check(entity_stage_publish(stage) && root.child_count == count + 2
+        && entity_child_at(root, 0) == first && entity_child_at(root, count) == next
+        && entity_child_at(root, count + 1) == reused);
+    entity_release(root);
+    stage_fault_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
 }
 
 fn stage_fault_lease(failure: usize, allocations: usize*): bool {
@@ -178,6 +243,7 @@ fn stage_fault_publish(failure: usize, allocations: usize*): bool {
 
 export fn main(argc: i32, argv: u8**): i32 {
     stage_fault_open();
+    stage_fault_descriptor_growth();
     var allocations: usize = 0;
     stage_fault_check(stage_fault_lease(~convert(usize, 0), &allocations) && allocations != 0);
     var observed: usize = 0;
