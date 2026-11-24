@@ -583,6 +583,15 @@ For the future end-to-end fixture, the attempted cases included
 Those cases were removed from the passing suite with the unvalidated integration;
 they are acceptance ideas, not current supported syntax/behavior claims.
 
+That paragraph records the historical checkpoint. The [current focused native
+acceptance](staging_extent_acceptance_e3958206.md) checks all four dispositions:
+generic identity, aggregate and indirect extents execute at32/64 bits and workers1/4;
+the exact mutable/address-escaped local capture is rejected by the documented
+capture contract. Invocation-local mutations inside an extent helper execute once
+in order, including controlled waits on compiled helper inputs. Single-unit and
+ordinary imported-module canonical execution pass; controlled post-compile waits
+remain distinct from natural frontend scheduling observations.
+
 ## Disposition of the former numbered remaining chain
 
 1. **Module captures:** implemented with initialization/effect and alias proofs;

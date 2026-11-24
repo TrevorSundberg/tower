@@ -1706,6 +1706,18 @@ package coverage, not the browser concurrency or integrated release matrix.
 
 ### Focused LR closure ordering and frontend iteration cost
 
+`tower-frontend-tests RESOURCE_ROOT graph-components` checks the generic SCC
+partition against independent all-pairs reachability: eight explicit shapes and
+234 deterministic generated cases (six seeds, 0–12 nodes, three densities).
+It checks complete/unique membership, reverse-topological cross-component edges,
+and owned results after borrowed adjacency storage is poisoned and released.
+`lr-components` selects the existing SCC ownership/retry and 4096-node chain
+controls without the broader grammar/failure campaigns. CTest registers these as
+`tower-frontend-graph-components` and `tower-frontend-lr-components`, each with the
+existing focused 60-second timeout. `graph-components-wrong` intentionally flips
+one reflexive reachability expectation and must exit1 after complete cleanup;
+it is a manual rejecting oracle control, not an accepted graph result.
+
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,
 singleton, odd/even boundary sizes; ordered, reversed and seeded shuffled items;
@@ -1879,6 +1891,15 @@ See [the frozen occupancy receipt](../../docs/compiler_ecs_occupancy_9d9329db.md
 for exact identities, limits, phase retention and the bounded page-policy proposal.
 The [four-slot experiment](../../docs/compiler_ecs_declaration_pages_5b9194e4.md)
 records its implementation, matched costs and fuller-stream allocation trade-off.
+
+`tower-lr-work-tests RESOURCE_ROOT staging-extents` checks the historical extent
+cases at32/64 bits and workers1/4, and is also included in `query-smoke`/all.
+It runs generic identity, aggregate and indirect helpers, ordered invocation-local
+mutations, immutable module/local captures, an untaken recursive call, ordinary
+module imports and canonical reexecution. The exact escaped-local extent remains
+a negative capture-policy fixture. Compiled helper inputs additionally exercise
+three controlled repeated waits before publication; these are distinct from the
+observed production semantic-kernel overlap during compilation.
 
 `tower-lr-work-tests RESOURCE_ROOT integer-arguments all` runs the focused unary
 numeric-argument suite, also included in `type-smoke`: contextual widths/minima,

@@ -1,0 +1,12 @@
+import tower;
+import backend.foreign_grammar;
+
+// Library-only counterpart: top-level executable statements are not permitted.
+// The verifier links these surface names to the existing quoted-name caller.
+export fn cpp_name(int: foreign_fixture :: increment(int: value))(value: i32): i32 {
+    return value + 1;
+}
+
+export fn c_name(int: foreign_twice(int: value))(value: i32): i32 {
+    return value * 2;
+}

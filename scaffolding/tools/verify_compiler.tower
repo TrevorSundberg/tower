@@ -67,16 +67,13 @@ fn verification_hash(path: u8*, out: ByteBuffer*): bool {
     return bytes_assign_text(out, &hex[0], hash_characters);
 }
 
-fn verification_copy(fixtures: u8*, directory: u8*, name: u8*): bool {
+fn verification_copy(fixtures: u8*, directory: u8*, input: u8*, name: u8*): bool {
     var source: ByteBuffer = default; var destination: ByteBuffer = default;
     var filename: ByteBuffer = default; var data: ByteBuffer = default;
     defer bytes_dispose(&source); defer bytes_dispose(&destination);
     defer bytes_dispose(&filename); defer bytes_dispose(&data);
-    if !verification_text(&filename, "distribution_") || !verification_text(&filename, name)
-        || !verification_text(&filename, ".tower") || !host_text_terminate(&filename)
-        || !tool_join(&source, fixtures, filename.data)
+    if !tool_join(&source, fixtures, input)
         || !tool_read_file(source.data, VerificationInputLimit, &data) { return false; }
-    filename.length = 0;
     return verification_text(&filename, name) && verification_text(&filename, ".tower")
         && host_text_terminate(&filename) && tool_join(&destination, directory, filename.data)
         && driver_write_file(destination.data, data.data, data.length);
@@ -164,7 +161,9 @@ fn verification_checks(v: Verification*, mode: VerificationMode): bool {
         || !verification_run(v, "invalid_option", null, "--not-an-option", null, null, null, null, failure, null, "Unexpected argument")
         || !verification_run(v, "missing_source", null, "missing.tower", null, null, null, null, failure, null, null)
         || !verification_run(v, "diagnostic", null, "invalid.tower", "--interpret", null, null, null, failure, null, "invalid.tower:4:")
-        || !verification_run(v, "interpret", null, "program.tower", "--interpret", null, null, null, success, "42\n", null) { return false; }
+        || !verification_run(v, "interpret", null, "program.tower", "--interpret", null, null, null, success, "42\n", null)
+        || !verification_run(v, "foreign_interpret", null, "foreign.tower", "--interpret", null, null, null, success, "42\n", null)
+        || !verification_run(v, "foreign_fast", null, "foreign.tower", "--interpret-fast", null, null, null, success, "42\n", null) { return false; }
     var baseline: ByteBuffer = default; var digest: ByteBuffer = default; var object: ByteBuffer = default;
     var name: ByteBuffer = default;
     defer bytes_dispose(&baseline); defer bytes_dispose(&digest); defer bytes_dispose(&object); defer bytes_dispose(&name);
@@ -181,13 +180,18 @@ fn verification_checks(v: Verification*, mode: VerificationMode): bool {
         if remove(object.data) != 0 { return false; }
     }
     if !verification_record(v, "object_sha256", baseline.data)
-        || !verification_run(v, "library", null, "library.tower", "--library", "-o", "library.o", null, success, null, null) { return false; }
+        || !verification_run(v, "library", null, "library.tower", "--library", "-o", "library.o", null, success, null, null)
+        || !verification_run(v, "foreign_library", null, "foreign_library.tower", "--library", "-o", "foreign.o", null, success, null, null) { return false; }
     if mode == VerificationMode.ExpectMissingClang {
         return verification_run(v, "link", null, "link.tower", "--link", "library.o", "-o", "linked", failure, null, "Cannot find tool: clang")
             && verification_record(v, "result", "expected missing clang; restricted release verification has NOT passed");
     }
     if !verification_run(v, "link", null, "link.tower", "--link", "library.o", "-o", "linked", success, null, null)
         || !verification_run(v, "linked_execution", "./linked", null, null, null, null, null, success, "42\n", null)
+        // The existing quoted-name caller independently consumes the imported
+        // surface grammar's C++/C exports, without duplicating its grammar.
+        || !verification_run(v, "foreign_link", null, "foreign_calls.tower", "--link", "foreign.o", "-o", "foreign", success, null, null)
+        || !verification_run(v, "foreign_execution", "./foreign", null, null, null, null, null, success, "42\n", null)
         || !verification_run(v, "compile_executable", null, "program.tower", "-o", "program", null, null, success, null, null) { return false; }
     for (var at: usize = 0; at < VerificationRepeatCount; at++) {
         name.length = 0;
@@ -232,8 +236,13 @@ fn verification_execute(compiler_input: u8*, fixture_input: u8*, output: u8*, mo
     defer bytes_dispose(&v.summary);
     var ok = verification_hash(compiler, &digest) && verification_record(&v, "compiler_sha256", digest.data)
         && verification_record(&v, "profile", "Linux x64; clean child environment; GNU env/timeout; not OS isolation")
-        && verification_copy(fixtures, directory, "program") && verification_copy(fixtures, directory, "library")
-        && verification_copy(fixtures, directory, "link") && verification_copy(fixtures, directory, "invalid")
+        && verification_copy(fixtures, directory, "distribution_program.tower", "program")
+        && verification_copy(fixtures, directory, "distribution_library.tower", "library")
+        && verification_copy(fixtures, directory, "distribution_link.tower", "link")
+        && verification_copy(fixtures, directory, "distribution_invalid.tower", "invalid")
+        && verification_copy(fixtures, directory, "distribution_foreign.tower", "foreign")
+        && verification_copy(fixtures, directory, "distribution_foreign_library.tower", "foreign_library")
+        && verification_copy(fixtures, directory, "backend_foreign_calls.tower", "foreign_calls")
         && verification_checks(&v, mode);
     if !ok { verification_record(&v, "result", "FAILED"); }
     ok = verification_save(&v) && ok;
