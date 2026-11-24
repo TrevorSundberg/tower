@@ -416,7 +416,7 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
     var observer: GrammarObserver = default;
     if world != null { observer = compiler_world_grammar(world).observer; }
     if pool.count < 2 || value.count < 2 * LRPropagationGrain {
-        return lr_propagation_solve_result(value);
+        return lr_propagation_solve_components_result(value, graph.budget);
     }
     if value.count > ~convert(usize, 0) / sizeof(vector(usize))
         || value.count > ~convert(usize, 0) / sizeof(vector(SymbolRange)) { return WorkBudgetError.Invalid; }
@@ -471,13 +471,13 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
             count = pool.count;
         }
         if count < 2 {
-            return lr_propagation_solve_result(value);
+            return lr_propagation_solve_components_result(value, graph.budget);
         }
         var admission: ParserAdmission = default;
         error = parser_admission_open_result(&admission, owner, count);
         if error != WorkBudgetError.None { return error; }
         defer parser_admission_close(&admission, graph);
-        if admission.extra == 0 { return lr_propagation_solve_result(value); }
+        if admission.extra == 0 { return lr_propagation_solve_components_result(value, graph.budget); }
         if kind == null {
             kind = lr_work_node_result(owner, &error);
             if kind == null { return error; }

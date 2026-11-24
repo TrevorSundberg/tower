@@ -55,6 +55,7 @@ fn bootstrap_comparison_source(unit: BootstrapUnit): u8* {
         BootstrapUnit.Host => { return "tower_compiler_host.tower"; }
         BootstrapUnit.Interpreter => { return "compiler/units/interpreter.tower"; }
         BootstrapUnit.Semantics => { return "compiler/units/semantics.tower"; }
+        BootstrapUnit.GraphComponents => { return "library/graph_components.tower"; }
         _ => { return null; }
     }
 }

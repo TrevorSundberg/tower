@@ -86,26 +86,35 @@ fn lr_check_graph(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, name
 fn lr_check_propagation(random: TestRandom*): void {
     var count = 1 + convert(usize, test_random(random) % 80);
     var actual = lr_propagation_create(count); utility_check(actual is not null, "LR propagation creation"); defer lr_propagation_destroy(actual);
+    var condensed = lr_propagation_create(count); utility_check(condensed != null, "Condensation graph owner"); defer lr_propagation_destroy(condensed);
     var oracle = oracle_propagation_create(count); defer oracle_propagation_destroy(oracle);
     for (var round: usize = 0; round < 3; ++round) {
         for (var index: usize = 0; index < count * 3; ++index) {
             var source = convert(usize, test_random(random)) % count; var destination = convert(usize, test_random(random)) % count;
             utility_check(lr_propagation_edge(actual, source, destination), "LR propagation edge append"); oracle_propagation_edge(oracle, source, destination);
+            utility_check(lr_propagation_edge(condensed, source, destination), "Condensation late edge");
         }
         for (var index: usize = 0; index < count; ++index) {
             var first = test_random(random) % 12 + 2097152; var last = first + test_random(random) % 4;
             var target = convert(usize, test_random(random)) % count;
             utility_check(lr_propagation_seed(actual, target, first, last), "LR propagation seed append"); oracle_propagation_seed(oracle, target, first, last);
+            utility_check(lr_propagation_seed(condensed, target, first, last), "Condensation late seed");
         }
         utility_check(lr_propagation_solve(actual), "LR propagation fixed point after mutation"); oracle_propagation_solve(oracle);
         utility_check(lr_propagation_solve(actual), "LR propagation idempotence");
+        utility_check(lr_propagation_solve_components_result(condensed, null) == WorkBudgetError.None
+            && lr_propagation_solve_components_result(condensed, null) == WorkBudgetError.None, "Condensation fixed point and idempotence");
         for (var index: usize = 0; index < count; ++index) {
             var ranges = &oracle.nodes.data[index].ranges;
             utility_check(lr_propagation_count(actual, index) == ranges.length, "LR propagation range count");
             var data = lr_propagation_data(actual, index);
+            var components = lr_propagation_data(condensed, index);
+            utility_check(lr_propagation_count(condensed, index) == ranges.length, "Condensation exact range count");
             for (var range: usize = 0; range < ranges.length; ++range) {
                 utility_check(data[range].first == ranges.data[range].first && data[range].last == ranges.data[range].last,
                     "LR propagation exact ranges across duplicate, self and cyclic edges");
+                utility_check(components[range].first == ranges.data[range].first && components[range].last == ranges.data[range].last,
+                    "Condensation exact ranges across duplicate, self, cycles and late edges");
             }
         }
     }

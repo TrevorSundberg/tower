@@ -30,6 +30,7 @@ extern fn lr_propagation_edge(value: void*, source: usize, destination: usize): 
 extern fn lr_propagation_edge_result(value: void*, source: usize, destination: usize): WorkBudgetError;
 extern fn lr_propagation_solve(value: void*): bool;
 extern fn lr_propagation_solve_result(value: void*): WorkBudgetError;
+extern fn lr_propagation_solve_components_result(value: void*, budget: WorkBudget*): WorkBudgetError;
 extern fn lr_propagation_count(value: void*, index: usize): usize;
 extern fn lr_propagation_data(value: void*, index: usize): SymbolRange*;
 extern fn lr_states_create(analysis: void*): void*;
