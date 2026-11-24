@@ -325,16 +325,23 @@ links: work_vector(LRPropagationLink)*): WorkBudgetError {
 // The same ordered algorithm serves serial construction and private worker output.
 fn lr_lalr_state_actions_result(value: LRStates*, graph: LRPropagation*, state_index: usize,
 actions: work_vector(LRAction)*): WorkBudgetError {
+    return lr_lalr_state_actions_arena_result(value, graph, state_index, actions, null);
+}
+
+fn lr_lalr_state_actions_arena_result(value: LRStates*, graph: LRPropagation*, state_index: usize,
+actions: work_vector(LRAction)*, scratch: WorkArena*): WorkBudgetError {
     var state = value.states.data[state_index];
-    // Private worker output is an independent owner; only the state's own
-    // action descriptor may borrow slots in the charged state allocation.
+    // A worker borrows only its private arena until the coordinator joins and
+    // transfers its chunks. Standalone output keeps its independent owner.
     var local = actions == &state.actions;
+    var memory = local ? state.memory : scratch;
+    var owned = local ? &state.actions_owned : null;
     actions.length = 0;
     foreach(var & edge in &state.edges) {
         var symbol = &value.analysis.symbols[edge.symbol];
         if symbol.nonterminal == lr_none() {
             var action: LRAction = { first: symbol.first, last: symbol.last, rule: lr_none(), state: edge.state };
-            var error = local ? lr_push_arena_result(actions, action, state.memory, &state.actions_owned)
+            var error = memory != null ? lr_push_arena_result(actions, action, memory, owned)
                 : lr_push_result(actions, action, value.analysis.budget);
             if error != WorkBudgetError.None { return error; }
         }
@@ -345,7 +352,7 @@ actions: work_vector(LRAction)*): WorkBudgetError {
             var ranges = &graph.nodes[state.base + index].ranges;
             foreach(var & range in ranges) {
                 var action: LRAction = { first: range.first, last: range.last, rule: item.rule, state: lr_none() };
-                var error = local ? lr_push_arena_result(actions, action, state.memory, &state.actions_owned)
+                var error = memory != null ? lr_push_arena_result(actions, action, memory, owned)
                     : lr_push_result(actions, action, value.analysis.budget);
                 if error != WorkBudgetError.None { return error; }
             }
