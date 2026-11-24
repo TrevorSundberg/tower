@@ -116,6 +116,15 @@ struct SemanticEditor {
     module: void*;
 }
 
+// Coordinator-only derived selection positions. Query state and identity remain
+// in WorkGraph; these never authorize a dispatch or retain a semantic result.
+struct SemanticLowerSelection {
+    signature: usize;
+    expression: usize;
+    revision: u64;
+    profile: u64;
+}
+
 struct SemanticContext {
     integer_arguments: bool;
     editor: SemanticEditor*;
@@ -149,6 +158,7 @@ struct SemanticContext {
     aggregate_signatures: void*;
     aggregate_preparations: void*;
     lowering_results: void*;
+    lower_selection: SemanticLowerSelection;
     known_bindings: void*;
     value_inputs: void*;
     body_demands: void*;
