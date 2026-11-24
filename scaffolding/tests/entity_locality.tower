@@ -231,7 +231,7 @@ fn layout_storage(store: EntityStore*, kinds: Entity**, kind_count: usize,
     var raw: LayoutStorage = default;
     for(var k: usize = 0; k < kind_count; k++) {
         layout_node(&raw, kinds[k]);
-        payload += kinds[k].instance_count * kinds[k].data_size;
+        payload += kinds[k].instance_count * kinds[k].layout.data_size;
         for(var i: usize = 0; i < kinds[k].instance_count; i++) {
             var page = kinds[k].instances[i].page;
             locality_check(page != null);

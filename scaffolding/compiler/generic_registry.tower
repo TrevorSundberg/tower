@@ -32,10 +32,9 @@ fn generic_component_add(node: Entity*, type: Entity*): void* {
 fn generic_registry_type_result(registry: Entity*, size: usize, alignment: usize, error: WorkBudgetError*): Entity* {
     var type = entity_create_result(registry.store, error);
     if type == null { return null; }
-    // This fresh type has no prior layout. Creation already checked views.
-    if !entity_register(type, size, alignment, 0) {
+    *error = entity_register_stage_result(type, size, alignment, 0, 0);
+    if *error != WorkBudgetError.None {
         entity_release(type);
-        *error = WorkBudgetError.Invalid;
         return null;
     }
     *error = entity_attach_result(type, registry, null);
@@ -110,8 +109,8 @@ export fn generic_begin_result(root: Entity*, error: WorkBudgetError*): GenericC
     var registry = entity_create_result(root.store, error);
     if registry == null { return null; }
     defer entity_release(registry);
-    if !entity_register(registry, sizeof(GenericContext), alignof(GenericContext), 0) {
-        *error = WorkBudgetError.Invalid;
+    *error = entity_register_stage_result(registry, sizeof(GenericContext), alignof(GenericContext), 0, 0);
+    if *error != WorkBudgetError.None {
         return null;
     }
     var prepared: GenericContext = {root: root, ..default};

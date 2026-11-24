@@ -149,8 +149,8 @@ fn sem_type_uses_begin(c: SemanticContext*): void {
     if !sem_ok(c) { return; }
     var error: WorkBudgetError;
     var kind = sem_create_result(c.program.root, &error);
-    if kind != null && !entity_register(kind, sizeof(SemanticTypeUse), alignof(SemanticTypeUse), 0) {
-        error = WorkBudgetError.Invalid;
+    if kind != null {
+        error = entity_register_stage_result(kind, sizeof(SemanticTypeUse), alignof(SemanticTypeUse), 0, 0);
     }
     if error != WorkBudgetError.None {
         sem_resource_record(c.program, error, 0);

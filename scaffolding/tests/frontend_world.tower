@@ -130,10 +130,10 @@ fn frontend_world_type_resource_tests(): void {
         && foundation.stage_page_rows > 1 && matches.stage_page_rows == 0);
     // Registration remains immutable even before any payload exists; wrappers
     // and repeated world lookups must preserve the private-stage policy.
-    frontend_world_check(entity_register_stage_result(bits(void*, foundation), foundation.data_size,
-        foundation.data_alignment, foundation.lifecycle, foundation.stage_page_rows) == WorkBudgetError.None
-        && entity_register_stage_result(bits(void*, foundation), foundation.data_size,
-            foundation.data_alignment, foundation.lifecycle, 0) == WorkBudgetError.Busy
+    frontend_world_check(entity_register_stage_result(bits(void*, foundation), foundation.layout.data_size,
+        foundation.layout.data_alignment, foundation.layout.lifecycle, foundation.stage_page_rows) == WorkBudgetError.None
+        && entity_register_stage_result(bits(void*, foundation), foundation.layout.data_size,
+            foundation.layout.data_alignment, foundation.layout.lifecycle, 0) == WorkBudgetError.Busy
         && compiler_world_type(world, CompilerFoundation) == bits(void*, foundation));
     frontend_world_check(compiler_world_dispose(world) && tower_test_buffer_count() == buffers);
 }

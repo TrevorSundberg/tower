@@ -50,6 +50,7 @@ extern fn entity_create_related_result(anchor: void*, error: WorkBudgetError*): 
 extern fn entity_release(node: void*): usize;
 
 extern fn entity_register(kind: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_register_stage_result(kind: void*, size: usize, alignment: usize, lifecycle: usize, stage_rows: u8): WorkBudgetError;
 
 extern fn entity_component_add(node: void*, kind: void*): void*;
 extern fn entity_component_add_result(node: void*, kind: void*, error: WorkBudgetError*): void*;
@@ -388,8 +389,9 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error:
     }
     batch.kind = entity_create_related_result(compiler_work_anchor(batch.work), error);
     if batch.kind == null { frontend_units_close(batch); return null; }
-    if !entity_register(batch.kind, sizeof(FrontendUnit), alignof(FrontendUnit), 0) {
-        *error = WorkBudgetError.Invalid; frontend_units_close(batch); return null;
+    *error = entity_register_stage_result(batch.kind, sizeof(FrontendUnit), alignof(FrontendUnit), 0, 0);
+    if *error != WorkBudgetError.None {
+        frontend_units_close(batch); return null;
     }
     var inputs: FrontendSnapshot[FrontendSnapshotLimit];
     inputs[0] = { output: &batch.bedrock, source: bedrock, length: frontend_source_length(bedrock) };

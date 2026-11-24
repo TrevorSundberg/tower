@@ -47,8 +47,9 @@ fn sem_generic_body_work(c: SemanticContext*, subject: void*): SemanticGenericBo
             sem_generic_body_resource(c, subject, error);
             return null;
         }
-        if !entity_register(kind, sizeof(SemanticGenericBodyWork), alignof(SemanticGenericBodyWork), 0) {
-            sem_generic_body_resource(c, subject, WorkBudgetError.Invalid);
+        error = entity_register_stage_result(kind, sizeof(SemanticGenericBodyWork), alignof(SemanticGenericBodyWork), 0, 0);
+        if error != WorkBudgetError.None {
+            sem_generic_body_resource(c, subject, error);
             return null;
         }
         c.generic_copies = kind;
