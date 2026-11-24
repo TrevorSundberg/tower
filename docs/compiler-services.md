@@ -247,6 +247,14 @@ all workers join, for module configuration, diagnostics and dependency output.
 Do not retain that borrow across a step or disposal. `frontend_units_error_offset`
 supplies the selected failure's source offset.
 
+After a failed batch finishes joining, `frontend_units_failure_resource(batch)`
+returns the resource cause recorded by the selected unit's program or grammar
+diagnostic. The shared ledger reports `Capacity` on denial and the underlying
+allocator reports `Memory` on physical refusal. A successful batch, cancellation,
+or ordinary source error yields `None`. Inspect the existing source diagnostic
+alongside this value. At this boundary the recursive parser has already unwound,
+and a new import read can observe changed bytes.
+
 The implemented bounded API is
 `frontend_units_create_bounded(count, budget, retained_bytes, pointer_bytes,
 revision, profile, bedrock, foundation, library)`. It rejects zero and the
