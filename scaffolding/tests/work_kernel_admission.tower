@@ -8,6 +8,7 @@ import .host.work_linux;
 import .host.work_dispatch;
 
 extern fn pthread_self(): usize;
+var AdmissionScratchBytes: usize = 262144;
 
 struct AdmissionCheck {
     gate: void*;
@@ -29,6 +30,7 @@ struct AdmissionJob {
     thread: usize;
     result: usize;
     calls: usize;
+    bytes: usize;
     success: bool;
 }
 
@@ -70,11 +72,11 @@ export fn work_kernel_execute(payload: void*): void {
     if waiting { work_signal_wait(context.barrier); }
     // Production concurrent allocator and private scratch, including the
     // coordinator's own kernel. Results remain private until the helper joins.
-    var memory = alloc(u8, 262144);
+    var memory = alloc(u8, job.bytes);
     if memory != null {
         var value = convert(u8, job.ordinal);
-        fill(memory, value, 262144);
-        job.success = memory[0] == value && memory[262143] == value;
+        fill(memory, value, job.bytes);
+        job.success = memory[0] == value && memory[job.bytes - 1] == value;
         job.result = job.ordinal * job.ordinal + 7;
         free(memory);
     }
@@ -83,16 +85,21 @@ export fn work_kernel_execute(payload: void*): void {
     work_signal_post(context.gate);
 }
 
-fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize): void {
+fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize, skewed: bool): void {
+    var maximum_bytes = skewed ? AdmissionScratchBytes * lanes : AdmissionScratchBytes;
     var budget: WorkBudget = default;
-    admission_check(work_budget_init(&budget, lanes, lanes * 262144, 1));
-    defer work_budget_dispose(&budget);
+    admission_check(work_budget_init(&budget, lanes, lanes * maximum_bytes, 1));
+    defer {
+        var snapshot: WorkBudgetSnapshot = default;
+        admission_check(work_budget_snapshot(&budget, &snapshot) && snapshot.live == 0
+            && snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && work_budget_dispose(&budget));
+    }
     var outer: WorkReservation = default;
     var extra: WorkReservation = default;
-    admission_check(work_budget_reserve(&budget, 1, 1, 262144, &outer));
+    admission_check(work_budget_reserve(&budget, 1, 1, maximum_bytes, &outer));
     defer { admission_check(work_budget_release(&budget, &outer)); }
     var requested = preferred < lanes - 1 ? preferred : lanes - 1;
-    admission_check(work_budget_reserve(&budget, 0, preferred, requested * 262144, &extra));
+    admission_check(work_budget_reserve(&budget, 0, preferred, requested * maximum_bytes, &extra));
     defer { if extra.active { admission_check(work_budget_release(&budget, &extra)); } }
     var context: AdmissionCheck = default;
     context.gate = work_signal_open();
@@ -111,6 +118,9 @@ fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize):
         jobs[i] = default;
         jobs[i].context = &context;
         jobs[i].ordinal = i;
+        // Cluster the expensive payloads where a range claimant can retain
+        // several of them. Every admitted lane reserves the largest payload.
+        jobs[i].bytes = skewed && i < count / context.target ? maximum_bytes : AdmissionScratchBytes;
         jobs[i].prefix = 12345;
         jobs[i].kernel.payload = bits(void*, &jobs[i]);
         pointers[i] = &jobs[i];
@@ -141,15 +151,16 @@ fn admission_tests(): void {
     defer work_pool_close(&pool);
     admission_check(compiler_kernel_dispatch_admitted(&pool, bits(AdmissionJob**, null), 0, 7));
     for(var round: usize = 0; round < 16; round++) {
-        admitted_case(&pool, 1, 0, 8);
-        admitted_case(&pool, 4, 0, 8);
-        admitted_case(&pool, 4, 1, 8);
-        admitted_case(&pool, 4, 8, 8);
+        admitted_case(&pool, 1, 0, 8, false);
+        admitted_case(&pool, 4, 0, 8, false);
+        admitted_case(&pool, 4, 1, 8, false);
+        admitted_case(&pool, 4, 8, 8, false);
         // Uneven range/tail division still executes every ordinal once and
         // includes the caller under the original four-lane reservation.
-        admitted_case(&pool, 4, 8, 17);
-        admitted_case(&pool, 4, 8, 1);
-        admitted_case(&pool, 4, 8, 2);
+        admitted_case(&pool, 4, 8, 17, false);
+        admitted_case(&pool, 4, 8, 17, true);
+        admitted_case(&pool, 4, 8, 1, false);
+        admitted_case(&pool, 4, 8, 2, false);
         // Ordinary admission after batch must restore the pool callback.
         var context: AdmissionCheck = default;
         context.gate = work_signal_open();
@@ -160,6 +171,7 @@ fn admission_tests(): void {
         var job: AdmissionJob = default;
         job.context = &context;
         job.ordinal = 7;
+        job.bytes = AdmissionScratchBytes;
         job.kernel.payload = bits(void*, &job);
         admission_check(work_pool_submit(&pool, bits(void*, &job.kernel)));
         admission_check(work_pool_receive(&pool, true) == bits(void*, &job.kernel));

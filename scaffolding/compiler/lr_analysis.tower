@@ -103,6 +103,10 @@ fn lr_range_insert(values: vector(SymbolRange)*, first: u32, last: u32, changed:
 fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, changed: bool*): WorkBudgetError {
     var low: usize = 0;
     var high = values.length;
+    // Unsigned lexicographic order of two u32 endpoints is exactly the order
+    // of this u64 key. Construct values explicitly, independent of byte order
+    // or payload layout; overlapping ranges retain their distinct identities.
+    var key = (convert(u64, first) << 32) | convert(u64, last);
     loop {
         if low == high {
             break;
@@ -111,11 +115,8 @@ fn lr_range_insert_result(values: vector(SymbolRange)*, first: u32, last: u32, c
         middle = middle / 2;
         middle = middle + low;
         var value = &values.data[middle];
-        var less = value.first < first;
-        if value.first == first {
-            less = value.last < last;
-        }
-        if less {
+        var candidate = (convert(u64, value.first) << 32) | convert(u64, value.last);
+        if candidate < key {
             low = middle + 1;
         } else {
             high = middle;
