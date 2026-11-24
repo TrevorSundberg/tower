@@ -1,5 +1,9 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Cloud takeover, November 24, 2026
+
+The [OpenHands cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) is the current starting point. It records the local campaign's stopping state, the accepted c49 bootstrap and live Pages release, subsequent main-only fixes, measurements, known failures, exact reproductions, and the evidence packet. The next integration milestone is the bounded multi-unit driver and combined ownership checks on a frozen main revision. The sections below preserve earlier milestones at their original source revisions.
+
 ## Current release work (2026-11-24)
 
 The [Linux x64 bootstrap](bootstrap_pin_c49c8b37.md) now contains the c49 compiler and its complete resources. Its [ordinary native milestone](native_acceptance_c49c8b37.md) passed 94 registrations and 23 direct checks. The [bounded LR fixture](shared_browser_lr_budget_943201fe.md) subsequently exercised charged denial, retry and retirement on both native Linux and shared Chromium. The browser release and clean build using the published c49 bootstrap are tracked independently. Work on cold parsing and multi-core efficiency continues.
