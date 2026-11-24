@@ -35,3 +35,5 @@ Prior32-file ROOT59d bundle and both102-file/105716512B static dist copies remai
 Pending ROOT integration: new-artifact Node/shared/UI/edited-generation acceptance and final release/pin; algorithm peer review is separate evidence. No such suites, instrumentation or hosted deployment ran here. The service-rejected local deployment verifier remains unstarted/untouched.
 
 Integration `bf885dfd475b60bc328204a46e37b073894c5d42` preserves published `cbedb8d1`, including later syntax-scan changes, peer receipts and public bootstrap `eeb005717318086c145428edc3b6b784d4729df7ef0514c7329e0a18b76dda9c`. Verifier delta was comment-only; retained full fixture +30reports passed again and all24artifact hashes matched. Later source/pin inputs are excluded from this c934/public768 build; unchanged evidence is reused without rebuilding or relabeling.
+
+Subsequent [runtime acceptance](scc_browser_acceptance_b8b3be21.md) passes shared suites but exposes a missing generated runtime source in the recipe. These original build hashes remain valid; this bundle is not edited-generation-ready until its package producer is repaired.
