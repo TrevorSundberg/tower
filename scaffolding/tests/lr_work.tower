@@ -1,4 +1,5 @@
 import tower;
+import syntax_scan_choice;
 import .library.vector;
 import .compiler.worker_policy;
 import .compiler.lr_work;

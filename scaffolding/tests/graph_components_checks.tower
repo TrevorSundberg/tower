@@ -1,0 +1,159 @@
+import tower;
+import utility_checks;
+import .library.graph_components_interface;
+import .library.work_budget;
+import .library.work_buffer;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn printf(format: u8*, seed: u32, shape: u32, count: usize, phase: u8*, owners: usize): i32;
+
+var ComponentPropertyNodes: usize = 12;
+var ComponentPropertyBytes: usize = 1048576;
+enum ComponentShape: u32 { Empty, Single, Self, Duplicate, Disconnected, Dense, Chain, Cycles, Generated }
+struct ComponentPropertyInput {
+    edges: u8[ComponentPropertyNodes * ComponentPropertyNodes];
+    count: usize; seed: u32; shape: u32;
+}
+
+// Floyd-Warshall over literal/generated edges: no DFS, lowlinks or component IDs.
+fn component_property_trial(input: ComponentPropertyInput*, budget: WorkBudget*, wrong: bool, phase: u8**): bool {
+    var count = input.count;
+    var reach: bool[ComponentPropertyNodes * ComponentPropertyNodes] = default;
+    var seen: bool[ComponentPropertyNodes] = default;
+    var edge_count: usize = 0;
+    for(var a: usize = 0; a < count; a++) {
+        for(var b: usize = 0; b < count; b++) {
+            var copies = input.edges[a * count + b];
+            edge_count += convert(usize, copies);
+            reach[a * count + b] = a == b || copies != 0;
+        }
+    }
+    for(var via: usize = 0; via < count; via++) {
+        for(var a: usize = 0; a < count; a++) {
+            for(var b: usize = 0; b < count; b++) {
+                reach[a * count + b] = reach[a * count + b] || (reach[a * count + via] && reach[via * count + b]);
+            }
+        }
+    }
+    var borrowed: WorkBuffer = default;
+    defer work_buffer_dispose(&borrowed);
+    var index: GraphComponents = default;
+    defer graph_components_dispose(&index);
+    *phase = "borrowed adjacency allocation";
+    if work_buffer_resize(&borrowed, budget, count * sizeof(GraphAdjacency) + edge_count * sizeof(usize), 0) != WorkBudgetError.None { return false; }
+    var spans = bits(GraphAdjacency*, borrowed.data);
+    if count != 0 {
+        var edges = bits(usize*, spans + count);
+        var at: usize = 0;
+        for(var a: usize = 0; a < count; a++) {
+            spans[a] = {data: edges + at, count: 0};
+            for(var b: usize = 0; b < count; b++) {
+                for(var copy: u8 = 0; copy < input.edges[a * count + b]; copy++) { edges[at++] = b; spans[a].count++; }
+            }
+        }
+    }
+    *phase = "provider";
+    if graph_components_result(spans, count, budget, &index) != WorkBudgetError.None { return false; }
+    // The synchronous borrow ends here. Check the owned result after poisoning
+    // and retiring the spans/edges; no pointer into them may be required later.
+    if borrowed.data != null { fill(borrowed.data, 165, borrowed.capacity); }
+    work_buffer_dispose(&borrowed);
+    *phase = "empty/count";
+    if count == 0 { return index.count == 0 && index.nodes == null && index.heads == null && index.storage.data == null; }
+    if index.count == 0 || index.count > count || index.nodes == null || index.heads == null { return false; }
+    *phase = "membership";
+    var members: usize = 0;
+    var absent = ~convert(usize, 0);
+    for(var component: usize = 0; component < index.count; component++) {
+        var node = index.heads[component];
+        if node == absent { return false; }
+        while node != absent {
+            if node >= count || seen[node] || index.nodes[node].component != component { return false; }
+            seen[node] = true; members++;
+            node = index.nodes[node].next;
+        }
+    }
+    if members != count { return false; }
+    for(var a: usize = 0; a < count; a++) {
+        for(var b: usize = 0; b < count; b++) {
+            *phase = "mutual reachability partition";
+            var wanted = reach[a * count + b] && reach[b * count + a];
+            if wrong && a == 0 && b == 0 { wanted = !wanted; }
+            if (index.nodes[a].component == index.nodes[b].component) != wanted { return false; }
+            *phase = "reverse topological edge";
+            if input.edges[a * count + b] != 0 && index.nodes[a].component != index.nodes[b].component
+                && index.nodes[a].component <= index.nodes[b].component { return false; }
+        }
+    }
+    return true;
+}
+
+fn component_property_check(input: ComponentPropertyInput*, wrong: bool): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ComponentPropertyBytes, 1), "Partition oracle budget");
+    var phase: u8* = "start";
+    var ok = component_property_trial(input, &budget, wrong, &phase);
+    var clean = budget.used_bytes == 0 && budget.live == 0;
+    var disposed = work_budget_dispose(&budget);
+    var owners = tower_test_buffer_count();
+    clean = clean && disposed && owners == baseline;
+    if !clean { phase = "ownership after synchronous borrow/result disposal"; }
+    if !ok || !clean {
+        printf("SCC property seed=%u shape=%u nodes=%zu phase=%s live_buffers=%zu\n", input.seed, input.shape, input.count, phase, owners);
+        for(var a: usize = 0; a < input.count; a++) {
+            for(var b: usize = 0; b < input.count; b++) {
+                if input.edges[a * input.count + b] != 0 {
+                    printf("edge copies=%u seed=%u from=%zu %s to=%zu\n", convert(u32, input.edges[a * input.count + b]), input.seed, a, "->", b);
+                }
+            }
+        }
+    }
+    return ok && clean;
+}
+
+fn graph_component_property_tests(wrong: bool): i32 {
+    var cases: usize = 0;
+    for(var shape: u32 = 0; shape < convert(u32, ComponentShape.Generated); shape++) {
+        var input: ComponentPropertyInput = {count: ComponentPropertyNodes, shape: shape, ..default};
+        if shape == convert(u32, ComponentShape.Empty) { input.count = 0; }
+        if shape == convert(u32, ComponentShape.Single) || shape == convert(u32, ComponentShape.Self) { input.count = 1; }
+        if shape == convert(u32, ComponentShape.Duplicate) { input.count = 2; input.edges[1] = 2; }
+        if shape == convert(u32, ComponentShape.Self) { input.edges[0] = 1; }
+        if shape == convert(u32, ComponentShape.Disconnected) { input.edges[1] = 1; input.edges[input.count] = 1; }
+        for(var a: usize = 0; a < input.count; a++) {
+            if shape == convert(u32, ComponentShape.Dense) {
+                for(var b: usize = 0; b < input.count; b++) { input.edges[a * input.count + b] = 1; }
+            }
+            if shape == convert(u32, ComponentShape.Chain) && a + 1 < input.count { input.edges[a * input.count + a + 1] = 1; }
+            if shape == convert(u32, ComponentShape.Cycles) {
+                var group: usize = 3;
+                input.edges[a * input.count + a / group * group + (a + 1) % group] = 1;
+                if (a + 1) % group == 0 && a + 1 < input.count { input.edges[a * input.count + a + 1] = 2; }
+            }
+        }
+        if !component_property_check(&input, wrong) { return 1; }
+        cases++;
+    }
+    var seeds: u32[6] = default;
+    seeds[0] = 1; seeds[1] = 7; seeds[2] = 42; seeds[3] = 31337; seeds[4] = 305419896; seeds[5] = 4294967295;
+    var density_slots: u32 = 4;
+    for(var seed: usize = 0; seed < sizeof(decltype(seeds)) / sizeof(u32); seed++) {
+        for(var count: usize = 0; count <= ComponentPropertyNodes; count++) {
+            for(var density: u32 = 1; density < density_slots; density++) {
+                var input: ComponentPropertyInput = {count: count, seed: seeds[seed], shape: convert(u32, ComponentShape.Generated) + density, ..default};
+                var state = input.seed;
+                for(var a: usize = 0; a < count; a++) {
+                    for(var b: usize = 0; b < count; b++) {
+                        if utility_random(&state) % density_slots < density { input.edges[a * count + b] = convert(u8, 1 + utility_random(&state) % 2); }
+                    }
+                }
+                if !component_property_check(&input, wrong) { return 1; }
+                cases++;
+            }
+        }
+    }
+    printf("SCC properties: seeds=%u shapes=%u cases=%zu phase=%s live_buffers=%zu\n",
+        convert(u32, sizeof(decltype(seeds)) / sizeof(u32)), convert(u32, ComponentShape.Generated), cases, "passed", tower_test_buffer_count());
+    return 0;
+}
