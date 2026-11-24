@@ -955,6 +955,15 @@ before gate release. An invalid mode must exit1 with its diagnostic. No Wine or
 object-only result is Windows runtime evidence; see the
 [actual Windows receipt](../../docs/windows_budget_gate_cabc2062.md).
 
+The gate/pool entries do not allocate Entity components. For native component
+layout adoption, compile `entity_component_layout_windows.tower` with the same
+target/resource options into `layout.obj`, then link it with that runtime and
+the SDK libraries using the same command without `/export:work_windows_entry`.
+This entry forwards the existing layout test's result; it exercises pooled and
+standalone payloads, header identity, stage publication/discard, denied growth
+and zero-owner cleanup. Its printed target sizes include `sizeof(EntityComponent)`.
+Rebuild its complete typed import closure after an Entity layout change.
+
 The retained-buffer checks reserve replacement storage while the old allocation
 is still live, preserve owners on denial, transfer receipts with buffers, and
 retain charges after joins/cancellation until disposal. The shared fixture uses
