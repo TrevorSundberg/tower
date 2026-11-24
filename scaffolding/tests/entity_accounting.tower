@@ -242,7 +242,7 @@ fn accounting_profile(): void {
     }
     accounting_check(state.finalized == count + (count + 1) / 2 + staged_count, "Accounting finalizer count mismatch");
     entity_release(kind); entity_release(root);
-    accounting_check(store.entity_count == 0 && store.component_count == 0 && store.storage.first == null, "Accounting world retained entities");
+    accounting_check(store.entity_count == 0 && store.component_count == 0 && store.storage.owned == null, "Accounting world retained entities");
     accounting_sample("released", store, null, null, &nodes[0], count, null, null, &peaks);
     accounting_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
         && work_budget_dispose(&budget), "Accounting final ledger cleanup failed");

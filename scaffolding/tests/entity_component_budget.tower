@@ -86,7 +86,7 @@ fn page_serial(): void {
     var block: WorkReservation = default;
     page_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - 1, &block));
     page_check(entity_component_add_result(root, type, &error) == null && error == WorkBudgetError.Capacity
-        && root.component_count == 0 && type.instance_count == 0 && store.storage.first == null);
+        && root.component_count == 0 && type.instance_count == 0 && store.storage.owned == null);
     page_check(work_budget_release(&budget, &block) && budget.used_bytes == owner_bytes);
     var first = entity_component_add_result(root, type, &error);
     page_check(first != null && error == WorkBudgetError.None && first.page != null
@@ -278,7 +278,7 @@ fn page_parallel(lanes: usize, disposition: PageDisposition): void {
         && store.resource_error == WorkBudgetError.Stale);
     entity_release(root); entity_release(type); entity_release(large_type);
     page_check(state.finalized == holds && store.entity_count == 0 && store.component_count == 0
-        && store.storage.first == null && entity_store_dispose(store));
+        && store.storage.owned == null && entity_store_dispose(store));
     page_check(work_budget_snapshot(&budget, &snapshot) && snapshot.live == 0 && snapshot.used_bytes == 0
         && work_budget_dispose(&budget));
 }
