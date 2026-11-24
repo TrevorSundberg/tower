@@ -1,0 +1,91 @@
+import tower;
+import .backend.bindings;
+import .backend.context;
+import .backend.import_bindings;
+import .backend.target;
+import .backend.lowering;
+import .backend.pipeline;
+import .compiler.foundation_tags;
+
+struct PointerOrderCase { left: u64; right: u64; wanted: u32; }
+var PointerOrderNotEqual: u32 = 33;
+
+// Keep genuine signed ptr icmp with independent parameter operands. Verification
+// runs without optimization so no constant folding can replace the oracle.
+export fn backend_import_fixture_pointer_order(root: void*, target: u8*): Backend* {
+    var b = backend_open(target);
+    if b == null { return null; }
+    b.source_root = root;
+    var program = sem_attach(root, KProgram);
+    program.type.scalar = SVoid; program.type.pointer_bytes = b.pointer_bytes;
+    backend_runtime_declarations(b);
+    var parameters: void*[2]; parameters[0] = b.pointer_type; parameters[1] = b.pointer_type;
+    var probe = LLVMAddFunction(b.module, "pointer_predicates", LLVMFunctionType(b.i32,
+        &parameters[0], convert(u32, sizeof(decltype(parameters)) / sizeof(void*)), 0));
+    LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, probe, "entry"));
+    // LLVM predicate IDs: signed gt/ge/lt/le, unsigned gt/ge/lt/le, eq/ne.
+    var predicates: u32[10];
+    predicates[0] = 38; predicates[1] = 39; predicates[2] = 40; predicates[3] = 41;
+    predicates[4] = 34; predicates[5] = 35; predicates[6] = 36; predicates[7] = 37;
+    predicates[8] = 32; predicates[9] = 33;
+    var mask = LLVMConstInt(b.i32, 0, 0);
+    for(var index: usize = 0; index < sizeof(decltype(predicates)) / sizeof(u32); index++) {
+        var comparison = LLVMBuildICmp(b.builder, predicates[index], LLVMGetParam(probe, 0), LLVMGetParam(probe, 1), "");
+        var flag = LLVMBuildZExt(b.builder, comparison, b.i32, "");
+        flag = LLVMBuildMul(b.builder, flag, LLVMConstInt(b.i32, convert(u64, 1) << index, 0), "");
+        mask = LLVMBuildOr(b.builder, mask, flag, "");
+    }
+    LLVMBuildRet(b.builder, mask);
+
+    var observed_parameters: void*[3]; observed_parameters[0] = b.pointer_type;
+    observed_parameters[1] = b.i32; observed_parameters[2] = b.pointer_type;
+    var observed = LLVMAddFunction(b.module, "observed_pointer", LLVMFunctionType(b.pointer_type,
+        &observed_parameters[0], convert(u32, sizeof(decltype(observed_parameters)) / sizeof(void*)), 0));
+    LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, observed, "entry"));
+    var trace = LLVMGetParam(observed, 0);
+    var digit = LLVMGetParam(observed, 1);
+    var next = LLVMBuildMul(b.builder, LLVMBuildLoad2(b.builder, b.i32, trace, ""), LLVMConstInt(b.i32, 10, 0), "");
+    LLVMBuildStore(b.builder, LLVMBuildAdd(b.builder, next, digit, ""), trace);
+    LLVMBuildRet(b.builder, LLVMGetParam(observed, 2));
+
+    var main = LLVMAddFunction(b.module, "tower_main", LLVMFunctionType(LLVMVoidTypeInContext(b.context), null, 0, 0));
+    LLVMPositionBuilderAtEnd(b.builder, LLVMAppendBasicBlockInContext(b.context, main, "entry"));
+    trace = LLVMBuildAlloca(b.builder, b.i32, "trace");
+    var maximum = b.pointer_bytes == convert(u32, sizeof(u32)) ? convert(u64, ~convert(u32, 0)) : ~convert(u64, 0);
+    var high = maximum / 2 + 1;
+    // Literal truth-table masks, not host pointer ordering or importer logic:
+    // 572=signed less/unsigned greater; 707=the converse; 426=equal;
+    // 563=greater in both interpretations; 716=less in both interpretations.
+    var cases: PointerOrderCase[8];
+    cases[0] = {left: high, right: 0, wanted: 572};
+    cases[1] = {left: 0, right: high, wanted: 707};
+    cases[2] = {left: high, right: high, wanted: 426};
+    cases[3] = {left: 0, right: 0, wanted: 426};
+    cases[4] = {left: maximum, right: high, wanted: 563};
+    cases[5] = {left: high, right: maximum, wanted: 716};
+    cases[6] = {left: 1, right: 0, wanted: 563};
+    cases[7] = {left: 0, right: 1, wanted: 716};
+    var errors = LLVMConstInt(b.i32, 0, 0);
+    for(var index: usize = 0; index < sizeof(decltype(cases)) / sizeof(PointerOrderCase); index++) {
+        var row = &cases[index];
+        LLVMBuildStore(b.builder, LLVMConstInt(b.i32, 0, 0), trace);
+        var arguments: void*[3]; arguments[0] = trace; arguments[1] = LLVMConstInt(b.i32, 1, 0);
+        arguments[2] = LLVMBuildIntToPtr(b.builder, LLVMConstInt(b.size_type, row.left, 0), b.pointer_type, "");
+        var operands: void*[2];
+        operands[0] = backend_call_values(b, observed, &arguments[0], convert(u32, sizeof(decltype(arguments)) / sizeof(void*)));
+        arguments[1] = LLVMConstInt(b.i32, 2, 0);
+        arguments[2] = LLVMBuildIntToPtr(b.builder, LLVMConstInt(b.size_type, row.right, 0), b.pointer_type, "");
+        operands[1] = backend_call_values(b, observed, &arguments[0], convert(u32, sizeof(decltype(arguments)) / sizeof(void*)));
+        var actual = backend_call_values(b, probe, &operands[0], convert(u32, sizeof(decltype(operands)) / sizeof(void*)));
+        var bad = LLVMBuildICmp(b.builder, PointerOrderNotEqual, actual, LLVMConstInt(b.i32, convert(u64, row.wanted), 0), "");
+        var effect = LLVMBuildICmp(b.builder, PointerOrderNotEqual, LLVMBuildLoad2(b.builder, b.i32, trace, ""), LLVMConstInt(b.i32, 12, 0), "");
+        errors = LLVMBuildAdd(b.builder, errors, LLVMBuildZExt(b.builder, LLVMBuildOr(b.builder, bad, effect, ""), b.i32, ""), "");
+    }
+    var print_arguments: void*[3]; print_arguments[0] = LLVMConstInt(b.i32, convert(u64, SU32), 0);
+    print_arguments[1] = LLVMBuildZExt(b.builder, errors, b.i64, "");
+    print_arguments[2] = LLVMConstInt(b.i32, convert(u64, b.pointer_bytes), 0);
+    backend_call_values(b, b.print_fn, &print_arguments[0], convert(u32, sizeof(decltype(print_arguments)) / sizeof(void*)));
+    LLVMBuildRetVoid(b.builder);
+    if !backend_optimize(b, false) { backend_close(b); return null; }
+    return b;
+}
