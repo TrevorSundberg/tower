@@ -1427,6 +1427,17 @@ export fn frontend_modules_create_result(error: WorkBudgetError*): ModuleEnviron
 }
 
 export fn frontend_modules_reset_compilation(environment: ModuleEnvironment*): void {
+    module_reset_compilation(environment, true);
+}
+
+// Initial Foundation publication does not change the world's immutable seed.
+// Its completed imports already have exact source/dependency validation; keep
+// their snapshots while retiring parsers that predate the publication boundary.
+fn frontend_modules_retire_session(environment: ModuleEnvironment*): void {
+    module_reset_compilation(environment, false);
+}
+
+fn module_reset_compilation(environment: ModuleEnvironment*, clear_imports: bool): void {
     if environment == null {
         return;
     }
@@ -1437,8 +1448,10 @@ export fn frontend_modules_reset_compilation(environment: ModuleEnvironment*): v
     // Parsed imports depend on the world's grammar baseline as well as source
     // bytes. Live graphs own their cloned roots and retained declarations, so
     // retiring these snapshots cannot invalidate an outstanding request.
-    foreach(var cached in &environment.cache) { frontend_module_destroy(cached); }
-    environment.cache.length = 0;
+    if clear_imports {
+        foreach(var cached in &environment.cache) { frontend_module_destroy(cached); }
+        environment.cache.length = 0;
+    }
     // Live leases keep their parser and inputs. Retired caches are discarded
     // only after the owning request drains and returns its session.
     var next = environment.session_generation + 1;
