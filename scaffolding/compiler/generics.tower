@@ -335,9 +335,7 @@ fn generic_instantiate_body(context: GenericContext*, definition: Entity*, use: 
     context.copied = context.copied + copied;
     if node == null {
         *error = scratch.error;
-        context.error = scratch.error != WorkBudgetError.None
-            ? "Cannot allocate template clone storage within its memory budget"
-            : "Template expansion exceeds 65536 nodes or could not allocate its work stack";
+        context.error = generic_clone_diagnostic(scratch.error);
         return null;
     }
     data = generic_component_add_result(node, context.instance_type, error);
@@ -514,7 +512,7 @@ export fn compiler_generic_body_kernel(payload: void*): void {
     result.copied = 0;
     result.storage_error = WorkBudgetError.None;
     result.success = generic_body_pending(context, node) && destination != null;
-    if !result.success { return; }
+    if !result.success { result.storage_error = WorkBudgetError.Invalid; return; }
     for(var i: usize = 0; i < entity_child_count(instance.body_source); i++) {
         var source = entity_child_at(instance.body_source, i);
         var role = entity_child_name(instance.body_source, i);
