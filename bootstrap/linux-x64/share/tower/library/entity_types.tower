@@ -29,7 +29,12 @@ struct EntityStore {
 
 // Allocation indexes only. Canonical component identity/payloads stay on entities.
 // A coordinator owns the store pool; a worker owns its stage's separate pool.
-struct EntityComponentPool { first: EntityComponentPage*; owned: EntityComponentPage*; }
+// Small fixed availability index; the owned chain includes full pages too.
+var EntityComponentPoolBuckets: usize = 8;
+struct EntityComponentPool {
+    available: EntityComponentPage*[EntityComponentPoolBuckets];
+    owned: EntityComponentPage*;
+}
 struct EntityComponentPage {
     allocation: WorkBuffer;
     pool: EntityComponentPool*;
@@ -117,7 +122,6 @@ struct EntityQuery {
 struct EntityComponent {
     owner: Entity*;
     type: Entity*;
-    allocation: u8*;
     data: u8*;
     type_index: usize;
     page: EntityComponentPage*;
@@ -126,8 +130,11 @@ struct EntityComponent {
 // Oversized stable payloads own one physical allocation, like pooled pages.
 // Copy the receipt out before freeing the allocation that contains this header.
 struct EntityComponentAllocation {
-    allocation: WorkBuffer;
+    // Standalone components are the first member of their physical owner.
+    // Pooled components use page instead; neither path needs a duplicate
+    // allocation pointer in every stable slot.
     component: EntityComponent;
+    allocation: WorkBuffer;
 }
 
 // Independently replaceable indexes can be resized by different leased workers.
