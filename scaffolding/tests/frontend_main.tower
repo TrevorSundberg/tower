@@ -73,6 +73,11 @@ export fn main(argc: i32, argv: u8**): i32 {
         parser_structure_reuse_tests();
         return 0;
     }
+    if argc == 3 && strcmp(argv[2], "session-world") == 0 {
+        frontend_session_world_tests();
+        frontend_session_format_tests();
+        return 0;
+    }
     if argc == 3 && strcmp(argv[2], "grammar-equivalence") == 0 {
         parser_tests();
         syntax_tests();

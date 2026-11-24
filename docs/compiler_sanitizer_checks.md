@@ -156,6 +156,11 @@ Tower units for a whole compiler claim, including helpers and generated runtime.
 
 ## Sensitivity and observed results
 
+**Current address-only receipt (2026-11-24):** [40-byte component storage
+ASan acceptance](storage_asan_1bfe0657.md) records the actual memory-negative and
+ready-positive controls, 26 ownership runs and 17-object linked closure at
+`1bfe0657`. The race-probe limitation below is not closed by this ASan run.
+
 **Current campaign limitation (2026-11-23):** the negative race-control recipe
 below is historical. After the buffer-provider changes, D1 reported that its
 unchanged probe at `a0e789324` compiled but the documented link exited1 on
