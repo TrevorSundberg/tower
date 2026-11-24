@@ -1892,6 +1892,15 @@ for exact identities, limits, phase retention and the bounded page-policy propos
 The [four-slot experiment](../../docs/compiler_ecs_declaration_pages_5b9194e4.md)
 records its implementation, matched costs and fuller-stream allocation trade-off.
 
+`tower-lr-work-tests RESOURCE_ROOT staging-extents` checks the historical extent
+cases at32/64 bits and workers1/4, and is also included in `query-smoke`/all.
+It runs generic identity, aggregate and indirect helpers, ordered invocation-local
+mutations, immutable module/local captures, an untaken recursive call, ordinary
+module imports and canonical reexecution. The exact escaped-local extent remains
+a negative capture-policy fixture. Compiled helper inputs additionally exercise
+three controlled repeated waits before publication; these are distinct from the
+observed production semantic-kernel overlap during compilation.
+
 `tower-lr-work-tests RESOURCE_ROOT integer-arguments all` runs the focused unary
 numeric-argument suite, also included in `type-smoke`: contextual widths/minima,
 captures, lazy effects, exact bounds/diagnostics, serial/four-worker canonical
