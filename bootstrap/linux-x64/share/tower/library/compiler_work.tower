@@ -50,8 +50,9 @@ export fn compiler_work_create(units: usize, workers: usize, revision: u64, prof
 // preserving the first typed failure beyond their destruction.
 fn compiler_work_create_failed(work: CompilerWork*): WorkBudgetError {
     var result = work.graph.resource_error;
-    if result == WorkBudgetError.None && work.store != null { result = work.store.resource_error; }
-    if result == WorkBudgetError.None { result = WorkBudgetError.Memory; }
+    // Graph shape errors need no allocation receipt. Entity operations below
+    // return their own typed cause instead of consulting a shared store field.
+    if result == WorkBudgetError.None { result = WorkBudgetError.Invalid; }
     compiler_work_close(work);
     return result;
 }
@@ -73,27 +74,27 @@ export fn compiler_work_create_result(units: usize, workers: usize, revision: u6
     if !work_init_budget(&work.graph, revision, profile, budget) { return compiler_work_create_failed(work); }
     result = entity_store_create_result(budget, &work.store);
     if result != WorkBudgetError.None { compiler_work_close(work); return result; }
-    work.owner = entity_create(work.store);
-    work.kind = entity_create(work.store);
-    if work.owner is null || work.kind is null {
-        return compiler_work_create_failed(work);
-    }
+    work.owner = entity_create_result(work.store, &result);
+    if work.owner is null { compiler_work_close(work); return result; }
+    work.kind = entity_create_result(work.store, &result);
+    if work.kind is null { compiler_work_close(work); return result; }
     result = entity_register_stage_result(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0, 0);
     if result != WorkBudgetError.None { compiler_work_close(work); return result; }
     work.units = units;
     work.workers = workers;
     var i: usize = 0;
     for(; i < units; i++) {
-        var node = entity_create(work.store);
-        if node is null { return compiler_work_create_failed(work); }
-        var attached = entity_attach(node, work.owner, null);
+        var node = entity_create_result(work.store, &result);
+        if node is null { compiler_work_close(work); return result; }
+        result = entity_attach_result(node, work.owner, null);
         entity_release(node);
-        if !attached { return compiler_work_create_failed(work); }
+        if result != WorkBudgetError.None { compiler_work_close(work); return result; }
         var component = entity_component_add_result(node, work.kind, &result);
         if component is null { compiler_work_close(work); return result; }
         var unit = bits(CompilerWorkUnit*, entity_component_data(component));
         unit.ordinal = i + 1;
         var task = work_request(&work.graph, bits(void*, node), convert(u32, CompilerQuery.Unit), convert(u64, i));
+        if task == 0 { return compiler_work_create_failed(work); }
         unit.task = task;
         // One exclusive unit recipe/result range, shared by native and isolated
         // transports. The join reads every completed range after dependencies.
@@ -103,6 +104,7 @@ export fn compiler_work_create_result(units: usize, workers: usize, revision: u6
         }
     }
     var join = work_request(&work.graph, bits(void*, work.owner), convert(u32, CompilerQuery.Join), 0);
+    if join == 0 { return compiler_work_create_failed(work); }
     i = 0;
     for(; i < units; i++) {
         var task = compiler_work_unit(work, i + 1).task;
