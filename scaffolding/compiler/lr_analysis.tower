@@ -5,6 +5,7 @@ import .library.vector;
 import .library.work_budget_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
+import .library.graph_components_interface;
 
 struct LRSuffix {
     begin: usize;
@@ -1015,6 +1016,58 @@ export fn lr_propagation_solve_result(value: LRPropagation*): WorkBudgetError {
 
 export fn lr_propagation_count(value: LRPropagation*, index: usize): usize {
     return value.nodes[index].ranges.length;
+}
+
+// Edges transfer complete exact-range unions. Equal-component nodes therefore
+// converge to one set; every cross-component input precedes its destination.
+// Rebuild for each dirty solve: late edges may merge components. No index or
+// shared range payload survives this synchronous, exclusively owned call.
+export fn lr_propagation_solve_components_result(value: LRPropagation*, budget: WorkBudget*): WorkBudgetError {
+    if value == null { return WorkBudgetError.Invalid; }
+    if value.pending.length == 0 { return WorkBudgetError.None; }
+    if value.count > ~convert(usize, 0) / sizeof(GraphAdjacency) { return WorkBudgetError.Invalid; }
+    var adjacency: WorkBuffer = default;
+    defer work_buffer_dispose(&adjacency);
+    var error = work_buffer_resize(&adjacency, budget, value.count * sizeof(GraphAdjacency), 0);
+    if error != WorkBudgetError.None { return error; }
+    var spans = bits(GraphAdjacency*, adjacency.data);
+    for(var i: usize = 0; i < value.count; i++) {
+        spans[i] = { data: value.nodes[i].edges.data, count: value.nodes[i].edges.length };
+    }
+    var index: GraphComponents = default;
+    defer graph_components_dispose(&index);
+    error = graph_components_result(spans, value.count, budget, &index);
+    if error != WorkBudgetError.None { return error; }
+    for(var component = index.count; component != 0;) {
+        component--;
+        var head = index.heads[component];
+        var ranges = &value.nodes[head].ranges;
+        for(var member = index.nodes[head].next; member != lr_none(); member = index.nodes[member].next) {
+            var changed = false;
+            error = lr_range_merge_result(ranges, &value.nodes[member].ranges, &changed);
+            if error != WorkBudgetError.None { return error; }
+        }
+        for(var member = head; member != lr_none(); member = index.nodes[member].next) {
+            foreach(var destination in &value.nodes[member].edges) {
+                var target = index.nodes[destination].component;
+                if target == component { continue; }
+                var changed = false;
+                error = lr_range_merge_result(&value.nodes[index.heads[target]].ranges, ranges, &changed);
+                if error != WorkBudgetError.None { return error; }
+            }
+        }
+        // Materialize independent original-node owners. On denial, all changes
+        // are monotone unions and the original pending queue remains available
+        // for a direct retry; no partially published index needs to be repaired.
+        for(var member = index.nodes[head].next; member != lr_none(); member = index.nodes[member].next) {
+            var changed = false;
+            error = lr_range_merge_result(&value.nodes[member].ranges, ranges, &changed);
+            if error != WorkBudgetError.None { return error; }
+        }
+    }
+    for(var i: usize = 0; i < value.count; i++) { value.nodes[i].queued = false; }
+    value.pending.length = 0;
+    return WorkBudgetError.None;
 }
 
 export fn lr_propagation_data(value: LRPropagation*, index: usize): SymbolRange* {

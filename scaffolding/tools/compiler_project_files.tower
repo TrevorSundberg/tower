@@ -110,6 +110,7 @@ fn compiler_project_unit_source(name: u8*): u8* {
     if strcmp(name, "tower-compiler-syntax-host.o") == 0 { return "host/syntax_baseline.tower"; }
     if strcmp(name, "tower-compiler-legacy.o") == 0 { return "host/legacy.tower"; }
     if strcmp(name, "tower-shared-lifecycle.o") == 0 { return "host/entity_lifecycle.tower"; }
+    if strcmp(name, "tower-shared-graph-components.o") == 0 { return "library/graph_components.tower"; }
     if strcmp(name, "tower-syntax-live-cases.o") == 0 { return "tests/syntax_live.tower"; }
     return null;
 }

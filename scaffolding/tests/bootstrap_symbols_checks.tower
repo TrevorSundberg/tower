@@ -31,6 +31,18 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
 }
 
 export fn main(): i32 {
+    utility_check(bootstrap_unit("graph-components") == BootstrapUnit.GraphComponents, "Typed connectivity provider policy");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_result", "graph_components_result_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "graph_components_dispose", "graph_components_dispose_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "entity_register_stage_result", "entity_register_stage_result_extra");
+    symbol_case(BootstrapUnit.GraphComponents, false,
+        " U compiler_buffer_allocate\n U compiler_buffer_allocation_size\n U compiler_buffer_free\n U memset\n U tower_reallocate\n U tower_trap\n", null);
+    symbol_case(BootstrapUnit.GraphComponents, false, " U compiler_buffer_allocate_extra\n", "compiler_buffer_allocate_extra");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U compiler_buffer_allocation_siz\n", "compiler_buffer_allocation_siz");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U compiler_buffer_free_extra\n", "compiler_buffer_free_extra");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U tower_trap_extra\n", "tower_trap_extra");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U entity_create\n", "entity_create");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U work_signal_open\n", "work_signal_open");
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_resul\n", "node_match_set_label_resul");
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result_extra\n U node_match_set_label_result\n", "node_match_set_label_result_extra");
