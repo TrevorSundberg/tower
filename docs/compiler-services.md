@@ -171,6 +171,12 @@ constructions demand their value producers. Untaken branches
 do not manufacture value dependencies. Runtime type construction remains an
 explicit capability rejection, not a constant-folder fallback.
 
+Two demanded `comptime` initializers in the same function body can run on
+different native threads once their inputs are ready. On `fe008af5`, two jobs
+shortened compilation for a pair of long independent loops. Making the second
+initializer read the first result eliminated their overlap. The short independent
+loops were fastest with one job. [Paired measurements and dependency control](temporal-opcode-research-journal.md#native-scaling-of-two-demanded-expressions-in-one-body)
+
 The shared `SemanticPumpResult` protocol preserves continuations, cached
 arguments and source effects across progress/waiting/completion/failure.
 `sem_lifecycle_lowering_pump` mixes independent AggregatePrepare/Lowering work
