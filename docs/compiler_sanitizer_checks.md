@@ -291,3 +291,11 @@ sensitivity composition, not full compiler thread-sanitizer acceptance.
 ## c8555971 TSan completion follow-up
 
 The [measured completion receipt](compiler_thread_completion_c8555971.md) closes the frozen query/unit-admission/full-backend selection without a new sanitizer finding. Query219.10s and backend387.66s require scoped thread-mode CTest outer limits360/600s; original180s failures remain recorded. Ordinary deadlines, all internal30s overlap guards, budgets, fixtures and outputs are unchanged. Unit-admission passes its original180s registration. This reuses the existing sensitivity/five positives and actual object-hook proof; later combined sources, ASan and unsupported-host/UBSan coverage remain separate.
+
+## Integrated bucket/cache/lifetime adoption
+
+The [fca5df98 integrated TSan receipt](compiler_thread_integrated_fca5df98.md) passes all ten selected registrations, including the current bucket/model fixture and complete old-lease/module-cache suite. Query197.54s, unit-admission47.76s and full backend364.51s retain their committed outer allowances and original30s internal guards; no finding, cap change or weakened oracle. Actual42-object proof and unchanged sensitivity/runtime hashes are retained. D1's syntax typed-error delta is not yet published through fd9beae1 and remains outside this acceptance; final artifacts, other hosts and unsupported UBSan remain separate.
+
+## Final syntax reset/expansion delta
+
+The [6117723b TSan delta receipt](compiler_thread_syntax_delta_6117723b.md) adopts D1 repair150d4462 with all four registered serial resource/retry/old-cleanup controls and the full production-worker query gate passing. Query197.69s observes actual four-thread overlap; guards, budgets, first-cause and zero-owner assertions are unchanged. Actual37-object/33-memory-hook proof reuses unchanged sensitivity/runtime. The accepted fca5 matrix retains its exact source boundary; no full storage/property/cache/backend rerun or universal race-freedom claim.

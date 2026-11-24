@@ -93,6 +93,21 @@ fn lr_resource_cases(width: u32, workers: usize): void {
 }
 
 export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
+    if argc == 3 && strcmp(argv[2], "syntax-unit-controls") == 0 {
+        var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+        defer { vector_dispose(&bedrock); vector_dispose(&foundation); }
+        units_read(argv[1], "/bedrock.tower", &bedrock); units_read(argv[1], "/foundation.tower", &foundation);
+        for (var width: u32 = 4; width <= 8; width += 4) {
+            var serial: vector(u8) = default; var parallel: vector(u8) = default;
+            defer { vector_dispose(&serial); vector_dispose(&parallel); }
+            units_trial(1, width, bedrock.data, foundation.data, argv[1], &serial);
+            units_trial(4, width, bedrock.data, foundation.data, argv[1], &parallel);
+            units_check(serial.length == parallel.length, "Syntax control canonical length");
+            for (var i: usize = 0; i < serial.length; i++) { units_check(serial.data[i] == parallel.data[i], "Syntax control canonical bytes"); }
+        }
+        puts("Syntax unit controls: 32/64, requested 1/4 (host-clamped), literal 42/43/44, canonical equality.");
+        return 0;
+    }
     if argc == 3 && strcmp(argv[2], "staging-extents") == 0 { staging_extent_checks(argv[1]); return 0; }
     if argc == 3 && strcmp(argv[2], "module-loop-queries") == 0 { module_loop_query_checks(argv[1]); return 0; }
     if argc == 3 && strcmp(argv[2], "alias-type-queries") == 0 { alias_type_query_checks(argv[1]); return 0; }

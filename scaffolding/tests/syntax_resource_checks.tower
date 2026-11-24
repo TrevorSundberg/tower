@@ -1,0 +1,295 @@
+import tower;
+import .compiler.component_kinds;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_session_types;
+import .compiler.syntax_expansion_types;
+import .library.entity_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_vector;
+import utility_checks;
+import syntax_expansion_fixture;
+
+extern fn tower_test_buffer_fail_next(): void;
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn printf(format: u8*, value: u32): i32;
+extern fn tower_test_buffer_count(): usize;
+extern fn syntax_reset(session: void*, source: u8*, module: void*): void;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_source_retain(source: SyntaxSource*): void;
+extern fn syntax_source_release(source: SyntaxSource*): void;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_type(world: void*, kind: u32): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_component_from_data(data: u8*): EntityComponent*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_release(node: void*): usize;
+extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
+extern fn entity_take_last_child(parent: void*): void*;
+extern fn syntax_expansion_trace(rule: u8*, start: usize, end: usize, invocation: void*): void*;
+extern fn syntax_expansion_origin_result(trace: void*, node: void*, source: void*, generated: bool): WorkBudgetError;
+extern fn syntax_trace_release(trace: void*): void;
+extern fn entity_view_open(node: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn syntax_session_allocate_result(world: void*, environment: void*, error: WorkBudgetError*): SyntaxSession*;
+extern fn syntax_session_inputs_reset(value: SyntaxSessionInputs*, source: u8*, length: usize, mode: u32, module: void*): bool;
+extern fn syntax_session_inputs_reset_result(value: SyntaxSessionInputs*, source: u8*, length: usize, mode: u32, module: void*): WorkBudgetError;
+extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
+extern fn syntax_get_origin(node: void*): SyntaxOrigin*;
+extern fn expansion_copy_node(state: ExpansionState*, source: void*, copied: bool): void*;
+extern fn expansion_splice(state: ExpansionState*, trace: void*, node: void*, work: ExpansionWork*): bool;
+extern fn syntax_expansion_result_dispose(result: SyntaxExpansionResult*): void;
+extern fn syntax_expand(input: SyntaxExpansionInput*, result: SyntaxExpansionResult*): bool;
+extern fn entity_child_at(node: void*, index: usize): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+
+var SyntaxResourceBytes: usize = 1048576;
+enum ExpansionResourceCase: u32 { Descriptor, ChildVector, ChildName, Component, Count }
+
+fn syntax_resource_error(actual: WorkBudgetError, wanted: WorkBudgetError, phase: u8*): void {
+    if actual != wanted { puts(phase); printf("actual %u\n", convert(u32, actual)); printf("wanted %u\n", convert(u32, wanted)); }
+    utility_check(actual == wanted, "Exact syntax resource cause");
+}
+
+fn syntax_resource_pressure(budget: WorkBudget*, pressure: WorkReservation*): void {
+    utility_check(work_budget_reserve_result(budget, 0, 0, budget.bytes - budget.used_bytes, pressure)
+        == WorkBudgetError.None, "Reserve remaining syntax capacity");
+}
+
+// Fill only existing pages of this exact class. The test derives the finite
+// remaining slots from live physical pages, never guesses a descriptor count.
+fn syntax_resource_fill(world: void*, page: EntityComponentPage*, kind: u32, components: bool,
+    held: vector(void*)*): void {
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var pool = components ? &store.storage : &store.buffers;
+    loop {
+        var found = false;
+        for (var at = pool.owned; at != null; at = at.owned_next) {
+            if at.type_id == page.type_id && at.stride == page.stride && at.live < at.capacity { found = true; }
+        }
+        if !found { return; }
+        var node = entity_create(bits(void*, store));
+        utility_check(node != null && vector_push(held, node), "Hold derived syntax page slots");
+        if components { utility_check(compiler_world_component(world, node, kind) != null, "Fill syntax component slots"); }
+    }
+}
+
+fn syntax_resource_release(held: vector(void*)*): void {
+    for (var i: usize = 0; i < held.length; i++) { entity_release(held.data[i]); }
+    vector_dispose(held);
+}
+
+fn syntax_reset_resource_trial(components: bool): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, SyntaxResourceBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Bounded reset world");
+    var error: WorkBudgetError;
+    var session = syntax_session_allocate_result(world, null, &error);
+    utility_check(session != null && error == WorkBudgetError.None, "Reset session owns storage");
+    utility_check(syntax_session_inputs_reset(&session.inputs, "old", 3, SyntaxSeedBaseline, null), "Prepare reset document");
+    var source = session.inputs.source;
+    var document = session.inputs.document;
+    syntax_source_retain(source);
+    entity_retain(document);
+    var data = components ? compiler_world_component(world, document, CompilerSyntax) : document;
+    var page = entity_component_from_data(bits(u8*, data)).page;
+    utility_check(page != null, "Reset has a physical page");
+    var held: vector(void*) = default;
+    syntax_resource_fill(world, page, CompilerSyntax, components, &held);
+    // Component denial must reach that component, with a descriptor slot ready.
+    if components {
+        var spare = entity_create(compiler_world_store(world));
+        var keeper = entity_create(compiler_world_store(world));
+        utility_check(spare != null && keeper != null && vector_push(&held, keeper), "Prepare descriptor slot");
+        entity_release(spare);
+    }
+    var text: u8* = "Unable to allocate source text";
+    utility_check(work_vector_reserve_result(&session.error, &budget, strlen(text) + 1) == WorkBudgetError.None,
+        "Diagnostic capacity precedes denial");
+    var pressure: WorkReservation = default;
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var next = store.next_id;
+    syntax_resource_pressure(&budget, &pressure);
+    syntax_reset(bits(void*, session), "new", null);
+    syntax_resource_error(syntax_session_resource_error(bits(void*, session)), WorkBudgetError.Capacity,
+        components ? "reset component" : "reset descriptor");
+    utility_check(store.next_id == next + (components ? 1 : 0), "Reset reached selected descriptor/component denial");
+    utility_check(session.inputs.source == source && session.inputs.document == document
+        && strcmp(source.text.data, "old") == 0 && strcmp(syntax_get_error(bits(void*, session)), text) == 0,
+        "Denied reset retains exact source/document and diagnostic");
+    utility_check(work_budget_release(&budget, &pressure), "Release reset pressure");
+    syntax_resource_error(syntax_session_inputs_reset_result(null, "", 0, SyntaxSeedBaseline, null),
+        WorkBudgetError.Invalid, "reset null owner");
+    syntax_resource_error(syntax_session_inputs_reset_result(&session.inputs, "", ~convert(usize, 0), SyntaxSeedBaseline, null),
+        WorkBudgetError.Invalid, "reset overflow span");
+    utility_check(syntax_session_inputs_reset(&session.inputs, "retry", 5, SyntaxSeedBaseline, null), "Reset retry succeeds");
+    var view = entity_view_open(session.inputs.document);
+    utility_check(view != null, "Pin reset input");
+    syntax_reset(bits(void*, session), "busy", null);
+    syntax_resource_error(syntax_session_resource_error(bits(void*, session)), WorkBudgetError.Busy, "reset busy");
+    entity_view_close(view);
+    work_vector_dispose(&session.error);
+    syntax_resource_pressure(&budget, &pressure);
+    tower_test_buffer_fail_next();
+    syntax_reset(bits(void*, session), "memory", null);
+    syntax_resource_error(syntax_session_resource_error(bits(void*, session)), WorkBudgetError.Memory, "reset allocator");
+    utility_check(session.error.capacity == 0 && syntax_get_error(bits(void*, session))[0] != 0,
+        "Diagnostic Capacity cannot overwrite earlier Memory; allocation-free fallback remains");
+    utility_check(work_budget_release(&budget, &pressure), "Release diagnostic denial pressure");
+    syntax_destroy(bits(void*, session));
+    utility_check(strcmp(source.text.data, "old") == 0, "Retained provenance survives failed reset and destruction");
+    syntax_source_release(source);
+    entity_release(document);
+    syntax_resource_release(&held);
+    utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Reset final zero owners");
+}
+
+export fn syntax_reset_resource_checks(): void {
+    syntax_reset_resource_trial(false);
+    syntax_reset_resource_trial(true);
+    puts("0");
+}
+
+fn syntax_expansion_resource_trial(mode: ExpansionResourceCase): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, SyntaxResourceBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Bounded expansion world");
+    var input: SyntaxExpansionInput = default;
+    input.match_kind = compiler_world_type(world, CompilerParserMatch);
+    utility_check(input.match_kind != null, "Prepared expansion match kind");
+    var f: ExpansionFixture;
+    expansion_test_init(&f, &input, input.match_kind, 0, false);
+    var result: SyntaxExpansionResult = default;
+    var state: ExpansionState = default;
+    state.input = &f.input; state.result = &result;
+    var held: vector(void*) = default;
+    var pressure: WorkReservation = default;
+    if mode == ExpansionResourceCase.Descriptor || mode == ExpansionResourceCase.Component {
+        var components = mode == ExpansionResourceCase.Component;
+        var data = components ? entity_component_data(entity_component_get(f.result.root, input.match_kind)) : f.result.root;
+        var page = entity_component_from_data(bits(u8*, data)).page;
+        utility_check(page != null, "Expansion descriptor page");
+        syntax_resource_fill(world, page, CompilerParserMatch, components, &held);
+        if components {
+            var spare = entity_create(compiler_world_store(world));
+            var keeper = entity_create(compiler_world_store(world));
+            utility_check(spare != null && keeper != null && vector_push(&held, keeper), "Prepare expansion descriptor slot");
+            entity_release(spare);
+        }
+        var store = bits(EntityStore*, compiler_world_store(world));
+        var next = store.next_id;
+        syntax_resource_pressure(&budget, &pressure);
+        var copy = expansion_copy_node(&state, f.result.root, true);
+        utility_check(copy == null, "Expansion reaches denied descriptor");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Capacity, components ? "expansion component" : "expansion descriptor");
+        utility_check(store.next_id == next + (components ? 1 : 0), "Expansion reached selected descriptor/component denial");
+        utility_check(work_budget_release(&budget, &pressure), "Release expansion descriptor pressure");
+        result.resource_error = WorkBudgetError.None;
+        tower_test_buffer_fail_next();
+        utility_check(expansion_copy_node(&state, f.result.root, true) == null, "Expansion reaches physical allocator denial");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Memory, "expansion allocator");
+        var view = entity_view_open(f.result.root);
+        utility_check(view != null, "Pin expansion input");
+        result.resource_error = WorkBudgetError.None;
+        utility_check(expansion_copy_node(&state, f.result.root, true) == null, "Pinned expansion cannot allocate nodes");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Busy, "expansion busy");
+        entity_view_close(view);
+        result.resource_error = WorkBudgetError.None;
+        utility_check(expansion_copy_node(&state, null, true) == null, "Malformed expansion source rejected");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Invalid, "expansion invalid source");
+        result.resource_error = WorkBudgetError.Capacity;
+        utility_check(expansion_copy_node(&state, null, true) == null, "Later invalid source remains failure");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Capacity, "expansion first failure");
+        result.resource_error = WorkBudgetError.None;
+        copy = expansion_copy_node(&state, f.result.root, true);
+        utility_check(copy != null && result.resource_error == WorkBudgetError.None, "Expansion descriptor retry");
+        entity_release(copy);
+    } else {
+        var node = expansion_test_node(&f, "42", 0, 7, 18, 5);
+        var parent = bits(Entity*, f.rule.tree);
+        var trace = syntax_expansion_trace("Resource", 50, 70, f.result.root);
+        utility_check(trace != null && syntax_expansion_origin_result(trace, node, f.rule.tree, true) == WorkBudgetError.None,
+            "Prepare exact expansion provenance");
+        var origin = syntax_get_origin(node);
+        utility_check(work_vector_reserve_result(&origin.splices, &budget, 4) == WorkBudgetError.None, "Prepare provenance splice slots");
+        var role: vector(u8) = default;
+        var work: ExpansionWork = {source: f.rule.tree, parent: f.rule.tree, role: null};
+        if mode == ExpansionResourceCase.ChildName {
+            // The name is larger than a real owned page: guaranteed standalone
+            // growth, independent of any incidental free small-name slot.
+            var bytes = entity_component_from_data(bits(u8*, f.result.root)).page.allocation.capacity * 2;
+            utility_check(vector_reserve(&role, bytes + 1), "Prepare standalone child name");
+            fill(role.data, 120, bytes); role.data[bytes] = 0;
+            work.role = role.data;
+            var warm = entity_create(compiler_world_store(world));
+            utility_check(warm != null && entity_attach(warm, f.rule.tree, null), "Reserve child vector before name denial");
+            entity_release(entity_take_last_child(f.rule.tree)); entity_release(warm);
+        }
+        var count = parent.child_count;
+        syntax_resource_pressure(&budget, &pressure);
+        utility_check(!expansion_splice(&state, trace, node, &work), "Expansion reaches denied attachment");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Capacity,
+            mode == ExpansionResourceCase.ChildVector ? "expansion child vector" : "expansion child name");
+        utility_check(parent.child_count == count && bits(Entity*, node).parent == null
+            && bits(void*, origin.expansion) == trace && origin.template_start == 50, "Failed attach preserves containment and provenance");
+        utility_check(work_budget_release(&budget, &pressure), "Release expansion attachment pressure");
+        result.resource_error = WorkBudgetError.None;
+        utility_check(expansion_splice(&state, trace, node, &work) && result.resource_error == WorkBudgetError.None,
+            "Expansion attachment retry");
+        work.parent = node;
+        utility_check(!expansion_splice(&state, trace, node, &work), "Expansion rejects self attachment");
+        syntax_resource_error(result.resource_error, WorkBudgetError.Invalid, "expansion invalid attachment");
+        utility_check(bits(Entity*, node).parent == parent, "Rejected attachment leaves original parent intact");
+        entity_release(node);
+        syntax_trace_release(trace);
+        vector_dispose(&role);
+    }
+    syntax_expansion_result_dispose(&result);
+    syntax_resource_release(&held);
+    expansion_test_dispose(&f);
+    utility_check(compiler_world_dispose(world) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Expansion final zero owners");
+}
+
+export fn syntax_expansion_resource_checks(): void {
+    for (var mode: u32 = 0; mode < convert(u32, ExpansionResourceCase.Count); mode++) {
+        syntax_expansion_resource_trial(convert(ExpansionResourceCase, mode));
+    }
+    puts("0");
+}
+
+export fn syntax_expansion_success_checks(): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, SyntaxResourceBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Successful expansion world");
+    var input: SyntaxExpansionInput = default;
+    input.match_kind = compiler_world_type(world, CompilerParserMatch);
+    var f: ExpansionFixture;
+    expansion_test_init(&f, &input, input.match_kind, 0, false);
+    utility_check(syntax_expand(&f.input, &f.result) && f.result.resource_error == WorkBudgetError.None
+        && f.result.replacements == 1 && f.result.generated_nodes == 2, "Public expansion counts");
+    var leaf = entity_child_at(f.result.root, 0);
+    var data = bits(ParserMatchData*, entity_component_data(entity_component_get(leaf, input.match_kind)));
+    var origin = syntax_get_origin(leaf);
+    utility_check(data != null && strcmp(data.label.data, "42") == 0 && data.start == 12 && data.length == 11
+        && origin != null && origin.expansion != null && origin.expansion.previous == null,
+        "Public expansion keeps literal output, span and provenance");
+    expansion_test_dispose(&f);
+    utility_check(expansion_test_failures(&input, input.match_kind), "Original expansion allocator-prefix recovery and cleanup");
+    utility_check(compiler_world_dispose(world) && budget.live == 0 && budget.used_bytes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Public expansion zero owners");
+    puts("0");
+}
