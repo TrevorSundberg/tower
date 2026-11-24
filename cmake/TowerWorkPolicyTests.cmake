@@ -97,6 +97,8 @@ function(tower_lr_work_policy_test)
   add_test(NAME tower-editor-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" editor)
   add_test(NAME tower-body-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" bodies)
   add_test(NAME tower-query-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" query-smoke)
+  add_test(NAME tower-generic-quota-diagnostic COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" generic-quota)
+  set_tests_properties(tower-generic-quota-diagnostic PROPERTIES TIMEOUT 120 LABELS "native;focused;generic")
   set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-native-backend-units tower-editor-units tower-body-continuations tower-query-continuations PROPERTIES TIMEOUT 180)
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke

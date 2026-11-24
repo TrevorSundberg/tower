@@ -2,6 +2,7 @@ import tower;
 import semantic_context_types;
 import compiler_kernel;
 import semantic_generic_body_types;
+import generic_body_types;
 import semantic_context;
 import semantic_program_types;
 import semantic_declarations;
@@ -276,7 +277,9 @@ export fn sem_generic_copies_execute(c: SemanticContext*): bool {
                 generic_body_complete(c.generics, request.node, request.copied);
             } else {
                 entity_stage_discard(request.stage);
-                result.error = "Template expansion exceeds 65536 nodes or could not allocate its work stack";
+                // Resource failures already own an exact typed receipt. Only
+                // exhausted clone-node policy reaches the ordinary diagnostic.
+                result.error = request.storage_error == WorkBudgetError.None ? generic_clone_diagnostic(request.storage_error) : null;
             }
             request.stage = null;
             if !work_finish(&c.queries, &result.ticket, accepted) {

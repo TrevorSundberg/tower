@@ -1,0 +1,84 @@
+import tower;
+import malformed_call_checks;
+import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import .compiler.syntax_version_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_pool;
+
+// Reuse the ordinary compile/world and interpreter recovery helpers. The input
+// genuinely consumes the cumulative clone quota; no compiler quota is changed.
+fn generic_quota_trial(root: u8*, bedrock: u8*, foundation: u8*, source: u8*,
+    width: u32, workers: usize, definition_line: usize): void {
+    var gate = work_signal_open();
+    units_check(gate != null, "Generic quota budget gate");
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    var budget: WorkBudget = default;
+    units_check(work_budget_init(&budget, workers, MalformedCallBudget, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Generic quota explicit budget");
+    var world: void* = null;
+    units_check(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None, "Generic quota world");
+    var environment = frontend_modules_create();
+    units_check(environment != null && frontend_modules_bind_world(environment, world), "Generic quota environment");
+    frontend_modules_configure(environment, "generic_quota.tower", root);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    var installed = syntax_baseline_install(world, environment, bedrock, false, &diagnostic)
+        && syntax_baseline_install(world, environment, foundation, true, &diagnostic);
+    syntax_version_diagnostic_dispose(&diagnostic);
+    units_check(installed, "Generic quota baselines");
+    var healthy = "import tower;fn twice(T:type,x:T):T{return x+x;}fn answer():i32{return twice(i32,21);}";
+    var previous: SemanticProgram = default;
+    var previous_owner = malformed_call_compile(world, environment, healthy, width, &previous);
+    units_check(previous.error.length == 0 && previous.resource.error == WorkBudgetError.None, "Healthy generic before denial");
+    units_memory_answer(&previous);
+    var failed: SemanticProgram = default;
+    var failed_owner = malformed_call_compile(world, environment, source, width, &failed);
+    var expected_diagnostic = "Template expansion exceeds 65536 nodes (cumulative GenericNodeLimit)\nInstantiated by large(S16) at line 9, column 7.";
+    if failed.error.length == 0 || strcmp(failed.error.data, expected_diagnostic) != 0 {
+        puts(failed.error.length == 0 ? sem_resource_message(failed.resource.error) : failed.error.data);
+    }
+    units_check(failed.resource.error == WorkBudgetError.None && failed.error.length == strlen(expected_diagnostic)
+        && strcmp(failed.error.data, expected_diagnostic) == 0,
+        "Quota has its exact ordinary diagnostic and one source-ordered instantiation trace, never Memory/Capacity");
+    var line: usize = 0; var column: usize = 0;
+    var file = frontend_modules_location(environment, failed.error_offset, &line, &column);
+    units_check(file != null && strstr(file, "generic_body_cases.tower") != null
+        && line == definition_line && column == 1, "Quota retains original definition coordinates");
+    semantic_program_dispose(&failed); entity_release(failed_owner);
+    // A failed compilation cannot poison an older program or a fresh request.
+    units_memory_answer(&previous);
+    var recovered: SemanticProgram = default;
+    var recovered_owner = malformed_call_compile(world, environment, healthy, width, &recovered);
+    units_check(recovered.error.length == 0 && recovered.resource.error == WorkBudgetError.None, "Healthy generic after denial");
+    units_memory_answer(&recovered);
+    semantic_program_dispose(&recovered); entity_release(recovered_owner);
+    semantic_program_dispose(&previous); entity_release(previous_owner);
+    frontend_modules_destroy(environment);
+    units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Quota failure drains world ownership");
+    var final: WorkBudgetSnapshot = default;
+    units_check(work_budget_snapshot(&budget, &final) && final.live == 0
+        && final.used_bytes == 0 && final.used_lanes == 0 && work_budget_dispose(&budget), "Quota final zero grants");
+}
+
+fn generic_quota_checks(root: u8*): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    var source: vector(u8) = default; var definition: vector(u8) = default;
+    defer vector_dispose(&bedrock); defer vector_dispose(&foundation);
+    defer vector_dispose(&source); defer vector_dispose(&definition);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    units_read(root, "/tests/semantic_invalid/generic_body_demanded.tower", &source);
+    units_read(root, "/tests/generic_body_cases.tower", &definition);
+    var definition_start = strstr(definition.data, "fn large(");
+    units_check(definition_start != null, "Quota definition fixture");
+    var line: usize = 1;
+    for(var at = definition.data; at != definition_start; at++) { if *at == 10 { line++; } }
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            generic_quota_trial(root, bedrock.data, foundation.data, source.data, width, workers, line);
+        }
+    }
+    puts("Generic quota: 32/64 workers1/4 exact limit, call trace, retained/fresh execution and zero owners passed.");
+}
