@@ -33,6 +33,12 @@ The same twelve acceptance requirements remain:
 | Normal / shared / browser generations |59d complete builds, shared/T6/T7/T8 and two edited generations remain accepted at their sources. c934 shared suites pass, but edited Gen1 fails missing generated module and Gen2 is unstarted. B2 owns Tower packager repair, fresh combined bundle and edited-generation acceptance. Old static102-file105716512B package remains unchanged. |
 | Final atomic hosted release | Existing Pages6f142bef runtime013ae550/build98ade8cc retained. Local deployment verifier remains service-blocked/unstarted. Final combined artifact adoption, atomic new-runtime publication and hosted behavior acceptance remain open. |
 
+The [source-only concurrency map at dec17663](compiler_concurrency_completeness_dec17663.md)
+traces within-unit and cross-unit producers, dependencies, private ownership and
+shared admission. It finds the required functional paths present, while retaining
+coarse parse/body granularity, joined structural waves and open performance acceptance.
+The measured access-loop candidate is fully restored; no rejected runtime change ships.
+
 Receipts preserve exact inputs, failures, output equality, wall/CPU/memory costs
 and limits. The eight existing contexts are assigned finite implementation,
 integration, measurement or peer-review tasks; ROOT replaces completions.
