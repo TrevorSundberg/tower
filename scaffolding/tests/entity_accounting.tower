@@ -43,7 +43,7 @@ fn accounting_owned(T: type, data: T*): usize {
     if data == null { return 0; }
     var block = entity_component_from_data(bits(u8*, data));
     if block.page != null { return 0; } // Counted once through its physical pool.
-    return compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block.allocation).allocation.capacity);
+    return compiler_buffer_allocation_size(bits(EntityComponentAllocation*, block).allocation.capacity);
 }
 fn accounting_buffer(T: type, data: T*): usize {
     if data == null { return 0; }
@@ -62,7 +62,7 @@ fn accounting_node(sample: AccountingSample*, node: Entity*): void {
     for(var i: usize = 0; i < node.component_count; i++) {
         var component = node.components[i];
         if component.page == null {
-            sample.buffers += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, component.allocation).allocation.capacity);
+            sample.buffers += compiler_buffer_allocation_size(bits(EntityComponentAllocation*, component).allocation.capacity);
         }
     }
     sample.nodes += sizeof(Entity);
@@ -315,8 +315,25 @@ fn accounting_denials(): void {
         && child.component_count == 0 && kind.instance_count == 0, "Component index denial");
     accounting_check(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Capacity
         && root.references == 1, "Stage descriptor denial");
-    accounting_check(entity_view_open_result(root, &error) == null && error == WorkBudgetError.Capacity
-        && store.views == 0, "View descriptor denial");
+    // Kind layouts can already own slots in the view's size class. Exhaust
+    // that paid capacity before requiring a new page to fail admission.
+    var views: EntityView*[EntityOwnedPageRows] = default;
+    var view_count: usize = 0;
+    loop {
+        var view = entity_view_open_result(root, &error);
+        if view == null {
+            accounting_check(error == WorkBudgetError.Capacity && store.views == view_count,
+                "View page growth denial preserves existing pins");
+            break;
+        }
+        accounting_check(view_count < sizeof(decltype(views)) / sizeof(EntityView*)
+            && error == WorkBudgetError.None && budget.used_bytes == charged && budget.live == live,
+            "View reuses already charged size-class capacity");
+        views[view_count++] = view;
+    }
+    while view_count != 0 { entity_view_close(views[--view_count]); }
+    accounting_check(store.views == 0 && budget.used_bytes == charged && budget.live == live,
+        "View pins retire without losing the live layout owner");
     var nodes: Entity*[64] = default;
     var count: usize = 0;
     var denied = false;
