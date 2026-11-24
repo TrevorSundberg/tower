@@ -43,6 +43,9 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.GraphComponents, false, " U tower_trap_extra\n", "tower_trap_extra");
     symbol_case(BootstrapUnit.GraphComponents, false, " U entity_create\n", "entity_create");
     symbol_case(BootstrapUnit.GraphComponents, false, " U work_signal_open\n", "work_signal_open");
+    symbol_target_case(BootstrapUnit.GraphComponents, "wasm32-unknown-unknown", " U __indirect_function_table\n", null);
+    symbol_target_case(BootstrapUnit.GraphComponents, "wasm32-unknown-unknown", " U __indirect_function_table_extra\n", "__indirect_function_table_extra");
+    symbol_case(BootstrapUnit.GraphComponents, false, " U __indirect_function_table\n", "__indirect_function_table");
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_resul\n", "node_match_set_label_resul");
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result_extra\n U node_match_set_label_result\n", "node_match_set_label_result_extra");
