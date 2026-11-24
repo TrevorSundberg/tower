@@ -98782,3 +98782,36 @@ contains the byte-identical frozen packet and these merged logs and artifacts,
 `68b04b329ef2101a9d21e253cedbcd12fb0ce6a9c32b4f002cac4f46d1b06d9c`.
 All 222 outer manifest entries verified after extraction. The manager can
 record the three merged Linux TSan selections against `aeba5225`.
+
+### 2026-11-24 · Slot 6 replay of D1's original ThreadSanitizer binary
+
+The coordinator delivered the slot 7 producer archive
+`1d844df1-6345-4f2c-afaf-9206399a69ad.tar.gz`, SHA-256
+`41aeba4281e6136b842335cf65282b47ab112ea3809cb70885da2bf268133663`.
+All 440 producer manifest entries verified. The archived ELF SHA-256 is
+`f3171a3e4a294098c4665b6bd7adac160251e8a859f085dc4337cc40acc32bbf`.
+The producer's `input/lr.sha256` matched all 39 entries on `12ab4cae`.
+Applying its `shared-row.patch` to the private resource tree produced D1
+blob `2fb874d38ced3be9d9fdf3fedd74861b2560d5b4` and matched all 1,232
+extended scaffolding inputs. The commands used that scaffolding directory
+as both the working directory and the resource root. The two slot 7 exit
+139 TSan startup failures and the manager's 120-second full-LR timeout
+retain their original attribution. Slot 6 used the archived ELF directly.
+
+Both original-binary invocations completed on their first attempt under
+D1's 180-second guard. Extended `lr-bounded` exited 0 with empty stdout
+and stderr in 0.20 s wall, 0.22 s CPU and 105,212 KiB peak RSS. Full `lr`
+exited 0 with the exact native production worker success line and empty
+stderr in 74.66 s wall, 252.74 s CPU and 1,971,636 KiB RSS. The producer
+linked with module tests disabled. Its LR test object matches the earlier
+slot 6 frozen rebuild, while the parser provider and final ELF differ.
+Checked outputs and the executable and resource hashes verified after join.
+
+CPUs 0–11, quota 11.52, 32,282,509,312 B memory and zero swap applied to
+both runs. The peak sampled whole-slot memory.current was 10,085,580,800 B.
+The kernel supplied no exact cgroup peak. Throttling and OOM counters stayed
+zero. The [raw replay receipt](evidence/d1_original_tsan_slot6.tar.gz)
+includes both commands, outputs, exits, timings, earlier startup errors and
+the producer's link/input manifests. Its 68 entries verified after extraction.
+SHA-256 is `1e9a8fad8f03b05a5a48c6aecbb519af46f80410d5c987c0d7091d90aefa67fe`.
+The manager can close the original D1 ELF gate on this host.
