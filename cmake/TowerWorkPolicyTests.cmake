@@ -100,6 +100,13 @@ function(tower_lr_work_policy_test)
   add_test(NAME tower-generic-quota-diagnostic COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" generic-quota)
   set_tests_properties(tower-generic-quota-diagnostic PROPERTIES TIMEOUT 120 LABELS "native;focused;generic")
   set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-native-backend-units tower-editor-units tower-body-continuations tower-query-continuations PROPERTIES TIMEOUT 180)
+  if(TOWER_SANITIZER STREQUAL "thread")
+    # Measured complete c8555971 runs: query 219s, backend 388s. Only the
+    # instrumented outer guards change; selectors and internal 30s waits stay
+    # identical. See docs/compiler_thread_completion_c8555971.md.
+    set_tests_properties(tower-query-continuations PROPERTIES TIMEOUT 360)
+    set_tests_properties(tower-native-backend-units PROPERTIES TIMEOUT 600)
+  endif()
   add_custom_target(tower-body-smoke
     COMMAND "$<TARGET_FILE:tower-lr-work-tests>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" body-smoke
     DEPENDS tower-lr-work-tests USES_TERMINAL VERBATIM)
