@@ -35,8 +35,8 @@ regressions, including the extra single4 outlier, are retained. C-like latency
 parity, full-width efficiency and a universal performance win are not achieved.
 
 The next batch starts from published7c5cfce8/public160a5a20 after B1's clean
-adoption. Two improvements are now pushed through47e05f73, with independent
-review and combined release acceptance still pending:
+adoption. Two improvements are now pushed through47e05f73 and independently
+accepted; combined release acceptance remains pending:
 
 - [Raw owner pages](entity_raw_pages_7c5cfce8.md), repair4c38796d: single/multi
   retained memory falls9.29%/8.58%; 20 paired runs preserve complete outputs.
@@ -62,11 +62,29 @@ no cursor, probe, phase or test delta ships. Coordinator performance remains ope
 
 The selected r4 runtime is frozen at `3c0ccdce9704cb2020d0a3df0b11235f10af1711`,
 tree `9d3aac3ba80c99f3709d50765da73b20eb3df590`:15 Tower paths differ from7c5.
-A1 native, L1 ASan, L2 TSan and B1 full-host performance gates have been consumed.
-A2 independently reconciles the rejection and D1 audits the joined interaction in
-parallel; their final receipts are not implied by the freeze. Actual B2 process
-inventory shows only its idle container keeper, and its browser build stays gated
-until B1 finishes and drains. Final testing is underway, not already accepted.
+A2's [restoration peer](semantic_dispatch_peer_r4_restored.md) passes five current
+controls and verifies the rejected experiment's actual harness/ELF identity;
+D1's [joined interaction review](combined_source_peer_067ef517.md) covers all15
+paths and passes a fresh query-smoke with actual two-worker overlap.
+
+[Combined ordinary measurements](compiler_combined_performance_3c0ccdce.md) now
+pass48 profiles,16 separate observers and20 CLI/reference controls. Serial
+small/single/multi frontend means improve7.37%/11.71%/4.88%; retained bytes fall
+to13.38/416.28/451.69MB. Eleven configurations improve in mean; multi8 is flat.
+Best8-worker means are1.196x single and2.322x multi versus their current serial
+paths. At32, wall/CPU costs still rise; small/large CLI remains about.400/.525s
+versus Clang.03/.08s. These n2 shared-host results retain the C-like latency and
+full-width efficiency gaps, rather than closing the original performance goal.
+
+ROOT verified actual ordinary/observer/CLI exit records and idle processes before
+releasing B2's browser build. A1 native and L1 ASan report completed selections;
+their published final receipts and L2's remaining TSan controls are still pending.
+A1 corrected one additional test-only raw-page allocation-failure assumption in
+`entity_create_faults.tower`; production inputs remain3c. That correction needs
+its own exact receipt/affected validation, without relabeling the original fixture
+failure. A2 is generating the complete native successor; D1 owns its independent
+package peer, B1 the subsequent clean public-default adoption, and D2 the static
+peer. The native and browser releases are not yet adopted.
 
 Exactly eight existing UUIDs remain the limit; completed owners resume the next
 bounded task in the same context. A2's original45-minute input timeout remains a
@@ -74,7 +92,7 @@ failed wait; it resumed only after actual artifacts arrived, with focused checks
 instead of a duplicate timing cohort. Public native/bootstrap/Pages identities
 remain03e until the new batch completes final acceptance and publication.
 
-Normal A/B/Deck clones were clean-pulled to7c5cfce8 and disks checked; protected
+Normal A/B/Deck clones were clean-pulled to5c46d6fb and disks checked; protected
 local todo remains untouched. This handoff is documentation only. Historical611
 release evidence below remains unchanged and source-bound.
 
