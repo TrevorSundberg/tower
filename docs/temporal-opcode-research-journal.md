@@ -96876,3 +96876,7 @@ L1 foreign grammar integration: ffd45987 + origin/main 8eb55a6a = 587196fc; all 
 
 
 Final B1 prediction-index boundary: complete history through1072141e reconciled as9d0342c7 after one normal push race. A2 quota diagnostics changed compiler inputs, so final publiceeb dependency refresh and exact32/64 jobs1/4 quota check were run alongside affected parser/nativeLR/canonical output controls; all pass, frozen candidate timings unchanged. Final native source/binaries/manifests are retained under lr_prepare_bdb0ed38/final; receipt records costs/identities. No second optimization or broad matrix.
+
+### D1 independent LR prediction-index review (2026-11-23)
+
+Frozen035ad6e8, implementation49cb7c45/policy5038ad3a: [exact blobs and dispositions](lr_prediction_peer_035ad6e8.md). Independently traced LR(0) production uniqueness, bounded rule IDs/local-to-base mapping, checked buffer layout/alignment, seed/edge/active order, synchronous scratch retirement and all changed failure returns; no introduced concrete defect. Scanner fixture imports justify only exact ParserNodes fflush/puts/strlen, with unchanged target/negative contracts. Existing150-grammar/fault/native checks and candidate n2 costs remain B1 evidence, including4096 serial1.3% regression and unchanged retained owners. Source/docs only, no runtime/profile/heavy lock or release claim; disk126GiB/todo preserved. Raw Git map `build/d1_ecs/lr_prediction_peer_035ad6e8/reviewed_blobs.txt`; later incoming implementation excluded, ROOT owns final artifacts.
