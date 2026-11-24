@@ -1,0 +1,37 @@
+# Combined native acceptance — frozen05a23c99
+
+- Production/fixtures frozen `05a23c99e4d5647d8699d8427ded6529bb13ac91`: SCC, scanner selection, quota diagnostics, private LR prediction index and foreign resource fix. No implementation/tuning change; later incoming source is excluded.
+- Exact59d baseline from [the actual earlier receipt](compiler_combined_scaling_59d7dc9e.md): retained profiler SHA256 `37a9175831be4403568d968c7cb93a66d58d0bc1619e184310bf777f3336bd7f`, CLI `7ffe23d96a702ab9dd6ec8fa70af204be86200baa215680185581fb86ef9f344`, resource-manifest `a1982a32d35a5a21423bea1126f592e15a30e7ca47408eeb85a85f9dc4c0a8db`, all verified before/after. No historical rebuild; the3011 binary was not used.
+- Current profiler `7ba517d1aac0f545e3e85d5c63b3580acd3d6165f181ae55432d385012a7740c`, CLI `e0aef03f30dfe5cfa79a004397c4a81186cce6a04be72a73307191f5594106e9`, resource-manifest `9b2d0d78b5401cd91057281ff31994e0f19371c3b7963cc468510cd54b65a07c`. One dependency-aware profile/CLI build via public eeb00571: exit0,19.64wall/12.48CPU/398516KiB RSS; baseline was built with public768, so this is combined compiler/toolchain-output evidence, never isolated gains.
+- KinmenA AMD Ryzen AI Max+395,16 physical/32 logical; WSL2 Linux6.18.54.1/LLVM19.1.1 Release x64. Actual cpuset12–23 = six physical/twelve SMT lanes, cgroup CPU quota12 and memory24GiB. Fresh processes/worlds, warm filesystem/shared host; no frequency isolation. Scheduler jobs1/4/8/12 share one budget; byte ceilings1.25GiB single and4GiB multi are separate from the OS limit.
+- Unchanged Tower profiler/generator: width64, backend0, dependencies+uniform; small1×16, single1×4096, multi12×256. n2 counterbalanced version/shape/jobs order,40 timed processes plus10 separate current observer runs. All50 exit0; full generated source/import/canonical files match original59d references byte-for-byte, ordinary interpreter oracles42/42 pass; zero joined lanes and checked drained-world/zero-live-grant disposal. These frontend shapes are not full native backend timings.
+
+| Shape/jobs | Frontend wall s 59d→current | CPU s 59d→current | Compile peak RSS MiB 59d→current | Charged peak MiB 59d→current |
+|---|---:|---:|---:|---:|
+| small/1 | 0.4308→0.3814 | 0.355→0.309 | 157.8→157.2 | 90.7→90.7 |
+| small/4 | 0.4944→0.4685 | 0.452→0.428 | 161.7→161.7 | 90.7→90.7 |
+| single/1 | 1.9291→1.8993 | 1.851→1.822 | 664.2→663.8 | 528.1→528.1 |
+| single/4 | 1.9046→1.8638 | 2.563→2.513 | 669.3→670.1 | 528.0→528.0 |
+| single/8 | 1.8887→1.8335 | 2.998→2.954 | 669.9→668.6 | 528.0→528.0 |
+| single/12 | 1.9135→1.8510 | 3.573→3.541 | 668.8→668.2 | 528.0→528.0 |
+| multi/1 | 5.6768→5.1671 | 4.822→4.343 | 677.4→677.4 | 573.5→573.5 |
+| multi/4 | 2.2669→2.3497 | 7.530→7.723 | 924.7→925.9 | 766.4→775.4 |
+| multi/8 | 2.1616→2.0784 | 10.889→10.394 | 1269.4→1271.4 | 879.6→880.0 |
+| multi/12 | 2.0150→2.0135 | 17.621→17.358 | 1581.3→1581.8 | 1304.4→1284.4 |
+
+- Wall/CPU are n2 means; RSS/charged peaks are maxima, never sums. Every sample retained. Small serial improves11.47%; small four is22.84% slower than current serial. Single best mean is8jobs, only1.036×; serial current1.827–1.971s overlaps baseline1.899–1.960s, so no robust large serial improvement is established from n2.
+- Multi12 has lowest mean,2.566× current serial;8 gives2.486×. Twelve saves3.12% wall versus8 but costs67.0% CPU/24.4% RSS. Multi4 regresses3.65% versus59d (current2.252–2.448s versus2.265–2.269s); charged peak rises1.18%, while retained storage/grants do not grow. The transient peak increase is not precisely attributable from n2. Twelve is a modest wall win, eight an efficiency trade-off, not a new automatic policy or saturation claim.
+- Retained bytes are baseline+1 solely from the one-byte-longer resource-root string. Current single serial474003823B/285548 grants; single parallel474000999B/285549; multi parallel530106140–530106652B/350039 grants, unchanged counts. Ledger storage small5MiB/single20MiB; multi20/40/40/80MiB at1/4/8/12, separately reported rather than hidden in payload totals. Overlap-dependent transient peaks vary; no retained leak found, high many-world/parallel memory cost remains.
+- Observer runs show actual outer peak/distinct threads1/4/8/12 for multi and semantic dispatch peak/distinct threads1/4/8/12 for single. Multi per-world semantic peaks1/2/5/1 occur at different times: never add them to outer peaks. Ready-outer vacancy is <0.01% of observed outer capacity-time, not CPU idle; shared lane ceilings hold.
+- Separate single8 observer:1.832s frontend, Parse547.1ms, SemanticRun547.8ms, Lowering335.5ms (inclusive/nested, not summed). Semantic dispatch246.5ms/13.46% of wall;5.87% dispatch time has no active kernel and87.88% admitted lane-time is kernel-covered; observer overhead9.53ms. Serial preparation limits useful scaling. Small4 dispatch coverage62.53% and grammar build313.8ms versus245.4ms serial explain why parallel small loses; no100% core-use claim.
+
+| Full CLI compile control | Tower jobs1 wall/CPU/max RSS KiB | Tower jobs4 wall/CPU/max RSS KiB | Clang wall/CPU/max RSS KiB |
+|---|---:|---:|---:|
+|16 functions|0.420/0.335/174288|0.480/0.415/177352|0.035/0.020/99136|
+|1000 functions|0.535/0.440/200524|0.600/0.535/206060|0.080/0.060/110096|
+
+- Existing exact Tower/C inputs and reference runtime reused, n2 current counterbalanced, targetx86_64-unknown-linux-gnu. Tower default optimization `--emit object --timings`; Clang19 `-std=c11 -m64 -O2 -fwrapv -c`. All12 compile/link/native executions exit0, exact15/999 and empty stderr; all8 Tower objects match independent preserved reference bytes. Linking/execution excluded from compile costs. This constant-function control retains a large fixed-cost gap; it is not general language parity or the dependency workload.
+- GNU-time whole-process records separately include verification/format/write/teardown: current small1 mean0.425wall/0.330CPU; single8 2.220/3.300; multi12 2.535/17.780, maximum whole-process RSS1620552KiB. Frontend table deliberately excludes that post-compile work; no discarded warmups or samples.
+- Native ELF2388704→2393936B (+5232B). Complete current documented development-output contract = executable +46 current Tower resources +9 generated runtime files:56 files/11367434B uncompressed. Source resources hash-match current files; this is not a new release/relocation acceptance. Retained cache additionally contains14 obsolete type files/1361B, preserved and excluded from the current contract; cache total11368795B. Linked LLVM library128938904B is separate (other system libraries listed raw); no Wasm linear-capacity, compressed distribution or temporary-build bytes conflated with package size.
+- Raw commands, all50 artifact sets, full times/observers, CLI references, hashes and CSV summaries: `C:/Sandbox/build/codex_ecs_20261122/A1/cache/combined_05a23c99/` (`prepare.sh`, `matrix.sh`, `cli.sh`, `sizes.sh`, `matrix_summary.csv`, `phase_summary.csv`). Earlier receipt inputs in sibling `scaling_59d7dc9e` remain unchanged; one malformed inline size-list quoting attempt retained, corrected through `sizes.sh` without rerunning benchmarks.
+- No source changes, new tests, tuning, generations, browser/reactor, sanitizer or deployment run. Production cleanup checks and actual OS job drain pass; todo unchanged,313GiB free. ROOT owns adoption and final release; source-level and isolated optimization receipts remain separate.
