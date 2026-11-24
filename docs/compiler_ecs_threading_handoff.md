@@ -96,7 +96,11 @@ hosted gaps are closed at their stated source identities. Cold serial cost, usef
 efficiency (including bf's measured multi32 regression) and final successor adoption
 remain open. bf native94+23, ASan60, TSan39 and complete native-package checks pass;
 public745/site6313 remain r4, not bf. Active owner repairs are later deltas requiring
-their own affected validation. General specialization is a proposal outside this gate.
+their own affected validation. Reconciliation received B1's publishedf17fee95/c49 repair
+in compiler/tests `lr_work.tower`: ROOT read its exact blobs; B2's complete peer and
+L1/L2 affected instrumentation remain assigned pending gates. These two current rows
+are explicitly separate from the frozen1282/28-path review closure. General
+specialization is a proposal outside this gate.
 The historical tables below retain their original pending states and limitations;
 this linked current map supersedes those status claims, without a completion percentage.
 
