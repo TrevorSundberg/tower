@@ -190,6 +190,29 @@ lowering/flow admission and executable aggregate-synthesis callers still contain
 fatal allocation assertions; checked executable startup is a narrower contract.
 
 
+## Retained source owners
+
+One coordinator may replace explicit module snapshots through
+`frontend_modules_source` between synchronous compilation calls. A bound
+`ModuleEnvironment` and its compiler world stay alive; cached grammar snapshots
+check source bytes and dependency paths before reuse. Invalid source-byte admission
+preserves the previous input. This is not a persistent semantic-query cache.
+`execution_session_compile[_sources_world]` closes the previous program, interpreter
+storage and Fast cache before constructing a new checked program in that same world.
+An explicitly stepped VM may be replaced at a call boundary; there is no supported
+mid-compilation live-edit/cancel operation on this synchronous session API.
+
+`tower-retained-source-updates` exercises same-name source edits and repeats,
+dependent `decltype`/layout/comptime/body results, ordered effects, exact semantic
+failure/repair and partial Fast execution replacement on retained owners. It uses
+target64, serial/native2-worker budgets, observes actual LR overlap and checks
+joined admission/final zero owners; it does not claim semantic-kernel overlap.
+WorkGraph revision/profile/dispatch receipt validation remains a separate contract:
+`work_reset` requires drained terminal tasks and a new identity, and rejects a
+cancelled graph. `frontend_units_source` rejects started/finished batches;
+`frontend_units_cancel` drains admitted workers before releasing borrows, and that
+batch cannot be edited/restarted. Fresh-batch recovery is not retained invalidation.
+
 ## Concurrent compilation units
 
 `compiler/frontend_units.tower` runs independent compilation units through the

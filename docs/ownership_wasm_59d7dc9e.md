@@ -1,0 +1,34 @@
+# Sparse-kind ownership adoption: joined59d Wasm
+
+Compiled source `59d7dc9e995b16c785b01f40f340374dc4c73d18`, ROOT public768/no-override bundle: all32 files/165218603B lengths and full hashes verified against files.json/READY before use. Only the two required reactors were copied into private ignored `build/l2_ownership_59d7dc9e`; no other build assets are loaded by these tests. Old a06/d962 files remain intact; no rebuild.
+Portable1666307B SHA256 `01bf3381b75626eee78b03e9652d8ee62c400614997d29863267ef7cc01c05b1`; LLVM35421073B SHA256 `95fc948adc9b5b9a36d90d6e9ccd22aeb9be40dc8ca8dd78410c58bfe505690c`. Installed hashes verified again after drain.
+Mounted host/resources `8771b9490186d501cf11110f0eea519d733811b1`, tree `069afb5bc48bd238d0de1eef725420036934ca97`; only a later unimported signed-pointer test fixture differs from reactor source. Both selected fixtures and imported production sources match59d.
+1211-resource manifest SHA256 `e236ba50e604db1411e7c2fbebca66c28dcf3ab0b2f03e67df4368c1d98ae950`;49 host/test-file manifest `4a1a3a02fa0f29532cecf77a9f289a8d0737a9da5a66c31972c687b8686ed5e3`. All mounted bytes rehashed unchanged after all three processes joined.
+
+Unchanged `playground/tests/compiler-entities.test.mjs` selections, sequential fresh Node22.23.5 processes:
+`^Tower world views pin query ranges and defer ownership reclamation$` **PASS**;
+`^Tower generic registries belong to their programs and reclaim their types$` **PASS**.
+Existing Windows actual-process meter, CPU4-7/affinity240 verified; `--test --experimental-test-isolation=none --test-concurrency=1 --test-timeout=600000`, original600s OS guard, fuel100000/caps/assertions. Both actualexit0/tests1/pass1/fail0/skip0/cancel0/deadlineHit=false. Other filtered selections are excluded; none counted as passed.
+Each preserves both32/64 original Graph and canonical Fast executions with exact reformat equality; each width then runs unoptimized and optimized LLVM Foundation reconstruction/internal recheck and portable Fast reparse/format/execution. Both unoptimized/optimized emitted wasm32 executables also run. All12 LLVM calls report compiled; all20 known outputs equal `0\n`. No phase or allocation/ownership assertion was skipped.
+Existing fixture zero entity/component/store teardown and program-owned registry/type reclamation assertions pass, with handles retired in finally. This is not a new compiler-wide allocation/grant census, package-only suite or race-freedom proof. T8's unchanged logger records CPU/RSS, not per-reactor capacity; no such T8 value is invented.
+
+| Actual Node process | PID | Whole wall / CPU s | OS-observed peak bytes | Largest logged Node maxRSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+|views|31152|146.286995 /242.953125|2226716672|2177652|
+|registry|29812|164.155126 /264.796875|2418503680|2361820|
+|exact large LLVM request|11220|125.255939 /197.875000|1650139136|1619948|
+
+These are actual process/threads, not Node-test parents. They include V8/JIT/host and loaded reactors. The1s OS meter misses late peaks on views/large; Node's phase maxRSS supplies the larger observed values. n1 adoption cost, not a time-gain or compiler-core scaling comparison; no invented24GiB whole-process cap. Guest caps remain unchanged.
+Views32/64 canonical627208/627648B (SHA prefixesf8935a3a/75ad388b); returned unoptimized2940991/2949155B (75a8063b/d114f1e4), optimized941821/938050B (392fbee1/76c320ea). Registry canonical676761/677201B (e42d647c/bf8eb30a); unoptimized3237427/3245646B (4e0be2fc/9cbce475), optimized1004554/1002263B (703bef2f/0a0027c2). Full hashes/text/JSON retained. New imported sparse-kind Entity sources explain differing input bytes; old a06 bytes are not relabeled.
+Both executable profiles use original46B views/50B registry sources. The unchanged harness executes but does not serialize those binaries; no executable-file identity is claimed. Canonical equality is the original Graph/Fast assertion, not an extra LLVM fixed-point test.
+
+After both full selections passed, exactly ONE isolated unoptimized wasm32 LLVM Foundation request used ROOT's preserved972596B input SHA256 `403fdc6b0b6c9cd38cbf4e9c6b20858e1cb0c64a8d3342d91f54c72501807e2e` from `ROOT_wasm_t2_a06_a1/entity_pages.artifacts`. No old965691B substitute or source reduction.
+Reused A2's [exact-request procedure](entity_pages_wasm_storage_a06ec4b1.md): same loadLLVM/compiler-fixtures path and input.tower entry; local transport changes only paths/input hash, explicit equivalent wasm32 target and retained returned IR. Saved original A2 script. Actual response `status=compiled, format=foundation, optimizationProfile=2` follows full internal reconstruction/recheck.
+Complete output4709291B SHA256 `452132b90d4a73b43ec3f19153d8b344b201955640c7e6fd0a97203f2d858218` equals ROOT's expected output by full SHA and `fc /b` (no differences). No partial text, optimized substitute or execution claim for this isolated request. Before/after LLVM IR and exact response JSON are saved.
+Compile-call interval124.377670s/196.609s CPU; whole-process values above include setup/output writes. LLVM linear capacity grows37027840 ->1577844736B, leaving569638912B below its unchanged2GiB maximum at response. Capacity is not live payload or Node RSS and does not guarantee other inputs/repeated-session fragmentation. No native ledger or zero retained compiler-allocation count is inferred.
+
+All three processes exited0 before the original guards; no failed or unstarted assigned case, no production fix required. Unrelated T2/T9/access/observe/platform/native/generation/sanitizer suites were not run. [Completed d962 full T9 evidence](t9_stage_work_d962222a.md) remains source-bound; this59d ownership/storage acceptance complements it rather than rerunning or relabeling it.
+Raw [receipt directory](C:/Sandbox/build/codex_ecs_20261122/L2/ownership_59d7dc9e_8771b949): ROOT files/SOURCE/READY, host/resource manifests, full T8 LLVM input/output JSON/text, `*_files.sha256`, exact large input/reference/output/IR, byte comparison, A2 original/adapted transport, process launch/results/affinity/logs and results.sha256. Retained earlier failures remain in their original directories.
+No new goal/agent, instrumentation/service retry or deployment. Owned processes drained, todo unchanged; ROOT owns later combined-source artifacts, complete generations and hosted release. Final publication boundary is recorded once in the journal.
+
+Publication boundary: receipt3a07e94f merged complete published d62d1333 as b7c536f5 after the required ff-only pull refused divergence. Selected production/loader/fixture blobs are unchanged; later native fixture assertions/CMake registration, browser-build retention callback and peer receipts are preserved but excluded from the59d/8771 freeze. Existing evidence is reused without another runtime/build; no current-source generation claim is added.

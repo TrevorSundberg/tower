@@ -75,10 +75,11 @@ export fn compiler_work_create_result(units: usize, workers: usize, revision: u6
     if result != WorkBudgetError.None { compiler_work_close(work); return result; }
     work.owner = entity_create(work.store);
     work.kind = entity_create(work.store);
-    if work.owner is null || work.kind is null
-        || !entity_register(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0) {
+    if work.owner is null || work.kind is null {
         return compiler_work_create_failed(work);
     }
+    result = entity_register_stage_result(work.kind, sizeof(CompilerWorkUnit), alignof(CompilerWorkUnit), 0, 0);
+    if result != WorkBudgetError.None { compiler_work_close(work); return result; }
     work.units = units;
     work.workers = workers;
     var i: usize = 0;

@@ -1,0 +1,109 @@
+import tower;
+import lr_analysis_api;
+import utility_checks;
+import .library.vector;
+import .library.work_budget;
+import .library.work_buffer;
+import .library.graph_components_interface;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+var LRComponentTestBytes: usize = 1048576;
+var LRComponentChainLength: usize = 4096;
+struct LRComponentEdge { source: usize; destination: usize; }
+
+fn lr_component_owner_tests(): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, LRComponentTestBytes, 1), "Component index budget");
+    var edges: LRComponentEdge[7] = default;
+    edges[0] = {source: 0, destination: 1}; edges[1] = {source: 1, destination: 0};
+    edges[2] = {source: 1, destination: 2}; edges[3] = {source: 2, destination: 3};
+    edges[4] = {source: 3, destination: 2}; edges[5] = {source: 3, destination: 4};
+    edges[6] = {source: 4, destination: 4};
+    var connected: usize = 0;
+    for(var i: usize = 0; i < sizeof(decltype(edges)) / sizeof(LRComponentEdge); i++) {
+        var edge = &edges[i];
+        if edge.source >= connected { connected = edge.source + 1; }
+        if edge.destination >= connected { connected = edge.destination + 1; }
+    }
+    var detached = connected; var empty = detached + 1; var count = empty + 1;
+    {
+        var graph = lr_propagation_create(count); utility_check(graph != null, "Component graph");
+        defer lr_propagation_destroy(graph);
+        for(var i: usize = 0; i < sizeof(decltype(edges)) / sizeof(LRComponentEdge); i++) {
+            utility_check(lr_propagation_edge(graph, edges[i].source, edges[i].destination), "Component edges");
+        }
+        utility_check(lr_propagation_seed(graph, 0, 10, 12) && lr_propagation_seed(graph, 1, 11, 13)
+            && lr_propagation_seed(graph, detached, LRTokenEnd, LRTokenEnd), "Exact overlapping and disconnected seeds");
+        var block: WorkReservation = default;
+        utility_check(work_budget_reserve(&budget, 0, 0, budget.bytes, &block), "Deny component scratch");
+        utility_check(lr_propagation_solve_components_result(graph, &budget) == WorkBudgetError.Capacity
+            && lr_propagation_count(graph, 0) == 1 && lr_propagation_count(graph, 2) == 0
+            && budget.used_bytes == block.bytes && budget.live == 1, "Capacity preserves inputs and pending work");
+        utility_check(work_budget_release(&budget, &block), "Release denied boundary");
+        var failures: usize[3] = default; failures[1] = 1; failures[2] = 2;
+        for(var i: usize = 0; i < sizeof(decltype(failures)) / sizeof(usize); i++) {
+            tower_test_buffer_fail_after(failures[i]);
+            var error = lr_propagation_solve_components_result(graph, &budget);
+            tower_test_buffer_fail_after(~convert(usize, 0));
+            utility_check(error == WorkBudgetError.Memory && budget.live == 0 && budget.used_bytes == 0,
+                "Physical index/range failure preserves Memory and releases scratch");
+        }
+        utility_check(lr_propagation_solve_components_result(graph, &budget) == WorkBudgetError.None, "Direct retry without requeue");
+        for(var node: usize = 0; node < connected; node++) {
+            var ranges = lr_propagation_data(graph, node);
+            utility_check(lr_propagation_count(graph, node) == 2 && ranges[0].first == 10 && ranges[0].last == 12
+                && ranges[1].first == 11 && ranges[1].last == 13, "Multiple SCCs and acyclic tail preserve exact intervals");
+        }
+        utility_check(lr_propagation_count(graph, detached) == 1 && lr_propagation_count(graph, empty) == 0, "Disconnected nodes");
+        utility_check(lr_propagation_edge(graph, connected - 1, 0) && lr_propagation_edge(graph, detached, connected - 1)
+            && lr_propagation_seed(graph, 3, 20, 20)
+            && lr_propagation_solve_components_result(graph, &budget) == WorkBudgetError.None, "Late edges merge SCCs and seed incrementally");
+        for(var node: usize = 0; node < connected; node++) { utility_check(lr_propagation_count(graph, node) == 4, "Merged component result"); }
+    }
+    {
+        var nodes: GraphAdjacency[3] = default;
+        var count = sizeof(decltype(nodes)) / sizeof(GraphAdjacency);
+        var invalid = count;
+        nodes[0] = { data: &invalid, count: 1 };
+        var index: GraphComponents = default;
+        utility_check(graph_components_result(&nodes[0], count, &budget, &index) == WorkBudgetError.Invalid
+            && index.storage.data == null && index.nodes == null && index.count == 0 && budget.live == 0, "Invalid edge rolls back index owner");
+        nodes[0] = { data: null, count: 1 };
+        utility_check(graph_components_result(&nodes[0], count, &budget, &index) == WorkBudgetError.Invalid
+            && budget.live == 0, "Invalid span releases scratch");
+        nodes[0] = default;
+        utility_check(graph_components_result(&nodes[0], count, &budget, &index) == WorkBudgetError.None
+            && index.count == count, "Disconnected index retry");
+        var retained = budget.used_bytes;
+        utility_check(graph_components_result(&nodes[0], count, &budget, &index) == WorkBudgetError.Invalid
+            && budget.used_bytes == retained, "Cannot overwrite a retained index");
+        graph_components_dispose(&index);
+    }
+    {
+        var storage: WorkBuffer = default;
+        defer work_buffer_dispose(&storage);
+        utility_check(work_buffer_resize(&storage, &budget,
+            LRComponentChainLength * (sizeof(GraphAdjacency) + sizeof(usize)), 0) == WorkBudgetError.None, "Chain fixture storage");
+        var spans = bits(GraphAdjacency*, storage.data);
+        var edges = bits(usize*, spans + LRComponentChainLength);
+        for(var i: usize = 0; i < LRComponentChainLength; i++) {
+            edges[i] = i + 1;
+            spans[i] = { data: &edges[i], count: convert(usize, i + 1 < LRComponentChainLength) };
+        }
+        var index: GraphComponents = default;
+        utility_check(graph_components_result(spans, LRComponentChainLength, &budget, &index) == WorkBudgetError.None
+            && index.count == LRComponentChainLength, "Iterative long acyclic chain");
+        for(var i: usize = 1; i < LRComponentChainLength; i++) {
+            utility_check(index.nodes[i - 1].component > index.nodes[i].component, "Reverse topological components");
+        }
+        graph_components_dispose(&index);
+        edges[LRComponentChainLength - 1] = 0; spans[LRComponentChainLength - 1].count = 1;
+        utility_check(graph_components_result(spans, LRComponentChainLength, &budget, &index) == WorkBudgetError.None
+            && index.count == 1, "Late closing edge forms one component without recursion");
+        graph_components_dispose(&index);
+    }
+    utility_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget)
+        && tower_test_buffer_count() == baseline, "Component index and original graph owners fully released");
+}

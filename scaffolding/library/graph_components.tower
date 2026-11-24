@@ -1,0 +1,73 @@
+import tower;
+import graph_components_types;
+import work_buffer;
+import work_buffer_types;
+import work_budget_types;
+
+export fn graph_components_dispose(value: GraphComponents*): void {
+    work_buffer_dispose(&value.storage);
+    *value = default;
+}
+export fn graph_components_result(adjacency: GraphAdjacency*, count: usize, budget: WorkBudget*,
+    output: GraphComponents*): WorkBudgetError {
+    if output == null || output.storage.data != null || output.storage.capacity != 0 || output.storage.reservation.active
+        || output.nodes != null || output.heads != null || output.count != 0
+        || (adjacency == null && count != 0) { return WorkBudgetError.Invalid; }
+    if count == 0 { return WorkBudgetError.None; }
+    var bytes = sizeof(GraphComponentNode) + sizeof(usize) + sizeof(usize);
+    if count > ~convert(usize, 0) / bytes { return WorkBudgetError.Invalid; }
+    var value: GraphComponents = default;
+    defer graph_components_dispose(&value);
+    var error = work_buffer_resize(&value.storage, budget, count * bytes, 0);
+    if error != WorkBudgetError.None { return error; }
+    fill(value.storage.data, 0, count * bytes);
+    value.nodes = bits(GraphComponentNode*, value.storage.data);
+    var stack = bits(usize*, value.nodes + count);
+    value.heads = stack + count;
+    error = graph_components_visit(&value, adjacency, count, stack);
+    if error != WorkBudgetError.None { return error; }
+    *output = value; value = default;
+    return WorkBudgetError.None;
+}
+
+fn graph_components_visit(value: GraphComponents*, adjacency: GraphAdjacency*, count: usize, stack: usize*): WorkBudgetError {
+    var absent = ~convert(usize, 0);
+    for(var i: usize = 0; i < count; i++) {
+        value.nodes[i].component = absent; value.nodes[i].parent = absent;
+    }
+    var order: usize = 0; var stacked: usize = 0;
+    for(var root: usize = 0; root < count; root++) {
+        if value.nodes[root].order != 0 { continue; }
+        var current = root;
+        while current != absent {
+            var row = &value.nodes[current];
+            if row.order == 0 {
+                row.order = ++order; row.low = row.order; stack[stacked++] = current;
+            }
+            var edges = &adjacency[current];
+            if edges.count != 0 && edges.data == null { return WorkBudgetError.Invalid; }
+            if row.edge < edges.count {
+                var target = edges.data[row.edge++];
+                if target >= count { return WorkBudgetError.Invalid; }
+                var next = &value.nodes[target];
+                if next.order == 0 { next.parent = current; current = target; continue; }
+                if next.component == absent && next.order < row.low { row.low = next.order; }
+                continue;
+            }
+            if row.low == row.order {
+                var head = absent;
+                loop {
+                    var member = stack[--stacked];
+                    value.nodes[member].component = value.count;
+                    value.nodes[member].next = head; head = member;
+                    if member == current { break; }
+                }
+                value.heads[value.count++] = head;
+            }
+            var parent = row.parent;
+            if parent != absent && row.low < value.nodes[parent].low { value.nodes[parent].low = row.low; }
+            current = parent;
+        }
+    }
+    return WorkBudgetError.None;
+}

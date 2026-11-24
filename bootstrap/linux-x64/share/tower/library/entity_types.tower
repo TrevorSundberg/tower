@@ -54,6 +54,15 @@ struct EntityChild {
     name: u8*;
 }
 
+// Immutable registration data. The canonical kind is still its Entity; this
+// stable, non-component block is owned by that kind in its store's buffer pool.
+// Reserved before publishing registration, never constructed by a worker.
+struct EntityLayout {
+    data_size: usize;
+    data_alignment: usize;
+    lifecycle: usize;
+}
+
 struct Entity {
     store: EntityStore*;
     id: usize;
@@ -70,9 +79,11 @@ struct Entity {
     instance_capacity: usize;
     registered: bool;
     queued: bool;
-    data_size: usize;
-    data_alignment: usize;
-    lifecycle: usize;
+    // Immutable after kind registration. Zero selects the default; otherwise
+    // limit newly allocated private-stage pages only. Published pages keep
+    // their capacity and may be reused by the coordinator without relocation.
+    stage_page_rows: u8;
+    layout: EntityLayout*;
     deferred: Entity*;
     // A private new entity, or an existing entity exclusively leased to one
     // stage. Component indexes publish after pinned readers join. A lease owns
@@ -82,6 +93,11 @@ struct Entity {
     table: EntityTable*;
     table_row: usize;
     pending_table: EntityTable*;
+    // Stable descriptor-owned storage for the first component index entry.
+    // Promoted indexes use the ordinary budgeted replaceable array.
+    inline_components: EntityComponent*[1];
+    // Stable first ordered/named child edge; larger indexes remain replaceable.
+    inline_children: EntityChild[1];
 }
 
 // The coordinator opens/closes views and owns refcounts. Workers borrow the
