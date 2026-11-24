@@ -3,7 +3,9 @@ import backend_pointer_order_checks;
 import module_body_type_checks;
 import frontend_units;
 import .compiler.format_types;
+import .compiler.format_storage;
 import .library.work_budget;
+import .library.work_buffer;
 import .library.vector;
 import .host.driver_api;
 import .host.driver_support;
@@ -43,9 +45,19 @@ fn backend_signed_pointer_checks(resource: u8*, output_path: u8*, width: u32): i
     var text: FormatResult = {checked: true, budget: &budget, ..default};
     format_entity(&text, output, null, null, null);
     units_check(!text.failed && driver_write_file(output_path, text.text.data, text.text.length), "Signed pointer canonical Foundation");
+    // Counted formatter output does not promise a terminator in spare capacity.
+    var length = text.text.length;
+    units_check(length <= ~convert(usize, 0) - 2 && format_storage_reserve(&text, length + 2, false),
+        "Signed pointer text boundary capacity");
+    text.text.data[length] = 255; text.text.data[length + 1] = 0;
+    var source: WorkBuffer = default;
+    units_check(format_storage_finish(&text, &source) == WorkBudgetError.None
+        && source.data[length] == 0 && strlen(source.data) == length && text.text.data == null,
+        "Signed pointer terminated text transfers its receipt");
     backend_close(backend); entity_release(output); entity_release(root);
     units_check(compiler_world_dispose(world), "Original signed pointer world closes before fresh recheck");
-    var result = backend_pointer_text_execute(resource, text.text.data, width);
+    var result = backend_pointer_text_execute(resource, source.data, width);
+    work_buffer_dispose(&source);
     format_dispose(&text);
     units_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
         && work_budget_dispose(&budget), "Signed pointer import zero final owners");
