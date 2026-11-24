@@ -15,7 +15,7 @@ import .library.bytes_interface;
 import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 
-extern fn frontend_units_create_bounded(count: usize, budget: usize, retained_bytes: usize, width: u32, revision: u64,
+extern fn frontend_units_create_adaptive(count: usize, budget: usize, retained_bytes: usize, width: u32, revision: u64,
     profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
 extern fn frontend_units_source(batch: void*, ordinal: usize, path: u8*, text: u8*, length: usize): bool;
 extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
@@ -107,7 +107,7 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     // A fresh request owns revision one; target width is an explicit profile
     // input. No cross-request cache or host-dependent evaluation is introduced.
     var width = backend_pointer_bytes(target);
-    batch.frontend = frontend_units_create_bounded(count, budget, options.unit_retained_bytes, width, 1, convert(u64, width),
+    batch.frontend = frontend_units_create_adaptive(count, budget, options.unit_retained_bytes, width, 1, convert(u64, width),
         request.text[DriverBedrockText].data, request.text[DriverFoundationText].data, request.root);
     if batch.frontend == null { driver_error("Unable to create compilation units: check --unit-retained-bytes and allocation capacity", ""); return 1; }
     for (var i: usize = 0; i < count; i++) {

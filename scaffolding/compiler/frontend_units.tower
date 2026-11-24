@@ -125,6 +125,8 @@ struct FrontendUnits {
     count: usize;
     pool: WorkPool;
     budget: WorkBudget;
+    // Optional coordinator estimate for starting another unit alongside active work.
+    unit_peak: usize;
     budget_gate: void*;
     resource_error: u8*;
     resource_offset: usize;
@@ -340,6 +342,15 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): Front
     return frontend_units_create_bounded_result(count, budget, retained_bytes, width, revision, profile, bedrock, foundation, library, &error);
 }
 
+// Packaged compilations borrow the full worker budget for nested work. Start
+// the entry unit alone to measure the grammar/import working set for this batch.
+export fn frontend_units_create_adaptive(count: usize, budget: usize, retained_bytes: usize, width: u32,
+revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): FrontendUnits* {
+    var batch = frontend_units_create_bounded(count, budget, retained_bytes, width, revision, profile, bedrock, foundation, library);
+    if batch != null && batch.pool.count > 1 { batch.unit_peak = retained_bytes; }
+    return batch;
+}
+
 export fn frontend_units_create_bounded_result(count: usize, budget: usize, retained_bytes: usize, width: u32,
 revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error: WorkBudgetError*): FrontendUnits* {
     if error == null { return null; }
@@ -485,6 +496,11 @@ fn frontend_unit_receive(payload: void*): void {
         trap("Stale compilation unit receipt", 0);
     }
     frontend_units_release(batch, &job.execution);
+    if job.ordinal == 1 && batch.unit_peak != 0 && job.success {
+        var snapshot: WorkBudgetSnapshot = default;
+        if !work_budget_snapshot(&batch.budget, &snapshot) { trap("Invalid unit budget", 0); }
+        batch.unit_peak = snapshot.peak_bytes;
+    }
 }
 
 fn frontend_units_receive(batch: FrontendUnits*, wait: bool): bool {
@@ -526,6 +542,14 @@ export fn frontend_units_step(batch: FrontendUnits*, wait: bool): bool {
             if batch.next != null { kernel = batch.next(batch.continuation); }
             if batch.finished { return true; }
             if kernel == null {
+                // Allow one unit to try even under a tight cap. With work in
+                // flight, leave room for each active worker and the next one;
+                // completed worlds' retained bytes already reduce the headroom.
+                if batch.pool.running != 0 && batch.unit_peak != 0 {
+                    var snapshot: WorkBudgetSnapshot = default;
+                    if !work_budget_snapshot(&batch.budget, &snapshot) { trap("Invalid unit budget", 0); }
+                    if batch.pool.running >= (snapshot.bytes - snapshot.used_bytes) / batch.unit_peak { break; }
+                }
                 var receipt: WorkReservation = default;
                 var admission = work_budget_reserve_result(&batch.budget, 1, 1, 0, &receipt);
                 if admission == WorkBudgetError.Capacity { break; }
