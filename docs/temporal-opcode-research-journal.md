@@ -96500,3 +96500,55 @@ Source/documentation only: no runtime profile/build/test required, D2 heavy lock
 L1 final signed/stage integration boundary39f96f4d preserves incoming Entity inline-child ABI through complete-history merge. Dependency-aware11-action refresh, bothsignedCTests, exactstageoptimized32workers4 anddirectGraphFast1-4 pass; literal/canonical/LLVM bytes unchanged and finalowners0. Merged cost/importpeak and hashes in signed_pointer_stage_503677d9 receipt/merged_*; originalfreeze evidence reused explicitly. Production pointer/import methods untouched; no owner scope duplication. Normalpush follows.
 L1 final published-producer boundary95d5916c additionally preserves A2constant-expression repair and both CMake registration groups. Backend-only refresh and the same focused signed/secondstage consumers pass, identical artifacts/zeroowners; joined_* holds final hashes/costs. A2second-normalization investigation not repeated. Receipt records finalintegration once, historical503 evidence unchanged.
 L2 page-review publication boundary: receipt11d7751b + complete-history mergefc2620b7 preserves publishedd962222a. World/lowering/frontend_units unchanged; incoming B2c12c2189 Entity ABI/optional census and A2 importer/native-reference tests are excluded from frozen524ad027 timings. Existing B2 joined/publication receipts cover page-policy+guard-removal adoption with zero teardown; no duplicate build/matrix. Coherent rebuild is required for future execution of new Entity layout. Frozen artifacts remain exact, docs/todo checks pass; normal push follows.
+
+### ROOT independent test adoption and joined release freeze (2026-11-24)
+
+Reviewed at d962222af10bb062a1ad18c7beb8531ed00dc7ee; no runtime code edited.
+D1 seeded dependency fixture (de906ee60abdda62a9ab205285f1c11a150c358c),
+lr_work_main (6dc0d79df7ead0a9c543d46ddb921f5a62e08cba), CMake policy
+(3d335340a03639abdf8be2411b0bb2de70910fcb) and immediate frontend_units
+(1afe4ad522a5f14632c43dcc50bc2b2a63db7b59) were independently source-reviewed.
+Three fixed seeds/three units/two bodies compare independent arithmetic and
+ordered effects, owning-frame shadow captures, generic aliases and forward
+decltype/comptime. Untaken pick(false) avoids a false cycle; the executed cycle
+in earlier unit2 must beat later unit3's missing-name error. Serial/two-worker
+canonical and exact diagnostic identities are checked. Successful overlap uses
+actual distinct thread identities and intersecting execution intervals, not width.
+Observer slots have one ordinal owner; only cancellation deliberately gates workers.
+Batch close drains/cancels before releasing worlds/modules/inputs, and signals close
+after batch disposal. Recovery uses a fresh batch/world with changed seed/revision:
+this is NOT retained-session/cache invalidation coverage or within-body overlap.
+No defect found in this delta. Owner e68981c3 execution remains attributed evidence.
+
+D2 native overflow extension independently reviewed: backend_overflow_native
+527f21ebe0ebb78662765575b42fe3efa093d990, backend_overflow_fixture
+623da5f2115ad9b887163005d4055cacc9cac4c2, backend_import_overflow
+9e3fcc03c0565e12f669c889989fa020094bfbe5 and CMake storage
+6028afa7f9bb7237d1521637f724a77ef506ca87. Existing generator/default behavior
+is preserved; known arithmetic oracles stay separate from imported arithmetic.
+Raw/O2 emitted native output is independently compared to canonical Graph/Fast.
+The native process is synchronously reaped while argv/paths/capture remain alive;
+DriverLink copies borrow buffers without a second disposal. Backend/world closes
+before recheck, while formatting's budget remains alive until format_dispose;
+per-trial/final buffer and grant checks cover completed ordinary paths.
+Deliberate wrong expectation covers i1/both in raw and O2, not every width/mode.
+It requires exact native/interpreted 1-newline then returns1 AFTER cleanup.
+Paired positive and WILL_FAIL registrations plus raw logs establish that cause;
+a standalone inverted CTest result would not. Assertions abort on setup faults,
+so this is not exhaustive recoverable-failure or threaded sanitizer coverage.
+Owner d5c350d5 reports30 native and60 Graph/Fast checks, final12.48wall/
+11.82CPU/123764KiB. O2 folds entrypoints; only raw execution preserves dynamic
+intrinsic coverage. No defect found in reviewed delta; no ROOT runtime rerun.
+
+Documentation/source review only: runtime before/after profiling inapplicable.
+Joined reactors freeze d962222a/public768 with compiler/library/backend additions,
+including i1/pointer/constant-address repairs and Foundation/child storage changes.
+Source changes still running in other clones are outside this artifact boundary.
+A2 owns large native64 coverage, B2 native32 census/fault modes, D1 child review,
+D2 constant-address review. No hosted runtime/public pin or final-gate pass inferred.
+One accidental B2 launch used its previous already-completed prompt before the
+runner copy finished; it only verified publication, no duplicate builds/edits.
+The copied runner and both exact request hashes were then verified before the
+same UUID resumed its new task. No additional Codex context was created.
+
+Joined release details/phase costs and artifacts are recorded in docs/compiler_joined_release_d962222a.md; all3 builds exited0 and source hashes matched. New32-file snapshot165214964B versus old168232639B is a copied-input total, not installed size. L1/L2 full actualWasm acceptance has started on these immutable reactors. Current twelve-row handoff reconciled without erasing historical checkpoints. Existing hosted runtime/public bootstrap remain unchanged; final service-blocked verifier/instrumentation remain open.
