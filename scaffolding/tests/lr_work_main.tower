@@ -15,6 +15,7 @@ import editor_units;
 import body_runs;
 import lr_budget;
 import generic_clone_parallel;
+import generic_quota_checks;
 import generic_inspection_budget;
 import semantic_publish_checks;
 import utility_checks;
@@ -141,11 +142,12 @@ export fn lr_work_test_main(argc: i32, argv: u8**): i32 {
         return 0;
     }
     if argc < 2 || argc > 3 {
-        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|dependency-units|dependency-scaling|dependency-stress|dependency-stress-serial|dependency-stress-parallel|dependency-stress-wrong-result|backend|backend-ir|backend-overlap|backend-overlap-calibrated|unit-admission|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|resource-smoke|receipt-smoke|lifecycle FIRST [LAST]]");
+        puts("usage: tower-lr-work-tests RESOURCE_ROOT [all|lr|units|dependency-units|dependency-scaling|dependency-stress|dependency-stress-serial|dependency-stress-parallel|dependency-stress-wrong-result|backend|backend-ir|backend-overlap|backend-overlap-calibrated|unit-admission|editor|bodies|body-smoke|type-smoke|type-errors|capture-policy|control-smoke|query-smoke|generic-quota|resource-smoke|receipt-smoke|lifecycle FIRST [LAST]]");
         return 1;
     }
     utility_check(work_thread_available(), "LR comparison uses the uninstrumented native worker profile");
     var suite: u8* = argc == 3 ? argv[2] : "all";
+    if strcmp(suite, "generic-quota") == 0 { generic_quota_checks(argv[1]); return 0; }
     if strcmp(suite, "dependency-stress") == 0 || strcmp(suite, "dependency-stress-serial") == 0
         || strcmp(suite, "dependency-stress-parallel") == 0 || strcmp(suite, "dependency-stress-wrong-result") == 0 {
         return compiler_dependency_seeded_tests(argv[1], suite);

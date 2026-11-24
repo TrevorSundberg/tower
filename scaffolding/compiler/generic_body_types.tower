@@ -11,6 +11,17 @@ struct CloneFrame {
 
 var CloneInitialFrames: usize = 16;
 
+// Null clone with no storage error means the cumulative GenericNodeLimit
+// policy was exhausted. Static text needs no allocation on either failure path.
+fn generic_clone_diagnostic(error: WorkBudgetError): u8* {
+    if error == WorkBudgetError.None {
+        return "Template expansion exceeds 65536 nodes (cumulative GenericNodeLimit)";
+    }
+    if error == WorkBudgetError.Capacity { return "Template clone storage exceeds its memory budget"; }
+    if error == WorkBudgetError.Memory { return "Cannot allocate template clone storage"; }
+    return "Cannot prepare template clone storage";
+}
+
 // Internal worker arguments, borrowing canonical entities from one compiler world.
 struct GenericBodyCopy {
     context: void*;
