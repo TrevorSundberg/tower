@@ -305,7 +305,62 @@ fn reuse_raw_trial(): void {
         && budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0
         && work_budget_dispose(&budget));
 }
+fn reuse_descriptor_growth(): void {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var store: EntityStore* = null;
+    reuse_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    reuse_check(root != null);
+    var stage = entity_stage_open(root);
+    reuse_check(stage != null);
+    var first = entity_stage_create(stage, root);
+    reuse_check(first != null);
+    var first_page = entity_owned_page(bits(u8*, first));
+    for(var i: usize = 1; i < first_page.capacity; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+    var second = entity_stage_create(stage, root);
+    reuse_check(second != null);
+    var second_page = entity_owned_page(bits(u8*, second));
+    var limit = entity_owned_page(bits(u8*, root)).capacity;
+    var expected_rows = first_page.capacity * 2;
+    if expected_rows > limit { expected_rows = limit; }
+    if second_page.capacity != expected_rows { trap("Dense stage descriptor page did not grow", 0); }
+    for(var i: usize = 1; i < second_page.capacity; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+
+    // The node index already has a spare entry. Exhaust the byte budget at
+    // the third descriptor page, then retry against the same private owners.
+    var count = stage.nodes.length;
+    reuse_check(count < stage.nodes.capacity);
+    var block: WorkReservation = default;
+    reuse_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &block));
+    var live = budget.live;
+    var error = WorkBudgetError.None;
+    reuse_check(entity_stage_create_result(stage, root, &error) == null && error == WorkBudgetError.Capacity
+        && stage.nodes.length == count && root.child_count == 0 && budget.live == live);
+    reuse_check(work_budget_release(&budget, &block));
+    var third = entity_stage_create_result(stage, root, &error);
+    reuse_check(third != null && error == WorkBudgetError.None
+        && entity_owned_page(bits(u8*, third)).capacity == expected_rows);
+    for(var i: usize = 1; i < expected_rows; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+    var tight_index = stage.nodes.length;
+    var headroom = compiler_buffer_allocation_size(first_page.allocation.capacity);
+    reuse_check(tight_index < stage.nodes.capacity && work_budget_reserve(&budget, 0, 0,
+        budget.bytes - budget.used_bytes - headroom, &block));
+    var tight = entity_stage_create_result(stage, root, &error);
+    if tight == null { trap("Initial descriptor page still fits the remaining budget", 0); }
+    reuse_check(error == WorkBudgetError.None && budget.used_bytes == budget.bytes
+        && entity_owned_page(bits(u8*, tight)).capacity == first_page.capacity
+        && work_budget_release(&budget, &block));
+    reuse_check(entity_stage_publish(stage) && root.child_count == tight_index + 1
+        && entity_child_at(root, 0) == first && entity_child_at(root, first_page.capacity) == second
+        && entity_child_at(root, count) == third && entity_child_at(root, tight_index) == tight);
+    entity_release(root);
+    reuse_check(entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget));
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
+    reuse_descriptor_growth();
     reuse_raw_trial();
     reuse_index_trial();
     reuse_trial(0);

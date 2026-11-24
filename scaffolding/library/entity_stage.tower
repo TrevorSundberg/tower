@@ -34,7 +34,7 @@ struct EntityStageNode {
 }
 
 // Private stages publish their descriptor pages intact, including unused slots.
-var EntityStageDescriptorPageRows: usize = 8;
+var EntityStageInitialDescriptorRows: usize = 8;
 
 struct EntityStageLease {
     node: Entity*;
@@ -120,8 +120,18 @@ export fn entity_stage_create_result(stage: EntityStage*, parent: Entity*, error
     if *error != WorkBudgetError.None { return null; }
     *error = work_vector_reserve_result(&stage.nodes, stage.anchor.store.budget, stage.nodes.length + 1);
     if *error != WorkBudgetError.None { return null; }
+    // Grow once when the first page's worth of nodes is live. Smaller stages
+    // stay compact, and successive dense pages share the doubled row limit.
+    var rows = EntityStageInitialDescriptorRows;
+    if stage.nodes.length >= rows { rows *= 2; }
     var node = entity_owned_allocate_rows_result(Entity, &stage.buffers, parent.store.budget, 1,
-        EntityStageDescriptorPageRows, error);
+        rows, error);
+    // The larger page is optional under a finite byte budget. Keep the
+    // original page grant admissible and propagate physical allocation errors.
+    if node == null && *error == WorkBudgetError.Capacity && rows > EntityStageInitialDescriptorRows {
+        node = entity_owned_allocate_rows_result(Entity, &stage.buffers, parent.store.budget, 1,
+            EntityStageInitialDescriptorRows, error);
+    }
     if node == null { return null; }
     *node = default;
     node.store = parent.store;
