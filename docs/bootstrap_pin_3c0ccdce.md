@@ -23,9 +23,10 @@ D1 independently verified package/source/provenance and reconciled all39 recorde
 products,57 converged payloads and77 named checks. ROOT inspected the actual five
 relocated command exits/stdout/stderr/times and successful batch log: help,
 interpreted42, foreign library, native link and ABI42 passed in7.01s/6.83CPU,
-177620KiB peak RSS. Its container was idle after execution. D1's final written
-receipt is still pending; original39 product sets remain A2-owned, not peer
-re-executions. Raw Gen1 runtime/path and provenance differences remain preserved.
+177620KiB peak RSS. Its container was idle after execution. D1's published
+[independent receipt](native_candidate_peer_3c0ccdce.md) closes that review;
+original39 product sets remain A2-owned, not peer re-executions. Raw Gen1
+runtime/path and provenance differences remain preserved.
 
 Current-source [native acceptance](native_combined_3c0ccdce.md),
 [ASan53](final_asan_3c0ccdce.md), [creation-fault supplement](entity_create_faults_asan_03de36a8.md)
@@ -41,7 +42,9 @@ the manifest resides at the package root. No artifact/check was substituted.
 
 Main is published atomically with the unchanged accepted Pagesab4 release; its
 runtime remains03e and actual packager1bfe. New r4 browser publication is separate.
-B1's clean public-default adoption is the remaining native adoption gate.
+[B1's clean public-default adoption](bootstrap_adoption_5ebde29f.md) now passes:
+all39 product hashes,21 relocated development checks and exact15/999/ABI42.
+Nine rebuilt runtime ModuleID comment differences remain recorded, not normalized.
 This is an LLVM19/Clang-dependent Linux x64 development bootstrap; generated other
 targets and expected missing-Clang diagnostics do not prove a portable release.
 ROOT raw checks/package: `C:/Sandbox/build/codex_ecs_20261122/ROOT_native_final_3c0`;
