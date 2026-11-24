@@ -9,12 +9,13 @@ no installer, unpacking step, bootstrap cache or Python dependency on this path.
 The current pin includes the Tower hosted ELF linker and `--link-executable`,
 world-owned compiler work, dependency scheduling and the published ECS storage
 improvements, SCC provider, parser optimizations, quota diagnostics and semantic
-scratch-memory repair at `6c83b118`. The complete executable is 2,299,088 bytes,
-SHA256 `31a385c616b889987d68f8eb9714020f3928aac97591a1569f905ab706f52ed6`.
+scratch-memory repair, guarded import reuse, component-page buckets and checked
+syntax reset/expansion ownership at `6117723b`. The complete executable is 2,299,272 bytes,
+SHA256 `04ae22d0e73e3674e43895ea2d1efc13da8b7a6b4704df5815369490e6fcfc47`.
 All 39 actual native build binaries match across three generations; all 57 package
 payloads and their checksums match across generations two and three. Exact source,
 host dependencies, failures and relocation evidence are in the
-[generation receipt](../docs/compiler_generation_6c83b118.md). Executable and
+[generation receipt](../docs/compiler_generation_6117723b.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
 browser-project packaging and test changes retain their separate source identity.
