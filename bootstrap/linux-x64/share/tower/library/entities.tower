@@ -8,6 +8,7 @@ var EntityComponentPageBytes: usize = 16384;
 var EntityComponentPageRows: usize = 64;
 var EntityOwnedPageRows: usize = 32;
 var EntityOwnedPageBytes: usize = 4096;
+var EntityChildIndexMinimum: usize = 4;
 
 // The owning Tower program supplies its lifecycle dispatch; zero means none.
 // IDs belong to that program, not to a process-wide native callback registry.
@@ -146,9 +147,10 @@ fn entity_reclaim(entity: Entity*): void {
     for(; i != entity.component_count; i++) {
         entity_component_dispose(entity.components[i]);
     }
-    entity_buffer_free(entity.children);
-    entity_buffer_free(entity.components);
+    entity_children_free(entity);
+    entity_components_free(entity);
     entity_buffer_free(entity.instances);
+    entity_owned_free(entity.layout);
     store.entity_count--;
     entity_owned_free(entity);
     store.reclaiming--;
@@ -235,30 +237,39 @@ export fn entity_view_query(view: EntityView*, type: Entity*, first: usize, coun
 
 // Component types are ordinary entities with a consistent layout/lifecycle.
 export fn entity_register(type: Entity*, size: usize, alignment: usize, lifecycle: usize): bool {
-    if type.stage != null { return false; }
-    var zero = alignment == 0;
-    if zero {
-        return false;
-    }
+    if type == null { return false; }
+    return entity_register_stage_result(type, size, alignment, lifecycle,
+        type.registered ? type.stage_page_rows : convert(u8, 0)) == WorkBudgetError.None;
+}
+
+// Coordinator-only registration, before dispatch. Repeating the same contract
+// is read-only; even an empty registered kind cannot change its page policy.
+export fn entity_register_stage_result(type: Entity*, size: usize, alignment: usize,
+    lifecycle: usize, stage_rows: u8): WorkBudgetError {
+    if type == null || alignment == 0 || stage_rows == 1
+        || convert(usize, stage_rows) > EntityComponentPageRows { return WorkBudgetError.Invalid; }
+    if type.stage != null { return WorkBudgetError.Busy; }
     var mask = alignment -1;
     var bits = alignment &mask;
-    if bits != 0 {
-        return false;
-    }
+    if bits != 0 { return WorkBudgetError.Invalid; }
     if type.registered {
-        var same = type.data_size == size;
-        same &&= type.data_alignment == alignment;
-        same &&= type.lifecycle == lifecycle;
-        return same;
+        var same = type.layout.data_size == size;
+        same &&= type.layout.data_alignment == alignment;
+        same &&= type.layout.lifecycle == lifecycle;
+        same &&= type.stage_page_rows == stage_rows;
+        return same ? WorkBudgetError.None : WorkBudgetError.Busy;
     }
-    if type.store.views != 0 {
-        return false;
-    }
-    type.data_size = size;
-    type.data_alignment = alignment;
-    type.lifecycle = lifecycle;
+    if type.store.views != 0 { return WorkBudgetError.Busy; }
+    // Raw stable storage avoids recursive component/self-kind registration.
+    // On denial neither the kind nor its registration flag is published.
+    var error: WorkBudgetError;
+    var layout = entity_owned_allocate_result(EntityLayout, &type.store.buffers, type.store.budget, 1, &error);
+    if layout == null { return error; }
+    *layout = { data_size: size, data_alignment: alignment, lifecycle: lifecycle };
+    type.layout = layout;
+    type.stage_page_rows = stage_rows;
     type.registered = true;
-    return true;
+    return WorkBudgetError.None;
 }
 
 // Published membership only. This never reads a worker's mutable private
@@ -299,6 +310,10 @@ fn entity_buffer_free(T: type, data: T*): void {
     work_buffer_dispose(&allocation);
 }
 
+fn entity_components_free(owner: Entity*): void {
+    if owner.components != &owner.inline_components[0] { entity_buffer_free(owner.components); }
+}
+
 fn entity_buffer_resize_result(T: type, budget: WorkBudget*, data: T*, count: usize,
     preserve: usize, error: WorkBudgetError*): T* {
     *error = WorkBudgetError.Invalid;
@@ -319,6 +334,30 @@ fn entity_buffer_resize_result(T: type, budget: WorkBudget*, data: T*, count: us
     bits(EntityBufferAllocation*, allocation.data).allocation = allocation;
     entity_buffer_free(data);
     return result;
+}
+
+fn entity_children_free(node: Entity*): void {
+    if node.children != &node.inline_children[0] { entity_buffer_free(node.children); }
+}
+
+// Preserve heap old+new admission and exact caller-selected growth. The inline
+// edge is already charged with its stable descriptor, never a buffer header.
+fn entity_children_resize_result(node: Entity*, count: usize): WorkBudgetError {
+    if count < node.child_count { return WorkBudgetError.Invalid; }
+    if count <= node.child_capacity { return WorkBudgetError.None; }
+    var inline_count = sizeof(decltype(node.inline_children)) / sizeof(EntityChild);
+    if node.children == null && count <= inline_count {
+        node.children = &node.inline_children[0]; node.child_capacity = inline_count;
+        return WorkBudgetError.None;
+    }
+    var local = node.children == &node.inline_children[0];
+    var error = WorkBudgetError.None;
+    var memory = entity_buffer_resize_result(node.store.budget, local ? null : node.children,
+        count, local ? 0 : node.child_count, &error);
+    if memory == null { return error; }
+    if local { copy(memory, node.children, node.child_count * sizeof(EntityChild)); }
+    node.children = memory; node.child_capacity = count;
+    return WorkBudgetError.None;
 }
 
 fn entity_reserve_components(budget: WorkBudget*, data: EntityComponent***, capacity: usize*, count: usize): WorkBudgetError {
@@ -468,8 +507,10 @@ fn entity_component_allocate(owner: Entity*, type: Entity*, error: WorkBudgetErr
     var pool = owner.storage;
     if owner.stage != null && pool == null { *error = WorkBudgetError.Invalid; return null; }
     if pool == null { pool = &owner.store.storage; }
-    var component = entity_storage_allocate(pool, owner.store.budget, type.id, type.data_size,
-        type.data_alignment, EntityComponentPageRows, EntityComponentPageBytes, error);
+    var rows = EntityComponentPageRows;
+    if owner.stage != null && type.stage_page_rows != 0 { rows = convert(usize, type.stage_page_rows); }
+    var component = entity_storage_allocate(pool, owner.store.budget, type.id, type.layout.data_size,
+        type.layout.data_alignment, rows, EntityComponentPageBytes, error);
     if component != null { component.owner = owner; component.type = type; }
     return component;
 }
@@ -547,7 +588,27 @@ export fn entity_component_add_result(owner: Entity*, type: Entity*, error: Work
     if unregistered {
         return null;
     }
-    *error = entity_reserve_components(owner.store.budget, &owner.components, &owner.component_capacity, owner.component_count);
+    if owner.components == null {
+        owner.components = &owner.inline_components[0];
+        owner.component_capacity = sizeof(decltype(owner.inline_components)) / sizeof(EntityComponent*);
+    }
+    // Keep the inline index intact until payload/table preparation succeeds.
+    // The pending array owns a new receipt; inline storage is charged with its
+    // stable descriptor page and must never enter the buffer resize/free path.
+    var pending: EntityComponent** = null;
+    var capacity: usize = 0;
+    defer entity_buffer_free(pending);
+    *error = WorkBudgetError.None;
+    if owner.components == &owner.inline_components[0] {
+        if owner.component_count == owner.component_capacity {
+            *error = entity_reserve_components(owner.store.budget, &pending, &capacity, 0);
+            if *error == WorkBudgetError.None {
+                copy(pending, owner.components, owner.component_count * sizeof(EntityComponent*));
+            }
+        }
+    } else {
+        *error = entity_reserve_components(owner.store.budget, &owner.components, &owner.component_capacity, owner.component_count);
+    }
     if *error == WorkBudgetError.None && !staged {
         *error = entity_reserve_components(owner.store.budget, &type.instances, &type.instance_capacity, type.instance_count);
     }
@@ -558,6 +619,11 @@ export fn entity_component_add_result(owner: Entity*, type: Entity*, error: Work
     if *error != WorkBudgetError.None {
         entity_component_free(component);
         return null;
+    }
+    if pending != null {
+        owner.components = pending;
+        owner.component_capacity = capacity;
+        pending = null;
     }
     component.type_index = type.instance_count;
     if staged { component.type_index = ~convert(usize, 0); }
@@ -579,8 +645,8 @@ fn entity_component_dispose(component: EntityComponent*): void {
     var last = type.instances[type.instance_count];
     type.instances[component.type_index] = last;
     last.type_index = component.type_index;
-    if type.lifecycle != 0 {
-        tower_entity_finalize(type.lifecycle, component, component.data);
+    if type.layout.lifecycle != 0 {
+        tower_entity_finalize(type.layout.lifecycle, component, component.data);
     }
     var store = type.store;
     store.component_count--;
@@ -743,14 +809,13 @@ export fn entity_attach_result(child: Entity*, parent: Entity*, name: u8*): Work
             var limit = maximum / sizeof(EntityChild);
             if parent.child_capacity > limit / 2 { return WorkBudgetError.Invalid; }
             var capacity = parent.child_capacity *2;
-            if capacity < 4 {
-                capacity = 4;
-            }
-            var error: WorkBudgetError;
-            var next = entity_buffer_resize_result(parent.store.budget, parent.children, capacity, parent.child_count, &error);
-            if next == null { return error; }
-            parent.children = next;
-            parent.child_capacity = capacity;
+            if parent.child_capacity == 0 {
+                capacity = sizeof(decltype(parent.inline_children)) / sizeof(EntityChild);
+            } else { if capacity < EntityChildIndexMinimum {
+                capacity = EntityChildIndexMinimum;
+            } }
+            var error = entity_children_resize_result(parent, capacity);
+            if error != WorkBudgetError.None { return error; }
         }
         var has_name = name != null;
         has_name &&= *name != 0;

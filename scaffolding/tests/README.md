@@ -1706,6 +1706,18 @@ package coverage, not the browser concurrency or integrated release matrix.
 
 ### Focused LR closure ordering and frontend iteration cost
 
+`tower-frontend-tests RESOURCE_ROOT graph-components` checks the generic SCC
+partition against independent all-pairs reachability: eight explicit shapes and
+234 deterministic generated cases (six seeds, 0–12 nodes, three densities).
+It checks complete/unique membership, reverse-topological cross-component edges,
+and owned results after borrowed adjacency storage is poisoned and released.
+`lr-components` selects the existing SCC ownership/retry and 4096-node chain
+controls without the broader grammar/failure campaigns. CTest registers these as
+`tower-frontend-graph-components` and `tower-frontend-lr-components`, each with the
+existing focused 60-second timeout. `graph-components-wrong` intentionally flips
+one reflexive reachability expectation and must exit1 after complete cleanup;
+it is a manual rejecting oracle control, not an accepted graph result.
+
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,
 singleton, odd/even boundary sizes; ordered, reversed and seeded shuffled items;
