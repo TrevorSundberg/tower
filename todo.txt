@@ -9968,4 +9968,6 @@ I want you to examine now the logs from the local "Launch distributed coding"...
  - set default temperature to 10%
  - remove checkbox for keep sign ins refreshed, yes we always keep them refreshed period as long as they are added here
  - cleanup the tasks/chats you've already added on there, I want this work on tower to be the only thing on there (also make sure our agents and push/pull with our github as well, not sure how that works on openhands but make git keys if needed with gh etc, forever keys ideally)
+ - clarify what default account means, it only has one option and just says cloud account, can we remove this, do we need this? does it add more later somehow?
+
 
