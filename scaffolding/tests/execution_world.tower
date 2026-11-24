@@ -273,8 +273,47 @@ fn retained_world_expect(session: ExecutionSession*, world: void*, modules: void
     retained_world_drained(world, budget);
     if fast { execution_check(execution_session_fast(session), "Retained source Fast admission"); }
     execution_run(session, 7, 100000);
+    if !execution_text(&session.output, wanted) {
+        execution_error("Expected retained output:", wanted);
+        execution_error("Actual retained output:", session.output.data ?? "");
+    }
     execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, wanted),
         "Retained source exact layout, staged value, body and effect order");
+}
+
+fn retained_world_diamond(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
+    // Ordinary code alone does not store an import snapshot. Give each unchanged
+    // arm its own grammar rule so both cached clones depend on the same leaf.
+    var left = "import tower;import retained_leaf as sample;parse RetainedLeft = 'left_marker';fn read_seed():decltype(sample.seed){return sample.seed;}print(21);";
+    var right = "import tower;import retained_leaf as origin;parse RetainedRight = 'right_marker';fn projected():i32{return origin.staged();}print(31);";
+    execution_check(frontend_modules_source(modules, "retained_left.tower", left, strlen(left))
+        && frontend_modules_source(modules, "retained_right.tower", right, strlen(right)), "Install both retained diamond arms once");
+    var source = "import tower;import retained_left as lhs;import retained_right as rhs;struct Item{value:decltype(lhs.read_seed());}var known=comptime(rhs.projected());print(sizeof(Item));print(known);print(lhs.read_seed());";
+    var name = "retained_leaf.tower";
+    var first = "import tower;var seed:u8=7;fn staged():i32{return later()+5;}fn later():i32{return 20;}print(11);";
+    var changed = "import tower;var seed:u64=19;fn staged():i32{return later()+5;}fn later():i32{return 40;}print(12);";
+    var broken = "import tower;var seed:MissingLeaf=19;fn staged():i32{return later()+5;}fn later():i32{return 40;}print(13);";
+    var repaired = "import tower;var seed:u16=9;fn staged():i32{return later()+5;}fn later():i32{return 60;}print(14);";
+    // One leaf initializer, then left and right, then root layout / staged sum / value.
+    var old_output = "11\n21\n31\n1\n25\n7\n";
+    var new_output = "12\n21\n31\n8\n45\n19\n";
+    var repaired_output = "14\n21\n31\n2\n65\n9\n";
+    execution_check(frontend_modules_source(modules, name, first, strlen(first)), "Install shared leaf");
+    retained_world_expect(session, world, modules, budget, source, old_output, false);
+    retained_world_expect(session, world, modules, budget, source, old_output, true);
+    execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Replace only the shared leaf");
+    retained_world_expect(session, world, modules, budget, source, new_output, false);
+    retained_world_expect(session, world, modules, budget, source, new_output, true);
+    execution_check(frontend_modules_source(modules, name, broken, strlen(broken)), "Install failing shared leaf");
+    execution_check(!execution_session_compile(session, source, strlen(source), 8, modules)
+        && session.program.resource.error == WorkBudgetError.None && execution_text(&session.error, "Unknown type 'MissingLeaf'")
+        && session.machine.done && session.machine.failed && session.machine.steps == 0 && !session.started
+        && session.output.length == 0 && session.fast == null && !execution_session_start(session) && !execution_session_fast(session),
+        "Failing shared leaf retires the previous Fast request before any initializer runs");
+    retained_world_drained(world, budget);
+    execution_check(frontend_modules_source(modules, name, repaired, strlen(repaired)), "Repair only the shared leaf");
+    retained_world_expect(session, world, modules, budget, source, repaired_output, true);
+    retained_world_expect(session, world, modules, budget, source, repaired_output, false);
 }
 
 fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
@@ -326,6 +365,7 @@ fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     execution_check(!session.machine.done && session.machine.steps != 0, "Actual partial execution before replacement");
     execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Edit after compiler workers joined");
     retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
+    retained_world_diamond(&session, world, modules, &budget);
     execution_close_checked(&session);
     retained_world_drained(world, &budget);
     execution_check(probe.active == 0 && (workers == 1 || probe.peak >= 2), "Retained native LR work actually overlaps and drains");

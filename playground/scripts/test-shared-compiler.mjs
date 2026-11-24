@@ -10,10 +10,11 @@ import {chromium} from '@playwright/test';
 import {files, builtins} from '../tests/compiler-fixtures.mjs';
 
 const [compilerPath, workPath, reportPath, selection] = process.argv.slice(2);
-if (!compilerPath || !workPath || !reportPath) throw new Error('Usage: node playground/scripts/test-shared-compiler.mjs COMPILER.wasm WORK.wasm REPORT.json');
+if (!compilerPath || !workPath || !reportPath) throw new Error('Usage: node playground/scripts/test-shared-compiler.mjs COMPILER.wasm WORK.wasm REPORT.json [lr-bounded|ownership[:modes]]');
 const ownershipModes = ['startup-cancel', 'partial-startup-cancel', 'busy-cancel', 'coordinator-error', 'coordinator-messageerror', 'startup-error', 'shared-trap', 'generation-retire', 'retired-errors'];
 const selectedModes = selection === 'ownership' ? ownershipModes : selection?.startsWith('ownership:') ? selection.slice('ownership:'.length).split(',') : null;
-if (selection !== undefined && (!selectedModes || selectedModes.some(mode => !ownershipModes.includes(mode)))) throw new Error('Unknown shared compiler selection');
+const boundedLR = selection === 'lr-bounded';
+if (selection !== undefined && !boundedLR && (!selectedModes || selectedModes.some(mode => !ownershipModes.includes(mode)))) throw new Error('Unknown shared compiler selection');
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 const compiler = await readFile(compilerPath), work = await readFile(workPath);
@@ -207,7 +208,8 @@ try {
         'The retiring coordinator must actually post its old-generation reply');
       console.log('Ownership control passed: '+mode);
     }
-  } else for (const trial of [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {
+  } else for (const trial of boundedLR ? [{mode:'lr-bounded', capacity:2}] :
+    [{mode:'pool', capacity:4}, {mode:'compiler', capacity:1}, {mode:'compiler', capacity:4}]) {
     workers = [];
     const start = performance.now();
     const receipt = await page.evaluate(async data => {
@@ -240,7 +242,7 @@ try {
       };
       worker.postMessage({probe:'start'});
       });
-    }, {...trial, files, builtins, fixtures});
+    }, {...trial, files, builtins, fixtures:boundedLR ? [] : fixtures});
     receipt.wallMilliseconds = performance.now()-start;
     // Retain canonical hashes in evidence, but compare the full text first.
     report.trials.push(receipt);
@@ -262,7 +264,7 @@ try {
     assert.ok(workers.every(worker => worker.closed), 'Every observed worker emitted close');
     receipt.browserWorkersClosed = workers.length;
   }
-  if (!selectedModes) {
+  if (!selectedModes && !boundedLR) {
   const serial = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 1);
   const parallel = report.trials.find(trial => trial.mode === 'compiler' && trial.capacity === 4);
   assert.deepEqual(parallel.results, serial.results, 'Serial/parallel output and canonical Foundation');
