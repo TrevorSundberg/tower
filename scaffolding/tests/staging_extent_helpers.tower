@@ -1,0 +1,38 @@
+import tower;
+
+// Forward ordinary producers; every answer below has an independent literal oracle.
+fn check_extents(): i32 {
+    var ordered: u8[ordered_extent()];
+    var generic: u8[identity(i32, 3)];
+    var aggregate: u8[aggregate_extent(5)];
+    var callback: u8[indirect_extent(&double_extent, 3)];
+    var lazy: u8[true ? 7 : recursive_extent()];
+    var local = 9;
+    var captured: u8[local];
+    { var local = 2; var shadow: u8[local]; if sizeof(decltype(shadow)) != 2 { return 1; } }
+    var module: u8[module_extent()];
+    if sizeof(decltype(ordered)) != 12 || sizeof(decltype(generic)) != 3 { return 2; }
+    if sizeof(decltype(aggregate)) != 5 || sizeof(decltype(callback)) != 6 { return 3; }
+    if sizeof(decltype(lazy)) != 7 || sizeof(decltype(captured)) != 9 { return 4; }
+    if sizeof(decltype(module)) != 4 || comptime(ordered_extent()) != 12 { return 5; }
+    return 0;
+}
+
+fn ordered_extent(): usize {
+    var count: usize = 0;
+    var result = combine(increment(&count), increment(&count));
+    // Reversed arguments produce 21; replay produces count != 2 or result != 12.
+    return count == 2 ? result : 1;
+}
+fn combine(left: usize, right: usize): usize { return left * 10 + right; }
+fn increment(count: usize*): usize { (*count)++; return *count; }
+fn identity(T: type, value: T): T { return value; }
+struct Extent { count: usize; }
+fn aggregate_extent(value: usize): usize { return unpack_extent(make_extent(value)); }
+fn make_extent(value: usize): Extent { return {count: value}; }
+fn unpack_extent(value: Extent): usize { return value.count; }
+fn indirect_extent(callback: function(usize, usize), value: usize): usize { return callback(value); }
+fn double_extent(value: usize): usize { return value * 2; }
+fn recursive_extent(): usize { return recursive_extent(); }
+var module_count: usize = 4;
+fn module_extent(): usize { return module_count; }

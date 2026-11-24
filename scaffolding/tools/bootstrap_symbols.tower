@@ -104,6 +104,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     }
     if unit == BootstrapUnit.ParserNodes {
         if bootstrap_symbol_in("graph_components_result graph_components_dispose", symbol, length) { return true; }
+        // Configured scanner-reference fixtures use string length and the
+        // existing fail-fast test reporter; these are not global allowances.
+        if bootstrap_symbol_in("fflush puts strlen", symbol, length) { return true; }
         // Diagnostic text retains the ParserFormat provider's buffer result.
         if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
         if bootstrap_symbol_in("parser_structure_cache_copy parser_structure_cache_dispose", symbol, length) { return true; }
