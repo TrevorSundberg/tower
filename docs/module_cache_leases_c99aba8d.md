@@ -1,0 +1,34 @@
+# Empty-cache seed-clear lease coverage; legacy suite remains failed
+
+- **New lifetime case PASS; complete `tower-module-cache-regressions` FAILS** at its unchanged `Unit startup preserves invalid total budget` assertion. No production cache defect was exposed.
+- Frozen published base `c99aba8d9558111f8da232a32cbff6de1a1d3fdf`, including reviewed `b36a5f7c`; only two existing test files changed.
+- Entry `scaffolding/tests/module_cache_checks.tower` calls the new case and then the original suite unconditionally. The body belongs to the already-linked `tests/frontend_modules.tower` fixture unit; no producer/type-layout copy or new harness.
+- Validity audit: `frontend_world_clear` rejects ECS views and busy workers; synchronous `syntax_next` returns after recognizer/worker borrows join. Retained revisions/documents are ownership references, not active ECS views.
+- `syntax_baselines_clear` retires registry ownership; session pins retain their revisions/entities. Environment/lease owners prevent world disposal. The test checks these actual preconditions and the failed-disposal guard.
+- Two ordinary seed-only/no-import requests use independent parsers. One parses `parse Statement = 'idle'; idle`, completes and returns idle; the other parses its declaration/first `old` and retains a pending second `old`.
+- Assert cache empty, exactly one active graph, exact idle session and shared old seed identity. Independently retain the idle document as a lifetime witness; never read a freed parser.
+- Clear/reinitialize the same world while quiescent; assert a distinct current seed while both old leases and the empty snapshot cache remain intact.
+- Install importing Foundation from `shared.tower` (`parse Statement = 'cached';`). Successful publication advances generation, empties the idle slot and reduces the witnessed idle-document references from two to the sole test owner.
+- Retained snapshot/declaration entities belong to the same world. Published `ImportDeclaration` alternatives equal current-seed entities and differ from retained old-seed entities; `Statement` alternatives equal the exact cached declaration's children.
+- Snapshot records do not store a separate seed field: the oracle checks actual published grammar/entity identities and subsequent cached-declaration reuse, not a copy of the producer guard.
+- Old active session keeps its seed, cursor and original lease generation, consumes the pending literal, reaches clean EOF, and cannot refill even an empty current idle slot when destroyed.
+- A fresh request pins the current seed, parses exact `import shared; cached` roots and reuses the immutable cached declaration; its current-generation session returns to idle normally.
+- Seven actual parse-root spans are checked against literal expected bytes and owning worlds, including the resumed old root. This is parser output coverage, not an execution/backend throughput claim.
+- Environment, snapshot, document and revision owners then drain; world disposal succeeds; the existing 128MiB serial budget asserts **bytes=0, live grants=0, lanes=0**, then disposes.
+- Existing fixtures, caps and assertions remain unchanged. The new case runs first and flushes its success line so a later abort cannot hide its result; the old suite is neither skipped nor converted to success.
+- Build: only dependency-aware `tower-module-cache-tests` in `/cache/native`, Release, compiler jobs1/outer4, public default `31a385c616b889987d68f8eb9714020f3928aac97591a1569f905ab706f52ed6`, no override or sanitizer.
+- Host: KinmenB Linux CPU12–23/quota12/24GiB, existing native toolchain and production allocator; no overlapping cache build or other matrix.
+- Retained five draft build failures: reserved identifier, missing direct release declaration, duplicate imported provider symbol, missing component-kind import, missing puts declaration. Fixed only fixture syntax/import/unit wiring; no language/producer change or lost logs.
+- Final build (two actions): **18.040010s wall / 12.505153s child CPU / 770892KiB process peak RSS**; earlier changed-draft build costs are in `metrics.json`.
+- Final command: existing CTest selection `^tower-module-cache-regressions$`; actual working directory `/work/scaffolding`, original computed timeout180s. No deadline/cap adjustment.
+- Final output first confirms `Empty-cache seed-clear idle/active leases, cached output and zero ownership passed.`, then traps at the legacy startup assertion. CTest reports aborted, 0/1 passed; wrapper exit1, not timeout.
+- Final run cost: **0.038592s wall / 0.036072s child CPU / 52700KiB process peak RSS**. It is a partial-suite validation cost, never a complete-suite time or speedup.
+- Initial original-order run hit that same assertion before the new case ran; retained `original_mode_first_failure.log`. Reordered and final bounds-checked versions both execute the new case successfully before the same old failure; no flaky retry/pass claim.
+- Exact blocking input: `frontend_units_create_bounded_result(1,1,1,8,1,1,"","", "", &error)`; untouched oracle expects null + `WorkBudgetError.Invalid`.
+- Source attribution: valid cap1 reaches `work_pool_open_impl`'s checked `WorkSlot` allocation; `work_buffer_resize` returns **Capacity** for a representable physical allocation above the initialized cap, and `frontend_units_open` forwards it. This precedes `compiler_work_create_result` and is distinct from B1's later lost Capacity-to-Memory receipt.
+- The trap does not print the enum value; Capacity is the traced producer contract, corroborated by B1's separate cap-one receipt, not a newly printed observation here. Small follow-up: correct this stale cap-one oracle/comment while retaining null-output, retry and all caps; no cache producer correction is indicated.
+- That correction is left to ROOT/B1 under this task's instruction to preserve old assertions. Remaining startup retry and `module_baseline_imports_test` are unstarted in these runs; full-suite acceptance remains open.
+- Final ELF SHA256 `3fd3b2f1953692503630ceaeab2e91ccb693004e3bc46ad2809f6f1274f6e9e5`; fixture SHA256 `1776d5453ecaf9a2eb0b78da1d4d45962b6ec2f8f7d16d3156e4f74433f1b28e`, entry `259bd170d20f3ccd77fd3810fab77e15fcac438363b99744cf6c9b5d982cff86`.
+- Raw: `C:/Sandbox/build/codex_ecs_20261122/B2/module_cache_leases_c99aba8d/` and matching `/cache/`; before/final binaries, all attempted logs/commands, depfiles, final patch, source hashes, registration and metrics retained. Inputs unchanged during each run; owned live jobs drained.
+- Test-only addition has no production performance claim. **Added-case ASan adoption is pending**; L1's older fixture binary does not cover it. No full64/query/type/browser/generation/deployment or unsupported instrumentation run.
+- D1's source-reviewed ownership argument is now exercised for this exact combined case. ROOT retains the legacy-oracle follow-up, full-suite acceptance and final release; no wait or producer overlap.
