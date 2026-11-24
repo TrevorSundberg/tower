@@ -34,3 +34,10 @@
 - These are independent validation costs, not D2 speedup samples; GNU time records process-tree CPU/max-process RSS. No OOM event; the container's historical memory.peak predates this cap and is not reported as current test peak. Owned locks/jobs drained; todo unchanged.
 - [L2 performance](compiler_capture_scan_c185948f.md) remains attributed at c185948f:32 timed samples, small n4 wall+1.19/+1.14%, single serial−2.78%/CPU−3.12%, large/eight effectively flat; retention equal. The extra-small subset is not the aggregate. No universal win, race freedom or new instrumentation/browser/release adoption is claimed.
 - Raw `build/d2_ecs/capture_candidate_peer_r3/`: descriptor, borrow proof references, patch/blobs, source/ELF verification failures, local build/ELF identities, five checked logs/times/exits and drained jobs. ROOT/L2 still own resolving six supplied-manifest discrepancies; they do not block the independently rebuilt published-source correctness result. ROOT owns final release.
+
+ROOT provenance resolution after this peer run: all nine physical Tower differences
+are CRLF/LF placement only, including six mixed-ending files. Each original
+physical file matches its recorded merged build SHA and its Git-filtered blob
+matches28937e40. The exact files/proof remain in the source supplement named in
+the current handoff. D2's recorded failed verification and independent rebuild
+are preserved; supplied binaries were not retrospectively counted as executed.
