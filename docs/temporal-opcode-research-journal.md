@@ -96937,3 +96937,5 @@ Freeze dec17663/tree f558f4f7, cumulative d62d/65-path/full-audit base retained.
 
 
 B1 native-generation receipt reconciliation: c540ad1c joins complete publisheddd7f5032 through f5d8e5e7. Incoming staging fixtures/documentation do not change production compiler/resources; preserved ca1c893e source/package hashes remain authoritative and later fixture coverage is not inferred. No repeated generations or pin change.
+
+A1 combined measurement integration:7765cb33 plus incoming24ac43dc preserved as11e20450; actual production/build/bootstrap/profile/generator diff versus frozen05a23c99 is empty. Incoming semantic_pool_budget/semantic_query_failure test changes and other receipts stay excluded; no rerun or shifted runtime identity. Final boundary recorded once in compiler_combined_acceptance_05a23c99, all owned processes drained, todo unchanged.
