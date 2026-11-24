@@ -1,4 +1,5 @@
 import syntax_view;
+import parser_table_types;
 import tower;
 import lr_analysis;
 import parser_nodes;
@@ -28,7 +29,8 @@ extern fn syntax_replacement_capture(host: void*, name: u8*, source: void*): voi
 
 // 1 success, 2 parser-table conflict, 0 other failure. The candidate owns its
 // tree; selecting/committing transfers it within the revision storage facade.
-extern fn syntax_replacement_attempt(host: void*, category: u8*): u32;
+extern fn syntax_replacement_attempt_reusing(host: void*, category: u8*, structures: ParserStructureCache*): u32;
+extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
 extern fn syntax_replacement_resource_error(host: void*): WorkBudgetError;
 
 extern fn syntax_replacement_diagnostic(host: void*): u8*;
@@ -47,6 +49,7 @@ struct ReplacementRuleState {
 
 struct ReplacementPlanState {
     plan: SyntaxReplacementPlan*;
+    structures: ParserStructureCache;
     rules: vector(ReplacementRuleState);
     pending: vector(usize);
     tried: vector(usize);
@@ -349,7 +352,7 @@ fn replacement_prepare_one(state: ReplacementPlanState*, index: usize, alternati
             if !state.allocated {
                 return false;
             }
-            var status = syntax_replacement_attempt(state.plan.host, state.plan.rules[category].name);
+            var status = syntax_replacement_attempt_reusing(state.plan.host, state.plan.rules[category].name, &state.structures);
             state.plan.resource_error = syntax_replacement_resource_error(state.plan.host);
             if state.plan.resource_error != WorkBudgetError.None { return false; }
             if status == 1 {
@@ -469,6 +472,8 @@ fn replacement_prepare_all(state: ReplacementPlanState*): bool {
 export fn syntax_replacements_prepare(plan: SyntaxReplacementPlan*): bool {
     plan.resource_error = WorkBudgetError.None;
     var state: ReplacementPlanState = default;
+    // One prepare call owns one frozen version and import environment.
+    defer parser_structure_cache_dispose(&state.structures);
     state.plan = plan;
     state.allocated = true;
     var ok = replacement_prepare_all(&state);

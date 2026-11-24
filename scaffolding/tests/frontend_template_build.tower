@@ -1,6 +1,7 @@
 import utility_checks;
 import tower;
 import .library.vector;
+import .library.work_budget;
 import .library.work_budget_types;
 import .compiler.syntax_types;
 import .compiler.syntax_view;
@@ -17,16 +18,19 @@ import frontend_replacement_owner;
 import frontend_baselines;
 
 extern fn syntax_replacement_attempt(owner: void*, category: u8*): u32;
+extern fn syntax_replacement_attempt_reusing(owner: void*, category: u8*, structures: ParserStructureCache*): u32;
+extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
 extern fn syntax_replacement_resource_error(owner: void*): WorkBudgetError;
 extern fn dprintf(fd: i32, format: u8*, allocation: usize, error: u32, status: u32): i32;
 extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn bytes_assign_text(value: vector(u8)*, text: u8*, length: usize): bool;
 extern fn syntax_inspection_match(session: SyntaxSession*, node: void*): void*;
 extern fn syntax_inspection_reference(session: SyntaxSession*, text: u8*, length: usize, index: usize, count: usize*): void*;
 extern fn syntax_inspection_template(session: SyntaxSession*, body: void*, category: u8**, captures: usize*): void*;
 extern fn syntax_inspection_capture(session: SyntaxSession*, body: void*, index: usize): void*;
 
-fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, capture: void*): void {
+fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, capture: void*, cacheable: bool): void {
     var baseline = true;
     var allocations: usize = 0;
     var budget: usize = 0;
@@ -37,8 +41,10 @@ fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, cap
         syntax_replacement_begin(owner, "Statement", sequence, 120, 140);
         syntax_replacement_capture(owner, "value", capture);
         var calls = tower_test_buffer_allocations();
+        var structures: ParserStructureCache = default;
         tower_test_buffer_fail_after(baseline ? frontend_world_unlimited() : budget);
-        var status = syntax_replacement_attempt(owner, "Statement");
+        var status = cacheable ? syntax_replacement_attempt_reusing(owner, "Statement", &structures)
+            : syntax_replacement_attempt(owner, "Statement");
         tower_test_buffer_fail_after(frontend_world_unlimited());
         calls = tower_test_buffer_allocations() - calls;
         var error = syntax_replacement_resource_error(owner);
@@ -48,6 +54,7 @@ fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, cap
             dprintf(2, "Replacement allocation %zu: resource=%u status=%u\n", budget, convert(u32, error), status);
         }
         syntax_replacement_owner_destroy(owner);
+        parser_structure_cache_dispose(&structures);
         utility_check(classified,
             "Valid replacement distinguishes resource denial from grammar failure");
         if baseline {
@@ -64,7 +71,7 @@ fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, cap
 
 // A standalone grammar world exercises the actual production callback, without
 // installing a host baseline. Typed captures and diagnostics must use its kinds.
-fn frontend_template_world_tests(world: void*): void {
+fn frontend_template_world_tests(world: void*, cacheable: bool): void {
     var store = compiler_world_store(world);
     var source = entity_create(store);
     defer entity_release(source);
@@ -112,9 +119,13 @@ fn frontend_template_world_tests(world: void*): void {
     var candidate = syntax_replacement_candidate(owner, "Statement");
     utility_check(candidate is not null, "template candidate");
     utility_check(bytes_append(text, "$value", strlen("$value")), "typed capture source");
-    utility_check(syntax_replacement_attempt(owner, "Statement") == 1, syntax_replacement_diagnostic(owner));
+    var structures: ParserStructureCache = default;
+    defer parser_structure_cache_dispose(&structures);
+    utility_check(syntax_replacement_attempt_reusing(owner, "Statement", &structures) == 1, syntax_replacement_diagnostic(owner));
+    utility_check(structures.entries.length == convert(usize, cacheable), "only the unbudgeted preparation pins its table");
+    var entry = cacheable ? structures.entries.data[0] : null;
     utility_check(syntax_replacement_resource_error(owner) == WorkBudgetError.None, "valid template has no resource error");
-    frontend_template_failure_tests(version, alternatives[0], capture);
+    frontend_template_failure_tests(version, alternatives[0], capture, cacheable);
     utility_check(candidate.tree is not null && compiler_node_world(candidate.tree) == world, "capture tree stays in its world");
     var session: SyntaxSession;
     fill(&session, 0, sizeof(SyntaxSession));
@@ -127,14 +138,16 @@ fn frontend_template_world_tests(world: void*): void {
     frontend_format_text(syntax_replacement_diagnostic(owner), "");
     text.length = 0;
     utility_check(bytes_append(text, "$missing", strlen("$missing")), "invalid capture source");
-    utility_check(syntax_replacement_attempt(owner, "Statement") == 0, "invalid capture rejected");
+    utility_check(syntax_replacement_attempt_reusing(owner, "Statement", &structures) == 0, "invalid capture rejected");
     utility_check(syntax_replacement_resource_error(owner) == WorkBudgetError.None, "invalid capture is an ordinary grammar diagnostic");
     utility_check(syntax_replacement_offset(owner) >= 120, "diagnostic offset retains source base");
     utility_check(syntax_replacement_diagnostic(owner)[0] != 0, "invalid capture diagnostic");
     // Recovery replaces the earlier owned tree and resets the capture-use row.
     text.length = 0;
     utility_check(bytes_append(text, "x", 1), "recovery literal source");
-    utility_check(syntax_replacement_attempt(owner, "Statement") == 1, "literal template recovery");
+    utility_check(syntax_replacement_attempt_reusing(owner, "Statement", &structures) == 1, "literal template recovery");
+    utility_check(structures.entries.length == convert(usize, cacheable)
+        && (!cacheable || structures.entries.data[0] == entry), "retry preserves the same prepared table and reparses the new literal");
     utility_check(syntax_replacement_resource_error(owner) == WorkBudgetError.None, "template recovery has no resource error");
     utility_check(candidate.tree is not null && compiler_node_world(candidate.tree) == world, "recovery tree stays in its world");
     utility_check(candidate.captures.data[0].uses == 0, "recovery clears capture uses");
@@ -157,11 +170,16 @@ fn frontend_template_world_tests(world: void*): void {
 fn frontend_template_build_tests(): void {
     var baseline = tower_test_buffer_count();
     var first = compiler_world_create();
-    var second = compiler_world_create();
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "template test budget");
+    var second: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &second) == WorkBudgetError.None, "budgeted template world");
     utility_check(first is not null && second is not null, "two independent worlds");
-    frontend_template_world_tests(first);
-    frontend_template_world_tests(second);
+    frontend_template_world_tests(first, true);
+    frontend_template_world_tests(second, false);
     utility_check(frontend_world_clear(first) && compiler_world_dispose(first), "first world releases all leases");
     utility_check(frontend_world_clear(second) && compiler_world_dispose(second), "second world releases all leases");
+    utility_check(budget.live == 0 && budget.used_lanes == 0 && budget.used_bytes == 0 && work_budget_dispose(&budget),
+        "template preparation releases the finite budget");
     utility_check(tower_test_buffer_count() == baseline, "all template allocations released");
 }
