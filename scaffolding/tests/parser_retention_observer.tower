@@ -60,18 +60,18 @@ fn parser_retention_observe(world: void*, session: SyntaxSession*, out: ParserRe
     var pointer_size = sizeof(EntityComponent*);
     foreach(var & entry in &pages) {
         var page = entry.page;
-        var alignment = entry.type.data_alignment;
+        var alignment = entry.type.layout.data_alignment;
         if alignment < pointer_size { alignment = pointer_size; }
         var mask = alignment - 1;
         var maximum = ~convert(usize, 0);
-        if entry.type.data_size > maximum - pointer_size - mask { return false; }
-        var stride = (entry.type.data_size + pointer_size + mask) & ~mask;
+        if entry.type.layout.data_size > maximum - pointer_size - mask { return false; }
+        var stride = (entry.type.layout.data_size + pointer_size + mask) & ~mask;
         if stride != page.stride || stride > maximum - sizeof(EntityComponent) { return false; }
         var slot = stride + sizeof(EntityComponent);
         var overhead = sizeof(EntityComponentPage) + pointer_size + mask;
         if page.capacity > (maximum - overhead) / slot { return false; }
         var requested = overhead + page.capacity * slot;
-        var live_bytes = page.live * entry.type.data_size; // Bounded by slot capacity above.
+        var live_bytes = page.live * entry.type.layout.data_size; // Bounded by slot capacity above.
         if requested > maximum - out.requested_bytes || live_bytes > maximum - out.live_payload_bytes { return false; }
         out.requested_bytes += requested;
         out.live_payload_bytes += live_bytes;

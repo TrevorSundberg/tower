@@ -60,10 +60,10 @@ fn sem_executable_admission_failure(c: SemanticContext*, subject: void*, error: 
 fn sem_executable_kind(c: SemanticContext*, size: usize, alignment: usize): void* {
     var error: WorkBudgetError;
     var kind = sem_create_result(c.program.root, &error);
-    if kind != null && !entity_register(kind, size, alignment, 0) {
+    if kind != null { error = entity_register_stage_result(kind, size, alignment, 0, 0); }
+    if kind != null && error != WorkBudgetError.None {
         sem_require(entity_attach_result(kind, null, null) == WorkBudgetError.None);
         kind = null;
-        error = WorkBudgetError.Invalid;
     }
     if kind == null { sem_executable_admission_failure(c, c.program.root, error); }
     return kind;

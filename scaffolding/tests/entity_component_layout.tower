@@ -276,16 +276,16 @@ export fn main(argc: i32, argv: u8**): i32 {
     component_layout_check(work_budget_release(&budget, &block));
     var large = entity_component_add_result(owner, large_type, &error);
     component_layout_check(large != null && error == WorkBudgetError.None && large.page == null
-        && bits(usize, large.data) % large_type.data_alignment == 0
+        && bits(usize, large.data) % large_type.layout.data_alignment == 0
         && entity_component_from_data(large.data) == large);
-    fill(large.data, 91, large_type.data_size);
+    fill(large.data, 91, large_type.layout.data_size);
     var allocation = bits(EntityComponentAllocation*, large.allocation);
     var large_bytes = compiler_buffer_allocation_size(allocation.allocation.capacity);
     var large_receipt = allocation.allocation.reservation;
     component_layout_check(&allocation.component == large && large_receipt.bytes == large_bytes
         && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None
         && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
-        && large.data[large_type.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
+        && large.data[large_type.layout.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
     var view = entity_view_open(owner);
     component_layout_check(view != null && entity_component_add_result(owner, type, &error) == first
         && error == WorkBudgetError.None);

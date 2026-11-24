@@ -54,6 +54,7 @@ extern fn syntax_get_error_offset(session: void*): usize;
 extern fn compiler_clone_tree_result(source: void*, limit: usize, copied: usize*, storage_error: WorkBudgetError*): void*;
 
 extern fn entity_register(type: void*, size: usize, alignment: usize, lifecycle: usize): bool;
+extern fn entity_register_stage_result(type: void*, size: usize, alignment: usize, lifecycle: usize, stage_rows: u8): WorkBudgetError;
 
 extern fn fopen(path: u8*, mode: u8*): void*;
 
@@ -468,9 +469,10 @@ fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): 
             module_clone_fail(graph, error, "Cannot create module component kind");
             return null;
         }
-        if !entity_register(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0) {
+        error = entity_register_stage_result(graph.kind, sizeof(FrontendModule), alignof(FrontendModule), 0, 0);
+        if error != WorkBudgetError.None {
             if graph.kind != null { entity_release(graph.kind); graph.kind = null; }
-            module_clone_fail(graph, WorkBudgetError.Invalid, "Cannot register module component kind");
+            module_clone_fail(graph, error, "Cannot register module component kind");
             return null;
         }
     }

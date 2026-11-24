@@ -106,13 +106,13 @@ fn benchmark_retention(world: void*, session: SyntaxSession*, result: BenchmarkR
                     var type = component.type;
                     benchmark_check(component.owner == node && type.store == store, "Component owner/world mismatch");
                     components++;
-                    result.live_bytes += type.data_size;
+                    result.live_bytes += type.layout.data_size;
                     var page = component.page;
                     if page == null {
-                        var alignment = type.data_alignment;
+                        var alignment = type.layout.data_alignment;
                         if alignment < sizeof(EntityComponent*) { alignment = sizeof(EntityComponent*); }
                         result.individual++;
-                        result.individual_bytes += sizeof(EntityComponent) + type.data_size
+                        result.individual_bytes += sizeof(EntityComponent) + type.layout.data_size
                             + sizeof(EntityComponent*) + alignment - 1;
                         continue;
                     }
@@ -132,11 +132,11 @@ fn benchmark_retention(world: void*, session: SyntaxSession*, result: BenchmarkR
     benchmark_check(components == result.components, "Component traversal omitted an owner");
     foreach(var &entry in &pages) {
         var page = entry.page;
-        var alignment = entry.type.data_alignment;
+        var alignment = entry.type.layout.data_alignment;
         var pointer_bytes = sizeof(EntityComponent*);
         if alignment < pointer_bytes { alignment = pointer_bytes; }
         var mask = alignment - 1;
-        var stride = (entry.type.data_size + pointer_bytes + mask) & ~mask;
+        var stride = (entry.type.layout.data_size + pointer_bytes + mask) & ~mask;
         var slot = stride + sizeof(EntityComponent);
         var capacity = BenchmarkPageBytes / slot;
         if capacity > BenchmarkPageRows { capacity = BenchmarkPageRows; }
