@@ -101968,3 +101968,9 @@ passed. The served manifest and all assets were checked. Original evidence,
 raw products, CDP/Node measurements and commands are in the assignment archive's
 ordinary/ directory. This run covers the retained 8b native-built assets and the
 changed JS transport on Chromium 159. It made no public deployment.
+
+### Removing two unreachable parser helpers on the final audit
+
+Host 3 removed the private definitions of `lr_work_node` and `syntax_version_text` and four unused extern declarations in `a5c4704e`. The manager checked the two files against the integrated sources and searched the Tower callers. The result-returning LR function and exported presentation functions keep their callers. Four real selectors passed with the same cache fixture on both arms. The small and edited-grammar inputs reproduced their Foundation, objects, executables and guest outputs (15 and 42). The imported and exported parser symbols matched. Five bytes in the Linux compiler changed because three internal trap offsets moved; each still resolves to the same source location. The sampled allocation counts matched. This cleanup removes 16 source lines. The evidence supports no throughput claim.
+
+Receipt `436ecb50-bb17-4663-a065-48ab366162a1` includes the restored comparator, source maps, binaries, sanitizer logs, timing and allocation records. The manager verified its 229 hashes and replayed the packet's comparisons with `sh verify.sh`. The instrumented candidate passed all four selectors under ASan with leak detection and under TSan. Memcheck stopped during loader startup and Tower source-level UBSan was unavailable. The cleanup changes editable project source bytes and belongs in the next compiler freeze.
