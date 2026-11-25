@@ -184,7 +184,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, maco
         if bootstrap_symbol_in("compiler_world_component_result entity_attach_result entity_component_add_result entity_create_related_result entity_create_result frontend_module_root_world_size_result", symbol, length) { return true; }
         // Generic publication and executable preparation consume the entities
         // unit's per-call stage outcomes, including typed lease admission.
-        if bootstrap_symbol_in("entity_stage_open_result entity_stage_create_result entity_stage_publish_result entity_stage_hold_result entity_stage_lease_result entity_view_open_result", symbol, length) { return true; }
+        if bootstrap_symbol_in("entity_stage_open_result entity_stage_create_result entity_stage_publish_result entity_stage_hold_result entity_stage_lease_result entity_stage_lease_at entity_view_open_result", symbol, length) { return true; }
         if bootstrap_symbol_in("generic_begin_result generic_register_result generic_instantiate_result generic_instantiate_deferred_result", symbol, length) { return true; }
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free semantic_known_publish_kernel work_arena_allocate_result work_arena_append work_arena_dispose work_arena_init", symbol, length) { return true; }
         if bootstrap_symbol_in("frontend_module_resource_error syntax_session_resource_error", symbol, length) { return true; }
