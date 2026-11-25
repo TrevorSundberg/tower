@@ -74,33 +74,57 @@ async function expectOutput(page, text) {
     await expect(page.locator('#' + id)).toHaveJSProperty('textContent', text);
 }
 test('editing bedrock updates its next declarations and downstream modules while undo histories remain independent', async ({page,request}) => {
+  test.setTimeout(60000); // Exercise the complete edit and undo sequence, including compiler loads.
   const bedrock = await (await request.get('/bedrock.tower')).text();
   const foundation = await (await request.get('/foundation.tower')).text();
-  await selectDocument(page, 'bedrock.tower');
-  const edited = bedrock.replace("'parse'", "'rule'").replace(/^parse (?!GrammarDeclaration\b)/gm, 'rule ');
-  await setSource(page,edited);
+  const syntax = await (await request.get('/foundation_syntax.tower')).text();
+  await openIncrement(page);
+  await setSource(page, 'import foundation;\nprint(7);');
+  await expectOutput(page, '7\n');
+  await openFile(page, '.tower/bedrock.tower');
+  // The seed still reads the first GrammarDeclaration. Its replacement takes
+  // effect for the following declarations, including its precedence extension.
+  const boundary = bedrock.indexOf('parse GrammarDeclaration =');
+  expect(boundary).toBeGreaterThan(-1);
+  const edited = bedrock.slice(0, boundary) + bedrock.slice(boundary)
+    .replaceAll("'parse'", "'rule'").replaceAll('\nparse ', '\nrule ');
+  await setSource(page, edited);
   await expect(page.locator('#status')).toContainText('Complete');
   expect(await downloadSource(page, 'bedrock.tower')).toBe(edited);
-  await selectDocument(page, 'foundation.tower');
-  await page.locator('#editor-error').click();
-  await expect(page.locator('.tw-inline-error-message')).toContainText('Foundation may contain only');
-  await setSource(page,foundation.replace(/^parse /gm,'rule '));
+  const declaration = page.locator('#rules .rule').filter({has:page.getByText('GrammarDeclaration', {exact:true})});
+  await expect(declaration.locator('code')).toContainText("'rule'");
+
+  await openFile(page, '.tower/foundation.tower');
+  await expect.poll(() => outputText(page, 'editor')).toBe(foundation);
+  await expect(page.locator('#status')).toContainText('Stopped');
+  await expect(page.locator('.tw-inline-error-message')).toContainText(".tower/foundation_syntax.tower: Unexpected 'parse'.");
+  await openFile(page, '.tower/foundation_syntax.tower');
+  const adapted = syntax.replace(/^parse /gm, 'rule ');
+  await setSource(page, adapted);
   await expect(page.locator('#status')).toContainText('Complete');
-  await selectDocument(page, 'foreach.tower');
-  await setSource(page,"rule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };show 42;");
-  await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
-  await expect(page.locator('#execution-output')).toHaveText('42\n');
-  await expect(page.locator('#llvm-output')).toHaveText('42\n');
-  await selectDocument(page, 'bedrock.tower');
+  await openFile(page, '.tower/foundation.tower');
+  await expect(page.locator('#status')).toContainText('Complete');
+  await openFile(page, 'increment.tower');
+  await setSource(page,"import foundation;\nrule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };\nshow 42;");
+  await expect(page.locator('#status')).toContainText('Complete');
+  await expectOutput(page, '42\n');
+
+  await openFile(page, '.tower/bedrock.tower');
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');
   expect(await downloadSource(page, 'bedrock.tower')).toBe(bedrock);
-  await selectDocument(page, 'foundation.tower');
-  await page.locator('#editor-error').click();
-  await expect(page.locator('.tw-inline-error-message')).toContainText('Foundation may contain only');
+  await openFile(page, '.tower/foundation.tower');
+  await expect(page.locator('#status')).toContainText('Stopped');
+  await expect(page.locator('.tw-inline-error-message')).toContainText(".tower/foundation_syntax.tower: Unexpected 'rule'.");
+  await openFile(page, '.tower/foundation_syntax.tower');
+  await expect.poll(() => outputText(page, 'editor')).toBe(adapted);
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');
+  await expect.poll(() => outputText(page, 'editor')).toBe(syntax);
+  await openFile(page, '.tower/foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
-  await selectDocument(page, 'bedrock.tower');
-  await expect(page.locator('#status')).toContainText('Complete');
+  await openFile(page, 'increment.tower');
+  await expect(page.locator('#status')).toContainText('Stopped');
+  await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');
+  await expectOutput(page, '7\n');
 });
 
 test('one bedrock whitespace and identifier definition drives foundation and both execution workers', async ({page,request}, info) => {

@@ -32,53 +32,60 @@ async function bundledTowerBytes() {
   try { return await pending; }
   catch (error) { if (bundledTower === pending) bundledTower = undefined; throw error; }
 }
-function getCanonicalSources() {
+export function getCanonicalSources() {
   canonicalSources ??= (async () => {
     const manifest = await fetch('./builtins.json');
     if (!manifest.ok) throw new Error('Builtin module manifest is unavailable');
-    const builtins = Object.fromEntries(await Promise.all((await manifest.json()).map(async name => {
+    return Object.fromEntries(await Promise.all((await manifest.json()).map(async name => {
       const response = await fetch('./'+name+'.tower');
       if (!response.ok) throw new Error(name+'.tower is unavailable');
       return [name, await response.text()];
     })));
-    return [builtins.foundation, builtins.bedrock, builtins.tower, builtins];
   })();
   return canonicalSources;
 }
 // Canonical packages use the bundled grammar, regardless of editor overrides.
 // Existing execution handles retain their checked nodes across grammar changes.
 export async function getCanonicalTower() {
-  const [foundation,bedrock,tower] = await getCanonicalSources();
-  return getTower(foundation,bedrock,tower);
+  return getTower();
 }
-export async function getTower(foundation, bedrock, towerSource, {projectFollows = false} = {}) {
-  const canonical = await getCanonicalSources();
-  towerSource ??= canonical[2];
+export async function getTower(foundation, bedrock, project) {
+  const sources = project?.builtins ?? await getCanonicalSources();
+  foundation ??= sources.foundation;
+  bedrock ??= sources.bedrock;
+  const builtins = {...sources, bedrock, foundation};
+  const inputs = {entry:'input.tower', files:[], library:'.tower', ...project, builtins, replaceBuiltins:true};
   const start = performance.now();
   const cached = !!towerReady && installedFoundation === foundation && installedBedrock === bedrock;
-  if (!towerReady) {
+  const cold = !towerReady;
+  if (cold) {
     towerReady = Promise.resolve(selected.tower ?? bundledTowerBytes()).then(bytes =>
-      loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:towerSource,builtins:canonical[3]}));
+      loadTower(bytes, undefined, foundation, undefined, bedrock, {tower:builtins.tower, builtins, project:inputs}));
     installedFoundation = foundation; installedBedrock = bedrock;
   }
   const pending = towerReady;
   let tower;
   try { tower = await pending; }
   catch (error) { if (towerReady === pending) towerReady = undefined; throw error; }
-  const builtins = {bedrock, foundation, tower:towerSource};
-  if (!cached || !projectFollows || !tower.hasAppliedBuiltins(builtins)) tower.configureModules({builtins});
-  if (installedBedrock !== bedrock) {
-    tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;
+  if (!cold) {
+    // Preserve the first upload diagnostic and retry an interrupted upload.
+    // Unchanged warm inputs need only the complete project replacement below.
+    const grammar = {foundation, bedrock, tower:builtins.tower};
+    if (project && !tower.hasAppliedBuiltins(grammar)) tower.configureModules({builtins:grammar});
+    tower.configureModules(inputs);
+    if (installedBedrock !== bedrock) {
+      tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;
+    }
+    if (installedFoundation !== foundation) { tower.configure(foundation); installedFoundation = foundation; }
   }
-  if (installedFoundation !== foundation) { tower.configure(foundation); installedFoundation = foundation; }
   return {tower, loadMs:performance.now() - start, cached};
 }
 export async function getCompiler(url) {
   const start = performance.now();
   const cached = compilers.has(url);
   if (!compilers.has(url)) compilers.set(url, (async () => {
-    const [wasm, [canonical, seed, tower, builtins]] = await Promise.all([selected[url.includes('cross') ? 'cross' : 'llvm'] ?? fetchBytes(url), getCanonicalSources()]);
-    return loadLLVM(wasm, undefined, canonical, undefined, seed, {tower,builtins});
+    const [wasm, builtins] = await Promise.all([selected[url.includes('cross') ? 'cross' : 'llvm'] ?? fetchBytes(url), getCanonicalSources()]);
+    return loadLLVM(wasm, undefined, builtins.foundation, undefined, builtins.bedrock, {tower:builtins.tower, builtins});
   })());
   const pending = compilers.get(url);
   try {

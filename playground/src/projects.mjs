@@ -46,7 +46,76 @@ export async function projectStore() {
       tx.onabort = () => reject(tx.error ?? new Error('Project storage transaction aborted.'));
     });
   }
-  return {list:() => transaction('readonly', s => s.getAll()), save:p => transaction('readwrite', s => s.put(p))};
+  // A queued write can outlive the page even with an explicit commit. During
+  // navigation, hand pending snapshots to the next document in this history
+  // entry. Keep IndexedDB authoritative once its transaction completes.
+  const key = 'towerPendingProjectWritesV1';
+  const revisions = new Map(), pending = new Map();
+  let checkpointed = !!history.state?.[key], dirty = checkpointed;
+  function checkpoint() {
+    if (!dirty) return;
+    if (pending.size || checkpointed) {
+      const state = {...history.state};
+      if (pending.size) state[key] = Array.from(pending.values(), ({project, revision, predecessors}) =>
+        ({snapshot:{...project, storageRevision:revision}, predecessors:[...predecessors]}));
+      else delete state[key];
+      history.replaceState(state, '');
+    }
+    checkpointed = pending.size > 0;
+    dirty = false;
+  }
+  for (const {snapshot, predecessors} of history.state?.[key] ?? []) {
+    validateProject(snapshot);
+    // Reconcile against the durable revision atomically. Another tab's newer
+    // snapshot must win over a stale navigation entry.
+    await transaction('readwrite', store => {
+      const request = store.get(snapshot.id);
+      request.onsuccess = () => {
+        if (predecessors.includes(request.result?.storageRevision)) store.put(snapshot);
+        store.transaction.commit();
+      };
+      return request;
+    });
+  }
+  checkpoint();
+
+  async function list() {
+    const projects = await transaction('readonly', store => store.getAll());
+    for (const project of projects) {
+      revisions.set(project.id, project.storageRevision);
+      delete project.storageRevision;
+    }
+    return projects;
+  }
+  async function save(project) {
+    const prior = pending.get(project.id);
+    const predecessors = prior?.predecessors ?? new Set([revisions.get(project.id)]);
+    if (prior) predecessors.add(prior.revision);
+    const revision = crypto.randomUUID();
+    // beforeunload precedes the browser's capture of history.state for a
+    // reload. pagehide alone is too late. Listen only while writes are pending.
+    if (!pending.size) window.addEventListener('beforeunload', checkpoint);
+    pending.set(project.id, {project, revision, predecessors});
+    dirty = true;
+    try {
+      await transaction('readwrite', store => {
+        const request = store.put({...project, storageRevision:revision});
+        store.transaction.commit();
+        return request;
+      });
+      revisions.set(project.id, revision);
+    } finally {
+      if (pending.get(project.id)?.revision === revision) {
+        pending.delete(project.id);
+        dirty = true;
+      }
+      if (!pending.size) {
+        window.removeEventListener('beforeunload', checkpoint);
+        if (checkpointed) checkpoint();
+      }
+    }
+  }
+  return {list, save, checkpoint};
 }
 
 // The first Tower file is the project entry. Tower resolves its import closure.
