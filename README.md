@@ -30,6 +30,27 @@ graph and fast interpreters, WebAssembly execution, and optional native/backend
 outputs. See the [playground documentation](playground/README.md) for supported
 targets, limitations, build commands and deployment checks.
 
+## Install the Linux x64 development compiler
+
+On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
+coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
+This command installs the compiler built at `902a358f` and its verified resources
+from `93210484` under your home directory.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/5772d8b61771ad95021b2455432e48ae316c8c80) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev"
+```
+
+The installer prints the executable path. Repeating the command verifies the
+installed copy. You can interpret a source file or build and run a Linux executable.
+
+```sh
+"$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --interpret
+"$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
+```
+
 ## Build and explore
 
 Start with the [documented development bootstrap](bootstrap/README.md). It is a
