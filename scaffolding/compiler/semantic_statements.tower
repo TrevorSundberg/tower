@@ -12,6 +12,7 @@ import semantic_definitions;
 import semantic_enums;
 import semantic_layout;
 import semantic_modules;
+import test_file_rule;
 import semantic_support;
 import semantic_types;
 import semantic_values;
@@ -825,9 +826,15 @@ fn sem_select_tests(c: SemanticContext*): void {
                 sem_fail(c, node, "Expected test() followed by a block");
                 return;
             }
-            if !c.program.test_mode { continue; }
+            if !c.program.test_mode || sem_test_role(c, node) == ModuleTestRole.Dependency { continue; }
         } else {
-            if c.program.test_mode && !sem_declaration_subject(node) && !sem_is(node, "CoreAttributed") { continue; }
+            if c.program.test_mode && !sem_declaration_subject(node) && !sem_is(node, "CoreAttributed") {
+                if sem_test_role(c, node) == ModuleTestRole.Companion {
+                    sem_fail(c, node, "Executable companion statements require a test() block");
+                    return;
+                }
+                continue;
+            }
         }
         items.data[kept++] = node;
     }

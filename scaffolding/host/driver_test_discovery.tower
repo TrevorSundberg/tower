@@ -62,7 +62,7 @@ fn driver_test_probe(opaque: void*, candidate: vector(u8)*): TestFilePresence {
     return kind == DriverFileKind.Regular ? TestFilePresence.Present : TestFilePresence.Failed;
 }
 
-fn driver_test_request(request: DriverRequest*): i32 {
+fn driver_test_inventory(request: DriverRequest*): i32 {
     var options = request.options;
     var input = &request.text[DriverSourceText];
     var entry = test_file_selection_root(&request.tests);
@@ -102,9 +102,6 @@ fn driver_test_request(request: DriverRequest*): i32 {
         for (var i: usize = 0; i < frontend_module_count(root); i++) {
             if !driver_test_output_safe(options, frontend_module_name(frontend_module_at(root, i))) { return 1; }
         }
-    }
-    if options.test_mode == DriverTestMode.Run {
-        driver_error("Frontend test execution is unavailable for ", options.source); return 1;
     }
     var list: ByteBuffer = default;
     defer bytes_dispose(&list);

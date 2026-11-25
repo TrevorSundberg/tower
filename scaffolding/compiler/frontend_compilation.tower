@@ -52,6 +52,7 @@ extern fn frontend_module_root_world_size_result(world: void*, source: u8*, leng
 extern fn compiler_node_world(node: void*): void*;
 
 extern fn frontend_module_finish(module: void*): void;
+extern fn frontend_module_collect_tests(module: void*): void;
 
 extern fn frontend_module_count(module: void*): usize;
 
@@ -161,6 +162,7 @@ export fn frontend_compile_sources(program: SemanticProgram*, sources: FrontendS
         }
         syntax_capture_comments(session, module);
         frontend_module_finish(module);
+        if program.test_mode { frontend_module_collect_tests(module); }
         resource_error = frontend_module_resource_error(module);
         if resource_error != WorkBudgetError.None {
             sem_resource_record(program, resource_error, syntax_get_error_offset(session));

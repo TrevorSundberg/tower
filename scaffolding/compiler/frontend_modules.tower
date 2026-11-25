@@ -121,6 +121,7 @@ struct ModuleEnvironment {
     session_generation: usize;
     active_graphs: usize;
     active: FrontendModule*;
+    test_discovery: TestFileDiscovery*;
 }
 
 struct ModuleGraph {
@@ -130,6 +131,7 @@ struct ModuleGraph {
     kind: void*;
     tracked: bool;
     tests_started: bool;
+    single_companion: bool;
     entities: vector(void*);
     order: vector(FrontendModule*);
     error: vector(u8);
@@ -154,6 +156,7 @@ struct FrontendModule {
     grammar: ModuleGrammar;
     state: u32;
     body: bool;
+    companion: bool;
     comments: vector(usize); // paired lexer byte spans, captured before session reset
     compilation_session: void*;
     session_generation: usize;
@@ -1028,6 +1031,7 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         module_fail(root, "Test selection belongs to another entry: ", selection.entry); return false;
     }
     root.graph.tests_started = true;
+    root.graph.single_companion = selection.owner.data != null;
     var path: vector(u8) = default;
     defer vector_dispose(&path);
     var found: vector(TestFileCompanion) = default;
@@ -1050,11 +1054,31 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         }
         var module = frontend_module_load_companion(owner, path.data);
         if module == null { return false; }
+        module.companion = true;
         var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
         if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }
     }
     vector_move(pairs, &found);
     return true;
+}
+
+export fn frontend_modules_swap_test_discovery(environment: ModuleEnvironment*, next: TestFileDiscovery*): TestFileDiscovery* {
+    var previous = environment.test_discovery;
+    environment.test_discovery = next;
+    return previous;
+}
+
+export fn frontend_module_collect_tests(root: FrontendModule*): void {
+    var discovery = root.graph.environment.test_discovery;
+    if discovery == null || frontend_module_error(root)[0] != 0 { return; }
+    var companions: vector(TestFileCompanion) = default;
+    defer vector_dispose(&companions);
+    frontend_module_discover_tests(root, discovery.selection, discovery.context, discovery.probe, &companions);
+}
+
+export fn frontend_module_test_role(module: FrontendModule*): ModuleTestRole {
+    if module.companion { return ModuleTestRole.Companion; }
+    return module.graph.single_companion ? ModuleTestRole.Dependency : ModuleTestRole.Owner;
 }
 
 // Dotted segments retain components on their actual parse entities. The joined

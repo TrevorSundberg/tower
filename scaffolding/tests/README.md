@@ -24,13 +24,19 @@ For example, `old_test.tower/parser.v2.tower` has the adjacent companion
 towerc --list-test-files main.tower
 towerc --list-test-files main.tower --test-suffix _spec.tower
 towerc --list-test-files old_test.tower/parser.v2_spec.tower --test-suffix _spec.tower
+towerc --test main.tower --jobs 4
+towerc --test main_spec.tower --test-suffix _spec.tower
 ```
 
 An owner entry discovers companions through its imports. An explicit companion
 selects just that file and opens its owner for binding. A companion cannot serve
 as the owner of a nested companion. Ordinary compilation follows ordinary
 imports without probing for siblings. The inventory command lists files.
-Executing or listing individual test blocks needs the frontend test collector.
+`--test` runs the selected blocks on the native interpreter, writes guest output
+to stdout, and reports the passing count or an empty selection on stderr.
+Compilation and execution errors return a nonzero status at the source location.
+An explicit companion runs its own blocks with the owner's declarations available
+through ordinary imports. Put executable companion statements inside `test() {}`.
 
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
