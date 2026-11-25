@@ -54,12 +54,15 @@ fn floating_tests(modules: void*, root: u8*): void {
     var bedrock: vector(u8) = default;
     var foundation: vector(u8) = default;
     var output: vector(u8) = default;
+    var capture: vector(u8) = default;
+    defer vector_dispose(&capture);
     defer vector_dispose(&source);
     defer vector_dispose(&bedrock);
     defer vector_dispose(&foundation);
     defer vector_dispose(&output);
     units_read(root, "/tests/floating_point.tower", &source);
     units_read(root, "/tests/floating_output.tower", &output);
+    units_read(root, "/tests/floating_compound_capture.tower", &capture);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
     for (var width: u32 = 4; width <= 8; width += 4) {
@@ -92,6 +95,13 @@ fn floating_tests(modules: void*, root: u8*): void {
         execution_run(&fast, 1000, 100000);
         execution_same(&graph, &fast);
         execution_check(execution_text(&graph.output, "1.00000001e-1\n1.0000000000000001e-1\n1.5\n-0.0\ninf\n-inf\nnan\n4.9406564584124654e-324\n1.7976931348623157e308\n"), "Deterministic floating decimal output");
+        execution_roundtrip(&graph, modules, true);
+        execution_session_close(&graph);
+        execution_compile(&graph, capture.data, width, modules);
+        execution_check(execution_session_start(&graph), "Compound assignment fixture starts");
+        execution_run(&graph, 1000, 100000);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "12\n3.5\n8.0\n"),
+            "Compound assignment captures the address and old value before its RHS changes both");
         execution_roundtrip(&graph, modules, true);
         execution_session_close(&graph);
         execution_compile(&graph, "import tower;fn sign(x:f64):f64{return -x;}var zero:f64=0;zero+=0;var payload=bits(f64,9221120237041090626);print(bits(i64,sign(zero)));print(bits(i64,payload));", width, modules);

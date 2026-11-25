@@ -1,0 +1,23 @@
+import tower;
+
+var first: f64 = 2;
+var second: f64 = 8;
+var selected = &first;
+var calls: i32 = 0;
+
+fn destination(): f64* {
+    calls = calls * 10 + 1;
+    return selected;
+}
+
+fn change(): f64 {
+    calls = calls * 10 + 2;
+    selected = &second;
+    first = 32.0;
+    return 1.5;
+}
+
+*destination() += change();
+print(calls);
+print(first);
+print(second);
