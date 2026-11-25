@@ -8,6 +8,8 @@ import work_budget_types;
 // coordinator owns busy/count; workers only access a slot between handoffs.
 extern fn work_thread_available(): bool;
 extern fn work_thread_capacity(): usize;
+// Capacity for a new pool. Existing pools keep their execution ceiling.
+extern fn work_thread_pool_capacity(): usize;
 // True only when keeping idle threads cannot exhaust a fixed host worker set
 // needed by another world or phase. This controls lifetime, not job semantics.
 extern fn work_thread_retention(): bool;
@@ -131,7 +133,7 @@ fn work_pool_open_impl(pool: WorkPool*, capacity: usize, entry: u8*, windows_ent
     // A caller's budget is an upper bound, not permission to exhaust a fixed
     // transport. Browser workers report one lane inside a worker so nested
     // phases execute inline instead of waiting on their occupied outer slots.
-    var available = work_thread_capacity();
+    var available = work_thread_pool_capacity();
     if available == 0 { pool.resource_error = WorkBudgetError.Capacity; return false; }
     if capacity > available { capacity = available; }
     pool.threaded = work_thread_available() && capacity > 1;

@@ -30,6 +30,7 @@ extern fn sem_get(node: void*): FoundationNode*;
 extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
 extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
 extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn work_thread_retention(): bool;
 extern fn work_thread_available(): bool;
 extern fn work_thread_capacity(): usize;
 extern fn strlen(text: u8*): usize;
@@ -106,6 +107,16 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
     invalid[0] = 97; invalid[1] = 0; invalid[2] = 98;
     units_check(!frontend_units_source(batch, 1, "unit.tower", &invalid[0], 3), "NUL input rejected");
     units_check(frontend_units_input_bytes(batch) == input_bytes, "Exact configured input subtotal");
+    if budget > 1 {
+        // Configure on the coordinator while the outer threads are parked.
+        // Release the environment borrow before the unit kernels take over.
+        var environment = frontend_units_environment(batch, 2);
+        var world = frontend_modules_world(environment);
+        var diagnostic: SyntaxVersionDiagnostic = default;
+        defer syntax_version_diagnostic_dispose(&diagnostic);
+        units_check(syntax_baseline_install(world, environment, bedrock, false, &diagnostic)
+            && syntax_baseline_install(world, environment, foundation, true, &diagnostic), "preinstall second unit baseline");
+    }
     var done = frontend_units_step(batch, false);
     units_check(!frontend_units_source(batch, 1, "unit.tower", sources[0], strlen(sources[0])), "active unit immutable");
     while !done { done = frontend_units_step(batch, true); }
@@ -121,6 +132,11 @@ fn units_trial(budget: usize, width: u32, bedrock: u8*, foundation: u8*, root: u
         var available = work_thread_capacity();
         if lanes > available { lanes = available; }
         if !work_thread_available() { lanes = 1; }
+        if !work_thread_retention() && lanes > 1 && count > 1 {
+            var outer = lanes < count ? lanes : count;
+            var spare = available - outer;
+            if lanes > spare { lanes = spare == 0 ? 1 : spare; }
+        }
         units_check(compiler_world_worker_limit(worlds[i - 1]) == lanes, "nested world budget ceiling");
         units_check(compiler_world_work_budget(worlds[i - 1]) == frontend_units_work_budget(batch), "one shared unit budget");
         var answer: void* = null;

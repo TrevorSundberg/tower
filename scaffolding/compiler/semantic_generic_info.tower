@@ -11,8 +11,11 @@ import semantic_declarations;
 import semantic_constructor_work;
 import .library.vector;
 import .library.work_budget_types;
+import .library.work_vector;
+import .library.work_vector_types;
 
-extern fn entity_component_owner(component: void*): void*;
+extern fn entity_stage_lease_at(stage: void*, index: usize): void*;
+
 
 // Optional, disposable analysis on the original shared entities. The annotation
 // is the actual type-expression tree, whose name leaves bind to declarations;
@@ -47,6 +50,10 @@ struct GenericInfo {
     shape_state: GenericShapeState;
     fixed_record: void*;
 }
+
+// Binding runs on retained syntax. These records borrow its source entities and
+// carry the binding values across the declaration workers' lease-free phase.
+struct GenericBoundAnnotation { owner: void*; info: GenericInfo; }
 
 struct GenericAnalysis {
     context: SemanticContext*;
@@ -192,7 +199,7 @@ fn generic_type_inputs(a: GenericAnalysis*, node: void*, depth: usize): bool {
 // Binding establishes which annotations are concrete. Its stage must release
 // the source leases before declaration workers can borrow those same trees.
 // The component kind stays query-private until the entire inspection succeeds.
-fn generic_types_prepare(a: GenericAnalysis*): void {
+fn generic_types_prepare(a: GenericAnalysis*, bindings: work_vector(GenericBoundAnnotation)*): void {
     var c = a.context;
     sem_require(c.entity_stage == null && a.stage == null);
     if !a.resolve_types { return; }
@@ -203,8 +210,9 @@ fn generic_types_prepare(a: GenericAnalysis*): void {
     c.declaration_subjects = subjects;
     c.declaration_isolated = true;
     defer { c.declaration_subjects = previous_subjects; c.declaration_isolated = previous_isolated; }
-    for(var i: usize = 0; i < entity_query_count(a.component) && sem_ok(c); i++) {
-        var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(a.component, i)));
+    foreach(var &binding in bindings) {
+        if !sem_ok(c) { return; }
+        var meaning = &binding.info;
         if meaning.kind != GenericInfoKind.TypeExpression || meaning.dependent || meaning.annotation == null { continue; }
         if !sem_type_query_syntax(c, meaning.annotation) { continue; }
         var owner = sem_declaration_state(c, meaning.definition);
@@ -401,24 +409,48 @@ export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncate
         generic_info_walk(&a, definition, values, types, 0);
     }
     if !sem_ok(c) { return null; }
-    error = entity_stage_publish_result(stage);
-    if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
-    stage = null;
-    a.stage = null;
-    generic_types_prepare(&a);
-    if !sem_ok(c) { return null; }
-    stage = entity_stage_open_result(c.program.root, &error);
-    if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
-    a.stage = stage;
     a.binding = false;
-    for(var index: usize = 0; index < entity_query_count(component); index++) {
-        var entry = entity_query_at(component, index);
-        error = entity_stage_lease_result(stage, entity_component_owner(entry));
-        if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
-    }
-    for(var index: usize = 0; index < entity_query_count(component) && sem_ok(c); index++) {
-        var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(component, index)));
-        generic_info_type(&a, meaning);
+    if resolve_types {
+        // A published source component retains its kind even after detachment.
+        // Carry only the completed binding values across the worker join. The
+        // source tree stays owned by the document, and discard drops its leases.
+        var bindings: work_vector(GenericBoundAnnotation) = default;
+        defer work_vector_dispose(&bindings);
+        var budget = compiler_world_work_budget(compiler_node_world(c.program.root));
+        for(var index: usize = 0; ; index++) {
+            var owner = entity_stage_lease_at(stage, index);
+            if owner == null { break; }
+            var bound: GenericBoundAnnotation = { owner: owner, info: *generic_info(owner, component) };
+            error = work_vector_push_result(&bindings, budget, bound);
+            if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+        }
+        entity_stage_discard(stage);
+        stage = null;
+        a.stage = null;
+        generic_types_prepare(&a, &bindings);
+        if !sem_ok(c) { return null; }
+        stage = entity_stage_open_result(c.program.root, &error);
+        if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
+        a.stage = stage;
+        foreach(var &bound in &bindings) {
+            error = entity_stage_lease_result(stage, bound.owner);
+            if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+            var entry = entity_component_add_result(bound.owner, component, &error);
+            if entry == null { sem_scratch_error(c, c.program.root, error); return null; }
+            *bits(GenericInfo*, entity_component_data(entry)) = bound.info;
+        }
+        foreach(var &bound in &bindings) {
+            if !sem_ok(c) { return null; }
+            generic_info_type(&a, generic_info(bound.owner, component));
+        }
+    } else {
+        // No declaration worker needs these source leases. Revisit the bound
+        // annotations through their owners and publish both passes together.
+        for(var index: usize = 0; ; index++) {
+            var owner = entity_stage_lease_at(stage, index);
+            if owner == null { break; }
+            generic_info_type(&a, generic_info(owner, component));
+        }
     }
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.

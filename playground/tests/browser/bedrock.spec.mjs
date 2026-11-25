@@ -1,5 +1,5 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument, downloadedProject, revealDiagnostics, savedProject} from './project-helpers.mjs';
+import {selectDocument, downloadedProject, revealDiagnostics, savedProject, renameBedrockKeyword} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 async function setSource(page, text) {
   await page.locator('#editor').click({ position: { x: 80, y: 20 } });
@@ -82,12 +82,7 @@ test('editing bedrock updates its next declarations and downstream modules while
   await setSource(page, 'import foundation;\nprint(7);');
   await expectOutput(page, '7\n');
   await openFile(page, '.tower/bedrock.tower');
-  // The seed still reads the first GrammarDeclaration. Its replacement takes
-  // effect for the following declarations, including its precedence extension.
-  const boundary = bedrock.indexOf('parse GrammarDeclaration =');
-  expect(boundary).toBeGreaterThan(-1);
-  const edited = bedrock.slice(0, boundary) + bedrock.slice(boundary)
-    .replaceAll("'parse'", "'rule'").replaceAll('\nparse ', '\nrule ');
+  const edited = renameBedrockKeyword(bedrock);
   await setSource(page, edited);
   await expect(page.locator('#status')).toContainText('Complete');
   expect(await downloadSource(page, 'bedrock.tower')).toBe(edited);

@@ -1,6 +1,25 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
-## Native self-build measurement, November 25, 2026
+## Final audit, November 25, 2026
+
+The inventory at `ca543287` has 1,287 tracked Tower paths. Compared with the
+[previous file audit](compiler_ecs_reconciliation_4e7ef17b.md), 1,214 have
+the same bytes, 68 changed and five are new. Use the previous receipt for an
+unchanged file, then inspect callers whose ownership or execution changed.
+The integrated formatter at `25e1a806` changes four more Tower files relative
+to this audit input. Package copies have their own provenance.
+
+**Building the native compiler.** On four physical EPYC 7542 cores, the
+public 902a358f compiler built and installed ca543287 in 30.444 s on average.
+The compiler built from ca543287 repeated the same build in 29.762 s and
+reproduced its own executable. Both arms started with an empty build
+directory and warm filesystem cache. The separate memory sample peaked at
+2,141,848 and 2,063,540 KiB of summed process RSS respectively. The immediate
+no-op ran zero build recipes and took 0.237 and 0.248 s through installation.
+Editing the shared worker policy rebuilt ParserNodes, Semantics and the
+executable in about 21 s. Both edited builds matched their independent clean
+rebuilds across all 221 outputs. The two timed pairs used the same worker
+counts throughout. [Native build measurements](temporal-opcode-research-journal.md#2026-11-25--complete-native-build-and-edit-costs-at-ca543287)
 
 On four physical Ryzen 7 5800H cores, the public `902a358f` and candidate
 `cd77a1f7` bootstraps produced identical native compilers from `1ddefba0`.
@@ -36,6 +55,174 @@ wall time and peak memory on eight physical Xeon cores. At four workers,
 the 37-unit run used 161 MiB of the 256 MiB shared compiler budget and
 reached 300 MiB compiler RSS and 341 MiB sampled process-tree RSS.
 [Invoice inputs, outputs, worker counts and memory accounting](temporal-opcode-research-journal.md#native-multi-unit-scaling-and-memory-on-4a3aa2d6)
+
+**Building the compiler in Chromium.** The `8b7878c8` browser compiler
+compiled 25 units of the editable project based on `ca543287` on four
+pinned physical cores. The first request in a fresh profile took 82.73 s
+at one lane and 31.41 s at four. Browser CPU use was 101.11 and 93.75 s,
+and the largest renderer lifetime high-water mark rose from 1,095 to
+1,884 MiB. A second request in the same session recompiled every unit
+in 76.78 and 30.22 s respectively. Each condition has one observation.
+An independent review reconstructed the same 28 output digests from each
+of the 12 timed trials. The separate stock-editor generation check used
+an edited `8b7878c8` project. A later browser run verified the edited
+`ca543287` sources at the worker boundary and in the exported ZIP. After
+Restore, the generated compiler rebuilt those sources and reproduced its
+three Wasm modules byte for byte.
+[Browser self-build measurements](temporal-opcode-research-journal.md#browser-self-compilation-of-the-frozen-editable-project)
+
+The editor sends its editable sources separately from the stock build
+recipe. The rebuild worker now snapshots those sources once at entry and
+copies only the unit and link plans from the recipe. In six matched
+563-file trials, median setup time to the first work request fell from
+14.27 to 5.57 ms. The complete Node rebuild had one pair, 84.44 and
+83.60 s. That pair leaves the end-to-end speed change unresolved.
+[Rebuild coordinator](../playground/src/compiler-build.mjs#L71)
+
+**A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),
+each job reads a frozen frontier and writes its assigned range. The coordinator
+registers those accesses, takes tickets, opens the read view and dispatches
+typed jobs. It finishes tickets after the join and processes errors in frontier
+order. The [parser row builder](../scaffolding/compiler/lr_runtime_work.tower)
+shares that sequence. It also preserves the first grammar conflict in source
+order. An ordinary Tower helper for the repeated access declarations is worth
+trying at those two sites. To justify it, show that readers can still see
+the resources and ranges, that denial returns the original error, and that
+the generated code adds no allocations. Keep the order of publication in
+each caller. This is a proposal.
+
+**Storage and type safety.** In the measured entity store, a dense index can
+point to payloads on stable pages. Packing those payloads would change what
+a live borrow can rely on. The [locality receipt](compiler_ecs_locality_d5b65afe.md)
+records which scans improved and which address-stability tests would need to
+pass again. Flecs exposes component access in system declarations. EnTT uses
+resource access to construct a task graph. For Tower, those ideas fit the
+choice of which ready jobs may run together. A semantic query still discovers
+which declaration produces a value by following the program, including its
+executed branches. [Flecs systems](https://www.flecs.dev/flecs/Systems.html) ·
+[EnTT organizer](https://skypjack.github.io/entt/md_docs_2md_2entity.html)
+
+For a future Stronghold API, consider a function that lends a typed component
+range for the duration of a callback. A user could read fields and return
+owned results. The checker would reject returning the borrowed range or
+dispatching overlapping writers. Shared resources reached through component
+pointers also need an access rule. Rust's scoped threads illustrate how a
+join can bound a borrow. Burst's aliasing rules illustrate why a compiler
+needs evidence about the underlying memory before it vectorizes two accesses
+as independent. These are design requirements for a prototype. Tower's
+current typed callbacks alone do not enforce them.
+[Rust scoped threads](https://doc.rust-lang.org/std/thread/fn.scope.html) ·
+[Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+
+Two typed callback experiments now have different production outcomes. The
+semantic cancellation helper carries the job type through the callback
+signature. Swapping a body and declaration callback fails compilation. Both
+optimized Wasm32 cleanup functions retain their previous instructions, as on
+x64. In the linker prototype, a typed view plus runtime admission caught
+overlapping ranges, but Tower still allowed the borrowed pointer to escape.
+The short two-lane relocation slowed by 30.4% on the eight-pair repeat.
+Production keeps the semantic helper and the original linker.
+[Linked prototype, outputs and timing scope](typed_ecs_access_ca543287.md#linked-prototype-and-adoption-decision)
+
+**Integrated checks.** The shared browser regression in `1c2cc042`
+invokes the normal compiler selection with two live owners of a four-child
+pool. The two old controls requested a fifth child. Both recorded replays
+of the repaired transport matched the serial Foundation outputs. Cancelling
+either owner preserved its peer's results. The integer formatter repair in
+`5681a339` preserves the type of a literal when its consumer supplies no
+type context, including an unsigned maximum and a target-width address.
+Native Linux x64 and Wasm32 object and executable bytes matched across
+two reparses and jobs one and four. The full native formatter selection still
+stops at fixture 9 on the base and repaired compiler. These focused checks
+precede publication of an integrated Linux package and browser deployment.
+
+The normal Node suite subsequently found a second shared-worker problem on
+`8b7878c8`. Immediately after joining one pool, opening the next sometimes
+granted three of four lanes. A child can finish its pthread work before the
+JavaScript transport publishes its slot as reusable. The original competing
+owner test still passes. Release acceptance needs both cases on the same
+transport. The failed site tree `fc70c453` remains a reproduction artifact.
+
+Change `b1a534a8` records the physical slot assigned to each successful
+pthread creation. After joining, the coordinator waits for that child's
+ready or failure notification if its handle still owns the slot. On the old
+transport, a delayed notification reduced the second pool grant at round
+zero. The repaired transport completed 2,048 delayed rounds and 2,048 ordinary
+rounds. Each delayed round reopened three four-lane pools, and all four
+physical workers exited. Both cancellation orders and the competing-owner
+checks passed. The integrated release must pair the new WASI imports with
+the matching generated workers. [Shared worker transport](../playground/src/compiler-threads.mjs)
+
+**Reuse a checked operand within one interpreter read.** In
+[`ix_read_uncached`](../scaffolding/compiler/interpreter.tower), reading a
+staged operand used to repeat a capture lookup while resolving its address.
+Change `528c5428` keeps the eligibility check, propagates lookup failure,
+and shares the remaining address calculation with the address-taking path.
+The result stays in the current execution frame. Host 5 measured 481 slices
+and 491,549 steps for the dependent consumer in both versions. At four jobs
+the median whole object compile fell from 305 to 290 ms. Maximum process
+RSS across those six pairs was 92,760 and 92,524 KiB respectively. A separate
+16-pair short serial control had zero median wall-time difference. Raw sample
+identities and the other widths are in the project journal. The integrated
+native package and browser compiler still require their own checks.
+
+**Sharing small helpers.** The strict floating-point importer now asks
+`type_integer_scalar` and `type_float_scalar` for the representation of a
+width it has already decoded. Each importer keeps its own diagnostic and the
+offset of the offending instruction. An unsupported width returns
+`InvalidTypeScalar`; zero is a valid integer tag. On Linux x64 and Wasm32,
+the rebuilt drivers emitted identical Foundation, objects and linked guests
+for the ordered narrow-integer conversion case.
+[Shared width classifiers](../scaffolding/compiler/type_primitives.tower)
+
+The full floating-point suite exposed a separate bug in compound assignment.
+For `*destination() += change()`, lowering now saves the destination once and
+gives the old-value read and the eventual store distinct nodes bound to that
+address. Foundation reparsing preserves the graph even when `change()` rewrites
+both the pointer and the first cell. The floating, narrow-integer and control
+suites passed on the repaired compiler.
+[Compound assignment regression](../scaffolding/tests/floating_compound_capture.tower)
+
+A fresh `vector(u8)` in the module path checker can be initialized with
+`= default` because its former helper only reset that value. In contrast,
+the driver argument constructor also sets its success flag. Replacing that
+constructor with a default would make the first append fail. The syntax audit
+includes both examples and a partial record update that must retain its result
+pointer. [Tower initialization examples](tower_syntax_audit_ca543287.md)
+
+## Cloud milestone closeout, November 25, 2026
+
+The public compiler is still `902a358f`. Its hosted desktop/mobile checks and
+clean Ubuntu Linux x64 default build passed. Local compiler integration
+`58bda1aa` includes the shared-worker admission repair, the module pointer
+alias formatter repair and earlier teardown of joined compiler owners.
+The following rules summarize the implementation evidence for this milestone.
+
+| Compiler work | Established pattern | Evidence and limit |
+| --- | --- | --- |
+| Components and storage | A compiler world owns its entities. Keep grammar, parse and semantic relationships there. Retain references that outlive a read view. Use a derived index or packed buffer when its measured access pattern warrants it. | On the combined native tree, an old parsed capture and its replacement both survived grammar retirement and resolved their own names. Some component payloads still use stable sparse storage. |
+| Dependency evaluation | Request the producer for the current declaration, frame and revision. Suspend on an actual read. Resume the saved continuation and publish the checked result once. Diagnose a cycle after exhausting eligible producers. | Mixed `decltype` and `comptime`, forward references, reached and untaken branches, nominal identity and selected invalidations have focused checks. The ordinary interpreter evaluates known values. |
+| Threading and publication | Reserve lanes, bytes and access rights before dispatch. Workers own scratch and staged writes. The coordinator joins and publishes, then releases leases and owners. Drain cancelled work before reclaiming any borrowed input. | Native and browser traces show independent work overlapping. On the shared browser reactor a new pool must also observe current physical availability when multiple batches share it. The corrected release transport still needs independent deployment verification. |
+| Selecting width | Keep the serial path cheap. Compare widths on the same host using checked outputs, wall time, CPU and peak memory. | Single-unit compiles with 16 and 1000 small functions favored one job. Multiple independent compile-time demands and multi-unit invoices benefited from parallel execution. Shared budget contention and placement limited wider runs. |
+
+On the four-change native compiler, mean serial compile time fell from 308
+to 266 ms for 16 functions and from 545 to 494 ms for 1000 functions on
+host 7. All 48 matched one- and four-worker comparisons beat the predecessor
+in wall and CPU time. A four-core clean self-build on host 3 improved by
+0.57 s across two primary pairs. On host 5, retiring joined owners before
+the native link reduced four-job median simultaneous tree RSS from 283664 to
+247928 KiB. Each figure belongs to its measured source and workload.
+The compiler's 256 MiB charge limit and process-tree RSS measure different
+things. Measurement details and receipt IDs are in the [project journal](temporal-opcode-research-journal.md).
+
+Closeout work covers the staged integer formatter defect, the permanent
+competing-owner regression, and verification and publication of the resulting
+compiler, Linux development package and browser assets. A staged unsigned
+maximum currently reparses as an out-of-range signed integer. Finish that
+repair before claiming canonical staged-integer round trips. After freezing
+the source, retain independent package and browser checks, atomic publication
+and hosted verification against their actual build identities. Wider-core
+tuning and further storage conversions can be evaluated separately.
 
 ## Cloud takeover, November 24, 2026
 

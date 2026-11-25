@@ -28,3 +28,12 @@ export async function savedProject(page) {
 }
 export async function savedSource(page) { return (await savedProject(page))?.files[0].text; }
 export async function downloadedProject(download) { return importProject(new Blob([await readFile(await download.path())])); }
+
+export function renameBedrockKeyword(bedrock) {
+  // The seed still reads the first GrammarDeclaration. Its replacement takes
+  // effect for the following declarations, including its precedence extension.
+  const boundary = bedrock.indexOf('parse GrammarDeclaration =');
+  if (boundary < 0) throw new Error('Missing Bedrock GrammarDeclaration definition');
+  return bedrock.slice(0, boundary) + bedrock.slice(boundary)
+    .replaceAll("'parse'", "'rule'").replaceAll('\nparse ', '\nrule ');
+}

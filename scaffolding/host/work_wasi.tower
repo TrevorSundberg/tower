@@ -10,7 +10,10 @@ extern fn pthread_create(thread: usize*, attributes: void*, entry: void*, argume
 extern fn pthread_join(thread: usize, result: void**): i32;
 extern fn work_host_available(): bool;
 extern fn work_host_entry(): usize;
+extern fn work_host_thread_started(thread: usize*): void;
+extern fn work_host_thread_joined(thread: usize*): void;
 extern fn work_host_capacity(): usize;
+extern fn work_host_pool_capacity(): usize;
 extern fn work_host_check(): void;
 extern fn work_host_time(): i64;
 extern fn sem_init(signal: void*, shared: i32, value: u32): i32;
@@ -37,6 +40,7 @@ export fn work_gate_leave(gate: void*): void { work_signal_post(gate); }
 
 export fn work_thread_available(): bool { return work_host_available(); }
 export fn work_thread_capacity(): usize { return work_host_capacity(); }
+export fn work_thread_pool_capacity(): usize { return work_host_pool_capacity(); }
 
 // This transport exports one browser-selected frontend callback. LLVM uses
 // isolated backend reactor instances; native symbol lookup is not available.
@@ -51,6 +55,7 @@ export fn work_thread_open(argument: void*): void* {
         free(thread);
         return null;
     }
+    work_host_thread_started(thread);
     return bits(void*, thread);
 }
 
@@ -59,6 +64,7 @@ export fn work_thread_close(thread: void*): void {
     if pthread_join(*bits(usize*, thread), null) != 0 {
         trap("Cannot join compiler worker", 0);
     }
+    work_host_thread_joined(bits(usize*, thread));
     free(thread);
 }
 

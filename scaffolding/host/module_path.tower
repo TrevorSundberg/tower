@@ -8,8 +8,7 @@ extern fn module_path_component(path: u8*, start: usize): bool;
 // Verify each named component without resolving symlinks or changing the
 // compiler's lexical module identity. Input is already lexically normalized.
 export fn module_file_case_matches(path: u8*): bool {
-    var prefix: vector(u8);
-    vector_init(&prefix);
+    var prefix: vector(u8) = default;
     var start: usize = 0;
     var i: usize = 0;
     var protected_parts: usize = 0;

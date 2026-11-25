@@ -73,6 +73,10 @@ fn bootstrap_comparison_host_suffix(native: u8*): u8* {
     var end = start;
     while end < entry.length - 1 && entry.data[end] != *"_" { end++; }
     if !bootstrap_symbol_in("linux wasi windows macos", entry.data + start, end - start) { return null; }
+    var intel = "macos_x64";
+    if entry.length - start - 1 >= strlen(intel) && memcmp(entry.data + start, intel, strlen(intel)) == 0 {
+        end = start + strlen(intel);
+    }
     var length = entry.length - 1 - end;
     if length == 0 { return ".tower"; }
     if bootstrap_symbol_in("_driver", entry.data + end, length) { return "_driver.tower"; }
@@ -155,7 +159,8 @@ fn bootstrap_comparison_unit(context: BootstrapComparison*, name: u8*): bool {
     return bootstrap_comparison_target(context, name, "x86_64-pc-linux-gnu", "compiler/units/host_linux", suffix)
         && bootstrap_comparison_target(context, name, "wasm32-unknown-unknown", "compiler/units/host_wasi", suffix)
         && bootstrap_comparison_target(context, name, "x86_64-pc-windows-msvc", "compiler/units/host_windows", suffix)
-        && bootstrap_comparison_target(context, name, "aarch64-apple-darwin", "compiler/units/host_macos", suffix);
+        && bootstrap_comparison_target(context, name, "aarch64-apple-darwin", "compiler/units/host_macos", suffix)
+        && (suffix == null || bootstrap_comparison_target(context, name, "x86_64-apple-macos11", "compiler/units/host_macos_x64", suffix));
 }
 
 fn bootstrap_comparison_grammar(context: BootstrapComparison*): bool {

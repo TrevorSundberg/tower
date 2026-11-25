@@ -42,9 +42,10 @@ fn bootstrap_symbol_in(names: u8*, symbol: u8*, length: usize): bool {
     return false;
 }
 
-fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symbol: u8*, length: usize): bool {
+fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, macos_x64: bool, symbol: u8*, length: usize): bool {
     // The leading underscore is part of each Windows CRT function name.
     if windows && unit == BootstrapUnit.Host && bootstrap_symbol_in("_findfirst64 _findclose", symbol, length) { return true; }
+    if macos_x64 && unit == BootstrapUnit.Host && bootstrap_symbol_in("_opendir$INODE64 _readdir$INODE64", symbol, length) { return true; }
     // Mach-O/COFF/Wasm spellings may prefix underscores. Preserve the previous
     // check's normalization, including __stack_pointer and __memory_base.
     while length != 0 && *symbol == convert(u8, SymbolByte.Underscore) { symbol++; length--; }
@@ -61,7 +62,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics {
-        if bootstrap_symbol_in("work_signal_close work_signal_post work_signal_try work_signal_wait work_thread_capacity work_thread_close", symbol, length) { return true; }
+        if bootstrap_symbol_in("work_signal_close work_signal_post work_signal_try work_signal_wait work_thread_capacity work_thread_pool_capacity work_thread_close", symbol, length) { return true; }
     }
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes {
         if bootstrap_symbol_in("tower_trap", symbol, length) { return true; }
@@ -88,9 +89,10 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width semantic_type_equal sem_require", symbol, length);
     }
     if unit == BootstrapUnit.Host {
+        var directory_calls = macos_x64 ? "closedir" : "closedir opendir readdir";
         return bootstrap_symbol_in("malloc realloc free tower_allocate abort bytes_reserve bytes_push bytes_append bytes_dispose tower_utf8_validate", symbol, length)
             || bootstrap_symbol_in("fopen fread fwrite ferror feof fclose strcmp", symbol, length)
-            || (!windows && bootstrap_symbol_in("closedir opendir readdir", symbol, length));
+            || (!windows && bootstrap_symbol_in(directory_calls, symbol, length));
     }
     if unit == BootstrapUnit.Entities {
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free", symbol, length) { return true; }
@@ -127,7 +129,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         if bootstrap_symbol_in("compiler_world_create compiler_world_create_workers compiler_world_dispose compiler_world_work_budget entity_store_component_count entity_store_count", symbol, length) { return true; }
         // Source emitters consume the same checked Foundation through explicit
         // read-only queries; their code no longer expands the semantics unit.
-        if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_size semantic_width", symbol, length) { return true; }
+        if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_integer semantic_size semantic_width", symbol, length) { return true; }
         return bootstrap_symbol_in("parse_forest_create parse_forest_create_result parse_forest_resource_error parse_forest_destroy tower_utf8_validate syntax_scan_highlight", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_begin syntax_replacement_capture syntax_replacement_attempt syntax_replacement_attempt_reusing syntax_replacement_diagnostic", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_offset syntax_replacement_select syntax_replacement_commit entity_id entity_replace_child", symbol, length)
@@ -233,6 +235,8 @@ fn bootstrap_symbols_check(unit: BootstrapUnit, target: u8*, input: BootstrapSym
     *rejected = default;
     if unit == BootstrapUnit.Unknown { return false; }
     var windows = strstr(target, "windows") != null;
+    var macos_x64 = strstr(target, "x86_64-") == target
+        && (strstr(target, "-apple-macos") != null || strstr(target, "-darwin") != null);
     var wasm = strstr(target, "wasm32-") == target || strstr(target, "wasm64-") == target;
     var at: usize = 0;
     while at < input.length {
@@ -245,7 +249,7 @@ fn bootstrap_symbols_check(unit: BootstrapUnit, target: u8*, input: BootstrapSym
         if end == begin { continue; }
         begin = end;
         while begin != 0 && !bootstrap_symbol_space(input.data[begin - 1]) { begin--; }
-        if !bootstrap_symbol_allowed(unit, windows, wasm, input.data + begin, end - begin) {
+        if !bootstrap_symbol_allowed(unit, windows, wasm, macos_x64, input.data + begin, end - begin) {
             // Borrowed view into input, never a separately owned buffer.
             *rejected = init(BootstrapSymbol) { data: input.data + begin, length: end - begin };
             return false;

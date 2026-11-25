@@ -20,6 +20,8 @@ extern fn semantic_scalar_name(scalar: u32): u8*;
 
 extern fn semantic_enum(t: FoundationType*): bool;
 
+extern fn semantic_integer(t: FoundationType*): bool;
+
 extern fn semantic_signed(t: FoundationType*): bool;
 
 extern fn semantic_mask(t: FoundationType*): u64;
@@ -346,6 +348,34 @@ fn format_number(f: FormatEngine*, n: FoundationNode*): void {
     format_unsigned(f, value);
 }
 
+// In these operand positions the checker gives a bare numeral a default
+// scalar. A declaration, parameter or typed peer already supplies its type.
+fn format_integer_argument(f: FormatEngine*, entity: void*, literal_scalar: u32): void {
+    var n = format_foundation(f, entity);
+    if n.kind != KOperand || !n.constant || n.type.scalar == literal_scalar
+        || n.type.record != null || !semantic_integer(&n.type) {
+        format_expression(f, entity);
+        return;
+    }
+    // convert checks its input as i32. For a full-width word use its signed
+    // bit spelling. Foundation's floating bit literal accepts all 64 bits.
+    var raw = *n;
+    raw.type.scalar = SI32;
+    var word_mask = format_mask(&raw.type);
+    var mask = format_mask(&n.type);
+    var representation = mask >= word_mask && (n.bits & mask) > word_mask / 2;
+    format_text(f, representation ? "bits(" : "convert(");
+    format_type(f, &n.type);
+    format_text(f, ", ");
+    if representation {
+        if mask > word_mask { raw.type.scalar = SF64; }
+        format_number(f, &raw);
+    } else {
+        format_number(f, n);
+    }
+    format_text(f, ")");
+}
+
 fn format_expression(f: FormatEngine*, entity: void*): void {
     var n = format_foundation(f, entity);
     if n.kind == KTypeConstruct {
@@ -364,10 +394,10 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         }
         format_text(f, name);
         format_text(f, "(");
-        format_expression(f, n.left);
+        format_integer_argument(f, n.left, SI32);
         if binary {
             format_text(f, ", ");
-            format_expression(f, n.right);
+            format_integer_argument(f, n.right, SI32);
         }
         format_text(f, ")");
         return;
@@ -397,7 +427,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
             format_expression(f, n.right);
         }
         if format_is_Print(n) {
-            format_expression(f, n.value);
+            format_integer_argument(f, n.value, SI32);
         }
         var size = format_is_SizeOf(n);
         var align = format_is_AlignOf(n);
@@ -421,7 +451,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         if conversion {
             format_type(f, &n.type);
             format_text(f, ", ");
-            format_expression(f, n.value);
+            format_integer_argument(f, n.value, SI32);
         }
         if format_is_Free(n) {
             format_expression(f, n.left);
@@ -476,11 +506,21 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
         return;
     }
     if format_is_Binary(n) {
-        format_expression(f, n.left);
+        var left = format_foundation(f, n.left);
+        var right = format_foundation(f, n.right);
+        if n.op >= OEq && right.kind == KOperand && right.constant && right.type.record == null {
+            format_integer_argument(f, n.left, SI32);
+        } else {
+            format_expression(f, n.left);
+        }
         format_text(f, " ");
         format_text(f, format_operator(n));
         format_text(f, " ");
-        format_expression(f, n.right);
+        if left.type.pointers != 0 && (n.op == OAdd || n.op == OSub) {
+            format_integer_argument(f, n.right, SUSize);
+        } else {
+            format_expression(f, n.right);
+        }
         return;
     }
     if format_is_Field(n) {
@@ -492,7 +532,7 @@ fn format_expression(f: FormatEngine*, entity: void*): void {
     if format_is_Index(n) {
         format_expression(f, n.left);
         format_text(f, "[");
-        format_expression(f, n.right);
+        format_integer_argument(f, n.right, SUSize);
         format_text(f, "]");
         return;
     }
@@ -745,7 +785,17 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
             format_text(f, "var ");
             format_identifier(f, &n.name);
             format_text(f, ": type = ");
-            format_type(f, &n.type);
+            if n.type.pointers != 0 {
+                // The initializer is a value. A postfix star is legal inside
+                // the constructor's type argument, including for deeper pointers.
+                var pointee = n.type;
+                pointee.pointers--;
+                format_text(f, "pointer_type(");
+                format_type(f, &pointee);
+                format_text(f, ")");
+            } else {
+                format_type(f, &n.type);
+            }
             format_text(f, ";");
             return;
         }

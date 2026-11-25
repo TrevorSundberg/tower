@@ -15,19 +15,8 @@ import syntax_version_types;
 import .library.vector;
 import .library.work_budget_types;
 
-extern fn syntax_description_text(entity: void*, name: u8*, name_only: bool, syntax: void*, kind: void*): u8*;
-extern fn syntax_origin_text(entity: void*, prefix: u8*, syntax: void*, kind: void*): u8*;
 extern fn format_syntax_description(result: FormatResult*, entity: void*, name: u8*, name_only: bool, syntax: void*, kind: void*): void;
 extern fn format_syntax_origin(result: FormatResult*, entity: void*, prefix: u8*, syntax: void*, kind: void*): void;
-extern fn compiler_buffer_allocate(size: usize): void*;
-extern fn compiler_buffer_free(memory: void*): void;
-
-fn syntax_version_text(text: u8*): u8* {
-    var size = syntax_text_length(text) + 1;
-    var result = bits(u8*, compiler_buffer_allocate(size));
-    if result is not null { copy(result, text, size); }
-    return result;
-}
 
 export fn syntax_version_description(value: SyntaxVersion*, definitions: FrontendRevision*, index: usize, name_only: bool): u8* {
     var output: FormatResult = default;

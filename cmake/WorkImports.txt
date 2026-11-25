@@ -1,6 +1,9 @@
 work_host_available
 work_host_entry
+work_host_thread_started
+work_host_thread_joined
 work_host_capacity
+work_host_pool_capacity
 work_host_check
 work_host_time
 work_host_heap_enter

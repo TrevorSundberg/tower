@@ -1,5 +1,6 @@
 import tower;
 export fn work_thread_retention(): bool { return false; }
+export fn work_thread_pool_capacity(): usize { return work_thread_capacity(); }
 
 export fn work_gate_open(): void* { return null; }
 export fn work_gate_close(gate: void*): void {}

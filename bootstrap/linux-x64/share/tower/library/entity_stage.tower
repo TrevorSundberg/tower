@@ -69,6 +69,11 @@ export fn entity_stage_open_result(anchor: Entity*, error: WorkBudgetError*): En
     return stage;
 }
 
+// The stage owner may enumerate its private leases before publication.
+export fn entity_stage_lease_at(stage: EntityStage*, index: usize): Entity* {
+    return index < stage.leases.length ? stage.leases.data[index].node : null;
+}
+
 // Coordinator-only, before pinning. The scheduler must own exclusive access to
 // this entity's component list and writable payloads for the entire lease. Its
 // existing identity/containment/type indexes remain published and stable. New

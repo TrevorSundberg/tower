@@ -26,6 +26,11 @@ Do NOT modify todo.txt.
   redundant steps, batch related changes, and freeze inputs during builds. Reap
   failed processes before editing/restarting; do not overlap builds in one cache.
   No repository-wide cleanup or formatting sweeps.
+- Record persistent linker inputs on the executable entry's depfile, including
+  explicit objects and the runtime selected for that target. Verify each input
+  independently by touching only that file. The executable must rebuild once
+  and the next invocation must be clean. Object-only outputs should stay clean
+  when only the link runtime changes.
 
 ## Tower implementation and bootstrapping
 
@@ -64,6 +69,24 @@ Do NOT modify todo.txt.
   results. Trace one entity from creation through its last reader before
   choosing storage. A persistent handle identifies an entity. A temporary
   borrow needs a live owner, stable storage and permission for that access.
+  Give worker callbacks distinct types for their read and write views so the
+  compiler can catch a swapped argument. At the request site, identify the
+  allocation behind each view and the byte or element range the worker can
+  reach. Two views can point into the same buffer. Keep the owner alive until
+  the last job drains and check whether a callback can save a pointer beyond
+  that point. When a new wrapper adds per-job state or dispatch work, measure
+  a short operation twice on the same live pool. Record its second invocation
+  separately so startup cannot mask the cost of reuse. See the
+  [linked Wasm relocation experiment](docs/typed_ecs_access_ca543287.md#linked-prototype-and-adoption-decision).
+- When a helper takes jobs of type `T*`, carry that type into any callback
+  that receives one of those jobs. The [semantic stage cleanup](scaffolding/compiler/compiler_kernel.tower)
+  pairs a `T**` job list with `function(void, T*)`. Passing the declaration
+  cleanup to a function-body job then fails during compilation.
+  If publication fails after the workers join, clean up borrowed results while
+  their backing stages are still live. In a regression, keep a second view open
+  across publication and check that each job releases its lease before closing
+  that view. To test disposal of borrowed values, observe a populated result
+  list at cleanup. See the [joined publication test](scaffolding/tests/semantic_body_admission_checks.tower).
 - For a dependency, write down which value is missing and which query can
   produce it. Test a forward reference and an edit to that producer. The edit
   must invalidate the consumer through aliases. A read in an untaken branch
@@ -75,6 +98,19 @@ Do NOT modify todo.txt.
   worlds and semantic results survive between requests. See the
   [staged forward reference](scaffolding/tests/staging_aliased_type.tower)
   and the [retained import test](scaffolding/tests/execution_world.tower).
+- A worker limit is shared by every live owner of a fixed browser pool. Size
+  nested work from the slots available when its pool opens. Dispatch through
+  the returned pool count and keep the caller able to finish when all children
+  are occupied. Exercise two live owners, cancel each in turn, and check the
+  survivor's results and returned slots. After releasing one owner, check
+  that an available child actually runs alongside the caller. Also close a
+  fully occupied pool and reopen it immediately. A pthread join can complete
+  before the browser worker marks its slot ready for reuse. Record the slot
+  used by a successful spawn. At join, wait for that slot's ready or failure
+  notification while the joined handle still owns it. Delay that notification
+  in the regression and check the next grant as well as eventual retirement. See the
+  [Tower regression](scaffolding/tests/lr_budget.tower) and
+  [browser selection](playground/tests/shared_compiler_worker.mjs).
 - Use the shared world-owned entity/component model wherever it fits, especially
   grammar rules, tokens/parse nodes, ASTs, types, Foundation operations, transforms,
   reflection and compiler work. Enrich those entities instead of adding another
@@ -84,7 +120,11 @@ Do NOT modify todo.txt.
   dense/cache-friendly columns for bulk traversal and sparse/stable storage where
   access patterns or lifetimes require it. Measure indirection, fragmentation,
   allocation, cache locality and false sharing; an archetype index alone is not
-  packed payload storage. Use proven alias/access information for Burst-style
+  packed payload storage. Before copying payloads for a faster scan, trace the
+  real caller's access order. Count repeated reads and adjacent slots, and include
+  the cost of constructing the copy in the comparison. If a caller retains a
+  payload address, exercise it across publication into another archetype.
+  Use proven alias/access information for Burst-style
   vectorization; never invent `noalias` guarantees. Prefer one small, generic,
   extensible Tower framework over parallel special-purpose implementations.
 - Schedule lazy type, `decltype`, layout, body, lowering, proof and evaluation
@@ -179,6 +219,10 @@ Do NOT modify todo.txt.
   `.towerbc` may wrap canonical Foundation plus a private versioned execution
   cache: validate bounds, versions and target/profile, reconstruct/check the graph,
   and verify the cache before running. Platform object/executable output is separate.
+- For compound assignment, evaluate the destination once and read its old
+  value before the right-hand side runs. Give the read and the store their
+  own Foundation nodes bound to the saved address. Check the graph after
+  reparsing with a [right-hand side that changes the destination](scaffolding/tests/floating_compound_capture.tower).
 - Every file starts from the immutable Bedrock declaration seed and applies
   grammar declarations incrementally after their boundaries. Foundation imports
   Bedrock; Tower imports Foundation; ordinary modules import their language.

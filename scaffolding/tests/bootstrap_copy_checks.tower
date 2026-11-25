@@ -1,0 +1,29 @@
+import tower;
+import utility_checks;
+import .tools.bootstrap_package;
+import .tools.tool_files_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+
+fn check_extra_resource(input: BootstrapInputs*, name: u8*, accepted: bool): void {
+    var files: vector(BootstrapFile*) = default;
+    var hashes: ByteBuffer = default;
+    var path: ByteBuffer = default;
+    defer bootstrap_files_dispose(&files);
+    defer bytes_dispose(&hashes);
+    defer bytes_dispose(&path);
+    utility_check(bootstrap_collect(input, &files), "collect clean native resources");
+    var extra_bytes: usize = 0;
+    utility_check(tool_join(&path, input.repository, "scaffolding/tower.tower")
+        && bootstrap_file_add(&files, name, path.data, &extra_bytes), "collect extra module");
+    utility_check(bootstrap_source_hashes(input, &files, &hashes) == accepted, name);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 3 { puts("Supply REPOSITORY and its clean installed COMPILER"); return 2; }
+    var input: BootstrapInputs = { repository: argv[1], compiler: argv[2], git: "/usr/bin/git", ..default };
+    check_extra_resource(&input, "share/tower/library/project/custom.tower", true);
+    check_extra_resource(&input, "share/tower/library/retired_builtin.tower", false);
+    return 0;
+}

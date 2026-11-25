@@ -11,6 +11,8 @@ import .library.work_pool;
 
 // Separate test entry imports only types and declaration boundaries for the LR
 // algorithms. Keep the public-bootstrap parser aggregate below its expansion cap.
+extern fn frontend_units_create(count: usize, budget: usize, width: u32, revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
+extern fn frontend_units_close(batch: void*): void;
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_create_result(limit: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
@@ -169,11 +171,9 @@ fn lr_dispatch_probe_execute(payload: void*): void {
     work_signal_post(job.gate);
 }
 
-// A two-party barrier requires simultaneous execution. With exactly one extra
-// lane, the second participant must run on the caller. Queue occupancy alone
-// cannot satisfy this check; the enclosing test process supplies a timeout.
-fn lr_dispatch_caller_overlap(): bool {
-    if !work_thread_available() || work_thread_capacity() < 2 { return true; }
+// Both scratch jobs must finish. With a peer available a two-party barrier
+// requires actual overlap. With every child held the caller runs both jobs.
+fn lr_dispatch_probe(participants: usize): bool {
     var gate = work_signal_open();
     var release = work_signal_open();
     if gate == null || release == null {
@@ -197,14 +197,15 @@ fn lr_dispatch_caller_overlap(): bool {
     var pool: WorkPool = default;
     if !work_pool_open_kernel(&pool, count, lr_dispatch_probe_execute) { return false; }
     defer work_pool_close(&pool);
+    if pool.count != participants || pool.threaded != (participants > 1) { return false; }
     for(var i: usize = 0; i < count; i++) {
         jobs[i] = init(LRDispatchProbe) {gate: gate, release: release, active: &active,
-            peak: &peak, participants: count, budget: &budget, ..default};
+            peak: &peak, participants: participants, budget: &budget, ..default};
         jobs[i].kernel.payload = bits(void*, &jobs[i]);
         pointers[i] = &jobs[i];
     }
     if !compiler_kernel_dispatch_admitted(&pool, &pointers[0], count, count - 1) { return false; }
-    if active != 0 || peak != count || pool.peak != count - 1 { return false; }
+    if active != 0 || peak != participants || pool.peak != participants - 1 { return false; }
     for(var i: usize = 0; i < count; i++) {
         if !jobs[i].success || lr_propagation_count(jobs[i].result, 0) != 33 { return false; }
         var data = lr_propagation_data(jobs[i].result, 0);
@@ -218,6 +219,24 @@ fn lr_dispatch_caller_overlap(): bool {
         jobs[i].result = null;
     }
     return budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0;
+}
+
+fn lr_dispatch_caller_overlap(): bool {
+    return !work_thread_available() || work_thread_capacity() < 2 || lr_dispatch_probe(2);
+}
+
+// Run in a fresh four-child group. Pending unit handles own their outer pools
+// until close, even before any source is submitted.
+export fn lr_competing_frontend_tests(): bool {
+    var units: usize = 2;
+    if work_thread_capacity() != units * 2 { return false; }
+    var first = frontend_units_create(units, units, 4, 1, 1, "", "", ".");
+    if first == null { return false; }
+    defer frontend_units_close(first);
+    var second = frontend_units_create(units, units, 4, 2, 1, "", "", ".");
+    if second == null { return false; }
+    defer frontend_units_close(second);
+    return lr_dispatch_probe(1);
 }
 
 var LRActionTrialLength: usize = 1024;

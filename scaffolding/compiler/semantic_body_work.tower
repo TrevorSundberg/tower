@@ -1770,10 +1770,9 @@ fn semantic_body_kernel(result: SemanticBodyWork*): void {
     sem_scratch_dispose(&context.scratch);
 }
 
-fn sem_body_stage_cancel(payload: void*): void {
+fn sem_body_stage_cancel(result: SemanticBodyWork*): void {
     // These jobs have not entered the shared evaluation graph. Their component
     // addresses are still live here; stage discard may destroy them afterwards.
-    var result = bits(SemanticBodyWork*, payload);
     sem_evaluation_dispose_jobs(&result.evaluations);
 }
 

@@ -966,6 +966,13 @@ npm run test:browser
 npm run test:deployment
 ```
 
+The desktop rebuild test compares the paths and text sent to the worker with
+the local release recipe in `dist/compiler/project.json`, including the edit
+made in the test. To check a served site against a particular compiler source
+freeze, set `TOWER_TEST_COMPILER_PROJECT` to the directory containing that
+freeze's independently generated `project.json`. The comparison covers
+source changes that produce identical object bytes.
+
 The deployment check starts its own local server, verifies every asset against
 `dist/deployment-manifest.json`, and exercises desktop/mobile compilation,
 execution, exports and editor interactions. Build release bundles with

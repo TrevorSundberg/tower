@@ -14,14 +14,13 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The current compiler source is `902a358f`. It copies sorted LR ranges directly
-into empty destinations, avoids allocating empty grammar capture storage, and
-retires joined grammar baselines in one-shot executable builds. The Linux x64
-compiler built on Ubuntu 24.04.5 with Clang/LLVM 19.1.1 is 2,274,560 bytes
-with SHA-256 `509557309b941160cdb55eb7ea407c1e329e6ebd8ef126340552e857208cf42f`.
-Three Ubuntu production builds matched on all 39 native products. Generations
-two and three also matched on all 57 payloads and the package archive.
-The previous public pin was built from `fb019f61`.
+The checked-in Linux x64 compiler was built from `be41c7556554acdb9eed63f2075a643b64f6e0b9`.
+Package commit `a1315ecaf04b2cda881bffcd87e6431e8b42cf61` holds the
+2,279,168-byte executable and its adjacent resources. The executable SHA-256 is
+`a3f76faf3e602f27420d9b42497166b98e345252f5e4dc1b1eaea6ee294b83fd`.
+The release archive and installer select this same compiler and verify the payloads.
+The [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
+give each compiler its own prefix and immutable installer command.
 See the [9ab581c8 pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
@@ -69,8 +68,9 @@ size, build provenance, source input hashes and optional source patch. Its
 `sha256` now identifies the executable. `linux-x64/SHA256SUMS` is the directly
 consumable verification list. The initial schema-2 migration retained the previous
 compiler/resources and recorded their `archive_origin`; subsequent pins record
-their own directly built executable. The archive and installer are retired, not additional
-required formats. Preserve frozen resource bytes and the compiler's executable
+their own directly built executable. The checkout uses these files directly;
+the one-command installer downloads the same verified package for users without
+a checkout. Preserve frozen resource bytes and the compiler's executable
 mode when publishing or checking out a pin.
 
 The current pin supports signed `i8`/`i16` and unsigned `u16` in addition to `u8`,
@@ -261,7 +261,12 @@ release from `os-release` and records the selected tool's full LLVM version.
 
 Stage new source files so Git includes them in provenance, keep the source and
 compiler/resource inputs unchanged during packaging, and package the compiler
-from that exact source snapshot. The build-command argument records an already
+from that exact source snapshot. Native CMake COPYONLY paths must match in both
+directions. For example, each direct `share/tower/library/*.tower` member
+needs a tracked, byte-identical `scaffolding/library` source. A diagnostic
+naming a retired copy calls for a fresh build/install directory. Other resources,
+including runtime IR and custom modules outside the COPYONLY paths, are
+inventoried and hashed as supplied. The build-command argument records an already
 performed build; the packager does not execute or attest it. Dependency records
 omit ASLR addresses but retain observed names/paths; they are not a portable
 dependency closure. Resource file symlinks are copied under lexical names;

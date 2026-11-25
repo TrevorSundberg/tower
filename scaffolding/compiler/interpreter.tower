@@ -520,7 +520,12 @@ fn ix_read_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset: us
     // numeric literals. Read the ordinary Foundation value in this invocation;
     // another invocation's private reference index is not an input constant.
     if input != null { return ix_read(m, input, offset); }
-    var address = ix_address_component(m, node, n, offset);
+    if !ix_ok(m) { return 0; }
+    // This read already checked stage eligibility and ruled out a captured value.
+    // Resolve its place in the same frame before reading the target bytes.
+    var address: u64 = 0;
+    if m.state.cached { address = im_addresses_get(m.state, im_key(node), &found); }
+    if !found { address = ix_place_address(m, n, offset); }
     if ix_ok(m) {
         return ix_load(m, address, &n.type, offset);
     }
@@ -536,21 +541,6 @@ fn ix_address(m: IMExecution*, node: void*, offset: usize): u64 {
         }
     }
     return ix_address_uncached(m, node, im_cached_node(m.state, node), offset);
-}
-
-fn ix_address_component(m: IMExecution*, node: void*, n: FoundationNode*, offset: usize): u64 {
-    if !ix_strict_node(m, n, offset) {
-        return 0;
-    }
-    var found = false;
-    var cached: u64 = 0;
-    if m.state.cached {
-        cached = im_addresses_get(m.state, im_key(node), &found);
-        if found {
-            return cached;
-        }
-    }
-    return ix_address_uncached(m, node, n, offset);
 }
 
 // Copy only published scalar leaves into this invocation's target-byte storage.
@@ -636,6 +626,10 @@ fn ix_address_uncached(m: IMExecution*, node: void*, n: FoundationNode*, offset:
             return 0;
         }
     }
+    return ix_place_address(m, n, offset);
+}
+
+fn ix_place_address(m: IMExecution*, n: FoundationNode*, offset: usize): u64 {
     if n.kind == KLoad {
         return ix_read(m, n.value, offset);
     }
@@ -1944,13 +1938,6 @@ fn im_address(m: IMState*, node: void*, offset: usize): u64 {
     execution.state = m;
     execution.context = null;
     return ix_address(&execution, node, offset);
-}
-
-fn im_address_component(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {
-    var execution: IMExecution;
-    execution.state = m;
-    execution.context = null;
-    return ix_address_component(&execution, node, n, offset);
 }
 
 fn im_address_uncached(m: IMState*, node: void*, n: FoundationNode*, offset: usize): u64 {

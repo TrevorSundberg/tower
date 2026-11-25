@@ -6,10 +6,10 @@ seed or callback adapter left. A hash-pinned, Tower-built Linux x64 development
 compiler is checked in under `bootstrap/` and selected automatically by the
 Docker build. LLVM and platform libraries remain third-party dependencies.
 Production browser linking for Wasm, Linux ELF, Windows PE and macOS Mach-O
-executes in Tower. Windows x64 and macOS CLI executable defaults use the same
-byte services. The Linux hosted CLI and the compiler's external-library build
-still use host toolchain linking; LLVM emission and runtime-object compilation
-also remain external. LLD is retained only as a test/build-tool reference, not
+executes in Tower. The CLI uses the Tower byte linkers by default for these
+outputs. For hosted Linux ELF it reads the target's `Scrt1.o` and `libc.so.6`.
+The development CLI loads system LLVM for emission and invokes matching Clang
+to compile the target runtime IR. LLD is retained only as a test/build-tool reference, not
 as a library linked into the production browser backend.
 
 The current policy is one Linux x64 bootstrap and a documented Docker build,
@@ -109,6 +109,162 @@ globs and repeated compilation commands are unnecessary for those objects.
 Keep explicit prerequisites for generated inputs that must exist before compilation.
 
 ## Validation and measurement
+
+### Install the Linux x64 development compiler as a normal user
+
+The [one-command installer and first program](../README.md#install-the-linux-x64-development-compiler)
+cover the be41c755 candidate for use after publication and the previously published
+902a compiler. Use the versioned be41c755 prefix to keep both installations. The
+candidate installer verifies the checksum list from package commit `a1315eca`
+before fetching its 57 payloads.
+
+### Historical checkout installation at e06aa12e
+
+Run this in Bash from a clone of [Tower](https://github.com/TrevorSundberg/tower) containing public commit `e06aa12e`. It
+installs the compiler built from `902a358f` under a fresh temporary prefix.
+The tested environment is Ubuntu 24.04.5 x86-64 with LLVM and Clang 19.1.1,
+the x64 libc development files, Git and GNU tar/coreutils available. The Git
+revision pins the checksum list as well as the executable and resources.
+
+```bash
+set -euo pipefail
+repo=$(git rev-parse --show-toplevel)
+rev=e06aa12ea25c184032de116cd55faa1e9f3ec011
+prefix=$(mktemp -d)
+git -C "$repo" archive "$rev" bootstrap/linux-x64 bootstrap/development.json |
+  tar -xf - -C "$prefix"
+mv "$prefix/bootstrap" "$prefix/Tower dev"
+pkg="$prefix/Tower dev/linux-x64"
+(cd "$pkg" && sha256sum --check SHA256SUMS)
+test -x "$pkg/towerc"
+export PATH="$pkg:/usr/lib/llvm-19/bin:$PATH"
+mkdir "$prefix/example"
+cd "$prefix/example"
+git -C "$repo" show "$rev:scaffolding/tests/distribution_program.tower" > example.tower
+test "$(command -v towerc)" = "$pkg/towerc"
+towerc --version
+printf '42\n' > expected
+towerc example.tower --interpret > interpreted
+cmp expected interpreted
+towerc example.tower -o example
+./example > native
+cmp expected native
+```
+
+For a lasting install, create a fresh versioned directory under
+`$HOME/.local/opt` for the prefix and put its compiler directory on the
+user's `PATH`. Keep the whole package together when moving it. The public
+manifest lists 57 payloads. A missing `share/tower/bedrock.tower` fails
+checksum verification and interpretation. An unavailable `libLLVM.so.19.1`
+stops the loader before `--version`. With only the package directory on
+`PATH`, executable generation exits 1 with `Cannot find tool: clang`.
+
+### Build-server matrix for native CLI releases
+
+Each row names the machine that must run the **installed compiler** and the
+first output that compiler must build and execute. The runner names below
+come from the existing [ELF](../.github/workflows/hosted_elf_linker.yml) and
+[Mach-O and PE](../.github/workflows/macho_linker.yml) guest execution jobs.
+Those jobs transfer linked test programs from Linux. The
+[Windows tooling job](../.github/workflows/windows_tooling.yml) also links
+and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
+
+| Compiler host | First output target | Runner and package dependency check | Native install evidence |
+| --- | --- | --- | --- |
+| Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Historical public install at e06aa12e above. Standalone pending. |
+| Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Full compiler linked and run under QEMU. Native self-host, relocation and public install remain open. |
+| macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | 28 Intel compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
+| macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | 28 Arm64 compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
+| Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | All 28 compiler objects prepared. Full link needs the Windows SDK, x64 MSVC runtime and matching LLVM 19 import library. Native install and execution remain open. |
+
+The Linux Arm64 handoff at `6f7ed3fe` contains the compiler and its adjacent
+resources. Its 2,049,512-byte ELF has SHA-256
+`eb6bae472bd7a887459abe76bbfd94ac370283cd9f9a912e43911c7dbc275b2d`.
+On Debian Arm64 userspace under QEMU 7.2.22, it relinked itself from the
+supplied objects byte for byte. Its interpreter and its linked Arm64 guest
+both printed `42` followed by a newline. The external Clang 19 that compiled
+the guest runtime IR ran on the x64 build machine. For the native trial,
+receipt `fdafc061-ac29-4f77-aa4b-ea9fdde983a5` contains the loader and
+library hashes, object response file, oracle and two-generation build recipe
+in `packet/HANDOFF.md`. A second x64 host reproduced the compiler, object
+and guest under QEMU. Its receiving script checks the native development
+dependencies that the runtime packet alone cannot supply. For an exact
+Debian 12 replay use Arm64 `clang-19`, `llvm-19` and `llvm-19-dev` at
+`1:19.1.7-3~deb12u1`, and the recorded glibc and CRT at `2.36-9+deb12u14`.
+From the extracted `d824f6a4-c93b-45c3-a19a-d85f681410a3` evidence run
+`bash receive-native.sh /absolute/path/to/packet` on the Arm64 builder.
+It checks LLVM's target definitions and selects the Arm64 predecessor for
+the two native generations. Hardware execution remains open.
+[Arm64 assembly and execution record](temporal-opcode-research-journal.md#linux-arm64-full-compiler-handoff-at-6f7ed3fe-november-25-2026)
+
+For Windows x64 at `6f7ed3fe`, receipt `761b21a8-8bd7-4bc5-8ff9-d8e262ed5312`
+contains the 24 direct COFF objects, four memory archive members, adjacent
+resources and `towerc.rsp`. All Tower symbols resolve within those objects.
+The response file lists `kernel32.lib`, the LLVM import library and the MSVC
+and UCRT libraries. The required LLVM exports are recorded individually in
+`symbols/llvm-required.txt`; compare them with the intended x64 DLL,
+including target registration functions. A guest-only kernel32 import library
+covers too few functions for the compiler itself.
+
+On the Windows runner, the packet's `accept-windows.ps1` takes the LLVM
+import-library path and binary directory in an x64 VS Developer PowerShell.
+It links the CLI, records its PE headers, imports and exports, then checks the
+raw output of both the interpreter and a compiled guest for `34 32 0A`.
+These steps await execution on Windows. The Host verifier now reads the build's
+configured profile and selects its Tower host module for each target. Both
+Windows objects in the predecessor/successor comparison matched the production
+COFF byte for byte. Windows Host admits the CRT spellings `_findfirst64` and
+`_findclose`. The old COFF object containing POSIX directory imports now fails.
+[Windows compiler object and verifier findings](temporal-opcode-research-journal.md#windows-x64-compiler-objects-and-the-host-comparison)
+
+For either Mac, receipt `e2c234e2-d8a1-4fdb-b85e-6ccc3f65db0e` contains
+the ordered objects for `6f7ed3fe`, a Darwin archive, adjacent resources and
+the program expected to print `42` followed by LF. Run
+`LLVM_CONFIG=/path/to/llvm-config bash receipt/receive-macos.sh` on the
+corresponding native Mac with Xcode or Command Line Tools and LLVM 19. The
+script checks the CPU, required LLVM exports and SDK ABI, links the CLI, and
+compares interpreter and guest output. The Linux cross-build verified the
+macOS 11.0 deployment minimum in every object. Its final link lacked the
+target LLVM dylib, libc++ and libSystem. Check the directory functions and
+entry layout selected by the SDK on each CPU. Apple's declarations select
+symbol variants for `opendir` and `readdir`.
+[Apple's directory API](https://github.com/apple-oss-distributions/Libc/blob/main/include/dirent.h)
+
+1. **Produce.** Freeze source, submodules, build image, SDK and flags. For
+   Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
+   empty private cache and the default pin. Package `build/native/towerc` and
+   its adjacent `share` through the [existing packager](../bootstrap/README.md).
+   To reproduce the public pin's runtime IR bytes, mount each fresh native
+   cache at `/native` and set `TOWER_NATIVE_BUILD=/native` inside the build
+   environment. LLVM includes that path in nine packaged ModuleID headers.
+   For a new host, use the Linux predecessor to emit the compiler units for
+   the destination host profile. Link the complete CLI on that platform with
+   matching LLVM and SDK inputs. Keep generators executable on the build
+   machine. Extend the packager's fixed `linux-x64` layout and use a
+   destination-native dependency probe before generating that host's manifest.
+   Bundle the required LLVM, runtime compiler, linker inputs and licenses
+   outside the declared OS baseline. Run successor generations on the
+   destination as specified under whole-compiler requirements.
+2. **Seal and install.** Record compiler host separately from supported output
+   triples. Record predecessor, source revision, exact build command, licenses,
+   archive SHA-256, relative member names, sizes, modes and hashes. Verify the
+   archive against the release record before unpacking into a new user-owned
+   directory. Verify every member and the complete inventory after extraction.
+   Move it to a path with spaces. Use a user prefix on Unix or a versioned
+   directory below `%LOCALAPPDATA%\Tower` on Windows. Put the directory
+   containing `towerc` or `towerc.exe` on the user's path.
+3. **Accept on host.** Start a fresh process outside the checkout on a clean,
+   offline OS image with only the declared system baseline. Record the actual
+   resolved executable, tools and loaded libraries. Run help/version, the
+   interpreter and native `42` checks above, repeated object emission and the
+   [verifier's separate-library and diagnostic cases](../scaffolding/tools/verify_compiler.tower).
+   Require the same object bytes and exact output/status. Repeat with a damaged
+   resource and a required tool removed from a disposable copy or image. Keep
+   stderr, exit status and output inventory. A promised standalone package
+   must complete its positive runs without a developer toolchain installed.
+   Record cross-output checks under their actual guest runners separately.
+
+### Native build and package checks
 
 Run from the repository root:
 
@@ -302,10 +458,8 @@ the parser/interpreter differential suites before replacing that bootstrap.
 Preserve its adjacent `share/tower` grammar resources when copying a bootstrap;
 a bare executable copy cannot locate its Bedrock/Foundation/Tower inputs.
 
-At this milestone Linux x64 host behavior is tested, while a complete Tower-only
-compiler and its self-build are unavailable. Windows/macOS compiler execution
-has not been performed. The user-authorized Linux development artifact now fixes
-the previously missing bootstrap path, with exact source/member hashes and LLVM
-license material. It is explicitly not a portable bootstrap release. Publish
-portable release binaries only after the corresponding gates pass, with exact
-provenance, licenses, hashes and platform verification evidence.
+The Linux x64 development bootstrap now builds its own successor through the
+canonical Ubuntu route. Its package includes source and member hashes and
+LLVM license material. The [build-server matrix](#build-server-matrix-for-native-cli-releases)
+tracks the installed compiler, hardware execution and remaining distribution
+work for each host.

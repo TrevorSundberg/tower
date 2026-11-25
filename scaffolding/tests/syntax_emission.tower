@@ -1,3 +1,4 @@
+import utility_checks;
 import syntax_emission_api;
 import .compiler.syntax_view;
 import .compiler.syntax_emission_types;
@@ -510,7 +511,72 @@ fn emission_test_excluded(f: EmissionFixture*, parent: void*, repetition: u8, ca
     return term;
 }
 
+enum EmissionTestRepeat: u8 { Optional = 63, Star = 42, Plus = 43 }
+
+fn emission_test_starts(value: void*, text: u8*): bool {
+    for (var i: usize = 0; i < syntax_emission_name_count(value); ++i) {
+        var name: SyntaxEmissionName;
+        syntax_emission_name(value, i, &name);
+        if emission_name_equal(name.text, text) { return name.start; }
+    }
+    return false;
+}
+
+// Rules are swept in name order. A discovers its nullability through Z only
+// after GrammarDeclaration has visited A. Left receives 'right' from Right
+// on a later sweep. Neither nonnullable alternative can expose its tail.
+fn emission_test_late_first(context: SyntaxEmissionInput*): bool {
+    var fixture: EmissionFixture;
+    emission_test_init(&fixture, context, false);
+    defer emission_test_dispose(&fixture);
+    var root = emission_test_rule(&fixture, "GrammarDeclaration");
+    var sequence = emission_test_sequence(&fixture, root);
+    emission_test_term(&fixture, sequence, "A", false, 0, "");
+    emission_test_term(&fixture, sequence, "Left", false, 0, "");
+    emission_test_term(&fixture, sequence, "hidden", true, 0, "");
+    sequence = emission_test_sequence(&fixture, root);
+    emission_test_term(&fixture, sequence, "Stop", false, 0, "");
+    emission_test_term(&fixture, sequence, "tail", true, 0, "");
+    emission_test_one(&fixture, "A", "Z", false);
+    var left = emission_test_rule(&fixture, "Left");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, left), "Right", false, 0, "");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, left), "left", true, 0, "");
+    var right = emission_test_rule(&fixture, "Right");
+    sequence = emission_test_sequence(&fixture, right);
+    emission_test_term(&fixture, sequence, "Left", false, 0, "");
+    emission_test_term(&fixture, sequence, "again", true, 0, "");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, right), "right", true, 0, "");
+    var stop = emission_test_rule(&fixture, "Stop");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, stop), "stop", true, convert(u8, EmissionTestRepeat.Plus), "");
+    var z = emission_test_rule(&fixture, "Z");
+    sequence = emission_test_sequence(&fixture, z);
+    emission_test_term(&fixture, sequence, "maybe", true, convert(u8, EmissionTestRepeat.Optional), "");
+    emission_test_term(&fixture, sequence, "many", true, convert(u8, EmissionTestRepeat.Star), "");
+    // Only A and Z are nullable. The independent fixed-point oracle checks
+    // every start flag: {maybe, many, left, right, stop}.
+    if !emission_test_compare(&fixture, null) { return false; }
+    var old_root = entity_create_related(fixture.owner);
+    defer entity_release(old_root);
+    fixture.input.root = old_root;
+    var old = syntax_emit(&fixture.input);
+    if old == null { return false; }
+    defer syntax_emission_destroy(old);
+
+    // Replacing Z with a required token makes Left unreachable from the start.
+    emission_test_one(&fixture, "Z", "fixed", true);
+    if !emission_test_compare(&fixture, null) { return false; }
+    var new_root = entity_create_related(fixture.owner);
+    defer entity_release(new_root);
+    fixture.input.root = new_root;
+    var current = syntax_emit(&fixture.input);
+    if current == null { return false; }
+    defer syntax_emission_destroy(current);
+    return emission_test_starts(old, "right") && !emission_test_starts(old, "fixed")
+        && !emission_test_starts(current, "right") && emission_test_starts(current, "fixed");
+}
+
 export fn syntax_emission_tests(context: SyntaxEmissionInput*): usize {
+    utility_check(emission_test_late_first(context), "Late nullable prefix and recursive declaration FIRST set");
     var f: EmissionFixture;
     emission_test_init(&f, context, false);
     var ok = emission_test_both(&f);

@@ -48,13 +48,19 @@ struct DriverUnits {
     objects: vector(ByteBuffer);
 }
 
-fn driver_units_close(batch: DriverUnits*): void {
+fn driver_units_release_compiler(batch: DriverUnits*): void {
     backend_units_close(batch.backend);
     frontend_units_close(batch.frontend);
+    batch.backend = null;
+    batch.frontend = null;
     // The entry snapshot is borrowed from DriverRequest, the others are owned.
     for (var i: usize = 1; i < batch.inputs.length; i++) { bytes_dispose(&batch.inputs.data[i]); }
-    foreach (var &object in &batch.objects) { driver_temporary_dispose(object); }
     vector_dispose(&batch.inputs);
+}
+
+fn driver_units_close(batch: DriverUnits*): void {
+    driver_units_release_compiler(batch);
+    foreach (var &object in &batch.objects) { driver_temporary_dispose(object); }
     vector_dispose(&batch.objects);
 }
 
@@ -176,5 +182,8 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     }
     for (var i: usize = 0; i < options.link_count; i++) { driver_link_input(link, options.links[i]); }
     var entry = backend_units_result(batch.backend, 1);
-    return driver_link_execute(link, backend_bytes(entry), backend_size(entry));
+    if !driver_link_prepare(link, backend_bytes(entry), backend_size(entry)) { return 1; }
+    // The link now owns its entry and names. Keep the object files until it returns.
+    driver_units_release_compiler(&batch);
+    return driver_link_finish(link);
 }

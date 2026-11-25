@@ -179,10 +179,7 @@ fn compiler_dependency_permutation_tests(root: u8*, wrong: bool): i32 {
                 defer seed_receipt_dispose(&serial); defer seed_receipt_dispose(&parallel);
                 if !permutation_trial(root, bedrock.data, foundation.data, seeds[index], placement != 0, mode != 0, 1, wrong, &serial)
                     || !permutation_trial(root, bedrock.data, foundation.data, seeds[index], placement != 0, mode != 0, 2, false, &parallel) { return 1; }
-                if serial.offset != parallel.offset || serial.canonical.length != parallel.canonical.length
-                    || serial.diagnostic.length != parallel.diagnostic.length
-                    || !utility_equal(serial.canonical.data, parallel.canonical.data, serial.canonical.length)
-                    || !utility_equal(serial.diagnostic.data, parallel.diagnostic.data, serial.diagnostic.length) {
+                if seed_receipts_differ(&serial, &parallel) {
                     puts("Permutation serial/parallel canonical/error mismatch after checked close"); return 1;
                 }
             }

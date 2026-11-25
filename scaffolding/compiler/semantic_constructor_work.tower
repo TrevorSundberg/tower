@@ -331,9 +331,12 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
     }
     if work.phase == SemanticConstructorPhase.Call {
         if work.definition == null && sem_type_identity_call(c, result.subject) {
-            work.type = *sem_type_call(c, result.subject);
-            result.checked = sem_ok(c);
-            if result.checked { work.phase = SemanticConstructorPhase.Ready; }
+            var type = sem_type_call(c, result.subject);
+            result.checked = sem_ok(c) && type != null;
+            if result.checked {
+                work.type = *type;
+                work.phase = SemanticConstructorPhase.Ready;
+            }
             return false;
         }
         var primitive = sem_type_primitive(c, result.subject, sem_identifier(c, sem_member(result.subject, "name")));
