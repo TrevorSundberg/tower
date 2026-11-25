@@ -2,6 +2,7 @@ import tower;
 import .library.vector;
 import .compiler.lr_types;
 import utility_checks;
+import parser_test_output;
 import lr_analysis_oracle_types;
 import lr_control_types;
 import lr_analysis_api;
@@ -10,7 +11,6 @@ import lr_components;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
-extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
@@ -152,7 +152,7 @@ fn lr_suffix_budget_failure(): void {
         && work_budget_snapshot(&budget, &after) && after.used_bytes > before.used_bytes,
         "Same FIRST analysis retries and charges immutable suffix storage");
     var retained = after.used_bytes;
-    utility_check(dprintf(2, "suffix index charged_bytes=%zu\n", retained - before.used_bytes, 0, 0) >= 0,
+    utility_check(parser_test_count("suffix index charged_bytes=", retained - before.used_bytes, true),
         "Suffix charged byte report");
     utility_check(lr_analysis_compute_parallel_result(analysis, root) == WorkBudgetError.None
         && work_budget_snapshot(&budget, &after) && after.used_bytes == retained,
@@ -173,7 +173,8 @@ fn lr_suffix_budget_failure(): void {
     utility_check(lr_states_lalr_parallel_result(states, false, root) == WorkBudgetError.None
         && work_budget_snapshot(&budget, &after) && after.used_bytes == action_bytes && after.live == action_owners,
         "Repeated actions reuse storage and retain no graph scratch");
-    utility_check(dprintf(2, "item graph ledger_live=%zu peak=%u\n", after.used_bytes, convert(u32, after.peak_bytes), 0) >= 0,
+    utility_check(parser_test_count("item graph ledger_live=", after.used_bytes, false)
+        && parser_test_count(" peak=", after.peak_bytes, true),
         "Item graph budget report");
     lr_states_destroy(states);
     lr_analysis_destroy(analysis);

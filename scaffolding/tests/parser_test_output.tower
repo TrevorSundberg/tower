@@ -1,0 +1,16 @@
+import tower;
+import .compiler.foundation_tags;
+
+extern fn strlen(text: u8*): usize;
+extern fn runtime_format_value(output: u8*, capacity: usize, kind: u32, value: u64, pointer_bytes: u32): usize;
+extern fn runtime_write_all(stream: u32, data: u8*, length: usize): bool;
+
+// Fault fixtures report counters without allocating or entering a variadic C ABI.
+fn parser_test_count(label: u8*, value: usize, end_line: bool): bool {
+    var digits: u8[21]; // Twenty decimal digits in u64 plus the formatter's newline.
+    var length = runtime_format_value(&digits[0], sizeof(decltype(digits)), SU64,
+        convert(u64, value), convert(u32, sizeof(usize)));
+    if length == 0 { return false; }
+    if !end_line { --length; }
+    return runtime_write_all(2, label, strlen(label)) && runtime_write_all(2, &digits[0], length);
+}

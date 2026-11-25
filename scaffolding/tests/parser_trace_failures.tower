@@ -1,5 +1,6 @@
 import tower;
 import utility_checks;
+import parser_test_output;
 import .compiler.parser_markers;
 import .library.entity_types;
 import .library.work_buffer;
@@ -14,7 +15,6 @@ extern fn entity_release(node: void*): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
-extern fn dprintf(fd: i32, format: u8*, value: usize, phase: u32, count: u32): i32;
 
 struct ParserTraceOwners { entities: usize; children: usize; references: usize; slots: usize; buffers: usize; }
 
@@ -63,9 +63,9 @@ fn parser_trace_owner_tests(leak_negative: bool): void {
     var repeated = parser_set_debug_trace(true);
     var removed = parser_set_debug_trace(false);
     tower_test_buffer_fail_after(ParserNoIndex());
-    utility_check(dprintf(2, "trace warm allocations=%zu removed=%u\n",
-        allocations, convert(u32, removed), 0) >= 0, "Trace allocation observation");
-    utility_check(dprintf(2, "trace baseline_slots=%zu\n", before.slots, 0, 0) >= 0, "Trace slot observation");
+    utility_check(parser_test_count("trace warm allocations=", allocations, false)
+        && parser_test_count(" removed=", convert(usize, removed), true), "Trace allocation observation");
+    utility_check(parser_test_count("trace baseline_slots=", before.slots, true), "Trace slot observation");
     utility_check(allocations == 0 && repeated && removed && parser_trace_clean(owner, &before),
         "Warm trace identity and full owner cleanup without physical allocation");
 
@@ -123,9 +123,9 @@ fn parser_trace_owner_tests(leak_negative: bool): void {
         parser_trace_marker(owner, &occupied);
         utility_check(parser_set_debug_trace(false) && parser_trace_clean(owner, &occupied), "Trace retry retires its new page and marker");
         for(var i: usize = 0; i < count; i++) { entity_release(bits(void*, nodes[i])); }
-        utility_check(dprintf(2, "trace exhausted_slots=%zu cause=%u\n",
-            count, convert(u32, cause), 0) >= 0, "Trace denial observation");
-        utility_check(dprintf(2, "trace denied_attempts=%zu\n", attempts, 0, 0) >= 0, "Trace allocator observation");
+        utility_check(parser_test_count("trace exhausted_slots=", count, false)
+            && parser_test_count(" cause=", convert(usize, cause), true), "Trace denial observation");
+        utility_check(parser_test_count("trace denied_attempts=", attempts, true), "Trace allocator observation");
     }
     utility_check(parser_trace_clean(owner, &before), "Trace fixture leaves zero new entities, slots and buffers");
 }
