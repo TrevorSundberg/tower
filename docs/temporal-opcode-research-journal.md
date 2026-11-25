@@ -101039,3 +101039,51 @@ The assignment packet contains the member/owner ledger, raw trials, source citat
 negative-control patch, and commands for the dedicated executor. Fresh dist identity,
 two real generations and the browser grammar/error matrix remain open. This JS-only
 coordinator measurement did not exercise native sanitizers or browser concurrency.
+
+### Host 1 ordinary validation of b91c2a97 and source-receipt correction, 2026-11-25
+
+Assignment 79c6f10a subsequently authorized host 1 to execute the ordinary package
+and browser checks. The actual 8b project packager reproduced the 12 retained
+compiler assets byte for byte. Both test sites used the frozen 537 authored texts
+and the retained 26 generated entries, support files and starter reactors.
+The normal dist build at ca543287 and b91c2a97 differed at two listed assets,
+compiler-build-worker.js and its map. The candidate worker (41813 bytes) is
+ad21ea52f39605de4ce7f07a9a805405e0577180478a1757ce7ce77b34a764ee,
+and its private site manifest is 2058894a741b0bfdf331e7f78b1fe3faad8ab112454e3a6003b882a2b4c3dd84.
+A live debugger read the exact worker script from the coordinator and both unit
+workers. An initial observation raced script availability. The subsequent probe
+waited for compile activity and scriptParsed, checked all three hashes and drained.
+
+The earlier 14da0b26 stock-workbench generation receipt submitted the edited
+8b file map cb6338bf58a879af1ca0268da939efa41e6b66bdd51810c5aed7a9e5cad04894.
+Its bad-import digest independently matches 8b. The historical route fixture
+did not establish that the page submitted the frozen project. This corrects the
+stock-UI attribution in the preceding assignment entry. The separate controlled
+timing matrix retains its original edited-recipe identity. In the new campaign
+both sites actually served frozen recipe 2b19b5c75a24f01d31c7578e8ae156a32bbaf8c3767634fc45667303574496a7.
+The edited map 96ffe0093bda750baf9eba95ddbe5a20616abbd63c5bcea4722e4893df855f3c
+matched both successful workbench submissions per site and the actual exported
+9481432-byte ZIP, 8fb10f121ce49077f5c24e023ee017f640815c6caf0aa940993b026f439485a5.
+ZIP import preserved all 563 files in order, 46 builtins, and the restore baseline.
+A one-byte corruption failed at the exact edited semantic source.
+
+The two-generation Node/Wasm driver matched the independent 25-object/3-reactor
+oracle in each generation on each revision, using two and four lanes. Null
+assignment in input.tower at byte 31 produced the edited error on all four.
+The page used two overlapping lanes in each successful rebuild. An invalid root
+tower.tower import preserved Gen 1, Restore let Gen 1 build Gen 2, an invalid
+unit import preserved Gen 2, and Reset restored the stock diagnostic.
+
+On Xeon Gold 6244 CPUs 2–5, quota 15.36, warm OS files and fresh processes, one
+real baseline/candidate Node pair took 84.44/83.60 s wall, 224.44/221.67 s CPU,
+2783824/2756408 KiB max RSS. Matched Chromium chains took 113.31/112.41 s across
+CDP samples, 266.23/264.40 s browser CPU and 2332008/2313620 KiB max sampled
+renderer RSS. These single pairs do not establish an end-to-end speedup.
+Three additional desktop samples per execution profile gave cold-owner/warm-owner
+median load 147.20/0.100 ms portable and 245.645/0.065 ms shared. All six tested
+the ordered first error, repair, failed-drive retry and new-owner recovery.
+The 12 desktop/mobile feature cases and ordinary loopback deployment verifier
+passed. The served manifest and all assets were checked. Original evidence,
+raw products, CDP/Node measurements and commands are in the assignment archive's
+ordinary/ directory. This run covers the retained 8b native-built assets and the
+changed JS transport on Chromium 159. It made no public deployment.
