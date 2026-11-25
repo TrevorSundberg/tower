@@ -12,6 +12,7 @@ import semantic_constructor_work;
 import .library.vector;
 import .library.work_budget_types;
 
+extern fn entity_stage_lease_at(stage: void*, index: usize): void*;
 extern fn entity_component_owner(component: void*): void*;
 
 // Optional, disposable analysis on the original shared entities. The annotation
@@ -401,24 +402,34 @@ export fn sem_generic_inspect(c: SemanticContext*, resolve_types: bool, truncate
         generic_info_walk(&a, definition, values, types, 0);
     }
     if !sem_ok(c) { return null; }
-    error = entity_stage_publish_result(stage);
-    if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
-    stage = null;
-    a.stage = null;
-    generic_types_prepare(&a);
-    if !sem_ok(c) { return null; }
-    stage = entity_stage_open_result(c.program.root, &error);
-    if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
-    a.stage = stage;
     a.binding = false;
-    for(var index: usize = 0; index < entity_query_count(component); index++) {
-        var entry = entity_query_at(component, index);
-        error = entity_stage_lease_result(stage, entity_component_owner(entry));
+    if resolve_types {
+        error = entity_stage_publish_result(stage);
         if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
-    }
-    for(var index: usize = 0; index < entity_query_count(component) && sem_ok(c); index++) {
-        var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(component, index)));
-        generic_info_type(&a, meaning);
+        stage = null;
+        a.stage = null;
+        generic_types_prepare(&a);
+        if !sem_ok(c) { return null; }
+        stage = entity_stage_open_result(c.program.root, &error);
+        if stage == null { sem_scratch_error(c, c.program.root, error); return null; }
+        a.stage = stage;
+        for(var index: usize = 0; index < entity_query_count(component); index++) {
+            var entry = entity_query_at(component, index);
+            error = entity_stage_lease_result(stage, entity_component_owner(entry));
+            if error != WorkBudgetError.None { sem_scratch_error(c, c.program.root, error); return null; }
+        }
+        for(var index: usize = 0; index < entity_query_count(component) && sem_ok(c); index++) {
+            var meaning = bits(GenericInfo*, entity_component_data(entity_query_at(component, index)));
+            generic_info_type(&a, meaning);
+        }
+    } else {
+        // No declaration worker needs these source leases. Revisit the bound
+        // annotations through their owners and publish both passes together.
+        for(var index: usize = 0; ; index++) {
+            var owner = entity_stage_lease_at(stage, index);
+            if owner == null { break; }
+            generic_info_type(&a, generic_info(owner, component));
+        }
     }
     // Bind every definition before following type applications. This preserves
     // module forward references and makes inspection independent of file order.
