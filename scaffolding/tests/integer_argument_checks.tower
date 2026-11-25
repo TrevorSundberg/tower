@@ -1,6 +1,7 @@
 import tower;
 import frontend_units;
 import body_runs;
+import .compiler.foundation_tags;
 import .library.vector;
 
 extern fn frontend_units_error_offset(batch: void*): usize;
@@ -20,6 +21,32 @@ fn integer_argument_failure(root: u8*, bedrock: u8*, foundation: u8*, source: u8
     if workers == 1 { *expected_offset = offset; }
     units_check(offset == *expected_offset && frontend_units_step(batch, false)
         && strcmp(frontend_units_error(batch), wanted) == 0, "Unary argument deterministic first error");
+}
+
+fn staged_integer_print_roundtrip(root: u8*, bedrock: u8*, foundation: u8*, width: u32): void {
+    var source = "import tower; print(comptime(~convert(u32, 0))); print(comptime(sizeof(void*)));";
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&canonical);
+    var wanted = width == 4 ? "4294967295\n4\n" : "4294967295\n8\n";
+    body_runs_trial_output(source, 1, width, bedrock, foundation, root, &canonical, wanted);
+
+    var batch = frontend_units_create(1, 4, width, 81, 23, bedrock, foundation, root);
+    units_check(batch != null, "Canonical integer print batch");
+    defer frontend_units_close(batch);
+    units_check(units_source(batch, 1, root, "/integer_print.tower", canonical.data, canonical.length), "Canonical integer print input");
+    while !frontend_units_step(batch, true) {}
+    units_check(frontend_units_failed(batch) == 0, "Canonical unsigned maximum reparses");
+    var program = sem_get(frontend_units_program(batch, 1).root);
+    var count: usize = 0;
+    foreach(var entity in &program.items) {
+        var node = sem_get(entity);
+        if node.kind == KPrint {
+            var scalar = count == 0 ? SU32 : SUSize;
+            units_check(sem_get(node.value).type.scalar == scalar, "Reparsed integer print ABI type");
+            count++;
+        }
+    }
+    units_check(count == 2, "Both staged print operands checked");
 }
 
 fn integer_argument_checks(root: u8*, mode: u8*): i32 {
@@ -49,6 +76,7 @@ fn integer_argument_checks(root: u8*, mode: u8*): i32 {
     units_read(root, "/tests/computed_type_arguments.tower", &computed);
     for(var width: u32 = 4; width <= 8; width *= 2) {
         var canonical: vector(u8) = default;
+        staged_integer_print_roundtrip(root, bedrock.data, foundation.data, width);
         var existing: vector(u8) = default;
         defer vector_dispose(&existing); defer vector_dispose(&canonical);
         var negative_offset: usize = 0; var mutable_offset: usize = 0; var minimum_offset: usize = 0;
