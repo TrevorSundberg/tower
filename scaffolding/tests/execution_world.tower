@@ -374,6 +374,24 @@ fn retained_world_scalar_type(session: ExecutionSession*, world: void*, modules:
     retained_world_expect(session, world, modules, budget, source, "-8\n", false);
 }
 
+fn retained_world_capture_escape(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
+    var file = "retained_flag.tower";
+    var initial = "import tower;var take:bool=false;";
+    var escaped = "import tower;var take:bool=false;var alias=&take;";
+    var source = "import tower;import retained_flag as selected;var wanted:i32=comptime(answer(selected.take));fn answer(take:bool):i32{return take ? 1 : 7;}print(wanted);";
+    execution_check(frontend_modules_source(modules, file, initial, strlen(initial)), "Install staged flag");
+    retained_world_expect(session, world, modules, budget, source, "7\n", false);
+    execution_check(frontend_modules_source(modules, file, escaped, strlen(escaped)), "Escape the live flag without changing its initializer");
+    execution_check(!execution_session_compile(session, source, strlen(source), 8, modules)
+        && session.program.resource.error == WorkBudgetError.None
+        && execution_text(&session.error, "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer")
+        && session.machine.failed && session.machine.steps == 0 && session.output.length == 0,
+        "New escape invalidates the previously successful capture before guest execution");
+    retained_world_drained(world, budget);
+    execution_check(frontend_modules_source(modules, file, initial, strlen(initial)), "Repair the staged flag");
+    retained_world_expect(session, world, modules, budget, source, "7\n", false);
+}
+
 fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     execution_check(work_thread_available() && work_thread_capacity() >= workers, "Retained source native transport capacity");
     var signal = work_signal_open(); execution_check(signal != null, "Retained budget signal");
@@ -425,6 +443,7 @@ fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
     retained_world_diamond(&session, world, modules, &budget);
     retained_world_scalar_type(&session, world, modules, &budget);
+    retained_world_capture_escape(&session, world, modules, &budget);
     retained_world_field_address(&session, world, modules, &budget);
     retained_world_target_width(&session, world, modules, &budget, request.root);
     execution_close_checked(&session);
