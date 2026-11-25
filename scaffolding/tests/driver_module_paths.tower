@@ -173,6 +173,31 @@ fn driver_import_companions(files: DriverImportFiles*, compiler: u8*): bool {
     return true;
 }
 
+fn driver_run_companions(files: DriverImportFiles*, compiler: u8*): bool {
+    var owner = "import tower; fn private_value():i32 { return 11; } print(7); test() { print(private_value()); }";
+    var companion = "import tower; import owner as subject; import extra as extra; test() { print(subject.private_value() + extra.value()); }";
+    if !driver_import_add(files, "/owner.tower", owner) || !driver_import_add(files, "/owner_test.tower", companion)
+        || !driver_import_add(files, "/extra.tower", "import tower; fn value():i32 { return 31; }") { return false; }
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--test");
+    driver_argument(&args, files.root.data, "/owner.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "11\n42\n", true);
+    driver_test_read("driver stderr.txt", "2 tests passed for ", false);
+
+    var wrong = "import library.testing;\ntest() {\n    assert(false, \"Selected wrong expectation\");\n}";
+    if !driver_import_add(files, "/owner_test.tower", wrong) || driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stdout.txt", "11\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:3:5: Selected wrong expectation", false);
+    var implicit = "import library.testing;\nassert(false);";
+    if !driver_import_add(files, "/owner_test.tower", implicit) || driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stderr.txt", "owner_test.tower:2:1: Executable companion statements require a test() block", false);
+    return true;
+}
+
 fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
     driver_import_identity(compiler, resources);
     var files: DriverImportFiles = default;
@@ -184,7 +209,8 @@ fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
         || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
     driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
     defer driver_import_close(&files);
-    var ok = driver_import_checks(&files, compiler, resources) && driver_import_companions(&files, compiler);
+    var ok = driver_import_checks(&files, compiler, resources) && driver_import_companions(&files, compiler)
+        && driver_run_companions(&files, compiler);
     if ok { driver_platform_write(DriverImportStdout, "Native module paths passed\n", strlen("Native module paths passed\n")); }
     return ok;
 }

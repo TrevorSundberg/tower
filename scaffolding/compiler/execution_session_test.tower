@@ -10,6 +10,11 @@ import .host.driver_request;
 import .tests.execution_world;
 import .library.work_budget;
 import .library.work_pool;
+import test_file_rule;
+
+extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
+extern fn frontend_modules_swap_test_discovery(environment: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+extern fn frontend_modules_source(environment: void*, path: u8*, text: u8*, length: usize): bool;
 
 fn execution_test_declaration_world(request: DriverRequest*, workers: usize): void {
     var signal = work_signal_open();
@@ -27,11 +32,38 @@ fn execution_test_declaration_world(request: DriverRequest*, workers: usize): vo
     execution_test_declarations(modules);
     execution_test_array_assertions(modules, false);
     execution_test_array_assertions(modules, true);
+    execution_test_discovery_reset(modules);
     frontend_modules_destroy(modules);
     execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "test request world drains");
     var final: WorkBudgetSnapshot = default;
     execution_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
         && final.used_lanes == 0 && work_budget_dispose(&budget), "test request releases memory and workers");
+}
+
+fn execution_test_discovery_reset(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var source = "import tower; print(7); test() { print(11); }";
+    var companion = "import tower; test() { print(42); }";
+    var rule = test_file_default_rule();
+    var selection: TestFileSelection = default;
+    defer test_file_selection_dispose(&selection);
+    execution_check(frontend_test_selection_open(&selection, &rule, "world_unit.tower")
+        && frontend_modules_source(modules, "world_unit_test.tower", companion, strlen(companion)), "registered companion input");
+    var discovery: TestFileDiscovery = { selection: &selection, ..default };
+    {
+        var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+        defer frontend_modules_swap_test_discovery(modules, previous);
+        execution_check(execution_session_compile_tests(&session, source, strlen(source), 8, modules)
+            && session.program.test_count == 2, "inline and registered companion in one request");
+    }
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, "11\n42\n"),
+        "registered companion executes after the owner");
+    execution_compile(&session, source, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && session.program.test_count == 0
+        && execution_text(&session.output, "7\n"), "same session and world return to an ordinary request");
 }
 
 fn execution_test_array_assertions(modules: void*, fast: bool): void {
