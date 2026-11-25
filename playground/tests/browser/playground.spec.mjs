@@ -199,19 +199,26 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   const source = base + loop + '\nfor (item in items) {\n    item)\n}\n';
   await setSource(page, source);
   await expect(page.locator('#status')).toContainText('Stopped');
-  await expect(page.locator('.tw-error-range')).toHaveText(')');
+  await expect(page.locator('.tw-error-line .tw-error-range')).toHaveText(')');
   await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:9:9`);
   await expect(page.locator('.tw-inline-error-message')).toContainText("Unexpected ')'. Expected ';'.");
   await expect(page.locator('#diagnostic')).toBeHidden();
   await expect(page.getByRole('textbox', { name: 'Tower source' })).toBeFocused();
   await page.getByRole('button', { name: 'Go to error at foreach.tower:9:9' }).click();
-  const line = await page.locator('.tw-error-line').boundingBox();
-  const card = await page.locator('.tw-inline-error').boundingBox();
-  expect(card.y).toBeGreaterThanOrEqual(line.y + line.height - 1);
-  const marker = page.locator('.tw-error-marker:visible').last();
-  const mark = await marker.boundingBox();
-  expect(mark.y).toBeGreaterThanOrEqual(line.y);
-  expect(mark.y + mark.height).toBeLessThanOrEqual(line.y + line.height);
+  const marker = page.locator('#editor .tw-error-gutter .tw-error-marker:visible');
+  await expect(marker).toBeInViewport();
+  // Go to error can scroll between browser calls. Read all three boxes in one layout.
+  const { line, card, mark } = await marker.evaluate(element => {
+    const editor = element.closest('#editor');
+    return {
+      line: editor.querySelector('.tw-error-line').getBoundingClientRect().toJSON(),
+      card: editor.querySelector('.tw-inline-error').getBoundingClientRect().toJSON(),
+      mark: element.getBoundingClientRect().toJSON(),
+    };
+  });
+  expect(card.top).toBeGreaterThanOrEqual(line.bottom - 1);
+  expect(mark.top).toBeGreaterThanOrEqual(line.top);
+  expect(mark.bottom).toBeLessThanOrEqual(line.bottom);
   expect(await page.locator('.cm-scroller').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   expect(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth)).toBe(false);
   await page.screenshot({ path: `../build/playground-error-${info.project.name}.png`, fullPage: true });
@@ -222,6 +229,7 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   expect((await downloadedProject(download)).files[0].text).toBe(source);
   await setSource(page, source.replace('item)', 'item;'));
   await expect(page.locator('#status')).toContainText('Complete');
+  await expect(marker).toHaveCount(0);
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('.tw-error-range')).toHaveCount(0);
   await expect(page.locator('#editor-error')).toBeHidden();
