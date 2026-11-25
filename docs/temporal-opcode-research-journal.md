@@ -105030,3 +105030,29 @@ cache invalidation by a shadowing import; their posted recipe receipt agreed
 with desktop. The 240-pass ordinary matrix retains its original two skips.
 A second clean Pages receiver imported the named bundle with only the public
 parent and reproduced the same commit and 107-entry tree. Host 7 did not publish.
+### 2026-11-25 — Combined Linux and browser delivery on the repaired Pages parent
+
+Host 7 reproduced local Pages commit 89c08614dca8c216007952417551fc156effe90e
+and tree c82e8ef38690388df05dc576fdbc073f138268bc on parent d1ca61ba.
+The complete 108-entry tree retains 105 prior paths byte-for-byte with their
+Git modes. It adds the 0823b028 Linux archive and updates the installer and
+manifest. The previous be41c755 archive remains downloadable. All 107 listed
+assets matched over HTTP. A clean receiver reproduced the commit from the
+public Pages prerequisite and two bundles.
+
+The ordinary desktop/mobile deployment verifier passed, including the detected
+Wasm/Linux defaults. The revised e9708c12 playground spec passed all 24 cases
+at two viewports, one attempt each. An automatic desktop editable Build used
+two workers and compiled 25 units. Its three generated reactors and the actual
+mobile/desktop Wasm and ELF downloads matched the frozen 7ace oracles. All
+four downloaded guests ran and printed 42. Host 7 reused the shipped reactors.
+
+The served installer selected package b9342ba1. A local TLS mirror of the 58
+immutable package files allowed a no-checkout install. The first interpreter
+run lacked procfs and could not find its resources. Supplying /proc/self/exe
+and repeating from a fresh prefix passed installation, repeat, guest link/run,
+relocation and relink. Repeat and relocation fetched zero files. On this host
+the installed, moved and archive compilers emitted identical ELF bytes. Host
+3's separately linked sample differed at 43 offsets, including _start, and
+also ran as 42. Assignment 97009f0c contains both diagnostics, comparison
+data, receipts, raw logs and process resource reports. Only loopback was tested.
