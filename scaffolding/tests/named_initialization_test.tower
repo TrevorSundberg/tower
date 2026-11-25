@@ -25,4 +25,37 @@ fn staged(): i32 {
     return pair[0] + pair[1];
 }
 if comptime(staged()) != 42 { trap("Staged array element sum", 0); }
+
+struct Sample { tag: u8; value: i32; valid: bool; }
+struct Batch { samples: Sample[2]; weight: u64; }
+fn local(): u64 {
+    var batch: Batch = {
+        {{3, -17, false}, {9, 70000, true}},
+        4294967297,
+    };
+    if batch.samples[0].tag != 3 || batch.samples[0].value != -17 || batch.samples[0].valid
+    || batch.samples[1].tag != 9 || batch.samples[1].value != 70000 || !batch.samples[1].valid {
+        trap("Nested samples must retain their declared fields", 0);
+    }
+    return batch.weight;
+}
+if local() != 4294967297 { trap("Wide field after nested samples", 0); }
+
+var slots: Sample[3];
+fill(&slots, 165, sizeof(decltype(slots)));
+var visits = 0;
+var effects = 0;
+fn middle(): Sample* { visits++; return &slots[1]; }
+fn tag(): u8 { effects = effects * 10 + 1; return 13; }
+fn observed(): i32 { effects = effects * 10 + 2; return convert(i32, slots[1].tag) + 70000; }
+fn valid(): bool { effects = effects * 10 + 3; return slots[1].value == 70013; }
+*middle() = {tag(), observed(), valid()};
+if visits != 1 || effects != 123 || slots[1].tag != 13 || slots[1].value != 70013 || !slots[1].valid {
+    trap("Reset destination, field order or aliased read", 0);
+}
+var left = bits(u8*, &slots[0]);
+var right = bits(u8*, &slots[2]);
+for(var i: usize = 0; i < sizeof(Sample); i++) {
+    if left[i] != 165 || right[i] != 165 { trap("Reset crossed a sample boundary", 0); }
+}
 print(0);

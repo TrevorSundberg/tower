@@ -105470,3 +105470,49 @@ identities, future companion and Git bundle travel in the assignment archive.
 Publication and additional host/toolchain qualification remain with the manager.
 
 Host 8 qualified the merged floating constructor and borrowed-array body admission in packet 4f649727-36c2-4873-87db-642b0387ca55. Both parents individually rejected the mixed fixture. The combined unit entered 19 body kernels at each width and reached four concurrent kernels on the four-worker run. The actual result was 42. Both widths emitted identical 15,922-byte Foundation and identical 29,704-byte native binaries. Deliberately changing the expected untouched tail from 5 to 6 failed in Graph, Fast and the native guest. The integrated semantic_body_work.tower has the worker-verified Git blob 0963859c4536435d30b2e5136a3d713e10c0937f. The native matrix covers signed zero and distinct NaN payloads in nominal type arguments. Array extents still require integers.
+### Declaration-order positional struct initialization
+
+At public `3847106b`, a complete positional struct reset reached the aggregate
+checker at one and four workers and failed with “Positional initialization
+requires a fixed array type”. Its field-named equivalent ran at both widths.
+The Tower comma-list grammar already preserves the outer expressions in order.
+For a struct, the checker now walks the laid-out record's ordered field entities,
+binding each expression to its field and exact type. The existing lowering
+captures the destination and emits one field location and store per scalar leaf.
+The coordinator's existing aggregate layout dependency supplies the record before
+checking. No parser, worker admission, storage or Foundation operation changed.
+
+Host 6 built both Release compilers in empty caches with the checked-in Linux
+x64 bootstrap, LLVM/Clang 19 and six outer jobs. Receipt
+`b32c1374-0ad4-49ef-adf3-e9aa3c338661` contains both relocated products. At
+jobs 1/4 the named baseline and positional candidate emitted identical Foundation
+(SHA-256 `39229a723d658b95c7f4870e63df8e3e5d1ebe1490537273cbd7eb64b13e1366`)
+and identical native executables. Graph, Fast, predecessor Foundation reread and
+native all printed 0. The comparison includes a local struct with an array of
+mixed-width structs and a reset through a counted call. Aliases observe each
+previous write. Both neighboring objects retain every sentinel byte. Changing
+the expected call order from 123 to 132 failed the registered harness at both
+widths. The explicit trap reports the message at Bedrock offset zero. The full
+execution suite, LR type-smoke and both registered initializer runs passed.
+Twelve sanitizer launches completed across address/leak and thread modes, each
+with four valid executions and two expected count rejections. Ten repeated
+four-worker runs of the 64-body positional input each returned 4544.
+
+On the Xeon E5-2680 v4 (CPUs 0–11, quota 11.52 CPUs), five warm-filesystem
+fresh-process pairs per width followed one warmup pair. For the matched small
+named control the baseline/candidate median wall times were 0.34/0.34 s at one
+worker and 0.39/0.40 s at four. For 64 independent bodies they were 0.39/0.39 s
+and 0.44/0.44 s. Median peak RSS there was 87,412/87,420 KiB at one worker
+and 91,680/90,920 KiB at four. These runs showed no four-worker speedup.
+The packet retains wall/user/system time, RSS and separate allocator observations.
+
+The proposed literal-keyword grammar for `test() CoreBlock` parsed both kinds
+of initializer in a test block but rejected ordinary fields and functions
+named `test`. Without the overlay, a positional initializer calling such a
+function printed 42. Check identifier compatibility when integrating the
+test language. Actual test-profile dispatch, browser qualification and public
+bootstrap adoption remain separate. The first fixture probe used `sizeof(slots)`
+where a type was required. The final fixture uses `sizeof(decltype(slots))`.
+An initial native emission could not find unversioned Clang. The successful
+matrix selected LLVM 19's bin directory and an explicit Linux GNU target.
+Only the manager publishes.

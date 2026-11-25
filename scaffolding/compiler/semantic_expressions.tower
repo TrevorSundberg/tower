@@ -153,8 +153,8 @@ fn sem_aggregate_initialization(c: SemanticContext*, n: void*, expected_type: Fo
     sem_set_type(&initial.type, type);
     var list = sem_member(n, "fields");
     var elements = sem_member(list, "elements");
-    if elements != null && (type.pointers != 0 || type.scalar != SArray) {
-        sem_fail(c, n, "Positional initialization requires a fixed array type");
+    if elements != null && !semantic_aggregate(type) {
+        sem_fail(c, n, "Positional initialization requires a fixed array or struct type");
         return n;
     }
     if elements == null && (type.pointers != 0 || type.scalar != SStruct || semantic_enum(type)) {
@@ -171,10 +171,13 @@ fn sem_aggregate_initialization(c: SemanticContext*, n: void*, expected_type: Fo
         // their own grouping. Check coverage before building any stores.
         var values = sem_collect(c, elements, "TowerExpression");
         if !sem_ok(c) { return null; }
-        if values.length != record.length {
-            var required = sem_decimal(c, convert(u64, record.length));
+        var array = type.scalar == SArray;
+        var count = array ? record.length : record.items.length;
+        if values.length != count {
+            var required = sem_decimal(c, convert(u64, count));
             var actual = sem_decimal(c, convert(u64, values.length));
-            sem_fail(c, n, sem_cat(c, "Expected ", sem_cat(c, required, sem_cat(c, " array elements, got ", actual))));
+            var unit = array ? " array elements, got " : " struct fields, got ";
+            sem_fail(c, n, sem_cat(c, "Expected ", sem_cat(c, required, sem_cat(c, unit, actual))));
             return n;
         }
         for(var i: usize = 0; i < values.length && sem_ok(c); i++) {
@@ -184,8 +187,15 @@ fn sem_aggregate_initialization(c: SemanticContext*, n: void*, expected_type: Fo
             var entry = sem_parent(source);
             var item = sem_node_result(c, entry, KAssign);
             if item == null { return null; }
-            item.index = i;
-            item.type = record.element;
+            if array {
+                item.index = i;
+                item.type = record.element;
+            } else {
+                item.binding = record.items.data[i];
+                var field = sem_get(item.binding);
+                item.type = field.type;
+                if !sem_set_name(c, item, sem_name(field)) { return null; }
+            }
             item.value = sem_operand(c, source, &item.type);
             if !sem_push_checked(c, &initial.items, entry) { return null; }
         }

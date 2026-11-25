@@ -109,6 +109,9 @@ fn named_initialization_tests(modules: void*, root: u8*): void {
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={x:1,x:2};", "Duplicate initializer field 'x'");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={z:1};", "Unknown initializer field 'z'");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={x:true};", "Expected i32");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;y:bool;}var p:P={1};", "Expected 2 struct fields, got 1");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;y:bool;}var p:P={1,true,3};", "Expected 2 struct fields, got 3");
+    named_initialization_reject(modules, "import tower;struct P{x:i32;y:bool;}var p:P={1,convert(i32,23)};", "Expected bool, got i32");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={..default,x:1};", "once, at the end");
     named_initialization_reject(modules, "import tower;struct P{x:i32;}var p:P={..default,..default};", "once, at the end");
     named_initialization_reject(modules, "import tower;var p={x:1};", "requires a target type");
