@@ -167,6 +167,9 @@ and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
    Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
    empty private cache and the default pin. Package `build/native/towerc` and
    its adjacent `share` through the [existing packager](../bootstrap/README.md).
+   To reproduce the public pin's runtime IR bytes, mount each fresh native
+   cache at `/native` and set `TOWER_NATIVE_BUILD=/native` inside the build
+   environment. LLVM includes that path in nine packaged ModuleID headers.
    For a new host, use the Linux predecessor to emit the compiler units for
    the destination host profile. Link the complete CLI on that platform with
    matching LLVM and SDK inputs. Keep generators executable on the build
