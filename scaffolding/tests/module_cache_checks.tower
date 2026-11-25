@@ -2,6 +2,7 @@ import tower;
 
 extern fn frontend_modules_tests(): usize;
 extern fn module_cache_empty_seed_leases(): void;
+extern fn module_first_import_leases(): void;
 extern fn puts(text: u8*): i32;
 extern fn fflush(stream: void*): i32;
 
@@ -9,6 +10,7 @@ extern fn fflush(stream: void*): i32;
 // the parser_modules profile and run with scaffolding as the working directory.
 export fn main(): i32 {
     module_cache_empty_seed_leases();
+    module_first_import_leases();
     fflush(null); // Preserve the new case's result if a later legacy check traps.
     var result = frontend_modules_tests();
     if result != 0 {
