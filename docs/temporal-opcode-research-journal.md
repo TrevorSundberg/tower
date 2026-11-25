@@ -100074,3 +100074,121 @@ required startup retries on this host. Suppressing retirement or bypassing
 the independent-view check in a private test process triggered the respective
 regression assertion. A relocated packet replay reproduced both compiler
 outputs. Validation covers the native Linux path tested here.
+
+## 2026-11-25 · Release intermediate imported grammar versions after their reader advances
+
+Host 8, assignment 5b4bf88b-1a08-453d-b756-bdb7e8df3fe1. Local experiment on
+902a358f55e65a4582d50802204a83428971ad5d. The verified 3ca61994 archive
+(8332247d08d6cb2ad3ee7b0cfd92f03913b9cd8272a81741014f25af41b337fd)
+supplied four frozen 13-unit invoices, the reference objects, ELF, guests and
+depfiles, and the prior gate comparison. Its full verifier passed. This host's
+stock native cache reproduced both eight-job Capacity refusals. The earlier
+832eedd4 gate recovered them with a 48% small and 30% uneven wall penalty.
+
+In a serial observation on identical-parent, the first nested Tower reader
+finished at byte 9352 with 63 cache-only versions, one active version and
+zero version-cache hits. In an isolated release observation, dropping the
+session index and its pins returned 14,135,276 charged bytes. Dropping the
+world structure index returned another 32,665,408. The session kept its
+current version. Ledger live fell from 60,370,545 to 13,569,861. RSS measured
+150,433,792 bytes immediately before and after. The index revisions alone
+had 414,911 bytes of descriptor and vector capacity. These shallow capacities
+exclude the entities they reference. The largest retired version released
+340,454 charged bytes. Its last recognizer finished at byte 9021. The largest
+retired frozen structure released 1,036,192 bytes. It last served the reader
+finishing at 9351. These are measured destruction deltas with other aliases
+intact. During the final table build of this reader, destroying the top-level
+LR states and analysis freed 3,815,391 and 87,528 charged bytes. The prior
+stock trace measured 9,377,989 bytes between build entry and peak, including
+temporary and published allocations. At jobs eight, eight private readers
+entered the first install with 132,919,081–161,932,250 aggregate bytes live.
+
+Implementation gives each import traversal its own one-entry numeric structure
+cache for incremental declarations. Each successful declaration installs a
+fully checked version in the normal session pins. Subsequent replacements
+release its old execution view at the existing post-recognizer boundary.
+Recursive readers own separate scopes. Import installation, reusable external
+sessions and explicit version or completion pins retain their respective
+ownership. The compiler still reads and checks each reached construct. No
+dispatch policy or memory limit changed.
+
+The original 60 MiB refusal fixture stopped refusing. The updated fixture
+calibrates its headroom from the same source in a fresh serial world, checks
+the nested Tower filename and typed Capacity, and retains the separate baseline
+and peak-minus-one checks. The mixed-receipt harness uses the same calibration.
+The held-view fixture retains the final imported version across a successful edit,
+a later failed read and reader destruction, inspects its original table and
+literal, then verifies the ledger drains.
+
+A separate Linux allocator observation used mincore immediately before freeing
+each libc block. It counted only the usable byte interval intersecting resident
+pages. The first nested reader's retired version/index blocks accounted for
+19,271,312 resident bytes and its relinquished structure blocks for 32,961,840.
+Both windows recorded zero fresh allocation and zero realloc calls. The final
+table's solver teardown freed 3,906,104 usable bytes, of which 3,902,008 were
+resident. Freed libc blocks, the grant ledger and process RSS have different
+scopes. Idle allocator pages may stay resident.
+
+In one eight-job stock trace the ledger sampled 267,996,431 bytes live after
+a peak of 268,433,431. Eight in-progress declarations had reached byte offsets
+4245, 5185, 5684 and 6270, each in two independent readers. Their last
+pre-build counters totaled 356 cache-only versions plus eight active versions.
+Four separate serial cut experiments replayed those observed source boundaries
+on the frozen heavy invoice. Weighting each by its two observed readers gives
+64,115,702 reclaimable version/index bytes and 124,600,864 structure bytes.
+Their corresponding resident libc intervals sum to 88,605,328 and 126,098,800
+bytes. These sums reconstruct ownership at matched source boundaries. In-flight
+allocations on other workers can change during a parallel measurement.
+
+Host 8 is a Ryzen 9 7900X, 12 cores, 24 logical CPUs, affinity 0–23, cgroup
+quota 2,304,000 µs per 100,000 µs, memory limit 63,577,260,032 bytes. All 96
+matched processes ran individually on warm files with zero throttling. Debian
+Clang/LLVM 19.1.7, Ninja, CMake 3.25.1, Linux x64 Release, checked-in d8f34036
+bootstrap, compiler jobs 1 and native build jobs 2. The trial invoked the
+ordinary CLI with 12 additional units, ledger.o, clang-19, ordered depfile and
+the default 268,435,456-byte cap. Four paired blocks per shape and width
+alternated stock/candidate order. Wall seconds below are means of successful
+builds. The two skew stock eight-job cases failed in all four blocks.
+
+| Invoice | 1 job stock / candidate | 4 jobs stock / candidate | 8 jobs stock / candidate |
+| --- | ---: | ---: | ---: |
+| Identical parent | 2.348 / 2.248 | 1.110 / 0.980 | Capacity / 1.350 |
+| Three-light prefix | 2.020 / 1.938 | 0.968 / 0.870 | Capacity / 1.013 |
+| Small | 1.883 / 1.770 | 1.258 / 0.945 | 1.348 / 1.155 |
+| Uneven | 2.393 / 2.268 | 1.510 / 1.050 | 1.598 / 1.388 |
+
+Small/uneven eight-job CPU increased from 3.388/3.848 to 5.243/6.020 seconds.
+Observed frontend concurrency rose from three to eight on both. At four jobs
+CPU fell on both, 2.973/3.430 to 2.508/2.830 seconds. Eight-job maximum process
+RSS fell from 506,672/520,084 to 274,992/284,864 KiB. Candidate skew eight-job
+RSS maxima were 278,948/277,288 KiB, with charged high-water observations
+117,276,009/119,364,202 bytes. Four jobs delivered the shortest candidate wall
+time across all four inputs. The higher eight-job CPU cost remains open.
+
+The 22 successful object observations each matched 13 frozen objects byte for
+byte. Successful executables, guests, exports and 13 ordered depfile rules
+matched. Failure diagnostics selected the same malformed unit at 1/4/8.
+Active and pending cancellations, real Capacity and every observed batch close
+drained bytes, lanes and grants. A clean default-bootstrap build and the final
+six native CTest selections passed. The initial focused run omitted the native
+unit-test executable. The next run exposed the stale fixed-cap fixture. A
+relative-path run also exposed a test expectation for an absolute grammar
+path, corrected in b44c1c10. Standalone grammar equivalence needs the
+scaffolding working directory. These attempts and corrected runs are retained.
+
+The held-view/structure suite, module-cache regressions, native units (including
+negative capacity, receipt order and cancellation), both skew invoices at eight
+jobs, and malformed_fit passed under ASan/LSan and TSan. The malformed case
+returned its expected diagnostic and status 1. On TSan, the host denied
+personality/ASLR setup on 128 launches. Each denial has a separate receipt.
+Initialized TSan checks ran with affinity 0–11. The project exposes address and
+thread instrumentation for native Linux x64. No source-level Tower UBSan or
+browser profile was run. Production sources were frozen during validation.
+
+For review, the assigned packet contains the source bundle, Tower observer
+patches, native test and sanitizer logs, received object oracles, outputs and
+commands. Run its recipes/verify, recipes/replay and recipes/import-base using
+the packet README. The shared checkout's initial rebase conflicted with its
+existing parser commits. Rebase was aborted and all implementation and commits
+used a separate local main reconstructed from the supplied bundle. Publication
+belongs to the manager.
