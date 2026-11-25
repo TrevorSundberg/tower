@@ -75,6 +75,10 @@ Do NOT modify todo.txt.
   reach. Two views can point into the same buffer. Keep the owner alive until
   the last job drains and check whether a callback can save a pointer beyond
   that point. See the [Wasm relocation design and its two compiler controls](docs/typed_ecs_access_ca543287.md).
+- When a helper takes jobs of type `T*`, carry that type into any callback
+  that receives one of those jobs. The [semantic stage cleanup](scaffolding/compiler/compiler_kernel.tower)
+  pairs a `T**` job list with `function(void, T*)`. Passing the declaration
+  cleanup to a function-body job then fails during compilation.
 - For a dependency, write down which value is missing and which query can
   produce it. Test a forward reference and an edit to that producer. The edit
   must invalidate the consumer through aliases. A read in an untaken branch

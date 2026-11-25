@@ -1324,8 +1324,7 @@ fn sem_declaration_failure(c: SemanticContext*, id: usize): bool {
 extern fn entity_query_count(type: void*): usize;
 extern fn entity_query_at(type: void*, index: usize): void*;
 
-fn sem_declaration_stage_cancel(payload: void*): void {
-    var result = bits(SemanticDeclaration*, payload);
+fn sem_declaration_stage_cancel(result: SemanticDeclaration*): void {
     sem_evaluation_dispose_jobs(&result.evaluations);
 }
 
