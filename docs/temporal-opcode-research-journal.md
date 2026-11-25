@@ -100541,3 +100541,182 @@ Compiler successor a86d2ff0 combines four individually reviewed changes and the 
 Receipt 5b4bf88b moves retirement of grammar versions behind reader progress and preserves explicitly held versions. At the 256 MiB charged cap all four eight-worker repeats of each previously failing skewed invoice completed. Host 8 ran with 12 physical Ryzen 7900X cores, mask 0–23 and quota 23.04. At four jobs the fitting small invoice went from 1.2575 s wall, 2.9725 CPU s, 417872 KiB max RSS to 0.9450 s, 2.5075 CPU s, 191996 KiB. Uneven went from 1.5100 s, 3.4300 CPU s, 459868 KiB to 1.0500 s, 2.8300 CPU s, 212556 KiB. Four workers finished fastest on all four shapes. At eight jobs the fitting shapes used 55–56% more CPU than eight-job stock even while reducing wall time. The manager checked all 96 timing rows, 286 object comparisons, all depfiles, guest outputs, negative controls and instrumented results. The tests retain explicit aliases through edit, failure and reader destruction. These measurements cover this isolated change; the four-change tree has its own validation.
 
 Receipt 27d7df18 preserves the original graph predicate while combining five scans of the same task array. On the 1000-function input, fallback visits dropped from 15688968 to 3137872 and all 51101 ordered events matched. Host 7 used an EPYC 7502, fixed physical CPU 7 or cores 4–7 under a 30.72-CPU quota. With unchanged canonical/object/guest outputs, mean wall time fell by 9.02 ms in 12/12 serial pairs and by 10.08 ms in 7/8 four-core pairs. The small input averaged 0.70 ms slower, and the sparse holdout split 3/6. The manager checked raw timing and RSS records, both ordered event streams and the focused predicate checks. The 902a release predates these changes. Successor receipts 7948ffc5, 6cd34c79 and cd71192f cover integrated native semantics and memory, practical worker scaling, and real compiler-unit work respectively.
+
+### 2026-11-25 — Foundation pointer alias initializer
+
+Host 5 reproduced the failure from receipt `507b4739` on the 902a358f Linux
+development pin. All three retained emissions matched. A bare trailing star in
+a module alias initializer reaches the binary expression grammar. In a type
+argument the same star is legal. Replacing just line 223 with
+`var ConstructedPointer: type = pointer_type(ConstructedRecord);` let the
+entire 19,255-byte fixture emission reparse and print 0. The nested pointer
+argument in the later array alias already reparses. The standalone
+`type_value(ConstructedRecord*)` expression is supported in an ordinary value
+binding, but the module alias checker diagnoses it as an unknown constructor.
+The existing pointer constructor resolves its operand as a type.
+
+The body continuation fixture now binds its existing recursive record pointer
+through a module alias. The retained native type-smoke runner failed on the
+canonical reparse with the original missing-operand diagnostic. The formatter
+now prints the outermost pointer constructor only at this alias boundary and
+passes the pointee descriptor to its usual type formatter.
+
+Receipt `6471ecb2-4084-41aa-a3f4-d44ffe525a28` contains the raw emissions,
+source bundles, replay commands and measurements. Starting from the integrated
+validation tree `f4d65cb7`, clean native builds selected the checked-in 902a358f
+compiler with the override unset. The changed compiler emitted the same 19,268
+bytes at both target widths and jobs 1/2/4. A second emission matched exactly.
+Source and reconstructed objects and executables matched. Both interpreter modes
+and both compiled guests (x64 and Wasm32) printed 0. The x64 artifacts matched
+the previous receipt. The recursive nominal sibling and nested array/pointer
+controls printed the expected pointer sizes 8 and 4. The reached constructor
+control printed its operand effect once before its capability error. Native
+type-smoke and query-smoke passed, including the mixed staging checks. Five
+malformed siblings and the taken cycle and mutable capture retained their exact
+diagnostics. A separate clean build from public main plus the two scoped changes
+also passed the full fixture's native CLI canonical replay at jobs 1/2/4.
+
+The affected unit was recompiled and linked into the retained ASan/leak and
+TSan native drivers. Both ran emission, reconstruction and interpretation at
+widths 4/8 and jobs 1/4. The packet includes all 64 TSan startup failures from
+the host's restricted personality call and the subsequent instrumented runs.
+Tower source-level UBSan is unavailable. The cached interpreter preserved the
+effect control's message and output but localized its original-source error to
+an imported grammar file. This observation concerns diagnostic provenance.
+
+Six counterbalanced observer-off pairs per cell used CPUs 0,2,4,6 of a Ryzen 9
+5900XT, 30.72-CPU quota, Linux x64, LLVM 19.1.7, warm files, fresh processes and
+identical resources. For the full fixture, median before/after wall time to
+emit Foundation was 196.5/197.5, 214/213 and 208.5/209.5 ms at jobs 1/2/4.
+At one job CPU was 196/197.5 ms and peak RSS 130744/130408 KiB. The small case
+took 67/68, 69/69 and 68.5/69 ms wall. The raw table includes all CPU and RSS
+samples and the separate reparse measurements. No measured bracket throttled.
+The ordinary driver exposes no per-invocation peak Tower charge. The host memory
+cgroup is shared and read-only. Publication belongs to the manager.
+## Host 6 integrated live-cycle admission trial, November 25, 2026
+
+Assignment 9569dbf3-b471-44d7-ac53-f886594fa4fb uses compiler source
+902a358f55e65a4582d50802204a83428971ad5d and Linux development pin
+217f06311be15fd3dd942d9ee0d8e65b87057de2. Both input archives, nine
+required members, both Git trees, the 1,295 source hashes and all 57 package
+payloads matched the manager's packet. The first member lookup omitted the
+second tar's leading './'. Rechecking the original bytes with that prefix
+resolved every member. The f61765cf package had lost on the chain despite
+the opposite same-ELF control. This trial reopens that question on 902a.
+
+The signed-off build supplied 39 native products. The ordinary default
+Release recipe recompiled the ParserNodes unit in an isolated cache.
+Recompiling the stock unit reproduced the archived object byte for byte.
+The host relink differs from the Ubuntu pin in 89 bytes. The recorded hot
+functions in the two stock executables have identical addresses and bytes.
+The candidate changes the initial solver decision for narrow frontiers. It
+tests whether a dirty nonempty row belongs to a multi-vertex component.
+It preserves the integrated wave helper, FIRST repair and existing
+component traversal. The ported fixture also closes a previously solved DAG
+with back edges and checks the new fixed point and the untouched parked cycle.
+
+Host 6 ran one compiler at a time on KVM Xeon E5-2680 v4 guest cores
+4–7 with one thread per guest core. The shared quota was 11.52 CPUs and the
+memory ceiling was 32,282,509,312 bytes. Debian 12 supplied LLVM/Clang
+19.1.7. Files were warm and each CLI process was fresh. Four counterbalanced
+pairs per mode and worker count used the ordinary host link. At four workers,
+median stock/trial object times in milliseconds were 455.5/417 on tiny,
+454.5/435 on the five-binding held-out input, 474.5/431 on unseen_mix,
+1992.5/1916 on the equal-work chain and 913.5/843.5 on eight independent
+long expressions. Executables were 950/891, 958.5/902, 947/914.5,
+2422.5/2413 and 1364/1340. The independent long case won all four
+serial-to-four comparisons at 2.223× for objects and 1.738× for executables.
+
+The direct pin comparison split the four chain object pairs at four jobs.
+Marginal medians were 1934.5/1937.5 ms and the median paired stock/trial
+ratio was 1.0084. The executable won four of four at 2459.5/2409.5 ms.
+At one job the tiny object lost four of four against the host relink and
+three of four against the pin. The respective medians were 409/429.5 and
+399.5/406.5 ms. The trial changes executable placement even when the new
+decision is unreachable. These measurements alone cannot apportion the
+difference between layout, single-worker solver code generation and host noise.
+
+Separate synchronized 1 GiB world-budget runs on the four-job tiny object
+recorded 69,158,733/65,645,774 peak charged bytes, peak four lanes, zero live
+bytes, grants or lanes at teardown. Both serial runs charged 65,492,887
+bytes. The ledger was outside the timed compiler. Ordinary, ASan and TSan
+runners passed LR, bounded refusal/retry and receipt/cancellation with empty
+stderr. The full LR times were 2.04, 16.77 and 57.15 seconds. The focused
+module-cache and nested cancellation checks passed. The permutation negative
+reported actual 1112, wanted 1113 and exited 1. The new fixture on the
+integrated stock policy rejected the seeded-cycle dispatch and exited 134.
+The retained race control reported a data race in work_kernel_execute and
+exited 66. The supported Tower sanitizer instrumentation modes are address
+and thread. No Tower UBSan mode was available.
+
+Keep the integrated stock compiler. In the dual-mode executable the live
+decision won three of four four-job chain object pairs, 1924.5/1905 ms.
+The four-job tiny object won all four, 442/413.5 ms. A second CMake Release
+build set TOWER_MODULE_TESTS=ON symmetrically, changing the ordinary generated
+parser import from parser to parser_modules. The other generated imports and
+normalized compiler/link commands matched. No padding, per-function alignment
+or observers entered either comparison. In this layout the live decision
+lost every chain pair at both one and four jobs for both artifact types.
+Four-job chain object and executable medians were 1914/1963.5 and
+2386/2424.5 ms. At one job they were 1872.5/1956 and 2352.5/2408.5 ms.
+The four-job tiny object and executable still won all four. ix_step moved
+from 0x164f10 to 0x165120 in the default pair and from 0x169ac0 to 0x169cd0
+in the module pair. These observations establish layout sensitivity on this
+host. They do not identify a particular alignment, instruction or cache miss
+as the cause.
+
+All 487 matrix products, including 33 Foundation emissions, matched the
+new serial pin references. All 211 emitted guests produced the expected
+ordered output with exit zero and empty stderr. All 18 division-by-zero
+and fuel controls refused with identical per-fixture diagnostics and no
+output artifact. The four timing cohorts recorded zero quota throttles
+and OOM kills. Archive 9569dbf3-b471-44d7-ac53-f886594fa4fb.tar.gz contains
+the exact source/test patches, link inputs and ELFs, hot bytes, checked outputs,
+resource counters, scripts and negative results. The performance changes
+across ordinary layouts do not justify integrating this source or a regression
+test that would mandate the new admission policy. There is no production,
+bootstrap, browser or deployment change.
+
+### Native link lifetimes, scheduling policy and canonical type-alias replay, 2026-11-25
+
+On the public 902a compiler the host 4 invoice reached its process-tree peak
+while the four-job driver and runtime Clang child were both resident. Receipt
+cb46a7db prepares the owned entry or existing file, then closes the joined
+backend and frontend before invoking Clang. All four counterbalanced pairs
+reduced sampled peak tree RSS. Median RSS went from 512030 to 417860 KiB
+and median PSS from 454485 to 417139 KiB. The unobserved four-job runs took
+1.880/1.850 s wall and 4.230/4.215 CPU s, with wait4 highs of 424096/428064
+KiB. The Ryzen 7 5800H used four physical cores (0,2,4,6), 15.36 CPU quota
+and zero observed throttling. At one job the tree RSS saving was 3840 KiB.
+The manager replayed the raw peak tables, 13 objects, ELF, depfiles, target
+and cleanup comparisons. Candidate d1dd5bf9 remains in its report ref.
+Receipt d34823a8 tests whether that saving survives the integrated import
+retirement, which had already reduced the compiler's peak.
+
+On host 6 the live-cycle policy in receipt 9569dbf3 reduced the default
+four-job tiny object median from 455.5 to 417 ms. The dependent chain
+object improved from 1992.5 to 1916 ms with the default link, split two
+wins apiece against the published pin, and slowed from 1914 to 1963.5 ms
+in the supported module-test configuration. In that configuration all four
+matched blocks lost at each of one and four jobs for both object and
+executable. The KVM guest ran on CPUs 4–7 with a shared 11.52 CPU quota.
+The manager compared 487 saved products to the serial oracles, checked 211
+guest exits and streams, and reconstructed the per-layout medians. Retain
+the existing scheduling policy.
+
+The manager compared both original and rebased matrices in receipt 6471ecb2.
+For x64 and Wasm32 at jobs 1/2/4 the recursive record pointer fixture
+reparsed its 19268 canonical bytes, reproduced object and executable bytes
+per target, and returned 0 from the interpreted and compiled forms. Main
+integrates b3e32d73 and the sensitivity regression 1f575d46. The already
+frozen browser and Ubuntu successor uses bbb01f5e. Independent integrated
+nominal identity and target-layout checks for the formatter have a separate
+assignment c602d0fb.
+
+Hosted receipt 48c0d3fd closes the live 902a browser check. The manager
+compared the worker's 104 GET digests against the prior HTTPS sweep and
+manifest, verified the retained desktop and mobile warm-worker identities,
+cancellation and replacement (481 then 483), and checked all three Linux
+x64 downloads against 0352b975c828b499eed2d80c0e25cd5ced36b3b39229ace40e262eb9c97c02c6
+and guest output 5, 84, 42. The independent clean Ubuntu public-default
+build has its own receipt.

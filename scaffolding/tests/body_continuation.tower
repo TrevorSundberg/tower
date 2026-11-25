@@ -677,6 +677,7 @@ fn query_type_record(T: type): type {
 }
 fn query_type_identity(T: type): type { return T; }
 fn query_type_callback(T: type): type { return function(T, T); }
+var QueryRecordPointer: type = pointer_type(query_type_record(i32));
 fn query_type_callback_value(): i32 {
     var callback: query_type_callback(i32) = &ordinary;
     return callback(41);
@@ -688,7 +689,7 @@ fn query_type_value(): i32 {
     second.value = 22;
     first.next = &second;
     second.next = null;
-    var pointer: query_type_record(i32)* = &first;
+    var pointer: QueryRecordPointer = &first;
     return pointer.value + pointer.next.value;
 }
 fn query_type_layout(): i32 {
