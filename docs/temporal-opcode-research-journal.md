@@ -100925,3 +100925,70 @@ to reparse. The pointer-size case also changed the print ABI scalar tag.
 Job 46eaa058 owns the two minimal reproducers and focused repair at the
 current compiler baseline. Source-level UBSan and exhaustive interleaving
 coverage remain outside the validated instrumentation.
+
+### Host 2 shared-reactor competing owners, 2026-11-25
+
+Assignment c5a158a4 reconstructed 8b7878c8, tree 1fa8a229, from public
+e06aa12e and eleven verified bundles. All five archives and twenty named
+members matched the manifest and loose files. Private Release builds used
+the checked-in Linux compiler, WASI SDK 34, the WASI threads toolchain,
+TOWER_WORK_TESTS=ON and TOWER_COMPILER_JOBS=1. On a65e1331 the bounded
+negative control caught a pthread spawn before the wait with all four slots
+RUNNING. The exact integrated reactor with its ordinary transport completed
+two held two-unit batches. The first returned 42/43 and the peer 142/143.
+Closing the actively cancelled first or second owner restored its two
+slots and the survivor completed. Both orders ended with four READY slots.
+
+The normal four-child shared compiler selection now holds two frontend
+handles while the existing typed kernel fixture computes two propagation
+results inline. It checks actual pool size, threading mode, callback overlap,
+every propagated range and the final budget. The existing two-party barrier
+continues to check spare-lane dispatch independently. A join can precede the
+child's final READY store, so the permanent test makes no immediate-capacity
+assertion after closing a handle.
+
+Both the a65e1331 and bbb01f5e source-built controls reached the before-wait
+assertion with the vector [2,2,2,2] and retired all five observed browser
+workers. Adding the permanent test to the old a65e compiler also reached
+that assertion inside the new selection. Stock integrated Wasm SHA-256 was
+aa7a0ea8375837e88fa5e787d326a88e2df85aaef8782ceed1a7ab08465b596e.
+The original adaptive side fixture reproduced the retained checks, values,
+diagnostics, canonical output and guest. The extended bounded fixture
+recorded four complete programs of 5742, 1282, 1283 and 1283 bytes, equal
+to their one-slot references. A failing peer selected ordinal 2, resource
+cause None, offset 19174 and "Unknown local 'missing_peer_binding'" at both
+widths. Neither its earlier valid unit nor either cancelled unit published.
+The nine group lifecycle cases retired 46 observed workers with no stale
+messages, errors or remaining targets.
+
+On a separate observer build, LR kernel callbacks overlapped the coordinator
+on one child after cancelling and closing the second owner. While both were
+held, preinstallation ran on the coordinator alone. The real production
+transport supplied all primary positive results. A separate Tower control
+used the ordinary Wasm linker and TLS input from wasm_link_tls. Both the
+four-request/zero-free and four-request/two-free links matched the complete
+serial image and recorded peak admissions one and two. The four object
+linkers refill against pool.count and use work_pool_submit for inline work.
+The Wasm linker may reopen an inline pool on a later expensive section,
+but consumes the current section's jobs with the pool actually opened.
+Independent backend units use the same admission bound and explicitly
+execute after inline admit. Streaming backend units go through the frontend
+pump. The semantic worker admission code also checks threaded and count.
+This run exercised the Wasm linker on Chromium and the native LR selection
+on Linux ASan/LSan and TSan. Browser race sanitization and Tower UBSan were
+unavailable. Other object linkers were inspected at source level only.
+
+Sixteen output-checked Chromium requests ran sequentially in old/new then
+new/old pairs on host 2, Ryzen 5 3600, affinity 0–3 on distinct physical
+cores, cgroup quota 11.52 CPUs, LLVM 19 and Chromium 159.0.8154.6. Each
+sample used a fresh group and warm files. The peer was closed before the
+timed operation could encounter the known old wait. Median request times
+for the two small units were 969/989 ms at one slot and 2209/2179 ms at
+four (old/new). With the retained 128-function first unit the pairs gave
+979/978 ms and 2005/2073 ms. The maximum renderer high-water RSS among
+these runs was 250040 KiB. There was no quota throttling in the block.
+These two pairs per cell measure runnable single-owner controls. The
+saturated old request terminates at the guard and has no successful timing.
+The raw packet includes each sample, CPU, memory capacity, callback traces,
+input validation, commands and standalone replay. No production change
+was required.
