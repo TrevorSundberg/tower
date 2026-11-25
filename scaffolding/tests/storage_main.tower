@@ -13,6 +13,7 @@ import generic_clone_storage;
 import type_object_storage;
 import entity_registry;
 import module_registry_faults;
+import checked_inspection_storage;
 import entity_page_faults;
 import entity_table_faults;
 import entity_stage_faults;
@@ -37,7 +38,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     utility_check(!work_thread_available() && work_thread_capacity() == 1,
         "Storage fault injection requires the single-owner work host");
     var sessions_only = argc == 3 && strcmp(argv[2], "syntax-session-old") == 0;
-    if argc == 3 && !sessions_only {
+    var inspection_only = argc == 3 && strcmp(argv[2], "inspection-rollback") == 0;
+    if argc == 3 && !sessions_only && !inspection_only {
         if strcmp(argv[2], "syntax-reset-resources") == 0 { syntax_reset_resource_checks(); return 0; }
         if strcmp(argv[2], "syntax-expansion-resources") == 0 { syntax_expansion_resource_checks(); return 0; }
         if strcmp(argv[2], "syntax-expansion-success") == 0 { syntax_expansion_success_checks(); return 0; }
@@ -67,7 +69,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         lr_runtime_fault_tests();
         return 0;
     }
-    utility_check(argc == 2 || sessions_only, "Storage test resource root");
+    utility_check(argc == 2 || sessions_only || inspection_only, "Storage test resource root");
     var path: ByteBuffer; fill(&path, 0, sizeof(ByteBuffer));
     defer bytes_dispose(&path);
     utility_check(driver_text(&path, argv[1]) && driver_text(&path, "/foundation.tower") && host_text_terminate(&path), "Storage resource path");
@@ -84,6 +86,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     // Keep low-level sessions independent of this request's module cache.
     // The registry fixture opens and closes its own module provider.
     *request.slot = null;
+    if inspection_only { checked_inspection_storage(argv[1], request.text[DriverBedrockText].data, request.text[DriverFoundationText].data); return 0; }
     if sessions_only { storage_warm_types(); storage_session_tests(); return 0; }
     compiler_storage_tests();
     generic_clone_storage_tests();
@@ -92,6 +95,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     type_object_storage_tests();
     entity_registry_tests(argv[1]);
     module_registry_fault_tests();
+    checked_inspection_storage(argv[1], request.text[DriverBedrockText].data, request.text[DriverFoundationText].data);
     entity_page_fault_tests();
     entity_table_fault_tests();
     entity_stage_fault_tests();

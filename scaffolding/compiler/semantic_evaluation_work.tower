@@ -150,7 +150,10 @@ fn sem_evaluation_work_all(c: SemanticContext*, cloning: bool): void {
     if c.workers.count == 0 && !sem_workers_open(c) { return; }
     var batch: vector(SemanticEvaluationWork*) = default;
     defer vector_dispose(&batch);
-    sem_require(vector_reserve(&batch, SemanticPreparationWindow));
+    if !vector_reserve(&batch, SemanticPreparationWindow) {
+        sem_type_resource(c, c.program.root, WorkBudgetError.Memory);
+        return;
+    }
     while sem_ok(c) {
         var count: usize = 0;
         var ticket: WorkTicket;
