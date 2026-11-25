@@ -103546,3 +103546,78 @@ LR completion repair is qualified on its own compiler revision.
 Receipt `7fedf4a8-754d-4327-8bbb-6c24f74fd711` has 130 verified hashes
 and includes the ordinary parser oracle, cursor ranges and matching reply
 IDs. These observations measure correctness without claiming a speedup.
+
+## Native worker scaling on independent demands and multi-unit imports
+
+Two bounded experiments at `be4bc2d6` tested whether doing less repeated
+work made an ordinary compile faster. The original code remains in use.
+
+On four physical EPYC 7542 cores (CPUs 24–27, quota 12.288 CPUs, zero new
+throttles), the default Ubuntu LLVM 19 link gave these stock object-emission
+results. Wall times are medians of four blocks. RSS is the maximum observed
+for an individual process across those blocks. The workers used a separate
+CPU to sample the process tree.
+
+| Staging input | One worker, ms | Four workers, ms | Peak RSS at one / four workers, KiB |
+| --- | ---: | ---: | ---: |
+| Eight short independent demands | 317.6 | 421.1 | 87,832 / 92,132 |
+| Eight long dependent demands | 1,570.1 | 1,699.8 | 87,364 / 92,468 |
+| Eight long independent demands | 1,565.3 | 919.4 | 87,804 / 91,804 |
+| Mixed-dependency holdout | 321.1 | 399.0 | 87,024 / 92,452 |
+
+The LR trial delayed writing incoming edges until a frontier was admitted.
+It saved 37,541 writes on rejected frontiers and traversed 170,104 edges a
+second time on admitted ones. The chain's four-worker object improvement
+reversed after relinking. The long independent program slowed down in the
+normal object and linked runs. Across both arms, 90 linked guest executions
+matched their expected output. The manager recomputed all 116 scored pairs
+from receipt `e33b86e9-7945-4be0-9ce4-9bc2bf16064e`.
+
+On eight physical Xeon Gold 6244 cores (CPUs 0–7, quota 15.36 CPUs, zero
+throttles), ordinary compile and link of 37 units averaged 9.200, 4.445
+and 4.803 seconds at one, four and eight workers across four counterbalanced
+blocks. Maximum sampled tree RSS was 325.54, 344.86 and 408.48 MiB. The
+13-unit skewed input took 4.170, 1.975 and 2.225 seconds, with tree peaks
+of 238.45, 265.28 and 312.93 MiB. ELF bytes, guest output, exports and
+ordered depfiles agreed. Source files were warm and each compiler process
+was fresh.
+
+Retaining an import snapshot removed one repeat parse of `types.tower` in
+each of the 37 worlds. At four workers the large invoice saved 2.5 ms on
+average and the separately measured charged peak rose from 151.85 to
+164.68 MiB. Under serial caps of 142,879,457 bytes for the large invoice
+and 68,745,097 for the skewed one, stock compiled and linked successfully.
+The trial exhausted its budget in both cases, including with the order
+reversed. All ledgers closed. Receipt `2735eadf-f0cf-402b-b55c-3f858b32a5f3`
+contains the raw runs, capacity controls and rejected change.
+
+## Full editable compiler Build at one and two browser workers
+
+The ordinary Build button submitted all 569 compiler project documents
+from `be4bc2d6`, compiled 25 units and linked the Tower, LLVM and
+cross-target Wasm reactors.
+Two Chromium profiles reversed run order on four physical Xeon E5-2680 v4
+cores (CPUs 0–3, effective quota 11.52 CPUs, zero throttles). The generator
+and every source byte were held fixed. Each cell is one full build with
+warm filesystem inputs. A fresh profile starts a new browser session. The
+retained runs restored the original generator in the open page.
+
+| Profile | Actual lanes | Elapsed s | Browser-family CPU s | Sampled whole-tree peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Fresh | 1 | 123.71 | 153.38 | 2,591,276 |
+| Fresh | 2 | 71.95 | 158.00 | 2,685,944 |
+| Retained | 1 | 126.20 | 158.39 | 2,477,520 |
+| Retained | 2 | 72.50 | 162.03 | 2,588,920 |
+
+The two-lane builds overlapped unit compilation for 58.80 and 60.18 seconds.
+All four builds recompiled every unit. The coordinator's two-lane limit
+applied even when it observed four CPUs. These samples establish a 1.72×
+fresh and 1.74× retained speedup for this whole compiler on this host.
+
+Editing a diagnostic changed one of the 25 objects, `compiler-semantics.o`,
+and all three linked reactors. The edited message appeared in the editor.
+Restore reproduced all 28 original product hashes. Each active compiler
+printed exactly 42 plus LF and returned the native reference's 1,407 bytes
+of canonical Foundation. Receipt `80a50621-445d-4fdb-8c00-57cd8f90ac22`
+contains the per-worker intervals, product identities, process samples and
+guest checks. This was a compiler build qualification on the named source.
