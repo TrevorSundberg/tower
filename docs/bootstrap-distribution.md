@@ -112,11 +112,13 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 
 ### Install the Linux x64 development compiler as a normal user
 
-The [one-command installer and first program](../README.md#install-the-linux-x64-development-compiler)
-cover the be41c755 candidate for use after publication and the previously published
-902a compiler. Use the versioned be41c755 prefix to keep both installations. The
-candidate installer verifies the checksum list from package commit `a1315eca`
-before fetching its 57 payloads.
+For the Linux x64 development compiler built from `0823b028`, follow the
+[one-command installer and first program](../README.md#install-the-linux-x64-development-compiler).
+The installer at `7be83baa` verifies the checksum list from package `b9342ba1`
+and checks all 57 payloads. Its versioned prefix, `$HOME/.local/Tower Dev 0823b028`,
+keeps earlier installations available. The delivery receipt records fresh, repeat
+and occupied-prefix checks on Ubuntu 24.04.5 x86-64 using a local HTTPS mirror
+of the immutable Git bytes. The README retains the earlier install commands.
 
 ### Historical checkout installation at e06aa12e
 
