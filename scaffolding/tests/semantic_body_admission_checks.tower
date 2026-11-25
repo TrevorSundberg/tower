@@ -11,6 +11,7 @@ import .compiler.compiler_kernel;
 import .library.work_graph;
 import .library.work_budget;
 import .library.work_pool;
+import .library.entity_types;
 import .library.vector;
 
 // Body continuations are opaque ECS payloads; only the owning production pumps
@@ -37,7 +38,7 @@ extern fn puts(text: u8*): i32;
 
 enum BodyAdmissionCase: u32 {
     Healthy, KindPin, ComponentPin, Graph, SourceTake, CheckTake,
-    Scratch, Lease, SourceFinish, Finish, Cancelled, JoinedCapacity, Count
+    Scratch, Lease, SourceFinish, Finish, Cancelled, JoinedCapacity, PublishPinned, Count
 }
 var BodyAdmissionBytes: usize = 8388608;
 var BodyAdmissionRevision: u64 = 151;
@@ -45,6 +46,16 @@ var BodyAdmissionRetries: usize = 3;
 
 fn body_admission_check(ok: bool, text: u8*, failures: u32*): void {
     if !ok { puts(text); (*failures)++; }
+}
+
+struct BodyAdmissionPin { root: void*; pool: WorkPool*; view: void*; }
+
+fn body_admission_pin_join(payload: void*, job: void*, count: usize, lanes: usize, entering: bool): void {
+    if job != null || entering { return; }
+    var pin = bits(BodyAdmissionPin*, payload);
+    sem_require(pin.pool.running == 0 && pin.view == null);
+    pin.view = entity_view_open(pin.root);
+    sem_require(pin.view != null);
 }
 
 fn body_admission_node(world: void*, owner: void*, label: u8*, offset: usize): void* {
@@ -145,6 +156,7 @@ fn body_admission_trial(workers: usize, body: bool, mode: BodyAdmissionCase): u3
     }
     var pinned: void* = null;
     var foreign: void* = null;
+    var pin: BodyAdmissionPin = {root: root, pool: &c.workers, ..default};
     var expected_error = WorkBudgetError.Invalid;
     var offset = offsets[0];
     if mode == BodyAdmissionCase.Graph {
@@ -237,7 +249,25 @@ fn body_admission_trial(workers: usize, body: bool, mode: BodyAdmissionCase): u3
                 expected_error = WorkBudgetError.Capacity;
                 offset = offsets[1];
             }
+            if mode == BodyAdmissionCase.PublishPinned {
+                // Pin the store on the coordinator after dispatch has joined.
+                // The wave can hold its references but cannot publish its stages.
+                c.workers.observation = bits(void*, &pin);
+                c.workers.observe = body_admission_pin_join;
+                expected_error = WorkBudgetError.Busy;
+            }
             var state = body ? sem_bodies_pump(&c) : sem_declarations_pump(&c);
+            if mode == BodyAdmissionCase.PublishPinned {
+                sem_require(pin.view != null);
+                foreach(var subject in &subjects) {
+                    var leased = body ? subject : sem_declaration_state(&c, subject).nodes.data[0];
+                    body_admission_check(bits(Entity*, leased).stage == null,
+                        "Joined publication denial releases each compiler lease while the external view is live", &failures);
+                }
+                entity_view_close(pin.view);
+                c.workers.observe = null;
+                c.workers.observation = null;
+            }
             if mode == BodyAdmissionCase.Healthy {
                 while state == SemanticPumpResult.Progress { state = body ? sem_bodies_pump(&c) : sem_declarations_pump(&c); }
                 body_admission_check(state == SemanticPumpResult.Complete && program.error.length == 0
