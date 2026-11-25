@@ -11,6 +11,7 @@ import grammar_observer;
 import .library.vector;
 import .library.work_vector;
 import .library.work_vector_types;
+import .library.work_view_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
 import .library.work_arena_api;
@@ -387,7 +388,7 @@ struct LRPropagationTask {
     kernel: CompilerKernel;
     ticket: WorkTicket;
     propagation: LRPropagation*;
-    incoming: work_vector(usize)*;
+    incoming: work_view(usize)*;
     targets: usize*;
     results: work_vector(SymbolRange)*;
     changed: bool*;
@@ -445,24 +446,39 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
     return lr_propagation_solve_components_result(value, graph.budget);
 }
 
+// The wave arena owns every incoming edge, including earlier copies after
+// growth. Only the coordinator changes these views, between joined kernels.
+fn lr_incoming_push(row: work_view(usize)*, source: usize, arena: WorkArena*): WorkBudgetError {
+    var count = row.length + 1;
+    if count == 0 { return WorkBudgetError.Invalid; }
+    if count > row.capacity {
+        var error = lr_buffer_arena_reserve(bits(u8**, &row.data), row.length, &row.capacity,
+            null, count, sizeof(usize), alignof(usize), arena, null);
+        if error != WorkBudgetError.None { return error; }
+    }
+    row.data[row.length] = source;
+    row.length = count;
+    return WorkBudgetError.None;
+}
+
 // Leave the unconsumed frontier on the graph. Returning retires the joined
 // wave buffers before the component solver allocates its adjacency and index.
 fn lr_propagation_waves_result(value: LRPropagation*, owner: void*, graph: WorkGraph*, pool: WorkPool*,
     observer: GrammarObserver): WorkBudgetError {
-    if value.count > ~convert(usize, 0) / sizeof(work_vector(usize))
+    if value.count > ~convert(usize, 0) / sizeof(work_view(usize))
         || value.count > ~convert(usize, 0) / sizeof(work_vector(SymbolRange)) { return WorkBudgetError.Invalid; }
     var incoming_storage: WorkBuffer = default;
     var result_storage: WorkBuffer = default;
     var changed_storage: WorkBuffer = default;
     defer { work_buffer_dispose(&incoming_storage); work_buffer_dispose(&result_storage); work_buffer_dispose(&changed_storage); }
-    var error = work_buffer_resize(&incoming_storage, value.budget, value.count * sizeof(work_vector(usize)), 0);
+    var error = work_buffer_resize(&incoming_storage, value.budget, value.count * sizeof(work_view(usize)), 0);
     if error == WorkBudgetError.None { error = work_buffer_resize(&result_storage, value.budget, value.count * sizeof(work_vector(SymbolRange)), 0); }
     if error == WorkBudgetError.None { error = work_buffer_resize(&changed_storage, value.budget, value.count * sizeof(bool), 0); }
     if error != WorkBudgetError.None { return error; }
-    var incoming = bits(work_vector(usize)*, incoming_storage.data);
+    var incoming = bits(work_view(usize)*, incoming_storage.data);
     var results = bits(work_vector(SymbolRange)*, result_storage.data);
     var changed = bits(bool*, changed_storage.data);
-    fill(incoming, 0, value.count *sizeof(work_vector(usize)));
+    fill(incoming, 0, value.count * sizeof(work_view(usize)));
     fill(results, 0, value.count *sizeof(work_vector(SymbolRange)));
     // Incoming lists are coordinator scratch; workers only borrow them until
     // join. Charge their common lifetime once through the existing arena.
@@ -492,7 +508,7 @@ fn lr_propagation_waves_result(value: LRPropagation*, owner: void*, graph: WorkG
                     error = lr_push_result(&targets, destination, value.budget);
                     if error != WorkBudgetError.None { return error; }
                 }
-                error = lr_push_arena_result(&incoming[destination], index, &incoming_arena, null);
+                error = lr_incoming_push(&incoming[destination], index, &incoming_arena);
                 if error != WorkBudgetError.None { return error; }
             }
         }
