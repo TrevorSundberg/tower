@@ -34,6 +34,8 @@ struct BootstrapInputs {
 extern fn chmod(path: u8*, mode: u32): i32;
 extern fn getenv(name: u8*): u8*;
 extern fn puts(text: u8*): i32;
+extern fn strchr(text: u8*, character: i32): u8*;
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
 
 fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
 fn bootstrap_string(out: ByteBuffer*, text: u8*, length: usize): bool {
@@ -159,7 +161,40 @@ fn bootstrap_dependencies(input: BootstrapInputs*, out: ByteBuffer*): bool {
     return bootstrap_text(out, "]");
 }
 
-fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
+// These modules are installed with configure_file(COPYONLY) by TOWER_NATIVE.
+// Compare the collected payload with the same bytes used for source provenance.
+fn bootstrap_copied_module(path: u8*): bool {
+    var library = "library/";
+    if strncmp(path, library, strlen(library)) == 0 {
+        var name = path + strlen(library);
+        var suffix = ".tower";
+        var length = strlen(name);
+        return length >= strlen(suffix) && strcmp(name + length - strlen(suffix), suffix) == 0
+            && strchr(name, convert(i32, ToolPathByte.Slash)) == null;
+    }
+    return strcmp(path, "bedrock.tower") == 0 || strcmp(path, "foundation.tower") == 0
+        || strcmp(path, "foundation_syntax.tower") == 0 || strcmp(path, "types.tower") == 0
+        || strcmp(path, "tower.tower") == 0 || strcmp(path, "backend/foreign_grammar.tower") == 0;
+}
+
+fn bootstrap_verify_copy(files: vector(BootstrapFile*)*, source_path: u8*, source: ByteBuffer*): bool {
+    var root = "scaffolding/";
+    if strncmp(source_path, root, strlen(root)) != 0 { return true; }
+    var relative = source_path + strlen(root);
+    if !bootstrap_copied_module(relative) { return true; }
+    var prefix = "share/tower/";
+    var prefix_length = strlen(prefix);
+    foreach (var file in files) {
+        if strncmp(file.name.data, prefix, prefix_length) != 0
+            || strcmp(file.name.data + prefix_length, relative) != 0 { continue; }
+        if file.data.length == source.length
+            && (source.length == 0 || memcmp(file.data.data, source.data, source.length) == 0) { return true; }
+        puts("Bootstrap resource differs from its source:"); puts(file.name.data); return false;
+    }
+    puts("Missing bootstrap copy of source:"); puts(source_path); return false;
+}
+
+fn bootstrap_source_hashes(input: BootstrapInputs*, files: vector(BootstrapFile*)*, out: ByteBuffer*): bool {
     var names: ByteBuffer = default; var path: ByteBuffer = default; var source: ByteBuffer = default;
     defer bytes_dispose(&names); defer bytes_dispose(&path); defer bytes_dispose(&source);
     if !bootstrap_git(input, "inputs", &names) || names.length == 0 || names.data[names.length - 1] != 0
@@ -169,7 +204,8 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, out: ByteBuffer*): bool {
         var end = start;
         while names.data[end] != 0 { end++; }
         if end == start || !tool_join(&path, input.repository, names.data + start)
-            || !tool_read_file(path.data, BootstrapInputLimit, &source) { return false; }
+            || !tool_read_file(path.data, BootstrapInputLimit, &source)
+            || !bootstrap_verify_copy(files, names.data + start, &source) { return false; }
         if start != 0 && !bootstrap_text(out, ",") { return false; }
         if !bootstrap_string(out, names.data + start, end - start) || !bootstrap_text(out, ":")
             || !bootstrap_hash(out, source.data, source.length) { return false; }
@@ -263,7 +299,7 @@ fn bootstrap_manifest(input: BootstrapInputs*, files: vector(BootstrapFile*)*,
         || !host_json_unsigned(out, BootstrapSchema) || !bootstrap_text(out, ",\n  \"sha256\":")
         || !bootstrap_hash(out, compiler.data.data, compiler.data.length) || !bootstrap_text(out, ",\n  \"source_base_revision\":")
         || !bootstrap_string(out, revision.data, revision.length) || !bootstrap_text(out, ",\n  \"source_files\":")
-        || !bootstrap_source_hashes(input, out)
+        || !bootstrap_source_hashes(input, files, out)
         || !bootstrap_text(out, ",\n  \"source_identity\":\"Exact source_files hashes include the working changes accompanying this bootstrap update.\"") { return false; }
     if patch.length != 0 {
         if !bootstrap_text(out, ",\n  \"source_patch\":{\"path\":\"source-changes.patch\",\"sha256\":")
