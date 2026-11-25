@@ -101712,3 +101712,29 @@ quota 23.04 CPUs), warm-input matched trials showed no consistent change in
 test time. The change touches test code only. Receipt
 `de3a5257-c515-4e3d-8e34-cd873c65743a` contains the reviewed patch, both
 faults, all timings, memory samples and raw selector outputs.
+
+### Browser self-compilation of the frozen editable project
+
+Host 1 used the sealed bbb01f5e and 8b7878c8 browser builders with the
+same 563-entry project derived from ca543287, a diagnostic edit and 11
+retained link-support files. Each request compiled 25 entry units and
+produced three Wasm reactors. The manager compared the 25 object digests,
+three reactor digests and reported IR counts across all 12 trials. All
+matched. Separately, the stock editor fed generation one's LLVM module
+the identical project again. All three generation-two reactor hashes
+matched generation one. An invalid import reported the missing module
+and the previous compiler remained usable.
+
+For 8b7878c8, initial, same-session repeat and fresh-profile wall times
+were 78.34/76.78/82.73 s at one lane and 38.33/30.22/31.41 s at four.
+Each cell is one observation. The filesystem was warm. Every repeat hit
+the browser project cache and still compiled all 25 units. Fresh-profile
+browser CPU time was 101.11/93.75 s, and the largest individual renderer
+lifetime high-water mark was 1,095/1,884 MiB. Those high-water marks cover
+a single renderer, while CPU time covers the observed browser processes.
+Trials were sequential on Xeon Gold 6244 physical cores 2–5, cgroup cpuset
+0–31 and quota 15.36 CPUs. None added a throttled period. A natively
+built ca543287 starter and the current integrated release remain separate
+validation targets. Receipt `14da0b26-5dac-4d45-9471-86555afa855e`
+includes all 508 verified members, raw trial objects, source and output
+identities, Chromium traces and the stock editor generations.

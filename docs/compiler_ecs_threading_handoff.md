@@ -21,6 +21,17 @@ executable in about 21 s. Both edited builds matched their independent clean
 rebuilds across all 221 outputs. The two timed pairs used the same worker
 counts throughout. [Native build measurements](temporal-opcode-research-journal.md#2026-11-25--complete-native-build-and-edit-costs-at-ca543287)
 
+**Building the compiler in Chromium.** The `8b7878c8` browser compiler
+compiled 25 units of the editable project based on `ca543287` on four
+pinned physical cores. The first request in a fresh profile took 82.73 s
+at one lane and 31.41 s at four. Browser CPU use was 101.11 and 93.75 s,
+and the largest renderer lifetime high-water mark rose from 1,095 to
+1,884 MiB. A second request in the same session recompiled every unit
+in 76.78 and 30.22 s respectively. Each condition has one observation.
+In a separate stock-editor run the generated compiler rebuilt the same
+project and reproduced all three Wasm modules byte for byte.
+[Browser self-build measurements](temporal-opcode-research-journal.md#browser-self-compilation-of-the-frozen-editable-project)
+
 **A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),
 each job reads a frozen frontier and writes its assigned range. The coordinator
 registers those accesses, takes tickets, opens the read view and dispatches
