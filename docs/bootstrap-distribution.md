@@ -159,8 +159,8 @@ and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
 | --- | --- | --- | --- |
 | Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Public development install above. Standalone pending. |
 | Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Full compiler linked and run under QEMU. Native self-host, relocation and public install remain open. |
-| macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | Pending Intel compiler and runner trial. |
-| macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | Pending Arm64 compiler and runner trial. |
+| macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | 28 Intel compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
+| macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | 28 Arm64 compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
 | Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | All 28 compiler objects prepared. Full link needs the Windows SDK, x64 MSVC runtime and matching LLVM 19 import library. Native install and execution remain open. |
 
 The Linux Arm64 handoff at `6f7ed3fe` contains the compiler and its adjacent
@@ -202,6 +202,19 @@ Windows objects in the predecessor/successor comparison matched the production
 COFF byte for byte. Windows Host admits the CRT spellings `_findfirst64` and
 `_findclose`. The old COFF object containing POSIX directory imports now fails.
 [Windows compiler object and verifier findings](temporal-opcode-research-journal.md#windows-x64-compiler-objects-and-the-host-comparison)
+
+For either Mac, receipt `e2c234e2-d8a1-4fdb-b85e-6ccc3f65db0e` contains
+the ordered objects for `6f7ed3fe`, a Darwin archive, adjacent resources and
+the program expected to print `42` followed by LF. Run
+`LLVM_CONFIG=/path/to/llvm-config bash receipt/receive-macos.sh` on the
+corresponding native Mac with Xcode or Command Line Tools and LLVM 19. The
+script checks the CPU, required LLVM exports and SDK ABI, links the CLI, and
+compares interpreter and guest output. The Linux cross-build verified the
+macOS 11.0 deployment minimum in every object. Its final link lacked the
+target LLVM dylib, libc++ and libSystem. Check the directory functions and
+entry layout selected by the SDK on each CPU. Apple's declarations select
+symbol variants for `opendir` and `readdir`.
+[Apple's directory API](https://github.com/apple-oss-distributions/Libc/blob/main/include/dirent.h)
 
 1. **Produce.** Freeze source, submodules, build image, SDK and flags. For
    Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
