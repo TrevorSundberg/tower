@@ -6,10 +6,10 @@ seed or callback adapter left. A hash-pinned, Tower-built Linux x64 development
 compiler is checked in under `bootstrap/` and selected automatically by the
 Docker build. LLVM and platform libraries remain third-party dependencies.
 Production browser linking for Wasm, Linux ELF, Windows PE and macOS Mach-O
-executes in Tower. Windows x64 and macOS CLI executable defaults use the same
-byte services. The Linux hosted CLI and the compiler's external-library build
-still use host toolchain linking; LLVM emission and runtime-object compilation
-also remain external. LLD is retained only as a test/build-tool reference, not
+executes in Tower. The CLI uses the Tower byte linkers by default for these
+outputs. For hosted Linux ELF it reads the target's `Scrt1.o` and `libc.so.6`.
+The development CLI loads system LLVM for emission and invokes matching Clang
+to compile the target runtime IR. LLD is retained only as a test/build-tool reference, not
 as a library linked into the production browser backend.
 
 The current policy is one Linux x64 bootstrap and a documented Docker build,
@@ -103,6 +103,98 @@ globs and repeated compilation commands are unnecessary for those objects.
 Keep explicit prerequisites for generated inputs that must exist before compilation.
 
 ## Validation and measurement
+
+### Install the public Linux x64 development compiler as a normal user
+
+Run this in Bash from a clone of [Tower](https://github.com/TrevorSundberg/tower) containing public commit `e06aa12e`. It
+installs the compiler built from `902a358f` under a fresh temporary prefix.
+The tested environment is Ubuntu 24.04.5 x86-64 with LLVM and Clang 19.1.1,
+the x64 libc development files, Git and GNU tar/coreutils available. The Git
+revision pins the checksum list as well as the executable and resources.
+
+```bash
+set -euo pipefail
+repo=$(git rev-parse --show-toplevel)
+rev=e06aa12ea25c184032de116cd55faa1e9f3ec011
+prefix=$(mktemp -d)
+git -C "$repo" archive "$rev" bootstrap/linux-x64 bootstrap/development.json |
+  tar -xf - -C "$prefix"
+mv "$prefix/bootstrap" "$prefix/Tower dev"
+pkg="$prefix/Tower dev/linux-x64"
+(cd "$pkg" && sha256sum --check SHA256SUMS)
+test -x "$pkg/towerc"
+export PATH="$pkg:/usr/lib/llvm-19/bin:$PATH"
+mkdir "$prefix/example"
+cd "$prefix/example"
+git -C "$repo" show "$rev:scaffolding/tests/distribution_program.tower" > example.tower
+test "$(command -v towerc)" = "$pkg/towerc"
+towerc --version
+printf '42\n' > expected
+towerc example.tower --interpret > interpreted
+cmp expected interpreted
+towerc example.tower -o example
+./example > native
+cmp expected native
+```
+
+For a lasting install, create a fresh versioned directory under
+`$HOME/.local/opt` for the prefix and put its compiler directory on the
+user's `PATH`. Keep the whole package together when moving it. The public
+manifest lists 57 payloads. A missing `share/tower/bedrock.tower` fails
+checksum verification and interpretation. An unavailable `libLLVM.so.19.1`
+stops the loader before `--version`. With only the package directory on
+`PATH`, executable generation exits 1 with `Cannot find tool: clang`.
+
+### Build-server matrix for native CLI releases
+
+Each row names the machine that must run the **installed compiler** and the
+first output that compiler must build and execute. The runner names below
+come from the existing [ELF](../.github/workflows/hosted_elf_linker.yml) and
+[Mach-O and PE](../.github/workflows/macho_linker.yml) guest execution jobs.
+Those jobs transfer linked test programs from Linux. The
+[Windows tooling job](../.github/workflows/windows_tooling.yml) also links
+and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
+
+| Compiler host | First output target | Runner and package dependency check | Native install evidence |
+| --- | --- | --- | --- |
+| Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Public development install above. Standalone pending. |
+| Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Pending native compiler and Arm64 runner trial. |
+| macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | Pending Intel compiler and runner trial. |
+| macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | Pending Arm64 compiler and runner trial. |
+| Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | Pending `towerc.exe` and Windows runner trial. |
+
+1. **Produce.** Freeze source, submodules, build image, SDK and flags. For
+   Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
+   empty private cache and the default pin. Package `build/native/towerc` and
+   its adjacent `share` through the [existing packager](../bootstrap/README.md).
+   For a new host, use the Linux predecessor to emit the compiler units for
+   the destination host profile. Link the complete CLI on that platform with
+   matching LLVM and SDK inputs. Keep generators executable on the build
+   machine. Extend the packager's fixed `linux-x64` layout and use a
+   destination-native dependency probe before generating that host's manifest.
+   Bundle the required LLVM, runtime compiler, linker inputs and licenses
+   outside the declared OS baseline. Run successor generations on the
+   destination as specified under whole-compiler requirements.
+2. **Seal and install.** Record compiler host separately from supported output
+   triples. Record predecessor, source revision, exact build command, licenses,
+   archive SHA-256, relative member names, sizes, modes and hashes. Verify the
+   archive against the release record before unpacking into a new user-owned
+   directory. Verify every member and the complete inventory after extraction.
+   Move it to a path with spaces. Use a user prefix on Unix or a versioned
+   directory below `%LOCALAPPDATA%\Tower` on Windows. Put the directory
+   containing `towerc` or `towerc.exe` on the user's path.
+3. **Accept on host.** Start a fresh process outside the checkout on a clean,
+   offline OS image with only the declared system baseline. Record the actual
+   resolved executable, tools and loaded libraries. Run help/version, the
+   interpreter and native `42` checks above, repeated object emission and the
+   [verifier's separate-library and diagnostic cases](../scaffolding/tools/verify_compiler.tower).
+   Require the same object bytes and exact output/status. Repeat with a damaged
+   resource and a required tool removed from a disposable copy or image. Keep
+   stderr, exit status and output inventory. A promised standalone package
+   must complete its positive runs without a developer toolchain installed.
+   Record cross-output checks under their actual guest runners separately.
+
+### Native build and package checks
 
 Run from the repository root:
 
