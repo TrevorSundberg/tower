@@ -124,7 +124,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
         if bootstrap_symbol_in("compiler_world_create compiler_world_create_workers compiler_world_dispose compiler_world_work_budget entity_store_component_count entity_store_count", symbol, length) { return true; }
         // Source emitters consume the same checked Foundation through explicit
         // read-only queries; their code no longer expands the semantics unit.
-        if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_size semantic_width", symbol, length) { return true; }
+        if bootstrap_symbol_in("sem_get sem_name sem_equal sem_require frontend_source_length semantic_aggregate semantic_alignment semantic_float semantic_integer semantic_size semantic_width", symbol, length) { return true; }
         return bootstrap_symbol_in("parse_forest_create parse_forest_create_result parse_forest_resource_error parse_forest_destroy tower_utf8_validate syntax_scan_highlight", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_begin syntax_replacement_capture syntax_replacement_attempt syntax_replacement_attempt_reusing syntax_replacement_diagnostic", symbol, length)
             || bootstrap_symbol_in("syntax_replacement_offset syntax_replacement_select syntax_replacement_commit entity_id entity_replace_child", symbol, length)
