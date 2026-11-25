@@ -74,7 +74,10 @@ Do NOT modify todo.txt.
   allocation behind each view and the byte or element range the worker can
   reach. Two views can point into the same buffer. Keep the owner alive until
   the last job drains and check whether a callback can save a pointer beyond
-  that point. See the [Wasm relocation design and its two compiler controls](docs/typed_ecs_access_ca543287.md).
+  that point. When a new wrapper adds per-job state or dispatch work, measure
+  a short operation twice on the same live pool. Record its second invocation
+  separately so startup cannot mask the cost of reuse. See the
+  [linked Wasm relocation experiment](docs/typed_ecs_access_ca543287.md#linked-prototype-and-adoption-decision).
 - When a helper takes jobs of type `T*`, carry that type into any callback
   that receives one of those jobs. The [semantic stage cleanup](scaffolding/compiler/compiler_kernel.tower)
   pairs a `T**` job list with `function(void, T*)`. Passing the declaration

@@ -79,6 +79,16 @@ current typed callbacks alone do not enforce them.
 [Rust scoped threads](https://doc.rust-lang.org/std/thread/fn.scope.html) ·
 [Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
 
+Two typed callback experiments now have different production outcomes. The
+semantic cancellation helper carries the job type through the callback
+signature. Swapping a body and declaration callback fails compilation. Both
+optimized Wasm32 cleanup functions retain their previous instructions, as on
+x64. In the linker prototype, a typed view plus runtime admission caught
+overlapping ranges, but Tower still allowed the borrowed pointer to escape.
+The short two-lane relocation slowed by 30.4% on the eight-pair repeat.
+Production keeps the semantic helper and the original linker.
+[Linked prototype, outputs and timing scope](typed_ecs_access_ca543287.md#linked-prototype-and-adoption-decision)
+
 **Integrated checks.** The shared browser regression in `1c2cc042`
 invokes the normal compiler selection with two live owners of a four-child
 pool. The two old controls requested a fifth child. Both recorded replays
