@@ -154,3 +154,53 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await expect(page.locator('.tw-hover-signature')).toHaveText('var value: bool');
   expect(errors).toEqual([]);
 });
+
+test('editable compiler reuses a converged object set and rejects a new shadowing import',async({page},info) => {
+  test.skip(info.project.name !== 'desktop','Full compiler generation runs on desktop.');
+  test.setTimeout(1200000);
+  await page.goto('/');
+  await expect(page.locator('#status')).toContainText('Complete');
+  const receipt = await page.evaluate(async () => {
+    const recipe = await fetch('./compiler/project.json').then(r => r.json());
+    const build = async (request,retained) => {
+      const worker = new Worker('./compiler-build-worker.js',{type:'module'});
+      try {
+        const reply = new Promise((resolve,reject) => {
+          worker.onerror = event => reject(new Error(event.message));
+          worker.onmessageerror = () => reject(new Error('Cannot read compiler Build reply'));
+          worker.onmessage = ({data}) => { if (data.id === 1 && !data.phase) resolve(data); };
+        });
+        const buffers = retained?.objects.map(o => o.buffer) ?? [];
+        worker.postMessage({id:1,files:recipe.files,...request,retained},buffers);
+        if (buffers.some(b => b.byteLength)) throw new Error('Build did not take object ownership');
+        return await reply;
+      } finally { worker.terminate(); }
+    };
+    // Older direct callers omit the selection to request the shipped compiler.
+    const cold = await build({});
+    if (cold.error) throw new Error(cold.error);
+    const stockLLVM = cold.packagedGeneratorHash;
+    const successor = (result,revision) => ({compiler:{...result.modules,revision},stockLLVM});
+    let result = await build(successor(cold,1));
+    if (result.error) throw new Error(result.error);
+    const misses = result.stats.timings.length;
+    const warm = [];
+    for (const revision of [2,3]) {
+      if (!result.retained) throw new Error('Missing converged compiler objects');
+      result = await build(successor(result,revision),result.retained);
+      if (result.error) throw new Error(result.error);
+      warm.push({hits:result.stats.objectHits,compiles:result.stats.timings.length,hashes:result.hashes});
+    }
+    const shadow = {path:'units/tower.tower',text:'import missing_shadow_dependency;'};
+    const failed = await build({...successor(result,4),files:[...recipe.files,shadow]},result.retained);
+    return {units:recipe.units.length,stockLLVM,hashes:cold.hashes,misses,warm,
+      error:failed.error,published:!!(failed.retained || failed.modules)};
+  });
+  expect(receipt.stockLLVM).toBe(receipt.hashes.llvm);
+  expect(receipt.misses).toBe(receipt.units);
+  for (const generation of receipt.warm) {
+    expect(generation).toEqual({hits:receipt.units,compiles:0,hashes:receipt.hashes});
+  }
+  expect(receipt.error).toContain('missing_shadow_dependency');
+  expect(receipt.published).toBe(false);
+});

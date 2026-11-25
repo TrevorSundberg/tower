@@ -21,7 +21,7 @@ self.onmessage = async ({data}) => {
     // stockLLVM is the hash of the selected module, established by linking the
     // packaged sources with the bundled compiler. Never trust edited generators
     // to report their own inputs. An unbundled host has no executable stamp.
-    const reusable = objectHost && packaged && compiler.llvm && stockLLVM &&
+    const reusable = objectHost && packaged && compiler?.llvm && stockLLVM &&
       recipe.units.length <= maxObjectCount;
     let key;
     if (reusable) {
@@ -50,7 +50,7 @@ self.onmessage = async ({data}) => {
         } else objects.push(bytes);
       }});
     }
-    const packagedGeneratorHash = packaged && !compiler.llvm ? result.hashes.llvm : undefined;
+    const packagedGeneratorHash = packaged && !compiler?.llvm ? result.hashes.llvm : undefined;
     const retained = key && stockLLVM === result.hashes.llvm ? {key,objects} : undefined;
     postMessage({id,...result,packagedGeneratorHash,retained},retained ? objects.map(object => object.buffer) : []);
   } catch (error) { postMessage({id,error:error.message || String(error)}); }

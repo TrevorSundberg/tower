@@ -103959,3 +103959,13 @@ browser JavaScript change. General per-unit reuse across edits remains open.
 The reproducible packet for bc9f1f28-c68d-4535-b370-bee7b59411ab includes
 the host commands, native oracle, counters, exact files, observer events,
 candidate patches and replay checks. Publication belongs to the manager.
+
+## Host 6 bounded object reuse on the 2421c659 successor
+
+Qualification e58bda7c merges the original 362aff4f onto 2421c659 in an
+isolated main. The acceptance check requires a second consecutive hit with
+the same generated objects, three reactors and executable guest behavior,
+plus invalidation and recovery through the ordinary Build transport. The
+earlier bc9f1f28 timing used be4bc2d6 documents. This run submits integrated
+tracked sources and records the retained generated wrappers and support.
+The 2421c659 browser selectors and storage checkpoint survive the merge.
