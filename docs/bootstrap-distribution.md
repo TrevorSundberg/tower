@@ -172,8 +172,15 @@ both printed `42` followed by a newline. The external Clang 19 that compiled
 the guest runtime IR ran on the x64 build machine. For the native trial,
 receipt `fdafc061-ac29-4f77-aa4b-ea9fdde983a5` contains the loader and
 library hashes, object response file, oracle and two-generation build recipe
-in `packet/HANDOFF.md`. Run both generations and the linked guest on the
-Arm64 runner before promoting a package.
+in `packet/HANDOFF.md`. A second x64 host reproduced the compiler, object
+and guest under QEMU. Its receiving script checks the native development
+dependencies that the runtime packet alone cannot supply. For an exact
+Debian 12 replay use Arm64 `clang-19`, `llvm-19` and `llvm-19-dev` at
+`1:19.1.7-3~deb12u1`, and the recorded glibc and CRT at `2.36-9+deb12u14`.
+From the extracted `d824f6a4-c93b-45c3-a19a-d85f681410a3` evidence run
+`bash receive-native.sh /absolute/path/to/packet` on the Arm64 builder.
+It checks LLVM's target definitions and selects the Arm64 predecessor for
+the two native generations. Hardware execution remains open.
 [Arm64 assembly and execution record](temporal-opcode-research-journal.md#linux-arm64-full-compiler-handoff-at-6f7ed3fe-november-25-2026)
 
 For Windows x64 at `6f7ed3fe`, receipt `761b21a8-8bd7-4bc5-8ff9-d8e262ed5312`

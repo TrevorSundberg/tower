@@ -102032,3 +102032,46 @@ Host 3 cross-built source `6f7ed3fe44a48aeff4daa1194da5a2dcc7b7e07b` with the qu
 The attempted full link first failed to find `kernel32.lib`. The compiler also needs the x64 MSVC runtime, UCRT and an LLVM import library with the recorded target initializers. No Windows compiler was linked or executed. The PowerShell receiver and exact three-byte guest oracle are ready for a machine with those dependencies. These are object identity and dependency results; there is no host compiler performance measurement.
 
 Nine of ten real Windows unit symbol checks passed. Host was rejected on `_findfirst64` and `_findclose`, both called from `host/module_path_windows.tower`. In the normal bootstrap comparison, `bootstrap_comparison_target` reuses the native build's generated `tower_compiler_host.tower` across target triples. On the retained Linux build that produced a COFF object with POSIX directory imports. The production CMake entry selects the host module for the target. Follow-up `9b7dede8-af3f-48ca-b2b4-6b540b5ce6ce` owns both the comparison and strict target-specific tests. The worker's checkout tip `c6f19239` contains an older Interpreter journal entry; this Windows receipt adds no source commit to merge.
+
+### Receiving the frozen Linux Arm64 compiler on host 2, 2026-11-25
+
+Host 2 independently consumed private packet `fdafc061` at public checkout
+`71044364`. All nine declared loose members matched their archived bytes, sizes
+and digests. The full upload matched SHA-256
+`41d0e97e6b738d7ffe0821b89b547a90910cb0eba0144c2e6a7dfcdd9b9e6954`.
+All 229 internal entries passed and covered every archived file besides the
+checksum list itself. The incremental bundle plus public ancestry reconstructed
+`6f7ed3fe44a48aeff4daa1194da5a2dcc7b7e07b`, tree
+`42a884cdb2eabe957010d8f860ceb51eabc8254d`. All 1,296 attested files matched.
+
+On Debian 12 x86-64 (Ryzen 5 3600), QEMU 7.2.22 ran the AArch64 CLI with the
+16 extracted Arm64 packages. All 22 loader, shared library and CRT hashes
+passed. The CLI requires LLVM_19.1 and GLIBC_2.34 among its symbol versions.
+The supplied LLVM DSO also requires GLIBC_2.36 and satisfied all 283 versioned
+LLVM imports. The 55 adjacent resources and license matched the predecessor.
+The interpreter, supplied guest and rebuilt guest each exited zero and wrote
+`34 32 0a`. With one Tower worker and x86-64 Clang 19.1.7 for runtime IR, the
+rebuilt 135,120-byte guest matched `7f81e4980b44deecd99b201b44e824e16c4b3700c32586f54ab78e1ab4d2aa58`.
+Relinking the 24 direct objects and four archive members with the AArch64 CLI
+reproduced the 2,049,512-byte compiler, `eb6bae472bd7a887459abe76bbfd94ac370283cd9f9a912e43911c7dbc275b2d`.
+The x64 predecessor independently emitted the same Arm64 guest and object.
+
+The native build instructions omit a development dependency. On a path with
+Clang 19 but without `llvm-config-19`, the frozen build script exited 127.
+Restricting CMake package lookup to the supplied runtime/CRT tree failed at
+`find_package(LLVM)`. For the exact Debian reference use matching arm64
+`clang-19`, `llvm-19` and `llvm-19-dev` 1:19.1.7-3~deb12u1 with their
+dependencies and libc6/libc6-dev 2.36-9+deb12u14. Use LLVM's bindir for
+standalone driver calls as well. The default Clang lookup failed on this
+host's system-only PATH and succeeded with the bindir first. CMake 3.25.1
+and Ninja 1.11.1 configured the clean frozen clone. The native target takes
+its ordinary target from Clang++ and uses host Clang for build tools. A bounded
+x64 helper build reproduced the registry declarations. The bootstrap selector
+defaults to the checked-in x64 binary, so pass the complete Arm64 seed path,
+then the validated gen2 path, with separate empty generation caches.
+
+Private receipt `d824f6a4-c93b-45c3-a19a-d85f681410a3` includes
+`receive-native.sh`, the receiving invocation, raw binaries, byte comparisons,
+dependency controls and logs. Physical Arm64 entry-point execution and gen2/gen3
+convergence await an assigned native builder. This handoff correction changes
+documentation only. Runtime performance and memory comparisons do not apply.
