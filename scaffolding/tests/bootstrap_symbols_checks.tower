@@ -128,6 +128,18 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Bytes, false, " U memcpy", null);
     symbol_case(BootstrapUnit.Bytes, false, " U tower_allocate", "tower_allocate");
     symbol_case(BootstrapUnit.Host, false, " U _fread\n U opendir\n", null);
+    symbol_case(BootstrapUnit.Host, true, " U _findfirst64\n U _findclose\n", null);
+    symbol_case(BootstrapUnit.Host, true, " U opendir\n", "opendir");
+    symbol_case(BootstrapUnit.Host, true, " U readdir\n", "readdir");
+    symbol_case(BootstrapUnit.Host, true, " U closedir\n", "closedir");
+    symbol_case(BootstrapUnit.Host, false, " U _findfirst64\n", "_findfirst64");
+    symbol_case(BootstrapUnit.Host, false, " U _findclose\n", "_findclose");
+    symbol_case(BootstrapUnit.Interpreter, true, " U _findclose\n", "_findclose");
+    symbol_case(BootstrapUnit.Interpreter, true, " U _findfirst64\n", "_findfirst64");
+    symbol_case(BootstrapUnit.Host, true, " U _findfirst6\n", "_findfirst6");
+    symbol_case(BootstrapUnit.Host, true, " U _findclose_extra\n", "_findclose_extra");
+    symbol_case(BootstrapUnit.Host, true, " U __findfirst64\n", "__findfirst64");
+    symbol_case(BootstrapUnit.Host, true, " U findclose\n", "findclose");
     symbol_case(BootstrapUnit.Host, true, " U ___chkstk\n", null);
     symbol_case(BootstrapUnit.Host, false, " U ___chkstk\n", "___chkstk");
     symbol_case(BootstrapUnit.ParserNodes, true, " U __chkstk\n", null);

@@ -100330,3 +100330,49 @@ checksum inventory and the compiled and interpreted sample outputs.
 Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` records those results.
 Only documentation changed. Runtime timings and peak memory do not apply
 to this change.
+
+## 2026-11-25 — release comparison of the platform Host roots
+
+Host 3 reproduced a false pass on source `6f7ed3fe`. The Linux CMake entry
+imports `compiler.units.host_linux_driver`. The old verifier passed this same
+file to both compilers for every target. Its Windows COFF imported `opendir`,
+`readdir` and `closedir`. The same verifier rejected the actual production
+COFF on both `_findfirst64` and `_findclose`. Those two UCRT functions belong
+to the exact-filename check in `host/module_path_windows.tower`.
+
+The comparison now reads the profile from CMake's single generated import
+and selects the corresponding Tower module for each target. The Windows Host
+policy checks the two literal CRT names before underscore normalization and
+rejects the POSIX directory imports. The changed verifier and fixture were
+tested on frozen repair tree `b082aa73d1598316869f1892a7ed16e97be4303e`
+and on integrated repair tree `c67ec010e27ef1b12eec4cea1c7313baa5678e8d`.
+Two pre-existing non-Host policy lines differ between the base revisions.
+
+The ordinary `verify_bootstrap_symbols --compare ... host` used the public
+`50955730` predecessor, the retained `84e55bc7` successor, LLVM 19.1.7 and
+the canonical Linux cache entry. All four optimized IR and object pairs
+matched. Both Windows objects matched the retained AMD64 COFF `ba9c1265`;
+both Linux objects matched the Gen3 ELF object `2e15c65f`. Direct builds of
+the platform driver roots reproduced every pair. Linux and Darwin IR used
+dirent name offsets 19 and 21. Wasm emitted the exact-key path check. The
+focused symbol fixture passed. The actual Windows report passed and its old
+POSIX counterpart, wrong units, wrong targets and misspellings failed.
+
+The unsuffixed profile also passed all four targets. The checks profile still
+rejects test-only `remove` (tests/host_services.tower) and three
+`tower_test_buffer_*` hooks (tests/host_runtime.tower). Its emitted Linux
+object matched a direct checks build. Missing and unrecognized generated
+entries failed. ASan/LSan and TSan each passed the instrumented Linux verifier
+and symbol fixture, including the ordinary comparison. Two simultaneous
+verifiers using one output parent produced separate, byte-equivalent results.
+
+On this Debian x64 host two serial batches of 100 identical Linux Host
+report checks on CPU 0 took 0.05 s wall each before and after, with 0.04 s
+user plus system and 2,824–2,940 KiB batch peak RSS. Each ordinary driver
+comparison invokes eight compiles; single observed old/new runs took
+7.93/7.27 s wall, 10.18/9.51 s CPU and 186,264/185,556 KiB peak RSS.
+Those driver runs compiled different platform sources. The packet records
+both output contracts and supplies no speedup estimate. Compiler runtime,
+native Windows linking and execution are outside this verifier change.
+Evidence packet `9b7dede8-af3f-48ca-b2b4-6b540b5ce6ce` retains input
+identities, immutable trees, commands, raw reports, statuses and artifacts.
