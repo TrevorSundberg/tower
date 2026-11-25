@@ -31,6 +31,24 @@ selected bodies. Start and step that same session through the ordinary interpret
 An adjacent `owner_test.tower` can import `owner` and declare its own helpers.
 Test selection follows the supplied entry's import closure.
 
+Import `library.testing` for source-located assertions. The condition runs once.
+A failed assertion stops execution at the start of the assertion in its owning
+file. An optional message expression runs only on failure. The default message
+is `Assertion failed`.
+
+```tower
+import library.testing;
+
+test() {
+    var order: usize[4] = {1, 3, 4, 2};
+    assert(order[2] == 4, "Expected 4 at index 2");
+}
+```
+
+The library expands an assertion to ordinary conditional control flow and
+`trap(message, source_offset())`. The compiler resolves `source_offset()` to
+the invocation's `u32` byte offset in the compilation's module source map.
+
 ## Function values
 
 Use `function(Result, Parameters...)` for typed noncapturing callbacks. They work

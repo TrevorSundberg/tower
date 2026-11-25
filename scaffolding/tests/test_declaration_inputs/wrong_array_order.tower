@@ -1,0 +1,10 @@
+import library.testing;
+import array_assertions as array_case;
+
+test() {
+    print(array_case.digits());
+    assert(
+        array_case.digits() == 1343,
+        "Wrong positional array order");
+    print(99);
+}
