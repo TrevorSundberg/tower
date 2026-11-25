@@ -102989,3 +102989,45 @@ The typed error and timing fixtures now select Tower. Foundation's call statemen
 The four scored commands used Chromium 159.0.8154.6, Playwright 1.65.1 and Node 24.22.3 on the same Ryzen 9 7900X, CPUs 0–23 with a 23.04-CPU quota. Each command ran alone with two Playwright workers, zero retries and all six titles in both projects. Parent before/after wall time was 60.68/26.91 s, user CPU 41.73/45.61 s, system 12.11/13.85 s and GNU time max RSS 403456/401048 KiB. Candidate before/after wall was 60.55/26.29 s, user 41.50/45.20 s, system 12.33/14.85 s and max RSS 403196/414772 KiB. Before elapsed times include failed assertions. The receipt contains shot/error contexts, 48 reconstructible Playwright ZIPs, source/worker/render observations and separate single-title timing runs. Runtime performance and native sanitizer comparisons do not apply to this browser-test change.
 
 The two original restore/legacy titles passed in every scored matrix. In supplementary instrumented desktop runs on both releases, the immediate reload selected the correct execution document but recovered its stock text without the just-inserted comment. Both instrumented mobile runs passed. The traffic establishes the lost comment on reload but does not establish which step lost it. That independent persistence observation and remaining ordinary-gate lanes are open for the manager. Publication belongs to the manager.
+
+### Project relocation, dependency lists and per-file undo in Chromium
+
+The stock ForEach example imports Bedrock alone. Its single library badge
+was correct. The failing move test also selected the correct file as the
+entry, but its source called print without importing a language. The graph,
+fast and LLVM workers all rejected those bytes. The repaired tests check
+the active path, editor text, persisted files, link bytes, undo history and
+the actual dependency list as the user changes files and projects. Moving a
+module leaves the old import unresolved. Correcting the import then prints
+2 followed by 1 on all three backends. After deletion and reload the
+standalone entry prints 1.
+
+On the public Pages compiler `902a358f` and the sealed `3390c2c8`, each
+original full-file inventory with end-of-case observation passed 16/20
+desktop/mobile cases. The untouched focused tests reproduced all four
+failures per site. Each corrected ordinary full-file run passed 20/20 with
+zero retries or skips, and the instrumented runs agreed. Host 3 packet
+`a728bb18` includes saved bytes, worker replies, test source `38da9b23`
+and the corresponding integrated blob in `706a5617`. The manager checked
+1,609 member checksums and 18 reconstructed trace digests. These fixture
+changes provide functional evidence on fixed runtime assets.
+
+### Hover bindings and highlighting in virtualized Foundation views
+
+The constructor argument named width binds to the declared usize parameter.
+The adjacent zero has type i32. The hover test now checks both bindings and
+their reported source positions after a multibyte comment. The highlighting
+test previously inspected the visible CodeMirror DOM before the canonical
+post_increment declaration had scrolled into view. It now locates each
+declaration in the complete document and verifies the rendered token spans,
+classes and colors in source, canonical Foundation and optimized output.
+The optimized view uses its own emitted declaration.
+
+Host 1 ran the complete hover and output-highlighting specs against the
+public 902a and sealed 3390 compilers. Each site went from 48/52 to 52/52
+across desktop and mobile. The corrected runs had zero retries and skips.
+Packet `5310c73b` supplies test revision `81c83c8d`, worker and DOM
+observations, before/after reports and 16 reconstructible trace ZIPs.
+The manager checked all 1,917 member checksums and the 16 trace digests.
+The two suites exercised fixed product bytes and provide no runtime timing
+comparison.
