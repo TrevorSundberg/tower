@@ -22,7 +22,7 @@ extern fn lr_states_lalr_parallel_result(states: void*, constructs: bool, anchor
 
 var LRSuffixTestBytes: usize = 1048576;
 
-enum LRMergeNode: usize { Source, Destination, Count }
+enum LRMergeNode: usize { Source, Destination, TailVariant, Count }
 fn lr_range_insertion_order(): void {
     var baseline = tower_test_buffer_count();
     var reference: SymbolRange[7] = default;
@@ -82,6 +82,17 @@ fn lr_range_merge_failure(): void {
         // established edge API before retrying the unchanged source owner.
         utility_check(lr_propagation_edge(graph, source, destination) && lr_propagation_solve(graph), "Range merge retry");
         utility_check(lr_propagation_count(graph, destination) == count, "Range merge initial exact count");
+        var variant_node = convert(usize, LRMergeNode.TailVariant);
+        for(var i: usize = 0; i < count; i++) {
+            var end = seeds[i].last;
+            if i == count - 1 { ++end; }
+            utility_check(lr_propagation_seed(graph, variant_node, seeds[i].first, end), "Range merge tail variant");
+        }
+        utility_check(lr_propagation_edge(graph, variant_node, destination) && lr_propagation_solve(graph)
+            && lr_propagation_count(graph, destination) == count + 1
+            && lr_propagation_data(graph, destination)[count - 1].last == seeds[count - 1].last
+            && lr_propagation_data(graph, destination)[count].last == seeds[count - 1].last + 1
+            && lr_propagation_count(graph, source) == count, "Copied row retains both distinct last intervals");
         for(var i: usize = 0; i < count; i++) {
             utility_check(lr_propagation_seed(graph, destination, seeds[i].first, seeds[i].last + 1), "Equal starts retain distinct ends");
         }
@@ -93,7 +104,7 @@ fn lr_range_merge_failure(): void {
         utility_check(lr_propagation_edge(graph, destination, source) && lr_propagation_edge(graph, destination, destination)
             && lr_propagation_solve(graph), "Interleaved merge and aliased self cycle");
         var variants: usize = 2;
-        for(var node: usize = 0; node < convert(usize, LRMergeNode.Count); node++) {
+        for(var node = source; node <= destination; node++) {
             utility_check(lr_propagation_count(graph, node) == count * variants, "Exact overlapping range identities survive union");
             var ranges = lr_propagation_data(graph, node);
             for(var i: usize = 0; i < count; i++) {
