@@ -105178,3 +105178,41 @@ The reviewed UI in `11a0c46e` has Pages tree `b6003579`, reconstructed from pare
 ### Editable Build on the existing-dot UI release
 
 Host 8 exercised the sealed `3d57e291` site with the tests from public `8b2ade97`. The desktop test submitted 569 edited source paths matching the independent freeze. Four Build workers compiled 25 objects and linked three reactors. The activated compiler produced the edited diagnostic and ran the guest as 42 in all three backends. A deliberate missing import failed the next Build while generation 1 stayed active. Reset restored the original compiler and its diagnostic. The registered full successor Build has a documented mobile skip. The deployment verifier passed its desktop, mobile and Linux browser checks. The 107 HTTP responses matched the expected bytes. The 108 staged paths also include the .nojekyll hosting marker. Receipt `904c11df-8f1f-4403-be1a-671a38bc1f20` holds the generated products, test exits and resource records. The manager streamed and verified all 125 archive member digests and checked the captured products against the build coordinator's inventory.
+### Fresh staged capture through an imported alias
+
+On public `8b2ade97`, the ordinary `retained_target_width` fixture prints
+`8\n24\n147\n8\n` with one and four native workers. Its guest output alone
+cannot identify the declaration that supplied 23 to `selected`. The new
+`tower-staged-capture-identity` test opens a fresh compilation for each width
+and branch. Its test executable wraps the root KnownPublish callback, reads
+the frozen semantic context, and calls the original publication kernel.
+Only three booleans leave that observation. The entry and provider paths
+resolve their module owners while both declarations and tickets are live.
+
+For `selected = comptime(forward())`, the required evaluation directly depends
+on the demanded, successful CaptureInput of the provider's `salt`. That task
+directly depends on the completed required evaluation of its own initializer.
+The producer literal belongs to that declaration and holds 23. The provider's
+escaped `model` has no demanded CaptureInput. Checking this query kind leaves
+`decltype(producer.model)` available for the return type and frame layout.
+Changing only the `false` token to `true` diagnoses the capture at
+`profile_seed.tower:3:1` at both widths.
+
+In a scratch control a second imported module defined its own `salt: u8 = 23`.
+Redirecting only the salt read to that owner preserved the original Foundation
+bytes, empty diagnostics and four guest lines at both widths. The new identity
+assertion failed at each width. All four CLI Foundation files had SHA-256
+`15402b44a52a2cbf7714e93a625a2d9b55d1caff7a723f7361e4bb9f0e2e76a4`,
+and reparsing and executing each produced the original guest bytes.
+
+Host 3 used the published Linux x64 bootstrap from `0823b028`, Clang 19 and a
+warm native build on an AMD EPYC 7542. The focused CTest, retained-source
+selector and focused ASan/LSan and TSan runs passed. The first `query-smoke`
+run on CPUs 0–3 failed its generic-clone interval-overlap assertion while
+other jobs were active. A standalone retry on the host affinity passed.
+Three successive invocations of the new four-compilation test on CPUs 0–3
+used 3.54–3.91 s wall, 1.22–1.23 s CPU and 80,512–83,648 KiB peak RSS.
+These are fixture costs. The executable uses a test-only renamed publication
+symbol because the Tower driver rejected the exploratory linker wrap.
+Receipt `b922ef9b-dc80-4400-b18b-9009359658ed` retains the build probes,
+commands, link maps, controls and exact outputs.

@@ -58,6 +58,21 @@ function(tower_execution_tests)
     add_test(NAME tower-retained-source-updates COMMAND tower-execution-tests
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" retained-sources)
     set_tests_properties(tower-retained-source-updates PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
+    set(capture_input "${CMAKE_CURRENT_BINARY_DIR}/tower_staged_capture_test.tower")
+    file(GENERATE OUTPUT "${capture_input}" CONTENT "${source}import tests.staged_capture_identity;\n")
+    tower_runtime_object(tower-staged-capture-test "${capture_input}" "${triple}")
+    add_executable(tower-staged-capture-test ${sources} "${tower-staged-capture-test_OBJECT}")
+    set_target_properties(tower-staged-capture-test PROPERTIES LINKER_LANGUAGE CXX)
+    # Keep the ordinary publication kernel and redirect its single external call in this fixture.
+    tower_runtime_object(capture-interpreter "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/interpreter.tower"
+      "${triple}" semantic_known_publish_kernel capture_publish_original)
+    target_sources(tower-staged-capture-test PRIVATE "${capture-interpreter_OBJECT}")
+    set(capture_libraries ${libraries})
+    list(REMOVE_ITEM capture_libraries tower-compiler-interpreter)
+    target_link_libraries(tower-staged-capture-test PRIVATE ${capture_libraries})
+    add_test(NAME tower-staged-capture-identity COMMAND tower-staged-capture-test
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+    set_tests_properties(tower-staged-capture-identity PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
     set(profile_input "${CMAKE_CURRENT_BINARY_DIR}/tower_type_reachability_profile.tower")
     file(GENERATE OUTPUT "${profile_input}" CONTENT "${source}import tests.type_reachability_profile;\n")
     tower_runtime_object(tower-type-reachability-profile "${profile_input}" "${triple}")

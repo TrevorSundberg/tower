@@ -1,0 +1,151 @@
+import tower;
+import execution_support;
+import frontend_units;
+import frontend_units_memory;
+import .compiler.semantic_program_types;
+import .compiler.semantic_context_types;
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .compiler.interpreter_context_types;
+import .library.vector;
+import semantic_lifecycle_checks;
+import .compiler.semantic_known_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_work_ids;
+import .compiler.grammar_types;
+import .library.work_graph;
+
+extern fn capture_publish_original(job: SemanticKnownWork*): void;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn sem_evaluation_get(c: SemanticContext*, subject: void*): SemanticEvaluation*;
+extern fn sem_find(table: SemanticTable*, name: u8*, owner: void*): SemanticEntry*;
+extern fn sem_parent(node: void*): void*;
+extern fn frontend_modules_location(environment: void*, offset: usize, line: usize*, column: usize*): u8*;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+
+struct CaptureCheck {
+    entry: u8*;
+    provider: u8*;
+    observed: bool;
+    salt: bool;
+    model_demanded: bool;
+}
+
+fn capture_declaration(c: SemanticContext*, path: u8*, name: u8*): void* {
+    var owner = sem_member(c.program.modules.scopes, path);
+    units_check(owner != null, "Capture source module");
+    var entry = sem_find(c.globals, name, owner);
+    units_check(entry != null && entry.value != null, "Module-owned source declaration");
+    return entry.value;
+}
+
+fn capture_depends(graph: WorkGraph*, consumer: usize, producer: usize): bool {
+    var edge = work_task(graph, consumer).dependencies;
+    while edge != 0 {
+        var dependency = &graph.edges.data[edge - 1];
+        if dependency.dependency == producer { return true; }
+        edge = dependency.next_dependency;
+    }
+    return false;
+}
+
+fn capture_from_salt(c: SemanticContext*, stage: SemanticEvaluation*, salt: void*): bool {
+    var graph = &c.queries;
+    var id = work_find(graph, salt, convert(u32, SemanticQuery.CaptureInput), 0);
+    if id == 0 || !capture_depends(graph, stage.ticket.task, id) { return false; }
+    var task = work_task(graph, id);
+    if !task.demanded || task.state != WorkState.Succeeded { return false; }
+    var input = bits(IMValueInput*, entity_component_data(entity_component_get(salt, c.value_inputs)));
+    // Required evaluation reads producer. The optional known_producer can be a different job.
+    if input == null || input.producer == null || sem_parent(input.producer) != salt { return false; }
+    var value = sem_evaluation_get(c, input.producer);
+    return value != null && value.literal == input.producer && !value.inferred && value.ready.ready
+        && !value.ready.failed && sem_get(value.literal).bits == 23 && capture_depends(graph, id, value.ticket.task);
+}
+
+// Only the root job inspects this world's receipt. Its snapshot is frozen through
+// the join, before KnownPublish replaces reads with their published literals.
+export fn semantic_known_publish_kernel(job: SemanticKnownWork*): void {
+    var c = job.context;
+    if job.subject == c.program.root {
+        var world = compiler_node_world(job.subject);
+        var check = bits(CaptureCheck*, compiler_world_grammar(world).observer.context);
+        units_check(check != null && !check.observed, "One joined evaluation frontier per fresh compile");
+        var selected = capture_declaration(c, check.entry, "selected");
+        var salt = capture_declaration(c, check.provider, "salt");
+        var model = capture_declaration(c, check.provider, "model");
+        var stage = sem_evaluation_get(c, sem_get(selected).value);
+        units_check(stage != null && !stage.inferred && stage.ready.ready && !stage.ready.failed, "Completed required selected initializer");
+        check.salt = capture_from_salt(c, stage, salt);
+        var id = work_find(&c.queries, model, convert(u32, SemanticQuery.CaptureInput), 0);
+        check.model_demanded = id != 0 && work_task(&c.queries, id).demanded;
+        check.observed = true;
+    }
+    capture_publish_original(job);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    units_check(argc == 2, "Usage: tower-staged-capture-test RESOURCE_ROOT");
+    var root = argv[1];
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    var entry: vector(u8) = default; var provider: vector(u8) = default; var source: vector(u8) = default;
+    defer vector_dispose(&entry); defer vector_dispose(&provider); defer vector_dispose(&source);
+    var path = "/tests/retained_target_width/main.tower";
+    units_path(root, path, &entry);
+    units_path(root, "/tests/retained_target_width/profile_seed.tower", &provider);
+    units_read(root, path, &source);
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&canonical);
+    var changed: vector(u8) = default;
+    defer vector_dispose(&changed);
+    units_read(root, "/tests/retained_target_width/profile_seed.tower", &changed);
+    var flag = strstr(changed.data, "var take = false;");
+    units_check(flag != null, "Original provider flag");
+    copy(flag + strlen("var take = "), "true ", strlen("false"));
+    for(var workers: usize = 1; workers <= 4; workers *= 4) {
+        capture_trial(root, workers, bedrock.data, foundation.data, entry.data, provider.data, source.data, null, &canonical);
+        capture_trial(root, workers, bedrock.data, foundation.data, entry.data, provider.data, source.data, changed.data, &canonical);
+    }
+    return 0;
+}
+
+fn capture_trial(root: u8*, workers: usize, bedrock: u8*, foundation: u8*, entry: u8*, provider: u8*,
+    source: u8*, changed: u8*, canonical: vector(u8)*): void {
+    var batch = frontend_units_create(1, workers, 8, 1, 1, bedrock, foundation, root);
+    units_check(batch != null, "Fresh capture unit");
+    defer frontend_units_close(batch);
+    units_check(frontend_units_source(batch, 1, entry, source, strlen(source)), "Capture entry");
+    var environment = frontend_units_environment(batch, 1);
+    if changed != null {
+        units_check(frontend_modules_source(environment, provider, changed, strlen(changed)), "Install reached-model control");
+    }
+    var world = frontend_modules_world(environment);
+    var check: CaptureCheck = {entry: entry, provider: provider, ..default};
+    compiler_world_grammar(world).observer.context = bits(void*, &check);
+    while !frontend_units_step(batch, true) {}
+    compiler_world_grammar(world).observer.context = null;
+    var program = frontend_units_program(batch, 1);
+    if changed != null {
+        var line: usize = 0; var column: usize = 0;
+        var file = frontend_modules_location(environment, frontend_units_error_offset(batch), &line, &column);
+        units_check(frontend_units_failed(batch) == 1 && program == null && file != null
+            && strcmp(file, provider) == 0 && line == 3 && column == 1
+            && strcmp(frontend_units_error(batch), "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer") == 0,
+            "Reached model fails at its escaped declaration before publication");
+        return;
+    }
+    if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+    units_check(program != null, "Successful ordinary staged compile");
+    lifecycle_output(program, "8\n24\n147\n8\n");
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    format_entity(&text, program.root, null, null, null);
+    units_check(!text.failed, "Format ordinary capture result");
+    lifecycle_compare(canonical, text.text.data, text.text.length);
+    units_check(check.observed && check.salt, "selected must read the required value produced by provider.salt");
+    units_check(!check.model_demanded, "Untaken provider.model must have no demanded capture");
+}
