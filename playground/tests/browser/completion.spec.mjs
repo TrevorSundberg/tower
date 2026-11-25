@@ -184,6 +184,16 @@ test('dot uses an exact prepared compiler answer, including changed types and a 
     await page.keyboard.press('.');
     await expect(page.locator('.cm-completionLabel')).toHaveText([field]);
     expect(await page.evaluate(()=>window.queries.length)).toBe(before);
+
+    // Move back in front of the existing member separator. Give the prediction
+    // timer a full turn, then check that only a real second dot makes the request.
+    await page.keyboard.press('Escape');await page.keyboard.press('ArrowLeft');
+    const doubled=predicted.replace('print(point.);','print(point..);');
+    await page.waitForTimeout(200);
+    expect(await page.evaluate(()=>window.queries)).not.toContain(doubled);
+    await page.keyboard.press('.');
+    await expect(page.locator('.cm-completionLabel')).toHaveText([field]);
+    expect(await page.evaluate(()=>window.queries)).toContain(doubled);
   }
 });
 
