@@ -99920,3 +99920,51 @@ batch for both, median CPU 0.03 s each, with maximum process-family RSS of
 during these samples. This measures verifier startup and checking only.
 Raw object headers, reports, failure bytes, commands, source identities and
 the portable patch are in packet dea235a0-c663-4e47-b0e5-af33f0c3b7aa.
+## Native semantics-object worker override on host 2, 2026-11-25
+
+Source baseline is the manager's `9ab581c8775199d3686520a3371f7ff5b327ddc7`,
+tree `3f53cd52dd1b98fe216811bdcba9b597bb670d1e`. The declared pack from
+`0755ad52` reconstructed the commit and matched its supplied recursive tree
+listing. The public Linux x64 compiler is `7f3b5dac`. The earlier host-2
+eight-build receipt `58139fb9` measured a command substitution in a generated
+graph at `373da061`. All eight reference manifests were checked here.
+
+The documented native script forwards CMake arguments. The semantics target
+uses `tower_runtime_object`, which already emits one `--jobs` argument and
+retains the object depfile. The new cache string changes that argument on the
+native semantics target only. The budget of helper tools and links still comes
+from the global setting. The experiment compares fresh native directories
+against an independent unmodified manager build and exercises reconfiguration
+of the earlier four-core cache.
+
+Four adjacent clean pairs used four outer jobs and the mask `1,2,4,5` on
+Ryzen 5 3600 (four distinct physical cores, cgroup cpuset 0–11, quota 11.52).
+Only the semantics width changed. Stock/selected wall seconds in order were
+24.83/24.64, 25.19/24.27, 24.78/23.99 and 25.26/24.87, with alternating
+first arms. The semantics edge was last before every final link and averaged
+18.537/18.058 s wall and 18.410/19.495 s sampled process CPU. Complete clean
+builds through install averaged 25.015/24.443 s wall, 80.333/82.028 s CPU
+and 2,120,396/2,144,467 KiB sampled peak tree RSS. There was no CPU throttling.
+These are warm-filesystem, empty-directory results on one allocation.
+`01ad20f5-ee87-4786-9bfa-4fafcf569650` retains commands, process masks, CPU
+pressure, Ninja timings, product manifests, guest executions and source bundle.
+
+The unchanged manager build differs from the 373da061 oracle in seven objects
+and the final linked compiler. All eight new builds matched the unmodified
+manager reference: 31 production objects, the four-member archive, three
+programs, four configure probes and 55 installed resources. The semantics
+object remained `14f95a49`. The manager compiler was `9ebc4562`. All guest
+objects and executables matched the earlier oracle and printed 720 and 721.
+
+The retained four-core stock cache adopted the manager sources and matched the
+clean manager outputs. Switching the option on and clearing it each rebuilt
+only the semantics object and the final link. Both repeated configurations
+reported no work. A touched imported `compiler/services.tower` independently
+invalidated the semantics object through its depfile. With global width three,
+unset and blank overrides yielded the same 43 commands. An explicit four
+changed just one. Invalid widths, including zero, a list and values above the
+driver limit, failed configure with the permitted range and reset guidance.
+Address- and thread-sanitizer configurations likewise changed one compiler
+argument. The first standalone sanitizer configure lacked the LLVM bin path.
+Repeating it with the documented native script's PATH resolved clang.
+These last checks validate generated commands only.
