@@ -131,20 +131,22 @@ test('live edit installs new keywords; comments and quoted strings keep their cl
   await expect(page.locator('.tw-string').filter({ hasText: '雪' })).toHaveText('"雪🚀 ; // }"');
 });
 test('diagnostics, corrected input, local persistence and source download work', async ({ page }, info) => {
-  await setSource(page, "parse Statement |= '';\n");
+  await setSource(page, "// 雪🚀\nparse Statement = '';\n");
   await expect(page.locator('.tw-inline-error-message')).toHaveText('Token literal is empty. Expected at least one character between the quotes.');
   await expect(page.locator('.tw-error-range')).toHaveText("''");
-  await page.locator('#editor-error').click();
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText('Errorforeach.tower:2:19');
+  await page.getByRole('button', {name:'Go to error at foreach.tower:2:19'}).click();
   await expect(page.locator('.tw-inline-error')).toBeInViewport();
   await page.screenshot({path:`../build/playground-empty-literal-${info.project.name}.png`});
-  await setSource(page, base + "parse Statement |= Expression ';';");
+  const grammar = "[number] token Number = /[0-9]+/;\n" + base;
+  await setSource(page, grammar + "parse Statement |= Expression ';';");
   await expect(page.getByRole('alert')).toContainText('Grammar conflict');
-  await expect(page.locator('#revision')).toHaveText('Revision 3');
+  await expect(page.locator('#revision')).toHaveText('Revision 4');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error')).toBeVisible();
   expect(await page.locator('.tw-inline-error-card').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.locator('#editor').screenshot({ path: `../build/playground-error-conflict-${info.project.name}.png` });
-  await setSource(page, base + '123;');
+  await setSource(page, grammar + '123;');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.getByRole('alert')).toBeHidden();
   const downloadPromise = page.waitForEvent('download');
