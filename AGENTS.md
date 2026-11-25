@@ -129,9 +129,12 @@ Do NOT modify todo.txt.
   Check the sum of the row lengths against the target's addressable slot count
   before converting it to bytes. Compare lookups with the original ordered
   entries at both ends of each range and in the gaps. Exercise allocation
-  refusal after a valid prefix, including a later grammar conflict. Report
-  cumulative grants, the minimum successful byte budget and process peak
-  memory separately.
+  refusal after a valid prefix. When construction selects a grammar conflict,
+  deny the next index allocation and assert that the frontend still reports
+  the same conflict. Query the accepted prefix before destroying the runtime.
+  Repeat with a valid grammar to check that a required allocation failure
+  reaches the frontend. Report cumulative grants, the minimum successful
+  serial byte budget and process peak memory separately.
 - To test a pooled storage budget, keep the first entity and its payload live
   while filling the last precharged slot. Check that reuse needs zero new
   allocations. Then force physical growth, reserve the remaining bytes and
