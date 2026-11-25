@@ -105079,3 +105079,56 @@ Ordinary Tower accepts both decltype(owner.model) and owner.model.number. The fi
 Fresh serial and four-worker runs, retained runs and the ordinary native CLI agreed on canonical Foundation, guest and diagnostic outcomes. A non-shipping negative control discarded the module key only in unevaluated qualified global lookup. Both earlier suites passed. On the same-width retarget that compiler produced the expected five guest numbers while keeping the left Word in Envelope. The new assertion rejected it. The registered execution test passed with the ordinary compiler, ASan and TSan. Sanitizer instrumentation covered the changed test unit and used the warm native compiler objects.
 
 The stock eight-request retained sequences used 656.2/867.6 ms wall, 655.6/991.2 ms CPU and 74,156/80,280 KiB peak RSS at one/four workers on Xeon E5-2680 v4 CPUs 4–7 under an 11.52-CPU quota. Four alternating before/after suite pairs measured a median 669.1 ms added test time. Assignment 6fad9eb8-ae37-42d9-89ff-9521512db472 carries the source bundle, original clocks, exact edit bytes, graph rows, negative control and sanitizer details. Production compiler sources were unchanged.
+
+### Jenkins 44 mobile idle execution worker reuse
+
+Jenkins built `10d7ac37813e8e307f1c9d930ef112c2cd8cb276` on linux-1. The console
+(SHA-256 `78b47603cabfb3d606277ff0fc9dc8d4941dc052d7ca78033eb83b9dfabaca46`)
+records 513 Node passes and two skips. Playwright ran with two workers and
+reported 239 passes, two skips and one failure. The mobile test saw the right
+output from all three backends. Two worker handles survived and one changed at
+the final identity comparison. Jenkins skipped archiving on failure. Its console
+does not identify the replaced backend or the edit that interrupted it.
+
+Every comment prefix in the original typing burst was executable. After the UI
+grants an execution permit, an edit gives the terminal reply one UI task to
+arrive before retiring the worker. That permits cancellation even if the guest
+never returns. The 70 ms key delay established no ordering between the next
+edit and that terminal reply. On host 1 the ordinary mobile test passed four
+times. Delaying only the interpreter's terminal reply by 400 ms during the
+burst reproduced the final identity failure. The interpreter reported 43 for
+request 22, its worker closed, and the replacement completed the program.
+This demonstrates one sufficient ordering for the Jenkins symptom.
+
+The fixture now starts typing inside an unfinished print call after all three
+backends finish. The page reports `Waiting for valid source` before the closing
+edit. That edit must produce exactly `43\n44\n` on each backend, preserve all
+three original handles and avoid the observed compiler fetches. The adjacent
+permit and infinite-guest cases exercise superseded compilation and active
+execution cancellation. The delayed-reply control passed on desktop and mobile.
+In a separate control the UI explicitly evicted the idle interpreter on the
+opening edit. The revised mobile test failed at the worker identity assertion
+after the exact output checks passed.
+
+Local tests used the loopback site from Pages commit `5b34c054`, manifest
+`f12b6bdff9c45758b1de334ee8bee3f1b3b86d7424f232242f069a8aa25ea6ef`.
+All 106 asset digests matched before testing and after the eviction control.
+The served UI source at `8024e026` matches the assigned playground production
+sources. The manifest identifies the compiler as `2421c659`. The control's
+unmodified esbuild invocation independently reproduced the served app.js.
+
+On Debian 12, Intel Xeon Gold 6244 (32 logical CPUs, affinity 0–31, quota
+15.36 CPUs), Node 24.22.3, Playwright 1.65.1 and Chromium 159.0.8154.6, four
+successive original and four revised mobile cases ran in separate batches
+with one Playwright worker, zero retries and identical site bytes. All eight
+passed. GNU time recorded 54.05 / 39.93 s wall, 54.54 / 41.55 s CPU and
+352256 / 353928 KiB maximum RSS for the two batches. These are test costs
+under different input pacing. Only the browser fixture changed. Compiler
+allocation, runtime scaling and native sanitizer measurements do not apply.
+
+With the restored site, `playwright test 'tests/browser/execution\.spec\.mjs$'
+--workers 2` passed all 34 cases on desktop and mobile in 122.06 s wall.
+This includes stale permits, explicit cancellation, infinite guests and LLVM
+warmup. Assignment `292bb721-dae1-44b2-8b68-167474b9e848` retains the console,
+commands, local traces, timing records, input hashes and control patches.
+The full integrated Jenkins run remains open for manager review.
