@@ -100085,3 +100085,93 @@ The fresh 16-function run reduced FIRST rule visits from 48,858 to 28,003 and FI
 With identical invocation paths the small compile saved exactly 17,800,571 instructions inside emission and across the process (1.19% of the compiler). The edited import saved 18,350,468 inside emission. Linux x64 Release, stock pin 6d5be0b9, LLVM 19.1.7, AMD EPYC 7542, 32 physical/64 logical cores, one worker on CPU 24 and the separate four-worker holdout on physical cores 24–27. Effective quota 12.288 CPUs. The two timing series recorded zero additional throttled periods. Inputs and resources were warm, with a fresh grammar and process on every run. Twelve adjacent AB/BA pairs per cell gave mean parent/trial wall and CPU ms of 298.8/296.3 and 298.6/295.7 (16, one), 543.2/543.3 and 542.6/542.8 (1,000, one), and 568.4/569.5 and 621.1/624.7 (1,000, four). Twelve additional counterbalanced blocks per cell used two byte-identical parent controls. Trial median wall differences against their within-block mean were −4, −4.75 and −4.5 ms. Small serial improved in both series. Large medians and means varied relative to the control spread. Mean first-series RSS KiB was 138,856/139,054, 154,661/154,395 and 159,609/159,761. Per-process allocator peaks were identical in each cell, including 70,905,980 requested bytes at small serial. Separate two-unit finite-budget peaks were 70,358,472 charged bytes on fit and 1,047,922 on denial. All ledgers closed empty.
 
 The ordinary release build used the checked-in bootstrap and no private compiler override. Same-path Foundation, reparsed objects, linked guests (15/999) and malformed diagnostics matched exactly. Both sizes and both arms matched all 218 installation identities and actual first consuming spans or EOF. Replacing an imported declaration keyword through a two-rule dependency chain rejected the stale importer and executed the edited one with output 42. A later override still reported the earlier immediate conflict. Native emission, structure reuse, grammar-resource, grammar-equivalence, session-world and units passed, including independent snapshots, refusal, cancellation, real worker overlap and teardown. Prematurely declaring unresolved dependencies settled failed the independent emission oracle (134). Both emission and structure-reuse passed focused ASan/LSan and initialized TSan. Tower source-level UBSan is unavailable. The packet records original build/measurement helper errors, their corrections, commands, digest manifests and raw observations. The manager owns integration and publication. The evidence supports the small serial improvement on this host.
+
+## 2026-11-25 — FIRST settlement comparison on the 902a successor inputs
+
+Host 3 assignment 08306358-f932-4fde-8641-f057e02892f4. Public e8c8e8f9
+supplied all prerequisites for the source, pin and candidate bundles. The
+stock pin is 217f06311be15fd3dd942d9ee0d8e65b87057de2 and the ordinary
+merge with c9e9f185 has tree c871216c01eed1f03b0ae08bac4096641f7c7ca9.
+Only seven production lines differ. The prior 7fe0a10e timing series used
+a different compiler. Separate clean native Release caches selected the
+checked-in 50955730 compiler for both arms. The production runs below
+use the frozen trees. This test commit adds a fixture and journal only.
+
+The sorted rule A reads Z before Z becomes nullable. The root subsequently
+discovers Left, which acquires another terminal through Right on a later
+sweep. Optional, star and mandatory plus prefixes and two unreachable tails
+exercise both propagation and exclusion. The existing independent
+fixed-point oracle compares production and declaration-start metadata.
+Changing Z to a required terminal leaves two emitted snapshots live with
+different start sets. The ordinary import fixture also edits the late
+terminal from right to edited and checks accepted and rejected starts
+in each revision. Replacing the candidate dependency test with unconditional
+settlement aborted at the new fixture assertion, exit 134.
+
+A read-only Tower probe in both exact ParserNodes groups recorded every
+sweep before scratch disposal. Session, revision, emission and byte span
+identify the importer that consumed the rule. At offset 14, revision 1,
+the independently enumerated eight-rule table matched all final FIRST and
+nullability values before and after the edit. On pass one A was nonnullable
+and empty, Z was nullable with {many, maybe}, and the root had only the
+attribute opener. On pass two A became nullable, Left acquired the late
+terminal and Trigger acquired its full set. On pass three the root gained
+that set. All six pass snapshots agreed across arms. The declaration's
+nonnullable alternatives excluded hidden, again and tail. Canonical
+Foundation reparsed to the frozen objects. Both serial sizes reproduced
+all 218 retained installation/consumption rows. The 4-worker stock
+execution changes some numeric entity IDs from the serial run. Its ordered
+payload comparisons, equality relations, actual spans and diagnostics agreed.
+The ordinary native emission, grammar-resource, structure-reuse, session-world,
+grammar-equivalence, units and dependency-permutations selections passed on
+each arm. Leak-checking ASan and initialized TSan passed the new fixture
+and structure reuse on the successor. Source-language UBSan is unavailable.
+
+Linux x64 Release, LLVM/Clang 19.1.7, AMD EPYC 7542, 32 cores/64 threads,
+allowed CPUs 0–63 and quota 12.288 CPUs. One worker used CPU 24, four used
+24–27. The uninstrumented arms ran at one executable path on warm files
+with identical resources. Twelve alternating pairs per cell followed a
+warm pair. Six more blocks per cell permuted the candidate and two identical
+stock controls. Every sample matched the reference object, ELF and output.
+No measured process interval accumulated a cgroup throttle. The raw packet
+contains each wall, process CPU, max RSS, load, throttle and output sample.
+
+| Input / jobs | Mean wall ms, stock / merge | Mean CPU ms | Mean max RSS KiB | Median paired wall change ms | Peak requested bytes, both |
+|---|---:|---:|---:|---:|---:|
+| 16 functions / 1 | 292.92 / 289.08 | 292.67 / 288.67 | 139087 / 139041 | −4 | 70,906,292 |
+| 1,000 functions / 1 | 547.75 / 538.75 | 547.25 / 538.08 | 154799 / 154970 | −7.5 | 86,956,426 |
+| Edited return keyword / 1 | 310.42 / 306.17 | 310.17 / 305.83 | 140857 / 140836 | −3 | 72,937,518 |
+| Edited declaration keyword / 1 | 343.58 / 337.17 | 343.42 / 336.75 | 143202 / 143132 | −7 | 75,163,964 |
+| 1,000 functions / 4 | 571.75 / 567.92 | 621.33 / 618.08 | 159750 / 159522 | −3 | 86,935,226 |
+
+The serial process and emission instruction reductions were equal in each
+cell. The 16- and 1,000-function inputs each saved 17,800,571, the edited
+return 18,350,468 and the edited declaration 19,131,159. The repeated
+stock small control reproduced exactly 1,420,732,409 process instructions.
+This reproduces the predecessor's small emission delta with the 902a pin.
+Counterbalanced median wall changes were −5, −6.5, −3.75, −12 and −9.75 ms
+in table order. The 4-worker identical-control median difference was +9.5 ms.
+The evidence supports successor adoption for reduced serial work. The host
+and control spread limit any general claim about parallel wall time.
+
+Both malloc-event ledgers closed empty. The single-file worlds had no
+bound WorkBudget. The two-unit run refused at 1 MiB, reproduced the exact
+grammar diagnostic and peaked at 1,047,930 charged bytes. A stricter
+boundary refused at 68,059,387 bytes with the same semantic-budget
+diagnostic on both arms and passed at 68,059,388, returning 42. All
+observed budgets closed with zero bytes, grants and lanes. The native
+sizeof code returned 32 bytes on each arm and an instantiated Wasm32
+module returned 16 on each. The added boolean occupies existing padding.
+
+The evidence package contains the verified source bundles, build products,
+raw measurements, Tower fixture and observer sources, failed setup attempts,
+control outputs and replay commands. The first test draft used unsupported
+indexing on a literal; the compiled fixture uses a typed repetition enum.
+The initial Wasm link required import declarations for unused compiler
+functions; all bound imports throw if called. The layout function called none.
+A shell trace initially contaminated the denial stderr; a clean trace channel
+restored the expected bytes. The full-history transfer of this promisor clone
+encountered an unavailable historical blob. A new private main starting at
+public e8c8e8f9 verified each prerequisite and reconstructed the required
+tree using the host object store and the three supplied bundles. Publication
+belongs to the manager. The 902a release and project checkout were untouched.
