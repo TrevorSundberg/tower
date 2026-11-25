@@ -7,6 +7,7 @@ export function moduleInputs(exports, initial = {}) {
   const allocate = exports.tw_alloc || exports.malloc, free = exports.tw_free || exports.free;
   const environment = exports.frontend_modules_create();
   let state = {entry:'input.tower', files:[], builtins:initial, library:'.tower'};
+  let applied = false;
   function text(value, action) {
     const bytes = new TextEncoder().encode(value), pointer = allocate(bytes.length + 1);
     if (!pointer) throw new Error('Unable to allocate module input');
@@ -17,6 +18,9 @@ export function moduleInputs(exports, initial = {}) {
     } finally { free(pointer); }
   }
   function configure(update = {}) {
+    // A failed upload retains the requested state for the next partial update.
+    // Only a completed upload establishes which inputs the environment accepted.
+    applied = false;
     // A complete project request replaces its source capabilities, including
     // removed library files. Partial baseline configuration can still merge.
     state = {...state, ...update, builtins:update.replaceBuiltins ? {...update.builtins} : {...state.builtins, ...update.builtins}};
@@ -27,6 +31,7 @@ export function moduleInputs(exports, initial = {}) {
       if (!exports.frontend_modules_source(environment, name, source, length)) throw new Error('Invalid module input: ' + file.path);
     }));
     text(state.entry, entry => text(state.library, library => exports.frontend_modules_configure(environment, entry, library)));
+    applied = true;
   }
   configure();
   function string(pointer) {
@@ -35,6 +40,10 @@ export function moduleInputs(exports, initial = {}) {
   }
   return {
     environment, configure,
+    hasAppliedBuiltins(builtins) {
+      return applied && Object.entries(builtins).every(([name, source]) =>
+        typeof source === 'string' && Object.hasOwn(state.builtins, name) && state.builtins[name] === source);
+    },
     sourceMap() {
       const files = [], count = exports.frontend_modules_source_count(environment);
       for (let i = 0; i < count; ++i) files.push({

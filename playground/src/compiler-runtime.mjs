@@ -65,9 +65,8 @@ export async function getTower(foundation, bedrock, towerSource, {projectFollows
   let tower;
   try { tower = await pending; }
   catch (error) { if (towerReady === pending) towerReady = undefined; throw error; }
-  // Grammar installation reads the current module environment. On a warm
-  // project compile the caller replaces every source before the next read.
-  if (!cached || !projectFollows) tower.configureModules({builtins:{bedrock, foundation, tower:towerSource}});
+  const builtins = {bedrock, foundation, tower:towerSource};
+  if (!cached || !projectFollows || !tower.hasAppliedBuiltins(builtins)) tower.configureModules({builtins});
   if (installedBedrock !== bedrock) {
     tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;
   }
