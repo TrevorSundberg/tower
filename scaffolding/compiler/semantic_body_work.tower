@@ -101,7 +101,7 @@ fn sem_body_needed(c: SemanticContext*, subject: void*): bool {
     if function.external || function.exported || function.type.scalar != SType
         || function.type.pointers != 0 || function.parameters.length == 0 { return true; }
     foreach(var parameter in &function.parameters) {
-        if !semantic_integer(&sem_get(parameter).type) { return true; }
+        if !sem_numeric_parameter(&sem_get(parameter).type) { return true; }
     }
     // A proven nominal forwarding body needs bound arguments. Known type uses
     // own their canonical clone; runtime calls/references still demand the

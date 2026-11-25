@@ -105301,3 +105301,38 @@ in its receipt ref. The relocated executable and resources in the packet are
 review artifacts. A published successor pin is required before compiler and
 build sources can use positional lists. Declaration-ordered positional structs
 and implicit C-style partial initialization are separate language questions.
+
+### Host 8 — staged values and declared floating numeric parameters on a01617e3
+
+Assignment 9cf313a9-b14a-4c90-b0b6-ceae5063e13f. The preceding type-value,
+attribute, computed-argument, floating-point and temporal-opcode contracts
+guided a native and Wasm compiler-host differential. Base source is
+a01617e302846b64dfcbc7b4cc498c649477f169, tree d8432a9183969d8ebef6fe68004bd7d720f1007a.
+The public Linux x64 bootstrap SHA-256 starts 0100aa61813fe15c.
+The shared checkout's mandatory pull conflicted replaying 03541c43. Aborting
+restored ff4c96f7 and its unpublished predecessors. A separate local main
+checkout holds this candidate. Only the manager publishes.
+
+Base strict stages already round-trip signed zero, copied NaN payloads,
+canonical arithmetic NaNs, nominal structs, null pointer fields, typed callbacks
+and their indirect calls. Function references print as bound declarations in
+Foundation. An ordinary staged read of imported initialized Tower data returned
+65, 0, 255. Compiling a call to getchar from a reached stage diagnosed the
+missing external capability. A mutable data binding failed its capture proof.
+Independent scalar raw pointer results, including null, failed the relocatable
+result check. Two same-layout nominal attribute types survived together; two
+values of the same marker failed. Widths and extents require integer arguments.
+An ordinary f64 parameter can select a type through control flow on the base.
+
+The narrower missing case was a declared f32/f64 parameter of a static
+nominal constructor. The fix shares parameter admission between the constructor
+and forwarding-body checks, carries the declared numeric type into argument
+preparation and uses the existing ordinary evaluator and (type, bits) interner.
+The first candidate still demanded a forwarding body's unbound float argument.
+The same admission predicate now controls that decision. A contextual default
+also exposed the old integer-literal fast path; float literals now use ordinary
+contextual operand checking. Existing array and primitive consumers pass no
+floating parameter context. The registered type-smoke fixture checks exact
+zero/payload identity, forwarding and explicit conversion to an integer bound.
+Raw evidence, rejected attempts, exact controls and future companion source
+travel in the assignment packet.

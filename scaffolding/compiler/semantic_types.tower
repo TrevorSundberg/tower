@@ -211,6 +211,23 @@ fn sem_type_observations_publish(c: SemanticContext*, observations: vector(Seman
     }
 }
 
+fn sem_numeric_parameter(type: FoundationType*): bool {
+    return semantic_integer(type) || semantic_float(type);
+}
+
+// A declared floating parameter supplies its own context. Array extents and
+// primitive representation widths have no such parameter and require integers.
+fn sem_check_numeric_argument(c: SemanticContext*, node: void*, actual: FoundationType*, expected_type: FoundationType*): bool {
+    if expected_type != null && semantic_float(expected_type) {
+        if semantic_type_equal(actual, expected_type) { return true; }
+        sem_fail(c, node, "Expected a compile-time argument of the declared floating-point type");
+    } else {
+        if semantic_integer(actual) { return true; }
+        sem_fail(c, node, "Expected a compile-time integer argument");
+    }
+    return false;
+}
+
 // Resolve the ordinary checked value without mutating the shared argument
 // interner. Primitive and array queries need a value, not an argument identity.
 fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
@@ -224,6 +241,14 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
         n = sem_child(n, 0);
     }
     var value: void* = prepared ?? generic_lookup(c.generics, n, n);
+    if value == null && expected_type != null && semantic_float(expected_type) {
+        if !sem_type_value_simple(c, n) {
+            sem_fail(c, n, "Expected a compile-time floating-point argument");
+            return null;
+        }
+        value = sem_operand(c, n, expected_type);
+        if !sem_ok(c) { return null; }
+    }
     if value == null {
         var text: u8* = sem_tokens(c, n);
         if !sem_ok(c) { return default; }
@@ -242,10 +267,12 @@ fn sem_constant_value(c: SemanticContext*, n: void*, expected_type: FoundationTy
         }
     }
     var constant: FoundationNode* = sem_get(value);
-    if !constant.constant || !semantic_integer(&constant.type) {
-        sem_fail(c, n, "Expected a compile-time integer argument");
+    if !constant.constant {
+        sem_fail(c, n, expected_type != null && semantic_float(expected_type)
+            ? "Expected a compile-time floating-point argument" : "Expected a compile-time integer argument");
         return null;
     }
+    if !sem_check_numeric_argument(c, n, &constant.type, expected_type) { return null; }
     if expected_type != null && !semantic_type_equal(&constant.type, expected_type) {
         var step41 = sem_type_name(c, expected_type);
         var step42 = sem_cat(c, "Expected ", step41);
@@ -445,8 +472,8 @@ fn sem_constructor_arguments(c: SemanticContext*, n: void*, definition: void*): 
             var step29 = sem_member(parameters.data[i], "type");
             var expected_type: FoundationType* = sem_type(c, step29);
             if !sem_ok(c) { return null; }
-            if !semantic_integer(expected_type) {
-                sem_fail(c, parameters.data[i], "Compile-time value parameters currently require an integer type");
+            if !sem_numeric_parameter(expected_type) {
+                sem_fail(c, parameters.data[i], "Compile-time value parameters require an integer or floating-point type");
                 return null;
             }
             var argument = sem_constant_argument(c, args.data[i], expected_type);
