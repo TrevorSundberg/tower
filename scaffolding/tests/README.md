@@ -2,6 +2,9 @@
 
 ## Migrating tests next to their modules
 
+The [test inventory](../../docs/test-inventory.md) maps legacy fixtures to
+proposed companion files and records the original selectors and oracles.
+
 The proposed Tower convention pairs `module.tower` with `module_test.tower` in
 the same directory. Prefer the companion for library, compiler, ECS and scheduler
 tests. An inline `test() { ... }` can keep a small example next to the declaration

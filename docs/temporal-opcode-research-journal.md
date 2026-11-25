@@ -105301,3 +105301,27 @@ in its receipt ref. The relocated executable and resources in the packet are
 review artifacts. A published successor pin is required before compiler and
 build sources can use positional lists. Declaration-ordered positional structs
 and implicit C-style partial initialization are separate language questions.
+
+### Whole-tree test inventory at 91b3e1f8
+
+The manager reconciled the A–M (aa5e7156) and other native (98f757ca)
+receipts against the filenames and blob IDs from
+`git ls-tree -r 91b3e1f8 -- scaffolding/tests`. Their sets are disjoint and
+together contain all 682 tracked entries. The browser/editor census
+(817dc81c) accounts for all 103 assigned paths. The entry point audit
+(24f66305) matched all 2,027 Git tree entries. The inventories have different
+units: filesystem paths, static case invocations, expanded framework
+registrations and observed launches. Several host configurations execute the
+same fixture. The [migration inventory](test-inventory.md) gives the source
+tables and the limitations of each count. The archive contains the original
+selected UTF-8 tables. A round-trip byte comparison checked all 28 members.
+
+The original and refactored SCC tests agreed on 242 fixed and generated
+partitions. Inverting the expected singleton partition reported the first wrong
+partition and zero live buffers. The projected assertion failed with exit 134.
+The published bootstrap rejected the isolated companion's test declaration at
+line 5. Actual opt-in collection and linkage remain to be checked with a
+successor. The independent warm layout frontier run also exited 134 from its
+reference check; receipt aa5e7156 includes the standalone link and failure
+log. Host 1 owns diagnosis under 076d1afd. No performance measurements apply
+to publishing the inventory, which changes neither the compiler nor its assets.
