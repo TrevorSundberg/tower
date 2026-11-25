@@ -99520,3 +99520,77 @@ Two additional reversed serial pairs on one 16-body unit averaged 0.322 → 0.31
 A clean `build-native.sh` build from `fe008af5` plus the four-file Tower patch used the public bootstrap and no private override. The clean native compiler had SHA-256 `4ad3c3bb80869c161948a023bc7fcb552c68191bd334d25df5d70f58b42bc04d`. The separately requested clean profile was byte-for-byte equal to the candidate used above. On the main working tree ASan with leak detection and initialized TSan each passed the parser refusal/retry, structure reuse, unit admission/cancellation and 12×256/four-worker profile with exact output comparisons. The changed table-builder IR contained the selected sanitizer hooks. TSan had 31 startup denials at `personality(ADDR_NO_RANDOMIZE)` across the four commands before successful execution. The packet retains every failed launch. Tower source-level UBSan remains unsupported.
 
 The 43 principal workload processes, two sanitizer workload processes and 28 secondary serial controls all passed their literal-42 and full artifact checks. In the principal runs, all 25 generated source, import and canonical Foundation files matched both the prior exact reference and host 7 serial oracle. Ordinary and constrained-affinity runs used the production adaptive gate. The raw packet `488e19d3-63b9-4878-8a94-628365790c93.tar.gz` includes the candidate patch, ELF identities, original stack samples and decoded callers, independent event/count records, every pair and exception, clean build and sanitizer receipts. Production scheduling and frontend admission have no changes in this patch. Manager publication remains separate.
+
+### Host 8 · LALR wave scratch at the component-solver handoff
+
+The 9ab581c8 freeze has a separate state owner and one context column per
+parser table. Its three-light serial invoice matched the previously retained
+ELF. The same ordinary binary failed at eight jobs under the 256 MiB cap.
+
+In a natural eight-job trace, unit 6 was solving 4,588 nodes through the
+component path. A graph-arena growth of 36,832 bytes met 23,340 free.
+The full ledger reconciled to 268,412,116 bytes. The rejected growth occurred
+after wave construction had declined dispatch. There were 2,906 destination
+rows and 3,370 incoming edges with capacity for 23,800 edges. No wave worker
+had started. The wave retained two 367,072-byte descriptor arrays, a
+4,620-byte change bitmap, a 32,800-byte target list and 220,992 bytes in
+incoming arena chunks. Those five owners accounted for 992,556 bytes.
+The SCC adjacency and component index already held 73,440 and 293,664 bytes
+respectively. The graph nodes, pending queue, ranges and outgoing edges
+remained necessary for SCC propagation and subsequent action collection.
+
+The wave helper now returns before SCC allocation. Its existing defers
+release only private scratch and joined worker arenas. Pending indices and
+graph-owned, published ranges pass directly to the same component solver.
+A bounded native regression uses a seeded edge and leaves exactly the
+wave's allocation allowance. Stock failed the regression; the candidate
+completed with the expected propagated range and the original ledger
+balance. A fully occupied ledger still denied the first allocation.
+
+On the same 4,588-node handoff, at jobs 4 and 8 alike, unit 6's live
+charge fell from 46,838,668 bytes in 61,746 grants to 45,846,112 bytes
+in 61,736 grants. At jobs 1 the direct SCC path peaked at 147,611,733
+bytes on both arms. In a separate eight-job stock run the 4,586-node
+incoming array succeeded and its parallel result array failed. On the
+candidate a 4,792-node incoming array requested 383,392 bytes when
+293,834 were free. That 89,558-byte shortfall precedes the handoff.
+
+All sixty ordinary trials used one warm Ryzen 9 7900X (12 cores, SMT2,
+affinity 0–23, quota 23.04 CPUs). Each of five invoices ran at jobs 1/4/8
+in AB and BA order. Both arms passed all serial and four-job cases. At
+eight jobs the small and uneven cases passed and all three skew shapes
+failed in both orders. Successful ELF, exports, stdout and thirteen
+ordered depfile records matched serial. Four-job prefix wall time was
+1.03/1.00 s stock and 0.97/1.07 s candidate. The separate four-job
+candidate uneven trace showed three overlapping frontend workers for
+209,981,616 ns. With requested jobs 8, polling the native compiler's
+/proc status confirmed that both arms fit on CPUs 0–1 with two peak
+lanes and failed on CPUs 0–23 with eight. Cgroup throttling stayed zero.
+
+The bounded 1,024-node regression started at 318,647 charged bytes.
+Both arms returned Capacity under complete exhaustion. With 173,376
+bytes free the stock phase overlapped SCC scratch and returned Capacity
+with one pending item; the candidate propagated [32,35] and drained.
+Separate one-unit tests distinguish real finite Capacity and injected
+physical Memory. Pending and active cancellation closed at zero charged
+bytes, live grants and lanes. ASan/LSan and TSan passed the bounded
+regression and the four-job small packaged driver with the serial ELF.
+The host rejected the first seven TSan regression starts at its personality
+check. The eighth ran; the driver ran on its first attempt. Tower IR
+has no configured UBSan pass.
+
+The command, cost, oracle, source and live-owner receipts are in host-8
+packet 9427d469-6ee5-4f01-b96b-d315faef6268. The change is limited to wave
+scratch lifetime. Default-cap progress on the eight-job skew inputs is open.
+
+A clean relink differed from the first timing binary by four bytes. A blank
+test-source separator had moved four source offsets passed to trap in linked
+regression routines. The warm rebuild matched the clean binary exactly.
+All 60 cases were measured again against that executable, with identical
+success/failure cells. Final prefix serial wall was 2.06/2.05 s stock and
+2.04/2.05 s candidate. Four-job wall was 1.00/1.03 s and 0.98/0.95 s,
+with peak RSS 396,640/394,444 KiB and 394,380/390,472 KiB respectively.
+The packet retains both matrices, the four instruction immediates and the
+fresh checked-in-bootstrap validation. The five clean native selections and
+the bounded regression also passed. No general timing claim follows from
+these pairs.
