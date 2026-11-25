@@ -1252,6 +1252,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                     // by semantics. Defer only that proof; grammar and executable
                     // statements still cannot take part in an import cycle.
                     declaration ||= module_equal(span.label.data, "CoreDeclare");
+                    declaration ||= module_equal(span.label.data, "TowerTest");
                     if !declaration {
                         invalid = true;
                     }
