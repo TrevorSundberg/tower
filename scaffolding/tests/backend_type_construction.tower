@@ -10,25 +10,26 @@ import .compiler.component_kinds;
 import .compiler.foundation_types;
 import .compiler.foundation_tags;
 import .library.vector;
+import .library.entity_types;
 
 extern fn compiler_world_create_workers(limit: usize): void*;
 extern fn compiler_world_store(world: void*): void*;
 extern fn compiler_world_component(world: void*, owner: void*, kind: u32): void*;
 extern fn compiler_world_dispose(world: void*): bool;
-extern fn entity_create(store: void*): void*;
-extern fn entity_attach(node: void*, parent: void*, name: u8*): bool;
-extern fn entity_release(node: void*): usize;
+extern fn entity_create(store: EntityStore*): Entity*;
+extern fn entity_attach(child: Entity*, parent: Entity*, name: u8*): bool;
+extern fn tower_node_release_ref(entity: Entity*): usize;
 extern fn strstr(text: u8*, part: u8*): u8*;
 
-fn backend_constructor_node(world: void*, root: void*, kind: u32, type: FoundationType*): void* {
-    var node = entity_create(compiler_world_store(world));
+fn backend_constructor_node(world: void*, root: Entity*, kind: u32, type: FoundationType*): void* {
+    var node = entity_create(bits(EntityStore*, compiler_world_store(world)));
     utility_check(node != null, "constructor fixture entity");
-    var value = bits(FoundationNode*, compiler_world_component(world, node, CompilerFoundation));
+    var value = bits(FoundationNode*, compiler_world_component(world, bits(void*, node), CompilerFoundation));
     utility_check(value != null && entity_attach(node, root, ""), "constructor fixture component and owner");
     value.kind = kind;
     value.type = *type;
-    entity_release(node);
-    return node;
+    tower_node_release_ref(node);
+    return bits(void*, node);
 }
 
 fn backend_constructor_close(world: void*): void {
@@ -41,9 +42,9 @@ fn backend_constructor_target(target: u8*, width: u32, optimize: bool): bool {
     var world = compiler_world_create_workers(1);
     if world == null { return false; }
     defer backend_constructor_close(world);
-    var root = entity_create(compiler_world_store(world));
+    var root = entity_create(bits(EntityStore*, compiler_world_store(world)));
     if root == null { return false; }
-    defer entity_release(root);
+    defer tower_node_release_ref(root);
     var b = backend_open_codegen(target, optimize ? BackendCodegen.Default : BackendCodegen.None);
     if b == null { return false; }
     defer backend_close(b);
