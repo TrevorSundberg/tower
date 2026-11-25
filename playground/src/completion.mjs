@@ -2,13 +2,11 @@ import { autocompletion, acceptCompletion } from '@codemirror/autocomplete';
 import { ViewPlugin, keymap } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
 import { byteOffsets } from './offsets.mjs';
-import { LanguageService } from './language-service.mjs';
 import { CompletionQueries } from './completion-queries.mjs';
 import { languagePayload } from './language-queries.mjs';
 import { towerHover } from './hover.mjs';
 
-export function towerCompletion(configuration) {
-  const service = new LanguageService();
+export function towerCompletion(service, configuration) {
   const queries = new CompletionQueries(service);
   function payload(source, position) {
     return languagePayload(configuration,source,'complete',position);
@@ -33,7 +31,7 @@ export function towerCompletion(configuration) {
         queries.predict(payload(source.slice(0,head)+'.'+source.slice(head),head+1));
       },80);
     }
-    destroy() { clearTimeout(this.timer); queries.clear(); service.stop(); }
+    destroy() { clearTimeout(this.timer); queries.clear(); service.releaseDocument(); }
   });
   return [prediction,towerHover(service,configuration),
     autocompletion({activateOnTyping:true, activateOnTypingDelay:0, interactionDelay:0, override:[async context => {

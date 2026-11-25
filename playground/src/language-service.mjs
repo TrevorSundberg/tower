@@ -35,11 +35,14 @@ export class LanguageService {
   pump() {
     if (this.active || !this.queued.size) return;
     if (!this.worker) {
-      this.worker = createCompilerWorker(new URL('./language-worker.js', import.meta.url), {type:'module'});
-      this.worker.onerror = event => { event.preventDefault(); this.stop(event.message || 'Language worker stopped'); };
-      this.worker.onmessage = ({data}) => {
+      const worker = this.worker = createCompilerWorker(new URL('./language-worker.js', import.meta.url), {type:'module'});
+      worker.onerror = event => {
+        event.preventDefault();
+        if (this.worker === worker) this.stop(event.message || 'Language worker stopped');
+      };
+      worker.onmessage = ({data}) => {
         const task = this.active;
-        if (!task || task.id !== data.id) return;
+        if (this.worker !== worker || !task || task.id !== data.id) return;
         clearTimeout(task.timer); clearTimeout(task.preemption); this.active = null;
         if (data.error) { this.worker.terminate(); this.worker = null; }
         if (!task.canceled) {
@@ -54,6 +57,10 @@ export class LanguageService {
     this.queued.delete(task.key); this.active = task;
     task.timer = setTimeout(() => this.stop('Language query exceeded 10 seconds'), 10000);
     this.worker.postMessage({id:task.id, ...task.payload, compiler:compilerSelection()});
+  }
+  releaseDocument() {
+    // The next query replaces all module inputs. Only an idle worker can move to the next file.
+    if (this.active || this.queued.size) this.stop();
   }
   stop(message = 'Language query canceled') {
     this.worker?.terminate(); this.worker = null;
