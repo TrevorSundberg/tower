@@ -1,0 +1,35 @@
+import tower;
+
+fn selected_array(items: i32[4]*, calls: usize*): i32[4]* {
+    *calls += 1;
+    return items;
+}
+
+fn first_even(items: i32[4]*, visits: usize*): i32 {
+    foreach (var value in items) {
+        defer { *visits += 1; }
+        if value % 2 == 0 { return value; }
+    }
+    return -1;
+}
+
+fn fixed_array_iteration_check(): bool {
+    var items: i32[4];
+    items[0] = 1; items[1] = 2; items[2] = 3; items[3] = 4;
+    var calls: usize = 0;
+    foreach (var &item in selected_array(&items, &calls)) {
+        if *item == 2 { continue; }
+        if *item == 4 { break; }
+        *item += 10;
+    }
+    var digits: i32 = 0;
+    foreach (var value in selected_array(&items, &calls)) {
+        digits = digits * 100 + value;
+        value = 0;
+    }
+    var visits: usize = 0;
+    return calls == 2 && digits == 11021304 && items[0] == 11
+        && first_even(&items, &visits) == 2 && visits == 2;
+}
+
+if !fixed_array_iteration_check() { trap("Unexpected fixed-array iteration result", 0); }

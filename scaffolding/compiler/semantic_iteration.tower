@@ -4,6 +4,9 @@ import foundation_tags;
 import foundation_types;
 import semantic_context;
 import semantic_control;
+import semantic_aggregates;
+import semantic_expression_lowering;
+import semantic_expressions;
 import semantic_defer;
 import semantic_declarations;
 import semantic_statements;
@@ -193,28 +196,60 @@ fn sem_iteration_storage(c: SemanticContext*, n: void*, plan: SemanticIterationP
     return plan.state_ready;
 }
 
-fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*, prepared: SemanticIterationPlan*): bool {
-    *cursor = default;
-    var previous_scope = c.scope;
-    var previous_deferred = c.deferred;
-    defer {
-        if !sem_ok(c) { c.scope = previous_scope; c.deferred = previous_deferred; }
-    }
-    if depth > IterationSourceDepthLimit {
-        sem_fail(c, n, "foreach lowering exceeds Foundation block nesting limit of 128");
-        return false;
-    }
-    if c.labels != null && c.labels.count != 0 {
-        sem_fail(c, n, "foreach cleanup cannot be combined with explicit function labels or jumps");
-        return false;
-    }
-    initial ??= sem_operand(c, sem_member(n, "source"), null);
-    if !sem_ok(c) {
-        return false;
-    }
+fn sem_iteration_array(initial: void*): bool {
+    if initial == null { return false; }
+    var type = &sem_get(initial).type;
+    return type.pointers == 1 && type.scalar == SArray;
+}
+
+fn sem_iteration_loop(c: SemanticContext*, n: void*): void* {
+    var loop_node = sem_control_node(c, n, KLoop);
+    if loop_node == null { return null; }
+    var body = sem_control_node(c, loop_node, KBlock);
+    if body == null { return null; }
+    sem_get(loop_node).body = body;
+    if !sem_push_checked(c, &sem_get(n).items, loop_node) { return null; }
+    return body;
+}
+
+fn sem_iteration_guard(c: SemanticContext*, body: void*, condition: void*): void* {
+    var iteration = sem_control_node(c, body, KBlock);
+    if iteration == null { return null; }
+    var otherwise = sem_control_branch(c, body, condition, iteration);
+    if otherwise == null { return null; }
+    if !sem_push_checked(c, &sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak)) { return null; }
+    return iteration;
+}
+
+fn sem_iteration_array_element(c: SemanticContext*, n: void*, initial: void*, cursor: SemanticIterationCursor*): void* {
+    var array = sem_get(sem_get(initial).type.record);
+    if sem_node_result(c, n, KBlock) == null { return null; }
+    var source = sem_control_local(c, n, initial);
+    var integer = sem_type_value(c, SUSize, 0, null);
+    var boolean = sem_type_value(c, SBool, 0, null);
+    var index = sem_control_local(c, n, sem_surface_constant(c, n, &integer, 0));
+    var body = sem_iteration_loop(c, n);
+    if body == null { return null; }
+    var current = sem_control_read(c, body, index);
+    var limit = sem_surface_constant(c, body, &integer, convert(u64, array.length));
+    var condition = sem_lift_binary(c, body, OLt, current, limit, &boolean);
+    var iteration = sem_iteration_guard(c, body, condition);
+    if iteration == null { return null; }
+    cursor.iteration = iteration;
+    var address = sem_aggregate_element(c, iteration, sem_control_read(c, iteration, source),
+        sem_control_read(c, iteration, index), &array.element);
+    // Save the address before advancing. A continue enters the next iteration
+    // and a write through the borrowed item still reaches the selected element.
+    var next = sem_lift_binary(c, iteration, OAdd, sem_control_read(c, iteration, index),
+        sem_surface_constant(c, iteration, &integer, 1), &integer);
+    sem_lift_store(c, iteration, sem_control_read(c, iteration, index), next);
+    return address;
+}
+
+fn sem_iteration_nominal_element(c: SemanticContext*, n: void*, initial: void*, prepared: SemanticIterationPlan*, cursor: SemanticIterationCursor*): void* {
     var local: SemanticIterationPlan = default;
     if prepared == null || !prepared.ready {
-        if !sem_iteration_plan(c, n, initial, &local) { return false; }
+        if !sem_iteration_plan(c, n, initial, &local) { return null; }
         local.begin = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "begin"), n, initial);
         if !sem_ok(c) { return default; }
         local.next = sem_iteration_function(c, local.module, sem_cat(c, local.prefix, "next"), n, initial);
@@ -225,19 +260,12 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
         if !sem_ok(c) { return default; }
         prepared = &local;
     }
-    var begin = prepared.begin;
-    var next = prepared.next;
-    var element = prepared.element;
-    var end = prepared.end;
-    if !sem_ok(c) {
-        return false;
-    }
-    if !sem_iteration_storage(c, n, prepared) { return false; }
+    if !sem_iteration_storage(c, n, prepared) { return null; }
     var state_type = &prepared.state_type;
     var value = sem_node_result(c, n, KBlock);
     if value == null { return default; }
     var source = sem_control_local(c, n, initial);
-    if !sem_ok(c) { return false; }
+    if !sem_ok(c) { return null; }
     var state = sem_control_node(c, n, KDeclare);
     if state == null { return default; }
     if !sem_set_name(c, sem_get(state), sem_control_name(c)) { return default; }
@@ -245,38 +273,51 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     sem_add_local(c, state);
     if !sem_push_checked(c, &value.locals, state) { return default; }
     if !sem_push_checked(c, &value.items, state) { return default; }
-    if !sem_push_checked(c, &value.items, sem_iteration_call(c, n, begin, source, state)) { return default; }
+    if !sem_push_checked(c, &value.items, sem_iteration_call(c, n, prepared.begin, source, state)) { return default; }
     var cleanup = sem_control_node(c, n, KBlock);
     if cleanup == null { return default; }
-    if !sem_push_checked(c, &sem_get(cleanup).items, sem_iteration_call(c, cleanup, end, source, state)) { return default; }
-    if !sem_ok(c) {
-        return false;
-    }
-    var saved = c.deferred;
+    if !sem_push_checked(c, &sem_get(cleanup).items, sem_iteration_call(c, cleanup, prepared.end, source, state)) { return default; }
+    if !sem_ok(c) { return null; }
     var pending = bits(SemanticDeferred*, sem_allocate(c, sizeof(SemanticDeferred)));
     if !sem_ok(c) { return default; }
-    pending.previous = bits(SemanticDeferred*, saved);
+    pending.previous = bits(SemanticDeferred*, c.deferred);
     pending.body = cleanup;
     pending.loops = c.loops;
     pending.flow = FlowNext;
     c.deferred = bits(void*, pending);
     c.has_defer = true;
 
-    var loop_node = sem_control_node(c, n, KLoop);
-    if loop_node == null { return default; }
-    var loop_body = sem_control_node(c, loop_node, KBlock);
-    if loop_body == null { return default; }
-    sem_get(loop_node).body = loop_body;
-    if !sem_push_checked(c, &value.items, loop_node) { return default; }
-    var test = sem_iteration_call(c, loop_body, next, source, state);
+    cursor.cleanup = cleanup;
+    var loop_body = sem_iteration_loop(c, n);
+    if loop_body == null { return null; }
+    var test = sem_iteration_call(c, loop_body, prepared.next, source, state);
     var condition = sem_control_read(c, loop_body, sem_control_local(c, loop_body, test));
+    cursor.iteration = sem_iteration_guard(c, loop_body, condition);
+    if cursor.iteration == null { return null; }
+    return sem_iteration_call(c, cursor.iteration, prepared.element, source, state);
+}
+
+fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: SemanticIterationCursor*, initial: void*, prepared: SemanticIterationPlan*): bool {
+    *cursor = default;
+    cursor.scope = c.scope;
+    cursor.deferred = c.deferred;
+    defer {
+        if !sem_ok(c) { c.scope = cursor.scope; c.deferred = cursor.deferred; }
+    }
+    if depth > IterationSourceDepthLimit {
+        sem_fail(c, n, "foreach lowering exceeds Foundation block nesting limit of 128");
+        return false;
+    }
+    if c.labels != null && c.labels.count != 0 {
+        sem_fail(c, n, "foreach cleanup cannot be combined with explicit function labels or jumps");
+        return false;
+    }
+    initial ??= sem_operand(c, sem_member(n, "source"), null);
     if !sem_ok(c) { return false; }
-    var iteration = sem_control_node(c, loop_body, KBlock);
-    if iteration == null { return default; }
-    var otherwise = sem_control_branch(c, loop_body, condition, iteration);
-    if !sem_ok(c) { return false; }
-    if !sem_push_checked(c, &sem_get(otherwise).items, sem_control_node(c, otherwise, KBreak)) { return default; }
-    var address = sem_iteration_call(c, iteration, element, source, state);
+    var address = sem_iteration_array(initial) ? sem_iteration_array_element(c, n, initial, cursor)
+        : sem_iteration_nominal_element(c, n, initial, prepared, cursor);
+    if address == null { return false; }
+    var iteration = cursor.iteration;
     var initializer = address;
     var borrow = sem_tokens(c, sem_member(n, "borrow"));
     if !sem_ok(c) { return false; }
@@ -308,10 +349,6 @@ fn sem_iteration_prepared(c: SemanticContext*, n: void*, depth: u32, cursor: Sem
     if !sem_ok(c) { return default; }
     c.scope = nested;
     sem_put(c, c.scope.names, name, item);
-    cursor.scope = scope;
-    cursor.deferred = saved;
-    cursor.iteration = iteration;
-    cursor.cleanup = cleanup;
     return true;
 }
 
@@ -319,7 +356,7 @@ fn sem_iteration_finish(c: SemanticContext*, n: void*, cursor: SemanticIteration
     c.scope = cursor.scope;
     c.deferred = cursor.deferred;
     sem_push_checked(c, &sem_get(cursor.iteration).items, sem_member(n, "body"));
-    sem_push_checked(c, &sem_get(n).items, cursor.cleanup);
+    if cursor.cleanup != null { sem_push_checked(c, &sem_get(n).items, cursor.cleanup); }
     return FlowNext |(flow &FlowReturn);
 }
 

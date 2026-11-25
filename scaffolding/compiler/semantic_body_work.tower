@@ -1388,7 +1388,8 @@ fn sem_body_declarations(c: SemanticContext*, batch: SemanticBodyWork**, count: 
     // expression query publishes. Never replay destination checking on resume.
     sem_body_preparation_select(c, batch, count, failed, SemanticBodyPreparation.Values, &ready);
     foreach(var result in &ready) {
-        if result.initialization != null && sem_is(result.expression_header, "TowerForeach") {
+        if result.initialization != null && sem_is(result.expression_header, "TowerForeach")
+            && !sem_iteration_array(result.initialization.value) {
             result.preparation_phase = SemanticBodyPreparation.Protocol;
             result.iteration_role = IterationRole.Begin;
         } else { result.preparation_phase = SemanticBodyPreparation.Publish; }
@@ -1609,8 +1610,8 @@ fn sem_body_declarations_publish(c: SemanticContext*, batch: SemanticBodyWork**,
             if result.expression_header != null {
                 if sem_ok(c) {
                     result.prepared_value = producer.value;
-                    if sem_is(node, "TowerForeach") && result.iteration_plan.ready {
-                        sem_require(result.iteration_plan.state_ready);
+                    if sem_is(node, "TowerForeach") && (result.iteration_plan.ready || sem_iteration_array(producer.value)) {
+                        sem_require(!result.iteration_plan.ready || result.iteration_plan.state_ready);
                         result.prepared_header = node;
                     } else {
                         if sem_is(node, "TowerForeach") {

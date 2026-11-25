@@ -19,6 +19,14 @@ evaluates its result before closing iterators and other deferred cleanups in
 reverse registration order. There is no allocation added by the loop syntax,
 implicit ownership transfer, trap unwinding, or implicit parallel dispatch.
 
+A pointer to a fixed array also supplies a finite source. Given
+`var pairs: Pair[4];`, `foreach (var &pair in &pairs) { pair.count += 1; }`
+visits the four elements in index order. The checked array type supplies both
+the extent and the element type. Array iteration uses a local index and the
+ordinary element address. It requires no protocol functions. Keep the backing
+storage live through the last element access. A pointer to the first element
+alone carries no extent. Fixed array lengths range from 1 to 1,048,576.
+
 Vectors traverse their initial storage and length, queues traverse their initial
 FIFO sequence (including a wrapped ring), and stack aliases inherit vector storage
 order, oldest to newest. These are finite borrowed views. Keep the owner alive and
