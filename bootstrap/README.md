@@ -14,14 +14,16 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The current compiler source is `fe008af5`. It includes exact singleton LR state
-lookup, ordered action rows, bounded stage descriptor growth and executable
-depfiles for explicitly linked objects. The Ubuntu-built executable is 2,316,904
-bytes with SHA-256 `7f3b5dacf36422255af50045c6337db213c2678099c40f1e01336cdae21bbf29`.
-Three Ubuntu builds matched on 39 native products, all 57 payloads and the
-checksum manifest. The frozen CLI and the newer driver built from main have
-separate input identities. An ordinary build from main also tracks the selected
-runtime IR in executable depfiles. See the [pin and host verification](../docs/temporal-opcode-research-journal.md#2026-11-24--ubuntu-development-bootstrap-at-fe008af5)
+The current compiler source is `9ab581c8`. It includes singleton LR state
+lookup, table-owned storage for frozen parser context rows, typed resource
+failures for joined frontend units, and executable depfiles that track both
+explicitly linked objects and the selected runtime IR. The Ubuntu-built
+executable is 2,321,072 bytes with SHA-256
+`6d5be0b925d7787277577ba4d9a4f72072a184ff734c82a056e1fc528c727c52`.
+Three Ubuntu production builds matched on 39 native products. Generations two
+and three also matched on all 57 payloads and their checksum manifest.
+The previous public pin was built from `fe008af5`.
+See the [previous pin and host verification](../docs/temporal-opcode-research-journal.md#2026-11-24--ubuntu-development-bootstrap-at-fe008af5)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
