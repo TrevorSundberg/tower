@@ -100373,3 +100373,58 @@ Private receipt `d824f6a4-c93b-45c3-a19a-d85f681410a3` includes
 dependency controls and logs. Physical Arm64 entry-point execution and gen2/gen3
 convergence await an assigned native builder. This handoff correction changes
 documentation only. Runtime performance and memory comparisons do not apply.
+
+### macOS production compiler link inputs at 6f7ed3fe, 2026-11-25
+
+Host 2 prepared the Arm64 and Intel macOS compiler inputs for private assignment
+`e2c234e2-d8a1-4fdb-b85e-6ccc3f65db0e`. Both complete object handoffs passed.
+Native linking and execution remain open. The producer archive, seven declared
+members, 1,609 internal checksums, 1,296 source files and all 57 package payloads
+verified on this worker. The incremental bundle reconstructed commit
+`6f7ed3fe44a48aeff4daa1194da5a2dcc7b7e07b`, tree
+`42a884cdb2eabe957010d8f860ceb51eabc8254d`. A shared clone failed fetching a
+promisor object. A private bare repository using the checkout's object directory
+as an alternate supplied the bundle prerequisites.
+
+The Ubuntu x86-64 predecessor `84e55bc7716b66c6a1a863769f5d8ee8d4b31e9e403399b92eded400ce66c84e`
+ran on Debian 12 with LLVM 19.1.7. Frozen production CMake generated separate
+Arm64 and x86-64 caches using `TOWER_UTILITIES_TARGET`. Each Ninja build used two
+outer jobs and one Tower worker per command. The Arm64 build drained first.
+Each cache produced the 24 direct objects and the indexed four-member Darwin
+archive in the supplied Gen3 order. All 28 relocatables had the requested CPU and
+macOS 11.0 minimum. The Arm64 and Intel ordered input manifests have SHA-256
+`14b7140d58f27072d53f530d2df2cbcddcd7691f4deb1da1fee94c438fdf750b` and
+`5bef446af54a9329a21a1b85bef81dba420d604254255fdff9e0cfe677584383`.
+
+Depfiles and symbols tie the production driver to Darwin executable discovery
+and spawn, the module reader to the Darwin dirent layout, the work transport to
+pthreads, dispatch semaphores and unfair locks, and registry initialization to
+dispatch_once_f. Arm64 imports `_stat` and Intel imports `_stat$INODE64`.
+The worker archive defines `_work_thread_entry`. The backend object defines
+`_backend_targets_once_entry` and `_backend_thread_entry`. Each link requests all
+three exports. Final export-trie inspection requires a linked executable.
+
+Each set has 1,351 global definitions without duplicates. Subtracting definitions
+from object imports and asking ld64.lld to traverse the ordered inputs independently
+gave the same 340 required names on each architecture, with architecture-specific
+spellings for stat and bzero. All 283 LLVM names match the Linux predecessor's
+imported API. Of those names, 104 initialize 21 targets, including M68k and Xtensa.
+Each target needs TargetInfo, Target, TargetMC and AsmPrinter. All except NVPTX
+also need Disassembler. The packet lists every required name.
+
+Both Clang++ full links exited 1 at missing `-lLLVM`, `-lc++` and `-lSystem`.
+The worker's accessible SDK search found 87 byte-identical copies of the
+nine-symbol guest stub. The installed LLVM library is Linux ELF. The packet
+includes both failed links, full ABI diagnostics, generated modules, depfiles,
+55 original compiler resources and their hashes. The Linux predecessor interpreted
+the producer's program to exact bytes `34 32 0a` and emitted both guest CPU
+objects. On an assigned native Mac, `receipt/receive-macos.sh` checks the actual
+LLVM dylib exports, links the compiler with the SDK, inspects the final exports,
+probes SDK stat/dirent ABI and compares interpreted and compiled guest stdout to
+the three-byte oracle. These native checks are pending.
+
+Host 2 read back the 3,654,674-byte private archive and verified all 347 checksummed
+files and both ordered link sets. Archive SHA-256 is
+`68121d9e1b652f0d9b6087c0008258e089c578d76abd98e358e7f7b0efb258fd`.
+The tracked change records build evidence. Runtime performance and memory comparisons
+are outside this handoff.
