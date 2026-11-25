@@ -20,6 +20,12 @@ translating required behavior to Tower. The external dependency closure is not
 bundled as a standalone portable release.
 See [the development bootstrap](../bootstrap/README.md) for runnable commands.
 
+For the Linux x64 successor built from `be4bc2d6`, three native generations
+and a clean receiver reproduced the compiler and its complete native product
+set. The receipt distinguishes source checkout permissions, package modes and
+the private user install destination.
+[Linux self-host and Wasm inspection at be4bc2d6](temporal-opcode-research-journal.md#linux-self-host-and-wasm-inspection-at-be4bc2d6)
+
 The retirement inventory and reproducible validation are recorded in the ongoing
 project journal. Counts include blank lines and comments and exclude third-party
 dependencies; they are a source inventory, not a completion percentage.

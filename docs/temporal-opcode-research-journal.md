@@ -100963,3 +100963,64 @@ bundle, navigation events, matched runs and controls. The archive has
 `73482cc419d3bcf5a9a9eccff8ae9c1778803778dfd206f4d40a980d6f81a9da`.
 A public-source release check is combining this change with the edited
 grammar repair on the 902a runtime.
+
+## Linux self-host and Wasm inspection at be4bc2d6
+
+Linux candidate `be4bc2d69667cf634add28ed1da7cdafa67efa9a` keeps the
+unchecked inspection stage private through the value walk. On canonical
+Ubuntu 24.04.5 with LLVM 19.1.1 the original storage registration passed.
+The direct storage output matched host 5 byte for byte. Injecting allocation
+failure at each allowance from 0 through 12 passed rollback, retry and
+teardown. Allowances 13 and 14 now succeeded.
+
+The first native generation used the checked-in cd77 bootstrap. The next
+two used the preceding generation. A fresh checkout selected the proposed
+pin by default and reproduced the compiler. The manager rehashed the 39
+actual native products and both sets of 40 depfiles from each of the four
+builds. All matched. The recorded lists of 51 generated inputs and 56
+installed file contents also matched. Compared with the 4a3aa2d6 generation,
+only Entities, Semantics and the linked compiler changed among the native
+products. The package also includes the updated entity_stage.tower source.
+
+The 57 payload sizes and digests matched the pin and all 1,305 source
+hashes matched the candidate source archive. The compiler SHA-256 is
+`5dc7ee817b6cf8821c1a6c01a3662610f43d97bbd9fdb096b689a4b9a816ed0f`.
+Relocated, clean-receiver and installer checks each interpreted and linked
+a program that printed 42. The relocated and receiver-produced ELFs matched
+the retained Ubuntu reference. The distributed archive contains a 0755
+executable and directories, and 0644 regular data files. A checkout made
+under umask 0077 produced 46 staged resource files at 0600. A clean checkout
+under 0022 reproduced canonical staging. The user installer separately
+created a private 0700 package root and 0750 resource directories.
+
+On four physical Ryzen 7 5800H cores at affinity 0,2,4,6, with a 15.36-CPU
+quota and zero measured throttling, the three builds through installation
+took 28.30, 27.56 and 27.51 s. The clean default receiver took 28.04 s,
+75.61 s user and 6.91 s system CPU, with maximum individual RSS of 767756
+KiB and sampled process-tree RSS of 2021716 KiB. Each started in a fresh
+build directory with warm filesystem inputs, four Ninja jobs and one Tower
+worker. These observations establish reproducibility at the named settings.
+
+The portable and shared Wasm reactors and the portable reactor built inside
+Chromium all resolved the new stage accessor from the Entities object. The
+ordinary editor resolved a forward type and printed 42, reported
+`Unknown local 'missing_value'` for the broken edit, and printed 43 after
+repair. On all three products the manager matched the 54-entry generic
+snapshot to the native oracle and the full inspection replies to the
+respective prior browser reactor. Debugger observations on the product
+bytes reached the checked, unchecked and checked branches in order, with a
+real accessor call on the failing edit. Superseding an in-flight request
+retired its owner. The replacement returned its own complete result. All
+9, 41 and 9 observed workers respectively closed. Each browser timing pair
+had a single sample. The browser-built check recompiled the two changed
+units and linked the portable editor.
+
+Native receipt `6dcc6bb3-c2d4-4994-b51a-e78461eaf202` has 736 verified
+checksums and archive SHA-256
+`5c0d966f7470f8d6e308a5f50f237f25434a7d13577cf94bb2aa26c3d936a117`.
+Wasm receipt `40a90bd2-2e02-41cf-9518-a0e1b2468d1b` has 545 verified
+checksums and archive SHA-256
+`624220927cfcca8a50a47133f785921eaaeac35b073611c0ca6864cdecbab89b`.
+The independent Linux receiver and the whole-site release use separate
+acceptance checks. The public Linux development pin remains 902a358f at
+this publication.
