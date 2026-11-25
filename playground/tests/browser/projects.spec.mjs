@@ -1,4 +1,5 @@
 import {test, expect} from '@playwright/test';
+import {outputText} from './output-text.mjs';
 import {newProject} from '../../src/projects.mjs';
 import {exportProject} from '../../src/project-archive.mjs';
 import {savedProject, downloadedProject} from './project-helpers.mjs';
@@ -11,35 +12,98 @@ test.beforeEach(async({page}) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#auto-execute').uncheck();
 });
-test('projects own folders, built-ins, undo, links and execution state',async({page},info) => {
+async function expectSavedFiles(page, active, files) {
+  await expect(page.locator('#filename')).toHaveText(active);
+  await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
+  const project = await savedProject(page);
+  expect(await outputText(page, 'editor')).toBe(files.find(file => file.path === active).text);
+  expect(project.active).toBe(active);
+  expect(project.files).toEqual(files);
+  return project;
+}
+async function expectLibraries(page, names) {
+  const badges = page.locator('#file-tree .builtin-badge');
+  await expect(badges).toHaveText(names.map(() => 'library'));
+  const entries = page.locator('#file-tree button').filter({has:page.locator('.builtin-badge')});
+  await expect.poll(() => entries.evaluateAll(buttons => buttons.map(button => button.dataset.path)))
+    .toEqual(names.map(name => '.tower/' + name + '.tower'));
+}
+async function executeProject(page, output) {
+  await page.locator('#execute').click();
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  for (const id of ['execution-output', 'fast-output', 'llvm-output'])
+    await expect(page.locator('#' + id)).toHaveJSProperty('textContent', output);
+}
+test('projects own folders, built-ins, undo, links and execution state',async({page,request},info) => {
   await expect(page.locator('#example-kind')).toHaveCount(0);
   await expect(page.locator('#project-kind option')).toHaveCount(13);
   await expect(page.locator('#project-kind option[value="example:match"]')).toHaveCount(1);
   await expect(page.locator('#project-kind option[value="example:collections"]')).toHaveCount(1);
-  await expect(page.locator('.builtin-badge')).toHaveCount(2);
-  await expect(page.locator('.builtin-badge')).toHaveText(['library','library']);
+  const lesson = {path:'foreach.tower', text:await (await request.get('/foreach.tower')).text()};
+  await expectSavedFiles(page, lesson.path, [lesson]);
+  await expectLibraries(page, ['bedrock']);
+  const editedLesson = {...lesson, text:'import foundation; print(13);'};
+  await edit(page, editedLesson.text);
+  await expectSavedFiles(page, lesson.path, [editedLesson]);
+  const foundationLibraries = ['bedrock', 'foundation_syntax', 'types', 'foundation'];
+  await expectLibraries(page, foundationLibraries);
+  const movedLesson = {...editedLesson, path:'lessons/foreach.tower'};
+  await prompt(page, '#rename-file', movedLesson.path);
+  await expectSavedFiles(page, movedLesson.path, [movedLesson]);
+  await expectLibraries(page, foundationLibraries);
+  await executeProject(page, '13\n');
+  const editor = page.getByRole('textbox', {name:'Tower source'});
+  await editor.press('ControlOrMeta+z');
+  await expectSavedFiles(page, movedLesson.path, [{...lesson, path:movedLesson.path}]);
+  await prompt(page, '#rename-file', lesson.path);
+  await expectSavedFiles(page, lesson.path, [lesson]);
+  await expectLibraries(page, ['bedrock']);
+
+  const main = {path:'main.tower', text:'import tower; import src.math; print(answer());'};
+  const math = {path:'src/math.tower', text:'import tower; fn answer(): i32 { return 42; }'};
   await prompt(page,'#new-project','Ocean');
-  await edit(page,'import tower; import src.math; print(answer());');
-  await prompt(page,'#new-file','src/math.tower');
-  await edit(page,'import tower; fn answer(): i32 { return 42; }');
-  await page.locator('#execute').click();
-  await expect(page.locator('#execution-output')).toHaveText('42\n');
-  await expect(page.locator('#llvm-output')).toHaveText('42\n');
+  await edit(page,main.text);
+  await prompt(page,'#new-file',math.path);
+  await edit(page,math.text);
+  await expectSavedFiles(page, math.path, [main, math]);
+  await executeProject(page, '42\n');
+
+  const bedrock = await (await request.get('/bedrock.tower')).text();
+  const customBedrock = '// Ocean built-in\n' + bedrock;
+  await edit(page, math.text.replace('42', '43'));
   await page.locator('[data-path=".tower/bedrock.tower"]').click();
-  await edit(page,'// Ocean built-in\n' + await (await page.request.get('/bedrock.tower')).text());
-  await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
-  const ocean = await savedProject(page);
+  await edit(page, customBedrock);
+  await page.locator('[data-path="src/math.tower"]').click();
+  await editor.press('ControlOrMeta+z');
+  const ocean = await expectSavedFiles(page, math.path, [main, math]);
+  expect(ocean.builtins.bedrock).toBe(customBedrock);
+  await page.locator('[data-path=".tower/bedrock.tower"]').click();
+
+  // A valid empty archive lets the same link input accompany a real guest run.
+  const archive = Buffer.from('!<arch>\n');
+  await page.locator('#link-input').setInputFiles({name:'ocean.a',mimeType:'application/octet-stream',buffer:archive});
+  await expect(page.locator('#link-files')).toHaveAttribute('title','ocean.a');
   await page.locator('#project-kind').selectOption('example:execution');
   await page.locator('[data-path=".tower/bedrock.tower"]').click();
-  expect((await savedProject(page)).builtins.bedrock).not.toContain('Ocean built-in');
+  await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
+  const execution = await savedProject(page);
+  expect(await outputText(page, 'editor')).toBe(bedrock);
+  expect(execution.builtins.bedrock).toBe(bedrock);
+  expect(execution.links).toEqual({});
+  await expect(page.locator('#execution-output')).toBeEmpty();
   await page.locator('#project-kind').selectOption(ocean.id);
   await expect(page.locator('#filename')).toHaveText('bedrock.tower');
+  expect(await outputText(page, 'editor')).toBe(customBedrock);
   await page.locator('[data-path="src/math.tower"]').click();
-  await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
+  await expectSavedFiles(page, math.path, [main, math]);
   await page.reload();
-  await expect(page.locator('#filename')).toHaveText('src/math.tower');
-  await expect(page.locator('#file-tree')).toContainText('math.tower');
-  expect((await savedProject(page)).files.map(f=>f.path)).toEqual(['main.tower','src/math.tower']);
+  await expect(page.locator('#project-kind')).toHaveValue(ocean.id);
+  const restored = await expectSavedFiles(page, math.path, [main, math]);
+  expect(restored.builtins.bedrock).toBe(customBedrock);
+  expect(restored.links).toEqual({'ocean.a':new Uint8Array(archive)});
+  await expect(page.locator('#link-files')).toHaveAttribute('title','ocean.a');
+  await expect(page.locator('#file-tree details[data-path="src"] button[aria-current="true"]')).toHaveAttribute('data-path',math.path);
+  await executeProject(page, '42\n');
   await page.screenshot({path:`../build/projects-${info.project.name}.png`});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
@@ -72,20 +136,51 @@ test('errors in another project file are named without marking the active source
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
 });
 test('file moves, rename and delete persist, and invalid paths keep the project intact',async({page}) => {
+  const main = {path:'main.tower', text:'import tower; import src.second; print(1);'};
+  const second = {path:'src/second.tower', text:'import tower; print(2);'};
+  const renamed = {...second, path:'lib/second.tower'};
   await prompt(page,'#new-project','Files');
-  await edit(page,'print(1);');
-  await prompt(page,'#new-file','src/second.tower'); await edit(page,'print(2);');
+  await edit(page,main.text);
+  await prompt(page,'#new-file',second.path);
+  await edit(page,second.text);
+  const files = await expectSavedFiles(page, second.path, [main, second]);
+  await executeProject(page, '2\n1\n');
   await page.locator('#move-file-up').click();
-  await page.locator('#execute').click(); await expect(page.locator('#execution-output')).toHaveText('2\n');
-  await prompt(page,'#rename-file','lib/second.tower');
-  await expect(page.locator('#filename')).toHaveText('lib/second.tower');
+  await expectSavedFiles(page, second.path, [second, main]);
+  await executeProject(page, '2\n');
+
+  await prompt(page,'#rename-file',renamed.path);
+  await expectSavedFiles(page, renamed.path, [renamed, main]);
+  await expect(page.locator('#status')).toContainText('Complete');
   await prompt(page,'#new-file','../escape.tower');
   await expect(page.locator('#error-message')).toContainText('relative file path');
-  expect((await savedProject(page)).files.map(f=>f.path)).toEqual(['lib/second.tower','main.tower']);
+  await expectSavedFiles(page, renamed.path, [renamed, main]);
+  await page.reload();
+  await expect(page.locator('#project-kind')).toHaveValue(files.id);
+  await expectSavedFiles(page, renamed.path, [renamed, main]);
+  await executeProject(page, '2\n');
+
+  await page.locator('[data-path="main.tower"]').click();
+  await page.locator('#move-file-up').click();
+  await expectSavedFiles(page, main.path, [main, renamed]);
+  await page.locator('#execute').click();
+  await expect(page.locator('#execution-status')).toContainText('Failed');
+  await expect(page.locator('#execution-error')).toHaveText('main.tower: Cannot read imported module: src/second');
+  await expect(page.locator('#execution-output')).toBeEmpty();
+  const repaired = {...main, text:'import tower; import lib.second; print(1);'};
+  await edit(page,repaired.text);
+  await expectSavedFiles(page, main.path, [repaired, renamed]);
+  await executeProject(page, '2\n1\n');
+
+  const standalone = {...main, text:'import tower; print(1);'};
+  await edit(page,standalone.text);
+  await page.locator('[data-path="lib/second.tower"]').click();
   page.once('dialog',d=>d.accept()); await page.locator('#delete-file').click();
-  await expect(page.locator('#project-storage')).toHaveText('Saved in browser');
-  await page.reload(); await expect(page.locator('#filename')).toHaveText('main.tower');
-  expect((await savedProject(page)).files.map(f=>f.path)).toEqual(['main.tower']);
+  await expectSavedFiles(page, main.path, [standalone]);
+  await page.reload();
+  await expect(page.locator('#project-kind')).toHaveValue(files.id);
+  await expectSavedFiles(page, main.path, [standalone]);
+  await executeProject(page, '1\n');
 });
 test('pending link-file reads cannot leak into a different project',async({page}) => {
   await page.evaluate(() => {
