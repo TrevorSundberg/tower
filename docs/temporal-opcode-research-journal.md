@@ -100273,3 +100273,271 @@ Host 1 then combined compiler 902a358f with UI 8db938f5. The manager replayed bo
 Receipt 08306358 tested successor change c9e9f185 and added the nullable-prefix regression b48e7191. The independent eight-rule oracle checks an imported grammar revision while the old emission remains live. A deliberately premature fixed point fails the test. The manager checked all 220 process timing and RSS records and the serial budget refusal at 68059387 bytes versus success at 68059388. On host 3 with CPU 24 and quota 12.288 CPUs, median paired savings across twelve pairs were 4 ms on 16 functions, 7.5 ms on 1000 functions, and 3 and 7 ms on two imported grammar edits. Peak requested bytes were unchanged. Four-worker wall results on CPUs 24–27 were within the identical-stock control variation. The production change and regression are accepted for the next source freeze. The 902a candidate contains the earlier grammar emission code.
 
 Receipt 507b4739 measured actual downstream dependency work on host 5, four distinct cores under a 30.72-CPU quota. The manager checked 360 ordinary compile measurements with byte-identical objects, executables, canonical programs and guest results across widths. For the larger proportional fork, jobs one/two/four produced median object times of 437.5/357.5/326.0 ms and maximum RSS of 139368/141208/143320 KiB. The measured capture wait was at most 213 microseconds; moving it earlier did not justify changing coordinator order. The untouched type-construction fixture independently exposed a formatter/reparse failure at all three widths. The native guest printed 0; emitted Foundation contained a pointer-type initializer at line 223 that failed to parse. Receipt 6471ecb2 owns the minimized regression and repair. This result narrows the round-trip coverage of the release.
+## 2026-11-25 — Skip settled declaration FIRST rules within one emission
+
+Host 3, assignment `fbdcdd58-bc8c-4adc-a2b3-106c0f1c64a5`, used native release parent `7fe0a10e94eb767ee5432e22b2be6b9deb987960`, ELF SHA-256 `3d4534cc02936f9e4311947990edbabe74267a1d528c659e318b1cbb917ae012`. The original b99cfe41 Callgrind map on CPU 24 gives 285,016,134 inclusive instructions in 176 calls to `syntax_emit_inherit_result`. The call body itself executed 13,207,668. Direct atom lowering used 106,745,791 inclusive and declaration analysis used 77,954,857 inclusive. A new caller-separated map on the same ELF assigned each self instruction once. It attributed 61,098,135 to name interning and its callees, 45,144,775 to component addition after separating nested lookups, 31,733,768 to component lookup and 22,445,249 to ordered set insertion. Its emission sum was 284,969,898. Validation and parser table construction were separate call stacks. The LR range merge/insert functions executed 143,940,210 and 24,732,397 self instructions under table construction. The scope and paths differ from the earlier sort and capture investigations.
+
+The trial adds one boolean in the existing private rule state. A rule settles after a complete pass if every reached rule dependency has already settled. Its literal/token inputs are fixed for this emission. If a reached nonnullable rule can still change, its owner remains eligible to discover more of the prefix on a later pass. Recursive dependents continue to use the existing fixed-point sweep. Each emission starts with fresh state. Production lowering, entity ownership, rule activation, immediate conflicts and ordered name insertion stay on their existing paths.
+
+The fresh 16-function run reduced FIRST rule visits from 48,858 to 28,003 and FIRST entity reads from 241,148 to 142,154. Of the 98,994 avoided reads, 96,218 belonged to unchanged definitions compared with the preceding emission of the same category and world. The entire emission made 286,690 to 231,342 interning calls and issued 5,081,558 to 5,009,504 bytes of out-of-line bulk copy. All 34,578 production, 25,548 reference, 10,909 range and 18,427 string lowerings were preserved. Of 190,092 allocation generations born within emissions, 168,093 survived their call (41,614,852 requested bytes) and 21,999 retired in it (4,727,340 bytes), identical in both arms. These are cumulative generations. The successful edited-import run made 183 emissions and saved 102,126 entity reads. Its corresponding retained/transient totals were 44,399,092/5,043,120 bytes. The packet includes per-definition counts for validation, lowering, rule resolution, copied bytes, allocations and each traversal phase.
+
+With identical invocation paths the small compile saved exactly 17,800,571 instructions inside emission and across the process (1.19% of the compiler). The edited import saved 18,350,468 inside emission. Linux x64 Release, stock pin 6d5be0b9, LLVM 19.1.7, AMD EPYC 7542, 32 physical/64 logical cores, one worker on CPU 24 and the separate four-worker holdout on physical cores 24–27. Effective quota 12.288 CPUs. The two timing series recorded zero additional throttled periods. Inputs and resources were warm, with a fresh grammar and process on every run. Twelve adjacent AB/BA pairs per cell gave mean parent/trial wall and CPU ms of 298.8/296.3 and 298.6/295.7 (16, one), 543.2/543.3 and 542.6/542.8 (1,000, one), and 568.4/569.5 and 621.1/624.7 (1,000, four). Twelve additional counterbalanced blocks per cell used two byte-identical parent controls. Trial median wall differences against their within-block mean were −4, −4.75 and −4.5 ms. Small serial improved in both series. Large medians and means varied relative to the control spread. Mean first-series RSS KiB was 138,856/139,054, 154,661/154,395 and 159,609/159,761. Per-process allocator peaks were identical in each cell, including 70,905,980 requested bytes at small serial. Separate two-unit finite-budget peaks were 70,358,472 charged bytes on fit and 1,047,922 on denial. All ledgers closed empty.
+
+The ordinary release build used the checked-in bootstrap and no private compiler override. Same-path Foundation, reparsed objects, linked guests (15/999) and malformed diagnostics matched exactly. Both sizes and both arms matched all 218 installation identities and actual first consuming spans or EOF. Replacing an imported declaration keyword through a two-rule dependency chain rejected the stale importer and executed the edited one with output 42. A later override still reported the earlier immediate conflict. Native emission, structure reuse, grammar-resource, grammar-equivalence, session-world and units passed, including independent snapshots, refusal, cancellation, real worker overlap and teardown. Prematurely declaring unresolved dependencies settled failed the independent emission oracle (134). Both emission and structure-reuse passed focused ASan/LSan and initialized TSan. Tower source-level UBSan is unavailable. The packet records original build/measurement helper errors, their corrections, commands, digest manifests and raw observations. The manager owns integration and publication. The evidence supports the small serial improvement on this host.
+
+## 2026-11-25 — FIRST settlement comparison on the 902a successor inputs
+
+Host 3 assignment 08306358-f932-4fde-8641-f057e02892f4. Public e8c8e8f9
+supplied all prerequisites for the source, pin and candidate bundles. The
+stock pin is 217f06311be15fd3dd942d9ee0d8e65b87057de2 and the ordinary
+merge with c9e9f185 has tree c871216c01eed1f03b0ae08bac4096641f7c7ca9.
+Only seven production lines differ. The prior 7fe0a10e timing series used
+a different compiler. Separate clean native Release caches selected the
+checked-in 50955730 compiler for both arms. The production runs below
+use the frozen trees. This test commit adds a fixture and journal only.
+
+The sorted rule A reads Z before Z becomes nullable. The root subsequently
+discovers Left, which acquires another terminal through Right on a later
+sweep. Optional, star and mandatory plus prefixes and two unreachable tails
+exercise both propagation and exclusion. The existing independent
+fixed-point oracle compares production and declaration-start metadata.
+Changing Z to a required terminal leaves two emitted snapshots live with
+different start sets. The ordinary import fixture also edits the late
+terminal from right to edited and checks accepted and rejected starts
+in each revision. Replacing the candidate dependency test with unconditional
+settlement aborted at the new fixture assertion, exit 134.
+
+A read-only Tower probe in both exact ParserNodes groups recorded every
+sweep before scratch disposal. Session, revision, emission and byte span
+identify the importer that consumed the rule. At offset 14, revision 1,
+the independently enumerated eight-rule table matched all final FIRST and
+nullability values before and after the edit. On pass one A was nonnullable
+and empty, Z was nullable with {many, maybe}, and the root had only the
+attribute opener. On pass two A became nullable, Left acquired the late
+terminal and Trigger acquired its full set. On pass three the root gained
+that set. All six pass snapshots agreed across arms. The declaration's
+nonnullable alternatives excluded hidden, again and tail. Canonical
+Foundation reparsed to the frozen objects. Both serial sizes reproduced
+all 218 retained installation/consumption rows. The 4-worker stock
+execution changes some numeric entity IDs from the serial run. Its ordered
+payload comparisons, equality relations, actual spans and diagnostics agreed.
+The ordinary native emission, grammar-resource, structure-reuse, session-world,
+grammar-equivalence, units and dependency-permutations selections passed on
+each arm. Leak-checking ASan and initialized TSan passed the new fixture
+and structure reuse on the successor. Source-language UBSan is unavailable.
+
+Linux x64 Release, LLVM/Clang 19.1.7, AMD EPYC 7542, 32 cores/64 threads,
+allowed CPUs 0–63 and quota 12.288 CPUs. One worker used CPU 24, four used
+24–27. The uninstrumented arms ran at one executable path on warm files
+with identical resources. Twelve alternating pairs per cell followed a
+warm pair. Six more blocks per cell permuted the candidate and two identical
+stock controls. Every sample matched the reference object, ELF and output.
+No measured process interval accumulated a cgroup throttle. The raw packet
+contains each wall, process CPU, max RSS, load, throttle and output sample.
+
+| Input / jobs | Mean wall ms, stock / merge | Mean CPU ms | Mean max RSS KiB | Median paired wall change ms | Peak requested bytes, both |
+|---|---:|---:|---:|---:|---:|
+| 16 functions / 1 | 292.92 / 289.08 | 292.67 / 288.67 | 139087 / 139041 | −4 | 70,906,292 |
+| 1,000 functions / 1 | 547.75 / 538.75 | 547.25 / 538.08 | 154799 / 154970 | −7.5 | 86,956,426 |
+| Edited return keyword / 1 | 310.42 / 306.17 | 310.17 / 305.83 | 140857 / 140836 | −3 | 72,937,518 |
+| Edited declaration keyword / 1 | 343.58 / 337.17 | 343.42 / 336.75 | 143202 / 143132 | −7 | 75,163,964 |
+| 1,000 functions / 4 | 571.75 / 567.92 | 621.33 / 618.08 | 159750 / 159522 | −3 | 86,935,226 |
+
+The serial process and emission instruction reductions were equal in each
+cell. The 16- and 1,000-function inputs each saved 17,800,571, the edited
+return 18,350,468 and the edited declaration 19,131,159. The repeated
+stock small control reproduced exactly 1,420,732,409 process instructions.
+This reproduces the predecessor's small emission delta with the 902a pin.
+Counterbalanced median wall changes were −5, −6.5, −3.75, −12 and −9.75 ms
+in table order. The 4-worker identical-control median difference was +9.5 ms.
+The evidence supports successor adoption for reduced serial work. The host
+and control spread limit any general claim about parallel wall time.
+
+Both malloc-event ledgers closed empty. The single-file worlds had no
+bound WorkBudget. The two-unit run refused at 1 MiB, reproduced the exact
+grammar diagnostic and peaked at 1,047,930 charged bytes. A stricter
+boundary refused at 68,059,387 bytes with the same semantic-budget
+diagnostic on both arms and passed at 68,059,388, returning 42. All
+observed budgets closed with zero bytes, grants and lanes. The native
+sizeof code returned 32 bytes on each arm and an instantiated Wasm32
+module returned 16 on each. The added boolean occupies existing padding.
+
+The evidence package contains the verified source bundles, build products,
+raw measurements, Tower fixture and observer sources, failed setup attempts,
+control outputs and replay commands. The first test draft used unsupported
+indexing on a literal; the compiled fixture uses a typed repetition enum.
+The initial Wasm link required import declarations for unused compiler
+functions; all bound imports throw if called. The layout function called none.
+A shell trace initially contaminated the denial stderr; a clean trace channel
+restored the expected bytes. The full-history transfer of this promisor clone
+encountered an unavailable historical blob. A new private main starting at
+public e8c8e8f9 verified each prerequisite and reconstructed the required
+tree using the host object store and the three supplied bundles. Publication
+belongs to the manager. The 902a release and project checkout were untouched.
+
+### Host 2 fixed-slot frontend unit diagnosis, 2026-11-25
+
+Assignment cf6d0a8d-8395-4aa8-9df3-e6a85d6e2e1e starts from producer 5d79a065. The supplied 59,870,368-byte archive matched SHA-256 5d71fc1195ecd2c891023306b35189336568ff4290deaeb6c52c1dbf701f2529. All eight loose members matched their sizes, hashes and archived bytes. The producer verifier checked 548 inventory entries, raw source merges and the candidate Pages tree 516b2b0882c4c82ef1fb7319882b7abbfab93ea3 reconstructed on a1b9562fb47d03af454b992c295915e1d26606d5. The unchanged 902a358f shared frontend rebuilt from the checked-in Linux development pin and verified WASI SDK 34 in a fresh cache, SHA-256 fe71f6388f922f6b1a1fd9d25d16558e2cb28ccaca5605eb531f48e716353ad0, byte-identical to the overlay. Public fb019f61 used shared reactor d3cec76b3c3a9c63378e01f0af69ca9a9f8cd385ed2d71ccf7cee233b87011ad. The initial pull conflicted with existing unpublished LR commits. The rebase was aborted and both baseline and local change used private main checkouts at the exact integrated commit.
+
+The page owns the coordinator Worker and two dedicated Worker objects. Its coordinator passes MessagePorts to the two prestarted threads. In scenario 5 (zero based), both successful slot acquisitions come from frontend_units_create/open through the outer WorkPool's eager pthread creation. Idle pthreads wait on their individual start semaphores. The coordinator installs Foundation in the second unit world before dispatch. Recursive grammar import leads to parser_table_build and lr_states_lalr_parallel_result, which opens a grammar worker pool before the solve's per-wave lane reservation. The first attempted pthread in that inner pool sees both slots RUNNING. At the thousandth 1 ms wait the same coordinator that could step or close the outer pool is still inside the spawn loop. This accounts for the producer's unsuccessful logical-budget-only experiment. Both original 120 s failure receipts and the shorter local traced runs retain the timeout and clean page teardown.
+
+The exported environment is borrowed before stepping. syntax_baseline_install checks world/environment identity and can execute before dispatch. The checked-in units_root_refusal fixture uses that combination in a one-unit pool. The failure is reachable by an embedding caller with matching handles and without keeping a structural view across a step. The ordinary packaged driver's source path configures modules and submits work. frontend_unit_compile installs the two grammars on the admitted lane. A browser child reports work_host_capacity() == 1. Source text alone supplies no coordinator-side call into a pending sibling world. The structural Busy refusal tested later in the supplier probe is independent of the wait.
+
+Local implementation under test bounds each private unit world's physical worker ceiling by the slots its own outer threaded pool leaves on a fixed worker transport. With no spare slot the existing serial path runs on the coordinator. A one-lane outer pool owns no physical child. Native hosts that support retained threads continue to use the shared ledger ceiling. The change assumes this batch owns its outer allocation and does not arbitrate between arbitrary independent live batch handles. It introduces no retry or second execution of a partially run kernel. Browser, native and instrumentation measurements below belong to this focused change.
+
+The implemented correction is 9fa013654b38eb24defbe8f5d9c216610122425e. Of 27 fresh shared build object files only tower-compiler-frontend-units.o changed (3954fded → 77934a31). The corrected release-profile shared reactor is d1b03980620717f06a3efa18c60820893f6ab35230f2bab27a63f323948e44a6. For symbol resolution the integrated link was repeated with --debug-names. Stripping only the name section reproduced the exact original bytes. Its blocked functions 288/401/419 are work_pool_open_budget, parser_workers_open_result and lr_states_lalr_parallel_result. The two successful allocations show frontend_units_open at function 1873.
+
+On Debian Linux x64, Ryzen 5 3600, 0–3 affinity (four cores), 11.52-CPU cgroup quota, Node 24.22.3 and installed Chromium 159.0.8154.6, the same linked probe matched all 677 successful checks, recorded values, seven mode diagnostics, guest 42 and complete Foundation bytes on the corrected reactor at physical widths 1/2/4. Both old reactors reached the local 18 s in-page deadline at width two, closed the coordinator and both children, and returned no result. With per-process observation the integrated control took 21.16 s command wall, 1.21 s CPU, with 255288 KiB renderer high-water RSS and 60948480 bytes of Wasm memory at the deadline. The repair completed in 2.006 s inside the page, 3.24 s command wall, 1.31 s CPU, renderer high-water 262836 KiB and 65404928 bytes after the additional scenarios. At four slots the supplier's last modes use two outer threads. A second legal test requested four lanes for three units, completed Bedrock, and waited inside Foundation with [2,2,2,2] before repair. The corrected run completed and matched the other legal programs.
+
+An independent three-unit Tower probe used the ordinary adaptive frontend, hidden prejoin results, complete formatted programs and interpreter invocations. Answers were 42/43/44 with identical Foundation at serial, two and four and after manual preinstallation on the repaired reactor. At two physical slots, two fully completed ordinary samples on integrated/repaired took 3.70/3.63 s vs 3.58/3.61 s wall and 1.18/1.25 s vs 1.23/1.14 s CPU. GNU time max process RSS was 235832/236396 vs 236280/236316 KiB; Wasm capacity was 122486784/126484480 vs 125763584/122486784 bytes. These are fresh browser invocations on warm files, one timing job at a time. The small sample does not establish a speed improvement. The actual three-file packaged Linux CLI returned the same ELF, depfile and stdout 42 for jobs 1/2/4.
+
+Each reactor passed the ordinary graph/fast serial/four gate, bounded LR at two/four and all nine cancellation/lifecycle cases at each width, including retired-generation suppression. All browser worker groups closed. The stock execution-worker warm diagnostic controls each closed 15 workers with zero remaining. The native units selector (including the new preinstallation case) passed in normal, ASan/LSan and initialized TSan builds, observing four native worker threads. The supported sanitizer configuration covers Linux x64. Wasm sanitization and Tower UBSan were unavailable. The evidence packet contains the frozen producer, raw failures and controls, private-cache builds, patch/bundle, individual CPU/RSS/linear memory samples, command lines and a standalone replay. The first ordinary-probe compile needed an explicit u64 conversion and the first native CLI run needed LLVM 19 on PATH. Source and publication remain local for the manager.
+
+## 2026-11-25 · Release intermediate imported grammar versions after their reader advances
+
+Host 8, assignment 5b4bf88b-1a08-453d-b756-bdb7e8df3fe1. Local experiment on
+902a358f55e65a4582d50802204a83428971ad5d. The verified 3ca61994 archive
+(8332247d08d6cb2ad3ee7b0cfd92f03913b9cd8272a81741014f25af41b337fd)
+supplied four frozen 13-unit invoices, the reference objects, ELF, guests and
+depfiles, and the prior gate comparison. Its full verifier passed. This host's
+stock native cache reproduced both eight-job Capacity refusals. The earlier
+832eedd4 gate recovered them with a 48% small and 30% uneven wall penalty.
+
+In a serial observation on identical-parent, the first nested Tower reader
+finished at byte 9352 with 63 cache-only versions, one active version and
+zero version-cache hits. In an isolated release observation, dropping the
+session index and its pins returned 14,135,276 charged bytes. Dropping the
+world structure index returned another 32,665,408. The session kept its
+current version. Ledger live fell from 60,370,545 to 13,569,861. RSS measured
+150,433,792 bytes immediately before and after. The index revisions alone
+had 414,911 bytes of descriptor and vector capacity. These shallow capacities
+exclude the entities they reference. The largest retired version released
+340,454 charged bytes. Its last recognizer finished at byte 9021. The largest
+retired frozen structure released 1,036,192 bytes. It last served the reader
+finishing at 9351. These are measured destruction deltas with other aliases
+intact. During the final table build of this reader, destroying the top-level
+LR states and analysis freed 3,815,391 and 87,528 charged bytes. The prior
+stock trace measured 9,377,989 bytes between build entry and peak, including
+temporary and published allocations. At jobs eight, eight private readers
+entered the first install with 132,919,081–161,932,250 aggregate bytes live.
+
+Implementation gives each import traversal its own one-entry numeric structure
+cache for incremental declarations. Each successful declaration installs a
+fully checked version in the normal session pins. Subsequent replacements
+release its old execution view at the existing post-recognizer boundary.
+Recursive readers own separate scopes. Import installation, reusable external
+sessions and explicit version or completion pins retain their respective
+ownership. The compiler still reads and checks each reached construct. No
+dispatch policy or memory limit changed.
+
+The original 60 MiB refusal fixture stopped refusing. The updated fixture
+calibrates its headroom from the same source in a fresh serial world, checks
+the nested Tower filename and typed Capacity, and retains the separate baseline
+and peak-minus-one checks. The mixed-receipt harness uses the same calibration.
+The held-view fixture retains the final imported version across a successful edit,
+a later failed read and reader destruction, inspects its original table and
+literal, then verifies the ledger drains.
+
+A separate Linux allocator observation used mincore immediately before freeing
+each libc block. It counted only the usable byte interval intersecting resident
+pages. The first nested reader's retired version/index blocks accounted for
+19,271,312 resident bytes and its relinquished structure blocks for 32,961,840.
+Both windows recorded zero fresh allocation and zero realloc calls. The final
+table's solver teardown freed 3,906,104 usable bytes, of which 3,902,008 were
+resident. Freed libc blocks, the grant ledger and process RSS have different
+scopes. Idle allocator pages may stay resident.
+
+In one eight-job stock trace the ledger sampled 267,996,431 bytes live after
+a peak of 268,433,431. Eight in-progress declarations had reached byte offsets
+4245, 5185, 5684 and 6270, each in two independent readers. Their last
+pre-build counters totaled 356 cache-only versions plus eight active versions.
+Four separate serial cut experiments replayed those observed source boundaries
+on the frozen heavy invoice. Weighting each by its two observed readers gives
+64,115,702 reclaimable version/index bytes and 124,600,864 structure bytes.
+Their corresponding resident libc intervals sum to 88,605,328 and 126,098,800
+bytes. These sums reconstruct ownership at matched source boundaries. In-flight
+allocations on other workers can change during a parallel measurement.
+
+Host 8 is a Ryzen 9 7900X, 12 cores, 24 logical CPUs, affinity 0–23, cgroup
+quota 2,304,000 µs per 100,000 µs, memory limit 63,577,260,032 bytes. All 96
+matched processes ran individually on warm files with zero throttling. Debian
+Clang/LLVM 19.1.7, Ninja, CMake 3.25.1, Linux x64 Release, checked-in d8f34036
+bootstrap, compiler jobs 1 and native build jobs 2. The trial invoked the
+ordinary CLI with 12 additional units, ledger.o, clang-19, ordered depfile and
+the default 268,435,456-byte cap. Four paired blocks per shape and width
+alternated stock/candidate order. Wall seconds below are means of successful
+builds. The two skew stock eight-job cases failed in all four blocks.
+
+| Invoice | 1 job stock / candidate | 4 jobs stock / candidate | 8 jobs stock / candidate |
+| --- | ---: | ---: | ---: |
+| Identical parent | 2.348 / 2.248 | 1.110 / 0.980 | Capacity / 1.350 |
+| Three-light prefix | 2.020 / 1.938 | 0.968 / 0.870 | Capacity / 1.013 |
+| Small | 1.883 / 1.770 | 1.258 / 0.945 | 1.348 / 1.155 |
+| Uneven | 2.393 / 2.268 | 1.510 / 1.050 | 1.598 / 1.388 |
+
+Small/uneven eight-job CPU increased from 3.388/3.848 to 5.243/6.020 seconds.
+Observed frontend concurrency rose from three to eight on both. At four jobs
+CPU fell on both, 2.973/3.430 to 2.508/2.830 seconds. Eight-job maximum process
+RSS fell from 506,672/520,084 to 274,992/284,864 KiB. Candidate skew eight-job
+RSS maxima were 278,948/277,288 KiB, with charged high-water observations
+117,276,009/119,364,202 bytes. Four jobs delivered the shortest candidate wall
+time across all four inputs. The higher eight-job CPU cost remains open.
+
+The 22 successful object observations each matched 13 frozen objects byte for
+byte. Successful executables, guests, exports and 13 ordered depfile rules
+matched. Failure diagnostics selected the same malformed unit at 1/4/8.
+Active and pending cancellations, real Capacity and every observed batch close
+drained bytes, lanes and grants. A clean default-bootstrap build and the final
+six native CTest selections passed. The initial focused run omitted the native
+unit-test executable. The next run exposed the stale fixed-cap fixture. A
+relative-path run also exposed a test expectation for an absolute grammar
+path, corrected in b44c1c10. Standalone grammar equivalence needs the
+scaffolding working directory. These attempts and corrected runs are retained.
+
+The held-view/structure suite, module-cache regressions, native units (including
+negative capacity, receipt order and cancellation), both skew invoices at eight
+jobs, and malformed_fit passed under ASan/LSan and TSan. The malformed case
+returned its expected diagnostic and status 1. On TSan, the host denied
+personality/ASLR setup on 128 launches. Each denial has a separate receipt.
+Initialized TSan checks ran with affinity 0–11. The project exposes address and
+thread instrumentation for native Linux x64. No source-level Tower UBSan or
+browser profile was run. Production sources were frozen during validation.
+
+For review, the assigned packet contains the source bundle, Tower observer
+patches, native test and sanitizer logs, received object oracles, outputs and
+commands. Run its recipes/verify, recipes/replay and recipes/import-base using
+the packet README. The shared checkout's initial rebase conflicted with its
+existing parser commits. Rebase was aborted and all implementation and commits
+used a separate local main reconstructed from the supplied bundle. Publication
+belongs to the manager.
+
+### 2026-11-25 — One traversal for declaration-pump quiescence on 902a358f
+
+Host 7, assignment `27d7df18-66ff-4ce1-b3e8-4ed0157ec780`. The local implementation targets source `902a358f` and its verified default development pin `217f0631`. The acceptance check was a repeatable ordinary large-object compile saving with identical graph decisions, diagnostics, artifacts and ownership, measured against matched stock on the same cores. The source bundle carries this change for manager review.
+
+The preceding bf105213 Callgrind trace charged 208,908,081 self instructions to the out-of-line pending predicate on 1,000 functions. Five adjacent calls in the empty declaration batch accounted for 131,728,282. A serial Tower observer, also covering inlined calls, counted 10,150 phase probes. Eighteen returned true, 17 before the last task. Full negative scans visited 31,696,516 tasks. At 16 functions there were 242 probes, the same 18 positives, and 32,338 task visits in full negatives. All probes ran during SemanticRun or SemanticLifecycle. Grammar emission and LR merge self instructions were identical across sizes and arms.
+
+The ready queue cannot answer a question that includes demanded Waiting, Building, Running, Failed and Cancelled tasks. The hash index requires subject, query and argument. At the joined fallback the five reads have no intervening writer or observable action. A single existential predicate checks demand, state and membership of the task's query in the same five kinds. Across 1,018 large fallback calls, ten positives, it reduced visits from 15,688,968 to 3,137,872. Logical task-field bytes fell from 70,469,757 to 15,689,400 on this 88-byte stride. The small fallback went from 13,518 visits to 2,782. This implementation adds no graph storage or update path. Producer calls and single-kind checks keep their existing positions.
+
+Observer-off comparisons used the default pin, release x86_64-pc-linux-gnu objects, Debian LLVM 19.1.7, fresh processes and warm file pages on an EPYC 7502. CPU 7 served single-job runs and CPUs 4–7 served four jobs. The cgroup quota was 3,071,999 µs per 100,000 µs. All 102 brackets had zero throttling. The table gives mean stock and candidate measurements.
+
+| Functions | Jobs | Alternating pairs | Wall ms | CPU ms | RSS KiB |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 1 | 12 | 304.22 → 304.92 | 303.94 → 304.65 | 138,267 → 138,486 |
+| 1,000 | 1 | 12 | 540.88 → 531.86 | 540.61 → 531.57 | 154,693 → 154,725 |
+| 1,000 | 4 | 8 | 577.92 → 567.84 | 627.25 → 615.17 | 159,908 → 159,080 |
+| 4,096 sparse, imported dependency | 4 | 6 | 2,038.03 → 2,037.97 | 3,117.36 → 3,108.46 | 580,622 → 580,451 |
+
+One-core large saved 3.55–15.09 ms in all 12 pairs. Four-core large improved wall in 7/8. Small was 0.70 ms slower on average. Sparse wall split 3/6. Four identical-stock large pairs gave a 2.60 ms mean difference between labels. Whole-compile Callgrind instructions fell from 2,886,953,949 to 2,776,112,542 on large and from 1,420,646,203 to 1,420,362,319 on small. A clean `env -u TOWER_BOOTSTRAP_COMPILER TOWER_BUILD_JOBS=3 TOWER_NATIVE_BUILD=... bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1` reproduced the measured candidate ELF, SHA-256 `886ca2b9e3ebdb1059f06c32ac4ee3945afefed83a424d2fa59f2816c24265f1`.
+
+Object, canonical Foundation, canonical-to-object, linked executable and guest checks passed at all three sizes. An extra-unit budget control measured identical peaks of 68,426,986 and 92,942,933 bytes at one job and 96,609,091 on four-job large. One-job peak-minus-one failures preserved their diagnostics. Ordinary single-unit worlds had no ledger. Two source orders with competing invalid names retained the expected first diagnostic at both job counts. Native, ASan/LSan and TSan passed query-smoke and a serial Tower differential of the two predicates with 254,126 comparisons per mode, including 14 induced allocator failures, stale receipts, revision/profile reset, redemand, cycle and cancellation. Six TSan process starts failed the host personality check before successful retries. Source-language UBSan is unavailable. The raw packet records commands, phase and producer traces, disassembly, checked outputs and repetitions. The first diagnostic writer emitted an extra field and the first dependency trace combined two event labels. Both observers were corrected and rerun. Production timings used observer-free binaries. Browser and generation-wide validation remain publication checks.
+
+### Atomic 902a release and integrated ECS successor, 2026-11-25
+
+The public 902a compiler, repaired 8db938f5 UI and Ubuntu Linux x64 development bootstrap were published together at main e06aa12e and Pages 1ee8a6fe. A separate host reconstructed tree 41df6713313cf4f12176a4d81b5ae8e24b95a4af from a1b9562f without the producer's checkout. The complete 105-file inventory hashed to 6cc1a413d1eba7613afc50b90af316bb5b02dff54fed406ae316fe845ccd9e60. Of 105 files 16 changed. Eight tested desktop/mobile portable/shared positive and obsolete-worker cases confirmed that the sealed worker preserves the first module diagnostic and failed-update state. All 12 observed targets closed on each arm. Receipt a72eb273 recovered all four historical static lifecycle attachments. The live manifest matched the reviewed SHA-256 and the HTTP, www and old Pages addresses each redirected once to the HTTPS apex. Hosted browser and public clean Ubuntu checks have separate receipts.
+
+Compiler successor a86d2ff0 combines four individually reviewed changes and the existing mixed staging regression. In cf6d0a8d the page owned both physical slots before a valid exported pre-step grammar installation requested a third pthread. On four effective Ryzen 5 3600 cores (quota 11.52 CPUs), the public and 902a observer copies both reached the 18 s in-page deadline. With 9fa01365 the same unmodified two-slot fixture finished in 2.006 s in the page, with 677 assertions, output 42, unchanged canonical bytes and zero remaining worker targets. Its observed renderer peak was 262836 KiB and final Wasm capacity 65404928 bytes. The ordinary source path installed grammar in admitted unit workers; the verified deadlock concerns the exported coordinator operation. Actual spare-slot usage with the merged FIRST fix is under test.
+
+Receipt 5b4bf88b moves retirement of grammar versions behind reader progress and preserves explicitly held versions. At the 256 MiB charged cap all four eight-worker repeats of each previously failing skewed invoice completed. Host 8 ran with 12 physical Ryzen 7900X cores, mask 0–23 and quota 23.04. At four jobs the fitting small invoice went from 1.2575 s wall, 2.9725 CPU s, 417872 KiB max RSS to 0.9450 s, 2.5075 CPU s, 191996 KiB. Uneven went from 1.5100 s, 3.4300 CPU s, 459868 KiB to 1.0500 s, 2.8300 CPU s, 212556 KiB. Four workers finished fastest on all four shapes. At eight jobs the fitting shapes used 55–56% more CPU than eight-job stock even while reducing wall time. The manager checked all 96 timing rows, 286 object comparisons, all depfiles, guest outputs, negative controls and instrumented results. The tests retain explicit aliases through edit, failure and reader destruction. These measurements cover this isolated change; the four-change tree has its own validation.
+
+Receipt 27d7df18 preserves the original graph predicate while combining five scans of the same task array. On the 1000-function input, fallback visits dropped from 15688968 to 3137872 and all 51101 ordered events matched. Host 7 used an EPYC 7502, fixed physical CPU 7 or cores 4–7 under a 30.72-CPU quota. With unchanged canonical/object/guest outputs, mean wall time fell by 9.02 ms in 12/12 serial pairs and by 10.08 ms in 7/8 four-core pairs. The small input averaged 0.70 ms slower, and the sparse holdout split 3/6. The manager checked raw timing and RSS records, both ordered event streams and the focused predicate checks. The 902a release predates these changes. Successor receipts 7948ffc5, 6cd34c79 and cd71192f cover integrated native semantics and memory, practical worker scaling, and real compiler-unit work respectively.

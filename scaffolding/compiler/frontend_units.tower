@@ -397,6 +397,14 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error:
     if batch.pool.threaded && !work_budget_set_wake(&batch.budget, work_pool_wake_signal(&batch.pool), work_signal_post) {
         *error = WorkBudgetError.Invalid; frontend_units_close(batch); return null;
     }
+    // The outer pool holds its pthreads until close, including before the first
+    // step. Coordinator work in a borrowed unit world can only open a pool from
+    // the remaining fixed transport slots. A serial pool runs on the caller.
+    var world_limit = budget;
+    if batch.pool.threaded && !work_thread_retention() {
+        var spare = available - batch.pool.count;
+        if world_limit > spare { world_limit = spare == 0 ? 1 : spare; }
+    }
     batch.count = count;
     *error = compiler_work_create_result(count, batch.pool.count, revision, profile, &batch.budget, &batch.work);
     if *error != WorkBudgetError.None {
@@ -431,7 +439,7 @@ revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error:
         job.kernel.payload = bits(void*, job);
         job.kernel.execute = compiler_unit_kernel;
         job.kernel.receive = frontend_unit_receive;
-        *error = compiler_world_create_result(budget, &batch.budget, &job.world);
+        *error = compiler_world_create_result(world_limit, &batch.budget, &job.world);
         if *error != WorkBudgetError.None {
             frontend_units_close(batch);
             return null;
