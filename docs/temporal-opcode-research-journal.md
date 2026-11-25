@@ -101823,3 +101823,30 @@ installer replay is assigned to the worker with the retained Ubuntu 24.04
 userspace. Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` preserves the
 downloaded script, working commands and complete installation. These peer
 reviews and the install verification introduce no compiler change.
+
+### Public install and first program on Ubuntu and Debian x86-64
+
+The README now identifies the checked-in sample to save as `example.tower`
+and gives the expected output. Its Git blob `fa557835` matches the source
+that both workers interpreted and linked. These instructions use the public
+installer at `9b5d23f1` and the existing `902a358f` development compiler.
+
+Host 4 exercised the exact README command in an Ubuntu 24.04.5 x86-64
+userspace as UID 1001 with LLVM/Clang 19.1.1. It supplied curl and the
+generated CA bundle from Ubuntu packages in a private copy of the root
+filesystem. Both the fresh install and the reinstall exited zero. All 57
+payloads and 58 Git file modes matched. On both runs the version matched
+the producer banner, and the interpreter and Clang-linked executable each
+wrote exactly 42 followed by LF with empty stderr. The repeat preserved the
+compiler and two unrelated user files. A separate HTTPS transfer trace
+matched 59 requests on the fresh install and one on reinstall, all HTTP 200
+with successful TLS verification. The manager verified all 127 evidence
+members, executed script bytes, inventories, transfer records and guest
+output in receipt `251cd30a-e3ec-4327-ac39-f206f9069d06`.
+
+Host 8 independently ran the same public commands on Debian 12 x86-64
+with LLVM/Clang 19.1.7. Its fresh and repeat installs preserved the
+checksum inventory and the compiled and interpreted sample outputs.
+Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` records those results.
+Only documentation changed. Runtime timings and peak memory do not apply
+to this change.
