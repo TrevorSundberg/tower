@@ -99845,3 +99845,78 @@ The packet retains both matrices, the four instruction immediates and the
 fresh checked-in-bootstrap validation. The five clean native selections and
 the bounded regression also passed. No general timing claim follows from
 these pairs.
+
+## 2026-11-24 — Reuse within one replacement-template preparation
+
+Slot 3 assignment `ff6fe1ed-5734-49fc-90a1-8e6068b6f9c7` traced the ordinary packaged CLI at the retained `43b68fb47e7530a8c87fb4cdf07d307f25a9ccea` freeze, tree `81bf870053fb1de55812afb3b2e1c9ab4d9f1e53`. The 16- and 1,000-function inputs each made 176 host parser-table requests at jobs 1 and 4. The existing cache served 99. The remaining 77 full builds had 73 distinct exact structural inputs. Another 56 version-cache hits returned before table construction. These counts cover the host syntax-table path measured in the original 77-build profile.
+
+Of the 77 builds, 71 followed grammar declarations and had 71 distinct structural inputs. Those declarations added 45 rules and two tokens, replaced eight rule bindings and appended to 16. Bedrock accounted for two of the 71, Foundation syntax for 33 and Tower for 36. One further build opened the initial Bedrock session and one validated Bedrock at EOF. The last four compiled replacement templates. The packet maps every request to its session revision, import generation, immutable source snapshot and byte range. Each declaration includes its operator, prior binding provenance and frozen source bytes. The traced compilers generated identical ordered rule, symbol, precedence, name and read-profile records for all 176 requests.
+
+Two repeated inputs had different validity boundaries. Build 4 at Bedrock EOF had the same active definitions and LR input as build 3 at the preceding `GrammarDeclaration` override. The seed changed from the bootstrap declaration seed to the completed Bedrock revision. Build 4 kept its independent validation. Builds 74–77 parsed Tower's `$left is null` and `$left is not null` replacement bodies. Their effective definitions, category, generated hole productions and full structural records matched exactly. Builds 74/75 belonged to the version created by replacing `Statement` in `tower.tower`. Builds 76/77 belonged to a new user-file version after `import tower;`. The reader assigned lifetime ordinals to revision allocations, checked every retirement, and compared whole byte ranges. In the small serial trace the two prepare scopes held ready revisions 677 and 680, both with seed 33, across different module leases. The replacement source ranges were [3314,3329) and [3436,3451). Each body was parsed separately.
+
+The compiler now gives one replacement-preparation call one structural-cache slot and disposes it on every return. Only an unbudgeted world uses the slot. Worlds with an explicit memory ledger retain their previous allocation headroom. The existing structure lookup checks world, budget, parser mode, specialization, every ordered production, symbol, name and name order. A hit shares the frozen runtime and contexts. Fresh grammar, recognizer, captures, source remapping and diagnostics still belong to each attempt. The preparation lifetime supplies the grammar generation and import identity. Both input sizes and worker widths measured precisely two additional hits, at requests 173 and 176 (old full builds 75 and 77). They saved 5.6–5.7 ms of serial or 9.6–11.3 ms of jobs-4 table time in the separate traces. The final local `Statement` override at `tower.tower:124`, build 73, remained the most expensive build in all four traces. On the 1,000-function input it took 6.23 ms at jobs 1 and 8.73 ms at jobs 4, including 4.00 and 6.62 ms for LALR construction.
+
+For ordinary timing, the public Linux x64 bootstrap and LLVM/Clang 19.1.7 produced both Release arms with identical flags and 55 identical resources. The baseline ELF SHA-256 was `f1caff1c2e399fb306da459a5caa12e79e68428ab27783d911171e2fc480ba3b`, and the candidate was `d432ff8f001da6c17e7be1a246d644c60b7926c50075489d5949476b736a47d2`. Each entry below combines 12 counterbalanced pairs and six separately interleaved pairs with initial arm order reversed. Both blocks favored the candidate on mean wall and process CPU for each cell. Each sample used a fresh process, warm filesystem pages and no observer.
+
+| Functions | Jobs | Mean wall ms, baseline / candidate | Mean CPU ms, baseline / candidate | Faster / tied / slower pairs |
+| ---: | ---: | ---: | ---: | ---: |
+| 16 | 1 | 303.28 / 293.94 | 302.89 / 293.44 | 13 / 1 / 4 |
+| 16 | 4 | 346.83 / 338.39 | 375.67 / 365.83 | 15 / 0 / 3 |
+| 1,000 | 1 | 554.44 / 550.89 | 554.11 / 550.44 | 11 / 1 / 6 |
+| 1,000 | 4 | 593.89 / 581.06 | 647.94 / 633.22 | 16 / 1 / 1 |
+
+All 144 timed invocations ran on AMD EPYC 7542 physical cores 24–27, with the wrapper on CPU 60, effective cgroup CPUs 0–63, and quota 1,228,800 µs per 100,000 µs. The two pre-run windows recorded 1.0–18.6% and 1.0–9.5% utilization on the selected cores. One SMT sibling was 97% busy in the first pre-run window. During samples the four siblings averaged 1.23% and 2.06% busy across the respective blocks. There were zero new quota throttles and major faults. Peak RSS across all cells was 165,084 KiB (baseline maximum 164,984 KiB). Mean paired RSS changes were −77/+498 KiB at 16 and −233/+149 KiB at 1,000 functions for jobs 1/4. The shared cgroup high-water mark was 12,753,088,512 bytes under a 57,954,795,520-byte cap. These host-shared samples leave uncertainty around the smaller 1,000-function serial benefit.
+
+All measured objects and linked ELFs matched the frozen references byte for byte. They exited zero and printed `15\n` and `999\n`. Separate positive controls exercised both null-test expansions and a file-local grammar override after an import. The override printed 17 before its edit and 29 afterwards. A sibling importer printed 17. Undefined augmentation, shift/reduce conflict and unknown replacement capture returned the same exit 1 and full diagnostics across arms and widths. The fixture exercises resource denial, full release, invalid template and recovery within the slot, and an explicit budget with zero leases after close. Native grammar, ordering, 150 randomized comparisons, retained-source overlap, row refusal/retry and focused ASan/LSan and TSan checks passed. This LLVM pipeline provides no Tower source-level UBSan coverage. The private timing cache was restored and byte-checked.
+
+Keep the scoped replacement reuse and every production LR handoff. The packet includes individual observations, ownership and timing traces, failed controls, compiler and native outputs, the regression fixture and local Git history.
+
+## 2026-11-25 — Verify the replacement-cache import on the successor
+
+On host 3, the 9ab581c8 baseline and the replacement-cache successor
+cd2ef4b803185bf00bf2614ef7bb30fbb888a701 each produced a fresh native
+ParserNodes object identical to its retained Release object. Each full
+`llvm-nm --undefined-only` report had 122 entries. The sole substitution was
+`syntax_replacement_attempt_reusing` for `syntax_replacement_attempt`.
+The current strict verifier accepted 9ab and returned 1 on precisely that new
+edge. This reproduced the independent host-4 linked-call observation.
+
+The parser profile imports `syntax_replacements` through `parser_core`.
+Its preparation passes a structure-cache pointer to the three-argument function
+in TemplateBuild. That unit still exports the original two-argument wrapper,
+which forwards a null cache. Both native providers had the same 60 undefined
+entries. Commit 73c0056a admits the new name in ParserNodes' existing exact
+token list. Its Tower test covers both entry names, a suffix, truncation and
+wrong consumers. Applied to the successor, the patch yields tree
+`1fca47701b494e34f475c4777937216601b3bc79`.
+
+The pinned Linux compiler and LLVM 19.1.7 produced real ELF x86-64, Wasm32,
+COFF x86-64 and Mach-O arm64 objects. The old checker rejected the new consumer
+on each target. The corrected checker accepted both consumers and providers
+on all four, plus the eight remaining native module contracts. The suffixed
+import in a full consumer report and the exact import in a full provider
+report each returned 1. The focused ParserNodes bootstrap/successor comparison
+passed exact object and optimized IR equality on all four targets and the
+explicit grammar controls. Native grammar-resource and the registered
+structure-reuse selector passed. The object checks cover emission and symbol
+policy. Browser execution and the subsequent release remain separate gates.
+
+The unfiltered verifier advanced past ParserNodes on every target, then
+returned 1 on Windows x64 Interpreter's `__chkstk`. The baseline and
+successor COFF objects were byte-identical (SHA-256
+`70e3c0f851292721ae346d0ebb4aa11f49fae00efb58173e7b0ab2351a15dc6d`).
+Both checkers rejected both full lists. The relocation is in
+`call_query_tests`. Audit that fixture's target provider and module contract
+before rerunning the default sequence. Its Windows successor-compiler stage,
+Darwin Interpreter, all four Semantics stages and final grammar check were
+unreached. The focused ParserNodes run separately reached its grammar check.
+
+The new regression against the old list failed at the positive assertion.
+It passed on the repaired list, including an ASan/LSan run. On the EPYC 7542
+host, three alternating batches of 64 fresh verifier processes per policy
+used one CPU and the same accepted full report. Median wall was 0.03 s per
+batch for both, median CPU 0.03 s each, with maximum process-family RSS of
+3,204/3,224 KiB. The timing resolution is 0.01 s. No CPU throttling accrued
+during these samples. This measures verifier startup and checking only.
+Raw object headers, reports, failure bytes, commands, source identities and
+the portable patch are in packet dea235a0-c663-4e47-b0e5-af33f0c3b7aa.
