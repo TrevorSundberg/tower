@@ -20,7 +20,11 @@ var BootstrapHexBytes: usize = 64;
 var BootstrapRegularMode: u32 = 420;
 var BootstrapExecutableMode: u32 = 493;
 
-struct BootstrapFile { name: ByteBuffer; data: ByteBuffer; }
+struct BootstrapFile {
+    name: ByteBuffer;
+    data: ByteBuffer;
+    pending_copy: u8*; // Relative path borrowed from name until matched to a tracked source.
+}
 struct BootstrapInputs {
     compiler: u8*;
     predecessor: u8*;
@@ -74,6 +78,11 @@ fn bootstrap_file_add(files: vector(BootstrapFile*)*, name: u8*, path: u8*, tota
     if tool_file_kind(path, true) != ToolFileKind.Regular || !bytes_assign_text(&file.name, name, strlen(name))
         || !bootstrap_member_name(file.name.data, file.name.length)
         || !tool_read_file(path, BootstrapInputLimit - *total, &file.data) { return false; }
+    var prefix = "share/tower/";
+    var length = strlen(prefix);
+    if strncmp(file.name.data, prefix, length) == 0 && bootstrap_copied_module(file.name.data + length) {
+        file.pending_copy = file.name.data + length;
+    }
     if !vector_push(files, file) { return false; }
     *total += file.data.length;
     retained = true;
@@ -182,13 +191,13 @@ fn bootstrap_verify_copy(files: vector(BootstrapFile*)*, source_path: u8*, sourc
     if strncmp(source_path, root, strlen(root)) != 0 { return true; }
     var relative = source_path + strlen(root);
     if !bootstrap_copied_module(relative) { return true; }
-    var prefix = "share/tower/";
-    var prefix_length = strlen(prefix);
     foreach (var file in files) {
-        if strncmp(file.name.data, prefix, prefix_length) != 0
-            || strcmp(file.name.data + prefix_length, relative) != 0 { continue; }
+        if file.pending_copy == null || strcmp(file.pending_copy, relative) != 0 { continue; }
         if file.data.length == source.length
-            && (source.length == 0 || memcmp(file.data.data, source.data, source.length) == 0) { return true; }
+            && (source.length == 0 || memcmp(file.data.data, source.data, source.length) == 0) {
+            file.pending_copy = null;
+            return true;
+        }
         puts("Bootstrap resource differs from its source:"); puts(file.name.data); return false;
     }
     puts("Missing bootstrap copy of source:"); puts(source_path); return false;
@@ -210,6 +219,12 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, files: vector(BootstrapFile*
         if !bootstrap_string(out, names.data + start, end - start) || !bootstrap_text(out, ":")
             || !bootstrap_hash(out, source.data, source.length) { return false; }
         start = end + 1;
+    }
+    // A reused install can retain a COPYONLY module absent from the Git input list.
+    foreach (var file in files) {
+        if file.pending_copy != null {
+            puts("Bootstrap copy has no tracked source:"); puts(file.name.data); return false;
+        }
     }
     return bootstrap_text(out, "}");
 }

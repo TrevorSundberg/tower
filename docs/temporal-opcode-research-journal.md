@@ -101599,3 +101599,94 @@ after adding the fixture, the mean full grammar-resource selection took
 0.493 s wall in each arm, 0.488/0.490 s CPU and 54,223/54,413 KiB peak RSS.
 These samples measure the cost of executing the test. The production parser
 is unchanged by the fixture.
+### Host 5 reverse membership of native bootstrap copies, 2026-11-25
+
+At `4b2e3545120be91a616580e688b6ab2165507e15` (parent `ca543287`),
+the retained packager accepted a retired builtin from a reused native install.
+The earlier source-to-copy check iterates tracked inputs. A file present only
+in the installed tree never enters that loop.
+
+Packet `642d12ee` verified against the relay manifest, all 13 required
+members and its 567 internal hashes. Host 5 compared the archived Ubuntu
+compiler package to all 1,296 tracked build sources, 57 payloads and 46
+CMake COPYONLY paths. The retained before/after valid manifests matched
+the archive. Local runs of both retained executables reproduced the old
+self-consistent missing/modified inventories and the two reviewed exit-1
+diagnostics byte-for-byte. Both failures left no output or temporary stage.
+
+The disposable source started at ca543287. Adding the actual
+`scaffolding/library/tar_archive.tower` blob from `88319097` to its index
+for one CMake native configure reproduced the former copied path. The
+experiment then restored the ca543287 index and source, configured a fresh
+cache, and replayed the two final copies from build-native.sh to both a
+reused prefix and a fresh prefix with spaces. The packaged ELF and nine
+generated runtime inputs came from host 4. The caches had no compiler build.
+Both directory packages passed their own SHA256SUMS. An exact tar of each
+was extracted for a consumer outside the source tree. The only extra payload
+was the retired module. Its ordinary import printed `512\n` from the reused
+package. The fresh package diagnosed the missing import. The first fixture
+setup stopped when Git refused plain rm on its staged file. Explicitly
+unstaging the private addition before removing it completed the setup.
+
+The local repair classifies each collected name with the same COPYONLY
+predicate used on the source side. A matching tracked source clears a
+borrowed pointer in that candidate's private file record after its bytes
+compare equal. Any pending copy now fails the provenance check before
+publication. The ordinary packager allocates a fresh file list per attempt.
+
+The same direct library file passed when explicitly staged under scaffolding
+and failed when unstaged, even with its exact bytes still on disk. A nested
+custom Tower module, its regular-file symlink alias and a caller-modified
+runtime IR payload reproduced the reviewed tool's complete custom package.
+A directory symlink was skipped. The alias imported and printed 73. The
+fresh CLI also resolved an explicit Foundation-directory override for the
+retired import and printed 87. Runtime IR identity remains the build and
+checksum consumer's responsibility. The compiler resolver and install copies
+are unchanged. This check covers the current native COPYONLY path rules.
+
+The additional Tower regression takes a clean compiler and its source checkout
+(with LLVM license) and passes a nested custom module and then an untracked
+direct builtin through resource capture and source hashing. The same test
+aborted on the old implementation and returned 0 on the repair. The ordinary
+CLI rejected missing, changed and extra copies, preserved an existing
+candidate, and successfully retried into a previously rejected destination.
+Two concurrent producers had exits 0 and 1 with one complete destination
+and zero stage residue. The extracted fresh compiler in a spaced path
+reported the expected absent import. Both interpretation and native execution
+of the packet example returned exactly three bytes, 42 followed by LF.
+
+Host 5 used Debian 12 x64, LLVM/Clang 19.1.7 and a Ryzen 9 5900XT (16 cores,
+32 SMT threads). Effective affinity was 0–31, cgroup quota 3071999/100000.
+Warm, newly started processes and their children ran on CPU 2, one package
+at a time, with fresh destinations. Four alternating pairs of the two
+locally built tools used the checked-in bootstrap, native target, one build
+job, same runtime object, retained compiler, ca543287 source and build
+command. Both had medians 0.17 s wall, 0.17 s user+system and 15,120 KiB
+peak RSS (GNU time, 0.01 s resolution). A second four-pair comparison using
+the delivered reviewed executable also produced identical valid directories.
+The one failed retired-copy package took 0.13 s wall / 0.12 s CPU / 15,120
+KiB, versus a successful 0.17 / 0.16 / 15,376 before. Packaging is serial.
+
+On host 5 both valid directories, manifests and normalized tar streams
+were byte-identical. The normalized archive SHA-256 was
+`d00481610b81e5efeb017409cc571059ed4f5c915cab7bd72c735817c97130e7`.
+The 57 payloads matched the Ubuntu packet, whose differing host, LLVM and
+dynamic dependency observations remain attached to its original manifest.
+The declared e06aa12e worker archive separately passed its 57 payload and
+1,296 source comparisons. Host 5 did not rerun the full compiler or browser
+matrix. Native tools-only build used the documented default pin. A first
+draft's module-level string pointer was rejected in library mode. The final
+implementation borrows a slice of the already-owned file name instead. The
+first test builds corrected an output-kind spelling, a reserved parameter
+name and an incomplete struct initializer before running the regression.
+
+Tower's LLVM address and thread passes instrumented the tool and its guest
+runtime. ASan/LSan passed on both matched valid runs and the two different
+retired-copy outcomes. Valid stats matched at 10,576 malloc calls, 4,164
+realloc calls, and rounded totals of 75 M allocated and freed. Initialized
+TSan passed the repaired clean and rejected cases. Three startup failures
+at the denied ASLR personality operation are retained separately. Source
+UBSan is unsupported. These serial runs do not measure worker races.
+Assignment fee5b50d-5568-4220-8282-442c593b1924 carries source, commands,
+input receipts, inventories, raw diagnostics, timing, and output state.
+Manager integration and publication remain separate.
