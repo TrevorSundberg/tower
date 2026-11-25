@@ -101850,3 +101850,23 @@ checksum inventory and the compiled and interpreted sample outputs.
 Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` records those results.
 Only documentation changed. Runtime timings and peak memory do not apply
 to this change.
+## 2026-11-25 — Floating Foundation round trip for compound assignment, host 5
+
+Assignment `29dc3307-7039-4af7-8cf7-3d6daafe3ce5` followed the ordinary floating selector failure in `2093f535`. Host 5 verified both incoming archives and all ten declared members. Its retained stock runner at `ca543287`, the width-classifier runner at `5f35e382`, and a fresh build of `0afa5f58` all returned exit 1 with the same structural diagnostic. The last source joins `5f35e382` with host 3's actual `5681a339` from the `46eaa058` bundle. That formatter change preserves integer operand widths. Its staged-integer results belong to the producer and this floating failure remained reproducible with the change present.
+
+The first failing case was the inline sign fixture in `scaffolding/tests/floating_checks.tower:97` at the combined baseline, on a four-byte target. For `zero += 0`, `program.items[18].value` and `program.items[20].target` used the same `KLoad` entity. Formatting emitted one dereference at each use. Reparse constructed two f64 loads, each with a pointer operand bound to the same declaration holding `&zero`. The comparator in `scaffolding/tests/execution_core.tower:129` detected this difference. Both canonical representations had exactly 2,067 bytes, SHA-256 `b763708a746d627d0adc8da4697a2b49d3b976683a534a9924fcf1fe7c000d67`. The negative-zero bit pattern and quiet NaN payload were already correct.
+
+Commit `45246ea5168900d683a18af89f8a0e1800118299` gives the old-value read and eventual store distinct occurrences of the captured address in `scaffolding/compiler/semantic_expression_lowering.tower:613`. An address without a binding is saved once. The old value is loaded before lowering the RHS. The finite source graph census in the sign fixture grew from 202 to 204 Foundation nodes, adding one operand and one load. The permanent `floating_compound_capture.tower` fixture calls an effectful address expression, then changes the selected pointer and the original cell in the RHS. At both widths, graph execution and canonical replay preserve call order 12, first cell 3.5 and second cell 8.0. Linking the new test object against the pre-fix compiler reproduced the structural failure. A separate untaken string-address probe exercised the unbound-address branch. Canonical text now reconstructs at both widths and the directly emitted object matches its baseline.
+
+The full `floating` and `narrow` selectors passed in ordinary, ASan/LSan and initialized TSan runs. Four TSan launches failed during the host personality check before initialization. The ordinary `control-smoke` selector passed. The retained mixed i16/f64 package printed 23 and the intentionally wrong 24 trapped before output, on both layouts with jobs 1 and 4. The inline sign and effectful-capture sources and their canonical reparses generated identical corresponding x64 and Wasm32 objects in both arms. Linked ELF and Wasm guests also matched and ran. The sign output was exactly −9223372036854775808 and 9221120237041090626. The structural predicate and the formatter are unchanged by the fix.
+
+Fresh x64 object emissions ran one process at a time with a warm filesystem on host 5's Ryzen 9 5900XT. Effective CPUs were 0–31, quota 3071999/100000, affinity CPU 0 or physical cores 0,2,4,6. After one warmup per arm, four interleaved pairs per cell gave the following median wall/CPU seconds and maximum RSS KiB.
+
+| Fixture and jobs | Before wall / CPU / RSS | Fixed wall / CPU / RSS |
+| --- | --- | --- |
+| Sign, 1 | 0.160 / 0.155 / 88192 | 0.160 / 0.150 / 87648 |
+| Sign, 4 | 0.180 / 0.180 / 93240 | 0.180 / 0.190 / 94092 |
+| 128 compounds, 1 | 0.160 / 0.160 / 89076 | 0.165 / 0.160 / 89368 |
+| 128 compounds, 4 | 0.185 / 0.190 / 95128 | 0.190 / 0.195 / 94848 |
+
+All timed objects matched. A full source-level Tower UBSan pass has no configured backend. Cold-cache latency, allocator-wide retention and useful inner-worker overlap were unmeasured. Packet `29dc3307-7039-4af7-8cf7-3d6daafe3ce5.tar.gz` contains input checks, graph traces and exact canonical bytes, before/after objects, negative controls, process measurements, sanitizer startup logs and a Git integration bundle. This receipt covers the ordinary native compiler and its guests.

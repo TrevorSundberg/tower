@@ -610,7 +610,20 @@ export fn sem_lift_value(c: SemanticContext*, block: void*, n: void*): void* {
         var previous: void* = null;
         var compound = value.op != SurfaceSet;
         if compound {
-            previous = sem_lift_snapshot(c, block, target);
+            // The old-value read and the eventual store are separate Foundation
+            // occurrences of the same captured address.
+            var place = sem_get(target);
+            var pointer = sem_get(place.value);
+            var saved = pointer.kind == KOperand ? pointer.binding : null;
+            if saved == null {
+                saved = sem_control_local(c, block, place.value);
+                var captured = sem_control_read(c, block, saved);
+                if !sem_ok(c) { return default; }
+                place.value = captured;
+            }
+            var address = sem_control_read(c, block, saved);
+            var read = sem_aggregate_load(c, block, address, &place.type);
+            previous = sem_lift_snapshot(c, block, read);
             if !sem_ok(c) { return default; }
         }
         if value.op == SurfaceCoalesce {

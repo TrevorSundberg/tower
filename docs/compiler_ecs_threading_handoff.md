@@ -107,9 +107,16 @@ width it has already decoded. Each importer keeps its own diagnostic and the
 offset of the offending instruction. An unsupported width returns
 `InvalidTypeScalar`; zero is a valid integer tag. On Linux x64 and Wasm32,
 the rebuilt drivers emitted identical Foundation, objects and linked guests
-for the ordered narrow-integer conversion case. The broader floating-point
-suite still has a graph round-trip failure on the stock and changed drivers.
+for the ordered narrow-integer conversion case.
 [Shared width classifiers](../scaffolding/compiler/type_primitives.tower)
+
+The full floating-point suite exposed a separate bug in compound assignment.
+For `*destination() += change()`, lowering now saves the destination once and
+gives the old-value read and the eventual store distinct nodes bound to that
+address. Foundation reparsing preserves the graph even when `change()` rewrites
+both the pointer and the first cell. The floating, narrow-integer and control
+suites passed on the repaired compiler.
+[Compound assignment regression](../scaffolding/tests/floating_compound_capture.tower)
 
 A fresh `vector(u8)` in the module path checker can be initialized with
 `= default` because its former helper only reset that value. In contrast,

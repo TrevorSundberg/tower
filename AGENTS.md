@@ -179,6 +179,10 @@ Do NOT modify todo.txt.
   `.towerbc` may wrap canonical Foundation plus a private versioned execution
   cache: validate bounds, versions and target/profile, reconstruct/check the graph,
   and verify the cache before running. Platform object/executable output is separate.
+- For compound assignment, evaluate the destination once and read its old
+  value before the right-hand side runs. Give the read and the store their
+  own Foundation nodes bound to the saved address. Check the graph after
+  reparsing with a [right-hand side that changes the destination](scaffolding/tests/floating_compound_capture.tower).
 - Every file starts from the immutable Bedrock declaration seed and applies
   grammar declarations incrementally after their boundaries. Foundation imports
   Bedrock; Tower imports Foundation; ordinary modules import their language.
