@@ -104685,3 +104685,53 @@ The table gives the median of the eight within-block wall changes, repair relati
 On the one-worker generic case, primary median wall / CPU / peak RSS were 1605.77 ms / 1605.45 ms / 171140 KiB before and 1617.84 ms / 1617.57 ms / 171154 KiB after. Combining the primary and reversed-order series, the repair was slower in 11 of 16 pairs, with a median of +1.15% and a range from −11.27% to +13.62%. A small serial regression remains possible. In the diagnostic builds all 13,942 generic predicate checks together took less than 0.8 ms per process in both versions. The alias fixture reached the new branch twice during discovery and twice during continuation. The four throughput inputs reached it zero times. The follow-up measures many actual qualified type consumers on the same host.
 
 The manager verified the 1,750 evidence hashes, all 180 timed object receipts including warmups, all 16 Foundation, ELF, guest and ordered prerequisite comparisons, and the raw predicate counters. Receipt `8934833c-6646-4d62-bc4a-374626e835e4` preserves every process result and the separate observer costs. The correctness and throughput evidence supports retaining the repair in the candidate. Production qualification continues on that source.
+### Jenkins 42 desktop continuous typing
+
+Jenkins tested `0a67e17c47b601c884efaf97a1ee9a53ad7e5ab8`. The console
+(SHA-256 `cc1ccb32b940f5efc1e94aa54bbb34789105c492176ab0d6f6875ab6b8b78bec`)
+reports 513 Node passes, two skips, and a browser run with 239 passes, two
+skips and one failure. The desktop typing test saw zero `Complete` status
+mutations during a burst with a 15 ms key delay. Jenkins skipped archiving
+after the failure. The supplied console has no per-edit worker timings.
+
+Each edit advances the generation. The parser analyzes on an animation frame,
+keeps one request in flight and coalesces pending edits. When another edit
+overtakes a reply, `perform` drops that reply before rendering. The old test
+required at least one reply to win this wall-clock race. On host 8 it passed
+four ordinary desktop runs. Delaying only the real worker's outgoing messages
+by 120 ms reproduced the exact zero count twice. In a separate instrumented
+run the worker had already parsed five intermediate offsets (748, 757, 772,
+780 and 788) at that zero count. After draining, the last offset was 794, the
+whole comment had the expected highlighting, the worker had built zero grammar
+tables in all six replies and no replacement parser worker had started.
+This establishes a sufficient cause for the failure. Jenkins' actual delivery
+latencies remain unknown.
+
+The revised browser test advances the page clock one 16 ms frame after each
+of three keyboard batches. It checks the exact highlighted comment at each
+prefix before sending more input and checks all three real Wasm replies for
+zero grammar builds. The adjacent slow-response test exercises edits that
+overtake a reply. The change is confined to the browser test. Product runtime,
+allocation and native sanitizer comparisons are inapplicable.
+
+Host 8 used Debian 12 x86-64, Ryzen 9 7900X (12 cores, 24 logical CPUs,
+affinity 0–23, 23.04-CPU quota), Node 24.22.3, Playwright 1.65.1 and Chromium
+159.0.8154.6. The local loopback server used the published UI built at
+`8024e026` and compiler assets from `2421c659`. All 106 asset hashes matched
+manifest `f12b6bdff9c45758b1de334ee8bee3f1b3b86d7424f232242f069a8aa25ea6ef`.
+The playground tree at the UI build matches the assigned revision. The console
+is the evidence for the separate Jenkins build.
+
+With the original assets, four consecutive desktop runs on one Playwright
+worker passed before and after the test change. GNU time for the four runs
+combined reported 9.46 / 6.72 s wall, 5.65 / 5.09 s user, 2.58 / 2.25 s
+system and 281244 / 268216 KiB maximum RSS. These figures measure the test
+harness with different input pacing. With delayed worker delivery, both revised
+viewport checks passed. As a sensitivity control, a local bundle with a 200 ms
+trailing edit debounce failed at the first intermediate highlight. After all
+asset hashes were restored, `playwright test 'tests/browser/playground\.spec\.mjs$'
+--workers 2` passed 24/24 in 49.8 s, including stale-reply coalescing on both
+viewports. An earlier basename-only anchored filter selected no tests.
+Packet `88e4ec04-8658-4d87-845e-a63b57a4ec92` contains the commands, original
+console, local reproduction trace and control results. The full Jenkins rerun
+is open for manager review.
