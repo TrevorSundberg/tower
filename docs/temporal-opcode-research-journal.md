@@ -102433,3 +102433,19 @@ The locally constructed Pages tree is `f533f1bc39a3c66f13797c739dfaf61edf27bbce`
 The normal Node suite passed 512 of 514 tests with two opt-in export skips. The IDE opt-in and package-enabled test also passed. Both generated workers bound the shared reactor’s pthread started and joined imports in Chromium. All three shared trials and nine ownership cases closed their workers. Saturated owners, both cancellation orders, errors and later execution matched the serial control. A spare physical child ran LR work during the coordinator’s preinstallation interval. The unchanged work reactor completed 2,048 ordinary and 2,048 delayed reopen rounds on the integrated transport. In the delayed run 6,144 grants retained four lanes and 24,576 joins waited for their own slots. All children exited. Host 1 used a Xeon Gold 6244 with effective CPUs 0–31 and a 15.36 CPU quota. On CPUs 2–5 the ordinary/delayed correctness runs took 10.99/227.60 s wall, 26.19/66.34 s CPU and 158,280/155,904 KiB maximum RSS. These are individual warm runs.
 
 The evidence from assignment `8fbbb2d1-344f-455a-84ef-f9c331e674cf` contains the input bundle, parent-based replay, candidate bytes, raw Playwright traces, TAP, commands, build and tool hashes, stdout and per-process GNU time. The clean release source and Pages ancestry are independent of this journal entry.
+### Diagnosing a damaged checkout bootstrap, November 25, 2026
+
+A one-byte edit to share/tower/types.tower made build-bootstrap.sh exit 1
+without printing which file failed verification. Build callers take the
+compiler path from stdout. The selector now sends the GNU checksum report
+to stderr and suppresses the successful member lines.
+
+Independent worker receipt 587b98dc-f8a1-475a-8d2f-042a17d1029c exercised
+the public package and a relocated Linux x64 development candidate. Missing
+and modified resources exited 1, named the affected path on stderr and left
+stdout empty. With --tools, the failure occurred before LLVM or CMake ran.
+Pristine and restored packages returned the compiler path. An explicit
+executable path containing spaces also passed through command substitution.
+The healthy path checks the same files once and selects the same compiler.
+The published compiler, package and browser assets retain their recorded
+build provenance.
