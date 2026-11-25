@@ -101291,3 +101291,31 @@ resource counters, scripts and negative results. The performance changes
 across ordinary layouts do not justify integrating this source or a regression
 test that would mandate the new admission policy. There is no production,
 bootstrap, browser or deployment change.
+
+## Host 6 editable Build object reuse experiment
+
+Assignment bc9f1f28 uses the retained 80a50621 page, Chromium and be4bc2d6
+editable project. All four manifest archives and 28 named members verified.
+The preceding be41c755 checked-reactor test qualified separate inspection
+assets. This comparison freezes the 80a50621 editable inputs for both arms.
+The acceptance check is a shorter complete Build after generator convergence,
+at bounded retained cost, with independent native and guest behavior and exact
+three-reactor comparisons through a Semantics edit and Restore.
+
+Tower's module_complete_result records completed module names.
+module_cache_valid privately re-resolves each import against a live graph.
+The browser dependencies() adapter only reads the used-name list. The proposed
+fallback retains one set of objects from the unmodified packaged project and
+its qualified generator. Linking, checks and active generation selection run
+on every Build. No language resolution moves to the page.
+
+In the matched browser trial the third unedited Build selected the same
+43d603d7 LLVM bytes as the second. Stock compiled all 25 units in 65.95 s.
+The trial transferred 25 objects totaling 3,391,528 bytes, created zero unit
+workers, and linked and qualified the same three reactors in 5.93 s. Its
+Semantics edit and Restore compiled all units and returned the earlier
+80a50621 edited and clean reactor hashes respectively. After the edit,
+forced GC found zero live bytes from the transferred objects. For integration
+the qualified generator hash stays at the page's Build boundary and is cleared
+on Reset and pagehide. A recipe mismatch drops the incoming object references
+before compilation.

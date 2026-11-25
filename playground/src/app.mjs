@@ -44,6 +44,7 @@ function scheduleCompilerBuild() {
   if (!project?.compilerProject) return;
   const snapshot = JSON.stringify(project.files);
   if (snapshot === compilerBuildSnapshot) return;
+  retainedCompilerObjects = undefined;
   cancelCompilerBuild('Compiler source changed');
   if (!$('auto-rebuild-compiler').checked) return;
   compilerBuildTimer = setTimeout(() => rebuildCompiler(), 1000);
@@ -65,11 +66,17 @@ function rebuildCompiler() {
     if (data.modules) {
       cancelCompilerBuild();
       ++compilerGeneration;
+      retainedCompilerObjects = data.retained;
+      if (data.packagedGeneratorHash) packagedGeneratorHash = data.packagedGeneratorHash;
+      selectedPackagedGenerator = data.hashes.llvm === packagedGeneratorHash ? packagedGeneratorHash : undefined;
       selectCompiler(data.modules);
-      $('compiler-build-status').textContent = 'Compiler generation '+compilerGeneration+' active · '+data.stats.workers+' workers · import, interpreter and LLVM checks passed';
+      $('compiler-build-status').textContent = 'Compiler generation '+compilerGeneration+' active · '+(data.stats.objectHits ? data.stats.objectHits+' objects reused' : data.stats.workers+' workers')+' · import, interpreter and LLVM checks passed';
     }
   };
-  worker.postMessage({id,files:project.files,compiler:compilerSelection()});
+  const retained = retainedCompilerObjects;
+  retainedCompilerObjects = undefined;
+  worker.postMessage({id,files:project.files,compiler:compilerSelection(),stockLLVM:selectedPackagedGenerator,retained},
+    retained ? retained.objects.map(object => object.buffer) : []);
 }
 
 class Engine {
@@ -150,6 +157,7 @@ let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', b
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
 const fileStates = new Map(), bundledExamples = new Map(), compilerSources = new Map();
+let retainedCompilerObjects, packagedGeneratorHash, selectedPackagedGenerator;
 let compilerBuildWorker, compilerBuildTimer, compilerBuildId = 0, compilerBuildSnapshot = '', compilerGeneration = 0;
 const backendIds = ['interpreter', 'fast', 'llvm'];
 const selectedBackends = () => backendIds.filter(key => selectedTargets[key === 'llvm' ? 'wasm' : key]);
@@ -714,7 +722,12 @@ async function persist() {
     if (sequence === saveSequence) $('project-storage').textContent = 'Not saved: ' + error.message + '. Use Save to download.';
   }
 }
-window.addEventListener('pagehide', () => { storage?.checkpoint(); stopExecution(); });
+window.addEventListener('pagehide', () => {
+  retainedCompilerObjects = packagedGeneratorHash = selectedPackagedGenerator = undefined;
+  cancelCompilerBuild();
+  storage?.checkpoint();
+  stopExecution();
+});
 document.addEventListener('visibilitychange', () => { if (document.hidden) storage?.checkpoint(); });
 function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
@@ -854,6 +867,7 @@ $('auto-rebuild-compiler').onchange = () => {
   else { compilerBuildSnapshot = ''; scheduleCompilerBuild(); }
 };
 $('reset-compiler').onclick = () => {
+  retainedCompilerObjects = packagedGeneratorHash = selectedPackagedGenerator = undefined;
   cancelCompilerBuild(); compilerGeneration = 0; selectCompiler();
   $('compiler-build-status').textContent = 'Original compiler restored · source edits retained';
 };
@@ -1063,7 +1077,10 @@ async function start() {
     keymap.of([{ key: 'Mod-Enter', run: () => { diagnosticDelay.reveal(); perform('analyze'); return true; } }, ...defaultKeymap, ...historyKeymap, indentWithTab]),
     EditorView.domEventHandlers({blur: () => { queueMicrotask(() => diagnosticDelay.reveal()); }}),
     EditorView.updateListener.of(update => {
-      if (update.docChanged) changed();
+      if (update.docChanged) {
+        if (project?.compilerProject) retainedCompilerObjects = undefined;
+        changed();
+      }
       else if (update.selectionSet && !update.startState.selection.eq(update.state.selection) && !update.view.composing)
         queueMicrotask(() => diagnosticDelay.reveal());
       if (update.selectionSet || update.docChanged) {

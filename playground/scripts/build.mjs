@@ -1,4 +1,5 @@
 import { build } from 'esbuild';
+import { createHash } from 'node:crypto';
 import { mkdir, copyFile, readFile, writeFile, readdir, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -17,9 +18,17 @@ const packager = process.env.TOWER_PLAYGROUND_ASSET_PACKAGER || path.posix.join(
 // dist is generated output. Never publish stale optional backends/target packs.
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
-await build({ absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs', 'src/compiler-thread-worker.mjs', 'src/compiler-isolation-worker.mjs'],
+// Stamp the bundled object worker (including its WASI host, target and flags).
+// Nested workers report the same stamp before their objects can be retained.
+const objectHostMarker = 'TOWER_OBJECT_HOST_SHA256'.padEnd(64, '_');
+await build({ define: {TOWER_OBJECT_HOST:JSON.stringify(objectHostMarker)}, absWorkingDir: root, entryPoints: ['src/app.mjs', 'src/worker.mjs', 'src/execution-worker.mjs', 'src/target-worker.mjs', 'src/language-worker.mjs', 'src/compiler-build-worker.mjs', 'src/compiler-thread-worker.mjs', 'src/compiler-isolation-worker.mjs'],
   outdir: dist, bundle: true, format: 'esm', target: 'es2022', minify: true,
   sourcemap: true, outExtension: { '.js': '.js' }, legalComments: 'linked' });
+const workerPath = path.join(dist, 'compiler-build-worker.js');
+const workerText = await readFile(workerPath, 'utf8');
+if (!workerText.includes(objectHostMarker)) throw new Error('Missing compiler object host stamp');
+const objectHost = createHash('sha256').update(workerText).digest('hex');
+await writeFile(workerPath, workerText.replaceAll(objectHostMarker, objectHost));
 for (const file of ['index.html', 'style.css', 'CNAME']) await copyFile(path.join(root, file), path.join(dist, file));
 await copyFile(path.join(root, '../build/browser-wasi/tower.wasm'), path.join(dist, 'tower.wasm'));
 let threads = false;

@@ -58,7 +58,7 @@ export async function compileUnits({compiler, recipe, files, workers = 1, create
       if (signal?.aborted) throw new Error('Compiler build cancelled');
       const unit = recipe.units[i];
       inputs[unit.object] = results[i].object;
-      await onObject(unit,results[i].object);
+      await onObject(unit,results[i].object,results[i].objectHost);
     }
     return {inputs,stats:{workers,peak:work.peak(),timings}};
   } finally {
