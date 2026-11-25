@@ -105216,3 +105216,47 @@ These are fixture costs. The executable uses a test-only renamed publication
 symbol because the Tower driver rejected the exploratory linker wrap.
 Receipt `b922ef9b-dc80-4400-b18b-9009359658ed` retains the build probes,
 commands, link maps, controls and exact outputs.
+
+### Test migration baseline and companion naming
+
+At `91b3e1f8` the repository inventory started with all 2,027 Git tree entries,
+including the two pinned dependency repositories. There are 682 entries under
+`scaffolding/tests`. The entire tree has 179 tracked `.mjs` files, including 26
+in temporal research. Of the 179, 53 end in `.test.mjs` and 23 in `.spec.mjs`.
+Counts describe files. CTest registrations, parametrized JavaScript calls, negative
+diagnostics and host-dependent checks still require case-level reconciliation.
+Three JavaScript programs live inside the native test directory itself:
+`host-wasi.mjs`, `run-allocator-wasm.mjs` and `run-guest-runtime.mjs`.
+The editor grammar harness also runs Tower-formatted fixtures through its npm
+test command. Filename-only discovery would miss these entry points.
+
+On Linux x64 the checked-in bootstrap ran all six standalone expected-output
+files against their corresponding Tower programs, sequentially. Both
+`bootstrap/linux-x64/towerc SOURCE --interpret` and `--interpret-fast` exited
+zero with empty stderr. Comparing raw stdout without newline normalization gave
+12 exact matches. The outputs for backend semantics, defer scopes, for loops,
+function values, null operators and operators were 87, 95, 85, 2, 136 and
+322 bytes respectively. This covers the two native interpreter modes. Browser
+execution, fault injection and backend-specific checks have separate oracles.
+
+We chose an optional compiler profile for the companion naming rule, shared by
+the native and in-memory source providers. The proposed defaults and alternate
+rule control are in the [testing guide](../scaffolding/tests/README.md#migrating-tests-next-to-their-modules).
+D supplies an example of test-conditioned declarations; Go exposes another
+relevant requirement by recording consulted inputs when reusing test results.
+Tower's affected-test project also needs to account for newly discoverable
+files and changes to the naming rule. [D conditional compilation](https://dlang.org/spec/version.html)
+and [Go test implementation](https://go.dev/src/cmd/go/internal/test/test.go).
+
+For the production control, a fresh entry imported
+`"./names_test.tower/math.tower"` and printed the result of `math.twice(21)`.
+It printed exactly `42\n`. The imported module had a sibling `math_test.tower`
+and the entry had a sibling `main_spec.tower`. Each sibling referenced a distinct
+missing import. Repeating `--emit foundation -o OUTPUT --depfile DEPFILE`
+with the siblings present, absent and restored produced identical Foundation
+bytes and depfile bytes at the same output paths. The depfile included the
+ordinary module inside the suffix-looking directory. Trying either sibling
+explicitly produced the corresponding missing-import diagnostic and exit 1.
+These are measurements of the published compiler's ordinary build. Selecting
+tests through the new profile requires successor acceptance. No production
+executable or runtime asset changed in this baseline.

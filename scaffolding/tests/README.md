@@ -1,5 +1,35 @@
 # Parser tree construction and debug output
 
+## Migrating tests next to their modules
+
+The proposed Tower convention pairs `module.tower` with `module_test.tower` in
+the same directory. Prefer the companion for library, compiler, ECS and scheduler
+tests. An inline `test() { ... }` can keep a small example next to the declaration
+it exercises. The block belongs to the grammar supplied by `import tower;`.
+A companion written in Tower can exercise a module written in Foundation or
+Bedrock. Existing runners remain the way to execute these checks with the
+`0823b028` bootstrap while the successor is being implemented.
+
+The compiler should derive a companion from a **shared module naming rule**.
+Its default source suffix is `.tower` and its default companion suffix is
+`_test.tower`. For example, `parser.v2.tower` pairs with
+`parser.v2_test.tower`; the directory `old_test.tower/` can still contain an
+ordinary module. Apply the rule to the final component of the resolved lexical
+path. Both native files and in-memory playground files need the same rule for
+discovery and classification. A test profile using `_spec.tower` should select
+that sibling through the same code. Changing the profile or adding a previously
+absent companion can change which tests must run. An ordinary build should
+neither open companion files nor record their imports in its depfile.
+
+Keep source inputs and expected text readable as files. Track each old case by
+its runner, selector, fixtures, expected outcome and execution modes until its
+Tower replacement checks the same behavior. For example, the five cases in the
+JavaScript loop suite cover two interpreter modes at two pointer widths,
+Foundation round trips, raw and optimized LLVM/Wasm, six invalid loop headers
+or bodies, a Foundation identifier, and formatting idempotence. The positive
+output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
+and [expected output](for_loops.expected.txt).
+
 ## Generic body demand fixtures
 
 `generic_body_cases.tower` supplies the shared syntax for `generic_body_lazy.tower`
