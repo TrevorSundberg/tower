@@ -22,6 +22,8 @@ export function towerCompletion(service, configuration) {
       const {head,empty}=update.state.selection.main;
       queries.retain(payload(update.state.doc.toString(),head));
       if(!empty || update.view.composing)return;
+      // Navigating to a member separator would forecast a second dot ahead of explicit completion.
+      if(!update.docChanged && update.state.sliceDoc(head,head+1)==='.')return;
       // Let rapid typing finish. Ask the same Tower/Wasm compiler about an
       // inserted dot, including the complete suffix and every module input.
       this.timer=setTimeout(()=>{
