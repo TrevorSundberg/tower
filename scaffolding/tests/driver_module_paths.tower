@@ -165,6 +165,11 @@ fn driver_import_companions(files: DriverImportFiles*, compiler: u8*): bool {
     if !driver_import_add(files, "/two_test.tower", "import tower;\nimport missing_sidecar_dependency;") { return false; }
     if driver_test_capture(&args) != 1 { return false; }
     driver_test_read("driver stderr.txt", "two_test.tower:2:", false);
+    if !driver_import_add(files, "/two_spec.tower", "import only_in_test;")
+        || !driver_import_add(files, "/two_spec_spec.tower", "import missing_nested_test;") { return false; }
+    driver_argument(&args, "", "--test-suffix"); driver_argument(&args, "", "_spec.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "/two_spec.tower\n", false);
     return true;
 }
 
