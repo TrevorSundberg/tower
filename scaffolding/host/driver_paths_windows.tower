@@ -1,5 +1,6 @@
 import tower;
 import driver_support;
+import driver_types;
 import driver_windows;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -21,7 +22,19 @@ export fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool {
     return true;
 }
 
-export fn driver_platform_regular(path: u8*): bool {
+extern fn GetLastError(): u32;
+
+export fn driver_platform_file_kind(path: u8*): DriverFileKind {
     var attributes = GetFileAttributesA(path);
-    return attributes != ~convert(u32, 0) &&(attributes &16) == 0;
+    if attributes == ~convert(u32, 0) {
+        var error = GetLastError();
+        var file_not_found: u32 = 2;
+        var path_not_found: u32 = 3;
+        return error == file_not_found || error == path_not_found ? DriverFileKind.Missing : DriverFileKind.Unavailable;
+    }
+    return (attributes & 16) == 0 ? DriverFileKind.Regular : DriverFileKind.Unavailable;
+}
+
+export fn driver_platform_regular(path: u8*): bool {
+    return driver_platform_file_kind(path) == DriverFileKind.Regular;
 }

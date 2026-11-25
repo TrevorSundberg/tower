@@ -879,6 +879,8 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
     var text: vector(u8);
     vector_init(&path);
     vector_init(&text);
+    defer vector_dispose(&path);
+    defer vector_dispose(&text);
     var status = module_resolve(parent, name, literal, &path, &text);
     var result: FrontendModule* = null;
     if status == ModuleReady {
@@ -974,9 +976,13 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
             }
         }
     }
-    vector_dispose(&path);
-    vector_dispose(&text);
     return result;
+}
+
+// The native driver supplies an absolute lexical companion path. Its source,
+// imports and diagnostics live in the owner's graph until that graph is released.
+export fn frontend_module_load_companion(owner: FrontendModule*, path: u8*): FrontendModule* {
+    return module_load(owner, path, true);
 }
 
 // Dotted segments retain components on their actual parse entities. The joined
@@ -1856,6 +1862,16 @@ fn module_make_prerequisites(text: vector(u8)*, paths: u8**, count: usize): void
 
 export fn frontend_modules_depfile_inputs(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool,
     inputs: u8**, count: usize): bool {
+    return module_write_depfile(environment, output, path, append, inputs, count, false, 0);
+}
+
+export fn frontend_modules_depfile_discovery(environment: ModuleEnvironment*, output: u8*, path: u8*,
+    directories: u8**, count: usize, optional_start: usize): bool {
+    return module_write_depfile(environment, output, path, false, directories, count, true, optional_start);
+}
+
+fn module_write_depfile(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool,
+    inputs: u8**, count: usize, discovery: bool, optional_start: usize): bool {
     if path[0] == 0 {
         return true;
     }
@@ -1866,6 +1882,18 @@ export fn frontend_modules_depfile_inputs(environment: ModuleEnvironment*, outpu
     module_make_prerequisites(&text, environment.used.data, environment.used.length);
     module_make_prerequisites(&text, inputs, count);
     module_require(bytes_append(&text, "\n", 1));
+    // Make can rerun discovery after an optional companion or one of its
+    // imports disappears, even when the previous depfile still names it.
+    if discovery {
+        for (var i = optional_start; i < environment.used.length; i++) {
+            module_make_path(&text, environment.used.data[i]);
+            module_require(bytes_append(&text, ":\n", 2));
+        }
+        for (var i: usize = 0; i < count; i++) {
+            module_make_path(&text, inputs[i]);
+            module_require(bytes_append(&text, ":\n", 2));
+        }
+    }
     var file = fopen(path, append ? "ab" : "wb");
     var ok = file != null;
     if ok {
