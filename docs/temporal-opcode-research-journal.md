@@ -101208,3 +101208,86 @@ Host 4 built the integrated candidate 2421c659 on Ubuntu 24.04.5 and LLVM 19.1.1
 On the same four EPYC 7542 cores, quota 12.288 CPUs, the be41c755 native object build sped up on eight independent long evaluations and lost time on a dependent chain of equivalent work. Median elapsed was 1,551 to 940 ms for independent work, 1,550 to 1,658 ms for the chain and 324 to 421 ms for the short input at jobs one and four. Chain peak individual RSS was 87,196 and 91,128 KiB and sampled process-tree peak was 77,084 and 85,208 KiB. All 90 uninstrumented and diagnostic object runs matched their reference and all six linked guests matched stdout. Reserving and disposing all 13,143 chain batch vectors took about 1.14 and 1.27 ms, including clock overhead. Reusing those buffers could recover little of the 112.66 ms median paired width penalty. Receipt ef14cffe retains both probe designs, ordinary paired timings and their oracles.
 
 On the 37-unit invoice, Foundation installation used 1.99, 3.67 and 8.25 s of summed unit-thread CPU at jobs one, four and eight with the phase observer off. At width eight, 69.8% of sampled CPU fell in shared budget gate acquisition, release or protected work. Removing 77,330 allocations for trivial LR row indexes saved 85 ms at four workers on this invoice but cost 42.5 ms in the serial skewed invoice. Both packages produced matching executable, guest, exports and ordered depfiles at every tested width. The trial remains outside the compiler. Receipt c1b04f13 contains the separate phase, sampling and capacity controls and the paired full-invoice costs.
+## Host 6 integrated live-cycle admission trial, November 25, 2026
+
+Assignment 9569dbf3-b471-44d7-ac53-f886594fa4fb uses compiler source
+902a358f55e65a4582d50802204a83428971ad5d and Linux development pin
+217f06311be15fd3dd942d9ee0d8e65b87057de2. Both input archives, nine
+required members, both Git trees, the 1,295 source hashes and all 57 package
+payloads matched the manager's packet. The first member lookup omitted the
+second tar's leading './'. Rechecking the original bytes with that prefix
+resolved every member. The f61765cf package had lost on the chain despite
+the opposite same-ELF control. This trial reopens that question on 902a.
+
+The signed-off build supplied 39 native products. The ordinary default
+Release recipe recompiled the ParserNodes unit in an isolated cache.
+Recompiling the stock unit reproduced the archived object byte for byte.
+The host relink differs from the Ubuntu pin in 89 bytes. The recorded hot
+functions in the two stock executables have identical addresses and bytes.
+The candidate changes the initial solver decision for narrow frontiers. It
+tests whether a dirty nonempty row belongs to a multi-vertex component.
+It preserves the integrated wave helper, FIRST repair and existing
+component traversal. The ported fixture also closes a previously solved DAG
+with back edges and checks the new fixed point and the untouched parked cycle.
+
+Host 6 ran one compiler at a time on KVM Xeon E5-2680 v4 guest cores
+4–7 with one thread per guest core. The shared quota was 11.52 CPUs and the
+memory ceiling was 32,282,509,312 bytes. Debian 12 supplied LLVM/Clang
+19.1.7. Files were warm and each CLI process was fresh. Four counterbalanced
+pairs per mode and worker count used the ordinary host link. At four workers,
+median stock/trial object times in milliseconds were 455.5/417 on tiny,
+454.5/435 on the five-binding held-out input, 474.5/431 on unseen_mix,
+1992.5/1916 on the equal-work chain and 913.5/843.5 on eight independent
+long expressions. Executables were 950/891, 958.5/902, 947/914.5,
+2422.5/2413 and 1364/1340. The independent long case won all four
+serial-to-four comparisons at 2.223× for objects and 1.738× for executables.
+
+The direct pin comparison split the four chain object pairs at four jobs.
+Marginal medians were 1934.5/1937.5 ms and the median paired stock/trial
+ratio was 1.0084. The executable won four of four at 2459.5/2409.5 ms.
+At one job the tiny object lost four of four against the host relink and
+three of four against the pin. The respective medians were 409/429.5 and
+399.5/406.5 ms. The trial changes executable placement even when the new
+decision is unreachable. These measurements alone cannot apportion the
+difference between layout, single-worker solver code generation and host noise.
+
+Separate synchronized 1 GiB world-budget runs on the four-job tiny object
+recorded 69,158,733/65,645,774 peak charged bytes, peak four lanes, zero live
+bytes, grants or lanes at teardown. Both serial runs charged 65,492,887
+bytes. The ledger was outside the timed compiler. Ordinary, ASan and TSan
+runners passed LR, bounded refusal/retry and receipt/cancellation with empty
+stderr. The full LR times were 2.04, 16.77 and 57.15 seconds. The focused
+module-cache and nested cancellation checks passed. The permutation negative
+reported actual 1112, wanted 1113 and exited 1. The new fixture on the
+integrated stock policy rejected the seeded-cycle dispatch and exited 134.
+The retained race control reported a data race in work_kernel_execute and
+exited 66. The supported Tower sanitizer instrumentation modes are address
+and thread. No Tower UBSan mode was available.
+
+Keep the integrated stock compiler. In the dual-mode executable the live
+decision won three of four four-job chain object pairs, 1924.5/1905 ms.
+The four-job tiny object won all four, 442/413.5 ms. A second CMake Release
+build set TOWER_MODULE_TESTS=ON symmetrically, changing the ordinary generated
+parser import from parser to parser_modules. The other generated imports and
+normalized compiler/link commands matched. No padding, per-function alignment
+or observers entered either comparison. In this layout the live decision
+lost every chain pair at both one and four jobs for both artifact types.
+Four-job chain object and executable medians were 1914/1963.5 and
+2386/2424.5 ms. At one job they were 1872.5/1956 and 2352.5/2408.5 ms.
+The four-job tiny object and executable still won all four. ix_step moved
+from 0x164f10 to 0x165120 in the default pair and from 0x169ac0 to 0x169cd0
+in the module pair. These observations establish layout sensitivity on this
+host. They do not identify a particular alignment, instruction or cache miss
+as the cause.
+
+All 487 matrix products, including 33 Foundation emissions, matched the
+new serial pin references. All 211 emitted guests produced the expected
+ordered output with exit zero and empty stderr. All 18 division-by-zero
+and fuel controls refused with identical per-fixture diagnostics and no
+output artifact. The four timing cohorts recorded zero quota throttles
+and OOM kills. Archive 9569dbf3-b471-44d7-ac53-f886594fa4fb.tar.gz contains
+the exact source/test patches, link inputs and ELFs, hot bytes, checked outputs,
+resource counters, scripts and negative results. The performance changes
+across ordinary layouts do not justify integrating this source or a regression
+test that would mandate the new admission policy. There is no production,
+bootstrap, browser or deployment change.
