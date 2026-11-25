@@ -1,6 +1,25 @@
 # Compiler ECS file ownership roster
 
-Current frozen source disposition: [4e7ef17b reconciliation](compiler_ecs_reconciliation_4e7ef17b.md), 1,282 tracked Tower paths:1,254 exact prior blobs plus28 independently reviewed deltas. It preserves the [1281-path base](compiler_ecs_reconciliation_7e9c91a0.md), [ec01291 finite review closure](#finite-review-closure-at-published-ec01291-2026-11-23), 1,146 paths/all51 substantive delegated receipts, and subsequent delta chain. Counts and pending rows below are historical; source review is not performance or public-adoption acceptance.
+At `ca54328765c60d6e6d7d7941f03ad704f10e9537`, Git contains 1,287 Tower
+paths. Of these, 1,214 retain their exact blob from the previous 1,282-path
+review, 68 changed, and five were added. The table records a caller or package
+origin, a finding and its supporting evidence for each changed or added file.
+Line references refer to the frozen revision. [73 changed or added paths](compiler_ecs_reconciliation_ca543287.tsv) · [Previous review and earlier audit chain](compiler_ecs_reconciliation_4e7ef17b.md)
+
+Of the 1,287 paths, 1,172 authored files retain their earlier review, 66 have
+new source findings and three had an open question at this revision. The
+remaining 46 are Linux bootstrap resources. All 46 match their authored bytes
+at release source `902a358f`. The newer authored `library/work_pool.tower`
+is the only one that differs from its packaged copy. The complete inventory,
+eight-journal cross-reference and negative controls are in worker receipt
+`90e4e149-8392-499f-b7bf-0cb03301798f`.
+
+The open formatter row has since received a repair in `5681a339` for staged
+integer widths and signedness. Its focused round-trip checks passed on native
+and Wasm target descriptions at one and four jobs. The other two rows still
+need actual macOS and Windows execution of the pool-capacity query. For
+broader performance, platform execution and release status, consult the
+[threading handoff](compiler_ecs_threading_handoff.md).
 
 Completeness index at `6282238779034442e0578d76b921ca117df819f1`:
 1,011 tracked `.tower` files, from `git ls-files '*.tower'`.

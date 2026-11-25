@@ -26,6 +26,11 @@ Do NOT modify todo.txt.
   redundant steps, batch related changes, and freeze inputs during builds. Reap
   failed processes before editing/restarting; do not overlap builds in one cache.
   No repository-wide cleanup or formatting sweeps.
+- Record persistent linker inputs on the executable entry's depfile, including
+  explicit objects and the runtime selected for that target. Verify each input
+  independently by touching only that file. The executable must rebuild once
+  and the next invocation must be clean. Object-only outputs should stay clean
+  when only the link runtime changes.
 
 ## Tower implementation and bootstrapping
 

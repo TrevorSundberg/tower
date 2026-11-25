@@ -101203,3 +101203,27 @@ requires independent evidence. The two capture-suspension call sites select
 their subjects and handle invalid lookups differently. This pass retains
 them. No compiler or scheduling change, or performance claim, follows from
 the documentation edit.
+
+### 2026-11-25 — Reconcile the final audit against the frozen source
+
+Host 6 reconciled ca543287 against 4e7ef17b in receipt
+`90e4e149-8392-499f-b7bf-0cb03301798f`. Manager review recomputed both Git
+trees, compared all 1,287 path/blob pairs, checked the last-change commit of
+each of the 73 changed or added paths, and verified all 124 hashes listed in
+the evidence archive. Its SHA-256 is
+`a993d839482000d566a2dcbb5e088cb376b944e72cfb3c6e99fb4864d847b9aa`.
+The worker's checker rejected a missing row, a duplicate at the same row
+count and a substituted blob. The manager also verified the 57 package
+payload hashes and compared each of the 46 packaged Tower files to its
+authored source at 902a358f. The [roster](compiler_ecs_file_roster.md) now
+links the per-file findings and records the three open questions at ca543287.
+
+Across the eight lane journals, three failures recurred. A nested pool could
+ask for children already occupied by another owner. A grammar or joined unit
+world could outlive its final reader and stay resident during the next phase.
+An executable could remain stale after only its explicit object or selected
+runtime changed. Earlier guidance covers pool capacity and last-reader
+ownership. AGENTS.md now gives the incremental build check that caught both
+missing link dependencies. Where Foundation formatter, interpreter, tests or
+bootstrap-symbol sources have changed since ca543287, use the successor's own
+receipts. This edit changes documentation only and has no runtime measurement.
