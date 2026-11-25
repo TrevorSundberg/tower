@@ -58,8 +58,8 @@ test('whole project ZIP imports large files and exports every file and link inpu
   expect(exported.files).toEqual(project.files); expect(exported.links).toEqual(project.links);
 });
 test('switching projects cancels an infinite loop and discards stale output',async({page}) => {
-  await edit(page,'loop {}'); await page.locator('#execute').click();
-  await expect(page.locator('#core-instructions')).toContainText('loop');
+  await edit(page,'import tower; print(17); loop {}'); await page.locator('#execute').click();
+  await expect(page.locator('#execution-output')).toHaveText('17\n');
   await page.locator('#project-kind').selectOption('example:execution');
   await expect(page.locator('#execution-output')).toBeEmpty();
   await page.locator('#execute').click(); await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
