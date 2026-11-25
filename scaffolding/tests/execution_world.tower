@@ -347,6 +347,18 @@ fn retained_world_diamond(session: ExecutionSession*, world: void*, modules: voi
     retained_world_expect(session, world, modules, budget, source, repaired_output, false);
 }
 
+fn retained_world_field_address(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
+    var provider = "retained_word.tower";
+    var first = "import tower;struct Word{a:u8;b:u8;}";
+    var reordered = "import tower;struct Word{b:u8;a:u8;}";
+    // Set byte zero directly so the expected value is independent of native byte order.
+    var source = "import tower;import retained_word as cfg;var wanted=comptime(read_field());fn read_field():i32{var storage:u16=0;var first=bits(u8*,&storage);*first=1;var word=bits(cfg.Word*,&storage);var field=&(*word).b;return convert(i32,*field);}print(wanted);";
+    execution_check(frontend_modules_source(modules, provider, first, strlen(first)), "Install byte field provider");
+    retained_world_expect(session, world, modules, budget, source, "0\n", false);
+    execution_check(frontend_modules_source(modules, provider, reordered, strlen(reordered)), "Move only the selected byte field");
+    retained_world_expect(session, world, modules, budget, source, "1\n", false);
+}
+
 fn retained_world_scalar_type(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
     var name = "retained_seed.tower";
     var unsigned_seed = "import tower;var seed:u8=7;";
@@ -413,6 +425,7 @@ fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
     retained_world_diamond(&session, world, modules, &budget);
     retained_world_scalar_type(&session, world, modules, &budget);
+    retained_world_field_address(&session, world, modules, &budget);
     retained_world_target_width(&session, world, modules, &budget, request.root);
     execution_close_checked(&session);
     retained_world_drained(world, &budget);
