@@ -101042,3 +101042,66 @@ The tested command is in [the bootstrap guide](../bootstrap/README.md#publishing
 The source for the guide change is `01b85611`. The manager checked all 497
 evidence hashes in receipt `388676b5-536e-45b0-91c7-891b0dfe8ae3`.
 This change documents file modes and changes no production code.
+
+## Checked generic inspection across declaration workers
+
+When checked inspection at `be4bc2d6` published its temporary bindings to
+source nodes, each annotation kept the private component kind alive. A
+failed later phase could detach the kind from the document while leaving
+its annotations on a declaration held by another owner. Checking the world
+only after dropping that declaration concealed the bug.
+
+Candidate `be41c755` copies the binding values into a budgeted work vector
+while the document retains their syntax. It discards the first stage before
+declaration workers run, leases the source nodes again, restores the values
+and publishes after the last fallible walk. Two evaluation batch allocations
+now return the typed memory error before acquiring a work ticket.
+
+| Cold serial inspection | Reached allocation refusals | Returned Memory | Refusals leaving 17 annotations | Aborts |
+| --- | ---: | ---: | ---: | ---: |
+| Previous candidate | 119 | 117 | 88 | 2 |
+| Binding lifetime change alone | 120 | 118 | 0 | 2 |
+| Complete repair | 120 | 120 | 0 | 0 |
+
+An independent reader recounted all the individual process observations.
+The source declaration held zero failed annotations for all eight refusals
+during final publication. The canonical array type survived document
+disposal and retired when its last separate reference was released.
+At one and four workers, ordinary inspection returned the same 151,228
+bytes on both revisions. All 180 native test registrations passed. ASan
+completed the serial rollback fixture and four-worker inspection. The first
+TSan process failed during host startup. The second reached four-worker
+inspection and passed. These runs qualify the tested native paths. The
+Ubuntu generation and both Wasm reactor links have their own release gates.
+
+Producer receipt `db418f66-c32f-47d3-9010-acd899d496fe` contains 1,867
+verified hashes. Peer receipt `b0bb914b-111e-415d-9e68-0c5bcc970d7f`
+recounts the baseline, partial repair and complete repair. The earlier
+Linux package also passed an independent Debian install in receipt
+`759b5fae-fc1f-4e64-b015-e873541ec818`. Fresh and repeat installation
+succeeded in a prefix containing spaces. A refused install preserved its
+occupied prefix. Interpretation and linked execution agreed on the
+forward type and staged fixtures. Substituting the Ubuntu startup object
+`Scrt1.o` accounted for all 43 differing bytes in the Debian grammar ELF.
+
+## Foundation editor queries after an upstream grammar edit
+
+At UI source `f595ea02` and browser compiler source `3390c2c8`, changing
+Bedrock's declaration keyword from `parse` to `rule` changed completion in
+a byte-identical Foundation document. At cursor byte 16, completion offered
+`rule` and inspection identified `ReviewEdge` at bytes 21 through 30. Undo
+restored `parse` and removed the declaration from inspection. Both results
+agreed with parsing the same source. The desktop and mobile editor checks
+observed actual keyboard undo. The portable and shared workers each
+returned 86 replies across fresh and retained sessions. A missing module
+diagnostic identified the import and the document remained editable.
+
+All 10 ordinary Bedrock cases and 13 Node language-service checks passed.
+The complete editor completion suite passed 14 of 16. The two failures
+were the same unfinished Tower function parameter on desktop and mobile.
+Four direct queries across the earlier seal and this UI returned
+`Completion query failed to acquire compiler resources`. The integrated
+LR completion repair is qualified on its own compiler revision.
+Receipt `7fedf4a8-754d-4327-8bbb-6c24f74fd711` has 130 verified hashes
+and includes the ordinary parser oracle, cursor ranges and matching reply
+IDs. These observations measure correctness without claiming a speedup.
