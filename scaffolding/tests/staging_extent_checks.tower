@@ -147,13 +147,21 @@ fn staging_extent_checks(root: u8*): void {
     var same_body: vector(u8) = default;
     defer vector_dispose(&same_body);
     units_read(root, "/tests/staging_same_body.tower", &same_body);
+    var aliased: vector(u8) = default;
+    defer vector_dispose(&aliased);
+    units_read(root, "/tests/staging_aliased_type.tower", &aliased);
+    var aliased_output = "2\n123\n8\n";
     for(var width: u32 = 4; width <= 8; width *= 2) {
+        var aliased_canonical: vector(u8) = default;
+        defer vector_dispose(&aliased_canonical);
         var same_body_canonical: vector(u8) = default;
         defer vector_dispose(&same_body_canonical);
         var canonical: vector(u8) = default; var existing: vector(u8) = default; var imported: vector(u8) = default;
         defer vector_dispose(&imported); defer vector_dispose(&existing); defer vector_dispose(&canonical);
         var offset: usize = 0;
         for(var workers: usize = 1; workers <= StagingExtentWorkers; workers *= StagingExtentWorkers) {
+            body_runs_trial_output(aliased.data, workers, width, bedrock.data, foundation.data, root,
+                &aliased_canonical, aliased_output);
             body_runs_trial_output(same_body.data, workers, width, bedrock.data, foundation.data, root,
                 &same_body_canonical, "528\n1552\n12\n2080\n");
             body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
@@ -167,6 +175,11 @@ fn staging_extent_checks(root: u8*): void {
         }
         units_check(vector_push(&canonical, 0) && vector_push(&imported, 0), "Staging canonical terminators");
         var roundtrip: vector(u8) = default; var module_roundtrip: vector(u8) = default;
+        units_check(vector_push(&aliased_canonical, 0), "Aliased staging canonical terminator");
+        var aliased_roundtrip: vector(u8) = default;
+        defer vector_dispose(&aliased_roundtrip);
+        body_runs_trial_output(aliased_canonical.data, StagingExtentWorkers, width, bedrock.data, foundation.data,
+            root, &aliased_roundtrip, aliased_output);
         defer vector_dispose(&module_roundtrip); defer vector_dispose(&roundtrip);
         body_runs_trial(canonical.data, StagingExtentWorkers, width, bedrock.data, foundation.data, root, &roundtrip);
         body_runs_trial(imported.data, StagingExtentWorkers, width, bedrock.data, foundation.data, root, &module_roundtrip);

@@ -1,0 +1,19 @@
+import tower;
+
+var model: u16 = 7;
+var address = &model;
+(*address)++;
+var salt: u8 = 23;
+var selected = comptime(choose(false));
+
+fn choose(take: bool): decltype(model) {
+    var count: decltype(model) = 0;
+    var alias = &count;
+    (*alias)++;
+    if take { return selected; }
+    return count * 100 + convert(decltype(count), salt);
+}
+
+print(sizeof(decltype(selected)));
+print(selected);
+print(model);
