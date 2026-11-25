@@ -100720,3 +100720,46 @@ cancellation and replacement (481 then 483), and checked all three Linux
 x64 downloads against 0352b975c828b499eed2d80c0e25cd5ced36b3b39229ace40e262eb9c97c02c6
 and guest output 5, 84, 42. The independent clean Ubuntu public-default
 build has its own receipt.
+### Host 2 successor integration and fixed-slot ownership, 2026-11-25
+
+Assignment e48f6adc-ad2c-4d07-97e9-9da623d57bbc verified the two input archives and nine declared members, then integrated b48e7191 and dedda9183 on private main as 969ac70caa880da859f12f49a88928e872ef3ead, tree 20cdfc8b0f0cfd98a6a8e5b2afe68598208b2118. The two changed implementation files and their fixtures match the respective reviewed parents. After the initial pull conflicted at d47660cc the rebase was aborted and shared main remained at b9ac5cb1. The checked-in 902a pin compiled the affected shared objects. The retained shared build linked the successor reactor 2cdb0d677aea92e2541d313cf5d7bd32bfe411c7df992637d7d1505f70c16bdc. Only the ordinary native driver and focused test products were needed.
+
+All six native FIRST sweeps in both imported versions matched the retained eight-rule oracle. The later terminal moved from right to edited and the first post-import declaration ended at bytes 76/77. The fixed-point, 400 generated emission and grammar-equivalence selections passed. The original two-slot probe reproduced all 677 assertions, diagnostics, Foundation and guest bytes. Three outer units on four slots passed preinstallation. The archived uncorrected 902a controls timed out at both boundaries. Tower kernel entry/exit events and actual WASI thread IDs show the adaptive single 128-function unit at one/two/four slots used zero/one/three busy children. The bounded three-unit trial at four slots executed outer IDs 58, 59 and 60 concurrently. Browser children run nested phases inline. Idle outer pthreads were excluded from all callback peaks. With two outer pthreads on four slots, coordinator LR preinstallation overlapped one nested child. With three outer pthreads, the one remaining spare did not fit a threaded pool.
+
+The exported API permits a coordinator to hold two separately owned pending batches. Opening a second two-unit batch changed the four-slot vector from [2,2,1,1] to [2,2,2,2]. The first world's immutable ceiling remained two. With the peer held, both the exact merged and correction-alone reactors reached a bounded assertion on the next actual spawn, before waiting. The ordinary driver opens only one such batch. The experimental fix is 53bbbc8ef8e57fb57020cfbb4304f07a2bdfa643, tree 6605deabac63311e56525fa8455bde9aadc07825. It reads the fixed transport's ready slots at each new pool open, preserves existing grants and takes the inline path when fewer than two are available. The pending peer stayed alive through compilation and all four slots returned ready on close. The original 677 checks, independent three-outer control, serial bytes, available nested LR overlap and three-child single-unit overlap were preserved. The option requires coordinated transport/Wasms and remains private for manager review. The first mutable library-global prototype failed to compile and is retained as a negative result.
+
+On Ryzen 5 3600 CPUs 0–3, quota 11.52 CPUs, matched warm-filesystem jobs ran one at a time. Three-sample four-slot command wall medians for 902a and merged were 2.45/2.44 s for the ordinary heavy browser unit and 4.33/4.39 s for three adaptive units. Native packaged heavy and multi medians were 0.81/0.82 and 1.00/0.98 s. Both native ELFs, depfiles, canonical text and guest output matched. Four-slot experimental multi-unit browser request median was 2.885 s vs 2.586 s merged in the three-arm follow-up; the other integrated block took 3.141 s. Keep the progress result separate from throughput under these small sample counts. All nine Chromium lifecycle modes passed at two and four slots on both sources. Experimental native units passed ASan/LSan and initialized TSan in 54.02/137.77 s. The fixed transport ran in real Chromium without a Wasm sanitizer. The packet contains exact revisions, ordinary/observed artifacts, bytewise comparisons, worker events, CPU/RSS/Wasm measurements, setup failures and the reproduction commands.
+
+### Competing owners on the shared browser reactor, 2026-11-25
+
+Receipt e48f6adc reproduced a progress failure after the single-batch fix.
+Two independent live unit batches occupied all four physical pthread slots.
+During grammar installation the first world's earlier ceiling still allowed
+a new pool. The bounded transport intercepted the fifth request before its
+wait. This case used the public constructors and one spawning coordinator.
+
+Main integrates 53bbbc8e. Each new pool queries the transport's currently
+available capacity. The shared reactor counts READY entries, with one as the
+inline floor. Existing pools retain their admitted slots. A browser child
+reports one and the native and portable implementations forward their prior
+capacity. Both browser transport modules and the Wasm import list change
+together. The release recipe must carry the matching compiler and transport.
+
+The manager compared the complete 677-check two-slot and 22-check four-slot
+results to the earlier controls, checked both six-pass FIRST sweeps, the
+bounded fifth-spawn assertion, return of all four READY entries, observed
+coordinator/child overlap with spare capacity, and 36 lifecycle trials on
+the earlier and repaired reactors. Host 2 used CPUs 0–3 on four Ryzen 5
+3600 cores under an 11.52-CPU quota. Three fresh-process merged browser
+request medians went from 709 to 1205 ms at one/four slots for 128 functions
+and from 1239 to 3141 ms for three units. These measurements include worker
+startup. This change addresses progress; small-case scaling remains open.
+ASan/LSan and TSan covered the native unit selection. Browser-specific
+instrumentation consisted of slot and callback traces and lifecycle checks.
+
+The bbb01f5e builds remain useful earlier controls. The browser promotion
+requires an independent competing-owner check on the full compiler source
+with the matching transport. The public 902a clean Ubuntu verification in
+457e26aa reproduced all 39 native products, 80 depfiles and 57 package
+payloads, including byte identity of the rebuilt archive. Its relocated
+guests at one and four jobs returned 42 and the invoice values 1666, 1685.
