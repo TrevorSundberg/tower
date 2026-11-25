@@ -104528,3 +104528,46 @@ host policy denied its personality call. Host 4 packet
 `56417dd4-fcf0-40cf-89bb-6e93449933b9` contains the exact inputs, commands,
 per-call ledgers, canonical Foundation, guest bytes, diagnostics, allocator
 and worker link maps, and separate receipts for every invocation.
+
+## Browser compiler build of the grammar loan and one-shot frontend ownership
+
+Host 7 built the portable, shared, LLVM and cross reactors from
+`2d81c29eafccd27e248527e88925035a3868761b`, tree `dcdd4e20`. The
+source preserves the two requested merges from public `2905a701`, first
+`729fa926` and then `76c5ce5d`. WASI SDK 34 and the checked-in Linux x64
+bootstrap `a3f76faf` built the release through build-wasm, build-threads and
+build-llvm. The packaged project contains 543 authored and 26 generated
+records. Its eight changed source records match the build checkout.
+The original 107-file Pages tree from `191d20a6` plus the independently
+replayed delta produces tree `b4c8c6bce9597e01934665bcf357577a2206f9c6`.
+The manifest SHA-256 is
+`47216291703e7d6de6852f5d6d357f1a87a7b7da8fdb9c05d4ab115e7a19e244`.
+
+The ordinary service retained an instance across two aliased imports, an
+edit, an unresolved function and its repair. Stock and candidate produced
+identical canonical Foundation and executable Wasm for every valid step at
+portable width one and shared capacity two. The shared run recorded 192
+dispatches and both workers closed. The initial interface comparison
+rejected the new declared export. The checked release preserves every
+old import and export and adds frontend_unit_release_program on all four
+reactors plus backend_link_symbol on LLVM and cross. The independently
+generated modules match their release counterparts' import and export sets.
+
+Two editable generations converged on 25 objects and three reactors, ran
+the edited diagnostic and drained their two and four workers. The release
+and both successors produced identical executable Wasm and Linux guests
+for the alias sum, each printing 42 plus LF. The focused desktop Build and
+module-edit selectors passed 2/2. The real Build posted all 569 expected
+edited records. This entry qualifies the compiler group on loopback.
+The manager owns publication, Host 4 the native qualification, and Host 8
+the independent UI-only successor tests.
+
+Four alternating pairs on CPUs 2 and 3 of the EPYC 7502 with a 30.72-CPU
+quota used fresh processes, a warm filesystem and four requests per
+process. Portable stock/candidate median wall times were 1.225/1.180 s,
+CPU 1.66/1.61 s and peak RSS 214106/214020 KiB. At shared capacity two
+they were 1.515/1.435 s, 2.07/1.99 s and 263384/264498 KiB. The clean
+LLVM/cross build with 29 build jobs took 369.39 s. The compiler and
+project receipt for assignment d90a702a-d933-4a54-8e5b-9923ace3551d
+contains the source bundle, reconstructable products, full inventories,
+commands, initial failure and generation records.
