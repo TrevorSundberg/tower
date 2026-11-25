@@ -117,6 +117,13 @@ fn ide_hover_checks(): void {
     q_expect(call, "declarationFile", "helper.tower"); q_num(call, "declarationLine", 1); q_num(call, "declarationColumn", 15);
     q_expect(q_tail(&f, "result"), "type", "i32"); q_ranges(&f);
 
+    q_case(&f, "hover: imported field follows edits through two type aliases");
+    f.width = QueryWidePointerBytes;
+    q_alias_field(&f, "u8", sizeof(u8));
+    q_alias_field(&f, "u32", sizeof(u32));
+    q_alias_field(&f, null, 0);
+    q_alias_field(&f, "u16", sizeof(u16));
+
     q_case(&f, "hover: dotted imports retain distinct segment entities");
     q_file(&f, "helpers/answer.tower", "import tower; fn answer():i32 { return 42; }");
     q_document(&f, "import tower; import helpers.answer; import helpers.answer; print(answer());");
@@ -153,6 +160,32 @@ fn ide_hover_checks(): void {
 
     ide_hover_grammar_checks(&f);
     ide_hover_documentation_checks(&f);
+}
+
+fn q_alias_field(f: QueryFixture*, field_type: u8*, size: usize): void {
+    // Replace the source inputs on the same environment, with the producer last.
+    frontend_modules_clear(f.environment);
+    q_file(f, "policy.tower", "import tower;import mid as route;var Word:type=route.Word;");
+    q_file(f, "mid.tower", "import tower;import deep as origin;var Word:type=origin.Word;");
+    if field_type != null {
+        var deep = q_replace("import tower;\nvar Word: type = Later;\nstruct Later { v: FieldType; }", "FieldType", field_type);
+        defer bytes_dispose(&deep);
+        q_file(f, "deep.tower", deep.data);
+    }
+    q_document(f, "import tower; import policy as cfg; var word: cfg.Word = default; var field = word.v;");
+    var field = q_get(f, ".v;", 1);
+    var complete = q_field(q_view(ide_result(&f.response)), "complete");
+    utility_check(q_equal(complete, q_view(field_type == null ? "false" : "true")), "Imported field document completeness");
+    if field_type == null {
+        utility_check(field.length == 0, "Missing producer clears the imported field hover");
+        return;
+    }
+    var signature = q_join("v: ", field_type); defer bytes_dispose(&signature);
+    q_expect(field, "signature", signature.data);
+    q_expect(field, "kind", "field");
+    q_expect(field, "declarationFile", "deep.tower");
+    q_num(field, "declarationLine", 3); q_num(field, "declarationColumn", 16);
+    q_expect(field, "type", field_type); q_num(field, "size", size);
 }
 
 fn q_hover_type(f: QueryFixture*, needle: u8*, offset: usize, name: u8*, size: usize): void {
