@@ -104695,3 +104695,38 @@ LLVM/cross build with 29 build jobs took 369.39 s. The compiler and
 project receipt for assignment d90a702a-d933-4a54-8e5b-9923ace3551d
 contains the source bundle, reconstructable products, full inventories,
 commands, initial failure and generation records.
+
+## Combined browser compiler and public idle editor on Host 7
+
+The two-parent source merge `23a5581d` of public `0a67e17c` and
+`4b699e9d` reproduced tree `39f5f9b4`. Host 7 sealed the four existing
+production reactors and 569-file editable project from `2d81c29e` onto
+the public idle editor from `8024e026`. All 454 distinct tracked
+source inputs from the captured depfiles and all recipe members reconciled.
+The loopback Pages commit is `1eb092521a765c62d6271ac2d8e0dd28e70a17ad`
+with direct public parent `5b34c05456ba87128159f886be87337766740b1c`.
+An independent receiver reproduced all 107 files and Git modes, tree
+`58633136791911cacf21875447b200dc415d68f8` and manifest SHA-256
+`2dcf3481e922f706f1ca737b0d05c55cfbd7ce6a5dd9f1445c8bf565eff7212f`.
+
+The full Playwright suite passed 240 cases with two mobile skips, Node
+passed 513 with two optional-export skips, and Roku passed 13. The three
+normal shared trials, nine ownership controls, separate IDE gate and
+deployment verifier passed. All 16 downloaded deployment products matched
+the retained release. Additional actual desktop and mobile Build checks
+observed 25 compiles on each of the first two Builds, then 25 exact
+object hits and zero compiles on the third. All three reactor hashes
+matched the independently linked unedited oracle. Both viewports
+downloaded byte-identical copies of the d90 Wasm and Linux alias guest.
+
+The initial desktop observer closed an already-open units folder. The
+initial mobile observer accepted an earlier equal-text reply when trying
+to establish an idle baseline. Separate selectors verified the actual
+folder state and waited for fresh terminal replies. Both viewports
+covered cancellation, stale replies, malformed input, repair and closing
+during an active Build. The retained receipts distinguish the separate
+contexts and keep both failed processes. Packet
+`684c10dc-c0ac-48c6-8074-e588a729698f` contains source and Pages
+replay material, fixture and product identities, raw results and
+per-command CPU, wall and RSS observations. The manager owns publication
+and any subsequent hosted checks.
