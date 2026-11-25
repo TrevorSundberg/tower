@@ -103307,3 +103307,106 @@ Assignment 7c9a2861-477a-4ba2-9595-ec4fa92634d5. On the 902a-backed Pages parent
 On integrated 4a3aa2d6 with the earlier interaction repairs reapplied as 4dee77a4, product change 8b7a9ecb explicitly commits queued writes and checkpoints outstanding per-project snapshots before navigation freezes the current history entry. The receiving document compares durable revision predecessors inside an IndexedDB transaction before hydrating the editor. Explicit commit alone lost both pressured samples. A pagehide-only checkpoint also lost the edit. Disabling the final handoff reproduced the failure on both sites. The fixed product passed all six unchanged untraced desktop samples. Two rapid edits restored/exported the exact newest 482 bytes, switching and reloading retained the selected path, and Restore followed immediately by reload returned 456 bytes. Legacy state, independent newer revisions and genuine transaction aborts were checked. Only the two app bundle/map files changed on each local site.
 
 Playwright 1.65.1, Chromium 159.0.8154.6, Linux x86-64 Ryzen 9 7900X, affinity 0–23 and quota 23.04 CPUs. Each full interaction file passed 6 desktop and 6 mobile both before and after on each release with two workers, tracing and zero retries. Performance probes ran one job and one browser worker at a time with 456-byte and 66 KiB inputs, two fresh contexts per size and two checked edits per context. Final input-to-transaction-complete maximum 10.82 ms in 16 samples. Real reloads are covered, process crashes and arbitrary history storage limits remain open. No native code changed. Packet 7c9a2861 includes both Git commits, before/after exact bytes, per-case raw JSON, timings, host limits, independent source/site replay and 56 reconstructible original and new trace ZIPs. Publication belongs to the manager.
+## Immediate reload with a pending editor save
+
+The desktop execution project lost its last edit on the public 902a and
+sealed 3390 browser products. In both, CodeMirror and the IndexedDB put
+request received all 480 bytes. After reload, the same project and path
+contained the original 456 bytes. No completion for the edited transaction
+had reached the old page. Trace collection affected reproduction. With
+tracing off the original ordinary desktop check failed three times on
+each product. With tracing on the complete interaction suite passed even
+on the original product.
+
+The integrated app repair at `8b7a9ecb` retains the latest pending snapshot
+per project in the navigation history entry while writes are outstanding.
+On startup it reads the durable revision and conditionally restores the
+snapshot in one IndexedDB read/write transaction. An intervening write
+with a newer, unrelated revision wins. Legacy projects without revision
+metadata remained readable. The project export omits storage revisions.
+
+On each repaired product the unchanged desktop repro passed three times
+with tracing off. With another writer holding the database, the newest
+482-byte edit was stored, rendered and exported. Disabling the navigation
+checkpoint lost it again on both products. Restore followed by immediate
+reload returned the original 456 bytes. The full interaction suite passed
+six desktop and six mobile checks per product, with zero retries or skips.
+The manager checked all 45 raw run summaries, including the expected
+failures and the separate sensitivity controls.
+
+Across 16 repaired samples with stock or approximately 66 KiB documents,
+input to transaction completion took at most 10.82 ms. Host 8 used a Ryzen
+9 7900X with 12 physical cores, affinity 0–23 and a 23.04-CPU quota.
+The fixed parent timing batch used 3.48 s user CPU, 1.29 s system CPU
+and 200432 KiB maximum process RSS. On the fixed 3390 batch these were
+3.46 s, 1.35 s and 192548 KiB. The page-reload check covers a normal
+navigation while a write is pending. Crash recovery and large project
+limits need their own observations.
+
+Receipt `7c9a2861-477a-4ba2-9595-ec4fa92634d5` contains the source
+bundle, navigation events, matched runs and controls. The archive has
+6,336 verified member checksums and SHA-256
+`73482cc419d3bcf5a9a9eccff8ae9c1778803778dfd206f4d40a980d6f81a9da`.
+A public-source release check is combining this change with the edited
+grammar repair on the 902a runtime.
+
+## Linux self-host and Wasm inspection at be4bc2d6
+
+Linux candidate `be4bc2d69667cf634add28ed1da7cdafa67efa9a` keeps the
+unchecked inspection stage private through the value walk. On canonical
+Ubuntu 24.04.5 with LLVM 19.1.1 the original storage registration passed.
+The direct storage output matched host 5 byte for byte. Injecting allocation
+failure at each allowance from 0 through 12 passed rollback, retry and
+teardown. Allowances 13 and 14 now succeeded.
+
+The first native generation used the checked-in cd77 bootstrap. The next
+two used the preceding generation. A fresh checkout selected the proposed
+pin by default and reproduced the compiler. The manager rehashed the 39
+actual native products and both sets of 40 depfiles from each of the four
+builds. All matched. The recorded lists of 51 generated inputs and 56
+installed file contents also matched. Compared with the 4a3aa2d6 generation,
+only Entities, Semantics and the linked compiler changed among the native
+products. The package also includes the updated entity_stage.tower source.
+
+The 57 payload sizes and digests matched the pin and all 1,305 source
+hashes matched the candidate source archive. The compiler SHA-256 is
+`5dc7ee817b6cf8821c1a6c01a3662610f43d97bbd9fdb096b689a4b9a816ed0f`.
+Relocated, clean-receiver and installer checks each interpreted and linked
+a program that printed 42. The relocated and receiver-produced ELFs matched
+the retained Ubuntu reference. The distributed archive contains a 0755
+executable and directories, and 0644 regular data files. A checkout made
+under umask 0077 produced 46 staged resource files at 0600. A clean checkout
+under 0022 reproduced canonical staging. The user installer separately
+created a private 0700 package root and 0750 resource directories.
+
+On four physical Ryzen 7 5800H cores at affinity 0,2,4,6, with a 15.36-CPU
+quota and zero measured throttling, the three builds through installation
+took 28.30, 27.56 and 27.51 s. The clean default receiver took 28.04 s,
+75.61 s user and 6.91 s system CPU, with maximum individual RSS of 767756
+KiB and sampled process-tree RSS of 2021716 KiB. Each started in a fresh
+build directory with warm filesystem inputs, four Ninja jobs and one Tower
+worker. These observations establish reproducibility at the named settings.
+
+The portable and shared Wasm reactors and the portable reactor built inside
+Chromium all resolved the new stage accessor from the Entities object. The
+ordinary editor resolved a forward type and printed 42, reported
+`Unknown local 'missing_value'` for the broken edit, and printed 43 after
+repair. On all three products the manager matched the 54-entry generic
+snapshot to the native oracle and the full inspection replies to the
+respective prior browser reactor. Debugger observations on the product
+bytes reached the checked, unchecked and checked branches in order, with a
+real accessor call on the failing edit. Superseding an in-flight request
+retired its owner. The replacement returned its own complete result. All
+9, 41 and 9 observed workers respectively closed. Each browser timing pair
+had a single sample. The browser-built check recompiled the two changed
+units and linked the portable editor.
+
+Native receipt `6dcc6bb3-c2d4-4994-b51a-e78461eaf202` has 736 verified
+checksums and archive SHA-256
+`5c0d966f7470f8d6e308a5f50f237f25434a7d13577cf94bb2aa26c3d936a117`.
+Wasm receipt `40a90bd2-2e02-41cf-9518-a0e1b2468d1b` has 545 verified
+checksums and archive SHA-256
+`624220927cfcca8a50a47133f785921eaaeac35b073611c0ca6864cdecbab89b`.
+The independent Linux receiver and the whole-site release use separate
+acceptance checks. The public Linux development pin remains 902a358f at
+this publication.
