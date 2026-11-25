@@ -10,6 +10,7 @@ import .library.bytes_types;
 import .library.vector;
 import .library.entities;
 import .library.entity_types;
+import .host.memory;
 import .host.work_linux;
 import .host.work_dispatch;
 
