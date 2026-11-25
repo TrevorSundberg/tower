@@ -1,7 +1,8 @@
-import {selectDocument, downloadedProject, revealDiagnostics} from './project-helpers.mjs';
+import {selectDocument, downloadedProject, revealDiagnostics, savedSource} from './project-helpers.mjs';
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-const base = "parse Variable = Identifier;\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n";
+const numberToken = "[number] token Number = /[0-9]+/;\n";
+const base = numberToken + "parse Variable = Identifier;\nparse Expression = Identifier | Number;\nparse Statement = Expression ';';\n";
 const loop = "parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';\nparse Statement |= ForEach;\n";
 async function setSource(page, text) {
   const editor = page.getByRole('textbox', { name: 'Tower source' });
@@ -13,50 +14,77 @@ async function setSource(page, text) {
   await revealDiagnostics(page);
 }
 
+async function checkLessonNumber(page, filename, source, declaration) {
+  await expect(page.locator('#filename')).toHaveText(filename);
+  await expect.poll(() => savedSource(page)).toBe(source);
+  const offset = source.indexOf(declaration);
+  expect(offset).toBeGreaterThanOrEqual(0);
+  const start = Buffer.byteLength(source.slice(0, offset));
+  const end = start + Buffer.byteLength(declaration);
+  const roots = page.locator('.document-children > li');
+  await expect(roots.first().locator(':scope > details > summary')).toHaveAttribute('title', 'ImportDeclaration | bytes [0, 15)');
+  const token = roots.nth(1).locator(':scope > details > summary');
+  await expect(token).toHaveAttribute('title', `GrammarTokenDeclaration | bytes [${start}, ${end})`);
+  await token.click();
+  await expect(page.locator('#editor .tw-selected')).toHaveText(declaration.split('\n'));
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await expect(page.locator('#status')).toContainText('Complete');
 });
 
-test.describe('delayed parser transport', () => {
-// Network interception cannot delay a response served by the isolation worker.
-test.use({serviceWorkers:'block'});
 test('slow parsing has no deadline and can be cancelled or superseded', async ({page}) => {
   test.setTimeout(45000);
-  await page.route('**/worker.js', async route => {
-    const response = await route.fetch();
-    await route.fulfill({response, body: await response.text() + `
+  await page.locator('#auto-execute').uncheck();
+  const parser = () => page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js'));
+  async function delayMarkedRequests(worker) {
+    await worker.evaluate(() => {
       const analyze = self.onmessage;
       self.onmessage = async event => {
-        if (event.data.source.includes('slow-parser-fixture'))
+        if (event.data.source?.startsWith('// slow-parser-fixture')) {
+          self.lastSlowSource = event.data.source;
           await new Promise(resolve => setTimeout(resolve, 11500));
+        }
         return analyze(event);
-      };`});
-  });
-  await page.reload();
-  await expect(page.locator('#status')).toContainText('Complete');
-  await page.locator('#auto-execute').uncheck();
-  const slow = value => `// slow-parser-fixture\nprint(${value});`;
+      };
+    });
+  }
+  const first = parser();
+  await delayMarkedRequests(first);
+  const program = value => `import foundation;\nprint(${value});`;
+  const slow = value => `// slow-parser-fixture\n${program(value)}`;
   await setSource(page, slow(1));
   await expect(page.locator('#status')).toContainText('Tower is parsing');
   await expect(page.locator('#status')).toContainText('Complete', {timeout:20000});
 
   await setSource(page, slow(2));
   await expect(page.locator('#status')).toContainText('Tower is parsing');
+  await expect.poll(() => first.evaluate(() => self.lastSlowSource)).toBe(slow(2));
+  const closed = first.waitForEvent('close');
   await page.locator('#cancel-execution').click();
   await expect(page.locator('#status')).toHaveText('Parsing cancelled');
+  await closed;
+  await setSource(page, program(0));
+  await expect(page.locator('#status')).toContainText('Complete');
+  const next = parser();
+  await delayMarkedRequests(next);
   await setSource(page, slow(3));
   await expect(page.locator('#status')).toContainText('Tower is parsing');
-  await setSource(page, 'print(4);');
+  await expect.poll(() => next.evaluate(() => self.lastSlowSource)).toBe(slow(3));
+  await setSource(page, program(4));
   // The old reply is discarded, then the latest edit uses the same warm worker.
   await expect(page.locator('#status')).toContainText('Complete', {timeout:20000});
-  await expect(page.locator('#tree')).toContainText('4');
-});
+  await expect(page.locator('#tree .node-preview')).toHaveText('print(4);');
+  expect(parser()).toBe(next);
+  await expect.poll(() => savedSource(page)).toBe(program(4));
 });
 
 test('whole-document tree selects roots, nested nodes and replacements', async ({ page }, info) => {
   const errors = []; page.on('pageerror', error => errors.push(error.message));
-  await expect(page.locator('.document-children > li')).toHaveCount(9);
+  const lesson = await readFile(new URL('../../../scaffolding/examples/foreach.tower', import.meta.url), 'utf8');
+  await expect(page.locator('.document-children > li')).toHaveCount(10);
+  await checkLessonNumber(page, 'foreach.tower', lesson, '[number]\ntoken Number = /[0-9]+/;');
   await expect(page.locator('.document-root')).toHaveText('Document');
   await expect(page.locator('#timeline, #run, #step, #reset')).toHaveCount(0);
   const variable = page.locator('#tree button').filter({ hasText: '$Variable' }).first();
@@ -70,7 +98,8 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   await expect(page.locator('.tw-selected')).toContainText('foreach');
   await selectDocument(page, 'replacements.tower');
   await expect(page.locator('.document-children > li')).toHaveCount(21);
-  const root = i => page.locator('.document-children > li').nth(i).locator(':scope > details > summary');
+  const replacements = await readFile(new URL('../../../scaffolding/examples/replacements.tower', import.meta.url), 'utf8');
+  await checkLessonNumber(page, 'replacements.tower', replacements, numberToken.trimEnd());
   // Open lazy subtrees to expose previews at their actual replacement roots.
   const expand = async () => { for (let i = 0; i < 12; ++i) { await page.locator('#tree details').evaluateAll(items => items.forEach(item => item.open = true)); await page.waitForTimeout(10); } };
   await expand();
@@ -80,9 +109,13 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   await expect(page.locator('.expanded-code').nth(3)).toHaveText('item + 1');
   await expect(page.locator('.expanded-code').nth(6)).toHaveText('7 + 1');
   await expect(page.locator('.expanded-code').nth(7)).toHaveText('7 + 1');
-  const replacement = page.locator('.document-children > li').nth(19).locator('button.replacement').first();
+  const foreach = page.locator('.document-children > li').filter({has:page.locator('.node-preview', {hasText:'foreach (item in items)'})});
+  const replacement = foreach.locator('button.replacement').first();
   await replacement.click();
-  await expect(page.locator('#node-info')).toContainText('definition bytes');
+  const template = ' loop ($item in $collection) $body ';
+  const definition = Buffer.from(replacements).indexOf(template);
+  expect(definition).toBeGreaterThanOrEqual(0);
+  await expect(page.locator('#node-info')).toContainText(`definition bytes [${definition}, ${definition + Buffer.byteLength(template)})`);
   await expect(page.locator('.tw-selected').first()).toContainText('foreach');
   await page.locator('#tokens').check(); await expand();
   await expect(page.locator('.expanded-code')).toHaveCount(8);
@@ -93,15 +126,17 @@ test('whole-document tree selects roots, nested nodes and replacements', async (
   await setSource(page, base + "parse Expression |= 'bad' => replace { $missing };\nbad;");
   await expect(page.locator('.tw-inline-error-message')).toContainText('Unknown replacement capture');
   await expect(page.locator('#node-info')).not.toContainText('definition bytes');
-  await expect(page.locator('#revision')).toHaveText('Revision 3');
+  await expect(page.locator('#revision')).toHaveText('Revision 4');
   await expect(page.locator('.expanded-code')).toHaveCount(0);
 });
 
 test('shared prefixes parse live and ambiguous boundaries show inline conflicts', async ({ page, request }, info) => {
   const example = await (await request.get('/foreach.tower')).text();
-  await setSource(page, example.replace('parse Statement |= ForEach;', "parse Statement |= ForEach | 'for';"));
+  const edited = example.replace('parse Statement |= ForEach;', "parse Statement |= ForEach | 'for';");
+  await setSource(page, edited);
   await expect(page.locator('#status')).toContainText('Complete');
-  await expect(page.locator('.document-children > li')).toHaveCount(9);
+  await expect(page.locator('.document-children > li')).toHaveCount(10);
+  await checkLessonNumber(page, 'foreach.tower', edited, '[number]\ntoken Number = /[0-9]+/;');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
   await expect(page.locator('#tree')).toContainText('ForEach');
   await expect(page.getByText('Define the syntax. Then use it.', { exact: true })).toHaveCount(0);
@@ -138,15 +173,14 @@ test('diagnostics, corrected input, local persistence and source download work',
   await page.getByRole('button', {name:'Go to error at foreach.tower:2:19'}).click();
   await expect(page.locator('.tw-inline-error')).toBeInViewport();
   await page.screenshot({path:`../build/playground-empty-literal-${info.project.name}.png`});
-  const grammar = "[number] token Number = /[0-9]+/;\n" + base;
-  await setSource(page, grammar + "parse Statement |= Expression ';';");
+  await setSource(page, base + "parse Statement |= Expression ';';");
   await expect(page.getByRole('alert')).toContainText('Grammar conflict');
   await expect(page.locator('#revision')).toHaveText('Revision 4');
   await page.locator('#editor-error').click();
   await expect(page.locator('.tw-inline-error')).toBeVisible();
   expect(await page.locator('.tw-inline-error-card').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
   await page.locator('#editor').screenshot({ path: `../build/playground-error-conflict-${info.project.name}.png` });
-  await setSource(page, grammar + '123;');
+  await setSource(page, base + '123;');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.getByRole('alert')).toBeHidden();
   const downloadPromise = page.waitForEvent('download');
@@ -166,11 +200,11 @@ test('inline errors mark the source and preserve the saved document', async ({ p
   await setSource(page, source);
   await expect(page.locator('#status')).toContainText('Stopped');
   await expect(page.locator('.tw-error-range')).toHaveText(')');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:8:9`);
-  await expect(page.locator('.tw-inline-error-message')).toContainText('Unexpected');
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:9:9`);
+  await expect(page.locator('.tw-inline-error-message')).toContainText("Unexpected ')'. Expected ';'.");
   await expect(page.locator('#diagnostic')).toBeHidden();
   await expect(page.getByRole('textbox', { name: 'Tower source' })).toBeFocused();
-  await page.getByRole('button', { name: 'Go to error at foreach.tower:8:9' }).click();
+  await page.getByRole('button', { name: 'Go to error at foreach.tower:9:9' }).click();
   const line = await page.locator('.tw-error-line').boundingBox();
   const card = await page.locator('.tw-inline-error').boundingBox();
   expect(card.y).toBeGreaterThanOrEqual(line.y + line.height - 1);
@@ -195,14 +229,16 @@ test('inline errors mark the source and preserve the saved document', async ({ p
 });
 
 test('inline Unicode and end-of-input locations stay visible until fresh diagnostics arrive', async ({ page }, info) => {
-  await setSource(page, "// 雪🚀\nparse Statement = Number ';';\n🚀;");
+  const grammar = "// 雪🚀\n" + numberToken + "parse Statement = Number ';';\n";
+  await setSource(page, grammar + '🚀;');
+  await expect(page.locator('.tw-inline-error-message')).toHaveText('No token rule matches source. Expected a statement or grammar declaration.');
   await expect(page.locator('.tw-error-range')).toHaveText('🚀');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:1`);
-  const incomplete = "// 雪🚀\nparse Statement = Number ';';\n42";
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:4:1`);
+  const incomplete = grammar + '42';
   await setSource(page, incomplete);
-  await expect(page.locator('.tw-inline-error-message')).toContainText('end of input');
+  await expect(page.locator('.tw-inline-error-message')).toContainText("Missing ';' before end of input.");
   await expect(page.locator('.tw-inline-error-message')).not.toContainText('at byte');
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:3`);
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:4:3`);
   await expect(page.locator('.tw-error-range')).toHaveCount(0);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
   await page.locator('#editor').screenshot({ path: `../build/playground-error-eof-${info.project.name}.png` });
@@ -221,7 +257,7 @@ test('inline Unicode and end-of-input locations stay visible until fresh diagnos
   await expect(page.locator('#editor-error')).toBeHidden();
   await setSource(page, incomplete + '\n');
   // The missing semicolon belongs after the last token, before trailing trivia.
-  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:3:3`);
+  await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Error${await page.locator('#filename').innerText()}:4:3`);
   await expect(page.locator('.tw-error-point')).toHaveCount(1);
 
 });
