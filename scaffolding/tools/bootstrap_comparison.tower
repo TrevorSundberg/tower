@@ -52,12 +52,32 @@ fn bootstrap_comparison_source(unit: BootstrapUnit): u8* {
         BootstrapUnit.Bytes => { return "library/bytes.tower"; }
         BootstrapUnit.Entities => { return "compiler/units/entities.tower"; }
         BootstrapUnit.ParserNodes => { return "tower_compiler_parser_nodes.tower"; }
-        BootstrapUnit.Host => { return "tower_compiler_host.tower"; }
         BootstrapUnit.Interpreter => { return "compiler/units/interpreter.tower"; }
         BootstrapUnit.Semantics => { return "compiler/units/semantics.tower"; }
         BootstrapUnit.GraphComponents => { return "library/graph_components.tower"; }
         _ => { return null; }
     }
+}
+
+// TowerHost.cmake writes one import for the configured platform and profile.
+// Carry only the profile to the other platforms in the comparison.
+fn bootstrap_comparison_host_suffix(native: u8*): u8* {
+    var path: ByteBuffer = default; var entry: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&entry);
+    if !tool_join(&path, native, "tower_compiler_host.tower")
+        || !tool_read_file(path.data, BootstrapComparisonInputLimit, &entry) { return null; }
+    while entry.length != 0 && bootstrap_symbol_space(entry.data[entry.length - 1]) { entry.length--; }
+    var prefix = "import compiler.units.host_";
+    var start = strlen(prefix);
+    if entry.length <= start || memcmp(entry.data, prefix, start) != 0 || entry.data[entry.length - 1] != *";" { return null; }
+    var end = start;
+    while end < entry.length - 1 && entry.data[end] != *"_" { end++; }
+    if !bootstrap_symbol_in("linux wasi windows macos", entry.data + start, end - start) { return null; }
+    var length = entry.length - 1 - end;
+    if length == 0 { return ".tower"; }
+    if bootstrap_symbol_in("_driver", entry.data + end, length) { return "_driver.tower"; }
+    if bootstrap_symbol_in("_checks", entry.data + end, length) { return "_checks.tower"; }
+    return null;
 }
 
 // Fresh invocation directories and per-stage removal prevent old files from
@@ -100,16 +120,21 @@ fn bootstrap_comparison_equal(directory: u8*, left: u8*, right: u8*, suffix: u8*
     return a.length != 0 && a.length == b.length && memcmp(a.data, b.data, a.length) == 0;
 }
 
-fn bootstrap_comparison_target(context: BootstrapComparison*, name: u8*, target: u8*): bool {
+fn bootstrap_comparison_target(context: BootstrapComparison*, name: u8*, target: u8*, host_root: u8*, host_suffix: u8*): bool {
     var unit = bootstrap_unit(name);
     var source: ByteBuffer = default; var prefix: ByteBuffer = default;
     var before: ByteBuffer = default; var after: ByteBuffer = default;
     defer bytes_dispose(&source); defer bytes_dispose(&prefix);
     defer bytes_dispose(&before); defer bytes_dispose(&after);
-    var generated = unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Host;
-    var source_root = generated ? context.native : context.scaffolding;
-    if !tool_join(&source, source_root, bootstrap_comparison_source(unit))
-        || !bytes_append(&prefix, name, strlen(name)) || !bytes_append(&prefix, "-", strlen("-"))
+    if unit == BootstrapUnit.Host {
+        if !tool_join(&source, context.scaffolding, host_root)
+            || !bytes_append(&source, host_suffix, strlen(host_suffix)) || !host_text_terminate(&source) { return false; }
+    } else {
+        var root = unit == BootstrapUnit.ParserNodes ? context.native : context.scaffolding;
+        var relative = bootstrap_comparison_source(unit);
+        if relative == null || !tool_join(&source, root, relative) { return false; }
+    }
+    if !bytes_append(&prefix, name, strlen(name)) || !bytes_append(&prefix, "-", strlen("-"))
         || !bytes_append(&prefix, target, strlen(target)) || !host_text_terminate(&prefix)
         || !bytes_append(&before, prefix.data, prefix.length) || !bytes_append(&before, "-bootstrap", strlen("-bootstrap"))
         || !host_text_terminate(&before) || !bytes_append(&after, prefix.data, prefix.length)
@@ -122,10 +147,15 @@ fn bootstrap_comparison_target(context: BootstrapComparison*, name: u8*, target:
 }
 
 fn bootstrap_comparison_unit(context: BootstrapComparison*, name: u8*): bool {
-    return bootstrap_comparison_target(context, name, "x86_64-pc-linux-gnu")
-        && bootstrap_comparison_target(context, name, "wasm32-unknown-unknown")
-        && bootstrap_comparison_target(context, name, "x86_64-pc-windows-msvc")
-        && bootstrap_comparison_target(context, name, "aarch64-apple-darwin");
+    var suffix: u8* = null;
+    if bootstrap_unit(name) == BootstrapUnit.Host {
+        suffix = bootstrap_comparison_host_suffix(context.native);
+        if suffix == null { puts("Cannot read a supported Host profile from tower_compiler_host.tower"); return false; }
+    }
+    return bootstrap_comparison_target(context, name, "x86_64-pc-linux-gnu", "compiler/units/host_linux", suffix)
+        && bootstrap_comparison_target(context, name, "wasm32-unknown-unknown", "compiler/units/host_wasi", suffix)
+        && bootstrap_comparison_target(context, name, "x86_64-pc-windows-msvc", "compiler/units/host_windows", suffix)
+        && bootstrap_comparison_target(context, name, "aarch64-apple-darwin", "compiler/units/host_macos", suffix);
 }
 
 fn bootstrap_comparison_grammar(context: BootstrapComparison*): bool {
