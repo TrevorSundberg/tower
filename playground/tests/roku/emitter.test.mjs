@@ -46,7 +46,7 @@ test('narrow integer operations and output survive scalar reconstruction', {time
 });
 
 test('Roku source uses selected layout, preserves comments, is deterministic and rejects foreign ABIs',async()=>{
-  const source='// roku comment\nvar p:u8* = null; print(p); print(sizeof(usize)); print(alignof(u64)); print(true);';
+  const source='import tower;\n// roku comment\nvar p:u8* = null; print(p); print(sizeof(usize)); print(alignof(u64)); print(true);';
   const h=tower.compile(source,{pointerBytes:4});
   const before=tower.exports.tw_live_nodes();
   try {
@@ -57,10 +57,10 @@ test('Roku source uses selected layout, preserves comments, is deterministic and
     assert.equal(await runBrightScript(emitted),reference(source));
     assert.equal(tower.exports.tw_live_nodes(),before);
   } finally { tower.destroyExecution(h); }
-  const wide=tower.compile('print(sizeof(usize));',{pointerBytes:8});
+  const wide=tower.compile('import tower; print(sizeof(usize));',{pointerBytes:8});
   try { assert.throws(()=>tower.rokuSource(wide),/32-bit/); } finally { tower.destroyExecution(wide); }
-  assert.throws(()=>compile('extern fn missing():void; missing();'),/foreign function/);
-  assert.throws(()=>compile('extern fn platform_write():void; platform_write();'),/platform_write requires/);
+  assert.throws(()=>compile('import tower; extern fn missing():void; missing();'),/foreign function/);
+  assert.throws(()=>compile('import tower; extern fn platform_write():void; platform_write();'),/platform_write requires/);
 });
 
 test('recursion, simultaneous phi copies, many arguments, unsigned arithmetic and text output',async()=>{
@@ -82,9 +82,9 @@ test('recursion, simultaneous phi copies, many arguments, unsigned arithmetic an
 
 test('runtime traps unwind instead of continuing with a fabricated result',async()=>{
   for(const source of [
-    'var a:i32=1; var b:i32=0; var c=a/b; print(c);',
-    'var a:i64=-9223372036854775808; var b:i64=-1; var c=a/b; print(c);',
-    'var a:u64=18446744073709551615; var b=convert(i64,a); print(b);',
+    'import tower; var a:i32=1; var b:i32=0; var c=a/b; print(c);',
+    'import tower; var a:i64=-9223372036854775808; var b:i64=-1; var c=a/b; print(c);',
+    'import tower; var a:u64=18446744073709551615; var b=convert(i64,a); print(b);',
   ]) for(const optimize of [false,true]) {
     const main='sub Main()\ntry\nTowerRun()\ncatch e\nprint "caught"\nreturn\nend try\nthrow "Expected trap"\nend sub\n';
     assert.equal(await runBrightScript(compile(source,optimize),main),'caught\n');
