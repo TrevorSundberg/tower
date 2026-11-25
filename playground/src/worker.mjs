@@ -8,7 +8,7 @@ self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule
       // A broken project library must still open for editing.
       tower = (await getCanonicalTower()).tower;
       handle = moduleHandle = bedrockHandle = 0;
-      [installed, installedBedrock] = await getCanonicalSources();
+      ({foundation:installed, bedrock:installedBedrock} = await getCanonicalSources());
     }
     foundation ??= installed; bedrock ??= installedBedrock;
     tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}, library, replaceBuiltins:true});

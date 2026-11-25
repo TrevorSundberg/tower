@@ -1,6 +1,6 @@
 import { decodeBytes } from './host-bytes.mjs';
 import { TowerWASI } from './wasi-host.mjs';
-import { configureFoundation, configureBedrock } from './bootstrap.mjs';
+import { configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
