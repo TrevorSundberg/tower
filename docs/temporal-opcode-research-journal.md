@@ -102783,3 +102783,40 @@ On the same AMD EPYC 7502, Node 24.22.3 and Chromium 159.0.8154.6, the final ord
 Three alternating-order process pairs used CPU 6, one portable Wasm instance per process, warm local files, seven identical documents and three passes. The harness checked all option arrays against their expected answers, including the stock resource error. First parameter-query median wall/CPU was 258.5/258.5 ms for the error and 290.6/290.3 ms for the recovered answer. Post-query linear memory fell from 1,085,931,520 to 16,449,536 bytes. Warm median print time was 54.2/51.8 ms (sealed/repaired). The 3,629-byte vector module with a final print prefix took 63.7/63.7 ms. Whole-process median wall/CPU and peak RSS were 1.37/1.36 s and 96,672 KiB on stock, 1.44/1.43 s and 99,588 KiB on repair. The allocator's legacy live counter read zero on both and the warmed live node count stayed at 11,179. Linear memory capacity and process peak RSS measure different things. These timings cover a serial editor query path. Separate concurrent UI tests check correctness.
 
 Native Clang/LLVM 19 ASan and initialized TSan ran the existing parser integration fixtures including bounded suffix reconstruction, with four TSan address-layout startup rejections before success. The broader ASan editor selector failed during cyclic-module validation in syntax_reader_span on both the frozen and repaired source. Its first serial compilation failed before the editor inspection ran. The native execution suite was outside the assignment. The browser build has no configured ASan/TSan or Tower UBSan mode. The raw records, ordinary source bundle, exact overlay bytes and reproduction commands are in the assignment packet. Publication, hosted validation and the broader sanitizer finding remain open.
+
+### Ordinary Foundation editor regression for an upstream Bedrock edit and undo
+
+On 2026-11-25 host 2 turned the editor observation from assignment
+7fedf4a8 into one ordinary browser title at
+`d9eceb281771f5e882ecee9970b5129d0df776cc`, parent
+`f595ea02d7a83599bd3e3405ba198bd9aee1af05`. The Bedrock mutation test
+already covered parser and execution results, completion covered switching
+documents, and grammar hover covered inspection of a static grammar.
+The new test uses the Increment project's Foundation file and the existing
+Bedrock rename fixture. It observes the document reply on the originating
+worker and request ID after reselecting Foundation, checks the actual two
+module contents and opens the ordinary CodeMirror completion popup at byte 16.
+The first attempt selected the file before the new project tree hydrated;
+waiting for its actual Foundation button fixed that setup failure.
+
+With Foundation fixed at `import bedrock;\nrule ReviewEdge = Identifier;`,
+the edited grammar produced `import, rule, skip, token` and a complete
+parse-rule name at [21, 31) defined by Identifier. Undo in the Bedrock
+editor produced `import, parse, skip, token` and an incomplete document
+with no such entry. Both viewports agreed with the prior ordinary-parser
+oracle and editor replies. The same test against the sealed 3390 UI failed
+on both with a terminal diagnostic from .tower/foundation_syntax.tower
+rejecting 'parse'. The prior Bedrock rename and grammar hover titles also
+passed on both viewports. Every selection used one Playwright worker and
+zero retries.
+
+On the same f595ea02 UI, shared 3390 compiler assets and host CPU mask
+0–11 (Ryzen 5 3600, quota 11.52 CPUs), two paired desktop/mobile runs of
+the five-checkpoint predecessor took 17.08 and 17.12 s with peak RSS
+452168 and 459140 KiB. The two-checkpoint ordinary title took 10.81 and
+10.62 s with peak RSS 265336 and 266080 KiB. These measure each whole test
+selection, including its differing recording work. The runtime assets were
+reused. The source bundle, exact predecessor, product manifests, command
+lines, replies, failures and time reports are in the host 2 packet for
+d7ecbec5-28ee-4216-8228-997349f60d31. Release publication belongs to
+the manager.
