@@ -103658,3 +103658,76 @@ reused. The source bundle, exact predecessor, product manifests, command
 lines, replies, failures and time reports are in the host 2 packet for
 d7ecbec5-28ee-4216-8228-997349f60d31. Release publication belongs to
 the manager.
+
+### Linux checked inspection candidate at be41c755 (host 4)
+
+Assignment 70444f93-efc2-4b19-a202-2dc6d33445e9 qualified the Ubuntu
+development compiler from be41c7556554acdb9eed63f2075a643b64f6e0b9, tree
+9768d75b753485839869a7d08532d58630c67322. The be4bc2d6 source snapshot
+reconstructed its Git tree and commit. The original host 5 bundle, SHA-256
+ea1ec30a45f9f2da4968f23bf5136acb88dbd9291455455563e3e1337db2a4ae,
+fast-forwarded that base. The six-file delta matched the declared patch.
+The changes to semantic_generic_info, semantic_evaluation and
+semantic_evaluation_work all occur in the production Semantics depfile.
+
+On Ubuntu 24.04.5 and LLVM 19.1.1 the rebuilt stock storage registration and
+the direct committed inspection-rollback selector passed. It swept 47 checked
+and 20 unchecked allocation points. The LR type and query smoke suites,
+execution type-staging, typed editor, production-worker inspection and
+type-return dependency registrations passed. The forward guest printed 42 at
+one and four workers. Both widths produced the host 5 constructor Foundation
+and the expected graph interpreter, fast interpreter and native results.
+The earlier host 5 packet contains the sanitizer evidence at this freeze.
+
+Gen1 used the checked-in cd77 compiler and both following generations used
+the previous complete package. An independent receiver reconstructed the
+sealed source, imported the pin and installer, selected its own checked-in
+compiler with the override unset, and built into an empty cache. All four
+builds agreed on 39 native products, 40 raw and 40 transformed depfiles, 51
+generated inputs, and 56 installed files. Of the 456 content-hashed
+prerequisites, exactly the three compiler sources above changed. All
+depfiles, generated inputs and installed resources matched the retained
+be4bc2d6 results. The Semantics object changed from
+c67a03437fd1c31f3479b3d0821f821d82c1630cc5e970b9c9c09c4cba47a7cc to
+4c03c69b29b6afee9521248d7de23b627a99d1a3ad62b10113c25303094c4aef.
+The linked 2,279,168-byte compiler changed from
+5dc7ee817b6cf8821c1a6c01a3662610f43d97bbd9fdb096b689a4b9a816ed0f to
+a3f76faf3e602f27420d9b42497166b98e345252f5e4dc1b1eaea6ee294b83fd.
+The prior be4bc2d6 package already shipped the updated entity_stage.tower.
+The cd77 pin in the compiled tree still carried its earlier bytes.
+
+The development pin a1315ecaf04b2cda881bffcd87e6431e8b42cf61 has the
+compiled source as its immediate parent. Its child, separate installer
+commit b1644585cc9125858a43ef76a9b06052e45f25f3, selects that pin. The
+2,192,106-byte archive SHA-256 is
+4b71926793c03e42c7321c313e7d78e591ddf29544b9925405012ecb72999067.
+Gen2 and Gen3 agreed on all 57 package payloads and the manifest. An
+independent packager invocation from a 0077 shell, with 0022 scoped to the
+release step, reproduced the archive. UID 2002 in the retained Ubuntu
+verification VM verified and executed UID 1001's extracted archive, linked
+the relocated grammar guest and matched its reference ELF. The separate
+user installer succeeded in a fresh prefix and on repeat. The occupied
+be4bc2d6 installation rejected replacement with exit 1 and remained intact.
+
+Host 4 used a Ryzen 7 5800H, affinity 0,2,4,6 on four physical cores,
+quota 1536000/100000, four outer jobs and one inner worker. The warm-page,
+empty-build-directory measurements below each cover one build through
+installation. Each pair lists retained be4bc2d6 then be41c755. The two RSS
+columns are GNU time's individual maximum and the sampled sum of live
+descendants' RSS, in KiB. There was zero cgroup CPU throttling.
+
+| Build | Wall s | User s | System s | Individual KiB | Tree KiB |
+| --- | --- | --- | --- | --- | --- |
+| Gen1 | 28.30 / 27.97 | 75.61 / 75.93 | 6.71 / 6.88 | 768140 / 773680 | 2025004 / 2031048 |
+| Gen2 | 27.56 / 28.36 | 74.93 / 76.53 | 6.75 / 6.91 | 772168 / 773796 | 2022948 / 2027520 |
+| Gen3 | 27.51 / 28.57 | 74.99 / 76.62 | 6.74 / 6.85 | 773584 / 773300 | 2023496 / 2027508 |
+| Clean receiver | 28.04 / 28.47 | 75.61 / 76.44 | 6.91 / 6.83 | 767756 / 773888 | 2021716 / 2031436 |
+
+The packet preserves the failed attempt to clone the retained history,
+the empty-cache configure without native flags, the test's resource-directory
+working directory that shadowed its source-bound i32 edit, and the first VM
+launch against an unrecovered ext4 journal. The registered build-directory
+staged execution passed. The test-profile CLI links a query-checks object.
+Its changed Semantics object matched production and the production CLI
+independently repeated the forward and constructor guests. Work on this
+assignment ended at local qualification. Publication belongs to the manager.

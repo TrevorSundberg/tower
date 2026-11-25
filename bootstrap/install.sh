@@ -10,9 +10,9 @@ host=$(uname -sm)
 [[ $host == 'Linux x86_64' ]] || die "Unsupported host: $host (requires Linux x86_64)"
 command -v clang-19 >/dev/null || die "Missing clang-19. Install the Ubuntu LLVM/Clang 19 prerequisites."
 
-revision=a77dbf9f08d7e0c72b6a5df0318f977c4aa72ce1
+revision=a1315ecaf04b2cda881bffcd87e6431e8b42cf61
 url="https://raw.githubusercontent.com/TrevorSundberg/tower/$revision/bootstrap/linux-x64"
-sums=b72120ae8bc3e655f7f7807795d65e8ee51dc28ce11b0af03bcc06ff9e9414c3
+sums=409d5f0e1fa87b2092ef1546dd6b4c3de6c3e720a74ac3b783758681b2998b90
 check_list() {
     printf '%s  SHA256SUMS\n' "$sums" | sha256sum --strict --check --quiet >&2
 }
