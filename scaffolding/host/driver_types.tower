@@ -1,4 +1,5 @@
 import tower;
+import .compiler.test_file_rule;
 
 enum DriverOptionError: u32 { None = 0, MissingValue = 1, Unexpected = 2, Allocation = 3, Jobs = 4, UnitRetainedBytes = 5 }
 
@@ -42,4 +43,5 @@ struct DriverOptions {
     check_format: bool;
     link_executable: bool;
     test_mode: DriverTestMode;
+    test_rule: TestFileRule;
 }

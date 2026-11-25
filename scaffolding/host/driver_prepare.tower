@@ -1,5 +1,6 @@
 import tower;
 import driver_types;
+import .compiler.test_file_rule;
 import driver_support;
 
 extern fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): bool;
@@ -44,6 +45,9 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
     if options.unit_retained_policy && options.unit_count == 0 {
         driver_error("--unit-retained-bytes requires additional --unit sources", "");
         return 1;
+    }
+    if !test_file_rule_valid(&options.test_rule) {
+        driver_error("Invalid companion suffix: ", options.test_rule.companion_suffix); return 1;
     }
     if options.test_mode != DriverTestMode.None {
         if options.source[0] == 0 || options.interpret || options.link_executable || options.library
