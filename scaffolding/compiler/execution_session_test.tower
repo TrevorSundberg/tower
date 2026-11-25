@@ -1,0 +1,169 @@
+import tower;
+import execution_session;
+import execution_package;
+import .library.work_budget_types;
+import .library.work_vector_types;
+import .library.work_vector;
+import .tests.execution_support;
+import .host.driver_support;
+import .host.driver_request;
+import .tests.execution_world;
+import .library.work_budget;
+import .library.work_pool;
+import test_file_rule;
+
+extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
+extern fn frontend_modules_swap_test_discovery(environment: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+extern fn frontend_modules_source(environment: void*, path: u8*, text: u8*, length: usize): bool;
+
+fn execution_test_declaration_world(request: DriverRequest*, workers: usize): void {
+    var signal = work_signal_open();
+    execution_check(signal != null, "test request budget signal");
+    defer work_signal_close(signal);
+    work_signal_post(signal);
+    var budget: WorkBudget = default;
+    execution_check(work_budget_init(&budget, workers, ~convert(usize, 0), 1)
+        && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post), "test request budget");
+    var world: void* = null;
+    execution_check(compiler_world_create_result(workers, &budget, &world) == WorkBudgetError.None, "test request world");
+    var modules = frontend_modules_create();
+    execution_check(modules != null && frontend_modules_bind_world(modules, world), "bound test request modules");
+    execution_world_prepare(world, modules, request);
+    execution_test_declarations(modules);
+    execution_test_array_assertions(modules, false);
+    execution_test_array_assertions(modules, true);
+    execution_test_discovery_reset(modules);
+    frontend_modules_destroy(modules);
+    execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "test request world drains");
+    var final: WorkBudgetSnapshot = default;
+    execution_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
+        && final.used_lanes == 0 && work_budget_dispose(&budget), "test request releases memory and workers");
+}
+
+fn execution_test_discovery_reset(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var source = "import tower; print(7); test() { print(11); }";
+    var companion = "import tower; test() { print(42); }";
+    var rule = test_file_default_rule();
+    var selection: TestFileSelection = default;
+    defer test_file_selection_dispose(&selection);
+    execution_check(frontend_test_selection_open(&selection, &rule, "world_unit.tower")
+        && frontend_modules_source(modules, "world_unit_test.tower", companion, strlen(companion)), "registered companion input");
+    var discovery: TestFileDiscovery = { selection: &selection, ..default };
+    {
+        var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+        defer frontend_modules_swap_test_discovery(modules, previous);
+        execution_check(execution_session_compile_tests(&session, source, strlen(source), 8, modules)
+            && session.program.test_count == 2, "inline and registered companion in one request");
+    }
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, "11\n42\n"),
+        "registered companion executes after the owner");
+    execution_compile(&session, source, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && session.program.test_count == 0
+        && execution_text(&session.output, "7\n"), "same session and world return to an ordinary request");
+}
+
+fn execution_test_array_assertions(modules: void*, fast: bool): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var passing = "import tests.test_declaration_inputs.array_assertions;";
+    execution_check(execution_session_compile_tests(&session, passing, strlen(passing), 8, modules)
+        && session.program.test_count == 1, "select array order and assertion evaluation checks");
+    if fast { execution_check(execution_session_fast(&session), "fast array assertion program"); }
+    execution_run(&session, 7, 10000);
+    if session.machine.failed {
+        driver_report(session.error.data, session.machine.error_offset, passing, strlen(passing), "test request", modules);
+    }
+    execution_check(session.machine.done && !session.machine.failed && session.output.length == 0,
+        "positional order, single evaluation and lazy assertion message");
+
+    var wrong = "import tests.test_declaration_inputs.wrong_array_order;";
+    execution_compile(&session, wrong, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && session.program.test_count == 0
+        && session.output.length == 0, "ordinary mode excludes wrong array assertion");
+    execution_check(execution_session_compile_tests(&session, wrong, strlen(wrong), 8, modules)
+        && session.program.test_count == 2, "select array owner and deliberate failure");
+    if fast { execution_check(execution_session_fast(&session), "fast wrong-order program"); }
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && session.machine.failed && execution_text(&session.output, "1342\n")
+        && execution_text(&session.error, "Wrong positional array order"), "assertion stops the selected test");
+    var line: usize = 0;
+    var column: usize = 0;
+    var path = frontend_modules_location(modules, session.machine.error_offset, &line, &column);
+    driver_report(session.error.data, session.machine.error_offset, wrong, strlen(wrong), "test request", modules);
+    var suffix = "tests/test_declaration_inputs/wrong_array_order.tower";
+    var name = strstr(path, suffix);
+    execution_check(name != null && strcmp(name, suffix) == 0 && line == 6 && column == 5,
+        "assertion points at the first token of the multiline call in its owning module");
+}
+
+fn test_declaration_rejected(session: ExecutionSession*, source: u8*, modules: void*, wanted: u8*, expected_line: usize): void {
+    execution_check(!execution_session_compile_tests(session, source, strlen(source), 8, modules),
+        "test mode rejects the invalid source");
+    execution_check(session.error.data != null, "test diagnostic text");
+    driver_report(session.error.data, session.machine.error_offset, source, strlen(source), "test request", modules);
+    execution_check(strstr(session.error.data, wanted) != null, "selected diagnostic");
+    var line: usize = 0;
+    var column: usize = 0;
+    var path = frontend_modules_location(modules, session.machine.error_offset, &line, &column);
+    execution_check(path[0] != 0 && line == expected_line && column != 0, "test diagnostic source location");
+}
+
+fn execution_test_declarations(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var source = "import tower; import tests.test_declaration_inputs.owner as owner; fn private_value(): i32 { return 99; } export fn main(): i32 { return 7; } print(private_value()); print(owner.shared_value);";
+    execution_compile(&session, source, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.program.test_count == 0 && execution_text(&session.output, "99\n41\n"),
+        "ordinary root runs the call named test and excludes the test declarations");
+    execution_check(execution_session_compile_tests(&session, source, strlen(source), 8, modules), "test request compiles");
+    execution_check(session.program.test_count == 2, "two tests selected from imported owner");
+    var bytes: work_vector(u8) = default;
+    var error: work_vector(u8) = default;
+    defer work_vector_dispose(&bytes);
+    defer work_vector_dispose(&error);
+    execution_check(execution_package_encode(&session.program, modules, 0, &bytes, &error) == WorkBudgetError.None,
+        "test functions and calls round-trip through canonical Foundation");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, "41\n42\n"),
+        "two tests see the owner's private declaration and initialized global in order");
+    puts("Selected test output");
+    puts(session.output.data);
+    execution_check(execution_package_load(&session, bytes.data, bytes.length, modules), "reconstruct test program");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, "41\n42\n"),
+        "reconstructed test call targets and order");
+    var sidecar = "import tower; import tests.test_declaration_inputs.owner as owner; import tests.test_declaration_inputs.owner_test as checks;";
+    execution_check(execution_session_compile_tests(&session, sidecar, strlen(sidecar), 8, modules)
+        && session.program.test_count == 3, "selected owner and adjacent sidecar compile once each");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, "41\n42\n43\n"),
+        "sidecar helper executes after owner tests");
+
+    var invalid = "import tower;\ntest() {\n    missing_test_dependency();\n}\nprint(17);";
+    execution_compile(&session, invalid, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(!session.program.test_mode && session.program.test_count == 0
+        && !session.machine.failed && execution_text(&session.output, "17\n"), "ordinary request excludes unbound test dependency");
+    test_declaration_rejected(&session, invalid, modules, "missing_test_dependency", 3);
+    test_declaration_rejected(&session, "import tower;\nfn bad(): void { test() {} }", modules, "module scope", 2);
+    test_declaration_rejected(&session, "import tower;\nother() {}", modules, "Expected test()", 2);
+    test_declaration_rejected(&session, "import tower;\ntest(1) {}", modules, "Expected test()", 2);
+    var trap_source = "import tower;\ntest() { print(13); }\ntest() { var z: i32 = 1; z -= 1; print(10 / z); }\ntest() { print(99); }";
+    execution_check(execution_session_compile_tests(&session, trap_source, strlen(trap_source), 8, modules),
+        "runtime failure control compiles");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && session.machine.failed && execution_text(&session.output, "13\n"),
+        "runtime failure stops before third test");
+    var line: usize = 0;
+    var column: usize = 0;
+    var path = frontend_modules_location(modules, session.machine.error_offset, &line, &column);
+    driver_report(session.error.data, session.machine.error_offset, trap_source, strlen(trap_source), "test request", modules);
+    execution_check(path[0] != 0 && line == 3 && column != 0 && execution_text(&session.error, "Division by zero"),
+        "division reports selected declaration location");
+}

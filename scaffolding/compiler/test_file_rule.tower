@@ -1,0 +1,121 @@
+import tower;
+import .library.vector;
+
+extern fn strlen(text: u8*): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+struct TestFileRule {
+    source_suffix: u8*;
+    companion_suffix: u8*;
+}
+
+fn test_file_default_rule(): TestFileRule {
+    return {source_suffix: ".tower", companion_suffix: "_test.tower"};
+}
+
+enum TestFileKind: u8 { Other, Source, Companion }
+
+// The frontend supplies canonical lexical paths with slash separators. Only a
+// nonempty basename stem is eligible. Imported directory names are immaterial.
+fn test_file_kind(rule: TestFileRule*, path: u8*): TestFileKind {
+    var base = path;
+    for (var i: usize = 0; path[i] != 0; i++) {
+        if path[i] == *"/" { base = path + i + 1; }
+    }
+    var length = strlen(base);
+    var suffix = strlen(rule.companion_suffix);
+    if length >= suffix && strcmp(base + length - suffix, rule.companion_suffix) == 0 {
+        return length == suffix ? TestFileKind.Other : TestFileKind.Companion;
+    }
+    suffix = strlen(rule.source_suffix);
+    return length > suffix && strcmp(base + length - suffix, rule.source_suffix) == 0 ? TestFileKind.Source : TestFileKind.Other;
+}
+
+fn test_file_suffix_valid(suffix: u8*): bool {
+    if suffix == null || suffix[0] == 0 { return false; }
+    for (var i: usize = 0; suffix[i] != 0; i++) {
+        if suffix[i] < 32 || suffix[i] == *"/" || suffix[i] == 92 || suffix[i] == *":" { return false; }
+    }
+    return true;
+}
+
+fn test_file_rule_valid(rule: TestFileRule*): bool {
+    if !test_file_suffix_valid(rule.source_suffix) || !test_file_suffix_valid(rule.companion_suffix) { return false; }
+    var source = strlen(rule.source_suffix);
+    var companion = strlen(rule.companion_suffix);
+    return source < companion || strcmp(rule.source_suffix + source - companion, rule.companion_suffix) != 0;
+}
+
+fn test_file_append(out: vector(u8)*, data: u8*, length: usize): bool {
+    if length > ~convert(usize, 0) - out.length || !vector_reserve(out, out.length + length) { return false; }
+    copy(out.data + out.length, data, length);
+    out.length += length;
+    return true;
+}
+
+fn test_file_replace_suffix(path: u8*, from: u8*, to: u8*, result: vector(u8)*): bool {
+    result.length = 0;
+    if !test_file_append(result, path, strlen(path) - strlen(from)) || !test_file_append(result, to, strlen(to) + 1) { return false; }
+    result.length--;
+    return true;
+}
+
+// key contains the exact NUL-delimited source suffix, companion suffix and
+// canonical requested path. Its storage pins all three views through discovery.
+// The requested path distinguishes an owner graph from an explicit single test.
+struct TestFileSelection {
+    key: vector(u8);
+    rule: TestFileRule;
+    entry: u8*;
+    owner: vector(u8);
+}
+
+fn test_file_selection_dispose(selection: TestFileSelection*): void {
+    vector_dispose(&selection.owner);
+    vector_dispose(&selection.key);
+    *selection = default;
+}
+
+fn test_file_selection_root(selection: TestFileSelection*): u8* {
+    return selection.owner.data ?? selection.entry;
+}
+
+// Failures preserve the prior selection. The caller can release or edit the
+// incoming profile as soon as this returns.
+fn test_file_selection_freeze(selection: TestFileSelection*, rule: TestFileRule*, path: u8*): bool {
+    if !test_file_rule_valid(rule) || path[0] == 0 { return false; }
+    var next: TestFileSelection = default;
+    defer test_file_selection_dispose(&next);
+    if !test_file_append(&next.key, rule.source_suffix, strlen(rule.source_suffix) + 1) { return false; }
+    var companion = next.key.length;
+    if !test_file_append(&next.key, rule.companion_suffix, strlen(rule.companion_suffix) + 1) { return false; }
+    var entry = next.key.length;
+    if !test_file_append(&next.key, path, strlen(path) + 1) { return false; }
+    next.entry = next.key.data + entry;
+    next.rule = {source_suffix: next.key.data, companion_suffix: next.key.data + companion};
+    if test_file_kind(rule, path) == TestFileKind.Companion {
+        if !test_file_replace_suffix(path, rule.companion_suffix, rule.source_suffix, &next.owner)
+            || test_file_kind(rule, next.owner.data) != TestFileKind.Source { return false; }
+    }
+    test_file_selection_dispose(selection);
+    *selection = next;
+    next = default;
+    return true;
+}
+
+enum TestFilePresence: u8 { Missing, Present, Failed }
+
+// Borrowed for one synchronous test compilation. A null probe selects
+// registered module inputs through the same discovery walk.
+struct TestFileDiscovery {
+    selection: TestFileSelection*;
+    context: void*;
+    probe: function(TestFilePresence, void*, vector(u8)*);
+}
+
+enum ModuleTestRole: u8 { Owner, Companion, Dependency }
+
+struct TestFileCompanion {
+    owner: void*;
+    module: void*;
+}

@@ -13,16 +13,48 @@ A companion written in Tower can exercise a module written in Foundation or
 Bedrock. Existing runners remain the way to execute these checks with the
 `0823b028` bootstrap while the successor is being implemented.
 
-The compiler should derive a companion from a **shared module naming rule**.
-Its default source suffix is `.tower` and its default companion suffix is
-`_test.tower`. For example, `parser.v2.tower` pairs with
-`parser.v2_test.tower`; the directory `old_test.tower/` can still contain an
-ordinary module. Apply the rule to the final component of the resolved lexical
-path. Both native files and in-memory playground files need the same rule for
-discovery and classification. A test profile using `_spec.tower` should select
-that sibling through the same code. Changing the profile or adding a previously
-absent companion can change which tests must run. An ordinary build should
-neither open companion files nor record their imports in its depfile.
+The compiler pairs files through the Tower `TestFileRule` in
+[`test_file_rule.tower`](../compiler/test_file_rule.tower). Its default source
+and companion suffixes are `.tower` and `_test.tower`. Only the final basename
+of a resolved lexical path participates, with an exact-case, nonempty stem.
+For example, `old_test.tower/parser.v2.tower` has the adjacent companion
+`old_test.tower/parser.v2_test.tower`.
+
+```sh
+towerc --list-test-files main.tower
+towerc --list-test-files main.tower --test-suffix _spec.tower
+towerc --list-test-files old_test.tower/parser.v2_spec.tower --test-suffix _spec.tower
+towerc --test main.tower --jobs 4
+towerc --test main_spec.tower --test-suffix _spec.tower
+```
+
+An owner entry discovers companions through its imports. An explicit companion
+selects just that file and opens its owner for binding. A companion cannot serve
+as the owner of a nested companion. Ordinary compilation follows ordinary
+imports without probing for siblings. The inventory command lists files.
+`--test` runs the selected blocks on the native interpreter, writes guest output
+to stdout, and reports the passing count or an empty selection on stderr.
+Compilation and execution errors return a nonzero status at the source location.
+Add `--test-details` to report each passed declaration's file, line and column
+after the selection finishes successfully.
+An explicit companion runs its own blocks with the owner's declarations available
+through ordinary imports. Put executable companion statements inside `test() {}`.
+
+Native and in-memory callers pass the same typed rule to
+`frontend_test_selection_open`. The selection owns a byte key containing the
+two exact NUL-terminated suffixes and the normalized requested path, in that
+order. Compare the full byte length and contents when identifying a selection.
+An affected-test cache must also account for source revisions and changes to
+which files exist. The native inventory can emit these file and directory
+dependencies with `-o inventory --depfile inventory.d`.
+
+For registered project sources, `frontend_modules_test_input_root` opens the
+selected owner's snapshot without changing the environment's configured entry.
+After parsing and finishing that root, call `frontend_module_discover_tests`
+with a null probe. Native callers supply their filesystem probe. Both paths
+return ordered owner/companion handles borrowed from the root graph. Use a fresh
+root per discovery, release it after consuming those handles, and dispose the
+selection with `test_file_selection_dispose`.
 
 Keep source inputs and expected text readable as files. Track each old case by
 its runner, selector, fixtures, expected outcome and execution modes until its

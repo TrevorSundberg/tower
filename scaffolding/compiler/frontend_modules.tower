@@ -1,5 +1,6 @@
 import syntax_view;
 import tower;
+import test_file_rule;
 import component_kinds;
 import frontend_revision_types;
 import syntax_session_types;
@@ -120,6 +121,7 @@ struct ModuleEnvironment {
     session_generation: usize;
     active_graphs: usize;
     active: FrontendModule*;
+    test_discovery: TestFileDiscovery*;
 }
 
 struct ModuleGraph {
@@ -128,6 +130,8 @@ struct ModuleGraph {
     owns_environment: bool;
     kind: void*;
     tracked: bool;
+    tests_started: bool;
+    single_companion: bool;
     entities: vector(void*);
     order: vector(FrontendModule*);
     error: vector(u8);
@@ -152,6 +156,7 @@ struct FrontendModule {
     grammar: ModuleGrammar;
     state: u32;
     body: bool;
+    companion: bool;
     comments: vector(usize); // paired lexer byte spans, captured before session reset
     compilation_session: void*;
     session_generation: usize;
@@ -380,12 +385,16 @@ export fn frontend_modules_source(environment: ModuleEnvironment*, name: u8*, te
     return ok;
 }
 
+fn module_registered_input(environment: ModuleEnvironment*, path: u8*): ModuleInput* {
+    foreach (var &input in &environment.inputs) { if module_equal(path, input.name.data) { return input; } }
+    return null;
+}
+
 fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u32 {
-    foreach(var & input in &environment.inputs) {
-        if module_equal(path, input.name.data) {
-            module_require(bytes_assign_text(text, input.text.data, input.text.length));
-            return ModuleReady;
-        }
+    var input = module_registered_input(environment, path);
+    if input != null {
+        module_require(bytes_assign_text(text, input.text.data, input.text.length));
+        return ModuleReady;
     }
     var file = fopen(path, "rb");
     if file == null {
@@ -568,6 +577,11 @@ export fn frontend_module_root_world_size(world: void*, source: u8*, length: usi
 // caller's active graph, source diagnostics, cache, or reusable parser session.
 export fn frontend_module_root_world_size_result(world: void*, source: u8*, length: usize,
 environment: ModuleEnvironment*, error: WorkBudgetError*): FrontendModule* {
+    return module_root_named_result(world, source, length, environment, null, error);
+}
+
+fn module_root_named_result(world: void*, source: u8*, length: usize, environment: ModuleEnvironment*, entry: u8*,
+    error: WorkBudgetError*): FrontendModule* {
     if error == null { return null; }
     *error = WorkBudgetError.Invalid;
     if world == null || source == null || length == ~convert(usize, 0)
@@ -595,7 +609,7 @@ environment: ModuleEnvironment*, error: WorkBudgetError*): FrontendModule* {
         if anchor == null { return null; }
     }
     var name = environment.entry.length == 0 ? "input.tower" : environment.entry.data;
-    var result = module_new_result(graph, name, source, length);
+    var result = module_new_result(graph, entry ?? name, source, length);
     if result == null { *error = graph.resource_error; return null; }
     if anchor != null {
         environment.anchor = anchor;
@@ -875,16 +889,20 @@ fn module_resolve(parent: FrontendModule*, name: u8*, literal: bool, path: vecto
 
 fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModule* {
     if frontend_module_error(parent)[0] != 0 { return null; }
-    var path: vector(u8);
-    var text: vector(u8);
-    vector_init(&path);
-    vector_init(&text);
+    var path: vector(u8) = default;
+    var text: vector(u8) = default;
+    defer vector_dispose(&path);
+    defer vector_dispose(&text);
     var status = module_resolve(parent, name, literal, &path, &text);
+    return module_load_input(parent, name, path.data, &text, status);
+}
+
+fn module_load_input(parent: FrontendModule*, name: u8*, path: u8*, text: vector(u8)*, status: u32): FrontendModule* {
     var result: FrontendModule* = null;
     if status == ModuleReady {
         foreach(var & entitie in &parent.graph.entities) {
             var old = module_node(parent.graph, *entitie);
-            if module_equal(path.data, old.source.name.data) {
+            if module_equal(path, old.source.name.data) {
                 result = old;
                 break;
             }
@@ -892,23 +910,23 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
         if result != null {
             if result.state == ModuleLoading {
                 if result == parent {
-                    module_fail(parent, "Import cycle through ", path.data);
+                    module_fail(parent, "Import cycle through ", path);
                     result = null;
                 } else {
                     parent.graph.cycles = true;
                 }
             }
         } else {
-            var cached = module_cached(parent.graph.environment, path.data, text.data);
+            var cached = module_cached(parent.graph.environment, path, text.data);
             if cached != null {
                 result = module_clone(parent.graph, cached);
             }
             else {
                 if parent.graph.depth >= ModuleMaximumDepth {
-                    module_fail(parent, "Import depth exceeds 128: ", path.data);
+                    module_fail(parent, "Import depth exceeds 128: ", path);
                 }
                 else {
-                    result = module_new_result(parent.graph, path.data, text.data, text.length);
+                    result = module_new_result(parent.graph, path, text.data, text.length);
                     if result == null { return null; }
                     parent.graph.depth++;
                     var session = parent.graph.import_session;
@@ -967,16 +985,100 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
             }
             else {
                 if status == ModulePathCase {
-                    module_fail(parent, "Import path case must match the filesystem exactly: ", path.data);
+                    module_fail(parent, "Import path case must match the filesystem exactly: ", path);
                 } else {
                     module_fail(parent, "Cannot read imported module: ", name);
                 }
             }
         }
     }
-    vector_dispose(&path);
-    vector_dispose(&text);
     return result;
+}
+
+export fn frontend_module_load_companion(owner: FrontendModule*, path: u8*): FrontendModule* {
+    if frontend_module_error(owner)[0] != 0 { return null; }
+    var text: vector(u8) = default;
+    defer vector_dispose(&text);
+    var status = module_read(owner.graph.environment, path, &text);
+    return module_load_input(owner, path, path, &text, status);
+}
+
+// Native absolute paths and project-relative provider keys use the ordinary
+// lexical normalizer before becoming part of a selection's exact identity.
+export fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool {
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    return module_path(entry, &path) && test_file_selection_freeze(selection, rule, path.data);
+}
+
+export fn frontend_modules_test_input_root(world: void*, environment: ModuleEnvironment*, selection: TestFileSelection*,
+    error: WorkBudgetError*): FrontendModule* {
+    var path = test_file_selection_root(selection);
+    var input = module_registered_input(environment, path);
+    if input == null { *error = WorkBudgetError.Invalid; return null; }
+    return module_root_named_result(world, input.text.data, input.text.length, environment, path, error);
+}
+
+// A null probe selects the registered in-memory inputs. A native probe can
+// distinguish a missing file from a failed OS lookup and record consulted
+// directories. Both transports traverse the same growing lexical graph.
+export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestFileSelection*, context: void*,
+    probe: function(TestFilePresence, void*, vector(u8)*), pairs: vector(TestFileCompanion)*): bool {
+    if root.graph.tests_started {
+        module_fail(root, "Test discovery requires a fresh entry graph: ", selection.entry); return false;
+    }
+    if !module_equal(frontend_module_name(root), test_file_selection_root(selection)) {
+        module_fail(root, "Test selection belongs to another entry: ", selection.entry); return false;
+    }
+    root.graph.tests_started = true;
+    root.graph.single_companion = selection.owner.data != null;
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    var found: vector(TestFileCompanion) = default;
+    defer vector_dispose(&found);
+    for (var i: usize = 0; i < frontend_module_count(root); i++) {
+        var owner = frontend_module_at(root, i);
+        if selection.owner.data != null && owner != root { continue; }
+        var name = frontend_module_name(owner);
+        var rule = &selection.rule;
+        if test_file_kind(rule, name) != TestFileKind.Source { continue; }
+        if !test_file_replace_suffix(name, rule.source_suffix, rule.companion_suffix, &path) {
+            module_fail(owner, "Cannot allocate companion path for ", name); return false;
+        }
+        var present = TestFilePresence.Missing;
+        if probe != null { present = probe(context, &path); }
+        else { if module_registered_input(root.graph.environment, path.data) != null { present = TestFilePresence.Present; } }
+        if present == TestFilePresence.Missing && selection.owner.data == null { continue; }
+        if present != TestFilePresence.Present {
+            module_fail(owner, "Cannot read companion file: ", path.data); return false;
+        }
+        var module = frontend_module_load_companion(owner, path.data);
+        if module == null { return false; }
+        module.companion = true;
+        var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
+        if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }
+    }
+    vector_move(pairs, &found);
+    return true;
+}
+
+export fn frontend_modules_swap_test_discovery(environment: ModuleEnvironment*, next: TestFileDiscovery*): TestFileDiscovery* {
+    var previous = environment.test_discovery;
+    environment.test_discovery = next;
+    return previous;
+}
+
+export fn frontend_module_collect_tests(root: FrontendModule*): void {
+    var discovery = root.graph.environment.test_discovery;
+    if discovery == null || frontend_module_error(root)[0] != 0 { return; }
+    var companions: vector(TestFileCompanion) = default;
+    defer vector_dispose(&companions);
+    frontend_module_discover_tests(root, discovery.selection, discovery.context, discovery.probe, &companions);
+}
+
+export fn frontend_module_test_role(module: FrontendModule*): ModuleTestRole {
+    if module.companion { return ModuleTestRole.Companion; }
+    return module.graph.single_companion ? ModuleTestRole.Dependency : ModuleTestRole.Owner;
 }
 
 // Dotted segments retain components on their actual parse entities. The joined
@@ -1252,6 +1354,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                     // by semantics. Defer only that proof; grammar and executable
                     // statements still cannot take part in an import cycle.
                     declaration ||= module_equal(span.label.data, "CoreDeclare");
+                    declaration ||= module_equal(span.label.data, "TowerTest");
                     if !declaration {
                         invalid = true;
                     }
@@ -1855,6 +1958,16 @@ fn module_make_prerequisites(text: vector(u8)*, paths: u8**, count: usize): void
 
 export fn frontend_modules_depfile_inputs(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool,
     inputs: u8**, count: usize): bool {
+    return module_write_depfile(environment, output, path, append, inputs, count, false, 0);
+}
+
+export fn frontend_modules_depfile_discovery(environment: ModuleEnvironment*, output: u8*, path: u8*,
+    directories: u8**, count: usize, optional_start: usize): bool {
+    return module_write_depfile(environment, output, path, false, directories, count, true, optional_start);
+}
+
+fn module_write_depfile(environment: ModuleEnvironment*, output: u8*, path: u8*, append: bool,
+    inputs: u8**, count: usize, discovery: bool, optional_start: usize): bool {
     if path[0] == 0 {
         return true;
     }
@@ -1865,6 +1978,18 @@ export fn frontend_modules_depfile_inputs(environment: ModuleEnvironment*, outpu
     module_make_prerequisites(&text, environment.used.data, environment.used.length);
     module_make_prerequisites(&text, inputs, count);
     module_require(bytes_append(&text, "\n", 1));
+    // Make can rerun discovery after an optional companion or one of its
+    // imports disappears, even when the previous depfile still names it.
+    if discovery {
+        for (var i = optional_start; i < environment.used.length; i++) {
+            module_make_path(&text, environment.used.data[i]);
+            module_require(bytes_append(&text, ":\n", 2));
+        }
+        for (var i: usize = 0; i < count; i++) {
+            module_make_path(&text, inputs[i]);
+            module_require(bytes_append(&text, ":\n", 2));
+        }
+    }
     var file = fopen(path, append ? "ab" : "wb");
     var ok = file != null;
     if ok {

@@ -5,6 +5,57 @@ same layer. The [development plan](tower-language-plan.md) distinguishes shipped
 features and implementation work from upcoming overloads, general compile-time
 values, result types and ownership rules.
 
+## Module tests
+
+A module importing Tower can declare a test with an empty parameter list.
+
+```tower
+import tower;
+fn answer(): i32 { return 42; }
+test() { print(answer()); }
+```
+
+Ordinary compilation parses the block and excludes it from semantic binding and
+execution. A test request uses the same module resolver, lexical scopes and body
+checker. It retains module declarations and global initializers and executes the
+selected bodies after initialization, in dependency order and then source order.
+Each body is a private zero-argument function returning `void`. A `return;`
+finishes that test. An interpreter failure stops the request at the first failure.
+The ordinary module script and its exported `main` keep their own entry behavior
+when compiled normally.
+
+The native host can call `execution_session_compile_tests(execution, text, length,
+width, modules)` with an import-only entry naming the owners and sidecar modules.
+After a successful compile, `execution.program.test_count` gives the number of
+selected bodies. Start and step that same session through the ordinary interpreter.
+An adjacent `owner_test.tower` can import `owner` and declare its own helpers.
+Test selection follows the supplied entry's import closure.
+
+The native command `towerc --test module.tower` also discovers adjacent test
+modules using the request's filename rule. Selecting a companion directly runs
+only that file's blocks. Its helpers and imports follow ordinary module rules.
+The command reports the number of passed tests or an empty selection. A
+standalone executable statement in a discovered companion produces a diagnostic
+at that statement until implicit companion bodies are supported.
+
+Import `library.testing` for source-located assertions. The condition runs once.
+A failed assertion stops execution at the start of the assertion in its owning
+file. An optional message expression runs only on failure. The default message
+is `Assertion failed`.
+
+```tower
+import library.testing;
+
+test() {
+    var order: usize[4] = {1, 3, 4, 2};
+    assert(order[2] == 4, "Expected 4 at index 2");
+}
+```
+
+The library expands an assertion to ordinary conditional control flow and
+`trap(message, source_offset())`. The compiler resolves `source_offset()` to
+the invocation's `u32` byte offset in the compilation's module source map.
+
 ## Function values
 
 Use `function(Result, Parameters...)` for typed noncapturing callbacks. They work

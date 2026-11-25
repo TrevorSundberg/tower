@@ -1,0 +1,5 @@
+import tower;
+import owner;
+
+fn test(value: i32): i32 { return value + 2; }
+test() { print(test(shared_value)); }

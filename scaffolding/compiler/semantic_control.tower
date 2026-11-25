@@ -67,6 +67,7 @@ export fn sem_control_names(c: SemanticContext*): void {
                 sem_decode_identifier(name);
                 sem_put(c, c.control_names, name, node);
             } else {
+                if !c.program.test_mode && terminal != null && sem_equal(terminal.label.data, "TowerTest") { continue; }
                 var i: usize = 0;
                 var count = sem_child_count(node);
                 loop {

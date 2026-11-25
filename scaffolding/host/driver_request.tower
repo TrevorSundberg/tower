@@ -1,10 +1,14 @@
 import tower;
 import driver_types;
+import .compiler.test_file_rule;
 import driver_support;
 import driver_platform;
 import driver_paths;
 import .library.bytes_types;
 import .library.bytes_interface;
+
+extern fn module_file_case_matches(path: u8*): bool;
+extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
 
 extern fn frontend_modules_create(): void*;
 
@@ -50,6 +54,7 @@ struct DriverRequest {
     slot: void**;
     previous: void*;
     canonical: bool;
+    tests: TestFileSelection;
 }
 
 fn driver_request_path(out: ByteBuffer*, override: u8*, root: u8*, name: u8*): bool {
@@ -120,7 +125,7 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     *request = default;
     request.options = options;
     request.root = root;
-    if !(driver_platform_exists(options.source)) {
+    if options.test_mode == DriverTestMode.None && !(driver_platform_exists(options.source)) {
         return driver_request_failure(request, "Supply a Tower source file; use --help for options", "");
     }
     if !(driver_request_path(&request.bedrock_path, options.bedrock, root, "bedrock.tower")) {
@@ -141,12 +146,19 @@ export fn driver_request_open(request: DriverRequest*, options: DriverOptions*, 
     if !(driver_request_read(request, request.foundation_path.data, DriverFoundationText)) {
         return false;
     }
-    if !(driver_request_read(request, options.source, DriverSourceText)) {
-        return false;
-    }
     if !driver_platform_absolute(options.source, &request.source_path) {
         return driver_request_failure(request, "Cannot resolve source path: ", options.source);
     }
+    var entry = options.source;
+    if options.test_mode != DriverTestMode.None {
+        if !frontend_test_selection_open(&request.tests, &options.test_rule, request.source_path.data) {
+            return driver_request_failure(request, "Cannot form test selection for ", options.source);
+        }
+        entry = test_file_selection_root(&request.tests);
+        if !driver_platform_regular(entry) { return driver_request_failure(request, "Cannot read file: ", entry); }
+        if !module_file_case_matches(entry) { return driver_request_failure(request, "Test entry case must match the filesystem: ", entry); }
+    }
+    if !driver_request_read(request, entry, DriverSourceText) { return false; }
     if !driver_platform_absolute(root, &request.root_path) {
         return driver_request_failure(request, "Cannot resolve resource root: ", root);
     }
@@ -182,7 +194,7 @@ export fn driver_request_canonical(request: DriverRequest*): bool {
 }
 
 fn driver_request_configure(request: DriverRequest*): void {
-    driver_request_configure_modules(request, request.modules, request.source_path.data);
+    driver_request_configure_modules(request, request.modules, request.tests.entry == null ? request.source_path.data : test_file_selection_root(&request.tests));
 }
 
 fn driver_request_configure_modules(request: DriverRequest*, modules: void*, source: u8*): void {
@@ -264,6 +276,7 @@ export fn driver_request_close(request: DriverRequest*): void {
     for(var i: usize = 0; i < sizeof(decltype(request.text)) / sizeof(ByteBuffer); i++) {
         bytes_dispose(&request.text[i]);
     }
+    test_file_selection_dispose(&request.tests);
     bytes_dispose(&request.source_path);
     bytes_dispose(&request.root_path);
     bytes_dispose(&request.bedrock_path);

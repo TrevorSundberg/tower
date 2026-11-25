@@ -98,7 +98,7 @@ fn sem_source_scan(c: SemanticContext*, job: SemanticKnownWork*, node: void*, de
             job.binding_incomplete = true;
         }
     }
-    if sem_is(node, "CoreFunction") || sem_is(node, "CoreExport") || sem_is(node, "CoreExternal") { return; }
+    if sem_function_syntax(node) || sem_is(node, "TowerTest") { return; }
     if sem_is(node, "CoreBlock") || sem_is(node, "TowerFor") || sem_is(node, "TowerForeach") {
         var previous = c.scope;
         c.scope = sem_scope(c, previous);

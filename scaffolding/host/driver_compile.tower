@@ -19,6 +19,8 @@ import driver_units;
 import driver_support;
 import driver_platform;
 import driver_format;
+import driver_test_discovery;
+import .compiler.test_file_rule;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .compiler.semantic_program_types;
@@ -29,6 +31,8 @@ import .library.work_budget_types;
 
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
 extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
+extern fn frontend_modules_swap_test_discovery(environment: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+extern fn semantic_is_test_declaration(function_node: void*): bool;
 
 struct DriverCompilation {
     request: DriverRequest*;
@@ -333,6 +337,43 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
     return 0;
 }
 
+fn driver_compile_tests(state: DriverCompilation*): i32 {
+    var request = state.request;
+    var input = &request.text[DriverSourceText];
+    if tower_utf8_validate(input.data, input.length, 1) == 0 {
+        driver_error("Test entry must be UTF-8 without NUL bytes: ", test_file_selection_root(&request.tests)); return 1;
+    }
+    var modules = driver_request_modules(request);
+    var probe: DriverTestProbe = { options: request.options, directories: null };
+    var discovery: TestFileDiscovery = { selection: &request.tests, context: bits(void*, &probe), probe: driver_test_probe };
+    {
+        var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+        defer frontend_modules_swap_test_discovery(modules, previous);
+        if !execution_session_compile_tests(&state.execution, input.data, input.length, convert(u32, sizeof(usize)), modules) {
+            driver_compile_execution_report(state);
+            return 1;
+        }
+    }
+    var count = state.execution.program.test_count;
+    if count != 0 {
+        var result = driver_compile_interpret(state);
+        if result != 0 { return result; }
+        if request.options.test_details {
+            foreach (var node in &state.execution.program.functions) {
+                if semantic_is_test_declaration(node) { driver_compile_report(state, "test passed", sem_get(node).start); }
+            }
+        }
+    }
+    var summary: ByteBuffer = default;
+    defer bytes_dispose(&summary);
+    var ok = host_json_unsigned(&summary, convert(u64, count))
+        && driver_text(&summary, count == 0 ? " tests selected for " : count == 1 ? " test passed for " : " tests passed for ")
+        && driver_text(&summary, request.tests.entry) && bytes_push(&summary, *"\n")
+        && driver_platform_write_result(2, summary.data, summary.length);
+    if !ok { driver_error("Cannot report test count for ", request.tests.entry); return 1; }
+    return 0;
+}
+
 fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
     if state.execution.program.resource.error != WorkBudgetError.None {
         driver_compile_execution_report(state);
@@ -482,10 +523,11 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
     }
     driver_timing_mark(timing, options.timings, "bootstrap");
     if formatting { return driver_format(request); }
+    if options.test_mode == DriverTestMode.ListFiles { return driver_test_inventory(request); }
     var state: DriverCompilation = default;
     state.request = request;
     state.timing = timing;
-    var result = driver_compile_run(&state);
+    var result = options.test_mode == DriverTestMode.Run ? driver_compile_tests(&state) : driver_compile_run(&state);
     driver_execution_close(&state.execution);
     if state.backend != null {
         backend_close(state.backend);

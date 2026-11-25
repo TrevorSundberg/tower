@@ -124,7 +124,11 @@ parse TowerForInitial = CoreDeclare | TowerExpressionStatement | ';';
 parse TowerForCondition = TowerComma?;
 parse TowerForStep = TowerComma?;
 parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition ';' $step:TowerForStep ')' $body:CoreBlock;
+// Share the call prefix until the following block distinguishes a declaration.
+// The semantic header requires precisely test(). Existing bindings named test
+// still use ordinary identifier and call syntax.
+parse TowerTest = $head:CoreCall $body:CoreBlock;
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
                  | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
                  | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
-                 | TowerExpressionStatement | CoreAttributed;
+                 | TowerExpressionStatement | CoreAttributed | TowerTest;
