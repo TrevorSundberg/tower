@@ -32,7 +32,7 @@ fn symbol_admission_cases(unit: BootstrapUnit, wrong_unit: BootstrapUnit, name: 
     symbol_target_case(unit, "wasm32-unknown-unknown", name, null);
     symbol_target_case(unit, "aarch64-apple-macos11", name, null);
     var length = strlen(name);
-    utility_check(length != 0 && !bootstrap_symbol_allowed(unit, false, false, name, length - 1), "truncated admission symbol");
+    utility_check(length != 0 && !bootstrap_symbol_allowed(unit, false, false, false, name, length - 1), "truncated admission symbol");
     symbol_target_case(unit, "x86_64-unknown-linux-gnu", suffixed, suffixed);
     symbol_target_case(wrong_unit, "x86_64-unknown-linux-gnu", name, name);
     symbol_target_case(BootstrapUnit.Entities, "x86_64-unknown-linux-gnu", name, name);
@@ -140,6 +140,18 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Host, true, " U _findclose_extra\n", "_findclose_extra");
     symbol_case(BootstrapUnit.Host, true, " U __findfirst64\n", "__findfirst64");
     symbol_case(BootstrapUnit.Host, true, " U findclose\n", "findclose");
+    var intel = "x86_64-apple-macos11";
+    var modern = " U _opendir$INODE64\n U _readdir$INODE64\n U _closedir\n";
+    symbol_target_case(BootstrapUnit.Host, intel, modern, null);
+    symbol_target_case(BootstrapUnit.Host, intel, " U __opendir$INODE64\n", "__opendir$INODE64");
+    symbol_target_case(BootstrapUnit.Host, intel, " U readdir$INODE64\n", "readdir$INODE64");
+    symbol_target_case(BootstrapUnit.Host, "x86_64-apple-darwin20", modern, null);
+    symbol_target_case(BootstrapUnit.Host, intel, " U _opendir\n", "_opendir");
+    symbol_target_case(BootstrapUnit.Host, intel, " U _readdir\n", "_readdir");
+    symbol_target_case(BootstrapUnit.Host, intel, " U _readdir$INODE64x\n", "_readdir$INODE64x");
+    symbol_target_case(BootstrapUnit.Host, "arm64-apple-macos11", modern, "_opendir$INODE64");
+    symbol_target_case(BootstrapUnit.Host, "x86_64-unknown-linux-gnu", modern, "_opendir$INODE64");
+    symbol_target_case(BootstrapUnit.ParserNodes, intel, modern, "_opendir$INODE64");
     symbol_case(BootstrapUnit.Host, true, " U ___chkstk\n", null);
     symbol_case(BootstrapUnit.Host, false, " U ___chkstk\n", "___chkstk");
     symbol_case(BootstrapUnit.ParserNodes, true, " U __chkstk\n", null);

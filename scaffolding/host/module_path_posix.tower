@@ -1,46 +1,9 @@
 import tower;
+import module_path_directory;
 
 extern fn opendir(path: u8*): void*;
-
 extern fn readdir(directory: void*): void*;
 
-extern fn closedir(directory: void*): i32;
-
-extern fn strcmp(a: u8*, b: u8*): i32;
-
-extern fn module_dirent_name(entry: void*): u8*;
-
 export fn module_path_component(path: u8*, start: usize): bool {
-    var directory: u8* = ".";
-    var cut: usize = 0;
-    if start != 0 {
-        directory = path;
-        cut = start - 1;
-        if cut == 0 {
-            directory = "/";
-        }
-        else {
-            path[cut] = 0;
-        }
-    }
-    var handle = opendir(directory);
-    if cut != 0 {
-        path[cut] = 47;
-    }
-    if handle == null {
-        return false;
-    }
-    var found: bool = false;
-    loop {
-        var entry = readdir(handle);
-        if entry == null {
-            break;
-        }
-        if strcmp(module_dirent_name(entry), path + start) == 0 {
-            found = true;
-            break;
-        }
-    }
-    closedir(handle);
-    return found;
+    return directory_component_matches(path, start, opendir, readdir);
 }
