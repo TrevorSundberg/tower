@@ -66,6 +66,11 @@ export async function compilerThreads(module, {memory,
   const workers = [], status = new Int32Array(new SharedArrayBuffer(capacity * 4));
   const failures = new Uint8Array(new SharedArrayBuffer(capacity * FAILURE_BYTES));
   const heap = new Int32Array(new SharedArrayBuffer(8));
+  // Bind each successful synchronous pthread_create to Tower's live handle.
+  // Reassigning a READY slot retires its old binding even if that handle
+  // has yet to be joined. Only the coordinator spawns or updates bindings.
+  const handles = new Array(capacity).fill(null);
+  let spawnedSlot;
   let failure;
   function check() {
     if (Atomics.load(heap, 1)) failure ||= compilerWorkerError(status, failures);
@@ -114,24 +119,39 @@ export async function compilerThreads(module, {memory,
       }
       return Math.max(1, free);
     },
+    work_host_thread_started: thread => { handles[spawnedSlot] = thread; },
+    work_host_thread_joined: thread => {
+      check();
+      const slot = handles.indexOf(thread);
+      if (slot < 0) return; // Already READY and reused by another pthread.
+      // wasi-libc has completed this pthread. Its JS epilogue needs no
+      // coordinator dispatch to publish READY (or the child's failure).
+      if (Atomics.load(status, slot) === RUNNING) Atomics.wait(status, slot, RUNNING);
+      const state = Atomics.load(status, slot);
+      if (state === FAILED) {
+        // FAILED can wake this join before the group-wide failure flag is set.
+        failure = compilerWorkerError(status, failures);
+        throw failure;
+      }
+      if (state !== READY) throw new Error('Joined compiler worker did not return its slot');
+      handles[slot] = null;
+    },
     work_host_capacity: () => closed ? 1 : capacity, work_host_entry: () => callback,
     work_host_check: () => { check(); memory.grow(0); },
     work_host_time: () => BigInt(Date.now()) * 1000000n,
     ...compilerHeap(memory, heap, check)};
   const wasi = {'thread-spawn': argument => {
     if (closed) return -1;
-    // pthread_join can return just before the child's JS completion store.
-    // Wait for that handoff directly; no parent message callback is required.
-    for (;;) {
-      check();
-      for (let slot = 0; slot < capacity; slot++) {
-        if (Atomics.compareExchange(status, slot, READY, RUNNING) !== READY) continue;
-        const id = nextID++;
-        workers[slot].postMessage({id, argument});
-        return id;
-      }
-      Atomics.wait(status, 0, RUNNING, 1);
+    check();
+    for (let slot = 0; slot < capacity; slot++) {
+      if (Atomics.compareExchange(status, slot, READY, RUNNING) !== READY) continue;
+      spawnedSlot = slot;
+      handles[slot] = null;
+      const id = nextID++;
+      workers[slot].postMessage({id, argument});
+      return id;
     }
+    return -1; // No free physical worker for this request.
   }};
   return {env, wasi, memory, attach, close, check, failed:() => Boolean(failure || Atomics.load(heap, 1))};
 }
