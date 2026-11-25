@@ -104095,3 +104095,47 @@ Host 3 used the published Linux compiler, executable SHA-256 `a3f76faf3e602f2742
 The object and executable bytes matched at both widths, and ten linked guests produced their exact expected streams. Shortening the dependent loops still cost an extra 105.57 ms at four workers in six paired blocks. Sparse instrumentation located 74.20 ms of additional time before semantic compilation. Within that interval, 39 lookahead calls over the same 14,199 states added 53.41 ms. The eight dependent evaluations executed 4,456,683 interpreter steps at either width. Their elapsed difference including scheduling gaps ranged from −20.63 to +19.21 ms. The long independent control showed useful execution on four cores. The compiler's measured overhead changes with instrumentation, so those phase readings cannot apportion the entire ordinary 139.53 ms penalty.
 
 The manager verified 2,176 digests and replayed the offline source, timing, output and demand checks from receipt `22d0ffd8`, archive SHA-256 `0e70e30da8ed446ab1f37bb02d5e10564325a6be4b937087f8dc15fd08f644ba`. These measurements justify keeping the current interpreter dispatch for this chain and isolating the four-worker lookahead cost before changing worker selection.
+
+## Switching guest pointer width on a live Wasm32 compiler
+
+Host 5 exercised the published portable and shared reactors from Pages
+`8524b09e`. The manifest names `2421c659`; their production compiler and Node
+host sources are identical at `e23c6c26`. The existing retained-source selector
+used guest width eight in its alias/type-edit cases. The staging alias fixture
+covered both widths in separate unit trials. The new retained-source regression
+keeps one environment, grammar-bearing import and consumer across 4→8→4→8.
+A forward helper uses the imported binding's type during ordinary comptime
+evaluation and mutates a local through a pointer. The producer's escaped model
+remains available for the runtime read.
+
+The Wasm host stayed 32-bit on every request. Three fields, a byte, a guest
+usize and another byte, gave Frame size/alignment 12/4 or 24/8. The staged value
+was 135 or 147 and the runtime model was eight. Replacing the producer type
+with u16 at the same path gave 6/2 and 129 at both guest widths. Selecting the
+escaped runtime read during staging yielded the expected diagnostic at byte 54
+in the producer with zero guest steps and output. Repair restored the original
+guest-specific values. Document inspection returned type/layout entries even
+on the recoverable failed source; the compile call supplied the diagnostic.
+
+On Node 24.22.3, portable capacity one and shared capacity two, forward and
+reverse orders each matched a newly instantiated service at every step. The
+archived uninstrumented stock controls from f585 agreed with the published
+reactors. The 184 compile/document pairs included both original staging control
+orders on the published reactors. Canonical Foundation, execution diagnostics
+and effects matched byte for byte. Document comparisons preserved binding and
+parent relationships while renumbering world-local IDs. On width-only switches
+the world, bound environment, idle parser and parsed snapshot identities remained
+stable. Each compile had a fresh semantic root; destroying its handle left zero
+execution handles and active module graphs. Explicit final retirement cleared
+the idle parser and all seven cached modules in the edited sequence.
+
+The native `tower-retained-source-updates` selector passed at one and two workers
+before and after adding the fixture. Its zero-owner assertion passed. ASan with
+leak detection and TSan passed the extended selector with the changed native
+test unit instrumented. The public Wasm binaries were reused throughout. On
+a Ryzen 9 5900XT, CPUs 0,2,4,6, cgroup quota 30.72 CPUs, a single native
+selector invocation took 1.16 s before and 1.25 s with four additional
+requests per worker setting; peak RSS was 90,656 and 92,048 KiB respectively.
+These costs cover different test workloads. No compiler performance change
+was evaluated. Receipt `fa3051d7-614f-4f36-be3e-b395f17467ab` records immutable
+inputs, per-call CPU/wall/RSS, ownership, actual artifacts, commands and limits.
