@@ -59,7 +59,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     // Current ECS/query workers call these Tower host transports. Keep their
     // exact interfaces explicit; never allow an arbitrary work_* dependency.
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes || unit == BootstrapUnit.Semantics {
-        if bootstrap_symbol_in("work_signal_close work_signal_post work_signal_try work_signal_wait work_thread_capacity work_thread_close", symbol, length) { return true; }
+        if bootstrap_symbol_in("work_signal_close work_signal_post work_signal_try work_signal_wait work_thread_capacity work_thread_pool_capacity work_thread_close", symbol, length) { return true; }
     }
     if unit == BootstrapUnit.Entities || unit == BootstrapUnit.ParserNodes {
         if bootstrap_symbol_in("tower_trap", symbol, length) { return true; }

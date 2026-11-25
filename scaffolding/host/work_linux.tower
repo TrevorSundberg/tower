@@ -1,6 +1,7 @@
 import tower;
 import .library.work_pool;
 export fn work_thread_retention(): bool { return true; }
+export fn work_thread_pool_capacity(): usize { return work_thread_capacity(); }
 
 // Explicit Linux glibc x86_64/AArch64 ABI: pthread_t is one native word;
 // sem_t is 32 bytes, aligned to eight. No host layout enters Tower constants.

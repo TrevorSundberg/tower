@@ -105,6 +105,15 @@ export async function compilerThreads(module, {memory,
     table.set(callback, instance.exports.work_thread_entry);
   }
   const env = {memory, work_host_available: () => closed ? 0 : 1,
+    // Pool construction is synchronous on the sole spawning coordinator.
+    // A live pthread keeps its slot until its child publishes READY.
+    work_host_pool_capacity: () => {
+      let free = 0;
+      for (let slot = 0; slot < capacity; slot++) {
+        if (Atomics.load(status, slot) === READY) free++;
+      }
+      return Math.max(1, free);
+    },
     work_host_capacity: () => closed ? 1 : capacity, work_host_entry: () => callback,
     work_host_check: () => { check(); memory.grow(0); },
     work_host_time: () => BigInt(Date.now()) * 1000000n,
