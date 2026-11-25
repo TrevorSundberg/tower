@@ -39,6 +39,15 @@ rose by 66–67 MiB. For this build the tradeoff is available through
 `-DTOWER_SEMANTICS_JOBS=4` with the other compiler invocations at one worker.
 [Worker timings, outputs and limits](temporal-opcode-research-journal.md#selective-semantics-workers-on-the-cd77-native-self-build)
 
+For ordinary native compiles, eight long independent compile-time calls on the
+`4a3aa2d6` Linux x64 candidate benefited at both two and four workers on four
+physical cores. Moving from one to four gave a median paired speedup of
+1.78× for an object and 1.52× for a linked executable. With eight short calls
+or an equally expensive chain of dependent calls, one worker finished sooner
+in every block. At equal worker counts the candidate used less peak memory
+than public `902a358f` across all 56 comparisons.
+[Inputs, CPU and memory, output checks and timing pairs](temporal-opcode-research-journal.md#ordinary-native-cli-scaling-on-the-4a3aa2d6-candidate)
+
 **Building the compiler in Chromium.** The `8b7878c8` browser compiler
 compiled 25 units of the editable project based on `ca543287` on four
 pinned physical cores. The first request in a fresh profile took 82.73 s
