@@ -151,6 +151,12 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
 endif()
 if(TARGET towerc)
   foreach(workers IN ITEMS 1 4)
+    add_test(NAME tower-fixed-array-iteration-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration_test.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     add_test(NAME tower-generation-layout-frontier-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generation_layout_frontier.tower"

@@ -105325,3 +105325,30 @@ successor. The independent warm layout frontier run also exited 134 from its
 reference check; receipt aa5e7156 includes the standalone link and failure
 log. Host 1 owns diagnosis under 076d1afd. No performance measurements apply
 to publishing the inventory, which changes neither the compiler nor its assets.
+
+### Borrowed foreach on fixed-size arrays
+
+A pointer to a fixed array carries an element type and a checked extent.
+The frontend saves the source once, indexes into that array and advances the
+cursor before the loop body can continue. The value form copies scalars and
+pointers; the borrow form gives the body the address of its element. The
+nominal collection protocol retains its own cleanup. A bare element pointer
+still needs an explicit bound.
+
+On an EPYC 7502 with affinity 0–63 and cgroup quota of 30.72 CPUs, the original
+counted traversal of the formatter's four comments and its borrowed equivalent
+produced byte-identical 136,424-byte x64 objects and passed the formatter text,
+span and cleanup checks. The adoption patch is held for a published successor.
+On eight bounded fixtures the Graph and Fast interpreters, native executable
+and reparsed Foundation matched the expected outputs. The one- and four-worker
+compiles emitted identical Foundation. For an 8,192-element global array the
+Fast interpreter exhausted its budget with either loop; Graph and native both
+produced 33550336. Four ASan/LSan and four initialized TSan runs passed;
+61 TSan startups failed separately on this host.
+
+The manager verified the 796 checksums in receipt
+`975af6dd-0277-5b8b-8b8a-3abff7641af0`. The adjacent test executes at one
+and four workers through the native CTest command. Replacing its break with
+continue altered the final array and failed its expectation. This selector
+executes the fixture directly until language-integrated test execution is
+qualified. No runtime measurement applies to registering the same command.
