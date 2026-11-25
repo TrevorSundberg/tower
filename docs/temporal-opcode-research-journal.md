@@ -100513,3 +100513,47 @@ The saved-state fixture is the exact historical six-declaration lexer with a cur
 Test commit b7d513a132afe82896bcd25082df1f1a53638776 directly follows ccf46330dd6be5f914fb25716ffe343722b5d3d3. Both complete files passed 12/12 on public Pages parent 1ee8a6fe and sealed Pages candidate 5006c524 (compiler 3390c2c8). Each result includes the ten assigned desktop/mobile cells and two customized-state controls. Both originals matched the producer inventory exactly with six timeouts and four assertion failures. The initial three corrected titles passed 6/6 on the candidate. With the old page route the first complete parent repair passed 10/12, then the context-route mismatch check passed 2/2. The final two ordinary sessions used Playwright 1.65.1 with two workers, no retries, Chromium 159.0.8154.6 and fresh contexts. Supplemental read-only observations of worker traffic and durable project/editor state accompanied twelve more successful cells on each product. All 22 failure traces reconstructed byte-for-byte. No observed page errors or skipped cells.
 
 Same-host final ordinary parent/candidate runs took 48.13/49.40 s wall, 87.80/88.24 s user plus system CPU, and 429616/451852 KiB GNU time maximum RSS. Host 2 used AMD Ryzen 5 3600, affinity 0–11, 11.52 CPU quota and 32222740480-byte memory limit. These single samples time browser test workloads, with different original failure deadlines. Product bytes were frozen and the compiler and allocator were unchanged. The registered packets and ad6969a2 evidence carry full product hashes, raw JSON, observer records, recordings and the source bundle. Release inventory outside these two specs and hosted publication remain with the release owner.
+
+### Delayed diagnostics and wrapped error bubbles on two sealed sites
+
+Host 3 replayed both complete ordinary browser specs from `ccf46330` against
+Pages parent `1ee8a6fe` (compiler `902a358f`) and sealed site `5006c524`
+(compiler `3390c2c8`). The 25 declared members of the three input packets
+passed byte and hash verification. With tracing on, the original three delay
+cases and one bubble case failed on desktop and mobile on both releases.
+Replacing the grammar lesson with bare `print(42)` produced a language-import
+error at byte 0. Adding only the semicolon left that error in place. The
+bubble setup stopped at byte 18 on its undefined `Number` rule.
+
+The two-spec candidate imports Foundation for the executable fixtures.
+A Tower import also enabled ordinary code, but allowed several continuations
+at EOF. Foundation identified the missing semicolon at byte 28, line 2,
+column 10. The tests advanced a paused clock to 9,999 and 10,000 ms after
+the last edit, revealed the parser error by moving the caret, jumped back to
+the insertion point, typed the correction and checked output 42. Blur
+revealed the held semantic error on `true`. A real worker error arrived
+before correction and was delivered after it. The obsolete result left the
+corrected editor clear. An in-project switch to Bedrock also discarded the
+pending semantic diagnostic through its original deadline.
+
+The bubble fixture imports Bedrock and defines its numeric token. It checks
+the selected identifier and both endpoints of the rendered SVG against the
+last marked text row. The wrapped case occupied two rows in all four trials.
+Its largest endpoint difference was 0.021 CSS px on desktop and 0.03125 on
+mobile, within the existing 1.5 px tolerance. All eight final cases passed
+on each site with no skips or retries. These changes cover the two assigned
+specs. Wider suite failures remain tracked separately.
+
+Receipt `a2f06bc3-047e-4310-bab4-dfd44cae56f5` includes the original and
+corrected traces, status and error reports, worker fixtures and responses,
+screenshots, site and spec identities, commands and geometry. Node 24.22.3,
+Playwright 1.65.1 and headless Chromium 159.0.8154.6 ran on Debian 12,
+EPYC 7542, with two Playwright workers and one site at a time. The first
+launch lacked Chromium shared libraries. The measured trials used local
+copies of the Debian libraries. The first reply-holding experiment failed
+to isolate delivery on both viewports. Holding the actual reply at the
+worker's message handler made the observation deterministic in the final
+matrix. GNU time recorded elapsed, CPU and maximum process RSS for each
+batch. Failed assertions waited for their deadlines in the baseline, so
+the elapsed difference cannot measure runtime speedup. The compiler and
+browser application bytes were reused throughout.
