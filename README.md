@@ -44,12 +44,17 @@ installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
 ```
 
 The installer prints the executable path. Repeating the command verifies the
-installed copy. You can interpret a source file or build and run a Linux executable.
+installed copy. To try it, save the [sample Tower program](scaffolding/tests/distribution_program.tower)
+as `example.tower` in a new directory. Run these commands from that directory.
+Each prints `42`.
 
 ```sh
 "$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --interpret
 "$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
+
+The public installer and both commands passed on Ubuntu 24.04.5 x86-64 with
+LLVM/Clang 19.1.1 and Debian 12 x86-64 with LLVM/Clang 19.1.7.
 
 ## Build and explore
 

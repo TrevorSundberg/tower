@@ -100303,3 +100303,30 @@ Host 2 ran the install over live HTTPS as UID 1001 on Debian 12 x86-64 with LLVM
 Three serially measured pairs on the same Ryzen 5 3600 (6 cores/12 threads, affinity 0–11) compared one and four curl transfers on the same public payload and fresh prefixes, warm host and network caches uncontrolled. One transfer took 0.82/0.80/0.88 s wall, 0.35/0.35/0.36 s CPU and 51,852–52,248 KiB peak RSS. Four took 0.48/0.60/0.55 s wall, 0.35/0.39/0.41 s CPU and 51,872–52,704 KiB peak RSS. Every tree matched the producer. The change is shell transport and filesystem publication. There is no new instrumentable Tower allocation or threaded compiler path.
 
 Raw commands, versions, negative controls, outputs and measurements are in assignment `688d4202-019e-45d6-8e4c-33f1dbe5e619`. The Ubuntu package execution evidence belongs to the producer. The new installer ran on Debian. The full README command with GitHub serving the new script remains a manager post-publication check. Before publication that script request returned HTTP 404 and the command exited 22 without installing. Substituting just its exact local Git blob exercised the documented command with all package downloads still using live HTTPS.
+
+### Public install and first program on Ubuntu and Debian x86-64
+
+The README now identifies the checked-in sample to save as `example.tower`
+and gives the expected output. Its Git blob `fa557835` matches the source
+that both workers interpreted and linked. These instructions use the public
+installer at `9b5d23f1` and the existing `902a358f` development compiler.
+
+Host 4 exercised the exact README command in an Ubuntu 24.04.5 x86-64
+userspace as UID 1001 with LLVM/Clang 19.1.1. It supplied curl and the
+generated CA bundle from Ubuntu packages in a private copy of the root
+filesystem. Both the fresh install and the reinstall exited zero. All 57
+payloads and 58 Git file modes matched. On both runs the version matched
+the producer banner, and the interpreter and Clang-linked executable each
+wrote exactly 42 followed by LF with empty stderr. The repeat preserved the
+compiler and two unrelated user files. A separate HTTPS transfer trace
+matched 59 requests on the fresh install and one on reinstall, all HTTP 200
+with successful TLS verification. The manager verified all 127 evidence
+members, executed script bytes, inventories, transfer records and guest
+output in receipt `251cd30a-e3ec-4327-ac39-f206f9069d06`.
+
+Host 8 independently ran the same public commands on Debian 12 x86-64
+with LLVM/Clang 19.1.7. Its fresh and repeat installs preserved the
+checksum inventory and the compiled and interpreted sample outputs.
+Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` records those results.
+Only documentation changed. Runtime timings and peak memory do not apply
+to this change.
