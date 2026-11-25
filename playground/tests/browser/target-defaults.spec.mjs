@@ -1,3 +1,4 @@
+import {readFile} from 'node:fs/promises';
 import { test, expect } from '@playwright/test';
 test.use({ storageState: { cookies: [], origins: [] } });
 
@@ -66,7 +67,7 @@ test('a single selected native profile fetches no sibling platform runtimes',asy
   test.setTimeout(60000);
   await page.addInitScript(()=>{
     localStorage.setItem('tower-build-targets-v3',JSON.stringify({linux:true}));
-    localStorage.setItem('tower-playground-source-v1','print(42);');
+    localStorage.setItem('tower-playground-source-v1','import foundation; print(42);');
   });
   const requests=[];page.on('request',r=>requests.push(r.url()));
   await page.goto('/');
@@ -74,6 +75,13 @@ test('a single selected native profile fetches no sibling platform runtimes',asy
   await expect(page.locator('.execution-column:visible:not(#wasm-disassembly-column):not(#fast-disassembly-column)').filter({has:page.locator('[id$="-downloads"]')})).toHaveCount(1);
   await expect(page.locator('#linux-column h2')).toHaveText('Linux x64 disassembly');
   expect(requests.filter(url=>url.includes('/targets/')).map(url=>url.split('/').pop())).toEqual(['x86_64-unknown-linux-gnu-runtime.o']);
+  const download=page.waitForEvent('download');
+  await page.locator('#linux-downloads a').click();
+  const artifact=await download;
+  expect(artifact.suggestedFilename()).toMatch(/-linux\.elf$/);
+  const elf=await readFile(await artifact.path());
+  expect([...elf.subarray(0,6)]).toEqual([0x7f,0x45,0x4c,0x46,2,1]);
+  expect(elf.readUInt16LE(18)).toBe(62); // EM_X86_64
   expect(page.workers().filter(worker=>worker.url().includes('target-worker'))).toHaveLength(1);
   await expect(page.locator('#execution-output')).toHaveText('42\n');
   await expect(page.locator('#llvm-output')).toHaveText('42\n');
