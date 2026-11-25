@@ -648,6 +648,21 @@ build/native/towerc scaffolding/library/bytes.tower --library -o build/bytes.o
 build/native/towerc source.tower --target wasm32-unknown-unknown --link library.a -o build/program.wasm
 ```
 
+This invocation gives the native compiler's semantics object four workers.
+
+```sh
+TOWER_BUILD_JOBS=4 bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1 -DTOWER_SEMANTICS_JOBS=4
+```
+
+`TOWER_BUILD_JOBS` limits concurrent build commands. `TOWER_SEMANTICS_JOBS`
+sets the worker budget inside the semantics compile. It accepts 1–256 and
+inherits `TOWER_COMPILER_JOBS` when unset or empty. Pass
+`-UTOWER_SEMANTICS_JOBS` to the same script to clear a cached override.
+On four distinct Ryzen 5 3600 cores, four paired clean native builds with warm
+filesystem caches averaged 25.02 s with one semantics worker and 24.44 s with
+four. The override saved 0.57 s of wall time at a cost of 1.70 s more build CPU
+and 23.5 MiB more sampled peak process-tree RSS per build.
+
 `--emit object|llvm|llvm-optimized|exe`, `--target`, `--link`, `--cc`, `--linker`
 and `--sysroot` control emission/tool selection. `--interpret` uses the portable
 interpreter. The native driver locates Bedrock, Foundation and generated runtime target artifacts

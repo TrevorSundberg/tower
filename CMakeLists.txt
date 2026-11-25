@@ -6,6 +6,11 @@ set(TOWER_COMPILER_JOBS "1" CACHE STRING "Worker budget for each bootstrap compi
 if(NOT TOWER_COMPILER_JOBS MATCHES "^[1-9][0-9]*$")
   message(FATAL_ERROR "TOWER_COMPILER_JOBS must be a positive decimal worker count; outer parallelism is controlled by TOWER_BUILD_JOBS")
 endif()
+set(TOWER_SEMANTICS_JOBS "" CACHE STRING "Native semantics object worker budget (empty inherits TOWER_COMPILER_JOBS)")
+if(NOT TOWER_SEMANTICS_JOBS STREQUAL "" AND
+    (NOT TOWER_SEMANTICS_JOBS MATCHES "^[1-9][0-9]*$" OR TOWER_SEMANTICS_JOBS GREATER 256))
+  message(FATAL_ERROR "Set TOWER_SEMANTICS_JOBS to a decimal worker count from 1 to 256, or leave it empty to inherit TOWER_COMPILER_JOBS")
+endif()
 set(TOWER_SANITIZER "" CACHE STRING "Optional native Tower object instrumentation: address or thread")
 if(NOT TOWER_SANITIZER STREQUAL "" AND NOT TOWER_SANITIZER MATCHES "^(address|thread)$")
   message(FATAL_ERROR "TOWER_SANITIZER must be empty, address or thread")

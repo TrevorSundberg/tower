@@ -95,6 +95,10 @@ function(tower_runtime_tools)
 endfunction()
 
 function(tower_runtime_object name input triple)
+  set(object_jobs "${TOWER_COMPILER_JOBS}")
+  if(TOWER_NATIVE AND name STREQUAL "tower-compiler-semantics" AND TOWER_SEMANTICS_JOBS)
+    set(object_jobs "${TOWER_SEMANTICS_JOBS}")
+  endif()
   # Ordinary entries initialize mutable top-level values. Keep library mode as
   # the default and consume this opt-in before forwarding symbol bindings.
   set(source_mode --library)
@@ -118,7 +122,7 @@ function(tower_runtime_object name input triple)
       set(binding_dependencies "${bind}" tower-runtime-bind)
     endif()
     add_custom_command(OUTPUT ${outputs}
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${object_jobs}" ${source_mode} --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         --emit llvm -o "${ir}" --depfile "${ir}.d"
@@ -140,7 +144,7 @@ function(tower_runtime_object name input triple)
     endif()
     set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
     add_custom_command(OUTPUT "${object}"
-      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
+      COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${object_jobs}" ${source_mode} --target "${triple}"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         -o "${object}" --depfile "${object}.d"
@@ -156,7 +160,7 @@ function(tower_runtime_object name input triple)
   set(bound "${CMAKE_CURRENT_BINARY_DIR}/${name}.ll")
   set(object "${CMAKE_CURRENT_BINARY_DIR}/${name}.o")
   add_custom_command(OUTPUT "${ir}" "${bound}" "${object}"
-    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${TOWER_COMPILER_JOBS}" ${source_mode} --target "${triple}"
+    COMMAND "${TOWER_BOOTSTRAP_COMPILER}" "${input}" --jobs "${object_jobs}" ${source_mode} --target "${triple}"
       --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
       --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
       --emit llvm-optimized -o "${ir}" --depfile "${ir}.d"

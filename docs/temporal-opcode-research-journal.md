@@ -99520,3 +99520,52 @@ Two additional reversed serial pairs on one 16-body unit averaged 0.322 → 0.31
 A clean `build-native.sh` build from `fe008af5` plus the four-file Tower patch used the public bootstrap and no private override. The clean native compiler had SHA-256 `4ad3c3bb80869c161948a023bc7fcb552c68191bd334d25df5d70f58b42bc04d`. The separately requested clean profile was byte-for-byte equal to the candidate used above. On the main working tree ASan with leak detection and initialized TSan each passed the parser refusal/retry, structure reuse, unit admission/cancellation and 12×256/four-worker profile with exact output comparisons. The changed table-builder IR contained the selected sanitizer hooks. TSan had 31 startup denials at `personality(ADDR_NO_RANDOMIZE)` across the four commands before successful execution. The packet retains every failed launch. Tower source-level UBSan remains unsupported.
 
 The 43 principal workload processes, two sanitizer workload processes and 28 secondary serial controls all passed their literal-42 and full artifact checks. In the principal runs, all 25 generated source, import and canonical Foundation files matched both the prior exact reference and host 7 serial oracle. Ordinary and constrained-affinity runs used the production adaptive gate. The raw packet `488e19d3-63b9-4878-8a94-628365790c93.tar.gz` includes the candidate patch, ELF identities, original stack samples and decoded callers, independent event/count records, every pair and exception, clean build and sanitizer receipts. Production scheduling and frontend admission have no changes in this patch. Manager publication remains separate.
+
+## Native semantics-object worker override on host 2, 2026-11-25
+
+Source baseline is the manager's `9ab581c8775199d3686520a3371f7ff5b327ddc7`,
+tree `3f53cd52dd1b98fe216811bdcba9b597bb670d1e`. The declared pack from
+`0755ad52` reconstructed the commit and matched its supplied recursive tree
+listing. The public Linux x64 compiler is `7f3b5dac`. The earlier host-2
+eight-build receipt `58139fb9` measured a command substitution in a generated
+graph at `373da061`. All eight reference manifests were checked here.
+
+The documented native script forwards CMake arguments. The semantics target
+uses `tower_runtime_object`, which already emits one `--jobs` argument and
+retains the object depfile. The new cache string changes that argument on the
+native semantics target only. The budget of helper tools and links still comes
+from the global setting. The experiment compares fresh native directories
+against an independent unmodified manager build and exercises reconfiguration
+of the earlier four-core cache.
+
+Four adjacent clean pairs used four outer jobs and the mask `1,2,4,5` on
+Ryzen 5 3600 (four distinct physical cores, cgroup cpuset 0–11, quota 11.52).
+Only the semantics width changed. Stock/selected wall seconds in order were
+24.83/24.64, 25.19/24.27, 24.78/23.99 and 25.26/24.87, with alternating
+first arms. The semantics edge was last before every final link and averaged
+18.537/18.058 s wall and 18.410/19.495 s sampled process CPU. Complete clean
+builds through install averaged 25.015/24.443 s wall, 80.333/82.028 s CPU
+and 2,120,396/2,144,467 KiB sampled peak tree RSS. There was no CPU throttling.
+These are warm-filesystem, empty-directory results on one allocation.
+`01ad20f5-ee87-4786-9bfa-4fafcf569650` retains commands, process masks, CPU
+pressure, Ninja timings, product manifests, guest executions and source bundle.
+
+The unchanged manager build differs from the 373da061 oracle in seven objects
+and the final linked compiler. All eight new builds matched the unmodified
+manager reference: 31 production objects, the four-member archive, three
+programs, four configure probes and 55 installed resources. The semantics
+object remained `14f95a49`. The manager compiler was `9ebc4562`. All guest
+objects and executables matched the earlier oracle and printed 720 and 721.
+
+The retained four-core stock cache adopted the manager sources and matched the
+clean manager outputs. Switching the option on and clearing it each rebuilt
+only the semantics object and the final link. Both repeated configurations
+reported no work. A touched imported `compiler/services.tower` independently
+invalidated the semantics object through its depfile. With global width three,
+unset and blank overrides yielded the same 43 commands. An explicit four
+changed just one. Invalid widths, including zero, a list and values above the
+driver limit, failed configure with the permitted range and reset guidance.
+Address- and thread-sanitizer configurations likewise changed one compiler
+argument. The first standalone sanitizer configure lacked the LLVM bin path.
+Repeating it with the documented native script's PATH resolved clang.
+These last checks validate generated commands only.
