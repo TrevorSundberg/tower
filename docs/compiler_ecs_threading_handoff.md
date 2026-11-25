@@ -21,6 +21,16 @@ executable in about 21 s. Both edited builds matched their independent clean
 rebuilds across all 221 outputs. The two timed pairs used the same worker
 counts throughout. [Native build measurements](temporal-opcode-research-journal.md#2026-11-25--complete-native-build-and-edit-costs-at-ca543287)
 
+On four physical Ryzen 7 5800H cores, the public `902a358f` and candidate
+`cd77a1f7` bootstraps produced identical native compilers from `1ddefba0`.
+Mean clean build and install time was 28.27 s and 27.90 s respectively.
+The two paired time savings were 0.01 s and 0.73 s. Sampled process-tree
+RSS fell by 103 MiB in each pair. All no-op installs took 0.51 s. Editing
+the driver version rebuilt three products in 1.25 s with the public pin
+and 1.20–1.21 s with the candidate. Both arms used four Ninja jobs and one
+worker per compiler invocation.
+[Commands, outputs and memory measurements](temporal-opcode-research-journal.md#native-self-build-of-1ddefba0-with-two-bootstrap-compilers)
+
 **Building the compiler in Chromium.** The `8b7878c8` browser compiler
 compiled 25 units of the editable project based on `ca543287` on four
 pinned physical cores. The first request in a fresh profile took 82.73 s

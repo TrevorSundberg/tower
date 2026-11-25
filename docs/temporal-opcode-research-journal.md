@@ -102587,3 +102587,50 @@ The native receiver checks the installed SDK against actual objects, verifies
 exported callbacks, interprets and executes the exact-case file import, and
 requires a case-specific diagnostic for six wrong-case attempts on a volume
 where OS lookup reaches the same file. Those native results await a Mac.
+
+### Native self-build of 1ddefba0 with two bootstrap compilers
+
+On 2026-11-25, receipt `374e6f3f-5f2b-41d9-aaca-dff8fddc566d` compared
+the public `902a358f` and candidate `cd77a1f7` Linux x64 bootstraps on
+source `1ddefba0baabeabd04ac6afe9337dd58c0423229`. The sole input
+difference was the four package files needed to select each bootstrap.
+The ordinary native build script selected the default package with
+`TOWER_BOOTSTRAP_COMPILER` unset. Both arms used Release, Clang/LLVM
+19.1.1 on Ubuntu 24.04.5 under PRoot, four outer Ninja jobs and
+`-DTOWER_COMPILER_JOBS=1`. The Ryzen 7 5800H exposed CPUs 0–15 with a
+15.36-CPU quota. Build affinity was 0,2,4,6 on four distinct physical
+cores. The sampler ran on another core. No measured phase was throttled.
+
+Each clean build started with empty build and installation directories
+after matched tool and source warm-up. The host filesystem cache was
+shared and uncontrolled. Each clean build was followed by a no-op and a
+driver-version body edit. Pair 1 ran public then candidate, pair 2 in
+reverse order. The table lists public then candidate values in each cell.
+
+| Through normal installation | Pair 1 | Pair 2 |
+| --- | ---: | ---: |
+| Clean wall seconds | 28.08 → 28.07 | 28.46 → 27.73 |
+| Clean user + system seconds | 83.28 → 82.14 | 83.92 → 81.86 |
+| Clean peak individual RSS, KiB | 779,628 → 767,596 | 779,848 → 767,824 |
+| Clean sampled peak process-tree RSS, KiB | 2,129,512 → 2,023,848 | 2,129,592 → 2,023,912 |
+| No-op wall seconds | 0.51 → 0.51 | 0.51 → 0.51 |
+| Edit wall seconds | 1.25 → 1.21 | 1.25 → 1.20 |
+| Edit sampled peak process-tree RSS, KiB | 196,152 → 168,084 | 196,844 → 167,672 |
+
+The clean time saving varied between pairs. The process-tree RSS
+reduction repeated within 16 KiB. Summed process RSS can count shared
+pages more than once. Hardware performance counters were unavailable.
+The no-op ran zero production edges. The edit rebuilt the Host object,
+compiler memory archive and executable. An unscored pilot compared Ninja
+log ordering across the no-op. The scored runs checked the production
+edge set.
+
+Receipt replay verified all 428 checksums and recomputed the timing
+tables. All four clean builds matched 39 native products, 40 raw and
+40 transformed depfiles and 56 installed files. Edited outputs matched
+the retained edited-build oracle. Each interpreted and linked guest
+printed exactly `42` followed by LF, across 16 streams and eight
+identical guest ELFs. The sealed packet SHA-256 is
+`ea422f1a90987784c192f43508d29bf427e18c464e7cb45d98fc794457341886`.
+The separately assigned same-host comparison holds the cd77 bootstrap fixed
+and changes only the Semantics object's compiler worker count.
