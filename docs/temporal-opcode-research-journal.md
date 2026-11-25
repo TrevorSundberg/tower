@@ -101177,3 +101177,29 @@ Assignment `78ae9fd7-4278-4c92-8213-9bbe8f0fe5f7` verified the three declared so
 On host 4's Ubuntu 24.04.5 x64 userspace with LLVM/Clang 19.1.1, the clean Release build used the public 902a358f compiler via the default selector, two outer jobs and one inner worker. The fresh cache at `/native` built in 41.78 s wall, 69.78 s user, 7.70 s system, GNU time maximum RSS 779104 KiB (Ryzen 7 5800H, CPU set 0–15, quota 15.36 CPUs, warm files, one sample). The packager recorded all 1,296 build-source hashes. Relative to the retained 8b7878c8 package, 56 payload hashes matched and `towerc` changed to `09ebe3585461a885f68f5d76d240a01a397703536c17b66204d69d6c63c96b4e`. The new development archive SHA-256 is `204be5d7cb4a6c69db451bf49c0ae5197c571461862e8d1f7a0e0b5cf7153e53`.
 
 After archive verification and unpacking under a user-owned path with spaces, all 57 payload names, sizes and hashes matched. All 21 development checks passed. A separate strict run exited 1 at the link with `Cannot find tool: clang`. From a second relocated copy without the source mount, the 13-unit invoice at one and four jobs reproduced the retained ELF and depfile exactly and printed 1666 then 1685. This is a single-generation development package check on the frozen source. Standalone Linux closure, native Arm64 Linux, both macOS hosts and native x64 Windows remain open in the [release matrix](bootstrap-distribution.md#build-server-matrix-for-native-cli-releases). The existing public install instructions continue to use the pinned public Git revision.
+
+### Type and value dependencies through a forward reference, November 25, 2026
+
+Host 5 receipt 1992da55 on ca543287 traced the type and value producers for
+`scaffolding/tests/staging_aliased_type.tower`. The later function can return
+`decltype(model)` after module code takes the address of model. Its staged
+call reads salt and increments a private local once through an alias. At one
+and four jobs the program printed 2, 123 and 8. Changing salt from 23 to 37
+changed only the middle line to 137. Both cases preserved the answers after
+Foundation reparse and produced identical canonical bytes across widths.
+Taking the previously untaken self-read exited 1 with the cycle at line 7,
+column 16. Attempting a staged value capture of the escaped binding also
+exited 1. This gives a small working example for the contributor guidance.
+
+Manager verification checked all 379 archive members, the 44 cited source
+blob identities, raw stdout, diagnostics, and exit codes. Native query-smoke,
+dependency-units, dependency-permutations and retained-sources passed, as
+did lifecycle cases 17, 21, 24, 38 and 39. The wrong-answer control exited 1
+and identified actual 1112 versus expected 1113. The retained-import test
+reuses session, world and module environment across an edit; semantic
+compilation constructs a fresh context. These runs establish edited behavior
+under that ownership model. Reuse of cached semantic results across edits
+requires independent evidence. The two capture-suspension call sites select
+their subjects and handle invalid lookups differently. This pass retains
+them. No compiler or scheduling change, or performance claim, follows from
+the documentation edit.

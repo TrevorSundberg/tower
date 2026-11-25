@@ -69,6 +69,12 @@ Do NOT modify todo.txt.
   must invalidate the consumer through aliases. A read in an untaken branch
   should leave the consumer runnable. Compare the resulting Foundation,
   diagnostics and guest output at one worker and at the intended width.
+  Track a binding's type separately from its value. Taking the address of a
+  mutable binding can rule out capturing its value while leaving
+  `decltype(binding)` available. In edit tests, record which module snapshots,
+  worlds and semantic results survive between requests. See the
+  [staged forward reference](scaffolding/tests/staging_aliased_type.tower)
+  and the [retained import test](scaffolding/tests/execution_world.tower).
 - A worker limit is shared by every live owner of a fixed browser pool. Size
   nested work from the slots available when its pool opens. Dispatch through
   the returned pool count and keep the caller able to finish when all children
