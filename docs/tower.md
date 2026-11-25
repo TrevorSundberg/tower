@@ -5,6 +5,32 @@ same layer. The [development plan](tower-language-plan.md) distinguishes shipped
 features and implementation work from upcoming overloads, general compile-time
 values, result types and ownership rules.
 
+## Module tests
+
+A module importing Tower can declare a test with an empty parameter list.
+
+```tower
+import tower;
+fn answer(): i32 { return 42; }
+test() { print(answer()); }
+```
+
+Ordinary compilation parses the block and excludes it from semantic binding and
+execution. A test request uses the same module resolver, lexical scopes and body
+checker. It retains module declarations and global initializers and executes the
+selected bodies after initialization, in dependency order and then source order.
+Each body is a private zero-argument function returning `void`. A `return;`
+finishes that test. An interpreter failure stops the request at the first failure.
+The ordinary module script and its exported `main` keep their own entry behavior
+when compiled normally.
+
+The native host can call `execution_session_compile_tests(execution, text, length,
+width, modules)` with an import-only entry naming the owners and sidecar modules.
+After a successful compile, `execution.program.test_count` gives the number of
+selected bodies. Start and step that same session through the ordinary interpreter.
+An adjacent `owner_test.tower` can import `owner` and declare its own helpers.
+Test selection follows the supplied entry's import closure.
+
 ## Function values
 
 Use `function(Result, Parameters...)` for typed noncapturing callbacks. They work

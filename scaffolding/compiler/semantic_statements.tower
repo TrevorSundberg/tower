@@ -514,6 +514,10 @@ fn sem_declaration_finish(c: SemanticContext*, n: void*): void {
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    if sem_is(n, "TowerTest") {
+        sem_fail(c, n, "Test declarations require module scope");
+        return FlowNext;
+    }
     if c.deferring != 0 && sem_control_call(c, n, "jump") != null {
         sem_fail(c, n, "A deferred cleanup cannot jump out of its scope");
         return FlowNext;
@@ -807,7 +811,47 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
     }
 }
 
+// Select the executable items before the source-binding proof captures them.
+// The parser retains each body's original parent, module and source span.
+fn sem_select_tests(c: SemanticContext*): void {
+    var items = &sem_get(c.program.root).items;
+    var kept: usize = 0;
+    foreach(var node in items) {
+        if sem_is(node, "TowerTest") {
+            var head = sem_member(node, "head");
+            var spelling = sem_token_text(c, head);
+            if !sem_ok(c) { return; }
+            if !sem_equal(spelling, "test()") || !sem_is(sem_member(node, "body"), "CoreBlock") {
+                sem_fail(c, node, "Expected test() followed by a block");
+                return;
+            }
+            if !c.program.test_mode { continue; }
+        } else {
+            if c.program.test_mode && !sem_declaration_subject(node) && !sem_is(node, "CoreAttributed") { continue; }
+        }
+        items.data[kept++] = node;
+    }
+    items.length = kept;
+}
+
+fn sem_declare_test(c: SemanticContext*, node: void*): void {
+    var value = sem_node_result(c, node, KFunction);
+    if value == null { return; }
+    var owner = sem_owner(c, node);
+    var path = owner == null ? "" : sem_module_path(c, owner);
+    var position = sem_decimal(c, convert(u64, sem_match(node).start));
+    var name = sem_cat(c, sem_cat(c, "test ", path), sem_cat(c, ":", position));
+    while sem_ok(c) && sem_find(c.source_names, name, null) != null { name = sem_cat(c, name, "_"); }
+    if !sem_ok(c) || !sem_set_name(c, value, sem_output_name(c, node, name)) { return; }
+    value.type = sem_type_value(c, SVoid, 0, null);
+    value.index = c.program.functions.length;
+    if !sem_push_checked(c, &c.program.functions, node) { return; }
+    c.program.test_count++;
+}
+
 fn sem_run(c: SemanticContext*): void {
+    sem_select_tests(c);
+    if !sem_ok(c) { return; }
     sem_source_binding_roots(c);
     if !sem_ok(c) { return; }
     sem_attributes_declarations(c);
@@ -896,6 +940,7 @@ fn sem_run(c: SemanticContext*): void {
         if sem_function_syntax(n) {
             sem_function_declare(c, n, "");
         }
+        if sem_is(n, "TowerTest") { sem_declare_test(c, n); }
         i++;
     }
     sem_declarations(c, statements);
@@ -919,7 +964,7 @@ fn sem_run(c: SemanticContext*): void {
     var initializers_until: usize = 0;
     for(; i < statements.length; i++) {
         var n: void* = statements.data[i];
-        var step59 = !sem_function_syntax(n);
+        var step59 = !sem_function_syntax(n) && !sem_is(n, "TowerTest");
         if step59 {
             var step60 = sem_is(n, "CoreStruct");
             if sem_is(n, "CoreEnum") {
@@ -943,6 +988,21 @@ fn sem_run(c: SemanticContext*): void {
     c.deferred = null;
     sem_attributes_check(c);
     sem_bodies(c);
+    if c.program.test_count != 0 && sem_ok(c) {
+        // Use each retained header as an ordinary zero-argument call. Its
+        // binding is private to this request and needs no source-level alias.
+        var declarations = statements.length;
+        for(var index: usize = 0; index < declarations; index++) {
+            var node = statements.data[index];
+            if !sem_is(node, "TowerTest") { continue; }
+            var head = sem_member(node, "head");
+            var call = sem_node_result(c, head, KCall);
+            if call == null { return; }
+            call.binding = node;
+            call.type = sem_get(node).type;
+            if !sem_push_checked(c, statements, head) { return; }
+        }
+    }
     sem_layout_all(c);
     var step90 = foundation_nodes_prepend(statements, c.generated.data, c.generated.length);
     sem_require(step90);

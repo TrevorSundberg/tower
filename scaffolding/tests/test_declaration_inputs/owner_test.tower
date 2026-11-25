@@ -1,0 +1,5 @@
+import tower;
+import owner;
+
+fn next_value(): i32 { return shared_value + 2; }
+test() { print(next_value()); }

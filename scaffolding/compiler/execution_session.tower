@@ -111,6 +111,16 @@ fn execution_session_compile_sources(execution: ExecutionSession*, sources: Fron
 }
 
 fn execution_session_compile_sources_world(execution: ExecutionSession*, world: void*, sources: FrontendSource*, count: usize, width: u32, modules: void*): bool {
+    return execution_session_compile_mode(execution, world, sources, count, width, modules, false);
+}
+
+fn execution_session_compile_tests(execution: ExecutionSession*, text: u8*, length: usize, width: u32, modules: void*): bool {
+    var input: FrontendSource = { data: text, length: length };
+    var world = frontend_modules_world(modules) ?? compiler_host_world();
+    return execution_session_compile_mode(execution, world, &input, 1, width, modules, true);
+}
+
+fn execution_session_compile_mode(execution: ExecutionSession*, world: void*, sources: FrontendSource*, count: usize, width: u32, modules: void*, test_mode: bool): bool {
     execution_session_close(execution);
     execution.machine.budget = compiler_world_work_budget(world);
     var root_error: WorkBudgetError;
@@ -120,6 +130,7 @@ fn execution_session_compile_sources_world(execution: ExecutionSession*, world: 
         return false;
     }
     semantic_initialize(&execution.program, root, width);
+    execution.program.test_mode = test_mode;
     // Preflight every counted span before creating any frontend module. The
     // synchronous frontend owns its SyntaxSource copies; these inputs stay
     // borrowed and immutable only until that call returns.

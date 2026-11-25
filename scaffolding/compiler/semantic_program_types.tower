@@ -27,4 +27,6 @@ struct SemanticProgram {
     error_offset: usize;
     modules: SemanticModules*;
     resource: SemanticResourceFailure;
+    test_mode: bool;
+    test_count: usize;
 }

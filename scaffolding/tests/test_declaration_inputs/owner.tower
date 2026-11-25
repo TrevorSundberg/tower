@@ -1,0 +1,10 @@
+import tower;
+
+fn private_value(): i32 { return 40; }
+var shared_value = private_value();
+test() {
+    shared_value += 1;
+    print(shared_value);
+    return;
+}
+test() { print(shared_value + private_value() - 39); }
