@@ -1122,6 +1122,17 @@ Its requested worker count alone is not concurrency evidence. Both measurements
 report Linux x64 wall/CPU/RSS and retained counters with no timing pass threshold;
 retain source, transport, samples and actual overlap alongside performance claims.
 
+With native work and backend tests enabled on Linux x64, build
+`tower-layout-frontier-profile` and run `ctest -R "^tower-layout-frontier-smoke$"`
+from the build directory. The smoke case uses four eight-field branches and one
+worker. It checks ordered offsets, graph completion, scratch and pool receipts,
+and an empty ledger after teardown. For a bounded parallel-sized case use
+`tower-layout-frontier-profile cold|warm 1|4`. Each mode checks both a chain
+and a wide frontier with four 8,192-field branches. An optional final `wrong`
+argument perturbs the expected first branch offset by one byte and exits 1
+after cleanup. Passing only `cold` or `warm` runs the original 32-branch
+measurement sweep. The measurements have no timing pass threshold.
+
 With both `TOWER_WORK_TESTS=ON` and `TOWER_BACKEND_TESTS=ON`, the separate
 Linux x64 `tower-semantic-layout-profile` executable reuses the native compiler
 unit link closure and production worker transport. It is excluded from default
