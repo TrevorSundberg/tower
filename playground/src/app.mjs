@@ -714,8 +714,8 @@ async function persist() {
     if (sequence === saveSequence) $('project-storage').textContent = 'Not saved: ' + error.message + '. Use Save to download.';
   }
 }
-window.addEventListener('pagehide', () => { if (editor) persist(); stopExecution(); });
-document.addEventListener('visibilitychange', () => { if (document.hidden && editor) persist(); });
+window.addEventListener('pagehide', () => { storage?.checkpoint(); stopExecution(); });
+document.addEventListener('visibilitychange', () => { if (document.hidden) storage?.checkpoint(); });
 function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
   cancelAnimationFrame(frame); frame=0;
