@@ -104478,3 +104478,47 @@ The exact-ELF x86-64 fill of `LRPropagation.node_storage` covered 43,271,352 byt
 One warm pair and four untraced AB/BA pairs per cell on EPYC 7502 cores 4–7 gave serial wall 282.84 → 290.65 ms for 16 functions and 515.33 → 522.54 ms for 1,000. Four-worker changes were +1.88% and +0.67%. The 402-state holdout changed +0.59% serial and −0.54% at four workers. No scored process experienced major faults or cgroup throttling. Objects, guest output, diagnostic bytes, LR dumps, nullable conflict, allocation refusal/retry, retained data through worker close and final release all checked. Both address and thread instrumentation of the changed parser unit passed the focused graph, holdout and large CLI cases. General Tower source UBSan was unavailable. The raw per-pair process metrics, debugger observations, fixture sources, negative controls and linked identities are in the assignment evidence bundle. The smaller descriptor establishes excess capacity and fails the end-to-end acceptance check.
 
 On four distinct EPYC 7502 cores (CPUs 4–7, 30.72-CPU quota), the 1,000-function serial case averaged 515.33 ms stock and 522.54 ms trial over four counterbalanced pairs. User/system CPU averaged 436.29/77.96 ms stock and 435.72/85.79 ms trial. Mean process peak RSS was 116,800/116,455 KiB. The manager verified 952 packet digests and replayed the byte comparisons for 40 objects and executed guests, the routing and allocation checks and the eight focused sanitizer outcomes. The production row layout stays in place. Archive SHA-256 `1721f830c91fb9bdb2b0bb3e901abe46bbc81a736e049b6899e226521a616d73`.
+
+## Switching guest pointer width on a live Wasm32 compiler
+
+Host 5 exercised the published portable and shared reactors from Pages
+`8524b09e`. The manifest names `2421c659`; their production compiler and Node
+host sources are identical at `e23c6c26`. The existing retained-source selector
+used guest width eight in its alias/type-edit cases. The staging alias fixture
+covered both widths in separate unit trials. The new retained-source regression
+keeps one environment, grammar-bearing import and consumer across 4→8→4→8.
+A forward helper uses the imported binding's type during ordinary comptime
+evaluation and mutates a local through a pointer. The producer's escaped model
+remains available for the runtime read.
+
+The Wasm host stayed 32-bit on every request. Three fields, a byte, a guest
+usize and another byte, gave Frame size/alignment 12/4 or 24/8. The staged value
+was 135 or 147 and the runtime model was eight. Replacing the producer type
+with u16 at the same path gave 6/2 and 129 at both guest widths. Selecting the
+escaped runtime read during staging yielded the expected diagnostic at byte 54
+in the producer with zero guest steps and output. Repair restored the original
+guest-specific values. Document inspection returned type/layout entries even
+on the recoverable failed source; the compile call supplied the diagnostic.
+
+On Node 24.22.3, portable capacity one and shared capacity two, forward and
+reverse orders each matched a newly instantiated service at every step. The
+archived uninstrumented stock controls from f585 agreed with the published
+reactors. The 184 compile/document pairs included both original staging control
+orders on the published reactors. Canonical Foundation, execution diagnostics
+and effects matched byte for byte. Document comparisons preserved binding and
+parent relationships while renumbering world-local IDs. On width-only switches
+the world, bound environment, idle parser and parsed snapshot identities remained
+stable. Each compile had a fresh semantic root; destroying its handle left zero
+execution handles and active module graphs. Explicit final retirement cleared
+the idle parser and all seven cached modules in the edited sequence.
+
+The native `tower-retained-source-updates` selector passed at one and two workers
+before and after adding the fixture. Its zero-owner assertion passed. ASan with
+leak detection and TSan passed the extended selector with the changed native
+test unit instrumented. The public Wasm binaries were reused throughout. On
+a Ryzen 9 5900XT, CPUs 0,2,4,6, cgroup quota 30.72 CPUs, a single native
+selector invocation took 1.16 s before and 1.25 s with four additional
+requests per worker setting; peak RSS was 90,656 and 92,048 KiB respectively.
+These costs cover different test workloads. No compiler performance change
+was evaluated. Receipt `fa3051d7-614f-4f36-be3e-b395f17467ab` records immutable
+inputs, per-call CPU/wall/RSS, ownership, actual artifacts, commands and limits.

@@ -1,0 +1,7 @@
+import tower;
+parse ProfileMarker = 'profile_marker';
+var model: usize = 7;
+var address = &model;
+(*address)++;
+var salt: u8 = 23;
+var take = false;

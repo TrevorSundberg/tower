@@ -1,5 +1,6 @@
 import tower;
 import .host.driver_request;
+import .host.driver_support;
 import .compiler.execution_session;
 import .compiler.execution_package;
 import .compiler.syntax_version_types;
@@ -263,10 +264,10 @@ fn retained_world_drained(world: void*, budget: WorkBudget*): void {
         && compiler_world_grammar(world).workers.running == 0, "Retained request joins before next admission");
 }
 
-fn retained_world_expect(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*,
-    source: u8*, wanted: u8*, fast: bool): void {
+fn retained_world_expect_width(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*,
+    source: u8*, width: u32, wanted: u8*, fast: bool): void {
     retained_world_drained(world, budget);
-    execution_compile(session, source, 8, modules);
+    execution_compile(session, source, width, modules);
     execution_check(compiler_node_world(session.program.root) == world && !session.started
         && session.machine.steps == 0 && session.output.length == 0 && session.error.length == 0
         && session.fast == null && session.machine.memory.data == null, "Retained owner replaces previous request and execution cache");
@@ -279,6 +280,30 @@ fn retained_world_expect(session: ExecutionSession*, world: void*, modules: void
     }
     execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, wanted),
         "Retained source exact layout, staged value, body and effect order");
+}
+
+fn retained_world_expect(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*,
+    source: u8*, wanted: u8*, fast: bool): void {
+    retained_world_expect_width(session, world, modules, budget, source, 8, wanted, fast);
+}
+
+fn retained_world_target_width(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*, root: u8*): void {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    execution_check(driver_request_path(&path, "", root, "tests/retained_target_width/main.tower")
+        && driver_read_file(path.data, &source), "Load target-width fixture");
+    frontend_modules_configure(modules, path.data, root);
+
+    // The middle usize aligns Frame to one guest word and pads it to three.
+    // The forward helper adds that size to 100 from its local write and 23 from the provider.
+    var narrow = "4\n12\n135\n8\n";
+    var wide = "8\n24\n147\n8\n";
+    retained_world_expect_width(session, world, modules, budget, source.data, 4, narrow, false);
+    retained_world_expect_width(session, world, modules, budget, source.data, 8, wide, false);
+    retained_world_expect_width(session, world, modules, budget, source.data, 4, narrow, false);
+    retained_world_expect_width(session, world, modules, budget, source.data, 8, wide, false);
 }
 
 fn retained_world_diamond(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
@@ -388,6 +413,7 @@ fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
     retained_world_diamond(&session, world, modules, &budget);
     retained_world_scalar_type(&session, world, modules, &budget);
+    retained_world_target_width(&session, world, modules, &budget, request.root);
     execution_close_checked(&session);
     retained_world_drained(world, &budget);
     execution_check(probe.active == 0 && (workers == 1 || probe.peak >= 2), "Retained native LR work actually overlaps and drains");

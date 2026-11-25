@@ -1,0 +1,18 @@
+import tower;
+import profile_seed as producer;
+
+struct Frame { tag: u8; word: decltype(producer.model); tail: u8; }
+var selected = comptime(forward());
+fn forward(): decltype(producer.model) {
+    var count: decltype(producer.model) = 0;
+    var alias = &count;
+    (*alias)++;
+    if producer.take { return producer.model; }
+    return count * 100 + convert(decltype(count), sizeof(Frame)) + convert(decltype(count), producer.salt);
+}
+
+var frame: Frame = default;
+print(sizeof(decltype(selected)));
+print(sizeof(Frame));
+print(selected);
+print(producer.model);
