@@ -14,16 +14,16 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The current compiler source is `9ab581c8`. It includes singleton LR state
+The current compiler source is `fb019f61`. It includes singleton LR state
 lookup, table-owned storage for frozen parser context rows, typed resource
 failures for joined frontend units, and executable depfiles that track both
 explicitly linked objects and the selected runtime IR. The Ubuntu-built
-executable is 2,321,072 bytes with SHA-256
-`6d5be0b925d7787277577ba4d9a4f72072a184ff734c82a056e1fc528c727c52`.
+executable is 2,274,400 bytes with SHA-256
+`d8f3403606f175309b038783dfa532e3734cd01db597c92db24c9dd5cbe2ac32`.
 Three Ubuntu production builds matched on 39 native products. Generations two
 and three also matched on all 57 payloads and their checksum manifest.
-The previous public pin was built from `fe008af5`.
-See the [previous pin and host verification](../docs/temporal-opcode-research-journal.md#2026-11-24--ubuntu-development-bootstrap-at-fe008af5)
+The previous public pin was built from `9ab581c8`.
+See the [previous pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later
