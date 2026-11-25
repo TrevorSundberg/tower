@@ -104468,3 +104468,63 @@ The browser Build can reuse the complete set of 25 objects after the generator c
 Receipt `26598d51` qualified Pages tree `4e2ec28647e0e5fceb1b2471e75f658cbdc4ea39`. Of 240 Playwright cases, 120 desktop and 118 mobile cases passed with zero retries or uncaught page errors. The two full compiler-generation cases were declared skips on mobile and passed on desktop. The production Node suite passed 513 cases and declared two optional-export skips. Its 515 outcomes matched stock. With the release LLVM tool path restored after the first configure failure, the separate IDE-enabled build reproduced the 1,844,535-byte reactor and fixture transcript while testing the current mounted inputs. The official local deployment verifier matched all sixteen desktop/mobile delivery products to stock. Both downloaded Linux guests printed 5, 84 and 42 on separate lines. The verifier's two storage errors were reproduced on a blank page before the first site request.
 
 The manager verified 424 packet digests, replayed individual case outcomes and product hashes, and compared the integrated source to the 543 authored compiler inputs and 50 tracked UI inputs. All 107 Pages files and the complete manifest matched the sealed release. The UI build source is `9ae9596e`, the handoff source is `1709840f`, and the production compiler, resources and project retain their `2421c659` identity. The Node checks used the four-file CI test overlay from `05721eea`. The archive SHA-256 is `aedd503102bfcf773fda5a56505a7ed84b4b746fffaf0c610df254cd2760df98` and the deployment manifest SHA-256 is `cfe7b6e06df3f5c0918402108fe210522b4f5ab5a0fcc7085ee8a6378603815a`. These receipts cover the sealed local release. Hosted browser verification follows the atomic publication.
+## Lending the first imported grammar to a nested reader
+
+The retained diamond at `da25567f` builds the ordinary Tower grammar at
+byte 13 of `retained_side.tower`. Its 109 rule names, 296 ordered alternatives
+and 12 tokens already occur in the root parser's session cache. That cache
+retains the original build key and the compiled version. The nested reader
+can take one reference in its existing active-version slot. Its graph owns
+the idle import reader until another import resets it or the graph closes.
+An active reader can also be the last owner after the root changes its active
+grammar and discards its cache.
+
+The loan is available for the first import in an ordinary reader in a bound
+environment. Its resolved dependency must be the same grammar-bearing module
+as the active root's first dependency in that same request graph. The lookup
+checks the world, Bedrock revision, ordered rule names and each rule's ordered
+alternative entities, followed by the ordered token entities. It reads the
+bounded root index without updating recency. A miss goes through the reader's
+ordinary installation. The change adds zero cache slots, heap buffers or
+budget reservations and does not extend the root cache's lifetime.
+
+A trial comparison of the packed allocation order missed the measured case.
+`syntax_revision_create` sorts the rule views while leaving the underlying
+storage in declaration order. Comparing the logical views recovered the hit.
+A transparent wrapper exported the exact same entities from another path and
+correctly missed. Editing a grammar behind an import alias rebuilt the root
+version and changed the side and root effects from 17 to 19. The reader borrowed
+the new identity. A shift/reduce conflict produced identical fresh and retained
+diagnostics at byte 12 with no guest steps. Repair restored the original effects.
+The lease fixture checked rejected admission, successful retry, reordered
+alternatives and tokens, eviction with a suspended reader, and zero owners after
+close. Cancellation joined two admitted unit workers that used the loan.
+
+Host 4 used Ubuntu 24.04.5, LLVM 19.1.1 and four physical cores of a Ryzen 7
+5800H (CPUs 0,2,4,6, quota 1,536,000 µs per 100,000 µs). With observers off,
+four stock/trial pairs per width gave the following median ordinary compile
+times. Each arm ran the same initial request, untouched repeat, independent
+71-to-73 edit, shared leaf edit, failure and repair.
+
+| Native workers | Untouched stock / trial, ms wall | Edited stock / trial, ms wall | Edited stock / trial, ms CPU |
+| --- | ---: | ---: | ---: |
+| 1 | 18.75 / 7.78 | 17.57 / 7.00 | 15.36 / 4.88 |
+| 2 | 23.88 / 8.23 | 21.95 / 7.52 | 21.62 / 5.96 |
+
+At both widths the side edit used 26,107 fewer charged bytes and five fewer
+live reservations after compilation. For the six-step sequence the tested
+one-byte success/failure boundaries moved from 25,092,131 to 24,788,422
+bytes at one worker and from 28,561,016 to 28,257,307 at two. The failures
+reported capacity during semantic repair. Whole-sequence median maximum
+individual RSS was 79,320/79,588 KiB at one worker and 83,670/83,562 KiB
+at two. A fresh-world holdout with five new grammar declarations per request
+took 1.940/1.885 s at one worker and 2.420/2.330 s at two. Forcing all loans
+to miss in the same holdout gave 1.915/1.925 s and 2.445/2.445 s.
+
+Thirteen related native selectors passed. Address- and thread-instrumented
+parser units passed the lease fixture, ordinary retained selector and worker
+cancellation. The thread runtime also had startup failures before tests when
+host policy denied its personality call. Host 4 packet
+`56417dd4-fcf0-40cf-89bb-6e93449933b9` contains the exact inputs, commands,
+per-call ledgers, canonical Foundation, guest bytes, diagnostics, allocator
+and worker link maps, and separate receipts for every invocation.

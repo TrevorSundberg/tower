@@ -128,7 +128,7 @@ fn frontend_revision_create(rules: SyntaxRuleView*, count: usize, tokens: void**
 }
 
 fn frontend_revision_same(revision: FrontendRevision*, rules: SyntaxRuleView*, count: usize,
-tokens: void**, token_count: usize, kind: void*): bool {
+tokens: void**, token_count: usize, kind: void*, exact: bool): bool {
     var different = revision.rules.length != count;
     if different {
         return false;
@@ -160,8 +160,9 @@ tokens: void**, token_count: usize, kind: void*): bool {
             if done {
                 break;
             }
-            var same = syntax_nodes_equal(previous.alternatives[j], next.alternatives[j], kind, true);
-            different = same != 1;
+            var same = exact ? previous.alternatives[j] == next.alternatives[j]
+                : syntax_nodes_equal(previous.alternatives[j], next.alternatives[j], kind, true) == 1;
+            different = !same;
             if different {
                 return false;
             }
@@ -175,13 +176,20 @@ tokens: void**, token_count: usize, kind: void*): bool {
         if done {
             return true;
         }
-        var same = syntax_nodes_equal(revision.tokens.data[i], tokens[i], kind, true);
-        different = same != 1;
+        var same = exact ? revision.tokens.data[i] == tokens[i]
+            : syntax_nodes_equal(revision.tokens.data[i], tokens[i], kind, true) == 1;
+        different = !same;
         if different {
             return false;
         }
         i++;
     }
+}
+
+// Syntax revisions sort rule views without reordering their backing storage.
+// Cross-reader reuse requires the original ordered source entities.
+fn frontend_revision_identical(left: FrontendRevision*, right: FrontendRevision*): bool {
+    return frontend_revision_same(left, right.rules.data, right.rules.length, right.tokens.data, right.tokens.length, null, true);
 }
 
 export fn frontend_cache_dispose(cache: FrontendCache*): void {
@@ -234,7 +242,7 @@ tokens: void**, token_count: usize, kind: void*): usize {
             return lr_none();
         }
         var revision = cache.entries.data[i];
-        if frontend_revision_same(revision, rules, count, tokens, token_count, kind) {
+        if frontend_revision_same(revision, rules, count, tokens, token_count, kind, false) {
             frontend_cache_touch(cache, i);
             cache.hits++;
             return revision.slot;
