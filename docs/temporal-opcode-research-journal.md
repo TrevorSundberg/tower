@@ -105260,3 +105260,44 @@ explicitly produced the corresponding missing-import diagnostic and exit 1.
 These are measurements of the published compiler's ordinary build. Selecting
 tests through the new profile requires successor acceptance. No production
 executable or runtime asset changed in this baseline.
+
+### Positional fixed-array construction on the native successor
+
+Receipt `58bbd1ef-eae3-57b3-979a-b05bdd25eb8e` extends the Tower grammar and
+the aggregate checker. The existing initializer syntax entity owns the ordered
+entries. Each entry records an index and element type. After workers join,
+aggregate lowering consumes these entries in order and emits ordinary Foundation
+stores. Before checking a typed initializer on a declaration worker, the
+coordinator requests layout for the resolved aggregate record, including through
+a type alias. An earlier candidate reached layout while the worker held its
+view and aborted. The typed, forward and aliased fixtures cover that correction.
+
+On Linux x64 the candidate printed 1342 for `var order: usize[4] = {1,3,4,2};`.
+The manager verified all 822 packet checksums and matched the four source blobs
+to the candidate commit. For each of 17 fixtures, the one- and four-worker
+interpreter outputs, fast interpreter output, predecessor's Foundation replay
+and native guest output matched its oracle. Canonical Foundation bytes agreed
+at both worker widths. Twelve rejection controls agreed on their diagnostics at
+both widths. A separate replay checked an empty named struct, an array of
+structs and a short count with the relocated compiler. The registered companion
+test also checks nested effects and a staged sum. Both registrations' CMake
+commands passed with the reviewed compiler. Changing the expected effect order
+made the same harness exit nonzero. An explicit trap with offset zero identifies
+the message but does not locate the test assertion; source-located assertions
+are part of the test-language work.
+
+The clean native build used the checked-in bootstrap, LLVM/Clang 19.1.7 and
+six outer jobs. The EPYC 7502 host exposed CPUs 0–63 with quota of about 30.72
+cores. In the paired grammar-only control, using the same native executable and
+swapping the grammar resource added 396,088 bytes to the serial heap peak on
+each of two existing inputs. Four ASan/LSan positive runs and three rejection
+paths completed. Four TSan positive processes initialized and passed. Another
+48 launches failed during TSan startup on the host. Source-language UBSan,
+browser execution and generation convergence remain outside these results.
+
+Integrated the single initializer patch from `e91feaaf` as `cc42c8d1`. The
+unrelated worker ancestor contains a journal-only delta and remains preserved
+in its receipt ref. The relocated executable and resources in the packet are
+review artifacts. A published successor pin is required before compiler and
+build sources can use positional lists. Declaration-ordered positional structs
+and implicit C-style partial initialization are separate language questions.

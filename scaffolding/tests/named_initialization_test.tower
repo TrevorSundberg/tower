@@ -1,0 +1,28 @@
+import tower;
+
+var order: usize[4] = {1, 3, 4, 2};
+if order[0] * 1000 + order[1] * 100 + order[2] * 10 + order[3] != 1342 {
+    trap("Positional elements must occupy their declared indices", 0);
+}
+
+struct Row { values: i32[2]; }
+var trace = 0;
+fn mark(value: i32): i32 {
+    trace = 10 * trace + value;
+    return value;
+}
+
+var rows: Row[2] = {
+    {values: {mark(1), mark(2)}},
+    {values: {mark(3), mark(4)}},
+};
+if trace != 1234 || rows[0].values[1] != 2 || rows[1].values[0] != 3 {
+    trap("Nested elements must evaluate once in source order", 0);
+}
+
+fn staged(): i32 {
+    var pair: i32[2] = {19, 23};
+    return pair[0] + pair[1];
+}
+if comptime(staged()) != 42 { trap("Staged array element sum", 0); }
+print(0);

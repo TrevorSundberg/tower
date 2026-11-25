@@ -55,6 +55,27 @@ and continuation path. Lowering runs through the existing ECS jobs and removes
 surface classifications. The canonical program uses compilable Foundation address,
 field, assignment, sizeof and fill operations, with no new public operation ABI.
 
+## Positional fixed-array initialization
+
+The successor compiler accepts a complete list of elements for a fixed-size
+array. Each element gets its type from the destination. A trailing comma is
+optional. For example:
+
+```tower
+import tower;
+var order: usize[4] = {1, 3, 4, 2};
+struct Row { entries: i32[2]; }
+var rows: Row[2] = {{entries: {10, 11}}, {entries: {20, 21}}};
+```
+
+The checker requires the exact element count and checks nested arrays at each
+level. Struct fields continue to use names. Resetting an array evaluates the
+destination once and stores elements in source order: in
+`order = {7, order[0], 3, 2};`, the second element reads the newly stored 7.
+Reading a still-uninitialized element during strict compile-time evaluation
+produces a diagnostic. Canonical Foundation uses the existing indexed stores.
+The published `0823b028` development compiler predates this grammar.
+
 ## Future stricter language policies
 
 Stronghold can reject raw uninitialized declarations and enforce definite
