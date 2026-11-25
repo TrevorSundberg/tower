@@ -101319,3 +101319,58 @@ forced GC found zero live bytes from the transferred objects. For integration
 the qualified generator hash stays at the page's Build boundary and is cleared
 on Reset and pagehide. A recipe mismatch drops the incoming object references
 before compilation.
+
+The final integration used the rebased app and Build worker at 4744b239
+with the original 80a50621 shared editor reactor and its matching
+editor-worker transport. An initial all-current-JavaScript trial stopped at
+startup because that retained reactor imports work_host_pool_capacity and
+thread start/join functions absent from the checkout's shared adapter. The
+packet preserves the failed run. The rebase retained the upstream storage
+checkpoint on pagehide alongside cache eviction and Build cancellation.
+
+| Ordinary Build on host 6 | Stock wall / browser CPU s / browser-tree peak KiB | Matched trial wall / CPU s / peak KiB | Rebased app and Build worker wall / CPU s / peak KiB |
+|---|---|---|---|
+| Fresh | 74.394 / 162.93 / 2,317,824 | 73.943 / 161.23 / 2,320,756 | 72.988 / 157.96 / 2,319,136 |
+| First active generator | 74.119 / 157.93 / 2,308,916 | 69.148 / 147.62 / 2,578,180 | 68.533 / 148.75 / 2,665,964 |
+| Same generator and sources | 65.950 / 137.36 / 2,611,272 | 5.934 / 15.46 / 2,409,372 | 6.557 / 16.41 / 2,405,680 |
+| Semantics edit | 68.905 / 146.85 / 2,525,664 | 67.271 / 140.98 / 2,542,392 | 65.475 / 139.42 / 2,530,492 |
+| Restore | 73.405 / 160.05 / 2,498,020 | 71.441 / 157.87 / 2,484,856 | 70.717 / 155.47 / 2,509,652 |
+
+Each cell is one sequential real desktop Build on Chromium 159.0.8154.6,
+Xeon E5-2680 v4 guest cores 0–3, quota 11.52, warm filesystem. Cold starts
+a new profile. Actual unit lanes were two for every miss and zero for each
+25-object hit. Browser-tree RSS sums simultaneous process samples about
+250 ms apart. The original 80a50621 fresh/retained-reset two-lane controls
+took 71.95/72.50 s and each compiled 25 objects. Here the fresh run selects
+35,434,712 shipped LLVM bytes, then activates the 35,471,610-byte generator.
+The edit retains that generator and changes one of 569 documents. Restore
+selects the 35,471,648-byte edited generator with the clean documents.
+
+The Semantics object test read 111 completed names from Tower. A fallback
+import selected value.tower plus nested.tower. Adding probe/value.tower
+changed the object while the original receipt omitted that absent path.
+The project-wide object key includes the qualified generator digest, the
+stamp of the actual bundled object worker (including its Wasm32 object
+flags and ABI) and the full recipe with the complete ordered source
+namespace. Link support is fetched afresh. The payload cap is 4 MiB and
+64 objects. The trial transferred 25 backing stores, a 64-character key
+and a bounded array of views. Forced GC after pagehide found zero live
+bytes from a previously live 3,391,528-byte set. Engine headers are outside
+the backing-store count. Both activated diagnostics, all three reactor
+hashes and the native staged guest agreed through Restore. The native
+interpret and emit commands produced exactly 42 plus LF and 1,407 bytes
+of canonical Foundation (e0633df3…). A changed export requirement forced
+25 actual compiles and failed the normal validation before publication.
+
+On the identical path set a NUL in an unimported file also made Tower's
+module admission fail. The positive dependency list alone cannot preserve
+that diagnostic. Retrying the original recipe recovered the clean compiler.
+Cancel during a reused link detached the incoming buffers, retired the
+coordinator and left generation 7 active after late progress delivery.
+Four existing real-worker transport checks passed, covering serial/parallel
+object equivalence, ordered publication, cancellation, earliest diagnostics
+and a missing later receipt. Native sanitizers were inapplicable to this
+browser JavaScript change. General per-unit reuse across edits remains open.
+The reproducible packet for bc9f1f28-c68d-4535-b370-bee7b59411ab includes
+the host commands, native oracle, counters, exact files, observer events,
+candidate patches and replay checks. Publication belongs to the manager.
