@@ -1,5 +1,6 @@
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration } from '@codemirror/view';
+import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightActiveLineGutter, Decoration, closeHoverTooltips } from '@codemirror/view';
+import { closeCompletion } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands';
 import { byteOffsets } from './offsets.mjs';
 import { editorDiagnostics, goToDiagnostic, setDiagnostic, sourceDiagnostic } from './diagnostics.mjs';
@@ -15,6 +16,7 @@ import { OutputPane } from './output-pane.mjs';
 import {examples, filePath, newProject, projectStore, validateProject, projectSources, refreshCompilerSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
 import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler-selection.mjs';
+import { LanguageService } from './language-service.mjs';
 import { towerCompletion } from './completion.mjs';
 import { paint, highlighting, towerDecorations } from './tower-highlights.mjs';
 import { prepareCompilerIsolation } from './compiler-isolation.mjs';
@@ -101,6 +103,7 @@ class Engine {
   }
 }
 const engine = new Engine();
+const editorLanguage = new LanguageService();
 let editor, source = '', offsets = [0], result = null, generation = 0;
 let frame = 0, queued = null, dirty = true, busy = false;
 let executionId = 0, executionError = null, runners = {};
@@ -714,7 +717,7 @@ async function persist() {
     if (sequence === saveSequence) $('project-storage').textContent = 'Not saved: ' + error.message + '. Use Save to download.';
   }
 }
-window.addEventListener('pagehide', () => { storage?.checkpoint(); stopExecution(); });
+window.addEventListener('pagehide', () => { storage?.checkpoint(); editorLanguage.stop(); stopExecution(); });
 document.addEventListener('visibilitychange', () => { if (document.hidden) storage?.checkpoint(); });
 function changed(deferDiagnostics = editor.hasFocus) {
   ++saveSequence; // an older write must not mark these newer edits as saved
@@ -775,9 +778,14 @@ function renderFiles() {
   $('compiler-controls').hidden = !project.compilerProject;
   $('execute').textContent = project.compilerProject ? 'Rebuild compiler' : 'Execute';
 }
+// Keep undo and selection in each file. Hover and completion belong to the outgoing query.
+function savedFileState() {
+  closeCompletion(editor);
+  return editor.state.update({effects:closeHoverTooltips}).state;
+}
 function selectFile(path, fresh = false) {
   if (!fresh && path === activePath) return;
-  if (!fresh && editor) { persist(); fileStates.set(activePath, editor.state); }
+  if (!fresh && editor) { persist(); fileStates.set(activePath, savedFileState()); }
   activePath = project.active = path;
   editingModule = path.startsWith('.tower/') ? path.slice(7, -6) : '';
   foundation = project.builtins.foundation; bedrock = project.builtins.bedrock;
@@ -796,7 +804,7 @@ function selectProject(id) {
   if (project) persist();
   ++documentLoadId; ++generation;
   if (engine.pending) engine.stop();
-  stopExecution(); fileStates.clear();
+  stopExecution(); editorLanguage.stop(); fileStates.clear();
   cancelCompilerBuild();
   project = next; linkInputs = project.links; activePath = '';
   try { localStorage.setItem('tower-project-selected-v1', id); } catch {}
@@ -821,7 +829,7 @@ $('rename-file').onclick = () => projectAction(() => {
   filePath(path); captureDocument();
   validateProject({...project, files:project.files.map(f => f.path === activePath ? {...f, path} : f)});
   project.files.find(f => f.path === activePath).path = path;
-  fileStates.set(path, editor.state); fileStates.delete(activePath); selectFile(path, true);
+  fileStates.set(path, savedFileState()); fileStates.delete(activePath); selectFile(path, true);
 });
 $('delete-file').onclick = () => {
   if (!confirm('Delete ' + activePath + ' from this project?')) return;
@@ -876,6 +884,7 @@ $('cancel-execution').onclick = () => {
   }
   stopExecution('Cancelled');
 };
+function languagePointerBytes() { return selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8; }
 for(const [key,target] of Object.entries(targetChoices)) {
   const label=node('label'), input=node('input'), caption=node('span','',target.label);
   caption.id='target-label-'+key;
@@ -886,7 +895,12 @@ for(const [key,target] of Object.entries(targetChoices)) {
   label.append(input,caption); $('target-options').append(label);
   input.onchange=()=>{
     targetsChanged=true;
+    const previousWidth = languagePointerBytes();
     selectedTargets[key]=input.checked;
+    if (previousWidth !== languagePointerBytes() && editor) {
+      editorLanguage.stop();
+      editor.setState(savedFileState());
+    }
     if (!selectedTargets[key]) {
       const backend = key === 'wasm' ? 'llvm' : nativeTargetKeys.includes(key) ? 'native' : key;
       if (backend!=='native' || !selectedNativeKeys().length) {
@@ -1055,8 +1069,8 @@ async function start() {
     p.baseline = {...builtins};
   }
   editorExtensions = [
-    towerCompletion(() => ({library:project.library ?? '.tower', foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath,
-      pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8})),
+    towerCompletion(editorLanguage, () => ({library:project.library ?? '.tower', foundation, bedrock, editingModule, files:project.files, builtins:project.builtins, activePath,
+      pointerBytes:languagePointerBytes()})),
     lineNumbers(), highlightActiveLineGutter(), highlightActiveLine(), history(), highlighting, selectionMark, editorDiagnostics,
     EditorView.lineWrapping, EditorView.theme({ '&': { color: '#d4e0e2', backgroundColor: '#121a1e' } }, { dark: true }),
     EditorView.contentAttributes.of({ 'aria-label': 'Tower source', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
