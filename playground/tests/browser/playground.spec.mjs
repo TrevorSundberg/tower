@@ -300,32 +300,33 @@ test('LLVM compiles the current program into a downloadable executable', async (
 test('continuous typing updates highlighting and reuses the WASM worker and grammar tables', async ({ page }) => {
   const workers = []; page.on('worker', worker => { if (new URL(worker.url()).pathname.endsWith('/worker.js')) workers.push(worker); });
   const worker = page.workers().find(worker => new URL(worker.url()).pathname.endsWith('/worker.js'));
-  await worker.evaluate(() => {
-    const send = self.postMessage.bind(self);
-    self.__editReplies = [];
-    self.postMessage = (data, ...args) => {
-      self.__editReplies.push({ offset: data.result?.snapshot.offset, builds: data.result?.snapshot.grammarBuilds });
-      return send(data, ...args);
-    };
-  });
   const editor = page.getByRole('textbox', { name: 'Tower source' });
   await editor.click(); await editor.press('ControlOrMeta+End');
   await page.keyboard.insertText('\n// typing ');
   await expect(page.locator('#status')).toContainText('Complete');
-  await worker.evaluate(() => { self.__editReplies=[]; });
-  await page.evaluate(() => {
-    window.__liveUpdates = 0;
-    new MutationObserver(() => {
-      if (document.querySelector('#status').textContent.startsWith('Complete')) window.__liveUpdates++;
-    }).observe(document.querySelector('#status'), { childList: true });
+  await worker.evaluate(() => {
+    const send = self.postMessage.bind(self);
+    self.__grammarBuilds = [];
+    self.postMessage = (data, ...args) => {
+      self.__grammarBuilds.push(data.result?.snapshot.grammarBuilds);
+      return send(data, ...args);
+    };
   });
-  await page.keyboard.type('updates throughout a continuous burst of typing', { delay: 15 });
-  expect(await page.evaluate(() => window.__liveUpdates)).toBeGreaterThan(0);
+  // Give each batch one editor frame. A real worker reply can then paint that
+  // revision before the next key invalidates it, even on a busy test host.
+  await page.clock.install();
+  await page.clock.pauseAt(new Date(await page.evaluate(() => Date.now() + 1000)));
+  const comment = editor.locator('.cm-line').last().locator('.tw-comment');
+  let expected = '// typing ';
+  for (const keys of ['updates throughout', ' a continuous burst', ' of typing']) {
+    await page.keyboard.type(keys);
+    await page.clock.runFor(16);
+    expected += keys;
+    await expect(comment).toHaveText(expected);
+  }
   await expect(page.locator('#status')).toContainText('Complete');
   expect(workers).toHaveLength(0);
-  const replies = await worker.evaluate(() => self.__editReplies);
-  expect(replies.length).toBeGreaterThan(1);
-  expect(replies.every(reply => reply.builds === 0)).toBe(true);
+  expect(await worker.evaluate(() => self.__grammarBuilds)).toEqual([0, 0, 0]);
 });
 
 test('edits during a slow response coalesce and cannot display an obsolete parse', async ({ page }) => {
