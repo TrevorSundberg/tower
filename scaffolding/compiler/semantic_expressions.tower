@@ -133,11 +133,9 @@ fn sem_default(c: SemanticContext*, n: void*, expected_type: FoundationType*, de
     return sem_surface_expected(c, n, expected_type);
 }
 
-// Construction checking is independent of storage lowering. The initializer's
-// ordered field nodes bind the same declarations used by ordinary field access.
-// Stronger source policies can inspect completeness/default coverage here, and
-// analyze the resulting ordinary stores without changing Foundation semantics.
-fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: FoundationType*, destination: bool): void* {
+// Ordered entries carry a reflected struct field or a fixed array index for
+// the shared aggregate lowering pass. Coverage is checked before lowering.
+fn sem_aggregate_initialization(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
     // Inference can check an explicit init(Type) before the call supplies its
     // concrete parameter type. Reuse the checked fields and effects, while
     // still enforcing that later expected type; never append the fields twice.
@@ -149,26 +147,55 @@ fn sem_named_initialization(c: SemanticContext*, n: void*, expected_type: Founda
     if annotation != null { type = sem_type(c, annotation); }
     if !sem_ok(c) { return n; }
     if type == null {
-        sem_fail(c, n, "Named initialization requires a target type or init(Type)");
+        sem_fail(c, n, "Aggregate initialization requires a target type or init(Type)");
         return n;
     }
     sem_set_type(&initial.type, type);
-    if type.pointers != 0 || type.scalar != SStruct || semantic_enum(type) {
+    var list = sem_member(n, "fields");
+    var elements = sem_member(list, "elements");
+    if elements != null && (type.pointers != 0 || type.scalar != SArray) {
+        sem_fail(c, n, "Positional initialization requires a fixed array type");
+        return n;
+    }
+    if elements == null && (type.pointers != 0 || type.scalar != SStruct || semantic_enum(type)) {
         sem_fail(c, n, "Named initialization requires a struct type");
         return n;
     }
     sem_surface_expected(c, n, expected_type);
     if !sem_ok(c) { return n; }
-    if !destination {
-        sem_fail(c, n, "Named initialization requires a complete declaration initializer or reset destination");
-        return n;
-    }
     sem_layout(c, type.record);
     if !sem_ok(c) { return n; }
-    var fields = &sem_get(type.record).items;
+    var record = sem_get(type.record);
+    if elements != null {
+        // Stop at each outer expression so parentheses and nested braces keep
+        // their own grouping. Check coverage before building any stores.
+        var values = sem_collect(c, elements, "TowerExpression");
+        if !sem_ok(c) { return null; }
+        if values.length != record.length {
+            var required = sem_decimal(c, convert(u64, record.length));
+            var actual = sem_decimal(c, convert(u64, values.length));
+            sem_fail(c, n, sem_cat(c, "Expected ", sem_cat(c, required, sem_cat(c, " array elements, got ", actual))));
+            return n;
+        }
+        for(var i: usize = 0; i < values.length && sem_ok(c); i++) {
+            var source = values.data[i];
+            // Each comma-list production owns exactly one direct expression.
+            // Its syntax node carries the assignment alongside that expression.
+            var entry = sem_parent(source);
+            var item = sem_node_result(c, entry, KAssign);
+            if item == null { return null; }
+            item.index = i;
+            item.type = record.element;
+            item.value = sem_operand(c, source, &item.type);
+            if !sem_push_checked(c, &initial.items, entry) { return null; }
+        }
+        c.surface_expressions = true;
+        return n;
+    }
+    var fields = &record.items;
     var supplied = sem_table(c);
     if !sem_ok(c) { return default; }
-    var entries = sem_collect(c, sem_member(n, "fields"), "TowerInitializerEntry");
+    var entries = sem_collect(c, list, "TowerInitializerEntry");
     if !sem_ok(c) { return default; }
     for(var i: usize = 0; i < entries.length && sem_ok(c); i++) {
         var entry = sem_child(entries.data[i], 0);
@@ -221,7 +248,7 @@ fn sem_initial_value(c: SemanticContext*, n: void*, expected_type: FoundationTyp
             return source;
         }
         c.value_depth++;
-        var result = sem_named_initialization(c, source, expected_type, true);
+        var result = sem_aggregate_initialization(c, source, expected_type);
         c.value_depth--;
         return result;
     }

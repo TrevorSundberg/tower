@@ -513,12 +513,26 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         if sem_is(node, "TowerDefault") || sem_is(node, "TowerInitializer") {
             if sem_is(node, "TowerInitializer") {
                 var annotation = sem_member(node, "type");
-                var nominal = annotation == null ? null : sem_resolve(c, c.types, annotation, sem_identifier(c, annotation));
-                if !sem_ok(c) { return default; }
-                if nominal != null {
-                    waiting = sem_declaration_layout_waiting(c, nominal);
-                    var query = work_find(&c.queries, nominal, convert(u32, SemanticQuery.Layout), 0);
-                    if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = nominal; }
+                if annotation != null {
+                    var prepared = sem_declaration_type_projection(c, annotation, 0);
+                    if !sem_ok(c) { return 0; }
+                    if prepared == null {
+                        var binding = sem_resolve(c, c.types, annotation, sem_identifier(c, annotation));
+                        if !sem_ok(c) { return 0; }
+                        if binding != null {
+                            var producer = sem_declaration_query(c, binding);
+                            if producer != 0 && work_task(&c.queries, producer).state != WorkState.Succeeded { return producer; }
+                            prepared = &sem_get(binding).type;
+                        }
+                    }
+                    // The constructed type or alias supplies the actual record.
+                    // Array length and element layout live on that identity.
+                    if prepared != null && semantic_aggregate(prepared) {
+                        var record = prepared.record;
+                        waiting = sem_declaration_layout_waiting(c, record);
+                        var query = work_find(&c.queries, record, convert(u32, SemanticQuery.Layout), 0);
+                        if waiting == 0 && (query == 0 || work_task(&c.queries, query).state != WorkState.Succeeded) { *layout = record; }
+                    }
                 }
                 sem_declaration_scan_push(c, &scan, sem_member(node, "fields"), false);
             }
@@ -822,7 +836,13 @@ fn sem_declaration_expression(c: SemanticContext*, root: void*): bool {
         var node = sem_surface_unwrap(pending.data[i]);
         if sem_declaration_leaf(c, node) { continue; }
         if sem_is(node, "TowerInitializer") {
-            var fields = sem_collect(c, sem_member(node, "fields"), "TowerInitializerField");
+            var list = sem_member(node, "fields");
+            var elements = sem_member(list, "elements");
+            if elements != null {
+                if !sem_push_checked(c, pending, elements) { return false; }
+                continue;
+            }
+            var fields = sem_collect(c, list, "TowerInitializerField");
             if !sem_ok(c) { return default; }
             foreach(var field in fields) { sem_push_checked(c, pending, sem_member(field, "value")); }
             continue;
