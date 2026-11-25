@@ -83,12 +83,23 @@ test('template hover explains symbolic types, compile-time parameters and docs f
 });
 
 test('type constructor calls and grammar attributes show the hovered part',async({page},info)=>{
-  const text='import foundation;\nfn unsigned_integer(width: address_type()): type {\n  return integer_type(width, 0);\n}';
+  const text='import foundation;\n// 雪🚀\nfn unsigned_integer(width: address_type()): type {\n  return integer_type(width, 0);\n}';
   await source(page,text);await ready(page,text);
   const tip=page.locator('.tw-language-hover');
-  for(const [token,description] of [['integer_type','Constructs an integer type'],['width','compile-time parameter']]) {
+  for(const [token,kind,type,location] of [
+    ['integer_type','primitive type constructor','type','foreach.tower:4:10'],
+    ['0','value','i32','foreach.tower:4:30'],
+    ['width','parameter','usize','foreach.tower:3:21'],
+  ]) {
     await page.mouse.move(0,0);const position=await point(page,token);await page.mouse.move(position.x,position.y);
-    await expect(tip).toBeVisible();await expect(tip).toContainText(description);
+    await expect(tip.getByText(kind,{exact:true})).toBeVisible();
+    await expect(tip.getByText('Type: '+type,{exact:true})).toBeVisible();
+    await expect(tip.getByText(location,{exact:true})).toBeVisible();
+    if(token==='integer_type') {
+      await expect(tip.locator('code')).toHaveText('integer_type(width, 0)');
+      await expect(tip).toContainText('Constructs an integer type');
+    }
+    if(token==='width')await expect(tip.locator('code')).toHaveText('width: usize');
     await expect(tip).not.toContainText('fn unsigned_integer');
   }
   await page.screenshot({path:'../build/constructor-hover-'+info.project.name+'.png'});
@@ -96,6 +107,7 @@ test('type constructor calls and grammar attributes show the hovered part',async
   await source(page,grammar);await ready(page,grammar);
   await expect(page.locator('#editor .tw-attribute').filter({hasText:'comment'})).toHaveCount(1);
   const position=await point(page,'comment');await page.mouse.move(position.x,position.y);
+  await expect(tip.getByText('grammar attribute',{exact:true})).toBeVisible();
   await expect(tip).toContainText('highlighted');
   await page.screenshot({path:'../build/attribute-hover-'+info.project.name+'.png'});
 });
