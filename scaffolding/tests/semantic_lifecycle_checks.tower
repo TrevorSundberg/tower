@@ -1,11 +1,59 @@
 import tower;
 import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import .compiler.component_kinds;
+import .library.work_budget;
+import .library.work_budget_types;
 import .library.vector;
 import .compiler.semantic_program_types;
 import .compiler.format_types;
 import .compiler.interpreter_context_types;
+import .compiler.grammar_types;
+import .library.entity_types;
 
 extern fn ix_init(execution: IMExecution*): void;
+extern fn entity_query_count(kind: void*): usize;
+extern fn entity_query_at(kind: void*, index: usize): void*;
+extern fn entity_component_owner(component: void*): void*;
+extern fn compiler_node_label(node: void*, name: u8*): bool;
+extern fn sem_member(node: void*, name: u8*): void*;
+extern fn frontend_units_error_offset(batch: void*): usize;
+
+struct LifecycleEvaluationPin { matches: void*; subject: Entity*; view: void*; refused: bool; }
+
+fn lifecycle_pin_evaluation(payload: void*, phase: GrammarPhase, entering: bool, count: usize, lanes: usize): void {
+    if phase != GrammarPhase.FrontendParse && phase != GrammarPhase.SemanticStages { return; }
+    var pin = bits(LifecycleEvaluationPin*, payload);
+    if phase == GrammarPhase.FrontendParse {
+        if entering { return; }
+        for(var i: usize = 0; i < entity_query_count(pin.matches); i++) {
+            var node = entity_component_owner(entity_query_at(pin.matches, i));
+            if compiler_node_label(node, "TowerComptime") && sem_member(node, "value") != null {
+                units_check(pin.subject == null, "Aggregate fixture has one staged expression");
+                pin.subject = bits(Entity*, node);
+            }
+        }
+        return;
+    }
+    // SemanticStages brackets the coordinator's publication after dispatch has
+    // joined. Wait until the checker has actually constructed the Pair fields.
+    if entering && !pin.refused && pin.subject != null && pin.subject.stage != null {
+        var value = sem_get(bits(void*, pin.subject));
+        if value != null && value.items.length != 0 {
+            units_check(value.type.record != null && value.items.length == sem_get(value.type.record).items.length,
+                "Joined expression contains every projection of its declared aggregate");
+            pin.view = entity_view_open(pin.matches);
+            units_check(pin.view != null, "Independent store view before aggregate publication");
+        }
+    }
+    if !entering && pin.view != null {
+        units_check(pin.subject.stage == null, "Refused evaluation releases the expression lease before the other view");
+        entity_view_close(pin.view);
+        pin.view = null;
+        pin.refused = true;
+    }
+}
 
 enum SemanticLifecycleCase: u32 { RootCall, RootFailure, SignatureOnly, Initializer, Mismatch, Nominal, TypeOperand, Untaken, RecursiveNominal, NominalDefault, NominalCycle, CapturedAlias, ShadowedAlias, LocalStageType, NestedStage, UntakenForward, EarlyRead, CaptureReuse, EarlyCapture, MutableCapture, EscapedCapture, ParameterCapture, UntakenMutable, StagedArray, ModuleCapture, ModuleWrite, ModuleEscape, ComplexCapture, CaptureAddress, CaptureComparison, LocalCaptureAddress, UntakenCaptureAddress, UntakenCaptureComparison, CaptureFunction, CaptureType, ExplicitAddresses, CaptureEffect, ExecutedCaptureAddress, UntakenCaptureEffect, ExecutedCaptureEffect, AggregateCapture, LocalAggregateCapture }
 
@@ -42,7 +90,7 @@ fn lifecycle_compare(baseline: vector(u8)*, text: u8*, length: usize): void {
 }
 
 fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root: u8*,
-    bedrock: u8*, foundation: u8*, baseline: vector(u8)*): void {
+    bedrock: u8*, foundation: u8*, baseline: vector(u8)*, denied_offset: usize*): void {
     var source: u8* = "import tower;fn word(n:usize):type{var bits=n;return integer_type(bits,1);}var Word:type=word(32);fn id(T:type,x:T):T{return x;}print(id(convert(Word,42)));";
     var wanted: u8* = "42\n";
     if mode == SemanticLifecycleCase.RootFailure {
@@ -212,6 +260,27 @@ fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root:
     units_check(batch != null, "Lifecycle unit create");
     defer frontend_units_close(batch);
     units_check(frontend_units_source(batch, 1, "semantic_lifecycle.tower", source, strlen(source)), "Lifecycle source snapshot");
+    if denied_offset != null {
+        var world = frontend_modules_world(frontend_units_environment(batch, 1));
+        var pin: LifecycleEvaluationPin = {matches: compiler_world_type(world, CompilerParserMatch), ..default};
+        var grammar = compiler_world_grammar(world);
+        grammar.observer = {context: bits(void*, &pin), event: lifecycle_pin_evaluation};
+        while !frontend_units_step(batch, true) {}
+        grammar.observer = default;
+        units_check(pin.refused && frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+            && frontend_units_failure_resource(batch) == WorkBudgetError.Busy, "Joined aggregate publication preserves Busy");
+        var offset = frontend_units_error_offset(batch);
+        if budget == 1 { *denied_offset = offset; }
+        var before: WorkBudgetSnapshot = default;
+        var after: WorkBudgetSnapshot = default;
+        units_check(work_budget_snapshot(frontend_units_work_budget(batch), &before) && before.used_lanes == 0
+            && frontend_units_step(batch, false) && frontend_units_step(batch, true)
+            && frontend_units_failure_resource(batch) == WorkBudgetError.Busy && frontend_units_error_offset(batch) == offset
+            && offset == *denied_offset && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+            && after.used_lanes == 0 && after.live == before.live && after.used_bytes == before.used_bytes,
+            "Terminal aggregate refusal preserves the first owner and drained budget across retries");
+        return;
+    }
     while !frontend_units_step(batch, true) {}
     units_check(!frontend_units_cancelled(batch), "Lifecycle unit completes");
     var error = frontend_units_error(batch);
@@ -263,8 +332,14 @@ fn semantic_lifecycle_range(root: u8*, bedrock: u8*, foundation: u8*, first: Sem
         for(var mode = convert(u32, first); mode <= convert(u32, last); mode++) {
             var baseline: vector(u8) = default;
             defer vector_dispose(&baseline);
-            lifecycle_trial(convert(SemanticLifecycleCase, mode), 1, width, root, bedrock, foundation, &baseline);
-            lifecycle_trial(convert(SemanticLifecycleCase, mode), 4, width, root, bedrock, foundation, &baseline);
+            var which = convert(SemanticLifecycleCase, mode);
+            lifecycle_trial(which, 1, width, root, bedrock, foundation, &baseline, null);
+            lifecycle_trial(which, 4, width, root, bedrock, foundation, &baseline, null);
+            if which == SemanticLifecycleCase.AggregateCapture || which == SemanticLifecycleCase.LocalAggregateCapture {
+                var offset: usize = 0;
+                lifecycle_trial(which, 1, width, root, bedrock, foundation, &baseline, &offset);
+                lifecycle_trial(which, 4, width, root, bedrock, foundation, &baseline, &offset);
+            }
         }
     }
 }
