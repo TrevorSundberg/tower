@@ -123,6 +123,15 @@ Do NOT modify todo.txt.
   publish affected stages before mutating entities leased by other jobs.
   Keep payload addresses stable, pools store/stage-owned, and table transitions
   reserved before commit; release private pool links before stage destruction.
+- Before packing an immutable index, inspect what each public lookup returns.
+  If callers retain an address, identify its owner and preserve its lifetime.
+  Once the owner freezes the row order, private slots can share one allocation.
+  Check the sum of the row lengths against the target's addressable slot count
+  before converting it to bytes. Compare lookups with the original ordered
+  entries at both ends of each range and in the gaps. Exercise allocation
+  refusal after a valid prefix, including a later grammar conflict. Report
+  cumulative grants, the minimum successful byte budget and process peak
+  memory separately.
 - To test a pooled storage budget, keep the first entity and its payload live
   while filling the last precharged slot. Check that reuse needs zero new
   allocations. Then force physical growth, reserve the remaining bytes and
