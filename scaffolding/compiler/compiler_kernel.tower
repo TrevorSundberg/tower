@@ -17,7 +17,7 @@ struct CompilerKernel {
 fn compiler_kernel_stages_result(T: type, jobs: T**, count: usize, view: void*, cause: WorkBudgetError,
     hold: function(WorkBudgetError, void*), publish: function(WorkBudgetError, void*),
     discard: function(void, void*), close: function(void, void*),
-    cancel: function(void, void*)): WorkBudgetError {
+    cancel: function(void, T*)): WorkBudgetError {
     var error = cause;
     for(var i: usize = 0; error == WorkBudgetError.None && i < count; i++) {
         if jobs[i].stage != null { error = hold(bits(void*, jobs[i].stage)); }
@@ -38,7 +38,7 @@ fn compiler_kernel_stages_result(T: type, jobs: T**, count: usize, view: void*, 
     // Unpublished result buffers may borrow staged component payloads. Cancel
     // those buffers before any remaining stage destroys their backing nodes.
     if error != WorkBudgetError.None && cancel != null {
-        for(var i: usize = 0; i < count; i++) { cancel(bits(void*, jobs[i])); }
+        for(var i: usize = 0; i < count; i++) { cancel(jobs[i]); }
     }
     for(var i: usize = 0; i < count; i++) {
         if jobs[i].stage != null { discard(bits(void*, jobs[i].stage)); jobs[i].stage = null; }
