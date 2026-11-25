@@ -440,6 +440,15 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
     if pool.count < 2 || value.count < 2 * LRPropagationGrain {
         return lr_propagation_solve_components_result(value, graph.budget);
     }
+    var error = lr_propagation_waves_result(value, owner, graph, pool, observer);
+    if error != WorkBudgetError.None || value.pending.length == 0 { return error; }
+    return lr_propagation_solve_components_result(value, graph.budget);
+}
+
+// Leave the unconsumed frontier on the graph. Returning retires the joined
+// wave buffers before the component solver allocates its adjacency and index.
+fn lr_propagation_waves_result(value: LRPropagation*, owner: void*, graph: WorkGraph*, pool: WorkPool*,
+    observer: GrammarObserver): WorkBudgetError {
     if value.count > ~convert(usize, 0) / sizeof(work_vector(usize))
         || value.count > ~convert(usize, 0) / sizeof(work_vector(SymbolRange)) { return WorkBudgetError.Invalid; }
     var incoming_storage: WorkBuffer = default;
@@ -492,13 +501,13 @@ fn lr_propagation_solve_parallel_result(value: LRPropagation*, owner: void*, gra
             count = pool.count;
         }
         if count < 2 {
-            return lr_propagation_solve_components_result(value, graph.budget);
+            break;
         }
         var admission: ParserAdmission = default;
         error = parser_admission_open_result(&admission, owner, count);
         if error != WorkBudgetError.None { return error; }
         defer parser_admission_close(&admission, graph);
-        if admission.extra == 0 { return lr_propagation_solve_components_result(value, graph.budget); }
+        if admission.extra == 0 { break; }
         if kind == null {
             kind = lr_work_node_result(owner, &error);
             if kind == null { return error; }
