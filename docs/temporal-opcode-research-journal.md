@@ -104634,3 +104634,141 @@ The native retained-source test now takes the address of `Word.b` while evaluati
 The Host 2 diagnostic replay used `2905a701`, whose compiler tree `4a195728af97485a8e082e6e720783b0e4102d69` also ships at `f7957279`. The previous receipt compared equal when the 18-step helper with an additional `sizeof` changed from 2 to 3. A private observer at `ix_place_address` recorded the executed byte displacement and checked the field binding against the current nominal's published layout. It distinguished offsets 1 and 0, distinct modules declaring `Word` and an edited provider alias. An untaken field contributed no observation. A receiver passed as a function parameter lacked the supported local cast route. Its computation succeeded and the collector refused that record. No cross-request value reuse was enabled.
 
 On the Ryzen 5 3600, the focused fresh and retained Foundation, diagnostic and guest checks agreed at one and four workers on CPUs 0–3. The regular native `tower-execution-tests RESOURCE_ROOT retained-sources` selection and the focused test at widths one and four passed with drained owners. On the long edited `count_work` fixture with one reached byte field, four alternating paired blocks gave median warm repeat wall times of 162.94/161.56 ms at one worker and 174.20/170.86 ms at four for the old/extended observer. The scalar itself occupied one invocation at a time. The fixed diagnostic receipt grew by 192 bytes to 75,448 bytes. These measurements describe collection with ordinary reevaluation. The only change in the compiler repository is regression coverage and this record. Raw packet `4293b050-ab92-4f0e-8694-3c2b04521e5a` contains the independent interpreter and provider traces, exact fixture revisions, host accounting and bounded refusal.
+## Lending the first imported grammar to a nested reader
+
+The retained diamond at `da25567f` builds the ordinary Tower grammar at
+byte 13 of `retained_side.tower`. Its 109 rule names, 296 ordered alternatives
+and 12 tokens already occur in the root parser's session cache. That cache
+retains the original build key and the compiled version. The nested reader
+can take one reference in its existing active-version slot. Its graph owns
+the idle import reader until another import resets it or the graph closes.
+An active reader can also be the last owner after the root changes its active
+grammar and discards its cache.
+
+The loan is available for the first import in an ordinary reader in a bound
+environment. Its resolved dependency must be the same grammar-bearing module
+as the active root's first dependency in that same request graph. The lookup
+checks the world, Bedrock revision, ordered rule names and each rule's ordered
+alternative entities, followed by the ordered token entities. It reads the
+bounded root index without updating recency. A miss goes through the reader's
+ordinary installation. The change adds zero cache slots, heap buffers or
+budget reservations and does not extend the root cache's lifetime.
+
+A trial comparison of the packed allocation order missed the measured case.
+`syntax_revision_create` sorts the rule views while leaving the underlying
+storage in declaration order. Comparing the logical views recovered the hit.
+A transparent wrapper exported the exact same entities from another path and
+correctly missed. Editing a grammar behind an import alias rebuilt the root
+version and changed the side and root effects from 17 to 19. The reader borrowed
+the new identity. A shift/reduce conflict produced identical fresh and retained
+diagnostics at byte 12 with no guest steps. Repair restored the original effects.
+The lease fixture checked rejected admission, successful retry, reordered
+alternatives and tokens, eviction with a suspended reader, and zero owners after
+close. Cancellation joined two admitted unit workers that used the loan.
+
+Host 4 used Ubuntu 24.04.5, LLVM 19.1.1 and four physical cores of a Ryzen 7
+5800H (CPUs 0,2,4,6, quota 1,536,000 µs per 100,000 µs). With observers off,
+four stock/trial pairs per width gave the following median ordinary compile
+times. Each arm ran the same initial request, untouched repeat, independent
+71-to-73 edit, shared leaf edit, failure and repair.
+
+| Native workers | Untouched stock / trial, ms wall | Edited stock / trial, ms wall | Edited stock / trial, ms CPU |
+| --- | ---: | ---: | ---: |
+| 1 | 18.75 / 7.78 | 17.57 / 7.00 | 15.36 / 4.88 |
+| 2 | 23.88 / 8.23 | 21.95 / 7.52 | 21.62 / 5.96 |
+
+At both widths the side edit used 26,107 fewer charged bytes and five fewer
+live reservations after compilation. For the six-step sequence the tested
+one-byte success/failure boundaries moved from 25,092,131 to 24,788,422
+bytes at one worker and from 28,561,016 to 28,257,307 at two. The failures
+reported capacity during semantic repair. Whole-sequence median maximum
+individual RSS was 79,320/79,588 KiB at one worker and 83,670/83,562 KiB
+at two. A fresh-world holdout with five new grammar declarations per request
+took 1.940/1.885 s at one worker and 2.420/2.330 s at two. Forcing all loans
+to miss in the same holdout gave 1.915/1.925 s and 2.445/2.445 s.
+
+Thirteen related native selectors passed. Address- and thread-instrumented
+parser units passed the lease fixture, ordinary retained selector and worker
+cancellation. The thread runtime also had startup failures before tests when
+host policy denied its personality call. Host 4 packet
+`56417dd4-fcf0-40cf-89bb-6e93449933b9` contains the exact inputs, commands,
+per-call ledgers, canonical Foundation, guest bytes, diagnostics, allocator
+and worker link maps, and separate receipts for every invocation.
+
+## Browser compiler build of the grammar loan and one-shot frontend ownership
+
+Host 7 built the portable, shared, LLVM and cross reactors from
+`2d81c29eafccd27e248527e88925035a3868761b`, tree `dcdd4e20`. The
+source preserves the two requested merges from public `2905a701`, first
+`729fa926` and then `76c5ce5d`. WASI SDK 34 and the checked-in Linux x64
+bootstrap `a3f76faf` built the release through build-wasm, build-threads and
+build-llvm. The packaged project contains 543 authored and 26 generated
+records. Its eight changed source records match the build checkout.
+The original 107-file Pages tree from `191d20a6` plus the independently
+replayed delta produces tree `b4c8c6bce9597e01934665bcf357577a2206f9c6`.
+The manifest SHA-256 is
+`47216291703e7d6de6852f5d6d357f1a87a7b7da8fdb9c05d4ab115e7a19e244`.
+
+The ordinary service retained an instance across two aliased imports, an
+edit, an unresolved function and its repair. Stock and candidate produced
+identical canonical Foundation and executable Wasm for every valid step at
+portable width one and shared capacity two. The shared run recorded 192
+dispatches and both workers closed. The initial interface comparison
+rejected the new declared export. The checked release preserves every
+old import and export and adds frontend_unit_release_program on all four
+reactors plus backend_link_symbol on LLVM and cross. The independently
+generated modules match their release counterparts' import and export sets.
+
+Two editable generations converged on 25 objects and three reactors, ran
+the edited diagnostic and drained their two and four workers. The release
+and both successors produced identical executable Wasm and Linux guests
+for the alias sum, each printing 42 plus LF. The focused desktop Build and
+module-edit selectors passed 2/2. The real Build posted all 569 expected
+edited records. This entry qualifies the compiler group on loopback.
+The manager owns publication, Host 4 the native qualification, and Host 8
+the independent UI-only successor tests.
+
+Four alternating pairs on CPUs 2 and 3 of the EPYC 7502 with a 30.72-CPU
+quota used fresh processes, a warm filesystem and four requests per
+process. Portable stock/candidate median wall times were 1.225/1.180 s,
+CPU 1.66/1.61 s and peak RSS 214106/214020 KiB. At shared capacity two
+they were 1.515/1.435 s, 2.07/1.99 s and 263384/264498 KiB. The clean
+LLVM/cross build with 29 build jobs took 369.39 s. The compiler and
+project receipt for assignment d90a702a-d933-4a54-8e5b-9923ace3551d
+contains the source bundle, reconstructable products, full inventories,
+commands, initial failure and generation records.
+
+## Combined browser compiler and public idle editor on Host 7
+
+The two-parent source merge `23a5581d` of public `0a67e17c` and
+`4b699e9d` reproduced tree `39f5f9b4`. Host 7 sealed the four existing
+production reactors and 569-file editable project from `2d81c29e` onto
+the public idle editor from `8024e026`. All 454 distinct tracked
+source inputs from the captured depfiles and all recipe members reconciled.
+The loopback Pages commit is `1eb092521a765c62d6271ac2d8e0dd28e70a17ad`
+with direct public parent `5b34c05456ba87128159f886be87337766740b1c`.
+An independent receiver reproduced all 107 files and Git modes, tree
+`58633136791911cacf21875447b200dc415d68f8` and manifest SHA-256
+`2dcf3481e922f706f1ca737b0d05c55cfbd7ce6a5dd9f1445c8bf565eff7212f`.
+
+The full Playwright suite passed 240 cases with two mobile skips, Node
+passed 513 with two optional-export skips, and Roku passed 13. The three
+normal shared trials, nine ownership controls, separate IDE gate and
+deployment verifier passed. All 16 downloaded deployment products matched
+the retained release. Additional actual desktop and mobile Build checks
+observed 25 compiles on each of the first two Builds, then 25 exact
+object hits and zero compiles on the third. All three reactor hashes
+matched the independently linked unedited oracle. Both viewports
+downloaded byte-identical copies of the d90 Wasm and Linux alias guest.
+
+The initial desktop observer closed an already-open units folder. The
+initial mobile observer accepted an earlier equal-text reply when trying
+to establish an idle baseline. Separate selectors verified the actual
+folder state and waited for fresh terminal replies. Both viewports
+covered cancellation, stale replies, malformed input, repair and closing
+during an active Build. The retained receipts distinguish the separate
+contexts and keep both failed processes. Packet
+`684c10dc-c0ac-48c6-8074-e588a729698f` contains source and Pages
+replay material, fixture and product identities, raw results and
+per-command CPU, wall and RSS observations. The manager owns publication
+and any subsequent hosted checks.

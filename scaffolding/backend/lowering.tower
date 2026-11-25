@@ -919,9 +919,11 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
         var entry = i == 0;
         var omit = (entry && library) || retained.data[i] == 0;
         backend_require(b, vector_push(&b.source_functions, functions[i]));
+        var symbol: BackendSymbol = default;
+        if !entry { symbol.external = n.external; symbol.exported = n.exported; }
         if omit {
             backend_require(b, vector_push(&b.functions, null));
-            backend_require(b, vector_push(&b.symbols, null));
+            backend_require(b, vector_push(&b.symbols, symbol));
             i++;
             continue;
         }
@@ -1010,7 +1012,8 @@ export fn backend_lower(b: Backend*, root: void*, functions: void**, count: usiz
                 backend_attribute(b, function, "wasm-export-name", name.data);
             }
         }
-        backend_require(b, vector_push(&b.symbols, name.data));
+        symbol.name = name.data;
+        backend_require(b, vector_push(&b.symbols, symbol));
         backend_require(b, vector_push(&b.functions, function));
         i++;
     }

@@ -1,5 +1,6 @@
 import tower;
 import .compiler.component_kinds;
+import .compiler.frontend_cache;
 import .compiler.lr_tree;
 import .compiler.frontend_modules;
 import .compiler.frontend_revision_types;
@@ -736,4 +737,107 @@ export fn module_cache_empty_seed_leases(): void {
         "Lease teardown leaves zero bytes, grants and lanes");
     module_cache_lease_check(work_budget_dispose(&budget), "Lease budget disposal");
     puts("Empty-cache seed-clear idle/active leases, cached output and zero ownership passed.");
+}
+
+extern fn syntax_version_cache_dispose(cache: SyntaxVersionCache*): void;
+
+fn module_nested_reader(root: FrontendModule*, name: u8*, text: u8*): SyntaxSession* {
+    var child = module_new_result(root.graph, name, text, syntax_text_length(text));
+    module_cache_lease_check(child != null, "Nested reader source");
+    var error = WorkBudgetError.None;
+    var reader = syntax_session_open_result(root.graph.world, bits(void*, root.graph.environment),
+        text, child, SyntaxFoundationBaseline, &error);
+    module_cache_lease_check(reader != null && error == WorkBudgetError.None, "Nested reader admission");
+    return reader;
+}
+
+fn module_first_import_order(grammar: FrontendRevision*): void {
+    var copy = frontend_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
+    module_cache_lease_check(copy != null && frontend_revision_identical(copy, grammar), "Private grammar index agrees with its source");
+    defer frontend_revision_release(copy);
+    var rule = syntax_revision_rule(copy, "Statement", syntax_text_length("Statement"));
+    module_cache_lease_check(rule != null && rule.count >= 2 && copy.tokens.length >= 2, "Two distinct alternatives and tokens");
+    var first = rule.alternatives[0];
+    rule.alternatives[0] = rule.alternatives[1];
+    rule.alternatives[1] = first;
+    module_cache_lease_check(!frontend_revision_identical(copy, grammar), "Reordered alternatives miss");
+    rule.alternatives[1] = rule.alternatives[0];
+    rule.alternatives[0] = first;
+    module_cache_lease_check(frontend_revision_identical(copy, grammar), "Restore the original rule order");
+    first = copy.tokens.data[0];
+    copy.tokens.data[0] = copy.tokens.data[1];
+    copy.tokens.data[1] = first;
+    module_cache_lease_check(!frontend_revision_identical(copy, grammar), "Reordered tokens miss");
+}
+
+export fn module_first_import_leases(): void {
+    var budget: WorkBudget = default;
+    module_cache_lease_check(work_budget_init(&budget, 1, ModuleCloneBudgetBytes, 1), "Import reader budget");
+    var world: void* = null;
+    module_cache_lease_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Import reader world");
+    var env = frontend_modules_create();
+    module_cache_lease_check(env != null && frontend_modules_bind_world(env, world), "Import reader environment");
+    var old_rules = "token LoanA = /loan_a/;token LoanB = /loan_b/;parse Statement = 'old';parse Statement |= 'another';";
+    var new_rules = "parse Statement = 'new';";
+    var language = "import rules as origin;parse Marker = 'marker';";
+    var wrapper = "import lang;";
+    var drain = "parse Fresh = 'fresh';";
+    module_cache_lease_check(frontend_modules_source(env, "rules.tower", old_rules, syntax_text_length(old_rules))
+        && frontend_modules_source(env, "lang.tower", language, syntax_text_length(language))
+        && frontend_modules_source(env, "drain.tower", drain, syntax_text_length(drain))
+        && frontend_modules_source(env, "wrapper.tower", wrapper, syntax_text_length(wrapper)), "Initial grammar and transparent wrapper");
+    frontend_modules_builtin(env, "reader_language", "lang.tower");
+
+    var root = frontend_module_root_world(world, "import lang;import drain;parse Later = 'later';", env);
+    var lender = bits(SyntaxSession*, frontend_module_session(root));
+    module_cache_lease_next(bits(void*, lender), "import lang;");
+    var original = lender.pins.version;
+    module_first_import_order(lender.pins.grammar);
+    var before: WorkBudgetSnapshot = default;
+    var occupied: WorkReservation = default;
+    var error = WorkBudgetError.None;
+    var child_text = "import reader_language;old";
+    var child_module = module_new_result(root.graph, "child.tower", child_text, syntax_text_length(child_text));
+    module_cache_lease_check(child_module != null && work_budget_snapshot(&budget, &before)
+        && work_budget_reserve(&budget, 0, 0, before.bytes - before.used_bytes, &occupied), "Occupy remaining bytes before reader admission");
+    var count = original.references;
+    var failed = syntax_session_open_result(world, bits(void*, env), child_text, child_module, SyntaxFoundationBaseline, &error);
+    module_cache_lease_check(failed == null && error == WorkBudgetError.Capacity && original.references == count
+        && work_budget_release(&budget, &occupied), "Denied reader preserves lender and releases no live pin");
+    var child = syntax_session_open_result(world, bits(void*, env), child_text, child_module, SyntaxFoundationBaseline, &error);
+    module_cache_lease_check(child != null && error == WorkBudgetError.None, "Retry reader admission");
+    module_cache_lease_next(bits(void*, child), "import reader_language;");
+    module_cache_lease_check(child.pins.version == original && original.references == count + 1, "First import takes exactly one reader pin");
+
+    // The second path exports the very same declaration entities. Resolution
+    // still selects a different provider, so this reader must build locally.
+    frontend_modules_builtin(env, "reader_language", "wrapper.tower");
+    var redirected = module_nested_reader(root, "redirect.tower", child_text);
+    module_cache_lease_next(bits(void*, redirected), "import reader_language;");
+    module_cache_lease_check(frontend_revision_identical(redirected.pins.grammar, child.pins.grammar)
+        && redirected.pins.version != original, "A different resolved path misses even with identical ordered grammar");
+    module_cache_lease_next(bits(void*, redirected), "old");
+    syntax_destroy(bits(void*, redirected));
+
+    // The transparent wrapper left the graph's idle import reader on this
+    // version too. Its next file replaces that pin through ordinary reset.
+    module_cache_lease_next(bits(void*, lender), "import drain;");
+    module_cache_lease_next(bits(void*, lender), "parse Later = 'later';");
+    syntax_version_cache_dispose(&lender.cache);
+    module_cache_lease_check(child.pins.version == original && original.references == 1, "Evict donor while suspended reader remains the last owner");
+    module_cache_lease_check(frontend_modules_source(env, "rules.tower", new_rules, syntax_text_length(new_rules)), "Edit grammar behind alias");
+    var replacement = frontend_module_root_world(world, "import lang;new", env);
+    var current = bits(SyntaxSession*, frontend_module_session(replacement));
+    module_cache_lease_next(bits(void*, current), "import lang;");
+    module_cache_lease_check(current.pins.version != original && !frontend_revision_identical(current.pins.grammar, child.pins.grammar),
+        "Transitive alias edit creates a different version");
+    module_cache_lease_next(bits(void*, current), "new");
+    module_cache_lease_next(bits(void*, child), "old");
+    syntax_destroy(bits(void*, child));
+    frontend_module_destroy(root);
+    frontend_module_destroy(replacement);
+    frontend_modules_destroy(env);
+    module_cache_lease_check(frontend_world_clear(world) && compiler_world_dispose(world)
+        && work_budget_snapshot(&budget, &before) && before.used_lanes == 0 && before.used_bytes == 0
+        && before.live == 0 && work_budget_dispose(&budget), "Last reader, world and ledger drained");
 }

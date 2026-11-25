@@ -279,6 +279,15 @@ export fn frontend_units_cancel(batch: FrontendUnits*): void {
     batch.finished = true;
 }
 
+// Unit programs own their root. The generic semantic program disposer only
+// releases its borrowed-node indexes, since other callers own roots separately.
+export fn frontend_unit_release_program(program: SemanticProgram*): void {
+    var root = program.root;
+    semantic_program_dispose(program);
+    *program = default;
+    if root != null { entity_release(root); }
+}
+
 export fn frontend_units_close(batch: FrontendUnits*): void {
     if batch is null {
         return;
@@ -300,11 +309,7 @@ export fn frontend_units_close(batch: FrontendUnits*): void {
             if job.inspection is not null {
                 completion_dispose(job.inspection);
             }
-            var root = job.program.root;
-            semantic_program_dispose(&job.program);
-            if root is not null {
-                entity_release(root);
-            }
+            frontend_unit_release_program(&job.program);
             if job.modules is not null {
                 frontend_modules_destroy(job.modules);
             }
@@ -706,7 +711,7 @@ export fn frontend_units_program(batch: FrontendUnits*, ordinal: usize): Semanti
         return null;
     }
     var job = frontend_units_job(batch, ordinal);
-    return job is null || job.action != FrontendUnitAction.Compile ? null: &job.program;
+    return job is null || job.action != FrontendUnitAction.Compile || job.program.root == null ? null: &job.program;
 }
 
 export fn frontend_units_document(batch: FrontendUnits*, ordinal: usize): u8* {
