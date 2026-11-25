@@ -13,6 +13,8 @@ import .library.work_budget_types;
 import .library.work_buffer;
 import .library.work_buffer_types;
 
+extern fn compiler_node_world(node: void*): void*;
+extern fn frontend_world_retire_baselines(world: void*): void;
 extern fn frontend_units_work_acquire(frontend: void*): void*;
 extern fn frontend_units_work_release(frontend: void*): void;
 extern fn frontend_units_program(frontend: void*, ordinal: usize): SemanticProgram*;
@@ -82,6 +84,7 @@ struct BackendUnits {
     cancelled: bool;
     streaming: bool;
     attached: bool;
+    retire_baselines: bool;
     input_failed: bool;
     lanes: usize;
     running: usize;
@@ -348,6 +351,16 @@ export fn backend_units_retain_ir(batch: BackendUnits*, retain: bool): bool {
     return true;
 }
 
+// A one-shot executable only needs dependency names, source positions and
+// the semantic program for its final symbol walk. Ordinary consumers may
+// continue inspecting the world after join and keep their grammar baselines.
+export fn backend_units_one_shot(batch: BackendUnits*): bool {
+    if batch == null || !batch.streaming || batch.started || batch.finished { return false; }
+    batch.retire_baselines = true;
+    batch.discard_ir = true;
+    return true;
+}
+
 // Override before dispatch only: a program entry and independent library units
 // share the graph, but only the entry unit supplies the executable entry point.
 export fn backend_units_library(batch: BackendUnits*, ordinal: usize, library: bool): bool {
@@ -364,6 +377,11 @@ fn backend_unit_receive(payload: void*): void {
     backend_unit_retain_output(job);
     if !work_finish(batch.graph, &job.ticket, job.success) {
         trap("Stale backend unit receipt", 0);
+    }
+    if batch.retire_baselines && job.success {
+        entity_view_close(job.view);
+        job.view = null;
+        frontend_world_retire_baselines(compiler_node_world(job.program.root));
     }
     batch.completed++;
     if batch.streaming { batch.running--; }

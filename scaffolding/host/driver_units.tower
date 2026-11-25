@@ -29,7 +29,7 @@ extern fn frontend_units_program(batch: void*, ordinal: usize): SemanticProgram*
 extern fn frontend_units_close(batch: void*): void;
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
-extern fn backend_units_retain_ir(batch: void*, retain: bool): bool;
+extern fn backend_units_one_shot(batch: void*): bool;
 extern fn backend_units_step(batch: void*, wait: bool): bool;
 extern fn backend_units_failed(batch: void*): usize;
 extern fn backend_units_cancelled(batch: void*): bool;
@@ -132,7 +132,7 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     // one ready graph and pool; a completed unit can advance immediately.
     batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
     if batch.backend == null || !backend_units_library(batch.backend, 1, false)
-        || !backend_units_retain_ir(batch.backend, false) {
+        || !backend_units_one_shot(batch.backend) {
         driver_error("Unable to create backend units: check --unit-retained-bytes and allocation capacity", ""); return 1;
     }
     while !backend_units_step(batch.backend, true) { }
