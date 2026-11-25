@@ -8,6 +8,7 @@ import import_values;
 import text;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
+import .compiler.type_primitives;
 import .library.vector;
 import .library.work_vector;
 import .library.work_vector_types;
@@ -184,18 +185,16 @@ fn bi_float_parameter(c: BackendImport*, instruction: void*, index: u32): u32 {
 
 fn bi_float_type(c: BackendImport*, width: u32): u32 {
     if backend_failed(c.backend) { return 0; }
-    if width == Float32Width { return SF32; }
-    if width == Float64Width { return SF64; }
+    var scalar = type_float_scalar(convert(u64, width));
+    if scalar != InvalidTypeScalar { return scalar; }
     backend_fail(c.backend, "Unsupported floating runtime width");
     return SF64;
 }
 
 fn bi_float_integer_type(c: BackendImport*, width: u32, signed: bool): u32 {
     if backend_failed(c.backend) { return 0; }
-    if width == IntegerByteWidth { return signed ? SI8 : SU8; }
-    if width == IntegerShortWidth { return signed ? SI16 : SU16; }
-    if width == Float32Width { return signed ? SI32 : SU32; }
-    if width == Float64Width { return signed ? SI64 : SU64; }
+    var scalar = type_integer_scalar(convert(u64, width), signed);
+    if scalar != InvalidTypeScalar { return scalar; }
     backend_fail(c.backend, "Unsupported floating integer conversion width");
     return SU64;
 }
