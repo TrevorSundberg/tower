@@ -113,9 +113,9 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 ### Install the Linux x64 development compiler as a normal user
 
 The [one-command installer and first program](../README.md#install-the-linux-x64-development-compiler)
-cover the cd77 candidate for use after publication and the previously published
-902a compiler. Use the versioned cd77 prefix to keep both installations. The
-candidate installer verifies the checksum list from package commit `a77dbf9f`
+cover the be41c755 candidate for use after publication and the previously published
+902a compiler. Use the versioned be41c755 prefix to keep both installations. The
+candidate installer verifies the checksum list from package commit `a1315eca`
 before fetching its 57 payloads.
 
 ### Historical checkout installation at e06aa12e

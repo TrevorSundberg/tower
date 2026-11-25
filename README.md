@@ -34,14 +34,14 @@ targets, limitations, build commands and deployment checks.
 
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
-After publication of the cd77 candidate, use this command to install the compiler
-built at `cd77a1f7` and the verified package from `a77dbf9f`. The versioned
+After this candidate is published, use this command to install the compiler
+built at `be41c755` from package commit `a1315eca`. The versioned
 prefix lets you keep an earlier installation alongside it.
 
 ```sh
 installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
-  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/c31317261358b6fdb26586d389b23b040337b36b) &&
-  bash -c "$installer" -- "$HOME/.local/Tower Dev cd77a1f7"
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/7efb6d68a294e8e46b8143a6aac93ab129bbadd8) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev be41c755"
 ```
 
 The installer prints the executable path. Repeating the command verifies the
@@ -51,12 +51,13 @@ as `example.tower` in a new directory. Run these commands from that directory.
 Each prints `42`.
 
 ```sh
-"$HOME/.local/Tower Dev cd77a1f7/linux-x64/towerc" example.tower --interpret
-"$HOME/.local/Tower Dev cd77a1f7/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
+"$HOME/.local/Tower Dev be41c755/linux-x64/towerc" example.tower --interpret
+"$HOME/.local/Tower Dev be41c755/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
 
-The cd77 command and both example runs passed on Ubuntu 24.04.5 x86-64
-against a local HTTPS mirror of the exact Git blobs. Execution against
+The installer passed fresh and repeat installation on Ubuntu 24.04.5 x86-64
+against a local HTTPS mirror of the exact Git blobs. The installed compiler
+interpreted and linked the grammar fixture, and each execution printed `42`. Execution against
 GitHub remains a post-publication check.
 
 ### Previously published compiler
