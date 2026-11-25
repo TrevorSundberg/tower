@@ -101721,9 +101721,13 @@ retained link-support files. Each request compiled 25 entry units and
 produced three Wasm reactors. The manager compared the 25 object digests,
 three reactor digests and reported IR counts across all 12 trials. All
 matched. Separately, the stock editor fed generation one's LLVM module
-the identical project again. All three generation-two reactor hashes
-matched generation one. An invalid import reported the missing module
-and the previous compiler remained usable.
+the same edited project it had used in its first generation. All three
+generation-two reactor hashes matched generation one. An invalid import
+reported the missing module and the previous compiler remained usable.
+The subsequent source audit (receipt `79c6f10a`) corrected the identity of
+that separate editor input to `8b7878c8`. Its two submissions hashed to
+`cb6338bf`. The later editor run submitted the edited `ca543287` map
+with digest `96ffe009` and exported that same map in the ZIP.
 
 For 8b7878c8, initial, same-session repeat and fresh-profile wall times
 were 78.34/76.78/82.73 s at one lane and 38.33/30.22/31.41 s at four.
@@ -101870,3 +101874,97 @@ Fresh x64 object emissions ran one process at a time with a warm filesystem on h
 | 128 compounds, 4 | 0.185 / 0.190 / 95128 | 0.190 / 0.195 / 94848 |
 
 All timed objects matched. A full source-level Tower UBSan pass has no configured backend. Cold-cache latency, allocator-wide retention and useful inner-worker overlap were unmeasured. Packet `29dc3307-7039-4af7-8cf7-3d6daafe3ce5.tar.gz` contains input checks, graph traces and exact canonical bytes, before/after objects, negative controls, process measurements, sanitizer startup logs and a Git integration bundle. This receipt covers the ordinary native compiler and its guests.
+### Editable compiler recipe snapshot on host 1, 2026-11-25
+
+Assignment 79c6f10a reviewed frozen main ca54328765c60d6e6d7d7941f03ad704f10e9537
+(tree 84e9315e2ab51330f004b8ec5f160029e6a2fd20). Host 1 verified all three manager archives,
+their embedded and loose bundle members, and the three supplied tips in the freeze's ancestry.
+The retained 8b7878c8 browser site has tree fc70c453ecd2b01b222f0f6db6817f8922b81913,
+manifest d75b6ccda4e9056f4b48eba4e4cd7f1e0c4d7f7c0a560a74968d280cfa344848,
+and project JSON b9c2e451cd44b72307b229ff62fc3a715f77ab342df68979e50aaad4510c9e5b.
+All 104 listed files and all 12 compiler-directory products matched. The project has
+537 authored files, 25 generated unit entries and one generated runtime. The 63
+per-reactor unit depfiles named 397 authored files. Directory collection and editor
+restore/export also consume source outside those stock compilation closures.
+Only host/driver_link.tower and host/driver_units.tower differ between the packaged
+authored files and ca543287. Neither occurs in those depfiles.
+
+The page submits editable files and the coordinator reads the stock link recipe.
+Both the production coordinator and scripts/test-compiler-project.mjs call
+buildCompiler. Its unit and link phases read the submitted files plus the recipe's
+units and reactors. The previous structuredClone of the recipe also visited all
+563 stock source entries, containing 4,330,860 bytes of text. The local implementation
+snapshots the two plans and the complete independently supplied editor sources
+before the first asynchronous boundary. Plan subarrays must remain private. An
+intentional shallow-plan control failed on a caller mutation of a link argument.
+
+Using Node 24.22.3 on host 1's Xeon Gold 6244, CPU 2, effective cpuset 0–31,
+quota 1536000/100000 µs, six alternating sequential pairs measured entry to
+createWork with an observing JS transport. Filesystem pages were warm. The submitted
+edited project hashed to 51a4dd9249d4b0480f788b9e2f29a81bab4106c181e12627df60347fe159a358.
+First-call wall/CPU medians in ms were 14.27/15.26 before and 5.57/6.54 after.
+Mean-per-call wall/CPU over 24 more calls per process had medians 5.84/5.82 and
+3.05/3.05. Median process peak RSS after the repeat block was 175098/129868 KiB.
+The two-entry fixture had repeat wall medians 0.589/0.585 ms. Separate forced-GC
+observations at dispatch found 23,842,440/19,373,552 live heap bytes. The JS
+boundary check preserved the edited grammar, all 25 unit entries in order,
+the first reactor's support/object names and arguments, cleanup, and the missing-entry
+diagnostic. It used stand-ins for object generation and linking.
+
+On the sealed 8b7878c8 site, host 1's retained fresh-worker small portable/shared
+load medians were 128.65/184.57 ms (four trials per mode). The archived repeated-use
+tests observed the ordered invalid builtin, repair, invalid drive file and retry on
+both profiles. The 14da0b26 generation receipts use older installed worker bytes
+with the frozen source project. None of the historical runs executed this change.
+The assignment packet contains the member/owner ledger, raw trials, source citations,
+negative-control patch, and commands for the dedicated executor. Fresh dist identity,
+two real generations and the browser grammar/error matrix remain open. This JS-only
+coordinator measurement did not exercise native sanitizers or browser concurrency.
+
+### Host 1 ordinary validation of b91c2a97 and source-receipt correction, 2026-11-25
+
+Assignment 79c6f10a subsequently authorized host 1 to execute the ordinary package
+and browser checks. The actual 8b project packager reproduced the 12 retained
+compiler assets byte for byte. Both test sites used the frozen 537 authored texts
+and the retained 26 generated entries, support files and starter reactors.
+The normal dist build at ca543287 and b91c2a97 differed at two listed assets,
+compiler-build-worker.js and its map. The candidate worker (41813 bytes) is
+ad21ea52f39605de4ce7f07a9a805405e0577180478a1757ce7ce77b34a764ee,
+and its private site manifest is 2058894a741b0bfdf331e7f78b1fe3faad8ab112454e3a6003b882a2b4c3dd84.
+A live debugger read the exact worker script from the coordinator and both unit
+workers. An initial observation raced script availability. The subsequent probe
+waited for compile activity and scriptParsed, checked all three hashes and drained.
+
+The earlier 14da0b26 stock-workbench generation receipt submitted the edited
+8b file map cb6338bf58a879af1ca0268da939efa41e6b66bdd51810c5aed7a9e5cad04894.
+Its bad-import digest independently matches 8b. The historical route fixture
+did not establish that the page submitted the frozen project. This corrects the
+stock-UI attribution in the preceding assignment entry. The separate controlled
+timing matrix retains its original edited-recipe identity. In the new campaign
+both sites actually served frozen recipe 2b19b5c75a24f01d31c7578e8ae156a32bbaf8c3767634fc45667303574496a7.
+The edited map 96ffe0093bda750baf9eba95ddbe5a20616abbd63c5bcea4722e4893df855f3c
+matched both successful workbench submissions per site and the actual exported
+9481432-byte ZIP, 8fb10f121ce49077f5c24e023ee017f640815c6caf0aa940993b026f439485a5.
+ZIP import preserved all 563 files in order, 46 builtins, and the restore baseline.
+A one-byte corruption failed at the exact edited semantic source.
+
+The two-generation Node/Wasm driver matched the independent 25-object/3-reactor
+oracle in each generation on each revision, using two and four lanes. Null
+assignment in input.tower at byte 31 produced the edited error on all four.
+The page used two overlapping lanes in each successful rebuild. An invalid root
+tower.tower import preserved Gen 1, Restore let Gen 1 build Gen 2, an invalid
+unit import preserved Gen 2, and Reset restored the stock diagnostic.
+
+On Xeon Gold 6244 CPUs 2–5, quota 15.36, warm OS files and fresh processes, one
+real baseline/candidate Node pair took 84.44/83.60 s wall, 224.44/221.67 s CPU,
+2783824/2756408 KiB max RSS. Matched Chromium chains took 113.31/112.41 s across
+CDP samples, 266.23/264.40 s browser CPU and 2332008/2313620 KiB max sampled
+renderer RSS. These single pairs do not establish an end-to-end speedup.
+Three additional desktop samples per execution profile gave cold-owner/warm-owner
+median load 147.20/0.100 ms portable and 245.645/0.065 ms shared. All six tested
+the ordered first error, repair, failed-drive retry and new-owner recovery.
+The 12 desktop/mobile feature cases and ordinary loopback deployment verifier
+passed. The served manifest and all assets were checked. Original evidence,
+raw products, CDP/Node measurements and commands are in the assignment archive's
+ordinary/ directory. This run covers the retained 8b native-built assets and the
+changed JS transport on Chromium 159. It made no public deployment.

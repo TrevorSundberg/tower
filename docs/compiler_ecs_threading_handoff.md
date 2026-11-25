@@ -28,11 +28,21 @@ at one lane and 31.41 s at four. Browser CPU use was 101.11 and 93.75 s,
 and the largest renderer lifetime high-water mark rose from 1,095 to
 1,884 MiB. A second request in the same session recompiled every unit
 in 76.78 and 30.22 s respectively. Each condition has one observation.
-In a separate stock-editor run the generated compiler rebuilt the same
-project and reproduced all three Wasm modules byte for byte.
 An independent review reconstructed the same 28 output digests from each
-of the 12 trials and confirmed the generated LLVM module was used again.
+of the 12 timed trials. The separate stock-editor generation check used
+an edited `8b7878c8` project. A later browser run verified the edited
+`ca543287` sources at the worker boundary and in the exported ZIP. After
+Restore, the generated compiler rebuilt those sources and reproduced its
+three Wasm modules byte for byte.
 [Browser self-build measurements](temporal-opcode-research-journal.md#browser-self-compilation-of-the-frozen-editable-project)
+
+The editor sends its editable sources separately from the stock build
+recipe. The rebuild worker now snapshots those sources once at entry and
+copies only the unit and link plans from the recipe. In six matched
+563-file trials, median setup time to the first work request fell from
+14.27 to 5.57 ms. The complete Node rebuild had one pair, 84.44 and
+83.60 s. That pair leaves the end-to-end speed change unresolved.
+[Rebuild coordinator](../playground/src/compiler-build.mjs#L71)
 
 **A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),
 each job reads a frozen frontier and writes its assigned range. The coordinator
