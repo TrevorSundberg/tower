@@ -100763,3 +100763,108 @@ with the matching transport. The public 902a clean Ubuntu verification in
 457e26aa reproduced all 39 native products, 80 depfiles and 57 package
 payloads, including byte identity of the rebuilt archive. Its relocated
 guests at one and four jobs returned 42 and the invoice values 1666, 1685.
+### Host 4 · Close joined multi-unit owners before the runtime compiler starts
+
+Receipt `cb46a7db-8d90-4a90-937b-737aadddef6c` compares the ordinary Ubuntu
+LLVM 19.1.1 package from source `902a358f`, checked-in pin `217f0631`,
+with a clean default-pin build changing the driver only. Both input archives
+and all ten requested members matched their recipient SHA-256 values. The
+earlier `24752653` measurements used a different compiler. This comparison
+reuses its 13-unit invoice, four physical cores and /proc sampler.
+
+After the join the driver still needs the unit worlds for diagnostics, semantic
+function flags and dependency output. It copies import text and allocates each
+export and input argument independently. Additional object files still have to
+exist when the linker opens them. The entry source text belongs to DriverRequest.
+The emitted entry object belongs to the backend LLVM memory buffer. Closing the
+batch while retaining its byte pointer would leave a dangling linker input.
+
+The driver now prepares the existing generated entry in the internal linker's
+owned input table, or writes the external linker's existing temporary file.
+It can then close the backend and its frontend lease, dispose the extra source
+snapshots and run the runtime compiler. Temporary object files stay with the
+driver until link return. Moving the generated table into the linker clears
+the old owner. A runtime compiler failure releases the prepared table from
+the link owner instead. The successful path adds no entry copy or temporary.
+The existing linker allocation is outside WorkBudget in both builds. The
+backend's length-based object reservation remains live until backend close.
+
+The first candidate build rejected an unsupported else-if spelling. The corrected
+driver unit compiled independently, then a new empty native cache built the
+packaged CLI with the bootstrap override unset. The original cache and error
+log are separate. One/four-job stock and candidate invoices all matched the
+sealed 32,504-byte ELF, its 12 exported invoice functions and complete depfile.
+
+Four paired blocks at each width alternated stock/candidate and candidate/stock.
+On host 4 (Ryzen 7 5800H, Ubuntu 24.04.5 PRoot, CPUs 0,2,4,6, 15.36-CPU
+quota, zero observed throttling) the four-job median simultaneous tree RSS fell
+from 512,030 to 417,860 KiB, and PSS from 454,485 to 417,139 KiB. The serial
+medians were 287,628 to 283,788 KiB RSS and 230,024 to 225,654 KiB PSS.
+At four jobs all four stock peak samples included the runtime Clang child.
+All four candidate peak samples saw the driver alone. In the phase diagnostic,
+the candidate's 419,624 KiB highest sample ended 14 ms before the final join.
+After preparation, frontend close reduced parent RSS from 409,644 to 276,248
+KiB before fork. The previous compile peak is a floor for this change. Sampled
+sums are lower bounds, and RSS double-counts shared pages at fork. Independent
+child wait4 highs include pre-exec residency and cannot be added to parent highs.
+
+The joined ledger held 42,821,962 / 42,825,458 bytes at 1 / 4 jobs in both
+builds. Historical peaks were 105,104,073 at one job and 224,263,651 stock /
+222,344,751 candidate at four in the instrumented runs. In both builds the
+peak reservation preceded close. After frontend close the ledger is destroyed.
+Separate unobserved four-pair timing medians were 2.985 / 2.970 s wall and
+2.875 / 2.865 s CPU serial, and 1.880 / 1.850 s wall and 4.230 / 4.215 s CPU
+at four jobs. Unobserved four-job wait4 high-water medians were 424,096 /
+428,064 KiB. The improvement belongs to simultaneous tree residency.
+
+All 13 emitted objects, ELF, exports, guest output and all dependency rules
+matched. Both four-job uneven pairs reduced the sampled tree maximum, as did
+the two-unit controls. A 1,101,368-byte entry remained identical to the
+standalone object. Its existing link byte vector requests 1,101,369 bytes
+including termination. Additional entry bytes copied by this change are zero.
+Independent one-job and four-job large-entry links both printed 107. Missing
+inputs, runtime compiler and linker failures, an invalid object, a source
+diagnostic and a lexical output alias preserved the stock diagnostics, output
+and depfile behavior; every temporary directory emptied. A user object named
+tower-input.o survived. ELF (internal and external), PE, Mach-O and Wasm
+(internal and external) matched their stock images. The reader fixture passed
+its aliased replacement, borrowed input release, failure/retry and overlap cases.
+
+Fully instrumented ASan/LSan and TSan compilers each passed six focused positive
+and expected-failure controls. Five TSan startup attempts failed across the
+six cases due to the container's personality restriction; all six reached the test. Instrumented negative
+controls reported the expected heap overflow and data race. UBSan is outside
+the supported Tower object instrumentation. Raw series, bracketed PSS, guest
+wait4, dependency files, code review, limitations and reproduction commands
+travel with the receipt. This is a native host-specific measurement for manager
+integration; release validation and publication remain with the manager.
+
+### Independent native acceptance of the combined compiler and driver lifetime
+
+Receipt 7948ffc5 compared the combined a86d2ff0 compiler against 217f0631
+using the checked-in 902a development pin. On the EPYC 7502 it pinned one
+job to CPU 7 and four to CPUs 4–7 (30.72 CPU quota). All 48 counterbalanced
+pairs saved wall and CPU time with zero observed throttling. The 16-function
+single-unit mean fell from 307.54 to 266.38 ms at one job and from 353.15
+to 317.27 ms at four. For 1000 functions the corresponding means fell
+from 545.35 to 494.19 ms and from 581.21 to 540.17 ms. Mean peak RSS on
+the integrated compiler was 86992/90989 KiB for the smaller input and
+116688/119965 KiB for the larger at one/four jobs. The manager compared
+the paired rows, output bytes, guest values and twelve successful native
+address/leak and thread sanitizer selections. Both skew and fitting
+13-unit invoices completed at 1/4/8 under the 256 MiB compiler charge cap.
+The old canonical failure at line 223 was independently confirmed on this
+earlier source. Its separate repair is already in the 8b7878c8 freeze.
+
+Receipt d34823a8 independently repeated the joined-driver ownership change
+against a86d2ff0. On the Ryzen 9 5900XT (four separate cores, CPUs 0/2/4/6,
+30.72 CPU quota) all four four-job pairs reduced peak simultaneous tree
+RSS and PSS. Median RSS fell from 283664 to 247928 KiB and PSS from
+219730.5 to 185709 KiB. Observer-off wall time was 1.12/1.10 s and CPU
+2.965/2.960 s. At one job median RSS fell by 1516 KiB with unchanged
+2.26 s wall. The manager reconstructed the raw peak tables and checked
+32 invoice executions, depfiles, 52 unit objects, late failures and
+temporary cleanup. Both arms refused a 32 MiB charged budget. The two
+adopted Tower driver files have identical blobs to the independently
+rebuilt 693e95e7. This merge preserves the original d1dd5bf9 ancestry.
+The enqueued browser and Ubuntu builds remain pinned to 8b7878c8.
