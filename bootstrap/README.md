@@ -14,14 +14,14 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The current compiler source is `902a358f`. It copies sorted LR ranges directly
-into empty destinations, avoids allocating empty grammar capture storage, and
-retires joined grammar baselines in one-shot executable builds. The Linux x64
-compiler built on Ubuntu 24.04.5 with Clang/LLVM 19.1.1 is 2,274,560 bytes
-with SHA-256 `509557309b941160cdb55eb7ea407c1e329e6ebd8ef126340552e857208cf42f`.
-Three Ubuntu production builds matched on all 39 native products. Generations
-two and three also matched on all 57 payloads and the package archive.
-The previous public pin was built from `fb019f61`.
+The compiler in this checkout was built from `cd77a1f7adfdf3a61ed44a465d1a5625bff29fdb`
+on Ubuntu 24.04.5 with Clang/LLVM 19.1.1. The package commit is
+`a77dbf9f08d7e0c72b6a5df0318f977c4aa72ce1`. Its 2,275,024-byte executable
+has SHA-256 `5582c3c5e89ee8ce72306cdb612977d3ee39c24560bbba359eb5e893c6f21fc4`.
+Three Ubuntu production generations matched on all 39 native products.
+Generations two and three reproduced the delivered archive. The preceding public
+compiler was built from `902a358f`. The [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
+give each compiler its own prefix and immutable installer command.
 See the [9ab581c8 pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
@@ -69,8 +69,9 @@ size, build provenance, source input hashes and optional source patch. Its
 `sha256` now identifies the executable. `linux-x64/SHA256SUMS` is the directly
 consumable verification list. The initial schema-2 migration retained the previous
 compiler/resources and recorded their `archive_origin`; subsequent pins record
-their own directly built executable. The archive and installer are retired, not additional
-required formats. Preserve frozen resource bytes and the compiler's executable
+their own directly built executable. The checkout uses these files directly;
+the one-command installer downloads the same verified package for users without
+a checkout. Preserve frozen resource bytes and the compiler's executable
 mode when publishing or checking out a pin.
 
 The current pin supports signed `i8`/`i16` and unsigned `u16` in addition to `u8`,

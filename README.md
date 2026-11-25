@@ -34,8 +34,35 @@ targets, limitations, build commands and deployment checks.
 
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
-This command installs the compiler built at `902a358f` and its verified resources
-from `93210484` under your home directory.
+After publication of the cd77 candidate, use this command to install the compiler
+built at `cd77a1f7` and the verified package from `a77dbf9f`. The versioned
+prefix lets you keep an earlier installation alongside it.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/c31317261358b6fdb26586d389b23b040337b36b) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev cd77a1f7"
+```
+
+The installer prints the executable path. Repeating the command verifies the
+installed copy. If the prefix already contains another version, choose a fresh
+directory and use that path below. To try it, save the [sample Tower program](scaffolding/tests/distribution_program.tower)
+as `example.tower` in a new directory. Run these commands from that directory.
+Each prints `42`.
+
+```sh
+"$HOME/.local/Tower Dev cd77a1f7/linux-x64/towerc" example.tower --interpret
+"$HOME/.local/Tower Dev cd77a1f7/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
+```
+
+The cd77 command and both example runs passed on Ubuntu 24.04.5 x86-64
+against a local HTTPS mirror of the exact Git blobs. Execution against
+GitHub remains a post-publication check.
+
+### Previously published compiler
+
+To install or verify the published `902a358f` compiler and its resources from
+`93210484`, use its original command and prefix.
 
 ```sh
 installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
@@ -43,18 +70,9 @@ installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
   bash -c "$installer" -- "$HOME/.local/Tower Dev"
 ```
 
-The installer prints the executable path. Repeating the command verifies the
-installed copy. To try it, save the [sample Tower program](scaffolding/tests/distribution_program.tower)
-as `example.tower` in a new directory. Run these commands from that directory.
-Each prints `42`.
-
-```sh
-"$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --interpret
-"$HOME/.local/Tower Dev/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
-```
-
-The public installer and both commands passed on Ubuntu 24.04.5 x86-64 with
-LLVM/Clang 19.1.1 and Debian 12 x86-64 with LLVM/Clang 19.1.7.
+That installer and the example above passed on Ubuntu 24.04.5 x86-64 with
+LLVM/Clang 19.1.1 and Debian 12 x86-64 with LLVM/Clang 19.1.7 using
+`$HOME/.local/Tower Dev/linux-x64/towerc`.
 
 ## Build and explore
 

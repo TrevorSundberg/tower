@@ -10,14 +10,14 @@ host=$(uname -sm)
 [[ $host == 'Linux x86_64' ]] || die "Unsupported host: $host (requires Linux x86_64)"
 command -v clang-19 >/dev/null || die "Missing clang-19. Install the Ubuntu LLVM/Clang 19 prerequisites."
 
-revision=93210484312acb83f2c49b306dc60fd57d49848a
+revision=a77dbf9f08d7e0c72b6a5df0318f977c4aa72ce1
 url="https://raw.githubusercontent.com/TrevorSundberg/tower/$revision/bootstrap/linux-x64"
-sums=75eac77a42e1feb41bc538708e28341bd99ac8ba6f5862251aff87e978b0d804
+sums=b72120ae8bc3e655f7f7807795d65e8ee51dc28ce11b0af03bcc06ff9e9414c3
 check_list() {
-    printf '%s  SHA256SUMS\n' "$sums" | sha256sum --strict --check --quiet
+    printf '%s  SHA256SUMS\n' "$sums" | sha256sum --strict --check --quiet >&2
 }
 check_package() {
-    sha256sum --strict --check --quiet SHA256SUMS
+    sha256sum --strict --check --quiet SHA256SUMS >&2
     ./towerc --version >&2
 }
 
@@ -57,7 +57,7 @@ fi
 [[ -d $dest && ! -L $dest && -f $dest/SHA256SUMS ]] || die "Install destination is occupied: $dest"
 (
     cd -- "$dest"
-    check_list
+    check_list || die "Checksum list differs at $dest. Use a fresh prefix to keep this installation."
     check_package
 )
 printf '%s\n' "$dest/towerc"

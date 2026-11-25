@@ -104,7 +104,15 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 
 ## Validation and measurement
 
-### Install the public Linux x64 development compiler as a normal user
+### Install the Linux x64 development compiler as a normal user
+
+The [one-command installer and first program](../README.md#install-the-linux-x64-development-compiler)
+cover the cd77 candidate for use after publication and the previously published
+902a compiler. Use the versioned cd77 prefix to keep both installations. The
+candidate installer verifies the checksum list from package commit `a77dbf9f`
+before fetching its 57 payloads.
+
+### Historical checkout installation at e06aa12e
 
 Run this in Bash from a clone of [Tower](https://github.com/TrevorSundberg/tower) containing public commit `e06aa12e`. It
 installs the compiler built from `902a358f` under a fresh temporary prefix.
@@ -157,7 +165,7 @@ and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
 
 | Compiler host | First output target | Runner and package dependency check | Native install evidence |
 | --- | --- | --- | --- |
-| Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Public development install above. Standalone pending. |
+| Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Historical public install at e06aa12e above. Standalone pending. |
 | Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Full compiler linked and run under QEMU. Native self-host, relocation and public install remain open. |
 | macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | 28 Intel compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
 | macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | 28 Arm64 compiler objects checked. Directory ABI, final link, native execution and installation remain open. |
