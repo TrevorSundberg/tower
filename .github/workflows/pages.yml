@@ -1,0 +1,109 @@
+name: Publish verified Jenkins build
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+  schedule:
+    - cron: '13,43 * * * *'
+permissions: {}
+concurrency:
+  group: kinmen-pages
+  cancel-in-progress: false
+jobs:
+  prepare:
+    if: github.ref_name == github.event.repository.default_branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pages: read
+    outputs:
+      publish: ${{ steps.artifact.outputs.publish }}
+      revision: ${{ steps.artifact.outputs.revision }}
+    steps:
+      - name: Find verified artifact for the current branch head
+        id: artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          READER: ${{ secrets.KINMEN_BUILD_ARTIFACT_TOKEN }}
+          BUILD_URL: ${{ vars.KINMEN_BUILD_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$READER"
+          [[ "$BUILD_URL" =~ ^https://[a-zA-Z0-9.-]+/agents/jenkins/delivery/[a-z][a-z0-9-]+$ ]]
+          latest() { gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha; }
+          args=(--proto '=https' --connect-timeout 15 --retry 3 -sS -H "Authorization: Bearer $READER")
+          status=$(curl "${args[@]}" -w '%{http_code}' -o candidate "$BUILD_URL/latest")
+          if [[ "$status" == 202 ]]; then echo "The first build is pending"; exit 0; fi
+          [[ "$status" == 200 ]]
+          revision=$(jq -er .revision candidate)
+          [[ "$revision" =~ ^[a-f0-9]{40}$ ]]
+          relation() { gh api "repos/$GITHUB_REPOSITORY/compare/$1...$2" --jq .status; }
+          [[ "$(relation "$revision" "$(latest)")" =~ ^(ahead|identical)$ ]] || exit 0
+          live=$(gh api "repos/$GITHUB_REPOSITORY/pages" --jq .html_url)
+          response=$(curl --proto '=https' --retry 2 -sS -o previous -w '%{http_code}' "${live%/}/kinmen-build.json?check=$GITHUB_RUN_ID")
+          case "$response" in
+            200) previous=$(jq -er .revision previous)
+                 [[ "$previous" =~ ^[a-f0-9]{40}$ ]]
+                 [[ "$previous" != "$revision" ]] || exit 0
+                 [[ "$(relation "$previous" "$revision")" == ahead ]] || exit 0 ;;
+            404) ;;
+            *) echo "Existing deployment receipt HTTP $response"; exit 1 ;;
+          esac
+          status=$(curl "${args[@]}" -w '%{http_code}' -o receipt "$BUILD_URL/$revision/receipt")
+          case "$status" in
+            202) echo "Jenkins is building this revision. The next scheduled check will pick it up."; exit 0 ;;
+            200) ;;
+            *) echo "Jenkins receipt returned $status"; exit 1 ;;
+          esac
+          grep -Ex '[a-f0-9]{64}  site\.tar\.gz' receipt
+          curl "${args[@]}" -f -o site.tar.gz "$BUILD_URL/$revision/archive"
+          sha256sum -c receipt
+          python3 - <<'PY'
+          import pathlib,tarfile
+          root=pathlib.Path("site")
+          root.mkdir()
+          with tarfile.open("site.tar.gz","r|gz") as archive:
+              total=count=0
+              for part in archive:
+                  path=pathlib.PurePosixPath(part.name)
+                  count+=1
+                  total+=part.size
+                  if path.is_absolute() or ".." in path.parts or not (part.isfile() or part.isdir()) or total>=1_000_000_000 or count>100_000:
+                      raise ValueError("Invalid Pages archive member")
+                  archive.extract(part,root,filter="data")
+          if not (root/"index.html").is_file(): raise ValueError("Missing index.html")
+          PY
+          jq -n --arg revision "$revision" --arg sha256 "$(cut -d' ' -f1 receipt)" '{revision:$revision,archiveSha256:$sha256}' >site/kinmen-build.json
+          echo "revision=$revision" >> "$GITHUB_OUTPUT"
+          echo publish=true >> "$GITHUB_OUTPUT"
+      - if: steps.artifact.outputs.publish == 'true'
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
+        with:
+          path: site
+          retention-days: 1
+  publish:
+    needs: prepare
+    if: needs.prepare.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: head
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVISION: ${{ needs.prepare.outputs.revision }}
+        run: |
+          set -euo pipefail
+          head=$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)
+          status=$(gh api "repos/$GITHUB_REPOSITORY/compare/$REVISION...$head" --jq .status)
+          if [[ "$status" =~ ^(ahead|identical)$ ]]; then echo current=true >> "$GITHUB_OUTPUT"; fi
+      - id: deployment
+        if: steps.head.outputs.current == 'true'
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e
