@@ -82,7 +82,7 @@ fn layout_profile_trial(workers: usize, fields: usize, occupied: bool, report: b
     var gate = work_signal_open();
     layout_profile_check(gate != null);
     work_signal_post(gate);
-    layout_profile_check(work_budget_init(&budget, workers, 0, 1)
+    layout_profile_check(work_budget_init(&budget, workers, SemanticComponentBudgetBytes, 1)
         && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post)
         && work_budget_reserve(&budget, 1, 1, 0, &outer));
     if occupied { layout_profile_check(work_budget_reserve(&budget, workers - 1, workers - 1, 0, &other)); }
@@ -134,17 +134,15 @@ fn layout_profile_trial(workers: usize, fields: usize, occupied: bool, report: b
     var peak: usize = 0;
     var caller: usize = 0;
     var work_ns: i64 = 0;
-    var retained: usize = context.layout_jobs.capacity * sizeof(void*);
-    foreach(var payload in &context.layout_jobs) {
-        var job = bits(SemanticLayoutWork*, payload);
+    var retained: usize = context.layout_jobs.capacity * sizeof(decltype(context.layout_jobs.data[0]));
+    foreach(var job in &context.layout_jobs) {
         var span = bits(LayoutProfileSpan*, entity_component_data(entity_component_get(job.subject, kind)));
         layout_profile_check(span.calls == 1 && span.end >= span.begin && span.thread != 0);
         if span.thread == pthread_self() { caller++; }
         work_ns += span.end - span.begin;
         retained += job.offsets.capacity * sizeof(usize);
         var overlap: usize = 0;
-        foreach(var other_payload in &context.layout_jobs) {
-            var other_job = bits(SemanticLayoutWork*, other_payload);
+        foreach(var other_job in &context.layout_jobs) {
             var other_span = bits(LayoutProfileSpan*, entity_component_data(entity_component_get(other_job.subject, kind)));
             if other_span.begin <= span.begin && other_span.end > span.begin { overlap++; }
         }

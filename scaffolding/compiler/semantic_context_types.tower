@@ -1,6 +1,7 @@
 import tower;
 import foundation_types;
 import semantic_program_types;
+import semantic_layout_kernel;
 import .library.work_graph;
 import .library.work_pool;
 import .library.stack;
@@ -203,7 +204,7 @@ struct SemanticContext {
     has_defer: bool;
     workers: WorkPool;
     layout_results: void*;
-    layout_jobs: vector(void*);
+    layout_jobs: vector(SemanticLayoutWork*);
     // Types append during this compilation; published layouts never mutate.
     // Readiness is distinct from the precise layout inputs of each query.
     layout_checked: usize;

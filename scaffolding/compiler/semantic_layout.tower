@@ -51,7 +51,7 @@ fn sem_layout_request(c: SemanticContext*, subject: void*): usize {
     *result = { subject: subject, ..default };
     result.kernel.kind = CompilerKernelKind.Layout;
     result.kernel.payload = bits(void*, result);
-    if !vector_push(&c.layout_jobs, bits(void*, result)) {
+    if !vector_push(&c.layout_jobs, result) {
         sem_type_resource(c, subject, WorkBudgetError.Memory);
         return 0;
     }
@@ -268,11 +268,8 @@ fn sem_layout_all(c: SemanticContext*): void {
 
 fn sem_layout_dispose(c: SemanticContext*): void {
     work_pool_close(&c.workers);
-    var index: usize = 0;
-    while index < c.layout_jobs.length {
-        var result = bits(SemanticLayoutWork*, c.layout_jobs.data[index]);
+    foreach(var result in &c.layout_jobs) {
         vector_dispose(&result.offsets);
-        index++;
     }
     vector_dispose(&c.layout_jobs);
 }

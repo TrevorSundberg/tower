@@ -1,0 +1,13 @@
+import tower;
+import semantic_layout_kernel as layout;
+import semantic_context_types as semantic;
+import .library.vector;
+
+fn layout_registry_test(): bool {
+    var context: semantic.SemanticContext = default;
+    var result: layout.SemanticLayoutWork = default;
+    defer vector_dispose(&context.layout_jobs);
+    return vector_push(&context.layout_jobs, &result) && context.layout_jobs.data[0] == &result;
+}
+
+if !layout_registry_test() { trap("Layout registry lost its result", 0); }
