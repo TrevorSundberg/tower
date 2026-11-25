@@ -1284,6 +1284,15 @@ never concatenated. Ordinary projects likewise compile their first Tower file's
 import closure, including an entry containing only imports, and recompile when
 an imported file changes.
 
+**Build workers** applies to the next manual or automatic compiler rebuild.
+Automatic uses up to two workers. Choose 1 for serial compilation, or request
+2 or 4 workers. The coordinator caps each request at the browser's reported
+parallelism and the number of build units. Changing the selection during a
+build takes effect on the next invocation. Reload restores Automatic.
+On four physical cores of one Ryzen 9 7900X desktop, four workers cut the
+569-document project's build time by 28% and raised peak Chromium-tree RSS
+by about 500 MiB compared with two. Timing and memory use depend on the device.
+
 The build links fresh parser/interpreter, LLVM/Wasm and native-target reactors.
 It instantiates all candidates and checks imported execution in both interpreters,
 LLVM execution and native object emission before activating the generation.

@@ -35,7 +35,13 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   expect(await page.locator('#file-tree').evaluate(el=>el.clientHeight)).toBeGreaterThan(40);
   await page.locator('button[data-path="units/compiler_parser_nodes.tower"]').click();
   await page.screenshot({path:'../build/compiler-workbench/workbench-'+info.project.name+'.png'});
+  const buildWorkersSetting = page.getByLabel('Build workers',{exact:true});
+  await expect(buildWorkersSetting).toHaveValue('auto');
+  await buildWorkersSetting.selectOption('4');
+  const available = await page.evaluate(() => navigator.hardwareConcurrency || 1);
+  const admitted = Math.min(4, available);
   await page.locator('#rebuild-compiler').click();
+  await buildWorkersSetting.selectOption('1');
   await expect(page.locator('#cancel-compiler-build')).toBeEnabled();
   await expect(page.locator('#compiler-build-status')).toContainText('Compiling',{timeout:30000});
   // Cancelling the coordinator must also stop its nested compiler workers.
@@ -43,7 +49,7 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   const {targetInfo} = await cdp.send('Target.getTargetInfo');
   const buildWorkers = async () => (await cdp.send('Target.getTargets')).targetInfos.filter(target =>
     target.browserContextId === targetInfo.browserContextId && target.type === 'worker' && target.url.endsWith('/compiler-build-worker.js')).length;
-  await expect.poll(buildWorkers).toBeGreaterThan(1);
+  await expect.poll(buildWorkers).toBe(1 + admitted);
   await page.locator('#cancel-compiler-build').click();
   await expect(page.locator('#compiler-build-status')).toHaveText('Compiler build cancelled');
   await expect.poll(buildWorkers).toBe(0);
@@ -57,6 +63,7 @@ test('compiler sources, migration comments, cancellation and persistence are ava
   await page.reload();
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('saved browser edit');
   await expect(page.locator('#active-compiler')).toHaveText('Original compiler');
+  await expect(buildWorkersSetting).toHaveValue('auto');
   await page.locator('#auto-rebuild-compiler').uncheck();
   await page.locator('#restore').click();
   await expect(page.getByRole('textbox',{name:'Tower source'})).not.toContainText('saved browser edit');
@@ -69,6 +76,7 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#project-kind').selectOption('tower:compiler');
   await page.locator('#auto-rebuild-compiler').uncheck();
+  await page.getByLabel('Build workers',{exact:true}).selectOption('4');
   await page.locator('details[data-path="compiler"] > summary').click();
   const valuesPath = 'compiler/semantic_values.tower';
   await page.locator(`button[data-path="${valuesPath}"]`).click();

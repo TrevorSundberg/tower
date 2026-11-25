@@ -103765,3 +103765,63 @@ on the old UI with the same compiler. The Linux package is pinned at
 interpreted and a linked guest for exactly 42 plus LF. Updating the
 release candidate's documentation changes no compiler inputs. Qualification
 of the combined browser assets uses their own source and manifests.
+
+## Explicit worker counts for editable compiler Builds on host 8
+
+Receipt `f5a09b57-7884-4bdf-88ca-dd44c563f2e4` starts at the integrated
+`2421c659` release candidate. The preceding host 8 experiment
+(`22f25a97`) measured 28.2% less elapsed time and 493–498 MiB more peak
+Chromium-tree RSS at four versus two workers on four physical Ryzen 9
+7900X cores. This successor exposes that choice on the compiler project.
+The page sends the selected value with the source snapshot. The coordinator
+uses the request, its reported CPU availability and the recipe's unit count
+to admit workers. Automatic and unrecognized requests retain the two-worker
+ceiling. Manual and scheduled rebuilds share the same entry point.
+
+The 2421c659 UI and its successor used the same retained be4bc2d6 project
+and active LLVM generator `43d603d7b495c7220e49103c730fed3ac7ee2b5aedf6797301259e54ee541916`.
+The original automatic Build took 26.10 s at two workers. With the ordinary
+successor bundle and no worker-count override, the two/four pair took
+26.11/19.67 s, and the four/two pair took 19.32/25.97 s. Each active Build
+followed the same automatic qualification in a fresh Chromium 159 profile.
+All four runs used physical cores 0–3, a 23.04-CPU quota and zero throttles.
+
+| Build order | Browser CPU s | Sampled Chromium-tree peak KiB | Single renderer peak KiB | Full-width unit overlap s | Three-reactor link s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Two, AB | 57.53 | 2,690,684 | 2,038,464 | 21.52 | 1.82 |
+| Four, AB | 61.95 | 3,175,536 | 2,519,268 | 11.81 | 1.86 |
+| Four, BA | 61.61 | 3,183,680 | 2,530,640 | 12.12 | 1.85 |
+| Two, BA | 56.23 | 2,635,532 | 1,978,088 | 21.30 | 1.81 |
+
+Unit compilation accounted for the speedup. The four-worker unit spans were
+16.74 and 16.50 s, ending on compiler_semantics.tower. The two-worker spans
+were 23.46 and 23.38 s. Across both orders all 25 object identities and
+three reactor hashes matched the retained reference. Separate real Build
+exports compared all 25 object files byte for byte. Each active guest emitted
+the reference's 1,407 bytes of canonical Foundation and printed 42 plus LF.
+These RSS sums can miss short peaks and count shared pages twice.
+
+The explicit serial Build used one worker. An invalid choice on the four-core
+mask admitted two. A four-worker request on CPUs 0–1 admitted two, and on
+a one-unit recipe admitted one. An empty recipe failed before unit dispatch.
+Changing the selector immediately after clicking Build left the original
+request in force on desktop and emulated mobile. Four-worker cancellation
+retired the coordinator and all four unit workers. Immediate recovery
+accepted all 25 units with the same active generator.
+
+Desktop and mobile passed the saved-document, download, Restore and
+compiler-setting controls. The adjacent mobile inline error-marker geometry
+assertion failed with identical coordinates on 2421c659 and the successor
+(203.25 px against a line bottom of 109.546875 px). The diagnostic text
+and source range assertions preceding it passed. The original assertion
+remains in the suite. These results cover one Ryzen desktop, two paired
+samples per width and a mobile viewport on that desktop.
+
+The edited-compiler diagnostic and failed-rebuild/reset control passed at
+Automatic and explicit four. The first supplementary OS-thread sampler
+returned status 143 at the end of recovery. A fresh cancellation and
+immediate recovery repeated the result and drained both the browser driver
+and the separate thread sampler with exit zero. Command lines, products,
+limits, byte comparisons and failure logs are in the receipt above. The
+host tests exercise the HTML and worker transport change in Chromium.
+Native sanitizer instrumentation does not cover that browser boundary.
