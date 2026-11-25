@@ -103926,3 +103926,53 @@ Host 5 independently compared `670b7b89` against Clang 19 on the existing 16- an
 The manager regenerated the timing table and checked the reference objects, linked outputs and four source hashes. The small serial trace attributed 41.12 ms to grammar bootstrap and 106.18 ms to parse/check. Cleanup of 9,807 already-matched LR item sets accounted for 0.038% of process instructions. The construction cost before those matches remains to be measured. Receipt `ef863f29-aa75-4f1d-8dab-abdb200b0f07`.
 
 Host 1 tested retiring the frontend admission estimate on the last frontend join. At 86,506,087 bytes the packed compiler completed 0/8 skewed invoices, the conservative combined estimate completed 8/8, and the retirement trial completed 5/8. At 96 MiB all three completed 4/4. Their mean times were 1.898, 2.480 and 2.155 s. The trial recovered late overlap but still took 13.6% longer than stock. In one tight-cap refusal, frontend 9 had joined while backend 2 was still executing with 48,679,940 bytes charged across the batch. On a successful run, ordinal 2 released 17,516,124 bytes at world disposal. The manager replayed the output and ledger checks and retained both experimental policies outside the release. The next question is which owner reads those retained bytes after backend publication. Receipt `501fb43a-19f3-4c03-a33a-e444bbab0ee2`.
+## Semantic work after an unrelated retained-source edit
+
+At `2421c659`, a coordinator can keep a compiler world, module environment and
+execution session alive through edits. The ordinary `execution_session_compile`
+closes the preceding checked program before creating its successor.
+`semantic_compile_budget` initializes an empty work graph and disposes the
+semantic context before returning the checked program. Host 4 traced this
+lifetime in the retained import diamond at one and two native workers.
+
+The new test at `18b3beee` changes a separate producer from 71 to 73. Only
+`choose(true)` requests its value. The evaluation of `choose(false)` requests
+the right arm, the shared leaf and its forward-declared helper. The root
+aggregate's declaration requests the left function's declaration, which in
+turn requests the leaf seed's declaration for its return type. Replacing only
+the shared leaf changes the aggregate size from 1 to 8, the staged result
+from 25 to 45 and the seed from 7 to 19. An unknown type produces zero guest
+steps and bytes. Repair gives size 2, staged result 65 and seed 9.
+
+On the untouched repeat and unrelated edit, the same Tower, left and right
+module snapshots supplied grammar entities. The shared leaf was cloned once
+into each new request. The code-only side module was reparsed. Both requests
+registered and completed 248 semantic tasks, issued 346 tickets and recorded
+350 dependency edges. All 70 task subjects changed identity in the retained
+world. The identical type prelude alone accounted for 114 tasks and 202
+tickets. The failing request ended with 107 successful tasks, seven cancelled
+and zero running. Fresh worlds agreed on every step's Foundation or diagnostic
+and ordered guest bytes. The budget returned to zero bytes, live reservations
+and lanes after close.
+
+On a Ryzen 7 5800H, Ubuntu 24.04.5 and LLVM 19.1.1, CPUs 0,2,4,6, four
+observer-free samples per arm gave the following third-request medians.
+At one worker an untouched repeat took 17.76 ms wall and an unrelated edit
+17.85 ms. At two workers they took 22.75 and 22.29 ms. Synchronized semantic
+kernel observations reached width two. In separate probes, installing the
+ordinary Tower grammar at byte 13 of the side module took 9.98 and 13.57 ms
+on the edit, respectively. Each repeat and edit supplied the same ordered
+109 rules, 296 alternative entities and 12 tokens. The whole timed call
+outside the frontend parse phase took at most 2.84 and 3.15 ms in those
+edit probes. The import parser belongs to the request's module graph and is
+destroyed with it.
+
+A bounded follow-up could lend the next import parser one immutable syntax
+version for this transition, owned by the module environment and keyed by
+the existing ordered grammar identities, world and Bedrock revision. Its
+value would have to survive edit, failure and teardown tests within the existing
+budget. This experiment changes the regression fixture only. The ordinary
+selector passed, and a stale side producer made the new oracle exit 1.
+The raw samples, source-keyed query and edge inventories, fixture sanitizer
+results and the retained native-suite receipt are in host 4 evidence
+`c9df2869-c3df-4604-8ae5-c53f843bf3de`.

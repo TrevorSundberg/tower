@@ -217,6 +217,13 @@ dependent `decltype`/layout/comptime/body results, ordered effects, exact semant
 failure/repair and partial Fast execution replacement on retained owners. It uses
 target64, serial/native2-worker budgets, observes actual LR overlap and checks
 joined admission/final zero owners; it does not claim semantic-kernel overlap.
+In the retained import diamond, editing a separate producer changed the result
+of the branch that read it from 71 to 73. The other branch kept its value.
+On the measured native compiler, the untouched repeat and the unrelated edit
+each built a fresh semantic graph with 248 tasks and 350 dependency edges.
+Both reused the two unchanged import-arm snapshots. A separate instrumented
+run observed two overlapping semantic workers. The [retained-edit measurements](temporal-opcode-research-journal.md#semantic-work-after-an-unrelated-retained-source-edit)
+identify which grammar installation dominated the edited request.
 WorkGraph revision/profile/dispatch receipt validation remains a separate contract:
 `work_reset` requires drained terminal tasks and a new identity, and rejects a
 cancelled graph. `frontend_units_source` rejects started/finished batches;

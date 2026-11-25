@@ -288,19 +288,25 @@ fn retained_world_diamond(session: ExecutionSession*, world: void*, modules: voi
     var right = "import tower;import retained_leaf as origin;parse RetainedRight = 'right_marker';fn projected():i32{return origin.staged();}print(31);";
     execution_check(frontend_modules_source(modules, "retained_left.tower", left, strlen(left))
         && frontend_modules_source(modules, "retained_right.tower", right, strlen(right)), "Install both retained diamond arms once");
-    var source = "import tower;import retained_left as lhs;import retained_right as rhs;struct Item{value:decltype(lhs.read_seed());}var known=comptime(rhs.projected());print(sizeof(Item));print(known);print(lhs.read_seed());";
+    var side_name = "retained_side.tower";
+    var side = "import tower;var salt:i32=71;";
+    var side_edit = "import tower;var salt:i32=73;";
+    execution_check(frontend_modules_source(modules, side_name, side, strlen(side)), "Install independent producer");
+    var source = "import tower;import retained_left as lhs;import retained_right as rhs;import retained_side as side;struct Item{value:decltype(lhs.read_seed());}var known=comptime(choose(false));var other=comptime(choose(true));fn choose(take:bool):i32{if take{return side.salt;}return rhs.projected();}print(sizeof(Item));print(known);print(lhs.read_seed());print(other);";
     var name = "retained_leaf.tower";
     var first = "import tower;var seed:u8=7;fn staged():i32{return later()+5;}fn later():i32{return 20;}print(11);";
     var changed = "import tower;var seed:u64=19;fn staged():i32{return later()+5;}fn later():i32{return 40;}print(12);";
     var broken = "import tower;var seed:MissingLeaf=19;fn staged():i32{return later()+5;}fn later():i32{return 40;}print(13);";
     var repaired = "import tower;var seed:u16=9;fn staged():i32{return later()+5;}fn later():i32{return 60;}print(14);";
     // One leaf initializer, then left and right, then root layout / staged sum / value.
-    var old_output = "11\n21\n31\n1\n25\n7\n";
-    var new_output = "12\n21\n31\n8\n45\n19\n";
-    var repaired_output = "14\n21\n31\n2\n65\n9\n";
+    var old_output = "11\n21\n31\n1\n25\n7\n71\n";
+    var new_output = "12\n21\n31\n8\n45\n19\n73\n";
+    var repaired_output = "14\n21\n31\n2\n65\n9\n73\n";
     execution_check(frontend_modules_source(modules, name, first, strlen(first)), "Install shared leaf");
     retained_world_expect(session, world, modules, budget, source, old_output, false);
     retained_world_expect(session, world, modules, budget, source, old_output, true);
+    execution_check(frontend_modules_source(modules, side_name, side_edit, strlen(side_edit)), "Replace only the independent producer");
+    retained_world_expect(session, world, modules, budget, source, "11\n21\n31\n1\n25\n7\n73\n", false);
     execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Replace only the shared leaf");
     retained_world_expect(session, world, modules, budget, source, new_output, false);
     retained_world_expect(session, world, modules, budget, source, new_output, true);
