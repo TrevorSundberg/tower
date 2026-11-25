@@ -183,10 +183,13 @@ fn driver_run_companions(files: DriverImportFiles*, compiler: u8*): bool {
     defer driver_arguments_dispose(&args);
     driver_argument(&args, "", compiler);
     driver_argument(&args, "", "--test");
+    driver_argument(&args, "", "--test-details");
     driver_argument(&args, files.root.data, "/owner.tower");
     if !args.ok || driver_test_capture(&args) != 0 { return false; }
     driver_test_read("driver stdout.txt", "11\n42\n", true);
     driver_test_read("driver stderr.txt", "2 tests passed for ", false);
+    driver_test_read("driver stderr.txt", "owner.tower:1:", false);
+    driver_test_read("driver stderr.txt", "owner_test.tower:1:", false);
 
     var wrong = "import library.testing;\ntest() {\n    assert(false, \"Selected wrong expectation\");\n}";
     if !driver_import_add(files, "/owner_test.tower", wrong) || driver_test_capture(&args) != 1 { return false; }

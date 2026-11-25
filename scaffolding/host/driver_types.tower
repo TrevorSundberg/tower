@@ -43,5 +43,6 @@ struct DriverOptions {
     check_format: bool;
     link_executable: bool;
     test_mode: DriverTestMode;
+    test_details: bool;
     test_rule: TestFileRule;
 }

@@ -856,6 +856,12 @@ fn sem_declare_test(c: SemanticContext*, node: void*): void {
     c.program.test_count++;
 }
 
+// Identify a selected declaration in the checked function table without
+// interpreting its generated Foundation name.
+export fn semantic_is_test_declaration(function_node: void*): bool {
+    return sem_is(function_node, "TowerTest");
+}
+
 fn sem_run(c: SemanticContext*): void {
     sem_select_tests(c);
     if !sem_ok(c) { return; }
