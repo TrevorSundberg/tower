@@ -55,10 +55,11 @@ Each prints `42`.
 "$HOME/.local/Tower Dev be41c755/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
 
-The installer passed fresh and repeat installation on Ubuntu 24.04.5 x86-64
-against a local HTTPS mirror of the exact Git blobs. The installed compiler
-interpreted and linked the grammar fixture, and each execution printed `42`. Execution against
-GitHub remains a post-publication check.
+The installer passed fresh and repeat installation from public GitHub on Debian
+12 x86-64 with LLVM/Clang 19.1.7. All 57 installed payloads matched the package
+commit. The installed compiler and the site download both interpreted the example
+and linked a native executable that printed `42`. The Ubuntu 24.04.5 x86-64
+check used a local HTTPS mirror of the same Git blobs.
 
 ### Previously published compiler
 
