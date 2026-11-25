@@ -100765,3 +100765,66 @@ used 0755. Earlier e539 staging had 46 Tower resources at 0600 and the
 candidate staged them at 0644. Both distributed archives had those files
 at 0644. Packet b4bc1157 describes this intermediate package. The new
 inspection code requires a successor build.
+
+## Ordinary native CLI scaling on the 4a3aa2d6 candidate
+
+The normal Linux x64 compiler built the same three single-source programs
+using public `902a358f55e65a4582d50802204a83428971ad5d` and candidate
+`4a3aa2d653ae7feb5e79d7b76c5a048ad741abf6`. Each program makes eight
+compile-time calls. The long and chained forms execute the same number of
+loop iterations and print the same nine integers. In the chained form each
+successor needs its predecessor's result. The short form keeps the calls
+independent and reduces the iterations per call from 32,768 to 128.
+
+One AMD EPYC 7542 host ran a single timed process tree at a time. The compiler
+and its children used logical CPUs 24–27 on four distinct physical cores. Its
+cgroup admitted CPUs 0–63 with a quota of 12.288 CPUs. No timed row added a
+throttled period. The cpuset was shared with other host services. Each fresh
+compiler process used its own package resources, Ubuntu 24.04 under PRoot,
+LLVM and Clang 19.1.1, and the same runtime IR and system link inputs. The
+harness removed the output before each invocation and kept filesystem pages
+warm. One warmup per setting preceded four scored blocks. At a fixed width
+the packages ran immediately adjacent, with each package running first twice.
+
+Candidate medians appear below. Each slash-separated column follows the jobs
+order for its row. CPU is user plus system time. Individual peak RSS comes
+from wait4. Tree RSS sums the compiler and Clang at each snapshot, typically
+26 ms apart. Sampling can miss a short peak or count shared pages twice.
+The speedup is the median of the four within-block one-worker/four-worker
+wall ratios.
+
+| Input and output | Jobs | Wall (ms) | CPU (ms) | Peak individual RSS (KiB) | Sampled peak tree RSS (KiB) | Paired speedup |
+| --- | --- | --- | --- | --- | --- | ---: |
+| Long independent, object | 1/2/4 | 1599/1078/905 | 1572/1672/1969 | 86840/90916/91856 | 80818/82136/81058 | 1.776× |
+| Long independent, executable | 1/2/4 | 2014/1496/1330 | 1973/2083/2409 | 97050/97010/96828 | 181256/182896/184420 | 1.518× |
+| Short independent, object | 1/4 | 314/425 | 287/427 | 86918/91638 | 79900/80568 | 0.740× |
+| Short independent, executable | 1/4 | 741/841 | 697/831 | 97148/97148 | 179300/185752 | 0.870× |
+| Equal-work chain, object | 1/4 | 1548/1675 | 1522/1669 | 86728/91856 | 79748/90956 | 0.921× |
+| Equal-work chain, executable | 1/4 | 2008/2117 | 1967/2096 | 97284/97200 | 178884/185358 | 0.954× |
+
+On both compilers the long independent input finished sooner at each
+successive width in every scored block. On the other two inputs four workers
+took longer in every block. Separate phase samples place some of the penalty
+inside the interval that includes parsing and staged evaluation. The next
+test is to identify which work in that interval incurs the excess before
+changing worker admission.
+
+At fixed width the candidate finished sooner in 55 of 56 pairs and used less
+peak individual and sampled tree RSS in all 56. In the one reversed pair, a
+four-worker long executable took 1342 ms on the candidate and 1287 ms on the
+public package. Across four blocks for that setting, public to candidate
+medians were 1462 to 1330 ms wall, 2586 to 2322 ms user CPU, 116 to 84 ms
+system CPU, 142572 to 96828 KiB peak individual RSS, and 235028 to 184420
+KiB sampled tree RSS. These are whole-package comparisons on this host.
+
+The manager verified 1,601 member checksums, checked all 140 compiler rows
+against raw process accounting, and recomputed 56 scored revision pairs and
+80 within-release width comparisons. All 70 matrix guests exited zero with
+the expected stdout bytes and empty stderr. Both releases and all measured
+widths produced byte-identical objects and executables for each source.
+The long and chained fixtures also produced identical artifacts to each other.
+The evidence archive for receipt `1a77221f-0972-44f2-bc4c-883fb9d69e43`
+has SHA-256 `8860c9f0b550f74a36ae99b377cf1db83802113d75c019e78d114cb671d2eaf1`.
+Its `record/run-matrix.sh` identifies the commands and order. From
+`record/`, run `sha256sum -c SHA256SUMS` and `bash verify-rows.sh` to
+check the raw observations. This publication records the measurements.

@@ -20,6 +20,15 @@ rose by 66–67 MiB. For this build the tradeoff is available through
 `-DTOWER_SEMANTICS_JOBS=4` with the other compiler invocations at one worker.
 [Worker timings, outputs and limits](temporal-opcode-research-journal.md#selective-semantics-workers-on-the-cd77-native-self-build)
 
+For ordinary native compiles, eight long independent compile-time calls on the
+`4a3aa2d6` Linux x64 candidate benefited at both two and four workers on four
+physical cores. Moving from one to four gave a median paired speedup of
+1.78× for an object and 1.52× for a linked executable. With eight short calls
+or an equally expensive chain of dependent calls, one worker finished sooner
+in every block. At equal worker counts the candidate used less peak memory
+than public `902a358f` across all 56 comparisons.
+[Inputs, CPU and memory, output checks and timing pairs](temporal-opcode-research-journal.md#ordinary-native-cli-scaling-on-the-4a3aa2d6-candidate)
+
 ## Cloud takeover, November 24, 2026
 
 The [OpenHands cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) is the current starting point. It records the local campaign's stopping state, the accepted c49 bootstrap and live Pages release, subsequent main-only fixes, measurements, known failures, exact reproductions, and the evidence packet. The next integration milestone is the bounded multi-unit driver and combined ownership checks on a frozen main revision. The sections below preserve earlier milestones at their original source revisions.
