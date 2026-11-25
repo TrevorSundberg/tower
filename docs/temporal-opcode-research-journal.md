@@ -104742,3 +104742,30 @@ A retained native session can see the same declaration text, scalar type, initia
 Host 2 exercised a private shadow lookup on `81e88e60`. The first current Evaluation ticket could bind the global in the checked scalar root. Its CaptureInput and source-binding proof were absent, including on an edit-free repeat. Preparing the unconditional capture and direct executable on the joined coordinator resolved both before the first target interpreter entry. The current checked callee still reached a conditional return and referenced further calls whose executable producers had not published. A separate import rebind left both historical scalar declarations intact and changed the ordinary result from 67 to 83. The prior numeric ticket tuple also passed the fresh graph's ticket check on a repeat although its subject and owning declaration had been rebuilt. The completed occurrence receipt supplies neither a current path through those bindings nor a cross-request graph identity.
 
 On the long fixture, both the repeat and unrelated edit returned 16,387 after 557,114 ordinary interpreter steps at one and four workers. The private prefix prepared two producers and reduced interpreter entries from 550 to 548 at the same step count. The no-dump first lookup took a median 2.82 and 2.98 µs on the long repeat at those widths. Its fixed retained record occupied 75,504 charged bytes. Four alternating same-binary blocks on Ryzen 5 3600 CPUs 0–3 gave long repeat wall medians of 141.88/143.97 ms at one worker and 150.74/152.61 ms at four with the collector unbound/bound. The registered native retained-source suite, focused one/four tests and address/thread-instrumented regression passed. The public-code proposal adds the regression. The observer, preparation experiment and reuse rejection are in evidence packet `3ef6ef11-57d7-46f2-9d97-c2005abc477a`.
+
+### 2026-11-25 — Combined Linux and browser delivery on the repaired Pages parent
+
+Host 7 reproduced local Pages commit 89c08614dca8c216007952417551fc156effe90e
+and tree c82e8ef38690388df05dc576fdbc073f138268bc on parent d1ca61ba.
+The complete 108-entry tree retains 105 prior paths byte-for-byte with their
+Git modes. It adds the 0823b028 Linux archive and updates the installer and
+manifest. The previous be41c755 archive remains downloadable. All 107 listed
+assets matched over HTTP. A clean receiver reproduced the commit from the
+public Pages prerequisite and two bundles.
+
+The ordinary desktop/mobile deployment verifier passed, including the detected
+Wasm/Linux defaults. The revised e9708c12 playground spec passed all 24 cases
+at two viewports, one attempt each. An automatic desktop editable Build used
+two workers and compiled 25 units. Its three generated reactors and the actual
+mobile/desktop Wasm and ELF downloads matched the frozen 7ace oracles. All
+four downloaded guests ran and printed 42. Host 7 reused the shipped reactors.
+
+The served installer selected package b9342ba1. A local TLS mirror of the 58
+immutable package files allowed a no-checkout install. The first interpreter
+run lacked procfs and could not find its resources. Supplying /proc/self/exe
+and repeating from a fresh prefix passed installation, repeat, guest link/run,
+relocation and relink. Repeat and relocation fetched zero files. On this host
+the installed, moved and archive compilers emitted identical ELF bytes. Host
+3's separately linked sample differed at 43 offsets, including _start, and
+also ran as 42. Assignment 97009f0c contains both diagnostics, comparison
+data, receipts, raw logs and process resource reports. Only loopback was tested.
