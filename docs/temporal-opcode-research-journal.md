@@ -102075,3 +102075,9 @@ Private receipt `d824f6a4-c93b-45c3-a19a-d85f681410a3` includes
 dependency controls and logs. Physical Arm64 entry-point execution and gen2/gen3
 convergence await an assigned native builder. This handoff correction changes
 documentation only. Runtime performance and memory comparisons do not apply.
+
+### Buffered execution fixtures and current-directory module identity
+
+Host 5 receipt `c98a34a6-de0b-4e15-8581-c359fad2681b` traces the ambiguous imported `u32` seen in two supplementary runs. The ordinary native compiler from `820be603` produced identical canonical bytes per input across two widths, default or fixed language resources, and three working directories. The reduced probe printed 42, and the floating and narrow sources each printed 0. The manager checked all 1,152 packet hashes and the 36 raw canonical and interpreted outputs. A deliberately distinct pair of preludes still produced an ambiguity.
+
+In the execution fixture the initial driver request binds an entry and resource root. The runner then reconfigures the environment with the bare synthetic filename `named_initialization_input.tower` and the separately supplied library path. From inside `scaffolding/`, the entry's relative import and the vector module's absolute import registered distinct bindings for the same type definition. The debugger traces show both origins. Changing just the synthetic entry to an anchored filename made the two selectors pass. The proposed correction belongs to fixture setup. The independent CLI and debugger tests measured behavior only. Follow-up `ff6abe6a-3039-4251-9e53-6aefe88a8d1f` covers the checked-in harnesses.
