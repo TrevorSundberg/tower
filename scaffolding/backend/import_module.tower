@@ -173,7 +173,7 @@ fn bi_function(c: BackendImport*, function: void*): void {
 // publication succeeds; failed stages retire their entities and associations.
 export fn backend_import_foundation(b: Backend*, root: void*): bool {
     if backend_failed(b) { return false; }
-    if root == null || root == b.source_root || sem_get(b.source_root) == null
+    if root == null || b.source_root == null || root == b.source_root || sem_get(b.source_root) == null
         || compiler_node_world(root) != compiler_node_world(b.source_root) {
         backend_resource_fail(b, WorkBudgetError.Invalid); return false;
     }
@@ -263,7 +263,7 @@ fn bi_module(c: BackendImport*, program: FoundationNode*): void {
                 if done {
                     break;
                 }
-                if b.symbols.data[i] != null && backend_equal(name, b.symbols.data[i]) {
+                if b.symbols.data[i].name != null && backend_equal(name, b.symbols.data[i].name) {
                     var original = bi_get(c, b.source_functions.data[i]);
                     if original == null { return; }
                     var public = original.external;

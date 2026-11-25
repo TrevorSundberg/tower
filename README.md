@@ -35,13 +35,13 @@ targets, limitations, build commands and deployment checks.
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
 Use this command to install the compiler
-built at `be41c755` from package commit `a1315eca`. The versioned
+built at `0823b028` from package commit `b9342ba1`. The versioned
 prefix lets you keep an earlier installation alongside it.
 
 ```sh
 installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
-  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/7efb6d68a294e8e46b8143a6aac93ab129bbadd8) &&
-  bash -c "$installer" -- "$HOME/.local/Tower Dev be41c755"
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/b7e14bf007857d108c90834230bedae240edb3ba) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 0823b028"
 ```
 
 The installer prints the executable path. Repeating the command verifies the
@@ -51,15 +51,22 @@ as `example.tower` in a new directory. Run these commands from that directory.
 Each prints `42`.
 
 ```sh
-"$HOME/.local/Tower Dev be41c755/linux-x64/towerc" example.tower --interpret
-"$HOME/.local/Tower Dev be41c755/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
+"$HOME/.local/Tower Dev 0823b028/linux-x64/towerc" example.tower --interpret
+"$HOME/.local/Tower Dev 0823b028/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
 
-The installer passed fresh and repeat installation from public GitHub on Debian
-12 x86-64 with LLVM/Clang 19.1.7. All 57 installed payloads matched the package
-commit. The installed compiler and the site download both interpreted the example
-and linked a native executable that printed `42`. The Ubuntu 24.04.5 x86-64
-check used a local HTTPS mirror of the same Git blobs.
+The delivery receipt records the Ubuntu 24.04.5 x86-64 installation checks
+against a local HTTPS mirror of the immutable Git bytes. The installer
+verifies the 57 payloads listed in the package.
+
+The preceding `be41c755` compiler remains available through its original
+installer and prefix.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/7efb6d68a294e8e46b8143a6aac93ab129bbadd8) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev be41c755"
+```
 
 ### Previously published compiler
 

@@ -96,14 +96,38 @@ fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, thro
     return true;
 }
 
-fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*, declarations: ParserStructureCache*): bool {
+// A nested reader may use the one grammar introduced by the active root's
+// first import. The graph deduplicates modules by their full resolved path.
+// A grammar-bearing provider contributes its own declaration identities, so a
+// newly parsed provider cannot qualify on structural equality alone.
+fn syntax_first_import_version(value: SyntaxSession*, module: FrontendModule*, candidate: FrontendRevision*): SyntaxVersion* {
+    if module == null || candidate == null || module.graph.owns_environment || value.bootstrapping || value.formatting || module.dependencies.length != 1 { return null; }
+    var root = module.graph.environment.active;
+    if root == null || root == module || root.graph != module.graph || root.dependencies.length == 0
+        || module.dependencies.data[0] != root.dependencies.data[0] || root.dependencies.data[0].declarations.length == 0 { return null; }
+    var lender = bits(SyntaxSession*, root.compilation_session);
+    if lender == null || lender.cache.structures.world != value.inputs.world || lender.cache.bedrock != value.pins.bedrock { return null; }
+    // Inspect the original build key. A local structural hit can refer to a
+    // different source entity. Reading this bounded index leaves its LRU intact.
+    foreach(var key in &lender.cache.index.entries) {
+        if frontend_revision_identical(key, candidate) {
+            return syntax_version_retain(lender.cache.versions.data[key.slot]);
+        }
+    }
+    return null;
+}
+
+fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*, declarations: ParserStructureCache*, imported: FrontendModule*): bool {
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
     var version: SyntaxVersion*;
     if declarations == null {
-        version = syntax_version_cached_reusing(&value.cache, value.inputs.world, candidate, value.pins.bedrock,
-            &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
+        version = syntax_first_import_version(value, imported, candidate);
+        if version == null {
+            version = syntax_version_cached_reusing(&value.cache, value.inputs.world, candidate, value.pins.bedrock,
+                &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
+        }
     } else {
         grammar_observe(value.inputs.world, GrammarPhase.Build, true, candidate.rules.length, candidate.tokens.length);
         version = syntax_version_build_reusing(value.inputs.world, candidate, value.pins.bedrock, &diagnostic, declarations);
@@ -135,7 +159,7 @@ fn syntax_session_declare(value: SyntaxSession*, construct: void*, declarations:
         else { syntax_session_error_bytes(value, error.data, error.length); }
         return false;
     }
-    return syntax_session_install(value, candidate, declarations);
+    return syntax_session_install(value, candidate, declarations, null);
 }
 
 fn syntax_session_read_declaration(value: SyntaxSession*, construct: void*, rule: bool, skipped: bool): bool {
@@ -359,7 +383,7 @@ fn syntax_session_next(value: SyntaxSession*, declarations: ParserStructureCache
         var grammar = frontend_module_grammar(module);
         var candidate = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
         defer frontend_revision_release(candidate);
-        if !syntax_session_install(value, candidate, null) { return null; }
+        if !syntax_session_install(value, candidate, null, module) { return null; }
     }
     if lexical || rule {
         value.error_offset = start;

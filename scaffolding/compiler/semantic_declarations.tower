@@ -411,6 +411,14 @@ fn sem_declaration_location(c: SemanticContext*, node: void*, waiting: usize*, l
     return null;
 }
 
+// A qualified type reads the declaration in the imported module. Its base
+// names the namespace and does not independently read a declaration type.
+fn sem_declaration_named_type(node: void*): bool {
+    return (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
+        && sem_member(node, "args") == null
+        && (sem_member(node, "base") == null || sem_member(node, "field") != null);
+}
+
 fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, layout: void**): usize {
     var subject = result.subject;
     *layout = null;
@@ -463,8 +471,7 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         // A cloned alias exposes named type reads after initial discovery.
         // Admit their ordinary producers before checking the continuation,
         // including a ready producer whose read lease is new to this query.
-        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
-            && sem_member(node, "args") == null && sem_member(node, "base") == null {
+        if type && sem_declaration_named_type(node) {
             var binding = sem_resolve(c, c.types, node, sem_identifier(c, node));
             if !sem_ok(c) { return 0; }
             if binding != null && (sem_get(binding).global || semantic_enum(&sem_get(binding).type)) {
@@ -585,8 +592,7 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
                 continue;
             }
         }
-        if type && (sem_is(node, "CoreType") || sem_is(node, "CoreLocation"))
-            && sem_member(node, "args") == null && sem_member(node, "base") == null {
+        if type && sem_declaration_named_type(node) {
             var binding = sem_resolve(c, c.types, node, sem_identifier(c, node));
             if !sem_ok(c) { return; }
             if binding != null && (sem_get(binding).global || semantic_enum(&sem_get(binding).type)) {
