@@ -30,6 +30,7 @@ extern fn entity_view_close(view: void*): void;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
 extern fn frontend_modules_reset_compilation(environment: void*): void;
 extern fn strlen(text: u8*): usize;
+extern fn strrchr(text: u8*, character: i32): u8*;
 extern fn puts(text: u8*): i32;
 extern fn abort(): void;
 extern fn compiler_world_create_workers(workers: usize): void*;
@@ -243,10 +244,9 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
         && frontend_units_failure_resource(denied) == WorkBudgetError.Capacity,
         "Imported parser capacity failure retains its typed cause through unit output");
     var refused_path = frontend_modules_error_file(frontend_units_environment(denied, 1));
-    var suffix = "/tower.tower";
-    var refused_length = strlen(refused_path);
-    units_memory_check(refused_length >= strlen(suffix) && strcmp(&refused_path[refused_length - strlen(suffix)], suffix) == 0,
-        "Import denial points into the nested Tower grammar");
+    var slash = strrchr(refused_path, convert(i32, *"/"));
+    var name = slash == null ? refused_path : slash + 1;
+    units_memory_check(strcmp(name, "tower.tower") == 0, "Import denial points into the nested Tower grammar");
     frontend_units_close(denied);
     denied = frontend_units_create_bounded(1, 1, reference.peak - 1,
         8, 1, 1, bedrock, foundation, root);
