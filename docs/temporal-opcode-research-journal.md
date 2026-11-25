@@ -100730,3 +100730,38 @@ runtime produced HTTP 404 and no ELF. Host 6 packet `765ced9f` contains
 the worker traffic and actual download bytes for test revision `cb0aa0ee`.
 The manager verified 3,527 checksums and reconstructed 30 trace ZIPs.
 These checks used frozen browser assets.
+
+### Storage reuse and rollback in an unfinished inspection
+
+On the integrated candidate 4a3aa2d6, the storage test expected the first
+synthetic operand to exhaust an already fully reserved budget. Hosts 4 and 5
+independently found that the entity and payload reused charged pages, and the
+first edge fit inline. On host 5 the second edge grew the index from one slot
+to four. The successful growth charged 168 bytes. Denied growth at source
+offset 174 left the earlier child and its payload intact.
+
+After that fixture correction, the next failing group exposed a separate
+defect. Unchecked module inspection published its binding stage before its
+value pass finished. At allocation allowances 13 and 14 the error retained
+one private kind and two annotations in a live world. On be4bc2d6 unchecked
+inspection keeps the stage private through the value pass. All 180 native
+CTest registrations passed on host 5 with zero skips. AddressSanitizer passed
+storage and four-worker inspection. The four-worker ThreadSanitizer check
+passed on the third launch after two host startup refusals. Packets
+c44982d5 and e4cd374c contain the native matrix and independent earlier
+failure controls. The checked type-resolution path publishes a stage so
+declaration workers can use its trees and has a separate rollback check
+pending. These results qualify the integrated native source. The deployed
+compiler still has source identity 902a358f.
+
+Host 2 also independently relocated the preceding 4a3aa2d6 Linux x64
+package. The source manifest's 1,305 entries and all 57 payload sizes and
+hashes matched. Interpretation and linked native execution printed 42.
+The receiver's Debian guest ELF differed at 43 bytes from the Ubuntu
+reference. Using the Ubuntu startup object reproduced the reference ELF.
+Fresh and repeated user installs matched regular-file contents and modes.
+The installed root was 0700 and four subdirectories 0750; the archive
+used 0755. Earlier e539 staging had 46 Tower resources at 0600 and the
+candidate staged them at 0644. Both distributed archives had those files
+at 0644. Packet b4bc1157 describes this intermediate package. The new
+inspection code requires a successor build.
