@@ -69,7 +69,9 @@ export async function compileUnits({compiler, recipe, files, workers = 1, create
 }
 
 export async function buildCompiler(options) {
-  options = {...options,files:structuredClone(options.files),recipe:structuredClone(options.recipe)};
+  const {units, reactors} = options.recipe;
+  // The editor supplies the sources. Only the unit and link plans come from the recipe.
+  options = {...options, files:structuredClone(options.files), recipe:structuredClone({units, reactors})};
   const {inputs,stats} = await compileUnits(options);
   if (options.signal?.aborted) throw new Error('Compiler build cancelled');
   const result = await linkCompiler({...options,inputs});

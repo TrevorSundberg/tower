@@ -100992,3 +100992,50 @@ saturated old request terminates at the guard and has no successful timing.
 The raw packet includes each sample, CPU, memory capacity, callback traces,
 input validation, commands and standalone replay. No production change
 was required.
+
+### Editable compiler recipe snapshot on host 1, 2026-11-25
+
+Assignment 79c6f10a reviewed frozen main ca54328765c60d6e6d7d7941f03ad704f10e9537
+(tree 84e9315e2ab51330f004b8ec5f160029e6a2fd20). Host 1 verified all three manager archives,
+their embedded and loose bundle members, and the three supplied tips in the freeze's ancestry.
+The retained 8b7878c8 browser site has tree fc70c453ecd2b01b222f0f6db6817f8922b81913,
+manifest d75b6ccda4e9056f4b48eba4e4cd7f1e0c4d7f7c0a560a74968d280cfa344848,
+and project JSON b9c2e451cd44b72307b229ff62fc3a715f77ab342df68979e50aaad4510c9e5b.
+All 104 listed files and all 12 compiler-directory products matched. The project has
+537 authored files, 25 generated unit entries and one generated runtime. The 63
+per-reactor unit depfiles named 397 authored files. Directory collection and editor
+restore/export also consume source outside those stock compilation closures.
+Only host/driver_link.tower and host/driver_units.tower differ between the packaged
+authored files and ca543287. Neither occurs in those depfiles.
+
+The page submits editable files and the coordinator reads the stock link recipe.
+Both the production coordinator and scripts/test-compiler-project.mjs call
+buildCompiler. Its unit and link phases read the submitted files plus the recipe's
+units and reactors. The previous structuredClone of the recipe also visited all
+563 stock source entries, containing 4,330,860 bytes of text. The local implementation
+snapshots the two plans and the complete independently supplied editor sources
+before the first asynchronous boundary. Plan subarrays must remain private. An
+intentional shallow-plan control failed on a caller mutation of a link argument.
+
+Using Node 24.22.3 on host 1's Xeon Gold 6244, CPU 2, effective cpuset 0–31,
+quota 1536000/100000 µs, six alternating sequential pairs measured entry to
+createWork with an observing JS transport. Filesystem pages were warm. The submitted
+edited project hashed to 51a4dd9249d4b0480f788b9e2f29a81bab4106c181e12627df60347fe159a358.
+First-call wall/CPU medians in ms were 14.27/15.26 before and 5.57/6.54 after.
+Mean-per-call wall/CPU over 24 more calls per process had medians 5.84/5.82 and
+3.05/3.05. Median process peak RSS after the repeat block was 175098/129868 KiB.
+The two-entry fixture had repeat wall medians 0.589/0.585 ms. Separate forced-GC
+observations at dispatch found 23,842,440/19,373,552 live heap bytes. The JS
+boundary check preserved the edited grammar, all 25 unit entries in order,
+the first reactor's support/object names and arguments, cleanup, and the missing-entry
+diagnostic. It used stand-ins for object generation and linking.
+
+On the sealed 8b7878c8 site, host 1's retained fresh-worker small portable/shared
+load medians were 128.65/184.57 ms (four trials per mode). The archived repeated-use
+tests observed the ordered invalid builtin, repair, invalid drive file and retry on
+both profiles. The 14da0b26 generation receipts use older installed worker bytes
+with the frozen source project. None of the historical runs executed this change.
+The assignment packet contains the member/owner ledger, raw trials, source citations,
+negative-control patch, and commands for the dedicated executor. Fresh dist identity,
+two real generations and the browser grammar/error matrix remain open. This JS-only
+coordinator measurement did not exercise native sanitizers or browser concurrency.
