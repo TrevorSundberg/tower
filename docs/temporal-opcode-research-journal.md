@@ -104095,3 +104095,376 @@ Host 3 used the published Linux compiler, executable SHA-256 `a3f76faf3e602f2742
 The object and executable bytes matched at both widths, and ten linked guests produced their exact expected streams. Shortening the dependent loops still cost an extra 105.57 ms at four workers in six paired blocks. Sparse instrumentation located 74.20 ms of additional time before semantic compilation. Within that interval, 39 lookahead calls over the same 14,199 states added 53.41 ms. The eight dependent evaluations executed 4,456,683 interpreter steps at either width. Their elapsed difference including scheduling gaps ranged from −20.63 to +19.21 ms. The long independent control showed useful execution on four cores. The compiler's measured overhead changes with instrumentation, so those phase readings cannot apportion the entire ordinary 139.53 ms penalty.
 
 The manager verified 2,176 digests and replayed the offline source, timing, output and demand checks from receipt `22d0ffd8`, archive SHA-256 `0e70e30da8ed446ab1f37bb02d5e10564325a6be4b937087f8dc15fd08f644ba`. These measurements justify keeping the current interpreter dispatch for this chain and isolating the four-worker lookahead cost before changing worker selection.
+On the 37-unit invoice, Foundation installation used 1.99, 3.67 and 8.25 s of summed unit-thread CPU at jobs one, four and eight with the phase observer off. At width eight, 69.8% of sampled CPU fell in shared budget gate acquisition, release or protected work. Removing 77,330 allocations for trivial LR row indexes saved 85 ms at four workers on this invoice but cost 42.5 ms in the serial skewed invoice. Both packages produced matching executable, guest, exports and ordered depfiles at every tested width. The trial remains outside the compiler. Receipt c1b04f13 contains the separate phase, sampling and capacity controls and the paired full-invoice costs.
+## Host 6 integrated live-cycle admission trial, November 25, 2026
+
+Assignment 9569dbf3-b471-44d7-ac53-f886594fa4fb uses compiler source
+902a358f55e65a4582d50802204a83428971ad5d and Linux development pin
+217f06311be15fd3dd942d9ee0d8e65b87057de2. Both input archives, nine
+required members, both Git trees, the 1,295 source hashes and all 57 package
+payloads matched the manager's packet. The first member lookup omitted the
+second tar's leading './'. Rechecking the original bytes with that prefix
+resolved every member. The f61765cf package had lost on the chain despite
+the opposite same-ELF control. This trial reopens that question on 902a.
+
+The signed-off build supplied 39 native products. The ordinary default
+Release recipe recompiled the ParserNodes unit in an isolated cache.
+Recompiling the stock unit reproduced the archived object byte for byte.
+The host relink differs from the Ubuntu pin in 89 bytes. The recorded hot
+functions in the two stock executables have identical addresses and bytes.
+The candidate changes the initial solver decision for narrow frontiers. It
+tests whether a dirty nonempty row belongs to a multi-vertex component.
+It preserves the integrated wave helper, FIRST repair and existing
+component traversal. The ported fixture also closes a previously solved DAG
+with back edges and checks the new fixed point and the untouched parked cycle.
+
+Host 6 ran one compiler at a time on KVM Xeon E5-2680 v4 guest cores
+4–7 with one thread per guest core. The shared quota was 11.52 CPUs and the
+memory ceiling was 32,282,509,312 bytes. Debian 12 supplied LLVM/Clang
+19.1.7. Files were warm and each CLI process was fresh. Four counterbalanced
+pairs per mode and worker count used the ordinary host link. At four workers,
+median stock/trial object times in milliseconds were 455.5/417 on tiny,
+454.5/435 on the five-binding held-out input, 474.5/431 on unseen_mix,
+1992.5/1916 on the equal-work chain and 913.5/843.5 on eight independent
+long expressions. Executables were 950/891, 958.5/902, 947/914.5,
+2422.5/2413 and 1364/1340. The independent long case won all four
+serial-to-four comparisons at 2.223× for objects and 1.738× for executables.
+
+The direct pin comparison split the four chain object pairs at four jobs.
+Marginal medians were 1934.5/1937.5 ms and the median paired stock/trial
+ratio was 1.0084. The executable won four of four at 2459.5/2409.5 ms.
+At one job the tiny object lost four of four against the host relink and
+three of four against the pin. The respective medians were 409/429.5 and
+399.5/406.5 ms. The trial changes executable placement even when the new
+decision is unreachable. These measurements alone cannot apportion the
+difference between layout, single-worker solver code generation and host noise.
+
+Separate synchronized 1 GiB world-budget runs on the four-job tiny object
+recorded 69,158,733/65,645,774 peak charged bytes, peak four lanes, zero live
+bytes, grants or lanes at teardown. Both serial runs charged 65,492,887
+bytes. The ledger was outside the timed compiler. Ordinary, ASan and TSan
+runners passed LR, bounded refusal/retry and receipt/cancellation with empty
+stderr. The full LR times were 2.04, 16.77 and 57.15 seconds. The focused
+module-cache and nested cancellation checks passed. The permutation negative
+reported actual 1112, wanted 1113 and exited 1. The new fixture on the
+integrated stock policy rejected the seeded-cycle dispatch and exited 134.
+The retained race control reported a data race in work_kernel_execute and
+exited 66. The supported Tower sanitizer instrumentation modes are address
+and thread. No Tower UBSan mode was available.
+
+Keep the integrated stock compiler. In the dual-mode executable the live
+decision won three of four four-job chain object pairs, 1924.5/1905 ms.
+The four-job tiny object won all four, 442/413.5 ms. A second CMake Release
+build set TOWER_MODULE_TESTS=ON symmetrically, changing the ordinary generated
+parser import from parser to parser_modules. The other generated imports and
+normalized compiler/link commands matched. No padding, per-function alignment
+or observers entered either comparison. In this layout the live decision
+lost every chain pair at both one and four jobs for both artifact types.
+Four-job chain object and executable medians were 1914/1963.5 and
+2386/2424.5 ms. At one job they were 1872.5/1956 and 2352.5/2408.5 ms.
+The four-job tiny object and executable still won all four. ix_step moved
+from 0x164f10 to 0x165120 in the default pair and from 0x169ac0 to 0x169cd0
+in the module pair. These observations establish layout sensitivity on this
+host. They do not identify a particular alignment, instruction or cache miss
+as the cause.
+
+All 487 matrix products, including 33 Foundation emissions, matched the
+new serial pin references. All 211 emitted guests produced the expected
+ordered output with exit zero and empty stderr. All 18 division-by-zero
+and fuel controls refused with identical per-fixture diagnostics and no
+output artifact. The four timing cohorts recorded zero quota throttles
+and OOM kills. Archive 9569dbf3-b471-44d7-ac53-f886594fa4fb.tar.gz contains
+the exact source/test patches, link inputs and ELFs, hot bytes, checked outputs,
+resource counters, scripts and negative results. The performance changes
+across ordinary layouts do not justify integrating this source or a regression
+test that would mandate the new admission policy. There is no production,
+bootstrap, browser or deployment change.
+
+## Host 6 editable Build object reuse experiment
+
+Assignment bc9f1f28 uses the retained 80a50621 page, Chromium and be4bc2d6
+editable project. All four manifest archives and 28 named members verified.
+The preceding be41c755 checked-reactor test qualified separate inspection
+assets. This comparison freezes the 80a50621 editable inputs for both arms.
+The acceptance check is a shorter complete Build after generator convergence,
+at bounded retained cost, with independent native and guest behavior and exact
+three-reactor comparisons through a Semantics edit and Restore.
+
+Tower's module_complete_result records completed module names.
+module_cache_valid privately re-resolves each import against a live graph.
+The browser dependencies() adapter only reads the used-name list. The proposed
+fallback retains one set of objects from the unmodified packaged project and
+its qualified generator. Linking, checks and active generation selection run
+on every Build. No language resolution moves to the page.
+
+In the matched browser trial the third unedited Build selected the same
+43d603d7 LLVM bytes as the second. Stock compiled all 25 units in 65.95 s.
+The trial transferred 25 objects totaling 3,391,528 bytes, created zero unit
+workers, and linked and qualified the same three reactors in 5.93 s. Its
+Semantics edit and Restore compiled all units and returned the earlier
+80a50621 edited and clean reactor hashes respectively. After the edit,
+forced GC found zero live bytes from the transferred objects. For integration
+the qualified generator hash stays at the page's Build boundary and is cleared
+on Reset and pagehide. A recipe mismatch drops the incoming object references
+before compilation.
+
+The final integration used the rebased app and Build worker at 4744b239
+with the original 80a50621 shared editor reactor and its matching
+editor-worker transport. An initial all-current-JavaScript trial stopped at
+startup because that retained reactor imports work_host_pool_capacity and
+thread start/join functions absent from the checkout's shared adapter. The
+packet preserves the failed run. The rebase retained the upstream storage
+checkpoint on pagehide alongside cache eviction and Build cancellation.
+
+| Ordinary Build on host 6 | Stock wall / browser CPU s / browser-tree peak KiB | Matched trial wall / CPU s / peak KiB | Rebased app and Build worker wall / CPU s / peak KiB |
+|---|---|---|---|
+| Fresh | 74.394 / 162.93 / 2,317,824 | 73.943 / 161.23 / 2,320,756 | 72.988 / 157.96 / 2,319,136 |
+| First active generator | 74.119 / 157.93 / 2,308,916 | 69.148 / 147.62 / 2,578,180 | 68.533 / 148.75 / 2,665,964 |
+| Same generator and sources | 65.950 / 137.36 / 2,611,272 | 5.934 / 15.46 / 2,409,372 | 6.557 / 16.41 / 2,405,680 |
+| Semantics edit | 68.905 / 146.85 / 2,525,664 | 67.271 / 140.98 / 2,542,392 | 65.475 / 139.42 / 2,530,492 |
+| Restore | 73.405 / 160.05 / 2,498,020 | 71.441 / 157.87 / 2,484,856 | 70.717 / 155.47 / 2,509,652 |
+
+Each cell is one sequential real desktop Build on Chromium 159.0.8154.6,
+Xeon E5-2680 v4 guest cores 0–3, quota 11.52, warm filesystem. Cold starts
+a new profile. Actual unit lanes were two for every miss and zero for each
+25-object hit. Browser-tree RSS sums simultaneous process samples about
+250 ms apart. The original 80a50621 fresh/retained-reset two-lane controls
+took 71.95/72.50 s and each compiled 25 objects. Here the fresh run selects
+35,434,712 shipped LLVM bytes, then activates the 35,471,610-byte generator.
+The edit retains that generator and changes one of 569 documents. Restore
+selects the 35,471,648-byte edited generator with the clean documents.
+
+The Semantics object test read 111 completed names from Tower. A fallback
+import selected value.tower plus nested.tower. Adding probe/value.tower
+changed the object while the original receipt omitted that absent path.
+The project-wide object key includes the qualified generator digest, the
+stamp of the actual bundled object worker (including its Wasm32 object
+flags and ABI) and the full recipe with the complete ordered source
+namespace. Link support is fetched afresh. The payload cap is 4 MiB and
+64 objects. The trial transferred 25 backing stores, a 64-character key
+and a bounded array of views. Forced GC after pagehide found zero live
+bytes from a previously live 3,391,528-byte set. Engine headers are outside
+the backing-store count. Both activated diagnostics, all three reactor
+hashes and the native staged guest agreed through Restore. The native
+interpret and emit commands produced exactly 42 plus LF and 1,407 bytes
+of canonical Foundation (e0633df3…). A changed export requirement forced
+25 actual compiles and failed the normal validation before publication.
+
+On the identical path set a NUL in an unimported file also made Tower's
+module admission fail. The positive dependency list alone cannot preserve
+that diagnostic. Retrying the original recipe recovered the clean compiler.
+Cancel during a reused link detached the incoming buffers, retired the
+coordinator and left generation 7 active after late progress delivery.
+Four existing real-worker transport checks passed, covering serial/parallel
+object equivalence, ordered publication, cancellation, earliest diagnostics
+and a missing later receipt. Native sanitizers were inapplicable to this
+browser JavaScript change. General per-unit reuse across edits remains open.
+The reproducible packet for bc9f1f28-c68d-4535-b370-bee7b59411ab includes
+the host commands, native oracle, counters, exact files, observer events,
+candidate patches and replay checks. Publication belongs to the manager.
+
+## Host 6 bounded object reuse on the 2421c659 successor
+
+Qualification e58bda7c merges the original 362aff4f onto 2421c659 in an
+isolated main. The acceptance check requires a second consecutive hit with
+the same generated objects, three reactors and executable guest behavior,
+plus invalidation and recovery through the ordinary Build transport. The
+earlier bc9f1f28 timing used be4bc2d6 documents. This run submits integrated
+tracked sources and records the retained generated wrappers and support.
+The 2421c659 browser selectors and storage checkpoint survive the merge.
+
+The merge is 95d9a8d0. The bundled worker used two unchecked reads of
+`compiler.llvm` after the loader had accepted an omitted selection.
+a971efe3 preserves that direct caller's stock-generator default. A new
+desktop case in the existing compiler-project browser suite drives the
+bundled worker with an omitted selection, a converged generation, two
+successive hits, and a nearer module introducing a missing import. The
+existing editable-compiler selector cases retain their original assertions.
+
+The 569 submitted records include 543 tracked documents and 26 generated
+wrappers from the retained recipe. Three tracked Semantics files differ
+from the preceding observation. The ordered documents hash is 2c62d1fb…,
+the project JSON hash is 30396fc1…, the actual app is f80cf336…, and the
+bundled Build worker is e95886f4… with embedded host stamp 91ed64c1….
+The successor asset manifest 8bc35306… covers 104 assets. All 102
+project-source occurrences in the bundled source maps and all 58 served
+Tower resources agree with the integrated checkout. The stock LLVM, cross
+and link support come from the retained 3390c2c8 package. The checked
+portable and shared editor binaries come from the be41c755 link roots
+whose compiler inputs match 2421c659. Their link recipe differs from the
+editable compiler's ordinary recipe. The earlier timing distribution used
+the 80a50621 editors, one older entity_stage.tower and historical manifest
+2594c051…. The packet preserves both byte inventories.
+
+On host 6 (Xeon E5-2680 v4, Chromium 159.0.8154.6), each Build ran alone
+on four distinct cores with a quota of 11.52 CPUs. In the sealed successor
+the cold Build took 70.449 s wall, 159.32 browser CPU s and 2,315,400 KiB
+sampled browser-tree peak. The same-generator miss took 68.978 s, 147.31
+CPU s and 2,576,248 KiB. Two consecutive hits took 5.732 / 5.943 s,
+14.85 / 15.24 CPU s and 2,391,852 / 2,414,292 KiB. Misses overlapped two
+real object lanes. Hits dispatched zero lanes and reused all 25 objects.
+The generated Tower, LLVM and cross digests are 54bfd3e6…, e3a27f87…
+and 49b9f23a…. Each activated compiler executed the staged guest and
+produced the same 1,407 Foundation bytes as the native a3f76faf pin.
+The native round trip printed 42 and LF.
+
+The 80a50621-editor control series on the integrated sources measured
+66.052 s for the same-generator miss and 5.829 / 5.828 s for repeated
+hits. A Semantics edit and Restore both compiled 25 units (66.021 /
+72.137 s). Only compiler-semantics.o differed after the edit. A real
+coordinator with the previous stamp missed and rejected readmission from
+two current subordinate workers. A nearer units/tower.tower caused the
+expected missing-import diagnostic. Removing it recovered. Changing the
+recipe forced all compiles and failed the missing-export check. Corrupt
+LLD input during a hit failed the ordinary link. Cancellation during a
+relink discarded a late progress event. All three preserved their active
+generation and the following Builds recovered. On miss and hit, the
+worker's returned backing stores detached. The page's outgoing buffers
+detached on transfer. One set occupied 3,392,619 bytes in 25 buffers,
+subject to the 4 MiB / 64-object limit. Forced GC after edit or pagehide
+found zero reachable payload bytes. VM headers and transient link memory
+are outside that payload count.
+
+The earlier Tower import receipt covers selected module names alone and
+cannot qualify reuse across namespace or source changes. The native
+compiler, worker width and language resolver have no changes in this
+successor. Native sanitizers do not instrument the changed JavaScript.
+
+The normal compiler-project Playwright selector passed all three desktop
+cases (4.5 minutes) and the original mobile cancellation/persistence case
+(14.8 s), on the sealed distribution with retries disabled. Individual
+runs, complete source and inputs, and the independent output inventories
+are in the e58bda7c-2de5-4411-b71f-19130769a5b5 successor packet.
+
+Replaying the omitted-selection request against the original bundled
+worker produced “Cannot read properties of undefined (reading 'llvm')”.
+The four real transport fixtures also passed on integrated inputs,
+including source-ordered diagnostics with a missing later response.
+A separate Node Wasm Build wrote all 25 objects and three reactors and
+matched every Chromium output digest. No publication was performed.
+
+## Explicit worker counts for editable compiler Builds on host 8
+
+Receipt `f5a09b57-7884-4bdf-88ca-dd44c563f2e4` starts at the integrated
+`2421c659` release candidate. The preceding host 8 experiment
+(`22f25a97`) measured 28.2% less elapsed time and 493–498 MiB more peak
+Chromium-tree RSS at four versus two workers on four physical Ryzen 9
+7900X cores. This successor exposes that choice on the compiler project.
+The page sends the selected value with the source snapshot. The coordinator
+uses the request, its reported CPU availability and the recipe's unit count
+to admit workers. Automatic and unrecognized requests retain the two-worker
+ceiling. Manual and scheduled rebuilds share the same entry point.
+
+The 2421c659 UI and its successor used the same retained be4bc2d6 project
+and active LLVM generator `43d603d7b495c7220e49103c730fed3ac7ee2b5aedf6797301259e54ee541916`.
+The original automatic Build took 26.10 s at two workers. With the ordinary
+successor bundle and no worker-count override, the two/four pair took
+26.11/19.67 s, and the four/two pair took 19.32/25.97 s. Each active Build
+followed the same automatic qualification in a fresh Chromium 159 profile.
+All four runs used physical cores 0–3, a 23.04-CPU quota and zero throttles.
+
+| Build order | Browser CPU s | Sampled Chromium-tree peak KiB | Single renderer peak KiB | Full-width unit overlap s | Three-reactor link s |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Two, AB | 57.53 | 2,690,684 | 2,038,464 | 21.52 | 1.82 |
+| Four, AB | 61.95 | 3,175,536 | 2,519,268 | 11.81 | 1.86 |
+| Four, BA | 61.61 | 3,183,680 | 2,530,640 | 12.12 | 1.85 |
+| Two, BA | 56.23 | 2,635,532 | 1,978,088 | 21.30 | 1.81 |
+
+Unit compilation accounted for the speedup. The four-worker unit spans were
+16.74 and 16.50 s, ending on compiler_semantics.tower. The two-worker spans
+were 23.46 and 23.38 s. Across both orders all 25 object identities and
+three reactor hashes matched the retained reference. Separate real Build
+exports compared all 25 object files byte for byte. Each active guest emitted
+the reference's 1,407 bytes of canonical Foundation and printed 42 plus LF.
+These RSS sums can miss short peaks and count shared pages twice.
+
+The explicit serial Build used one worker. An invalid choice on the four-core
+mask admitted two. A four-worker request on CPUs 0–1 admitted two, and on
+a one-unit recipe admitted one. An empty recipe failed before unit dispatch.
+Changing the selector immediately after clicking Build left the original
+request in force on desktop and emulated mobile. Four-worker cancellation
+retired the coordinator and all four unit workers. Immediate recovery
+accepted all 25 units with the same active generator.
+
+Desktop and mobile passed the saved-document, download, Restore and
+compiler-setting controls. The adjacent mobile inline error-marker geometry
+assertion failed with identical coordinates on 2421c659 and the successor
+(203.25 px against a line bottom of 109.546875 px). The diagnostic text
+and source range assertions preceding it passed. The original assertion
+remains in the suite. These results cover one Ryzen desktop, two paired
+samples per width and a mobile viewport on that desktop.
+
+The edited-compiler diagnostic and failed-rebuild/reset control passed at
+Automatic and explicit four. The first supplementary OS-thread sampler
+returned status 143 at the end of recovery. A fresh cancellation and
+immediate recovery repeated the result and drained both the browser driver
+and the separate thread sampler with exit zero. Command lines, products,
+limits, byte comparisons and failure logs are in the receipt above. The
+host tests exercise the HTML and worker transport change in Chromium.
+Native sanitizer instrumentation does not cover that browser boundary.
+
+## Worker selection on a repeated editable compiler build
+
+The integration of 9586e50b and 6a697a25 keeps the worker setting on each Build request alongside the selected generator and the transferred object buffers. The coordinator applies that setting when compiling units. An exact hit relinks and validates the three reactors without starting unit workers. The direct worker regression now changes the requested width between two consecutive hits and checks the actual worker count and reactor hashes. The ordinary browser qualification for this combined source is pending. The preceding width and reuse measurements belong to their respective source revisions.
+
+## Host 6 editable Build with the published 2421 recipe
+
+The local merge 9ae9596eb5e73732f8f557e6300c42cff17ea531 combines public
+main 4ab6676b with original d78a3e61. The complete 107-file Pages tree at
+8524b09e supplied the runtime, 569 editable compiler records and recipe
+035b12639740b9d9802cd77f364d0f7de5e729abf324497d0046d829724ddb85.
+The tested site tree is 4e2ec28647e0e5fceb1b2471e75f658cbdc4ea39.
+The UI delta consists of the selector HTML, two bundles, their maps and the
+deployment manifest. Compiler, project, resources and support archives retain
+their published 2421 source identity. A fresh Git receiver reconstructed the
+two original parents and the integration without access to the worktree.
+
+The first Build used the ordinary button on a pristine release profile with
+shipped LLVM 57c6649d. Two unit workers compiled 25 objects. The generated
+Tower, LLVM and cross reactors hashed to 644929c1, 4fff62c6 and 0477ef44.
+All required exports, including entity_stage_lease_at, were present. All 25
+object hashes also matched the earlier d78 measurements with its older recipe.
+All three linked reactor hashes changed between the two recipes.
+
+The successor generated the same 28 products. With LLVM 4fff62c6, width four
+and identical sources, a miss took 49.887 s wall and 155.04 s browser CPU.
+Four units overlapped for 30.067 s. The next Build took 5.900 s wall and
+15.12 s browser CPU, relinked and validated, and reported 25 object hits with
+zero unit workers. Sampled browser-tree peaks were 2,775,236 and 2,405,096
+KiB. The Xeon E5-2680 v4 browser used CPUs 0–3 of cpuset 0–11 with cgroup
+quota 1,152,000/100,000 microseconds and zero throttling on either interval.
+These are single matched measurements in one warm page.
+
+The eligible set owned 3,392,619 bytes. A changed required export on the
+next recipe fetch forced all 25 compiles with the old packet present and failed
+validation before publication. Cancelling a reused link also preserved the
+active generation and retired its worker. The next Build rearmed the set. An
+edit to compiler/semantic_values.tower evicted it. Only compiler-semantics.o
+changed and all three edited reactors matched the release packet's edited
+oracle. Restoring the sources while using the edited generator reproduced the
+pristine products. A malformed import preserved generation 9; Restore
+committed generation 10. Every guest check printed 42 with a final newline.
+The 1,407-byte Foundation matched the native pin and interpreted round trip
+with SHA-256 e0633df354b254ed8729e581d3db705d2ddb27afddd8813c99ce0af943053aba.
+
+The ordinary compiler-project spec passed all three desktop cases. The fresh
+worker that omitted compiler selection compiled all 25 and returned 4fff62c6
+as its packaged generator hash. Successive settings four and one hit all 25
+without compiling a unit; an added shadow import failed without publication.
+Raw Build requests and replies, CPU/RSS samples, object and reactor bytes,
+source ancestry and site reconstruction are in Host 6 assignment
+e2da0407-26de-4668-8dbe-ac438d76ce03.
+
+The focused ordinary selectors passed 22/22 with one Playwright worker and
+zero retries. This includes 12 ordinary desktop cases, desktop/mobile
+completion reply tests, mobile persistence/cancellation and mobile
+inline-error geometry. The raw suite logs distinguish these selectors from
+the release's prior full-suite evidence. No hosted action was taken.
+
+### Release qualification for all 25 reusable browser Build objects
+
+The browser Build can reuse the complete set of 25 objects after the generator converges and the ordered compiler sources, build recipe and generator identity match. Source edits evict the objects. Linking, export validation and the compiler execution check still run on a hit. In the paired four-worker Host 6 measurement, the converged miss took 49.887 s and the following hit took 5.900 s. Browser CPU fell from 155.04 to 15.12 s and sampled browser-tree peak RSS from 2,775,236 to 2,405,096 KiB. The comparison used the same open page on four assigned Xeon E5-2680 v4 CPUs under an 11.52-CPU quota with zero added throttling. The three generated reactors matched stock byte for byte. Native and browser executions printed 42. Receipt `e2da0407` supplies the source, recipe, object identities, edit and cancellation controls and raw observations. This comparison measures an eligible repeated Build on this host.
+
+Receipt `26598d51` qualified Pages tree `4e2ec28647e0e5fceb1b2471e75f658cbdc4ea39`. Of 240 Playwright cases, 120 desktop and 118 mobile cases passed with zero retries or uncaught page errors. The two full compiler-generation cases were declared skips on mobile and passed on desktop. The production Node suite passed 513 cases and declared two optional-export skips. Its 515 outcomes matched stock. With the release LLVM tool path restored after the first configure failure, the separate IDE-enabled build reproduced the 1,844,535-byte reactor and fixture transcript while testing the current mounted inputs. The official local deployment verifier matched all sixteen desktop/mobile delivery products to stock. Both downloaded Linux guests printed 5, 84 and 42 on separate lines. The verifier's two storage errors were reproduced on a blank page before the first site request.
+
+The manager verified 424 packet digests, replayed individual case outcomes and product hashes, and compared the integrated source to the 543 authored compiler inputs and 50 tracked UI inputs. All 107 Pages files and the complete manifest matched the sealed release. The UI build source is `9ae9596e`, the handoff source is `1709840f`, and the production compiler, resources and project retain their `2421c659` identity. The Node checks used the four-file CI test overlay from `05721eea`. The archive SHA-256 is `aedd503102bfcf773fda5a56505a7ed84b4b746fffaf0c610df254cd2760df98` and the deployment manifest SHA-256 is `cfe7b6e06df3f5c0918402108fe210522b4f5ab5a0fcc7085ee8a6378603815a`. These receipts cover the sealed local release. Hosted browser verification follows the atomic publication.
