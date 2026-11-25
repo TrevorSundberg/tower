@@ -1,4 +1,5 @@
 import utility_checks;
+import parser_test_output;
 import tower;
 import .library.vector;
 import .library.work_budget;
@@ -21,7 +22,6 @@ extern fn syntax_replacement_attempt(owner: void*, category: u8*): u32;
 extern fn syntax_replacement_attempt_reusing(owner: void*, category: u8*, structures: ParserStructureCache*): u32;
 extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
 extern fn syntax_replacement_resource_error(owner: void*): WorkBudgetError;
-extern fn dprintf(fd: i32, format: u8*, allocation: usize, error: u32, status: u32): i32;
 extern fn compiler_node_world(node: void*): void*;
 extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
 extern fn bytes_assign_text(value: vector(u8)*, text: u8*, length: usize): bool;
@@ -51,7 +51,9 @@ fn frontend_template_failure_tests(version: SyntaxVersion*, sequence: void*, cap
         var classified = status == 1 ? error == WorkBudgetError.None : error == WorkBudgetError.Memory;
         if !classified {
             puts(syntax_replacement_diagnostic(owner));
-            dprintf(2, "Replacement allocation %zu: resource=%u status=%u\n", budget, convert(u32, error), status);
+            utility_check(parser_test_count("Replacement allocation ", budget, false)
+                && parser_test_count(": resource=", convert(usize, error), false)
+                && parser_test_count(" status=", convert(usize, status), true), "Replacement allocation report");
         }
         syntax_replacement_owner_destroy(owner);
         parser_structure_cache_dispose(&structures);
