@@ -99449,3 +99449,53 @@ All 144 timed invocations ran on AMD EPYC 7542 physical cores 24–27, with the 
 All measured objects and linked ELFs matched the frozen references byte for byte. They exited zero and printed `15\n` and `999\n`. Separate positive controls exercised both null-test expansions and a file-local grammar override after an import. The override printed 17 before its edit and 29 afterwards. A sibling importer printed 17. Undefined augmentation, shift/reduce conflict and unknown replacement capture returned the same exit 1 and full diagnostics across arms and widths. The fixture exercises resource denial, full release, invalid template and recovery within the slot, and an explicit budget with zero leases after close. Native grammar, ordering, 150 randomized comparisons, retained-source overlap, row refusal/retry and focused ASan/LSan and TSan checks passed. This LLVM pipeline provides no Tower source-level UBSan coverage. The private timing cache was restored and byte-checked.
 
 Keep the scoped replacement reuse and every production LR handoff. The packet includes individual observations, ownership and timing traces, failed controls, compiler and native outputs, the regression fixture and local Git history.
+
+## 2026-11-25 — Verify the replacement-cache import on the successor
+
+On host 3, the 9ab581c8 baseline and the replacement-cache successor
+cd2ef4b803185bf00bf2614ef7bb30fbb888a701 each produced a fresh native
+ParserNodes object identical to its retained Release object. Each full
+`llvm-nm --undefined-only` report had 122 entries. The sole substitution was
+`syntax_replacement_attempt_reusing` for `syntax_replacement_attempt`.
+The current strict verifier accepted 9ab and returned 1 on precisely that new
+edge. This reproduced the independent host-4 linked-call observation.
+
+The parser profile imports `syntax_replacements` through `parser_core`.
+Its preparation passes a structure-cache pointer to the three-argument function
+in TemplateBuild. That unit still exports the original two-argument wrapper,
+which forwards a null cache. Both native providers had the same 60 undefined
+entries. Commit 73c0056a admits the new name in ParserNodes' existing exact
+token list. Its Tower test covers both entry names, a suffix, truncation and
+wrong consumers. Applied to the successor, the patch yields tree
+`1fca47701b494e34f475c4777937216601b3bc79`.
+
+The pinned Linux compiler and LLVM 19.1.7 produced real ELF x86-64, Wasm32,
+COFF x86-64 and Mach-O arm64 objects. The old checker rejected the new consumer
+on each target. The corrected checker accepted both consumers and providers
+on all four, plus the eight remaining native module contracts. The suffixed
+import in a full consumer report and the exact import in a full provider
+report each returned 1. The focused ParserNodes bootstrap/successor comparison
+passed exact object and optimized IR equality on all four targets and the
+explicit grammar controls. Native grammar-resource and the registered
+structure-reuse selector passed. The object checks cover emission and symbol
+policy. Browser execution and the subsequent release remain separate gates.
+
+The unfiltered verifier advanced past ParserNodes on every target, then
+returned 1 on Windows x64 Interpreter's `__chkstk`. The baseline and
+successor COFF objects were byte-identical (SHA-256
+`70e3c0f851292721ae346d0ebb4aa11f49fae00efb58173e7b0ab2351a15dc6d`).
+Both checkers rejected both full lists. The relocation is in
+`call_query_tests`. Audit that fixture's target provider and module contract
+before rerunning the default sequence. Its Windows successor-compiler stage,
+Darwin Interpreter, all four Semantics stages and final grammar check were
+unreached. The focused ParserNodes run separately reached its grammar check.
+
+The new regression against the old list failed at the positive assertion.
+It passed on the repaired list, including an ASan/LSan run. On the EPYC 7542
+host, three alternating batches of 64 fresh verifier processes per policy
+used one CPU and the same accepted full report. Median wall was 0.03 s per
+batch for both, median CPU 0.03 s each, with maximum process-family RSS of
+3,204/3,224 KiB. The timing resolution is 0.01 s. No CPU throttling accrued
+during these samples. This measures verifier startup and checking only.
+Raw object headers, reports, failure bytes, commands, source identities and
+the portable patch are in packet dea235a0-c663-4e47-b0e5-af33f0c3b7aa.
