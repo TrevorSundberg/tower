@@ -161,7 +161,7 @@ and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
 | Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Full compiler linked and run under QEMU. Native self-host, relocation and public install remain open. |
 | macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | Pending Intel compiler and runner trial. |
 | macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | Pending Arm64 compiler and runner trial. |
-| Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | Pending `towerc.exe` and Windows runner trial. |
+| Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | All 28 compiler objects prepared. Full link needs the Windows SDK, x64 MSVC runtime and matching LLVM 19 import library. Native install and execution remain open. |
 
 The Linux Arm64 handoff at `6f7ed3fe` contains the compiler and its adjacent
 resources. Its 2,049,512-byte ELF has SHA-256
@@ -175,6 +175,24 @@ library hashes, object response file, oracle and two-generation build recipe
 in `packet/HANDOFF.md`. Run both generations and the linked guest on the
 Arm64 runner before promoting a package.
 [Arm64 assembly and execution record](temporal-opcode-research-journal.md#linux-arm64-full-compiler-handoff-at-6f7ed3fe-november-25-2026)
+
+For Windows x64 at `6f7ed3fe`, receipt `761b21a8-8bd7-4bc5-8ff9-d8e262ed5312`
+contains the 24 direct COFF objects, four memory archive members, adjacent
+resources and `towerc.rsp`. All Tower symbols resolve within those objects.
+The response file lists `kernel32.lib`, the LLVM import library and the MSVC
+and UCRT libraries. The required LLVM exports are recorded individually in
+`symbols/llvm-required.txt`; compare them with the intended x64 DLL,
+including target registration functions. A guest-only kernel32 import library
+covers too few functions for the compiler itself.
+
+On the Windows runner, the packet's `accept-windows.ps1` takes the LLVM
+import-library path and binary directory in an x64 VS Developer PowerShell.
+It links the CLI, records its PE headers, imports and exports, then checks the
+raw output of both the interpreter and a compiled guest for `34 32 0A`.
+These steps await execution on Windows. The earlier cross-object comparison
+used a Linux host module when targeting COFF. A comparison of the real Windows
+host must include its CRT directory lookup functions.
+[Windows compiler object and verifier findings](temporal-opcode-research-journal.md#windows-x64-compiler-objects-and-the-host-comparison)
 
 1. **Produce.** Freeze source, submodules, build image, SDK and flags. For
    Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
