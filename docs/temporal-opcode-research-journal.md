@@ -100992,3 +100992,48 @@ saturated old request terminates at the guard and has no successful timing.
 The raw packet includes each sample, CPU, memory capacity, callback traces,
 input validation, commands and standalone replay. No production change
 was required.
+
+### 2026-11-25 — Complete native build and edit costs at ca543287
+
+Host 3, receipt 6d87ace1-5dd7-4d9b-b062-4ce43f49bf0b. The supplemental
+3,427-byte journal bundle from 6cd34c79 verified at SHA-256
+5630d94fc97b70fdc6322e3befea44e37c233bcf58e7cdf3febb1af2ca919921.
+Its a6d58c22 tip completed the manager reconstruction of ca54328765c60d6e6d7d7941f03ad704f10e9537,
+tree 84e9315e2ab51330f004b8ec5f160029e6a2fd20. Both arms compiled that
+checkout. A was the public 902a bootstrap (ELF 50955730). B was Gen1 built
+with the override unset (ELF daaaaa1d). The latter reproduced the native
+compiler from 58bda1aa. All 434 source paths from the union of 40 compiler
+depfiles matched the frozen Git blobs.
+
+Debian 12 / LLVM 19.1.7 / EPYC 7542, affinity 24–27 on distinct physical
+cores and quota 12.288 CPUs, zero added throttles. The ordinary build-native.sh
+wrapper configured, built towerc and installed its ELF and 55 resources.
+Four Ninja jobs shared the four cores, with one inner worker except four
+for Semantics. Each clean arm started with an empty build cache and warm
+source pages. A/B then B/A primary pairs gave these mean elapsed/CPU seconds.
+
+| Case | Product edges | A wall / CPU | B wall / CPU |
+| --- | ---: | ---: | ---: |
+| Clean build and install | 53 | 30.4442 / 103.8322 | 29.7621 / 101.9944 |
+| Immediate no-op | 0 | 0.2366 / 0.2372 | 0.2477 / 0.2485 |
+| CLI version body edit | 3 | 1.0832 / 1.0831 | 1.0711 / 1.0709 |
+| Imported worker policy edit | 3 | 21.0830 / 43.9316 | 20.9149 / 43.7427 |
+
+The clean build saved 0.682 s wall and 1.838 CPU-s. Both pairs favored B on
+the shared dependency edit. The body wall result changed sign between pairs.
+The no-op included CMake configuration, the glob recheck and installation.
+Final links took 46–52 ms. A separate sampled A/B pair observed clean peak
+summed process-tree RSS of 2,141,848 / 2,063,540 KiB. Shared pages count in
+each process. Four snapshots per no-op missed its short-lived peak. Hardware
+cache counters were unavailable.
+
+The body edit rebuilt host.o (tower-compiler-host.o), the memory archive and
+towerc. The imported change rebuilt ParserNodes, Semantics and towerc.
+Ninja can compact its previous log at regeneration. Counts from the full log
+after its last glob check agreed with the progress lines for every phase.
+Separate clean builds reproduced each edit's 35 products, 55 resources, 51
+texts and 80 raw/transformed depfiles. Guest objects matched the independent
+controls and printed 15 and 999 after linking. The stale body failed the
+version oracle. Stale dependency output failed exactly the two object hashes
+and the executable hash. Earlier host 3 receipts at a86d2ff0 and 58bda1aa
+retain their original source scopes. This measurement changes no build policy.
