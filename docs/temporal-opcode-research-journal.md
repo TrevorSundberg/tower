@@ -103969,3 +103969,73 @@ plus invalidation and recovery through the ordinary Build transport. The
 earlier bc9f1f28 timing used be4bc2d6 documents. This run submits integrated
 tracked sources and records the retained generated wrappers and support.
 The 2421c659 browser selectors and storage checkpoint survive the merge.
+
+The merge is 95d9a8d0. The bundled worker used two unchecked reads of
+`compiler.llvm` after the loader had accepted an omitted selection.
+a971efe3 preserves that direct caller's stock-generator default. A new
+desktop case in the existing compiler-project browser suite drives the
+bundled worker with an omitted selection, a converged generation, two
+successive hits, and a nearer module introducing a missing import. The
+existing editable-compiler selector cases retain their original assertions.
+
+The 569 submitted records include 543 tracked documents and 26 generated
+wrappers from the retained recipe. Three tracked Semantics files differ
+from the preceding observation. The ordered documents hash is 2c62d1fb…,
+the project JSON hash is 30396fc1…, the actual app is f80cf336…, and the
+bundled Build worker is e95886f4… with embedded host stamp 91ed64c1….
+The successor asset manifest 8bc35306… covers 104 assets. All 102
+project-source occurrences in the bundled source maps and all 58 served
+Tower resources agree with the integrated checkout. The stock LLVM, cross
+and link support come from the retained 3390c2c8 package. The checked
+portable and shared editor binaries come from the be41c755 link roots
+whose compiler inputs match 2421c659. Their link recipe differs from the
+editable compiler's ordinary recipe. The earlier timing distribution used
+the 80a50621 editors, one older entity_stage.tower and historical manifest
+2594c051…. The packet preserves both byte inventories.
+
+On host 6 (Xeon E5-2680 v4, Chromium 159.0.8154.6), each Build ran alone
+on four distinct cores with a quota of 11.52 CPUs. In the sealed successor
+the cold Build took 70.449 s wall, 159.32 browser CPU s and 2,315,400 KiB
+sampled browser-tree peak. The same-generator miss took 68.978 s, 147.31
+CPU s and 2,576,248 KiB. Two consecutive hits took 5.732 / 5.943 s,
+14.85 / 15.24 CPU s and 2,391,852 / 2,414,292 KiB. Misses overlapped two
+real object lanes. Hits dispatched zero lanes and reused all 25 objects.
+The generated Tower, LLVM and cross digests are 54bfd3e6…, e3a27f87…
+and 49b9f23a…. Each activated compiler executed the staged guest and
+produced the same 1,407 Foundation bytes as the native a3f76faf pin.
+The native round trip printed 42 and LF.
+
+The 80a50621-editor control series on the integrated sources measured
+66.052 s for the same-generator miss and 5.829 / 5.828 s for repeated
+hits. A Semantics edit and Restore both compiled 25 units (66.021 /
+72.137 s). Only compiler-semantics.o differed after the edit. A real
+coordinator with the previous stamp missed and rejected readmission from
+two current subordinate workers. A nearer units/tower.tower caused the
+expected missing-import diagnostic. Removing it recovered. Changing the
+recipe forced all compiles and failed the missing-export check. Corrupt
+LLD input during a hit failed the ordinary link. Cancellation during a
+relink discarded a late progress event. All three preserved their active
+generation and the following Builds recovered. On miss and hit, the
+worker's returned backing stores detached. The page's outgoing buffers
+detached on transfer. One set occupied 3,392,619 bytes in 25 buffers,
+subject to the 4 MiB / 64-object limit. Forced GC after edit or pagehide
+found zero reachable payload bytes. VM headers and transient link memory
+are outside that payload count.
+
+The earlier Tower import receipt covers selected module names alone and
+cannot qualify reuse across namespace or source changes. The native
+compiler, worker width and language resolver have no changes in this
+successor. Native sanitizers do not instrument the changed JavaScript.
+
+The normal compiler-project Playwright selector passed all three desktop
+cases (4.5 minutes) and the original mobile cancellation/persistence case
+(14.8 s), on the sealed distribution with retries disabled. Individual
+runs, complete source and inputs, and the independent output inventories
+are in the e58bda7c-2de5-4411-b71f-19130769a5b5 successor packet.
+
+Replaying the omitted-selection request against the original bundled
+worker produced “Cannot read properties of undefined (reading 'llvm')”.
+The four real transport fixtures also passed on integrated inputs,
+including source-ordered diagnostics with a missing later response.
+A separate Node Wasm Build wrote all 25 objects and three reactors and
+matched every Chromium output digest. No publication was performed.
