@@ -102365,3 +102365,31 @@ The added PublishPinned case in semantic_body_admission_checks.tower holds a sec
 Both instrumented versions passed the original lifecycle suite, all four capture-admission modes, staging-extents, escaped capture (lifecycle 20), control-smoke and the expanded lifecycle fixture. Retained staging artifacts include complete formatted bytes and interpreter output. The mixed aliased fixture yielded 2, 123, 8 and identical Foundation across 32/64-bit targets, jobs 1/4 and reparse. The invalid extent produced the same exact failed-capture error at batch offset 19185 in all four cells. The staging observer recorded 571 kernels per cell and peaks of one/four at the respective widths. Capture admission alone does not measure overlap. The existing overflow and race controls produced exit 1 with the expected one-byte write past eight bytes and exit 66 with work_kernel_execute on T1/T2. All 73 earlier TSan pre-initialization personality refusals and the race control's stack symbolizer message are preserved. No host security setting changed.
 
 Validation used one process per functional selection, CPUs 0–3 of 0–23 on a Ryzen 9 7900X, CPU quota 2304000/100000, memory max 63577260032 bytes, zero swap. Frozen/expanded lifecycle wall seconds, total CPU seconds and max RSS KiB were .06/.07/92332 to .06/.06/93680 in address mode and .07/.07/95480 to .07/.06/97068 in thread mode. These single process observations include both one- and four-job cases. Production code and compiler input blobs are identical across the fixture comparison. No compiler performance or allocator-count comparison follows. Packet scripts build.sh, regression-build.sh, run.sh and check.sh identify the commands, flags, linked objects, binaries, outputs and coverage limits. Absolute debugger addresses and observations in separate diagnostic passes do not stand in for leak-enabled executions.
+
+### Relocated cd77 Linux x64 package and bootstrap checksum diagnostics
+
+On November 25, 2026 the independent Ubuntu 24.04 x86-64 package review
+(f94a03f5-a9b8-4b1e-b1d1-0cb1908b6578) verified the pin proposed in
+a77dbf9f, built from cd77a1f7. All 59 archive files matched the proposed
+Git bytes and file modes. The reviewer matched the 18 loaded libraries and
+loader records against the producer's Ubuntu environment. At one and four
+jobs, both interpreters and the linked guest produced 4.5 for a staged
+floating-point compound assignment, including after Foundation reparse.
+The 13-unit invoice reproduced the reference executable and printed 1666 and
+1685. These are correctness observations. Clean default selection on the
+integrated source and live installer adoption have separate receipts.
+
+The reviewer removed an installed types.tower and separately appended a
+newline to it. The checkout bootstrap selector rejected both. Only the
+missing-file case identified the resource. GNU sha256sum with --status
+suppresses the mismatch report. The build script now uses --check --quiet
+and routes the checker output to stderr. Build callers capture stdout as a
+compiler path. The platform utility still reads the complete manifest once.
+
+The manager replayed both script versions on disposable copies of the public
+902a358f package and the cd77 candidate. Across 20 selections, an intact or
+restored package returned just its absolute compiler path. An explicit
+executable override still returned the supplied path. Missing and modified
+resources returned nonzero with empty stdout. The repaired mismatch named
+share/tower/types.tower on stderr. No compiler code, package payload or browser
+asset changed in this diagnostic fix.
