@@ -8,4 +8,3 @@ import compiler.semantic_known_publish;
 import compiler.fast_interpreter;
 import compiler.bytecode_package;
 import tests.interpreter_invocation;
-import tests.interpreter_call_query;

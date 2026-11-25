@@ -1,6 +1,7 @@
 import tower;
 import .compiler.semantic_context_types;
 import .compiler.semantic_evaluation_types;
+import interpreter_call_query;
 import semantic_source_proof_checks;
 import semantic_resource_checks;
 import type_execution_receipts;
@@ -168,8 +169,6 @@ fn body_query_tests(width: u32, workers: usize, mode: BodyQueryFixture): u32 {
 fn evaluation_query_check(ok: bool, message: u8*, failures: u32*): void {
     if !ok { puts(message); *failures += 1; }
 }
-
-extern fn call_query_tests(width: u32): u32;
 
 fn evaluation_query_stage(c: SemanticContext*, input: void*, requested: bool): SemanticEvaluation* {
     var subject = sem_create(c.program.root);
