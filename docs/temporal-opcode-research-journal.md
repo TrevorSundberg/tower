@@ -101359,3 +101359,70 @@ the applicable successful runs. These Linux checks do not cover browser race
 instrumentation. The independent browser replay exercises two simultaneous
 owners; immediate reopening after a join has a separate unresolved regression.
 No scheduling or memory policy changed in this review.
+### Host 4 native package relocation and source-copy verification, 2026-11-25
+
+Host 4 reconstructed `ca54328765c60d6e6d7d7941f03ad704f10e9537`
+(tree `84e9315e2ab51330f004b8ec5f160029e6a2fd20`) from public
+`e06aa12e`, the three manager-checked bundles and the retained
+`a6d58c22` journal parent. Packet `642d12ee-d944-4814-8689-6d449b302e97`
+uses the Ubuntu x64 package built in `78ae9fd7`. Its archive SHA-256 is
+`204be5d7cb4a6c69db451bf49c0ae5197c571461862e8d1f7a0e0b5cf7153e53`.
+The public-source worker archive at `e06aa12e` independently reproduced the
+checked-in `902a358f` payloads. For each archive, all 57 installed names,
+sizes and hashes and all 1,296 build-source hashes matched the appropriate
+source tree. The generation receipts at journal line 100182 apply to 902a.
+
+Under UID 1001 in Ubuntu 24.04.5 x64 PRoot on Debian, the frozen compiler
+moved from a temporary prefix to another with spaces. The original path
+was absent. From an unrelated directory with no checkout mounted, the
+retained verifier ran 21 development checks and the restricted missing-Clang
+control. The interpreter and the native program both wrote the bytes
+`34 32 0a`. The program, separate-library and foreign-name executables and
+library object matched the prior frozen receipt. The public-source package
+also passed the same development verifier. Strict verification failed at
+link with exit 1. Removing Clang from PATH left no executable. In a
+minimal root the Ubuntu loader stopped at missing libLLVM.so.19.1, exit 127.
+The checksum check rejected a comment appended to foundation_syntax.tower,
+although interpretation still succeeded. Removing it failed both the
+checksum check and ordinary interpretation at the named import.
+
+The old packager collected whatever existed alongside towerc. Removing that
+grammar before packaging produced a new 56-row checksum list that passed.
+Editing it produced a self-consistent 57-row list that also passed. The
+changed bootstrap packager checks the tracked COPYONLY Tower inputs from
+CMakeLists.txt against the captured package data while recording source
+hashes. It checks the five language files, direct library modules and
+backend/foreign_grammar.tower, 46 files at this freeze. No change to schema,
+compiler, generated runtime IR or installation process was needed. The valid
+package, including its manifest, matched byte-for-byte. Missing grammar,
+edited grammar, an equal-size library edit and omitted foreign grammar each
+failed with exit 1, named the path and produced no directory. Two independent
+packagers competing for the same destination produced one intact candidate,
+one failure and no leftover stage.
+
+Four alternating pairs ran one command at a time on CPU 2 of the Ryzen 7
+5800H (8 cores/16 SMT threads, allowed 0–15, quota 1536000/100000,
+zero additional throttling). Fresh output per run, warm filesystem, same
+frozen input repository, Ubuntu LLVM/Clang 19.1.1. GNU time measured
+0.55 s median wall and 0.55 s median user+system in both arms. Median
+max RSS was 15,384 KiB before and 15,248 KiB after. These are whole
+package commands under PRoot. A first implementation added 129 allocation
+calls. Comparing borrowed name slices removed those calls. Separate Debian
+LLVM 19.1.7 ASan/LSan runs of the valid case reported identical process
+allocation totals (10,389 malloc and 3,861 realloc calls) and no leak
+diagnostic. Both the package tool and guest runtime IR were instrumented.
+Final initialized TSan valid/missing runs returned 0/1 with the expected
+outputs. Eight TSan startup failures at the denied ASLR personality call
+were retained. UBSan has no supported Tower source pass. The packager is
+serial. No compiler scaling or clean-generation run attaches to this change.
+
+Under a real linux32 personality, uname reported i686. The checksum-only
+selector returned its fixed x64 path, and tools-only CMake configure refused
+the host at CMakeLists.txt:42. The manifest describes only Linux x64.
+The Windows and macOS jobs run guest images or driver fixtures. Native
+compiler installation on Windows x64, both macOS architectures and Linux
+Arm64 remains unverified. Packet README.md maps each runner to its actual
+artifact and lists the package and host dependencies. The offline replay
+expects a non-root Ubuntu x64 development host, the frozen checkout and its
+LLVM license. It exercises the old/new packagers and the relocated CLI
+without a build or download.
