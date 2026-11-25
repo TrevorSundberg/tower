@@ -100,8 +100,10 @@ Do NOT modify todo.txt.
   survivor's results and returned slots. After releasing one owner, check
   that an available child actually runs alongside the caller. Also close a
   fully occupied pool and reopen it immediately. A pthread join can complete
-  before the browser worker marks its slot ready for reuse. Check the next
-  grant as well as eventual retirement. See the
+  before the browser worker marks its slot ready for reuse. Record the slot
+  used by a successful spawn. At join, wait for that slot's ready or failure
+  notification while the joined handle still owns it. Delay that notification
+  in the regression and check the next grant as well as eventual retirement. See the
   [Tower regression](scaffolding/tests/lr_budget.tower) and
   [browser selection](playground/tests/shared_compiler_worker.mjs).
 - Use the shared world-owned entity/component model wherever it fits, especially

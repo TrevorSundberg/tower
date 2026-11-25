@@ -1,4 +1,5 @@
 import {test} from 'node:test';
+import {Worker} from 'node:worker_threads';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compilerThreads} from '../src/compiler-threads.mjs';
@@ -32,6 +33,43 @@ test('the Tower pool overlaps four distinct Wasm threads and reuses their jobs',
    phase('pool:completed', {repeat});
   }
  } finally { transport.close(); }
+});
+
+test('a joined pthread returns its physical slot before the next four-lane pool', {skip:!bytes}, async t => {
+ const module = await WebAssembly.compile(bytes);
+ const gate = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+ let status;
+ const exits = [];
+ const transport = await compilerThreads(module, {workerFactory(url) {
+  const child = exits.length ? new Worker(url) :
+    new Worker(new URL('./compiler-handoff-worker.mjs', import.meta.url), {workerData:gate});
+  exits.push(new Promise(resolve => child.once('exit', resolve)));
+  if (exits.length === 1) {
+   const post = child.postMessage.bind(child);
+   child.postMessage = (message, ...args) => {
+    if (message.initialize) status = message.status;
+    return post(message, ...args);
+   };
+  }
+  return child;
+ }});
+ try {
+  const wait = Atomics.wait;
+  t.mock.method(Atomics, 'wait', (array, slot, ...args) => {
+   if (array === status && slot === 0) {
+    Atomics.store(gate, 0, 1);
+    Atomics.notify(gate, 0);
+   }
+   return wait(array, slot, ...args);
+  });
+  const wasi = new TowerWASI();
+  const instance = await WebAssembly.instantiate(module, {
+   env:transport.env, wasi:transport.wasi, wasi_snapshot_preview1:wasi.wasiImport,
+  });
+  transport.attach(instance); wasi.initialize(instance);
+  assert.equal(instance.exports.main(), 0);
+  assert.equal(Atomics.load(gate, 0), 1);
+ } finally { transport.close(); await Promise.all(exits); }
 });
 
 test('a worker trap interrupts a blocked coordinator through shared failure state', {skip:!bytes, timeout:10000}, async () => {

@@ -16,6 +16,7 @@ async function message(data, post) {
       instance = await WebAssembly.instantiate(data.module, {
         env: {memory:data.memory, work_host_available: () => 1, work_host_capacity: () => 1,
           work_host_pool_capacity: () => 1,
+          work_host_thread_started:unsupported, work_host_thread_joined:unsupported,
           work_host_entry: () => callback, tw_foreign_call:unsupported,
           work_host_time: () => BigInt(Date.now()) * 1000000n,
           work_host_check: () => { check(); data.memory.grow(0); },

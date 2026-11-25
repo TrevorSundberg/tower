@@ -108,6 +108,16 @@ JavaScript transport publishes its slot as reusable. The original competing
 owner test still passes. Release acceptance needs both cases on the same
 transport. The failed site tree `fc70c453` remains a reproduction artifact.
 
+Change `b1a534a8` records the physical slot assigned to each successful
+pthread creation. After joining, the coordinator waits for that child's
+ready or failure notification if its handle still owns the slot. On the old
+transport, a delayed notification reduced the second pool grant at round
+zero. The repaired transport completed 2,048 delayed rounds and 2,048 ordinary
+rounds. Each delayed round reopened three four-lane pools, and all four
+physical workers exited. Both cancellation orders and the competing-owner
+checks passed. The integrated release must pair the new WASI imports with
+the matching generated workers. [Shared worker transport](../playground/src/compiler-threads.mjs)
+
 **Reuse a checked operand within one interpreter read.** In
 [`ix_read_uncached`](../scaffolding/compiler/interpreter.tower), reading a
 staged operand used to repeat a capture lookup while resolving its address.

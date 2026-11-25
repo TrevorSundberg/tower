@@ -102239,3 +102239,108 @@ The tracked change records build evidence. Runtime performance and memory compar
 are outside this handoff.
 
 The manager verified all 347 file hashes from macOS receipt `e2c234e2-d8a1-4fdb-b85e-6ccc3f65db0e`. For each architecture, the 24 direct objects and four extracted Darwin archive members had the expected CPU and LC_BUILD_VERSION for macOS 11.0. Independently subtracting external definitions from references across the packet objects with LLVM nm recovered exactly the 340 symbols reported by the linker for each CPU. The Linux interpreter reference printed 42 LF. Both Mac links returned 1, and the receipt contains no final Mac compiler executable. The packet's host readers use the same byte offset for directory entry names and the same unsuffixed directory functions on both CPUs. Apple's Libc dirent declarations and XNU cdefs attach symbol-selection macros to opendir and readdir. Follow-up `976a6d58-1dfb-469e-b3c6-8319ae9f2b9f` checks the two targets against the SDK contract. Physical Mac checks remain open.
+## 2026-11-25 — Joined WASI pthread slot handoff on host 1
+
+Assignment d3582cb6. The retained mandatory Node suite returned 2 at
+lifecycle 80, the ordinary observer at 145, and the bounded delayed READY
+publication at zero. On the verified 1c2cc042 checkout the delayed baseline
+again failed at zero (grants four then one). The ordinary baseline completed
+2,048 this time. The proposed fix binds each successful pthread_create to
+its underlying JS worker and synchronizes successful pthread_join with that
+specific worker’s final publication. Independent running handles keep
+their slots. The existing Tower width and overlap assertions stay in force.
+
+The implementation passes the address of the live Tower thread-handle cell
+to two WASI host imports. The only spawning coordinator binds the cell after
+successful creation and looks it up after successful join, before freeing it.
+Reassigning a READY worker clears its previous binding. A late join for a
+retired binding therefore cannot wait on its successor. The current binding
+can wait on its own RUNNING word. The child publishes READY or its failure
+and notifies that word without a coordinator message. An exhausted spawn
+returns the WASI failure result immediately. Capacity still permits inline
+execution when independent handles own the group.
+
+WASI SDK 34.0 (wasi-libc 2e6fb9d8ee0c) disassembly puts the final
+thread-list unlock and notify inside wasi_thread_start. pthread_join calls
+the libc list synchronization. The subsequent JS READY store is outside
+both operations. In the delayed trace, join for handle 70048 had already
+returned with all four status words RUNNING. Only physical slot 0 changed
+to READY before that handle was freed. Slots 1, 2 and 3 were acknowledged
+at their own joins. The regression gates a real child's first READY store
+until its coordinator enters that slot's wait. The old work reactor
+returned 2 and the new one returned 0. The first test prototype used a
+Node MessagePort listener method unavailable on this SDK. Its diagnostic
+is retained alongside the corrected one-shot listener runs.
+
+Host 1 verified both archive sizes and SHA-256 digests, compared all ten
+declared loose members to their archive bytes and audited 713 and 376
+producer inventory entries. A private main using the warm object store
+fast-forwarded through both registered main bundle tips. The initial
+pull in the shared checkout conflicted and was aborted, restoring local
+203f2497. The clean private Release build used the checked-in Linux x64
+bootstrap, SDK 34 and the producer's build script. The regenerated
+baseline execution-worker.js and compiler-thread-worker.js and their maps
+matched the retained outputs. The corrected generated pair was served on
+loopback with the corrected reactor.
+
+Node 24.22.3 ran the normal four-process selection with 512 passes, zero
+failures and two skips for optional backend and IDE test exports.
+Chromium 159.0.8154.6 passed all three shared trials and nine ownership
+modes. CDP found zero remaining targets after each. With four child slots
+occupied by two frontend handles, both completed and every Foundation byte
+matched the serial reference, including answers 42, 43, 142 and 143. Each
+cancellation order suppressed both cancelled outputs, preserved the
+survivor and returned all four slots. A failing peer retained its serial
+unknown-local diagnostic at offset 19174. A later guest printed 42.
+The generated spare-child probe sampled LR work and retired the entire
+group. A separate callback observer measured a coordinator and a child
+overlapping after peer cancellation (30 child pthread IDs over successive
+pools), and only the coordinator during fully occupied preinstallation.
+
+A second fault injection held the group-wide failure flag after the child
+had recorded its error bytes, stored FAILED and notified the joined slot.
+The initial repair threw the right error but immediately reported
+failed() false. The final join path caches the published worker error
+before throwing. With the group flag held behind an acknowledgement gate,
+failed() returned true, check() rethrew the recorded error, and all four
+Node workers exited. The final corrected execution bundle is distinct from
+the earlier positive-run bundle. Raw earlier runs and the rejected
+failure case are retained separately.
+
+The final stock-width Node fixture completed 2,048 rounds in each mode.
+Each round opened three four-lane pools. Under the supplied 8 ms delay,
+all 24,576 successful joins waited on their bound physical slots, every
+grant was four, every close/reopen round ended with four READY words, and
+the final Wasm capacity was 33,947,648 bytes. The four Node workers exited
+after deliberate termination. An external 15-second no-progress watchdog
+retained the last handoff for diagnosis. The earlier 180-second blanket
+deadline was too short for the accumulated delay. GNU time measured
+228.13 s wall, 67.53 s CPU and 156,380 KiB maximum RSS for the traced run.
+
+Host 1 used a Xeon Gold 6244, affinity 0–31 and a 15.36-CPU cgroup quota.
+With the full affinity, the original transport and work reactor reproduced
+the *ordinary* failure at iteration 959, with grants four then three and
+an immediate follow-up snapshot of four READY slots. The corrected pair
+completed 2,048 rounds under the same full affinity. The matched runs
+used physical cores 2–5, fresh processes, warm files and frozen inputs.
+For 2,048 ordinary rounds the passing baseline and corrected samples took
+10.68/13.05 s wall, 25.58/30.76 s CPU and 157,660/158,044 KiB max RSS.
+Two additional 512-round pairs in reversed order took 2.83/2.78 and
+2.79/2.77 s wall, 6.73/6.66 and 6.70/6.64 s CPU, with maximum RSS of
+156,048/155,724 and 156,008/155,996 KiB. A separate ordinary trace
+entered the physical wait at 19 of 6,144 joins. These samples establish
+the handoff and show substantial run-to-run timing variation.
+
+Sixteen Chromium commands compared the same small and 128-function inputs
+at one and four slots, alternating the pair order and checking the mounted
+resources, Foundation and guest outputs. On the larger input at four slots
+the two-sample mean wall time was 4.220/4.175 s, mean command CPU was
+1.520/1.575 s, and maximum RSS was 236,516/237,168 KiB (baseline/fix).
+All contexts retired. Per-sample CPU, wall, RSS, Wasm capacity, renderer
+observations and cgroup counters are in the assignment packet. The WASI
+CMake profiles rejected address and thread sanitizers (native Linux x64
+only) and undefined-behavior sanitization. No native synchronization
+implementation changed. The local repair and replay go to the manager
+for review. There was no deployment or predecessor reseal.
+
+The manager reviewed the slot/handle association, both sides of the two WASI imports, join and error publication in `b1a534a8`. Receipt `d3582cb6-1cfe-4635-9025-ab37f347d5b7` supplied the commit in its verified inner bundle. All 533 packet hashes passed. In the raw delayed trace all 2,048 rounds returned zero, every one of the 6,144 grants was four and the cumulative join/wait counts reached 24,576. The old delayed control failed at round zero; the ordinary control under default affinity failed at 959. The corrected ordinary trace reached 2,048. Chromium's three shared and nine ownership trials passed. Node reported 512 passes, two optional-fixture skips and zero failures. The worker built a matched pair of reactors and worker scripts on its original parent. Integrated browser products and final provenance require a fresh seal on the merged source. Browser sanitizer coverage was unavailable; the focused native semantic sanitizer assignment runs separately.
