@@ -103208,3 +103208,94 @@ All ten ordinary Bedrock desktop/mobile cells passed with zero skips or retries.
 One matched short workload per Chromium process used six AB/BA pairs per portable/four-lane arm with outputs 7, 7 and 9. Portable cold/unchanged-warm medians in milliseconds were 171.35/6.85 sealed and 137.45/6.90 final. Four-lane results were 242.54/8.13 and 213.06/9.14. On a retained worker one full upload remained sufficient. Host 2 was a Ryzen 5 3600 with cpuset 0–11, quota 11.52 CPUs and cgroup memory limit 32,222,740,480 bytes. Median GNU time peak RSS in KiB was 135932/134162 portable and 144380/143308 shared. The original failing deadlines supply no performance comparison.
 
 The local candidate manifest is e2a8c61c214e77c2df8e90b87b15d723c56e42196fd67559e537fbac155d1a0f. The compiler/project/resources remain at 3390c2c8. A fresh source replay reproduced all 105 files. The assignment evidence contains original and final ordinary JSON, restorable failure traces, exact observer bytes, module ABI calls, control results, sample timings, exact overlay and separate source/journal bundles. Slot 7 owns release sealing and the manager owns publication.
+## Native multi-unit scaling and memory on 4a3aa2d6
+
+Host 1 compared the relocated public Linux x64 package `902a358f` and
+candidate `4a3aa2d6` through the ordinary native driver. Both used LLVM
+and Clang 19.1.1, explicit ledger.o and the default 268435456-byte shared
+compiler budget. The same_import invoice has 13 uneven units. The large
+invoice has 37 independently compiled units. Each linked guest ran against
+the retained output. The compiler used CPUs 0–7, eight physical Xeon Gold
+6244 cores sharing a last-level cache, under a 15.36-CPU quota. The memory
+sampler used CPU 15. There were 12 unscored warmups and four counterbalanced
+blocks with one timing workload at a time. All 60 runs recorded zero added
+throttling. These are fresh processes using warmed filesystem inputs.
+
+Times are four-run means in seconds. RSS figures are maxima across those
+four scored runs, in MiB. The process-tree sampler averaged 26.8–27.3 ms
+between observations. Each ledger peak is from a separate observer run.
+
+| Invoice | Jobs | Public wall | Candidate wall | Candidate user / system CPU | Candidate compiler / sampled tree RSS | Candidate peak ledger |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 13 units | 1 | 4.465 | 4.148 | 4.01 / 0.13 | 148 / 239 | 65.38 |
+| 13 units | 4 | 2.110 | 1.945 | 5.45 / 0.35 | 200 / 261 | 85.75 |
+| 13 units | 8 | Capacity failure | 2.163 | 8.30 / 1.70 | 272 / 313 | 115.24 |
+| 37 units | 1 | 10.195 | 9.238 | 8.93 / 0.30 | 236 / 326 | 135.69 |
+| 37 units | 4 | 7.600 | 4.468 | 14.07 / 1.08 | 300 / 341 | 160.66 |
+| 37 units | 8 | 8.040 | 4.748 | 22.23 / 6.35 | 396 / 397 | 187.12 |
+
+Four workers delivered 2.13× and 2.07× the candidate's serial speed on
+the skewed and independent inputs respectively, using ratios of mean elapsed
+times. Eight workers lost to four in every paired block. At four workers
+the public package reached 413 / 508 MiB of compiler / sampled tree RSS
+on the skewed invoice and 807 / 902 MiB on the independent invoice. At
+eight workers the public skewed build failed in each scored run and the
+warmup with the semantic memory budget diagnostic. None left a partial
+executable, depfile or temporary. The candidate completed all widths.
+The ledger measures resources charged to it. The RSS observations include
+other resident memory, including the external toolchain in the tree sample.
+
+The manager checked all 1,705 manifest hashes, the raw clock, CPU, peak RSS
+and status rows for all 60 runs, and the bytes printed by all 55 successful
+guests. Both versions reproduced the reference executable, exports and
+ordered depfile on success. Each of the eleven successful object captures
+reproduced its 13 or 37 reference objects. All twelve observed ledger closes
+had zero outstanding bytes, grants and lanes, including the public refusal.
+Receipt `c666b528-1f21-42aa-87a2-80e41298f5c6` has archive SHA-256
+`49b85741a3393d15be603b61cf7786e51c0788c8717d0baea027fee45c127429`.
+The packet includes the input hashes, commands, raw runs, ordered object
+inventories and separate ledger observations.
+
+## Edited Foundation imports through browser workers
+
+The ordinary Bedrock lesson exposed two distinct failures. While the editor
+had the syntax library selected, the parser installed the Foundation wrapper
+under that selection's path. Its import appeared to be a self-import. A cold
+execution worker also installed the wrapper before uploading the edited
+project, which made it read the bundled syntax instead. A retained worker
+could validate against the previous project's files.
+
+The browser-host repair at `f595ea02` uploads the current project before
+installing its grammar. Installation uses the wrapper's own lexical module
+path and restores the active document in a finally block. A separate
+regression opens a same-named sibling after a rejected wrapper installation.
+A second control keeps a broken downstream import from preventing inspection
+of Bedrock itself. This site used browser compiler and resources `3390c2c8`.
+
+The manager checked the 804 packet checksums and the raw Chromium test
+results. With identical assertions, the sealed site passed eight of ten
+desktop/mobile cases. The edited keyword failed once on each viewport.
+The repaired site passed all ten in one attempt each. On both viewports
+the graph interpreter, fast interpreter and LLVM runner each printed 42
+after the keyword and dependent syntax edit, 7 after undo and 29 after
+restoring the invalid Bedrock document. Missing imports and actual cycles
+still produced diagnostics. The 32 adjacent browser checks passed on each
+site. All 31 final Node checks passed. Five worker bundles and their five
+maps accounted for all ten changed asset hashes.
+
+On a Ryzen 5 3600 with CPUs 0–11, six physical cores, a quota of 11.52
+CPUs and zero measured throttling, each arm ran six fresh browser processes
+per configuration in counterbalanced order. For the same short program,
+portable cold reply median fell from 171 to 137 ms and four-lane cold from
+243 to 213 ms. Unchanged warm medians were 6.85 to 6.90 ms portable and
+8.13 to 9.14 ms at four lanes. Outputs were 7, 7 and 9 on cold, unchanged
+and edited requests. Whole-harness median CPU was 0.79 to 0.74 s portable
+and 0.94 to 0.84 s at four lanes. Per-process maximum RSS medians were
+135932 to 134162 KiB and 144380 to 143308 KiB respectively. Aggregate
+browser RSS was outside this measurement.
+
+Receipt `848f6034-9f80-4843-b115-e1001fc85a75` has archive SHA-256
+`e8e66e91500364e8bc1648fc5502ae81bfbe418bc6eb6d1bed41e7ba94d9999b`.
+Its source and journal bundles contain the tested UI changes. The release
+worker received both bundles with verified hashes. Public runtime deployment
+requires sealing and verifying the combined product.

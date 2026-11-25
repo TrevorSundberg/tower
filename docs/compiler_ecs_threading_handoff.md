@@ -48,6 +48,14 @@ in every block. At equal worker counts the candidate used less peak memory
 than public `902a358f` across all 56 comparisons.
 [Inputs, CPU and memory, output checks and timing pairs](temporal-opcode-research-journal.md#ordinary-native-cli-scaling-on-the-4a3aa2d6-candidate)
 
+Across compilation units, the same candidate linked a skewed 13-unit program
+in 4.15 s with one worker and 1.95 s with four. For 37 independent units
+the times were 9.24 s and 4.47 s. Eight workers completed both but increased
+wall time and peak memory on eight physical Xeon cores. At four workers,
+the 37-unit run used 161 MiB of the 256 MiB shared compiler budget and
+reached 300 MiB compiler RSS and 341 MiB sampled process-tree RSS.
+[Invoice inputs, outputs, worker counts and memory accounting](temporal-opcode-research-journal.md#native-multi-unit-scaling-and-memory-on-4a3aa2d6)
+
 **Building the compiler in Chromium.** The `8b7878c8` browser compiler
 compiled 25 units of the editable project based on `ca543287` on four
 pinned physical cores. The first request in a fresh profile took 82.73 s

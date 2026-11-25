@@ -278,6 +278,11 @@ Do NOT modify todo.txt.
   library fallback. Quoted imports are exact, case-sensitive full filenames with
   no inferred extension or builtin alias. Keep lexical module identity separate
   from filesystem/symlink identity. Audit references/manifests when renaming.
+- In an editor worker, install a grammar wrapper with the project's current
+  files and the wrapper's own import path. Restore the active document path
+  after success or failure. Check a cold request, an import edit on the same
+  worker, and a missing import followed by repair. Use a sibling with the
+  same name in the active document's directory to catch a wrong lookup.
 
 Read the relevant contracts before changing syntax or migrating callers:
 
