@@ -100473,3 +100473,84 @@ files and both ordered link sets. Archive SHA-256 is
 `68121d9e1b652f0d9b6087c0008258e089c578d76abd98e358e7f7b0efb258fd`.
 The tracked change records build evidence. Runtime performance and memory comparisons
 are outside this handoff.
+
+### Intel macOS directory ABI correction at 6f7ed3fe, 2026-11-25
+
+Host 2 found an ABI mismatch in the Intel compiler objects from the preceding
+handoff. Its successful object collection did not establish that Intel's plain
+readdir returned the layout consumed by Tower. Assignment
+`976a6d58-1dfb-469e-b3c6-8319ae9f2b9f` verified all nine declared members,
+the prior packet's 347 checksums and the ordered inputs in both retained caches
+before making a separate build.
+
+On Debian 12, Clang 19.1.7 compiled ordinary references and checked layouts through
+Apple's public Libc-1439.40.11 and xnu-7195.50.7.100.1 headers. The two missing
+generated metadata includes came from the upstream XNU generators and
+AvailabilityVersions-69.2. The probe selected the MacOSX user-space source
+branch, compiler-provided target macros and default inode policy, with no SDK
+or Linux system includes. The first run found no Make executable. Executing the
+availability tool's install rule directly supplied the input. The packet
+contains 49 input digests, dependencies, macro dumps, preprocessed declarations,
+Clang record layouts and Mach-O references. The later pinned Libc 71bbe350 and
+XNU f6217f89 sources retain the same declarations and architecture selection.
+[Libc declarations](https://github.com/apple-oss-distributions/Libc/blob/768d166d42689471e1e8fd1ddde5eee25db02381/include/dirent.h)
+· [XNU symbol selection](https://github.com/apple-oss-distributions/xnu/blob/bb611c8fecc755a0d8e56e2fa51513527c5b7a0e/bsd/sys/cdefs.h)
+· [XNU record layout](https://github.com/apple-oss-distributions/xnu/blob/bb611c8fecc755a0d8e56e2fa51513527c5b7a0e/bsd/sys/dirent.h)
+
+| macOS 11 target | Directory references | stat reference | Name offset, array bytes, struct bytes, alignment |
+| --- | --- | --- | --- |
+| Intel x86-64 | `_opendir$INODE64`, `_readdir$INODE64`, `_closedir` | `_stat$INODE64` | 21, 1024, 1048, 8 |
+| Arm64 | `_opendir`, `_readdir`, `_closedir` | `_stat` | 21, 1024, 1048, 8 |
+| Intel legacy control with `_DARWIN_NO_64_BIT_INODE` | `_opendir`, `_readdir`, `_closedir` | `_stat` | 8, 256, 264, 4 |
+
+The new Intel root passes the two inode64 functions to the shared Tower directory
+scan. Optimized IR calls them directly, adds 21 to the entry pointer and tests
+the signed strcmp result for zero. Both modern stat records are 144 bytes and
+carry unsigned 16-bit mode at offset 4. The existing stat bindings matched.
+Ordinary Darwin CMake configurations generated the intended production roots for
+both target CPUs without the utilities-target override. Standalone base and checks
+roots compiled too. An additional parser-only configure stopped at the existing
+macOS formatter fixture ABI guard.
+
+The original whole-object check failed only on Intel. The repaired Intel archive
+is `41572e9ef8b4ee0165f5a938e8f806460ab6b5999a27cc7bc7839bce53918c99`.
+Only the Host archive member changed. The other 27 objects and all callback
+definitions matched, including the worker entry and the two backend callbacks.
+The two directory spellings are the entire external-name delta. Arm64's complete
+link set and both Linux Host objects reproduced byte for byte. The repaired
+bootstrap verifier accepted the corrected Intel object and rejected the original.
+The original verifier gave the opposite results. Both Linux compilers agreed
+on the production Mac Host object and IR for each architecture. The comparison
+now selects those Mac roots directly.
+
+Linux ASan with leak detection and initialized TSan passed the real directory
+case fixture and the verifier fixture. An interpreted and a linked Linux
+file import both printed 42 LF. The three wrong-case variants failed in both
+modes on this case-sensitive filesystem. Source-level UBSan and macOS
+sanitizer execution were unavailable. On the Ryzen 5 3600, with one job,
+warm filesystem and two samples per arm, Intel Host object compilations took
+0.59–0.61 s and 140280–140988 KiB RSS. The old and new Linux lookup runners were
+byte-identical. Each made 1,024 passes over five cases. Sequential measurements
+took 0.08–0.11 s wall and 1216–1304 KiB RSS. These measurements cover Linux only.
+
+Main gained the independent Host comparison repair at ad998b7b during final
+rebase. Local code commit f6ac0f4e extends its configured-profile selection
+to macos_x64 and retains the Windows CRT checks. The merged verifier rejected
+bare and double-underscore Intel aliases. The production and base Host
+comparisons passed all five targets. Windows referenced findfirst64/findclose
+and Intel Mac referenced its inode64 functions. The production matrix also
+passed under an ASan/LSan verifier and an initialized TSan verifier. An invalid
+platform spelling failed at root recognition. The Intel check-only root and a
+Linux check-only control both reached the existing policy rejection of remove
+and three allocator-test hooks. The packet distinguishes those results from
+the production runs and includes a separate patch against ad998b7b.
+
+The private evidence archive is 9,555,809 bytes, SHA-256
+`b0758b1c2eec34b3dbcc2ecc18dfc56fac82d722472043ccc84614912ddb637d`.
+All 594 checksummed files verified after extraction. The standalone patch
+applies to the original 6f7ed3fe tree and yields tree `4af3471fab6d9d0c88f0cb8b515bca1b56487bdd`.
+Both compiler links still exited 1 for missing macOS LLVM, libc++ and libSystem.
+The native receiver checks the installed SDK against actual objects, verifies
+exported callbacks, interprets and executes the exact-case file import, and
+requires a case-specific diagnostic for six wrong-case attempts on a volume
+where OS lookup reaches the same file. Those native results await a Mac.
