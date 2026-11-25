@@ -102689,3 +102689,40 @@ All eight refused runs returned Busy from stage publication. sem_evaluation_stat
 Only the lifecycle runner entry object was regenerated per mode using the checked-in Linux x64 bootstrap, runtime_bind, instrument_llvm and LLVM/Clang 19.1.7. The remaining 31 Tower link inputs came from the verified production caches. Both sanitizer modes passed `lifecycle 40 41` with empty stderr. On the Ryzen 9 7900X, each fresh process ran on CPUs 0–3 of 0–23, quota 2304000/100000, memory limit 63577260032 bytes, swap limit zero. For the existing selector and then the selector with eight added refusals, ASan/LSan wall/CPU seconds and max RSS KiB were 7.79/8.07/626752 and 14.55/15.11/632356. TSan was 24.38/25.24/244604 and 46.19/47.90/251056. These are single-process fixture costs with warm files. Before/after TSan initialized on attempts 7 and 13. Each earlier launch exited 139 before fixture output when the host refused the runtime's personality request. The initial fixture build required a direct import for entity_view_open. The first observer selected grammar name matches as well as the expression. Its failing assertion and debugger inspection led to requiring the parsed value member.
 
 The evidence packet includes inputs, links, sanitizer identities, both final ELFs, individual attempts, raw canonical and value outputs, invocation bytes, source and debugger recipes. Leak checking ran outside ptrace. The two unused vectors and the empty invocation bound the ownership claim to the allocations observed here. These receipts exercise the production dispatch at both job settings and do not measure worker overlap or compiler throughput. Production code required no change.
+
+### Selective Semantics workers on the cd77 native self-build
+
+Receipt `b9adf393-f56a-4bb4-8eb4-d51b944f8e77` held the cd77 bootstrap
+and source `1ddefba0` fixed on the Ryzen 7 5800H using four physical
+cores (affinity 0,2,4,6), a 15.36-CPU quota, Ubuntu 24.04.5, LLVM 19.1.1
+and four outer Ninja jobs. Each run began with empty build and installation
+directories after matched warm-up. The only changed command was the
+Semantics object's compiler invocation, selected by `TOWER_SEMANTICS_JOBS`.
+Pair 1 ran one then four workers. Pair 2 reversed the order. Values below
+are listed as one worker followed by four workers.
+
+| Measurement | Pair 1 | Pair 2 |
+| --- | ---: | ---: |
+| Complete build and install, seconds | 27.76 → 26.61 | 27.64 → 26.06 |
+| Semantics compilation, seconds | 20.211 → 18.065 | 20.091 → 18.003 |
+| Total user + system time, seconds | 82.04 → 82.32 | 81.06 → 81.95 |
+| Maximum individual process RSS, KiB | 767,580 → 793,640 | 767,596 → 798,456 |
+| Sampled peak process-tree RSS, KiB | 2,020,364 → 2,088,712 | 2,020,040 → 2,087,540 |
+
+The four-worker Semantics process used up to 2.44 and 2.51 CPUs over
+roughly one-second windows. It overlapped three other Ninja edges for about
+14.7 seconds. When it finished, linking still waited 0.935 and 0.581 s
+for the native backend object. Full build savings were 4.14% and 5.72%.
+There was no measured throttling or CPU steal. Process-tree RSS samples
+averaged 102 ms apart and may count shared pages multiple times. Both
+pairs used more CPU time and memory. The existing opt-in fits this host
+when the additional memory is available. These two pairs cover one
+toolchain and source distribution.
+
+Offline verification reproduced the timing and CPU tables from the
+four individual logs and compared all 39 native products, 56 installed
+files, 40 raw and 40 transformed depfiles with the preceding cd77 oracle.
+The four guest executables also matched and both interpreted and native
+runs printed exactly 42 followed by LF. All 292 evidence checksums passed.
+The packet SHA-256 is
+`03412b763bb2e77c2a86a1f0d6aca676b3a3aa0412106100d3a3a196a197a754`.

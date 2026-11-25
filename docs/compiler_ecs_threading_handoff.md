@@ -31,6 +31,14 @@ and 1.20–1.21 s with the candidate. Both arms used four Ninja jobs and one
 worker per compiler invocation.
 [Commands, outputs and memory measurements](temporal-opcode-research-journal.md#native-self-build-of-1ddefba0-with-two-bootstrap-compilers)
 
+With cd77 fixed, raising only the Semantics compiler from one worker to
+four reduced complete build and install time from 27.76 to 26.61 s and
+from 27.64 to 26.06 s on those same four cores. The Semantics object
+finished about 2.1 s sooner in each pair. Sampled peak process-tree RSS
+rose by 66–67 MiB. For this build the tradeoff is available through
+`-DTOWER_SEMANTICS_JOBS=4` with the other compiler invocations at one worker.
+[Worker timings, outputs and limits](temporal-opcode-research-journal.md#selective-semantics-workers-on-the-cd77-native-self-build)
+
 **Building the compiler in Chromium.** The `8b7878c8` browser compiler
 compiled 25 units of the editable project based on `ca543287` on four
 pinned physical cores. The first request in a fresh profile took 82.73 s
