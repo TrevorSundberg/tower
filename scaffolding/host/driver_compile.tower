@@ -32,6 +32,7 @@ import .library.work_budget_types;
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
 extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 extern fn frontend_modules_swap_test_discovery(environment: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+extern fn semantic_is_test_declaration(function_node: void*): bool;
 
 struct DriverCompilation {
     request: DriverRequest*;
@@ -357,6 +358,11 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
     if count != 0 {
         var result = driver_compile_interpret(state);
         if result != 0 { return result; }
+        if request.options.test_details {
+            foreach (var node in &state.execution.program.functions) {
+                if semantic_is_test_declaration(node) { driver_compile_report(state, "test passed", sem_get(node).start); }
+            }
+        }
     }
     var summary: ByteBuffer = default;
     defer bytes_dispose(&summary);

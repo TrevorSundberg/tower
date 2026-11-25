@@ -35,6 +35,8 @@ imports without probing for siblings. The inventory command lists files.
 `--test` runs the selected blocks on the native interpreter, writes guest output
 to stdout, and reports the passing count or an empty selection on stderr.
 Compilation and execution errors return a nonzero status at the source location.
+Add `--test-details` to report each passed declaration's file, line and column
+after the selection finishes successfully.
 An explicit companion runs its own blocks with the owner's declarations available
 through ordinary imports. Put executable companion statements inside `test() {}`.
 
