@@ -102024,3 +102024,61 @@ Host 4 ran the ordinary `compiler-project.spec.mjs` desktop selection `browser r
 With the same patched selection and site assets, a private fixture served the retained stock recipe while the local oracle used the frozen ca543287 recipe. The real worker received `cb6338bf58a879af1ca0268da939efa41e6b66bdd51810c5aed7a9e5cad04894` against expected `96ffe0093bda750baf9eba95ddbe5a20616abbd63c5bcea4722e4893df855f3c`. Playwright failed at the new assertion, exit 1 in 8.390 s, reporting the text of `host/driver_link.tower` at zero-based index 389. All 25 observed worker targets retired. The evidence packet preserves both raw statuses, the failure trace and the two historical event controls. Scope ends at the browser transport acceptance. Worker-pool repair and publication belong to their respective owners.
 
 The manager verified 60 packet hashes, reconstructed the expected 563-entry map directly from sealed Pages `1ee8a6fe` and compared all 28 matching historical output hashes. The positive and stale-submission Chromium runs closed 79/79 and 25/25 workers respectively. The integrated test defaults to the recipe file in the local sealed distribution so a release-only checkout can run it. The worker ran with a byte-identical copy under the native build directory. An explicit recipe directory selects the independent compiler freeze. Node syntax, directory resolution and the positive map digest were checked on the manager; the next browser release runs the complete integrated selection on its executor.
+
+### Pre-publication Linux x64 installer for the cd77 package, November 25, 2026
+
+Host 3, assignment `742a0695-af45-4603-9dd8-8428613d1fb7`. Both producer
+archives matched their transport receipts. All twelve declared members occurred
+once and matched the staged bytes, lengths and SHA-256 values. The verified
+bundles reconstructed compiler source `cd77a1f7` and its direct child, package
+commit `a77dbf9f08d7e0c72b6a5df0318f977c4aa72ce1`, tree
+`ecdee6bdca3493450fa2b55aad2ae7fea6f47018`. All 59 package files and Git
+modes matched the reviewed archive and peer blob map. The installed inventory
+is the 57 payloads plus SHA256SUMS. The separate build provenance file
+`bootstrap/development.json` matched SHA-256
+`7f74a0d1059037678c7c7e7ff9cc4b08c583ed80732ad9d4b1892a088db830a6`.
+The 55-file `share/tower` tree is `c9c7e908ffcb76a074c7aebfe5de19cabfb2fad2`.
+The browser receipt for Pages `1ee8a6fe` concerns its 902a compiler and
+8db938f5 UI. This installer trial covers the native package.
+
+The installer pins the a77 Git paths and checksum list SHA-256
+`b72120ae8bc3e655f7f7807795d65e8ee51dc28ce11b0af03bcc06ff9e9414c3`.
+The published 902a command and prefix remain available alongside the versioned
+cd77 command. On the first trial, GNU sha256sum wrote a failure line to stdout
+while correctly refusing the older installation. Redirecting its verification
+output to stderr preserves the path-only interface. The final script is Git
+blob `c31317261358b6fdb26586d389b23b040337b36b`, SHA-256
+`22123d94bed1b5385a1fd230148d85f18a2cca4723559890ebd5904972f376a7`.
+
+UID 1001 ran the exact README command in a private Ubuntu 24.04.5 x86-64
+userspace with the retained Clang/LLVM 19.1.1 and GNU ld 2.42. The guest hosts
+file mapped the two GitHub names to 127.74.2.3. Stock curl verified a local TLS
+certificate. Nginx served the script from git cat-file and the package from git
+archive at their original paths. The access log matched all 59 expected GETs.
+The fresh install printed only the path under `$HOME/.local/Tower Dev cd77a1f7`.
+All 58 files and modes matched Git, including the 2,275,024-byte compiler.
+The distribution program printed the bytes 34 32 0a through interpretation
+and through its linked executable. Both exited 0 with empty stderr. All 18
+loader and DSO hashes matched the peer and clang and ld matched the producer.
+
+Repeating the README command fetched only the installer blob, verified in place
+and preserved file identities, modes, sizes, timestamps and user files. The
+candidate refused the valid installed 902a package with exit 1 and empty
+stdout. Its original command verified that package again. Independent corrupt
+resource and checksum-list downloads each exited 1 with empty stdout, named
+the failed file on stderr and left only the pre-existing sentinel. A bad list
+produced exactly one request. The suite returned 0.
+
+Two initial shallow Git fetches lacked prerequisite history or promised objects.
+The private main used the retained public object store and verified both bundles
+before fast-forwarding. The checkout umask 077 also affected a preliminary mode
+comparison. Git tree modes supplied the archive oracle. One intermediate guest
+setup lost the merged /bin link while unpacking network tools. Its ldd probe
+failed before execution. Restoring the Ubuntu merged-directory links and using
+another fresh home passed the complete suite. The packet retains the failed
+attempts, final commands, HTTP requests, byte comparisons and exit records.
+
+The manager's live GitHub execution follows ancestry-preserving publication.
+Host 4 owns the separate clean CMake adoption. This pin and download-path change
+used the reviewed compiler binary. Compiler performance, memory profiling and
+compiler instrumentation were outside the installer check.
