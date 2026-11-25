@@ -101,16 +101,13 @@ test('editing bedrock updates its next declarations and downstream modules while
   await openFile(page, '.tower/foundation_syntax.tower');
   const adapted = syntax.replace(/^parse /gm, 'rule ');
   await setSource(page, adapted);
-  await expect.soft(page.locator('#status')).toContainText('Complete');
+  await expect(page.locator('#status')).toContainText('Complete');
   await openFile(page, '.tower/foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await openFile(page, 'increment.tower');
   await setSource(page,"import foundation;\nrule Statement |= 'show' $value:CoreOperand ';' => replace { print($value); };\nshow 42;");
   await expect(page.locator('#status')).toContainText('Complete');
-  // Keep checking the independent undo histories if a backend rejects the edit.
-  await expect.soft(page.locator('#execution-status')).toHaveText('Finished · backends match');
-  expect.soft(await page.locator('#execution-output, #fast-output, #llvm-output').allTextContents())
-    .toEqual(['42\n', '42\n', '42\n']);
+  await expectOutput(page, '42\n');
 
   await openFile(page, '.tower/bedrock.tower');
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+z');

@@ -103196,3 +103196,15 @@ has SHA-256 `8860c9f0b550f74a36ae99b377cf1db83802113d75c019e78d114cb671d2eaf1`.
 Its `record/run-matrix.sh` identifies the commands and order. From
 `record/`, run `sha256sum -c SHA256SUMS` and `bash verify-rows.sh` to
 check the raw observations. This publication records the measurements.
+
+## 2026-11-25 — Bedrock import ownership in ordinary Chromium workers
+
+Host 2 assignment 848f6034 replayed the 4a3aa2d6 integrated source, the 64debbf8 browser fixture and the sealed 3390 product. The wrapper was installed with the open document as its lexical entry. The execution worker also passed bundled imports to the cold loader before uploading the edited project. The original ordinary matrix reproduced eight passes and two failures. The hardened assertions failed on the same two viewports.
+
+UI source f595ea02 enters .tower/foundation.tower during wrapper installation, restores the request entry on return or exception, and supplies the actual complete project before grammar installation. Canonical package/backend requests use their own source environment. The first candidate regressed Bedrock inspection with an invalid downstream import. The final language worker restored independent grammar document inspection and reproduced the sealed result byte for byte. The cold-wrapper host regression with a shadow sibling fails against the pre-fix loader and passes against the final host.
+
+All ten ordinary Bedrock desktop/mobile cells passed with zero skips or retries. Each real graph, fast and LLVM worker returned 42 after the rename, 7 on independent undo, and 29 after restoring saved invalid Bedrock. Both LLVM guest hashes were 0bfececf58b54c673a5c59b53de860b459f174fcccd67aa5c375a11ec20a0177. Retained same-wrapper edits, a removed file, a genuinely cyclic import, cold/warm failure recovery, disassembly and C/Roku source targets were checked separately. The 32 existing Foundation/worker/editor comparison cells passed on both arms. The final Node selection passed 31/31. The observed full Bedrock run separately passed 10/10.
+
+One matched short workload per Chromium process used six AB/BA pairs per portable/four-lane arm with outputs 7, 7 and 9. Portable cold/unchanged-warm medians in milliseconds were 171.35/6.85 sealed and 137.45/6.90 final. Four-lane results were 242.54/8.13 and 213.06/9.14. On a retained worker one full upload remained sufficient. Host 2 was a Ryzen 5 3600 with cpuset 0–11, quota 11.52 CPUs and cgroup memory limit 32,222,740,480 bytes. Median GNU time peak RSS in KiB was 135932/134162 portable and 144380/143308 shared. The original failing deadlines supply no performance comparison.
+
+The local candidate manifest is e2a8c61c214e77c2df8e90b87b15d723c56e42196fd67559e537fbac155d1a0f. The compiler/project/resources remain at 3390c2c8. A fresh source replay reproduced all 105 files. The assignment evidence contains original and final ordinary JSON, restorable failure traces, exact observer bytes, module ABI calls, control results, sample timings, exact overlay and separate source/journal bundles. Slot 7 owns release sealing and the manager owns publication.

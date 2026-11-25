@@ -1,30 +1,24 @@
-import { getTower, getCanonicalTower, useCompiler } from './compiler-runtime.mjs';
+import { getTower, getCanonicalSources, getCanonicalTower, useCompiler } from './compiler-runtime.mjs';
 import { runToEnd } from './tower-host.mjs';
 let queue = Promise.resolve();
-let baseline;
-function baselines() {
-  baseline ??= Promise.all(['foundation','bedrock'].map(async name => {
-    const response = await fetch('./'+name+'.tower');
-    if (!response.ok) throw new Error('Cannot load '+name+'.tower');
-    return response.text();
-  }));
-  return baseline;
-}
 self.onmessage = ({data}) => { queue = queue.then(() => receive(data)); };
 async function receive({id, method, source, cursor, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', library='.tower', compiler, pointerBytes=4}) {
   try {
     useCompiler(compiler);
-    if (['bedrock','foundation'].includes(editingModule)) {
-      const [baseFoundation, baseBedrock] = await baselines();
-      foundation = baseFoundation;
-      if (editingModule === 'bedrock') bedrock = baseBedrock;
-    }
-    const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, builtins.tower);
+    const editingGrammar = editingModule === 'bedrock' || editingModule === 'foundation';
+    const project = {entry:activePath, files, builtins, library};
+    const {tower} = method === 'highlight' || editingGrammar ? await getCanonicalTower() : await getTower(foundation, bedrock, project);
     let result;
     if (method === 'warm') {
       result = null;
     } else if (method === 'complete' || method === 'document') {
-      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library, replaceBuiltins:true});
+      if (editingGrammar) {
+        // A grammar document starts at the seed. Inspect its imports even
+        // when the project wrapper is precisely what the user is repairing.
+        const baseline = await getCanonicalSources();
+        const grammar = {...builtins, foundation:baseline.foundation, bedrock:editingModule === 'bedrock' ? baseline.bedrock : bedrock};
+        tower.configureModules({...project, builtins:grammar, replaceBuiltins:true});
+      }
       result = method === 'complete' ? tower.complete(source, cursor, {editingModule}) : tower.inspectDocument(source,{editingModule,pointerBytes});
       if (result.error) throw new Error(result.error);
     } else {

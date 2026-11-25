@@ -1,6 +1,6 @@
 import { decodeBytes } from './host-bytes.mjs';
 import { TowerWASI } from './wasi-host.mjs';
-import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
+import { configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
@@ -13,7 +13,7 @@ export async function loadLLVM(bytes, log = () => {}, bootstrap, foundation, bed
   wasi.initialize(instance);
   const modules = moduleInputs(instance.exports, {...builtins, bedrock, foundation:foundation ?? bootstrap, tower});
   if (bedrock !== undefined) configureBedrock(instance.exports, bedrock);
-  configureTower(instance.exports, foundation ?? bootstrap, modules.environment);
+  modules.installFoundation(foundation ?? bootstrap);
   const e = instance.exports, decoder = new TextDecoder();
   function string(pointer) {
     const memory = new Uint8Array(e.memory.buffer), end = memory.indexOf(0, pointer);

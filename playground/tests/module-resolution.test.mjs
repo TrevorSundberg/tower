@@ -35,6 +35,28 @@ test('reused host replaces a complete project library without retaining removed 
   } finally {compiler.close();}
 });
 
+test('cold wrapper imports use the project files and restore the active entry after a failed install',async () => {
+  const wrapper = grammar.foundation + '\nimport extension;';
+  const files = [
+    file('.tower/extension.tower', "import foundation_syntax; parse Statement |= 'answer' ';' => replace { print(17); };"),
+    file('nested/extension.tower', 'import absent;'),
+    file('nested/sibling.tower', 'import foundation; answer;'),
+  ];
+  const compiler = await loadTower(wasm,undefined,wrapper,undefined,grammar.bedrock,{
+    builtins:grammar, tower:grammar.tower, project:{entry:'nested/main.tower', library:'.tower', files},
+  });
+  function executeSibling() {
+    const handle = compiler.compile('import sibling;');
+    try { return compiler.execute(handle); }
+    finally { compiler.destroyExecution(handle); }
+  }
+  try {
+    assert.equal(executeSibling().output,'17\n');
+    assert.throws(() => compiler.configure(wrapper + '\nimport absent;'), /Cannot read imported module: absent/);
+    assert.equal(executeSibling().output,'17\n');
+  } finally { compiler.close(); }
+});
+
 test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () => {
   const compiler = await host();
   const files = [
