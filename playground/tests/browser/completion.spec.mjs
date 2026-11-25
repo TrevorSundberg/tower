@@ -215,3 +215,41 @@ test('a slow first worker load does not let speculation discard the visible comp
   await page.keyboard.press('Tab');
   await expect(page.locator('#editor .cm-line')).toHaveText(['import tower;', 'print']);
 });
+
+test('returning to a file reuses the idle language worker with the edited project inputs', async ({page}) => {
+  await page.addInitScript(() => {
+    const workers = new Map(), post = Worker.prototype.postMessage;
+    window.documentReplies = [];
+    Worker.prototype.postMessage = function(request, ...args) {
+      if (request?.method === 'document') {
+        if (!workers.has(this)) workers.set(this, workers.size + 1);
+        const receive = ({data}) => {
+          if (data.id !== request.id) return;
+          this.removeEventListener('message', receive);
+          if (data.result) window.documentReplies.push({
+            worker:workers.get(this), path:request.activePath, source:request.source, files:request.files,
+          });
+        };
+        this.addEventListener('message', receive);
+      }
+      return post.call(this, request, ...args);
+    };
+  });
+  await openEditor(page);
+  const entry = await page.locator('#filename').innerText();
+  await page.waitForFunction(path => window.documentReplies.some(r => r.path === path), entry);
+  const first = await page.evaluate(() => window.documentReplies.at(-1));
+  const other = 'independent.tower';
+  page.once('dialog', dialog => dialog.accept(other));
+  await page.locator('#new-file').click();
+  await page.waitForFunction(path => window.documentReplies.some(r => r.path === path), other);
+  const text = 'import tower; var x: i32 = 73;';
+  await source(page, text);
+  await page.waitForFunction(text => window.documentReplies.some(r => r.source === text), text);
+  await selectDocument(page, entry);
+  await page.waitForFunction(({entry, other, text}) => window.documentReplies.some(r =>
+    r.path === entry && r.files.some(file => file.path === other && file.text === text)), {entry, other, text});
+  const last = await page.evaluate(() => window.documentReplies.at(-1));
+  expect(last.worker).toBe(first.worker);
+  expect(last.source).toBe(first.source);
+});
