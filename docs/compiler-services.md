@@ -224,6 +224,17 @@ each built a fresh semantic graph with 248 tasks and 350 dependency edges.
 Both reused the two unchanged import-arm snapshots. A separate instrumented
 run observed two overlapping semantic workers. The [retained-edit measurements](temporal-opcode-research-journal.md#semantic-work-after-an-unrelated-retained-source-edit)
 identify which grammar installation dominated the edited request.
+
+An import reader in a bound module environment can borrow the grammar of its
+first import from the active root parser. Both modules must belong to the same
+request graph and resolve their first import to the same grammar-bearing module.
+The root's cached build key must match the reader's world, Bedrock revision,
+ordered rule names, per-rule alternative entities and ordered token entities.
+Formatting and bootstrap readers keep their own installation paths. A match
+gives the reader an owning reference in its usual active-version slot. The
+lender may subsequently discard its cache while the reader finishes. A miss
+uses ordinary installation. This lookup adds no cache entry, budget reservation
+or executable syntax owner to the environment.
 WorkGraph revision/profile/dispatch receipt validation remains a separate contract:
 `work_reset` requires drained terminal tasks and a new identity, and rejects a
 cancelled graph. `frontend_units_source` rejects started/finished batches;

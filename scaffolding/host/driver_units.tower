@@ -13,8 +13,6 @@ import .library.vector;
 import .library.work_pool;
 import .library.bytes_types;
 import .library.bytes_interface;
-import .compiler.semantic_program_types;
-import .compiler.foundation_types;
 
 extern fn frontend_units_create_adaptive(count: usize, budget: usize, retained_bytes: usize, width: u32, revision: u64,
     profile: u64, bedrock: u8*, foundation: u8*, library: u8*): void*;
@@ -25,11 +23,11 @@ extern fn frontend_units_failed(batch: void*): usize;
 extern fn frontend_units_cancelled(batch: void*): bool;
 extern fn frontend_units_error(batch: void*): u8*;
 extern fn frontend_units_error_offset(batch: void*): usize;
-extern fn frontend_units_program(batch: void*, ordinal: usize): SemanticProgram*;
 extern fn frontend_units_close(batch: void*): void;
 extern fn backend_units_create(frontend: void*, count: usize, budget: usize, target: u8*, library: bool, optimize: bool): void*;
 extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
-extern fn backend_units_one_shot(batch: void*): bool;
+extern fn backend_link_symbol(backend: void*, index: usize, external: bool*, exported: bool*): u8*;
+extern fn backend_units_link_only(batch: void*): bool;
 extern fn backend_units_step(batch: void*, wait: bool): bool;
 extern fn backend_units_failed(batch: void*): usize;
 extern fn backend_units_cancelled(batch: void*): bool;
@@ -138,7 +136,7 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
     // one ready graph and pool; a completed unit can advance immediately.
     batch.backend = backend_units_create(batch.frontend, count, budget, options.target, true, options.optimize);
     if batch.backend == null || !backend_units_library(batch.backend, 1, false)
-        || !backend_units_one_shot(batch.backend) {
+        || !backend_units_link_only(batch.backend) {
         driver_error("Unable to create backend units: check --unit-retained-bytes and allocation capacity", ""); return 1;
     }
     while !backend_units_step(batch.backend, true) { }
@@ -165,12 +163,14 @@ fn driver_units_compile(request: DriverRequest*, timing: DriverTiming*): i32 {
         var ordinal = i + 1;
         var rule = i == 0 ? DriverDepfileRule.Executable : DriverDepfileRule.AdditionalUnit;
         if !driver_depfile(request, frontend_units_environment(batch.frontend, ordinal), output, rule) { return 1; }
-        var program = frontend_units_program(batch.frontend, ordinal);
         var backend = backend_units_result(batch.backend, ordinal);
-        for (var f: usize = 1; f < program.functions.length; f++) {
-            var function = sem_get(program.functions.data[f]);
-            if function.external { driver_link_import(link, backend_function_name(backend, f)); }
-            if function.exported { driver_link_export(link, backend_function_name(backend, f)); }
+        for (var f: usize = 1; ; f++) {
+            var external = false;
+            var exported = false;
+            var name = backend_link_symbol(backend, f, &external, &exported);
+            if name == null { break; }
+            if external { driver_link_import(link, name); }
+            if exported { driver_link_export(link, name); }
         }
         if i != 0 {
             var object: ByteBuffer = default;
