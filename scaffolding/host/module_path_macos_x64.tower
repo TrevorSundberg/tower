@@ -1,0 +1,10 @@
+import tower;
+import module_path_directory;
+
+// Intel Darwin selects the 64-bit dirent layout through both symbol names.
+extern fn `opendir$INODE64`(path: u8*): void*;
+extern fn `readdir$INODE64`(directory: void*): void*;
+
+export fn module_path_component(path: u8*, start: usize): bool {
+    return directory_component_matches(path, start, `opendir$INODE64`, `readdir$INODE64`);
+}

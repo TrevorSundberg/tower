@@ -42,9 +42,10 @@ fn bootstrap_symbol_in(names: u8*, symbol: u8*, length: usize): bool {
     return false;
 }
 
-fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symbol: u8*, length: usize): bool {
+fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, macos_x64: bool, symbol: u8*, length: usize): bool {
     // The leading underscore is part of each Windows CRT function name.
     if windows && unit == BootstrapUnit.Host && bootstrap_symbol_in("_findfirst64 _findclose", symbol, length) { return true; }
+    if macos_x64 && unit == BootstrapUnit.Host && bootstrap_symbol_in("_opendir$INODE64 _readdir$INODE64", symbol, length) { return true; }
     // Mach-O/COFF/Wasm spellings may prefix underscores. Preserve the previous
     // check's normalization, including __stack_pointer and __memory_base.
     while length != 0 && *symbol == convert(u8, SymbolByte.Underscore) { symbol++; length--; }
@@ -88,9 +89,10 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
             || bootstrap_symbol_in("entity_component_data entity_component_get semantic_float semantic_width semantic_type_equal sem_require", symbol, length);
     }
     if unit == BootstrapUnit.Host {
+        var directory_calls = macos_x64 ? "closedir" : "closedir opendir readdir";
         return bootstrap_symbol_in("malloc realloc free tower_allocate abort bytes_reserve bytes_push bytes_append bytes_dispose tower_utf8_validate", symbol, length)
             || bootstrap_symbol_in("fopen fread fwrite ferror feof fclose strcmp", symbol, length)
-            || (!windows && bootstrap_symbol_in("closedir opendir readdir", symbol, length));
+            || (!windows && bootstrap_symbol_in(directory_calls, symbol, length));
     }
     if unit == BootstrapUnit.Entities {
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free", symbol, length) { return true; }
@@ -233,6 +235,8 @@ fn bootstrap_symbols_check(unit: BootstrapUnit, target: u8*, input: BootstrapSym
     *rejected = default;
     if unit == BootstrapUnit.Unknown { return false; }
     var windows = strstr(target, "windows") != null;
+    var macos_x64 = strstr(target, "x86_64-") == target
+        && (strstr(target, "-apple-macos") != null || strstr(target, "-darwin") != null);
     var wasm = strstr(target, "wasm32-") == target || strstr(target, "wasm64-") == target;
     var at: usize = 0;
     while at < input.length {
@@ -245,7 +249,7 @@ fn bootstrap_symbols_check(unit: BootstrapUnit, target: u8*, input: BootstrapSym
         if end == begin { continue; }
         begin = end;
         while begin != 0 && !bootstrap_symbol_space(input.data[begin - 1]) { begin--; }
-        if !bootstrap_symbol_allowed(unit, windows, wasm, input.data + begin, end - begin) {
+        if !bootstrap_symbol_allowed(unit, windows, wasm, macos_x64, input.data + begin, end - begin) {
             // Borrowed view into input, never a separately owned buffer.
             *rejected = init(BootstrapSymbol) { data: input.data + begin, length: end - begin };
             return false;

@@ -1,0 +1,42 @@
+import tower;
+
+extern fn closedir(directory: void*): i32;
+
+extern fn strcmp(a: u8*, b: u8*): i32;
+
+extern fn module_dirent_name(entry: void*): u8*;
+
+fn directory_component_matches(path: u8*, start: usize, open_directory: function(void*, u8*), read_entry: function(void*, void*)): bool {
+    var directory: u8* = ".";
+    var cut: usize = 0;
+    if start != 0 {
+        directory = path;
+        cut = start - 1;
+        if cut == 0 {
+            directory = "/";
+        }
+        else {
+            path[cut] = 0;
+        }
+    }
+    var handle = open_directory(directory);
+    if cut != 0 {
+        path[cut] = 47;
+    }
+    if handle == null {
+        return false;
+    }
+    var found: bool = false;
+    loop {
+        var entry = read_entry(handle);
+        if entry == null {
+            break;
+        }
+        if strcmp(module_dirent_name(entry), path + start) == 0 {
+            found = true;
+            break;
+        }
+    }
+    closedir(handle);
+    return found;
+}
