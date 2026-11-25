@@ -100376,3 +100376,20 @@ both output contracts and supplies no speedup estimate. Compiler runtime,
 native Windows linking and execution are outside this verifier change.
 Evidence packet `9b7dede8-af3f-48ca-b2b4-6b540b5ce6ce` retains input
 identities, immutable trees, commands, raw reports, statuses and artifacts.
+
+### Diagnosing a damaged checkout bootstrap, November 25, 2026
+
+A one-byte edit to share/tower/types.tower made build-bootstrap.sh exit 1
+without printing which file failed verification. Build callers take the
+compiler path from stdout. The selector now sends the GNU checksum report
+to stderr and suppresses the successful member lines.
+
+Independent worker receipt 587b98dc-f8a1-475a-8d2f-042a17d1029c exercised
+the public package and a relocated Linux x64 development candidate. Missing
+and modified resources exited 1, named the affected path on stderr and left
+stdout empty. With --tools, the failure occurred before LLVM or CMake ran.
+Pristine and restored packages returned the compiler path. An explicit
+executable path containing spaces also passed through command substitution.
+The healthy path checks the same files once and selects the same compiler.
+The published compiler, package and browser assets retain their recorded
+build provenance.

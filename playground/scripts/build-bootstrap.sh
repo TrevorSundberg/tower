@@ -11,7 +11,7 @@ if [ -n "${TOWER_BOOTSTRAP_COMPILER:-}" ]; then
   test -x "$TOWER_BOOTSTRAP_COMPILER"
   bootstrap="$TOWER_BOOTSTRAP_COMPILER"
 else
-  (cd "$repo/bootstrap/linux-x64" && sha256sum --check --status SHA256SUMS)
+  (cd "$repo/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS >&2)
   bootstrap="$repo/bootstrap/linux-x64/towerc"
   test -x "$bootstrap"
 fi
