@@ -745,7 +745,17 @@ fn format_statement_body(f: FormatEngine*, entity: void*): void {
             format_text(f, "var ");
             format_identifier(f, &n.name);
             format_text(f, ": type = ");
-            format_type(f, &n.type);
+            if n.type.pointers != 0 {
+                // The initializer is a value. A postfix star is legal inside
+                // the constructor's type argument, including for deeper pointers.
+                var pointee = n.type;
+                pointee.pointers--;
+                format_text(f, "pointer_type(");
+                format_type(f, &pointee);
+                format_text(f, ")");
+            } else {
+                format_type(f, &n.type);
+            }
             format_text(f, ";");
             return;
         }

@@ -100273,3 +100273,22 @@ Host 1 then combined compiler 902a358f with UI 8db938f5. The manager replayed bo
 Receipt 08306358 tested successor change c9e9f185 and added the nullable-prefix regression b48e7191. The independent eight-rule oracle checks an imported grammar revision while the old emission remains live. A deliberately premature fixed point fails the test. The manager checked all 220 process timing and RSS records and the serial budget refusal at 68059387 bytes versus success at 68059388. On host 3 with CPU 24 and quota 12.288 CPUs, median paired savings across twelve pairs were 4 ms on 16 functions, 7.5 ms on 1000 functions, and 3 and 7 ms on two imported grammar edits. Peak requested bytes were unchanged. Four-worker wall results on CPUs 24–27 were within the identical-stock control variation. The production change and regression are accepted for the next source freeze. The 902a candidate contains the earlier grammar emission code.
 
 Receipt 507b4739 measured actual downstream dependency work on host 5, four distinct cores under a 30.72-CPU quota. The manager checked 360 ordinary compile measurements with byte-identical objects, executables, canonical programs and guest results across widths. For the larger proportional fork, jobs one/two/four produced median object times of 437.5/357.5/326.0 ms and maximum RSS of 139368/141208/143320 KiB. The measured capture wait was at most 213 microseconds; moving it earlier did not justify changing coordinator order. The untouched type-construction fixture independently exposed a formatter/reparse failure at all three widths. The native guest printed 0; emitted Foundation contained a pointer-type initializer at line 223 that failed to parse. Receipt 6471ecb2 owns the minimized regression and repair. This result narrows the round-trip coverage of the release.
+
+### 2026-11-25 — Foundation pointer alias initializer
+
+Host 5 reproduced the failure from receipt `507b4739` on the 902a358f Linux
+development pin. All three retained emissions matched. A bare trailing star in
+a module alias initializer reaches the binary expression grammar. In a type
+argument the same star is legal. Replacing just line 223 with
+`var ConstructedPointer: type = pointer_type(ConstructedRecord);` let the
+entire 19,255-byte fixture emission reparse and print 0. The nested pointer
+argument in the later array alias already reparses. The standalone
+`type_value(ConstructedRecord*)` expression is supported in an ordinary value
+binding, but the module alias checker diagnoses it as an unknown constructor.
+The existing pointer constructor resolves its operand as a type.
+
+The body continuation fixture now binds its existing recursive record pointer
+through a module alias. The retained native type-smoke runner failed on the
+canonical reparse with the original missing-operand diagnostic. The formatter
+now prints the outermost pointer constructor only at this alias boundary and
+passes the pointee descriptor to its usual type formatter.
