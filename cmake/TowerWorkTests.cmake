@@ -150,61 +150,24 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
 endif()
 if(TARGET towerc)
+  set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
+    type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known)
   foreach(workers IN ITEMS 1 4)
-    add_test(NAME tower-generation-layout-frontier-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generation_layout_frontier.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-generation-layout-frontier-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "42")
-    add_test(NAME tower-generic-cast-inference-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_cast_inference.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-generic-cast-inference-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "42")
-    add_test(NAME tower-generic-pointer-alias-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_pointer_alias.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-generic-pointer-alias-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "true")
-    add_test(NAME tower-type-return-dependencies-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/type_return_dependencies.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-type-return-dependencies-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8")
-    foreach(fixture IN ITEMS type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known)
-      add_test(NAME tower-${fixture}-${workers}
-        COMMAND $<TARGET_FILE:towerc>
-          "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}.tower"
-          --interpret --jobs ${workers}
-          --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-          --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-      set_tests_properties(tower-${fixture}-${workers} PROPERTIES PASS_REGULAR_EXPRESSION "42")
-    endforeach()
-    set_tests_properties(tower-type_numeric_composition-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "42[\r\n]+7[\r\n]+8[\r\n]+12[\r\n]+9")
-    set_tests_properties(tower-numeric_wrapper_minimal-${workers} PROPERTIES
-      PASS_REGULAR_EXPRESSION "42[\r\n]+8[\r\n]+true")
-    foreach(fixture IN ITEMS decltype_type_fields alias_type_query_controls module_loop_queries module_header_capture_controls
-        named_initialization_test)
-      add_test(NAME tower-${fixture}-${workers}
+    foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
+        module_header_capture_controls named_initialization_test)
+      string(REPLACE "-" "_" fixture "${name}")
+      set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}")
+      set(expected)
+      if(name IN_LIST output_cases)
+        set(expected "-DTOWER_EXPECTED=${input}.expected")
+      endif()
+      add_test(NAME tower-${name}-${workers}
         COMMAND "${CMAKE_COMMAND}"
           "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"
-          "-DTOWER_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}.tower"
+          "-DTOWER_INPUT=${input}.tower"
           "-DTOWER_WORKERS=${workers}"
           "-DTOWER_RESOURCES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
-          -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestZeroOutput.cmake")
+          ${expected} -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestOutput.cmake")
     endforeach()
   endforeach()
 endif()
