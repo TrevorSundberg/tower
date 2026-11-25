@@ -99968,3 +99968,71 @@ Address- and thread-sanitizer configurations likewise changed one compiler
 argument. The first standalone sanitizer configure lacked the LLVM bin path.
 Repeating it with the documented native script's PATH resolved clang.
 These last checks validate generated commands only.
+
+### 2026-11-25 · Retire one-shot grammar baselines at the joined backend receipt
+
+Host 5 measured the ordinary 13-unit executable path on integrated
+`fb019f61` (tree `3a47d3d5cd6a5616262f7dab19c5dfe5d56fe1d8`).
+The independent stock Release build matched the producer's executable byte for
+byte. Before changing ownership, a serial stage meter and optimized stock
+debugger traces recorded each frontend's incremental peak and retained bytes,
+the backend join, and final destruction by owner. Uneven ordinal 2 retained
+20,297,625 frontend bytes. After its semantic root went away at batch close,
+the grammar baseline registry released 2,726,003 bytes, the same late-close
+value at all thirteen uneven ordinals.
+
+`driver_units_compile` still reads module dependency names and semantic
+function flags after the batch joins. Diagnostics use source snapshots and
+module positions. The linker consumes the retained backend names and objects.
+The one-shot driver now requests early grammar baseline retirement on its
+streaming backend batch. The coordinator accepts a successful receipt and its
+charged output, closes that unit's own view, and invokes the ordinary disposer
+when the world is unpinned and grammar workers have joined. The generic
+frontend and backend APIs retain their existing lifetime. A native regression
+holds an additional view on one world, verifies its cache survives, and checks
+that another unit can lose its baselines while exposing its program and object.
+The original pilot lacked this external-view guard. Its first build required
+an explicit declaration for the node-to-world accessor.
+
+The checked invoice and skew inputs used identical launch paths, ledger.o,
+native resources and Debian LLVM 19 tooling. Both arms used one warm host,
+the same twelve physical Ryzen 9 5900XT cores (CPUs 1–12), a 256 MiB cap,
+and fresh observer-off compiler processes. Each viable shape and width has
+six paired trials in counterbalanced order. No cgroup throttling occurred.
+Mean wall milliseconds and process peak RSS MiB were:
+
+| Input | Jobs | Wall, stock → early release | RSS, stock → early release |
+|---|---:|---:|---:|
+| Small | 1 | 2422 → 2386 | 218 → 188 |
+| Small | 4 | 1725 → 1558 | 439 → 411 |
+| Small | 8 | 1782 → 1612 | 512 → 487 |
+| Uneven | 1 | 3102 → 3053 | 240 → 210 |
+| Uneven | 4 | 1977 → 1918 | 483 → 446 |
+| Uneven | 8 | 2067 → 1969 | 525 → 501 |
+| Skew | 1 | 2512 → 2477 | 233 → 204 |
+| Skew | 4 | 1210 → 1184 | 384 → 361 |
+
+Two pairs and a separate trace at skew/jobs 8 exhausted the hard ledger on
+both arms. The process produced no ELF or depfile. This path remains a capacity
+limit. The change returned 29,083,524 charged bytes before close on small and
+uneven, and 29,055,682 on skew. Serial peak charge fell about 25.6 MiB. Seven
+of eight viable separately traced peaks fell. Small/jobs 4 rose 2.32 MiB on
+its observed schedule despite the same owner release. At eight jobs mean CPU
+rose 2.0% on small and 1.3% on uneven. The serial owner attribution, physical
+RSS, total CPU and observer-off wall answer different questions.
+
+All successful measured outputs matched the complete stock ELF, exports,
+thirteen dependency rules and guest output. Both arms produced the same
+ordinal-2 malformed-source diagnostic at jobs 1/4/8. Both charged the actual
+1,101,224-byte object in the large-output control. Reproduction uses the
+normal Release build and `tower-lr-work-tests scaffolding backend`. Assignment
+`a66fde9e-6f47-41c5-9dba-0aeaabb7999a` retains the exact commands, all
+failures, per-ordinal traces, CPU/RSS/charge tables and raw outputs.
+
+The ordinary backend and frontend-unit suites passed. The backend suite and
+packaged four-job small invoice also passed with leak-detecting ASan and with
+initialized TSan on instrumented parser, backend and driver objects. TSan
+required startup retries on this host. Suppressing retirement or bypassing
+the independent-view check in a private test process triggered the respective
+regression assertion. A relocated packet replay reproduced both compiler
+outputs. Validation covers the native Linux path tested here.

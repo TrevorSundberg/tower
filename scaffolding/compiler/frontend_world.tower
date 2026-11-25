@@ -98,6 +98,14 @@ export fn frontend_world_pattern_result(world: void*, source: u8*, length: usize
     return frontend_pattern_read_result(bits(FrontendPatternCompiler*, cache.patterns), source, length, error, resource_error);
 }
 
+// The executable driver has consumed the grammar for this unit. A surviving
+// view or worker keeps the baselines until normal world teardown.
+export fn frontend_world_retire_baselines(world: void*): void {
+    if !compiler_world_pinned(world) && !compiler_world_grammar(world).workers_busy {
+        syntax_baselines_clear(world);
+    }
+}
+
 // Coordinator operation after requests join. A pin rejects reset without
 // changing either cache. Retained outputs remain valid and block world disposal.
 export fn frontend_world_clear(world: void*): bool {
