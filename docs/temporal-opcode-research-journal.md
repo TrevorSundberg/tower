@@ -100828,3 +100828,51 @@ has SHA-256 `8860c9f0b550f74a36ae99b377cf1db83802113d75c019e78d114cb671d2eaf1`.
 Its `record/run-matrix.sh` identifies the commands and order. From
 `record/`, run `sha256sum -c SHA256SUMS` and `bash verify-rows.sh` to
 check the raw observations. This publication records the measurements.
+
+## Native multi-unit scaling and memory on 4a3aa2d6
+
+Host 1 compared the relocated public Linux x64 package `902a358f` and
+candidate `4a3aa2d6` through the ordinary native driver. Both used LLVM
+and Clang 19.1.1, explicit ledger.o and the default 268435456-byte shared
+compiler budget. The same_import invoice has 13 uneven units. The large
+invoice has 37 independently compiled units. Each linked guest ran against
+the retained output. The compiler used CPUs 0–7, eight physical Xeon Gold
+6244 cores sharing a last-level cache, under a 15.36-CPU quota. The memory
+sampler used CPU 15. There were 12 unscored warmups and four counterbalanced
+blocks with one timing workload at a time. All 60 runs recorded zero added
+throttling. These are fresh processes using warmed filesystem inputs.
+
+Times are four-run means in seconds. RSS figures are maxima across those
+four scored runs, in MiB. The process-tree sampler averaged 26.8–27.3 ms
+between observations. Each ledger peak is from a separate observer run.
+
+| Invoice | Jobs | Public wall | Candidate wall | Candidate user / system CPU | Candidate compiler / sampled tree RSS | Candidate peak ledger |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| 13 units | 1 | 4.465 | 4.148 | 4.01 / 0.13 | 148 / 239 | 65.38 |
+| 13 units | 4 | 2.110 | 1.945 | 5.45 / 0.35 | 200 / 261 | 85.75 |
+| 13 units | 8 | Capacity failure | 2.163 | 8.30 / 1.70 | 272 / 313 | 115.24 |
+| 37 units | 1 | 10.195 | 9.238 | 8.93 / 0.30 | 236 / 326 | 135.69 |
+| 37 units | 4 | 7.600 | 4.468 | 14.07 / 1.08 | 300 / 341 | 160.66 |
+| 37 units | 8 | 8.040 | 4.748 | 22.23 / 6.35 | 396 / 397 | 187.12 |
+
+Four workers delivered 2.13× and 2.07× the candidate's serial speed on
+the skewed and independent inputs respectively, using ratios of mean elapsed
+times. Eight workers lost to four in every paired block. At four workers
+the public package reached 413 / 508 MiB of compiler / sampled tree RSS
+on the skewed invoice and 807 / 902 MiB on the independent invoice. At
+eight workers the public skewed build failed in each scored run and the
+warmup with the semantic memory budget diagnostic. None left a partial
+executable, depfile or temporary. The candidate completed all widths.
+The ledger measures resources charged to it. The RSS observations include
+other resident memory, including the external toolchain in the tree sample.
+
+The manager checked all 1,705 manifest hashes, the raw clock, CPU, peak RSS
+and status rows for all 60 runs, and the bytes printed by all 55 successful
+guests. Both versions reproduced the reference executable, exports and
+ordered depfile on success. Each of the eleven successful object captures
+reproduced its 13 or 37 reference objects. All twelve observed ledger closes
+had zero outstanding bytes, grants and lanes, including the public refusal.
+Receipt `c666b528-1f21-42aa-87a2-80e41298f5c6` has archive SHA-256
+`49b85741a3393d15be603b61cf7786e51c0788c8717d0baea027fee45c127429`.
+The packet includes the input hashes, commands, raw runs, ordered object
+inventories and separate ledger observations.
