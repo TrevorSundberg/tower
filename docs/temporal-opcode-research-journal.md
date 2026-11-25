@@ -100330,3 +100330,57 @@ checksum inventory and the compiled and interpreted sample outputs.
 Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` records those results.
 Only documentation changed. Runtime timings and peak memory do not apply
 to this change.
+## 2026-11-25 — Move the call-query fixture to its only caller
+
+On host 3, the strict Windows x64 Interpreter check again rejected
+`__chkstk` on the reviewed successor tree
+`1fca47701b494e34f475c4777937216601b3bc79`. The preserved COFF bytes
+were identical on 9ab and the replacement-cache successor. The one REL32
+relocation is at 0x11a52 in `call_query_tests`. Its prologue loads 0x18e8
+into EAX, calls the stack probe, then subtracts RAX from RSP. The unwind
+record gives the same 6,376-byte frame. Optimized IR contains eight
+1,432-byte invocation/probe locals from the fixture and its inlined helpers.
+
+The only caller is `evaluation_query_tests`. The query-checks object already
+owns this optional suite on work-test, parser-only and browser configurations.
+It now imports `interpreter_call_query` directly. Removing the fixture
+from the three Interpreter and two Evaluation entry modules leaves its
+existing assertions with the test runner. On Windows the release Interpreter
+object shrank from 165,265 to 105,327 bytes and its undefined list from 57
+to 39 names. All 68 production external definitions were retained. The
+fixture was the sole removed external definition. The existing module policy
+then accepted the complete report. On Linux an all-original link reproduced
+the reviewed compiler; swapping only Interpreter reduced the executable
+from 2,321,128 to 2,274,480 bytes. The rebuilt native query-smoke selector
+passed 32- and 64-bit pointer models at one and four workers.
+
+Applying code commit `ecc8924c` to the reviewed successor gives tree
+`13d868070718ea94911989f204e0c899320c7af7`. The unchanged unfiltered
+comparison finished all 28 unit/target pairs, including Windows and Darwin
+Interpreter, all Semantics targets and explicit/missing Foundation inputs.
+The two compilers agreed on every optimized IR and object byte. The new
+Windows query-checks object still contains a real stack probe in its
+6,392-byte call-query frame. A partial Wasm link joined the query object
+to the browser Interpreter. Reinjecting the probe into the release COFF's
+undefined report still produced the original refusal.
+
+The Tower PE service linked the ordinary 64 KiB stack fixture. External
+LLD rejected the same fixture's unresolved probe with the Windows runtime
+and kernel32 import library, then linked after adding Tower's generated
+190-byte import archive. Both actual PE import tables name
+`kernelbase.dll!__chkstk`. Windows runtime execution was unavailable here.
+The host fixture-tool link initially lacked the compiler buffer services.
+The retained compiler-memory archive and UTF-8 object supplied them.
+
+Two counterbalanced pairs per 16/1,000-function input and jobs 1/4 matched
+all canonical objects, linked ELFs and native outputs (15/999). Mean wall
+times before/after on cores 24–27 were 280/290, 330/340, 525/520 and
+560/570 ms respectively. These small samples support output equivalence;
+they give no stable compiler speedup. Packet
+`8438d34c-4924-4657-af71-287a3a8bc3e9` retains the commands, target
+artifacts, provider archive, measured resource use and failing controls.
+
+The same native query suite passed ASan/LSan in 59.04 s. An initialized
+TSan run hit the selector's 180 s deadline (exit 124). The identical binary
+completed in 182.53 s with a 480 s direct-run allowance, exit 0 and no
+reported race. The original timeout and both resource receipts are retained.
