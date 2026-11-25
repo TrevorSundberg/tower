@@ -101149,3 +101149,34 @@ and 68,745,097 for the skewed one, stock compiled and linked successfully.
 The trial exhausted its budget in both cases, including with the order
 reversed. All ledgers closed. Receipt `2735eadf-f0cf-402b-b55c-3f858b32a5f3`
 contains the raw runs, capacity controls and rejected change.
+
+## Full editable compiler Build at one and two browser workers
+
+The ordinary Build button submitted all 569 compiler project documents
+from `be4bc2d6`, compiled 25 units and linked the Tower, LLVM and
+cross-target Wasm reactors.
+Two Chromium profiles reversed run order on four physical Xeon E5-2680 v4
+cores (CPUs 0–3, effective quota 11.52 CPUs, zero throttles). The generator
+and every source byte were held fixed. Each cell is one full build with
+warm filesystem inputs. A fresh profile starts a new browser session. The
+retained runs restored the original generator in the open page.
+
+| Profile | Actual lanes | Elapsed s | Browser-family CPU s | Sampled whole-tree peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Fresh | 1 | 123.71 | 153.38 | 2,591,276 |
+| Fresh | 2 | 71.95 | 158.00 | 2,685,944 |
+| Retained | 1 | 126.20 | 158.39 | 2,477,520 |
+| Retained | 2 | 72.50 | 162.03 | 2,588,920 |
+
+The two-lane builds overlapped unit compilation for 58.80 and 60.18 seconds.
+All four builds recompiled every unit. The coordinator's two-lane limit
+applied even when it observed four CPUs. These samples establish a 1.72×
+fresh and 1.74× retained speedup for this whole compiler on this host.
+
+Editing a diagnostic changed one of the 25 objects, `compiler-semantics.o`,
+and all three linked reactors. The edited message appeared in the editor.
+Restore reproduced all 28 original product hashes. Each active compiler
+printed exactly 42 plus LF and returned the native reference's 1,407 bytes
+of canonical Foundation. Receipt `80a50621-445d-4fdb-8c00-57cd8f90ac22`
+contains the per-worker intervals, product identities, process samples and
+guest checks. This was a compiler build qualification on the named source.
