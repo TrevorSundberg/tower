@@ -277,6 +277,15 @@ function(tower_lr_work_policy_test)
       COMMAND "$<TARGET_FILE:tower-semantic-layout-profile>"
       DEPENDS tower-semantic-layout-profile USES_TERMINAL VERBATIM)
 
+    tower_runtime_object(layout-frontier-profile
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/layout_frontier_profile.tower" "${triple}")
+    add_executable(tower-layout-frontier-profile ${sources} "${layout-frontier-profile_OBJECT}" "${profile_runtime}")
+    set_target_properties(tower-layout-frontier-profile PROPERTIES LINKER_LANGUAGE CXX)
+    target_link_libraries(tower-layout-frontier-profile PRIVATE ${libraries})
+    target_link_options(tower-layout-frontier-profile PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+    add_test(NAME tower-layout-frontier-smoke COMMAND tower-layout-frontier-profile smoke)
+    set_tests_properties(tower-layout-frontier-smoke PROPERTIES TIMEOUT 30 LABELS "native;focused")
+
     # These entries own main and use the production compiler closure directly.
     # No instrumented allocator, serial override or test-only named callback.
     foreach(unit IN ITEMS frontend_units module_cache frontend_storage)

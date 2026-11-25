@@ -28,9 +28,11 @@ compiler discovers the companion, runs its helpers, and reports that same failur
 
 ### Findings to carry into migration
 
-- A manual run of `layout_frontier_profile warm` failed the layout reference
-  check on Host 1. The standalone link recipe and the failing comparison need
-  verification. The native SCC result above came from a separate run.
+- The original `layout_frontier_profile warm` failed when its zero-byte budget
+  denied the first 24-byte scratch request. The repaired fixture checks the
+  live scratch and worker reservations, independently calculated field offsets,
+  and zero remaining reservations after teardown. The native backend and work
+  test profile registers its bounded check as `tower-layout-frontier-smoke`.
 - Five entries in the second native table have unresolved automatic registration:
   `narrow_foreign_library.tower`, `sanitizer_memory_probe.tower`,
   `token_text.tower`, `work_graph_scale.tower` and `work_view_invalid_dispose.tower`.
