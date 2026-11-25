@@ -100634,3 +100634,27 @@ matrix. GNU time recorded elapsed, CPU and maximum process RSS for each
 batch. Failed assertions waited for their deadlines in the baseline, so
 the elapsed difference cannot measure runtime speedup. The compiler and
 browser application bytes were reused throughout.
+
+### Bedrock edits in a project that imports Foundation
+
+The Increment example exercises the import chain from a guest through
+Foundation and its syntax module to Bedrock. Three repaired browser tests
+use that project. Editing Bedrock's whitespace and identifier rules allowed a
+guest using tilde separators and a hyphenated name to print 42 on the graph,
+fast and LLVM backends. A malformed Bedrock edit survived a reload alongside
+the original Foundation and saved guest. All three output panes stayed empty
+until Restore. The saved guest then printed 29 on each backend. The identifier
+test checks the first rejected token in each affected document.
+
+On the public `902a358f` and sealed `3390c2c8` products, the original file
+passed two of ten desktop/mobile cases per product. The revised file passed
+eight of ten on each, without skips or retries. This change publishes the
+three repaired tests from `2b4ba748`. The existing file-list case also passed.
+Packet `fc8ec604` includes the complete ordinary runs and a separate
+regression at `64debbf8` for the outstanding keyword-renaming case. On both
+viewports the parser reported a cycle when installing Foundation while its
+syntax library was selected. Execution workers loaded the old syntax before
+mounting the project imports. Replaying the captured guest with the edited
+imports installed first produced 42 on all three backends. The regular editor
+still failed that case. These test changes used fixed product assets and
+supply no compiler performance comparison.
