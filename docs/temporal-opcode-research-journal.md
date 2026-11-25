@@ -100868,3 +100868,60 @@ temporary cleanup. Both arms refused a 32 MiB charged budget. The two
 adopted Tower driver files have identical blobs to the independently
 rebuilt 693e95e7. This merge preserves the original d1dd5bf9 ancestry.
 The enqueued browser and Ubuntu builds remain pinned to 8b7878c8.
+### Host 8 physical-core scaling on the four-change successor
+
+Assignment 6cd34c79-1394-4e07-8bf1-92c731a0d2da. All four evidence receipts and 16 declared members matched. Seven ordered bundle imports, four merge-tree folds with accumulated ancestry, and hashing the supplied commit reproduced source a86d2ff0302ea6aba3df9a14b6a6066c53ee75ce and tree 9488ede27fe8c82d7cab55beed18337d44db0fda. The clean packaged driver built from the checked-in 902a358f development pin (50955730) was d7952448bc3528b42f2ec4a5bdd902cd7cb7ab3917cbad5bd75a8d05d10440a3. The first rebase conflicted with existing main work and was aborted. A separate frozen main and an evidence-only main clone keep the original work and pending UI release separate.
+
+At the default 268435456 B cap, small and formerly failing identical-parent both reproduced at eight jobs. The retained 13 objects per invoice, whole guest executable, exports, guest output and ordered depfile matched. On the same Ryzen 9 7900X and 0–11 physical-core mask, two forward/reverse blocks at widths 1/2/4/6/8 put identical-parent at 2.225/1.430/1.045/1.015/1.360 s wall and 2.220/2.445/3.065/3.585/6.650 s CPU. Small took .900/1.245 s wall and 2.435/5.795 s CPU at four/eight. Prefix took .860/1.040 and uneven 1.060/1.415 s wall. The retained 5b4bf88b candidate also favored four across these shapes with its original 0–23 affinity. Each run used one fresh process, warm files, LLVM 19.1.7, 23.04 CPUs of quota, 63577260032 B cgroup memory ceiling; every timed cgroup bracket had zero throttle delta.
+
+The unseen 37-unit entry calls all 36 libraries and produces 50227 and 898. With the complete physical-core mask its 4/8/12 means were 1.990/2.620/3.390 s wall and 6.585/13.910/23.250 s CPU. With each outer pthread individually pinned to a distinct core in balanced L3 groups, the three widths took 2.865/3.070/3.150 s wall and 9.855/19.030/23.800 s CPU. Direct compiler VmHWM maxima were 289252/348996/409628 KiB. Separate same-placement ledger peaks were 171512436/194624359/194316607 B. The singleton masks also narrow native capacity seen inside a worker. On small, strictly pinned eight edged four by 25 ms but added 2.175 CPU s.
+
+On that 37-unit singleton comparison the profiler counted exactly 10173721 shared gate entries in the outer worker spans at each width. Four to eight increased frontend thread CPU from 9.83 to 19.68 s and sampled calibrated acquisition CPU from 3.77 to 11.88 s. The backend took .269/.277 s and outer run-queue delay totaled .026/.022 s. Eight-job acquisition elapsed across threads split into 8.42 s on grants and 7.63 s on returns. A separate allocator trace at four/eight/twelve requested 13.79/13.81/13.61 GB and estimated 1.39/1.64/1.65 s summed libc allocation/free elapsed. The matched six-core 37-unit workload took 1.765 s wall on one L3 versus 3.125 s across both L3s. Eight SMT threads on four split cores were slower than eight separate physical cores. Linux denied userspace hardware and software perf events. The observations establish the placement effect and the ledger acquisition cost; DRAM and cache-coherence traffic remain unquantified.
+
+The entry-derived estimate reached 22.77 MB. With 12 available, one observation peaked at 10 simultaneous frontends and waited 2.270 s at the estimate with more units unsubmitted. Changing only the entry to Foundation reduced the estimate to 7.59 MB; all 36 library objects remained identical. Twelve frontends then overlapped with a 240092309 B charged peak, yet its 4/8/12 means were 1.890/2.530/3.390 s wall. The observed bottleneck survives actual admission of the independent work.
+
+One private Linux counterfactual changed the mutex type only on wide finite multi-unit ledgers. In two additional AB/BA blocks with exactly the same executable/resource path, 37 units at eight regressed from 2.745 wall / 14.770 CPU to 3.335 / 18.000 s, including a system CPU increase from 3.165 to 7.135 s. It also lost at twelve and on all four eight-job invoices. The production source stays at the four-change successor. The stock and candidate passed deterministic outputs, spare-lane refill, peer leases, cancellation and rollback checks. Address/leak and initialized thread sanitizer runs passed the experimental units, shared budget and eight-job invoice. Sixteen TSan startup attempts hit the container personality restriction. Tower source-level UBSan and host PMU counters were unavailable. A one-byte-below-observer-peak rejection unexpectedly fit; a half-peak refusal at an identical package path gave exact diagnostics and a zero close. The packet retains raw inputs, commands, negative results, profiles, per-unit records, CPU masks, process and charged peaks, source overlays, binaries and replay. An ownership change reducing budget transactions remains open; these experiments do not measure such a change.
+
+### Closeout decision and remaining release checks, November 25, 2026
+
+The owner requested wrap-up. The source baseline is 58bda1aa. Keep current
+experiments bounded and hold further performance proposals for a later
+milestone. The remaining correctness work is the permanent four-slot
+competing-owner regression and the staged integer formatting defect.
+Once those receipts are adjudicated, freeze the production inputs for the
+final Ubuntu package and browser assets and reuse matching earlier evidence.
+Verify exact source reachability, independent relocation, page-owned worker
+behavior and hosted bytes through atomic main/gh-pages publication.
+
+The manager replayed the offline verifiers for 6cd34c79, cd71192f and
+fbe0bdae. On the 12-core Ryzen 7900X (23.04 CPU quota), 37 units on four,
+eight and twelve individually pinned workers took 2.865/3.070/3.150 s wall
+and 9.855/19.030/23.800 CPU s across two forward/reverse runs. Peak compiler
+RSS was 289252/348996/409628 KiB. The traced runs counted 10173721 shared
+budget acquisitions at every width. Estimated acquisition CPU increased
+by 8.11 s of the 9.85 s additional frontend CPU at eight workers. A blocking
+mutex slowed the eight-job comparison. Retain the current adaptive mutex.
+
+On EPYC 7542 with cores 24–27, a 12.288 CPU quota and no observed throttling,
+the four-outer-job clean self-build ran Semantics with four inner workers.
+Against the 902a compiler, mean wall time fell from 30.180 to 29.610 s
+and CPU from 103.465 to 101.731 s. A separately sampled process-tree
+RSS peak fell from 2.046 to 1.970 GiB. Two uncontaminated primary pairs
+and 221 checked outputs support this host-specific comparison. An earlier
+pair that overlapped archive compression is preserved outside the means.
+
+On canonical Ubuntu the bbb01f5e build converged across three generations
+on 39 native products, 80 depfiles and 57 package files. The verified
+package SHA-256 is 2e6628686aab121ad88955b4a02d6b28aa0a2cbde698397e7429f23d4664c6ad.
+Its source predates the competing-owner and driver repairs. Keep its staged
+pin d075c507 as a control while validating the final candidate.
+
+In c602d0fb the manager replayed the retained comparisons. Changing a
+same-shaped nominal pointee changed the dependent staged result from
+730 to 1130 on x64 and 722 to 1122 on Wasm32. A wrong-pointer call
+was rejected. In a second, pre-existing case the writer emitted an
+untyped integer for the known unsigned maximum. Its canonical text failed
+to reparse. The pointer-size case also changed the print ABI scalar tag.
+Job 46eaa058 owns the two minimal reproducers and focused repair at the
+current compiler baseline. Source-level UBSan and exhaustive interleaving
+coverage remain outside the validated instrumentation.

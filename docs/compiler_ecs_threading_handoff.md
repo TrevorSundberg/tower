@@ -1,5 +1,39 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Cloud milestone closeout, November 25, 2026
+
+The public compiler is still `902a358f`. Its hosted desktop/mobile checks and
+clean Ubuntu Linux x64 default build passed. Local compiler integration
+`58bda1aa` includes the shared-worker admission repair, the module pointer
+alias formatter repair and earlier teardown of joined compiler owners.
+The following rules summarize the implementation evidence for this milestone.
+
+| Compiler work | Established pattern | Evidence and limit |
+| --- | --- | --- |
+| Components and storage | A compiler world owns its entities. Keep grammar, parse and semantic relationships there. Retain references that outlive a read view. Use a derived index or packed buffer when its measured access pattern warrants it. | On the combined native tree, an old parsed capture and its replacement both survived grammar retirement and resolved their own names. Some component payloads still use stable sparse storage. |
+| Dependency evaluation | Request the producer for the current declaration, frame and revision. Suspend on an actual read. Resume the saved continuation and publish the checked result once. Diagnose a cycle after exhausting eligible producers. | Mixed `decltype` and `comptime`, forward references, reached and untaken branches, nominal identity and selected invalidations have focused checks. The ordinary interpreter evaluates known values. |
+| Threading and publication | Reserve lanes, bytes and access rights before dispatch. Workers own scratch and staged writes. The coordinator joins and publishes, then releases leases and owners. Drain cancelled work before reclaiming any borrowed input. | Native and browser traces show independent work overlapping. On the shared browser reactor a new pool must also observe current physical availability when multiple batches share it. The corrected release transport still needs independent deployment verification. |
+| Selecting width | Keep the serial path cheap. Compare widths on the same host using checked outputs, wall time, CPU and peak memory. | Single-unit compiles with 16 and 1000 small functions favored one job. Multiple independent compile-time demands and multi-unit invoices benefited from parallel execution. Shared budget contention and placement limited wider runs. |
+
+On the four-change native compiler, mean serial compile time fell from 308
+to 266 ms for 16 functions and from 545 to 494 ms for 1000 functions on
+host 7. All 48 matched one- and four-worker comparisons beat the predecessor
+in wall and CPU time. A four-core clean self-build on host 3 improved by
+0.57 s across two primary pairs. On host 5, retiring joined owners before
+the native link reduced four-job median simultaneous tree RSS from 283664 to
+247928 KiB. Each figure belongs to its measured source and workload.
+The compiler's 256 MiB charge limit and process-tree RSS measure different
+things. Measurement details and receipt IDs are in the [project journal](temporal-opcode-research-journal.md).
+
+Closeout work covers the staged integer formatter defect, the permanent
+competing-owner regression, and verification and publication of the resulting
+compiler, Linux development package and browser assets. A staged unsigned
+maximum currently reparses as an out-of-range signed integer. Finish that
+repair before claiming canonical staged-integer round trips. After freezing
+the source, retain independent package and browser checks, atomic publication
+and hosted verification against their actual build identities. Wider-core
+tuning and further storage conversions can be evaluated separately.
+
 ## Cloud takeover, November 24, 2026
 
 The [OpenHands cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) is the current starting point. It records the local campaign's stopping state, the accepted c49 bootstrap and live Pages release, subsequent main-only fixes, measurements, known failures, exact reproductions, and the evidence packet. The next integration milestone is the bounded multi-unit driver and combined ownership checks on a frozen main revision. The sections below preserve earlier milestones at their original source revisions.
