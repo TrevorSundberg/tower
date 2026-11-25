@@ -69,6 +69,12 @@ Do NOT modify todo.txt.
   results. Trace one entity from creation through its last reader before
   choosing storage. A persistent handle identifies an entity. A temporary
   borrow needs a live owner, stable storage and permission for that access.
+  Give worker callbacks distinct types for their read and write views so the
+  compiler can catch a swapped argument. At the request site, identify the
+  allocation behind each view and the byte or element range the worker can
+  reach. Two views can point into the same buffer. Keep the owner alive until
+  the last job drains and check whether a callback can save a pointer beyond
+  that point. See the [Wasm relocation design and its two compiler controls](docs/typed_ecs_access_ca543287.md).
 - For a dependency, write down which value is missing and which query can
   produce it. Test a forward reference and an edit to that producer. The edit
   must invalidate the consumer through aliases. A read in an untaken branch

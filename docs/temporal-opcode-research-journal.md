@@ -101528,3 +101528,45 @@ read path checks interpreter state before using its address cache. Capture
 publication, suspension and frame changes cannot intervene between these
 operations. Browser performance and the later integrated compiler retain
 their own validation boundaries.
+### 2026-11-25 — Host 2 typed ECS caller design at ca543287
+
+Assignment `48ed4cce-80d9-42a9-af3b-72c278068870` reviewed the two Wasm
+linker callers exercised by the competing-owner TLS fixture. The proposed
+world-bound request has explicit read-link, write-section and write-job terms.
+The coordinator's six graph calls become one request per group. The callback
+receives typed borrowed payloads and loses one transport cast. Setup gains a
+two-field plan per section and three named terms per group. Admission still
+needs the original three claims and the owner must drain before changing the
+shared linker error or releasing its pin. The [design, counted examples,
+sources and acceptance gates](typed_ecs_access_ca543287.md) cite both Stronghold
+entries, eight lane audits, Flecs, EnTT, Rust and Burst.
+
+The three manifest archives and each named member matched size and SHA-256
+both inside the archive and at the loose path. The last archive names its
+member `./regression.bundle`. Verified the existing clean ca543287 tree
+84e9315e and fetched the 8b7878c8, d1dd5bf9 and 1c2cc042 bundle tips into
+separate private refs in order in the independent main copy. A local clone
+over upload-pack failed on a missing historical promisor blob. Copying the
+retained frozen clone, including its independent object store, supplied the
+verified source without reconstructing the merge or changing the freeze.
+
+The checked-in public Linux x64 pin 50955730 emitted Wasm32 LLVM with
+`--library --jobs 1` for the proposed callback against the real types and
+relocator. The binder is declared extern. Both optimized callbacks step over
+24-byte descriptors and call memmove. The proposed output span adds a
+section-origin subtraction. A swapped callback signature exited 1 with the
+expected type diagnostic. A callback storing borrowed bytes into retained
+caller state compiled. This last assignment is the proposed Stronghold
+rejection. An initial negative example using a mutable library global hit
+the unrelated top-level-executable restriction. The retained-state case
+isolates the escape, and the original error is preserved.
+
+Offline `bash check.sh independent/runs` passed against the verified
+c5a158a4 host 2 archive, including the two admission peaks, byte equality,
+before-wait assertion, both cancellation orders, source failure and worker
+retirement. That fixture used the 8b7878c8 reactor and 1c2cc042 permanent
+regression. Its historical wall/CPU/RSS samples measure the transport.
+This documentation change has no runtime performance or sanitizer arms.
+The missing prerequisite for measuring the API is a linked admission and
+drain adapter. The evidence packet includes both optimized worker fragments,
+source checks, the actual diagnostics and executor command for the TLS oracle.
