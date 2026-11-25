@@ -100868,3 +100868,72 @@ temporary cleanup. Both arms refused a 32 MiB charged budget. The two
 adopted Tower driver files have identical blobs to the independently
 rebuilt 693e95e7. This merge preserves the original d1dd5bf9 ancestry.
 The enqueued browser and Ubuntu builds remain pinned to 8b7878c8.
+
+### 2026-11-25 — Retain staged integer types in canonical Foundation
+
+Host 3 verified the six input archives and twelve declared members for assignment
+46eaa058-a736-4fc6-94b9-f1b157423a63. The six Git bundles, journal union merge,
+and supplied commit bytes reconstructed main `58bda1aa` (tree `5754e7f2`).
+With the checked-in Linux x64 compiler (`50955730`, LLVM 19.1.7), the clean
+native build reproduced both c602d0fb reductions at jobs 1 and 4 on Linux x64
+and Wasm32. The unsigned maximum reparsed as an out-of-range i32 at 44:7.
+Pointer sizes still printed 8 and 4, but the source and reparse IR passed
+scalar tags 8 and 0 respectively. The retained baseline objects and canonical
+text reproduced the earlier width result byte for byte.
+
+Source `5681a339` uses the checked operand type when emitting an integer into
+a position where a bare numeral would infer a different scalar. This covers
+print, conversion, representation constructors, unanchored comparisons and
+index/offset operands. Declarations and typed peers continue to supply literal
+context. Foundation checks the input to convert as i32. A checked conversion
+from -1 to u32 trapped in both interpreters. The formatter instead emits
+`bits(u32, -1)` for the unsigned maximum and `convert(usize, 8)` or
+`convert(usize, 4)` for the size case. For wide payloads outside the positive
+i32 range it uses the existing exact signed word or f64 bit-literal spelling
+and an equal-width reinterpretation. The width comes from the operand's checked
+target type. The ParserNodes symbol check admits its new use of the existing
+semantic_integer predicate. The old verifier rejected that sole symbol on the
+native production object. An injected undeclared symbol still failed.
+
+Regression `d7fe91ab` compiles the two print expressions, reparses their
+canonical bytes, and checks both print operand types directly in type-smoke at
+both pointer widths. The original formatter fails the new fixture. Three
+synthetic u64 constructor cases in format_suite needed new exact text for
+integer_type, float_type and array_type. Old/new matching formatter and oracle
+pairs passed their focused checks. Both crossed pairs failed. Running the
+whole tower-format-tests target on the base and candidate produced the same
+pre-existing failure in fixture 9, which expects expanded primitive and pointer
+spellings where the formatter uses declared type names. That older oracle is
+outside the integer operand repair.
+
+Eight fixtures ran from source and through two canonical reparses on both
+targets at jobs 1 and 4. Each arm reproduced its first canonical bytes, object,
+executable, optimized print calls, guest stdout and both interpreter outputs.
+The reductions kept tags 1 (u32) and 8 (usize). Additional cases covered
+signed minima and narrow integers, signed zero, NaN payloads, enum members,
+a negative index, ordered effects and two same-layout nominal choices. The
+same-shaped wrong pointer argument and reached compile-time effect retained
+their diagnostics. The original producer still matches all eight retained
+Foundation/object/executable/guest reference files, including its 19,268-byte
+canonical text with SHA-256 `2523bf913149f0a91fb1b35bf38fc1cf4fffb676fc3e305b0fe768cc58d5d803`.
+The full body_continuation module also passed two reparses on all four arms.
+Native type-smoke and query-smoke passed. All eight ASan/LSan and eight
+initialized TSan formatter runs matched the ordinary output with no findings.
+The repository supplies no Tower source-language UBSan pass.
+
+On AMD EPYC 7542, quota 12.288 CPUs, pinned to CPU 24 for one job and 24–27
+for four, warm-filesystem fresh-process Foundation emission used two matched
+pairs (AB, BA). Below are mean wall/CPU milliseconds and maximum wait4 RSS in
+KiB. Small printed 15, and the staged untaken case printed 8. Each pair matched
+the expected canonical text for its arm and the source object and guest output.
+
+| Input | Jobs | Base wall / CPU / RSS | Repair wall / CPU / RSS |
+| --- | ---: | ---: | ---: |
+| 16 functions | 1 | 245.27 / 244.96 / 79784 | 238.51 / 238.24 / 79736 |
+| 16 functions | 4 | 295.21 / 319.11 / 84632 | 284.92 / 308.53 / 83508 |
+| Staged untaken | 1 | 245.26 / 244.82 / 79832 | 243.37 / 243.10 / 78924 |
+| Staged untaken | 4 | 284.35 / 307.81 / 84860 | 291.42 / 315.04 / 84172 |
+
+The two pairs describe this correctness check. The packet retains each command,
+raw timing, compiler identity, artifact and comparison. The formatter's
+allocation count was not instrumented in these production timings.
