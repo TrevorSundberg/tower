@@ -1,5 +1,17 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Native self-build measurement, November 25, 2026
+
+On four physical Ryzen 7 5800H cores, the public `902a358f` and candidate
+`cd77a1f7` bootstraps produced identical native compilers from `1ddefba0`.
+Mean clean build and install time was 28.27 s and 27.90 s respectively.
+The two paired time savings were 0.01 s and 0.73 s. Sampled process-tree
+RSS fell by 103 MiB in each pair. All no-op installs took 0.51 s. Editing
+the driver version rebuilt three products in 1.25 s with the public pin
+and 1.20–1.21 s with the candidate. Both arms used four Ninja jobs and one
+worker per compiler invocation.
+[Commands, outputs and memory measurements](temporal-opcode-research-journal.md#native-self-build-of-1ddefba0-with-two-bootstrap-compilers)
+
 ## Cloud takeover, November 24, 2026
 
 The [OpenHands cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) is the current starting point. It records the local campaign's stopping state, the accepted c49 bootstrap and live Pages release, subsequent main-only fixes, measurements, known failures, exact reproductions, and the evidence packet. The next integration milestone is the bounded multi-unit driver and combined ownership checks on a frozen main revision. The sections below preserve earlier milestones at their original source revisions.
