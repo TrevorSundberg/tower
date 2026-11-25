@@ -227,8 +227,7 @@ fn stage_transition_publish(stage: void*): WorkBudgetError { return entity_stage
 fn stage_transition_discard(stage: void*): void { entity_stage_discard(bits(EntityStage*, stage)); }
 fn stage_transition_close(view: void*): void { entity_view_close(bits(EntityView*, view)); }
 
-fn stage_transition_result_cancel(payload: void*): void {
-    var job = bits(StageTransitionJob*, payload);
+fn stage_transition_result_cancel(job: StageTransitionJob*): void {
     var state = bits(StageState*, job.context);
     stage_check(!job.cancelled && state.finalized == 0 && job.borrowed.target != null);
     job.borrowed = null;

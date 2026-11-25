@@ -4,12 +4,11 @@ import .compiler.parser_types;
 import .compiler.syntax_types;
 import .compiler.foundation_types;
 import .library.vector;
+import .library.work_budget_types;
+import utility_checks;
 
 // Functional entity tests: all mutation, ownership and failure assertions execute
 // in Tower. The test composition reuses FoundationNode's authoritative layout.
-extern fn abort(): void;
-extern fn puts(text: u8*): i32;
-
 extern fn entity_store_create(): void*;
 
 extern fn entity_store_dispose(store: void*): bool;
@@ -50,6 +49,8 @@ extern fn entity_parent(node: void*): void*;
 
 extern fn entity_attach(child: void*, parent: void*, name: u8*): bool;
 
+extern fn entity_attach_result(child: void*, parent: void*, name: u8*): WorkBudgetError;
+
 extern fn entity_child_name(parent: void*, index: usize): u8*;
 
 extern fn entity_child_at(parent: void*, index: usize): void*;
@@ -68,9 +69,7 @@ extern fn tower_test_buffer_fail_next(): void;
 extern fn tower_test_buffer_fail_after(count: usize): void;
 
 fn shared_check(ok: bool): void {
-    if !ok {
-        abort();
-    }
+    utility_check(ok, "Shared entity test assertion failed");
 }
 
 export fn shared_entity_tests(): void {
@@ -201,16 +200,18 @@ export fn shared_entity_tests(): void {
     var parent = entity_create(store);
     shared_check(entity_attach(nodes[0], parent, "value"));
     var borrowed = entity_child_name(parent, 0);
+    // The inline child index is full. Deny its growth before the borrowed-name
+    // reattach reserves capacity and leaves a reusable name slot.
+    tower_test_buffer_fail_next();
+    var denied = entity_attach_result(nodes[1], parent, "value");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    utility_check(denied == WorkBudgetError.Memory, "Named replacement reports child index allocation failure");
+    utility_check(entity_child_at(parent, 0) == nodes[0] && entity_child_name(parent, 0) == borrowed
+        && entity_parent(nodes[0]) == parent && entity_parent(nodes[1]) == null,
+        "Denied named replacement preserves the original relationship");
     shared_check(entity_attach(nodes[0], parent, borrowed));
     var name = entity_child_name(parent, 0);
     ok = name[0] == 118;
-    shared_check(ok);
-    tower_test_buffer_fail_next();
-    ok = entity_attach(nodes[1], parent, "value") == false;
-    shared_check(ok);
-    ok = entity_child_at(parent, 0) == nodes[0];
-    shared_check(ok);
-    ok = entity_parent(nodes[1]) == null;
     shared_check(ok);
     shared_check(entity_attach(nodes[1], parent, "value"));
     ok = entity_parent(nodes[0]) == null;

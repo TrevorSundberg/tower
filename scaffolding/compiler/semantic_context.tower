@@ -238,7 +238,7 @@ extern fn entity_view_close(view: void*): void;
 // dispatch/admission cause first. If ownership fails after a worker resource
 // failure, retain that producer's original message/offset in source order.
 fn sem_stage_wave(T: type, c: SemanticContext*, jobs: T**, count: usize, view: void*, dispatched: WorkBudgetError, subject: void*,
-    cancel: function(void, void*)): bool {
+    cancel: function(void, T*)): bool {
     sem_observe(c, GrammarPhase.SemanticStages, true, count, 0);
     defer sem_observe(c, GrammarPhase.SemanticStages, false, count, 0);
     var cause = dispatched;
