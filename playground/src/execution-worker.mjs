@@ -28,7 +28,7 @@ async function receive(event) {
     send({ phase: 'Loading…' });
     let formatted = backend === 'interpreter' ? undefined : event.data.formatted;
     if (!formatted) {
-      const frontend = await getTower(foundation, bedrock, builtins.tower); tower = frontend.tower;
+      const frontend = await getTower(foundation, bedrock, builtins.tower, {projectFollows:command !== 'disassemble'}); tower = frontend.tower;
       if (command === 'disassemble') {
         await getCanonicalTower();
         handle = tower.loadBytecode(bytecode);

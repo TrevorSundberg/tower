@@ -51,7 +51,7 @@ export async function getCanonicalTower() {
   const [foundation,bedrock,tower] = await getCanonicalSources();
   return getTower(foundation,bedrock,tower);
 }
-export async function getTower(foundation, bedrock, towerSource) {
+export async function getTower(foundation, bedrock, towerSource, {projectFollows = false} = {}) {
   const canonical = await getCanonicalSources();
   towerSource ??= canonical[2];
   const start = performance.now();
@@ -65,7 +65,8 @@ export async function getTower(foundation, bedrock, towerSource) {
   let tower;
   try { tower = await pending; }
   catch (error) { if (towerReady === pending) towerReady = undefined; throw error; }
-  tower.configureModules({builtins:{bedrock, foundation, tower:towerSource}});
+  const builtins = {bedrock, foundation, tower:towerSource};
+  if (!cached || !projectFollows || !tower.hasAppliedBuiltins(builtins)) tower.configureModules({builtins});
   if (installedBedrock !== bedrock) {
     tower.configureBedrock(bedrock); installedBedrock = bedrock; installedFoundation = null;
   }

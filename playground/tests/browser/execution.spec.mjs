@@ -337,8 +337,11 @@ test('superseded compilation cannot execute while waiting for its UI permit',asy
     self.__readyIds=[]; self.__executedIds=[];
     self.postMessage=(data,...args)=>{
       if(data.phase?.startsWith('Executing'))self.__executedIds.push(data.id);
-      if(data.ready){self.__readyIds.push(data.id);setTimeout(()=>send(data,...args),300);}
-      else send(data,...args);
+      if(data.ready){
+        self.__readyIds.push(data.id);
+        if(self.__readyIds.length===1){self.__sendHeldReady=()=>send(data,...args);return;}
+      }
+      send(data,...args);
     };
   });
   const editor=page.getByRole('textbox',{name:'Tower source'});
@@ -346,6 +349,7 @@ test('superseded compilation cannot execute while waiting for its UI permit',asy
   for(const worker of workers) await expect.poll(()=>worker.evaluate(()=>self.__readyIds.length)).toBeGreaterThan(0);
   const obsolete=await Promise.all(workers.map(worker=>worker.evaluate(()=>self.__readyIds[0])));
   await page.keyboard.insertText(' newest');
+  await Promise.all(workers.map(worker=>worker.evaluate(()=>self.__sendHeldReady())));
   await expect(page.locator('#execution-status')).toContainText('backends match');
   expect(page.workers().filter(worker=>worker.url().includes('execution-worker'))).toEqual(workers);
   for(let i=0;i<workers.length;i++)expect(await workers[i].evaluate(()=>self.__executedIds)).not.toContain(obsolete[i]);

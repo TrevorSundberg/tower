@@ -85,6 +85,7 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     exports,
     close,
     configureModules: modules.configure,
+    hasAppliedBuiltins: modules.hasAppliedBuiltins,
     dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
     configure: source => { configureTower(exports, source, modules.environment); modules.configure({builtins:{foundation:source}}); },
