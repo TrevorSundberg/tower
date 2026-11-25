@@ -12,6 +12,14 @@ and 1.20–1.21 s with the candidate. Both arms used four Ninja jobs and one
 worker per compiler invocation.
 [Commands, outputs and memory measurements](temporal-opcode-research-journal.md#native-self-build-of-1ddefba0-with-two-bootstrap-compilers)
 
+With cd77 fixed, raising only the Semantics compiler from one worker to
+four reduced complete build and install time from 27.76 to 26.61 s and
+from 27.64 to 26.06 s on those same four cores. The Semantics object
+finished about 2.1 s sooner in each pair. Sampled peak process-tree RSS
+rose by 66–67 MiB. For this build the tradeoff is available through
+`-DTOWER_SEMANTICS_JOBS=4` with the other compiler invocations at one worker.
+[Worker timings, outputs and limits](temporal-opcode-research-journal.md#selective-semantics-workers-on-the-cd77-native-self-build)
+
 ## Cloud takeover, November 24, 2026
 
 The [OpenHands cloud handoff](openhands_ecs_cloud_handoff_2026_11_24.md) is the current starting point. It records the local campaign's stopping state, the accepted c49 bootstrap and live Pages release, subsequent main-only fixes, measurements, known failures, exact reproductions, and the evidence packet. The next integration milestone is the bounded multi-unit driver and combined ownership checks on a frozen main revision. The sections below preserve earlier milestones at their original source revisions.

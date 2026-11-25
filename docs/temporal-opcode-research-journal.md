@@ -100464,3 +100464,40 @@ Commit `ccf46330dd6be5f914fb25716ffe343722b5d3d3` changes only the two measured 
 Using the same candidate assets, eleven bounded ordinary Chromium batches covered all 234 cases, with 153 passed, 72 failed, eight timed out and one skipped. All 40 remaining failing titles failed on both desktop and mobile. The explicit skip is the mobile full compiler rebuild. The remaining ordinary failures continue to block release. The separate completion suite had four passes and twelve failures including two timeouts. No compiler, runtime, lesson, generated asset or completion change was needed for the two owned checks.
 
 The registered 1c4cf7c7 packet records inputs, raw parser dependencies, source and accessible file lists, 12 reconstructible original and corrected traces, raw per-case outcomes, first errors, screenshots, commands and GNU time. The normal selection used warm browser dependencies, fresh browser contexts and two Playwright workers per bounded batch on the Xeon Gold 6244 host with effective cpuset 0–31 and 15.36 CPU quota. The ordinary diagnostic outcomes are correctness measurements; the overlapping batch runs do not compare performance. The prior 231-unrun result remains separately identifiable. This journal entry is ancillary to the test patch.
+
+### Selective Semantics workers on the cd77 native self-build
+
+Receipt `b9adf393-f56a-4bb4-8eb4-d51b944f8e77` held the cd77 bootstrap
+and source `1ddefba0` fixed on the Ryzen 7 5800H using four physical
+cores (affinity 0,2,4,6), a 15.36-CPU quota, Ubuntu 24.04.5, LLVM 19.1.1
+and four outer Ninja jobs. Each run began with empty build and installation
+directories after matched warm-up. The only changed command was the
+Semantics object's compiler invocation, selected by `TOWER_SEMANTICS_JOBS`.
+Pair 1 ran one then four workers. Pair 2 reversed the order. Values below
+are listed as one worker followed by four workers.
+
+| Measurement | Pair 1 | Pair 2 |
+| --- | ---: | ---: |
+| Complete build and install, seconds | 27.76 → 26.61 | 27.64 → 26.06 |
+| Semantics compilation, seconds | 20.211 → 18.065 | 20.091 → 18.003 |
+| Total user + system time, seconds | 82.04 → 82.32 | 81.06 → 81.95 |
+| Maximum individual process RSS, KiB | 767,580 → 793,640 | 767,596 → 798,456 |
+| Sampled peak process-tree RSS, KiB | 2,020,364 → 2,088,712 | 2,020,040 → 2,087,540 |
+
+The four-worker Semantics process used up to 2.44 and 2.51 CPUs over
+roughly one-second windows. It overlapped three other Ninja edges for about
+14.7 seconds. When it finished, linking still waited 0.935 and 0.581 s
+for the native backend object. Full build savings were 4.14% and 5.72%.
+There was no measured throttling or CPU steal. Process-tree RSS samples
+averaged 102 ms apart and may count shared pages multiple times. Both
+pairs used more CPU time and memory. The existing opt-in fits this host
+when the additional memory is available. These two pairs cover one
+toolchain and source distribution.
+
+Offline verification reproduced the timing and CPU tables from the
+four individual logs and compared all 39 native products, 56 installed
+files, 40 raw and 40 transformed depfiles with the preceding cd77 oracle.
+The four guest executables also matched and both interpreted and native
+runs printed exactly 42 followed by LF. All 292 evidence checksums passed.
+The packet SHA-256 is
+`03412b763bb2e77c2a86a1f0d6aca676b3a3aa0412106100d3a3a196a197a754`.
