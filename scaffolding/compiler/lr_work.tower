@@ -104,11 +104,6 @@ export fn compiler_lr_kernel(payload: void*): void {
     }
 }
 
-fn lr_work_node(parent: void*): void* {
-    var error = WorkBudgetError.None;
-    return lr_work_node_result(parent, &error);
-}
-
 fn lr_work_node_result(parent: void*, error: WorkBudgetError*): void* {
     var node = entity_create_related_result(parent, error);
     if node == null {
