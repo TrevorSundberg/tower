@@ -100292,3 +100292,36 @@ through a module alias. The retained native type-smoke runner failed on the
 canonical reparse with the original missing-operand diagnostic. The formatter
 now prints the outermost pointer constructor only at this alias boundary and
 passes the pointee descriptor to its usual type formatter.
+
+Receipt `6471ecb2-4084-41aa-a3f4-d44ffe525a28` contains the raw emissions,
+source bundles, replay commands and measurements. Starting from the integrated
+validation tree `f4d65cb7`, clean native builds selected the checked-in 902a358f
+compiler with the override unset. The changed compiler emitted the same 19,268
+bytes at both target widths and jobs 1/2/4. A second emission matched exactly.
+Source and reconstructed objects and executables matched. Both interpreter modes
+and both compiled guests (x64 and Wasm32) printed 0. The x64 artifacts matched
+the previous receipt. The recursive nominal sibling and nested array/pointer
+controls printed the expected pointer sizes 8 and 4. The reached constructor
+control printed its operand effect once before its capability error. Native
+type-smoke and query-smoke passed, including the mixed staging checks. Five
+malformed siblings and the taken cycle and mutable capture retained their exact
+diagnostics. A separate clean build from public main plus the two scoped changes
+also passed the full fixture's native CLI canonical replay at jobs 1/2/4.
+
+The affected unit was recompiled and linked into the retained ASan/leak and
+TSan native drivers. Both ran emission, reconstruction and interpretation at
+widths 4/8 and jobs 1/4. The packet includes all 64 TSan startup failures from
+the host's restricted personality call and the subsequent instrumented runs.
+Tower source-level UBSan is unavailable. The cached interpreter preserved the
+effect control's message and output but localized its original-source error to
+an imported grammar file. This observation concerns diagnostic provenance.
+
+Six counterbalanced observer-off pairs per cell used CPUs 0,2,4,6 of a Ryzen 9
+5900XT, 30.72-CPU quota, Linux x64, LLVM 19.1.7, warm files, fresh processes and
+identical resources. For the full fixture, median before/after wall time to
+emit Foundation was 196.5/197.5, 214/213 and 208.5/209.5 ms at jobs 1/2/4.
+At one job CPU was 196/197.5 ms and peak RSS 130744/130408 KiB. The small case
+took 67/68, 69/69 and 68.5/69 ms wall. The raw table includes all CPU and RSS
+samples and the separate reparse measurements. No measured bracket throttled.
+The ordinary driver exposes no per-invocation peak Tower charge. The host memory
+cgroup is shared and read-only. Publication belongs to the manager.
