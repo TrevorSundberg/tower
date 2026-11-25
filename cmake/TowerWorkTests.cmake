@@ -159,6 +159,12 @@ if(TARGET towerc)
         --interpret --jobs ${workers}
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    add_test(NAME tower-semantic-layout-registry-${workers}
+      COMMAND $<TARGET_FILE:towerc>
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_layout_test.tower"
+        --interpret --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
         module_header_capture_controls named_initialization_test)
       string(REPLACE "-" "_" fixture "${name}")
