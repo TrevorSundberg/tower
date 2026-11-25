@@ -62,8 +62,8 @@ Unifying those constructor paths and staging policies is further work.
 Known numeric forwarding into nominal construction is supported. For example,
 `fn wrapped(T: type, size: usize): type { return buffer(T, size); }` used as
 `wrapped(i32, 2)` retains the identity of `buffer(i32, 2)`. A chain of single-return
-calls to an existing static constructor binds its source-declared integer
-parameters through the ordinary integer-argument queries before its body is
+calls to an existing static constructor binds its source-declared numeric
+parameters through the ordinary argument queries before its body is
 cloned. Nested forwarding uses the same canonical specialization cache, including
 numeric-only wrappers such as `fn integers(size: usize): type { return buffer(i32, size); }`.
 At a known type-use site, `integers(2)` is the same nominal type as `buffer(i32, 2)`.
@@ -73,7 +73,16 @@ own their bound clones. Undemanded forwarding bodies are omitted from canonical
 output. Runtime calls cannot provide a dynamic nominal extent merely because
 one caller happens to pass a literal.
 
-General bodies and ordinary callees still execute normally; non-integer or
+Declared `f32` and `f64` parameters use the declared precision. Computed
+arguments execute in the ordinary strict interpreter. The nominal specialization
+key includes the checked parameter type and its exact bits. Consequently,
+positive and negative zero select distinct specializations. Copying a NaN
+payload preserves its identity, and arithmetic canonicalizes NaNs according
+to the [floating-point contract](floating-point.md). Array extents and primitive
+representation widths still require integers. An explicit numeric conversion
+in a constructor body can compute an integer extent from a floating argument.
+
+General bodies and ordinary callees still execute normally; nonnumeric or
 dependent parameter signatures keep that path. This bounded known-call case
 does not make nominal layout dynamic: a runtime-unknown argument, a mutable
 capture, or a capture initializer reading a later module initializer cannot

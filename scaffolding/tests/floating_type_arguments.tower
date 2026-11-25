@@ -1,0 +1,32 @@
+import tower;
+
+fn tagged(scale: f64): type {
+    struct Tagged { x: u8; }
+    return Tagged;
+}
+fn tag32(scale: f32): type {
+    struct SmallTag { x: u8; }
+    return SmallTag;
+}
+fn forward(scale: f64): type { return tagged(scale); }
+fn shared(): f64 { return bits(f64, 9221120237041090626); }
+var Payload: type = tagged(shared());
+var Again: type = forward(bits(f64, 9221120237041090626));
+var Other: type = tagged(bits(f64, 9221120237041090627));
+var Negative: type = tagged(-0.0);
+var Positive: type = tagged(0.0);
+var Small: type = tag32(1.25);
+var Computed: type = tag32(1.0 + convert(f32, 0.25));
+print(Payload == Again);
+print(Payload != Other);
+print(Negative != Positive);
+print(Small == Computed);
+
+fn block(scale: f32): type {
+    struct Block { bytes: u8[convert(usize, scale * 2.0)]; }
+    return Block;
+}
+var Scaled: type = block(1.5);
+var DefaultTag: type = tagged(default);
+print(sizeof(Scaled));
+print(DefaultTag == Positive);

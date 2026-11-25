@@ -135,7 +135,7 @@ fn execution_semantic_message(index: usize): u8* {
     if index == 49 { return "Type values have opaque identity and cannot be printed as numbers"; }
     if index == convert(usize, SemanticInvalidCase.RecursiveType) { return "Tower call stack limit exceeded"; }
     if index == 51 { return "Expected i32, got bool; use an explicit conversion\nInstantiated by bad(i32) at line 1, column 57."; }
-    if index == 52 { return "Compile-time value parameters currently require an integer type"; }
+    if index == 52 { return "Compile-time value parameters require an integer or floating-point type"; }
     if index == 53 { return "Wrong argument count for template 'f'"; }
     return null;
 }

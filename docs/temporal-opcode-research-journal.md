@@ -105383,3 +105383,90 @@ On integration with the typed layout registry, the manager compared the generate
 Host 3 used the contextual Tower grammar, shared filename rule, module resolver and ordinary execution session to collect and run inline and adjacent test declarations. Packet 9ecde556-e26f-4832-bde6-c558baa7cb38 identifies source 40a73fc8 and its relocated native x64 compiler, the clean public-bootstrap build, native and sanitizer controls and the earlier 264-member assertion packet. Both widths printed 1342 and 42 with two declarations selected through a diamond. Selecting the companion explicitly executed its own declaration only. An incorrect assertion exited 1 at its original companion line. The alternate _spec.tower profile skipped an intentionally failing default sibling. Ordinary compilation produced 7, and its depfile omitted the companion and test-only imports. The manager verified 999 checksums and all 57 relocated compiler files, then reproduced those command outcomes against the public source integration.
 
 The WorkGraph candidate in 4ba04cf5 maps 184 assertions in eight legacy scheduling cases to an adjacent library companion. The actual native --test command collected and ran eight declarations at one and four workers with empty guest output. Reversing a stale ticket expectation exited 1 at work_graph_test.tower:36:5. Legacy coverage remains active while qualifying the new distribution. A script-style companion with a top-level statement currently gives a source diagnostic. Implicit execution of that statement, affected selection, and delivery of the new compiler remain open. The existing public bootstrap and Pages compiler retain their previous build identities.
+### Host 8 — staged values and declared floating numeric parameters on a01617e3
+
+Assignment 9cf313a9-b14a-4c90-b0b6-ceae5063e13f. The preceding type-value,
+attribute, computed-argument, floating-point and temporal-opcode contracts
+guided a native and Wasm compiler-host differential. Base source is
+a01617e302846b64dfcbc7b4cc498c649477f169, tree d8432a9183969d8ebef6fe68004bd7d720f1007a.
+The public Linux x64 bootstrap SHA-256 starts 0100aa61813fe15c.
+The shared checkout's mandatory pull conflicted replaying 03541c43. Aborting
+restored ff4c96f7 and its unpublished predecessors. A separate local main
+checkout holds this candidate. Only the manager publishes.
+
+Base strict stages already round-trip signed zero, copied NaN payloads,
+canonical arithmetic NaNs, nominal structs, null pointer fields, typed callbacks
+and their indirect calls. Function references print as bound declarations in
+Foundation. An ordinary staged read of imported initialized Tower data returned
+65, 0, 255. Compiling a call to getchar from a reached stage diagnosed the
+missing external capability. A mutable data binding failed its capture proof.
+Independent scalar raw pointer results, including null, failed the relocatable
+result check. Two same-layout nominal attribute types survived together; two
+values of the same marker failed. Widths and extents require integer arguments.
+An ordinary f64 parameter can select a type through control flow on the base.
+
+The narrower missing case was a declared f32/f64 parameter of a static
+nominal constructor. The fix shares parameter admission between the constructor
+and forwarding-body checks, carries the declared numeric type into argument
+preparation and uses the existing ordinary evaluator and (type, bits) interner.
+The first candidate still demanded a forwarding body's unbound float argument.
+The same admission predicate now controls that decision. A contextual default
+also exposed the old integer-literal fast path; float literals now use ordinary
+contextual operand checking. Existing array and primitive consumers pass no
+floating parameter context. The registered type-smoke fixture checks exact
+zero/payload identity, forwarding and explicit conversion to an integer bound.
+Raw evidence, rejected attempts, exact controls and future companion source
+travel in the assignment packet.
+
+**Validation on frozen implementation ed21242b.** Checked-in Linux x64
+bootstrap, LLVM/Clang 19.1.7 Release, no override. Native and WASI SDK 34
+reactors were built from both snapshots. At each revision 26 input programs ran
+on the native CLI with Linux x64 and Wasm32 targets, --no-optimize, jobs 1/4,
+graph and cached interpreters. Every exit, diagnostic with location and stdout
+matched the fixture oracle. Positive canonical graphs agreed across job counts,
+reparsed and ran, and linked Linux and Wasm programs produced identical stdout.
+Fresh serial Wasm compiler hosts under Node checked both pointer widths and
+matched all 52 native canonical texts or diagnostic/position pairs per revision.
+Source float and runtime float probes each printed 2147483648,
+9223372036854775808, 2143289410, 9221120237041090626, 2143289344 and
+9221120237041090560 on separate lines. Local pointer equality gave 42 at both
+stages; runtime registered byte reads of supplied 41 00 ff (hex) returned
+65,0,255. Explicitly staging that external reader made zero calls and failed.
+Changing the imported Tower initializer's middle byte changed the ordinary
+staged result from 0 to 7. The depfile names that source. Omitting it failed.
+
+The new six-line regression prints true, true, true, true, 3, true. Checked
+Foundation is 3,416 bytes, SHA-256
+6c34769e276c3d24e0242df45d90bfbf4cda8b7d82f23ccb7eaa85d578a5e422.
+The 32-bit profile-0 package is 3,808 bytes, SHA-256
+bea0c3bf7783c84a740b15684037c058cc6f9d143f8becdcf9158aeb7cf33144,
+identical across producing hosts. Scalar float and function-value CLI packages
+carry normalized profile 2 even with --no-optimize; the Wasm graph packager
+produces canonical profile 0. The initial unlike-profile comparison differed.
+Each Wasm package loaded, executed and re-encoded byte-identically on native.
+The new constructor kept mutable/runtime float captures, wrong precision,
+reached effects, bool parameters and floating extents rejected. The output
+capability diagnostic on the constructor helper points to 1:1 on this freeze.
+
+The extended native type-smoke passed. Four actual CLI checks per instrumented
+build (new success and rejected extent, jobs 1/4) passed under ASan/LSan and
+initialized TSan. There were 26 TSan runtime startup failures at the
+host-denied personality operation, preserved separately. No source-level
+UBSan mode is supplied. Hardware was one Ryzen 9 7900X, 12 cores/24 threads,
+23.04 CPU quota. For small type_arg versus the larger unchanged
+computed_type_arguments source, warm filesystem, fresh process, --interpret,
+no optimization, x64, six retained samples per version after one warm-up,
+alternating AB/BA, CPUs 0 or 0–3. Mean wall/CPU ms and maximum RSS KiB:
+small jobs1 138.0/137.7/83852 to 137.0/136.8/83396; jobs4
+146.8/154.3/89208 to 148.3/155.2/90180. Large jobs1 149.7/149.5/87320
+to 147.8/148.0/87360; jobs4 163.3/174.0/93128 to 165.0/175.7/93184.
+Separate single-unit ledger runs at matched paths returned the same joined
+bytes, grants and peak bytes at both revisions in all four cells. For example,
+large/4 retained 10,419,476 bytes in 8,634 grants with peak charge 22,984,556.
+The new floating fixture only succeeds on the candidate and has no paired
+successful baseline. These workloads showed no four-worker speedup.
+The frozen code, requested raw outputs, commands, exact resource/driver
+identities, future companion and Git bundle travel in the assignment archive.
+Publication and additional host/toolchain qualification remain with the manager.
+
+Host 8 qualified the merged floating constructor and borrowed-array body admission in packet 4f649727-36c2-4873-87db-642b0387ca55. Both parents individually rejected the mixed fixture. The combined unit entered 19 body kernels at each width and reached four concurrent kernels on the four-worker run. The actual result was 42. Both widths emitted identical 15,922-byte Foundation and identical 29,704-byte native binaries. Deliberately changing the expected untouched tail from 5 to 6 failed in Graph, Fast and the native guest. The integrated semantic_body_work.tower has the worker-verified Git blob 0963859c4536435d30b2e5136a3d713e10c0937f. The native matrix covers signed zero and distinct NaN payloads in nominal type arguments. Array extents still require integers.

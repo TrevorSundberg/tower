@@ -124,10 +124,8 @@ fn sem_type_value_finish(c: SemanticContext*, result: SemanticDeclaration*): usi
         if !sem_ok(c) { return 0; }
         sem_captures_begin(c);
         if !sem_ok(c) { return 0; }
-        if !semantic_integer(&sem_get(result.value).type) {
-            sem_fail(c, result.subject, "Expected a compile-time integer argument");
-            return 0;
-        }
+        var type = &sem_get(result.value).type;
+        if !sem_check_numeric_argument(c, result.subject, type, result.expected_type) { return 0; }
         var subject = sem_evaluation_node(c, result.subject);
         if subject == null { return 0; }
         var clones = sem_table(c);

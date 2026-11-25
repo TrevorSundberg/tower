@@ -74,15 +74,26 @@ fn integer_argument_checks(root: u8*, mode: u8*): i32 {
     var computed: vector(u8) = default;
     defer vector_dispose(&computed);
     units_read(root, "/tests/computed_type_arguments.tower", &computed);
+    var floating: vector(u8) = default;
+    defer vector_dispose(&floating);
+    units_read(root, "/tests/floating_type_arguments.tower", &floating);
     for(var width: u32 = 4; width <= 8; width *= 2) {
         var canonical: vector(u8) = default;
         staged_integer_print_roundtrip(root, bedrock.data, foundation.data, width);
         var existing: vector(u8) = default;
+        var float_canonical: vector(u8) = default;
+        defer vector_dispose(&float_canonical);
         defer vector_dispose(&existing); defer vector_dispose(&canonical);
         var negative_offset: usize = 0; var mutable_offset: usize = 0; var minimum_offset: usize = 0;
+        var extent_offset: usize = 0;
         for(var workers: usize = 1; workers <= 4; workers *= 4) {
             body_runs_trial_output(source.data, workers, width, bedrock.data, foundation.data, root, &canonical, "8\n2\n0\n");
             body_runs_trial(computed.data, workers, width, bedrock.data, foundation.data, root, &existing);
+            body_runs_trial_output(floating.data, workers, width, bedrock.data, foundation.data, root,
+                &float_canonical, "true\ntrue\ntrue\ntrue\n3\ntrue\n");
+            integer_argument_failure(root, bedrock.data, foundation.data,
+                "import tower; fn count(): f32 { return 3.0; } var bytes: u8[count()];",
+                "Expected a compile-time integer argument", width, workers, &extent_offset);
             integer_argument_failure(root, bedrock.data, foundation.data,
                 "import tower;fn buffer(T:type,n:usize):type{struct R{data:T[n];}return R;}var v:buffer(i32,-1);print(123);",
                 "Array length must be between 1 and 1,048,576\nInstantiated by buffer(i32,-1) at line 1, column 81.",

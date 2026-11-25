@@ -317,7 +317,7 @@ fn sem_constructor_step(c: SemanticContext*, result: SemanticDeclaration*): bool
             if generic_type_parameter(c.generics, work.definition, i) { continue; }
             var type = sem_type(c, sem_member(parameters.data[i], "type"));
             if !sem_ok(c) { return false; }
-            if !semantic_integer(type) {
+            if !sem_numeric_parameter(type) {
                 work.definition = null;
                 work.phase = SemanticConstructorPhase.Execute;
                 break;
