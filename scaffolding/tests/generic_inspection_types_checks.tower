@@ -3,6 +3,8 @@ import generic_inspection_budget;
 import frontend_units;
 import editor_units;
 import .compiler.completion_types;
+import .compiler.semantic_work_ids;
+import .library.work_graph;
 import .compiler.foundation_tags;
 import .compiler.foundation_types;
 import .library.vector;
@@ -89,6 +91,42 @@ fn inspection_types_document(world: void*, environment: void*, width: u32, sourc
     puts(snapshot.data);
 }
 
+extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
+
+fn inspection_alias_dependency(world: void*, environment: void*): void {
+    var deep = "import tower;struct Word{v:u8;}";
+    var mid = "import tower;import deep as origin;var Word:type=origin.Word;";
+    var policy = "import tower;import mid as route;var Word:type=route.Word;";
+    var source = "import tower;import policy as cfg;print(comptime(sizeof(cfg.Word)));";
+    units_check(frontend_modules_source(environment, "deep.tower", deep, strlen(deep))
+        && frontend_modules_source(environment, "mid.tower", mid, strlen(mid))
+        && frontend_modules_source(environment, "policy.tower", policy, strlen(policy)), "Install qualified type aliases");
+    var q = bits(CompletionQuery*, language_document_world(world, environment, source, strlen(source), 0, 8));
+    units_check(q != null, "Compile qualified type aliases");
+    defer completion_dispose(bits(void*, q));
+    units_check(q.program.error.length == 0 && q.program.resource.error == WorkBudgetError.None, "Qualified alias staged use");
+    var graph = &q.context.queries;
+    var consumer: usize = 0;
+    var producer: usize = 0;
+    foreach(var node in &q.program.types) {
+        var name = sem_get(node).name.data;
+        if name == null { continue; }
+        if strcmp(name, "Word@policy.tower") == 0 { consumer = work_find(graph, node, convert(u32, SemanticQuery.Declaration), 0); }
+        if strcmp(name, "Word@mid.tower") == 0 { producer = work_find(graph, node, convert(u32, SemanticQuery.Declaration), 0); }
+    }
+    units_check(consumer != 0 && producer != 0, "Two distinct module declaration tickets");
+    // A successful check can observe a previously completed query. The read
+    // reservation distinguishes admission from such an after-the-fact edge.
+    var index = work_task(graph, consumer).access;
+    while index != 0 {
+        var claim = &graph.accesses.data[index - 1];
+        if claim.domain == convert(u64, SemanticWorkDomain.Compiler) && claim.component == convert(u64, SemanticAccess.Declaration)
+            && claim.mode == WorkAccessMode.Read && claim.first == producer && claim.end == producer + 1 { return; }
+        index = claim.next;
+    }
+    units_check(false, "Qualified alias must reserve its exported declaration producer before checking");
+}
+
 export fn main(argc: i32, argv: u8**): i32 {
     units_check(argc == 4, "Usage: tower-generic-inspection-types-tests RESOURCE_ROOT WORKERS sample|checks");
     var workers: usize = strcmp(argv[2], "1") == 0 ? 1 : 4;
@@ -111,6 +149,7 @@ export fn main(argc: i32, argv: u8**): i32 {
         inspection_types_document(world, environment, 4,
             "import foundation; fn demo(T:type,p:i32*,q:T*):void { *p = 1; *q = *q; var item = *p; }", false);
     } else {
+        inspection_alias_dependency(world, environment);
         for(var width: u32 = 4; width <= 8; width *= 2) {
             inspection_types_document(world, environment, width,
                 "import foundation; fn demo(T:type,p:i32*,q:T*,items:i32[4]):void { *p = 1; *q = *q; var item = *p; var invalid = *items; }", true);
