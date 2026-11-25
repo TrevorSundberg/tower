@@ -16,9 +16,11 @@ async function downloadSource(page, filename) {
 test.beforeEach(async ({page}) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
 });
-test('modules show their source and grammar tree without executable instruction output', async ({page,request}, info) => {
+test('Bedrock and Foundation show their own source and distinguish syntax from execution', async ({page,request}, info) => {
   const bedrock = await (await request.get('/bedrock.tower')).text();
-  await expect(page.locator('.builtin-badge')).toHaveCount(2);
+  const foundation = await (await request.get('/foundation.tower')).text();
+  await expect(page.locator('#file-tree button').filter({has:page.locator('.builtin-badge')}))
+    .toHaveAttribute('data-path', '.tower/bedrock.tower');
   await selectDocument(page, 'bedrock.tower');
   await expect(page.locator('#filename')).toHaveText('bedrock.tower');
   await expect(page.locator('#status')).toContainText('Complete');
@@ -30,19 +32,23 @@ test('modules show their source and grammar tree without executable instruction 
   expect(await downloadSource(page, 'bedrock.tower')).toBe(bedrock);
   await page.screenshot({path:'../build/playground-bedrock-'+info.project.name+'.png'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight)).toBe(true);
-  await selectDocument(page, 'foundation.tower');
+  await selectDocument(page, 'foreach.tower');
+  await setSource(page, 'import foundation;\nprint(42);');
+  const foundationFile = page.locator('#file-tree button[data-path=".tower/foundation.tower"]');
+  await foundationFile.click();
   await expect(page.locator('#filename')).toHaveText('foundation.tower');
   await expect(page.locator('#status')).toContainText('Complete');
   await expect(page.locator('#execution-panel')).toBeVisible();
   await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
-  await expect(page.locator('#tree')).toContainText('CoreFunction');
+  expect(await downloadSource(page, 'foundation.tower')).toBe(foundation);
+  await expect(page.locator('#tree')).toContainText('import foundation_syntax');
+  await expect(page.locator('#tree')).toContainText('import types');
   await page.locator('#execute').click();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
-  await expect.poll(()=>outputText(page,'core-instructions')).toBe('');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('import foundation_syntax;');
   await expect(page.locator('#execution-output')).toBeEmpty();
   await expect(page.locator('#llvm-output')).toBeEmpty();
   await selectDocument(page, 'foreach.tower');
-  await setSource(page, 'print(42);');
   await expect(page.locator('#execution-panel')).toBeVisible();
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('print(42);');
