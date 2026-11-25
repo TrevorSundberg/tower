@@ -163,6 +163,16 @@ Do NOT modify todo.txt.
   publish affected stages before mutating entities leased by other jobs.
   Keep payload addresses stable, pools store/stage-owned, and table transitions
   reserved before commit; release private pool links before stage destruction.
+- To test a pooled storage budget, keep the first entity and its payload live
+  while filling the last precharged slot. Check that reuse needs zero new
+  allocations. Then force physical growth, reserve the remaining bytes and
+  check the exact denial. Verify the first entity, its payload, the child
+  count and the budget again after retry.
+- For a query that adds temporary annotations, identify every point where
+  it publishes them. Exercise failure in the following phase while the source
+  world is still live. Count the private kinds and components against their
+  pre-query baseline before tearing down the world. If later phases need
+  only private data, publish once after the last fallible phase.
 - Cancellation/failure must drain workers before releasing worlds, borrows or
   contexts. Update worker admission when new syntax constructs types or invokes
   protocols implicitly; test it inside independent bodies too. Single-owner

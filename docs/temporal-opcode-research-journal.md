@@ -103079,3 +103079,57 @@ source bundle, allocator traces, failing runs, registration rows, ELF hashes,
 per-invocation CPU/RSS and comparison bytes. The local candidate awaits manager
 review. The allocator sweep covers unchecked inspection, alongside the checked
 mode's existing registered coverage.
+### Canceling an active browser target download
+
+The four original target fixtures on Pages 902a and sealed 3390 supplied
+ordinary guest statements without importing their language. The cancellation
+check could also pass after Windows compilation had already finished. A page
+route missed the cross-compiler fetch issued by the dedicated worker. The
+revised test holds the worker's actual HTTP 200 response, cancels while that
+worker owns the pending build, and checks that its worker closes. A failed
+edit also revokes a previous download.
+
+On each release the four complete specs went from 12/20 to 20/20 across
+desktop and mobile with zero retries or skips. Downloaded C and simulated
+BrightScript printed the maximum unsigned 64-bit value, followed by 8 and
+4 respectively for pointer size. The Linux x64 guest ELF printed 42.
+Adding Arm64 requested the sibling runtime. Removing the selected x64
+runtime produced HTTP 404 and no ELF. Host 6 packet `765ced9f` contains
+the worker traffic and actual download bytes for test revision `cb0aa0ee`.
+The manager verified 3,527 checksums and reconstructed 30 trace ZIPs.
+These checks used frozen browser assets.
+
+### Storage reuse and rollback in an unfinished inspection
+
+On the integrated candidate 4a3aa2d6, the storage test expected the first
+synthetic operand to exhaust an already fully reserved budget. Hosts 4 and 5
+independently found that the entity and payload reused charged pages, and the
+first edge fit inline. On host 5 the second edge grew the index from one slot
+to four. The successful growth charged 168 bytes. Denied growth at source
+offset 174 left the earlier child and its payload intact.
+
+After that fixture correction, the next failing group exposed a separate
+defect. Unchecked module inspection published its binding stage before its
+value pass finished. At allocation allowances 13 and 14 the error retained
+one private kind and two annotations in a live world. On be4bc2d6 unchecked
+inspection keeps the stage private through the value pass. All 180 native
+CTest registrations passed on host 5 with zero skips. AddressSanitizer passed
+storage and four-worker inspection. The four-worker ThreadSanitizer check
+passed on the third launch after two host startup refusals. Packets
+c44982d5 and e4cd374c contain the native matrix and independent earlier
+failure controls. The checked type-resolution path publishes a stage so
+declaration workers can use its trees and has a separate rollback check
+pending. These results qualify the integrated native source. The deployed
+compiler still has source identity 902a358f.
+
+Host 2 also independently relocated the preceding 4a3aa2d6 Linux x64
+package. The source manifest's 1,305 entries and all 57 payload sizes and
+hashes matched. Interpretation and linked native execution printed 42.
+The receiver's Debian guest ELF differed at 43 bytes from the Ubuntu
+reference. Using the Ubuntu startup object reproduced the reference ELF.
+Fresh and repeated user installs matched regular-file contents and modes.
+The installed root was 0700 and four subdirectories 0750; the archive
+used 0755. Earlier e539 staging had 46 Tower resources at 0600 and the
+candidate staged them at 0644. Both distributed archives had those files
+at 0644. Packet b4bc1157 describes this intermediate package. The new
+inspection code requires a successor build.
