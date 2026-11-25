@@ -90,7 +90,12 @@ fn checked_inspection_trial(world: void*, environment: void*, source: u8*, expec
             && q.program.resource.error == WorkBudgetError.Memory && q.program.resource.offset == offset,
             "Terminal retry preserves the first cause and source position without replay");
     }
+    var type_owner = bits(Entity*, array);
+    utility_check(type_owner.parent == bits(Entity*, q.program.root) && entity_retain(array) >= 2,
+        "The program owns the canonical array independently of inspection annotations");
     completion_dispose(bits(void*, q));
+    utility_check(type_owner.parent == null && type_owner.references == 1 && sem_get(array).type.record == array
+        && entity_release(array) == 0, "The last retained array reference survives document disposal and retires its identity");
     if !accepted { utility_check(inspection_annotation(definition, private_id) == null, "Retained declaration has no denied annotation after document disposal"); }
     entity_release(bits(void*, definition));
     utility_check(store.entity_count == nodes && store.component_count == components,
