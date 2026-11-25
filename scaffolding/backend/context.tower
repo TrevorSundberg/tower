@@ -41,6 +41,13 @@ struct BackendLoop {
     after: void*;
 }
 
+// Independently owned name and the two declaration bits needed by the linker.
+struct BackendSymbol {
+    name: u8*;
+    external: bool;
+    exported: bool;
+}
+
 struct Backend {
     observation: BackendObservation;
     discard_ir: bool;
@@ -58,7 +65,7 @@ struct Backend {
     size_type: void*;
     pointer_type: void*;
     functions: vector(void*);
-    symbols: vector(u8*);
+    symbols: vector(BackendSymbol);
     source_functions: vector(void*);
     source_root: void*;
     locals: vector(void*);
@@ -234,7 +241,7 @@ export fn backend_close(b: Backend*): void {
         LLVMContextDispose(b.context);
     }
     foreach(var & symbol in &b.symbols) {
-        free(*symbol);
+        free(symbol.name);
     }
     vector_dispose(&b.symbols);
     vector_dispose(&b.functions);
@@ -252,9 +259,18 @@ export fn backend_close(b: Backend*): void {
 export fn backend_function_name(b: Backend*, index: usize): u8* {
     // O2 may erase unused LLVM declarations. Keep result names independently
     // of LLVM value lifetimes, while Foundation entities retain source spelling.
-    var name = b.symbols.data[index];
+    var name = b.symbols.data[index].name;
     if name == null {
         return "";
     }
     return name;
+}
+
+// The executable driver walks the frozen object symbols in declaration order.
+export fn backend_link_symbol(b: Backend*, index: usize, external: bool*, exported: bool*): u8* {
+    if index >= b.symbols.length { return null; }
+    var symbol = &b.symbols.data[index];
+    *external = symbol.external;
+    *exported = symbol.exported;
+    return backend_function_name(b, index);
 }

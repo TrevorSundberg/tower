@@ -34,6 +34,7 @@ extern fn backend_raw(backend: void*): u8*;
 extern fn backend_optimized(backend: void*): u8*;
 extern fn backend_retain_ir(backend: void*, retain: bool): bool;
 extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn backend_units_link_only(batch: void*): bool;
 extern fn backend_units_one_shot(batch: void*): bool;
 extern fn backend_units_retain_ir(batch: void*, retain: bool): bool;
 extern fn backend_units_library(batch: void*, ordinal: usize, library: bool): bool;
@@ -636,7 +637,7 @@ fn backend_baseline_borrow(context: void*, phase: CompilerQuery, ordinal: usize,
     }
 }
 
-fn backend_units_one_shot_test(root: u8*, bedrock: u8*, foundation: u8*): void {
+fn backend_units_one_shot_test(root: u8*, bedrock: u8*, foundation: u8*, link_only: bool): void {
     var frontend = backend_units_inputs(8, 1, root, bedrock, foundation);
     defer frontend_units_close(frontend);
     var borrow: BackendBaselineBorrow = default;
@@ -644,13 +645,15 @@ fn backend_units_one_shot_test(root: u8*, bedrock: u8*, foundation: u8*): void {
     var other = frontend_modules_world(frontend_units_environment(frontend, 2));
     units_check(frontend_units_observer(frontend, bits(void*, &borrow), backend_baseline_borrow), "install backend view observer");
     var batch = backend_units_create(frontend, BackendFixtureUnits, 1, "x86_64-unknown-linux-gnu", true, false);
-    units_check(backend_units_one_shot(batch), "enable one-shot streaming cleanup");
+    units_check(link_only ? backend_units_link_only(batch) : backend_units_one_shot(batch), "enable one-shot streaming cleanup");
     defer backend_units_close(batch);
     while !backend_units_step(batch, true) {}
-    units_check(backend_units_result(batch, 2) != null && frontend_units_program(frontend, 2) != null
-        && compiler_world_grammar(other).syntax == null, "published object and program survive baseline retirement");
-    units_check(borrow.view != null && compiler_world_grammar(borrow.world).syntax != null, "independently pinned baseline survives join");
+    units_check(backend_units_result(batch, 2) != null && (frontend_units_program(frontend, 2) == null) == link_only
+        && compiler_world_grammar(other).syntax == null, "object survives and only the exclusive linker consumes the unpinned program");
+    units_check(borrow.view != null && frontend_units_program(frontend, 1) != null && compiler_world_grammar(borrow.world).syntax != null, "independently pinned baseline survives join");
     entity_view_close(borrow.view);
+    units_memory_answer(frontend_units_program(frontend, 1));
+    if !link_only { units_memory_answer(frontend_units_program(frontend, 2)); }
 }
 
 export fn backend_units_tests(root: u8*): void {
@@ -661,7 +664,8 @@ export fn backend_units_tests(root: u8*): void {
     defer vector_dispose(&foundation);
     units_read(root, "/bedrock.tower", &bedrock);
     units_read(root, "/foundation.tower", &foundation);
-    backend_units_one_shot_test(root, bedrock.data, foundation.data);
+    backend_units_one_shot_test(root, bedrock.data, foundation.data, false);
+    backend_units_one_shot_test(root, bedrock.data, foundation.data, true);
     for(var width: u32 = 4; width <= 8; width += 4) {
         var frontend = backend_units_frontend(width, root, bedrock.data, foundation.data);
         defer frontend_units_close(frontend);
@@ -709,7 +713,7 @@ export fn backend_units_tests(root: u8*): void {
         units_check(frontend_units_source(frontend, 2, "first_stream_failure.tower", first, strlen(first))
             && frontend_units_source(frontend, 3, "later_stream_failure.tower", later, strlen(later)), "stream failing sources");
         var batch = backend_units_create(frontend, BackendFixtureUnits, budget, "x86_64-unknown-linux-gnu", true, true);
-        units_check(batch != null && (budget == 1 || backend_units_one_shot(batch)), "stream failure create");
+        units_check(batch != null && (budget == 1 || backend_units_link_only(batch)), "stream failure create");
         while !backend_units_step(batch, true) {}
         units_check(frontend_units_failed(frontend) == 2 && !frontend_units_cancelled(frontend)
             && strstr(frontend_units_error(frontend), "unknownFirstStream") != null, "stream deterministic frontend failure");
@@ -743,7 +747,7 @@ export fn backend_units_tests(root: u8*): void {
         defer frontend_units_close(streaming);
         batch = backend_units_create(streaming, BackendFixtureUnits, BackendFixtureUnits,
             "x86_64-unknown-linux-gnu", true, true);
-        units_check(batch != null && (active == 0 || backend_units_one_shot(batch)), "stream cancellation batch");
+        units_check(batch != null && (active == 0 || backend_units_link_only(batch)), "stream cancellation batch");
         if active != 0 { backend_units_step(batch, false); }
         backend_units_cancel(batch);
         units_check(backend_units_step(batch, false), "stream cancellation drained");
