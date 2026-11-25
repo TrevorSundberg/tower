@@ -101092,3 +101092,61 @@ Host 1 built the four production reactors and editable project from the frozen 8
 The sealed 105-file site tree is fc70c453ecd2b01b222f0f6db6817f8922b81913, manifest SHA-256 d75b6ccda4e9056f4b48eba4e4cd7f1e0c4d7f7c0a560a74968d280cfa344848. Nineteen paths changed from public Pages 1ee8a6fe. Production compiler, UI, resource copy, editable sources and rebuilt project packager came from 8b7878c8. The project packager reproduced its bbb01f5e bytes. Distribution used the retained fb019f61 packager. The asset ledger records all 86 byte-identical paths, previous-build recipes and each new digest. A preliminary manifest inherited the wrong resource and project packager revisions. The final replayed verifier used the corrected identities. Rebuilding the delivered bounded side probe from its exact source changed only the unreachable-on-success trap source offset in its disassembly. Both module variants independently produced the bounded failure and corrected success. Wasm-specific coverage used real worker transport and lifecycle observations. This assignment did not run Tower-source sanitizers on browser Wasm.
 
 On this dual Xeon Gold 6244, 32 logical CPUs were allowed, cgroup quota was 15.36 CPUs and the memory ceiling was 136,709,144,576 bytes. Four alternating pairs per size and profile used cores 2–5, warm files and a fresh Node/Chromium process. The matching 16/1,000-function guest outputs were 15/999. Large shared median command wall was 1,329/1,375 ms old/new, measured CPU 729/753 ms and wait4 maximum RSS 126,608/126,452 KiB. No comparison sample added quota throttling. These measurements include browser startup. The corrected bounded gate finished with 40,960,000 bytes of Wasm memory and renderer high-water RSS 197,732 KiB. The packet contains raw lifecycle, memory and paired measurements, replayable source, both sites, editable generation products, failure logs and normal verification. Publication remains with the manager.
+
+### Manager review of compiler ownership, interpreter cost and browser pool reuse, November 25, 2026
+
+The audit input is ca543287. Comparing its tracked Tower blobs with the
+4e7ef17b reconciliation yielded 1,214 identical paths, 68 edits and five
+additions. Prior lane journals remain evidence for their original sources.
+The new contributor guidance uses the LR FIRST pass and runtime row builder
+as concrete examples of registered accesses, typed jobs, and ordered
+publication. A helper for their repeated access declarations and a scoped
+Stronghold component borrow are proposals. The current work_view type
+distinguishes borrowed storage from an owning vector. Its caller is still
+responsible for lifetime and access. The handoff links the original Flecs,
+EnTT, Rust and Burst descriptions used for the design comparison.
+
+Reviewed three new evidence archives by checking each regular member against
+its manifest and checking the outer SHA-256. Browser receipt 1e666de6 had
+713 members listed, host 7 receipt 1cd02b4b had 3,192, and interpreter receipt
+fbdaaabe had 8,106. Source and journal bundles embedded in the archives were
+verified with git bundle verify and preserved under immutable report refs.
+The independent compiler checkout tip in the host 7 receipt predates the job.
+Its diagnostic changes remain in the evidence packet.
+
+Host 7 ran production jobs one on CPU 7 and jobs four on cores 4–7 of an
+EPYC 7502, with a 30.72 CPU quota. Recomputing the 12 measured blocks from
+measure.tsv gave mean wall times of 264.81 and 316.19 ms on 16 functions,
+and 498.59 and 539.84 ms on 1,000 functions. Maximum process RSS was
+87,532 and 92,988 KiB on the small input, 117,180 and 120,904 KiB on the
+larger one. All 234 measured and warm-up objects matched their serial
+reference. Suppressing parallel BODY work cost 32.45 ms on the heavy case.
+Keep the BODY policy. Most of the ordinary width penalty appeared during
+immutable grammar construction, especially LALR lookahead.
+
+The host 5 interpreter change reused one checked operand lookup. Its original
+interpreter blob matched the integrated predecessor. Inspection traced the
+capture failure return, the invocation-local address cache, and the separate
+path that validates taking an address. Recomputed all 72 packaged long pairs
+from packaged/samples. All favored the candidate. At four jobs on the
+dependent object, median wall/CPU changed from 305/435.5 to 290/399.5 ms,
+with identical resulting bytes. Maximum RSS was 92,760 and 92,524 KiB.
+The Ryzen 9 5900XT run used four distinct cores (0, 2, 4, 6) under a 30.72
+CPU quota. The code and its journal were merged at 6f7ed3fe. The peer
+review and native integrated generation use distinct receipts.
+
+The normal Node test in browser receipt 1e666de6 failed at lifecycle 80.
+The unmodified observation at lifecycle 145 returned four lanes for the
+first pool and three for the second, with four slots ready on the following
+read. The old control completed 2,048 cycles. A delay before the child
+published READY reproduced the failure at the first reopen. This leaves
+the actual two-owner saturation check passing while blocking publication
+of the sealed site. The repair must pass both cases without waiting for a
+still-live peer. The separate staged-integer report 46eaa058 remains accepted
+at 25e1a806 with its 96 checked cases. The pre-existing full formatter
+fixture 9 failure is assigned for diagnosis against the language contract.
+
+The guidance and journal edits change no executable paths. The native,
+browser and performance observations above belong to the respective worker
+builds. Final integrated compiler/package, hosted deployment, and clean
+adoption remain outstanding.

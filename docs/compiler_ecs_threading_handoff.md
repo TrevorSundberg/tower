@@ -1,5 +1,81 @@
 # Compiler ECS, threading, and compile-time execution handoff
 
+## Final audit, November 25, 2026
+
+The inventory at `ca543287` has 1,287 tracked Tower paths. Compared with the
+[previous file audit](compiler_ecs_reconciliation_4e7ef17b.md), 1,214 have
+the same bytes, 68 changed and five are new. Use the previous receipt for an
+unchanged file, then inspect callers whose ownership or execution changed.
+The integrated formatter at `25e1a806` changes four more Tower files relative
+to this audit input. Package copies have their own provenance.
+
+**A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),
+each job reads a frozen frontier and writes its assigned range. The coordinator
+registers those accesses, takes tickets, opens the read view and dispatches
+typed jobs. It finishes tickets after the join and processes errors in frontier
+order. The [parser row builder](../scaffolding/compiler/lr_runtime_work.tower)
+shares that sequence. It also preserves the first grammar conflict in source
+order. An ordinary Tower helper for the repeated access declarations is worth
+trying at those two sites. To justify it, show that readers can still see
+the resources and ranges, that denial returns the original error, and that
+the generated code adds no allocations. Keep the order of publication in
+each caller. This is a proposal.
+
+**Storage and type safety.** In the measured entity store, a dense index can
+point to payloads on stable pages. Packing those payloads would change what
+a live borrow can rely on. The [locality receipt](compiler_ecs_locality_d5b65afe.md)
+records which scans improved and which address-stability tests would need to
+pass again. Flecs exposes component access in system declarations. EnTT uses
+resource access to construct a task graph. For Tower, those ideas fit the
+choice of which ready jobs may run together. A semantic query still discovers
+which declaration produces a value by following the program, including its
+executed branches. [Flecs systems](https://www.flecs.dev/flecs/Systems.html) ·
+[EnTT organizer](https://skypjack.github.io/entt/md_docs_2md_2entity.html)
+
+For a future Stronghold API, consider a function that lends a typed component
+range for the duration of a callback. A user could read fields and return
+owned results. The checker would reject returning the borrowed range or
+dispatching overlapping writers. Shared resources reached through component
+pointers also need an access rule. Rust's scoped threads illustrate how a
+join can bound a borrow. Burst's aliasing rules illustrate why a compiler
+needs evidence about the underlying memory before it vectorizes two accesses
+as independent. These are design requirements for a prototype. Tower's
+current typed callbacks alone do not enforce them.
+[Rust scoped threads](https://doc.rust-lang.org/std/thread/fn.scope.html) ·
+[Burst aliasing](https://docs.unity3d.com/Packages/com.unity.burst@1.8/manual/aliasing.html)
+
+**Integrated checks.** The shared browser regression in `1c2cc042`
+invokes the normal compiler selection with two live owners of a four-child
+pool. The two old controls requested a fifth child. Both recorded replays
+of the repaired transport matched the serial Foundation outputs. Cancelling
+either owner preserved its peer's results. The integer formatter repair in
+`5681a339` preserves the type of a literal when its consumer supplies no
+type context, including an unsigned maximum and a target-width address.
+Native Linux x64 and Wasm32 object and executable bytes matched across
+two reparses and jobs one and four. The full native formatter selection still
+stops at fixture 9 on the base and repaired compiler. These focused checks
+precede publication of an integrated Linux package and browser deployment.
+
+The normal Node suite subsequently found a second shared-worker problem on
+`8b7878c8`. Immediately after joining one pool, opening the next sometimes
+granted three of four lanes. A child can finish its pthread work before the
+JavaScript transport publishes its slot as reusable. The original competing
+owner test still passes. Release acceptance needs both cases on the same
+transport. The failed site tree `fc70c453` remains a reproduction artifact.
+
+**Reuse a checked operand within one interpreter read.** In
+[`ix_read_uncached`](../scaffolding/compiler/interpreter.tower), reading a
+staged operand used to repeat a capture lookup while resolving its address.
+Change `528c5428` keeps the eligibility check, propagates lookup failure,
+and shares the remaining address calculation with the address-taking path.
+The result stays in the current execution frame. Host 5 measured 481 slices
+and 491,549 steps for the dependent consumer in both versions. At four jobs
+the median whole object compile fell from 305 to 290 ms. Maximum process
+RSS across those six pairs was 92,760 and 92,524 KiB respectively. A separate
+16-pair short serial control had zero median wall-time difference. Raw sample
+identities and the other widths are in the project journal. The integrated
+native package and browser compiler still require their own checks.
+
 ## Cloud milestone closeout, November 25, 2026
 
 The public compiler is still `902a358f`. Its hosted desktop/mobile checks and

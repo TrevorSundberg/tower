@@ -59,6 +59,27 @@ Do NOT modify todo.txt.
 
 ## ECS, dependencies and threading
 
+- When adding a compiler pass, name the world that owns its inputs, the
+  components it reads and writes, and the coordinator that publishes its
+  results. Trace one entity from creation through its last reader before
+  choosing storage. A persistent handle identifies an entity. A temporary
+  borrow needs a live owner, stable storage and permission for that access.
+- For a dependency, write down which value is missing and which query can
+  produce it. Test a forward reference and an edit to that producer. The edit
+  must invalidate the consumer through aliases. A read in an untaken branch
+  should leave the consumer runnable. Compare the resulting Foundation,
+  diagnostics and guest output at one worker and at the intended width.
+- A worker limit is shared by every live owner of a fixed browser pool. Size
+  nested work from the slots available when its pool opens. Dispatch through
+  the returned pool count and keep the caller able to finish when all children
+  are occupied. Exercise two live owners, cancel each in turn, and check the
+  survivor's results and returned slots. After releasing one owner, check
+  that an available child actually runs alongside the caller. Also close a
+  fully occupied pool and reopen it immediately. A pthread join can complete
+  before the browser worker marks its slot ready for reuse. Check the next
+  grant as well as eventual retirement. See the
+  [Tower regression](scaffolding/tests/lr_budget.tower) and
+  [browser selection](playground/tests/shared_compiler_worker.mjs).
 - Use the shared world-owned entity/component model wherever it fits, especially
   grammar rules, tokens/parse nodes, ASTs, types, Foundation operations, transforms,
   reflection and compiler work. Enrich those entities instead of adding another
