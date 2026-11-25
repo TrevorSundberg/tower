@@ -49,3 +49,24 @@ The counts above measure inventory coverage. Execution evidence is recorded per
 selector and configuration. The later `named_initialization_test.tower` and its
 one- and four-worker registrations first appeared in `a01617e3`; they are outside
 this frozen census.
+
+### Follow-up on the five native paths
+
+The native opt-in build at `6c31f333` had 188 CTest cases. The registrations
+below add four cases. The original five fixture files and the browser callbacks
+keep their existing behavior.
+
+| Fixture | Entry and expected result |
+| --- | --- |
+| `narrow_foreign_library.tower` | ABI support. On Linux x64 with execution tests enabled, `tower-narrow-foreign` links this provider and the unchanged `narrow_foreign.tower` caller as separate objects. The three signed-byte, signed-short and unsigned-short calls must return the values checked by the caller. Success exits 0 with empty output. The raw-memory Node test supplies its own JavaScript additions to the same caller. |
+| `sanitizer_memory_probe.tower` | Manual ASan sensitivity control. The [instrumentation recipe](compiler_sanitizer_checks.md#instrument-and-run-a-fixture) expects exit 1 and a heap-buffer-overflow on the one-byte write after the eight-byte allocation. Run it separately from passing guest programs. |
+| `token_text.tower` | `tower-token_text-1` and `tower-token_text-4` run the existing literal and identifier checks through the native interpreter. Each requires exit 0, exactly `0\n` on stdout and empty stderr. |
+| `work_graph_scale.tower` | Manual native benchmark. Compile the source to an executable and time that executable. It requests 64,000 subjects, repeats root edges and prints zero only if every task completes. Success requires exit 0 and exactly `0\n`. The guest drains the graph serially. |
+| `work_view_invalid_dispose.tower` | With POSIX driver tests enabled, `tower-work-view-invalid-dispose` invokes the real compiler in library mode. It requires normal exit 1, the exact nominal type diagnostic at 9:27, empty stdout and preservation of the prior output file. The fixture is never run as a guest. |
+
+The optional `tower-format-repository` manifest lists all five. Its full run
+aborts at `backend/bindings.tower` before reaching any of them. With each path
+first in a short manifest, the same runner aborts on canonical text for the
+narrow provider, the ASan probe and the token fixture. It passes the scale
+and borrowed-view files, including the second formatting pass. The Node
+module-path test also checks the spellings of all five paths.

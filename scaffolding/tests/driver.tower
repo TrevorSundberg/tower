@@ -366,6 +366,27 @@ fn driver_test_link_depfile(compiler: u8*): void {
     }
 }
 
+fn driver_test_work_view_dispose(compiler: u8*, source: u8*): void {
+    var output = "work_view.ll";
+    var sentinel = "preserve previous output\n";
+    driver_check(driver_write_file(output, sentinel, strlen(sentinel)), "borrowed view output sentinel");
+    var args: DriverArguments = default;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler); driver_argument(&args, "", source);
+    driver_argument(&args, "", "--library"); driver_argument(&args, "", "--emit"); driver_argument(&args, "", "llvm");
+    driver_argument(&args, "", "--jobs"); driver_argument(&args, "", "1");
+    driver_argument(&args, "", "-o"); driver_argument(&args, "", output);
+    driver_check(driver_test_capture_status(&args) == 1, "borrowed view compilation must exit 1");
+    var wanted: ByteBuffer = default;
+    defer bytes_dispose(&wanted);
+    driver_check(driver_text(&wanted, source) && driver_text(&wanted, ":9:27: Expected vector(usize)*, got work_view(usize)*\n")
+        && host_text_terminate(&wanted), "borrowed view diagnostic text");
+    driver_test_read("driver stderr.txt", wanted.data, true);
+    driver_test_read("driver stdout.txt", "", true);
+    driver_test_read(output, sentinel, true);
+}
+
 fn driver_test_errors(compiler: u8*, source: u8*): void {
     var invalid = "import tower;\n\n// é: UTF-8 provenance\nvar value: i32 = true;\n";
     driver_check(driver_write_file("driver invalid.tower", invalid, strlen(invalid)), "invalid fixture");
@@ -482,6 +503,10 @@ fn driver_test_cli(compiler: u8*): void {
 
 export fn driver_tests(argc: i32, argv: u8**): i32 {
     if argc > 1 {
+        if driver_same(argv[1], "--work-view-invalid-dispose") {
+            if argc != 4 { return 2; }
+            driver_test_work_view_dispose(argv[2], argv[3]); return 0;
+        }
         if driver_same(argv[1], "--link-depfile") {
             if argc != 3 { return 2; }
             driver_test_link_depfile(argv[2]); return 0;

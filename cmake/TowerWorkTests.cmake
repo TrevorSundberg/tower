@@ -151,7 +151,7 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
 endif()
 if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
-    type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known)
+    type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
     add_test(NAME tower-fixed-array-iteration-${workers}
       COMMAND $<TARGET_FILE:towerc>

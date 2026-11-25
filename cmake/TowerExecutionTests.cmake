@@ -52,9 +52,18 @@ function(tower_execution_tests)
     endif()
   endforeach()
 
-  # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
-  # portable execution runner and reuse this same production link closure.
   if(TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND triple MATCHES "^x86_64-.*linux")
+    # Keep the three foreign calls across object boundaries, as in the native ABI trial.
+    tower_runtime_object(narrow-foreign-caller
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/narrow_foreign.tower" "${triple}" SOURCE)
+    tower_runtime_object(narrow-foreign-library
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/narrow_foreign_library.tower" "${triple}")
+    get_property(narrow_runtime GLOBAL PROPERTY TOWER_GUEST_host-linux-x64_OBJECT)
+    add_executable(tower-narrow-foreign-tests
+      "${narrow-foreign-caller_OBJECT}" "${narrow-foreign-library_OBJECT}" "${narrow_runtime}")
+    set_target_properties(tower-narrow-foreign-tests PROPERTIES LINKER_LANGUAGE C)
+    add_test(NAME tower-narrow-foreign COMMAND tower-narrow-foreign-tests)
+
     add_test(NAME tower-retained-source-updates COMMAND tower-execution-tests
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" retained-sources)
     set_tests_properties(tower-retained-source-updates PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
@@ -73,6 +82,8 @@ function(tower_execution_tests)
     add_test(NAME tower-staged-capture-identity COMMAND tower-staged-capture-test
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-staged-capture-identity PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
+    # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
+    # portable execution runner and reuse this same production link closure.
     set(profile_input "${CMAKE_CURRENT_BINARY_DIR}/tower_type_reachability_profile.tower")
     file(GENERATE OUTPUT "${profile_input}" CONTENT "${source}import tests.type_reachability_profile;\n")
     tower_runtime_object(tower-type-reachability-profile "${profile_input}" "${triple}")

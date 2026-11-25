@@ -91,6 +91,13 @@ function(tower_driver_integrate)
       "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-driver-formatting PROPERTIES
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
+    if(platform STREQUAL "posix")
+      file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-work-view-checks")
+      add_test(NAME tower-work-view-invalid-dispose COMMAND tower-driver-tests --work-view-invalid-dispose
+        "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_view_invalid_dispose.tower")
+      set_tests_properties(tower-work-view-invalid-dispose PROPERTIES
+        WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-work-view-checks")
+    endif()
     foreach(check IN ITEMS native package)
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-${check}-differential-checks")
       add_test(NAME tower-driver-${check}-differential COMMAND tower-driver-tests --${check}-differential
