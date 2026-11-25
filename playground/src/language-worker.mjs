@@ -19,12 +19,11 @@ async function receive({id, method, source, cursor, foundation, bedrock, editing
       foundation = baseFoundation;
       if (editingModule === 'bedrock') bedrock = baseBedrock;
     }
-    const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, builtins.tower);
+    const {tower} = method === 'highlight' ? await getCanonicalTower() : await getTower(foundation, bedrock, {entry:activePath, files, builtins, library});
     let result;
     if (method === 'warm') {
       result = null;
     } else if (method === 'complete' || method === 'document') {
-      tower.configureModules({entry:activePath, files, builtins:{...builtins,foundation,bedrock}, library, replaceBuiltins:true});
       result = method === 'complete' ? tower.complete(source, cursor, {editingModule}) : tower.inspectDocument(source,{editingModule,pointerBytes});
       if (result.error) throw new Error(result.error);
     } else {

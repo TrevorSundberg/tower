@@ -1,12 +1,13 @@
+import { configureTower } from './bootstrap.mjs';
 import { decodeBytes } from './host-bytes.mjs';
 // Transport for Tower's module environment. Resolution and dependency discovery
 // execute in Tower; this adapter supplies explicit project source capabilities.
 // `builtins` is the saved project's library-file collection, not a resolver
 // privilege: .tower/tower.tower follows the same lookup as any supplied file.
-export function moduleInputs(exports, initial = {}) {
+export function moduleInputs(exports, initial = {}, context = {}) {
   const allocate = exports.tw_alloc || exports.malloc, free = exports.tw_free || exports.free;
   const environment = exports.frontend_modules_create();
-  let state = {entry:'input.tower', files:[], builtins:initial, library:'.tower'};
+  let state = {entry:'input.tower', files:[], library:'.tower', ...context, builtins:initial};
   let applied = false;
   function text(value, action) {
     const bytes = new TextEncoder().encode(value), pointer = allocate(bytes.length + 1);
@@ -16,6 +17,9 @@ export function moduleInputs(exports, initial = {}) {
       memory.set(bytes, pointer); memory[pointer + bytes.length] = 0;
       return action(pointer, bytes.length);
     } finally { free(pointer); }
+  }
+  function setEntry(path) {
+    text(path, entry => text(state.library, library => exports.frontend_modules_configure(environment, entry, library)));
   }
   function configure(update = {}) {
     // A failed upload retains the requested state for the next partial update.
@@ -30,7 +34,7 @@ export function moduleInputs(exports, initial = {}) {
     for (const file of files) text(file.path, name => text(file.text, (source, length) => {
       if (!exports.frontend_modules_source(environment, name, source, length)) throw new Error('Invalid module input: ' + file.path);
     }));
-    text(state.entry, entry => text(state.library, library => exports.frontend_modules_configure(environment, entry, library)));
+    setEntry(state.entry);
     applied = true;
   }
   configure();
@@ -40,6 +44,13 @@ export function moduleInputs(exports, initial = {}) {
   }
   return {
     environment, configure,
+    // The wrapper's imports resolve from its own path, even when its
+    // dependency is the active editor. The request keeps its entry on failure.
+    installFoundation(source) {
+      setEntry('.tower/foundation.tower');
+      try { configureTower(exports, source, environment); }
+      finally { setEntry(state.entry); }
+    },
     hasAppliedBuiltins(builtins) {
       return applied && Object.entries(builtins).every(([name, source]) =>
         typeof source === 'string' && Object.hasOwn(state.builtins, name) && state.builtins[name] === source);

@@ -28,17 +28,17 @@ async function receive(event) {
     send({ phase: 'Loading…' });
     let formatted = backend === 'interpreter' ? undefined : event.data.formatted;
     if (!formatted) {
-      const frontend = await getTower(foundation, bedrock, builtins.tower, {projectFollows:command !== 'disassemble'}); tower = frontend.tower;
       if (command === 'disassemble') {
-        await getCanonicalTower();
+        ({tower} = await getCanonicalTower());
         handle = tower.loadBytecode(bytecode);
         send({disassembly:tower.foundation(handle).source, pointerBytes:new DataView(bytecode.buffer,bytecode.byteOffset).getUint32(20,true)});
         return;
       }
+      const frontend = await getTower(foundation, bedrock, {entry, files:drive, builtins, library});
+      tower = frontend.tower;
       timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
       let at = performance.now();
       tower.mountFiles(drive);
-      tower.configureModules({entry, files:drive, builtins:{...builtins,bedrock,foundation}, library, replaceBuiltins:true});
       handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
       timings.tower = performance.now() - at;
       const checked = tower.execute(handle, 0);

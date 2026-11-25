@@ -1,21 +1,16 @@
 import { runToEnd } from './tower-host.mjs';
-import {getTower, useCompiler} from './compiler-runtime.mjs';
+import {getCanonicalSources, getCanonicalTower, useCompiler} from './compiler-runtime.mjs';
 let tower, handle = 0, moduleHandle = 0, bedrockHandle = 0, installed, installedBedrock;
-const ready = (async () => {
-  const [module, seed, language] = await Promise.all([fetch('./foundation.tower'), fetch('./bedrock.tower'), fetch('./tower.tower')]);
-    if (!module.ok || !seed.ok || !language.ok) throw new Error('Could not load Tower and its language modules');
-  installed = await module.text(); installedBedrock = await seed.text();
-  tower = (await getTower(installed, installedBedrock, await language.text())).tower;
-})();
 self.onmessage = async ({ data: { id, source, foundation, bedrock, editingModule, files=[], builtins={}, activePath='input.tower', entry, compiler, library='.tower' } }) => {
   try {
-    await ready;
-    foundation ??= installed; bedrock ??= installedBedrock;
-    if (useCompiler(compiler)) {
-      tower = (await getTower(foundation, bedrock, builtins.tower)).tower;
+    if (useCompiler(compiler)) tower = undefined;
+    if (!tower) {
+      // A broken project library must still open for editing.
+      tower = (await getCanonicalTower()).tower;
       handle = moduleHandle = bedrockHandle = 0;
-      installed = foundation; installedBedrock = bedrock;
+      [installed, installedBedrock] = await getCanonicalSources();
     }
+    foundation ??= installed; bedrock ??= installedBedrock;
     tower.configureModules({entry:activePath, files, builtins:{...builtins, bedrock, foundation}, library, replaceBuiltins:true});
     const start = performance.now();
     let current;

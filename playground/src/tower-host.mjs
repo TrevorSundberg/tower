@@ -1,13 +1,13 @@
 import { decodeBytes } from './host-bytes.mjs';
 import { compilerThreads } from './compiler-threads.mjs';
 import { TowerWASI } from './wasi-host.mjs';
-import { configureTower, configureFoundation, configureBedrock } from './bootstrap.mjs';
+import { configureFoundation, configureBedrock } from './bootstrap.mjs';
 import { foreignArgument, foreignResult, invokeForeign } from './foreign.mjs';
 import { platformImports } from './platform.mjs';
 import { moduleInputs, moduleDiagnostic } from './module-inputs.mjs';
 
 /** The only module which knows about Wasm pointers and the C ABI. */
-export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower, builtins = {}, threads = {} } = {}) {
+export async function loadTower(bytes, log = () => {}, bootstrap, foundation, bedrock, { imports = {}, tower, builtins = {}, project, threads = {} } = {}) {
   const available = {...platformImports((_stream, data, context) => context.output(data)),...imports};
   const wasi = new TowerWASI({ log });
   const module = bytes instanceof WebAssembly.Module ? bytes : await WebAssembly.compile(bytes);
@@ -42,10 +42,10 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
   const exports = instance.exports;
   let modules;
   try {
-    modules = moduleInputs(exports, {...builtins, bedrock, foundation:foundation ?? bootstrap, tower});
+    modules = moduleInputs(exports, {...builtins, bedrock, foundation:foundation ?? bootstrap, tower}, project);
     if (exports.tw_abi_version() !== 3) throw new Error('Unsupported Tower IDE ABI');
     if (bedrock !== undefined) configureBedrock(exports, bedrock);
-    configureTower(exports, bootstrap, modules.environment);
+    modules.installFoundation(bootstrap);
     if (foundation !== undefined) configureFoundation(exports, foundation);
   } catch (error) { transport?.close(); throw error; }
   const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -88,9 +88,15 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
     hasAppliedBuiltins: modules.hasAppliedBuiltins,
     dependencies: modules.dependencies,
     mountFiles: files => wasi.mountFiles(files),
-    configure: source => { configureTower(exports, source, modules.environment); modules.configure({builtins:{foundation:source}}); },
+    configure(source) {
+      modules.installFoundation(source);
+      if (!modules.hasAppliedBuiltins({foundation:source})) modules.configure({builtins:{foundation:source}});
+    },
     // Reject invalid grammar before publishing its source to future imports.
-    configureBedrock: source => { configureBedrock(exports, source); modules.configure({builtins:{bedrock:source}}); },
+    configureBedrock(source) {
+      configureBedrock(exports, source);
+      if (!modules.hasAppliedBuiltins({bedrock:source})) modules.configure({builtins:{bedrock:source}});
+    },
     bedrockSeed: () => string(exports.tw_bedrock_seed()),
     createBedrock: source => withSource(source, (pointer, length) => exports.tw_create_bedrock(pointer, length)),
     createFoundation: source => withSource(source, (pointer, length) => exports.tw_create_foundation(pointer, length)),
