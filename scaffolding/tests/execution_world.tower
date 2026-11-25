@@ -306,6 +306,73 @@ fn retained_world_target_width(session: ExecutionSession*, world: void*, modules
     retained_world_expect_width(session, world, modules, budget, source.data, 8, wide, false);
 }
 
+fn retained_world_source(modules: void*, name: u8*, source: u8*): void {
+    execution_check(frontend_modules_source(modules, name, source, strlen(source)), name);
+}
+
+fn retained_world_check_envelope(session: ExecutionSession*, wanted: u8*): void {
+    foreach(var node in &session.program.types) {
+        var nominal = sem_get(node);
+        if nominal.name.data == null || strcmp(nominal.name.data, "Envelope") != 0 { continue; }
+        execution_check(nominal.items.length == 1, "Envelope has its one selected field");
+        var record = sem_get(nominal.items.data[0]).type.record;
+        execution_check(record != null && strcmp(sem_get(record).name.data, wanted) == 0,
+            "The field retains the selected provider's nominal type across the alias edit");
+        return;
+    }
+    execution_check(false, "Retained compilation published Envelope");
+}
+
+fn retained_world_select_provider(modules: void*, provider: u8*, projection: u8*): void {
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    execution_check(driver_text(&source, "import tower;\nimport ") && driver_text(&source, provider)
+        && driver_text(&source, " as owner;\n") && driver_text(&source, projection)
+        && host_text_terminate(&source), "Build the provider import");
+    retained_world_source(modules, "projection.tower", source.data);
+}
+
+fn retained_world_escaped_type(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
+    var source = "import tower;\nimport left as west;\nimport east as east;\nimport relay as path;\nimport switcher as flag;\nvar known = comptime(forward(flag.take));\nfn forward(take:bool):i32 {return path.demand(take);}\nstruct Envelope { value:path.View; }\nprint(sizeof(Envelope)); print(known); print(path.runtime()); print(west.tag); print(east.tag);\n";
+    var left = "import tower;\nstruct Word { number:u8; }\nvar model:Word=default;\nvar address=&model;\n(*address).number=11;\nvar tag:i32=31;\n";
+    var east = "import tower;\nstruct Word { number:u8; }\nvar model:Word=default;\nvar address=&model;\n(*address).number=22;\nvar tag:i32=41;\n";
+    var wider = "import tower;\nstruct Word { number:u16; }\nvar model:Word=default;\nvar address=&model;\n(*address).number=33;\nvar tag:i32=41;\n";
+    var inactive = "import tower;\nstruct Word { number:u64; }\nvar model:Word=default;\nvar address=&model;\n(*address).number=44;\nvar tag:i32=31;\n";
+    var relay = "import tower;\nimport projection as leaf;\nvar View:type=ForwardView;\nvar ForwardView:type=leaf.View;\nfn demand(take:bool):i32{return leaf.demand(take);}\nfn runtime():i32{return leaf.runtime();}\n";
+    var off = "import tower;var take:bool=false;\n";
+    var on = "import tower;var take:bool=true;\n";
+    var projection = "var View:type=decltype(owner.model);\nfn demand(take:bool):i32 {\n    if take {return convert(i32,owner.model.number);}\n    return convert(i32,sizeof(decltype(owner.model)))+100;\n}\nfn runtime():i32 {return convert(i32,owner.model.number);}\n";
+    retained_world_source(modules, "left.tower", left);
+    retained_world_source(modules, "east.tower", east);
+    retained_world_source(modules, "relay.tower", relay);
+    retained_world_source(modules, "switcher.tower", off);
+    retained_world_select_provider(modules, "left", projection);
+    retained_world_expect(session, world, modules, budget, source, "1\n101\n11\n31\n41\n", false);
+    retained_world_check_envelope(session, "Word@left.tower");
+
+    // Both providers stay imported. Their one-byte records have different identities.
+    retained_world_select_provider(modules, "east", projection);
+    retained_world_expect(session, world, modules, budget, source, "1\n101\n22\n31\n41\n", false);
+    retained_world_check_envelope(session, "Word@east.tower");
+    retained_world_source(modules, "east.tower", wider);
+    retained_world_expect(session, world, modules, budget, source, "2\n102\n33\n31\n41\n", false);
+    retained_world_source(modules, "left.tower", inactive);
+    retained_world_expect(session, world, modules, budget, source, "2\n102\n33\n31\n41\n", false);
+
+    retained_world_source(modules, "switcher.tower", on);
+    execution_check(!execution_session_compile(session, source, strlen(source), 8, modules)
+        && session.program.resource.error == WorkBudgetError.None
+        && execution_text(&session.error, "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer")
+        && session.machine.done && session.machine.failed && session.machine.steps == 0 && session.output.length == 0,
+        "Reached value read rejects the escaped owner before guest execution");
+    retained_world_drained(world, budget);
+    retained_world_source(modules, "switcher.tower", off);
+    retained_world_expect(session, world, modules, budget, source, "2\n102\n33\n31\n41\n", false);
+    retained_world_select_provider(modules, "left", projection);
+    retained_world_expect(session, world, modules, budget, source, "8\n108\n44\n31\n41\n", false);
+    retained_world_check_envelope(session, "Word@left.tower");
+}
+
 fn retained_world_diamond(session: ExecutionSession*, world: void*, modules: void*, budget: WorkBudget*): void {
     // Ordinary code alone does not store an import snapshot. Give each unchanged
     // arm its own grammar rule so both cached clones depend on the same leaf.
@@ -441,6 +508,7 @@ fn execution_retained_sources(request: DriverRequest*, workers: usize): void {
     execution_check(!session.machine.done && session.machine.steps != 0, "Actual partial execution before replacement");
     execution_check(frontend_modules_source(modules, name, changed, strlen(changed)), "Edit after compiler workers joined");
     retained_world_expect(&session, world, modules, &budget, source, expected_changed, true);
+    retained_world_escaped_type(&session, world, modules, &budget);
     retained_world_diamond(&session, world, modules, &budget);
     retained_world_scalar_type(&session, world, modules, &budget);
     retained_world_capture_escape(&session, world, modules, &budget);
