@@ -82,16 +82,16 @@ fn editor_observation_trial(workers: usize, root: u8*, bedrock: u8*, foundation:
         "import tower;struct Pair{field:i32;}var value:Pair;value.", "\"label\":\"field\"", snapshot);
     editor_observation_completion(world, environment,
         "import tower;struct Pair{field:i32;}fn sample(value:Pair*):i32{var first:i32=3;if first>0{var local:i32=7;value.",
-        "field", snapshot);
+        "\"label\":\"field\"", snapshot);
     editor_observation_completion(world, environment,
         "import tower;fn identity(T:type,value:T):T{return value;}fn sample(seed:i32):i32{var value=identity(seed);if value>0{var local:i32=8;return ",
-        "local", snapshot);
+        "\"label\":\"local\"", snapshot);
     editor_observation_completion(world, environment,
         "import tower;struct Pair{field:i32;}fn sample(value: ",
-        "Pair", snapshot);
+        "\"label\":\"Pair\"", snapshot);
     editor_observation_completion(world, environment,
         "import tower;enum State:u32{Idle,Busy,Done}fn describe(value:State):i32{return 1;}State.",
-        "Idle", snapshot);
+        "\"label\":\"Idle\"", snapshot);
     frontend_modules_destroy(environment);
     units_check(frontend_world_clear(world) && compiler_world_dispose(world), "Observation world releases retained scopes");
 }

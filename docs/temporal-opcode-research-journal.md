@@ -102648,3 +102648,24 @@ identical guest ELFs. The sealed packet SHA-256 is
 `ea422f1a90987784c192f43508d29bf427e18c464e7cb45d98fc794457341886`.
 The separately assigned same-host comparison holds the cd77 bootstrap fixed
 and changes only the Semantics object's compiler worker count.
+
+### Host 5 editor completion recovery at 084482a3
+
+Assignment dd724ba8-461a-4186-879d-327e8b14b457. The predecessor packet and its six declared members matched their manifest and archive bytes. The manager bundle on public ad998b7b yielded tree 041723f8c6c4b1c2e38cb1c0b0295e582751670a on a separate main. A fresh native LLVM 19 Release build using the verified public Linux x64 bootstrap (509557309b941160cdb55eb7ea407c1e329e6ebd8ef126340552e857208cf42f) passed the registered tower-editor-units. The separate execution runner's editor and default selectors both aborted 134, as did both retained projected binaries. The default stdout matched the predecessor. The focused editor selector runs the original query without the preceding body checks.
+
+In GDB the fifth one-worker completion, the type position after `fn sample(value: `, failed during bounded LR suffix search. At 30 live 32-byte paths the next push attempted 274877906944 payload bytes to preserve 960. The runtime used the ordinary null physical ledger and had 64085 probe steps remaining. The physical allocator returned null and the parser preserved WorkBudgetError.Memory through the session and query. The path and probe-frame callers of work_buffer_grow_elements invoke unconditional geometric growth even within capacity. The journal's earlier assumption that the concrete views preserved geometric capacity per live element did not hold. The proposed repair guards the two LR owners at the actual growth boundary and retains their existing typed refusals and cleanup.
+
+The cd77 build on integrated 1ddefba0 identifies the failing edit more
+precisely than the first qualification receipt. The first Boolean argument
+query at `check(` already offered `valid`. The fifth edit, a parameter type
+position, failed while searching LR continuations. Both scratch owners
+now use their reserved space until it is full. The ordinary editor and
+parser-budget selectors passed. The 32 captured JSON lines matched six
+reference completions and two scope controls at one, two, four and eight
+workers. One warm single-core comparison of 16 successful queries took
+0.45 and 0.46 s with 70,516 and 70,264 KiB peak RSS. Both arms used CPU 0
+of a Ryzen 9 5900XT with a 30.72-CPU quota and produced identical output.
+The retained default execution suite still exited 139 after the type-object
+checks. Receipt 77b95b2e-2891-480e-a050-a64baa634e5c contains the recovered
+commit and 163 verified file digests. This qualification covers the focused
+editor and parser tests on native Linux.
