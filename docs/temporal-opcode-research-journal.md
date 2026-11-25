@@ -103731,3 +103731,37 @@ staged execution passed. The test-profile CLI links a query-checks object.
 Its changed Semantics object matched production and the production CLI
 independently repeated the forward and constructor guests. Work on this
 assignment ended at local qualification. Publication belongs to the manager.
+
+## 2026-11-25 — integrated browser build and editable compiler replay on host 7
+
+The browser release assessment used main `4a3aa2d653ae7feb5e79d7b76c5a048ad741abf6` (tree `f4cb8e675c834daceff3eee58a95b66dc6211f3c`). A separate source receiver verified the delivered bundle from public `c32da9a7`. The normal portable, shared, native and cross-backend release commands used the default cd77 Linux x64 compiler and a clean pinned LLVM build. The native successor passed the ordinary bootstrap symbol and object/IR comparison. Independent packager outputs matched. A fresh receiver reconstructed local Pages commit `7bb8caf0a7edceb01dbf3c13b8ea8334ae65a8c7`, tree `689812a5f776d535dcc8abb446985c3f2b5d0d26`, directly on public `1ee8a6fe`. The strict loopback gate passed with all 104 served assets matching. The sealed tree has 105 files, including the hosting marker.
+
+The new recipe has 543 authored and 26 generated files. The six added files are the Darwin Host import units and directory/module-path sources. The LR parser, constructor work and POSIX module-path authored files changed versus 3390. A real page rebuild posted all 569 expected source records after the intentional diagnostic edit. Their UTF-8 JSON representation hashed to `d188c0b4b26085ce6acaad15a0ae19121e1b0e74267f585a67a98b562c4a47b3`. The original ordinary Chromium selector activated the edited diagnostic, retained the working generation on a later failed build and restored the original compiler behavior. Mobile exercises cancellation and persistence. Two successive portable generations produced identical 25 objects and three reactors; their two and four workers drained completely.
+
+All 16 desktop/mobile completion cases passed. Six native answer prefixes, both scope controls, actual menu options and accepted documents matched the repaired host-7 packet on both viewports. A genuine speculative field reply held before the application listener remained pending until release. Intervening edits suppressed its obsolete field, and the matching edit could accept the real option by click or tap. Earlier preview observations counted unrelated select options or installed the listener after an already registered page callback. Worker-construction interception made the pending-state check observable. A guest with the native constructor rejection returned “A function parameter cannot have void type”. Its corrected edit printed 42 in the interpreter and compiled backend. A retired physical worker's terminal 41 response could not replace 43 after explicit cancellation in either viewport. The shared suite passed all three ordinary configurations and nine ownership controls.
+
+The evidence archive for assignment `f74fe3a4-ca9a-4ffa-9dbd-cfab18094822` records source/provider identities, complete manifests, build commands, actual submissions, generation objects, per-case results and replay instructions. Host 7 used an EPYC 7502 with a 30.72-CPU quota, WASI SDK 34 and Chromium 159. The cold 30-job LLVM release took 403.28 seconds, 9142.66 user CPU seconds and 428.58 system CPU seconds. GNU time's maximum individual-process RSS was 932388 KiB. These are build observations. No compiler speedup comparison was performed. The manager retains publication ownership.
+
+The full ordinary inventory changed from 153 passed, 72 failed, eight timed out and one mobile full-rebuild skip to 165 passed, 62 failed, six timed out and the same skip. The twelve changed cells all belong to completion and now pass. The manager's separate Foundation, parser, execution/structs, diagnostic, Bedrock and interaction test selections on the same bytes give a combined 217 passed, 18 failed and one declared skip, including two new Foundation controls. Nine residual titles fail in both viewports. They concern Bedrock keyword renaming, optional C output, native download cancellation, hover, output highlighting, two project operations, Roku output and target-profile fetches. The corrected Bedrock title still reports “Unable to finish. Edit the source to retry.” and “Comparison unavailable” for the edited guest. The packet contains the per-cell inventory and original trace ZIP replay. This is a locally reconstructible candidate with an open overall release gate.
+
+### Final disposition of the 4a3aa2d6 browser build
+
+The last reviewed target selection passed all 20 cells. With the other
+selections recorded on the same immutable site, the final inventory for
+Pages candidate `7bb8caf0` was 233 passes, two failures and one declared
+mobile compiler-rebuild skip. Both failures were the Bedrock keyword edit,
+on desktop and mobile. The build was made from `4a3aa2d6` before the
+grammar worker and immediate-reload fixes. Its 569 editable source records
+and its reactors describe that earlier compiler. Receipt
+`f74fe3a4-ca9a-4ffa-9dbd-cfab18094822` has 10,447 verified checksums.
+This build stays in the release history as a comparison product.
+
+The next integrated release includes the editor fixes and the checked
+inspection rollback from `be41c755`. The Foundation completion regression
+from `d9eceb28` keeps both source and cursor fixed across the upstream
+grammar edit and undo. Both viewports passed in two runs and both failed
+on the old UI with the same compiler. The Linux package is pinned at
+`a1315eca`. Its separate installer and the canonical receiver ran an
+interpreted and a linked guest for exactly 42 plus LF. Updating the
+release candidate's documentation changes no compiler inputs. Qualification
+of the combined browser assets uses their own source and manifests.
