@@ -100,7 +100,11 @@ Do NOT modify todo.txt.
   dense/cache-friendly columns for bulk traversal and sparse/stable storage where
   access patterns or lifetimes require it. Measure indirection, fragmentation,
   allocation, cache locality and false sharing; an archetype index alone is not
-  packed payload storage. Use proven alias/access information for Burst-style
+  packed payload storage. Before copying payloads for a faster scan, trace the
+  real caller's access order. Count repeated reads and adjacent slots, and include
+  the cost of constructing the copy in the comparison. If a caller retains a
+  payload address, exercise it across publication into another archetype.
+  Use proven alias/access information for Burst-style
   vectorization; never invent `noalias` guarantees. Prefer one small, generic,
   extensible Tower framework over parallel special-purpose implementations.
 - Schedule lazy type, `decltype`, layout, body, lowering, proof and evaluation

@@ -101426,3 +101426,31 @@ artifact and lists the package and host dependencies. The offline replay
 expects a non-root Ubuntu x64 development host, the frozen checkout and its
 LLVM license. It exercises the old/new packagers and the relocated CLI
 without a build or download.
+
+### 2026-11-25 — Archetype traversal and stable payloads on the ca543287 compiler
+
+Host 7 traced the grammar reader and the parser wrapper on three ordinary CLI
+inputs, including an import with 4,096 functions. In the later 64-read window
+on that input, the wrapper revisited the same payload on 59 of 63 successive
+pairs. The grammar reader visited 64 different payloads across five pages,
+with zero successive pairs moving to the next slot on the same page. These
+counts use the exact freeze's raw addresses. Moving the values into another
+packed array would add a copy; these two observed consumers do not perform
+a sequential scan of all values. Keep the archetype and per-kind pointer
+indexes and the stable payload pages for these callers.
+
+In both pinned-alias trials, publication changed the owner's table from an
+arity-one to an arity-two table. Owner, descriptor and payload addresses
+survived, and the later read succeeded. Four native ownership checks passed.
+Four storage fixtures running in a Chromium worker each returned zero. The
+missing import control rejected the module. The compiler object and guest
+output matched the reference at each input size.
+
+Receipt `2b2069e0-688e-4758-8448-529b08901efe` retains the raw addresses,
+index occupancy and output artifacts. Manager review checked 737 archive
+hashes, recomputed the twelve 64-read windows and matched six occupancy
+snapshots and both table transitions. The held-out cache simulation timed
+out after 300 s; hardware cache counters were unavailable. These observations
+justify retaining the current storage layout. They give no measured speedup
+for a different layout. AGENTS.md now describes how to test that decision
+when a new compiler pass has a different pattern of reads.
