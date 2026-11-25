@@ -944,11 +944,10 @@ Tower session, completion, hover, candidate and lifetime checks; `npm test` runs
 them before the Node transport suite. A missing export fails explicitly.
 Reconfigure with `-DTOWER_IDE_TESTS=OFF` before building release assets.
 
-To run the Node selection separately, use the repository root (several fixtures
-read repository-relative resource paths):
+To run the Node selection separately from the repository root:
 
 ```sh
-TOWER_TEST_WASM=/absolute/path/to/tower.wasm node --test playground/tests/*.test.mjs
+TOWER_TEST_WASM=/absolute/path/to/tower.wasm npm run test:node --prefix playground
 ```
 
 `TOWER_TEST_WASM` also accepts a repository-relative path. Record its reactor hash

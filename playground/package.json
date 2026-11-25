@@ -5,8 +5,9 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "serve": "node scripts/serve.mjs",
-    "test": "npm run test:ide && node --test tests/*.test.mjs",
+    "test": "npm run test:ide && npm run test:node",
     "test:ide": "node scripts/test-ide.mjs",
+    "test:node": "cd .. && node --test playground/tests/*.test.mjs",
     "test:roku": "node --test --test-concurrency=1 tests/roku/*.test.mjs",
     "test:browser": "playwright test",
     "test:compiler": "node scripts/test-compiler-project.mjs",
