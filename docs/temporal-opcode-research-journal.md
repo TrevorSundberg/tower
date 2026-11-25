@@ -101473,3 +101473,34 @@ Fresh Release/Ninja cache, installed Clang/LLVM 19.1.7, normal Linux x64 bootstr
 Four counterbalanced pairs after warmup per cell, fresh ordinary CLI processes, warm filesystem, identical source and products, x64 target. Ryzen 9 5900XT, allowed CPU set 0–31, quota 3071999/100000, affinity 0 for one job and 0,2,4,6 for four. Median wall/CPU seconds and largest per-cell RSS KiB for the small package were 0.200/0.200/88028 → 0.200/0.190/87912 at one job and 0.220/0.230/92732 → 0.220/0.230/92796 at four. For 128 consecutive narrow-to-float/add/float-to-narrow expressions (145366-byte verified package, output 128), these were 0.415/0.410/152664 → 0.410/0.410/152280 and 0.450/0.450/160444 → 0.440/0.445/160500. The first fixture generator printed pointers to its strings; the native Tower generator writes source lines through puts. Results support sharing one width table. Timing resolution and sample count limit throughput conclusions. Allocator call counts and worker occupancy were not sampled.
 
 The candidate narrow suite passed. The broader floating suite on both uninstrumented builds stopped at execution_core.tower:245 with the same kind-4/4 graph-structure mismatch, exit 1 and byte-identical diagnostic streams. An earlier journal entry near line 57827 records this assertion on a separate freeze. The broader suite remains failing. The new compiler's Linux address/leak and thread modes each built and linked the instrumented backend object and passed eight package/reload checks (widths 4/8, jobs 1/4) plus the intended wrong-order rejection. TSan additionally had 64 exit-139 startup refusals at the restricted personality call, all retained. No source-language UBSan mode exists in this build. The hosted browser reactor and full generation matrix were outside this scoped driver check.
+### Host 6, 2026-11-25 — fresh local vector initialization and field runs
+
+On frozen `ca543287`, the host-6 inventory from assignment `90e4e149`
+matches all 1,287 tracked Tower path/blob pairs. Assignment `ad248c9a`
+examines the five scaffolding language modules plus compiler, examples, host,
+library and tools. The implementation trial replaces initialization of one
+fresh prefix vector in the host's case-sensitive module path check.
+The existing helper writes exactly `*value = default`. The later pushes,
+filesystem reads, failure exits and disposal have independent reasons to stay.
+The baseline passed `tests/module_paths.tower` on a real Linux directory
+before editing. Source counts, matched controls and disposition follow below.
+
+Host 6 counted 52 adjacent fresh-vector initializations in 24 files and
+240 runs of field writes in 97 files (1,021 writes). The IDE slot's three
+fields admit a complete named initializer. Driver argument setup also sets
+`ok = true`, and diagnostic formatting retains the caller's result field.
+Only `host/module_path.tower` changed. No language extension was necessary.
+The [source audit and host measurements](tower_syntax_audit_ca543287.md)
+record the six directory counts, original lane receipts and evidence limits.
+
+With the verified public pin (source base `902a358f`), one- and four-job
+compiles of both forms yielded the same 1,760-byte object. On Linux x64
+the exact/mis-cased/absent filesystem tests and their wrong-file negative
+control returned 0 and 1 respectively on both arms. Each timed run did
+8,192 repetitions of the five checks. On CPU 3, four warm samples per arm
+gave mean compile wall/CPU 0.4140/0.4133 s before and 0.4145/0.4140 s after.
+Executable bytes matched as did runtime allocation totals and zero exit-live
+bytes. The candidate passed focused ASan/LSan and TSan on the serial path.
+The packet contains the matched timings, RSS, DHAT, Memcheck, exact commands,
+object hashes and bootstrap provenance. Repository-wide, browser and other
+platform builds remain unverified for this change.
