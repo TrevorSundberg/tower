@@ -49,6 +49,10 @@ self.onmessage = async ({data}) => {
         {tower:builtins.tower, builtins, threads:{capacity, workerFactory}});
       owner.configureModules({files});
       const {memory} = owner.exports;
+      if (mode === 'compiler' && capacity === 4) {
+        const name = 'lr_competing_frontend_tests';
+        if (phase(name, memory, () => owner.exports[name]()) !== 1) throw new Error(name+' failed');
+      }
       for (const name of mode === 'lr-bounded' ? [] : ['evaluation_query_tests', 'semantic_stage_tests']) {
         const code = phase(name, memory, () => owner.exports[name](4, capacity));
         if (code !== 0) throw new Error(name+' returned '+code);
