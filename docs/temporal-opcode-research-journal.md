@@ -101318,3 +101318,44 @@ fixture, exact case matrix, startup and phase medians, raw traces, commands,
 negative controls and source manifests. The eight compiler ECS lane audits
 supply attributed source and native/worker history. They do not add samples
 to this browser panel. The checked scope is desktop Chromium and Graph.
+
+### 2026-11-25 — Invoice memory and worker width on the ca543287 freeze
+
+On host 8, receipt `ec5b0411-9129-45ab-ac44-342429334f5c`, the installed
+Linux driver compiled both 13-unit invoices at every requested width from
+one through twelve under a 256 MiB compiler budget. At 32 MiB the skewed
+invoice still failed with one worker, at unit ordinal 3. That failure left
+no program, depfile or temporary file. Across ten separately instrumented
+runs, all 13 objects matched the reference and releasing the owners returned
+live charged bytes, lanes and grants to zero. At width twelve the skewed
+invoice actually overlapped twelve outer frontends and peaked at 180,353,293
+charged bytes. The small invoice overlapped eleven.
+
+The same-host width comparison used Ryzen 9 7900X CPUs 0–11, one thread per
+physical core, cgroup quota 23.04 CPUs, Debian Clang 19.1.7 and warm file
+pages. Each mean below uses two fresh processes with process sampling off.
+The checked guests printed 1666 then 1685 (small), and 50745 then 1685
+(skewed).
+
+| Frozen invoice | One worker, wall / CPU s | Four workers, wall / CPU s | Eight workers, wall / CPU s |
+| --- | --- | --- | --- |
+| Small | 1.775 / 1.760 | 0.950 / 2.560 | 1.180 / 5.540 |
+| Skewed | 2.250 / 2.235 | 0.980 / 2.880 | 1.305 / 5.950 |
+
+Separate sampled runs compared the early driver close against 8b7878c8.
+At four workers the small invoice's median simultaneous process-tree RSS
+fell from 282,564 to 245,356 KiB and the skewed invoice's from 301,510 to
+267,908 KiB. Both included the compiler and external Clang. The small
+invoice's mean wall time increased from 0.895 to 0.950 s. Keep the earlier
+release of the joined compiler world for its measured memory benefit.
+The 256 MiB compiler budget covers charged allocations. The process-tree
+measurement includes the linker and shared mappings.
+
+Manager review verified both archive manifests and the source supplement,
+the 24 width outputs, 48 paired records, memory samples, ten object sets,
+failure and cancellation cleanup, six native application cases per sanitizer
+and both sensitivity controls. TSan had 40 recorded startup failures before
+the applicable successful runs. These Linux checks do not cover browser race
+instrumentation. The independent browser replay exercises two simultaneous
+owners; immediate reopening after a join has a separate unresolved regression.
+No scheduling or memory policy changed in this review.
