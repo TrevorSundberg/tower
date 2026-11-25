@@ -100920,3 +100920,46 @@ Receipt `848f6034-9f80-4843-b115-e1001fc85a75` has archive SHA-256
 Its source and journal bundles contain the tested UI changes. The release
 worker received both bundles with verified hashes. Public runtime deployment
 requires sealing and verifying the combined product.
+
+## Immediate reload with a pending editor save
+
+The desktop execution project lost its last edit on the public 902a and
+sealed 3390 browser products. In both, CodeMirror and the IndexedDB put
+request received all 480 bytes. After reload, the same project and path
+contained the original 456 bytes. No completion for the edited transaction
+had reached the old page. Trace collection affected reproduction. With
+tracing off the original ordinary desktop check failed three times on
+each product. With tracing on the complete interaction suite passed even
+on the original product.
+
+The integrated app repair at `8b7a9ecb` retains the latest pending snapshot
+per project in the navigation history entry while writes are outstanding.
+On startup it reads the durable revision and conditionally restores the
+snapshot in one IndexedDB read/write transaction. An intervening write
+with a newer, unrelated revision wins. Legacy projects without revision
+metadata remained readable. The project export omits storage revisions.
+
+On each repaired product the unchanged desktop repro passed three times
+with tracing off. With another writer holding the database, the newest
+482-byte edit was stored, rendered and exported. Disabling the navigation
+checkpoint lost it again on both products. Restore followed by immediate
+reload returned the original 456 bytes. The full interaction suite passed
+six desktop and six mobile checks per product, with zero retries or skips.
+The manager checked all 45 raw run summaries, including the expected
+failures and the separate sensitivity controls.
+
+Across 16 repaired samples with stock or approximately 66 KiB documents,
+input to transaction completion took at most 10.82 ms. Host 8 used a Ryzen
+9 7900X with 12 physical cores, affinity 0–23 and a 23.04-CPU quota.
+The fixed parent timing batch used 3.48 s user CPU, 1.29 s system CPU
+and 200432 KiB maximum process RSS. On the fixed 3390 batch these were
+3.46 s, 1.35 s and 192548 KiB. The page-reload check covers a normal
+navigation while a write is pending. Crash recovery and large project
+limits need their own observations.
+
+Receipt `7c9a2861-477a-4ba2-9595-ec4fa92634d5` contains the source
+bundle, navigation events, matched runs and controls. The archive has
+6,336 verified member checksums and SHA-256
+`73482cc419d3bcf5a9a9eccff8ae9c1778803778dfd206f4d40a980d6f81a9da`.
+A public-source release check is combining this change with the edited
+grammar repair on the 902a runtime.
