@@ -88,6 +88,23 @@ RSS across those six pairs was 92,760 and 92,524 KiB respectively. A separate
 identities and the other widths are in the project journal. The integrated
 native package and browser compiler still require their own checks.
 
+**Sharing small helpers.** The strict floating-point importer now asks
+`type_integer_scalar` and `type_float_scalar` for the representation of a
+width it has already decoded. Each importer keeps its own diagnostic and the
+offset of the offending instruction. An unsupported width returns
+`InvalidTypeScalar`; zero is a valid integer tag. On Linux x64 and Wasm32,
+the rebuilt drivers emitted identical Foundation, objects and linked guests
+for the ordered narrow-integer conversion case. The broader floating-point
+suite still has a graph round-trip failure on the stock and changed drivers.
+[Shared width classifiers](../scaffolding/compiler/type_primitives.tower)
+
+A fresh `vector(u8)` in the module path checker can be initialized with
+`= default` because its former helper only reset that value. In contrast,
+the driver argument constructor also sets its success flag. Replacing that
+constructor with a default would make the first append fail. The syntax audit
+includes both examples and a partial record update that must retain its result
+pointer. [Tower initialization examples](tower_syntax_audit_ca543287.md)
+
 ## Cloud milestone closeout, November 25, 2026
 
 The public compiler is still `902a358f`. Its hosted desktop/mobile checks and

@@ -101504,3 +101504,27 @@ bytes. The candidate passed focused ASan/LSan and TSan on the serial path.
 The packet contains the matched timings, RSS, DHAT, Memcheck, exact commands,
 object hashes and bootstrap provenance. Repository-wide, browser and other
 platform builds remain unverified for this change.
+
+### 2026-11-25 — Independent review of interpreter capture reuse
+
+Receipt `44fa9830-b906-40de-8793-8b5c74960d14` independently reviewed
+528c5428 on a86d2ff0. The manager matched its patch to the commit, verified
+all 8,106 producer checksums and recomputed 336 timing rows, including
+warmups, from raw process times and RSS. At one, two and four jobs, all 72
+measured long pairs improved in wall and CPU time across object and executable
+output. The two long programs differ in whether the consumers need a sibling
+producer. Each produced 5, 3074, 389 and 261. On four-job object emission
+their median elapsed times fell from 305 to 290 ms and 277 to 264.5 ms.
+Median process peak RSS rose from 91,722 to 91,908 KiB and from 91,942 to
+92,182 KiB respectively. The ordinary short control had zero median change
+in wall or CPU time.
+
+The timing launches used CPUs 0, 2, 4 and 6 on a Ryzen 9 5900XT, cgroup
+quota 30.72 CPUs, with warm files. Absolute core exclusivity was unverified.
+In the separate native thread-clock trace the dependent consumer still took
+491,549 steps over 481 slices; median thread CPU fell from 85.248 to
+68.456 ms. A capture lookup can report failure while returning null. The
+read path checks interpreter state before using its address cache. Capture
+publication, suspension and frame changes cannot intervene between these
+operations. Browser performance and the later integrated compiler retain
+their own validation boundaries.
