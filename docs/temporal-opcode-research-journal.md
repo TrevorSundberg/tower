@@ -102588,6 +102588,20 @@ exported callbacks, interprets and executes the exact-case file import, and
 requires a case-specific diagnostic for six wrong-case attempts on a volume
 where OS lookup reaches the same file. Those native results await a Mac.
 
+### Contributor guidance for owned components and staged dependencies
+
+The compiler audit traced two decisions a contributor can test in an ordinary
+pass. Before choosing component storage, follow one entity from creation to
+its last reader and identify who can publish a change. For staged reads,
+record both the missing value and the query that produces it. The staged
+alias fixture distinguishes a mutable binding's type from its value. The
+retained import test identifies which results survive an edit. AGENTS.md
+now asks contributors to exercise these cases and compare serial and
+parallel outputs. This publication changes guidance only and reuses the
+existing compiler and site assets.
+[Staged alias fixture](../scaffolding/tests/staging_aliased_type.tower) ·
+[Retained import test](../scaffolding/tests/execution_world.tower)
+
 ### Native self-build of 1ddefba0 with two bootstrap compilers
 
 On 2026-11-25, receipt `374e6f3f-5f2b-41d9-aaca-dff8fddc566d` compared
