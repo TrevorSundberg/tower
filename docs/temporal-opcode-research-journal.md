@@ -102678,3 +102678,43 @@ Commit `ccf46330dd6be5f914fb25716ffe343722b5d3d3` changes only the two measured 
 Using the same candidate assets, eleven bounded ordinary Chromium batches covered all 234 cases, with 153 passed, 72 failed, eight timed out and one skipped. All 40 remaining failing titles failed on both desktop and mobile. The explicit skip is the mobile full compiler rebuild. The remaining ordinary failures continue to block release. The separate completion suite had four passes and twelve failures including two timeouts. No compiler, runtime, lesson, generated asset or completion change was needed for the two owned checks.
 
 The registered 1c4cf7c7 packet records inputs, raw parser dependencies, source and accessible file lists, 12 reconstructible original and corrected traces, raw per-case outcomes, first errors, screenshots, commands and GNU time. The normal selection used warm browser dependencies, fresh browser contexts and two Playwright workers per bounded batch on the Xeon Gold 6244 host with effective cpuset 0–31 and 15.36 CPU quota. The ordinary diagnostic outcomes are correctness measurements; the overlapping batch runs do not compare performance. The prior 231-unrun result remains separately identifiable. This journal entry is ancillary to the test patch.
+
+### Host 5 native execution qualification on e53991e7
+
+Assignment 9d90c41c-b9fb-4d53-b73b-3b97c45ae977. The receipt and all eight
+declared members matched in both archived and extracted form. The manager
+bundle verified on public 7edc1ab4. With the checked-in cd77 compiler, the
+integrated Release execution runner had the same SHA-256 (82feae6c…) as the
+retained LR fix. The ordinary editor selector passed. The type-bindings
+selector (`types`) exited 139. Registered CTest tower-execution exited 8
+with SIGSEGV after the type-object success line.
+
+The retained ordinary runner trace reaches the final value-position static
+function-type rejection in type_construction_tests. For a void parameter,
+sem_type_call records the required semantic error and returns null.
+sem_constructor_step copied its return before checking the context.
+The proposed fix only publishes a successfully resolved type. The existing
+fixture and its diagnostic expectation remain the regression check.
+
+The patch passed the unchanged editor and types selectors and the exact
+registered default from its build cwd. CTest 1/1 reached the final package
+contract checks. The preserved ordinary corrected executable SHA-256 is
+eff7dcd89add8313a92115ffa8725a5c4fe1ccf431edc3828f72e4fa6561afd7.
+The existing LR type-smoke passed. The type fixture checks 32/64-bit pointer
+targets and Foundation/worker equality through eight workers. The native
+driver separately produced identical 19,268-byte Foundation from
+type_construction_execution.tower at jobs 1 and 4, SHA-256
+2523bf913149f0a91fb1b35bf38fc1cf4fffb676fc3e305b0fe768cc58d5d803.
+Graph and Fast each printed 0 at both job settings. The first CLI comparison
+assumed stdout output; specifying the destination captured the actual file.
+
+LLVM 19 address/leak and thread builds ran the same ordinary types selector
+and matched its stdout. One thread-sanitizer launch failed at the denied
+personality call before test startup. The initialized retry passed. Native
+Tower source-level UBSan is unavailable. These checks cover the tested paths.
+Host 5 Ryzen 9 5900XT, Linux x64, Release, four-CPU affinity, one process
+at a time for the measured before/after selectors. The failing default ended
+at 11.77 s / 145804 KiB RSS. The repaired full default completed at 34.05 s /
+145576 KiB. Their different endpoints preclude a speed comparison. The packet
+retains raw logs, source, product, CPU/quota and memory receipts. The manager
+owns integration and publication.
