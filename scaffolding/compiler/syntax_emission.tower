@@ -418,7 +418,7 @@ fn emission_reference(value: SyntaxEmission*, parent: void*, name: usize, captur
     var data = entity_component_data(entity_component_get(node, value.input.reference_kind));
     var reference = bits(ParserReferenceData*, data);
     var ok = node_reference_set_name(reference, emission_text(value, name));
-    ok &&= node_reference_set_capture(reference, capture);
+    if ok && *capture != 0 { ok = node_reference_set_capture(reference, capture); }
     if !ok {
         value.failed = true;
     }
