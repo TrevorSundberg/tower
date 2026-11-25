@@ -196,9 +196,11 @@ On the Windows runner, the packet's `accept-windows.ps1` takes the LLVM
 import-library path and binary directory in an x64 VS Developer PowerShell.
 It links the CLI, records its PE headers, imports and exports, then checks the
 raw output of both the interpreter and a compiled guest for `34 32 0A`.
-These steps await execution on Windows. The earlier cross-object comparison
-used a Linux host module when targeting COFF. A comparison of the real Windows
-host must include its CRT directory lookup functions.
+These steps await execution on Windows. The Host verifier now reads the build's
+configured profile and selects its Tower host module for each target. Both
+Windows objects in the predecessor/successor comparison matched the production
+COFF byte for byte. Windows Host admits the CRT spellings `_findfirst64` and
+`_findclose`. The old COFF object containing POSIX directory imports now fails.
 [Windows compiler object and verifier findings](temporal-opcode-research-journal.md#windows-x64-compiler-objects-and-the-host-comparison)
 
 1. **Produce.** Freeze source, submodules, build image, SDK and flags. For

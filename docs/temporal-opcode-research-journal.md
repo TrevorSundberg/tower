@@ -102081,3 +102081,105 @@ documentation only. Runtime performance and memory comparisons do not apply.
 Host 5 receipt `c98a34a6-de0b-4e15-8581-c359fad2681b` traces the ambiguous imported `u32` seen in two supplementary runs. The ordinary native compiler from `820be603` produced identical canonical bytes per input across two widths, default or fixed language resources, and three working directories. The reduced probe printed 42, and the floating and narrow sources each printed 0. The manager checked all 1,152 packet hashes and the 36 raw canonical and interpreted outputs. A deliberately distinct pair of preludes still produced an ambiguity.
 
 In the execution fixture the initial driver request binds an entry and resource root. The runner then reconfigures the environment with the bare synthetic filename `named_initialization_input.tower` and the separately supplied library path. From inside `scaffolding/`, the entry's relative import and the vector module's absolute import registered distinct bindings for the same type definition. The debugger traces show both origins. Changing just the synthetic entry to an anchored filename made the two selectors pass. The proposed correction belongs to fixture setup. The independent CLI and debugger tests measured behavior only. Follow-up `ff6abe6a-3039-4251-9e53-6aefe88a8d1f` covers the checked-in harnesses.
+## 2026-11-25 — Move the call-query fixture to its only caller
+
+On host 3, the strict Windows x64 Interpreter check again rejected
+`__chkstk` on the reviewed successor tree
+`1fca47701b494e34f475c4777937216601b3bc79`. The preserved COFF bytes
+were identical on 9ab and the replacement-cache successor. The one REL32
+relocation is at 0x11a52 in `call_query_tests`. Its prologue loads 0x18e8
+into EAX, calls the stack probe, then subtracts RAX from RSP. The unwind
+record gives the same 6,376-byte frame. Optimized IR contains eight
+1,432-byte invocation/probe locals from the fixture and its inlined helpers.
+
+The only caller is `evaluation_query_tests`. The query-checks object already
+owns this optional suite on work-test, parser-only and browser configurations.
+It now imports `interpreter_call_query` directly. Removing the fixture
+from the three Interpreter and two Evaluation entry modules leaves its
+existing assertions with the test runner. On Windows the release Interpreter
+object shrank from 165,265 to 105,327 bytes and its undefined list from 57
+to 39 names. All 68 production external definitions were retained. The
+fixture was the sole removed external definition. The existing module policy
+then accepted the complete report. On Linux an all-original link reproduced
+the reviewed compiler; swapping only Interpreter reduced the executable
+from 2,321,128 to 2,274,480 bytes. The rebuilt native query-smoke selector
+passed 32- and 64-bit pointer models at one and four workers.
+
+Applying code commit `ecc8924c` to the reviewed successor gives tree
+`13d868070718ea94911989f204e0c899320c7af7`. The unchanged unfiltered
+comparison finished all 28 unit/target pairs, including Windows and Darwin
+Interpreter, all Semantics targets and explicit/missing Foundation inputs.
+The two compilers agreed on every optimized IR and object byte. The new
+Windows query-checks object still contains a real stack probe in its
+6,392-byte call-query frame. A partial Wasm link joined the query object
+to the browser Interpreter. Reinjecting the probe into the release COFF's
+undefined report still produced the original refusal.
+
+The Tower PE service linked the ordinary 64 KiB stack fixture. External
+LLD rejected the same fixture's unresolved probe with the Windows runtime
+and kernel32 import library, then linked after adding Tower's generated
+190-byte import archive. Both actual PE import tables name
+`kernelbase.dll!__chkstk`. Windows runtime execution was unavailable here.
+The host fixture-tool link initially lacked the compiler buffer services.
+The retained compiler-memory archive and UTF-8 object supplied them.
+
+Two counterbalanced pairs per 16/1,000-function input and jobs 1/4 matched
+all canonical objects, linked ELFs and native outputs (15/999). Mean wall
+times before/after on cores 24–27 were 280/290, 330/340, 525/520 and
+560/570 ms respectively. These small samples support output equivalence;
+they give no stable compiler speedup. Packet
+`8438d34c-4924-4657-af71-287a3a8bc3e9` retains the commands, target
+artifacts, provider archive, measured resource use and failing controls.
+
+The same native query suite passed ASan/LSan in 59.04 s. An initialized
+TSan run hit the selector's 180 s deadline (exit 124). The identical binary
+completed in 182.53 s with a 480 s direct-run allowance, exit 0 and no
+reported race. The original timeout and both resource receipts are retained.
+
+## 2026-11-25 — release comparison of the platform Host roots
+
+Host 3 reproduced a false pass on source `6f7ed3fe`. The Linux CMake entry
+imports `compiler.units.host_linux_driver`. The old verifier passed this same
+file to both compilers for every target. Its Windows COFF imported `opendir`,
+`readdir` and `closedir`. The same verifier rejected the actual production
+COFF on both `_findfirst64` and `_findclose`. Those two UCRT functions belong
+to the exact-filename check in `host/module_path_windows.tower`.
+
+The comparison now reads the profile from CMake's single generated import
+and selects the corresponding Tower module for each target. The Windows Host
+policy checks the two literal CRT names before underscore normalization and
+rejects the POSIX directory imports. The changed verifier and fixture were
+tested on frozen repair tree `b082aa73d1598316869f1892a7ed16e97be4303e`
+and on integrated repair tree `c67ec010e27ef1b12eec4cea1c7313baa5678e8d`.
+Two pre-existing non-Host policy lines differ between the base revisions.
+
+The ordinary `verify_bootstrap_symbols --compare ... host` used the public
+`50955730` predecessor, the retained `84e55bc7` successor, LLVM 19.1.7 and
+the canonical Linux cache entry. All four optimized IR and object pairs
+matched. Both Windows objects matched the retained AMD64 COFF `ba9c1265`;
+both Linux objects matched the Gen3 ELF object `2e15c65f`. Direct builds of
+the platform driver roots reproduced every pair. Linux and Darwin IR used
+dirent name offsets 19 and 21. Wasm emitted the exact-key path check. The
+focused symbol fixture passed. The actual Windows report passed and its old
+POSIX counterpart, wrong units, wrong targets and misspellings failed.
+
+The unsuffixed profile also passed all four targets. The checks profile still
+rejects test-only `remove` (tests/host_services.tower) and three
+`tower_test_buffer_*` hooks (tests/host_runtime.tower). Its emitted Linux
+object matched a direct checks build. Missing and unrecognized generated
+entries failed. ASan/LSan and TSan each passed the instrumented Linux verifier
+and symbol fixture, including the ordinary comparison. Two simultaneous
+verifiers using one output parent produced separate, byte-equivalent results.
+
+On this Debian x64 host two serial batches of 100 identical Linux Host
+report checks on CPU 0 took 0.05 s wall each before and after, with 0.04 s
+user plus system and 2,824–2,940 KiB batch peak RSS. Each ordinary driver
+comparison invokes eight compiles; single observed old/new runs took
+7.93/7.27 s wall, 10.18/9.51 s CPU and 186,264/185,556 KiB peak RSS.
+Those driver runs compiled different platform sources. The packet records
+both output contracts and supplies no speedup estimate. Compiler runtime,
+native Windows linking and execution are outside this verifier change.
+Evidence packet `9b7dede8-af3f-48ca-b2b4-6b540b5ce6ce` retains input
+identities, immutable trees, commands, raw reports, statuses and artifacts.
+
+The manager rechecked receipt `9b7dede8-af3f-48ca-b2b4-6b540b5ce6ce` against the production Windows packet. All 840 file hashes verified. In each of the frozen, integrated and committed comparisons, the four predecessor objects and LLVM texts matched their corresponding successors. Each Windows object matched the earlier `761b21a8` production Host COFF. The stale report and spelling/target/unit controls failed with their expected names. After merging `3c1590bf`, the three affected Tower sources matched the tested frozen versions byte for byte on integrated main, including the pre-existing non-Host entries. None of those files appear in the currently served editable compiler recipe. This validates the verifier; final host linking and native execution still require the target SDK.

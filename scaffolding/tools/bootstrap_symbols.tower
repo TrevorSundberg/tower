@@ -43,6 +43,8 @@ fn bootstrap_symbol_in(names: u8*, symbol: u8*, length: usize): bool {
 }
 
 fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symbol: u8*, length: usize): bool {
+    // The leading underscore is part of each Windows CRT function name.
+    if windows && unit == BootstrapUnit.Host && bootstrap_symbol_in("_findfirst64 _findclose", symbol, length) { return true; }
     // Mach-O/COFF/Wasm spellings may prefix underscores. Preserve the previous
     // check's normalization, including __stack_pointer and __memory_base.
     while length != 0 && *symbol == convert(u8, SymbolByte.Underscore) { symbol++; length--; }
@@ -87,7 +89,8 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, symb
     }
     if unit == BootstrapUnit.Host {
         return bootstrap_symbol_in("malloc realloc free tower_allocate abort bytes_reserve bytes_push bytes_append bytes_dispose tower_utf8_validate", symbol, length)
-            || bootstrap_symbol_in("fopen fread fwrite ferror feof fclose closedir opendir readdir strcmp", symbol, length);
+            || bootstrap_symbol_in("fopen fread fwrite ferror feof fclose strcmp", symbol, length)
+            || (!windows && bootstrap_symbol_in("closedir opendir readdir", symbol, length));
     }
     if unit == BootstrapUnit.Entities {
         if bootstrap_symbol_in("compiler_buffer_alignment compiler_buffer_allocate compiler_buffer_allocation_size compiler_buffer_free", symbol, length) { return true; }
