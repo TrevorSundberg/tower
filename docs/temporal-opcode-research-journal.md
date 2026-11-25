@@ -102783,3 +102783,51 @@ On the same AMD EPYC 7502, Node 24.22.3 and Chromium 159.0.8154.6, the final ord
 Three alternating-order process pairs used CPU 6, one portable Wasm instance per process, warm local files, seven identical documents and three passes. The harness checked all option arrays against their expected answers, including the stock resource error. First parameter-query median wall/CPU was 258.5/258.5 ms for the error and 290.6/290.3 ms for the recovered answer. Post-query linear memory fell from 1,085,931,520 to 16,449,536 bytes. Warm median print time was 54.2/51.8 ms (sealed/repaired). The 3,629-byte vector module with a final print prefix took 63.7/63.7 ms. Whole-process median wall/CPU and peak RSS were 1.37/1.36 s and 96,672 KiB on stock, 1.44/1.43 s and 99,588 KiB on repair. The allocator's legacy live counter read zero on both and the warmed live node count stayed at 11,179. Linear memory capacity and process peak RSS measure different things. These timings cover a serial editor query path. Separate concurrent UI tests check correctness.
 
 Native Clang/LLVM 19 ASan and initialized TSan ran the existing parser integration fixtures including bounded suffix reconstruction, with four TSan address-layout startup rejections before success. The broader ASan editor selector failed during cyclic-module validation in syntax_reader_span on both the frozen and repaired source. Its first serial compilation failed before the editor inspection ran. The native execution suite was outside the assignment. The browser build has no configured ASan/TSan or Tower UBSan mode. The raw records, ordinary source bundle, exact overlay bytes and reproduction commands are in the assignment packet. Publication, hosted validation and the broader sanitizer finding remain open.
+
+### Native storage admission and unchecked inspection on 4a3aa2d6 (host 5, 2026-11-25)
+
+The retained release freeze failed the default storage registration on the first
+synthetic operand. Receipt fe6854c9 and an independent run of its storage ELF
+produced the same 1,233 stdout bytes and exit 134. In a serial trace with all
+1,048,576 bytes reserved, the first child added one entity and one Foundation
+component with zero allocation calls. The descriptor page rose from 4 to 5 live slots
+of 19 and the payload page from 1 to 2 of 41. The edge and first component index fit inline. Live
+buffers, charged bytes and grants stayed constant.
+
+Commit 656d4cae makes this legitimate success part of the storage fixture.
+Keeping that pair alive forces the next child edge to grow from one slot to
+four. The healthy admission made one call and charged 168 bytes. At the same
+boundary the fixture observed Capacity with zero allocator calls, Memory with
+one failed call, and Busy under a view. Each refusal retained the pair, the
+first source offset 174, and the existing terminal retry and teardown checks.
+Production node and entity accounting needed no change.
+
+The next assertion to fail was unchecked inspection rollback. At allocator
+injection 13 it returned Memory at byte 73 but retained two published annotations
+and their kind. Commit 6bb3d558 keeps binding and value inspection in one
+private stage when no type-declaration workers need the leases. The post-binding
+walk reads its existing leased owners before the final publication. Stage
+discard releases both the pending annotations and their kind on refusal.
+Checked inspection retains its separate declaration preparation phase.
+
+On the cd77 pin and native LLVM 19.1.7, ordinary storage finished through the
+runtime-table check. All 180 registered cases passed, including five expected
+failure controls and both registrations that allow skip code 77. The first
+matrix attempt omitted the LLVM bin directory from PATH and two driver links
+failed to find clang. All 180 ran again with the retained PATH. Candidate
+inspection output matched the freeze at 1/4 workers and the ordinary editor
+fixture at 1/2/4/8. Constructor canonicals matched at 1/4 workers and the
+graph, fast interpreter and compiled guests all printed zero. AddressSanitizer
+passed full storage and four-worker inspection. Two ThreadSanitizer starts
+were refused the host personality operation; an identical four-worker binary
+ran successfully on the third launch. These are targeted sanitizer results.
+
+Host 5 reported CPUs 0–31 and a 30.71999-core quota. On CPUs 0–3 one
+sequential sample of the inspection executable took 0.21 s at one worker and
+0.24 s at four on both revisions. Freeze/candidate peak RSS was 71,832/71,932
+KiB and 76,360/75,896 KiB respectively. The frozen and completing storage
+executables reached different endpoints. Assignment c44982d5 contains the
+source bundle, allocator traces, failing runs, registration rows, ELF hashes,
+per-invocation CPU/RSS and comparison bytes. The local candidate awaits manager
+review. The allocator sweep covers unchecked inspection, alongside the checked
+mode's existing registered coverage.
