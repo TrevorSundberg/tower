@@ -103765,3 +103765,13 @@ on the old UI with the same compiler. The Linux package is pinned at
 interpreted and a linked guest for exactly 42 plus LF. Updating the
 release candidate's documentation changes no compiler inputs. Qualification
 of the combined browser assets uses their own source and manifests.
+
+## Integrated browser and Linux release on the db486260 Pages parent
+
+Host 7 built the release at 2421c659df8773f5d982cf08accb103a4def57a4 and reconstructed Pages commit 8524b09e3f29fb94c36b14dfbc8b664808b4b761, tree 36f1de57f8bc3dbd6e14039d08ecfe3b7872c575. Its direct parent is db48626011680d5b319dd4718674b7dc95c96e00. The 8501024e-6765-4bef-8a56-4128ec3d6847 receipt contains the source bundle, parent bundle, replayable binary changes, digests, test reports and per-command time records. Publication remains with the manager.
+
+Both real editor language workers reached checked generic inspection. A failing edit produced the diagnostic, and the repaired edit executed with output 43. On desktop and mobile the three execution paths produced 42 for the renamed grammar, 7 after undo, and 29 after restore. Foundation completion and declaration ranges matched the retained observer on both sides of undo. The immediate reload recovered the latest edit while an independent transaction held the save. The editable recipe exposed 569 files, with 543 authored and 26 generated. The browser submitted exactly the expected edited project. A separate receiver verified the downloaded be41c755 development package against all 57 payload hashes. The package compiler interpreted the grammar guest and its linked Linux executable printed 42.
+
+The receipt identifies the actual Linux and WASI tools, source map inputs, release and editable reactors, compiler package and installer. The release entry selected the compiler from bootstrap/linux-x64 with its environment override unset. Separate functional runs used a test reactor with IDE exports. Older warm and cold compiler Build samples have different input identities and supply historical context only.
+
+The complete Chromium selection passed 237 with one declared mobile full-build skip and zero flakes or failures. The previous 4a inventory had two keyword-rename failures. Both now pass. The ordinary Node selection passed 513 with two optional test-export skips. An initial override forced unsuitable reactors into seven Node cases. The corrected command selected each fixture's actual input and all seven passed. Both shared-worker modes, the separate IDE test reactor, successive editable generations, 13 Roku tests and the desktop/mobile/Linux deployment verifier passed. The served-file manifest digest is d143d8cb5af34a268ddac4406c2c22634bf499d082526d66fe6464848d817fa3.
