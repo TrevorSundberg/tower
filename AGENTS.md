@@ -82,6 +82,11 @@ Do NOT modify todo.txt.
   that receives one of those jobs. The [semantic stage cleanup](scaffolding/compiler/compiler_kernel.tower)
   pairs a `T**` job list with `function(void, T*)`. Passing the declaration
   cleanup to a function-body job then fails during compilation.
+  If publication fails after the workers join, clean up borrowed results while
+  their backing stages are still live. In a regression, keep a second view open
+  across publication and check that each job releases its lease before closing
+  that view. To test disposal of borrowed values, observe a populated result
+  list at cleanup. See the [joined publication test](scaffolding/tests/semantic_body_admission_checks.tower).
 - For a dependency, write down which value is missing and which query can
   produce it. Test a forward reference and an edit to that producer. The edit
   must invalidate the consumer through aliases. A read in an untaken branch
