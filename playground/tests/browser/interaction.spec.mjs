@@ -1,5 +1,5 @@
 import { outputText } from './output-text.mjs';
-import {selectDocument, savedSource, revealDiagnostics} from './project-helpers.mjs';
+import {selectDocument, savedSource, revealDiagnostics, downloadedProject} from './project-helpers.mjs';
 import {test,expect} from '@playwright/test';
 async function edit(page,text){
  await page.locator('#editor').click({position:{x:80,y:20}});
@@ -116,11 +116,21 @@ test('reload restores the selected document and its text together',async({page,r
  const source=await(await request.get('/execution.tower')).text();
  await selectDocument(page, 'execution.tower');
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
- await edit(page,source+'\n// saved execution edit');
+ const firstEdit = source+'\n// saved execution edit';
+ const latest = firstEdit+' 2';
+ await edit(page,firstEdit);
+ await page.keyboard.insertText(' 2');
  await page.reload();
  await expect(page.locator('#status')).toContainText('Complete');
  await expect(page.locator('#filename')).toHaveText('execution.tower');
- expect(await savedSource(page)).toBe(source+'\n// saved execution edit');
+ expect(await savedSource(page)).toBe(latest);
+ expect(await outputText(page,'editor')).toBe(latest);
+ const download = page.waitForEvent('download');
+ await page.locator('#save').click();
+ const exported = await downloadedProject(await download);
+ expect(exported.active).toBe('execution.tower');
+ expect(exported.files).toEqual([{path:'execution.tower',text:latest}]);
+ expect(exported).not.toHaveProperty('storageRevision');
  await page.screenshot({path:`../build/reload-execution-${info.project.name}.png`});
  await selectDocument(page, 'foundation.tower');
  await expect(page.locator('#status')).toContainText('Complete');
@@ -130,7 +140,11 @@ test('reload restores the selected document and its text together',async({page,r
  await selectDocument(page, 'execution.tower');
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
  await page.locator('#restore').click();
- await expect.poll(()=>savedSource(page)).toBe(source);
+ await page.reload();
+ await expect(page.locator('#status')).toContainText('Complete');
+ await expect(page.locator('#filename')).toHaveText('execution.tower');
+ expect(await outputText(page,'editor')).toBe(source);
+ expect(await savedSource(page)).toBe(source);
 });
 
 test('legacy saved example text recovers its filename without discarding edits',async({page,request})=>{
@@ -139,6 +153,7 @@ test('legacy saved example text recovers its filename without discarding edits',
  await page.reload();
  await expect(page.locator('#execution-output')).toHaveText('15\n16\n');
  await expect(page.locator('#filename')).toHaveText('execution.tower');
+ expect(await savedSource(page)).toBe(source);
 });
 
 test('timings follow pipeline order and label current-run cached loads; controls share gaps',async({page},info)=>{
