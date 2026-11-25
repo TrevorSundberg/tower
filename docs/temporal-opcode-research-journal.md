@@ -104970,3 +104970,63 @@ The test fixture file SHA-256 was `c5683eb619b813ed328eedca3fa932d4697edc9526520
 The same registered `npm run test:ide --prefix playground` invoked `ide_tests()` in the new reactor. It printed all 20 completion and 40 hover labels, including the retained two-alias field case, and finished with `Tower IDE fixtures passed`, exit 0, empty stderr and zero skips. The full transcript matched the preceding run. In a supplemental inspection of the forward-declared provider, both fresh and retained worlds identified `deep.tower:3:16` as the field declaration. Before and after the edit the results were u8/1 and u32/4. Omitting deep.tower produced an incomplete document, cleared all three queried hovers, and reported `mid.tower: Cannot read imported module: deep` at byte 35, with zero steps and empty guest output. Repair returned u16/2. The ordinary compiler reported line 1 column 36 and exit 1 on the missing import. On each valid input both guest outputs contained the field size twice on separate lines. Valid fresh and retained Foundation matched the verified earlier oracle byte for byte. All five environments cleared the baseline, released every parser and execution handle, and closed.
 
 Host 8 used a Ryzen 9 7900X, CPUs 0–23, cgroup quota 2,304,000/100,000 and four outer build jobs with one worker per Tower compiler. Single-run wall / user-plus-system CPU / peak RSS were 17.14 s / 33.84 s / 873,208 KiB for the clean build, 2.70 s / 3.16 s / 192,992 KiB for the selector and 1.11 s / 1.38 s / 176,604 KiB for the supplemental inspection. The previous same-host selector took 2.69 s / 3.15 s / 192,948 KiB. The clean private checkout kept the build commit, fixture and todo.txt intact. The next Ninja dry run found no work. Raw commands, inputs, ABI, diagnostics, guest responses, lifecycle checks and measured outputs are in the assignment receipt.
+### 2026-11-25 — Browser release qualification of the qualified alias dependency
+
+Host 7 reconstructed the two specified merges on public 7ba6e6ac. Build source
+0823b028fba66eb19de815f4d49d4fdbc0bdc56a has parents 7cdcf2d4 and 7a54c3e9.
+Both merge trees, the producer archive and its four named members verified.
+The build used the public development bootstrap and WASI SDK 34. The production
+portable and shared Wasm reactors returned 1 for a two-hop imported type, reported
+the genuine a -> b -> a cycle in deep.tower with zero guest steps, and returned 2
+after changing only that module. Their Foundation bytes matched. The registered
+native graph selector found the required read reservation at widths one and four.
+At both widths the same test object linked to preceding semantics aborted at that
+assertion. Host 5's numeric trace identifies the consumer and producer as 43 and 41.
+
+The private Pages successor d1ca61baaff192968d36970041bc32ede0f59ba0 has
+parent 5b34c054 and tree 5cc3aef7594f6e993a7ccee360a514a5630d7af8.
+A separate receiver reproduced all 107 entries and the commit. Six delivered
+files changed, including the four reactors, project.json and the manifest.
+The generated project contains 569 files. Against the preceding editable
+compiler, the sole edited member is compiler/semantic_declarations.tower.
+All 25 object units were compiled for the independent unedited oracle.
+Only compiler-semantics.o changed. The Wasm and Linux x64 guests from the
+release and the unedited generated compiler matched the preceding frozen
+oracle and returned 42. Public idle UI, source maps and Linux installer/package
+bytes retain their existing build provenance. The host packet contains the
+asset delta, authored/generated member hashes, source and Pages replay, and
+per-gate output.
+
+A separate Wasm graph fixture added one read-only Tower export to each production
+link. The ordinary document query was still live when the fixture inspected the
+tickets and reservation. In this browser mount policy.Word and mid.Word used
+tickets 39 and 37. Both widths reported the edge and read reservation. Replacing
+only the semantic object recreated each preceding production reactor byte for
+byte before adding the probe. With the probe, those links reported neither edge
+nor reservation. Probe reactors and their hashes are separate from shipped assets.
+
+The predecessor also failed through its unmodified shared Wasm compile path on
+the first of two paired trials with the valid leaf. The diagnostic at offset 35
+in mid.tower named a Word@mid.tower initializer cycle, with zero steps and no
+output. Its second trial passed. Both repaired shared trials completed the
+valid/cycle/repair sequence. At portable width one all four trials passed.
+The two blocks reversed compiler order and ran one process at a time on CPUs 0–1.
+The few end-to-end samples do not establish a throughput difference.
+
+The full Chromium run passed 240 cells with two declared mobile skips and no
+flakes. Regular Node passed 513 of 515, with its two optional-export skips.
+The distinct IDE-enabled Wasm selector passed, as did 3 shared and 9 ownership
+trials, all 13 Roku tests and default desktop/mobile/Linux loopback deployment.
+On both viewports, the unedited Build converged, retained 25 exact objects and
+relinked three exact reactors with zero compile workers on the next request.
+Both drained on cancellation and close and rejected stale replies. Two edited
+compiler generations matched on all 25 objects and three reactors. The packet
+includes raw negative results, original source inputs, object and reactor hashes,
+editable generation deltas, guest bytes and build/time/ownership logs.
+
+A separate Pixel 7 selection removed just the two desktop-only skip predicates.
+Both original Build cases passed on mobile, including edited behavior/reset and
+cache invalidation by a shadowing import; their posted recipe receipt agreed
+with desktop. The 240-pass ordinary matrix retains its original two skips.
+A second clean Pages receiver imported the named bundle with only the public
+parent and reproduced the same commit and 107-entry tree. Host 7 did not publish.
