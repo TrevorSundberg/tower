@@ -45,6 +45,7 @@ struct SyntaxEmissionState {
     first: vector(usize);
     nullable: bool;
     visited: bool;
+    first_complete: bool;
 }
 
 struct SyntaxEmission {
@@ -418,7 +419,7 @@ fn emission_reference(value: SyntaxEmission*, parent: void*, name: usize, captur
     var data = entity_component_data(entity_component_get(node, value.input.reference_kind));
     var reference = bits(ParserReferenceData*, data);
     var ok = node_reference_set_name(reference, emission_text(value, name));
-    ok &&= node_reference_set_capture(reference, capture);
+    if ok && *capture != 0 { ok = node_reference_set_capture(reference, capture); }
     if !ok {
         value.failed = true;
     }
@@ -913,6 +914,10 @@ fn emission_first(value: SyntaxEmission*): void {
         for(; index != value.input.count; index++) {
             var rule = &value.input.rules[index];
             var state = &value.states.data[index];
+            // A settled dependency cannot expose another nullable prefix.
+            // Recursive dependencies keep participating in ordinary convergence.
+            if state.first_complete { continue; }
+            var complete = true;
             var alternative: usize = 0;
             for(; alternative != rule.count; alternative++) {
                 var sequence = emission_node(value, rule.alternatives[alternative]);
@@ -945,6 +950,7 @@ fn emission_first(value: SyntaxEmission*): void {
                             }
                         } else {
                             var dependency = &value.states.data[target];
+                            complete &&= dependency.first_complete;
                             nullable = dependency.nullable;
                             var item: usize = 0;
                             for(; item != dependency.first.length; item++) {
@@ -977,6 +983,7 @@ fn emission_first(value: SyntaxEmission*): void {
                     }
                 }
             }
+            state.first_complete = complete;
         }
         if !changed {
             return;

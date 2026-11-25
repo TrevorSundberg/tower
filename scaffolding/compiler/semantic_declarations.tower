@@ -1975,6 +1975,18 @@ fn sem_declarations_execute(c: SemanticContext*, statements: vector(void*)*): vo
     }
 }
 
+// The joined coordinator needs one Boolean for the entire declaration pump.
+// Inspect the authoritative tasks once, including demanded work outside Ready.
+fn sem_declarations_pending(graph: WorkGraph*): bool {
+    foreach(var &task in &graph.tasks) {
+        if task.demanded && task.state != WorkState.Succeeded
+            && (task.query == DeclarationQuery || task.query == ExpressionQuery
+                || task.query == ArrayTypeQuery || task.query == TypeConstructionQuery
+                || task.query == convert(u32, SemanticQuery.IntegerArgument)) { return true; }
+    }
+    return false;
+}
+
 // Consume one ready declaration/type frontier. Continuations remain on their
 // entities; other phases may publish prerequisites before the next pump.
 export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
@@ -2028,10 +2040,7 @@ export fn sem_declarations_pump(c: SemanticContext*): SemanticPumpResult {
             var progress = sem_generic_copies_execute(c);
             if !sem_ok(c) || !sem_work_query(c, c.program.root, work_ok(&c.queries)) { return SemanticPumpResult.Failed; }
             if progress { return SemanticPumpResult.Progress; }
-            var pending = sem_query_pending(c, DeclarationQuery) || sem_query_pending(c, ExpressionQuery)
-                || sem_query_pending(c, ArrayTypeQuery) || sem_query_pending(c, TypeConstructionQuery)
-                || sem_query_pending(c, convert(u32, SemanticQuery.IntegerArgument));
-            return pending ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
+            return sem_declarations_pending(&c.queries) ? SemanticPumpResult.Waiting : SemanticPumpResult.Complete;
         }
         if c.workers.count == 0 {
             var current = c.current;
