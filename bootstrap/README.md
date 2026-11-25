@@ -235,7 +235,12 @@ release from `os-release` and records the selected tool's full LLVM version.
 
 Stage new source files so Git includes them in provenance, keep the source and
 compiler/resource inputs unchanged during packaging, and package the compiler
-from that exact source snapshot. The build-command argument records an already
+from that exact source snapshot. Native CMake COPYONLY paths must match in both
+directions. For example, each direct `share/tower/library/*.tower` member
+needs a tracked, byte-identical `scaffolding/library` source. A diagnostic
+naming a retired copy calls for a fresh build/install directory. Other resources,
+including runtime IR and custom modules outside the COPYONLY paths, are
+inventoried and hashed as supplied. The build-command argument records an already
 performed build; the packager does not execute or attest it. Dependency records
 omit ASLR addresses but retain observed names/paths; they are not a portable
 dependency closure. Resource file symlinks are copied under lexical names;
