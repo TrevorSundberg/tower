@@ -259,6 +259,18 @@ fn sem_operand_impl(c: SemanticContext*, n: void*, expected_type: FoundationType
         return n;
     }
     n = sem_surface_unwrap(n);
+    if sem_is(n, "TowerSourceOffset") {
+        var value = sem_node_result(c, n, KOperand);
+        if value == null { return null; }
+        if value.start > convert(usize, ~convert(u32, 0)) {
+            sem_fail(c, n, "Source offset exceeds the u32 diagnostic range");
+            return n;
+        }
+        value.type = sem_type_value(c, SU32, 0, null);
+        value.bits = convert(u64, value.start);
+        value.constant = true;
+        return sem_surface_expected(c, n, expected_type);
+    }
     if sem_is(n, "TowerComptime") { return sem_comptime(c, n, expected_type); }
     if sem_is(n, "CoreMetadataValue") { return sem_metadata_literal(c, n, expected_type); }
     if sem_is(n, "TowerDefault") { return sem_default(c, n, expected_type, true); }

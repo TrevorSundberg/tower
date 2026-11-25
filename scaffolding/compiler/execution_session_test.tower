@@ -25,11 +25,48 @@ fn execution_test_declaration_world(request: DriverRequest*, workers: usize): vo
     execution_check(modules != null && frontend_modules_bind_world(modules, world), "bound test request modules");
     execution_world_prepare(world, modules, request);
     execution_test_declarations(modules);
+    execution_test_array_assertions(modules, false);
+    execution_test_array_assertions(modules, true);
     frontend_modules_destroy(modules);
     execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "test request world drains");
     var final: WorkBudgetSnapshot = default;
     execution_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
         && final.used_lanes == 0 && work_budget_dispose(&budget), "test request releases memory and workers");
+}
+
+fn execution_test_array_assertions(modules: void*, fast: bool): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var passing = "import tests.test_declaration_inputs.array_assertions;";
+    execution_check(execution_session_compile_tests(&session, passing, strlen(passing), 8, modules)
+        && session.program.test_count == 1, "select array order and assertion evaluation checks");
+    if fast { execution_check(execution_session_fast(&session), "fast array assertion program"); }
+    execution_run(&session, 7, 10000);
+    if session.machine.failed {
+        driver_report(session.error.data, session.machine.error_offset, passing, strlen(passing), "test request", modules);
+    }
+    execution_check(session.machine.done && !session.machine.failed && session.output.length == 0,
+        "positional order, single evaluation and lazy assertion message");
+
+    var wrong = "import tests.test_declaration_inputs.wrong_array_order;";
+    execution_compile(&session, wrong, 8, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && session.program.test_count == 0
+        && session.output.length == 0, "ordinary mode excludes wrong array assertion");
+    execution_check(execution_session_compile_tests(&session, wrong, strlen(wrong), 8, modules)
+        && session.program.test_count == 2, "select array owner and deliberate failure");
+    if fast { execution_check(execution_session_fast(&session), "fast wrong-order program"); }
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && session.machine.failed && execution_text(&session.output, "1342\n")
+        && execution_text(&session.error, "Wrong positional array order"), "assertion stops the selected test");
+    var line: usize = 0;
+    var column: usize = 0;
+    var path = frontend_modules_location(modules, session.machine.error_offset, &line, &column);
+    driver_report(session.error.data, session.machine.error_offset, wrong, strlen(wrong), "test request", modules);
+    var suffix = "tests/test_declaration_inputs/wrong_array_order.tower";
+    var name = strstr(path, suffix);
+    execution_check(name != null && strcmp(name, suffix) == 0 && line == 6 && column == 5,
+        "assertion points at the first token of the multiline call in its owning module");
 }
 
 fn test_declaration_rejected(session: ExecutionSession*, source: u8*, modules: void*, wanted: u8*, expected_line: usize): void {
