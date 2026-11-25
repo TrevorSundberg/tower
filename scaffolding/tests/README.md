@@ -1450,8 +1450,9 @@ The budget/schedule cases use actual worker barriers, private stages/graphs and
 production allocation. Layout verifies the target's actual type sizes, aligned
 payloads, physical charges and last-live cleanup. Fault cases use the existing
 single-owner allocator and serial transport; their rollback coverage is separate
-from real concurrency. The deliberate compile-negative
-`work_view_invalid_dispose.tower` is not an executable target.
+from real concurrency. The POSIX driver test `tower-work-view-invalid-dispose`
+compiles `work_view_invalid_dispose.tower` as a library. It checks the diagnostic
+at the disposal call, the compiler's exit status, and the previous output file.
 
 The same factories register typed stage/view admission and publication rollback:
 
