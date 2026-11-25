@@ -1,5 +1,7 @@
 import {loadLLVM} from './llvm-host.mjs';
 
+export const objectHost = typeof TOWER_OBJECT_HOST === 'string' ? TOWER_OBJECT_HOST : undefined;
+
 // A worker owns one complete compiler instance, allocator and in-memory FS.
 // Only immutable inputs and owned output bytes cross this boundary. The parent
 // controls dispatch through the Tower coordinator, not through this adapter.
@@ -25,7 +27,7 @@ export function compilerUnitMessages(send) {
       const end = performance.timeOrigin + performance.now();
       const error = result.status === 'error' ? (result.errorFile || entry)+': '+result.error : undefined;
       const object = result.object;
-      send({type:'result',unit:data.unit,revision,profile,object,error,start,end},object ? [object.buffer] : []);
+      send({type:'result',unit:data.unit,revision,profile,objectHost,object,error,start,end},object ? [object.buffer] : []);
     } catch (error) {
       send({type:'fatal',error:error.message || String(error)});
     }
