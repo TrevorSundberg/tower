@@ -100992,3 +100992,35 @@ saturated old request terminates at the guard and has no successful timing.
 The raw packet includes each sample, CPU, memory capacity, callback traces,
 input validation, commands and standalone replay. No production change
 was required.
+
+### Host 6, 2026-11-25 — fresh local vector initialization and field runs
+
+On frozen `ca543287`, the host-6 inventory from assignment `90e4e149`
+matches all 1,287 tracked Tower path/blob pairs. Assignment `ad248c9a`
+examines the five scaffolding language modules plus compiler, examples, host,
+library and tools. The implementation trial replaces initialization of one
+fresh prefix vector in the host's case-sensitive module path check.
+The existing helper writes exactly `*value = default`. The later pushes,
+filesystem reads, failure exits and disposal have independent reasons to stay.
+The baseline passed `tests/module_paths.tower` on a real Linux directory
+before editing. Source counts, matched controls and disposition follow below.
+
+Host 6 counted 52 adjacent fresh-vector initializations in 24 files and
+240 runs of field writes in 97 files (1,021 writes). The IDE slot's three
+fields admit a complete named initializer. Driver argument setup also sets
+`ok = true`, and diagnostic formatting retains the caller's result field.
+Only `host/module_path.tower` changed. No language extension was necessary.
+The [source audit and host measurements](tower_syntax_audit_ca543287.md)
+record the six directory counts, original lane receipts and evidence limits.
+
+With the verified public pin (source base `902a358f`), one- and four-job
+compiles of both forms yielded the same 1,760-byte object. On Linux x64
+the exact/mis-cased/absent filesystem tests and their wrong-file negative
+control returned 0 and 1 respectively on both arms. Each timed run did
+8,192 repetitions of the five checks. On CPU 3, four warm samples per arm
+gave mean compile wall/CPU 0.4140/0.4133 s before and 0.4145/0.4140 s after.
+Executable bytes matched as did runtime allocation totals and zero exit-live
+bytes. The candidate passed focused ASan/LSan and TSan on the serial path.
+The packet contains the matched timings, RSS, DHAT, Memcheck, exact commands,
+object hashes and bootstrap provenance. Repository-wide, browser and other
+platform builds remain unverified for this change.
