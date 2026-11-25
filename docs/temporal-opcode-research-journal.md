@@ -104592,3 +104592,106 @@ The Node service from compiler source `2421c659` used the shipped shared reactor
 All four long independent pairs improved, including on the first compile of each block (median paired gain 3.06×). On the repeat, median process CPU rose from 907.91 ms at one lane to 1,037.16 ms at four. Service-lifetime peak RSS at one, two and four lanes was 115,660, 138,796 and 176,088 KiB. Separate traces recorded 548 eight-job waves admitted to four lanes and 216.62 ms with four evaluations running together. The chain issued 4,362 one-lane evaluator dispatches. General cold CLI compile time and interactive browser startup have different measurement boundaries.
 
 All 72 scored compiles matched the portable Foundation bytes and the external guest outputs. The long independent and dependent guests both ended with 131194 and the short guest with 634. Each handle was destroyed and each worker group closed. A failed pilot exited during worker CPU accounting and contributed no scored sample. The manager verified 705 packet digests, matched both reactor binaries to published Pages `5b34c054`, and reproduced the timing, overlap and output reductions from the raw records in `aeb024b8-4ce9-4632-a8b2-6f3ace82c7e0`. This evidence documents scaling of the released compiler and makes no code or worker-policy change.
+## Lending the first imported grammar to a nested reader
+
+The retained diamond at `da25567f` builds the ordinary Tower grammar at
+byte 13 of `retained_side.tower`. Its 109 rule names, 296 ordered alternatives
+and 12 tokens already occur in the root parser's session cache. That cache
+retains the original build key and the compiled version. The nested reader
+can take one reference in its existing active-version slot. Its graph owns
+the idle import reader until another import resets it or the graph closes.
+An active reader can also be the last owner after the root changes its active
+grammar and discards its cache.
+
+The loan is available for the first import in an ordinary reader in a bound
+environment. Its resolved dependency must be the same grammar-bearing module
+as the active root's first dependency in that same request graph. The lookup
+checks the world, Bedrock revision, ordered rule names and each rule's ordered
+alternative entities, followed by the ordered token entities. It reads the
+bounded root index without updating recency. A miss goes through the reader's
+ordinary installation. The change adds zero cache slots, heap buffers or
+budget reservations and does not extend the root cache's lifetime.
+
+A trial comparison of the packed allocation order missed the measured case.
+`syntax_revision_create` sorts the rule views while leaving the underlying
+storage in declaration order. Comparing the logical views recovered the hit.
+A transparent wrapper exported the exact same entities from another path and
+correctly missed. Editing a grammar behind an import alias rebuilt the root
+version and changed the side and root effects from 17 to 19. The reader borrowed
+the new identity. A shift/reduce conflict produced identical fresh and retained
+diagnostics at byte 12 with no guest steps. Repair restored the original effects.
+The lease fixture checked rejected admission, successful retry, reordered
+alternatives and tokens, eviction with a suspended reader, and zero owners after
+close. Cancellation joined two admitted unit workers that used the loan.
+
+Host 4 used Ubuntu 24.04.5, LLVM 19.1.1 and four physical cores of a Ryzen 7
+5800H (CPUs 0,2,4,6, quota 1,536,000 µs per 100,000 µs). With observers off,
+four stock/trial pairs per width gave the following median ordinary compile
+times. Each arm ran the same initial request, untouched repeat, independent
+71-to-73 edit, shared leaf edit, failure and repair.
+
+| Native workers | Untouched stock / trial, ms wall | Edited stock / trial, ms wall | Edited stock / trial, ms CPU |
+| --- | ---: | ---: | ---: |
+| 1 | 18.75 / 7.78 | 17.57 / 7.00 | 15.36 / 4.88 |
+| 2 | 23.88 / 8.23 | 21.95 / 7.52 | 21.62 / 5.96 |
+
+At both widths the side edit used 26,107 fewer charged bytes and five fewer
+live reservations after compilation. For the six-step sequence the tested
+one-byte success/failure boundaries moved from 25,092,131 to 24,788,422
+bytes at one worker and from 28,561,016 to 28,257,307 at two. The failures
+reported capacity during semantic repair. Whole-sequence median maximum
+individual RSS was 79,320/79,588 KiB at one worker and 83,670/83,562 KiB
+at two. A fresh-world holdout with five new grammar declarations per request
+took 1.940/1.885 s at one worker and 2.420/2.330 s at two. Forcing all loans
+to miss in the same holdout gave 1.915/1.925 s and 2.445/2.445 s.
+
+Thirteen related native selectors passed. Address- and thread-instrumented
+parser units passed the lease fixture, ordinary retained selector and worker
+cancellation. The thread runtime also had startup failures before tests when
+host policy denied its personality call. Host 4 packet
+`56417dd4-fcf0-40cf-89bb-6e93449933b9` contains the exact inputs, commands,
+per-call ledgers, canonical Foundation, guest bytes, diagnostics, allocator
+and worker link maps, and separate receipts for every invocation.
+
+## Browser compiler build of the grammar loan and one-shot frontend ownership
+
+Host 7 built the portable, shared, LLVM and cross reactors from
+`2d81c29eafccd27e248527e88925035a3868761b`, tree `dcdd4e20`. The
+source preserves the two requested merges from public `2905a701`, first
+`729fa926` and then `76c5ce5d`. WASI SDK 34 and the checked-in Linux x64
+bootstrap `a3f76faf` built the release through build-wasm, build-threads and
+build-llvm. The packaged project contains 543 authored and 26 generated
+records. Its eight changed source records match the build checkout.
+The original 107-file Pages tree from `191d20a6` plus the independently
+replayed delta produces tree `b4c8c6bce9597e01934665bcf357577a2206f9c6`.
+The manifest SHA-256 is
+`47216291703e7d6de6852f5d6d357f1a87a7b7da8fdb9c05d4ab115e7a19e244`.
+
+The ordinary service retained an instance across two aliased imports, an
+edit, an unresolved function and its repair. Stock and candidate produced
+identical canonical Foundation and executable Wasm for every valid step at
+portable width one and shared capacity two. The shared run recorded 192
+dispatches and both workers closed. The initial interface comparison
+rejected the new declared export. The checked release preserves every
+old import and export and adds frontend_unit_release_program on all four
+reactors plus backend_link_symbol on LLVM and cross. The independently
+generated modules match their release counterparts' import and export sets.
+
+Two editable generations converged on 25 objects and three reactors, ran
+the edited diagnostic and drained their two and four workers. The release
+and both successors produced identical executable Wasm and Linux guests
+for the alias sum, each printing 42 plus LF. The focused desktop Build and
+module-edit selectors passed 2/2. The real Build posted all 569 expected
+edited records. This entry qualifies the compiler group on loopback.
+The manager owns publication, Host 4 the native qualification, and Host 8
+the independent UI-only successor tests.
+
+Four alternating pairs on CPUs 2 and 3 of the EPYC 7502 with a 30.72-CPU
+quota used fresh processes, a warm filesystem and four requests per
+process. Portable stock/candidate median wall times were 1.225/1.180 s,
+CPU 1.66/1.61 s and peak RSS 214106/214020 KiB. At shared capacity two
+they were 1.515/1.435 s, 2.07/1.99 s and 263384/264498 KiB. The clean
+LLVM/cross build with 29 build jobs took 369.39 s. The compiler and
+project receipt for assignment d90a702a-d933-4a54-8e5b-9923ace3551d
+contains the source bundle, reconstructable products, full inventories,
+commands, initial failure and generation records.
