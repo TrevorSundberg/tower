@@ -11,8 +11,11 @@ import .library.work_pool;
 import .library.work_budget;
 import .library.work_budget_types;
 import .library.work_buffer;
+import .library.vector;
 import .library.work_buffer_types;
 
+extern fn compiler_world_pinned(world: void*): bool;
+extern fn frontend_unit_release_program(program: SemanticProgram*): void;
 extern fn compiler_node_world(node: void*): void*;
 extern fn frontend_world_retire_baselines(world: void*): void;
 extern fn frontend_units_work_acquire(frontend: void*): void*;
@@ -85,6 +88,7 @@ struct BackendUnits {
     streaming: bool;
     attached: bool;
     retire_baselines: bool;
+    consume_programs: bool;
     input_failed: bool;
     lanes: usize;
     running: usize;
@@ -361,6 +365,14 @@ export fn backend_units_one_shot(batch: BackendUnits*): bool {
     return true;
 }
 
+// Exclusive executable driver. Object symbols replace its final semantic
+// symbol walk. An independent unit-world view still keeps the program alive.
+export fn backend_units_link_only(batch: BackendUnits*): bool {
+    if !backend_units_one_shot(batch) { return false; }
+    batch.consume_programs = true;
+    return true;
+}
+
 // Override before dispatch only: a program entry and independent library units
 // share the graph, but only the entry unit supplies the executable entry point.
 export fn backend_units_library(batch: BackendUnits*, ordinal: usize, library: bool): bool {
@@ -381,7 +393,14 @@ fn backend_unit_receive(payload: void*): void {
     if batch.retire_baselines && job.success {
         entity_view_close(job.view);
         job.view = null;
-        frontend_world_retire_baselines(compiler_node_world(job.program.root));
+        var root = job.program.root;
+        var world = compiler_node_world(root);
+        frontend_world_retire_baselines(world);
+        if batch.consume_programs && !compiler_world_pinned(world) {
+            job.backend.source_root = null;
+            vector_dispose(&job.backend.source_functions);
+            frontend_unit_release_program(job.program);
+        }
     }
     batch.completed++;
     if batch.streaming { batch.running--; }
