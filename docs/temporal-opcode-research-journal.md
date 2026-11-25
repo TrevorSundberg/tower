@@ -104066,3 +104066,18 @@ The Jenkins console for `b0ae38a2` records the unexpected `entity_stage_lease_at
 On the published 107-file site at Pages `8524b09e`, staying on one file retained the browser language worker, Wasm instance, compiler world and parsed import snapshots across edits. Each new document query still disposed its checked root. Switching to another file and returning allocated a new worker even when the edited file was outside the entry's imports. Repeating an unchanged hover sent zero requests. All seven scored edit states matched fresh Chromium sessions, including the aliased type change, the invalid producer and its repair. A replayed stale hover did not replace the repaired type.
 
 The manager replayed the ownership checks and scoring from receipt `5f6bb8d0` after verifying 555 file digests. On four assigned Ryzen 9 7900X CPUs with a 23.04-CPU quota, file-return request-to-reply medians spanned 184.06–185.63 ms across conditions. On the retained worker the repeat medians were 24.91–25.31 ms. The two shipped timing runs had sampled process-tree peaks of 1,733,748 and 1,578,528 KiB. Those comparisons measure the current editor's two paths. Testing a change to worker retirement requires matching fresh replies, accepting current revisions only, closing cancelled work and measuring the candidate on the same host.
+
+### Anonymous page turnover after LR state construction
+
+The multi-item shift lookup trial `cccf3aac` remains held. Receipt `6b026654` found a large-input regression in twelve paired trials. Receipt `503e74a1` repeated the comparison on the original EPYC 7502, Debian 12, glibc 2.36 and LLVM 19.1.7. The public compiler source in `b0ae38a2` matches `2421c659` on this path. Each run started a fresh one-worker compiler process against warm files, emitting an x86-64 Linux object at default optimization. The compiler had affinity to physical cores 4–7, a 30.72-CPU quota and zero added throttling.
+
+| Functions | Compiler | Mean wall ms | Mean user / system CPU ms | Mean minor faults | Mean process peak RSS KiB |
+| ---: | --- | ---: | ---: | ---: | ---: |
+| 16 | Public | 282.71 | 225.53 / 56.07 | 15,344.5 | 85,927 |
+| 16 | Trial | 277.10 | 232.01 / 44.00 | 12,906.0 | 86,764 |
+| 1,000 | Public | 515.76 | 435.89 / 78.77 | 22,269.75 | 116,684 |
+| 1,000 | Trial | 528.79 | 442.15 / 85.48 | 27,413.5 | 116,440 |
+
+Each row uses four counterbalanced pairs. A selector in one linked binary reproduced both directions. In a separate page census the larger trial incurred 5,147 additional minor faults. After heap contraction, 4,054 more discarded heap pages became resident again. Anonymous unmaps released another 1,086 resident pages. Source reads matched and file-backed releases showed no increase. The trial discarded 9,129 resident heap pages through 11 contractions, traced through arena disposal, libc free and heap trimming. The public compiler discarded 5,075. Suppressing both release mechanisms for the child process reduced the measured large-input difference to −8.5 minor faults over two pairs.
+
+A separate phase probe measured 8.58 ms more system CPU in LALR lookahead and 0.48 ms more during state construction. Differences in linked layout and probe overhead limit attribution of the original wall time. The manager replayed the packet check, including 72 exact object and linked guest comparisons (15 or 999), six diagnostic comparisons and the LR entry/return checks. Source for the observers is in the packet at `568f0b21`. The adopted result is the diagnosis. The next experiment follows the largest charged scratch owners through their last use in ordinary serial lookahead. Archive SHA-256 `b8e1995220d8df5f863384e11a1a8fad52498adf34109674a5552d495ae923c7`.
