@@ -158,10 +158,23 @@ and runs a driver fixture with MSVC. A native CLI needs its own install receipt.
 | Compiler host | First output target | Runner and package dependency check | Native install evidence |
 | --- | --- | --- | --- |
 | Linux x64 | `x86_64-unknown-linux-gnu` | `ubuntu-24.04`. Inspect ELF interpreter, NEEDED and RUNPATH with `readelf -lWd`. Resolve and hash the loaded libraries and target startup files. | Public development install above. Standalone pending. |
-| Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Pending native compiler and Arm64 runner trial. |
+| Linux Arm64 | `aarch64-unknown-linux-gnu` | `ubuntu-24.04-arm`. Verify AArch64 ELF, loader, LLVM, Clang and Arm64 libc/startup objects. | Full compiler linked and run under QEMU. Native self-host, relocation and public install remain open. |
 | macOS x64 | `x86_64-apple-macos11` | `macos-15-intel`. Inspect Mach-O CPU, deployment minimum, `otool -L` dependencies and LC_RPATH of the CLI and tools. Verify signatures after relocation. | Pending Intel compiler and runner trial. |
 | macOS Arm64 | `arm64-apple-macos11` | `macos-15`. Run the arm64 slice natively, check its SDK/libSystem inputs, dependencies and signatures. | Pending Arm64 compiler and runner trial. |
 | Windows x64 | `x86_64-pc-windows-msvc` | `windows-2025`. Inspect PE machine and imports with `dumpbin /headers /dependents`. Resolve LLVM, CRT, stack probes and target import libraries. | Pending `towerc.exe` and Windows runner trial. |
+
+The Linux Arm64 handoff at `6f7ed3fe` contains the compiler and its adjacent
+resources. Its 2,049,512-byte ELF has SHA-256
+`eb6bae472bd7a887459abe76bbfd94ac370283cd9f9a912e43911c7dbc275b2d`.
+On Debian Arm64 userspace under QEMU 7.2.22, it relinked itself from the
+supplied objects byte for byte. Its interpreter and its linked Arm64 guest
+both printed `42` followed by a newline. The external Clang 19 that compiled
+the guest runtime IR ran on the x64 build machine. For the native trial,
+receipt `fdafc061-ac29-4f77-aa4b-ea9fdde983a5` contains the loader and
+library hashes, object response file, oracle and two-generation build recipe
+in `packet/HANDOFF.md`. Run both generations and the linked guest on the
+Arm64 runner before promoting a package.
+[Arm64 assembly and execution record](temporal-opcode-research-journal.md#linux-arm64-full-compiler-handoff-at-6f7ed3fe-november-25-2026)
 
 1. **Produce.** Freeze source, submodules, build image, SDK and flags. For
    Linux x64 run `./build.sh bash playground/scripts/build-native.sh` with an
@@ -391,10 +404,8 @@ the parser/interpreter differential suites before replacing that bootstrap.
 Preserve its adjacent `share/tower` grammar resources when copying a bootstrap;
 a bare executable copy cannot locate its Bedrock/Foundation/Tower inputs.
 
-At this milestone Linux x64 host behavior is tested, while a complete Tower-only
-compiler and its self-build are unavailable. Windows/macOS compiler execution
-has not been performed. The user-authorized Linux development artifact now fixes
-the previously missing bootstrap path, with exact source/member hashes and LLVM
-license material. It is explicitly not a portable bootstrap release. Publish
-portable release binaries only after the corresponding gates pass, with exact
-provenance, licenses, hashes and platform verification evidence.
+The Linux x64 development bootstrap now builds its own successor through the
+canonical Ubuntu route. Its package includes source and member hashes and
+LLVM license material. The [build-server matrix](#build-server-matrix-for-native-cli-releases)
+tracks the installed compiler, hardware execution and remaining distribution
+work for each host.
