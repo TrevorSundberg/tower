@@ -269,6 +269,13 @@ fn lr_range_merge_arena_result(destination: work_vector(SymbolRange)*, source: w
     var count = destination.length + added;
     var error = arena == null ? lr_reserve_initial_result(destination, count, budget, initial) : lr_reserve_arena_result(destination, count, arena, owned);
     if error != WorkBudgetError.None { return error; }
+    // The source already holds the complete sorted union for an empty row.
+    if destination.length == 0 {
+        copy(destination.data, source.data, count * sizeof(SymbolRange));
+        destination.length = count;
+        *changed = true;
+        return WorkBudgetError.None;
+    }
     // Backward merge consumes each old slot before overwriting it. No scratch
     // owner or per-insert shifting is needed; denial leaves the old set intact.
     left = destination.length;

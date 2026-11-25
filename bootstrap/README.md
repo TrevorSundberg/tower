@@ -14,16 +14,15 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The current compiler source is `fb019f61`. It includes singleton LR state
-lookup, table-owned storage for frozen parser context rows, typed resource
-failures for joined frontend units, and executable depfiles that track both
-explicitly linked objects and the selected runtime IR. The Ubuntu-built
-executable is 2,274,400 bytes with SHA-256
-`d8f3403606f175309b038783dfa532e3734cd01db597c92db24c9dd5cbe2ac32`.
-Three Ubuntu production builds matched on 39 native products. Generations two
-and three also matched on all 57 payloads and their checksum manifest.
-The previous public pin was built from `9ab581c8`.
-See the [previous pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
+The current compiler source is `902a358f`. It copies sorted LR ranges directly
+into empty destinations, avoids allocating empty grammar capture storage, and
+retires joined grammar baselines in one-shot executable builds. The Linux x64
+compiler built on Ubuntu 24.04.5 with Clang/LLVM 19.1.1 is 2,274,560 bytes
+with SHA-256 `509557309b941160cdb55eb7ea407c1e329e6ebd8ef126340552e857208cf42f`.
+Three Ubuntu production builds matched on all 39 native products. Generations
+two and three also matched on all 57 payloads and the package archive.
+The previous public pin was built from `fb019f61`.
+See the [9ab581c8 pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the
 shared graph-components library and corrected optional foreign grammar. Later

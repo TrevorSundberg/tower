@@ -100073,3 +100073,118 @@ On host 2 the new five-reply Chromium test failed on 8f6d802b for the two expect
 The measured inputs were the producer's frozen tiny, mounted and dense requests and fb019f61 reactors on an AMD Ryzen 5 3600, CPUs 0–11, quota 11.52 CPUs, memory limit 32,222,740,480 bytes. Node 24.22.3, esbuild 0.25.12 and Chromium 159 ran one group at a time, cold owner then unchanged/edited warm requests. The 36 ordinary trials and 36 separate allocation observations (1 and 4 workers) checked exact Foundation against the producer files and guest and formatted output against retained records. Rebuilt baseline and producer worker JS matched the archived bundles. On each valid mounted repeat the repaired worker performed one complete upload. Relative to baseline it avoided retransmitting 1,238 source entries and 8,380,724 encoded bytes through 2,478 temporary allocations. The per-request counts matched the producer fast path on all three workloads. One adjacent sample per cell, renderer CPU, wall time, process high-water RSS, Wasm memory and worker closure are in the packet. These trials establish byte/count equivalence. Repeated paired timing on host 1 remains open.
 
 The first Chromium launch lacked shared libraries; extracted the missing Debian packages to a private sysroot. The first control-host run requested an unavailable cgroup memory.peak file and exited before admitting requests. Replayed with the available process/cgroup counters and preserved both failures. The change is confined to the JavaScript/Wasm transport. Reused the sealed Wasm, without a new native sanitizer build. This local source and its evidence are for manager review.
+## 2026-11-25 · Copying sorted ranges into an empty LR row
+
+Host 7, assignment `a45b448e-7ae9-4961-85e0-d42b45e11e30`. The earlier host-7 boundary trace at `f61765cf` found an observer for each grammar version on the ordinary 16- and 1,000-function object paths. It attributed 11.61% of the small compile's Callgrind instructions inclusively to `lr_range_merge_arena_result`. The earlier transactional bulk union already counted exact ordered pairs and reserved their storage once. This experiment targets the subsequent copy when the destination is empty.
+
+A private Tower observer recorded all eight merge call sites on the 16-function input. Four executed, in FIRST propagation and the component solver for LALR. Of 266,611 calls, 127,868 had an empty destination and a source of at least two intervals. Together these wrote 5,015,839 already-sorted intervals. Another 62,876 multi-interval calls had exactly equal rows. The candidate copies the complete row into destination-owned storage after the existing reservation succeeds. The sorted-set scan, capacity/error paths, changed flag, singleton insertion and all nonempty unions retain their original semantics. It borrows neither a row nor its lifetime. The focused test gives two otherwise equal rows different final endpoints, checks both survive the union, then verifies the source owner and complete ordered output after further propagation.
+
+The instrumented stock and candidate emitted identical records call by call, including common prefixes, new elements, both changed flags, capacity growth, physical backing allocation and errors. All calls together wrote 44,608,416 bytes of result rows and copied 1,090,928 bytes during growth. Row-capacity requests totaled 43,425,696 bytes. The 3,408 backing allocations made during these calls totaled 44,259,024 bytes including compiler headers and whole new arena chunks. These are cumulative costs. For the selected empty rows the median source length was 52, the 95th percentile was 62 and the maximum was 109. Component edges accounted for 113,362 of those copies, component members for 12,999 and FIRST for 1,507. Across all row sizes the source equaled the destination 71,437 times, was a proper subset 45,498 times, was a proper superset 135,297 times and was incomparable 14,379 times. The proper-subset multi-interval rows had median common prefix 1. Retaining the existing nonempty path avoids an additional scan there.
+
+Observer-off CLI measurements used the public 9ab Release ELF, direct native x86-64 object emission, fresh processes and warm filesystem pages on a Debian 12 EPYC 7502 host. The one-job mask was CPU 7 (sibling 39), the four-job mask was CPUs 4–7, cgroup quota was 3,071,999 µs per 100,000 µs and memory.max was 91,586,822,144 bytes. One timed process ran at a time. Rows show mean public → candidate over alternating pairs. CPU includes user and system time. RSS is the per-process peak. All measured throttle deltas were zero.
+
+| Functions | Jobs | Pairs | Wall ms | CPU ms | Peak RSS KiB |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 1 | 12 | 328.83 → 324.17 | 326.33 → 321.83 | 138,930 → 139,133 |
+| 1,000 | 1 | 12 | 566.67 → 561.75 | 563.92 → 559.33 | 153,772 → 153,555 |
+| 1,000 | 4 | 8 | 611.50 → 609.13 | 662.38 → 657.13 | 160,220 → 160,048 |
+
+One-job candidate CPU was lower in all 24 public pairs. Six additional one-job pairs per size used stock and candidate rebuilt with the same public pin and Debian LLVM 19.1.7. Mean wall savings were 3.17 and 3.33 ms, with CPU savings of 3.50 and 3.17 ms. Four-job candidate wall was lower in five of eight pairs. All 98 timed and warmup objects, their separately linked ELFs and actual guest output matched the independent oracles (15 and 999). External links and guest execution were outside the timed object compilations.
+
+Direct Callgrind on the small object run resolved the merge at ELF address `0x55fe0`, mapped `0x15dfe0`. Inclusive instructions went from 178,617,989 to 102,475,445 (−42.63%), and the whole process from 1,538,970,485 to 1,462,827,938 (−4.95%). Locally rebuilt stock reproduced the public merge count exactly. Dynamic loading and CLI startup are included in the process total. The address measurements and the Tower trace ran separately from wall/CPU comparisons.
+
+Both sizes preserved canonical Foundation bytes, canonical-to-object round trips, native executable bytes and guest streams. A second native trace matched all 218 grammar boundary events, 176 table builds, 176 immediate conflict checks and their outputs in order on each input. The ambiguous prefix and the same prefix followed by an override both exited 1 at line 3:1 with identical provenance. A newly defined declaration syntax took effect immediately. Editing an imported keyword rejected its old use with identical diagnostics, and repairing the consumer restored guest output 42.
+
+Ordinary single-file worlds have no bound retained-byte ledger. With an extra unit and a 268,435,456-byte cap, peak charges were exactly 70,726,082 and 95,242,029 bytes at one job for both compilers. Both emitted working guests at the measured peaks. Both returned the same diagnostic and no output at peak minus one byte. The dedicated LR tests also checked typed denial, retry, release and the worker close/join boundary. Release, ASan and TSan each passed `lr-order` (150 randomized trials), `lr-scratch-budget`, `lr-bounded`, `lr` and `dependency-permutations` (16 batches). Twenty-three TSan starts hit the host personality restriction before initialization. All five suites eventually ran under TSan, and its deliberate two-worker data race produced the expected diagnostic. Tower's native object instrumentation offers address and thread modes only. A debugger fault changing just the final interval from [64,68] to [64,67] triggered the new assertion.
+
+The clean default build used `env -u TOWER_BOOTSTRAP_COMPILER TOWER_NATIVE_BUILD=... TOWER_BUILD_JOBS=3 bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1`. It reproduced the measured candidate compiler byte for byte. The assignment archive contains the exact sources and oracles for both workloads, both observation scripts, allocation distribution, per-pair commands and output, Callgrind/address maps, byte comparisons, finite-budget checks and sanitizer receipts. The evidence supports adopting the empty-row copy on the measured native path. Browser and bootstrap-generation validation belong to the publication milestone.
+
+As a separate four-job stress check, both compilers also built the host-7 sparse input with 4,096 loop bodies and an imported dependency. They emitted identical objects and ELFs and both guests printed 42 twice. A debugger observed a non-main thread entering `work_kernel_execute` in each object compile. This extra run was untimed.
+### 2026-11-25 — Empty captures in inherited grammar entities
+
+Host 3 assignment `586c9638-22a3-4a29-b645-548ab4df2a45` tested one allocation in `emission_reference` on integrated `fb019f61b982d8e4a91bd6723b9f6e9a83d3eaf0`. Commit `7fe0a10e94eb767ee5432e22b2be6b9deb987960` leaves the zero-length capture vector of a newly initialized parser reference alone. The ordinary accessor already returns the empty string for that representation. Nonempty captures still take their private copy. The test used the published Linux x64 pin and its installed resources.
+
+The input packet from host 7 measured 287,255,023 inclusive stock instructions under version seeding, including 287,229,922 under emission, on a 1,539,090,455-instruction compile. Its 218 installation offsets and revisions all matched the new serial entity trace. The compiler retained the same emission at 54 installations. Of the other 164, 84 exchanged the entire ordered sequence of productions for equal payloads under disjoint entity IDs. The input bindings lost alternatives at 21 boundaries. Where the rule name remained present, the comparison checked the whole ordered sequence of source entity IDs. Replacing one token can also preserve its priority slot while changing its identity. Independent parser worlds, version identity, pending rules and template captures constrain any larger reuse proposal.
+
+Across bootstrap, parsing and templates, 681 revision creations copied 567,283 name bytes and retained 93,877 alternative references plus 6,993 token references. The 176 emissions populated 34,578 rule, 25,548 reference, 18,427 string and 10,909 range components. Exactly 8,466 references requested an eight-byte buffer just for an empty string. Ordered rule, alternative, token, production, helper and RHS records compared byte for byte across stock-source, integrated and candidate observers on both input sizes. At the 16-function serial peak, 68 live emission roots accounted for 1,448,048 component bytes and 8,079,936 bytes of entity records. Empty captures occupied 30,512 requested bytes in 3,814 separate allocations. The candidate eliminated them. Across the compiler allocator, requested bytes at peak fell from 70,936,701 to 70,906,189 for 16 functions and from 86,986,779 to 86,956,299 for 1,000. All observed allocations drained. The ordinary single-file world's WorkBudget was null. In the separate finite-budget compile the 70,358,477-byte peak and its 79,353 grants were identical. Denial at 1 MiB and teardown also matched.
+
+On host 3 (EPYC 7542, 12.288-CPU quota), each uninstrumented process started fresh with warm files. One-job samples ran on CPU 24. The four-job control used CPUs 24–27. Twelve alternating before/after pairs gave mean whole-object wall times of 300.5/300.7 ms for 16 functions, 547.8/543.3 ms for 1,000, and 571.6/572.4 ms for 1,000 at width four. The paired median changes were −1, −1.5 and +1 ms. A six-order stock/before/after control gave equal 1,000-function serial means for both integrated builds. All objects matched the external oracle and linked guests returned 15 or 999. These samples establish the heap saving and give no reliable whole-compile speedup.
+
+Both integrated builds passed Foundation reparse, immediate conflict, ordered replacement, editable imports and finite-fit/denial checks. The candidate's emission, grammar-resource, structure-reuse and LR fixtures passed natively, under ASan/LSan and under initialized TSan. The retained-version, eviction and separate-world fixtures exercised ownership across replacement and teardown. Trace-reader negatives detected a lost alternative and a truncated allocation record. A direct canonical comparison initially encountered the installed type file's absolute provenance path. Path relocation on the expected reference alone allowed a full byte comparison and unchanged reparsed objects. In the first timing summary, shell xtrace appeared before the timing line. The original samples and summary are retained, with corrected extraction from their final timing line. Check the assignment archive for per-boundary work, all allocator streams, source patches, commands and raw receipts. Wider sharing of whole production graphs needs separate ownership and cache evidence.
+### 2026-11-25 · Retire one-shot grammar baselines at the joined backend receipt
+
+Host 5 measured the ordinary 13-unit executable path on integrated
+`fb019f61` (tree `3a47d3d5cd6a5616262f7dab19c5dfe5d56fe1d8`).
+The independent stock Release build matched the producer's executable byte for
+byte. Before changing ownership, a serial stage meter and optimized stock
+debugger traces recorded each frontend's incremental peak and retained bytes,
+the backend join, and final destruction by owner. Uneven ordinal 2 retained
+20,297,625 frontend bytes. After its semantic root went away at batch close,
+the grammar baseline registry released 2,726,003 bytes, the same late-close
+value at all thirteen uneven ordinals.
+
+`driver_units_compile` still reads module dependency names and semantic
+function flags after the batch joins. Diagnostics use source snapshots and
+module positions. The linker consumes the retained backend names and objects.
+The one-shot driver now requests early grammar baseline retirement on its
+streaming backend batch. The coordinator accepts a successful receipt and its
+charged output, closes that unit's own view, and invokes the ordinary disposer
+when the world is unpinned and grammar workers have joined. The generic
+frontend and backend APIs retain their existing lifetime. A native regression
+holds an additional view on one world, verifies its cache survives, and checks
+that another unit can lose its baselines while exposing its program and object.
+The original pilot lacked this external-view guard. Its first build required
+an explicit declaration for the node-to-world accessor.
+
+The checked invoice and skew inputs used identical launch paths, ledger.o,
+native resources and Debian LLVM 19 tooling. Both arms used one warm host,
+the same twelve physical Ryzen 9 5900XT cores (CPUs 1–12), a 256 MiB cap,
+and fresh observer-off compiler processes. Each viable shape and width has
+six paired trials in counterbalanced order. No cgroup throttling occurred.
+Mean wall milliseconds and process peak RSS MiB were:
+
+| Input | Jobs | Wall, stock → early release | RSS, stock → early release |
+|---|---:|---:|---:|
+| Small | 1 | 2422 → 2386 | 218 → 188 |
+| Small | 4 | 1725 → 1558 | 439 → 411 |
+| Small | 8 | 1782 → 1612 | 512 → 487 |
+| Uneven | 1 | 3102 → 3053 | 240 → 210 |
+| Uneven | 4 | 1977 → 1918 | 483 → 446 |
+| Uneven | 8 | 2067 → 1969 | 525 → 501 |
+| Skew | 1 | 2512 → 2477 | 233 → 204 |
+| Skew | 4 | 1210 → 1184 | 384 → 361 |
+
+Two pairs and a separate trace at skew/jobs 8 exhausted the hard ledger on
+both arms. The process produced no ELF or depfile. This path remains a capacity
+limit. The change returned 29,083,524 charged bytes before close on small and
+uneven, and 29,055,682 on skew. Serial peak charge fell about 25.6 MiB. Seven
+of eight viable separately traced peaks fell. Small/jobs 4 rose 2.32 MiB on
+its observed schedule despite the same owner release. At eight jobs mean CPU
+rose 2.0% on small and 1.3% on uneven. The serial owner attribution, physical
+RSS, total CPU and observer-off wall answer different questions.
+
+All successful measured outputs matched the complete stock ELF, exports,
+thirteen dependency rules and guest output. Both arms produced the same
+ordinal-2 malformed-source diagnostic at jobs 1/4/8. Both charged the actual
+1,101,224-byte object in the large-output control. Reproduction uses the
+normal Release build and `tower-lr-work-tests scaffolding backend`. Assignment
+`a66fde9e-6f47-41c5-9dba-0aeaabb7999a` retains the exact commands, all
+failures, per-ordinal traces, CPU/RSS/charge tables and raw outputs.
+
+The ordinary backend and frontend-unit suites passed. The backend suite and
+packaged four-job small invoice also passed with leak-detecting ASan and with
+initialized TSan on instrumented parser, backend and driver objects. TSan
+required startup retries on this host. Suppressing retirement or bypassing
+the independent-view check in a private test process triggered the respective
+regression assertion. A relocated packet replay reproduced both compiler
+outputs. Validation covers the native Linux path tested here.
+
+### Native 902a Linux x64 development pin and browser timing, 2026-11-25
+
+The manager integrated pin `217f0631`, a direct child of compiler `902a358f`. The Ubuntu 24.04.5 / LLVM 19.1.1 build used the documented native entry point with the override unset. All 40 compiler invocations selected the checked-in executable. Three generations agreed on 39 products, 40 compiler depfiles, 40 transformed depfiles and 57 package payloads. Generation two, generation three and the clean default installation produced archive SHA-256 `1b3b38372d52109cb49e8880f01c7478bd99e99daea2e14d89f7367ef194bf20`. The compiler SHA-256 is `509557309b941160cdb55eb7ea407c1e329e6ebd8ef126340552e857208cf42f`. A first checkout under umask 077 produced 46 resource-mode differences. A fresh checkout under umask 022 matched the sealed archive without changing installed files. The corrupt Bedrock resource and wrong symbol owner controls failed at their expected checks. Receipts `e73e5729` and `bbeb6951` retain the commands, input inventories, generation records and negative controls.
+
+The independent relocation on host 5 matched all 1,295 Git-derived build-source hashes and all 64 archive entries and modes. Its one- and four-job Ubuntu invoice runs matched the same ELF, 12 exports and 13-rule depfile, and printed 1666 then 1685. A separate replay from the sealed packet reproduced both runs. All 15 captured link objects matched across Debian and Ubuntu. The two host-default ELF files differed at 43 of 32,504 bytes. Substituting Ubuntu's Scrt1.o into the Debian link reproduced the Ubuntu executable with Debian libc. Receipt `d4108dd9` includes the compiler inputs, startup-object substitution, full executables and byte differences.
+
+On the twelve physical cores selected on host 5, the 902a Release compiler reduced peak process RSS in all 24 successful paired invoice builds against `9928d3db` and reduced elapsed time in 20. Mean RSS fell 17.9–35.5 MiB across the eight fitting input/worker combinations. Both compilers refused the eight-job skew input at the default 256 MiB cap. On the uneven eight-job input, the highest observed Tower charge rose from 204.5 to 239.7 MiB. Native lifetime, allocation-failure and changed-tail controls passed, including focused ASan/LSan and initialized TSan checks. Receipt `44d24dfd` records the alternating order, actual CPU allocation and quota, complete output bytes, RSS and separate budget traces. Receipt `362137bc` shows why admission based on the observed size of a direct import was rejected. Identical direct imports resolved different transitive grammars, and both eight-job trials exhausted the cap.
+
+Host 2 measured the repaired editor from `8db938f5` against the published UI on the same fb019f61 shared reactor. Chromium ran on four distinct physical cores with an enclosing quota of 11.52 CPUs. For unchanged mounted projects, median paired time saved from Execute to stable output was 49.37 ms with one worker and 24.95 ms with four. Both widths won all six pairs. Fresh renderers at width four saved a median 38.62 ms across six pairs. Tiny repeats and dense four-worker edits showed no consistent gain. Both arms produced the same guest and canonical output. The mounted repeat avoided encoding 8,645,516 bytes and 2,560 temporary allocations. Per-process high-water observations and all 28 semantic controls are in receipt `163360b4`. The shared diagnostic fixture timed out when it created a bare worker. Its five expected replies passed through the production page-owned factory. The checked-in fixture correction, the mixed dependency regression on the merged native tree and the browser deployment have separate acceptance runs.
