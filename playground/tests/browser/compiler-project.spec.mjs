@@ -1,4 +1,6 @@
 import {test, expect} from '@playwright/test';
+import {createHash} from 'node:crypto';
+import {readFile} from 'node:fs/promises';
 import {savedProject} from './project-helpers.mjs';
 import {outputText} from './output-text.mjs';
 async function edit(page,text) {
@@ -68,11 +70,50 @@ test('browser rebuild activates edited compiler behavior and reset recovers the 
   await page.locator('#project-kind').selectOption('tower:compiler');
   await page.locator('#auto-rebuild-compiler').uncheck();
   await page.locator('details[data-path="compiler"] > summary').click();
-  await page.locator('button[data-path="compiler/semantic_values.tower"]').click();
+  const valuesPath = 'compiler/semantic_values.tower';
+  await page.locator(`button[data-path="${valuesPath}"]`).click();
+  const editDiagnostic = text => text.replace('null requires a pointer or function type','Workbench says: null requires a pointer or function type');
+  const root = new URL('../../../',import.meta.url);
+  const recipeDir = process.env.TOWER_TEST_COMPILER_PROJECT || 'playground/dist/compiler';
+  const recipeFile = new URL(`${recipeDir.replace(/\/$/, '')}/project.json`, root);
+  const recipe = JSON.parse(await readFile(recipeFile, 'utf8'));
+  const expected = recipe.files.map(({path,text}) => ({path,text:path === valuesPath ? editDiagnostic(text) : text}));
   const project = await savedProject(page);
-  const file = project.files.find(f=>f.path==='compiler/semantic_values.tower');
-  await edit(page,file.text.replace('null requires a pointer or function type','Workbench says: null requires a pointer or function type'));
+  await edit(page,editDiagnostic(project.files.find(f=>f.path===valuesPath).text));
+  // Observe only the next rebuild coordinator. Its ownership handshake and
+  // transfer list pass through the same native postMessage as the build.
+  await page.evaluate(() => {
+    const RealWorker = window.Worker;
+    window.Worker = class extends RealWorker {
+      constructor(url, options) {
+        super(url, options);
+        if (new URL(url, document.baseURI).href !== new URL('./compiler-build-worker.js', document.baseURI).href) return;
+        window.Worker = RealWorker;
+        const post = this.postMessage.bind(this);
+        this.postMessage = (message, ...args) => {
+          post(message, ...args);
+          if (Array.isArray(message?.files)) {
+            window.postedCompilerFiles = message.files.map(({path,text}) => ({path,text}));
+            delete this.postMessage;
+          }
+        };
+      }
+    };
+  });
   await page.locator('#auto-rebuild-compiler').check();
+  const submission = await page.waitForFunction(() => window.postedCompilerFiles, null, {timeout:30000});
+  const actual = await submission.jsonValue();
+  const digest = files => createHash('sha256').update(JSON.stringify(files)).digest('hex');
+  const summary = files => ({paths:files.length, sha256:digest(files)});
+  const receipt = {expected:summary(expected), actual:summary(actual)};
+  if (receipt.expected.sha256 !== receipt.actual.sha256) {
+    const index = expected.findIndex((f,i) => f.path !== actual[i]?.path || f.text !== actual[i]?.text);
+    const at = index === -1 ? expected.length : index;
+    receipt.firstDifference = {index:at, expectedPath:expected[at]?.path, actualPath:actual[at]?.path,
+      field:expected[at]?.path === actual[at]?.path ? 'text' : 'path'};
+  }
+  await info.attach('compiler-build-submission',{body:JSON.stringify(receipt),contentType:'application/json'});
+  expect(receipt.actual, `Posted compiler sources: ${JSON.stringify(receipt)}`).toEqual(receipt.expected);
   await expect(page.locator('#compiler-build-status')).toContainText(/generation 1 active|Build failed:/,{timeout:540000});
   await expect(page.locator('#compiler-build-status')).toContainText('generation 1 active');
   await expect(page.locator('#active-compiler')).toHaveText('Compiler generation 1');
