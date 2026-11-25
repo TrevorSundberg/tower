@@ -323,11 +323,15 @@ test('projects and edits reuse idle execution workers with replaced environments
     await expect(page.locator('#execution-status')).toContainText('backends match');
   }
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+End');
-  await page.keyboard.insertText('\n// ');
-  await page.keyboard.type('keep warm compilers through this typing burst',{delay:70});
+  // Keep each prefix incomplete so the workers are idle until the last edit.
+  // Editing after an execution permit can legitimately retire a running worker.
+  await page.keyboard.insertText('\nprint(');
+  await page.keyboard.type('value + 1');
+  await expect(page.locator('#execution-status')).toHaveText('Waiting for valid source');
+  await page.keyboard.insertText(');');
   await expect(page.locator('#execution-status')).toContainText('backends match');
   for (const id of ['execution-output','fast-output','llvm-output'])
-    await expect(page.locator('#'+id)).toHaveText('43\n');
+    await expect(page.locator('#'+id)).toHaveJSProperty('textContent', '43\n44\n');
   expect(page.workers().filter(worker => worker.url().includes('execution-worker'))).toEqual(nextWorkers);
   expect(requests.filter(url => /tower(?:-llvm)?\.wasm/.test(url))).toEqual([]);
 });
