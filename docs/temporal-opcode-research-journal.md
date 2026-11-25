@@ -102831,3 +102831,59 @@ source bundle, allocator traces, failing runs, registration rows, ELF hashes,
 per-invocation CPU/RSS and comparison bytes. The local candidate awaits manager
 review. The allocator sweep covers unchecked inspection, alongside the checked
 mode's existing registered coverage.
+
+### Checked inspection rollback across declaration work (host 5, 2026-11-25)
+
+On be4bc2d6, the unchecked allocator sweep and its 180 native registrations
+were green. A distinct checked inspection failure remained. On a parsed
+Foundation template with an i32 pointer, a four-element array annotation and a
+dereference in its body, the ordinary checked caller created a private kind,
+bound the syntax, published those annotations and released the source leases
+for type preparation. Losing an allocation in the later phase detached the
+private kind but left its components on the live source. At warm denial 18 the
+kind had 17 instances, 17 references and no parent. The earlier successful kind
+and canonical declared array still had their own identities.
+
+The serial first-inspection probe entered directly from language_document_world
+with resolve_types true. On its cold semantic context, declaration jobs rose
+from 27 to 28, query tasks from 88 to 91 and program types from 13 to 14. Of
+119 individual physical allocation denials on the baseline, 88 retained 17
+private annotations on a separately held declaration after document disposal.
+Two other denials aborted during type preparation. Holding the declaration was
+essential to distinguishing this lifetime failure from final world disposal.
+
+Commit 26ec0d63 carries the completed binding values and their document-owned
+syntax identities in a temporary, budgeted work_vector. It discards the first
+stage before dispatching declaration work. After the join, the second stage
+leases the owners and restores their bindings before resolving any meaning or
+walking values. Only the final stage publishes the private kind's instances.
+The unchecked single-stage path is unchanged. The committed regression retains
+the source declaration across disposal and checks the prior successful kind,
+the terminal allocator receipt, exact retry offset and normalized document
+output. Commit fbebf652 additionally retains the canonical array independently
+and verifies its program parent and final reference after document disposal.
+
+Two independent serial denials in the checked path still hit sem_require at
+the fixed-window batch vector reserves in sem_evaluation_pump_inputs and
+sem_evaluation_work_all. The return addresses identified each reservation
+before ticket acquisition. Commit 73a6335a returns the existing Memory receipt
+at these two points. With all repairs, every one of 120 first-inspection
+allocator positions returned Memory, published zero failed annotations, restored
+world membership after final release and agreed with the fresh document on
+the following inspection. The regular warm fixture swept 47 checked and 20
+unchecked positions. Its array and private kind dispose independently.
+
+Host 5 ran LLVM/Clang 19.1.7 with the cd77 bootstrap and retained Release cache.
+All 180 registered cases passed. The 12 registrations using the storage ELF
+passed again after the last-owner assertion; all other selected products
+byte-matched. Real native inspection JSON was byte-identical across inputs and
+worker counts. Frozen/candidate one-sample wall time was 0.21/0.21 s at one
+worker and 0.25/0.25 s at four; peak RSS was 71,692/71,632 and 75,832/74,948
+KiB on CPUs 0–3. The host allows CPUs 0–31 and 30.71999 cores of quota.
+The normalized fixtures check valid pointer dereferences, invalid array
+dereference, concrete layout and symbolic generic types. Targeted ASan passed
+serial denial and four-worker inspection. TSan passed four-worker inspection
+on the second start after a denied personality request on the first. The
+serial synthetic sweep and real-worker runs have different allocator profiles.
+Assignment db418f66 holds both receipts, per-index lifetimes, allocator and
+thread observations, CPU/RSS, source, binaries, raw outputs and suite rows.
