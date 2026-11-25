@@ -104216,3 +104216,57 @@ Native sanitizer instrumentation does not cover that browser boundary.
 ## Worker selection on a repeated editable compiler build
 
 The integration of 9586e50b and 6a697a25 keeps the worker setting on each Build request alongside the selected generator and the transferred object buffers. The coordinator applies that setting when compiling units. An exact hit relinks and validates the three reactors without starting unit workers. The direct worker regression now changes the requested width between two consecutive hits and checks the actual worker count and reactor hashes. The ordinary browser qualification for this combined source is pending. The preceding width and reuse measurements belong to their respective source revisions.
+
+## Host 6 editable Build with the published 2421 recipe
+
+The local merge 9ae9596eb5e73732f8f557e6300c42cff17ea531 combines public
+main 4ab6676b with original d78a3e61. The complete 107-file Pages tree at
+8524b09e supplied the runtime, 569 editable compiler records and recipe
+035b12639740b9d9802cd77f364d0f7de5e729abf324497d0046d829724ddb85.
+The tested site tree is 4e2ec28647e0e5fceb1b2471e75f658cbdc4ea39.
+The UI delta consists of the selector HTML, two bundles, their maps and the
+deployment manifest. Compiler, project, resources and support archives retain
+their published 2421 source identity. A fresh Git receiver reconstructed the
+two original parents and the integration without access to the worktree.
+
+The first Build used the ordinary button on a pristine release profile with
+shipped LLVM 57c6649d. Two unit workers compiled 25 objects. The generated
+Tower, LLVM and cross reactors hashed to 644929c1, 4fff62c6 and 0477ef44.
+All required exports, including entity_stage_lease_at, were present. All 25
+object hashes also matched the earlier d78 measurements with its older recipe.
+All three linked reactor hashes changed between the two recipes.
+
+The successor generated the same 28 products. With LLVM 4fff62c6, width four
+and identical sources, a miss took 49.887 s wall and 155.04 s browser CPU.
+Four units overlapped for 30.067 s. The next Build took 5.900 s wall and
+15.12 s browser CPU, relinked and validated, and reported 25 object hits with
+zero unit workers. Sampled browser-tree peaks were 2,775,236 and 2,405,096
+KiB. The Xeon E5-2680 v4 browser used CPUs 0–3 of cpuset 0–11 with cgroup
+quota 1,152,000/100,000 microseconds and zero throttling on either interval.
+These are single matched measurements in one warm page.
+
+The eligible set owned 3,392,619 bytes. A changed required export on the
+next recipe fetch forced all 25 compiles with the old packet present and failed
+validation before publication. Cancelling a reused link also preserved the
+active generation and retired its worker. The next Build rearmed the set. An
+edit to compiler/semantic_values.tower evicted it. Only compiler-semantics.o
+changed and all three edited reactors matched the release packet's edited
+oracle. Restoring the sources while using the edited generator reproduced the
+pristine products. A malformed import preserved generation 9; Restore
+committed generation 10. Every guest check printed 42 with a final newline.
+The 1,407-byte Foundation matched the native pin and interpreted round trip
+with SHA-256 e0633df354b254ed8729e581d3db705d2ddb27afddd8813c99ce0af943053aba.
+
+The ordinary compiler-project spec passed all three desktop cases. The fresh
+worker that omitted compiler selection compiled all 25 and returned 4fff62c6
+as its packaged generator hash. Successive settings four and one hit all 25
+without compiling a unit; an added shadow import failed without publication.
+Raw Build requests and replies, CPU/RSS samples, object and reactor bytes,
+source ancestry and site reconstruction are in Host 6 assignment
+e2da0407-26de-4668-8dbe-ac438d76ce03.
+
+The focused ordinary selectors passed 22/22 with one Playwright worker and
+zero retries. This includes 12 ordinary desktop cases, desktop/mobile
+completion reply tests, mobile persistence/cancellation and mobile
+inline-error geometry. The raw suite logs distinguish these selectors from
+the release's prior full-suite evidence. No hosted action was taken.
