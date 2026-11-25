@@ -100074,3 +100074,24 @@ required startup retries on this host. Suppressing retirement or bypassing
 the independent-view check in a private test process triggered the respective
 regression assertion. A relocated packet replay reproduced both compiler
 outputs. Validation covers the native Linux path tested here.
+
+### 2026-11-25 — One traversal for declaration-pump quiescence on 902a358f
+
+Host 7, assignment `27d7df18-66ff-4ce1-b3e8-4ed0157ec780`. The local implementation targets source `902a358f` and its verified default development pin `217f0631`. The acceptance check was a repeatable ordinary large-object compile saving with identical graph decisions, diagnostics, artifacts and ownership, measured against matched stock on the same cores. The source bundle carries this change for manager review.
+
+The preceding bf105213 Callgrind trace charged 208,908,081 self instructions to the out-of-line pending predicate on 1,000 functions. Five adjacent calls in the empty declaration batch accounted for 131,728,282. A serial Tower observer, also covering inlined calls, counted 10,150 phase probes. Eighteen returned true, 17 before the last task. Full negative scans visited 31,696,516 tasks. At 16 functions there were 242 probes, the same 18 positives, and 32,338 task visits in full negatives. All probes ran during SemanticRun or SemanticLifecycle. Grammar emission and LR merge self instructions were identical across sizes and arms.
+
+The ready queue cannot answer a question that includes demanded Waiting, Building, Running, Failed and Cancelled tasks. The hash index requires subject, query and argument. At the joined fallback the five reads have no intervening writer or observable action. A single existential predicate checks demand, state and membership of the task's query in the same five kinds. Across 1,018 large fallback calls, ten positives, it reduced visits from 15,688,968 to 3,137,872. Logical task-field bytes fell from 70,469,757 to 15,689,400 on this 88-byte stride. The small fallback went from 13,518 visits to 2,782. This implementation adds no graph storage or update path. Producer calls and single-kind checks keep their existing positions.
+
+Observer-off comparisons used the default pin, release x86_64-pc-linux-gnu objects, Debian LLVM 19.1.7, fresh processes and warm file pages on an EPYC 7502. CPU 7 served single-job runs and CPUs 4–7 served four jobs. The cgroup quota was 3,071,999 µs per 100,000 µs. All 102 brackets had zero throttling. The table gives mean stock and candidate measurements.
+
+| Functions | Jobs | Alternating pairs | Wall ms | CPU ms | RSS KiB |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 16 | 1 | 12 | 304.22 → 304.92 | 303.94 → 304.65 | 138,267 → 138,486 |
+| 1,000 | 1 | 12 | 540.88 → 531.86 | 540.61 → 531.57 | 154,693 → 154,725 |
+| 1,000 | 4 | 8 | 577.92 → 567.84 | 627.25 → 615.17 | 159,908 → 159,080 |
+| 4,096 sparse, imported dependency | 4 | 6 | 2,038.03 → 2,037.97 | 3,117.36 → 3,108.46 | 580,622 → 580,451 |
+
+One-core large saved 3.55–15.09 ms in all 12 pairs. Four-core large improved wall in 7/8. Small was 0.70 ms slower on average. Sparse wall split 3/6. Four identical-stock large pairs gave a 2.60 ms mean difference between labels. Whole-compile Callgrind instructions fell from 2,886,953,949 to 2,776,112,542 on large and from 1,420,646,203 to 1,420,362,319 on small. A clean `env -u TOWER_BOOTSTRAP_COMPILER TOWER_BUILD_JOBS=3 TOWER_NATIVE_BUILD=... bash playground/scripts/build-native.sh -DTOWER_COMPILER_JOBS=1` reproduced the measured candidate ELF, SHA-256 `886ca2b9e3ebdb1059f06c32ac4ee3945afefed83a424d2fa59f2816c24265f1`.
+
+Object, canonical Foundation, canonical-to-object, linked executable and guest checks passed at all three sizes. An extra-unit budget control measured identical peaks of 68,426,986 and 92,942,933 bytes at one job and 96,609,091 on four-job large. One-job peak-minus-one failures preserved their diagnostics. Ordinary single-unit worlds had no ledger. Two source orders with competing invalid names retained the expected first diagnostic at both job counts. Native, ASan/LSan and TSan passed query-smoke and a serial Tower differential of the two predicates with 254,126 comparisons per mode, including 14 induced allocator failures, stale receipts, revision/profile reset, redemand, cycle and cancellation. Six TSan process starts failed the host personality check before successful retries. Source-language UBSan is unavailable. The raw packet records commands, phase and producer traces, disassembly, checked outputs and repetitions. The first diagnostic writer emitted an extra field and the first dependency trace combined two event labels. Both observers were corrected and rerun. Production timings used observer-free binaries. Browser and generation-wide validation remain publication checks.
