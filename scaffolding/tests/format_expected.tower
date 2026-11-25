@@ -33,7 +33,7 @@ fn format_fixture_span(actual: FormatResult*, index: usize, begin: usize, end: u
     utility_check(span.begin == begin && span.end == end && span.source == source, "Frozen formatter reference ordered span triple");
 }
 
-// Canonical Foundation spells physical representations independently of names.
+// Canonical Foundation can reuse scalar bindings after emitting their declarations.
 // Source-format fixtures below retain their frozen spelling and exact spans.
 // This independent declaration table tracks the current types.tower prelude;
 // each helper contributes its function and return-statement spans.
@@ -251,19 +251,19 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         return;
     }
     if id == 9 {
-        format_fixture_canonical(actual, "var lo: integer_type(64, 1) = -9223372036854775808;\nvar hi: integer_type(64, 0) = 18446744073709551615;\nvar b: boolean_type() = true;\nvar p: pointer_type(integer_type(32, 1)) = null;\n", 4);
+        format_fixture_canonical(actual, "var lo: i64 = -9223372036854775808;\nvar hi: u64 = 18446744073709551615;\nvar b: bool = true;\nvar p: i32* = null;\n", 4);
         return;
     }
     if id == 10 {
-        format_fixture_canonical(actual, "struct S {\n    x: integer_type(32, 1);\n}\n\nextern fn ext(a: integer_type(32, 1)): integer_type(32, 1);\n\nexport fn f(a: integer_type(32, 1)): integer_type(32, 1) {\n    var x: integer_type(32, 1) = ext(a);\n    return x;\n}\n", 5);
+        format_fixture_canonical(actual, "struct S {\n    x: i32;\n}\n\nextern fn ext(a: i32): i32;\n\nexport fn f(a: i32): i32 {\n    var x: i32 = ext(a);\n    return x;\n}\n", 5);
         return;
     }
     if id == 11 {
-        format_fixture_canonical(actual, "var p: pointer_type(integer_type(32, 1)) = alloc(integer_type(32, 1), 2);\np = realloc(integer_type(32, 1), p, 3);\nfill(p, 0, 12);\ncopy(p, p, 12);\nvar x: address_type() = sizeof(integer_type(32, 1));\nx = alignof(integer_type(32, 1));\nfree(p);\n", 7);
+        format_fixture_canonical(actual, "var p: i32* = alloc(i32, 2);\np = realloc(i32, p, 3);\nfill(p, 0, 12);\ncopy(p, p, 12);\nvar x: usize = sizeof(i32);\nx = alignof(i32);\nfree(p);\n", 7);
         return;
     }
     if id == 12 {
-        format_fixture_canonical(actual, "var x: integer_type(32, 0) = convert(integer_type(32, 0), 1);\nvar y: integer_type(32, 1) = bits(integer_type(32, 1), x);\nloop {\n    if true {\n        break;\n    } else {\n        continue;\n    }\n}\nprint(y);\n", 7);
+        format_fixture_canonical(actual, "var x: u32 = convert(u32, 1);\nvar y: i32 = bits(i32, x);\nloop {\n    if true {\n        break;\n    } else {\n        continue;\n    }\n}\nprint(y);\n", 7);
         return;
     }
     if id == 13 {
@@ -319,7 +319,7 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         var wanted: vector(u8) = default;
         defer vector_dispose(&wanted);
         var name_end: usize = 22; var legacy_type_end: usize = 25;
-        var type = "pointer_type(integer_type(8, 0))";
+        var type = "integer_type(8, 0)*";
         for(var i: usize = 0; i < name_end; ++i) { utility_check(vector_push(&wanted, bytes[i]), "Generated name fixture"); }
         for(var i: usize = 0; i < strlen(type); ++i) { utility_check(vector_push(&wanted, type[i]), "Generated type fixture"); }
         for(var i = legacy_type_end; i < sizeof(decltype(bytes)); ++i) { utility_check(vector_push(&wanted, bytes[i]), "Generated value fixture"); }
@@ -348,7 +348,7 @@ fn format_fixture_check(id: usize, actual: FormatResult*): void {
         return;
     }
     if id == 15 {
-        format_fixture_canonical(actual, "fn f(): integer_type(32, 1) {\n    return 42;\n}\n\nvar x: integer_type(32, 1) = f();\n", 3);
+        format_fixture_canonical(actual, "fn f(): i32 {\n    return 42;\n}\n\nvar x: i32 = f();\n", 3);
         return;
     }
     utility_check(false, "Unknown formatter fixture");

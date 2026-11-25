@@ -101150,3 +101150,11 @@ The guidance and journal edits change no executable paths. The native,
 browser and performance observations above belong to the respective worker
 builds. Final integrated compiler/package, hosted deployment, and clean
 adoption remain outstanding.
+
+### Jenkins build 2 on e06aa12e, formatter fixtures
+
+On 2026-11-25, `kinmen-jobs build-log` for failure `855a4b50-fefa-470f-853e-c583bef3d04a` reported one online executor on `linux-1`. At `e06aa12ea25c184032de116cd55faa1e9f3ec011` the Linux Clang 19.1.1 build linked both test binaries. The driver formatting test passed in 3.76 s. The standalone formatter test aborted in 0.22 s on the first canonical Foundation fixture (9). Its complete prelude matched. The four declarations following it used the visible i64, u64, bool and i32 bindings, with a postfix star on the pointer.
+
+Commit `d16c8f6e` introduced that output deliberately. In `format_foundation.tower`, program emission advances the visible declaration prefix after each item, and `format_type` appends pointer stars even when formatting a standalone entity. The fixture still required expanded constructors. Updated the five program bodies (9–12 and 15) and the generated entity (13). The latter has no program scope and therefore expects `integer_type(8, 0)*`. The prelude, span assertions, explicit constructor expression tests, reparse checks and fault injection remain in place.
+
+A byte comparison of the full updated fixture 9 against the actual text in the Jenkins console passed (1,036 bytes, SHA-256 `b43f7ab34d263c196e3b1f601342f4836f5da5b01914d08696976bd0a7ce6ade`). A second static comparison against all five original program bodies with just the type spellings changed passed, including their span counts. `git diff --check` passed. These comparisons cover fixture data. Execution of the candidate CTests is pending on the dedicated Jenkins executor after manager review. The change affects test expectations only, so compiler performance, allocation and sanitizer measurements do not apply.
