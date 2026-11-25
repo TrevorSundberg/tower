@@ -953,6 +953,35 @@ fn semantic_node_call(context: SemanticContext*, operation: NodeAdmissionOperati
     return sem_control_local(context, subject, initial);
 }
 
+// The first edge and component index fit inline. Both stable slots come from
+// pages already charged to this world. Keep that pair alive so the next
+// attachment must promote the full child index to a physical buffer.
+fn semantic_node_reuse(context: SemanticContext*, operation: NodeAdmissionOperation,
+    parent: Entity*, initial: void*, budget: WorkBudget*): Entity* {
+    var pressure: WorkReservation = default;
+    utility_check(work_budget_reserve_result(budget, 0, 0, budget.bytes - budget.used_bytes, &pressure)
+        == WorkBudgetError.None, "Reserve the remaining bytes before pooled node reuse");
+    var allocations = tower_test_buffer_allocations();
+    var buffers = tower_test_buffer_count();
+    var live = budget.live;
+    var nodes = parent.store.entity_count;
+    var components = parent.store.component_count;
+    var result = bits(Entity*, semantic_node_call(context, operation, bits(void*, parent), initial));
+    utility_check(result != null && result.parent == parent && result.references == 1
+        && parent.children == &parent.inline_children[0] && parent.child_count == parent.child_capacity
+        && parent.children[0].entity == result && result.components == &result.inline_components[0]
+        && result.component_count == 1 && result.components[0].owner == result
+        && result.components[0].data == bits(u8*, sem_get(bits(void*, result)))
+        && parent.store.entity_count == nodes + 1 && parent.store.component_count == components + 1,
+        "Pooled admission publishes one parent-owned child and its Foundation payload");
+    utility_check(tower_test_buffer_allocations() == allocations && tower_test_buffer_count() == buffers
+        && budget.live == live && budget.used_bytes == budget.bytes,
+        "The first synthetic child and payload reuse precharged capacity with no physical allocation");
+    utility_check(work_budget_release_result(budget, &pressure) == WorkBudgetError.None,
+        "Release pooled node admission pressure");
+    return result;
+}
+
 fn semantic_node_storage_trial(operation: NodeAdmissionOperation, allowed: usize, wanted: WorkBudgetError): usize {
     var buffers = tower_test_buffer_count();
     var unlimited = ~convert(usize, 0);
@@ -996,11 +1025,21 @@ fn semantic_node_storage_trial(operation: NodeAdmissionOperation, allowed: usize
         context.entity_stage = entity_stage_open(root);
         utility_check(context.entity_stage != null, "Worker-private node stage opens before denial");
     }
+    var owner = bits(Entity*, subject);
+    var first: Entity* = null;
+    if operation == NodeAdmissionOperation.Synthetic || operation == NodeAdmissionOperation.Read {
+        first = semantic_node_reuse(&context, operation, owner, initial, &budget);
+        utility_check(sem_get(bits(void*, first)).start == source_offset + module_base,
+            "Reused Foundation slot retains the parent source position");
+    }
     var previous_scope = context.scope;
     var previous_frame = sem_get(root).frame_size;
     var previous_locals = sem_get(root).locals.length;
     var previous_items = sem_get(subject) == null ? 0 : sem_get(subject).items.length;
     var previous_children = entity_child_count(subject);
+    var previous_nodes = entity_store_count(store);
+    var previous_components = entity_store_component_count(store);
+    var previous_count = context.count;
     var occupied: WorkReservation = default;
     if wanted == WorkBudgetError.Capacity {
         utility_check(work_budget_reserve_result(&budget, 0, 0, budget.bytes - budget.used_bytes, &occupied)
@@ -1012,6 +1051,11 @@ fn semantic_node_storage_trial(operation: NodeAdmissionOperation, allowed: usize
     var result = semantic_node_call(&context, operation, subject, initial);
     tower_test_buffer_fail_after(unlimited);
     calls = tower_test_buffer_allocations() - calls;
+    if first != null && wanted == WorkBudgetError.None {
+        utility_check(calls != 0 && owner.children != &owner.inline_children[0]
+            && owner.child_capacity >= owner.child_count && owner.child_count == previous_children + 1,
+            "The next healthy synthetic child grows the full inline index");
+    }
     if program.resource.error != wanted || (result != null) != (wanted == WorkBudgetError.None) {
         puts("Node admission: operation, allowed, actual, wanted");
         generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
@@ -1025,8 +1069,11 @@ fn semantic_node_storage_trial(operation: NodeAdmissionOperation, allowed: usize
     if wanted != WorkBudgetError.None {
         utility_check(program.resource.offset == source_offset + module_base && program.error_offset == program.resource.offset,
             "Node admission preserves the canonical module source offset");
-        if operation == NodeAdmissionOperation.Synthetic || operation == NodeAdmissionOperation.Read {
-            utility_check(entity_child_count(subject) == previous_children, "Failed component admission retires its private synthetic owner");
+        if first != null {
+            utility_check(entity_child_count(subject) == previous_children && entity_store_count(store) == previous_nodes
+                && entity_store_component_count(store) == previous_components && context.count == previous_count
+                && owner.children[0].entity == first && first.references == 1 && first.components[0].owner == first,
+                "Refused synthetic admission retains the earlier pair and retires its private owner");
         }
         utility_check(sem_get(subject) == null || sem_get(subject).items.length == previous_items,
             "No failed node or local is published to executable items");
