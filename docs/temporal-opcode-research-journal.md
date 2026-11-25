@@ -102871,3 +102871,77 @@ runtime was rebuilt for these changes. The two evidence archives have
 SHA-256 `17db33e72ca329644665f953e81342e03e2a83c6037b27312a221a65617853d0`
 and `cefd9d11f73f8f9d46ac8cfa586933d09da93bd99b008667c04aa65bd9e0a13a`,
 respectively. The integrated successor requires its own complete site run.
+
+### Delayed diagnostics and wrapped error bubbles on two sealed sites
+
+Host 3 replayed both complete ordinary browser specs from `ccf46330` against
+Pages parent `1ee8a6fe` (compiler `902a358f`) and sealed site `5006c524`
+(compiler `3390c2c8`). The 25 declared members of the three input packets
+passed byte and hash verification. With tracing on, the original three delay
+cases and one bubble case failed on desktop and mobile on both releases.
+Replacing the grammar lesson with bare `print(42)` produced a language-import
+error at byte 0. Adding only the semicolon left that error in place. The
+bubble setup stopped at byte 18 on its undefined `Number` rule.
+
+The two-spec candidate imports Foundation for the executable fixtures.
+A Tower import also enabled ordinary code, but allowed several continuations
+at EOF. Foundation identified the missing semicolon at byte 28, line 2,
+column 10. The tests advanced a paused clock to 9,999 and 10,000 ms after
+the last edit, revealed the parser error by moving the caret, jumped back to
+the insertion point, typed the correction and checked output 42. Blur
+revealed the held semantic error on `true`. A real worker error arrived
+before correction and was delivered after it. The obsolete result left the
+corrected editor clear. An in-project switch to Bedrock also discarded the
+pending semantic diagnostic through its original deadline.
+
+The bubble fixture imports Bedrock and defines its numeric token. It checks
+the selected identifier and both endpoints of the rendered SVG against the
+last marked text row. The wrapped case occupied two rows in all four trials.
+Its largest endpoint difference was 0.021 CSS px on desktop and 0.03125 on
+mobile, within the existing 1.5 px tolerance. All eight final cases passed
+on each site with no skips or retries. These changes cover the two assigned
+specs. Wider suite failures remain tracked separately.
+
+Receipt `a2f06bc3-047e-4310-bab4-dfd44cae56f5` includes the original and
+corrected traces, status and error reports, worker fixtures and responses,
+screenshots, site and spec identities, commands and geometry. Node 24.22.3,
+Playwright 1.65.1 and headless Chromium 159.0.8154.6 ran on Debian 12,
+EPYC 7542, with two Playwright workers and one site at a time. The first
+launch lacked Chromium shared libraries. The measured trials used local
+copies of the Debian libraries. The first reply-holding experiment failed
+to isolate delivery on both viewports. Holding the actual reply at the
+worker's message handler made the observation deterministic in the final
+matrix. GNU time recorded elapsed, CPU and maximum process RSS for each
+batch. Failed assertions waited for their deadlines in the baseline, so
+the elapsed difference cannot measure runtime speedup. The compiler and
+browser application bytes were reused throughout.
+
+### Native qualification of the editor and constructor release candidate
+
+Host 5 ran all 180 configured native CTest registrations on `4a3aa2d6` with
+LLVM 19 and the cd77 bootstrap. The registration ledger has 179 passes, one
+failure and zero skips. Full execution, editor and constructor checks passed.
+In `tower-storage`, the semantic node admission trial reserved the remaining
+world bytes, then successfully created a synthetic operand where the fixture
+expected `Capacity`. Both the freeze and retained `cdeba9a7` exited 134 with
+identical stdout. This leaves two possibilities to distinguish at the physical
+allocation boundary. An existing charged slot can satisfy the request, or new
+storage can escape accounting. Check used bytes, physical growth and the first
+denial on retry. The packet for `fe6854c9` contains the registration list and
+both raw executions (585 verified files).
+
+On Ubuntu 24.04.5 with LLVM 19.1.1, host 4 built three generations from the
+same source. Across them, the 39 products, 40 original and 40 transformed
+depfiles, 56 installed files and 57 package payloads matched. With four Ninja
+jobs on four physical Ryzen 7 5800H cores, one worker per compiler and a 15.36
+CPU cgroup quota, clean build through install took 28.44, 28.50 and 28.44 s.
+User/system CPU seconds were 76.80/7.07, 77.35/7.08 and 76.32/6.95.
+Sampled peak summed process RSS was 2,022,348, 2,022,440 and 2,027,796 KiB.
+A fresh receiver selected the proposed pin through the default build and
+reproduced the compiler. Relocated interpretation and native linking both
+produced a guest result of 42. The manager verified the source tree, generation
+bytes, package, installer and timing tables from packet `0e7f4642`.
+This comparison establishes reproducibility at a fixed worker count. The
+compiler digest is `13cc1758cca038da9bf3cb5f137c9c44b3b8ae2691ff51b03959c63b72c14292`.
+The candidate awaits the storage qualification, browser release checks and
+independent package execution before public adoption.

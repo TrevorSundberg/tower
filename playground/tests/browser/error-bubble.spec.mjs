@@ -5,15 +5,16 @@ test('error bubble connects to the marked text at both corners, across wide and 
   const errors=[]; page.on('pageerror',error=>errors.push(error.message));
   if(info.project.name==='mobile')await page.setViewportSize({width:390,height:844});
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
-  // Measure with the same two-line gutter as the fixtures, rather than the
-  // wider line-number gutter of the initial example.
+  await expect(page.locator('#filename')).toHaveText('foreach.tower');
+  // Measure the editor with the same grammar and gutter used by each fixture.
+  const grammar = "import bedrock;\n[number] token Number = /[0-9]+/;\nparse Statement = Number ';';\n";
   await page.locator('#editor').click({position:{x:80,y:20}});
   await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
-  const initial="parse Statement = Number ';';\n1;";
+  const initial=grammar+'1;';
   await page.keyboard.insertText(initial);
   await expect.poll(()=>savedSource(page)).toBe(initial);
   await expect(page.locator('#status')).toContainText('Complete');
-  const columns=await page.locator('.cm-line').first().evaluate(line=>{
+  const columns=await page.locator('#editor .cm-line').first().evaluate(line=>{
     const style=getComputedStyle(line), canvas=document.createElement('canvas'), context=canvas.getContext('2d');
     context.font=style.font;
     return Math.floor((line.clientWidth-parseFloat(style.paddingLeft)-parseFloat(style.paddingRight))/context.measureText('M').width);
@@ -24,12 +25,17 @@ test('error bubble connects to the marked text at both corners, across wide and 
     ['wide',' '.repeat(Math.max(0,Math.floor(columns/3)))+'invalid_name_wide'],
     ['wrapped','x'.repeat(columns+9)],
   ]){
-    const source="parse Statement = Number ';';\n"+text;
+    const source=grammar+text;
     await page.locator('#editor').click({position:{x:80,y:20}});
     await page.getByRole('textbox',{name:'Tower source'}).press('ControlOrMeta+a');
     await page.keyboard.insertText(source); await revealDiagnostics(page);
     await expect(page.locator('#status')).toContainText('Stopped');
+    const token=text.trimStart();
+    await expect(page.locator('.tw-inline-error-heading')).toHaveText(`Errorforeach.tower:4:${text.indexOf(token)+1}`);
+    await expect(page.locator('.tw-inline-error-message')).toContainText('Expected a statement or grammar declaration.');
+    await expect(page.locator('.tw-error-range')).toHaveText(token);
     await page.locator('#editor-error').click();
+    expect(await page.evaluate(()=>window.getSelection().toString())).toBe(token);
     await expect(page.locator('.has-bubble-outline')).toBeVisible();
     await expect.poll(async()=>page.locator('.tw-error-bubble path').getAttribute('d')).toContain('Q');
     // Sample the actual rendered outline, independent of its path command order.
@@ -45,11 +51,14 @@ test('error bubble connects to the marked text at both corners, across wide and 
       }
       const marks=[...document.querySelectorAll('.tw-error-range')].flatMap(mark=>[...mark.getClientRects()]);
       const lastTop=Math.max(...marks.map(mark=>mark.top)), row=marks.filter(mark=>Math.abs(mark.top-lastTop)<2);
-      return {tipY,tipLeft:Math.min(...points),tipRight:Math.max(...points),midLeft:Math.min(...middle),midRight:Math.max(...middle),
+      return {rows:new Set(marks.map(mark=>mark.top)).size,tipY,tipLeft:Math.min(...points),tipRight:Math.max(...points),midLeft:Math.min(...middle),midRight:Math.max(...middle),
         textLeft:Math.min(...row.map(mark=>mark.left)),textRight:Math.max(...row.map(mark=>mark.right)),
         cardLeft:card.left,cardRight:card.right,fill:getComputedStyle(svg).fill,stroke:getComputedStyle(svg).stroke,
         cardFill:getComputedStyle(box.querySelector('.tw-inline-error-card')).backgroundColor};
     });
+    await info.attach(name+'-geometry',{body:JSON.stringify({source,columns,...geometry}),contentType:'application/json'});
+    if(name==='wrapped')expect(geometry.rows).toBeGreaterThan(1);
+    else expect(geometry.rows).toBe(1);
     expect(Math.abs(geometry.tipLeft-geometry.textLeft),name).toBeLessThan(1.5);
     expect(Math.abs(geometry.tipRight-geometry.textRight),name).toBeLessThan(1.5);
     expect(geometry.tipY).toBe(3.5); // A clear gap below the squiggle, including the half-pixel border.
