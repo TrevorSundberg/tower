@@ -104578,3 +104578,17 @@ Host 2 ran an observation-only interpreter on public source `2905a701`. The earl
 A separate fresh four-worker control importing a type through two aliases intermittently reported an initializer cycle at byte 19355. The ordinary compiler failed in two of five processes, and the instrumented arm failed in one of five. The serial control succeeded. This requires its own graph and producer-state investigation.
 
 On four physical Ryzen 5 3600 cores under an 11.52-CPU quota, four same-host alternating blocks gave long-repeat median wall/process CPU of 161.65/161.60 ms without collection and 164.55/164.51 ms with collection at one worker. At four workers those pairs were 174.47/180.22 and 176.97/183.16 ms. Process peak RSS was 74,670/71,814 KiB at one worker and 79,656/79,724 KiB at four. Collection retained another 75,256 charged bytes. These measurements include collection and equality checking with ordinary reevaluation. Receipt `32d133ec-e358-4442-ad94-4fc9c9131caf` preserves the source overlays, clocks, failure cases, independent address trace and fresh oracles. The manager verified all 2,276 digests and replayed the comparisons. No compiler artifact changed.
+
+### Shared Wasm scaling for eight staged values in one function
+
+The Node service from compiler source `2421c659` used the shipped shared reactor and a four-byte guest pointer. Host 5 kept one service per capacity through four counterbalanced blocks and compiled on just one service at a time. The CPU mask 0,2,4,6 selected four physical Ryzen 9 5900XT cores under a 30.72-CPU shared quota. The scored calls recorded zero additional throttling. The compile interval ends when the execution handle returns. Startup, Foundation formatting and guest execution were measured or checked separately.
+
+| Immediate repeat, median wall ms | One lane | Two lanes | Four lanes | Median paired one-to-four speedup |
+| --- | ---: | ---: | ---: | ---: |
+| Eight long independent values | 906.02 | 495.47 | 286.56 | 3.13× |
+| Eight short independent values | 7.75 | 7.36 | 8.38 | 0.97× |
+| Eight long values in a dependency chain | 926.94 | 952.34 | 923.01 | 1.01× |
+
+All four long independent pairs improved, including on the first compile of each block (median paired gain 3.06×). On the repeat, median process CPU rose from 907.91 ms at one lane to 1,037.16 ms at four. Service-lifetime peak RSS at one, two and four lanes was 115,660, 138,796 and 176,088 KiB. Separate traces recorded 548 eight-job waves admitted to four lanes and 216.62 ms with four evaluations running together. The chain issued 4,362 one-lane evaluator dispatches. General cold CLI compile time and interactive browser startup have different measurement boundaries.
+
+All 72 scored compiles matched the portable Foundation bytes and the external guest outputs. The long independent and dependent guests both ended with 131194 and the short guest with 634. Each handle was destroyed and each worker group closed. A failed pilot exited during worker CPU accounting and contributed no scored sample. The manager verified 705 packet digests, matched both reactor binaries to published Pages `5b34c054`, and reproduced the timing, overlap and output reductions from the raw records in `aeb024b8-4ce9-4632-a8b2-6f3ace82c7e0`. This evidence documents scaling of the released compiler and makes no code or worker-policy change.
