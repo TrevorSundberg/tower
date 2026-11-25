@@ -3,8 +3,8 @@
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "CNAME": "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
     "THIRD-PARTY-NOTICES.txt": "0dc16637a51b681795fbde8494596c256b352a933dc1565f735cc58538f2d5b3",
-    "app.js": "cd4d060ef4a54c07871ca38648e636cf0a9282cdc1c845f9bbd708fac156f1b1",
-    "app.js.map": "2f3d748dc79b2a91f2393993458e7eff1d0c9e8d4854c3884f5924165abc5335",
+    "app.js": "db6b2b4776956f2a64bf17ecb81e6e6153c42ac14b127d8500aa71b192bf4ce5",
+    "app.js.map": "25c3937da696c58e7666e7a1c968981295f45c169d2e7458d006e448d9c8573a",
     "backend/foreign_grammar.tower": "a976b1ed9c0f92b0d29c9fd266001f2bfc3ec647e17eb69aaa769796e5eb3dd1",
     "bedrock.tower": "3a64e4027c45ffe7742a7ff58abab617b5399de5101664b030c0e075d038d259",
     "builtins.json": "52f302e73719f59f174d529f14892067fae08f56cb51ddf4140aed1bde8008b6",
@@ -113,7 +113,7 @@
     "linuxInstallerCommit": "b1644585cc9125858a43ef76a9b06052e45f25f3",
     "compilerSourceCommit": "2421c659df8773f5d982cf08accb103a4def57a4",
     "projectSourceCommit": "2421c659df8773f5d982cf08accb103a4def57a4",
-    "uiSourceCommit": "9ae9596eb5e73732f8f557e6300c42cff17ea531",
+    "uiSourceCommit": "8024e026e0f531b25931279d44c830674ae8744c",
     "resourceSourceCommit": "2421c659df8773f5d982cf08accb103a4def57a4",
     "projectPackagerSourceCommit": "2421c659df8773f5d982cf08accb103a4def57a4",
     "projectPackagerSha256": "26b12cb9c77b1785f5d2205de2ceda1730d38e29cce2ada14e7132ae1f19e433",
@@ -122,7 +122,7 @@
     "bootstrapSha256": "a3f76faf3e602f27420d9b42497166b98e345252f5e4dc1b1eaea6ee294b83fd",
     "packagerBootstrapSha256": "a3f76faf3e602f27420d9b42497166b98e345252f5e4dc1b1eaea6ee294b83fd",
     "inputManifestSha256": "2f07e2d81c84a6f38a134a451da9abf807b2b526c0fc8e1009ae8e3beec9565d",
-    "uiInputManifestSha256": "e55c117396032b4e825027be7b188ae6b397a6bdf9de8a89d790cca7b20ebd91",
+    "uiInputManifestSha256": "c51b8f53e71dbd9df19d9a16b84dfc21e60344895a31fa34965ce69cd988d8d1",
     "uiBuildScriptSha256": "d228b7a43a6c914d1e37052ae391c2b71a30d7038a7cb6c55e914e00a7105600"
   }
 }
