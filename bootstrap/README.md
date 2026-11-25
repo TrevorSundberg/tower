@@ -159,7 +159,9 @@ the private backup directory for recovery. Each script has a 1 MiB input limit.
 The Roku ZIP/CRC/DEFLATE implementation is Tower with no zlib link; see the [Roku guide](../docs/roku-backend.md)
 for codec scope and device-testing limits. `package_playground_assets DIST_DIRECTORY`
 uses the same codec to compress compiler reactors and writes the deployment's
-SHA-256 manifest in Tower. It consumes a prepared generated directory; esbuild
+SHA-256 manifest in Tower. The browser build passes a second argument naming the
+example source directory to emit the ordered project seeds and standalone source files.
+It consumes a prepared generated directory; esbuild
 and browser asset collection still use Node. `TOWER_TOOLS_BUILD` selects the tools
 build directory (default `$HOME/.cache/tower/tools`), and `LLVM_CONFIG` selects
 the host LLVM installation (default `llvm-config-19`). Wrapper stdout is only the

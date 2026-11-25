@@ -8,6 +8,7 @@ import .library.vector;
 import .library.gzip;
 import .library.sha256;
 import .compiler.host_text;
+import .compiler.utf8;
 import .host.driver_files;
 
 extern fn puts(text: u8*): i32;
@@ -28,6 +29,47 @@ fn playground_asset_write(root: u8*, name: u8*, bytes: ByteBuffer*): bool {
     var kind = tool_file_kind(path.data, false);
     return (kind == ToolFileKind.Missing || kind == ToolFileKind.Regular)
         && driver_write_file(path.data, bytes.data, bytes.length);
+}
+
+// One ordered registration supplies both the public source URL and the editor's
+// project seed. A user's saved project with the same ID keeps its edited files.
+fn playground_example(json: ByteBuffer*, source: u8*, root: u8*, stem: u8*, title: u8*): bool {
+    var file: ByteBuffer = default; var path: ByteBuffer = default; var contents: ByteBuffer = default;
+    defer bytes_dispose(&file); defer bytes_dispose(&path); defer bytes_dispose(&contents);
+    if !playground_asset_text(&file, stem) || !playground_asset_text(&file, ".tower") || !host_text_terminate(&file)
+        || !tool_join(&path, source, file.data) { return false; }
+    if !tool_read_file(path.data, PlaygroundAssetLimit, &contents)
+        || tower_utf8_validate(contents.data, contents.length, 1) == 0 {
+        puts("Unreadable example source or invalid Tower UTF-8"); puts(path.data); return false;
+    }
+    if !playground_asset_write(root, file.data, &contents) { puts("Cannot copy example"); puts(file.data); return false; }
+    // fetch(...).text() consumes an initial UTF-8 BOM on the standalone URL.
+    var bom: usize = 0;
+    if contents.length >= 3 && contents.data[0] == 239 && contents.data[1] == 187 && contents.data[2] == 191 { bom = 3; }
+    return (json.length == 1 || playground_asset_text(json, ","))
+        && playground_asset_text(json, "{\"id\":\"example:") && playground_asset_text(json, stem)
+        && playground_asset_text(json, "\",\"name\":") && host_json_quote(json, title, strlen(title))
+        && playground_asset_text(json, ",\"files\":[{\"path\":") && host_json_quote(json, file.data, file.length)
+        && playground_asset_text(json, ",\"text\":") && host_json_quote(json, contents.data + bom, contents.length - bom)
+        && playground_asset_text(json, "}]}");
+}
+
+fn playground_examples(root: u8*, source: u8*): bool {
+    var json: ByteBuffer = default; defer bytes_dispose(&json);
+    return playground_asset_text(&json, "[")
+        && playground_example(&json, source, root, "foreach", "ForEach")
+        && playground_example(&json, source, root, "execution", "Execution")
+        && playground_example(&json, source, root, "increment", "Increment")
+        && playground_example(&json, source, root, "inference", "Inference")
+        && playground_example(&json, source, root, "templates", "Templates")
+        && playground_example(&json, source, root, "match", "Match")
+        && playground_example(&json, source, root, "collections", "Collections")
+        && playground_example(&json, source, root, "functions", "Functions")
+        && playground_example(&json, source, root, "structs", "Structs")
+        && playground_example(&json, source, root, "memory", "Memory")
+        && playground_example(&json, source, root, "replacements", "Replacements")
+        && playground_example(&json, source, root, "tokens", "Tokens")
+        && playground_asset_text(&json, "]") && playground_asset_write(root, "examples.json", &json);
 }
 
 fn playground_asset_compress(root: u8*, name: u8*, remove_source: bool): bool {
@@ -74,10 +116,11 @@ fn playground_asset_manifest(root: u8*): bool {
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    var arguments: i32 = 2;
-    if argc != arguments { puts("Usage: package_playground_assets DIST_DIRECTORY"); return convert(i32, PlaygroundAssetExit.Usage); }
+    var dist_only: i32 = 2; var with_examples: i32 = 3;
+    if argc != dist_only && argc != with_examples { puts("Usage: package_playground_assets DIST_DIRECTORY [EXAMPLE_SOURCE_DIRECTORY]"); return convert(i32, PlaygroundAssetExit.Usage); }
     var root = realpath(argv[1], null); defer free(root);
     if root == null || !tool_directory(root)
+        || (argc == with_examples && !playground_examples(root, argv[2]))
         // Browser consumers load gzip; discard the redundant raw staging copy
         // only after its complete compressed replacement has been written.
         || !playground_asset_compress(root, "tower-llvm.wasm", true)

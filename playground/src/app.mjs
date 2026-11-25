@@ -13,7 +13,7 @@ import { selectFoundation } from './foundation-storage.mjs';
 import { targets, sourceTargets, targetChoices, nativeTargetKeys, emptySelection, savedTargetSelection, targetSelectionKey, linkInputsForTarget } from './targets.mjs';
 import { detectBrowserTarget, defaultTargetSelection } from './browser-target.mjs';
 import { OutputPane } from './output-pane.mjs';
-import {examples, filePath, newProject, projectStore, validateProject, projectSources, refreshCompilerSources} from './projects.mjs';
+import {filePath, newProject, projectStore, validateProject, projectSources, refreshCompilerSources} from './projects.mjs';
 import {exportProject, importProject} from './project-archive.mjs';
 import {compilerSelection, selectCompiler, onCompilerSelection} from './compiler-selection.mjs';
 import { LanguageService } from './language-service.mjs';
@@ -1017,22 +1017,24 @@ async function start() {
     for (const key of Object.keys(targetChoices)) $('target-'+key).checked=selectedTargets[key];
     updateColumns();
   }
-  const builtinNames = await fetch('./builtins.json').then(response => response.json());
-  const names = [...builtinNames,...examples];
-  const texts = await Promise.all(names.map(async name => {
+  const [builtinNames, exampleProjects] = await Promise.all(['builtins.json', 'examples.json'].map(async path => {
+    const response = await fetch('./' + path);
+    if (!response.ok) throw new Error('Unable to load ' + path);
+    return response.json();
+  }));
+  const builtins = Object.fromEntries(await Promise.all(builtinNames.map(async name => {
     const response = await fetch('./' + name + '.tower');
     if (!response.ok) throw new Error('Unable to load ' + name);
-    return response.text();
-  }));
-  bundledBuiltins = Object.fromEntries(builtinNames.map((name, i) => [name, texts[i]]));
-  bundledBedrock = bundledBuiltins.bedrock; bundledFoundation = bundledBuiltins.foundation; bundledTower = bundledBuiltins.tower;
-  for (const [i, name] of examples.entries()) bundledExamples.set(name + '.tower', texts[i+builtinNames.length]);
+    return [name, await response.text()];
+  })));
+  bundledBuiltins = builtins;
+  bundledBedrock = builtins.bedrock; bundledFoundation = builtins.foundation; bundledTower = builtins.tower;
+  for (const {files} of exampleProjects) for (const {path, text} of files) bundledExamples.set(path, text);
   try { storage = await projectStore(); projects = (await storage.list()).map(validateProject); }
   catch (error) { $('project-storage').textContent = 'Browser storage unavailable: ' + error.message; }
-  const builtins = {...bundledBuiltins};
-  for (const name of examples) if (!projects.some(p => p.id === 'example:' + name)) {
-    const initial = newProject(name === 'foreach' ? 'ForEach' : name[0].toUpperCase() + name.slice(1), builtins, [{path:name + '.tower', text:bundledExamples.get(name + '.tower')}]);
-    initial.id = 'example:' + name; projects.push(initial);
+  for (const {id, name, files} of exampleProjects) if (!projects.some(p => p.id === id)) {
+    const initial = newProject(name, builtins, files);
+    initial.id = id; projects.push(initial);
     if (storage) try { await storage.save(initial); }
     catch (error) { $('project-storage').textContent = 'Not saved: ' + error.message; }
   }
