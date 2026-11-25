@@ -1,0 +1,140 @@
+import tower;
+import generic_clone_fixture;
+import editor_units;
+import generic_inspection_budget;
+import storage_api;
+import utility_checks;
+import .compiler.completion_types;
+import .compiler.foundation_tags;
+import .library.entity_types;
+import .library.work_budget;
+import .library.vector;
+import .library.work_budget_types;
+import .compiler.foundation_types;
+import .compiler.semantic_program_types;
+
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, world: void**): WorkBudgetError;
+extern fn entity_retain(node: void*): usize;
+
+fn inspection_annotation(owner: Entity*, id: usize): Entity* {
+    for(var i: usize = 0; i < owner.component_count; i++) {
+        var kind = owner.components[i].type;
+        if kind.id == id { return kind; }
+    }
+    return null;
+}
+
+fn inspection_array(q: CompletionQuery*): void* {
+    foreach(var node in &q.program.types) {
+        var value = sem_get(node);
+        if value.type.scalar == SArray && value.element.scalar == SI32 && value.length == 4 {
+            return node;
+        }
+    }
+    return null;
+}
+
+fn checked_inspection_trial(world: void*, environment: void*, source: u8*, expected_json: u8*,
+    allowed: usize, checked: bool): usize {
+    var unlimited = ~convert(usize, 0);
+    var store = bits(EntityStore*, compiler_world_store(world));
+    var nodes = store.entity_count;
+    var components = store.component_count;
+    var q = bits(CompletionQuery*, language_document_world(world, environment, source, strlen(source), 0, 8));
+    utility_check(q != null && q.generic_info != null, "Healthy checked inspection owns its annotations");
+    var snapshot: vector(u8) = default;
+    defer vector_dispose(&snapshot);
+    editor_units_snapshot(language_document_result(bits(void*, q)), &snapshot);
+    utility_check(vector_push(&snapshot, 0) && strcmp(snapshot.data, expected_json) == 0,
+        "Fresh document reproduces the complete checked inspection after the preceding disposal");
+    var array = inspection_array(q);
+    utility_check(array != null && sem_get(array).type.record == array, "A canonical declared array is live before the inspection trial");
+    var previous = bits(Entity*, q.generic_info);
+    utility_check(q.context.template_nodes.length != 0, "The checked source has a template declaration");
+    var definition = bits(Entity*, q.context.template_nodes.data[q.context.template_nodes.length - 1]);
+    entity_retain(bits(void*, definition));
+    var private_id = store.next_id;
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(allowed);
+    var accepted = language_document_inspect(q, checked);
+    tower_test_buffer_fail_after(unlimited);
+    var calls = tower_test_buffer_allocations() - before;
+    utility_check(inspection_array(q) == array && sem_get(array).type.record == array
+        && inspection_annotation(definition, previous.id) == previous,
+        "A second inspection preserves the preceding annotation and the canonical array by identity");
+    if allowed == unlimited {
+        var kind = bits(Entity*, q.generic_info);
+        utility_check(accepted && kind != null && kind.id == private_id && kind.instance_count != 0
+            && inspection_annotation(definition, private_id) == kind, "Successful inspection owns a distinct kind and annotations");
+    } else {
+        utility_check(!accepted && q.generic_info == null && q.program.resource.error == WorkBudgetError.Memory
+            && q.context.workers.running == 0 && q.context.queries.running == 0, "Checked inspection denial retains its allocator cause and drains all work");
+        // The preceding successful kind supplies live, stable source owners.
+        // Never dereference a failed kind through an address saved before rollback.
+        for(var i: usize = 0; i < previous.instance_count; i++) {
+            var pending = inspection_annotation(previous.instances[i].owner, private_id);
+            if pending != null {
+                puts("Denied inspection: allowed, private kind ID, live annotations, references, attached parent");
+                generic_clone_number(allowed); generic_clone_number(pending.id); generic_clone_number(pending.instance_count);
+                generic_clone_number(pending.references); generic_clone_number(pending.parent != null ? 1 : 0);
+            }
+            utility_check(pending == null, "Denied inspection leaves no query-private annotation on live source");
+        }
+        var root = bits(Entity*, q.program.root);
+        for(var i: usize = 0; i < root.child_count; i++) {
+            utility_check(root.children[i].entity.id != private_id, "Failed inspection retires its private kind");
+        }
+        var offset = q.program.resource.offset;
+        before = tower_test_buffer_allocations();
+        utility_check(!language_document_inspect(q, checked) && tower_test_buffer_allocations() == before
+            && q.program.resource.error == WorkBudgetError.Memory && q.program.resource.offset == offset,
+            "Terminal retry preserves the first cause and source position without replay");
+    }
+    completion_dispose(bits(void*, q));
+    if !accepted { utility_check(inspection_annotation(definition, private_id) == null, "Retained declaration has no denied annotation after document disposal"); }
+    entity_release(bits(void*, definition));
+    utility_check(store.entity_count == nodes && store.component_count == components,
+        "Disposing the document and last retained declaration restores warmed world membership");
+    return calls;
+}
+
+fn checked_inspection_storage(root: u8*, bedrock: u8*, foundation: u8*): void {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    var world: void* = null;
+    utility_check(work_budget_init(&budget, 1, GenericInspectionBudgetBytes, 1) && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
+        "Checked inspection serial world and physical ledger");
+    var environment = frontend_modules_create();
+    utility_check(environment != null && frontend_modules_bind_world(environment, world), "Checked inspection owns its module cache");
+    frontend_modules_configure(environment, "input.tower", root);
+    generic_inspection_baseline(world, environment, bedrock, false);
+    generic_inspection_baseline(world, environment, foundation, true);
+    var source = "import foundation; fn demo(T:type,p:i32*,items:i32[4]):void { var item = *p; }";
+    var reference = language_document_world(world, environment, source, strlen(source), 0, 8);
+    utility_check(reference != null, "Checked inspection reference document");
+    var json: vector(u8) = default;
+    var text = language_document_result(reference);
+    utility_check(text != null, "Fresh document has inspection output");
+    editor_units_snapshot(text, &json);
+    utility_check(vector_push(&json, 0), "Keep the fresh document output");
+    completion_dispose(reference);
+    var unlimited = ~convert(usize, 0);
+    var calls = checked_inspection_trial(world, environment, source, json.data, unlimited, true);
+    puts("Checked inspection healthy physical allocation count");
+    generic_clone_number(calls);
+    for(var allowed: usize = 0; allowed < calls; allowed++) {
+        checked_inspection_trial(world, environment, source, json.data, allowed, true);
+    }
+    var unchecked_calls = checked_inspection_trial(world, environment, source, json.data, unlimited, false);
+    puts("Unchecked inspection healthy physical allocation count");
+    generic_clone_number(unchecked_calls);
+    for(var allowed: usize = 0; allowed < unchecked_calls; allowed++) {
+        checked_inspection_trial(world, environment, source, json.data, allowed, false);
+    }
+    vector_dispose(&json);
+    frontend_modules_destroy(environment);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world)
+        && budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
+        "Checked inspection releases its last physical grant and allocator buffer");
+}
