@@ -102794,3 +102794,46 @@ The saved-state fixture is the exact historical six-declaration lexer with a cur
 Test commit b7d513a132afe82896bcd25082df1f1a53638776 directly follows ccf46330dd6be5f914fb25716ffe343722b5d3d3. Both complete files passed 12/12 on public Pages parent 1ee8a6fe and sealed Pages candidate 5006c524 (compiler 3390c2c8). Each result includes the ten assigned desktop/mobile cells and two customized-state controls. Both originals matched the producer inventory exactly with six timeouts and four assertion failures. The initial three corrected titles passed 6/6 on the candidate. With the old page route the first complete parent repair passed 10/12, then the context-route mismatch check passed 2/2. The final two ordinary sessions used Playwright 1.65.1 with two workers, no retries, Chromium 159.0.8154.6 and fresh contexts. Supplemental read-only observations of worker traffic and durable project/editor state accompanied twelve more successful cells on each product. All 22 failure traces reconstructed byte-for-byte. No observed page errors or skipped cells.
 
 Same-host final ordinary parent/candidate runs took 48.13/49.40 s wall, 87.80/88.24 s user plus system CPU, and 429616/451852 KiB GNU time maximum RSS. Host 2 used AMD Ryzen 5 3600, affinity 0–11, 11.52 CPU quota and 32222740480-byte memory limit. These single samples time browser test workloads, with different original failure deadlines. Product bytes were frozen and the compiler and allocator were unchanged. The registered packets and ad6969a2 evidence carry full product hashes, raw JSON, observer records, recordings and the source bundle. Release inventory outside these two specs and hosted publication remain with the release owner.
+
+### Native sanitizer coverage for LR editor completion
+
+Receipt `73ab2e10-d3be-4d1b-a031-91b395e3605e` checked compiler source
+`e53991e72916bd5cc466e8cd6d5efaaceec96c1b` on Linux x64 with LLVM 19.
+For each sanitizer, the frontend budget runner linked 31 instrumented
+Tower objects, including the counting allocator and serial worker transport.
+The execution-test runner linked 29, including the production allocator
+and native worker transport. Link maps and instrumented IR identified the
+parser and budget functions under test. A separate editor trace observed
+entry to a native worker. The external LLVM shared library was outside
+the Tower instrumentation.
+
+The budget fixture filled the available budget and shifted into an already
+reserved frame. A later shift needed growth and was refused. Releasing
+the reservation allowed the same shift to finish with the parser state
+intact. In the previously failing editor type-position query, appending
+path 31 reused the existing 1,024-byte array. Appending path 33 allocated
+2,048 bytes. The query returned all 14 expected type choices in order.
+
+The ordinary parser and editor selectors passed under ASan with leak
+detection and under initialized TSan. In each mode, all six full editor
+responses matched reference bytes at 1, 2, 4 and 8 workers. A separate
+eight-input comparison, including two scope controls, matched all 32
+responses per mode. Both parser specializations returned their live byte
+and grant counts to the incoming values after the suffix search, and
+the fixture checked final world and budget disposal.
+
+The functional parser, editor and comparator runs had 7, 2 and 15 TSan
+startup refusals respectively before successful execution. The separate
+debugger replay had 13 more, and the initial address-mode debugger script
+needed a correction. Leak checking was enabled on the standalone ASan
+runs. The native configuration has no Tower UBSan mode. An earlier
+broader editor selection on a different build reported an ASan failure
+during cyclic-import validation. This result covers the named selectors.
+The historical full native execution failure recorded at e539 was
+subsequently repaired and the registered test passed at `cdeba9a7`.
+
+The manager verified 516 file checksums and replayed the link, output,
+allocation and cleanup comparisons from the sealed evidence. Packet SHA-256
+`c0e473170f5eac1b0e60db3b01f87ca945415d728bf58d69fea135c8fdfe83e9`.
+This update publishes contributor guidance and verification results. It
+changes no executable input.

@@ -308,6 +308,12 @@ Read the relevant contracts before changing syntax or migrating callers:
   explicitly. Do not claim a serial allocator check sanitizes threaded Tower code.
   This replaces the former blanket sanitizer prohibition; keep expensive checks
   at the milestone boundary, without broad source cleanup or formatting sweeps.
+- For a threaded sanitizer run, use the executable's link map to identify
+  the allocator and worker transport it actually uses. Check the changed
+  function for instrumentation and exercise it through the ordinary entry
+  point. Record sanitizer startup failures separately from completed tests.
+  The [LR editor check](docs/temporal-opcode-research-journal.md#native-sanitizer-coverage-for-lr-editor-completion)
+  shows how the parser budget fixture and the editor use different transports.
 - Reuse [Tower test/measurement tools](scaffolding/tests/README.md) and
   [browser checks/profiling](playground/README.md#checks). For ECS design research,
   consult primary [Flecs systems](https://www.flecs.dev/flecs/Systems.html),
