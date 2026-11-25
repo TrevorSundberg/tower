@@ -4,6 +4,7 @@ import .library.vector;
 import .library.work_vector;
 import .library.work_buffer;
 import .library.work_vector_types;
+import .library.work_view_types;
 import .library.work_arena_api;
 import .compiler.worker_policy;
 import .compiler.lr_work;
@@ -742,12 +743,18 @@ fn lr_propagation_handoff_trial(anchor: void*, budget: WorkBudget*): bool {
     var denied = lr_propagation_solve_parallel_result(value, anchor, &graph, &pool);
     if !lr_memory_release(anchor, &hold, &before) || denied != WorkBudgetError.Capacity
         || value.pending.length != 1 || value.nodes[count - 1].ranges.length != 0 { return false; }
-    var wave = compiler_buffer_allocation_size(count * sizeof(work_vector(usize)))
+    // Only the incoming views fit. The next denial must leave the frontier intact.
+    var headers = compiler_buffer_allocation_size(count * sizeof(work_view(usize)));
+    var free_bytes = before.bytes - before.used_bytes;
+    if free_bytes <= headers || work_budget_reserve_result(budget, 0, 0, free_bytes - headers, &hold) != WorkBudgetError.None { return false; }
+    denied = lr_propagation_solve_parallel_result(value, anchor, &graph, &pool);
+    if !lr_memory_release(anchor, &hold, &before) || denied != WorkBudgetError.Capacity
+        || value.pending.length != 1 || value.nodes[count - 1].ranges.length != 0 { return false; }
+    var wave = headers
         + compiler_buffer_allocation_size(count * sizeof(work_vector(SymbolRange)))
         + compiler_buffer_allocation_size(count * sizeof(bool))
         + compiler_buffer_allocation_size(WorkBufferInitialElements * sizeof(usize))
         + compiler_buffer_allocation_size(value.scratch.chunk_bytes);
-    var free_bytes = before.bytes - before.used_bytes;
     if free_bytes <= wave || work_budget_reserve_result(budget, 0, 0, free_bytes - wave, &hold) != WorkBudgetError.None { return false; }
     var solved = lr_propagation_solve_parallel_result(value, anchor, &graph, &pool);
     var balanced = lr_memory_release(anchor, &hold, &before);
@@ -775,7 +782,7 @@ fn lr_propagation_worker_reuse(budget: WorkBudget*): bool {
     var target: usize = 0;
     var input: usize = 1;
     if !lr_propagation_seed(value, target, 32, 35) || !lr_propagation_seed(value, input, 34, 36) { return false; }
-    var incoming: work_vector(usize) = {data: &input, length: 1, capacity: 1, ..default};
+    var incoming: work_view(usize) = {data: &input, length: 1, capacity: 1};
     var result: work_vector(SymbolRange) = default;
     var changed = false;
     var task: LRPropagationTask = {propagation: value, incoming: &incoming, results: &result,
@@ -856,7 +863,7 @@ fn lr_propagation_worker_denial(value: LRPropagation*, input: usize): bool {
         }
     }
     var target: usize = 0;
-    var incoming: work_vector(usize) = {data: &input, length: 1, capacity: 1, ..default};
+    var incoming: work_view(usize) = {data: &input, length: 1, capacity: 1};
     var result: work_vector(SymbolRange) = default;
     var changed = false;
     var task: LRPropagationTask = {propagation: value, incoming: &incoming, results: &result,
@@ -999,6 +1006,10 @@ fn lr_propagation_work_trial(anchor: void*, seeded: usize, parallel: bool, retri
     for(var i: usize = 0; i < a.count; i++) {
         var x = &a.nodes[i];
         var y = &b.nodes[i];
+        if x.edges.length != y.edges.length { return false; }
+        for(var j: usize = 0; j < x.edges.length; j++) {
+            if x.edges.data[j] != y.edges.data[j] { return false; }
+        }
         if x.queued || y.queued || x.ranges.length != y.ranges.length {
             return false;
         }
