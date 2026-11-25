@@ -100556,3 +100556,37 @@ allocation and cleanup comparisons from the sealed evidence. Packet SHA-256
 `c0e473170f5eac1b0e60db3b01f87ca945415d728bf58d69fea135c8fdfe83e9`.
 This update publishes contributor guidance and verification results. It
 changes no executable input.
+
+### Browser grammar lessons and canonical execution on the 3390 candidate
+
+Two workers ran the ordinary Chromium specs against the public 902a
+compiler and the sealed 3390 candidate with identical site bytes before
+and after each test correction. Receipt `8d720ce5` identified the extra
+ForEach tree item as its locally declared Number token, occupying UTF-8
+bytes [182, 215). Its numeric test documents now declare that token before
+using it. The tests check the selected grammar node and its exact text,
+the Unicode and end-of-input locations, and that cancelling a parse
+retires its worker before a replacement result is displayed and saved.
+The full lesson spec went from 12/24 to 24/24 on each site. A fresh replay
+also passed 24/24 on each. The source commit is `8fb58b52`. The manager
+verified all 8,300 packet digests and recounted the normal test results.
+
+The execution and structs specs expected expanded type constructors where
+canonical Foundation uses the names `i32` and `i32*`. The revised checks
+preserve the signed type definition, function signatures and pointer
+behavior. They compare exact output including newlines from the graph
+interpreter, fast interpreter and LLVM/Wasm backend, check the initializer
+cycle and its corrected result, and reparse the generated Foundation.
+The two complete files went from 33/40 on the public parent and 34/40 on
+the candidate to 40/40 on each, with zero retries or skips. The extra
+original-parent failure was a mobile worker-reuse observation. It passed
+in both revised runs. A supplemental mobile sequence retained text during
+a cross-lesson edit. The structs regression checks the submitted editor
+text before accepting its round trip. The source commit is `a52eefb9`.
+Receipt `ec0576f0` contains the raw responses and 1,885 verified digests.
+
+These are functional checks on two frozen sites. No compiler or browser
+runtime was rebuilt for these changes. The two evidence archives have
+SHA-256 `17db33e72ca329644665f953e81342e03e2a83c6037b27312a221a65617853d0`
+and `cefd9d11f73f8f9d46ac8cfa586933d09da93bd99b008667c04aa65bd9e0a13a`,
+respectively. The integrated successor requires its own complete site run.
