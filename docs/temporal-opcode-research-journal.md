@@ -101237,3 +101237,47 @@ Source inspection found a deterministic failure in the following shared entity f
 Checked the attachment sequence by invoking the existing 32-bit Tower exports through Node 24.22.1 WASI. The published tower.wasm SHA-256 is `5aa8f756d825308505431106baaefadcc0a3ef821807592a3de4e0e9de95155c`. Its recorded compiler source is 902a358f. The entity implementation and layouts, work budget and buffer sources compare byte-identically to 448d61fe. The minimal setup retained 38,343 bytes after first attachment and 38,447 after borrowed-name reattachment. With a competing reservation filling a 65,536-byte ledger, replacement before growth returned Capacity and preserved the child, borrowed name and parent links. Releasing the reservation allowed reattachment. Filling the ledger again still allowed replacement, on the same name page, with the old child detached. Store disposal returned the ledger to its pre-store baseline. This exercises the production capacity path. The build 3 log cannot independently identify the site of its native abort.
 
 Moved the native injected failure before child-index growth and require the exact Memory result and preserved relationship. Retained borrowed-name reattachment and successful replacement. Shared entity checks now use the existing flushed test diagnostic. Compiler and allocator sources are unchanged. `git diff --check` passed. The native instrumented aggregate and complete pipeline rerun are pending on Jenkins after manager review. No runtime performance or sanitizer comparison was made for this fixture change.
+### 2026-11-25 — Complete native build and edit costs at ca543287
+
+Host 3, receipt 6d87ace1-5dd7-4d9b-b062-4ce43f49bf0b. The supplemental
+3,427-byte journal bundle from 6cd34c79 verified at SHA-256
+5630d94fc97b70fdc6322e3befea44e37c233bcf58e7cdf3febb1af2ca919921.
+Its a6d58c22 tip completed the manager reconstruction of ca54328765c60d6e6d7d7941f03ad704f10e9537,
+tree 84e9315e2ab51330f004b8ec5f160029e6a2fd20. Both arms compiled that
+checkout. A was the public 902a bootstrap (ELF 50955730). B was Gen1 built
+with the override unset (ELF daaaaa1d). The latter reproduced the native
+compiler from 58bda1aa. All 434 source paths from the union of 40 compiler
+depfiles matched the frozen Git blobs.
+
+Debian 12 / LLVM 19.1.7 / EPYC 7542, affinity 24–27 on distinct physical
+cores and quota 12.288 CPUs, zero added throttles. The ordinary build-native.sh
+wrapper configured, built towerc and installed its ELF and 55 resources.
+Four Ninja jobs shared the four cores, with one inner worker except four
+for Semantics. Each clean arm started with an empty build cache and warm
+source pages. A/B then B/A primary pairs gave these mean elapsed/CPU seconds.
+
+| Case | Product edges | A wall / CPU | B wall / CPU |
+| --- | ---: | ---: | ---: |
+| Clean build and install | 53 | 30.4442 / 103.8322 | 29.7621 / 101.9944 |
+| Immediate no-op | 0 | 0.2366 / 0.2372 | 0.2477 / 0.2485 |
+| CLI version body edit | 3 | 1.0832 / 1.0831 | 1.0711 / 1.0709 |
+| Imported worker policy edit | 3 | 21.0830 / 43.9316 | 20.9149 / 43.7427 |
+
+The clean build saved 0.682 s wall and 1.838 CPU-s. Both pairs favored B on
+the shared dependency edit. The body wall result changed sign between pairs.
+The no-op included CMake configuration, the glob recheck and installation.
+Final links took 46–52 ms. A separate sampled A/B pair observed clean peak
+summed process-tree RSS of 2,141,848 / 2,063,540 KiB. Shared pages count in
+each process. Four snapshots per no-op missed its short-lived peak. Hardware
+cache counters were unavailable.
+
+The body edit rebuilt host.o (tower-compiler-host.o), the memory archive and
+towerc. The imported change rebuilt ParserNodes, Semantics and towerc.
+Ninja can compact its previous log at regeneration. Counts from the full log
+after its last glob check agreed with the progress lines for every phase.
+Separate clean builds reproduced each edit's 35 products, 55 resources, 51
+texts and 80 raw/transformed depfiles. Guest objects matched the independent
+controls and printed 15 and 999 after linking. The stale body failed the
+version oracle. Stale dependency output failed exactly the two object hashes
+and the executable hash. Earlier host 3 receipts at a86d2ff0 and 58bda1aa
+retain their original source scopes. This measurement changes no build policy.

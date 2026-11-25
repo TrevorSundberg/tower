@@ -9,6 +9,18 @@ unchanged file, then inspect callers whose ownership or execution changed.
 The integrated formatter at `25e1a806` changes four more Tower files relative
 to this audit input. Package copies have their own provenance.
 
+**Building the native compiler.** On four physical EPYC 7542 cores, the
+public 902a358f compiler built and installed ca543287 in 30.444 s on average.
+The compiler built from ca543287 repeated the same build in 29.762 s and
+reproduced its own executable. Both arms started with an empty build
+directory and warm filesystem cache. The separate memory sample peaked at
+2,141,848 and 2,063,540 KiB of summed process RSS respectively. The immediate
+no-op ran zero build recipes and took 0.237 and 0.248 s through installation.
+Editing the shared worker policy rebuilt ParserNodes, Semantics and the
+executable in about 21 s. Both edited builds matched their independent clean
+rebuilds across all 221 outputs. The two timed pairs used the same worker
+counts throughout. [Native build measurements](temporal-opcode-research-journal.md#2026-11-25--complete-native-build-and-edit-costs-at-ca543287)
+
 **A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),
 each job reads a frozen frontier and writes its assigned range. The coordinator
 registers those accesses, takes tickets, opens the read view and dispatches
