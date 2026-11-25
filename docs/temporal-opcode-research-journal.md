@@ -101690,3 +101690,25 @@ UBSan is unsupported. These serial runs do not measure worker races.
 Assignment fee5b50d-5568-4220-8282-442c593b1924 carries source, commands,
 input receipts, inventories, raw diagnostics, timing, and output state.
 Manager integration and publication remain separate.
+
+### Sharing the checked dependency receipt comparison
+
+The seeded and permutation fixtures each build a serial and a parallel
+receipt after checked cleanup. They now share the comparison of the
+diagnostic offset, both lengths, canonical bytes and diagnostic bytes.
+Their inputs, literal answers, cleanup checks and failure messages stay
+with the fixture that owns them. The normal CTest registrations exercise
+both fixtures and their two deliberately wrong answers.
+
+Host 8 compared both versions at ca543287. All four registrations passed
+in each arm. Changing one canonical separator byte after the seeded trial
+closed or one diagnostic byte after the permutation trial closed made the
+corresponding healthy selector fail with exit 1 and its own mismatch message.
+Restoring the healthy source reproduced the test ELF. The two positive
+selections passed ASan with leak detection and initialized TSan. There were
+22 pre-main TSan failures at the host personality operation, recorded
+separately. On two physical Ryzen 9 7900X cores (effective cpuset 0–23,
+quota 23.04 CPUs), warm-input matched trials showed no consistent change in
+test time. The change touches test code only. Receipt
+`de3a5257-c515-4e3d-8e34-cd873c65743a` contains the reviewed patch, both
+faults, all timings, memory samples and raw selector outputs.
