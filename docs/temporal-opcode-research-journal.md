@@ -101004,3 +101004,11 @@ saturated old request terminates at the guard and has no successful timing.
 The raw packet includes each sample, CPU, memory capacity, callback traces,
 input validation, commands and standalone replay. No production change
 was required.
+
+### Host 4 native development install on the ca543287 freeze, 2026-11-25
+
+Assignment `78ae9fd7-4278-4c92-8213-9bbe8f0fe5f7` verified the three declared source bundles in order. The initial reconstruction stopped at a missing journal parent. The supplemental `6cd34c79` journal bundle (3,427 bytes, SHA-256 `5630d94fc97b70fdc6322e3befea44e37c233bcf58e7cdf3febb1af2ca919921`) supplied `a6d58c225b2977c514ecbaff09556a6dfb7e2992`. Replaying the manager records reproduced `ca54328765c60d6e6d7d7941f03ad704f10e9537`, tree `84e9315e2ab51330f004b8ec5f160029e6a2fd20`.
+
+On host 4's Ubuntu 24.04.5 x64 userspace with LLVM/Clang 19.1.1, the clean Release build used the public 902a358f compiler via the default selector, two outer jobs and one inner worker. The fresh cache at `/native` built in 41.78 s wall, 69.78 s user, 7.70 s system, GNU time maximum RSS 779104 KiB (Ryzen 7 5800H, CPU set 0–15, quota 15.36 CPUs, warm files, one sample). The packager recorded all 1,296 build-source hashes. Relative to the retained 8b7878c8 package, 56 payload hashes matched and `towerc` changed to `09ebe3585461a885f68f5d76d240a01a397703536c17b66204d69d6c63c96b4e`. The new development archive SHA-256 is `204be5d7cb4a6c69db451bf49c0ae5197c571461862e8d1f7a0e0b5cf7153e53`.
+
+After archive verification and unpacking under a user-owned path with spaces, all 57 payload names, sizes and hashes matched. All 21 development checks passed. A separate strict run exited 1 at the link with `Cannot find tool: clang`. From a second relocated copy without the source mount, the 13-unit invoice at one and four jobs reproduced the retained ELF and depfile exactly and printed 1666 then 1685. This is a single-generation development package check on the frozen source. Standalone Linux closure, native Arm64 Linux, both macOS hosts and native x64 Windows remain open in the [release matrix](bootstrap-distribution.md#build-server-matrix-for-native-cli-releases). The existing public install instructions continue to use the pinned public Git revision.
