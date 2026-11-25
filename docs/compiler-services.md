@@ -252,7 +252,12 @@ returns the resource cause recorded by the selected unit's program or grammar
 diagnostic. The shared ledger reports `Capacity` on denial and the underlying
 allocator reports `Memory` on physical refusal. A successful batch, cancellation,
 or ordinary source error yields `None`. Inspect the existing source diagnostic
-alongside this value. At this boundary the recursive parser has already unwound,
+alongside this value. If several units fail, the lowest failing source ordinal
+owns both the diagnostic and its resource cause. A later-arriving ordinary
+failure at a lower ordinal clears a previously recorded capacity cause. A
+failure at a higher ordinal leaves the selected cause intact. The accessor
+returns `None` while workers are still draining.
+At this boundary the recursive parser has already unwound,
 and a new import read can observe changed bytes.
 
 The implemented bounded API is
