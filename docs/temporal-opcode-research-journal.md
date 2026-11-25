@@ -101570,3 +101570,32 @@ This documentation change has no runtime performance or sanitizer arms.
 The missing prerequisite for measuring the API is a linked admission and
 drain adapter. The evidence packet includes both optimized worker fragments,
 source checks, the actual diagnostics and executor command for the TLS oracle.
+
+### Opposite insertion orders in two private grammar version caches
+
+Host 3 tested the lookup of a retained grammar revision after a second cache
+inserted the same revisions in reverse order. Each cache returned its original
+version pointer and recorded one hit. Writing the other cache's slot into the
+first index made the test abort at “Independent insertion preserves the old
+version slot” (exit 134). Removing that mutation restored the original test
+executable byte for byte, SHA-256
+`d266d9a1e42e96504aab68cf21cd5b3026ab845e586180cf65926a58dc6b57f7`.
+The fixture owns both caches and releases each borrowed result's retained
+reference. Its test allocator counted 4,254 calls and 1,604 live buffers both
+before the fixture and after its return.
+
+Receipt `b482d8f5-91d6-43ab-98b9-cde24beee309` includes the patch, mutant,
+selector outputs and paired samples on `ca543287`. The manager verified the
+202 listed files and the baseline test source against the integration tree.
+Native Release with the checked-in Linux bootstrap and LLVM 19.1.7 passed
+`grammar-resource`, `structure-reuse`, `emission` (400 generated grammars)
+and `lr-order` (150 randomized trials). ASan with leak detection and TSan
+each passed the first two selections. This fixture exercises private cache
+state in one thread.
+
+Six alternating pairs after warm-up on EPYC 7542, pinned to CPU 24
+(effective cpuset 0–63, quota 12.288 CPUs), had identical outputs. Before and
+after adding the fixture, the mean full grammar-resource selection took
+0.493 s wall in each arm, 0.488/0.490 s CPU and 54,223/54,413 KiB peak RSS.
+These samples measure the cost of executing the test. The production parser
+is unchanged by the fixture.

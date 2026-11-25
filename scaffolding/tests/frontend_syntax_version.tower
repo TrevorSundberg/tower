@@ -89,6 +89,36 @@ fn frontend_session_pins_tests(): void {
     frontend_world_check(tower_test_buffer_count() == baseline);
 }
 
+fn frontend_cache_slot_isolation(world: void*, revision: FrontendRevision*, bedrock: FrontendRevision*): void {
+    var empty = syntax_revision_create(null, 0, null, 0);
+    frontend_world_check(empty != null);
+    defer frontend_revision_release(empty);
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    var left: SyntaxVersionCache = default;
+    defer syntax_version_cache_dispose(&left);
+    var right: SyntaxVersionCache = default;
+    defer syntax_version_cache_dispose(&right);
+
+    var left_revision = syntax_version_cached(&left, world, revision, bedrock, &diagnostic);
+    defer syntax_version_release(left_revision);
+    var left_empty = syntax_version_cached(&left, world, empty, bedrock, &diagnostic);
+    defer syntax_version_release(left_empty);
+    var right_empty = syntax_version_cached(&right, world, empty, bedrock, &diagnostic);
+    defer syntax_version_release(right_empty);
+    var right_revision = syntax_version_cached(&right, world, revision, bedrock, &diagnostic);
+    defer syntax_version_release(right_revision);
+    utility_check(left_revision != null && left_empty != null && right_empty != null && right_revision != null
+        && left_revision != left_empty && right_revision != right_empty, "Both cache insertion orders build");
+
+    var hit = syntax_version_cached(&left, world, revision, bedrock, &diagnostic);
+    utility_check(hit == left_revision && left.index.hits == 1, "Independent insertion preserves the old version slot");
+    syntax_version_release(hit);
+    hit = syntax_version_cached(&right, world, empty, bedrock, &diagnostic);
+    utility_check(hit == right_empty && right.index.hits == 1, "Reversed insertion preserves the empty grammar slot");
+    syntax_version_release(hit);
+}
+
 fn frontend_version_cache_tests(world: void*, revision: FrontendRevision*, bedrock: FrontendRevision*): void {
     var buffers = tower_test_buffer_count();
     var cache: SyntaxVersionCache;
@@ -346,6 +376,7 @@ fn frontend_syntax_construction_tests(): void {
         frontend_world_check(revision.references == 1 && bedrock.references == 2);
         frontend_world_check(tower_test_buffer_count() == buffers);
     }
+    frontend_cache_slot_isolation(world, revision, bedrock);
     frontend_version_cache_tests(world, revision, bedrock);
     frontend_declaration_resource_tests(world, source, revision, kinds.syntax, alternatives[0]);
     // Module completion reports unresolved rules, unlike the execution filter.
