@@ -103621,3 +103621,40 @@ printed exactly 42 plus LF and returned the native reference's 1,407 bytes
 of canonical Foundation. Receipt `80a50621-445d-4fdb-8c00-57cd8f90ac22`
 contains the per-worker intervals, product identities, process samples and
 guest checks. This was a compiler build qualification on the named source.
+
+### Ordinary Foundation editor regression for an upstream Bedrock edit and undo
+
+On 2026-11-25 host 2 turned the editor observation from assignment
+7fedf4a8 into one ordinary browser title at
+`d9eceb281771f5e882ecee9970b5129d0df776cc`, parent
+`f595ea02d7a83599bd3e3405ba198bd9aee1af05`. The Bedrock mutation test
+already covered parser and execution results, completion covered switching
+documents, and grammar hover covered inspection of a static grammar.
+The new test uses the Increment project's Foundation file and the existing
+Bedrock rename fixture. It observes the document reply on the originating
+worker and request ID after reselecting Foundation, checks the actual two
+module contents and opens the ordinary CodeMirror completion popup at byte 16.
+The first attempt selected the file before the new project tree hydrated;
+waiting for its actual Foundation button fixed that setup failure.
+
+With Foundation fixed at `import bedrock;\nrule ReviewEdge = Identifier;`,
+the edited grammar produced `import, rule, skip, token` and a complete
+parse-rule name at [21, 31) defined by Identifier. Undo in the Bedrock
+editor produced `import, parse, skip, token` and an incomplete document
+with no such entry. Both viewports agreed with the prior ordinary-parser
+oracle and editor replies. The same test against the sealed 3390 UI failed
+on both with a terminal diagnostic from .tower/foundation_syntax.tower
+rejecting 'parse'. The prior Bedrock rename and grammar hover titles also
+passed on both viewports. Every selection used one Playwright worker and
+zero retries.
+
+On the same f595ea02 UI, shared 3390 compiler assets and host CPU mask
+0–11 (Ryzen 5 3600, quota 11.52 CPUs), two paired desktop/mobile runs of
+the five-checkpoint predecessor took 17.08 and 17.12 s with peak RSS
+452168 and 459140 KiB. The two-checkpoint ordinary title took 10.81 and
+10.62 s with peak RSS 265336 and 266080 KiB. These measure each whole test
+selection, including its differing recording work. The runtime assets were
+reused. The source bundle, exact predecessor, product manifests, command
+lines, replies, failures and time reports are in the host 2 packet for
+d7ecbec5-28ee-4216-8228-997349f60d31. Release publication belongs to
+the manager.

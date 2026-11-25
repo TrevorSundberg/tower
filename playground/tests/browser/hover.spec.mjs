@@ -1,6 +1,6 @@
 import {test,expect} from '@playwright/test';
 import {readFile} from 'node:fs/promises';
-import {savedSource,selectDocument} from './project-helpers.mjs';
+import {renameBedrockKeyword,savedSource,selectDocument} from './project-helpers.mjs';
 
 async function source(page,text) {
   const editor=page.getByRole('textbox',{name:'Tower source'});
@@ -36,7 +36,14 @@ test.beforeEach(async({page})=>{
     Worker.prototype.postMessage=function(data,...rest) {
       if(data.method==='document') {
         const query={source:data.source};window.documentQueries.push(query);
-        const receive=event=>{if(event.data.id===data.id){query.done=true;this.removeEventListener('message',receive);}};
+        const receive=event=>{
+          if(event.data.id!==data.id)return;
+          if(data.editingModule==='foundation' && data.activePath==='.tower/foundation.tower') {
+            query.bedrock=data.bedrock;
+            query.inspection=event.data.result ?? event.data.error;
+          }
+          query.done=true;this.removeEventListener('message',receive);
+        };
         this.addEventListener('message',receive);
       }
       return post.call(this,data,...rest);
@@ -44,6 +51,43 @@ test.beforeEach(async({page})=>{
   });
   await page.goto(process.env.TOWER_HOVER_TEST_URL || '/');await expect(page.locator('#status')).toContainText('Complete');
   await page.locator('#auto-execute').uncheck();
+});
+
+test('Foundation completion and declaration range follow the Bedrock keyword through undo',async({page,request})=>{
+  const bedrock=await (await request.get('/bedrock.tower')).text();
+  const renamed=renameBedrockKeyword(bedrock);
+  const text='import bedrock;\nrule ReviewEdge = Identifier;';
+  await page.locator('#project-kind').selectOption('example:increment');
+  await page.locator('#file-tree button[data-path=".tower/foundation.tower"]').click();
+  const editor=await source(page,text);
+
+  async function checkFoundation(grammar,keyword,ranges) {
+    const start=await page.evaluate(()=>window.documentQueries.length);
+    await selectDocument(page,'foundation.tower');
+    await expect.poll(() => page.evaluate(({start,text,grammar}) => {
+      const query=window.documentQueries.slice(start).find(q => q.source===text && q.bedrock===grammar && q.done);
+      const doc=query?.inspection;
+      if (!doc?.entries) return doc;
+      const names=doc.entries.filter(e => e.kind==='parse rule' && e.signature==='ReviewEdge' && e.definition==='Identifier');
+      return {complete:doc.complete, ranges:names.map(e => [e.from,e.to])};
+    },{start,text,grammar})).toEqual({complete:ranges.length>0, ranges});
+
+    // Request completion at byte 16, immediately after the import, in both states.
+    await editor.press('ControlOrMeta+Home');
+    await editor.press('ArrowDown');
+    await editor.press('Home');
+    await editor.press('Control+Space');
+    const keywords=page.locator('.cm-tooltip-autocomplete .cm-completionLabel').filter({hasText:/^(parse|rule)$/});
+    await expect(keywords).toHaveText([keyword]);
+    await editor.press('Escape');
+  }
+
+  await selectDocument(page,'bedrock.tower');
+  await source(page,renamed);
+  await checkFoundation(renamed,'rule',[[21,31]]);
+  await selectDocument(page,'bedrock.tower');
+  await editor.press('ControlOrMeta+z');
+  await checkFoundation(bedrock,'parse',[]);
 });
 
 test('cached mouse hover shows resolved types and declaration locations without debug metadata or a worker round trip',async({page},info)=>{
