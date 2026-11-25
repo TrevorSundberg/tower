@@ -100690,3 +100690,23 @@ zero retries or skips, and the instrumented runs agreed. Host 3 packet
 and the corresponding integrated blob in `706a5617`. The manager checked
 1,609 member checksums and 18 reconstructed trace digests. These fixture
 changes provide functional evidence on fixed runtime assets.
+
+### Hover bindings and highlighting in virtualized Foundation views
+
+The constructor argument named width binds to the declared usize parameter.
+The adjacent zero has type i32. The hover test now checks both bindings and
+their reported source positions after a multibyte comment. The highlighting
+test previously inspected the visible CodeMirror DOM before the canonical
+post_increment declaration had scrolled into view. It now locates each
+declaration in the complete document and verifies the rendered token spans,
+classes and colors in source, canonical Foundation and optimized output.
+The optimized view uses its own emitted declaration.
+
+Host 1 ran the complete hover and output-highlighting specs against the
+public 902a and sealed 3390 compilers. Each site went from 48/52 to 52/52
+across desktop and mobile. The corrected runs had zero retries and skips.
+Packet `5310c73b` supplies test revision `81c83c8d`, worker and DOM
+observations, before/after reports and 16 reconstructible trace ZIPs.
+The manager checked all 1,917 member checksums and the 16 trace digests.
+The two suites exercised fixed product bytes and provide no runtime timing
+comparison.

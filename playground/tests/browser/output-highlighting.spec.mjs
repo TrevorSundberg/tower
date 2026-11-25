@@ -17,22 +17,47 @@ test('real compilation highlights foundation, both LLVM forms and Wasm',async({p
   expect(errors).toEqual([]);
 });
 
-test('source and Tower output use identical classes and colors for foundation tokens', async ({page}) => {
+test('source and Tower output use identical classes and colors for foundation tokens', async ({page},info) => {
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await selectDocument(page, 'increment.tower');
   await expect(page.locator('#execution-status')).toContainText('backends match');
-  for (const root of ['#editor','#core-instructions','#fast-disassembly']) {
-    // O2 can inline post_increment and normalize internal scalar types. Both
-    // reconstructed and original type names still use the shared identifier style.
-    if(root!=='#fast-disassembly')await expect(page.locator(root+' .tw-identifier').filter({hasText:/^post_increment$/}).first()).toBeAttached();
-    await expect(page.locator(root+' .tw-identifier').filter({hasText:/^(i32|u32|i64|u64|u8|usize|bool|void)$/}).first()).toBeAttached();
+  const colors=[], evidence=[];
+  for(const id of ['editor','core-instructions','fast-disassembly']) {
+    const pane=page.locator('#'+id), text=await outputText(page,id);
+    // Optimized Foundation can inline post_increment. Use a reconstructed
+    // function declaration for the same three token roles in that pane.
+    const pattern=id==='fast-disassembly' ? /^fn (\w+)\(\): (void) \{$/m : /^fn (post_increment)\(p: i32\*\): (i32) \{$/m;
+    const header=text.match(pattern);
+    expect(header,id+' function declaration').not.toBeNull();
+    await pane.scrollIntoViewIfNeeded();
+    await pane.locator('.cm-content').evaluate((el,anchor)=>{
+      el.cmView.rootView.view.dispatch({selection:{anchor},scrollIntoView:true});
+    },header.index);
+    const line=pane.locator('.cm-line').filter({hasText:header[0]});
+    const samples=[];
+    for(const [token,kind] of [['fn','keyword'],[header[1],'identifier'],[header[2],'identifier']]) {
+      // The return type is the final occurrence on the declaration line.
+      const span=line.getByText(token,{exact:true}).last();
+      await expect(span).toHaveClass(new RegExp('\\btw-'+kind+'\\b'));
+      await expect(span).toBeVisible();
+      const sample=await span.evaluate(el=>{
+        const view=el.closest('.cm-content').cmView.rootView.view;
+        const from=view.posAtDOM(el,0),to=view.posAtDOM(el,el.childNodes.length);
+        return {text:el.textContent,from,to,classes:el.className,color:getComputedStyle(el).color,
+          visible:view.visibleRanges.some(range=>range.from<=from && to<=range.to)};
+      });
+      const from=header.index+header[0].lastIndexOf(token);
+      expect(sample).toMatchObject({text:token,from,to:from+token.length,visible:true});
+      samples.push(sample);
+    }
+    const [keyword,name,type]=samples;
+    expect(name.color).toBe(type.color);
+    expect(keyword.color).not.toBe(type.color);
+    colors.push([keyword.color,name.color,type.color]);
+    evidence.push({id,declaration:header[0],samples});
   }
-  const colors = await page.evaluate(() => ['#editor','#core-instructions','#fast-disassembly'].map(root => {
-    const identifier = [...document.querySelectorAll(root+' .tw-identifier')].find(el=>/^(i32|u32|i64|u64|u8|usize|bool|void)$/.test(el.textContent));
-    const keyword = [...document.querySelectorAll(root+' .tw-keyword')].find(el=>el.textContent==='fn');
-    return [getComputedStyle(identifier).color,getComputedStyle(keyword).color];
-  }));
   expect(colors[1]).toEqual(colors[0]); expect(colors[2]).toEqual(colors[0]);
+  await info.attach('foundation-token-spans',{body:JSON.stringify(evidence),contentType:'application/json'});
 });
 
 test('multi-megabyte output virtualizes, stays read-only, and highlights after scrolling',async({page},info)=>{
