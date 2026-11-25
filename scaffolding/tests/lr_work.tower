@@ -721,9 +721,45 @@ export fn lr_first_work_trial(anchor: void*, mode: usize): bool {
     return true;
 }
 
+// A single live edge gives the wave builder a nonempty, narrow frontier.
+// Both phases fit separately in this allowance. The graph rows survive handoff.
+fn lr_propagation_handoff_trial(anchor: void*, budget: WorkBudget*): bool {
+    var count = 2 * LRPropagationGrain;
+    var error = WorkBudgetError.None;
+    var value = lr_propagation_create_budget_result(count, budget, &error);
+    if value == null { return false; }
+    defer lr_propagation_destroy(value);
+    if !lr_propagation_edge(value, 0, count - 1) || !lr_propagation_seed(value, 0, 32, 35) { return false; }
+    var graph: WorkGraph;
+    if !work_init_budget(&graph, 1, 0, budget) { return false; }
+    defer work_dispose(&graph);
+    var pool: WorkPool;
+    if !work_pool_open(&pool, 2) { return false; }
+    defer work_pool_close(&pool);
+    var hold: WorkReservation = default;
+    var before: WorkBudgetSnapshot = default;
+    if !lr_memory_hold(anchor, &hold, &before) { return false; }
+    var denied = lr_propagation_solve_parallel_result(value, anchor, &graph, &pool);
+    if !lr_memory_release(anchor, &hold, &before) || denied != WorkBudgetError.Capacity
+        || value.pending.length != 1 || value.nodes[count - 1].ranges.length != 0 { return false; }
+    var wave = compiler_buffer_allocation_size(count * sizeof(work_vector(usize)))
+        + compiler_buffer_allocation_size(count * sizeof(work_vector(SymbolRange)))
+        + compiler_buffer_allocation_size(count * sizeof(bool))
+        + compiler_buffer_allocation_size(WorkBufferInitialElements * sizeof(usize))
+        + compiler_buffer_allocation_size(value.scratch.chunk_bytes);
+    var free_bytes = before.bytes - before.used_bytes;
+    if free_bytes <= wave || work_budget_reserve_result(budget, 0, 0, free_bytes - wave, &hold) != WorkBudgetError.None { return false; }
+    var solved = lr_propagation_solve_parallel_result(value, anchor, &graph, &pool);
+    var balanced = lr_memory_release(anchor, &hold, &before);
+    var row = &value.nodes[count - 1].ranges;
+    return balanced && solved == WorkBudgetError.None && pool.running == 0 && value.pending.length == 0
+        && row.length == 1 && row.data[0].first == 32 && row.data[0].last == 35;
+}
+
 export fn lr_propagation_budget_trial(anchor: void*): bool {
     var retried = false;
-    return lr_propagation_worker_reuse(compiler_world_work_budget(compiler_node_world(anchor)))
+    var budget = compiler_world_work_budget(compiler_node_world(anchor));
+    return lr_propagation_worker_reuse(budget) && lr_propagation_handoff_trial(anchor, budget)
         && lr_propagation_work_trial(anchor, LRPropagationGrain * 2, true, &retried) && retried;
 }
 
