@@ -46,6 +46,7 @@ extern fn lr_completion_create_result(parser: void*, error: WorkBudgetError*): v
 extern fn lr_completion_resource_error(completion: void*): WorkBudgetError;
 extern fn lr_completion_destroy(completion: void*): void;
 extern fn lr_completion_accepts(completion: void*, id: u32): bool;
+extern fn lr_completion_suffix(completion: void*, ids: u32*, count: usize, result: usize*, capacity: usize): usize;
 extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 extern fn syntax_completion_enable(session: void*): void;
 extern fn syntax_completion_accepts(session: void*, text: u8*, literal: bool): bool;
@@ -376,6 +377,7 @@ fn parser_control_budget_trial(specialize: bool): void {
         var count = lr_probe_count(probe);
         var state: usize = 0;
         var status = lr_probe_step(probe, convert(u32, input[index]), &state);
+        if index == 0 { utility_check(status == LRShift, "First probe shift uses its reserved frame with no free bytes"); }
         if status == 0 {
             utility_check(!quota.complete && quota.resource_error == WorkBudgetError.Capacity && lr_probe_count(probe) == count,
                 "Denied probe frame growth preserves the prior stack and reports incomplete");
@@ -408,6 +410,22 @@ fn parser_control_budget_trial(specialize: bool): void {
     utility_check(lr_completion_accepts(completion, convert(u32, input[0]))
         && lr_completion_resource_error(completion) == WorkBudgetError.None,
         "Completion query retries with available memory");
+    // These offers can spell "parser" but cannot finish "parser_memory_budget".
+    // Both search strategies must return an ordinary miss and retire their scratch.
+    var offers: u32[5];
+    var offer_count = sizeof(decltype(offers)) / sizeof(u32);
+    for(var i: usize = 0; i < offer_count; i++) { offers[i] = convert(u32, input[i]); }
+    var suffix: usize[8];
+    var suffix_bytes: usize = 8192;
+    parser_control_occupy(&budget, suffix_bytes, &occupied);
+    var bytes = budget.used_bytes;
+    var grants = budget.live;
+    utility_check(lr_completion_suffix(completion, &offers[0], offer_count,
+        &suffix[0], sizeof(decltype(suffix)) / sizeof(usize)) == ~convert(usize, 0)
+        && lr_completion_resource_error(completion) == WorkBudgetError.None
+        && budget.used_bytes == bytes && budget.live == grants,
+        "Bounded unsuccessful suffix search reuses reserved paths and releases its scratch");
+    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release suffix search blocker");
     lr_completion_destroy(completion);
 
     denied = false;
