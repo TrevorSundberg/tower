@@ -103985,3 +103985,45 @@ The local repair runs `npm run test:ide --prefix playground` on the ON build, th
 Host 3 used the checked-in bootstrap `509557309b94…`, pinned WASI SDK 34, LLVM 19, Node 24.22.3 and npm 11.19.1. The first configure could not locate the unversioned host clang. Adding the LLVM 19 bindir to PATH allowed the normal build to complete. GNU time measured one invocation at a time on a single AMD EPYC 7542 (32 cores/64 threads, CPUs 0–63, quota 12.288 CPUs), four Ninja jobs and one worker per compiler process. A default build reproduced the missing export and npm exit 1. The incremental ON build took 3.89 s wall, 3.89 s CPU and 239,756 KiB maximum RSS. The Tower suite passed in 5.84 s wall, 7.25 s CPU and 215,844 KiB maximum RSS. Returning to OFF took 2.10 s wall, 2.10 s CPU and 181,376 KiB maximum RSS. These are individual build/test costs. The change affects CI orchestration and leaves compiler/runtime allocation and scheduling code untouched.
 
 The enabled reactor exported the fixture, and the rebuilt release matched the default byte for byte (SHA-256 `5aa8f756d825308505431106baaefadcc0a3ef821807592a3de4e0e9de95155c`). Nine focused hover and interpreter assertions passed on that release. With Node shard 32/51, the repaired npm Node command passed all three interpreter-invocation tests. The ordinary combined npm entry passed the complete Tower fixture and the same shard on ON, and still exited 1 before Node on OFF. Assignment `9ba5fc84-0e84-4d26-83bc-b92ab300c984` retains the original console, both local reactors, hashes, commands and measurements. The complete Node/backend suite, Playwright, local deployment verifier and a fresh Jenkins run remain open for integration. No source or deployment ref was published.
+
+### Standalone hosted linker drivers and compiler buffer storage (2026-11-25)
+
+At 4ab6676b the four hosted ELF jobs failed while linking the Linux driver with
+Tower. The four Mach-O jobs and its CLI job failed while linking the Linux
+driver with clang-19. The first diagnostic in both local reproductions on
+ddc3e86e named `compiler_buffer_alignment`. Both objects also required
+`compiler_buffer_allocate`, `compiler_buffer_allocation_size` and
+`compiler_buffer_free`. The ELF arrays helper already linked and its object
+remained byte-identical. The Mach-O `--imports` mode is an early branch in
+the same executable that links the Mach-O backend.
+
+The ELF and Mach-O job modules import the work graph and work pool. Their
+storage uses the WorkBuffer interface, and the Linux worker affinity code also
+calls the compiler allocator. Each standalone driver now imports
+`.host.memory`, as the existing compiler work fixture does. That module supplies
+the four definitions, including the allocation header, alignment guarantee and
+owner-aware release. The change is confined to the two driver import lists.
+
+Host 7 used the public be41c755 development compiler from a1315eca and the
+retained native compiler and host runtime from 2421c659. Running the workflow
+commands sequentially with LLVM 19.1.7 produced all eight Linux ELF images,
+eight Mach-O driver/reference images and six CLI images. The four x64 ELF
+guests passed natively and four Arm64 ELF guests passed under QEMU, including
+libc, unwind, export and finalization checks. ELF and Mach-O structural,
+ownership and worker checks ran in each matrix cell. Independent tools checked
+the target headers, imports and symbols of all 22 images. Native Apple and
+Arm64 Linux execution, Apple codesign verification and Windows execution
+remain hosted checks.
+
+AddressSanitizer passed both four-worker driver checks and the Mach-O imports
+case. ThreadSanitizer's default layout failed during startup when this host
+denied its request to disable ASLR. A supplemental Linux non-PIE link of the
+same instrumented objects ran both driver checks and the imports case after
+startup retries. The sanitizer outputs matched the ordinary images and TBD.
+The evidence for assignment 2e5a61f4 records each exit, binary identity, link
+map, argv, wall time, CPU and peak RSS. On the EPYC 7502 with CPUs 0-63
+available and a 30.72-core quota, the repaired host links took 0.03 s and
+52,432 KiB peak RSS for ELF, and 0.06 s and 75,012 KiB for Mach-O.
+
+[Hosted ELF run](https://github.com/TrevorSundberg/tower/actions/runs/45661051434)
+and [Mach-O run](https://github.com/TrevorSundberg/tower/actions/runs/45661051377).
