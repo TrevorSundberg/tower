@@ -151,10 +151,10 @@ fn format_test_type_constructors(): void {
     second.type.scalar = SU64; second.constant = true;
     type.type.scalar = SType; type.element.scalar = SI32;
     var cases: FormatConstructorCase[8];
-    cases[0] = { op: convert(u32, TypeConstructionKind.Integer), left: left, right: right, second_bits: 0, wanted: "integer_type(32, 0);\n" };
-    cases[1] = { op: convert(u32, TypeConstructionKind.Floating), left: left, right: null, second_bits: 0, wanted: "float_type(32);\n" };
+    cases[0] = { op: convert(u32, TypeConstructionKind.Integer), left: left, right: right, second_bits: 0, wanted: "integer_type(convert(integer_type(64, 0), 32), convert(integer_type(64, 0), 0));\n" };
+    cases[1] = { op: convert(u32, TypeConstructionKind.Floating), left: left, right: null, second_bits: 0, wanted: "float_type(convert(integer_type(64, 0), 32));\n" };
     cases[2] = { op: convert(u32, TypeConstructionKind.Pointer), left: reference, right: null, second_bits: 0, wanted: "pointer_type(type_value(integer_type(32, 1)));\n" };
-    cases[3] = { op: convert(u32, TypeConstructionKind.Array), left: reference, right: right, second_bits: 8, wanted: "array_type(type_value(integer_type(32, 1)), 8);\n" };
+    cases[3] = { op: convert(u32, TypeConstructionKind.Array), left: reference, right: right, second_bits: 8, wanted: "array_type(type_value(integer_type(32, 1)), convert(integer_type(64, 0), 8));\n" };
     cases[4] = { op: ~convert(u32, 0), left: left, right: right, second_bits: 0, wanted: null };
     cases[5] = { op: convert(u32, TypeConstructionKind.Integer), left: null, right: right, second_bits: 0, wanted: null };
     cases[6] = { op: convert(u32, TypeConstructionKind.Integer), left: left, right: null, second_bits: 0, wanted: null };
