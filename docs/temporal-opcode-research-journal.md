@@ -101024,3 +101024,21 @@ checksums and archive SHA-256
 The independent Linux receiver and the whole-site release use separate
 acceptance checks. The public Linux development pin remains 902a358f at
 this publication.
+
+## Packaging a shared Linux release from a private checkout
+
+The canonical Ubuntu receiver packaged the same Linux x64 compiler from
+checkouts created under umasks 0022 and 0077. When both packaging and
+archiving ran under 0022, the two 64-member archives were byte-identical.
+The source copy of `entity_stage.tower` in the restricted checkout was 0600.
+It arrived in both archives at 0644 with the same digest. Running the
+packager under 0077 instead produced a 0600 manifest and 0700 directories.
+A second unprivileged user could read and verify both shared releases,
+interpret the grammar fixture, link it and run it for exactly 42 plus LF.
+The restrictive control denied that user access. The private user installer
+kept its 0700 root. Repeat packaging refused an occupied destination.
+
+The tested command is in [the bootstrap guide](../bootstrap/README.md#publishing-a-replacement-pin).
+The source for the guide change is `01b85611`. The manager checked all 497
+evidence hashes in receipt `388676b5-536e-45b0-91c7-891b0dfe8ae3`.
+This change documents file modes and changes no production code.
