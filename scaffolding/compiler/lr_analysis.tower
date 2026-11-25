@@ -151,6 +151,7 @@ fn lr_buffer_arena_reserve(data: u8**, length: usize, old_capacity: usize*, rese
     count: usize, size: usize, alignment: usize, arena: WorkArena*, owned: bool*): WorkBudgetError {
     if length > *old_capacity || size == 0 || count > ~convert(usize, 0) / size { return WorkBudgetError.Invalid; }
     if count <= *old_capacity { return WorkBudgetError.None; }
+    if reservation == null && owned != null { return WorkBudgetError.Invalid; }
     var capacity = *old_capacity * 2;
     if capacity < *old_capacity || capacity < count || capacity > ~convert(usize, 0) / size { capacity = count; }
     if capacity < WorkBufferInitialElements { capacity = WorkBufferInitialElements; }
@@ -162,7 +163,7 @@ fn lr_buffer_arena_reserve(data: u8**, length: usize, old_capacity: usize*, rese
     if owned != null && *owned { work_buffer_release(bits(void*, *data), reservation); *owned = false; }
     *data = next;
     *old_capacity = capacity;
-    *reservation = default;
+    if reservation != null { *reservation = default; }
     return WorkBudgetError.None;
 }
 
