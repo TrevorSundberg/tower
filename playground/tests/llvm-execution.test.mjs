@@ -279,10 +279,15 @@ test('LLVM bytecode preserves host signatures, nominal pointer types and public 
     fn function0(): i32 { return -9; }
     var pair: Pair; pair.value = -7;
     print(host_check(function0(), -5000000000, 4, tower_user(true), &pair));`;
+  const wrongPointer=source.replace('var pair: Pair;', 'struct Other { value: i32; } var pair: Other;');
+  const rejected=llvm.compile(wrongPointer,{emit:'foundation'});
+  assert.equal(rejected.status,'error');
+  assert.match(rejected.error,/Expected Pair\*, got Other\*/);
   for(const width of [4,8])for(const optimize of [false,true]){
     let called=0;
     const host=await loadTower(towerBytes,undefined,grammar,undefined,undefined,{imports:{
       host_check(context,a,b,count,flag,p){
+        assert.equal(context.pointerBytes,width);
         assert.equal(a,-9);assert.equal(b,-5000000000n);
         assert.equal(count,width===8?4n:4);assert.equal(flag,1);
         assert.equal(new DataView(context.memory().buffer,context.memory().byteOffset+Number(p)).getInt32(0,true),-7);
@@ -291,12 +296,21 @@ test('LLVM bytecode preserves host signatures, nominal pointer types and public 
     }});
     const result=llvm.compile(source,{emit:'foundation',optimize,target:width===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
     assert.equal(result.status,'compiled',result.error);
-    assert.match(result.foundation,/extern fn host_check\(\w+: integer_type\(32, 1\), \w+: integer_type\(64, 1\), \w+: address_type\(\), \w+: boolean_type\(\), \w+: pointer_type\(Pair\)\): integer_type\(32, 1\);/);
-    const handle=host.compile(result.foundation,{pointerBytes:width});
-    try{
-      host.useFast(handle);let state,output='';
-      do{state=host.execute(handle,10000);output+=state.output;}while(state.status==='executing');
-      assert.equal(state.status,'done',state.error);assert.equal(output,'-42\n');assert.equal(called,1);
-    }finally{host.destroyExecution(handle);}
+    assert.match(result.foundation,/^extern fn host_check\(\w+: i32, \w+: i64, \w+: usize, \w+: bool, \w+: Pair\*\): i32;$/m);
+    assert.match(result.foundation,/^export fn tower_user\(\w+: bool\): bool \{/m);
+    function checkCall(handle) {
+      const before=called;
+      try {
+        host.useFast(handle);let state,output='';
+        do{state=host.execute(handle,10000);output+=state.output;}while(state.status==='executing');
+        assert.equal(state.status,'done',state.error);assert.equal(output,'-42\n');assert.equal(called,before+1);
+      } finally { host.destroyExecution(handle); }
+    }
+    try {
+      checkCall(host.compile(result.foundation,{pointerBytes:width}));
+      const prepared=host.prepareFoundationPackage(result.foundation,{pointerBytes:width,optimizationProfile:result.optimizationProfile});
+      host.destroyExecution(prepared.handle);
+      checkCall(host.loadBytecode(prepared.bytecode));
+    } finally { host.close(); }
   }
 });

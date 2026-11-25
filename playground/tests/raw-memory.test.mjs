@@ -140,11 +140,17 @@ test('browser semantic compilation uses the selected target width, not the brows
   const source = 'import foundation; var big: usize = 4294967296; var size: usize = sizeof(void*); print(size); print(big);';
   const handle = tower.compile(source, {pointerBytes:8});
   try {
-    assert.equal(tower.execute(handle).output, '8\n4294967296\n');
-    assert.match(tower.foundation(handle).source, /sizeof\(pointer_type\(empty_type\(\)\)\)/);
+    const result = tower.execute(handle);
+    assert.equal(result.status, 'done', result.error);
+    assert.equal(result.output, '8\n4294967296\n');
+    assert.match(tower.foundation(handle).source, /^var size: usize = sizeof\(void\*\);$/m);
   } finally { tower.destroyExecution(handle); }
   const narrow = tower.compile(source);
-  try { assert.equal(tower.execute(narrow).status, 'error'); } finally { tower.destroyExecution(narrow); }
+  try {
+    const result = tower.execute(narrow);
+    assert.equal(result.status, 'error'); assert.match(result.error, /out of range/);
+    assert.equal(result.steps, 0); assert.equal(result.output, '');
+  } finally { tower.destroyExecution(narrow); }
 });
 
 test('array reflection and 64-bit interpreter foreign arguments retain target types', async () => {

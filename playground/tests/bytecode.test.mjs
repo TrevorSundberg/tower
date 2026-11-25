@@ -6,7 +6,9 @@ const read=path=>readFile(new URL('../../'+path,import.meta.url));
 const bytecodeContainerVersion=1, bytecodeSemanticsVersion=9, bytecodeExecutionCacheVersion=6;
 const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
 after(() => tower.close());
-test('Tower package preparation owns independent verified execution sessions', {skip:!tower.exports.ide_package_tests}, () => {
+test('Tower package preparation owns independent verified execution sessions', {
+  skip: !tower.exports.ide_package_tests && 'Build with TOWER_IDE_PACKAGE_TESTS=ON to export ide_package_tests',
+}, () => {
   assert.equal(tower.exports.ide_package_tests(),0);
 });
 test('prepared and loaded package handles retain their own diagnostic source map',async()=>{
