@@ -47,10 +47,11 @@ fn test_declaration_rejected(session: ExecutionSession*, source: u8*, modules: v
 fn execution_test_declarations(modules: void*): void {
     var session: ExecutionSession = default;
     defer execution_session_close(&session);
-    var source = "import tower; import tests.test_declaration_inputs.owner as owner; fn private_value(): i32 { return 99; } export fn main(): i32 { return 7; } print(private_value());";
+    var source = "import tower; import tests.test_declaration_inputs.owner as owner; fn private_value(): i32 { return 99; } export fn main(): i32 { return 7; } print(private_value()); print(owner.shared_value);";
     execution_compile(&session, source, 8, modules);
     execution_run(&session, 7, 10000);
-    execution_check(session.program.test_count == 0 && execution_text(&session.output, "99\n"), "ordinary root");
+    execution_check(session.program.test_count == 0 && execution_text(&session.output, "99\n41\n"),
+        "ordinary root runs the call named test and excludes the test declarations");
     execution_check(execution_session_compile_tests(&session, source, strlen(source), 8, modules), "test request compiles");
     execution_check(session.program.test_count == 2, "two tests selected from imported owner");
     var bytes: work_vector(u8) = default;
