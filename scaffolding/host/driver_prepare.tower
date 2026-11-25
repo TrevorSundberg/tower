@@ -45,6 +45,20 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
         driver_error("--unit-retained-bytes requires additional --unit sources", "");
         return 1;
     }
+    if options.test_mode != DriverTestMode.None {
+        if options.source[0] == 0 || options.interpret || options.link_executable || options.library
+            || options.unit_count != 0 || options.link_count != 0 || !driver_same(options.emit, "exe")
+            || options.check_format || options.raw[0] != 0 || options.optimized[0] != 0
+            || !driver_same(options.target, target) || !options.comments || !options.optimize
+            || options.sysroot[0] != 0 || options.linker[0] != 0 || !driver_same(options.cc, "clang") {
+            driver_error("Test discovery requires one native Tower source without compile or link options", ""); return 1;
+        }
+        if (options.test_mode == DriverTestMode.Run && options.output[0] != 0)
+            || (options.depfile[0] != 0 && options.output[0] == 0) {
+            driver_error("Use --list-test-files -o inventory for a dependency-tracked file list", ""); return 1;
+        }
+        return 0;
+    }
     if options.link_executable {
         if options.output[0] == 0 || (options.source[0] == 0 && options.link_count == 0)
             || options.interpret || options.library || options.unit_count != 0 || options.check_format

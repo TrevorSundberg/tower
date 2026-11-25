@@ -1,0 +1,148 @@
+import tower;
+import driver_types;
+import driver_request;
+import driver_support;
+import driver_paths;
+import driver_format;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+import .library.work_budget_types;
+
+extern fn driver_platform_file_kind(path: u8*): DriverFileKind;
+extern fn driver_platform_write_result(fd: i32, text: u8*, length: usize): bool;
+extern fn frontend_module_root_world_size_result(world: void*, source: u8*, length: usize, environment: void*, error: WorkBudgetError*): void*;
+extern fn frontend_module_session(module: void*): void*;
+extern fn sem_resource_message(error: WorkBudgetError): u8*;
+extern fn syntax_read_import(session: void*): void;
+extern fn frontend_module_finish(module: void*): void;
+extern fn frontend_module_count(module: void*): usize;
+extern fn frontend_module_at(module: void*, index: usize): void*;
+extern fn frontend_module_name(module: void*): u8*;
+extern fn frontend_module_error(module: void*): u8*;
+extern fn frontend_module_destroy(module: void*): void;
+extern fn frontend_module_load_companion(owner: void*, path: u8*): void*;
+extern fn frontend_modules_depfile_discovery(environment: void*, output: u8*, path: u8*,
+    inputs: u8**, count: usize, optional_start: usize): bool;
+
+// Both handles borrow the same live frontend graph. A frontend test pass can
+// use the owner's bindings while diagnostics continue to use the companion.
+struct DriverTestCompanion {
+    owner: void*;
+    module: void*;
+}
+
+fn driver_test_watch_directory(directories: DriverArguments*, candidate: ByteBuffer*): bool {
+    var end = candidate.length;
+    while end != 0 && candidate.data[end - 1] != *"/" { end--; }
+    if end == 0 { return false; }
+    var saved = candidate.data[end];
+    candidate.data[end] = 0;
+    defer { candidate.data[end] = saved; }
+    foreach (var directory in &directories.values) {
+        if driver_same(directory, candidate.data) { return true; }
+    }
+    driver_argument(directories, "", candidate.data);
+    return directories.ok;
+}
+
+fn driver_test_output_safe(options: DriverOptions*, path: u8*): bool {
+    return (options.output[0] == 0 || driver_output_safe(path, options.output))
+        && (options.depfile[0] == 0 || driver_output_safe(path, options.depfile));
+}
+
+fn driver_test_discover(request: DriverRequest*, root: void*, companions: vector(DriverTestCompanion)*, directories: DriverArguments*): bool {
+    var candidate: ByteBuffer = default;
+    defer bytes_dispose(&candidate);
+    // Loading one companion may append its imports. Iterate the frontend's
+    // unique completion order by index, without borrowing its growing column.
+    for (var i: usize = 0; i < frontend_module_count(root); i++) {
+        var owner = frontend_module_at(root, i);
+        var path = frontend_module_name(owner);
+        if !driver_test_output_safe(request.options, path) { return false; }
+        var extension = driver_extension(path);
+        if !driver_same(path + extension, ".tower") { continue; }
+        var suffix = "_test.tower";
+        var length = strlen(path);
+        if length >= strlen(suffix) && driver_same(path + length - strlen(suffix), suffix) { continue; }
+        candidate.length = 0;
+        if !bytes_append(&candidate, path, extension) || !driver_text(&candidate, suffix) || !host_text_terminate(&candidate) {
+            driver_error("Cannot allocate companion path for ", path); return false;
+        }
+        if !driver_test_output_safe(request.options, candidate.data) { return false; }
+        if request.options.depfile[0] != 0 && !driver_test_watch_directory(directories, &candidate) {
+            driver_error("Cannot track companion directory for ", path); return false;
+        }
+        var kind = driver_platform_file_kind(candidate.data);
+        if kind == DriverFileKind.Missing { continue; }
+        if kind != DriverFileKind.Regular {
+            driver_error("Cannot read companion file: ", candidate.data); return false;
+        }
+        var module = frontend_module_load_companion(owner, candidate.data);
+        if module == null {
+            var error = frontend_module_error(root);
+            var input = &request.text[DriverSourceText];
+            driver_report(error[0] == 0 ? "Cannot load companion" : error, 0, input.data, input.length,
+                candidate.data, request.modules);
+            return false;
+        }
+        var pair: DriverTestCompanion = {owner: owner, module: module};
+        if !vector_push(companions, pair) { driver_error("Cannot retain companion: ", candidate.data); return false; }
+    }
+    return true;
+}
+
+fn driver_test_request(request: DriverRequest*): i32 {
+    var options = request.options;
+    var input = &request.text[DriverSourceText];
+    if tower_utf8_validate(input.data, input.length, 1) == 0 {
+        driver_error("Test entry must be UTF-8 without NUL bytes: ", options.source); return 1;
+    }
+    var storage_error = WorkBudgetError.None;
+    var root = frontend_module_root_world_size_result(request.world, input.data, input.length, request.modules, &storage_error);
+    if root == null {
+        driver_report(sem_resource_message(storage_error), 0, input.data, input.length, options.source, request.modules);
+        return 1;
+    }
+    defer frontend_module_destroy(root);
+    var session = frontend_module_session(root);
+    if session == null { driver_error(frontend_module_error(root), ""); return 1; }
+    syntax_read_import(session);
+    var error = syntax_get_error(session);
+    if error[0] == 0 {
+        frontend_module_finish(root);
+        error = frontend_module_error(root);
+    }
+    if error[0] != 0 {
+        driver_report(error, syntax_get_error_offset(session), input.data, input.length, options.source, request.modules);
+        return 1;
+    }
+    var ordinary_count = frontend_module_count(root);
+    var companions: vector(DriverTestCompanion) = default;
+    defer vector_dispose(&companions);
+    var directories: DriverArguments;
+    driver_arguments_init(&directories);
+    defer driver_arguments_dispose(&directories);
+    if !driver_test_discover(request, root, &companions, &directories) { return 1; }
+    if options.test_mode == DriverTestMode.Run {
+        driver_error("Frontend test execution is unavailable for ", options.source); return 1;
+    }
+    var list: ByteBuffer = default;
+    defer bytes_dispose(&list);
+    foreach (var &pair in &companions) {
+        if !driver_text(&list, frontend_module_name(pair.module)) || !bytes_push(&list, *"\n") {
+            driver_error("Cannot allocate companion file list", ""); return 1;
+        }
+    }
+    if options.depfile[0] != 0 {
+        if !driver_output_safe(options.output, options.depfile) { return 1; }
+        if !frontend_modules_depfile_discovery(request.modules, options.output, options.depfile,
+            directories.values.data, directories.values.length, ordinary_count) {
+            driver_error("Cannot write test dependency file: ", options.depfile); return 1;
+        }
+    }
+    var written = options.output[0] == 0 ? driver_platform_write_result(1, list.data, list.length)
+        : driver_write_file(options.output, list.data, list.length);
+    if !written { driver_error("Cannot write companion file list", ""); return 1; }
+    return 0;
+}

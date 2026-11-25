@@ -19,6 +19,7 @@ import driver_units;
 import driver_support;
 import driver_platform;
 import driver_format;
+import driver_test_discovery;
 import .library.bytes_types;
 import .library.bytes_interface;
 import .compiler.semantic_program_types;
@@ -482,6 +483,7 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
     }
     driver_timing_mark(timing, options.timings, "bootstrap");
     if formatting { return driver_format(request); }
+    if options.test_mode != DriverTestMode.None { return driver_test_request(request); }
     var state: DriverCompilation = default;
     state.request = request;
     state.timing = timing;

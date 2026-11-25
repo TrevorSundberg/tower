@@ -141,6 +141,33 @@ fn driver_import_checks(files: DriverImportFiles*, compiler: u8*, resources: u8*
     return driver_import_run(files, compiler, "import ..effects; import ..alias;", "7\n7\n");
 }
 
+// Exercise the production graph, including a companion-only import. The second
+// spelling of the owner must not emit a second line. No test grammar is needed.
+fn driver_import_companions(files: DriverImportFiles*, compiler: u8*): bool {
+    if !driver_import_add(files, "/inventory.tower", "import two; import \"./two.tower\";")
+        || !driver_import_add(files, "/only_in_test.tower", "import tower;")
+        || !driver_import_add(files, "/two_test.tower", "import only_in_test;") { return false; }
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--list-test-files");
+    driver_argument(&args, files.root.data, "/inventory.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    var output: ByteBuffer = default;
+    defer bytes_dispose(&output);
+    if !driver_read_file("driver stdout.txt", &output) { return false; }
+    var suffix = "/two_test.tower\n";
+    if output.length < strlen(suffix) || !driver_same(output.data + output.length - strlen(suffix), suffix) { return false; }
+    for (var i: usize = 0; i + 1 < output.length; i++) {
+        if output.data[i] == *"\n" { return false; }
+    }
+    if !driver_import_add(files, "/two_test.tower", "import tower;\nimport missing_sidecar_dependency;") { return false; }
+    if driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stderr.txt", "two_test.tower:2:", false);
+    return true;
+}
+
 fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
     driver_import_identity(compiler, resources);
     var files: DriverImportFiles = default;
@@ -152,7 +179,7 @@ fn driver_test_module_paths(compiler: u8*, resources: u8*): bool {
         || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
     driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
     defer driver_import_close(&files);
-    var ok = driver_import_checks(&files, compiler, resources);
+    var ok = driver_import_checks(&files, compiler, resources) && driver_import_companions(&files, compiler);
     if ok { driver_platform_write(DriverImportStdout, "Native module paths passed\n", strlen("Native module paths passed\n")); }
     return ok;
 }

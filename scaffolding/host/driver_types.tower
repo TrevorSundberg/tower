@@ -6,6 +6,9 @@ enum DriverOptionError: u32 { None = 0, MissingValue = 1, Unexpected = 2, Alloca
 // semantic component and foreign LLVM heap limits remain separate policies.
 var DriverUnitRetainedByteLimit: usize = 268435456;
 
+enum DriverTestMode: u8 { None, Run, ListFiles }
+enum DriverFileKind: u8 { Missing, Regular, Unavailable }
+
 struct DriverOptions {
     source: u8*;
     output: u8*;
@@ -38,4 +41,5 @@ struct DriverOptions {
     comments: bool;
     check_format: bool;
     link_executable: bool;
+    test_mode: DriverTestMode;
 }
