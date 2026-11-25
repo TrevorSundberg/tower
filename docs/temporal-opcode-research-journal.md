@@ -100876,3 +100876,47 @@ Receipt `c666b528-1f21-42aa-87a2-80e41298f5c6` has archive SHA-256
 `49b85741a3393d15be603b61cf7786e51c0788c8717d0baea027fee45c127429`.
 The packet includes the input hashes, commands, raw runs, ordered object
 inventories and separate ledger observations.
+
+## Edited Foundation imports through browser workers
+
+The ordinary Bedrock lesson exposed two distinct failures. While the editor
+had the syntax library selected, the parser installed the Foundation wrapper
+under that selection's path. Its import appeared to be a self-import. A cold
+execution worker also installed the wrapper before uploading the edited
+project, which made it read the bundled syntax instead. A retained worker
+could validate against the previous project's files.
+
+The browser-host repair at `f595ea02` uploads the current project before
+installing its grammar. Installation uses the wrapper's own lexical module
+path and restores the active document in a finally block. A separate
+regression opens a same-named sibling after a rejected wrapper installation.
+A second control keeps a broken downstream import from preventing inspection
+of Bedrock itself. This site used browser compiler and resources `3390c2c8`.
+
+The manager checked the 804 packet checksums and the raw Chromium test
+results. With identical assertions, the sealed site passed eight of ten
+desktop/mobile cases. The edited keyword failed once on each viewport.
+The repaired site passed all ten in one attempt each. On both viewports
+the graph interpreter, fast interpreter and LLVM runner each printed 42
+after the keyword and dependent syntax edit, 7 after undo and 29 after
+restoring the invalid Bedrock document. Missing imports and actual cycles
+still produced diagnostics. The 32 adjacent browser checks passed on each
+site. All 31 final Node checks passed. Five worker bundles and their five
+maps accounted for all ten changed asset hashes.
+
+On a Ryzen 5 3600 with CPUs 0–11, six physical cores, a quota of 11.52
+CPUs and zero measured throttling, each arm ran six fresh browser processes
+per configuration in counterbalanced order. For the same short program,
+portable cold reply median fell from 171 to 137 ms and four-lane cold from
+243 to 213 ms. Unchanged warm medians were 6.85 to 6.90 ms portable and
+8.13 to 9.14 ms at four lanes. Outputs were 7, 7 and 9 on cold, unchanged
+and edited requests. Whole-harness median CPU was 0.79 to 0.74 s portable
+and 0.94 to 0.84 s at four lanes. Per-process maximum RSS medians were
+135932 to 134162 KiB and 144380 to 143308 KiB respectively. Aggregate
+browser RSS was outside this measurement.
+
+Receipt `848f6034-9f80-4843-b115-e1001fc85a75` has archive SHA-256
+`e8e66e91500364e8bc1648fc5502ae81bfbe418bc6eb6d1bed41e7ba94d9999b`.
+Its source and journal bundles contain the tested UI changes. The release
+worker received both bundles with verified hashes. Public runtime deployment
+requires sealing and verifying the combined product.
