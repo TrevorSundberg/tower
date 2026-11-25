@@ -348,9 +348,10 @@ fn lr_probe_failure(budget: LRProbeBudget*, error: WorkBudgetError): void {
 
 fn lr_probe_reserve(value: LRProbe*, needed: usize): bool {
     var frames = &value.frames;
+    var capacity = frames.storage.capacity / sizeof(LRProbeFrame);
+    if needed <= capacity { return true; }
     var error = work_buffer_grow_elements(&frames.storage, value.runtime.budget, frames.length,
-        frames.storage.capacity / sizeof(LRProbeFrame), needed, sizeof(LRProbeFrame),
-        alignof(LRProbeFrame));
+        capacity, needed, sizeof(LRProbeFrame), alignof(LRProbeFrame));
     if error != WorkBudgetError.None { lr_probe_failure(value.budget, error); return false; }
     frames.data = bits(LRProbeFrame*, frames.storage.data);
     return true;
@@ -529,11 +530,13 @@ struct LRCompletionPaths {
 fn lr_completion_path_add(paths: LRCompletionPaths*, budget: WorkBudget*, value: LRCompletionPath): WorkBudgetError {
     var needed = paths.length + 1;
     if needed == 0 { return WorkBudgetError.Invalid; }
-    var error = work_buffer_grow_elements(&paths.storage, budget, paths.length,
-        paths.storage.capacity / sizeof(LRCompletionPath), needed, sizeof(LRCompletionPath),
-        alignof(LRCompletionPath));
-    if error != WorkBudgetError.None { return error; }
-    paths.data = bits(LRCompletionPath*, paths.storage.data);
+    var capacity = paths.storage.capacity / sizeof(LRCompletionPath);
+    if needed > capacity {
+        var error = work_buffer_grow_elements(&paths.storage, budget, paths.length,
+            capacity, needed, sizeof(LRCompletionPath), alignof(LRCompletionPath));
+        if error != WorkBudgetError.None { return error; }
+        paths.data = bits(LRCompletionPath*, paths.storage.data);
+    }
     paths.data[paths.length++] = value;
     return WorkBudgetError.None;
 }

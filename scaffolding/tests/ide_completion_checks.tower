@@ -134,6 +134,7 @@ fn ide_completion_checks(): void {
     q_nested_completion(&f, 1); q_nested_completion(&f, 3); q_nested_completion(&f, 6);
     q_case(&f, "completion: unfinished signatures and loop context");
     q_labels(&f, "import foundation;\nfn f(value: i|", "i16|i32|i64|i8");
+    q_labels(&f, "import tower;\nfn f(value: i|", "i16|i32|i64|i8");
     q_labels(&f, "import foundation;\nfn f(): i|", "i16|i32|i64|i8");
     q_labels(&f, "import foundation;\nstruct Point { x: i|", "i16|i32|i64|i8");
     prefix = "import foundation;\nfn good(): bool { return true; } fn gone(): void {} fn amount(): i32 { return 1; } ";
