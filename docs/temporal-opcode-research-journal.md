@@ -105159,3 +105159,18 @@ This includes stale permits, explicit cancellation, infinite guests and LLVM
 warmup. Assignment `292bb721-dae1-44b2-8b68-167474b9e848` retains the console,
 commands, local traces, timing records, input hashes and control patches.
 The full integrated Jenkins run remains open for manager review.
+
+### Cold object compilation on the published 0823b028 package
+
+Host 5 compared the published Linux packages on the original 16- and 1,000-function inputs. Each compiler ran as a fresh process with warm file pages, on the same four physical Ryzen 9 5900XT cores (4–7) under a 30.72-CPU quota. Four counterbalanced blocks had zero measured throttling. Each Tower object matched the corresponding historical object. All linked guests printed 15 or 999 as appropriate, and both packages agreed on canonical Foundation and ordered conflict diagnostics. The early link comparison that lacked its reference was recovered by completing the links and checking the original products. All measured compiler invocations appear once in the raw data.
+
+| Functions | 670b7b89, one worker | 0823b028, one worker | 0823b028, four workers | Clang 19.1.7, C reference |
+| --- | ---: | ---: | ---: | ---: |
+| 16 | 166.44 ms | 167.33 ms | 186.25 ms | 21.77 ms |
+| 1,000 | 302.89 ms | 307.09 ms | 320.34 ms | 88.92 ms |
+
+These are mean object-compilation wall times. For 0823b028 at one worker, mean user/system time was 141.66/25.19 ms on the smaller case and 268.86/37.73 ms on the larger. Maximum individual RSS was 87,880/117,320 KiB respectively. At four workers those peaks were 92,252/121,580 KiB. The current package took longer in all eight serial package pairs. Its four-worker runs also took longer than its own serial runs at both sizes. These single-unit references exercise Tower's editable frontend and Clang's built-in C frontend. The separate favorable invoice and independent-evaluator results concern different workloads. Receipt `1d80c083-d143-4c1a-a82e-05d86e0bd5f6` contains the pinned resources, CPU and process-tree samples, individual products and four-block deltas.
+
+### Release qualification for the existing-dot completion change
+
+The reviewed UI in `11a0c46e` has Pages tree `b6003579`, reconstructed from parent `89c08614` and the overlay in receipt `928d5da5-1f45-4e74-8180-54fee6aee9fb`. All 107 manifest digests matched. The three changed files were app.js, its source map and the deployment manifest. The compiler and editable project still identify source `0823b028`. On loopback, nine completion tests passed on each viewport. Manual Execute produced 42 in all three backends on each. Host 7 ran the Jenkins 44 idle fixture with the same candidate app and shared reactor, verified the six worker lifetimes through the exact 43/44 output and passed all ten adjacent cancellation/permit cases. Receipt `875902bd-e160-43a2-8d69-2e1be6cbbe63` contains the protocol and ordinary runs. The editable compiler Build, hosted deployment and full Jenkins result have separate gates.
