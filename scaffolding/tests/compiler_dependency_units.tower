@@ -186,6 +186,8 @@ fn unit_mixed_receipts(root: u8*, bedrock: u8*, foundation: u8*, capacity_unit: 
     var sources: u8*[3];
     var count = sizeof(decltype(sources)) / sizeof(u8*);
     var valid = "import tower; fn answer():i32{return 42;}";
+    var reference = units_memory_measure(bedrock, foundation, root, "receipt.tower", valid);
+    var refusal_bytes = units_import_refusal_bytes(&reference, units_memory_input_bytes("receipt.tower", strlen(valid)));
     var invalid = "import tower; fn answer():i32{return unknownFirstUnit;}";
     sources[0] = "";
     sources[1] = capacity_unit == 2 ? valid : invalid;
@@ -204,8 +206,8 @@ fn unit_mixed_receipts(root: u8*, bedrock: u8*, foundation: u8*, capacity_unit: 
     // Keep the measured single-unit import allowance available to this worker.
     var held: WorkReservation = default;
     var budget = frontend_units_work_budget(batch);
-    units_check(admitted.used_lanes == count && admitted.bytes - admitted.used_bytes > UnitImportRefusalBytes
-        && work_budget_reserve(budget, 0, 0, admitted.bytes - admitted.used_bytes - UnitImportRefusalBytes, &held),
+    units_check(admitted.used_lanes == count && admitted.bytes - admitted.used_bytes > refusal_bytes
+        && work_budget_reserve(budget, 0, 0, admitted.bytes - admitted.used_bytes - refusal_bytes, &held),
         "Mixed receipts admitted with bounded import headroom");
     work_signal_post(gates.capacity);
     var started = unit_stream_clock();

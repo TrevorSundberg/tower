@@ -14,6 +14,7 @@ import utility_checks;
 import .library.work_budget;
 import .library.work_vector_types;
 
+extern fn syntax_read_import(session: void*): void;
 extern fn parser_structure_cache_dispose(cache: ParserStructureCache*): void;
 extern fn parser_structure_cache_copy(target: ParserStructureCache*, source: ParserStructureCache*): bool;
 extern fn compiler_world_work_budget(world: void*): WorkBudget*;
@@ -314,6 +315,7 @@ fn parser_structure_reuse_tests(): void {
     structure_index_failure_case();
     structure_scope_cases();
     structure_reachable_cases();
+    structure_import_reader_cases();
     frontend_session_world_tests(); // imported overrides, cycles, reset, independent owners
     puts("Parser structural reuse, identities, metadata, cancellation and lifetime passed");
 }
@@ -368,4 +370,39 @@ fn structure_reachable_cases(): void {
     utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Reachable grammar owners drain");
     utility_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget),
         "Reachable grammar releases bytes, lanes and grants");
+}
+
+fn structure_import_reader_cases(): void {
+    var budget: WorkBudget = default;
+    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Import reader budget");
+    var world: void* = null;
+    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Import reader world");
+    var modules = frontend_modules_create();
+    utility_check(frontend_modules_bind_world(modules, world), "Import reader environment");
+    var session = syntax_session_open(world, modules, "parse Statement = 'old' ';';old;", null, SyntaxFoundationBaseline);
+    utility_check(session != null, "Open import reader");
+    var initial = session.cache.index.entries.length;
+    syntax_read_import(bits(void*, session));
+    utility_check(syntax_get_error(bits(void*, session))[0] == 0 && session.cache.index.entries.length == initial,
+        "An imported declaration installs without a historical version cache pin");
+    var held = syntax_version_retain(session.pins.version);
+    var old_literal = syntax_emission_literal(held.emission, "old");
+    utility_check(old_literal != convert(u32, SyntaxTokenId.End), "Old literal in held import");
+    syntax_reset(bits(void*, session), "parse Statement = 'changed' ';';changed;", null);
+    syntax_read_import(bits(void*, session));
+    utility_check(syntax_get_error(bits(void*, session))[0] == 0 && session.pins.version != held
+        && syntax_emission_literal(session.pins.version.emission, "changed") != convert(u32, SyntaxTokenId.End),
+        "Edited source has an independent active version");
+    syntax_reset(bits(void*, session), "parse Statement = 'broken' ';';old;", null);
+    syntax_read_import(bits(void*, session));
+    utility_check(syntax_get_error(bits(void*, session))[0] != 0, "Failed import after a successful declaration");
+    syntax_destroy(bits(void*, session));
+    var table = bits(ParserHostTable*, held.table);
+    utility_check(table.built && lr_grammar_rule_count(table.grammar) != 0
+        && syntax_emission_literal(held.emission, "old") == old_literal, "Held import survives reader failure and retirement");
+    syntax_version_release(held);
+    frontend_modules_destroy(modules);
+    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Import reader world drains");
+    utility_check(budget.used_bytes == 0 && budget.used_lanes == 0 && budget.live == 0
+        && work_budget_dispose(&budget), "Last held alias releases its charges");
 }

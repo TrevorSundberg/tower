@@ -23,6 +23,7 @@ extern fn frontend_units_close(batch: void*): void;
 extern fn frontend_units_work_budget(batch: void*): WorkBudget*;
 extern fn frontend_units_input_bytes(batch: void*): usize;
 extern fn frontend_units_environment(batch: void*, ordinal: usize): void*;
+extern fn frontend_modules_error_file(environment: void*): u8*;
 extern fn frontend_modules_world(environment: void*): void*;
 extern fn entity_view_open(anchor: void*): void*;
 extern fn entity_view_close(view: void*): void;
@@ -74,7 +75,6 @@ fn units_memory_snapshot(batch: void*): WorkBudgetSnapshot {
 // Independent expected bytes: exact NUL-terminated payload plus the documented
 // four-word compiler buffer header. Parser/world storage is additional.
 var UnitSnapshotHeaderWords: usize = 4;
-var UnitImportRefusalBytes: usize = 62914560;
 var UnitSharedSnapshotBuffers: usize = 3;
 var UnitSourceSnapshotBuffers: usize = 2;
 
@@ -110,6 +110,11 @@ fn units_memory_answer(program: SemanticProgram*): void {
 }
 
 struct UnitMemorySample { constructed: WorkBudgetSnapshot; peak: usize; }
+
+fn units_import_refusal_bytes(sample: UnitMemorySample*, input: usize): usize {
+    var allowance = sample.peak - sample.constructed.used_bytes - input;
+    return allowance - allowance / 8;
+}
 
 // Calibrate compilation storage with the same checked source and fresh owners.
 // Tight input/header expectations below stay independent of this measurement.
@@ -212,10 +217,9 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
     var base = resources + construction;
     units_memory_check(reference.peak > base + input, "Compilation peak exceeds retained constructor and input bytes");
     var allowance = reference.peak - base - input;
-    // Preserve the original finite-budget import failure separately from the
-    // later measured peak: these exercise different producer phases.
-    var import_cap = base + input + UnitImportRefusalBytes;
-    units_memory_check(import_cap < reference.peak, "Import denial policy is below this source's measured requirement");
+    // Refuse during the import at a fraction of this source's measured peak.
+    // The source-map assertion below checks which reader encountered the cap.
+    var import_cap = base + input + units_import_refusal_bytes(&reference, input);
     // Baseline LR allocation can report a grammar diagnostic even though the
     // byte ledger refused it, before a semantic program exists.
     var baseline_cap: usize = 1048576;
@@ -238,6 +242,11 @@ export fn frontend_units_memory_tests(bedrock: u8*, foundation: u8*, root: u8*):
         && frontend_units_program(denied, 1) == null && resource_ok
         && frontend_units_failure_resource(denied) == WorkBudgetError.Capacity,
         "Imported parser capacity failure retains its typed cause through unit output");
+    var refused_path = frontend_modules_error_file(frontend_units_environment(denied, 1));
+    var suffix = "/tower.tower";
+    var refused_length = strlen(refused_path);
+    units_memory_check(refused_length >= strlen(suffix) && strcmp(&refused_path[refused_length - strlen(suffix)], suffix) == 0,
+        "Import denial points into the nested Tower grammar");
     frontend_units_close(denied);
     denied = frontend_units_create_bounded(1, 1, reference.peak - 1,
         8, 1, 1, bedrock, foundation, root);

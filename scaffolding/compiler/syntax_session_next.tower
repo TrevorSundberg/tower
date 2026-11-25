@@ -9,6 +9,7 @@ import frontend_cache;
 import frontend_modules;
 import frontend_revision_types;
 import frontend_world;
+import grammar_observer;
 import lr_analysis;
 import lr_parser;
 import lr_tree;
@@ -95,12 +96,19 @@ fn syntax_session_comments(value: SyntaxSession*, declaration: SyntaxNode*, thro
     return true;
 }
 
-fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): bool {
+fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*, declarations: ParserStructureCache*): bool {
     var diagnostic: SyntaxVersionDiagnostic = default;
     defer syntax_version_diagnostic_dispose(&diagnostic);
     diagnostic.offset = value.error_offset;
-    var version = syntax_version_cached_reusing(&value.cache, value.inputs.world, candidate, value.pins.bedrock,
-        &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
+    var version: SyntaxVersion*;
+    if declarations == null {
+        version = syntax_version_cached_reusing(&value.cache, value.inputs.world, candidate, value.pins.bedrock,
+            &diagnostic, syntax_world_structures(value.inputs.world, value.pins.bedrock));
+    } else {
+        grammar_observe(value.inputs.world, GrammarPhase.Build, true, candidate.rules.length, candidate.tokens.length);
+        version = syntax_version_build_reusing(value.inputs.world, candidate, value.pins.bedrock, &diagnostic, declarations);
+        grammar_observe(value.inputs.world, GrammarPhase.Build, false, candidate.rules.length, candidate.tokens.length);
+    }
     syntax_session_resource_fail(value, diagnostic.resource_error);
     defer syntax_version_release(version);
     value.error_offset = diagnostic.offset;
@@ -114,7 +122,7 @@ fn syntax_session_install(value: SyntaxSession*, candidate: FrontendRevision*): 
     return true;
 }
 
-fn syntax_session_declare(value: SyntaxSession*, construct: void*): bool {
+fn syntax_session_declare(value: SyntaxSession*, construct: void*, declarations: ParserStructureCache*): bool {
     var error: vector(u8);
     vector_init(&error);
     defer vector_dispose(&error);
@@ -127,7 +135,7 @@ fn syntax_session_declare(value: SyntaxSession*, construct: void*): bool {
         else { syntax_session_error_bytes(value, error.data, error.length); }
         return false;
     }
-    return syntax_session_install(value, candidate);
+    return syntax_session_install(value, candidate, declarations);
 }
 
 fn syntax_session_read_declaration(value: SyntaxSession*, construct: void*, rule: bool, skipped: bool): bool {
@@ -240,7 +248,25 @@ fn syntax_session_finish(value: SyntaxSession*): void {
 }
 
 export fn syntax_next(opaque: void*): void* {
+    return syntax_session_next(bits(SyntaxSession*, opaque), null);
+}
+
+// Import readers consume successive declarations in source order. The active
+// version pins its full table. Keep the latest frozen structure for reuse by
+// an adjacent equivalent declaration until this reader returns.
+export fn syntax_read_import(opaque: void*): void {
     var value = bits(SyntaxSession*, opaque);
+    var structures: ParserStructureCache = {world: value.inputs.world,
+        budget: compiler_world_work_budget(value.inputs.world), limit: 1, ..default};
+    defer parser_structure_cache_dispose(&structures);
+    loop {
+        var root = syntax_session_next(value, &structures);
+        if root == null { return; }
+        entity_release(root);
+    }
+}
+
+fn syntax_session_next(value: SyntaxSession*, declarations: ParserStructureCache*): void* {
     if value.error.length != 0 || value.resource_error != WorkBudgetError.None { return null; }
     fill(&value.expansion_stats, 0, sizeof(SyntaxSessionExpansionStats));
     syntax_session_skip(value, &value.cursor, &value.highlights);
@@ -333,13 +359,13 @@ export fn syntax_next(opaque: void*): void* {
         var grammar = frontend_module_grammar(module);
         var candidate = syntax_revision_create(grammar.rules.data, grammar.rules.length, grammar.tokens.data, grammar.tokens.length);
         defer frontend_revision_release(candidate);
-        if !syntax_session_install(value, candidate) { return null; }
+        if !syntax_session_install(value, candidate, null) { return null; }
     }
     if lexical || rule {
         value.error_offset = start;
         if !syntax_session_read_declaration(value, construct, rule, skipped) { return null; }
         if lexical && !syntax_session_pattern(value, construct) { return null; }
-        if !syntax_session_declare(value, construct) { return null; }
+        if !syntax_session_declare(value, construct, declarations) { return null; }
     }
     if value.declaration {
         var declaration = syntax_session_node(construct);

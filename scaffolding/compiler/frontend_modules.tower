@@ -42,6 +42,7 @@ extern fn syntax_session_resource_error(session: void*): WorkBudgetError;
 extern fn syntax_reset(session: void*, source: u8*, module: FrontendModule*): void;
 
 extern fn syntax_next(session: void*): void*;
+extern fn syntax_read_import(session: void*): void;
 
 extern fn syntax_capture_comments(session: void*, module: FrontendModule*): void;
 
@@ -924,13 +925,7 @@ fn module_load(parent: FrontendModule*, name: u8*, literal: bool): FrontendModul
                     else {
                         syntax_reset(session, result.source.text.data, result);
                     }
-                    loop {
-                        var root = syntax_next(session);
-                        if root == null {
-                            break;
-                        }
-                        entity_release(root);
-                    }
+                    syntax_read_import(session);
                     var resource_error = syntax_session_resource_error(session);
                     if resource_error == WorkBudgetError.None { resource_error = parent.graph.resource_error; }
                     if resource_error != WorkBudgetError.None {
