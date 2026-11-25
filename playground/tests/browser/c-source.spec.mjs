@@ -8,10 +8,11 @@ test('C is optional, ordered, highlighted, downloadable and obeys shared options
     if(sessionStorage.getItem('c-test-initialized')) return;
     sessionStorage.setItem('c-test-initialized','1');
     localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:true}));
-    localStorage.setItem('tower-playground-source-v1','// a carried comment\nfn answer():i32 { return 42; } print(answer());');
+    localStorage.setItem('tower-playground-source-v1','import tower;\n// a carried comment\nfn answer():i32 { return 42; } print(answer());');
   });
   await page.goto('/');
-  await expect(page.locator('#execution-status')).toContainText('backends match');
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('#execution-output')).toHaveJSProperty('textContent', '42\n');
   await expect(page.locator('#c-column')).toBeHidden();
   await page.locator('#build-targets summary').click();
   await expect(page.locator('#target-c')).not.toBeChecked();
@@ -30,7 +31,9 @@ test('C is optional, ordered, highlighted, downloadable and obeys shared options
   const artifact=await download;
   expect(artifact.suggestedFilename()).toMatch(/-c\.c$/);
   const raw=await readFile(await artifact.path(),'utf8');
+  expect(raw).toBe(await outputText(page,'c-disassembly'));
   expect(raw).toContain('int main(void)');
+  expect(raw).toContain('#define TC_POINTER_BYTES 8');
   await page.locator('#build-targets summary').click();
   await page.locator('#optimize').check();
   await expect.poll(async()=>{

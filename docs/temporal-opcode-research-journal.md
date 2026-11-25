@@ -100710,3 +100710,23 @@ observations, before/after reports and 16 reconstructible trace ZIPs.
 The manager checked all 1,917 member checksums and the 16 trace digests.
 The two suites exercised fixed product bytes and provide no runtime timing
 comparison.
+
+### Canceling an active browser target download
+
+The four original target fixtures on Pages 902a and sealed 3390 supplied
+ordinary guest statements without importing their language. The cancellation
+check could also pass after Windows compilation had already finished. A page
+route missed the cross-compiler fetch issued by the dedicated worker. The
+revised test holds the worker's actual HTTP 200 response, cancels while that
+worker owns the pending build, and checks that its worker closes. A failed
+edit also revokes a previous download.
+
+On each release the four complete specs went from 12/20 to 20/20 across
+desktop and mobile with zero retries or skips. Downloaded C and simulated
+BrightScript printed the maximum unsigned 64-bit value, followed by 8 and
+4 respectively for pointer size. The Linux x64 guest ELF printed 42.
+Adding Arm64 requested the sibling runtime. Removing the selected x64
+runtime produced HTTP 404 and no ELF. Host 6 packet `765ced9f` contains
+the worker traffic and actual download bytes for test revision `cb0aa0ee`.
+The manager verified 3,527 checksums and reconstructed 30 trace ZIPs.
+These checks used frozen browser assets.

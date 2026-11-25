@@ -6,12 +6,13 @@ test('Roku downloads optimized BrightScript, preserves comments and clears stale
   test.setTimeout(120000);
   await page.addInitScript(()=>{
     localStorage.setItem('tower-build-targets-v3',JSON.stringify({wasm:true,c:true,roku:true}));
-    localStorage.setItem('tower-playground-source-v1','// Roku download note\nvar value:u64=18446744073709551615; print(value); print(sizeof(usize));');
+    localStorage.setItem('tower-playground-source-v1','import tower;\n// Roku download note\nvar value:u64=18446744073709551615; print(value); print(sizeof(usize));');
   });
   await page.goto('/');
   await expect(page.locator('#roku-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
   await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
-  await expect(page.locator('#execution-status')).toContainText('backends match');
+  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+  await expect(page.locator('#execution-output')).toHaveJSProperty('textContent', '18446744073709551615\n4\n');
   const download=page.waitForEvent('download');
   await page.locator('#roku-download').click();
   const artifact=await download;
@@ -24,7 +25,10 @@ test('Roku downloads optimized BrightScript, preserves comments and clears stale
   await expect(page.locator('#roku-disassembly .tw-comment').first()).toBeVisible();
   await page.locator('#build-targets summary').click();
   await page.locator('#optimize').uncheck();
-  await expect.poll(()=>outputText(page,'roku-disassembly'),{timeout:60000}).not.toBe(brs);
+  await expect.poll(async()=>{
+    const code=await outputText(page,'roku-disassembly');
+    return code.includes('function TowerRun(') && code!==brs;
+  },{timeout:60000}).toBe(true);
   await expect(page.locator('#roku-download')).toHaveAttribute('href',/^blob:/,{timeout:60000});
   await page.locator('#preserve-comments').uncheck();
   await expect.poll(async()=>{

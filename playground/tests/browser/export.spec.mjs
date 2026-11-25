@@ -74,12 +74,46 @@ test('native targets compile automatically, display disassembly and download pla
  await page.screenshot({path:`../build/targets-arm-${info.project.name}.png`,fullPage:true});
 });
 test('cancel stops pending native builds and edits discard stale downloads',async({page})=>{
- let release;const gate=new Promise(r=>release=r);
- await page.route('**/tower-cross.wasm.gz',async route=>{await gate;await route.continue().catch(()=>{});});
- await choose(page,'windows',true);await expect(page.locator('#windows-phase')).toHaveText('Loading…');
- await page.locator('#cancel-execution').click();await expect(page.locator('#execution-status')).toHaveText('Cancelled');
+ // Reuse the idle C emitter so the Windows build owns the first cross-compiler fetch.
+ await choose(page,'c',true);
+ await expect(page.locator('#c-download')).toHaveAttribute('href',/^blob:/);
+ await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+ const workers=page.workers().filter(worker=>worker.url().endsWith('/target-worker.js'));
+ expect(workers).toHaveLength(1);
+ const [worker]=workers;
+ await worker.evaluate(()=>{
+   const fetch=self.fetch.bind(self);
+   self.fetch=async(...args)=>{
+     const response=await fetch(...args);
+     if(new URL(response.url).pathname.endsWith('/tower-cross.wasm.gz') && response.ok){
+       self.__crossResponseStatus=response.status;
+       await new Promise(()=>{}); // Cancel must retire this worker while the real response is held.
+     }
+     return response;
+   };
+ });
+ await choose(page,'windows',true);
+ await expect.poll(()=>worker.evaluate(()=>self.__crossResponseStatus)).toBe(200);
+ await expect(page.locator('#windows-phase')).toHaveText('Loading…');
+ const closed=worker.waitForEvent('close');
+ await page.locator('#cancel-execution').click();
+ await closed;
+ await expect(page.locator('#execution-status')).toHaveText('Cancelled');
  await expect(page.locator('#windows-column > h2 > .output-phase')).toHaveText('Cancelled');
- release();await page.unroute('**/tower-cross.wasm.gz');await choose(page,'windows',false);
- const editor=page.getByRole('textbox',{name:'Tower source'});await editor.click();await editor.press('ControlOrMeta+a');await page.keyboard.insertText('print(42);');
- await expect(page.locator('#execution-output')).toHaveText('42\n');await expect(page.locator('#windows-downloads a')).toHaveCount(0);
+ await expect(page.locator('#windows-downloads a')).toHaveCount(0);
+ const editor=page.getByRole('textbox',{name:'Tower source'});
+ await page.locator('#editor').click({position:{x:80,y:20}});
+ await editor.press('ControlOrMeta+a');await page.keyboard.insertText('import foundation; print(42);');
+ await expect(page.locator('#execution-output')).toHaveJSProperty('textContent','42\n');
+ const download=page.locator('#windows-downloads a');
+ await expect(download).toHaveAttribute('href',/^blob:/);
+ const oldURL=await download.getAttribute('href');
+ await editor.press('ControlOrMeta+a');await page.keyboard.insertText('import foundation; print(missing_value);');
+ await expect(page.locator('#windows-phase')).toHaveText('Failed');
+ await expect(download).toHaveCount(0);
+ expect(await page.evaluate(async url=>{try {await fetch(url);return true;} catch {return false;}},oldURL)).toBe(false);
+ await choose(page,'windows',false);
+ await editor.press('ControlOrMeta+a');await page.keyboard.insertText('import foundation; print(42);');
+ await expect(page.locator('#execution-output')).toHaveJSProperty('textContent','42\n');
+ await expect(page.locator('#windows-downloads a')).toHaveCount(0);
 });
