@@ -1,11 +1,11 @@
 import tower;
 
-fn selected_array(items: i32[4]*, calls: usize*): i32[4]* {
+fn selected_array(items: i32[5]*, calls: usize*): i32[5]* {
     *calls += 1;
     return items;
 }
 
-fn first_even(items: i32[4]*, visits: usize*): i32 {
+fn first_even(items: i32[5]*, visits: usize*): i32 {
     foreach (var value in items) {
         defer { *visits += 1; }
         if value % 2 == 0 { return value; }
@@ -14,8 +14,8 @@ fn first_even(items: i32[4]*, visits: usize*): i32 {
 }
 
 fn fixed_array_iteration_check(): bool {
-    var items: i32[4];
-    items[0] = 1; items[1] = 2; items[2] = 3; items[3] = 4;
+    var items: i32[5];
+    items[0] = 1; items[1] = 2; items[2] = 3; items[3] = 4; items[4] = 5;
     var calls: usize = 0;
     foreach (var &item in selected_array(&items, &calls)) {
         if *item == 2 { continue; }
@@ -28,7 +28,7 @@ fn fixed_array_iteration_check(): bool {
         value = 0;
     }
     var visits: usize = 0;
-    return calls == 2 && digits == 11021304 && items[0] == 11
+    return calls == 2 && digits == 1102130405 && items[0] == 11
         && first_even(&items, &visits) == 2 && visits == 2;
 }
 
