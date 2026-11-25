@@ -87,13 +87,29 @@ test('member suggestions use inferred types and field-path resolution', async ({
 });
 
 test('late completion replies cannot replace suggestions for newer input', async ({page}) => {
-  await page.route('**/language-worker.js', async route => {
-    const response = await route.fetch();
-    await route.fulfill({response, body:await response.text()+`\nconst originalPost = self.postMessage.bind(self); self.postMessage = data => setTimeout(() => originalPost(data), 600);`});
-  });
-  await source(page, 'pri'); await page.keyboard.press('Control+Space');
-  await page.waitForTimeout(200); // Deliberately overlap a query with the edit.
-  await source(page, 'var value: u'); await page.keyboard.press('Control+Space');
+  const oldSource = 'import tower; pri';
+  await source(page, oldSource);
+  await page.evaluate(oldSource => {
+    const post = Worker.prototype.postMessage;
+    Worker.prototype.postMessage = function(data, ...args) {
+      if (data.method === 'complete' && data.source === oldSource && data.cursor === oldSource.length) {
+        Worker.prototype.postMessage = post;
+        const hold = event => {
+          if (event.data.id !== data.id) return;
+          this.removeEventListener('message', hold, true);
+          event.stopImmediatePropagation();
+          window.heldLabels = event.data.result.options.map(option => option.label);
+          window.releaseCompletion = () => this.dispatchEvent(new MessageEvent('message', {data:event.data}));
+        };
+        this.addEventListener('message', hold, true);
+      }
+      return post.call(this, data, ...args);
+    };
+  }, oldSource);
+  await page.keyboard.press('Control+Space');
+  await expect.poll(() => page.evaluate(() => window.heldLabels ?? [])).toContain('print');
+  await source(page, 'import tower; var value: u'); await page.keyboard.press('Control+Space');
+  await page.evaluate(() => window.releaseCompletion());
   await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'usize'})).toBeVisible();
   await expect(page.locator('.cm-tooltip-autocomplete [role=option]').filter({hasText:'print'})).toHaveCount(0);
 });
@@ -116,7 +132,7 @@ test('dot uses an exact prepared compiler answer, including changed types and a 
     };
   });
   for(const field of ['first','changed']) {
-    const text=`// 雪🚀\nstruct Point { ${field}:i32; } var point:Point; print(point);`;
+    const text=`import tower;\n// 雪🚀\nstruct Point { ${field}:i32; } var point:Point; print(point);`;
     await source(page,text);await page.keyboard.press('ArrowLeft');await page.keyboard.press('ArrowLeft');
     const predicted=text.replace('print(point);','print(point.);');
     await expect.poll(()=>page.evaluate(text=>window.prepared.includes(text),predicted)).toBe(true);

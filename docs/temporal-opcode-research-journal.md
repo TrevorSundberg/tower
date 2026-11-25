@@ -100992,3 +100992,41 @@ saturated old request terminates at the guard and has no successful timing.
 The raw packet includes each sample, CPU, memory capacity, callback traces,
 input validation, commands and standalone replay. No production change
 was required.
+
+### Host 2 browser editor lifecycle and stale completion fixture, 2026-11-25
+
+On frozen ca54328765c60d6e6d7d7941f03ad704f10e9537 (tree
+84e9315e2ab51330f004b8ec5f160029e6a2fd20), two desktop browser fixtures
+omitted the language import. Without it the newer input had no visible
+`usize` completion and the prepared dot had no `first` option. A same-site
+three-case selection passed stale hover and reproduced both timeouts. Adding
+`import tower;` to the two sources prepares valid programs. The stale case
+now retains the actual old `print` completion until after the edit and checks
+the request cursor, old reply and resulting visible `usize`. The prepared
+dot still checks exact fields across a Unicode prefix and a type change.
+
+The host 2 Playwright desktop selection for `late document replies|late
+completion replies|dot uses an exact prepared` passed 3/3 with the fixture.
+Original/fixed wall was 36.96/13.21 s, user CPU 13.96/7.21 s, system CPU
+3.79/2.97 s and maximum RSS 350652/347052 KiB. The old time includes two
+assertion timeouts. Each process ran alone with one runner on Ryzen 5 3600
+CPUs 2–5, cpuset 0–11, quota 11.52 CPUs, warm filesystem, fresh browser
+contexts and the same site. This test-only change has no product speed claim.
+
+Two real CodeMirror sessions and four existing execution cancellation,
+permit and module-error controls also passed from frozen browser sources.
+Opening, repeating, appending a semicolon and repairing/renaming showed
+`score`, `score`, `score`, `total` and printed 42, 42, empty (Failed), 43
+on both reactors. The identifier occupied [53,58) UTF-16 / [57,62) UTF-8,
+with a byte cursor of 60. The error marked the second semicolon at [60,61)
+UTF-16. The earlier three repeats per transport used verified 1c2cc042.
+Startup was measured separately. Both reactors retain that build source.
+All 338 portable and 344 shared tracked build inputs examined match the
+freeze. Reassembling the site matched 103 of 104 files, including all
+executable bytes. Only relative dependency paths in app.js.map changed.
+
+Host 2 packet 966ed4a1-4be5-4d08-8a12-32573c6d32dd contains the editor
+fixture, exact case matrix, startup and phase medians, raw traces, commands,
+negative controls and source manifests. The eight compiler ECS lane audits
+supply attributed source and native/worker history. They do not add samples
+to this browser panel. The checked scope is desktop Chromium and Graph.
