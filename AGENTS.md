@@ -173,6 +173,14 @@ Do NOT modify todo.txt.
   world is still live. Count the private kinds and components against their
   pre-query baseline before tearing down the world. If later phases need
   only private data, publish once after the last fallible phase.
+  If declaration workers need the same source leases between phases, copy
+  the binding values while their stage is live. Identify the document that
+  owns each borrowed syntax node. Release the first stage, run the workers,
+  then acquire fresh leases before restoring the values. In the failure
+  test, hold the source declaration through document disposal and count
+  any annotations still attached to it. Hold a canonical type separately
+  and check when its last owner releases it. See the
+  [checked inspection results](docs/temporal-opcode-research-journal.md#checked-generic-inspection-across-declaration-workers).
 - Cancellation/failure must drain workers before releasing worlds, borrows or
   contexts. Update worker admission when new syntax constructs types or invokes
   protocols implicitly; test it inside independent bodies too. Single-owner

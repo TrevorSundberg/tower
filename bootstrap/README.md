@@ -215,13 +215,39 @@ Normal builds do not need a packaging tool. For the less frequent task of
 publishing a compiler built and validated in the documented Ubuntu 24.04/LLVM
 19.1.1 environment, the Tower candidate packager preserves provenance and hashes:
 
-```sh
-predecessor="$(bash playground/scripts/build-bootstrap.sh)"
-tools="$(bash playground/scripts/build-bootstrap.sh --tools)"
-"$tools/package_bootstrap" build/native/towerc "$predecessor" "$PWD" \
-  build/bootstrap_candidate 'bash playground/scripts/build-native.sh'
-(cd build/bootstrap_candidate/linux-x64 && sha256sum --check SHA256SUMS)
+Run the shared-release step in a Bash subshell. Set `build_command` to the
+command that produced the staged compiler and use its actual predecessor.
+This example assumes the ordinary default build. The output paths must be new.
+
+```bash
+(
+  set -eu
+  umask 022
+  predecessor="$(bash playground/scripts/build-bootstrap.sh)"
+  tools="$(bash playground/scripts/build-bootstrap.sh --tools package_bootstrap)"
+  package=build/bootstrap_candidate
+  build_command='bash playground/scripts/build-native.sh'
+  "$tools/package_bootstrap" build/native/towerc "$predecessor" "$PWD" \
+    "$package" "$build_command"
+  (cd "$package/linux-x64" && sha256sum --check SHA256SUMS)
+
+  members=(development.json linux-x64)
+  if [[ -f $package/source-changes.patch ]]; then members+=(source-changes.patch); fi
+  set -C
+  tar --sort=name --mtime="@$(git log -1 --format=%ct)" \
+    --owner=0 --group=0 --numeric-owner -czf - -C "$package" "${members[@]}" \
+    > "$package.tar.gz"
+)
 ```
+
+Distribute the archive from a location readers can traverse. Its top-level
+members are `development.json`, `linux-x64/` and the source patch when present.
+The packager's enclosing staging directory is private (0700) and stays outside
+the archive. The packager sets `towerc` to 0755 and ordinary payloads to 0644.
+The release umask gives the resource directories 0755 and the checksum list,
+manifest and archive file 0644, even when the source checkout or its ordinary
+build install has owner-only files. An existing package destination is refused.
+The user installer keeps its private installation root.
 
 It writes a directly runnable `linux-x64/towerc`, complete resources, checksum
 list, manifest and optional source patch into a new candidate directory. The
