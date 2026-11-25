@@ -15,14 +15,17 @@ import semantic_evaluation;
 // Text is owned by ordinary entity relationship names; no context allocation
 // escapes into a retained component. Foundation output encodes resolved bindings.
 import semantic_program_types;
+import test_file_rule;
 
 struct SemanticModuleLink {
     module: void*;
     base: usize;
     cyclic: bool;
+    test_role: ModuleTestRole;
 }
 
 extern fn frontend_module_name(module: void*): u8*;
+extern fn frontend_module_test_role(module: void*): ModuleTestRole;
 extern fn frontend_module_cyclic_result(module: void*, error: WorkBudgetError*): bool;
 
 extern fn frontend_module_import_count(module: void*): usize;
@@ -91,7 +94,7 @@ export fn sem_module_scope(program: SemanticProgram*, module: void*, base: usize
     defer entity_release(scope);
     var link = bits(SemanticModuleLink*, entity_component_data(entity_component_add_result(scope, registry.owner_kind, &error)));
     if link == null { sem_module_error(program, error, base); return null; }
-    *link = { module: scope, base: base, cyclic: cyclic };
+    *link = { module: scope, base: base, cyclic: cyclic, test_role: frontend_module_test_role(module) };
     error = entity_attach_result(scope, registry.scopes, path);
     if error != WorkBudgetError.None { sem_module_error(program, error, base); return null; }
     return scope;
@@ -194,6 +197,13 @@ fn sem_owner(c: SemanticContext*, node: void*): void* {
         node = sem_parent(node);
     }
     return null;
+}
+
+fn sem_test_role(c: SemanticContext*, node: void*): ModuleTestRole {
+    var owner = sem_owner(c, node);
+    if owner == null { return ModuleTestRole.Owner; }
+    var link = entity_component_get(owner, c.program.modules.owner_kind);
+    return bits(SemanticModuleLink*, entity_component_data(link)).test_role;
 }
 
 fn sem_module_path(c: SemanticContext*, module: void*): u8* {

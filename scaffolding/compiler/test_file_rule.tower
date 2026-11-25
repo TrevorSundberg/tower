@@ -105,6 +105,16 @@ fn test_file_selection_freeze(selection: TestFileSelection*, rule: TestFileRule*
 
 enum TestFilePresence: u8 { Missing, Present, Failed }
 
+// Borrowed for one synchronous test compilation. A null probe selects
+// registered module inputs through the same discovery walk.
+struct TestFileDiscovery {
+    selection: TestFileSelection*;
+    context: void*;
+    probe: function(TestFilePresence, void*, vector(u8)*);
+}
+
+enum ModuleTestRole: u8 { Owner, Companion, Dependency }
+
 struct TestFileCompanion {
     owner: void*;
     module: void*;

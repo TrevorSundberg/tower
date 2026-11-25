@@ -31,6 +31,13 @@ selected bodies. Start and step that same session through the ordinary interpret
 An adjacent `owner_test.tower` can import `owner` and declare its own helpers.
 Test selection follows the supplied entry's import closure.
 
+The native command `towerc --test module.tower` also discovers adjacent test
+modules using the request's filename rule. Selecting a companion directly runs
+only that file's blocks. Its helpers and imports follow ordinary module rules.
+The command reports the number of passed tests or an empty selection. A
+standalone executable statement in a discovered companion produces a diagnostic
+at that statement until implicit companion bodies are supported.
+
 Import `library.testing` for source-located assertions. The condition runs once.
 A failed assertion stops execution at the start of the assertion in its owning
 file. An optional message expression runs only on failure. The default message
