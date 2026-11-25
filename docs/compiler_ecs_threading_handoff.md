@@ -30,6 +30,8 @@ and the largest renderer lifetime high-water mark rose from 1,095 to
 in 76.78 and 30.22 s respectively. Each condition has one observation.
 In a separate stock-editor run the generated compiler rebuilt the same
 project and reproduced all three Wasm modules byte for byte.
+An independent review reconstructed the same 28 output digests from each
+of the 12 trials and confirmed the generated LLVM module was used again.
 [Browser self-build measurements](temporal-opcode-research-journal.md#browser-self-compilation-of-the-frozen-editable-project)
 
 **A first pass to read.** In the [LR FIRST calculation](../scaffolding/compiler/lr_first_work.tower),

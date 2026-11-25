@@ -101780,3 +101780,46 @@ The receipt, unit-admission, LR and backend selectors also passed. They exercise
 Five ASan/LSan checks passed, covering concurrent stages, dispatch results, semantic admission, query smoke and dependency permutations. The independent overflow control reported a heap-buffer-overflow and exited 1. Four initialized TSan checks passed (concurrent stages, dispatch results, semantic admission, dependency permutations). The intentional race control reported a data race and exited 66. The container refused the sanitizer's pre-initialization personality request 38 times across both harness invocations. The first harness stopped on this warning. The second retried only the pre-initialization refusal, retaining every attempt and requiring the initialized TSan banner. No capability, affinity or ASLR policy was changed. This campaign covers ordinary native Linux x64. Browser execution, foreign-toolchain instrumentation, source-level UBSan, cold-cache pairs and cross-host release acceptance remain outside these measurements.
 
 The source publication helper can carry the nominal cleanup type through both callers. Keep dynamic edges with the declaration revision, frame and executed producer; keep LR arena transfers and backend output ranges in their existing owners. Reproduction uses the commands and immutable inputs recorded under host7/native, host7/pairs and host7/sanitizers in the assignment packet.
+
+### Native generation, browser self-build and public Linux installation receipts
+
+On the Ubuntu 24.04.5 / LLVM 19.1.1 worker, the default Linux bootstrap
+built compiler source `6f7ed3fe`. Across three generations all 39 native
+products, 40 raw depfiles, 40 transformed depfiles and 57 package payload
+hashes matched. The manager rehashed the three sets of objects and depfiles
+from their tar files and checked the delivered package against generation
+three. Its executable SHA-256 is
+`84e55bc7716b66c6a1a863769f5d8ee8d4b31e9e403399b92eded400ce66c84e`.
+The relocated candidate reproduced the invoice output 1666 and 1685 at one
+and four jobs. Its selected 64 native CTests passed. The two inherited
+formatter fixture 9 failures have their own repair assignment. This
+candidate precedes the integrated import-instruction and typed callback
+changes. The staged pin and provenance are retained under the two private
+`9c247573` report refs. Receipt `9c247573-1324-4cfd-977e-595c5c44e331`
+contains the independent source reconstruction, native and Wasm guest
+outputs, instrumented runs and unmodified failure logs.
+
+Host 6 replayed the browser self-build evidence from host 1. Each of twelve
+trials supplied the same independent 28-output checksum ledger, SHA-256
+`d50ed5934afc77feec82eacfa2810b28ae8f57d270c3b301d7b21fa23093e876`.
+For each unit the recorded before/after LLVM IR lengths and excerpts matched.
+Host 6 also confirmed the two generated sets of reactor hashes and sizes,
+the second build's use of the first LLVM module and rejection of the missing
+import. This was a packet review of one measurement per session condition.
+Receipt `a9892fc9-8d2c-4451-8870-7d83375a087d` includes the twelve rows
+and six paired comparisons.
+
+Public main `9b5d23f1` introduced the normal-user install command for the
+existing Linux x64 development compiler built at `902a358f`. The atomic push
+preserved Pages `1ee8a6fe`. The hosted manifest and compiler bytes matched
+their published hashes. The manager fetched the pinned installer from the
+README's GitHub endpoint, matched its Git blob, installed twice into a fresh
+spaced prefix and verified all 57 files and the version. Independently, host
+8 ran the exact public README command twice as UID 1001 on Debian 12 with
+LLVM/Clang 19.1.7. The version and both interpreted and linked guest outputs
+matched the producer bytes (42 and LF for each guest). The second install
+preserved the compiler inode, mode and an unrelated file. The Ubuntu-specific
+installer replay is assigned to the worker with the retained Ubuntu 24.04
+userspace. Receipt `fc59b6b6-ca61-4099-970d-85be871890b4` preserves the
+downloaded script, working commands and complete installation. These peer
+reviews and the install verification introduce no compiler change.
