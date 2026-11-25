@@ -26,9 +26,9 @@ async function compare(source,output,spellings=[]){
 test('initializer inference supports literals, calls, comparisons and raw locations',async()=>{
  const source=(await read('scaffolding/tests/inference_bindings.tower')).toString();
  await compare(source,'42\ntrue\n43\n42\n',[
-  'var answer: integer_type(32, 1) =', 'var correct: boolean_type() =',
-  'var pointer: pointer_type(integer_type(32, 1)) =', 'var unsigned_result: integer_type(32, 0) =',
-  'var result: integer_type(32, 0) ='
+  'var answer: i32 =', 'var correct: bool =',
+  'var pointer: i32* =', 'var unsigned_result: u32 =',
+  'var result: u32 ='
  ]);
  await compare(`import foundation;
 var low = -2147483648; var high = 2147483647;
@@ -38,8 +38,8 @@ var second = bytes + 1; var loaded = *second;
 var count = sizeof(i32); var alignment = alignof(i32);
 print(low); print(high); print(empty); print(text[1]); print(byte); print(loaded); print(count); print(alignment);
 free(bytes);`, '-2147483648\n2147483647\ntrue\n105\n9\n9\n4\n4\n',[
-  'var none: pointer_type(empty_type()) = null;', "var text: pointer_type(integer_type(8, 0)) = 'hi';", 'var second: pointer_type(integer_type(8, 0)) = bytes + 1;',
-  'var loaded: integer_type(8, 0) = *second;', 'var count: address_type() = sizeof(integer_type(32, 1));'
+  'var none: void* = null;', "var text: u8* = 'hi';", 'var second: u8* = bytes + 1;',
+  'var loaded: u8 = *second;', 'var count: usize = sizeof(i32);'
  ]);
 });
 
@@ -51,7 +51,7 @@ var comparison = 4294967296 == wide; var small: u8 = 254; var byte = small + 1;
 var wrap = byte + 1; var converted = convert(u32, 7);
 print(sum); print(reverse); print(comparison); print(byte); print(wrap); print(converted);`,
  '8589934592\n8589934592\ntrue\n255\n0\n7\n',[
-  'var sum: integer_type(64, 0) =', 'var reverse: integer_type(64, 0) =', 'var comparison: boolean_type() =', 'var byte: integer_type(8, 0) =', 'var converted: integer_type(32, 0) ='
+  'var sum: u64 =', 'var reverse: u64 =', 'var comparison: bool =', 'var byte: u8 =', 'var converted: u32 ='
  ]);
 });
 
@@ -79,9 +79,9 @@ test('inference works through replacements and preserves local lexical scope',as
  const example=(await read('scaffolding/tests/increment_rules.tower')).toString();
  const definitions=example.slice(0,example.indexOf('\nvar value:'));
  await compare(definitions+'\nvar value = 5; var old = value++; var next = ++value; print(old); print(next); print(value);',
-  '5\n7\n7\n',['var old: integer_type(32, 1) = post_increment(&value);','var next: integer_type(32, 1) = pre_increment(&value);']);
+  '5\n7\n7\n',['var old: i32 = post_increment(&value);','var next: i32 = pre_increment(&value);']);
  await compare('import foundation;\nfn f(a: u32): u32 { var result = a + 1; { var result = true; print(result); } return result; } var result = f(41); print(result);',
-  'true\n42\n',['var result: integer_type(32, 0) = a + 1;','var result: boolean_type() = true;']);
+  'true\n42\n',['var result: u32 = a + 1;','var result: bool = true;']);
 });
 
 test('inferred address and storage widths follow the selected target',()=>{
@@ -119,19 +119,22 @@ test('unresolved inference, incompatible types and literal range errors prevent 
   assert.equal(result.steps,0);assert.equal(result.output,'');
   if(llvm){const compiled=llvm.compile('import foundation;\n'+source);assert.equal(compiled.status,'error',source);assert.match(compiled.error,message,source);}
  }
- const deep=Array.from({length:150},(_,i)=>`var x${i} = ${i===149?'1':`x${i+1}`};`).join('\n');
+ const initializers=Array.from({length:150},(_,i)=>`x${i+1}`);
+ initializers[initializers.length-1]='1';
+ const deep=initializers.map((value,i)=>`var x${i} = ${value};`).join('\n');
  const handle=tower.compile('import foundation;\n'+deep);
  try {
   // The query graph resolves this chain without recursive inference. Do not
   // execute its deliberately forward reads of uninitialized runtime storage.
   const canonical=tower.foundation(handle);
   assert.equal(typeof canonical.source,'string',canonical.error);
-  assert.match(canonical.source,/var x0: integer_type\(32, 1\) =/);
+  assert.deepEqual(canonical.source.split('\n').filter(line=>/^var x\d+:/.test(line)),
+   initializers.map((value,i)=>`var x${i}: i32 = ${value};`));
  } finally { tower.destroyExecution(handle); }
 });
 
 test('source formatting preserves inference while canonical output spells the checked types',()=>{
- const source='import foundation;\n// infer this\nvar answer=42; fn f():bool{var result=answer==42;return result;}';
+ const source='import foundation;\n// infer this\nvar answer=42; fn f():bool{var result=answer==42;return result;} print(f());';
  const handle=tower.create(source);
  try{
   assert.equal(runToEnd(tower,handle).end.status,'done');
@@ -139,6 +142,9 @@ test('source formatting preserves inference while canonical output spells the ch
   assert.ok(formatted.source.includes('// infer this\nvar answer = 42;'));
   assert.ok(formatted.source.includes('var result = answer == 42;'));
   const result=execute(formatted.source);assert.equal(result.status,'done',result.error);
-  assert.ok(result.source.includes('var answer: integer_type(32, 1) = 42;'));assert.ok(result.source.includes('var result: boolean_type() = answer == 42;'));
+  assert.ok(result.source.includes('var answer: i32 = 42;'));assert.ok(result.source.includes('var result: bool = answer == 42;'));
+  assert.equal(result.output,'true\n');
+  const round=execute(result.source);
+  assert.equal(round.status,'done',round.error);assert.equal(round.output,result.output);
  }finally{tower.destroy(handle);}
 });
