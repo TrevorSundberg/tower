@@ -35,21 +35,24 @@ test('executes replacements and displays typed core instructions', async ({ page
 test('initializer inference shows explicit checked types and clear dependency errors', async ({page},info) => {
   await selectDocument(page, 'inference.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match',{timeout:30000});
-  await expect(page.locator('#execution-output')).toHaveText('42\ntrue\n43\n42\n');
-  await expect(page.locator('#llvm-output')).toHaveText('42\ntrue\n43\n42\n');
+  for (const id of ['execution-output', 'fast-output', 'llvm-output']) {
+    await expect(page.locator('#' + id)).toHaveJSProperty('textContent', '42\ntrue\n43\n42\n');
+  }
   await expect(page.getByRole('textbox',{name:'Tower source'})).toContainText('var answer = add_one(41);');
   // Shared-node lowering may name intermediate values. The UI contract is
   // explicit inferred types; matching execution above checks their values.
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: integer_type(32, 1) =');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: pointer_type(integer_type(32, 1)) =');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var i32: type = integer_type(32, 1);');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var answer: i32 =');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var pointer: i32* =');
   await page.screenshot({path:`../build/inference-${info.project.name}.png`});
   await setSource(page,'import tower; var a = b;\nvar b = a;');
-  await expect(page.locator('.tw-inline-error-message')).toContainText('initializer dependency cycle a -> b -> a');
+  await expect(page.locator('#execution-status')).toHaveText('Failed · backends match');
+  await expect(page.locator('.tw-inline-error-message')).toHaveText("Cannot infer the type of 'a': initializer dependency cycle a -> b -> a; add an explicit type annotation");
   await page.screenshot({path:`../build/inference-cycle-${info.project.name}.png`});
   await setSource(page,'import tower; var answer = 42; print(answer);');
   await expect(page.locator('#execution-status')).toHaveText('Finished \u00b7 backends match');
   await expect(page.locator('.tw-inline-error')).toHaveCount(0);
-  await expect(page.locator('#execution-output')).toHaveText('42\n');
+  await expect(page.locator('#execution-output')).toHaveJSProperty('textContent', '42\n');
 });
 
 test('replacement errors explain the required syntax inline and recover after correction', async ({ page }, info) => {
@@ -268,12 +271,13 @@ test('functions compile and execute off the UI thread with matching backends', a
   });
   await selectDocument(page, 'functions.tower');
   await expect(page.locator('#execution-status')).toHaveText('Finished · backends match', { timeout: 30000 });
-  await expect(page.locator('#execution-output')).toHaveText('720\n721\n');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: integer_type(32, 1)): integer_type(32, 1)');
+  for (const id of ['execution-output', 'fast-output', 'llvm-output']) {
+    await expect(page.locator('#' + id)).toHaveJSProperty('textContent', '720\n721\n');
+  }
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('fn factorial(n: i32): i32');
   await expect.poll(()=>outputText(page,'llvm-before')).toContain('alloca');
   await expect.poll(()=>outputText(page,'llvm-after')).toContain('define void @tower_main');
   await expect.poll(()=>outputText(page,'llvm-after')).not.toContain('alloca');
-  await expect(page.locator('#llvm-output')).toHaveText('720\n721\n');
   await expect(page.locator('#steps')).toContainText('steps');
   await expect(page.locator('#timings')).toContainText('LLVM optimize');
   expect(await page.evaluate(() => window.__ticks)).toBeGreaterThan(5);

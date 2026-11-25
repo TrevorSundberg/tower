@@ -12,20 +12,25 @@ test('struct milestone executes automatically in both workers and round-trips vi
   await page.goto('/'); await expect(page.locator('#status')).toContainText('Complete');
   await selectDocument(page, 'structs.tower');
   await expect(page.locator('#filename')).toHaveText('structs.tower');
-  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
-  await expect(page.locator('#execution-output')).toHaveText('42\n22\n7\n');
-  await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
+  async function expectStructResult() {
+    await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
+    for (const id of ['execution-output', 'fast-output', 'llvm-output']) {
+      await expect(page.locator('#' + id)).toHaveJSProperty('textContent', '42\n22\n7\n');
+    }
+  }
+  await expectStructResult();
   await expect.poll(()=>outputText(page,'core-instructions')).toContain('struct Pair {');
   await expect.poll(()=>outputText(page,'core-instructions')).toContain(' + ');
-  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var field: pointer_type(integer_type(32, 1)) =');
+  await expect.poll(()=>outputText(page,'core-instructions')).toContain('var field: i32* =');
   await expect.poll(()=>outputText(page,'llvm-before')).toContain('tower.fn.accumulate');
   await expect.poll(()=>outputText(page,'llvm-after')).toContain('tower_main');
   await page.screenshot({ path: `../build/playground-structs-${info.project.name}.png` });
   expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight && document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   const canonical = await outputText(page,'core-instructions');
   await setSource(page, canonical);
-  await expect(page.locator('#execution-status')).toHaveText('Finished · backends match');
-  await expect(page.locator('#llvm-output')).toHaveText('42\n22\n7\n');
+  expect(await outputText(page,'editor')).toBe(canonical);
+  await expectStructResult();
+  expect(await outputText(page,'core-instructions')).toBe(canonical);
   expect(errors).toEqual([]);
 });
 
