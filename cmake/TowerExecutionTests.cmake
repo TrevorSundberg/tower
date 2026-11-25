@@ -18,6 +18,10 @@ function(tower_execution_tests)
   target_link_libraries(tower-execution-tests PRIVATE ${libraries})
   enable_testing()
   add_test(NAME tower-execution COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  add_test(NAME tower-execution-resource-root COMMAND tower-execution-tests
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" floating)
+  set_tests_properties(tower-execution-resource-root PROPERTIES
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
   foreach(pointer_bytes IN ITEMS 4 8)
     add_test(NAME "tower-canonical-pointer-order-${pointer_bytes}" COMMAND tower-execution-tests
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" backend-pointer-execute

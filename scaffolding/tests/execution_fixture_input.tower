@@ -1,0 +1,13 @@
+import tower;
+import execution_support;
+import .host.driver_request;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+fn execution_fixture_input(request: DriverRequest*, name: u8*): void {
+    var entry: ByteBuffer = default;
+    defer bytes_dispose(&entry);
+    // Buffered text gets its own entry beside the resources, after bootstrap.
+    execution_check(driver_request_path(&entry, "", request.root, name), "fixture entry path");
+    frontend_modules_configure(request.modules, entry.data, request.root);
+}

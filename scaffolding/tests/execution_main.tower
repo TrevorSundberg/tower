@@ -15,6 +15,7 @@ import .compiler.interpreter_types;
 import .compiler.execution_package;
 import .compiler.execution_session;
 import execution_support;
+import execution_fixture_input;
 import execution_suite;
 import execution_core;
 import execution_semantics;
@@ -40,7 +41,6 @@ import editor_observations;
 import backend_pointer_order_checks;
 import backend_signed_pointer_checks;
 
-extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
 extern fn syntax_attribute_tests(): void;
 
 
@@ -109,7 +109,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     defer syntax_version_diagnostic_dispose(&result);
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverBedrockText].data, false, &result), "install Bedrock" );
     execution_check(syntax_host_install(compiler_host_world(), request.text[DriverFoundationText].data, true, &result), "install Foundation" );
-    frontend_modules_configure(request.modules, "named_initialization_input.tower", argv[1]);
+    execution_fixture_input(&request, "named_initialization_input.tower");
     if retained {
         for(var workers: usize = 1; workers <= 2; workers++) { execution_retained_sources(&request, workers); }
         puts("Retained source edits/repeats/failure repair and suspended execution replacement: exact results and zero owners passed.");
@@ -139,7 +139,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     if oracle { floating_oracle_tests(request.modules); return 0; }
     if all || core { execution_output_storage_tests(&request); execution_fast_storage_tests(&request); }
     if semantics || core || core_static {
-        frontend_modules_configure(request.modules, "execution_input.tower", argv[1]);
+        execution_fixture_input(&request, "execution_input.tower");
         if core { execution_tests(request.modules); }
         else { if core_static { execution_core_tests(request.modules); }
         else { execution_semantic_tests(request.modules); } }
@@ -160,7 +160,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     if floating { return 0; }
     known_binding_tests(request.modules, argv[1]);
     if !all { return 0; }
-    frontend_modules_configure(request.modules, "execution_input.tower", argv[1]);
+    execution_fixture_input(&request, "execution_input.tower");
     execution_tests(request.modules);
     execution_world_tests(&request);
     return 0;
