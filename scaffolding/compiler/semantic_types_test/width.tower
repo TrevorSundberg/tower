@@ -1,0 +1,15 @@
+import observations;
+
+extern fn inference_run_width(bytes: usize): void;
+
+test() {
+    inference_run_width(4);
+    var narrow = observation("32-bit expected");
+    defer free(narrow.data);
+    expect_bytes("output", narrow);
+
+    inference_run_width(8);
+    var wide = observation("64-bit expected");
+    defer free(wide.data);
+    expect_bytes("output", wide);
+}

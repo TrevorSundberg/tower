@@ -1,0 +1,35 @@
+import library.testing;
+import .examples.inference as bindings;
+import .tests.inference_inputs.peers as peers;
+import .tests.inference_inputs.width as addresses;
+import .tests.inference_bindings as calls;
+
+test() {
+    assert(type_value(decltype(bindings.answer)) == type_value(i32));
+    assert(type_value(decltype(bindings.correct)) == type_value(bool));
+    assert(type_value(decltype(bindings.pointer)) == type_value(i32*));
+    assert(type_value(decltype(bindings.unsigned_result)) == type_value(u32));
+}
+
+test() {
+    assert(type_value(decltype(peers.sum)) == type_value(u64));
+    assert(type_value(decltype(peers.reverse)) == type_value(u64));
+    assert(peers.sum == 8589934592 && peers.reverse == peers.sum);
+    assert(peers.comparison);
+    assert(type_value(decltype(peers.byte)) == type_value(u8));
+    assert(peers.byte == 255 && peers.wrap == 0);
+    assert(type_value(decltype(peers.converted)) == type_value(u32));
+    assert(peers.converted == 7);
+}
+
+test() {
+    assert(type_value(decltype(addresses.pp)) == type_value(i32**));
+    assert(*addresses.pp == addresses.p && addresses.copy == addresses.p);
+    assert(type_value(decltype(addresses.bp)) == type_value(bool*));
+    assert(addresses.width == sizeof(i32*));
+}
+
+test() {
+    assert(type_value(decltype(calls.result)) == type_value(u32));
+    assert(calls.result == 42);
+}

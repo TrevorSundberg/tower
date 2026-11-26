@@ -1,0 +1,6 @@
+import observations;
+
+test() {
+    expect_rejection();
+    expect_text("output", "");
+}

@@ -1,0 +1,6 @@
+import foundation;
+var wide: u64 = 4294967296;
+var sum = 4294967296 + wide; var reverse = wide + 4294967296;
+var comparison = 4294967296 == wide; var small: u8 = 254; var byte = small + 1;
+var wrap = byte + 1; var converted = convert(u32, 7);
+print(sum); print(reverse); print(comparison); print(byte); print(wrap); print(converted);

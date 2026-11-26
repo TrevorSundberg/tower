@@ -1,0 +1,8 @@
+import foundation;
+var low = -2147483648; var high = 2147483647;
+var none = null; var empty = none == null; var text = "hi";
+var bytes = alloc(u8, 2); bytes[1] = 9; var byte = bytes[1];
+var second = bytes + 1; var loaded = *second;
+var count = sizeof(i32); var alignment = alignof(i32);
+print(low); print(high); print(empty); print(text[1]); print(byte); print(loaded); print(count); print(alignment);
+free(bytes);

@@ -1,0 +1,2 @@
+import foundation;
+var x: i32 = 1; { var x = x; }

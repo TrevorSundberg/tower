@@ -1,0 +1,23 @@
+import observations;
+import backend.text;
+
+fn check_replacements(): void {
+    expect_roundtrip("replacements");
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var old: i32 = post_increment(&value);"));
+    assert(backend_contains(canonical.data, "var next: i32 = pre_increment(&value);"));
+}
+
+fn check_scope(): void {
+    expect_roundtrip("scope");
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var result: u32 = a + 1;"));
+    assert(backend_contains(canonical.data, "var result: bool = true;"));
+}
+
+test() {
+    check_replacements();
+    check_scope();
+}

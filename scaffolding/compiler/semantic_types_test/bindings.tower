@@ -1,0 +1,29 @@
+import observations;
+import backend.text;
+
+fn check_bindings(): void {
+    expect_roundtrip("inference_bindings");
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var answer: i32 ="));
+    assert(backend_contains(canonical.data, "var correct: bool ="));
+    assert(backend_contains(canonical.data, "var pointer: i32* ="));
+    assert(backend_contains(canonical.data, "var unsigned_result: u32 ="));
+    assert(backend_contains(canonical.data, "var result: u32 ="));
+}
+
+fn check_locations(): void {
+    expect_roundtrip("locations");
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var none: void* = null;"));
+    assert(backend_contains(canonical.data, "var text: u8* = 'hi';"));
+    assert(backend_contains(canonical.data, "var second: u8* = bytes + 1;"));
+    assert(backend_contains(canonical.data, "var loaded: u8 = *second;"));
+    assert(backend_contains(canonical.data, "var count: usize = sizeof(i32);"));
+}
+
+test() {
+    check_bindings();
+    check_locations();
+}

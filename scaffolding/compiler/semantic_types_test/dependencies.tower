@@ -1,0 +1,8 @@
+import observations;
+
+// Both the effect-order program and the explicitly annotated cycle execute
+// through this check, each with its own exact stdout file.
+test() {
+    expect_roundtrip("dependencies");
+    expect_roundtrip("annotation");
+}

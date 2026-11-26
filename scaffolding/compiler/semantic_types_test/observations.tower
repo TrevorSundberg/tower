@@ -1,0 +1,37 @@
+import library.test_fixtures;
+
+// Names identify byte streams from the active compiler, formatter or LLVM guest.
+// The host also supplies raw sibling .expected files without trimming them.
+extern fn inference_read(name: u8*, destination: u8*, capacity: usize): usize;
+extern fn inference_has_llvm(): bool;
+extern fn inference_select(fixture: u8*): void;
+
+fn observation(name: u8*): FixtureBytes {
+    var length = inference_read(name, null, 0);
+    var data = alloc(u8, length + 1);
+    assert(data != null, name);
+    assert(inference_read(name, data, length) == length, name);
+    data[length] = 0;
+    return {data: data, length: length};
+}
+
+fn expect_bytes(name: u8*, wanted: FixtureBytes): void {
+    var actual = observation(name);
+    defer free(actual.data);
+    assert(fixture_equal(actual, wanted), name);
+}
+
+fn expect_roundtrip(fixture: u8*): void {
+    inference_select(fixture);
+    var wanted = observation("expected");
+    defer free(wanted.data);
+    expect_bytes("output", wanted);
+    expect_bytes("replay output", wanted);
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    expect_bytes("replay Foundation", canonical);
+    if inference_has_llvm() {
+        expect_bytes("LLVM source", wanted);
+        expect_bytes("LLVM Foundation", wanted);
+    }
+}
