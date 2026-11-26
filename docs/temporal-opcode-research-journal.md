@@ -121847,3 +121847,107 @@ service library and checks both direct and owner discovery. The manager
 compared the moved functions byte for byte against `c01c60a5`. Worker
 qualification must establish actual test counts and guest outputs for both
 selections, together with original executable parity and mutation controls.
+
+#### Host 1 qualification on the published parent
+
+The six members of audit receipt `90bd88ec…5f85c1e` matched the input
+manifest. Rows M001/S001,S002 and M123/S506 identify the two original
+functions for aliases and the one for loops. Bundle `535b2c9e…d54c54ef`
+verified against parent `c01c60a5` and supplied its immediate child
+`31486725`. The complete case function text compared byte for byte across
+the move. In the LR entry, the alias selector and type-smoke/type-errors
+call the same alias function. The loop selector and control-smoke call the
+same loop function.
+
+Both fresh Ninja Release builds used the checked Linux x64 bootstrap
+(`7430bdb3…5ad1b896`) and LLVM 19.1.7 with one bootstrap worker.
+Each used the work and backend profiles and the target
+`tower-lr-work-tests`. The first parent configuration could not locate
+unversioned clang. Reusing that cache after setting PATH changed CMake's
+compiler resolution and lost the profile options. A fresh configuration
+with the LLVM 19 bin directory on PATH succeeded. The archived prior host
+build was from `105b927e`. Each source freeze got its own build here.
+
+All eight registered tests ran. At both CLI job counts the alias companion
+selected its test at 62:1 and the loop companion selected its test at 74:1.
+Each owner also selected the declarations at 6:1 through 10:1 in
+`library/work_budget_test.tower`, respectively `budget_receipts`,
+`budget_reference`, `budget_limits`, `budget_optional` and
+`budget_validate`. The observed counts verified the registered summaries
+of six for each owner and one for each direct companion.
+
+The unmodified selectors returned 0 with empty stderr in both builds.
+Alias stdout was 252 bytes and loop stdout was 123 bytes, identical on
+both. For observational comparison, copies of each suite emitted one TSV
+row after each original terminal assertion. Parent LR, candidate LR and
+candidate direct selection at four CLI jobs produced identical ordered
+rows, 1,272 bytes for aliases (SHA-256 `22289996…7effbd0`) and 7,856
+bytes for loops (`35fc4e3e…d27e3ff`). Each of the eleven inputs ran at
+pointer widths 4 and 8 with one and four inner workers. Every row included
+the exact diagnostic, mapped filename, line/column, semantic and retry
+offset, failure count, absence of a program, and native worker availability.
+All 36 loop snapshots had zero used lanes before and after retry with exact
+equality of retained bytes and live reservations. Alias rows had no budget
+probe. The packet's fixture map independently locates the original marker
+in each input and distinguishes local byte positions from semantic offsets.
+
+Both direct guests resolved frontend unit creation and worker availability
+to the built `libtower-lr-row-services.so`. Loader traces show that library
+binding `pthread_create` to glibc. At both CLI job counts, the actual
+registration commands also produced the original selector's stdout.
+
+Two reversed-order pairs on warm files under the host timing lock used CPUs
+0–3 of an Intel Xeon Gold 6244, affinity 0–31, cgroup quota 15.36 CPUs.
+Each cell gives elapsed seconds / user plus system seconds / peak RSS KiB.
+Both LR binaries used the original suite entry with the full inner matrix.
+
+| Selector | Pair | Parent | Candidate |
+| --- | --- | --- | --- |
+| Alias | 1 | 2.12 / 2.25 / 81,864 | 2.00 / 2.14 / 82,172 |
+| Alias | 2 | 1.98 / 2.12 / 81,316 | 2.04 / 2.18 / 80,856 |
+| Loop | 1 | 8.92 / 9.55 / 81,836 | 8.87 / 9.49 / 79,816 |
+| Loop | 2 | 8.83 / 9.46 / 80,624 | 8.93 / 9.56 / 83,048 |
+
+Four separate copy-only controls changed the alias literal's expected
+message, the loop cycle's expected message, the alias column comparison
+and the loop retry's retained-byte comparison. Each failed through the
+original parent LR selector, the candidate LR selector and both candidate
+selections at four CLI jobs. The two executables exited 134. The selected
+driver exited 1 and reported that the native process exited without a
+valid completion or trap record. All four routes emitted the same specific
+assertion on stdout for each change. The unaffected suite passed via both
+LR executables and direct selection for every control. The source copies
+were restored and compared against their frozen inputs before rebuilding.
+
+The restored registered matrix passed 8/8. Both candidate selectors also
+passed in separate ASan and TSan builds, with the original stdout and
+empty stderr. The evidence identifies the sanitizer initialization symbols
+for all 26 explicitly linked Tower objects and all four members of the
+linked runtime archive in each profile. ASan included leak detection.
+ASan wall times were 15.05 s for aliases and 70.14 s for loops. TSan wall
+times were 49.37 s and 220.26 s. Three earlier alias TSan processes exited
+139 at startup when the host denied the personality change for ASLR.
+The successful fourth launch used the same binary, settings and input.
+Loop TSan completed on its first launch. These profiles cover the LR case
+bodies and native services. Selected guests use the ordinary public driver
+and runtime. CMake excludes selected guest registrations in sanitizer builds
+and rejected the separate undefined-behavior profile at configuration.
+
+The handoff archive for assignment `42a328bc-8c3f-4b6c-a8c3-8a5da454c249`
+contains the source bundle on the published parent, the exact ordinary and
+instrumented binaries, separate streams and statuses, observation rows,
+declaration maps, mutated diffs, and restored results. The candidate LR
+executable SHA-256 is
+`24f728be750719b815c5467f3585fda39f61e9ff19a02cb57f336cbedb0e0796`.
+
+The same host also timed the complete direct selection alongside the
+precompiled parent selector. These four single pairs include the cost
+of compiling, linking and starting the selected test. All four direct
+stdout streams matched the corresponding original.
+
+| Suite | CLI jobs for selection | Parent wall / CPU s / peak KiB | Direct wall / CPU s / peak KiB |
+| --- | ---: | --- | --- |
+| Alias | 1 | 2.10 / 2.24 / 79,068 | 2.89 / 3.03 / 131,420 |
+| Alias | 4 | 2.02 / 2.15 / 78,868 | 3.04 / 3.36 / 140,956 |
+| Loop | 1 | 8.92 / 9.54 / 81,856 | 9.87 / 10.51 / 131,824 |
+| Loop | 4 | 8.96 / 9.58 / 79,600 | 10.02 / 10.84 / 141,560 |
