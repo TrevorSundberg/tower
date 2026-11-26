@@ -106058,3 +106058,21 @@ transport. The Tower instrumentation tool supports address and thread modes;
 source-level UBSan and the complete Jenkins pipeline remain outside these checks.
 Receipt `bbfcfa63-9861-40bd-a323-a3bee3368950` carries the original and migrated
 streams, source locations, reactors, normal CLI, commands and sanitizer records.
+
+### Source ownership while checking cyclic imports
+
+The full-owner default-initialization test in receipt 975b3707 stopped inside
+`syntax_reader_span` with both address and thread instrumentation on the original
+3ae475c2 compiler. The same six test bodies passed with a fixture-only owner.
+The ordinary module graph owns the parsed roots and the source for each loaded
+module. Its cycle validator set the parser component kind on a default reader
+but left the source empty. The span accessor needs the owning source length
+even when the caller uses only the match label.
+
+Cycle validation now lends each loaded module's source to its reader for the
+duration of the root walk. A failed span lookup records the reader diagnostic
+on that module before classifying the declaration. The existing graph walk and
+permitted declaration kinds are unchanged. Qualification uses the real
+semantic expression owner, its direct companion, and the existing accepted
+and rejected cyclic-import fixtures. The earlier fixture-only passes do not
+cover the corrected owner walk.

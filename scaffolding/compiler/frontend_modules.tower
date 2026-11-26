@@ -1418,29 +1418,34 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
             if cyclic {
                 var invalid = current.declarations.length != 0;
                 invalid ||= current.roots.length == 0;
+                var reader: SyntaxReader = {
+                    source: current.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch), ..default
+                };
                 foreach(var & root in &current.roots) {
                     var node = entity_child_at(*root, 0);
-                    var reader: SyntaxReader = default;
-                    reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch);
                     var span = syntax_reader_span(&reader, node);
-                    if module_equal(span.label.data, "Statement") {
+                    if span != null && module_equal(module_text(&span.label), "Statement") {
                         node = entity_child_at(node, 0);
                         span = syntax_reader_span(&reader, node);
                     }
-                    if module_equal(span.label.data, "CoreAttributed") {
+                    if span != null && module_equal(module_text(&span.label), "CoreAttributed") {
                         node = entity_child_at(syntax_reader_member(node, "declaration"), 0);
                         span = syntax_reader_span(&reader, node);
                     }
-                    var declaration = module_equal(span.label.data, "CoreFunction");
-                    declaration ||= module_equal(span.label.data, "CoreExternal");
-                    declaration ||= module_equal(span.label.data, "CoreExport");
-                    declaration ||= module_equal(span.label.data, "CoreStruct");
-                    declaration ||= module_equal(span.label.data, "CoreEnum");
+                    if span == null {
+                        module_fail(current, reader.error, ""); return;
+                    }
+                    var label = module_text(&span.label);
+                    var declaration = module_equal(label, "CoreFunction");
+                    declaration ||= module_equal(label, "CoreExternal");
+                    declaration ||= module_equal(label, "CoreExport");
+                    declaration ||= module_equal(label, "CoreStruct");
+                    declaration ||= module_equal(label, "CoreEnum");
                     // Ordinary variables may be proved fixed compile-time values
                     // by semantics. Defer only that proof; grammar and executable
                     // statements still cannot take part in an import cycle.
-                    declaration ||= module_equal(span.label.data, "CoreDeclare");
-                    declaration ||= module_equal(span.label.data, "TowerTest");
+                    declaration ||= module_equal(label, "CoreDeclare");
+                    declaration ||= module_equal(label, "TowerTest");
                     if !declaration {
                         invalid = true;
                     }
