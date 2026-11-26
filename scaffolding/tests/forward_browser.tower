@@ -52,20 +52,9 @@ fn browser_rejection(file: u8*, message: u8*, offset: usize): void {
     assert(event_is("error", message) && event_offset() == offset, message);
 }
 
-extern fn selected(name: u8*): bool;
-
-fn browser_registration(): void {
+fn browser_parser(): ForwardParser {
     var parser: ForwardParser = {root: null, open: parser_open, close: parser_close,
         step_is: browser_step_is, pending: parser_pending, revision: parser_revision, diagnostic: browser_diagnostic,
         foundation_contains: browser_foundation_contains, check: browser_check};
-    if selected("graph") { forward_graph(&parser); return; }
-    if selected("activation") { forward_activation(&parser); return; }
-    if selected("pinned") { forward_pinned(&parser); return; }
-    assert(selected("module"), "Unknown forward-reference registration");
-    browser_output("interpreter");
-    browser_output("LLVM source");
-    browser_output("LLVM Foundation");
-    browser_rejection("duplicate.tower", "Duplicate module variable 'x'", 30);
-    browser_rejection("local.tower", "Unknown local 'later'", 42);
+    return parser;
 }
-browser_registration();

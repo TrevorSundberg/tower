@@ -1,6 +1,43 @@
+import library.testing;
 import output;
+import tests.utility_checks;
+
+// Each request runs the source, reparses its canonical Foundation and runs it again.
+// The response contains the golden output, both guest outputs, then both Foundation texts.
+extern fn defer_roundtrip(pointer_bytes: usize, fast: bool): void;
+
+fn defer_word_byte(byte: u8): bool {
+    return byte >= *"a" && byte <= *"z" || byte >= *"A" && byte <= *"Z"
+        || byte >= *"0" && byte <= *"9" || byte == *"_";
+}
+
+fn defer_keyword_absent(text: u8*, size: usize): bool {
+    var keyword = "defer";
+    var length = defer_text_size(keyword);
+    for (var i: usize = 0; i + length <= size; i++) {
+        if text[i] == keyword[0] && (i == 0 || !defer_word_byte(text[i - 1]))
+            && utility_equal(text + i, keyword, length)
+            && (i + length == size || !defer_word_byte(text[i + length])) { return false; }
+    }
+    return true;
+}
+
+fn defer_check_width(pointer_bytes: usize): void {
+    defer_roundtrip(pointer_bytes, false);
+    check_defer_outputs(2);
+    var size = defer_read_output(3, null, 0);
+    var graph = alloc(u8, size);
+    defer free(graph);
+    assert(defer_read_output(3, graph, size) == size);
+    assert(defer_keyword_absent(graph, size), "defer keyword survived lowering");
+    assert(defer_output_equals(4, graph, size), "graph Foundation round trip");
+    defer_roundtrip(pointer_bytes, true);
+    check_defer_outputs(2);
+    assert(defer_output_equals(3, graph, size), "graph and fast Foundation");
+    assert(defer_output_equals(4, graph, size), "fast Foundation round trip");
+}
 
 test() {
-    // Two target widths, graph and fast interpreters, source and canonical Foundation.
-    check_defer_outputs(8);
+    defer_check_width(4);
+    defer_check_width(8);
 }

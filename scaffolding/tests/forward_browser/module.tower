@@ -1,0 +1,9 @@
+import tests.forward_browser;
+
+test() {
+    browser_output("interpreter");
+    browser_output("LLVM source");
+    browser_output("LLVM Foundation");
+    browser_rejection("duplicate.tower", "Duplicate module variable 'x'", 30);
+    browser_rejection("local.tower", "Unknown local 'later'", 42);
+}

@@ -107250,3 +107250,24 @@ The ordinary four-job peak RSS changed from 711,328 to 702,312 KiB.
 GNU time measurements, input hashes, original and candidate raw logs, link
 maps, bundle prerequisites and the separate sensitivity result are in host 2
 evidence packet 3a444fc2-7c5f-4fb1-a8ae-d996743901aa.
+
+### Browser defer and forward-reference tests through the shared test runner
+
+The ten existing Node selectors now call Tower tests through the public Wasm
+`compileTests()` entry. The host owns Wasm instances, LLVM calls, parser handles
+and byte transport. Tower checks the guest outputs, diagnostics, parser events
+and canonical Foundation. Receipt `e1a99218` compared 186 subject observations
+per reactor byte for byte with the preceding implementation. All ten selectors
+also passed independently on each reactor. Three deliberate assertion changes
+failed at their Tower locations, seven other registrations passed, and teardown
+found zero outstanding parser and execution handles on all four hosts.
+
+On four pinned CPUs of an EPYC 7502 with a 30.72-CPU cgroup quota, the two
+portable runs went from 4.96–5.05 to 5.51–5.64 seconds. Shared runs went from
+6.73–6.84 to 7.64–7.74 seconds. Candidate maximum RSS was 314,032 and 419,088
+KiB respectively. Both runs now compare complete canonical byte sequences in
+the Tower interpreter. The two adapters plus the shared helper shrank from
+11,127 to 10,389 JavaScript bytes. A separate fast-interpreter cancellation
+selector failed when run alone on both revisions, while its full 13-test
+module passed. Its first compile changes the live-node baseline and needs
+a separate lifetime check.

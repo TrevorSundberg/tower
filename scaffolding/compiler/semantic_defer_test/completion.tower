@@ -1,7 +1,18 @@
 import library.testing;
+import output;
 
-// A null label requests the total count. Otherwise count that label in the real IDE response.
-extern fn defer_completion_count(fixture: u8*, cursor: usize, label: u8*): usize;
+// The query returns its option count and exposes each label through defer_read_output.
+extern fn defer_complete(fixture: u8*, cursor: usize): usize;
+
+fn defer_completion_count(fixture: u8*, cursor: usize, label: u8*): usize {
+    var count = defer_complete(fixture, cursor);
+    if label == null { return count; }
+    var matches: usize = 0;
+    for (var i: usize = 0; i < count; i++) {
+        if defer_output_text(i, label) { matches++; }
+    }
+    return matches;
+}
 
 test() {
     assert(defer_completion_count("complete_cleanup", 45, "cleanup") == 1);

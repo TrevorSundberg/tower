@@ -10,10 +10,14 @@ fn defer_output_equals(slot: usize, wanted: u8*, size: usize): bool {
     return defer_read_output(slot, actual, size) == size && utility_equal(actual, wanted, size);
 }
 
-fn defer_output_text(slot: usize, text: u8*): bool {
+fn defer_text_size(text: u8*): usize {
     var size: usize = 0;
     while text[size] != 0 { size++; }
-    return defer_output_equals(slot, text, size);
+    return size;
+}
+
+fn defer_output_text(slot: usize, text: u8*): bool {
+    return defer_output_equals(slot, text, defer_text_size(text));
 }
 
 fn check_defer_outputs(runs: usize): void {
