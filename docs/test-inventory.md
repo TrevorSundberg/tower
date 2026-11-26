@@ -72,3 +72,30 @@ first in a short manifest, the same runner aborts on canonical text for the
 narrow provider, the ASan probe and the token fixture. It passes the scale
 and borrowed-view files, including the second formatting pass. The Node
 module-path test also checks the spellings of all five paths.
+
+### Parser precedence
+
+Run `towerc --test scaffolding/compiler/lr_runtime.tower --jobs 1 --test-details`
+and repeat with `--jobs 4`. The companion reads named values initialized by
+the [fixture grammars](../scaffolding/tests/precedence_inputs). The binary
+productions use the expression node and capture names understood by Tower's
+checker. The linked browser parser reads those same files and exposes their
+capture roles and spans on each statement event.
+
+| Original assertion in `playground/tests/precedence.test.mjs` at 5a134705 | Current coverage |
+| --- | --- |
+| Lines 34, 41–45. Completed parse, numeric values, normalized direction, identical values after formatting and byte-stable second format | The companion expects 4/6 for subtraction, 14 for the mixed operators and 20 for the grouped sum in all four spellings. The browser checks successful completion, the exact capture spans for both parses, the normalized direction and the second format. |
+| Line 53. Ordinary layered grammar | The companion reads 4, 14 and 20 from the separate atom, product and sum productions. |
+| Lines 56, 58. Nonassociative subtraction | The companion expects 4 and 6 for explicit grouping. The linked parser rejects the second minus of the bare chain. |
+| Lines 64–66. Conflicts and invalid levels | The browser checks the error event and diagnostic for each of five files. Unannotated and partially annotated productions yield shift/reduce, competing reductions yield reduce/reduce, and levels 0 and 4294967296 have distinct diagnostics. All six rejecting fixtures, including the bare chain, also run directly under native `--test` as expected-failure checks. Each fails during parsing, before a test body can run. |
+| Lines 74, 76. Edit, restore, cache hit | The browser resets the same handle left, right and left, checks the three captured expression trees after each reset and inspects its grammar-cache hit count. |
+| Lines 87–88. Completed execution and exact output | The companion checks the captured replacement value 25. Integer division also distinguishes twice-before-division (5) from applying twice to the quotient (4). The execution host checks completion and the exact bytes `25\n`. |
+
+The existing `tower-parser-tests --suite lr-analysis` registration calls
+`lr_analysis_precedence_tests`. It owns left reduction, right shift,
+nonassociative action removal, unequal powers, ineligible shift/reduce pairs,
+duplicate reductions, exact conflict priority and buffer release. The companion
+exercises the source reader and resulting grouping without rebuilding that
+synthetic table oracle. Parser reset, inspect, format and error events require
+the linked host API. The ordinary native test interpreter exposes no guest
+binding for those handles.
