@@ -1,0 +1,9 @@
+import library.test_fixtures;
+
+test() {
+    var output = fixture_stdout("shared_lexicon.tower");
+    defer free(output.data);
+    var wanted = fixture_text("shared_lexicon.expected");
+    defer free(wanted.data);
+    assert(fixture_equal(output, wanted), "Shared lexicon guest stdout");
+}

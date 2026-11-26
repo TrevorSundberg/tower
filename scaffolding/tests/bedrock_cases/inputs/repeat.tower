@@ -1,0 +1,2 @@
+import foundation;
+parse __repeat0 = Number;parse Statement = __repeat0* ';';1 2;

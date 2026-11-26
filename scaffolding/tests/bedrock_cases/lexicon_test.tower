@@ -1,0 +1,37 @@
+import lexicon;
+import grammar;
+import backend.text;
+import library.testing;
+
+extern fn grammar_install(bedrock: u8*): void;
+extern fn highlight_count(): usize;
+extern fn highlight_field(index: usize, field: u8*): u8*;
+
+test() {
+    var bedrock = grammar_file("bedrock.tower");
+    defer free(bedrock);
+    var edited = shared_lexicon(bedrock);
+    defer free(edited);
+    grammar_install(edited);
+
+    var source = grammar_file("tests/bedrock_cases/inputs/shared_lexicon.tower");
+    defer free(source);
+    require_parse(source, GrammarEntry.Source);
+    var comment = false;
+    var count = highlight_count();
+    for (var i: usize = 0; i < count; i++) {
+        var kind = highlight_field(i, "kind");
+        defer free(kind);
+        if backend_equal(kind, "comment") {
+            var slice = highlight_field(i, "text");
+            defer free(slice);
+            if backend_equal(slice, "# shared comment") { comment = true; break; }
+        }
+    }
+    assert(comment, "Missing shared comment highlight");
+    check_lexicon_output(source);
+
+    var declaration = edit_once(edited, "parse GrammarDeclaration", "parse~GrammarDeclaration");
+    defer free(declaration);
+    require_parse(declaration, GrammarEntry.Bedrock);
+}
