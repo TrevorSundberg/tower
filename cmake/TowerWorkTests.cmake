@@ -165,6 +165,11 @@ if(TARGET towerc)
         --interpret --jobs ${workers}
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    add_test(NAME tower-semantic-defer-companion-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_defer.tower")
+    set_tests_properties(tower-semantic-defer-companion-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
     add_test(NAME tower-generic-body-copy-types-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generic_body_types_test.tower"
