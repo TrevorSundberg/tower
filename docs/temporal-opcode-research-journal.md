@@ -121343,3 +121343,15 @@ Subject handles remain owned until released or the registration exits.
 On the first compilation the two borrowed string-table entries needed an
 explicit dereference. After correction the portable suite passed 15/15.
 Foundation, ABI lifetime, cache reuse and lexical registrations follow.
+
+Registrations 10, 13, 14 and 15 now check Foundation installation, token
+declarations, lexical replacement and atomic Foundation token installation in
+Tower. Both existing Foundation handles stay live through installation. The
+selector restores the installed source even if a guest comparison fails. The
+token test edits the shipped example. It checks seven spelling/style pairs,
+the pattern and hash comment, the final Identifier pattern and all three
+reset outcomes. All five refused substitutions query the same live handle.
+Pointer subtraction in the edit helper failed checking, so it uses byte
+indices. A proposed filename ending in the selector's reserved
+`_module_test.tower` suffix triggered owner discovery. Using
+`foundation_install_test.tower` selected the explicit body successfully.

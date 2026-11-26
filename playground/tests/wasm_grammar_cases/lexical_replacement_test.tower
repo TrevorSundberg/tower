@@ -1,0 +1,68 @@
+import session;
+import backend.text;
+
+fn check_seed_pattern(observed: u8*): void {
+    grammar_parse("");
+    var seed = identifier_pattern();
+    defer free(seed);
+    assert(backend_equal(observed, seed), "Previous Identifier pattern");
+}
+
+test() {
+    var start = "parse Statement = Identifier ';';plain;";
+    var edit = "token Identifier = /@[a-z]+/ as identifier;";
+    var source = joined(start, edit, "@plain;");
+    defer free(source);
+    var handle = grammar_open(source);
+    grammar_step(handle);
+    grammar_step(handle);
+    grammar_inspect(handle);
+    assert(grammar_number("revision") == 1, "Preview installed a token");
+    var pattern = identifier_pattern();
+    defer free(pattern);
+    var invalid = highlight_exists("invalid", null);
+    check_seed_pattern(pattern);
+    assert(invalid, "Preview must show uninstalled @");
+    grammar_step(handle);
+    assert(grammar_end_revision() == 2, "Token installation revision");
+    grammar_step(handle);
+    check_status("statement");
+    var refused: u8*[5] = {"/[a-z]*/", "/[z-a]/", "/(abc/", "/\\d+/", "/a**/"};
+    var prefix = joined(start, "token Identifier = ", "");
+    defer free(prefix);
+    foreach (var &bad in &refused) {
+        var input = joined(prefix, *bad, ";");
+        defer free(input);
+        grammar_reset(handle, input);
+        grammar_finish(handle);
+        check_status("error");
+        grammar_inspect(handle);
+        assert(grammar_number("revision") == 1, *bad);
+        grammar_inspect(handle);
+        var old = identifier_pattern();
+        defer free(old);
+        check_seed_pattern(old);
+    }
+    grammar_dispose(handle);
+    var old_spelling = joined(start, edit, "plain;");
+    defer free(old_spelling);
+    grammar_parse(old_spelling);
+    check_status("error");
+    var other = "parse Other = Identifier ':' Identifier ';';parse Statement |= Other;";
+    var declarations = joined(start, edit, other);
+    defer free(declarations);
+    var early = joined(declarations, "@a:@b;", "");
+    defer free(early);
+    grammar_parse(early);
+    check_status("error");
+    var reversed = joined(start, other, edit);
+    defer free(reversed);
+    var late = joined(reversed, "@a:@b;", "");
+    defer free(late);
+    grammar_parse(late);
+    check_status("done");
+    grammar_parse("token Foo = /foo/;parse Statement = Foo ';';foo;");
+    check_status("error");
+    grammar_parse("parse Statement = 'foo' ';';foo;");
+    check_status("done");
+}

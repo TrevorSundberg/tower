@@ -69,3 +69,47 @@ fn highlight_exists(kind: u8*, spelling: u8*): bool {
     }
     return false;
 }
+
+extern fn grammar_dispose(handle: usize): void;
+extern fn grammar_reset(handle: usize, input: u8*): void;
+extern fn grammar_finish(handle: usize): void;
+extern fn grammar_rows(table: u8*): usize;
+extern fn grammar_field(table: u8*, row: usize, field: u8*): u8*;
+extern fn foundation_open(source: u8*): usize;
+extern fn foundation_install(source: u8*): void;
+extern fn foundation_install_error(source: u8*): u8*;
+
+fn named_row(table: u8*, name: u8*): usize {
+    var count = grammar_rows(table);
+    for (var i: usize = 0; i < count; i++) {
+        var actual = grammar_field(table, i, "name");
+        defer free(actual);
+        if backend_equal(actual, name) { return i; }
+    }
+    return count;
+}
+
+fn identifier_pattern(): u8* {
+    var row = named_row("tokens", "Identifier");
+    assert(row < grammar_rows("tokens"), "Missing Identifier declaration");
+    return grammar_field("tokens", row, "pattern");
+}
+
+fn replace_spelling(source: u8*, before: u8*, after: u8*, all: bool): u8* {
+    var text: vector(u8) = default;
+    var length = backend_length(before);
+    assert(length > 0);
+    var start: usize = 0;
+    var cursor: usize = 0;
+    while source[cursor] != 0 {
+        if backend_prefix(source + cursor, before) {
+            assert(backend_text_append(&text, source + start, cursor - start));
+            assert(backend_text(&text, after));
+            cursor += length;
+            start = cursor;
+            if !all { break; }
+        } else { cursor++; }
+    }
+    assert(backend_text(&text, source + start));
+    return text.data;
+}

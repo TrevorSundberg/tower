@@ -34,12 +34,37 @@ function dispose(handle) {
   sessions.delete(handle);
 }
 let offsets;
-const fixtures = new Map(Object.entries({example, base, loop, numeric,
+let restoreFoundation = false;
+function configure(source) {
+  restoreFoundation = true;
+  tower.configure(source);
+}
+function errorMessage(action) {
+  try { action(); return ''; }
+  catch (error) { return error.message; }
+}
+const fixtures = new Map(Object.entries({example, base, loop, numeric, bootstrap,
+  tokens:await readFile(new URL('../../scaffolding/examples/tokens.tower', import.meta.url), 'utf8'),
   names:await readFile(new URL('wasm_grammar_cases/highlight_names.tower', import.meta.url), 'utf8'),
 }));
 const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_self_test: () => tower.exports.tw_self_test(),
   grammar_open: (c, source) => openSession(guestString(c, source)),
+  foundation_open: (c, source) => openSession(guestString(c, source), tower.createFoundation),
+  foundation_install: (c, source) => configure(guestString(c, source)),
+  foundation_install_error: (c, input) => {
+    const source = guestString(c, input);
+    return moduleText(c, errorMessage(() => configure(source)));
+  },
+  grammar_dispose: (_, handle) => dispose(handle),
+  grammar_reset(c, handle, input) {
+    const source = guestString(c, input);
+    tower.reset(handle, source);
+    sessions.set(handle, source);
+  },
+  grammar_finish(_, handle) { parsed = runToEnd(tower, handle); },
+  grammar_rows: (c, table) => parsed.snapshot[guestString(c, table)].length,
+  grammar_field: (c, table, i, field) => moduleText(c, parsed.snapshot[guestString(c, table)][i][guestString(c, field)]),
   grammar_step(_, handle) { parsed = {end:tower.step(handle)}; },
   grammar_inspect(_, handle) {
     parsed = {snapshot:tower.inspect(handle), sourceBytes:Buffer.from(sessions.get(handle))};
@@ -81,7 +106,11 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
 async function checkGrammar(name, chunks) {
   try { await grammarCase(name, chunks); }
   finally {
-    for (const handle of sessions.keys()) dispose(handle);
+    try { if (restoreFoundation) tower.configure(bootstrap); }
+    finally {
+      restoreFoundation = false;
+      for (const handle of sessions.keys()) dispose(handle);
+    }
     parsed = offsets = undefined;
   }
 }
@@ -94,30 +123,7 @@ test('invalid grammar returns an error, preserves revision, and does not poison 
 test('UTF-8 spans, emoji, strings and comments survive the JSON and editor boundaries', () => checkGrammar('editor_offsets'));
 test('new multi-character punctuation and malformed lexical input use the native scanner', () => checkGrammar('scanner'));
 
-test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => {
-  const module = tower.createFoundation(bootstrap), pinned = tower.create('import foundation; print(3);');
-  try {
-    assert.equal(tower.step(pinned).revision, 1); // Freeze the imported grammar before editing its source.
-    const initial = runToEnd(tower, module);
-    assert.equal(initial.end.status, 'done', initial.end.error);
-    assert.ok(tower.inspect(module).rules.some(rule => rule.name === 'CoreFunction'));
-    tower.reset(module, bootstrap);
-    assert.equal(runToEnd(tower, module).end.status, 'done');
-    assert.equal(tower.inspect(module).grammarBuilds, 0);
-    tower.configure(bootstrap); tower.configure(bootstrap);
-    assert.equal(analyze('import foundation; fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);').end.status, 'done');
-    const edited = bootstrap + "\nparse CoreCall = 'invoke' $name:CoreLocation '(' $args:CoreArguments? ')';";
-    assert.notEqual(edited, bootstrap);
-    tower.configure(edited); tower.configure(edited);
-    assert.equal(analyze('import foundation; invoke print(4);').end.status, 'done');
-    assert.equal(analyze('import foundation; print(4);').end.status, 'error');
-    assert.equal(runToEnd(tower, pinned).end.status, 'done');
-    assert.throws(() => tower.configure(edited + '\nprint(5);'), /only token, skip and parse/);
-    assert.equal(analyze('import foundation; invoke print(4);').end.status, 'done');
-    tower.reset(module, bootstrap + '\nvar forbidden: i32;');
-    assert.match(runToEnd(tower, module).end.error, /only token, skip and parse/);
-  } finally { tower.configure(bootstrap); tower.destroy(module); tower.destroy(pinned); }
-});
+test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => checkGrammar('foundation_install'));
 test('ABI rejects unsupported input and handles; repeated analysis releases native nodes', () => {
   assert.throws(() => tower.create('a\0b'), /UTF-8/);
   assert.throws(() => tower.create('a'.repeat(8 * 1024 * 1024 + 1)), /8 MiB/);
@@ -179,70 +185,8 @@ test('edits reuse compiled grammars while matching fresh parsing, including chan
   assert.equal(tower.exports.tw_live_allocations(), allocations);
 });
 
-test('Tower token declarations redefine all three default terminals and introduce new tokens and comments', async () => {
-  const source = await readFile(new URL('../../scaffolding/examples/tokens.tower', import.meta.url), 'utf8');
-  const { events, end, snapshot } = analyze(source);
-  assert.equal(end.status, 'done', end.error);
-  assert.equal(end.revision, 11); assert.equal(events.length, 18);
-  const bytes = new TextEncoder().encode(source), decode = t => new TextDecoder().decode(bytes.slice(t.start, t.end));
-  for (const [text, kind] of [['player-name', 'identifier'], ['café', 'identifier'], ['3.14', 'number'],
-    ['`hello from Tower`', 'string'], ['0xff', 'number'], ['@player', 'identifier'], ['@score', 'identifier']])
-    assert.ok(snapshot.highlights.some(t => decode(t) === text && t.kind === kind), text);
-  assert.ok(snapshot.highlights.some(t => t.kind === 'pattern'));
-  assert.ok(snapshot.highlights.some(t => t.kind === 'comment' && decode(t).startsWith('#')));
-  assert.equal(snapshot.tokens.find(t => t.name === 'Identifier').pattern, '@[A-Za-z_][A-Za-z_0-9]*');
-  const handle = tower.create(source);
-  try {
-    runToEnd(tower, handle);
-    tower.reset(handle, source.replace('3.14;', '6.28;'));
-    assert.equal(runToEnd(tower, handle).end.status, 'done');
-    assert.equal(tower.inspect(handle).grammarBuilds, 0);
-    tower.reset(handle, source.replace('0x[0-9A-Fa-f]+', '0y[0-9A-Fa-f]+'));
-    assert.equal(runToEnd(tower, handle).end.status, 'error'); // Cached old Hex must not match 0xff.
-    tower.reset(handle, source.replaceAll('0x', '0y'));
-    assert.equal(runToEnd(tower, handle).end.status, 'done');
-  } finally { tower.destroy(handle); }
-});
+test('Tower token declarations redefine all three default terminals and introduce new tokens and comments', () => checkGrammar('token_declarations'));
 
-test('lexical replacements activate at declaration boundaries; failures preserve the previous token rules', () => {
-  const start = "parse Statement = Identifier ';';plain;";
-  const edit = "token Identifier = /@[a-z]+/ as identifier;";
-  const handle = tower.create(start + edit + '@plain;');
-  try {
-    tower.step(handle); tower.step(handle);
-    const preview = tower.inspect(handle);
-    assert.equal(preview.revision, 1);
-    assert.equal(preview.tokens.find(t => t.name === 'Identifier').pattern,
-      analyze('').snapshot.tokens.find(t => t.name === 'Identifier').pattern);
-    assert.ok(preview.highlights.some(t => t.kind === 'invalid')); // @ is not installed by inspection.
-    assert.equal(tower.step(handle).revision, 2);
-    assert.equal(tower.step(handle).status, 'statement');
-    for (const bad of ['/[a-z]*/', '/[z-a]/', '/(abc/', '/\\d+/', '/a**/']) {
-      tower.reset(handle, start + `token Identifier = ${bad};`);
-      assert.equal(runToEnd(tower, handle).end.status, 'error');
-      assert.equal(tower.inspect(handle).revision, 1);
-      assert.equal(tower.inspect(handle).tokens.find(t => t.name === 'Identifier').pattern,
-        analyze('').snapshot.tokens.find(t => t.name === 'Identifier').pattern);
-    }
-  } finally { tower.destroy(handle); }
-  assert.equal(analyze(start + edit + 'plain;').end.status, 'error');
-  assert.equal(analyze(start + edit + "parse Other = Identifier ':' Identifier ';';parse Statement |= Other;@a:@b;").end.status, 'error');
-  assert.equal(analyze(start + "parse Other = Identifier ':' Identifier ';';parse Statement |= Other;" + edit + '@a:@b;').end.status, 'done');
-  // Longest match and then declaration order; grammar literals win equal ties.
-  assert.equal(analyze("token Foo = /foo/;parse Statement = Foo ';';foo;").end.status, 'error'); // Identifier was declared first.
-  assert.equal(analyze("parse Statement = 'foo' ';';foo;").end.status, 'done');
-});
+test('lexical replacements activate at declaration boundaries; failures preserve the previous token rules', () => checkGrammar('lexical_replacement'));
 
-test('foundation inherits bedrock tokens, adds its own tokens and installs atomically', () => {
-  const handle = tower.create("parse Statement = Identifier ';';original;");
-  try {
-    tower.configure(String.raw`token Word = /@[a-z]+/ as string;`);
-    assert.equal(analyze("import foundation; parse Statement = Word ';';@hello;").end.status, 'done');
-    assert.equal(analyze("parse Statement = Identifier ';';hello;").end.status, 'done');
-    assert.throws(() => tower.configure('token Bad = /a*/;'), /empty input/);
-    assert.equal(analyze("import foundation; parse Statement = Word ';';@hello;").end.status, 'done');
-    assert.equal(runToEnd(tower, handle).end.status, 'done'); // Existing session's seed is pinned.
-    tower.reset(handle, "parse Statement = Identifier ';';original;");
-    assert.equal(runToEnd(tower, handle).end.status, 'done');
-  } finally { tower.configure(bootstrap); tower.destroy(handle); }
-});
+test('foundation inherits bedrock tokens, adds its own tokens and installs atomically', () => checkGrammar('foundation_tokens'));

@@ -1,0 +1,23 @@
+import session;
+import backend.text;
+
+test() {
+    var original = "parse Statement = Identifier ';';original;";
+    var handle = grammar_open(original);
+    foundation_install("token Word = /@[a-z]+/ as string;");
+    var imported = "import foundation; parse Statement = Word ';';@hello;";
+    grammar_parse(imported);
+    check_status("done");
+    grammar_parse("parse Statement = Identifier ';';hello;");
+    check_status("done");
+    var error = foundation_install_error("token Bad = /a*/;");
+    defer free(error);
+    assert(backend_contains(error, "empty input"), "Empty-match install diagnostic");
+    grammar_parse(imported);
+    check_status("done");
+    grammar_finish(handle);
+    check_status("done");
+    grammar_reset(handle, original);
+    grammar_finish(handle);
+    check_status("done");
+}
