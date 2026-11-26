@@ -1,80 +1,99 @@
-import {test} from 'node:test';
+import {after, test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from './compiler-fixtures.mjs';
-import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
-const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const library='import library.bytes; import library.bytes_types;\n';
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
-const source=library+`
-var b: ByteBuffer; bytes_init(&b);
-print(bytes_append(&b, null, 0));
-print(bytes_assign_text(&b, "Tower", 5));
-print(b.length); print(b.data[5]);
-print(bytes_append(&b, b.data, b.length));
-print(bytes_append(&b, b.data, b.length));
-print(b.length); print(b.data[15]);
-var middle = b.data + 3;
-print(bytes_assign_text(&b, middle, 7));
-print(b.length); print(b.data[0]); print(b.data[7]);
-var before = b.data; var capacity = b.capacity;
-var maximum: usize = 0; maximum = maximum - 1;
-print(bytes_assign_text(&b, null, maximum));
-print(bytes_reserve(&b, maximum));
-var same = b.data == before; print(same); same = b.capacity == capacity; print(same); print(b.length);
-var past = b.data + b.length;
-print(bytes_append(&b, past, 1));
-print(bytes_push(&b, 0)); print(b.length); print(b.data[7]);
-print(bytes_assign_text(&b, null, 0)); print(b.length); print(b.data[0]);
-bytes_dispose(&b); bytes_dispose(&b); same = b.data == null; print(same);
-`;
-const expected='true\ntrue\n5\n0\ntrue\ntrue\n20\n84\ntrue\n7\n101\n0\nfalse\nfalse\ntrue\ntrue\n7\nfalse\ntrue\n8\n0\ntrue\n0\n0\ntrue\n';
+import {runToEnd} from './compiler-fixtures.mjs';
+import {fixtureSource, guestString, llvmOutput, openLLVM, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
-test('compiler byte buffers share target layouts and interpreter/LLVM semantics',async()=>{
- let canonical;
- for(const pointerBytes of [4,8]){
-  const h=tower.compile(source,{pointerBytes});
-  try{
-   const result=tower.execute(h,100000);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
-   const formatted=tower.foundation(h),type=formatted.types.find(t=>t.name==='ByteBuffer');
-   assert.deepEqual([type.size,type.alignment,type.fields.map(f=>f.offset)],[pointerBytes*3,pointerBytes,[0,pointerBytes,pointerBytes*2]]);
-   canonical=formatted.source;
-  }finally{tower.destroyExecution(h);}
- }
- for(const input of [source,canonical]){
-  const compiled=llvm.compile(input);assert.equal(compiled.status,'compiled',compiled.error);
-  const result=await executeWasm(compiled);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
- }
-});
+const cases = '.tower/library/bytes_cases/';
+const source = fixtureSource(cases + 'roundtrip.tower');
+const grammar = fixtureSource(cases + 'source_reset.tower');
+const expected = await readFile(new URL('../../scaffolding/library/bytes_cases/roundtrip.expected', import.meta.url));
+const subject = await openTower();
+const llvm = await openLLVM();
+after(() => llvm.close?.());
 
-test('the browser compiler owns its source using the compiled Tower buffer exports',()=>{
- const e=tower.exports,p=e.tw_alloc(12),text=e.tw_alloc(5);
- const view=()=>new DataView(e.memory.buffer),memory=()=>new Uint8Array(e.memory.buffer);
- const snapshot=()=>[0,4,8].map(offset=>view().getUint32(p+offset,true));
- e.bytes_init(p);memory().set([84,111,119,101,114],text);
- try{
-  assert.equal(e.bytes_assign_text(p,text,5),1);
-  for(let i=0;i<8;i++){const [data,length]=snapshot();assert.equal(e.bytes_append(p,data,length),1);}
-  const [data,length,capacity]=snapshot();assert.equal(length,1280);
-  assert.equal(e.bytes_assign_text(p,data+3,1000),1);
-  assert.equal(memory()[snapshot()[0]],101);assert.equal(memory()[snapshot()[0]+1000],0);
-  const unchanged=snapshot();assert.equal(e.bytes_reserve(p,0xffffffff),0);assert.deepEqual(snapshot(),unchanged);
-  assert.equal(unchanged[2],capacity);
- }finally{e.bytes_dispose(p);e.tw_free(text);e.tw_free(p);}
-});
+const text = new TextEncoder();
+const observations = new Map();
+const layouts = new Map();
+const e = subject.exports;
+let buffer, seed, parser;
+const header = offset => new DataView(e.memory.buffer).getUint32(buffer + offset, true);
 
-test('source resets retain grammar provenance and formatting',()=>{
- const original="import foundation;\n// 🏰 source owns UTF-8 bytes\nparse Statement |= 'hello' ';' => replace { print(42); };\nhello;\n";
- const h=tower.create(original);
- try{
-  for(let i=0;i<100;i++){
-   const input=i%2?original:'\n'+original;
-   tower.reset(h,input);const result=runToEnd(tower,h);assert.equal(result.end.status,'done',result.end.error);
-   const formatted=tower.format(h);assert.equal(formatted.error,undefined);assert.match(formatted.source,/🏰/);
+// The assertions execute in a separate reactor. Only these callbacks touch the subject's memory and parser.
+const runner = await openTower({imports: {
+  read_observation(context, name, destination, capacity) {
+    const bytes = observations.get(guestString(context, name));
+    if (destination && bytes.length <= capacity) context.memory().set(bytes, destination);
+    return bytes.length;
+  },
+  reflected_size: (_, width) => layouts.get(width).size,
+  reflected_alignment: (_, width) => layouts.get(width).alignment,
+  reflected_field_count: (_, width) => layouts.get(width).fields.length,
+  reflected_offset: (_, width, field) => layouts.get(width).fields[field].offset,
+  seed_address: () => seed,
+  buffer_data: () => header(0),
+  buffer_length: () => header(4),
+  buffer_capacity: () => header(8),
+  subject_byte: (_, address) => new Uint8Array(e.memory.buffer)[address],
+  subject_assign: (_, address, length) => e.bytes_assign_text(buffer, address, length),
+  subject_append: (_, address, length) => e.bytes_append(buffer, address, length),
+  subject_reserve: (_, capacity) => e.bytes_reserve(buffer, capacity),
+  reset_source(_, leadingBlank) {
+    const input = leadingBlank ? '\n' + grammar : grammar;
+    subject.reset(parser, input);
+    const {events, end} = runToEnd(subject, parser);
+    assert.equal(end.status, 'done', end.error);
+    const formatted = subject.format(parser);
+    assert.equal(formatted.error, undefined);
+    const node = events.find(event => event.status === 'statement').nodes[0];
+    const bytes = text.encode(input);
+    observations.set('invocation', bytes.subarray(node.start, node.end));
+    observations.set('replacement', bytes.subarray(node.origin.templateStart, node.origin.templateEnd));
+    observations.set('formatted', text.encode(formatted.source));
+    return node.origin.generated;
+  },
+}});
+
+test('compiler byte buffers share target layouts and interpreter/LLVM semantics', async () => {
+  observations.set('expected', expected);
+  observations.set('LLVM source', text.encode(await llvmOutput(llvm, source)));
+  for (const pointerBytes of [4, 8]) {
+    let canonical;
+    for (const form of ['source', 'Foundation']) {
+      const handle = subject.compile(form === 'source' ? source : canonical, {pointerBytes});
+      try {
+        const result = subject.execute(handle, 100000);
+        assert.equal(result.status, 'done', result.error);
+        assert.ok(!result.outputTruncated);
+        observations.set(`graph ${form} ${pointerBytes}`, text.encode(result.output));
+        if (form === 'source') {
+          const foundation = subject.foundation(handle);
+          layouts.set(pointerBytes, foundation.types.find(type => type.name === 'ByteBuffer'));
+          canonical = foundation.source;
+        }
+      } finally { subject.destroyExecution(handle); }
+    }
+    observations.set('LLVM Foundation ' + pointerBytes, text.encode(await llvmOutput(llvm, canonical)));
   }
- }finally{tower.destroy(h);}
- // Native tests check allocation ownership and keep source nodes alive after
- // their session is destroyed; this loop exercises the worker-facing reset API.
+  runSelectedTest(runner, cases + 'layout_and_execution.tower');
+});
+
+test('the browser compiler owns its source using the compiled Tower buffer exports', () => {
+  buffer = e.tw_alloc(12);
+  seed = e.tw_alloc(5);
+  e.bytes_init(buffer);
+  try {
+    new Uint8Array(e.memory.buffer).set(text.encode('Tower'), seed);
+    runSelectedTest(runner, cases + 'exported_buffer.tower');
+  } finally {
+    e.bytes_dispose(buffer);
+    e.tw_free(seed);
+    e.tw_free(buffer);
+  }
+});
+
+test('source resets retain grammar provenance and formatting', () => {
+  parser = subject.create(grammar);
+  try { runSelectedTest(runner, cases + 'reset_provenance.tower'); }
+  finally { subject.destroy(parser); }
 });

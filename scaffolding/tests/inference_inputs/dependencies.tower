@@ -1,0 +1,13 @@
+import foundation;
+later = 40;
+var early = later + 2;
+var later = get_seed();
+var observed = read_early();
+print(early); print(later); print(observed);
+fn get_seed(): i32 { print(1); return 7; }
+fn read_early(): i32 { return early; }
+var calls = 0;
+fn next(): i32 { calls = calls + 1; return calls; }
+var first = next(); var second = next();
+print(first); print(second); print(calls);
+{ var early = 9; print(early); } print(early);

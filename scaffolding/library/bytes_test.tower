@@ -1,0 +1,45 @@
+import library.testing;
+import bytes;
+import bytes_types;
+
+test() {
+    var buffer: ByteBuffer;
+    bytes_init(&buffer);
+    defer bytes_dispose(&buffer);
+    assert(bytes_append(&buffer, null, 0));
+    assert(bytes_assign_text(&buffer, "Tower", 5));
+    assert(buffer.length == 5 && buffer.data[5] == 0);
+
+    var capacity = buffer.capacity;
+    assert(bytes_append(&buffer, buffer.data, buffer.length));
+    assert(bytes_append(&buffer, buffer.data, buffer.length));
+    assert(buffer.capacity > capacity, "Self-append must exercise growth");
+    assert(buffer.length == 20 && buffer.data[15] == 84);
+
+    assert(bytes_assign_text(&buffer, buffer.data + 3, 7));
+    assert(buffer.length == 7 && buffer.data[0] == 101 && buffer.data[7] == 0);
+}
+
+test() {
+    var buffer: ByteBuffer = default;
+    assert(bytes_assign_text(&buffer, "erTower", 7));
+    var before = buffer.data;
+    var capacity = buffer.capacity;
+    var maximum = ~convert(usize, 0);
+    assert(!bytes_assign_text(&buffer, null, maximum));
+    assert(!bytes_reserve(&buffer, maximum));
+    assert(buffer.data == before && buffer.capacity == capacity && buffer.length == 7);
+    assert(!bytes_append(&buffer, buffer.data + buffer.length, 1));
+    var wanted = "erTower";
+    for (var i: usize = 0; i <= buffer.length; i++) {
+        assert(buffer.data[i] == wanted[i], "Refusal preserves the text and terminator");
+    }
+
+    assert(bytes_push(&buffer, 0));
+    assert(buffer.length == 8 && buffer.data[7] == 0);
+    assert(bytes_assign_text(&buffer, null, 0));
+    assert(buffer.length == 0 && buffer.data[0] == 0);
+    bytes_dispose(&buffer);
+    bytes_dispose(&buffer);
+    assert(buffer.data == null && buffer.length == 0 && buffer.capacity == 0);
+}

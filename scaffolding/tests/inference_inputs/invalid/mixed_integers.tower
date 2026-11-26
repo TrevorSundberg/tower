@@ -1,0 +1,2 @@
+import foundation;
+var u: u32 = 1; var s: i32 = 2; var result = u + s;

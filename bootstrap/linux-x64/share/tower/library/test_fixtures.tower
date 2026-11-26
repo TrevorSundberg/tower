@@ -1,0 +1,40 @@
+import library.testing;
+
+// The selected test host grants named sibling texts. The returned copy belongs
+// to the guest. The count includes every output byte, including a final LF.
+struct FixtureBytes {
+    data: u8*;
+    length: usize;
+}
+
+extern fn test_fixture_load(name: u8*, name_length: usize, interpret: bool, length: usize*): u8*;
+
+fn fixture_load(name: u8*, interpret: bool): FixtureBytes {
+    var count: usize = 0;
+    while name[count] != 0 {
+        ++count;
+    }
+    var result: FixtureBytes = default;
+    result.data = test_fixture_load(name, count, interpret, &result.length);
+    return result;
+}
+
+fn fixture_text(name: u8*): FixtureBytes {
+    return fixture_load(name, false);
+}
+
+fn fixture_stdout(name: u8*): FixtureBytes {
+    return fixture_load(name, true);
+}
+
+fn fixture_equal(a: FixtureBytes, b: FixtureBytes): bool {
+    if a.length != b.length {
+        return false;
+    }
+    for(var i: usize = 0; i < a.length; i++) {
+        if a.data[i] != b.data[i] {
+            return false;
+        }
+    }
+    return true;
+}

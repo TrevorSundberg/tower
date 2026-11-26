@@ -1,0 +1,36 @@
+import observations;
+import library.test_fixtures;
+import backend.text;
+
+// Select exactly the top-level 'var x<digits>:' lines, in canonical order.
+fn numbered_binding(line: u8*, length: usize): bool {
+    if !backend_prefix(line, "var x") { return false; }
+    var start = backend_length("var x");
+    var i = start;
+    while i < length && line[i] >= *"0" && line[i] <= *"9" { i++; }
+    return i > start && i < length && line[i] == *":";
+}
+
+fn expect_inferred_chain(): void {
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    var rows = observation("expected");
+    defer free(rows.data);
+    var matched: usize = 0;
+    var at: usize = 0;
+    while at < canonical.length {
+        var start = at;
+        while at < canonical.length && canonical.data[at] != *"\n" { at++; }
+        var length = at - start;
+        if numbered_binding(canonical.data + start, length) {
+            var line: FixtureBytes = {data: canonical.data + start, length: length};
+            assert(length < rows.length - matched);
+            var wanted: FixtureBytes = {data: rows.data + matched, length: length};
+            assert(fixture_equal(line, wanted), "Inferred declaration order, type or initializer");
+            matched += length;
+            assert(rows.data[matched++] == *"\n");
+        }
+        if at < canonical.length { at++; }
+    }
+    assert(matched == rows.length, "Missing inferred declarations");
+}

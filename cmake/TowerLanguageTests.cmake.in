@@ -40,6 +40,6 @@ if(driver_tests)
   register_language_tests(sha256 library/sha256 7)
   register_language_tests(work-graph library/work_graph 8 --link "@scc_objects@/libtower-compiler-memory.a")
   register_language_tests(work-graph-direct library/work_graph_test 8 --link "@scc_objects@/libtower-compiler-memory.a")
-  register_language_tests(gzip library/gzip 3 --link "@scc_objects@/tower-compiler-utf8.o"
+  register_language_tests(gzip library/gzip 5 --link "@scc_objects@/tower-compiler-utf8.o"
     --link "@scc_objects@/libtower-compiler-memory.a")
 endif()

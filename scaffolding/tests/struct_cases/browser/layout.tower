@@ -1,0 +1,23 @@
+import library.testing;
+
+extern fn struct_status(engine: u8*, status: u8*): bool;
+extern fn struct_type_layout(name: u8*, size: usize, alignment: usize): bool;
+extern fn struct_field_count(name: u8*): usize;
+extern fn struct_field_offset(name: u8*, index: usize): usize;
+extern fn struct_field_is(owner: u8*, index: usize, name: u8*, type_name: u8*, offset: usize, size: usize, alignment: usize): bool;
+
+test() {
+    assert(struct_status("source", "done"));
+    assert(struct_type_layout("i32", 4, 4));
+    assert(struct_type_layout("u32", 4, 4));
+    assert(struct_type_layout("bool", 1, 1));
+    assert(struct_type_layout("void", 0, 1));
+    assert(struct_type_layout("Inner", 8, 4));
+    assert(struct_field_count("Inner") == 2);
+    assert(struct_field_offset("Inner", 0) == 0 && struct_field_offset("Inner", 1) == 4);
+    assert(struct_type_layout("Outer", 20, 4));
+    assert(struct_field_count("Outer") == 4);
+    assert(struct_field_offset("Outer", 0) == 0 && struct_field_offset("Outer", 1) == 4);
+    assert(struct_field_offset("Outer", 2) == 12 && struct_field_offset("Outer", 3) == 16);
+    assert(struct_field_is("Outer", 3, "link", "Outer*", 16, 4, 4), "Complete recursive pointer field metadata");
+}

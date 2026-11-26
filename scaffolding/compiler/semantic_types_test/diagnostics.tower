@@ -1,0 +1,70 @@
+import observations;
+import chain;
+import backend.text;
+
+extern fn inference_reject(marked_source: u8*, llvm_source: u8*): usize;
+
+fn with_prefix(prefix: u8*, body: u8*, length: usize): u8* {
+    var size = backend_length(prefix);
+    var program = alloc(u8, size + length + 1);
+    assert(program != null);
+    copy(program, prefix, size);
+    copy(program + size, body, length + 1);
+    return program;
+}
+
+fn reject_source(path: u8*, language: u8*, message: u8*): void {
+    var source = observation(path);
+    defer free(source.data);
+    assert(backend_prefix(source.data, language), path);
+    var offset = backend_length(language);
+    var body = source.data + offset;
+    var length = source.length - offset;
+    var marked = with_prefix("import foundation;\nprint(99); ", body, length);
+    defer free(marked);
+    var plain = with_prefix("import foundation;\n", body, length);
+    defer free(plain);
+    assert(inference_reject(marked, plain) == 0, path);
+    var status = observation("status");
+    defer free(status.data);
+    assert(backend_equal(status.data, "error"), path);
+    var output = observation("output");
+    defer free(output.data);
+    assert(output.length == 0, "Invalid initializer executed an effect");
+    var error = observation("error");
+    defer free(error.data);
+    assert(backend_contains(error.data, message), path);
+    if inference_has_llvm() {
+        var llvm_status = observation("LLVM status");
+        defer free(llvm_status.data);
+        assert(backend_equal(llvm_status.data, "error"), path);
+        var llvm_error = observation("LLVM error");
+        defer free(llvm_error.data);
+        assert(backend_contains(llvm_error.data, message), path);
+    }
+}
+
+fn reject(path: u8*, message: u8*): void {
+    reject_source(path, "import foundation;\n", message);
+}
+
+test() {
+    reject("invalid/self.tower", "initializer dependency cycle x -> x");
+    reject("invalid/cycle.tower", "initializer dependency cycle a -> b -> a");
+    reject("invalid/address_cycle.tower", "initializer dependency cycle");
+    reject("invalid/shadow_cycle.tower", "initializer dependency cycle x -> x");
+    reject("invalid/later_local.tower", "Unknown local 'later'");
+    reject("invalid/positive_range.tower", "out of range");
+    reject("invalid/negative_range.tower", "out of range");
+    reject("invalid/expression_range.tower", "out of range");
+    reject("invalid/mixed_integers.tower", "Expected u32, got i32");
+    reject("invalid/bool_add.tower", "requires integer operands");
+    reject("invalid/void_value.tower", "void call cannot be used as a value");
+    reject("invalid/assign_bool.tower", "Expected i32, got bool");
+    reject("invalid/duplicate.tower", "Duplicate module variable");
+    reject("invalid/byte_range.tower", "out of range");
+    reject("invalid/unsigned_bool.tower", "Expected u32, got bool");
+    reject_source("aggregate_inferred_copy.tower", "import tower;\n", "Expected Other, got Item");
+    reject("invalid/missing_initializer.tower", "Unexpected");
+    expect_inferred_chain();
+}

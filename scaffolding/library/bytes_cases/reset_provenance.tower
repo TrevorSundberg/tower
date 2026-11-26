@@ -1,0 +1,19 @@
+import library.testing;
+import backend.text;
+import observations;
+
+extern fn reset_source(leading_blank: bool): bool;
+
+test() {
+    for (var i: u32 = 0; i < 100; i++) {
+        assert(reset_source(i % 2 == 0), "Reset must produce a grammar-generated statement");
+        assert(output_matches("invocation", "hello;", 6), "Invocation span after UTF-8 comment");
+        assert(output_matches("replacement", "print(42);", 10), "Grammar template span after reset");
+        var length = read_observation("formatted", null, 0);
+        var text = alloc(u8, length + 1);
+        defer free(text);
+        assert(read_observation("formatted", text, length) == length);
+        text[length] = 0;
+        assert(backend_contains(text, "🏰"), "Formatting retains the source comment");
+    }
+}

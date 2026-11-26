@@ -1,0 +1,11 @@
+import foundation;
+
+struct Empty {
+}
+
+var a: Empty;
+var b: Empty;
+var ap: Empty* = &a;
+var bp: Empty* = &b;
+var same: bool = ap == bp;
+print(same);

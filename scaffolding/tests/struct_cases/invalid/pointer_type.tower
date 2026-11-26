@@ -1,0 +1,8 @@
+import foundation;
+print(99);
+struct A {
+}
+struct B {
+}
+var a: A;
+var p: B* = &a;

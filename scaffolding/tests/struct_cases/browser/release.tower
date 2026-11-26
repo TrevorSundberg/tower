@@ -1,0 +1,29 @@
+import library.testing;
+
+extern fn struct_live_nodes(): usize;
+extern fn struct_status(engine: u8*, status: u8*): bool;
+// Returns the count while the source handle is still held. The host destroys
+// that same handle before control returns to the assertion guest.
+extern fn struct_compile_execute_inspect_release(path: u8*): usize;
+
+fn check_release(path: u8*, status: u8*, idle: usize): void {
+    var held = struct_compile_execute_inspect_release(path);
+    assert(struct_status("source", status), path);
+    assert(held > idle, "A live source handle must own program nodes");
+    assert(struct_live_nodes() == idle, path);
+}
+
+test() {
+    // Each entry grammar populates the shared parser on first use. Compile
+    // only their imports so the very first struct product is measured too.
+    struct_compile_execute_inspect_release(".tower/tests/struct_cases/browser/tower_import.tower");
+    assert(struct_status("source", "done"), "Tower import failed");
+    struct_compile_execute_inspect_release(".tower/tests/struct_cases/browser/foundation_import.tower");
+    assert(struct_status("source", "done"), "Foundation import failed");
+    var idle = struct_live_nodes();
+    for (var i = 0; i < 20; i++) {
+        check_release(".tower/examples/structs.tower", "done", idle);
+        check_release(".tower/tests/struct_cases/invalid/release_self.tower", "error", idle);
+        check_release(".tower/tests/struct_cases/invalid/release_missing.tower", "error", idle);
+    }
+}

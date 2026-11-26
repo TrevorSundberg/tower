@@ -1,0 +1,12 @@
+import foundation;
+
+struct `odd type` {
+    `first-field`: i32;
+    `struct`: bool;
+}
+
+var a: `odd type`;
+a.`first-field` = 42;
+a.`struct` = true;
+print(a.`first-field`);
+print(a.`struct`);

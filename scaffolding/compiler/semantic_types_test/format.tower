@@ -1,0 +1,18 @@
+import observations;
+import backend.text;
+
+test() {
+    var formatted = observation("formatted");
+    defer free(formatted.data);
+    assert(backend_contains(formatted.data, "// infer this\nvar answer = 42;"));
+    assert(backend_contains(formatted.data, "var result = answer == 42;"));
+
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var answer: i32 = 42;"));
+    assert(backend_contains(canonical.data, "var result: bool = answer == 42;"));
+    var wanted = observation("expected");
+    defer free(wanted.data);
+    expect_bytes("output", wanted);
+    expect_bytes("replay output", wanted);
+}
