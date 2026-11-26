@@ -107728,3 +107728,104 @@ d3686d91 receipt in both raw and encoded bytes. The checksum vector also
 matched the restored rejection fixture. GNU gzip decoded the 39 members
 to exactly 299,612 bytes. The predecessor’s optional LLVM support archive
 was exercised by its standalone file-based test.
+## 2026-11-26 — Operator fixture selection on host 8
+
+At manager commit `8bc867b6`, all six selectors in
+`playground/tests/operators.test.mjs` passed on the retained interpreter and
+LLVM reactors. The two trace fixtures cover 81 and 39 output lines. The
+module also generated fourteen binary/compound comparisons and compiled
+22 invalid programs with a print before the error. The increment suite
+already supplies the literal-place input. Its bool case uses prefix
+increment, so the postfix rejection here has its own source.
+
+The new companions run the original trace sources with `fixture_stdout` and
+compare the counted bytes with `fixture_text`. The original golden blobs moved
+from `.expected.txt` to the discovery rule's `.expected` suffix. An initial
+experiment used `--test-oracle` on the original filenames. Its fixture depfile
+also named a missing same-stem oracle. The rename gives both hosts the same
+physical input and makes a direct selection self-checking. The browser keeps
+its independent expected-output comparisons across pointer widths, graph/fast
+execution, Foundation replay and LLVM/Wasm.
+
+The compound companion selects fourteen declarations. Each saves the ordinary
+binary result, applies the compound assignment, checks the stored value and
+checks the evaluation trace for the destination and right operand. A separate
+selected Tower declaration asks the browser to compile each invalid file and
+checks its exact diagnostic, error status, zero steps and empty output.
+Running a malformed top-level script under native test selection can select
+zero tests. Ordinary native interpretation exercises the rejection itself.
+
+The compiler from the hash-verified 5d7ca557 kit ran all twelve generated
+CTest registrations. Both selections of each trace reported one declaration
+and both compound selections reported fourteen at jobs 1 and 4. Changing
+the first subtraction's third operand from minus one to plus one changed
+the first output line from 4 to 6. Both entries rejected the scratch copy
+at `operators_test.tower:8:5` at both widths. Replacing the compound
+addition with subtraction failed at `compound_operators_test.tower:10:5`.
+All eight restored commands passed. Native interpretation of the malformed
+files at both widths returned 1, the original diagnostic and empty stdout.
+
+The six browser selectors passed together and individually. An early filtered
+run exposed a closed reactor when Node drained its hooks between asynchronous
+registrations. Loading both goldens before registering the tests fixed that
+path. Eight browser Foundation texts matched the parent byte for byte.
+Native wasm32 and Linux x64 Foundation, re-emission and replay also matched.
+The ordinary syntax-live Wasm unit and both ordinary fixture objects and
+normalized depfiles matched across revisions. The changed paths intersect
+none of the 49 builtin sources or 412 source dependencies in the retained
+browser depfiles. Those reactor binaries carry their prior build identity.
+
+Host 8 used a Ryzen 9 7900X with a 23.04-CPU quota and a 63,577,260,032-byte
+memory limit. Three alternating, fresh Node 24.22.3 runs per revision on CPUs
+0–3 with warm files and one test process took median 1.46 s before and 1.79 s
+after. Median user plus system CPU was 2.58 and 3.01 s. Maximum RSS was
+294,852 and 295,920 KiB. A second browser interpreter executes the rejection
+assertions. Supplying only the guest file and its increment helper cut a
+trial of that selector from 630 to 304 ms. The new native compound owner
+took 0.19 s at one worker and 0.25 s at four. These runs measure test cost.
+
+ASan with leak detection and TSan each executed the selected compound
+program re-emitted from its canonical Foundation with an instrumented
+Linux x64 guest runtime. Six TSan startups failed the host personality
+check before a non-PIE run completed. This covers serial guest execution.
+Packet `60c4e616-2ec6-4bb5-9385-af13fa993187` includes both located
+failures, the successful restorations, normalized comparisons, actual
+commands, separate streams, statuses and process resource measurements.
+
+### Integrated operator suites and required native test host
+
+The operator migration in `90db03e9` adds adjacent Tower tests for the two
+existing operator traces and for compound assignment. Fourteen declarations
+check the compound results and operand evaluation. The negative suite applies
+the compiler to 22 real sibling programs. The browser host supplies the compile
+result, diagnostic, output length and step count to the Tower assertions.
+The ordinary traces still have independent Foundation round-trip and LLVM/Wasm
+checks. The two renamed golden files retain their original bytes.
+
+On the integration tree, CMake retained the commands and properties of all 198
+earlier registrations and added 12 owner/direct cases. With the published
+Linux bootstrap as the CTest executable, four compound-assignment cases passed.
+The eight golden-file invocations failed at the missing native interpreter
+binding for `test_fixture_load`. After verifying the complete Ubuntu package
+built from `8bc867b6`, the manager ran the same CTest selection with that
+package's executable. All 12 passed. Each trace selected one declaration and
+each compound suite selected fourteen at one and four workers. Receipt
+`60c4e616` includes the wrong-trace and wrong-destination controls, the raw
+negative programs and the guest sanitizer runs. The publication needs the
+verified fixture-capable compiler.
+
+For the same compiler freeze, the manager checked both production browser
+frontends, all 603 editable file contents, the 577 source file identities
+against Git and all eleven decompressed support files from `5d6d35d2`.
+The ordinary LLVM generator came from `14dc5b80`. Editable generations and
+cross-target release identity have separate acceptance runs. The optional
+native installation in `bde1546d` passed all sixteen registrations after
+relocation, retained the previous fourteen commands, detected a changed i16
+provider and passed after restoration. In `162b8ffa`, the native and four
+browser guest outputs each matched the 42-byte foreign-call golden. A changed
+golden failed. Those browser tests used the reactor identities recorded in
+that packet. Another receiver exercised aggregate effects and target-selected
+declarations with the new LLVM and Ubuntu products in `68deb37d`. Ordinary
+execution printed 8 on Wasm32 and 16 on Linux x64. Its selected-test result
+of 17 came from the native driver. The browser selected-test check requires
+the separate test-capable frontend.
