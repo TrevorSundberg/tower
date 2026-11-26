@@ -2,7 +2,7 @@
 function(register_language_tests name owner count)
   # CTest evaluates installed registrations in the moved kit's working directory.
   file(REAL_PATH "." suite_dir BASE_DIRECTORY ".")
-  get_filename_component(source "@scc_library@/${owner}.tower" ABSOLUTE BASE_DIR "${suite_dir}")
+  get_filename_component(source "@scc_root@/${owner}.tower" ABSOLUTE BASE_DIR "${suite_dir}")
   set(outcome "tests passed")
   if(count EQUAL 1)
     set(outcome "test passed")
@@ -18,12 +18,17 @@ function(register_language_tests name owner count)
   endforeach()
 endfunction()
 
-set(scc_suffix_args)
-if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
-  list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
+register_language_tests(narrow-foreign tests/narrow_foreign 3 --link "@scc_objects@/narrow-foreign-library.o")
+
+set(driver_tests "@TOWER_DRIVER_TESTS@")
+if(driver_tests)
+  set(scc_suffix_args)
+  if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
+    list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
+  endif()
+  register_language_tests(graph-components library/graph_components 2
+    ${scc_suffix_args}
+    --link "@scc_objects@/runtime-instrumented.o" --link "@scc_objects@/tower-compiler-bytes.o"
+    --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
+  register_language_tests(sha256 library/sha256 7)
 endif()
-register_language_tests(graph-components graph_components 2
-  ${scc_suffix_args}
-  --link "@scc_objects@/runtime-instrumented.o" --link "@scc_objects@/tower-compiler-bytes.o"
-  --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
-register_language_tests(sha256 sha256 7)

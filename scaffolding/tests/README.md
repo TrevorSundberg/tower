@@ -1908,15 +1908,15 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC and SHA-256 companions through the
+The optional language suite runs the SCC, SHA-256 and narrow foreign ABI companions through the
 public driver on Linux GNU. In a native build configured with
-`TOWER_DRIVER_TESTS=ON`, build the suite and run both owners at one and four
+`TOWER_DRIVER_TESTS=ON`, build the suite and run all three owners at one and four
 compiler jobs. Set `B` to
 the native build directory.
 
 ```sh
 cmake --build "$B" --target tower-language-tests
-ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256)-jobs-' -V
+ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256|narrow-foreign)-jobs-' -V
 ```
 
 For a checkout-independent installation, set `PREFIX` to a writable staging
@@ -1932,8 +1932,8 @@ TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tow
 Each registration selects its owner with `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The kit requires
-the driver's final stderr line to report exactly two SCC declarations or seven
-SHA-256 declarations for the selected owner. A compiler or guest failure fails
+the driver's final stderr line to report exactly two SCC, seven SHA-256
+or three narrow foreign declarations for the selected owner. A compiler or guest failure fails
 the registration even if the guest printed the expected summary. The last
 command supplies the alternate suffix to the same driver. It deliberately
 fails on the singleton at `graph_components_wrong.tower:7:5` and returns
@@ -1945,6 +1945,11 @@ The same installation registers `tower-selected-sha256-jobs-1` and
 support direct portable interpretation. The companion and ordinary-named `library/test_data.tower` are private test inputs.
 `tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
 and the SCC registration names remain supported.
+
+With only `TOWER_EXECUTION_TESTS=ON`, build `tower-narrow-foreign-tests`
+and select `^tower-selected-narrow-foreign-jobs-` in CTest. Both job counts
+link `narrow-foreign-library.o` as a separate native provider. The same
+registrations in the moved kit select `share/tower/tests/narrow_foreign.tower`.
 
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability

@@ -107001,3 +107001,59 @@ Packet 1a629bf1-baeb-46ee-b2db-afd995f8c315 retains the scoped patch, review
 bundle, moved installation, original and changed fixture bytes, generated argv,
 raw stdout/stderr, exits, sanitizer attempts and host measurements. Publication
 belongs to the manager.
+
+## Narrow foreign ABI declarations and the JavaScript host
+
+Host 3 started from published `4b2685e5` and joined the verified native kit
+source at `fad15e4c` through `84efe241`. The caller, provider, browser selector
+and old CMake recipe were identical on both inputs. The retained
+`tower-narrow-foreign-tests` exited 0 with empty stdout and stderr. Rebuilding
+the provider from the same Tower source yielded the same 616-byte ELF object.
+
+`scaffolding/tests/narrow_foreign_test.tower` selects three declarations. Each
+calls the ordinary owner's typed function, which calls a separately defined
+external symbol. The caller and provider IR have matching `signext` i8/i16
+and `zeroext` u16 parameters and returns. At jobs 1 and 4 the qualified
+driver selected all three through the owner and through the direct companion.
+A provider printing the values inside each export observed
+`(-120, -7, -127)`, `(-30000, -2000, -32000)` and `(60000, 5000, 65000)`.
+Three independently linked providers returned their first argument for just
+one export each. The retained caller rejected each one. The selected tests
+exited 1 at lines 5, 9 and 13 respectively, column 5, at both widths.
+Restoring the retained provider passed. An ordinary consumer still compiled
+to the same bytes and depfile after adding an invalid token to its companion.
+Selecting that companion then diagnosed the invalid token.
+
+The Linux GNU CTest entries use the exact-count runner with `--test-details`,
+`--test-native-runtime` and `--link narrow-foreign-library.o`. The optional
+installation passed all six registrations after relocation. Both narrow entries
+rejected a fourth passing declaration and the incorrect signed-short provider.
+The default native resource inventory excludes these test files. Giving the
+provider its own build target reduced its clean Ninja recipe to one object
+action. The first shared dependency list had ordered a compiler build ahead
+of that object.
+
+The cached raw-memory interpreter rejected an explicit import of `test()` in
+ordinary execution. Both browser paths now call the ordinary Tower functions
+and assert the three callback argument pairs in JavaScript. The interpreter
+and LLVM/Wasm guests each returned the original 24 output bytes followed by
+18 bytes containing the three sums. The original missing-import checks also
+passed. The native expectations live in the adjacent companion.
+
+The EPYC 7542 host allowed CPUs 0–63 with a 12.288-core cgroup quota. Commands
+used physical cores 0–3. One owner request took 0.42 s wall and 0.36 s CPU
+at one job, and 2.32 s wall and 0.52 s CPU at four, with 93,192 and 103,668
+KiB maximum process RSS. These include compilation, linking and reporting.
+Four fresh Node selector processes in old/new/new/old order took 34.34,
+8.98, 12.28 and 10.00 s wall. CPU times ranged from 2.51 to 2.72 s.
+The sample spread leaves browser elapsed-time improvement unresolved.
+
+ASan- and TSan-built count runners passed both registered selections. The
+selected guest used the ordinary provider and verified guest runtime. The
+Tower ELF linker rejected the sanitizer-built provider's relocation profile.
+Separate system-linked ordinary consumers with instrumented Tower callers and
+providers produced the same 18 output bytes under ASan and TSan. The Tower
+instrumentation tool supports these two modes. Full compiler and browser builds
+were outside this fixture move. Assignment `541e8e24-c107-4f64-b098-f5eeb4ab6d97`
+carries both bundle identities, the public baseline build, source, raw streams,
+statuses, disk samples and per-command time and RSS.
