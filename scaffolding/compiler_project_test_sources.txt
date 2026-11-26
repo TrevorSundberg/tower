@@ -1,3 +1,4 @@
+examples/inference.tower
 tests/default_inputs/aggregate.tower
 tests/default_inputs/format.tower
 tests/default_inputs/generics.tower
@@ -15,6 +16,9 @@ tests/frontend_units_memory.tower
 tests/increment/address.tower
 tests/increment/composition.tower
 tests/increment/nested.tower
+tests/inference_bindings.tower
+tests/inference_inputs/peers.tower
+tests/inference_inputs/width.tower
 tests/precedence_inputs/bindings.tower
 tests/precedence_inputs/chained.tower
 tests/precedence_inputs/left.tower
@@ -23,6 +27,12 @@ tests/precedence_inputs/nonassoc.tower
 tests/precedence_inputs/replacement.tower
 tests/precedence_inputs/right.tower
 tests/precedence_inputs/right_alias.tower
+tests/struct_cases/forward.tower
+tests/struct_cases/layout.tower
+tests/struct_cases/nested.tower
+tests/struct_cases/recursive.tower
+tests/struct_cases/redirect.tower
+tests/test_declaration_inputs/array_assertions.tower
 tests/utf8_cases.tower
 tests/utf8_oracle.tower
 tests/utility_checks.tower

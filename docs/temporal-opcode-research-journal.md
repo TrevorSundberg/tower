@@ -108699,3 +108699,66 @@ on loopback. The candidate Pages tree is `8949f831bbb033db036a523b8b5a0cf0002b91
 The manager holds integration and hosted verification. The assignment packet
 contains raw per-entry imports, requests, results, source and deployment bundles,
 replay commands and resource measurements.
+
+## Editable test resources on the aed77666 compiler project
+
+Host 8, assignment 546c9a4f-42f8-4687-9823-97fa007966c2. The two source
+inputs are public aed77666 and c7c4e04b. The supplied site bundle reproduced
+dd6651b1 locally. Its 631-file project has 12 companion paths. Rebuilding
+the c7c4e04b packager on the combined source reproduced the supplied tool's
+SHA-256. Its normal entry emitted 656 files, including 16 companions and
+zero library companions. All seven adjacent library suites in the checkout
+are outside that project. The project imports production library modules
+from the builtin inventory and ordinary object depfiles.
+
+With those current sources, the semantic types owner first reported
+tests/test_declaration_inputs/array_assertions in the aggregate companion.
+Direct selection first reported examples/inference in the inference companion.
+The four direct native discovery depfiles, checked against actual project
+membership, identify ten missing Tower texts. The optional inventory adds
+their exact paths and admits the examples directory through the existing
+portable name and Tower suffix checks. Compiler units, discovery and test
+sources have no edits in this change.
+
+The unmodified c7c4e04b Playground dispatched the selected source text,
+four-byte interpreter request, single ordinary entry and entire standard
+project to its execution worker in Chromium. The fixed drive has 666 files.
+The native release compiler ran the same input set with --test-details.
+Owner/direct counts matched in both hosts: semantic_types 31/4,
+semantic_values 31/4, semantic_aggregates 31/5 and bytecode_package 1/1.
+The 31 selections overlap. The full checkout additionally selected eight
+work_graph tests and two stack tests for the inference owner (41/4). The
+installed aggregate registration uses a different suffix. Its alternate
+selection includes array_assertions' inline test for a total of six.
+
+Withholding peers in the UI failed both inference selections at its import
+in semantic_types_test.tower. After restoration both passed. Withholding
+the aggregate companion's array_assertions import failed the inference
+owner at that path while its direct companion still passed four. Restoring
+the file returned the owner to 31. Ten one-file removals each identified
+the particular missing import. The ordinary semantic_types object was
+690,098 bytes with 92 ordered dependency records. The containing production
+unit was 884,255 bytes with 114. Each pair matched by bytes and by every
+dependency path and source hash. The latter also matched the producer's
+retained object SHA-256 and dependency order.
+
+On the Ryzen 9 7900X, the container allowed CPUs 0–23 with 23.04 CPU
+equivalents and a 63,577,260,032-byte memory limit. Warm matched runs used
+CPUs 0,2,4,6, one compiler worker, fresh LLVM instances and two samples per
+arm in forward and reverse order. The ordinary owner took 12.31/12.56 s
+before and 13.01/12.09 s after. Complete packaging took 7.87/7.76 s before
+and 7.80/7.80 s after, with peak RSS between 237,028 and 237,108 KiB.
+The optional texts added 4,511 serialized bytes. The source reader stayed
+serial. Per-process user/system time, memory capacity and RSS for each
+run are in the packet. LLVM 19 address/leak and thread instrumentation of
+the normal packager reproduced the project; the first TSan runtime start
+hit the host personality restriction. Tower source-level UBSan is unavailable.
+
+The producer's frozen replay regenerated all 114 site files. The normal
+current-source comparison used a native WASI parser build, freshly compiled
+Tower LLVM/cross units and retained backend support. Its 25 unit definitions
+and all ordered link arguments match the frozen recipe. The two locally
+repacked backend archive byte totals differ from the sealed site's totals.
+These runs qualify local resource packaging and the editable request.
+The frozen deployment, external harness registrations and public refs
+were outside publication scope.

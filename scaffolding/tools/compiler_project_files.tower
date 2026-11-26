@@ -88,7 +88,8 @@ fn compiler_project_tree(project: CompilerProjectFiles*, directory: u8*): bool {
     return true;
 }
 fn compiler_project_test_source(path: u8*): bool {
-    return compiler_project_prefix(path, "tests/") && compiler_project_suffix(path, ".tower");
+    return (compiler_project_prefix(path, "tests/") || compiler_project_prefix(path, "examples/"))
+        && compiler_project_suffix(path, ".tower");
 }
 
 fn compiler_project_inventory(project: CompilerProjectFiles*, repository: u8*, inventory_name: u8*,
