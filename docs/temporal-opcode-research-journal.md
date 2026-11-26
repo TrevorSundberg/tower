@@ -114106,3 +114106,89 @@ The suite object shrank from 27,352 to 24,440 bytes. The extra companion and tes
 Focused ASan with leak detection and TSan each passed the restored parser switch on the first launch. The Tower LLVM tool instrumented 38 fixture/oracle definitions and 1,616 parser-node definitions, including the production selector. Link maps show the instrumented objects, the serial work provider and the fault allocator. The other linked objects were ordinary builds. The Tower IR tool supports address and thread modes only. The fixture runs provide no concurrent guest coverage. The packet includes the exact invocations, both link maps, count-guard and wrong-value failures, traced rows, measurements and a source bundle for manager integration.
 
 The restored no-argument parser aggregate passed its registered CTest (2.78 s elapsed, 50,472 KiB). Looking for a frontend aggregate CTest in the focused native cache returned no registrations and a nonzero status with `--no-tests=error`. Running that executable directly with the scaffolding resource root reached its final lexicon call and passed (98.33 s elapsed, 97.61 s user, 0.71 s system, 190,268 KiB). Both incremental builds then reported no work. Publication belongs to the manager.
+
+### 2026-11-26 — Selecting the native LR grammar assertions
+
+Host 5 used the published eb1bdbe4 source and its verified Linux x64
+development compiler. The original parser-only Release build passed the
+focused LR grammar selector, its LR analysis caller and the default parser
+aggregate. The reader registration precedes the LR grammar fragment and
+provides the real parser services, including the serial fault allocator.
+
+The companion shares each selected block with the named entry called by
+the old suite. Each block owns its world. The first run failed the random
+trial buffer check through all five routes. The original suite had already
+built and released the fixed tree before sampling its random trial baseline.
+Building and releasing that tree in the random case preserves that setup
+without consuming a random draw. All five routes then passed.
+
+| Original group in `scaffolding/tests/lr_grammar.tower` | Selected case in `lr_grammar_test.tower` | Observations |
+| --- | --- | --- |
+| Fixed seven-name tree and construction allocation sweep, lines 139–151 | `lr_grammar_fixed_snapshot` | Failed grants 0–20, succeeded at 21. Each iteration returned to 156 buffers. Compared the same root against the independent oracle after retry. |
+| MT19937 checks and 150 generated grammars, lines 134 and 152–159 | `lr_grammar_random_snapshots` | Reference seed 5489, fixture seed 1196573005. Each trial returned to eight buffers and four nodes. |
+| Empty document, line 162 | `lr_grammar_empty_document` | Compared the empty input and its augmented production. |
+| Rule metadata, lines 163–167 | `lr_grammar_rule_precedence` | Compared precedence 17, associativity 2, rule provenance and generated flag. |
+
+All four cases call the original comparison over an immutable entity view,
+including missing-name resolution and order, rule and symbol fields,
+provenance, generated flags and capture/name snapshots after source release.
+Each checks world disposal and its entry buffer count. The independent
+oracle, generators in shared fixture modules and existing input files have
+their original blobs. The packet maps all 28 assertion messages from the
+original module to companion lines. An observer replay compared all 45,682
+MT19937 draws (including the 10,000 reference draws), ordered counts of names,
+rules, symbols and missing names for 153 grammars, 22 grant results and
+150 trial baselines byte for byte. The independent random fixture setup
+added 185 allocator calls before trial zero. The allocation delta between
+trial zero and trial 149 was 78,917 in each run. An initial observer used
+`print` and could not link `tower_print` in the parser profile. The replay
+used libc output and the ordinary timings used observer-free processes.
+
+The parser and providers used eb1bdbe4 plus the fixture change in 3d3cee7d.
+The published compiler SHA-256 was
+`e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`.
+Its package records base 41de9006 and individual source hashes.
+The legacy focused selector, LR analysis selector and default aggregate
+matched both original output streams byte for byte. Recompiling the original
+and migrated suite units and relinking with four compiler jobs reproduced
+the focused outputs. The native parser suite takes no runtime jobs flag.
+Direct selection at jobs 1 and 4 passed four LR declarations each. Owner
+discovery at each width passed those four and the five work-budget tests.
+The body uses the serial test allocator at both compiler widths.
+
+Changing the expected name count to oracle length plus one caused the
+legacy selector to abort and all four selected processes to report
+“LR grammar name count” at line 96, column 9. The three native callers also
+aborted with that message at both compile widths in isolated negative
+builds. The native assertion trap adds its offset to the failure message.
+Restoration reproduced the candidate source, object and executable hashes
+and all seven CTests passed. Trying the original abort-only check inside
+a selected guest retained the text but lost the guest's trap record.
+
+One Ryzen 9 5900XT (16 cores, 32 threads), affinity 0,2,4,6, CPU quota
+3071999/100000 µs, memory limit 129569390592 bytes, Linux x64, Clang
+19.1.7 Release. After one warm round, three alternating rounds ran one
+arm at a time under the host timing lock. Native rows are batches of 30
+fresh processes. Selected rows are one compile, link and execution with
+the exact-count checker. The table gives median wall and user+system CPU
+seconds and maximum observed GNU time RSS in KiB across measured rounds.
+
+| Route | Unit/compiler jobs | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Original native | 1 | 0.21 | 0.20 | 3116 |
+| Migrated native | 1 | 0.21 | 0.20 | 3112 |
+| Original native | 4 | 0.21 | 0.21 | 3120 |
+| Migrated native | 4 | 0.21 | 0.21 | 3132 |
+| Direct selection | 1 | 0.61 | 0.60 | 148804 |
+| Direct selection | 4 | 0.65 | 0.73 | 157952 |
+| Owner selection | 1 | 0.73 | 0.72 | 159064 |
+| Owner selection | 4 | 0.77 | 0.86 | 168644 |
+
+The focused ASan/leak and TSan runs instrumented 66 definitions in the
+fixture and its imported helpers and ran them in the parser executable.
+Six TSan launches failed the host's personality check before the seventh
+completed. The linked providers and published selector compiler were
+uninstrumented. Source-level UBSan is unavailable. Native execution was
+validated on Linux x64. Packet `7c61b756-cf3c-47ee-aa9d-3c415227303d`
+contains the focused Git bundle, native input hashes, commands, traces,
+raw outputs and controls for manager publication.
