@@ -121117,3 +121117,104 @@ completed the correct mode on its second launch. All 64 final wrong-mode
 launches exited 139 before guest execution with the same denied personality
 request. The earlier instrumented link completed that mode on attempt 4.
 The final wrong-mode TSan result is therefore limited to startup evidence.
+### Built-ins and ordinary calls in the shipped platform suite
+
+Host 6, assignment `083fcf4e-815f-4ca4-b4b7-f56e01fb8714`, started at
+published `1a454331`. The first three Node registrations already invoke
+selected Tower tests. The last registration kept the width, execution,
+spelling, ownership, LLVM and invalid-call expectations in JavaScript.
+The original registration and the full file passed on the portable and
+thread-capable frontends from Pages `8417c9ae`, with the same shipping LLVM
+reactor. The two optional source exports each contained 1,083 bytes.
+
+The interpreter test requests the original source and captures its formatted
+Foundation before retiring the handle. It sends only copied text to the other
+instance, checks its output and compares the new formatting byte for byte.
+The two graph texts supply the optional exports and the 32-bit LLVM input.
+The second Tower test consumes both asynchronous Wasm calls. Both selections
+use the existing explicit-entry runner and platform field transport. Invalid
+inputs stay literal in the Tower test and each opens its own execution.
+An early run exhausted the default ten assertion slices during Foundation
+text comparisons. The call test has its own slice limit. Checking the six
+content predicates on the graph copy and requiring exact equality with the
+fast copy avoids duplicate scans. The subject step budget stays at 10,000.
+
+#### Assertion mapping and observed results
+
+| Original obligation | Tower decision and real observation |
+| --- | --- |
+| Status and stdout on the source, four pairs | `check_target` requests 4 and 8 bytes, each graph and fast. `execute_calls` requires done and LF-terminated 12 or 24. Graph took 23 steps, fast 22. |
+| Six content predicates on each rendering | `check_content` checks the import prefix, the full i32 and usize declaration lines, the function body, the full array-size line and the contiguous ordered call sequence. The fast rendering at each width must equal the checked graph bytes. |
+| Two graph/fast equalities | `fixture_equal` compares the lengths and every byte at each width independently. |
+| Recompile each copied text in its original mode and width | `check_mode` closes the source execution before `platform_reopen` calls the other instance. The second status, output and complete reformat are checked in all four cells. Traces show two instance identities, matching input bytes, fast selections, budgets and eight individual retirements. |
+| Two LLVM compilations and two executions | `check_wasm` requires compiled, done and exactly 12 LF for the original and the 32-bit graph text. Both emitted Wasm SHA-256 `797621ebf71a643edf64d7250b49041b21debf84560e6f2ba4e9c479cb791a64`. |
+| Optional 32/64 exports | With the artifact directory set, both arms wrote exactly `platform_calls_32.tower` and `platform_calls_64.tower`. Each matched its original byte for byte, SHA-256 `4d2a49dcd2927357275ce2b32ba1f24fb661d1ef7358d22b67db41f485b059d2`. The npm discovery runs left the variable unset. |
+| Five compile-time rejections | Each original full input is passed to `reject_call`. Missing print and alloc arguments, nonpointer free, void print in a value context and a builtin name collision each produced error, zero steps and empty output. The input-relative offsets were 19, 19, 19, 32 and 19. |
+
+These obligations account for the 62 original assertion invocations. Separate
+boundary traces cover all four registrations on both shipping images. Within
+each registration the ordered interpreter records match across revisions,
+including inputs, mode selection, results, formatting and handle retirement.
+The LLVM compile records, guest bytes and returned Wasm results match within
+each registration as well. The interpreter test now finishes its five
+validation failures before the second test reads the asynchronous LLVM
+results. A same-host control deliberately reused the source instance. Its
+values still passed the Tower comparisons, but the independent trace
+comparison rejected its compile and retirement stream on both images.
+Restoring the separate instance restored the complete stream.
+
+The package's ordinary `npm run --prefix playground test:node` expanded its
+real glob. Node shard 41/51 isolated this file and passed all four original
+names on each image. The platform assertions selected one declaration per
+entry, including each of the two entries owned by the last name. Native
+default discovery of the raw subject still lists no companion at jobs 1 and
+4. The existing function-values discovery control continued to name its own
+companion. These browser tests are supplied through the Node registration.
+
+#### Matched host 6 measurements
+
+Three pairs per cell ran serially under the host timing lock with order
+original/candidate, candidate/original, original/candidate. Each sample
+started a fresh Node 24.22.3 process on warm files, CPUs 0–3 of effective
+0–11, quota 1152000/100000, Intel Xeon E5-2680 v4, Linux 5.15.0-168,
+Debian 12. Node test concurrency was one. The shared subjects used the host
+default four slots, each assertion instance requested one. GNU time measured
+the whole command, including the common phase counters and artifact exports.
+The LLVM default was optimized wasm32-unknown-unknown. Tracing and
+wrong-expectation trials ran separately.
+
+| Selection | Original wall / CPU s / peak KiB | Migrated wall / CPU s / peak KiB |
+| --- | ---: | ---: |
+| Calls, portable | 1.15 / 1.85 / 193008 | 2.39 / 3.32 / 203384 |
+| Calls, shared | 1.53 / 2.75 / 329656 | 3.24 / 4.62 / 353348 |
+| Four names, portable | 3.73 / 5.01 / 207632 | 5.00 / 6.36 / 228148 |
+| Four names, shared | 4.96 / 6.92 / 354384 | 6.78 / 8.83 / 385288 |
+
+Each column gives the median for that metric. The two additional assertion
+compilations and guest text comparisons add time and memory. The two final
+test handles reported 1,695,140 and 8,745 steps respectively in the initial
+diagnostic freeze. After retirement each assertion instance held 28,442,624
+bytes of linear memory, 13,483 live nodes, and reported zero legacy
+allocations. The observed 17 assertion slices for the longer test fit its
+32-slice limit. The cgroup did not expose memory.peak. Process maximum RSS
+and instance capacity are recorded separately.
+
+All four names passed on portable with V8 explicit Wasm bounds checks,
+memory-moving stress and heap verification. Combining all flags on shared
+failed before the first registration because Node rejected Worker.execArgv.
+Separate shared runs with explicit bounds checking in one process and with
+memory-moving stress plus heap verification passed all four names. The
+shipping reactors lack source ASan/UBSan/TSan instrumentation. The validation
+covers this Node module and uses the original optimized shipping binaries.
+
+Each of 24 wrong expectations was exercised independently on the original
+registration and its Tower replacement, on both images. These covered the
+four width/mode outputs, six content predicates, independent output and
+round trip, graph/fast equality, each invalid source's zero-step count, and
+compilation, status and output for each LLVM input. All 96 processes exited
+one. Each of the 48 migrated diagnostics located the intended assertion in
+the mutated Tower file by byte offset. All 96 restored registrations passed
+and reproduced both source exports. The raw packet contains the mutation
+patches, TAP, diagnostics, timings, per-registration observations, deployment
+manifest, shipping bytes and the source bundle against `1a454331`. Manager
+review and publication remain open.

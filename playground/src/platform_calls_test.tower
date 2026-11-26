@@ -1,0 +1,71 @@
+import platform_observations;
+import backend.text;
+import library.test_fixtures;
+
+extern fn platform_reopen(source: u8*, width: usize, fast: bool): void;
+extern fn platform_open_source(source: u8*): void;
+extern fn platform_steps(): usize;
+extern fn platform_keep_foundation(width: usize, source: u8*): void;
+
+fn check_content(text: u8*): void {
+    assert(backend_prefix(text, "import foundation_syntax;\n"), "Foundation import");
+    assert(backend_contains(text, "\nvar i32: type = integer_type(32, 1);\n"), "i32 definition");
+    assert(backend_contains(text, "\nvar usize: type = address_type();\n"), "usize definition");
+    assert(backend_contains(text, "fn identity(x: usize): usize {\n    return x;\n}"), "Identity function");
+    assert(backend_contains(text, "\nvar n: usize = sizeof(array_type(i32*, 3));\n"), "Typed array size");
+    assert(backend_contains(text, "\nn = identity(n);\nprint(n);\nvar p: i32** = alloc(i32*, 2);\nfree(p);\n"),
+        "Ordered calls");
+}
+
+fn execute_calls(wanted: u8*): void {
+    platform_step(10000);
+    if !field_is("status", "done") {
+        var diagnostic = observed("error");
+        defer free(diagnostic.data);
+        assert(false, diagnostic.data);
+    }
+    assert(field_is("output", wanted), "Target-sized call output");
+}
+
+fn check_mode(width: usize, fast: bool, wanted: u8*): FixtureBytes {
+    platform_open("platform_calls", width, fast);
+    execute_calls(wanted);
+    var text = observed("foundation");
+    platform_close();
+
+    // Only the copied text survives closing the first execution.
+    platform_reopen(text.data, width, fast);
+    defer platform_close();
+    execute_calls(wanted);
+    assert(bytes_match("foundation", text), "Independent Foundation round trip");
+    return text;
+}
+
+fn check_target(width: usize, wanted: u8*): void {
+    var graph = check_mode(width, false, wanted);
+    defer free(graph.data);
+    check_content(graph.data);
+    var fast = check_mode(width, true, wanted);
+    defer free(fast.data);
+    assert(fixture_equal(graph, fast), "Graph and fast Foundation");
+    platform_keep_foundation(width, graph.data);
+}
+
+fn reject_call(source: u8*): void {
+    platform_open_source(source);
+    defer platform_close();
+    platform_step(10000);
+    assert(field_is("status", "error"), source);
+    assert(platform_steps() == 0, source);
+}
+
+test() {
+    check_target(4, "12\n");
+    check_target(8, "24\n");
+
+    reject_call("import foundation; print();");
+    reject_call("import foundation; alloc(i32);");
+    reject_call("import foundation; free(1);");
+    reject_call("import foundation; var n: i32 = print(1);");
+    reject_call("import foundation; fn print(x: i32): void {}");
+}

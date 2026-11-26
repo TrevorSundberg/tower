@@ -1,5 +1,4 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
 import {readFile,writeFile,mkdir} from 'node:fs/promises';
 import {loadTower} from '../src/tower-host.mjs';
 import {loadLLVM, executeWasm} from '../src/llvm-host.mjs';
@@ -36,7 +35,7 @@ if(process.env.TOWER_TEST_PHASES){
 // instantiations before entering the selected Tower assertion.
 async function observeLLVM(source) {
   const compiled = llvm.compile(source);
-  const fields = {compilation:compiled.status, diagnostic:compiled.error};
+  const fields = {compilation:compiled.status, diagnostic:compiled.error ?? ''};
   if (compiled.status !== 'compiled') return fields;
   fields.imports = WebAssembly.Module.imports(await WebAssembly.compile(compiled.wasm));
   try { return {...fields, ...await executeWasm(compiled)}; }
@@ -50,10 +49,10 @@ async function checkPlatform(entry, fixtures, expected) {
     programs.set(name, {source:text, llvm:await observeLLVM(text)});
   }
 
-  return runPlatformChecks(entry, programs, expected);
+  return runPlatformChecks(entry, programs, {expected});
 }
 
-async function runPlatformChecks(entry, programs, expected) {
+async function runPlatformChecks(entry, programs, {expected, independent, canonical, chunks = 10} = {}) {
   let result;
   function program(context, name) {
     const key = guestString(context, name);
@@ -61,19 +60,38 @@ async function runPlatformChecks(entry, programs, expected) {
     return programs.get(key);
   }
   let handle;
+  let owner;
+  function openExecution(host, text, width, fast) {
+    if (handle !== undefined) throw new Error('Platform execution is still open');
+    owner = host;
+    handle = owner.compile(text, {pointerBytes:width});
+    if (fast) owner.useFast(handle);
+  }
   function closeExecution() {
-    if (handle !== undefined) tower.destroyExecution(handle);
+    if (handle !== undefined) owner.destroyExecution(handle);
     handle = undefined;
   }
   const imports = {
     platform_open(context, name, width, fast) {
-      if (handle !== undefined) throw new Error('Platform execution is still open');
-      handle = tower.compile(program(context, name).source, {pointerBytes:width});
-      if (fast) tower.useFast(handle);
+      openExecution(tower, program(context, name).source, width, fast);
+    },
+    platform_reopen(context, text, width, fast) {
+      openExecution(independent, guestString(context, text), width, fast);
+    },
+    platform_open_source(context, text) {
+      openExecution(tower, guestString(context, text), 4, false);
+    },
+    platform_keep_foundation(context, width, text) {
+      canonical.set(width, guestString(context, text));
     },
     platform_step(_context, budget) {
-      result = tower.execute(handle, budget);
+      result = owner.execute(handle, budget);
       return result.status === 'executing';
+    },
+    platform_steps() {
+      if (!Number.isInteger(result.steps) || result.steps < 0 || result.steps > 0xffffffff)
+        throw new Error('Invalid platform step count');
+      return result.steps;
     },
     platform_close: closeExecution,
     platform_llvm(context, name) { result = program(context, name).llvm; },
@@ -84,7 +102,10 @@ async function runPlatformChecks(entry, programs, expected) {
     },
     platform_observation(context, field, length) {
       const key = guestString(context, field);
-      const value = key === 'expected' ? expected : result[key];
+      let value;
+      if (key === 'expected') value = expected;
+      else if (key === 'foundation') value = owner.foundation(handle).source;
+      else value = result[key];
       const bytes = typeof value === 'string' ? Buffer.from(value) : value;
       if (!Buffer.isBuffer(bytes)) throw new Error('Missing platform field ' + key);
       const pointer = context.allocate(bytes.length + 1);
@@ -104,7 +125,7 @@ async function runPlatformChecks(entry, programs, expected) {
     files.push({path:name + '.tower', text:await source('playground/src/' + name)});
   }
   const checks = await openTower({project:{files}, threads:{capacity:1}, imports});
-  try { runSelectedTest(checks, entry + '.tower', 10, {suffix:'_browser_test.tower'}); }
+  try { runSelectedTest(checks, entry + '.tower', chunks, {suffix:'_browser_test.tower'}); }
   finally { closeExecution(); checks.close(); }
 }
 
@@ -139,43 +160,21 @@ test('pure Wasm exports bind directly as external imports, and tables can supply
   }
   await runPlatformChecks('platform_wasm_imports_test', programs);
 });
-test('built-ins and ordinary functions share calls and typed argument validation',async()=>{
- const source=(await read('scaffolding/tests/platform_calls.tower')).toString();
- const independent=await openTower();
- test.after(() => independent.close());
- const canonical=new Map();
- for(const pointerBytes of [4,8])for(const fast of [false,true]){
-  const expected=`${pointerBytes * 3}\n`;
-  const h=tower.compile(source,{pointerBytes});let text;
-  try{
-   if(fast)tower.useFast(h);
-   const result=tower.execute(h);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
-   text=tower.foundation(h).source;
-   assert.ok(text.startsWith('import foundation_syntax;\n'));
-   assert.match(text,/^var i32: type = integer_type\(32, 1\);$/m);
-   assert.match(text,/^var usize: type = address_type\(\);$/m);
-   assert.ok(text.includes('fn identity(x: usize): usize {\n    return x;\n}'));
-   assert.match(text,/^var n: usize = sizeof\(array_type\(i32\*, 3\)\);$/m);
-   assert.ok(text.includes('\nn = identity(n);\nprint(n);\nvar p: i32** = alloc(i32*, 2);\nfree(p);\n'));
-  }finally{tower.destroyExecution(h);}
-  if(fast)assert.equal(text,canonical.get(pointerBytes));else canonical.set(pointerBytes,text);
-  // Recheck only copied Foundation in another host after the source handle retires.
-  const second=independent.compile(text,{pointerBytes});
-  try{
-   if(fast)independent.useFast(second);
-   const result=independent.execute(second);assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
-   assert.equal(independent.foundation(second).source,text);
-  }finally{independent.destroyExecution(second);}
- }
- for(const text of [source,canonical.get(4)]){
-  const compiled=llvm.compile(text);assert.equal(compiled.status,'compiled',compiled.error);
-  const result=await executeWasm(compiled);assert.equal(result.status,'done',result.error);assert.equal(result.output,'12\n');
- }
- if(process.env.TOWER_TEST_ARTIFACTS){
-  await mkdir(process.env.TOWER_TEST_ARTIFACTS,{recursive:true});
-  for(const [width,text] of canonical)await writeFile(`${process.env.TOWER_TEST_ARTIFACTS}/platform_calls_${width*8}.tower`,text);
- }
- for(const source of ['print();','alloc(i32);','free(1);','var n: i32 = print(1);','fn print(x: i32): void {}']){
-  const h=tower.compile('import foundation; '+source);try{const r=tower.execute(h);assert.equal(r.status,'error',source);assert.equal(r.steps,0);}finally{tower.destroyExecution(h);}
- }
+test('built-ins and ordinary functions share calls and typed argument validation', async () => {
+  const text = await source('scaffolding/tests/platform_calls');
+  const programs = new Map([['platform_calls', {source:text}]]);
+  const canonical = new Map();
+  const independent = await openTower();
+  try {
+    await runPlatformChecks('platform_calls_test', programs, {independent, canonical, chunks:32});
+  } finally { independent.close(); }
+
+  programs.get('platform_calls').llvm = await observeLLVM(text);
+  programs.set('foundation32', {llvm:await observeLLVM(canonical.get(4))});
+  await runPlatformChecks('platform_calls_wasm_test', programs);
+  if (process.env.TOWER_TEST_ARTIFACTS) {
+    await mkdir(process.env.TOWER_TEST_ARTIFACTS, {recursive:true});
+    for (const [width, foundation] of canonical)
+      await writeFile(`${process.env.TOWER_TEST_ARTIFACTS}/platform_calls_${width * 8}.tower`, foundation);
+  }
 });

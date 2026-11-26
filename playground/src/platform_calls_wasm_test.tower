@@ -1,0 +1,17 @@
+import platform_observations;
+
+fn check_wasm(fixture: u8*): void {
+    platform_llvm(fixture);
+    if !field_is("compilation", "compiled") {
+        var diagnostic = observed("diagnostic");
+        defer free(diagnostic.data);
+        assert(false, diagnostic.length == 0 ? fixture : diagnostic.data);
+    }
+    assert(field_is("status", "done"), fixture);
+    assert(field_is("output", "12\n"), fixture);
+}
+
+test() {
+    check_wasm("platform_calls");
+    check_wasm("foundation32");
+}
