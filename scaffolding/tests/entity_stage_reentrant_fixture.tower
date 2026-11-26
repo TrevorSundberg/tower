@@ -1,0 +1,18 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget_types;
+import .host.memory;
+
+var ReentrantLifecycle: usize = 1;
+struct ReentrantState {
+    root: Entity*;
+    survivor: Entity*;
+    kind: Entity*;
+    child: Entity*;
+    publish: EntityStage*;
+    lease: EntityStage*;
+    discard: EntityStage*;
+    finalized: usize;
+}

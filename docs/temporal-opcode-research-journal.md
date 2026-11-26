@@ -118173,3 +118173,12 @@ stdout markers. The separate allocator-refusal fixture is outside this change.
 The installed public pin passed the original modes with 1 and 4 compiler jobs
 on CPUs 0,2,4,6. The first migrated jobs-1 guest ran five direct tests and ten
 through owner discovery. Full packet and controls follow under assignment e8db6b45.
+
+### Native entity stage reentrant companion, host 5
+
+Releasing the victim in the discovered trial invokes the registered finalizer.
+It rejects a lease on the dying owner, publishes a prepared child, leases and
+updates the live survivor, and discards the remaining stage before returning.
+Entry, payload values, cleared stage handles and store drain are checked at
+their original boundaries. The public native guest passed one direct and six
+owner tests at jobs 1. The standalone still prints zero.
