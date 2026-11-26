@@ -1,0 +1,22 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget_types;
+import .host.memory;
+import .library.vector;
+
+var StageQueueLifecycle: usize = 3;
+var StageQueueCount: usize = 65536;
+var StageQueueRounds: usize = 8;
+var StageQueueSmokeCount: usize = 2;
+var StageQueueSmokeRounds: usize = 1;
+struct StageQueuePayload { references: vector(Entity*); }
+
+var StageResultLifecycle: usize = 1;
+struct StageResultPayload { target: Entity*; value: usize; }
+struct StageResultState { anchor: Entity*; finalized: usize; reclaim_busy: usize; }
+struct StageHoldPayload { target: Entity*; alias: Entity*; value: usize; }
+struct StageHoldState { finalized: usize; cancelled: usize; }
+var StageHoldLifecycle: usize = 2;
+var StageResultCancelled: usize = ~convert(usize, 0);

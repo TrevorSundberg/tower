@@ -118161,3 +118161,15 @@ case and stayed there through the other two. Request/value counts were
 3/8, 2/5 and 2/5 in both arms. Raw process peak RSS and linear-memory
 capacity measure different resources. The manager owns integration and
 publication of the focused source commit.
+
+### Native entity stage result companion, host 5
+
+At public base `7ef7ab34`, the standalone result executable selects the lease,
+hold, smoke queue and publication trials by default. Its single `queued`
+argument selects eight 65,536-reference rounds. Other arguments retain the lease
+and publication measurement. The companion now owns the assertions and actual
+cancel/finalize callbacks. The executable calls the same trials and retains its
+stdout markers. The separate allocator-refusal fixture is outside this change.
+The installed public pin passed the original modes with 1 and 4 compiler jobs
+on CPUs 0,2,4,6. The first migrated jobs-1 guest ran five direct tests and ten
+through owner discovery. Full packet and controls follow under assignment e8db6b45.

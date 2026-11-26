@@ -151,6 +151,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(work-arena work_arena "7 tests" "2 tests" ${work_guest_args})
     tower_work_native_selections(work-arena-linkage work_arena_linkage "6 tests" "1 test"
       ${work_guest_args} --link "${work-arena-link-provider_OBJECT}")
+    tower_work_native_selections(entity-stage-result entity_stage_result_fixture "10 tests" "5 tests" ${work_guest_args})
     # Each guest compiles its own finalizer. Both owners also discover five budget tests.
     tower_work_native_selections(entity-page-reuse entity_page_reuse "10 tests" "5 tests" ${work_guest_args})
     tower_work_native_selections(entity-page-property entity_page_property "8 tests" "3 tests"

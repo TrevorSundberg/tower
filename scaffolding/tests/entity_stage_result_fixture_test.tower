@@ -1,0 +1,330 @@
+import library.testing;
+import entity_stage_result_fixture;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget_types;
+import .host.memory;
+import .library.vector;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    if lifecycle == StageQueueLifecycle {
+        var payload = bits(StageQueuePayload*, data);
+        foreach(var target in &payload.references) { if target != null { entity_release(target); } }
+        vector_dispose(&payload.references);
+        return;
+    }
+    if lifecycle == StageHoldLifecycle {
+        var state = bits(StageHoldState*, entity_context(component.owner));
+        var payload = bits(StageHoldPayload*, data);
+        if payload.target != null { entity_release(payload.target); }
+        if payload.alias != null { entity_release(payload.alias); }
+        if payload.value == StageResultCancelled { state.cancelled++; }
+        state.finalized++;
+        return;
+    }
+    var state = bits(StageResultState*, entity_context(component.owner));
+    assert(lifecycle == StageResultLifecycle && state != null);
+    if component.owner.stage == null {
+        var error = WorkBudgetError.None;
+        assert(entity_view_open_result(state.anchor, &error) == null
+            && error == WorkBudgetError.Busy);
+        // A dying anchor is still readable inside its finalizer, but opening
+        // an owning stage must not resurrect it while destruction continues.
+        var stage = entity_stage_open_result(state.anchor, &error);
+        assert(stage == null && error == WorkBudgetError.Busy, "Reclaiming store admitted an owning stage");
+        state.reclaim_busy++;
+    }
+    var payload = bits(StageResultPayload*, data);
+    if payload.target != null { entity_release(payload.target); }
+    state.finalized++;
+}
+
+fn stage_result_cancel(context: void*): void {
+    var payload = bits(StageHoldPayload*, context);
+    payload.target = null;
+    payload.alias = null;
+    payload.value = StageResultCancelled;
+}
+
+fn stage_result_borrow(stage: EntityStage*, type: Entity*, target: Entity*, alias: Entity*): StageHoldPayload* {
+    var owner = entity_stage_create(stage, stage.anchor);
+    var component = entity_component_add(owner, type);
+    assert(owner != null && component != null);
+    var payload = bits(StageHoldPayload*, component.data);
+    *payload = default;
+    var references: Entity*[2];
+    references[0] = target; references[1] = alias;
+    assert(entity_stage_references_cancellable_result(stage, &references[0],
+        sizeof(decltype(references)) / sizeof(Entity*), stage_result_cancel, bits(void*, payload)) == WorkBudgetError.None);
+    payload.target = target;
+    payload.alias = alias;
+    return payload;
+}
+
+fn stage_result_holds(): void {
+    var state: StageHoldState = default;
+    var store = entity_store_create();
+    assert(store != null && entity_store_set_context(store, bits(void*, &state)));
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var target = entity_create(store);
+    var zero = entity_create(store);
+    assert(entity_register(type, sizeof(StageHoldPayload), alignof(StageHoldPayload), StageHoldLifecycle));
+    var stage = entity_stage_open(root);
+    var view = entity_view_open(root);
+    var first = stage_result_borrow(stage, type, zero, null);
+    var repeated = stage_result_borrow(stage, type, target, target);
+    assert(entity_release(zero) == 0);
+    var original = target.references;
+    target.references = ~convert(usize, 0) - 1;
+    assert(entity_stage_hold_result(stage) == WorkBudgetError.Exhausted
+        && stage.held == 0 && zero.references == 0 && target.references == ~convert(usize, 0) - 1
+        && first.target == zero && repeated.target == target && repeated.alias == target);
+    assert(entity_stage_discard_result(stage) == WorkBudgetError.None
+        && state.cancelled == 2 && state.finalized == 2 && zero.references == 0
+        && target.references == ~convert(usize, 0) - 1);
+    target.references = original;
+    entity_view_close(view);
+
+    // An earlier successful hold survives a failed later wave. Only the new
+    // borrowed fields are cancelled; the old payload releases exactly one hold.
+    stage = entity_stage_open(root);
+    view = entity_view_open(root);
+    first = stage_result_borrow(stage, type, target, null);
+    assert(entity_stage_hold_result(stage) == WorkBudgetError.None && target.references == original + 1);
+    var held = stage.held;
+    repeated = stage_result_borrow(stage, type, target, target);
+    target.references = ~convert(usize, 0) - 1;
+    assert(entity_stage_hold_result(stage) == WorkBudgetError.Exhausted && stage.held == held);
+    assert(entity_stage_discard_result(stage) == WorkBudgetError.None
+        && state.cancelled == 3 && state.finalized == 4 && target.references == ~convert(usize, 0) - 2);
+    target.references = original;
+    entity_view_close(view);
+
+    // Failed ownership is retryable. Reuse a live queue slice for the next
+    // payload, then verify both repeated-target accounting and idempotence.
+    stage = entity_stage_open(root);
+    first = stage_result_borrow(stage, type, target, target);
+    var owner = entity_stage_create(stage, root);
+    var component = entity_component_add(owner, type);
+    repeated = bits(StageHoldPayload*, component.data);
+    *repeated = default;
+    assert(entity_stage_references_cancellable_result(stage, stage.references.data, stage.references.length,
+        stage_result_cancel, bits(void*, repeated)) == WorkBudgetError.None);
+    repeated.target = target;
+    repeated.alias = target;
+    target.references = ~convert(usize, 0) - 1;
+    assert(entity_stage_hold_result(stage) == WorkBudgetError.Exhausted && stage.held == 0);
+    target.references = original;
+    var owned = original + stage.references.length;
+    assert(entity_stage_hold_result(stage) == WorkBudgetError.None && target.references == owned
+        && entity_stage_hold_result(stage) == WorkBudgetError.None && target.references == owned
+        && entity_stage_publish_result(stage) == WorkBudgetError.None && target.references == owned);
+
+    // Legacy callers retain their ordinary behavior, but checked discard cannot
+    // run their finalizers when ownership acquisition fails without a callback.
+    stage = entity_stage_open(root);
+    owner = entity_stage_create(stage, root);
+    component = entity_component_add(owner, type);
+    repeated = bits(StageHoldPayload*, component.data);
+    *repeated = default;
+    assert(entity_stage_references(stage, &target, 1));
+    repeated.target = target;
+    target.references = ~convert(usize, 0);
+    assert(entity_stage_discard_result(stage) == WorkBudgetError.Exhausted
+        && stage.held == 0 && state.finalized == 4 && repeated.target == target);
+    target.references = owned;
+    assert(entity_stage_discard_result(stage) == WorkBudgetError.None && target.references == owned);
+
+    // Component type ownership and queued ownership can alias. Publication
+    // reserves their combined count before either kind of ownership commits.
+    stage = entity_stage_open(root);
+    first = stage_result_borrow(stage, type, type, null);
+    var type_references = type.references;
+    type.references = ~convert(usize, 0) - 1;
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.Exhausted && stage.held == 0
+        && type.references == ~convert(usize, 0) - 1 && stage.nodes.data[0].node.pending_table == null);
+    type.references = type_references;
+    assert(entity_stage_discard_result(stage) == WorkBudgetError.None && type.references == type_references);
+    entity_release(target);
+    entity_release(type);
+    entity_release(root);
+    assert(state.finalized == 8 && state.cancelled == 4 && entity_store_dispose(store),
+        "Discard and publication drain eight payloads, four through cancellation");
+}
+
+fn stage_result_lease(): void {
+    var store = entity_store_create();
+    var foreign = entity_store_create();
+    var root = entity_create(store);
+    var node = entity_create(store);
+    var type = entity_create(store);
+    var outsider = entity_create(foreign);
+    assert(root != null && node != null && type != null && outsider != null
+        && entity_register(type, sizeof(usize), alignof(usize), 0));
+    var stage = entity_stage_open(root);
+    var other = entity_stage_open(root);
+    var empty: EntityStage = default;
+    assert(stage != null && other != null);
+    store.resource_error = WorkBudgetError.Stale;
+    assert(entity_stage_lease_result(null, node) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(&empty, node) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, null) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, outsider) == WorkBudgetError.Invalid
+        && entity_stage_lease_result(stage, type) == WorkBudgetError.Invalid);
+    var view = entity_view_open(root);
+    assert(view != null && entity_stage_lease_result(stage, node) == WorkBudgetError.Busy
+        && stage.leases.length == 0 && node.stage == null && node.storage == null);
+    entity_view_close(view);
+    var retained = node.references;
+    node.references = 0;
+    store.reclaiming++;
+    assert(entity_stage_lease_result(stage, node) == WorkBudgetError.Busy);
+    store.reclaiming--;
+    node.references = retained;
+    stage.leases.length = ~convert(usize, 0) / sizeof(EntityStageLease);
+    assert(entity_stage_lease_result(stage, node) == WorkBudgetError.Invalid
+        && stage.leases.data == null && node.stage == null && node.storage == null);
+    stage.leases.length = 0;
+    assert(entity_stage_lease_result(stage, node) == WorkBudgetError.None
+        && entity_stage_lease_result(stage, node) == WorkBudgetError.None
+        && entity_stage_lease(stage, node) && stage.leases.length == 1
+        && stage.leases.data[0].node == node && stage.leases.data[0].components == node.component_count
+        && node.stage == bits(void*, stage) && node.storage == &stage.storage
+        && entity_stage_lease_result(other, node) == WorkBudgetError.Busy
+        && other.leases.length == 0 && store.resource_error == WorkBudgetError.Stale);
+    entity_stage_discard(stage);
+    assert(node.stage == null && node.storage == null
+        && entity_stage_lease_result(other, node) == WorkBudgetError.None
+        && entity_stage_publish_result(other) == WorkBudgetError.None
+        && node.stage == null && node.storage == null);
+    entity_release(node); entity_release(type); entity_release(root); entity_release(outsider);
+    assert(entity_store_dispose(store) && entity_store_dispose(foreign));
+}
+
+fn stage_queue_cancel(context: void*): void {
+    var payload = bits(StageQueuePayload*, context);
+    foreach(var &target in &payload.references) { *target = null; }
+}
+
+fn stage_queue_cost(count: usize, rounds: usize): void {
+    for(var round: usize = 0; round < rounds; round++) {
+        var store = entity_store_create();
+        var root = entity_create(store);
+        var type = entity_create(store);
+        var target = entity_create(store);
+        assert(entity_register(type, sizeof(StageQueuePayload), alignof(StageQueuePayload), StageQueueLifecycle));
+        var stage = entity_stage_open(root);
+        var node = entity_stage_create(stage, root);
+        var payload = bits(StageQueuePayload*, entity_component_data(entity_component_add(node, type)));
+        assert(payload != null);
+        // Component payloads are raw storage. Construct the owned vector before
+        // reserve, cancellation, or the ordinary payload finalizer can see it.
+        *payload = default;
+        assert(vector_reserve(&payload.references, count));
+        for(var i: usize = 0; i < count; i++) { payload.references.data[i] = target; }
+        assert(entity_stage_references_cancellable_result(stage, payload.references.data, count,
+            stage_queue_cancel, bits(void*, payload)) == WorkBudgetError.None);
+        payload.references.length = count;
+        var view = entity_view_open(root);
+        assert(entity_release(target) == 0 && entity_stage_hold_result(stage) == WorkBudgetError.None
+            && target.references == payload.references.length && entity_stage_hold_result(stage) == WorkBudgetError.None
+            && target.references == payload.references.length);
+        entity_view_close(view);
+        assert(entity_stage_publish_result(stage) == WorkBudgetError.None);
+        entity_release(root);
+        entity_release(type);
+        assert(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store));
+    }
+}
+
+fn stage_result_publication(): void {
+    var store = entity_store_create();
+    assert(store != null);
+    var state: StageResultState = default;
+    assert(entity_store_set_context(store, bits(void*, &state)));
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var target = entity_create(store);
+    state.anchor = root;
+    assert(root != null && type != null && target != null
+        && entity_register(type, sizeof(StageResultPayload), alignof(StageResultPayload), StageResultLifecycle));
+    store.resource_error = WorkBudgetError.Stale;
+    var error = WorkBudgetError.None;
+    var other_error = WorkBudgetError.Capacity;
+    assert(entity_stage_open_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    assert(entity_view_open_result(null, &error) == null && error == WorkBudgetError.Invalid);
+    assert(entity_stage_open_result(root, null) == null && root.references == 1);
+    assert(entity_view_open_result(root, null) == null && store.views == 0);
+    var empty: EntityStage = default;
+    assert(entity_stage_publish_result(null) == WorkBudgetError.Invalid
+        && entity_stage_publish_result(&empty) == WorkBudgetError.Invalid);
+    var saved_references = root.references;
+    root.references = ~convert(usize, 0);
+    assert(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Exhausted
+        && root.references == ~convert(usize, 0));
+    root.references = saved_references;
+    store.views = ~convert(usize, 0);
+    assert(entity_view_open_result(root, &error) == null && error == WorkBudgetError.Exhausted
+        && store.views == ~convert(usize, 0));
+    store.views = 0;
+    var stage = entity_stage_open_result(root, &error);
+    assert(stage != null && error == WorkBudgetError.None && root.references == saved_references + 1);
+    var child = entity_stage_create_named(stage, root, "first");
+    assert(child != null && entity_stage_open_result(child, &other_error) == null
+        && other_error == WorkBudgetError.Invalid && error == WorkBudgetError.None);
+    assert(entity_view_open_result(child, &other_error) == null && other_error == WorkBudgetError.Invalid);
+    var component = entity_component_add(child, type);
+    assert(component != null);
+    var payload = bits(StageResultPayload*, component.data);
+    *payload = default;
+    payload.value = 3456;
+    assert(entity_stage_references(stage, &target, 1));
+    payload.target = target;
+    var view = entity_view_open_result(root, &error);
+    assert(view != null && error == WorkBudgetError.None && entity_release(target) == 0);
+    var identity = store.next_id;
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.Busy
+        && stage.held == 0 && target.references == 0 && root.child_count == 0
+        && type.instance_count == 0 && child.id == 0 && store.next_id == identity);
+    // Queued ownership is held before the last pin closes, independently of
+    // whether publication succeeds. A failed publish never acquires it early.
+    entity_stage_hold(stage);
+    assert(target.references == 1);
+    entity_view_close(view);
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.None
+        && child.id == identity && child.stage == null && child.storage == null
+        && child.components[0] == component && payload.value == 3456
+        && target.references == 1 && root.child_count == 1 && type.instance_count == 1);
+    stage = entity_stage_open_result(root, &error);
+    assert(stage != null && entity_stage_create_named(stage, root, "first") != null);
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.Invalid
+        && root.child_count == 1 && stage.held == 0);
+    entity_stage_discard(stage);
+    stage = entity_stage_open_result(root, &error);
+    assert(stage != null && entity_stage_create_named(stage, root, "duplicate") != null
+        && entity_stage_create_named(stage, root, "duplicate") != null);
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.Invalid && root.child_count == 1);
+    entity_stage_discard(stage);
+    stage = entity_stage_open_result(root, &error);
+    assert(stage != null && entity_stage_create(stage, root) != null);
+    identity = store.next_id;
+    store.next_id = ~convert(usize, 0);
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.Exhausted
+        && root.child_count == 1 && stage.nodes.data[0].node.id == 0);
+    store.next_id = identity;
+    var children = root.child_count + stage.nodes.length;
+    assert(entity_stage_publish_result(stage) == WorkBudgetError.None && root.child_count == children);
+    assert(store.resource_error == WorkBudgetError.Stale);
+    entity_release(type);
+    entity_release(root);
+    assert(state.finalized == 1 && state.reclaim_busy == 1
+        && store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store));
+}
+
+test() { stage_result_lease(); }
+test() { stage_result_holds(); }
+test() { stage_queue_cost(StageQueueSmokeCount, StageQueueSmokeRounds); }
+test() { stage_result_publication(); }
+test() { stage_queue_cost(StageQueueCount, StageQueueRounds); }
