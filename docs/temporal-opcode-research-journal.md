@@ -112711,3 +112711,47 @@ side. That selected test took 346,787,013 interpreter steps within its
 run through completion grew from 2.7 to 4,164.3 ms. That interval includes
 the selected test's setup, transfers and exact comparisons. Per-process
 wall and CPU include compiler and host startup. This handoff is local.
+
+### Semantic-port assertion filenames on the shipping reactors
+
+Host 2 assignment `7a692a1a-f2f0-43a5-af8f-2eb55e0eb349` consumed
+the verified source bundle, 19-name mapping and reactor digest list from
+`42ac440a-37a5-4d95-9537-e451b7b9f31f`. The archive, extracted members
+and internal file checksums passed. Local merge `81344ad6` joins public
+`7f444166` and packet tip `23a25cc7`. The shared checkout's initial pull
+conflicted on an unrelated SHA-256 companion. Aborting that pull restored
+its unpublished main. The merge and implementation use an independent main.
+
+Commit `8f558f73` renames the five direct entries for matrix, layouts,
+deep layout, semantic diagnostics and parser diagnostics. The assertion
+project uploads those programs and their original helper and dependencies.
+The Node transport selects the renamed path directly with the suite-specific
+companion filter used by other browser tests. Each call requires exactly one
+Tower test. The subjects, assertion bytes, expected files and Node titles
+remain identical to the packet.
+
+The acceptance run uses Git blobs from Pages `9788bd66`. The deployment
+manifest SHA-256 is `10d884873c1d8511b4e2d8232d961a922c095f1cf002e20260df712d2eb407da`.
+All three raw images and the compressed LLVM image match their manifest sizes
+and SHA-256 values. Their compiler source is `64fcfc1a`. The producer's
+`f2214133` results supply the frozen diagnostic replies and comparison records.
+
+Both shipping frontends reproduced the producer's complete ordered 61 replies
+byte for byte. They cover nineteen semantic inputs at four and eight bytes
+and through LLVM, plus two parser inputs at four bytes and through LLVM.
+The three independent corruptions exited 1 on both frontends. The wrong
+stdout failed the Graph comparison at byte 585 of `results.tower`. Offset
+76 in place of 77 failed `enum_index` at byte 1256 of the same helper.
+The invented intrinsic names failed the population-count check at byte 877
+of `matrix_test.tower`. Restoring the exact source bytes passed all six
+selections. Both wasm32 and wasm64 optimized outputs contain calls to
+`llvm.ctpop.i32` and `llvm.ctpop.i64`. Each complete optimized IR file
+matched across the good, corrupt and restored assertion runs.
+
+With V8 explicit Wasm bounds checks each frontend passed all five entry
+types together on reused reactors. Each reported exactly one selected test
+and its renamed entry in the compiler dependency list. The assertion
+reactor reported 6,503 nodes at load and 13,483 after drain, with memory
+capacity growing from 8,388,608 to 28,442,624 bytes. The legacy allocation
+counter stayed zero. These shipping images do not expose source-level
+ASan, UBSan or TSan instrumentation.
