@@ -117987,3 +117987,124 @@ format check passed and its owner/suffix inventory found exactly the changed
 companion. The packet includes the commands, statuses, all six byte blobs
 per image, traces, comparisons, verified public products and source bundle.
 Manager integration and publication follow this local qualification.
+
+### Generic result storage failure sweep on 464e4fa9
+
+Host 6, assignment `6c7f9cdd-a99c-4b37-a4ac-394d064f1f15`. The Linux
+`tower-storage` aggregate calls `generic_clone_storage_tests`, which runs
+`generic_result_storage_tests` after the clone trials. The generic result
+sweep sits between layout storage and generic admission. The companion
+takes over that sweep, including its successful allocation calibration
+and every independently constructed denial world. The clone caller passes
+the sweep into its original slot so the companion can import the owner's
+operation dispatch and fixture declarations without an import cycle.
+
+On the frozen parent, a build without the backend integration, and a build
+with the integration but without backend fixtures, both stopped on
+`backend_import_fixture_open`. Enabling the existing native backend
+integration and `TOWER_BACKEND_TESTS` supplied that separate aggregate
+fixture. The original CTest then passed. The selected guest links compiler
+services with the single-owner allocator and portable transport. The sweep
+checks that transport before arming the first ticket.
+
+Implementation `4611ca4ce296d65245c0735409f2179b28191f10` passed the
+original aggregate and all four native selector registrations. Direct
+selection ran one declaration. Owner discovery ran 17, including the
+generic body types, work budget, work graph and stack companions. The two
+compiler widths produced byte-identical aggregate entry objects and
+executables within each source freeze. The original and migrated aggregates
+returned zero with identical 3,471-byte stdout and empty stderr.
+
+The calibration always ran on a fresh one-lane world with a 1,048,576-byte
+ledger. The table reports the successful allocation count, inclusive physical
+denial tickets, byte reservation for logical refusal, and calls made before
+that refusal reached the caller.
+
+| Operation | Calibration | Memory tickets | Reserved bytes | Capacity calls |
+| --- | ---: | --- | ---: | ---: |
+| Begin | 6 | 0–5 | 1,003,783 | 0 |
+| Register | 3 | 0–2 | 991,721 | 0 |
+| Instantiate | 41 | 0–40 | 999,176 | 2 |
+| Deferred | 24 | 0–23 | 999,176 | 2 |
+
+Each of the 78 refusals returned null, preserved node, component and child
+counts, then retried with a nonnull result and `None`. Begin returned a
+context bound to the input root with all three registry types. Registration
+returned the fixture definition with one type parameter. The eager body had
+three children and the deferred body had zero with its pending flag set.
+Each specialization had one parent reference, was attached to the original
+root and returned the same pointer on reuse with zero new calls. All 82
+worlds closed. Each budget disposed with zero used bytes, lanes and live
+grants, and the allocator returned to its entry live count.
+
+An evidence-only Tower observer captured the operation, allowed ticket,
+actual call count, actual and expected error, output identity, ledger and
+entity counts around the call, retry, reuse and disposal. The first attempt
+redeclared the aggregate's printf with an incompatible signature. A separate
+libc dprintf declaration then recorded the values without touching the Tower
+allocator. The packet keeps all eight raw streams from the original and
+migrated aggregate and the migrated direct and owner selections at jobs 1/4.
+Their 1,131-line trial-relative streams all have SHA-256
+`e7ae3577f389bd39baa556e977aa47704e146735b24e5b1953452ae9cfcd6aff`.
+Absolute counters differ with enclosing work. The original aggregate entered
+with 11,734 live buffers and the selected cases entered with zero.
+
+A temporary change expected Memory for a Capacity refusal. At jobs 1 and 4
+the aggregate aborted (134) and both CLI selections exited 1, identifying
+the companion assertion at line 80. Restoring the source passed all six
+routes. AddressSanitizer with leak detection and ThreadSanitizer each passed
+the complete aggregate on the first launch with the reference stdout and
+empty stderr. Maps from byte-identical executable relinks identify
+runtime-instrumented.o, tower_work_serial.o and tower-compiler-entities.o.
+The migrated trial contains instrumented memory accesses in each build.
+These runs cover the single-owner native guest. The parallel compiler and
+selected guest driver were outside this sanitizer measurement. The supported
+Tower IR instrumentation profiles are address and thread.
+
+The aggregate entry object imported the same four generic result symbols and
+allocator/transport controls before and after migration. The selected shared
+library linked the same Entities provider and the same physical allocator
+and serial transport objects as its aggregate. Omitting the provider rejected
+the guest link at `work_thread_available`. Both ordinary compiler products
+exported `work_thread_entry`, omitted the fault injection API, and printed
+exactly `42\n` for generic_cast_inference at four jobs. Absolute checkout
+paths occur in private generic symbol names. The Entities objects' machine
+code, global symbol tables and stripped objects matched. Both stripped
+production compiler ELFs had SHA-256
+`7c3f611ca52fe94c8c13f623dd91014e39205dde86ea6a60feba3068d7c53347`.
+
+Host 6 exposed twelve Xeon E5-2680 v4 KVM CPUs, quota 1,152,000 µs per
+100,000 µs, memory.max 32,282,509,312 bytes. The pinned Linux x64 compiler
+was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`
+with Clang/LLVM 19.1.7, Release, x86_64-pc-linux-gnu. Three observer-off
+pairs per cell followed a warmup on CPUs 0–3 with the middle pair reversed,
+one process tree at a time under the host timing lock. No extra cgroup
+throttling was reported. Each cell gives median wall seconds / median user
+plus system seconds / maximum process RSS in KiB. This kernel did not expose
+cgroup memory.peak. The CLI comparison uses a temporary selection of the
+original loop on the parent, with the same guest runtime and provider on both
+arms. Object compilation is the generated aggregate entry. Aggregate runtime
+covers the whole standalone including the other storage fixtures.
+
+| Entry | Compiler jobs | Original | Migrated |
+| --- | ---: | --- | --- |
+| Aggregate object | 1 | 6.00 / 5.99 / 331,564 | 6.42 / 6.42 / 334,432 |
+| Aggregate object | 4 | 5.61 / 6.52 / 341,096 | 6.11 / 7.09 / 348,852 |
+| Aggregate execution | 1 | 0.53 / 0.52 / 65,868 | 0.55 / 0.55 / 66,040 |
+| Aggregate execution | 4 | 0.54 / 0.54 / 65,800 | 0.53 / 0.52 / 65,344 |
+| Direct CLI | 1 | 1.39 / 1.38 / 167,292 | 1.38 / 1.37 / 166,888 |
+| Direct CLI | 4 | 1.51 / 1.84 / 176,940 | 1.50 / 1.82 / 176,876 |
+| Owner CLI | 1 | 2.41 / 2.40 / 197,592 | 2.34 / 2.33 / 197,464 |
+| Owner CLI | 4 | 2.48 / 2.94 / 209,044 | 2.55 / 2.98 / 207,976 |
+
+Median aggregate object build time increased 0.42 s at one job and 0.50 s
+at four. Separate phase-timed compiles of the same objects put parsing at
+2.916/3.189 s (original/migrated) at one job and 2.514/2.894 s at four.
+The new aggregate imports the companion and its assertion grammar.
+
+Separate clean CMake builds at TOWER_COMPILER_JOBS=4 rebuilt the full
+production service closure and reproduced each one-job aggregate ELF exactly.
+The original aggregate and the migrated five registrations passed in those
+builds. Enabling the work and execution suites alongside storage and backend
+also passed all four new registrations. The qualification packet and local
+commits are for manager integration and publication.
