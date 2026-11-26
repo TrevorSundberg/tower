@@ -113707,3 +113707,88 @@ and 265,027,584 bytes on shared on both arms. All sampled legacy allocation
 counts were zero. Assignment `470d4213-0716-486e-bacb-bcb916f2e3d5` contains
 the raw TAP, ordered selections, release manifest, source patch, timings and
 counter controls. The manager owns publication.
+
+### Native syntax validation selections on eb1bdbe4
+
+Host 3 started c6e7546c from published `eb1bdbe4eebf5ea8dc9a4ddc958766e0de78ab90`.
+The initial rebase in the shared checkout hit an earlier editor assignment.
+Aborting restored its four local commits. An independent local `main`
+at the requested published revision supplies the parser-only Release build.
+The original `tower-validation` CTest and no-argument parser aggregate passed.
+The first CMake configure could not find unversioned Clang. Adding the LLVM 19
+bin directory to PATH configured the real parser providers.
+
+The existing reader shared library is available before the validation fragment
+on native Linux x64 GNU. The new registrations use its serial worker transport,
+fault allocator and validator, the native guest runtime and the exact-count
+checker. The legacy export calls the same five groups in their original order.
+The module tests install Bedrock and Foundation from the original files before
+each group. Both routes check live buffer and node counts after each group.
+
+| Original group | Companion test line | Checks observed in the native and selected entries |
+| --- | ---: | --- |
+| `validation_dependency_tests` | 142 | 16 oracle comparisons, including the pending forward chain, source offset 20, productivity, nullable repetition and reserved token names. Three allocator sweeps. |
+| `validation_capture_tests` | 143 | 16 comparisons over the five illegal literals, duplicate and counted NUL captures, counted rule name and wildcard. Six sweeps. |
+| `validation_declaration_tests` | 144 | 25 comparisons covering deletion and replacement of all eleven active declaration rules, the missing op capture at offset 81 and the GrammarAtom diagnostic. One sweep. |
+| `validation_large_capture_tests` | 145 | Accepted all 1,500 distinct captures, then required the exact diagnostic for the last capture renamed to capture0. |
+| `validation_random_tests` | 146 | 600 MT19937 graphs with seed 1447119945, alternating activation of Statement and the original choice of symbols, alternatives, repetitions and offsets. |
+
+Prior owner discovery selected zero tests at both widths. Direct companion
+discovery now executes five. Discovery through the owner executes the same
+five and the five work-budget declarations at lines 6–10 of
+`library/work_budget_test.tower`. CTest checks the exact final counts for
+jobs 1 and 4. The allocation sampler and the validation fixtures run serially
+at both widths. The unchanged CLI and aggregate both reproduced their original
+stdout. Deriving the repetition count from its array initially mixed u32
+and usize. Widening the MT19937 draw before the remainder preserved the sequence.
+
+A temporary Tower observer recorded 659 production/reference comparisons,
+2,744 non-null pending terms by rule, alternative and term index, and all 120
+attempts in ten allocation sweeps, including the successful terminal attempts
+or terminal grammar diagnostics. Each attempted refusal still checks cleanup.
+The ten sweep baselines spanned 12,452–12,471 live buffers and 5,380–5,386
+nodes. All 3,533 observation rows, including messages, offsets and live counts,
+matched byte-for-byte across the original and migrated CLI and both selected
+direct widths (SHA-256 `5a31e34f27f72e6dc26bc976db16323c419adf8371f57376c79668940022c999`).
+The fixture, independent validation and reader oracles, random generator and
+production validator retained their published source bytes.
+
+Changing just the fixed expected offset from 20 to 21 in the dependency group
+failed all five CTests (CTest status 8). The CLI and all four guests printed
+`Validation fixed source offset`. The original fixture assertion aborts, so
+the guest driver also reported the missing completion or trap record.
+Restoring 20 reproduced the test source, suite object and linked executable
+checksums. All five CTests and the no-argument parser aggregate then passed.
+
+Host 3 used an AMD EPYC 7542 (32 cores, SMT), cgroup v1 quota
+1228800/100000 and memory limit 57,954,795,520 bytes. The published e2d03c1e
+Linux x64 compiler has source base 41de9006 and all 60 package checks passed.
+CMake Release used Clang 19.1.7, x86_64-pc-linux-gnu, four Ninja slots and one
+compiler job per bootstrap invocation. The paired runs pinned fresh processes
+to CPUs 0–3 under the host timing lock. One filesystem warm-up pair preceded
+three alternating pairs at each width. The parser link reused the same objects
+except for the validation suite. Every run checked stdout. Values below are
+median wall/user/system seconds and maximum process RSS in KiB.
+
+| Operation | Jobs | Parent | Candidate |
+| --- | ---: | --- | --- |
+| Compile suite object | 1 | 1.04 / 0.93 / 0.04 / 122576 | 1.36 / 1.15 / 0.09 / 140692 |
+| Compile suite object | 4 | 3.15 / 1.00 / 0.06 / 127704 | 4.64 / 1.41 / 0.10 / 149612 |
+| Run prelinked suite | 1 | 0.20 / 0.17 / 0.00 / 10860 | 0.20 / 0.17 / 0.00 / 10832 |
+| Run prelinked suite | 4 | 0.20 / 0.16 / 0.00 / 10880 | 0.20 / 0.17 / 0.00 / 10928 |
+| Compile and run five direct cases | 1 | — | 1.60 / 1.32 / 0.12 / 140752 |
+| Compile and run five direct cases | 4 | — | 4.98 / 1.58 / 0.12 / 148596 |
+
+The suite depfile grew from 22 to 35 Tower inputs, including the real parser
+fixture setup and grammar installation API needed by a cold selected guest.
+The object grew from 41,384 to 41,472 bytes and was identical at both widths
+within each arm. Four compiler jobs cost wall time on this small input.
+The prelinked median stayed at 0.20 s. The measurements concern this fixture.
+
+The focused ASan/LSan and TSan CLI runs each passed on the first launch
+with the original output. The Tower instrumenter covered 68 definitions in
+the suite/fixture/oracle object and 1,616 in the production parser object.
+The maps identify `runtime-instrumented.o` and `tower_work_serial.o`. Other
+objects used the ordinary parser build. Tower supports address and thread IR
+instrumentation here. UBSan, threaded guest execution, WASI and browser builds
+were outside this native evidence. Manager integration and publication remain.
