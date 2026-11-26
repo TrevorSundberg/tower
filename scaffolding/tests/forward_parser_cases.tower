@@ -1,0 +1,75 @@
+import tower;
+
+// Both the native session fixture and the browser host expose one parser step
+// at a time. The cases own the source order, expected statuses and diagnostics.
+struct ForwardParser {
+    root: u8*;
+    open: function(usize, u8*, u8*);
+    close: function(void, usize);
+    step_is: function(bool, usize, u8*);
+    pending: function(bool, usize, u8*);
+    revision: function(usize, usize);
+    diagnostic: function(bool, usize, u8*, usize);
+    foundation_contains: function(bool, u8*, u8*);
+    check: function(void, bool, u8*);
+}
+
+fn forward_declarations(p: ForwardParser*, session: usize, count: usize, file: u8*): void {
+    for (var revision: usize = 1; revision <= count; revision++) {
+        p.check(p.step_is(session, "declaration"), file);
+        p.check(p.revision(session) == revision, "Each declaration publishes one revision");
+    }
+}
+
+fn forward_accept(p: ForwardParser*, file: u8*, count: usize): void {
+    var session = p.open(p.root, file);
+    defer p.close(session);
+    forward_declarations(p, session, count, file);
+    p.check(p.step_is(session, "statement"), file);
+    p.check(p.step_is(session, "done"), file);
+}
+
+fn forward_reject(p: ForwardParser*, file: u8*, declarations: usize, message: u8*, offset: usize): void {
+    var session = p.open(p.root, file);
+    defer p.close(session);
+    forward_declarations(p, session, declarations, file);
+    p.check(p.step_is(session, "error"), file);
+    p.check(p.diagnostic(session, message, offset), message);
+    p.check(p.revision(session) == declarations, "A failed step preserves the published grammar revision");
+}
+
+fn forward_graph(p: ForwardParser*): void {
+    forward_accept(p, "direct.tower", 3);
+    forward_accept(p, "transitive.tower", 4);
+    forward_accept(p, "token.tower", 3);
+    forward_accept(p, "recursive.tower", 3);
+    forward_accept(p, "replace.tower", 3);
+    var rule = "CoreCallArgument = CoreOperand | CorePointerArgument";
+    p.check(p.foundation_contains(p.root, rule), rule);
+}
+
+fn forward_activation(p: ForwardParser*): void {
+    var missing = "Cannot activate incomplete grammar: Statement -> A -> B";
+    var session = p.open(p.root, "activation.tower");
+    defer p.close(session);
+    forward_declarations(p, session, 1, "Forward declaration of A");
+    p.check(p.pending(session, "A"), "A waits for B before Statement activation");
+    p.check(p.step_is(session, "error") && p.diagnostic(session, missing, 10), missing);
+    p.check(p.revision(session) == 1, "Failed Statement activation preserves revision one");
+    forward_reject(p, "unresolved.tower", 1, "end of module: A -> B", 10);
+    forward_reject(p, "reader.tower", 0, "Cannot activate incomplete grammar: GrammarDeclaration -> Missing", 139);
+    forward_reject(p, "optional.tower", 1, missing, 10);
+}
+
+fn forward_pinned(p: ForwardParser*): void {
+    var session = p.open(p.root, "pinned.tower");
+    defer p.close(session);
+    forward_declarations(p, session, 1, "Foundation import");
+    forward_accept(p, "change_reader.tower", 4);
+    forward_reject(p, "conflict.tower", 2, "Grammar conflict", 32);
+    p.check(p.revision(session) == 1, "Concurrent reader changes preserve the Foundation session revision");
+    p.check(p.step_is(session, "statement"), "Pinned Foundation still parses print(42)");
+    p.check(p.step_is(session, "done"), "Pinned Foundation reaches EOF");
+}
+
+fn forward_expected_output(): u8* { return "42\n41\n8\n8\n41\n73\n"; }

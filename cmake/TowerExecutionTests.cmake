@@ -18,6 +18,8 @@ function(tower_execution_tests)
   target_link_libraries(tower-execution-tests PRIVATE ${libraries})
   enable_testing()
   add_test(NAME tower-execution COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  add_test(NAME tower-forward-references COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" forward-references)
+  set_tests_properties(tower-forward-references PROPERTIES TIMEOUT 60 LABELS "native;focused")
   add_test(NAME tower-execution-resource-root COMMAND tower-execution-tests
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" floating)
   set_tests_properties(tower-execution-resource-root PROPERTIES

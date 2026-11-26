@@ -1,0 +1,1 @@
+parse A = B;parse GrammarDeclaration = 'rule' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement ';';rule B = 'hello';rule Statement = A;hello

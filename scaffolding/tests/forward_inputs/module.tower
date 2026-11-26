@@ -1,0 +1,17 @@
+import foundation;
+fn read_later(): i32 { return later; }
+fn read_field(): i32 { return value.left; }
+fn read_index(): i32 { return entries[1]; }
+ later = 41;
+ var later: i32;
+ var value: Pair;
+ value.left = read_later(); value.right = 1;
+ var result: i32 = add(value.left, value.right); print(result);
+ struct Pair { left: i32; right: i32; }
+ fn add(a: i32, b: i32): i32 { var later: i32 = a + b; return later; }
+ print(later);
+ later = 8; result = read_later(); print(result);
+var observed: i32 = read_later(); later = 9; print(observed);
+var field: i32 = read_field(); print(field);
+var entries: i32[2]; entries[1] = 73;
+var indexed: i32 = read_index(); print(indexed);
