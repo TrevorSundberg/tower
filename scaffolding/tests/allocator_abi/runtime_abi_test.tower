@@ -1,0 +1,33 @@
+import case;
+
+extern fn puts(text: u8*): i32;
+
+abi_entry(check_runtime_abi)
+test() {
+    var maximum = ~convert(usize, 0);
+    abi_assert(alloc(u64, maximum) == null, 1, "Reject overflowing allocation");
+    var empty = alloc(u8, 0);
+    abi_assert(empty == null, 2, "Zero-size allocation returns null");
+    free(empty);
+
+    for (var size: usize = 1; size <= 257; size++) {
+        var data = alloc(u8, size);
+        abi_assert(data != null, 3, "Allocate the requested buffer");
+        abi_assert(bits(usize, data) % 16 == 0, 4, "Allocation has 16-byte alignment");
+        fill(data, 173, size);
+        abi_assert(realloc(u64, bits(u64*, data), maximum) == null, 5, "Reject overflowing growth");
+        var grown = size + 513;
+        var next = realloc(u8, data, grown);
+        abi_assert(next != null, 6, "Grow the original buffer after overflow");
+        for (var i: usize = 0; i < size; i++) {
+            abi_assert(next[i] == 173, 7, "Growth preserves each original byte");
+        }
+        var target = alloc(u8, grown);
+        abi_assert(target != null, 8, "Allocate the copy destination");
+        copy(target, next, size);
+        abi_assert(target[0] == 173, 9, "Copy retains the first source byte");
+        abi_assert(realloc(u8, next, 0) == null, 10, "Zero-size realloc releases the buffer");
+        free(target);
+    }
+    puts("Tower production runtime ABI passed");
+}

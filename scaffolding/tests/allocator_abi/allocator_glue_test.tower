@@ -1,0 +1,95 @@
+import allocator_glue;
+import case;
+
+extern fn puts(text: u8*): i32;
+
+abi_entry(check_allocator_glue)
+test() {
+    var initial = tower_test_buffer_count();
+    var calls = tower_test_buffer_allocations();
+    var maximum = ~convert(usize, 0);
+    tower_test_buffer_fail_next();
+    abi_assert(alloc(u64, maximum) == null, 1, "Reject overflowing allocation");
+    abi_assert(tower_test_buffer_allocations() == calls, 2, "Overflow bypasses the allocation counter");
+    var pointer = alloc(u8, 32);
+    abi_assert(pointer == null, 3, "Overflow leaves fail-next armed");
+    calls++;
+    abi_assert(tower_test_buffer_allocations() == calls, 4, "Count the refused allocation once");
+    abi_assert(tower_test_buffer_count() == initial, 5, "Refusal adds no live buffer");
+    pointer = alloc(u8, 32);
+    abi_assert(pointer != null, 6, "Retry after refusal succeeds");
+    var live = initial + 1;
+    abi_assert(tower_test_buffer_count() == live, 7, "Count one new live buffer");
+    for (var i: usize = 0; i < 32; i++) { pointer[i] = convert(u8, i); }
+
+    calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_next();
+    abi_assert(realloc(u64, bits(u64*, pointer), maximum) == null, 8, "Reject overflowing growth");
+    abi_assert(tower_test_buffer_allocations() == calls, 9, "Overflow bypasses the realloc counter");
+    var next = realloc(u8, pointer, 256);
+    abi_assert(next == null, 10, "Overflow leaves the growth failure armed");
+    abi_assert(tower_test_buffer_count() == live, 11, "Failed growth keeps the original buffer live");
+    for (var i: usize = 0; i < 32; i++) {
+        abi_assert(pointer[i] == convert(u8, i), 12, "Failed growth preserves each original byte");
+    }
+    next = realloc(u8, pointer, 256);
+    abi_assert(next != null, 13, "Growth succeeds after the one-shot failure");
+    pointer = next;
+    abi_assert(tower_test_buffer_count() == live, 14, "Growth retains one live buffer");
+    for (var i: usize = 0; i < 32; i++) {
+        abi_assert(pointer[i] == convert(u8, i), 15, "Successful growth preserves each original byte");
+    }
+
+    tower_test_buffer_fail_next();
+    abi_assert(realloc(u8, pointer, 0) == null, 16, "Injected zero-size realloc returns null");
+    abi_assert(tower_test_buffer_count() == live, 17, "Failure precedes zero-size deallocation");
+    abi_assert(pointer[31] == 31, 18, "Refused zero-size realloc preserves the final byte");
+    abi_assert(realloc(u8, pointer, 0) == null, 19, "Retrying zero-size realloc returns null");
+    abi_assert(tower_test_buffer_count() == initial, 20, "Zero-size realloc releases one buffer");
+    pointer = null;
+    free(pointer);
+    abi_assert(tower_test_buffer_count() == initial, 21, "Freeing null preserves the live count");
+    abi_assert(alloc(u8, 0) == null, 22, "Zero-size allocation returns null");
+    tower_test_buffer_fail_after(1);
+    pointer = alloc(u8, 1);
+    abi_assert(pointer != null, 23, "Allow one allocation before failing");
+    next = alloc(u8, 1);
+    abi_assert(next == null, 24, "Refuse the second allocation");
+    next = alloc(u8, 1);
+    abi_assert(next != null, 25, "The third allocation succeeds");
+    free(next);
+    free(pointer);
+    abi_assert(tower_test_buffer_count() == initial, 26, "Both successful allocations are released");
+
+    calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_next();
+    for (var size: usize = 1; size <= 257; size++) {
+        var memory = compiler_host_reallocate(null, size);
+        abi_assert(memory != null, 27, "Host allocation bypasses fail-next");
+        var address = bits(usize, memory);
+        abi_assert(address % alignof(u64) == 0, 28, "Host allocation aligns u64");
+        abi_assert(address % alignof(void*) == 0, 29, "Host allocation aligns pointers");
+        abi_assert(address % 16 == 0, 42, "Host allocation has 16-byte alignment");
+        fill(memory, 173, size);
+        memory = compiler_host_reallocate(memory, size + 513);
+        abi_assert(memory != null, 30, "Host growth bypasses fail-next");
+        var bytes = bits(u8*, memory);
+        for (var i: usize = 0; i < size; i++) {
+            abi_assert(bytes[i] == 173, 31, "Host growth preserves each original byte");
+        }
+        address = bits(usize, memory);
+        abi_assert(address % alignof(u64) == 0, 32, "Grown host allocation aligns u64");
+        abi_assert(address % alignof(void*) == 0, 33, "Grown host allocation aligns pointers");
+        abi_assert(address % 16 == 0, 43, "Grown host allocation has 16-byte alignment");
+        compiler_host_deallocate(memory);
+    }
+    compiler_host_deallocate(null);
+    abi_assert(tower_test_buffer_allocations() == calls, 34, "Host operations bypass the allocation counter");
+    abi_assert(tower_test_buffer_count() == initial, 35, "Host operations bypass the live counter");
+    abi_assert(alloc(u8, 1) == null, 36, "Host operations leave fail-next armed");
+    pointer = alloc(u8, 1);
+    abi_assert(pointer != null, 37, "Retry succeeds after the pending refusal");
+    free(pointer);
+    abi_assert(tower_test_buffer_count() == initial, 38, "Restore the initial live count");
+    puts("Tower allocator glue passed");
+}

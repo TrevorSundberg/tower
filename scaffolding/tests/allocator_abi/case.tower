@@ -1,0 +1,20 @@
+import library.testing;
+
+// The same assertions have two callers. Discovery executes the test block.
+// The original executables call the named entry with a legacy exit-code slot.
+parse Statement |= 'abi_entry' '(' $entry:Identifier ')' $head:CoreCall $body:CoreBlock => replace {
+    comptime if true {
+        fn $entry(abi_status: i32*): void $body
+        $head {
+            var abi_status: i32* = null;
+            $body
+        }
+    }
+};
+
+parse Statement |= 'abi_assert' '(' $condition:TowerExpression ',' $code:TowerExpression ',' $message:TowerExpression ')' ';' => replace {
+    if !($condition) {
+        if abi_status != null { *abi_status = $code; return; }
+        trap($message, source_offset());
+    }
+};

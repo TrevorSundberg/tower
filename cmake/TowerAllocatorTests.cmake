@@ -36,6 +36,34 @@ if(TOWER_ALLOCATOR_TESTS)
     add_test(NAME tower-runtime-abi COMMAND tower-runtime-abi-tests)
   endif()
 
+  # Native selection supplies its own main and source-located trap. Reuse
+  # exactly the allocation providers of the corresponding standalone command.
+  # Sanitized builds exercise the same bodies in the instrumented executables.
+  if(TOWER_NATIVE AND NOT TOWER_SANITIZER AND NOT CMAKE_CROSSCOMPILING
+      AND triple MATCHES "^(x86_64|aarch64)-.*linux.*gnu")
+    tower_guest_runtime(native-test "${triple}" posix ON UNINSTRUMENTED)
+    tower_guest_runtime(host-library "${triple}" posix OFF UNINSTRUMENTED)
+    get_property(test_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    tower_selected_test_count("${triple}")
+    foreach(suite IN ITEMS allocator runtime-abi)
+      if(suite STREQUAL "allocator")
+        set(owner allocator_glue)
+        set(providers --link "${runtime_instrumented}" --link "${tower-allocator-policy_OBJECT}")
+      else()
+        set(owner runtime_abi)
+        set(providers --link "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-utf8.o"
+          --link "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-bytes.o" --link "$<TARGET_FILE:tower-compiler-memory>")
+      endif()
+      set(source "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.tower")
+      add_dependencies(tower-${suite}-tests tower-guest-native-test tower-selected-test-count)
+      add_test(NAME tower-${suite}-declaration COMMAND tower-selected-test-count
+        "1 test passed for ${source}" "${TOWER_BOOTSTRAP_COMPILER}" --test "${source}" --jobs 1 --test-details
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.expected"
+        --test-native-runtime "${test_runtime}" ${providers})
+    endforeach()
+  endif()
+
   # Optional cross-target growth check, using upstream wasi-libc for memory
   # intrinsics. No runtime.c allocator or native test implementation is linked.
   set(TOWER_ALLOCATOR_WASI_SDK "" CACHE PATH "WASI SDK for focused wasm32 growth checks")

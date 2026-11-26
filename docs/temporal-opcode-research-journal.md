@@ -114268,3 +114268,91 @@ including shell overhead. Peak RSS was 3,316 and 3,308 KiB respectively.
 Address/leak and thread instrumentation covered the fixture and parser-nodes
 object on the serial allocator. The rebased TSan run passed after 13 startup
 failures. UBSan coverage remains open.
+
+### Native allocator glue and production runtime ABI declarations, 2026-11-26
+
+Assignment `4cca523e-cb01-4d1f-8126-33cb98defdc9` used published
+`21f409e56b3f540a1360822207960a99e7b9ddd7` on host 8. The required initial
+pull conflicted with unpublished parser commits. Aborting that pull restored
+the shared main. The implementation used a separate local main at the assigned
+revision and the checked-in Linux compiler (`e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`).
+The two requested executable targets were absent from the existing builds.
+A focused native configuration used that compiler, checkout grammar, Clang and
+LLVM 19.1.7, one compiler job and three Ninja lanes. The first configure needed
+the LLVM bin directory on PATH for its host clang lookup.
+
+The standalone source paths and exported entry points still support native,
+WASI and the production Windows entry. Each original benchmark function moved
+verbatim to an owner in `scaffolding/tests/allocator_abi/`. Selecting that
+owner avoids linking the CLI main alongside the native test process main. An
+initial probe with both mains gave a duplicate ELF symbol. The adjacent test
+blocks contain all 50 semantic predicates. The local `abi_entry` replacement
+gives each block a callable form that returns the original failing check number
+through a borrowed status slot. Selection expands the same block as a Tower
+test, with a source-located trap on failure. The shared rule uses the ordinary
+call capture for the test header. A literal test keyword in that rule interfered
+with parsing the replacement. This uses the published grammar and compiler.
+
+| Original selector and failure IDs | Assertions in the new companion |
+| --- | --- |
+| tower-allocator 1–7 | Overflow bypasses the call counter and leaves fail-next armed. The refused attempt increments calls once. Retry adds one live buffer. |
+| 8–15 | Realloc overflow bypasses the counter, the next growth fails, and successful growth follows. Both paths preserve all 32 bytes and one live buffer. |
+| 16–26 | Failure precedes zero-size release. Check the last byte, release on retry, null free, zero allocation, fail-after-one, automatic disarming and final live count. |
+| 27–33, 42–43 | Host allocations at sizes 1 through 257 align for u64, pointers and 16 bytes before and after growth by 513. Compare every original filled byte. |
+| 34–38 | Host operations including null deallocation preserve both counters and the pending refusal. A successful retry and free restore the baseline. |
+| tower-runtime-abi 1–10 | Production overflow and zero/null behavior, 257 aligned allocations, overflowing then successful realloc, every old byte, copy and zero-size release. |
+| Allocator 39–41 and production 11–12 | The original benchmark bodies retain allocation failure, checksum 20160000 and the instrumented live-count check. |
+
+The receipt maps every individual status to old and new source lines. Original
+native CTest passed 2/2. With `TOWER_NATIVE=ON` and `TOWER_ALLOCATOR_TESTS=ON`,
+build `tower-allocator-tests tower-runtime-abi-tests` and run
+`ctest -V -R '^tower-(allocator|runtime-abi)(-declaration)?$'`. All four passed
+after restoration. Each direct companion selected exactly one test at one and
+four compiler jobs. The two new registrations check the selected count and the
+original stdout bytes. One uses runtime-instrumented.o and tower-allocator-policy.o.
+The other uses the original UTF-8/bytes objects and libtower-compiler-memory.a
+with runtime-allocate.o. The selected guest test runtime supplies main and trap.
+Relinking each captured selected object with its registered inputs reproduced
+the executed ELF byte for byte. Their SHA-256 digests were
+`1bb0b35c5e4ad98c66505392c154744c8ed90436e5e0c7e90f7e91c1511257d2` (glue)
+and `7723c2e0b65906fa7ff61af07b24cedfa225c30e82166b21f6f94672eb3e3916` (production).
+
+Consuming fail-next on overflow made the original and delivered glue binaries
+exit 3. Damaging the first retained byte on production growth gave exit 7 in
+both. Selection diagnosed the failures at allocator_glue_test.tower:15:5 and
+runtime_abi_test.tower:23:13. Changing only the two new oracle bytes in separate
+trials failed the direct and selected checks at legacy statuses 31 and 9. Original
+executables still passed those two trials. All controls were restored. The glue
+test object and executable match their original bytes. The production test object
+differs in just the two immediate bytes for the division trap source offset.
+Inputs 1, 2, 7 and 8 still exit 7, 3, 1 and 0. Zero and invalid text still abort
+with shell status 134 and the division diagnostic. The reported source offset
+moved from 22580 to 23743. Both success messages and silent benchmark runs
+matched the original streams exactly.
+
+Linux x64 ASan passed both standalone executables. TSan initially failed in its
+startup personality call under the host restrictions. Direct retries completed
+on attempts three and four. Both registered TSan entries also completed with
+`ctest --repeat until-pass:24`, with four startup failures in that run.
+The suites execute serially inside each process. CMake supports address and
+thread instrumentation here and has no undefined-behavior mode. The SDK 34
+wasip1 build passed both original registrations through host-wasi.mjs. The
+Windows x64 wrapper compiled with its original entry symbols. Windows execution
+was untested.
+
+On the Ryzen 9 7900X (12 cores/24 threads), five alternating warm samples each
+ran 100 serial processes pinned to CPU 0 under the host timing lock. Both
+versions used the same providers and compiler settings. The table gives
+medians for wall/CPU seconds and maximum RSS in KiB over each batch including
+the launching shell. Individual outputs and exit codes were checked.
+
+| Workload | Original wall / CPU / RSS | Delivered wall / CPU / RSS |
+| --- | --- | --- |
+| Glue checks | 0.05 / 0.04 / 3184 | 0.05 / 0.04 / 3088 |
+| Production checks | 0.04 / 0.03 / 3100 | 0.04 / 0.03 / 3092 |
+| Glue benchmark | 0.63 / 0.62 / 3188 | 0.64 / 0.63 / 3100 |
+| Production benchmark | 0.62 / 0.62 / 3168 | 0.62 / 0.62 / 3148 |
+
+The host receipt contains raw stdout/stderr, commands, failed attempts,
+source hashes, original/delivered objects, archive membership, guest ELFs and
+the local commit bundle. Manager integration and publication are pending.
