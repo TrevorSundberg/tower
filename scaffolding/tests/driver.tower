@@ -11,6 +11,7 @@ import .host.driver_windows_arguments;
 import driver_platform_api;
 import driver_compilation;
 import driver_module_paths;
+import driver_affected_tests;
 import driver_differentials;
 import driver_c_validation;
 import driver_msvc;
@@ -589,6 +590,10 @@ export fn driver_tests(argc: i32, argv: u8**): i32 {
             if argc != required_arguments && argc != filtered_arguments { return usage; }
             var filter: u8* = argc == filtered_arguments ? argv[4] : null;
             return driver_test_differentials(argv[2], argv[3], filter, driver_same(argv[1], "--native-differential"));
+        }
+        if driver_same(argv[1], "--affected-tests") {
+            if argc != 3 { return 2; }
+            driver_test_affected_suites(argv[2]); return 0;
         }
         if driver_same(argv[1], "--module-paths") {
             var module_arguments: i32 = 4;

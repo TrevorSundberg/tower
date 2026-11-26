@@ -122,6 +122,8 @@ struct ModuleEnvironment {
     active_graphs: usize;
     active: FrontendModule*;
     test_discovery: TestFileDiscovery*;
+    observe_source: function(void, void*, u8*, u8*, usize);
+    observe_context: void*;
 }
 
 struct ModuleGraph {
@@ -508,6 +510,13 @@ fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): 
 
 // Publish dependencies before their importer, using the same completion order
 // as execution. Cached clones take this path too; discovery order is not order.
+export fn frontend_modules_observe_source(environment: ModuleEnvironment*, context: void*,
+    observer: function(void, void*, u8*, u8*, usize)): void {
+    environment.observe_context = context;
+    environment.observe_source = observer;
+}
+
+// Dependency-first completion also covers cached clones and grammar imports.
 fn module_complete_result(module: FrontendModule*): bool {
     var graph = module.graph;
     if graph.resource_error != WorkBudgetError.None || graph.clone_error != null { return false; }
@@ -529,6 +538,9 @@ fn module_complete_result(module: FrontendModule*): bool {
         graph.environment.used.data[graph.environment.used.length++] = dependency;
     }
     graph.order.data[graph.order.length++] = module;
+    if graph.environment.observe_source != null {
+        graph.environment.observe_source(graph.environment.observe_context, module.source.name.data, module.source.text.data, module.source.text.length);
+    }
     module.state = ModuleLoaded;
     return true;
 }

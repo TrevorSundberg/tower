@@ -65,6 +65,36 @@ or bodies, a Foundation identifier, and formatting idempotence. The positive
 output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
 and [expected output](for_loops.expected.txt).
 
+### Running affected native tests
+
+On the native CLI, create a private state directory and supply the known exact
+guest stdout for an owner or explicit companion selection:
+
+```sh
+mkdir -p .tower-test-state
+towerc --test path/to/owner.tower --test-details --jobs 1 \
+  --test-affected .tower-test-state --test-oracle path/to/expected.stdout
+```
+
+Plain `--test` always runs the selection. Affected mode still discovers, parses
+and checks it. A match skips the entire interpreter session, emits no guest
+stdout and reports skipped declaration locations with `--test-details`.
+Declarations in one session share initializers, writes and first-failure order.
+Run separate owner invocations to reuse independent suites.
+
+The directory holds one 32-byte SHA-256 receipt per canonical entry path.
+The key includes the running compiler bytes, effective file rule, target and
+workers, grammar/module paths and bytes in completion order, discovery probes,
+selected declaration offsets and the supplied oracle path and bytes. Keep the
+executable, resource installation, sources and oracle frozen during each run.
+Complete writes use a sibling temporary file and rename. A miss retires the old
+receipt before execution. Only a successful full execution with matching stdout
+can publish. A missing or mismatching stdout oracle, truncated output or a
+guest foreign call leaves the suite eligible to run again. The stdout oracle
+controls reuse; assertions and compiler errors retain their normal exit status.
+Run `ctest -R '^tower-driver-affected$' --output-on-failure` in a native build
+configured with `TOWER_DRIVER_TESTS=ON`.
+
 ## Generic body demand fixtures
 
 `generic_body_cases.tower` supplies the shared syntax for `generic_body_lazy.tower`

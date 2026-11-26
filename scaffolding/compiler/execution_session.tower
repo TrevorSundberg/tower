@@ -20,6 +20,7 @@ struct ExecutionSession {
     error: work_vector(u8);
     output: work_vector(u8);
     started: bool;
+    used_foreign: bool;
 }
 
 extern fn compiler_node_world(node: void*): void*;

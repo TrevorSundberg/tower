@@ -69,6 +69,7 @@ extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
 extern fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool;
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
+    bits(ExecutionSession*, machine).used_foreign = true;
     var function = sem_get(node);
     if function.name.length != 14 || memcmp(function.name.data, "platform_write", 14) != 0 || count != 3 {
         var text: ByteBuffer = default;
