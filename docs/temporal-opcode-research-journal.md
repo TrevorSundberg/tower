@@ -114296,3 +114296,62 @@ transition, EOF reduction, refused grants, retries and retirement assertions.
 Both native output streams match the base. The suffix index charged 408 bytes.
 The item graph reported 12,664 live bytes and a 1,048,576-byte peak at its
 checkpoint, then returned the budget to zero on disposal.
+
+The source comparison mapped all 254 original assertion predicates and
+messages in the four group files and their graph, control and component
+helpers. The fixed graph/control group gained a buffer-retirement check.
+An observer in disposable copies recorded the closure seed 2817449 and the
+grammar/propagation seed 1280463937, all 180,175 subsequent draws and all
+shift, analysis and control sweep outcomes. Shift construction first succeeded
+at grant 6, analysis at 48, ordinary control at 84 and specialized control at
+87. The base and candidate parser traces matched byte for byte, as did the
+draw and grant records from direct language selection.
+
+Expecting one more state than the independent equal-order reference made the
+native selector, default parser and frontend `lr-order` abort. The selected
+comparison and owner CTests failed at jobs 1 and 4 and identified the same
+assertion at `lr_analysis_comparisons_test.tower:78:5`. The parser with a
+four-job suite object also aborted. Restoring the expectation reproduced the
+companion, suite object and both CLI hashes. The standalone and aggregate
+stdout and stderr matched the base. All 17 parser, grammar and analysis
+CTests passed. Baseline owner discovery at each width had only the five
+work-budget tests. The frontend's `lr-order`, `lr-suffix` and `lr-components`
+passed with the moved suffix fixture. Its initial configuration omitted the
+native backend CMake include and had no frontend test target.
+
+The parser-only Release cache and Clang/LLVM 19.1.7 used the verified public
+Linux x64 bootstrap (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+Host 2 has a Ryzen 5 3600, six cores with SMT, affinity 0–11, CPU quota
+1152000/100000 µs and memory.max 32222740480 bytes. The matched runs used
+CPUs 0–3 and the host timing lock. One warm-up preceded three measured
+rounds, with the original and candidate order alternating. Each run checked
+its output. The table gives median wall and user+system seconds and maximum
+process RSS in KiB. Jobs here control suite compilation. The shared fault
+allocator uses serial guest transport.
+
+| Entry | Jobs | Original wall / CPU / RSS | Migrated wall / CPU / RSS |
+| --- | ---: | --- | --- |
+| Compile suite object | 1 | 1.97 / 1.96 / 204824 | 2.24 / 2.23 / 214608 |
+| Compile suite object | 4 | 1.94 / 2.19 / 212128 | 2.34 / 2.69 / 225936 |
+| Prelinked native selector | 1 | 0.31 / 0.31 / 7196 | 0.31 / 0.30 / 7372 |
+| Prelinked native selector | 4 | 0.30 / 0.30 / 7260 | 0.31 / 0.30 / 7244 |
+| Four direct CTests in sequence | 1 | — | 3.69 / 3.69 / 163556 |
+| Four direct CTests in sequence | 4 | — | 4.06 / 4.56 / 174824 |
+| Owner CTest | 1 | — | 2.68 / 2.67 / 225836 |
+| Owner CTest | 4 | — | 2.73 / 3.14 / 239700 |
+
+The suite depfile grew from 43 to 49 inputs with the four companions, shared
+fixture module and assertion grammar. The suite object shrank from 154312
+to 135088 bytes. The bytes at both job widths were identical within each
+revision. Four compiler jobs increased CPU cost on this fixture.
+
+ASan with leak detection and TSan each completed the real parser selector
+on the first launch, matching both original output streams. The Tower LLVM
+instrumenter covered 245 definitions in the suite closure and 1626 in the
+parser-nodes provider. Its depfile sources matched the cached host tool's
+inputs. The maps identify the fault allocator and serial worker transport.
+The packet retains the instrumented tree-transfer function and both maps.
+Other link objects and the published selector compiler were uninstrumented.
+Source-level UBSan, parallel guest execution and WASI/browser coverage remain
+outside this native migration evidence.
