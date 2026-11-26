@@ -106230,3 +106230,42 @@ The CLI exposes no per-test allocation counter. The guest calls the graph
 coordinator sequentially. The predecessor's guest sanitizer and backend
 evidence belongs to its own run. This registration changes no compiler,
 scheduler or allocator code. Browser selectors remain active.
+
+### 2026-11-26 — WorkGraph suspension tests in the relocated language suite
+
+Host 8 integrated the verified WorkGraph review head `ef7e4918` with the
+common SHA-256 and SCC installation at `1f206fff`. On the original private
+kit, selecting the owner found zero declarations. Adding its companion
+exposed missing imports in order: `../host/memory`, `memory_libc`, then
+`memory_types`. With those three modules under `share/tower/host`, the
+guest test runtime reached the native linker and reported an undefined
+`tower_deallocate`. The kit's existing `libtower-compiler-memory.a` supplied
+the allocator. The two new CTest entries per width select the owner and the
+direct companion through the existing linked CLI.
+
+Built `tower-language-tests` with the warm native cache (no objects rebuilt),
+installed component `SccTests` to a path containing spaces, moved the kit
+and renamed the source and build directories during validation. Jobs 1 and 4
+each ran all eight declarations on both selections. Inverting the original
+stale-ticket assertion gave driver exit 1 at `work_graph_test.tower:36:5`
+and CTest exit 8. Partial and empty selections also gave CTest exit 8. The
+184 conditions and line pairs matched the original map. The original
+`work_resume.tower` printed zero at both widths. Every owner and direct
+selection of SHA-256 passed seven declarations. Each SCC selection matched
+all eight fixed and 234 seeded input graphs and reported zero live buffers.
+The 58 ordinary payload hashes matched the previous release candidate.
+Each ordinary object matched across kits and widths, with its depfile
+excluding the private inputs. After the rejecting controls we restored the
+installed sources, checked every file hash and reran the eight registered
+CTest commands.
+
+On Linux x86-64 GNU, Ryzen 9 7900X, affinity 0–23, cgroup quota 23.04 CPUs,
+three warm-file fresh processes per WorkGraph entry and width ran serially.
+Owner median wall/CPU seconds were 0.46/0.45 at jobs 1 and 0.52/0.59 at
+jobs 4, with peak RSS 130156 and 140616 KiB. Direct selection measured
+0.46/0.46 and 0.51/0.58, with peak RSS 130292 and 139616 KiB. These times
+include discovery, compilation, linking and guest execution. The transferred
+suite and allocator are unchanged. The new packaging requires no compiler
+or bootstrap generation. Assignment `5f514e37-fdf7-4f2f-a3e4-df4c5d65442e`
+retains the CMake inputs, exact commands, diagnostics, case traces,
+per-file manifests and review bundles.
