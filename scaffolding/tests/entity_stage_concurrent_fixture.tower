@@ -1,0 +1,42 @@
+import tower;
+import .host.memory;
+import .library.entities;
+import .library.entity_stage;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.work_linux;
+import .host.work_dispatch;
+import .compiler.compiler_kernel;
+
+extern fn pthread_self(): usize;
+
+enum StageOutcome: u32 { Publish, Cancel, WorkerFailure, NameCollision, PartialAdmission }
+var StageChildren: usize = 128;
+var StageMaximumLanes: usize = 4;
+var StageReferenceLifecycle: usize = 1;
+struct StageState { finalized: usize; coordinator: usize; }
+
+struct StageReference { target: Entity*; ordinal: usize; }
+struct StageJob {
+    stage: EntityStage*;
+    owner: Entity*;
+    stable: Entity*;
+    payload: u64*;
+    table: EntityTable*;
+    type: Entity*;
+    target: Entity*;
+    entered: void*;
+    release: void*;
+    ticket: WorkTicket;
+    outcome: StageOutcome;
+    ordinal: usize;
+    thread: usize;
+    holds: usize;
+    success: bool;
+}
+struct StageTransitionJob {
+    stage: EntityStage*; context: void*; borrowed: StageReference*; cancelled: bool;
+}
+enum StageTransition: u32 { Publish, HoldFailure, DispatchFailure, PublishFailure, Count }

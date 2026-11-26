@@ -1,83 +1,8 @@
 import tower;
-import .library.entities;
-import .library.entity_types;
-import .library.entity_stage;
-import .library.work_budget_types;
-import .host.memory;
+import entity_stage_reentrant_fixture_test;
 
-var ReentrantLifecycle: usize = 1;
-struct ReentrantState {
-    root: Entity*;
-    survivor: Entity*;
-    kind: Entity*;
-    child: Entity*;
-    publish: EntityStage*;
-    lease: EntityStage*;
-    discard: EntityStage*;
-    finalized: usize;
-}
-fn reentrant_check(ok: bool): void {
-    if !ok { trap("Live-owner reentrant stage regression", 0); }
-}
-export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
-    var state = bits(ReentrantState*, entity_context(component.owner));
-    reentrant_check(lifecycle == ReentrantLifecycle && state != null
-        && component.owner.references == 0 && component.owner.store.reclaiming != 0);
-    reentrant_check(entity_stage_lease_result(state.lease, component.owner) == WorkBudgetError.Busy
-        && component.owner.stage == null);
-    // These stages, parents and types were acquired before reclamation. None
-    // borrows the dying entity as a parent or leases its changing membership.
-    reentrant_check(entity_stage_publish_result(state.publish) == WorkBudgetError.None
-        && state.child.stage == null && state.root.child_count == 1);
-    state.publish = null;
-    reentrant_check(entity_stage_lease(state.lease, state.survivor));
-    var added = entity_component_add(state.survivor, state.kind);
-    reentrant_check(added != null);
-    *bits(usize*, added.data) = 456;
-    reentrant_check(entity_stage_publish_result(state.lease) == WorkBudgetError.None
-        && state.survivor.stage == null);
-    state.lease = null;
-    entity_stage_discard(state.discard);
-    state.discard = null;
-    state.finalized++;
-}
 export fn main(argc: i32, argv: u8**): i32 {
-    var store = entity_store_create();
-    var state: ReentrantState = default;
-    reentrant_check(store != null && entity_store_set_context(store, bits(void*, &state)));
-    state.root = entity_create(store);
-    state.survivor = entity_create(store);
-    state.kind = entity_create(store);
-    var victim = entity_create(store);
-    var finalizer = entity_create(store);
-    reentrant_check(state.root != null && state.survivor != null && state.kind != null
-        && victim != null && finalizer != null
-        && entity_register(state.kind, sizeof(usize), alignof(usize), 0)
-        && entity_register(finalizer, sizeof(usize), alignof(usize), ReentrantLifecycle));
-    var dying = entity_component_add(victim, finalizer);
-    reentrant_check(dying != null);
-    *bits(usize*, dying.data) = 123;
-    state.publish = entity_stage_open(state.root);
-    state.lease = entity_stage_open(state.root);
-    state.discard = entity_stage_open(state.root);
-    reentrant_check(state.publish != null && state.lease != null && state.discard != null);
-    state.child = entity_stage_create_named(state.publish, state.root, "joined");
-    var discarded = entity_stage_create(state.discard, state.root);
-    reentrant_check(state.child != null && discarded != null);
-    var added = entity_component_add(state.child, state.kind);
-    reentrant_check(added != null);
-    *bits(usize*, added.data) = 789;
-    reentrant_check(entity_release(victim) == 0 && state.finalized == 1
-        && store.reclaiming == 0 && state.root.references == 1
-        && state.publish == null && state.lease == null && state.discard == null
-        && state.root.children[0].entity == state.child
-        && *bits(usize*, entity_component_get(state.child, state.kind).data) == 789
-        && *bits(usize*, entity_component_get(state.survivor, state.kind).data) == 456);
-    entity_release(state.survivor);
-    entity_release(state.root);
-    entity_release(finalizer);
-    entity_release(state.kind);
-    reentrant_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store));
+    stage_reentrant_trial();
     print(0);
     return 0;
 }
