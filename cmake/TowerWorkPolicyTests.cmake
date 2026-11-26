@@ -188,6 +188,17 @@ function(tower_lr_work_policy_test)
       -Wl,--export-dynamic-symbol=backend_register_targets
       -Wl,--export-dynamic-symbol=backend_thread_entry)
     add_test(NAME tower-module-cache-regressions COMMAND tower-module-cache-tests)
+    if(TARGET tower-lr-row-services)
+      tower_format_test_host("${triple}")
+      add_dependencies(tower-module-cache-tests tower-format-test-host tower-lr-row-services tower-selected-test-count tower-guest-native-test)
+      tower_native_test_selections(module-cache module_cache_suite "24 tests" "2 tests"
+        --test-native-runtime "${row_guest}" --link "${format-test-host_OBJECT}" --link "$<TARGET_FILE:tower-lr-row-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+      foreach(jobs IN ITEMS 1 4)
+        set_tests_properties(tower-module-cache-direct-jobs-${jobs} tower-module-cache-owner-jobs-${jobs}
+          PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+      endforeach()
+    endif()
     set_tests_properties(tower-module-cache-regressions PROPERTIES
       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" TIMEOUT 180)
   endif()

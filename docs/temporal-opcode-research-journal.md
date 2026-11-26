@@ -119240,3 +119240,24 @@ with the original field-identity message in the CLI and both selected native
 guests (all exit 1). The selected owner runs the five reachable budget tests
 as well. Isolating its owner from execution_world avoids adding a retained
 compilation to every unrelated execution-session discovery.
+
+### Original module resolution and live session checks
+
+On 10271859, frontend_modules.tower lines 47–220 and 467–585 cover the
+root imports, actual replacement of shared.tower, cycle, missing dependency,
+invalid bytes, recovery, search order, path handling, component isolation
+and session checks 820–842. Both parser_main and the cache executable still
+call frontend_modules_tests. Its original integer statuses and ordering are
+preserved. The executable entry remains module_cache_checks.tower.
+The standalone returned its original three lines (209 bytes) in 0.08 s
+on each version. The selected owner discovers 22 additional budget, graph,
+LR and formatter tests. Its formatter cases need their native file provider
+and the scaffolding working directory. Both direct and discovered tests use
+the real parser and worker services.
+
+Expecting three modules after editing shared.tower produced legacy exit 35
+(803 modulo 256). Reversing the cached parser identity comparison produced
+70 (838 modulo 256). Each selected path rejected the corresponding case.
+The remaining sections at this boundary are 233–465 (baseline installation,
+startup and clone denials) and 587–845 (seed and first-import reader leases).
+The separate in-memory selection predicate lives in test_file_rule_checks.

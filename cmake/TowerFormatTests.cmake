@@ -2,6 +2,18 @@
 # The repository sweep remains separately opt-in.
 option(TOWER_FORMAT_TESTS "Build focused Tower formatter tests" OFF)
 option(TOWER_FORMAT_SWEEP "Run the broad repository formatter sweep" OFF)
+# The module cache owner also discovers the formatter's native companion.
+function(tower_format_test_host triple)
+  get_property(object GLOBAL PROPERTY TOWER_FORMAT_TEST_HOST)
+  if(NOT object)
+    tower_runtime_object(format-test-host
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax_session_format_inputs/native.tower" "${triple}")
+    set(object "${format-test-host_OBJECT}")
+    set_property(GLOBAL PROPERTY TOWER_FORMAT_TEST_HOST "${object}")
+    add_custom_target(tower-format-test-host DEPENDS "${object}")
+  endif()
+  set(format-test-host_OBJECT "${object}" PARENT_SCOPE)
+endfunction()
 if(TOWER_FORMAT_TESTS)
   enable_testing()
 endif()
@@ -38,8 +50,7 @@ function(tower_format_tests)
     target_link_libraries(tower-format-test-services PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
       tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-compiler-evaluation)
     target_link_options(tower-format-test-services PRIVATE "LINKER:-z,defs")
-    tower_runtime_object(format-test-host
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax_session_format_inputs/native.tower" "${triple}")
+    tower_format_test_host("${triple}")
     tower_selected_test_count("${triple}")
     add_custom_target(tower-format-owner-tests ALL DEPENDS tower-format-test-services tower-selected-test-count
       tower-guest-native-test "${format-test-host_OBJECT}")
