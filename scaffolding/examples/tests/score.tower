@@ -1,0 +1,8 @@
+import tower;
+import library.testing;
+
+fn double_score(points: i32): i32 { return points + points; }
+
+test() {
+    assert(double_score(0) == 0, "Expected zero points");
+}

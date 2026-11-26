@@ -1,0 +1,11 @@
+import tower;
+import library.testing;
+import score;
+import test_points;
+
+fn total_points(): i32 { return double_score(sample_points()); }
+
+test() {
+    var per_player = total_points() / player_count();
+    assert(per_player == 21, "Expected 21 points per player");
+}

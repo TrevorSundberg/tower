@@ -1,0 +1,4 @@
+import tower;
+
+fn sample_points(): i32 { return 21; }
+fn player_count(): i32 { return 2; }

@@ -33,25 +33,44 @@ fn playground_asset_write(root: u8*, name: u8*, bytes: ByteBuffer*): bool {
 
 // One ordered registration supplies both the public source URL and the editor's
 // project seed. A user's saved project with the same ID keeps its edited files.
-fn playground_example(json: ByteBuffer*, source: u8*, root: u8*, stem: u8*, title: u8*): bool {
-    var file: ByteBuffer = default; var path: ByteBuffer = default; var contents: ByteBuffer = default;
-    defer bytes_dispose(&file); defer bytes_dispose(&path); defer bytes_dispose(&contents);
-    if !playground_asset_text(&file, stem) || !playground_asset_text(&file, ".tower") || !host_text_terminate(&file)
-        || !tool_join(&path, source, file.data) { return false; }
+fn playground_example_header(json: ByteBuffer*, stem: u8*, title: u8*): bool {
+    return (json.length == 1 || playground_asset_text(json, ","))
+        && playground_asset_text(json, "{\"id\":\"example:") && playground_asset_text(json, stem)
+        && playground_asset_text(json, "\",\"name\":") && host_json_quote(json, title, strlen(title))
+        && playground_asset_text(json, ",\"files\":[");
+}
+
+fn playground_example_file(json: ByteBuffer*, source: u8*, root: u8*, file: u8*): bool {
+    var path: ByteBuffer = default; var contents: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&contents);
+    if !tool_join(&path, source, file) { return false; }
     if !tool_read_file(path.data, PlaygroundAssetLimit, &contents)
         || tower_utf8_validate(contents.data, contents.length, 1) == 0 {
         puts("Unreadable example source or invalid Tower UTF-8"); puts(path.data); return false;
     }
-    if !playground_asset_write(root, file.data, &contents) { puts("Cannot copy example"); puts(file.data); return false; }
+    if root != null && !playground_asset_write(root, file, &contents) { puts("Cannot copy example"); puts(file); return false; }
     // fetch(...).text() consumes an initial UTF-8 BOM on the standalone URL.
     var bom: usize = 0;
     if contents.length >= 3 && contents.data[0] == 239 && contents.data[1] == 187 && contents.data[2] == 191 { bom = 3; }
-    return (json.length == 1 || playground_asset_text(json, ","))
-        && playground_asset_text(json, "{\"id\":\"example:") && playground_asset_text(json, stem)
-        && playground_asset_text(json, "\",\"name\":") && host_json_quote(json, title, strlen(title))
-        && playground_asset_text(json, ",\"files\":[{\"path\":") && host_json_quote(json, file.data, file.length)
+    return playground_asset_text(json, "{\"path\":") && host_json_quote(json, file, strlen(file))
         && playground_asset_text(json, ",\"text\":") && host_json_quote(json, contents.data + bom, contents.length - bom)
-        && playground_asset_text(json, "}]}");
+        && playground_asset_text(json, "}");
+}
+
+fn playground_example(json: ByteBuffer*, source: u8*, root: u8*, stem: u8*, title: u8*): bool {
+    var file: ByteBuffer = default; defer bytes_dispose(&file);
+    return playground_asset_text(&file, stem) && playground_asset_text(&file, ".tower") && host_text_terminate(&file)
+        && playground_example_header(json, stem, title) && playground_example_file(json, source, root, file.data)
+        && playground_asset_text(json, "]}");
+}
+
+fn playground_tests_example(json: ByteBuffer*, source: u8*): bool {
+    var dir: ByteBuffer = default; defer bytes_dispose(&dir);
+    return tool_join(&dir, source, "tests") && playground_example_header(json, "tests", "Tests")
+        && playground_example_file(json, dir.data, null, "main.tower") && playground_asset_text(json, ",")
+        && playground_example_file(json, dir.data, null, "score.tower") && playground_asset_text(json, ",")
+        && playground_example_file(json, dir.data, null, "score_test.tower") && playground_asset_text(json, ",")
+        && playground_example_file(json, dir.data, null, "test_points.tower") && playground_asset_text(json, "]}");
 }
 
 fn playground_examples(root: u8*, source: u8*): bool {
@@ -69,6 +88,7 @@ fn playground_examples(root: u8*, source: u8*): bool {
         && playground_example(&json, source, root, "memory", "Memory")
         && playground_example(&json, source, root, "replacements", "Replacements")
         && playground_example(&json, source, root, "tokens", "Tokens")
+        && playground_tests_example(&json, source)
         && playground_asset_text(&json, "]") && playground_asset_write(root, "examples.json", &json);
 }
 

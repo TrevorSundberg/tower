@@ -36,7 +36,7 @@ async function executeProject(page, output) {
 }
 test('projects own folders, built-ins, undo, links and execution state',async({page,request},info) => {
   await expect(page.locator('#example-kind')).toHaveCount(0);
-  await expect(page.locator('#project-kind option')).toHaveCount(13);
+  await expect(page.locator('#project-kind option')).toHaveCount(14);
   await expect(page.locator('#project-kind option[value="example:match"]')).toHaveCount(1);
   await expect(page.locator('#project-kind option[value="example:collections"]')).toHaveCount(1);
   const lesson = {path:'foreach.tower', text:await (await request.get('/foreach.tower')).text()};

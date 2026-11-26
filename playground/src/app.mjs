@@ -163,6 +163,8 @@ const reportProblem = (channel, value) => diagnosticDelay.update(channel, value,
 let foundation = '', bundledFoundation = '', editingModule = '', bedrock = '', bundledBedrock = '', bundledTower = '', bundledBuiltins = {};
 let documentLoadId = 0;
 let editorExtensions, projects = [], project, storage, activePath = '', saveSequence = 0;
+const exampleSources = new Map();
+function restoreSources() { return project.compilerProject ? compilerSources : exampleSources.get(project.id) ?? bundledExamples; }
 const fileStates = new Map(), bundledExamples = new Map(), compilerSources = new Map();
 let retainedCompilerObjects, packagedGeneratorHash, selectedPackagedGenerator;
 let compilerBuildWorker, compilerBuildTimer, compilerBuildId = 0, compilerBuildSnapshot = '', compilerGeneration = 0;
@@ -367,6 +369,9 @@ function stopExecution(message, preserveCompilation = false) {
     }
   }
   $('execute').disabled = !editor;
+  $('test-location').hidden = true;
+  $('test-location').onclick = null;
+  updateTestControls();
   $('execution-panel').setAttribute('aria-busy', 'false');
   cancelState();
   if (message) setExecutionStatus(message);
@@ -399,6 +404,24 @@ function publishDiagnostic(error, phase) {
     $('editor-error').title = diagnostic.message;
   }
 }
+function updateTestControls() {
+  $('test-suffix').disabled = !project || project.compilerProject;
+  $('run-tests').disabled = !editor || !project || project.compilerProject || !!editingModule || isExecuting();
+}
+function showTestLocation(answer) {
+  const file = project.files.find(file => file.path === answer.errorFile);
+  if (!file || !Number.isInteger(answer.errorOffset)) return;
+  const diagnostic = sourceDiagnostic(EditorState.create({doc:file.text}).doc, byteOffsets(file.text), answer, [], file.path);
+  const button = $('test-location');
+  button.textContent = sourceLocation(file.path, diagnostic.line, diagnostic.column);
+  button.hidden = false;
+  button.onclick = () => {
+    selectFile(file.path);
+    executionError = answer;
+    executionDiagnostic(answer);
+    goToDiagnostic(editor);
+  };
+}
 function updateComparison() {
   const active = selectedBackends().map(key => runners[key]);
   const complete = active.every(runner => runner?.result);
@@ -407,7 +430,12 @@ function updateComparison() {
   const nativeRunning = runners.native?.worker;
   $('execution-panel').setAttribute('aria-busy', String(isExecuting()));
   let status;
-  if (isExecuting()) status = 'Updating…';
+  const tests = runners.interpreter;
+  if (tests?.testMode) {
+    if (isExecuting()) status = 'Running tests…';
+    else if (tests.failure || tests.result?.status === 'error') status = 'Tests failed · ' + (tests.failure || tests.result.error);
+    else status = tests.testCount === 0 ? 'No tests found' : tests.testCount + (tests.testCount === 1 ? ' test passed' : ' tests passed');
+  } else if (isExecuting()) status = 'Updating…';
   else if (active.some(runner => runner?.failure)) status = 'Comparison unavailable';
   else if (differences) {
     status = differences.length ? 'Backend mismatch · ' + [...new Set(differences)].join(', ') :
@@ -416,17 +444,18 @@ function updateComparison() {
   if(!nativeRunning && runners.native?.failure) status += ' · target build failed';
   setExecutionStatus(status);
   $('execute').disabled = isExecuting();
+  updateTestControls();
   if (!isExecuting() && !executionError && result?.end?.status === 'done') executionDiagnostic(null);
   cancelState();
 }
-function execute() {
+function execute(testMode = false) {
   if (project?.compilerProject) { rebuildCompiler(); return; }
   stopExecution(undefined,true); runners = {};
   executedRevision = documentRevision; executionError = null;
   setExecutionStatus('Updating…');
   $('execute').disabled = true; $('cancel-execution').disabled = false;
   const id = executionId, text = editor.state.doc.toString();
-  const backends = selectedBackends(), frontendBackend = backends[0];
+  const backends = testMode ? ['interpreter'] : selectedBackends(), frontendBackend = backends[0];
   const dispatchDependents = formatted => {
     if (id !== executionId) return;
     for (const backend of backends) {
@@ -439,7 +468,7 @@ function execute() {
   for (const backend of backends) {
     const worker = idleExecutionWorkers.get(backend) ?? createCompilerWorker(new URL('./execution-worker.js', import.meta.url), { type: 'module' });
     idleExecutionWorkers.delete(backend);
-    const runner = runners[backend] = { id, worker, output: '', timings: {} };
+    const runner = runners[backend] = { id, worker, testMode, output: '', timings: {} };
     setPhase(backend,'Loading…');
     const finish = () => {
       runner.request = null;
@@ -459,6 +488,7 @@ function execute() {
     worker.onerror = event => { event.preventDefault(); if (id === executionId) fail(event.message || 'Execution worker stopped'); };
     worker.onmessage = ({ data }) => {
       if (id !== executionId || data.id !== id) return;
+      if (data.testCount !== undefined) runner.testCount = data.testCount;
       if (data.ready) {
         runner.executing = true; worker.cancelledCompilation = false;
         worker.postMessage({command:'execute',id});
@@ -502,19 +532,21 @@ function execute() {
         if (backend === 'fast' && !runner.formatted) { outputPanes.get('fast-disassembly').clearDownload(); showCode('fast-disassembly',''); }
         if (backend === selectedBackends()[0] && !runner.formatted) showCode('core-instructions','');
         if (backend === 'llvm' && !data.llvm && !runner.compiled) { clearWasm(); renderLLVM(); }
+        if (testMode) showTestLocation(answer);
         reportProblem(errorId(backend),answer.error);
         if (!executionError) { executionError = answer; executionDiagnostic(answer); }
       }
       finish();
     };
-    const request = {compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked};
+    const request = {compiler:compilerSelection(), library:project.library ?? '.tower',  id, source: text, foundation, bedrock, backend, files:editingModule ? undefined : projectSources(project), drive:project.files, builtins:project.builtins, entry:testMode || editingModule ? activePath : projectSources(project)[0]?.path, pointerBytes:selectedTargets.wasm || !selectedNativeKeys().length ? 4 : 8, inputs:linkInputsForTarget(linkInputs,'wasm') ,optimize:$('optimize').checked,comments:$('preserve-comments').checked};
+    if (testMode) Object.assign(request, {testMode, testSuffix:$('test-suffix').value});
     if (backend === frontendBackend) worker.postMessage(request);
     // Editing mutates project sources before the next compilation is admitted.
     // Installed reactor/link buffers are immutable; keep those borrowed until
     // postMessage rather than copying large compiler binaries an extra time.
     else runner.request = {...request,...structuredClone({files:request.files,drive:request.drive,builtins:request.builtins})};
   }
-  if(buildKeys().length) compileNative(id,text);
+  if(!testMode && buildKeys().length) compileNative(id,text);
   updateComparison();
 }
 function node(tag, className, text) {
@@ -532,8 +564,9 @@ function controls() {
   cancelState();
   $('auto-execute').disabled = !editor;
   $('execute').disabled = !editor || isExecuting();
+  updateTestControls();
   for (const id of ['open', 'save', 'new-project', 'new-file', 'project-kind']) $(id).disabled = !editor;
-  $('restore').disabled = !editor || !editingModule && !(project.compilerProject ? compilerSources : bundledExamples).has(activePath);
+  $('restore').disabled = !editor || !editingModule && !restoreSources().has(activePath);
   // Keep the last result visible while typing, but do not use its old spans.
   for (const id of ['tree']) {
     $(id).inert = dirty;
@@ -792,7 +825,7 @@ function renderFiles() {
   for (const id of ['rename-file','delete-file','move-file-up']) $(id).disabled = !!editingModule;
   $('delete-file').disabled ||= project.files.length === 1;
   $('move-file-up').disabled ||= project.files[0].path === activePath;
-  $('restore').disabled = !editingModule && !(project.compilerProject ? compilerSources : bundledExamples).has(activePath);
+  $('restore').disabled = !editingModule && !restoreSources().has(activePath);
   $('compiler-controls').hidden = !project.compilerProject;
   $('execute').textContent = project.compilerProject ? 'Rebuild compiler' : 'Execute';
 }
@@ -825,6 +858,7 @@ function selectProject(id) {
   stopExecution(); editorLanguage.stop(); fileStates.clear();
   cancelCompilerBuild();
   project = next; linkInputs = project.links; activePath = '';
+  $('test-suffix').value = project.testSuffix ?? '';
   try { localStorage.setItem('tower-project-selected-v1', id); } catch {}
   updateLinkFiles(); selectFile(project.active, true);
 }
@@ -893,6 +927,12 @@ onCompilerSelection(selection => {
   ++generation; dirty = true; executedRevision = -1; clearCompiled(); clearInspection(); controls(); schedule();
 });
 $('tokens').onchange = () => renderTree();
+$('run-tests').onclick = () => { diagnosticDelay.reveal(); execute(true); };
+$('test-suffix').oninput = () => {
+  if (runners.interpreter?.testMode) stopExecution('Test settings changed', true);
+  project.testSuffix = $('test-suffix').value;
+  persist();
+};
 $('execute').onclick = () => { diagnosticDelay.reveal(); execute(); };
 $('cancel-execution').onclick = () => {
   executedRevision = documentRevision;
@@ -988,7 +1028,7 @@ $('auto-execute').onchange = () => {
     else scheduleAutoExecution();
   } else stopExecution('Auto off');
 };
-$('restore').onclick = () => replaceSource(editingModule ? bundledBuiltins[editingModule] : (project.compilerProject ? compilerSources : bundledExamples).get(activePath));
+$('restore').onclick = () => replaceSource(editingModule ? bundledBuiltins[editingModule] : restoreSources().get(activePath));
 $('open').onclick = () => $('file').click();
 $('file').onchange = async () => {
   const file = $('file').files[0]; if (!file) return;
@@ -1029,7 +1069,10 @@ async function start() {
   })));
   bundledBuiltins = builtins;
   bundledBedrock = builtins.bedrock; bundledFoundation = builtins.foundation; bundledTower = builtins.tower;
-  for (const {files} of exampleProjects) for (const {path, text} of files) bundledExamples.set(path, text);
+  for (const {id, files} of exampleProjects) {
+    if (files.length > 1) exampleSources.set(id, new Map(files.map(({path, text}) => [path, text])));
+    if (files.length === 1) bundledExamples.set(files[0].path, files[0].text);
+  }
   try { storage = await projectStore(); projects = (await storage.list()).map(validateProject); }
   catch (error) { $('project-storage').textContent = 'Browser storage unavailable: ' + error.message; }
   for (const {id, name, files} of exampleProjects) if (!projects.some(p => p.id === id)) {
