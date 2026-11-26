@@ -1,0 +1,99 @@
+import library.testing;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import entity_component_faults_fixture;
+
+// Registration owns one sparse stable layout. Check refusal before retrying
+// with a self-kind payload.
+fn component_layout_admission(capacity: bool): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1), "Initialize the layout budget");
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Create the layout store");
+    var kind = entity_create(store);
+    assert(kind != null && kind.layout == null && !kind.registered, "A fresh kind has no registered layout");
+    var before = budget.used_bytes; var live = budget.live;
+    var block: WorkReservation = default;
+    if capacity {
+        assert(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &block),
+            "Reserve the remaining bytes");
+    } else { tower_test_buffer_fail_after(0); }
+    var error = entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 0);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    if capacity { assert(work_budget_release(&budget, &block), "Release the temporary reservation"); }
+    assert(error == (capacity ? WorkBudgetError.Capacity : WorkBudgetError.Memory)
+        && !kind.registered && kind.layout == null && kind.instance_count == 0
+        && store.entity_count == 1 && store.component_count == 0
+        && budget.used_bytes == before && budget.live == live,
+        "Refused registration leaves the kind and its charges unchanged");
+    assert(entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 0) == WorkBudgetError.None,
+        "Retry registers the layout");
+    var layout = kind.layout;
+    var metadata = entity_owned_page(bits(u8*, layout));
+    assert(layout != null && metadata.owner == &store.buffers
+        && layout.data_size == sizeof(u64) && layout.data_alignment == alignof(u64) && layout.lifecycle == 0,
+        "The store owns the registered layout with its requested size and alignment");
+    var view = entity_view_open(kind);
+    assert(view != null, "Open a view of the registered kind");
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(0);
+    assert(entity_register_stage_result(kind, sizeof(u64), alignof(u64), 0, 0) == WorkBudgetError.None
+        && entity_register_stage_result(kind, sizeof(u64) + 1, alignof(u64), 0, 0) == WorkBudgetError.Busy
+        && kind.layout == layout && tower_test_buffer_allocations() == calls,
+        "Exact registration is idempotent and a conflicting layout is busy");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    entity_view_close(view);
+    var component = entity_component_add_result(kind, kind, &error);
+    assert(component != null && error == WorkBudgetError.None && kind.layout == layout,
+        "Self-kind payload uses the original layout");
+    *bits(u64*, component.data) = 42;
+    assert(entity_query_at(kind, 0) == component && *bits(u64*, component.data) == 42
+        && entity_component_remove(kind, kind) && kind.instance_count == 0,
+        "Self-kind removal clears the instance index");
+    entity_release(kind);
+    assert(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Layout teardown releases all receipts and buffers");
+}
+
+fn component_inline_sweep(): void {
+    var allocations: usize = 0;
+    assert(component_inline_fault(~convert(usize, 0), &allocations) && allocations != 0,
+        "Measure inline promotion allocations");
+    var observed: usize = 0;
+    for (var failure: usize = 0; failure < allocations; failure++) {
+        assert(!component_inline_fault(failure, &observed), "Each inline promotion allocation can refuse");
+    }
+    assert(component_inline_fault(allocations, &observed) && observed == allocations,
+        "Inline promotion succeeds at the measured boundary");
+}
+
+enum ComponentOwner: u8 { Direct, Staged }
+enum ComponentPayload: u8 { Small, Large }
+
+fn component_growth_sweep(owner: ComponentOwner, payload: ComponentPayload): void {
+    var staged = owner == ComponentOwner.Staged;
+    var large = payload == ComponentPayload.Large;
+    var allocations: usize = 0;
+    assert(component_fault_trial(~convert(usize, 0), staged, large, &allocations) && allocations != 0,
+        "Measure component growth allocations");
+    var observed: usize = 0;
+    for (var failure: usize = 0; failure < allocations; failure++) {
+        assert(!component_fault_trial(failure, staged, large, &observed), "Each growth allocation can refuse");
+    }
+    assert(component_fault_trial(allocations, staged, large, &observed) && observed == allocations,
+        "Component growth succeeds at the measured boundary");
+}
+
+test() { component_layout_admission(false); } // Physical allocator refusal
+test() { component_layout_admission(true); }  // Byte-budget refusal
+test() { component_inline_sweep(); }
+
+test() { component_growth_sweep(ComponentOwner.Direct, ComponentPayload.Small); }
+test() { component_growth_sweep(ComponentOwner.Direct, ComponentPayload.Large); }
+test() { component_growth_sweep(ComponentOwner.Staged, ComponentPayload.Small); }
+test() { component_growth_sweep(ComponentOwner.Staged, ComponentPayload.Large); }

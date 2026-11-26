@@ -1,0 +1,142 @@
+import library.testing;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_vector;
+import entity_stage_result_faults_fixture;
+
+fn stage_fault_open(): void {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    assert(store != null && root != null, "Create the stage anchor");
+    var live = tower_test_buffer_count();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(0);
+    assert(entity_stage_open_result(null, &error) == null && error == WorkBudgetError.Invalid,
+        "Opening a stage without an anchor reports Invalid");
+    assert(entity_stage_open_result(root, &error) == null && error == WorkBudgetError.Memory,
+        "Stage descriptor allocation refusal reports Memory");
+    tower_test_buffer_fail_after(0);
+    assert(entity_view_open_result(null, &error) == null && error == WorkBudgetError.Invalid,
+        "Opening a view without an anchor reports Invalid");
+    assert(entity_view_open_result(root, &error) == null && error == WorkBudgetError.Memory,
+        "View descriptor allocation refusal reports Memory");
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(tower_test_buffer_count() == live && root.references == 1 && store.views == 0,
+        "Refused descriptors retain no reference, view or buffer");
+    var stage = entity_stage_open_result(root, &error);
+    assert(stage != null && error == WorkBudgetError.None, "Retry opens the stage");
+    var view = entity_view_open_result(root, &error);
+    assert(view != null && error == WorkBudgetError.None, "Retry opens the view");
+    entity_view_close(view);
+    entity_stage_discard(stage);
+    entity_release(root);
+    assert(entity_store_dispose(store) && tower_test_buffer_count() == baseline,
+        "Closing both descriptors restores the buffer count");
+}
+
+fn stage_fault_descriptor_growth(): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, StageFaultBudgetBytes, 1), "Initialize the descriptor budget");
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Create the descriptor store");
+    var root = entity_create(store);
+    var stage = entity_stage_open(root);
+    var first = entity_stage_create(stage, root);
+    assert(first != null, "Create the first private node");
+    var page = entity_owned_page(bits(u8*, first));
+    assert(page != null && page.capacity == EntityStageInitialDescriptorRows,
+        "The first page has the initial descriptor capacity");
+    for (var i: usize = 1; i < page.capacity; i++) {
+        assert(entity_stage_create(stage, root) != null, "Fill the next descriptor slot");
+    }
+    var count = stage.nodes.length;
+    assert(page.live == page.capacity && count == page.capacity && stage.buffers.owned == page,
+        "The full page and all its nodes belong to the stage");
+
+    // The next unnamed node needs only its page. Admit the node index and
+    // prime a reusable ledger slot before counting physical allocations.
+    var slot: WorkReservation = default;
+    assert(work_vector_reserve_result(&stage.nodes, &budget, count + 2) == WorkBudgetError.None
+        && work_budget_reserve(&budget, 0, 0, 1, &slot) && work_budget_release(&budget, &slot),
+        "Prepare node index capacity and a reusable ledger slot");
+    var nodes = stage.nodes.data;
+    var bytes = budget.used_bytes;
+    var grants = budget.live;
+    var buffers = tower_test_buffer_count();
+    var identity = store.next_id;
+    var references = root.references;
+    assert(budget.peak_bytes < bytes + page.allocation.reservation.bytes,
+        "A new page charge must exceed the recorded peak");
+    var before = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(0);
+    var denied = entity_stage_create_result(stage, root, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    var attempts = tower_test_buffer_allocations() - before;
+    assert(denied == null && error == WorkBudgetError.Memory, "The grown page allocation reports Memory");
+    printf("grown descriptor Memory attempts=%zu\n", attempts); fflush(null);
+    assert(attempts == 1, "Expected one physical attempt for a grown descriptor page");
+    var denied_peak = budget.peak_bytes;
+    assert(stage.anchor == root && root.references == references && root.child_count == 0
+        && store.entity_count == 1 && store.component_count == 0 && store.next_id == identity
+        && stage.nodes.data == nodes && stage.nodes.length == count && nodes[0].node == first
+        && stage.buffers.owned == page && page.live == count && page.owner == &stage.buffers
+        && budget.used_bytes == bytes && budget.live == grants && budget.used_lanes == 0
+        && tower_test_buffer_count() == buffers,
+        "Refusal preserves the page owner, node index, references and charges");
+
+    before = tower_test_buffer_allocations();
+    var next = entity_stage_create_result(stage, root, &error);
+    assert(next != null && error == WorkBudgetError.None && tower_test_buffer_allocations() - before == 1,
+        "Retry allocates exactly one page");
+    var grown = entity_owned_page(bits(u8*, next));
+    // The failed request temporarily charged the same grown page as the retry.
+    assert(grown != null && grown != page && grown.capacity == page.capacity * 2
+        && denied_peak == bytes + grown.allocation.reservation.bytes && budget.used_bytes == denied_peak,
+        "The denied peak equals the charge for the doubled page");
+    var reused = entity_stage_create_result(stage, root, &error);
+    assert(reused != null && error == WorkBudgetError.None && entity_owned_page(bits(u8*, reused)) == grown
+        && tower_test_buffer_allocations() - before == 1,
+        "Another descriptor reuses the grown page");
+    assert(entity_stage_publish(stage) && root.child_count == count + 2
+        && entity_child_at(root, 0) == first && entity_child_at(root, count) == next
+        && entity_child_at(root, count + 1) == reused,
+        "Publication preserves descriptor order and identity");
+    entity_release(root);
+    assert(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Descriptor teardown drains every reservation and buffer");
+}
+
+fn stage_lease_sweep(): void {
+    var allocations: usize = 0;
+    assert(stage_fault_lease(~convert(usize, 0), &allocations) && allocations != 0, "Measure lease allocations");
+    var observed: usize = 0;
+    for (var failure: usize = 0; failure < allocations; failure++) {
+        assert(!stage_fault_lease(failure, &observed), "Each lease allocation can refuse");
+    }
+    assert(stage_fault_lease(allocations, &observed) && observed == allocations,
+        "Lease succeeds at the measured boundary");
+}
+
+fn stage_publish_sweep(): void {
+    var allocations: usize = 0;
+    assert(stage_fault_publish(~convert(usize, 0), &allocations) && allocations != 0, "Measure publication allocations");
+    var observed: usize = 0;
+    for (var failure: usize = 0; failure < allocations; failure++) {
+        assert(!stage_fault_publish(failure, &observed), "Each publication allocation can refuse");
+    }
+    assert(stage_fault_publish(allocations, &observed) && observed == allocations,
+        "Publication succeeds at the measured boundary");
+}
+
+test() { stage_fault_open(); }
+test() { stage_fault_descriptor_growth(); }
+test() { stage_lease_sweep(); }
+test() { stage_publish_sweep(); }

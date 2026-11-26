@@ -115251,3 +115251,113 @@ UBSan is unsupported by the Tower LLVM instrumentation. Full-repository
 formatting and browser publication are outside this qualification. Raw
 commands, source bundle, wrong-map diagnostics and restoration hashes are in
 the assignment receipt for manager review.
+### Selecting component and stage allocation failures on c3635391
+
+Host 4 verified the published Linux x64 package (compiler SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+Before editing either suite, the two original work-policy CTests passed
+with `TOWER_COMPILER_JOBS=1` and `4`. Both default entries print their
+trial sequence and finish with `0\n`. The component `inline` selector
+prints just `0\n`. The independently frozen physical ownership census
+in `entity_fault_accounting.tower` has SHA-256
+`eb12d312903570edb9c2d2887d0c7656293e22aa20bcdfdeb844faee9d91f884`.
+
+The legacy mains import their companions and call the same cases as the
+declarations. Each fixture owns its lifecycle export. The component
+finalizer traps on any call. The stage finalizer increments the store's
+counter and releases the payload target. Separate guests use identical
+link providers. Each work-policy executable keeps the serial transport
+and single-owner failure allocator. The component declarations cover
+layout Memory and Capacity, inline promotion, and each direct/staged ×
+small/large growth combination. The four stage declarations cover
+descriptor open, descriptor page growth, lease and publication.
+
+At both compiler widths the direct guests ran seven component and four
+stage declarations. Each owner added exactly the five declarations from
+`library/work_budget_test.tower` (12 and nine total). Both original binaries
+were byte-identical between compiler widths, as were both migrated binaries.
+All original stdout streams matched the migrated entries. The eleven
+focused CTests passed in each ordinary build and with the preconfigured
+allocator from `TOWER_ALLOCATOR_TESTS=ON`. Both CMake allocator paths
+produced the same object (SHA-256 prefix `32c85551`).
+
+The packet maps all 80 pre-main calls to the two original check helpers
+to identical condition expressions in the fixture and companion files.
+The descriptor page still requires exactly one physical attempt. An observer
+in disposable source copies recorded failure tickets, attempts and results,
+census bytes/grants/lanes, growth, retry, ownership and teardown. Baseline
+direct growth refused tickets 0–4 for each payload size and succeeded at 5.
+Staged growth and inline promotion refused 0–2 and succeeded at 3.
+The descriptor grew from 8 to 16 rows. The lease refused ticket 0 and
+succeeded at 1. Publication refused 0–6 and succeeded at 7. After each
+publication, three target references included both payload holds. Teardown
+ran two finalizers and left zero entities and zero additional buffers.
+
+An initial comparison exposed two byte totals after publication refusal
+at ticket 4. Both appeared in repeated executions of the original binary.
+`entity_stage_count` hashes entity addresses, and preparation walks the
+resulting slots to resize the child and instance indexes. In the original
+trace, child/instance capacities 2/0 retained 27,879 bytes. Capacities
+1/2 retained 27,863 bytes. Both held 17 grants, zero lanes, one published
+child, one target reference and zero finalizers. The packet freezes two
+complete original sequences, including the capacities. The restored
+standalones and the four selections per suite matched the corresponding
+raw traces byte for byte. The 772-line component selection expectation
+takes both layout trials and the inline sweep from the original inline
+entry, then the four growth sweeps from the original default entry.
+The stage selection matched a complete 315-line original sequence.
+
+The negative controls changed the expected owner of the registered layout
+from the store's buffer pool to its storage pool and required an extra
+finalizer at stage teardown. All eleven CTests failed (CTest exit 8).
+Every selected run reported its suite's actual assertion and location.
+Restoration reproduced both source and executable hashes and passed all
+eleven. ASan with leak detection passed the default and inline component
+entries and the stage entry on the first launch. TSan passed the same
+entries after 4, 27 and 24 host personality startup failures respectively.
+The sanitizer executables linked instrumented fixture, fault allocator,
+trap and serial transport objects. The packet contains link maps and IR
+access-check counts. The fault allocator stays serial at both compiler
+widths. Tower's IR tool has no UBSan mode.
+
+Host 4 used one Ryzen 7 5800H (8 cores, SMT2), affinity CPUs 0–15,
+quota 1,536,000/100,000 µs (15.36 CPUs), 64,061,702,144-byte cgroup memory
+limit, Clang/LLVM 19.1.7, x86_64-pc-linux-gnu, Release. GNU time sampled
+one command at a time under the host timing lock. Four warm-filesystem
+rounds after warmup alternated entry and width order. Each legacy sample
+executed and checked 120 fresh processes. Each selection measured one
+count check, compile, link and execution. The table gives median elapsed
+and user + system CPU seconds and the largest sampled RSS, including
+launch overhead. Jobs specify the compiler width.
+
+| Case | Entry | Jobs | Wall s | CPU s | Max RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| component | direct | 1 | 1.270 | 1.265 | 173428 |
+| component | direct | 4 | 1.290 | 1.455 | 184856 |
+| component | original | 1 | 0.110 | 0.110 | 3180 |
+| component | migrated | 1 | 0.110 | 0.110 | 3204 |
+| component | original | 4 | 0.110 | 0.105 | 3236 |
+| component | migrated | 4 | 0.110 | 0.105 | 3244 |
+| component | owner | 1 | 1.435 | 1.435 | 185944 |
+| component | owner | 4 | 1.420 | 1.610 | 198032 |
+| inline | original | 1 | 0.090 | 0.090 | 3140 |
+| inline | migrated | 1 | 0.090 | 0.085 | 3180 |
+| inline | original | 4 | 0.090 | 0.090 | 3176 |
+| inline | migrated | 4 | 0.090 | 0.090 | 3216 |
+| stage-result | direct | 1 | 1.315 | 1.310 | 174336 |
+| stage-result | direct | 4 | 1.330 | 1.500 | 185656 |
+| stage-result | original | 1 | 0.100 | 0.100 | 3188 |
+| stage-result | migrated | 1 | 0.100 | 0.100 | 3188 |
+| stage-result | original | 4 | 0.100 | 0.100 | 3304 |
+| stage-result | migrated | 4 | 0.100 | 0.100 | 3312 |
+| stage-result | owner | 1 | 1.450 | 1.445 | 186636 |
+| stage-result | owner | 4 | 1.470 | 1.650 | 199032 |
+
+Commands, pin and input hashes, source bundle, observer patches, unfiltered
+outputs, negative-control and sanitizer logs, and individual timings are
+in assignment packet `34bf2899-e6be-413a-911b-fe3551a42f13`.
+After rebasing onto `015bb1ef`, both compiler-width builds and the build
+with allocator tests enabled passed all eleven CTests again. Both default
+streams and inline stdout matched the assignment baseline. The rebuilt
+sanitizer executables and their four object inputs matched the tested hashes.
+Publication is reserved for the manager.

@@ -51,6 +51,8 @@ if(policy_triple MATCHES "^x86_64-.*linux")
     add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
     set_tests_properties(tower-${name}-tests PROPERTIES TIMEOUT 30)
   endforeach()
+  add_test(NAME tower-entity-component-faults-inline COMMAND tower-entity-component-faults-tests inline)
+  set_tests_properties(tower-entity-component-faults-inline PROPERTIES TIMEOUT 30)
 endif()
 
 # The bootstrap's selected-test guest uses the ordinary native linker. The
@@ -83,6 +85,9 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^
   # Both owners discover five budget tests. The constructor also discovers eight graph tests.
   tower_work_fault_selections(work_constructor_faults "15 tests" "2 tests")
   tower_work_fault_selections(work_buffer_faults "6 tests" "1 test")
+  # Separate guests bind the lifecycle callback to their own fixture.
+  tower_work_fault_selections(entity_component_faults "12 tests" "7 tests")
+  tower_work_fault_selections(entity_stage_result_faults "9 tests" "4 tests")
 endif()
 
 # Backend/frontend registration runs after the native compiler target exists.

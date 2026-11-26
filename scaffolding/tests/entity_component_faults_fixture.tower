@@ -1,0 +1,177 @@
+import library.testing;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+import entity_fault_accounting;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn fflush(stream: void*): i32;
+extern fn printf(format: u8*, value: usize): i32;
+
+var ComponentFaultBudgetBytes: usize = 1048576;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Component fault fixture has no lifecycle payloads", 0);
+}
+
+fn component_fault_trial(failure: usize, staged: bool, large: bool, allocations: usize*): bool {
+    printf("component trial failure=%zu\n", failure); printf("staged=%zu\n", staged ? 1 : 0);
+    printf("large=%zu\n", large ? 1 : 0); fflush(null);
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1), "Initialize the component budget");
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Create the component store");
+    var root = entity_create(store);
+    var first_type = entity_create(store);
+    var next_type = entity_create(store);
+    assert(root != null && first_type != null && next_type != null
+        && entity_register(first_type, sizeof(u64), 64, 0)
+        && entity_register(next_type, large ? 32768 : sizeof(u64), large ? 4096 : 64, 0),
+        "Register both payload layouts");
+    var stage: EntityStage* = null;
+    var node: Entity* = root;
+    if staged {
+        stage = entity_stage_open(root);
+        assert(stage != null, "Open the private stage");
+        node = entity_stage_create(stage, root);
+        assert(node != null, "Create the private entity");
+    }
+    var error = WorkBudgetError.None;
+    var stable = entity_component_add_result(node, first_type, &error);
+    assert(stable != null && error == WorkBudgetError.None, "Install the first payload");
+    var address = stable.data;
+    *bits(u64*, address) = 8765;
+    var table = node.table;
+    var index = node.components;
+    var capacity = node.component_capacity;
+    var entities = store.entity_count;
+    var components = store.component_count;
+    var identity = store.next_id;
+    var roots: Entity*[3]; roots[0] = root; roots[1] = first_type; roots[2] = next_type;
+    var root_count = sizeof(decltype(roots)) / sizeof(Entity*);
+    entity_fault_census(store, &roots[0], root_count, stage);
+    var before = budget.used_bytes;
+    var live = budget.live;
+    var initial = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var component = entity_component_add_result(node, next_type, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - initial;
+    var succeeded = component != null;
+    var census = entity_fault_census(store, &roots[0], root_count, stage);
+    assert(tower_test_buffer_count() == baseline + census.receipts
+        + (budget.entries.data != null ? 1 : 0),
+        "Every live buffer has an owner after component admission");
+    if !succeeded {
+        // Published type-instance capacity may grow before payload admission.
+        // Its exact retained allocation remains owned; semantic membership and
+        // the failed owner's inline promotion must remain unchanged.
+        var retained: EntityFaultCensus = default;
+        entity_fault_index(&retained, &budget, next_type.instances);
+        assert(error == WorkBudgetError.Memory && node.component_count == 1
+            && next_type.instance_count == 0 && entity_component_get(node, next_type) == null
+            && node.table == table && node.pending_table == null
+            && node.components == index && node.component_capacity == capacity
+            && store.entity_count == entities && store.component_count == components && store.next_id == identity
+            && budget.used_bytes == before + retained.bytes && budget.live == live + retained.receipts
+            && stable.data == address && *bits(u64*, address) == 8765,
+            "Refusal preserves the original index, payload, membership and charges");
+        component = entity_component_add_result(node, next_type, &error);
+    }
+    assert(component != null && error == WorkBudgetError.None
+        && node.component_count == 2 && stable.data == address && *bits(u64*, address) == 8765,
+        "The second payload leaves the first address and value intact");
+    if staged {
+        var retained = budget.used_bytes;
+        var component_address = component.data;
+        tower_test_buffer_fail_after(0);
+        var published = entity_stage_publish_result(stage);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        assert(published == WorkBudgetError.Memory && first_type.instance_count == 0 && next_type.instance_count == 0
+            && budget.used_bytes == retained && component.data == component_address && node.stage == bits(void*, stage),
+            "Refused publication preserves both private payloads and their charges");
+        entity_fault_census(store, &roots[0], root_count, stage);
+        assert(entity_stage_publish_result(stage) == WorkBudgetError.None && component.data == component_address
+            && node.stage == null && node.storage == null,
+            "Retry publishes the same payload address and releases the stage");
+        stage = null;
+    }
+    census = entity_fault_census(store, &roots[0], root_count, stage);
+    assert(tower_test_buffer_count() == baseline + census.receipts
+        + (budget.entries.data != null ? 1 : 0),
+        "Every live buffer has an owner after publication");
+    entity_release(root); entity_release(first_type); entity_release(next_type);
+    assert(store.entity_count == 0 && store.component_count == 0
+        && entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Component teardown releases every entity, receipt, lane and buffer");
+    return succeeded;
+}
+
+// Inject every physical allocation in inline promotion, including payload
+// preparation after the pending array succeeds. A failed promotion leaves the
+// original index, payload and charges intact; discard drains the private stage.
+fn component_inline_fault(failure: usize, allocations: usize*): bool {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, ComponentFaultBudgetBytes, 1), "Initialize the inline budget");
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None, "Create the inline store");
+    var root = entity_create(store);
+    var kinds: Entity*[2];
+    var count = sizeof(decltype(kinds)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) {
+        kinds[i] = entity_create(store);
+        assert(kinds[i] != null && entity_register(kinds[i], sizeof(u64), alignof(u64), 0),
+            "Register an inline component kind");
+    }
+    var stage = entity_stage_open(root);
+    var node = entity_stage_create(stage, root);
+    var first = entity_component_add(node, kinds[0]);
+    assert(first != null && node.components == &node.inline_components[0],
+        "The first component occupies the inline index");
+    var peer = entity_stage_create(stage, root);
+    assert(peer != null, "Create a second staged entity");
+    var first_calls = tower_test_buffer_allocations();
+    var first_receipts = budget.live;
+    assert(entity_component_add(peer, kinds[0]) != null
+        && peer.components == &peer.inline_components[0]
+        && tower_test_buffer_allocations() == first_calls && budget.live == first_receipts,
+        "A peer reuses the page without another allocation");
+    *bits(u64*, first.data) = 9876;
+    var address = first.data;
+    var bytes = budget.used_bytes; var receipts = budget.live;
+    var initial = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    tower_test_buffer_fail_after(failure);
+    var second = entity_component_add_result(node, kinds[1], &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    *allocations = tower_test_buffer_allocations() - initial;
+    var succeeded = second != null;
+    if !succeeded {
+        assert(error == WorkBudgetError.Memory && node.component_count == 1
+            && node.components == &node.inline_components[0] && node.components[0] == first
+            && node.component_capacity == sizeof(decltype(node.inline_components)) / sizeof(EntityComponent*)
+            && budget.used_bytes == bytes && budget.live == receipts
+            && first.data == address && *bits(u64*, address) == 9876,
+            "Refused promotion preserves the inline index, first payload and receipts");
+        second = entity_component_add_result(node, kinds[1], &error);
+    }
+    assert(second != null && error == WorkBudgetError.None && node.component_count == count
+        && node.components != &node.inline_components[0] && node.components[0] == first
+        && first.data == address && *bits(u64*, address) == 9876
+        && entity_stage_discard_result(stage) == WorkBudgetError.None,
+        "Discard releases the promoted index with the first payload intact");
+    entity_release(root);
+    for(var i: usize = 0; i < count; i++) { entity_release(kinds[i]); }
+    assert(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Discard and teardown return to the entry budget and buffer counts");
+    return succeeded;
+}
