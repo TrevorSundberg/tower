@@ -120266,3 +120266,13 @@ file dependency. Instrumented links use the Clang driver. Building only the
 suite also exposed a missing runtime-host-linux-x64.ll. The suite now depends
 on the hosted resource used by driver_link_compile_arguments. The standalone
 and four default selections then passed all six CTests in 19.41 seconds.
+
+An independent bundle receiver at implementation commit 835b0edc built only
+the suite and its prerequisites from empty in 16.71 s (791,800 KiB peak).
+Its six registrations passed in 19.55 s. The relocated compiler reproduced
+all 178 files for each selection and job count against the received source.
+With the final link rule ASan/LSan again completed both CLI modes. TSan
+completed the correct mode on its second launch. All 64 final wrong-mode
+launches exited 139 before guest execution with the same denied personality
+request. The earlier instrumented link completed that mode on attempt 4.
+The final wrong-mode TSan result is therefore limited to startup evidence.
