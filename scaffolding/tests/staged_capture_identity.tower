@@ -1,7 +1,9 @@
 import tower;
+import .compiler.semantic_context_types;
 
 // The batch owns the world. Only the joined root publication writes this receipt.
 struct CaptureCheck {
+    inspect: function(void, SemanticContext*, CaptureCheck*);
     entry: u8*;
     provider: u8*;
     observed: bool;
