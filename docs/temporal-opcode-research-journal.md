@@ -112638,3 +112638,45 @@ native IDs, exact diagnostics, products and the source bundle accompany
 assignment `468d75c1-9f52-4eae-82fe-91820eb6256c`. The verified delta from
 the manager's packed project is 2,650 bytes. Its reconstruction hashes to
 `247898e87d825e3c52a4d014a1240781f8ee8221dd261f870bcfbf2c83d49ae3`.
+
+## Sealed formatter Pages child of 9788bd66
+
+On host 6 the receiver verified the 468d75c1 archive, its twelve declared
+members, the original e2ee7240 precursor and both parents of 38699375.
+Source merge `20f83f9c` has parents `21f409e5` and `38699375`.
+The four browser products and the editable recipe keep build attribution to
+`0da4e513`. The later source merge preserved all 952 compiler dependency
+reads and all 810 checkout-backed project rows checked against that revision.
+
+Pages child `266e45d527fb8abd5f30f09cbaa3cca2b8c19618` has tree
+`18407345fc741c39fc009d124e71c5c0a58a1004`. It changes the four products,
+compiler/project.json and deployment-manifest.json. All 109 other blobs and
+all 115 modes matched public parent `9788bd66`. Applying the 2,650-byte
+manager-relative delta to that parent's project reproduced the qualified
+836-file recipe. The 41de9006 Linux download and installer retain the
+7e34072d package and 23538529 installer identities. A fresh Git receiver
+reconstructed the entire site and the merged source from their declared
+public parents and the three incremental source bundles.
+
+The stock desktop and mobile verifier compared 114 served assets and passed
+its browser checks. The portable and shared stock Tests buttons each ran 22
+owner, five default and five aggregate tests. An edited refusal pointed to
+the formatter check at 79:5. The missing golden pointed to the selected test
+at 8:10. Restoring it passed on the original worker. The actual Build button
+sent all 836 source files, compiled all 25 distinct recipe entries with two
+active workers, linked three reactors and activated compiler generation 1.
+An ordinary guest under that generation printed 42 with matching backends.
+
+The host exposed 12 logical CPUs on an Intel Xeon E5-2680 v4 with an 11.52
+CPU quota. The test runner, browser and worker receipts in assignment
+`0b76f07e-34e9-46c9-b2ee-293b92dd8647` record correctness checks.
+The request fixed the source parent at 21f409e5. The public main ref later
+advanced to 25337742. The manager owns integration and publication.
+
+The completed unfiltered Node run recorded 512 tests, 510 passes, two
+production skips and zero failures. The backend-world and IDE package
+ownership checks require their instrumentation exports. The four threaded
+tests ran with separate, prebuilt work and LR fixtures. A preliminary run
+reached the work fixture before its build finished. The targeted four tests
+then passed and the final unfiltered run verified both fixture hashes before
+starting. Logs retain both the setup failure and the completed suite.
