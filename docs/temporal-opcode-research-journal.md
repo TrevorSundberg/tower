@@ -117380,3 +117380,36 @@ printing timings after its test summary.
 
 The source and evidence bundle is for manager integration on the requested
 parent. No compiler, runtime or browser implementation changed.
+
+### 2026-11-26 — Native selection of the POSIX semaphore observer (host 8)
+
+Assignment `6008487f-a41d-4714-a093-19b7b2138b45` qualified the supplied four-file fixture move on `2738c50f8242deec1a773226800081e6dbe52f89`. The exported standalone adapter delegates argument validation to the owner. The companion owns both test declarations, the worker's comparison and the two semaphore directions. The original transport import reaches `work_linux → work_pool → work_buffer → work_budget`. Both job widths reported the two observer declarations followed by the five work-budget declarations through owner discovery, and just the observer pair through direct selection. The registered final-line expectations stayed at 7 and 2.
+
+The isolated Linux Release build used the checked-in compiler and verified resources through `playground/scripts/build-bootstrap.sh`. Its executable SHA-256 was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`. The original two CTests and all six moved CTests passed. Missing, invalid and extra standalone arguments returned 2. In the four selected runs the saved guest ELFs reproduced byte-for-byte using their captured fixture objects, native-test runtime, allocator and the named dynamic export. Ordinary and selected executables import glibc pthread, semaphore and dynamic lookup functions. The packet retains disassembly, dynamic exports and per-object symbol ownership.
+
+GDB sampled the original and moved executables and the actual captured selected guests at compiler jobs 1 and 4. Across 16 handoffs, a separate pthread entered the exact exported address passed to `pthread_create`, with the caller's stack payload. The caller acquired the finished semaphore and compared 42. It stored 84 and posted the release semaphore. The worker compared 84 in the same slot. All 16 joins returned zero before the 32 semaphore destructions. In the jobs-4 direct replay, both comparisons addressed `0x7ffd2aad8ae0` and the thread entry was `0x5d721564dd90`. These addresses belong to that process. Original and moved standalone allocation traces each recorded two 32-byte signal allocations and one 8-byte pthread slot, then frees of all three pointers.
+
+Injected failure of either semaphore initialization returned 3 and destroyed the one initialized semaphore. Refused pthread creation returned 4 and destroyed both signals. Each result held for original and moved standalones, in try and wait. Dropping the explicit export flag still left the worker dynamically visible with this published linker. Localizing the worker definition in a disposable object removed it from the dynamic symbols. Lookup then failed, returning 4 in both standalone modes and failing the polling assertion in each selected guest.
+
+Changing the worker expectation to 85 or the caller expectation to 43 rejected both standalone modes and all four selection routes. With the wrong caller expectation, the failure path releases the worker while the payload still contains 42. The worker trap exits the process with status 1 before the caller can return 5. A separate control kept the wrong caller comparison but wrote a valid 84 reply on its failure path. That exposed standalone status 5 and the specific polling or waiting assertion in each selected route. Both declaration orders were exercised because the selected guest stops at its first trap. Each source restore reproduced the ordinary standalone object and ELF at both widths. All six CTests passed again in both restored builds.
+
+Host 8 used a Ryzen 9 7900X, 12 cores / 24 logical CPUs, Linux x86-64, LLVM/Clang 19.1.7 and Release. The host affinity was 0–23, the measurement affinity 0–7, and the cgroup CPU quota 2,304,000 µs per 100,000 µs (23.04 CPUs). Under the host timing lock, equivalent jobs ran sequentially with warm files, one warm-up and three measured samples, alternating phase order. The table gives median wall and user+system seconds and maximum peak RSS in KiB. Each batch ran 256 checked prelinked processes, including launch, one worker and join per process. Selected costs include the published compiler, guest link and run. The original exported main collided with the native-test runtime main, so it has no successful selected-run timing.
+
+| Operation | Jobs | Original wall / CPU / KiB | Moved wall / CPU / KiB |
+| --- | ---: | ---: | ---: |
+| Compile standalone object | 1 | 0.21 / 0.21 / 104620 | 0.28 / 0.27 / 108188 |
+| Compile standalone object | 4 | 0.22 / 0.24 / 109780 | 0.32 / 0.36 / 122372 |
+| Try ×256 | 1 | 0.12 / 0.12 / 3260 | 0.11 / 0.12 / 3268 |
+| Wait ×256 | 1 | 0.12 / 0.12 / 3240 | 0.12 / 0.12 / 3096 |
+| Try ×256 | 4 | 0.11 / 0.12 / 3252 | 0.11 / 0.12 / 3236 |
+| Wait ×256 | 4 | 0.12 / 0.12 / 3300 | 0.12 / 0.12 / 3204 |
+| Owner selection | 1 | — | 0.37 / 0.36 / 121508 |
+| Owner selection | 4 | — | 0.40 / 0.43 / 131780 |
+| Direct selection | 1 | — | 0.28 / 0.28 / 108516 |
+| Direct selection | 4 | — | 0.32 / 0.35 / 122020 |
+
+The fixture now parses the adapter, companion and testing import. A separate compiler phase sample put parsing at 129 → 200 ms (jobs 1) and 140 → 232 ms (jobs 4). Object emission was about 15–16 ms throughout. Cgroup throttling counters stayed flat during the matched samples.
+
+ASan with leak checking completed both standalone modes. TSan completed three runs per mode. The intentional two-worker race control exited 66 with a report on `work_kernel_execute`. The restricted runtime also exited 139 before execution at its ASLR personality check 17 times for try, 27 for wait and 26 for the control. The thread-instrumented IR has hooks for the worker's store of 42 and load for its 84 comparison, and the caller's store of 84. The caller's stack load for its 42 comparison has no TSan read hook. The address build also lacks a per-access check there. The captured ordinary native selections and debugger observations provide functional coverage. The configured sanitizer profiles cover the standalone fixture and runtime. The project has no UBSan profile.
+
+The packet preserves the failed experiments. A first debugger replay omitted the existing empty report file required by the selected guest and exited 2. A wrapper stopped on the correct waiting assertion because its expected string omitted “on”. A link control initially expected flag omission alone to hide the entry. The corrected runs use the normal report-file contract, exact assertion text and a localized ELF symbol respectively. The assignment stays pinned to the requested parent. Integration with subsequent main revisions and publication belong to the manager.
