@@ -1,81 +1,8 @@
 import tower;
-import .library.compiler_work;
-import .library.entities;
-import .library.entity_types;
-import .library.work_budget;
-import .library.work_budget_types;
-import .host.memory;
-
-fn constructor_check(ok: bool): void {
-    if !ok { trap("Work constructor budget regression", 0); }
-}
-
-export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
-    trap("Unexpected constructor fixture lifecycle", 0);
-}
-
-fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
-    var budget: WorkBudget = default;
-    constructor_check(work_budget_init(&budget, 4, bytes, 1));
-    var work: CompilerWork* = null;
-    constructor_check(compiler_work_create_result(8, 4, 1, 9, &budget, null) == WorkBudgetError.Invalid);
-    constructor_check(compiler_work_create_result(0, 4, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
-    constructor_check(compiler_work_create_result(8, 0, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
-    constructor_check(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0);
-    var result = compiler_work_create_result(8, 4, 1, 9, &budget, &work);
-    if result != wanted {
-        print(bytes);
-        print(convert(u32, wanted));
-        print(convert(u32, result));
-    }
-    constructor_check(result == wanted);
-    if wanted == WorkBudgetError.None {
-        constructor_check(work != null && work.store.budget == &budget && work.graph.budget == &budget);
-        var previous = work;
-        constructor_check(compiler_work_create_result(8, 4, 1, 9, &budget, &work) == WorkBudgetError.Invalid
-            && work == previous);
-        var snapshot: WorkBudgetSnapshot;
-        constructor_check(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes <= bytes
-            && snapshot.used_bytes != 0 && snapshot.used_lanes == 0);
-        for(var i: usize = 1; i <= 8; i++) {
-            constructor_check(compiler_work_next(work) == i && compiler_work_accept(work, i, 1, 9, true));
-        }
-        constructor_check(compiler_work_next(work) == 0 && compiler_work_done(work));
-        compiler_work_close(work);
-    } else { constructor_check(work == null); }
-    constructor_check(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget));
-}
+import work_constructor_budget_fixture;
 
 export fn main(argc: i32, argv: u8**): i32 {
-    var self_bytes = compiler_buffer_allocation_size(sizeof(CompilerWork));
-    var store_bytes = compiler_buffer_allocation_size(sizeof(EntityStore));
-    // Observe the physical page request rather than duplicating its layout.
-    // A representable physical request over the whole byte cap is Capacity,
-    // as is a fitting request denied by other live owners.
-    var probe = compiler_work_create(1, 1, 1, 9);
-    constructor_check(probe != null);
-    var component = entity_component_get(compiler_work_subject(probe, 1), probe.kind);
-    constructor_check(component != null && component.page != null);
-    var page_bytes = compiler_buffer_allocation_size(component.page.allocation.capacity);
-    var index_bytes = compiler_buffer_allocation_size(probe.graph.storage.task_index.capacity);
-    compiler_work_close(probe);
-    constructor_limit(1, WorkBudgetError.Capacity);
-    constructor_limit(self_bytes, WorkBudgetError.Capacity);
-    var initial_bytes = self_bytes + store_bytes;
-    constructor_limit(initial_bytes, WorkBudgetError.Capacity);
-    var indexed_bytes = initial_bytes + index_bytes;
-    constructor_limit(indexed_bytes, WorkBudgetError.Capacity);
-    constructor_limit(initial_bytes + page_bytes, WorkBudgetError.Capacity);
-    constructor_limit(1048576, WorkBudgetError.None);
-    var budget: WorkBudget = default;
-    constructor_check(work_budget_init(&budget, 1, store_bytes, 1));
-    var store: EntityStore* = null;
-    constructor_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None
-        && store != null && store.budget == &budget && budget.used_bytes == store_bytes && budget.live == 1);
-    var previous = store;
-    constructor_check(entity_store_create_result(&budget, &store) == WorkBudgetError.Invalid && store == previous);
-    constructor_check(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0);
-    constructor_check(work_budget_dispose(&budget));
+    constructor_budget_trials();
     print(0);
     return 0;
 }

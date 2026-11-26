@@ -1,77 +1,10 @@
 import tower;
-import utility_checks;
-import .library.work_pool;
+import work_instrumented_fixture_test;
 
-extern fn pthread_self(): usize;
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_test_buffer_allocations(): usize;
-extern fn tower_test_buffer_fail_after(count: usize): void;
-
-struct InstrumentedWork {
-    order: usize*;
-    index: usize;
-    thread: usize;
-    success: bool;
-    result: u64;
-}
-
-export fn work_kernel_execute(payload: void*): void {
-    var job = bits(InstrumentedWork*, payload);
-    job.thread = pthread_self();
-    utility_check(*job.order == job.index, "Instrumented jobs keep deterministic admission order");
-    ++*job.order;
-    var bytes = alloc(u8, 128);
-    job.success = bytes is not null;
-    if job.success {
-        fill(bytes, convert(u8, job.index), 128);
-        job.result = convert(u64, bytes[0]) + convert(u64, bytes[127]);
-        free(bytes);
-    }
-}
-
-fn instrumented_work_trial(completed: usize*): bool {
-    var pool: WorkPool;
-    if !work_pool_open(&pool, 4) { return false; }
-    defer work_pool_close(&pool);
-    utility_check(!pool.threaded && pool.count == 1, "Single-owner allocator explicitly selects the portable work host");
-    var order: usize = 0;
-    var owner = pthread_self();
-    for (var index: usize = 0; index < 8; ++index) {
-        var job: InstrumentedWork; fill(&job, 0, sizeof(InstrumentedWork)); job.order = &order; job.index = index;
-        utility_check(work_pool_submit(&pool, bits(void*, &job)), "Instrumented job admission");
-        utility_check(work_pool_receive(&pool, true) == bits(void*, &job) && job.thread == owner,
-            "Instrumented completion executes on allocator owner");
-        if !job.success { return false; }
-        utility_check(job.result == convert(u64, index * 2), "Instrumented work preserves computed results");
-        ++*completed;
-    }
-    return true;
-}
+extern fn puts(text: u8*): i32;
 
 export fn main(): i32 {
-    utility_check(!work_thread_available() && work_thread_capacity() == 1, "Instrumented runtime selects the explicit single-owner work profile");
-    var baseline = tower_test_buffer_count();
-    var calls: usize[64]; var completed: usize[64]; var successful_attempt: usize = 0;
-    for (var round: usize = 0; round < 2; ++round) {
-        var success = false;
-        for (var attempt: usize = 0; attempt < 64 && !success; ++attempt) {
-            var before = tower_test_buffer_allocations(); var done: usize = 0;
-            tower_test_buffer_fail_after(attempt); success = instrumented_work_trial(&done);
-            tower_test_buffer_fail_after(~convert(usize, 0));
-            var allocations = tower_test_buffer_allocations() - before;
-            utility_check(tower_test_buffer_count() == baseline, "Every instrumented worker failure releases all allocations");
-            if round == 0 {
-                calls[attempt] = allocations; completed[attempt] = done;
-                if success { successful_attempt = attempt; }
-            } else {
-                utility_check(attempt <= successful_attempt && calls[attempt] == allocations && completed[attempt] == done,
-                    "Repeated failure injection has exact allocation counts and completion prefix");
-                utility_check(success == (attempt == successful_attempt), "Repeated failure injection succeeds at the same point");
-            }
-            if success { utility_check(done == 8, "All instrumented jobs complete after failure sweep"); }
-        }
-        utility_check(success, "Instrumented allocation sweep reaches success");
-    }
+    instrumented_sweep();
     puts("Instrumented worker policy: portable transport, deterministic owner/order/OOM and exact cleanup passed.");
     return 0;
 }

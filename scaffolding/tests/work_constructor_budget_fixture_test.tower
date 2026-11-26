@@ -1,0 +1,82 @@
+import .library.testing;
+import .library.compiler_work;
+import .library.entities;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected constructor fixture lifecycle", 0);
+}
+
+fn constructor_limit(bytes: usize, wanted: WorkBudgetError): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 4, bytes, 1));
+    var work: CompilerWork* = null;
+    assert(compiler_work_create_result(8, 4, 1, 9, &budget, null) == WorkBudgetError.Invalid);
+    assert(compiler_work_create_result(0, 4, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
+    assert(compiler_work_create_result(8, 0, 1, 9, &budget, &work) == WorkBudgetError.Invalid && work == null);
+    assert(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0);
+    var result = compiler_work_create_result(8, 4, 1, 9, &budget, &work);
+    if result != wanted {
+        print(bytes);
+        print(convert(u32, wanted));
+        print(convert(u32, result));
+    }
+    assert(result == wanted);
+    if wanted == WorkBudgetError.None {
+        assert(work != null && work.store.budget == &budget && work.graph.budget == &budget);
+        var previous = work;
+        assert(compiler_work_create_result(8, 4, 1, 9, &budget, &work) == WorkBudgetError.Invalid
+            && work == previous);
+        var snapshot: WorkBudgetSnapshot;
+        assert(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes <= bytes
+            && snapshot.used_bytes != 0 && snapshot.used_lanes == 0);
+        for(var i: usize = 1; i <= 8; i++) {
+            assert(compiler_work_next(work) == i && compiler_work_accept(work, i, 1, 9, true));
+        }
+        assert(compiler_work_next(work) == 0 && compiler_work_done(work));
+        compiler_work_close(work);
+    } else { assert(work == null); }
+    assert(budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0 && work_budget_dispose(&budget));
+}
+
+fn constructor_limits(): void {
+    var self_bytes = compiler_buffer_allocation_size(sizeof(CompilerWork));
+    var store_bytes = compiler_buffer_allocation_size(sizeof(EntityStore));
+    // Observe the physical page request rather than duplicating its layout.
+    // A representable physical request over the whole byte cap is Capacity,
+    // as is a fitting request denied by other live owners.
+    var probe = compiler_work_create(1, 1, 1, 9);
+    assert(probe != null);
+    var component = entity_component_get(compiler_work_subject(probe, 1), probe.kind);
+    assert(component != null && component.page != null);
+    var page_bytes = compiler_buffer_allocation_size(component.page.allocation.capacity);
+    var index_bytes = compiler_buffer_allocation_size(probe.graph.storage.task_index.capacity);
+    compiler_work_close(probe);
+    constructor_limit(1, WorkBudgetError.Capacity);
+    constructor_limit(self_bytes, WorkBudgetError.Capacity);
+    var initial_bytes = self_bytes + store_bytes;
+    constructor_limit(initial_bytes, WorkBudgetError.Capacity);
+    var indexed_bytes = initial_bytes + index_bytes;
+    constructor_limit(indexed_bytes, WorkBudgetError.Capacity);
+    constructor_limit(initial_bytes + page_bytes, WorkBudgetError.Capacity);
+    constructor_limit(1048576, WorkBudgetError.None);
+}
+
+fn store_limit(): void {
+    var store_bytes = compiler_buffer_allocation_size(sizeof(EntityStore));
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, store_bytes, 1));
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None
+        && store != null && store.budget == &budget && budget.used_bytes == store_bytes && budget.live == 1);
+    var previous = store;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.Invalid && store == previous);
+    assert(entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0);
+    assert(work_budget_dispose(&budget));
+}
+
+test() { constructor_limits(); }
+test() { store_limit(); }

@@ -1,0 +1,163 @@
+import .library.testing;
+import .host.memory;
+import .compiler.compiler_kernel;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.work_linux;
+import .host.work_dispatch;
+
+import work_kernel_admission_fixture;
+
+export fn admission_named_entry(payload: void*): void* {
+    var slot = bits(WorkSlot*, payload);
+    loop {
+        var job = work_pool_wait(slot);
+        if job == null { return null; }
+        // Deliberately uses its own callback, as separately linked named
+        // entries are permitted to do. A batch descriptor is incompatible.
+        work_kernel_execute(job);
+        work_pool_complete(slot);
+    }
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    var job = bits(AdmissionJob*, kernel.payload);
+    var context = job.context;
+    job.thread = pthread_self();
+    job.calls++;
+    work_signal_wait(context.gate);
+    context.active++;
+    if context.active > context.peak { context.peak = context.active; }
+    if job.thread == context.coordinator { context.caller++; }
+    var waiting = !context.released;
+    if waiting {
+        context.waiting++;
+        if context.waiting == context.target {
+            context.released = true;
+            for(var i: usize = 0; i < context.target; i++) { work_signal_post(context.barrier); }
+        }
+    }
+    work_signal_post(context.gate);
+    if waiting { work_signal_wait(context.barrier); }
+    // Production concurrent allocator and private scratch, including the
+    // coordinator's own kernel. Results remain private until the helper joins.
+    var memory = alloc(u8, job.bytes);
+    if memory != null {
+        var value = convert(u8, job.ordinal);
+        fill(memory, value, job.bytes);
+        job.success = memory[0] == value && memory[job.bytes - 1] == value;
+        job.result = job.ordinal * job.ordinal + 7;
+        free(memory);
+    }
+    work_signal_wait(context.gate);
+    context.active--;
+    work_signal_post(context.gate);
+}
+
+fn admitted_case(pool: WorkPool*, lanes: usize, preferred: usize, count: usize, skewed: bool): void {
+    var maximum_bytes = skewed ? AdmissionScratchBytes * lanes : AdmissionScratchBytes;
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, lanes, lanes * maximum_bytes, 1));
+    defer {
+        var snapshot: WorkBudgetSnapshot = default;
+        assert(work_budget_snapshot(&budget, &snapshot) && snapshot.live == 0
+            && snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && work_budget_dispose(&budget));
+    }
+    var outer: WorkReservation = default;
+    var extra: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 1, 1, maximum_bytes, &outer));
+    defer { assert(work_budget_release(&budget, &outer)); }
+    var requested = preferred < lanes - 1 ? preferred : lanes - 1;
+    assert(work_budget_reserve(&budget, 0, preferred, requested * maximum_bytes, &extra));
+    defer { if extra.active { assert(work_budget_release(&budget, &extra)); } }
+    var context: AdmissionCheck = default;
+    context.gate = work_signal_open();
+    context.barrier = work_signal_open();
+    assert(context.gate != null && context.barrier != null);
+    defer work_signal_close(context.gate);
+    defer work_signal_close(context.barrier);
+    work_signal_post(context.gate);
+    context.target = count < extra.lanes + 1 ? count : extra.lanes + 1;
+    context.coordinator = pthread_self();
+    var jobs = alloc(AdmissionJob, count);
+    var pointers = alloc(AdmissionJob*, count);
+    assert(jobs != null && pointers != null);
+    defer free(jobs); defer free(pointers);
+    for(var i: usize = 0; i < count; i++) {
+        jobs[i] = default;
+        jobs[i].context = &context;
+        jobs[i].ordinal = i;
+        // Cluster the expensive payloads where a range claimant can retain
+        // several of them. Every admitted lane reserves the largest payload.
+        jobs[i].bytes = skewed && i < count / context.target ? maximum_bytes : AdmissionScratchBytes;
+        jobs[i].prefix = 12345;
+        jobs[i].kernel.payload = bits(void*, &jobs[i]);
+        pointers[i] = &jobs[i];
+    }
+    assert(compiler_kernel_dispatch_admitted(pool, pointers, count, extra.lanes));
+    assert(pool.running == 0 && context.active == 0 && context.peak == context.target);
+    assert(context.caller != 0 && context.peak <= budget.used_lanes);
+    var distinct: usize = 0;
+    for(var i: usize = 0; i < count; i++) {
+        assert(jobs[i].calls == 1 && jobs[i].success
+            && jobs[i].result == i * i + 7 && jobs[i].prefix == 12345);
+        var first = true;
+        for(var j: usize = 0; j < i; j++) { if jobs[j].thread == jobs[i].thread { first = false; } }
+        if first { distinct++; }
+    }
+    assert(distinct >= context.target);
+    // Verification is the fixture's result publication. The enclosing defers
+    // return permits only after this join/publication and private scratch end.
+}
+
+fn admission_tests(): void {
+    var pool: WorkPool = default;
+    var lanes = work_thread_capacity();
+    if lanes > 8 { lanes = 8; }
+    // This selector requires four actual lanes for its existing barriers;
+    // retain wider idle capacity only when the host really provides it.
+    assert(lanes >= 4 && work_pool_open(&pool, lanes) && pool.threaded && pool.count == lanes);
+    defer work_pool_close(&pool);
+    assert(compiler_kernel_dispatch_admitted(&pool, bits(AdmissionJob**, null), 0, 7));
+    for(var round: usize = 0; round < 16; round++) {
+        admitted_case(&pool, 1, 0, 8, false);
+        admitted_case(&pool, 4, 0, 8, false);
+        admitted_case(&pool, 4, 1, 8, false);
+        admitted_case(&pool, 4, 8, 8, false);
+        // Uneven range/tail division still executes every ordinal once and
+        // includes the caller under the original four-lane reservation.
+        admitted_case(&pool, 4, 8, 17, false);
+        admitted_case(&pool, 4, 8, 17, true);
+        admitted_case(&pool, 4, 8, 1, false);
+        admitted_case(&pool, 4, 8, 2, false);
+        // Ordinary admission after batch must restore the pool callback.
+        var context: AdmissionCheck = default;
+        context.gate = work_signal_open();
+        assert(context.gate != null);
+        defer work_signal_close(context.gate);
+        work_signal_post(context.gate);
+        context.released = true;
+        var job: AdmissionJob = default;
+        job.context = &context;
+        job.ordinal = 7;
+        job.bytes = AdmissionScratchBytes;
+        job.kernel.payload = bits(void*, &job);
+        assert(work_pool_submit(&pool, bits(void*, &job.kernel)));
+        assert(work_pool_receive(&pool, true) == bits(void*, &job.kernel));
+        assert(job.success && job.result == 56 && pool.running == 0);
+    }
+    var named: WorkPool = default;
+    assert(work_pool_open_named(&named, 2, "admission_named_entry", null));
+    defer work_pool_close(&named);
+    var named_job: AdmissionJob = default;
+    var named_jobs: AdmissionJob*[2];
+    named_jobs[0] = &named_job; named_jobs[1] = &named_job;
+    assert(!compiler_kernel_dispatch_admitted(&named, &named_jobs[0], 2, 1));
+    assert(compiler_kernel_dispatch_admitted_result(&named, &named_jobs[0], 2, 1) == WorkBudgetError.Invalid,
+        "Named pool refuses an extra batch lane before executing jobs");
+    assert(named.running == 0 && named.peak == 0);
+}
+
+test() { admission_tests(); }

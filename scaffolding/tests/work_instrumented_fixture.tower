@@ -1,0 +1,19 @@
+import tower;
+import .library.work_pool;
+
+extern fn pthread_self(): usize;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+var InstrumentedJobCount: usize = 8;
+var InstrumentedScratchBytes: usize = 128;
+var InstrumentedMaxAttempts: usize = 64;
+
+struct InstrumentedWork {
+    order: usize*;
+    index: usize;
+    thread: usize;
+    success: bool;
+    result: u64;
+}

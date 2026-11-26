@@ -1,0 +1,7 @@
+import tower;
+import work_constructor_budget_fixture_test;
+
+fn constructor_budget_trials(): void {
+    constructor_limits();
+    store_limit();
+}
