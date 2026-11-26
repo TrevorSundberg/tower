@@ -115836,3 +115836,100 @@ On an AMD Ryzen 7 5800H, Linux x64, clang/LLVM 19.1.7 Release, the cgroup had 16
 The supported ASan with leak detection and TSan builds each passed the ordinary standalone registration on their first test launch. Their link maps identify `runtime-allocate.o` and `tower_work_host.o` (Linux transport). Instrumented IR and final executable disassembly show checked reads in both the root router and the companion's `tower.fn.capture_inspect`. The initial TSan evidence extractor expected aligned read symbols. The router uses `__tsan_unaligned_read8`. Correcting the extractor recovered the linked probes before launching the test. Address/leak used 6.38 s wall, 6.65 s CPU and 631,580 KiB RSS. Thread used 18.95 s wall, 19.75 s CPU and 245,508 KiB RSS. The selected shared-service runs used their ordinary test runtime. Source-level UBSan is unavailable in this instrumentation path.
 
 The raw packet contains the manifest checks, configure and Ninja commands, registration and failure logs, exact controls, bounded streams, sample ledger, sanitizer artifacts and a source bundle. The manager owns integration and publication.
+
+### Live arena refusal and worker growth predicates in the native test companions, 2026-11-26
+
+Host 8 assignment `61de69d7-86a7-4053-8204-f1445d147f89` used public
+`79972b2f123a937811a66764cbbf608d1a7f8192` and the verified Linux x64
+bootstrap `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The initial pull on the shared checkout conflicted with unpublished parser
+work. Aborting the rebase restored its five local commits at `ff4c96f7`.
+A local shallow fetch lacked a promised object. An isolated main using the
+checkout's object store and the public promisor supplied the assigned tree.
+
+Implementation `2993d01e5885aa869aba4bed891fb4863b06139c` moves both
+serial setup and disposal bodies into `work_arena_fault_fixture_test.tower`.
+Both original scenarios call them. The fixture still owns the scoped
+fail-after hook and its memory provider. After arena disposal, the companion
+reads the live budget before disposing it, then checks the allocator count.
+In `work_arena_shared_fixture_test.tower` the growth loop still checks the
+first slice after each of 2,047 additional allocations per worker. Each job
+receives its typed growth callback before submission. The Linux worker
+enters the existing rendezvous, calls it once in Grow and publishes completion
+only on success. Cancel and Deny keep their paths. The coordinator drains
+the pool before checking completion or touching transferred ownership.
+
+The published compiler built both standalone programs at jobs 1 and 4.
+Standalone exit 0, stdout bytes 30 0a and empty stderr matched before,
+after and on restore. In separate native guest processes, the fault owner
+and direct selections ran 7 and 2 cases, and the shared selections ran 8
+and 3, with byte-identical detailed streams. The fault IDs remained 6:1
+and 7:1, the shared IDs 11:1–13:1, and both owners added the same five
+budget IDs. A driver built from this checkout (79085b98) also passed all
+ten existing CTest registrations on each of the three freezes. The packet
+includes verbose commands and JUnit. As a further reference, compiling
+the pre-companion standalone inputs from dc3bcdc7 (serial) and 782a8b47
+(shared) against the assigned libraries reproduced the same zero line at
+both widths. Native discovery was measured on the public and migrated
+companions.
+
+Evidence-only observers recorded 19 serial and 51 shared lines per run.
+The first observer build diagnosed two missing explicit integer widenings.
+Correcting those output arguments allowed both freezes to run through all
+three entry points at both widths. Serial streams matched exactly. Shared
+streams matched after replacing only pthread and coordinator IDs and
+removing the standalone terminal zero. Raw streams retain every ID.
+
+| Live observation | Original and migrated result |
+| --- | --- |
+| Refuse first 64-byte request | Memory (3), null output, unchanged null endpoints, zero buffers, receipts and bytes. The immediate-disposal case returned to baseline zero. |
+| Retry, refuse growth, retry again | The 64-byte retry succeeded with two buffers, one receipt and 4,128 charged bytes. Refusing 4,000 returned Memory, with the same output, head, tail, buffers and charge. All 64 old bytes were 63 before and after the successful retry. The retry kept the head, changed tail and output, and held three buffers, two receipts and 8,263 bytes. Close returned all counts to zero. |
+| Four-worker rendezvous, every mode | Four distinct non-coordinator pthread IDs live together, four submitted and zero early completions, four lanes, eight receipts, 16,512 bytes. Four receives followed release. This used the real pthread pool and ordinary allocator at either compiler width. |
+| Grow | Each first pointer survived. Each last index was 2,047. Transfer yielded 68 chunks, 262,144 payload bytes, 280,704 charged bytes and zero lanes. |
+| Cancel and Deny | Each worker kept only its first value, index zero. Every denied allocation returned Capacity (1) and the original pointer. Each mode transferred four chunks, 128 payload bytes and 16,512 charged bytes. Disposal in all three modes left zero lanes, receipts and bytes. |
+
+Two temporary companion edits tested sensitivity. Requiring one live
+receipt after disposal aborted the serial standalone (134) and failed
+owner/direct (1, line 17:5). Requiring first.last to equal 30 in growth
+left the worker incomplete and failed the standalone and both selectors
+(1, selected line 88:9) after draining the pool. Each failed as expected
+at both widths. Removing the edits reproduced both passing ELFs by hash
+and every result stream. Candidate and original each produced identical
+ELFs across widths within that freeze.
+
+Measurements used Linux x64, Ryzen 9 7900X (12 cores, SMT), CPUs 0–7
+of 0–23, quota 2,304,000/100,000 µs, memory limit 63,577,260,032 bytes,
+LLVM/Clang 19.1.7, Release, with one timing process group at a time. Fresh
+processes used a warm filesystem without observers or sanitizers. Two
+samples per version in original/migrated/migrated/original order gave
+the following mean wall/CPU seconds and maximum RSS KiB. Full per-route
+data, including direct selections, are in `paired-selected.tsv`.
+
+| Native owner compile and run | Original | Migrated |
+| --- | --- | --- |
+| Serial, jobs 1 | 0.365 / 0.365 / 116348 | 0.350 / 0.345 / 117168 |
+| Serial, jobs 4 | 0.395 / 0.430 / 127280 | 0.385 / 0.415 / 127424 |
+| Shared, jobs 1 | 0.440 / 0.430 / 126580 | 0.440 / 0.430 / 127224 |
+| Shared, jobs 4 | 0.460 / 0.505 / 137976 | 0.465 / 0.515 / 137912 |
+
+Individual standalone runs fell below GNU time's wall resolution. Across
+both widths and versions, batches of 256 fresh processes took 0.12 s wall
+and 0.11–0.13 s CPU for serial, 0.21–0.23 s wall and 0.29–0.33 s CPU
+for shared. Peak batch RSS including the shell was 2,940–3,248 KiB.
+Each of the 4,096 output lines was zero. These timings include startup.
+The barrier trace establishes overlap independently of the timing.
+
+The migrated standalone binaries passed the LLVM 19 Tower address and
+thread instrumentation paths. ASan included leak detection. The deliberate
+address control reported a one-byte heap-buffer-overflow (exit 1) and
+the deliberate two-pthread race control reported conflicting accesses
+in work_kernel_execute (66). One TSan launch of the real worker fixture
+failed before main at the host personality check (139). The unchanged
+retry ran to completion. The packet retains the failed launch, builds,
+instrumented fixture IR, object symbol inventories and sensitivity logs.
+The native selected guests used the ordinary runtime. Source-language
+UBSan is unavailable through this pipeline.
+
+The assignment archive contains the source bundle based on 79972b2f,
+patches, measurement commands, raw before/after traces, negative and
+restore logs. Manager integration and publication remain outstanding.
