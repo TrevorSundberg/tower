@@ -1,0 +1,21 @@
+import tower;
+
+fn first(T: type, a: T, b: T): T {
+    return a;
+}
+
+fn last(T: type, a: T, b: T): T {
+    return b;
+}
+
+var wide: i64 = 7;
+var unsigned: u64 = 7;
+print(first(-9223372036854775808, wide));
+print(last(wide, -9223372036854775808));
+print(first(18446744073709551615, unsigned));
+print(last(unsigned, 18446744073709551615));
+print(first(1, 2));
+print(first(true, false));
+print(first("a", "b")[0] == 97);
+var pointer: i32* = null;
+print(first((null), pointer) == null);

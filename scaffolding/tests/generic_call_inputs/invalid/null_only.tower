@@ -1,0 +1,1 @@
+import tower; fn id(T:type,x:T):T{return x;} id(null);

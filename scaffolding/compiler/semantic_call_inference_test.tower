@@ -1,0 +1,68 @@
+import library.testing;
+import library.vector;
+import .tests.generic_cast_inference as casts;
+import .tests.generic_call_inputs.typed_peers as peers;
+import .tests.generic_call_inputs.argument_order as arguments;
+import .tests.generic_call_inputs.nested_aliases as aliases;
+import .tests.generic_call_inputs.explicit_call as explicit;
+import .tests.generic_call_inputs.identity as calls;
+import .tests.inferred_parallel_unit as kernel;
+
+test() {
+    var values: vector(i32) = default;
+    defer vector_dispose(&values);
+    assert(vector_push(&values, 41));
+    assert(vector_push(i32, &values, 42));
+    var out: i32;
+    assert(vector_pop(&values, &out));
+    assert(out == 42);
+}
+
+test() {
+    var wide: i64 = 7;
+    var unsigned: u64 = 7;
+    assert(peers.first(-9223372036854775808, wide) == peers.last(wide, -9223372036854775808));
+    assert(peers.first(18446744073709551615, unsigned) == peers.last(unsigned, 18446744073709551615));
+    assert(type_value(decltype(peers.first(1, wide))) == type_value(i64));
+    assert(type_value(decltype(peers.last(unsigned, 1))) == type_value(u64));
+}
+
+test() {
+    arguments.state = 0;
+    assert(arguments.choose(arguments.next(), arguments.next()) == 1);
+    assert(arguments.state == 2);
+    var pair: i32[2];
+    pair[1] = 17;
+    assert(arguments.element(&pair) == 17);
+}
+
+test() {
+    var inner: aliases.box(i64);
+    inner.value = 42;
+    var outer: aliases.box(aliases.box(i64)*);
+    outer.value = &inner;
+    assert(aliases.load(&inner) == aliases.load(i64, &inner));
+    assert(aliases.nested(&outer) == 42);
+    var pointers: casts.nested(i32) = default;
+    assert(casts.count_nested(&pointers) == 0);
+    assert(casts.identity(i32) == i32);
+}
+
+test() {
+    assert(explicit.make(i32) == 42);
+}
+
+test() {
+    var wide: i64 = 42;
+    assert(calls.id(wide) == calls.id(i64, wide));
+    assert(type_value(decltype(calls.id(wide))) == type_value(i64));
+}
+
+test() {
+    var values: u32[3];
+    values[0] = 1;
+    values[1] = 2;
+    values[2] = 3;
+    kernel.inferred_transform(&values[0], 3);
+    assert(kernel.inferred_checksum(&values[0], 3) == 39);
+}

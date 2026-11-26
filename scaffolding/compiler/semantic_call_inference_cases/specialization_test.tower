@@ -1,0 +1,24 @@
+import compiler.semantic_types_test.observations;
+import backend.text;
+
+test() {
+    var wanted = observation("expected");
+    defer free(wanted.data);
+    expect_bytes("output", wanted);
+    var first = observation("Foundation");
+    defer free(first.data);
+    expect_bytes("second Foundation", first);
+    var definitions: usize = 0;
+    for (var i: usize = 0; i < first.length; ++i) {
+        if backend_prefix(first.data + i, "fn `id(i64)`") { ++definitions; }
+    }
+    assert(definitions == 1, "Explicit and inferred calls must share id(i64)");
+    var labels = observation("completion labels");
+    defer free(labels.data);
+    assert(backend_contains(labels.data, "\nwide\n"));
+    assert(!backend_contains(labels.data, "\nnarrow\n"));
+    var formatted = observation("formatted");
+    defer free(formatted.data);
+    assert(backend_contains(formatted.data, "print(id(wide));"));
+    assert(backend_contains(formatted.data, "print(id(i64, wide));"));
+}

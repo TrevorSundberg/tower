@@ -1,0 +1,37 @@
+import tower;
+
+fn box(T: type): type {
+    struct Result {
+        value: T;
+    }
+    return Result;
+}
+
+fn read(T: type, p: box(T)*): T {
+    return p.value;
+}
+
+fn choose(T: type, a: T, b: T): T {
+    return a;
+}
+
+var state = 0;
+
+fn next(): i32 {
+    state++;
+    return state;
+}
+
+print(choose(next(), next()));
+print(state);
+var value: box(i32);
+value.value = 42;
+print(read(&value));
+
+fn element(T: type, p: T[2]*): T {
+    return(*p)[1];
+}
+
+var array: i32[2];
+array[1] = 17;
+print(element(&array));

@@ -1,0 +1,9 @@
+import tower;
+import tests.inferred_parallel_unit;
+
+var values: u32[3];
+values[0] = 1;
+values[1] = 2;
+values[2] = 3;
+inferred_transform(&values[0], 3);
+print(inferred_checksum(&values[0], 3));

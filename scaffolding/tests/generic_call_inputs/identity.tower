@@ -1,0 +1,9 @@
+import tower;
+
+fn id(T: type, value: T): T {
+    return value;
+}
+
+var wide: i64 = 42;
+print(id(wide));
+print(id(i64, wide));
