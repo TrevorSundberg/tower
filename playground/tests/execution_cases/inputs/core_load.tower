@@ -1,0 +1,2 @@
+import foundation;
+parse CoreLoad = 'broken'; var a: i32 = broken;

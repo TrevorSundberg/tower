@@ -1,0 +1,2 @@
+import foundation;
+parse CoreFunction = 'broken'; broken

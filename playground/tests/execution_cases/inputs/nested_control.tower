@@ -1,0 +1,2 @@
+import foundation;
+var a: i32; a = 0; var stop: bool; loop { a = a + 1; stop = a < 3; if stop { continue; } else { loop { break; } break; } } print(a); { var a: i32; a = 9; print(a); } print(a);

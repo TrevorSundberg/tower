@@ -1,0 +1,2 @@
+import foundation;
+var a: bool; a = true == false; print(a);

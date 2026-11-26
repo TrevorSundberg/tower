@@ -1,0 +1,2 @@
+import foundation;
+var a: i32; var p: u32*; p = &a;

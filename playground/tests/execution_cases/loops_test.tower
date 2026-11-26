@@ -1,0 +1,18 @@
+import session;
+
+test() {
+    finishes("nested_control.tower", "nested_control.expected");
+    rejects("hidden_local.tower", "Unknown local");
+
+    var source = with_grammar("fuel.tower");
+    defer free(source);
+    var handle = execution_compile(source);
+    defer execution_destroy(handle);
+    execution_step(handle, 0);
+    assert(execution_steps() == 0, "Zero fuel");
+    execution_step(handle, 100);
+    assert(execution_steps() == 100, "First slice");
+    execution_step(handle, 250);
+    expect_field("status", "executing", "Loop still running");
+    assert(execution_steps() == 350, "Cumulative steps");
+}

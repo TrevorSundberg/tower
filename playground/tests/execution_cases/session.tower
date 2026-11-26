@@ -1,0 +1,76 @@
+import library.testing;
+import backend.text;
+import library.vector;
+
+// Source, Foundation and result fields are owned UTF-8 copies in the test VM.
+extern fn execution_file(name: u8*): u8*;
+extern fn execution_example(): u8*;
+extern fn execution_grammar(): u8*;
+extern fn execution_run(source: u8*, fuel: u32): void;
+extern fn execution_foundation(): u8*;
+extern fn execution_compile(source: u8*): u32;
+extern fn execution_step(handle: u32, fuel: u32): void;
+extern fn execution_resume(handle: u32): void;
+extern fn execution_destroy(handle: u32): void;
+extern fn execution_live_nodes(): usize;
+extern fn execution_text(field: u8*): u8*;
+extern fn execution_steps(): usize;
+extern fn execution_offset(): usize;
+extern fn execution_truncated(): bool;
+extern fn execution_output_length(): usize;
+extern fn parser_create(source: u8*): u32;
+extern fn parser_finish(handle: u32): void;
+extern fn parser_reset(handle: u32, source: u8*): void;
+extern fn parser_inspect(handle: u32): void;
+extern fn parser_count(field: u8*): usize;
+extern fn parser_destroy(handle: u32): void;
+
+fn joined(left: u8*, right: u8*): u8* {
+    var text: vector(u8) = default;
+    assert(backend_text(&text, left));
+    assert(backend_text(&text, right));
+    return text.data;
+}
+
+fn with_grammar(name: u8*): u8* {
+    var grammar = execution_grammar();
+    defer free(grammar);
+    var suffix = execution_file(name);
+    defer free(suffix);
+    return joined(grammar, suffix);
+}
+
+fn run_file(name: u8*): void {
+    var source = execution_file(name);
+    defer free(source);
+    execution_run(source, 10000);
+}
+
+fn expect_field(field: u8*, wanted: u8*, label: u8*): void {
+    var actual = execution_text(field);
+    defer free(actual);
+    assert(backend_equal(actual, wanted), label);
+}
+
+fn expect_output(file: u8*): void {
+    var wanted = execution_file(file);
+    defer free(wanted);
+    expect_field("output", wanted, file);
+}
+
+fn finishes(source: u8*, output: u8*): void {
+    run_file(source);
+    expect_field("status", "done", source);
+    expect_output(output);
+}
+
+fn expect_diagnostic(fragment: u8*): void {
+    var error = execution_text("error");
+    defer free(error);
+    assert(backend_contains(error, fragment), fragment);
+}
+
+fn rejects(name: u8*, fragment: u8*): void {
+    run_file(name);
+    expect_diagnostic(fragment);
+}

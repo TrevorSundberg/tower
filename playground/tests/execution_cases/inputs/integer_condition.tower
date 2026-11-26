@@ -1,0 +1,2 @@
+import foundation;
+print(99); if 1 {}

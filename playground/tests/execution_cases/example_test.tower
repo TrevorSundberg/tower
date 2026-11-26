@@ -1,0 +1,28 @@
+import session;
+import backend.text;
+
+test() {
+    var example = execution_example();
+    defer free(example);
+    var source = joined("import foundation;\n", example);
+    defer free(source);
+    execution_run(source, 10000);
+    expect_field("status", "done", "example");
+    expect_output("example.expected");
+    var output = execution_text("output");
+    defer free(output);
+    var lowered = execution_foundation();
+    defer free(lowered);
+    assert(backend_contains(lowered, "+ 1;"), "Lowered increment");
+    assert(!backend_contains(lowered, "increment"), "Unexpanded increment");
+    assert(backend_contains(lowered, " = alias;"), "Lowered alias");
+    var replay = joined("import foundation;\n", lowered);
+    defer free(replay);
+    execution_run(replay, 10000);
+    expect_field("output", output, "Lowered Foundation preserves updates and aliasing");
+
+    var alternate = with_grammar("alternate.tower");
+    defer free(alternate);
+    execution_run(alternate, 10000);
+    expect_output("alternate.expected");
+}
