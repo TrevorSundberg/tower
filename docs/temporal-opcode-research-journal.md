@@ -114248,3 +114248,105 @@ outputs, exit statuses, observer patches and per-run timing. Qualification
 uses the requested 2556019c resources. Public main advanced to 401c402e with
 a new bootstrap during the run. Integration and publication belong to the
 manager.
+
+### Host 5 native lexer-table test discovery
+
+Assignment e4bcd4ef-4979-4c15-97f2-e5e42534c638 starts from published
+401c402e. The standalone parser-service registration invokes
+`tests.lexer_table.lexer_table_tests`. Its two success lines originally
+covered the symbol-sequence ledger, the MT19937 reference values, the NFA
+allocation sweep and direct simulation, lexer table refusal/retry and a
+500-table comparison with the nested-row lexer oracle. Selecting the old
+owner at either one or four jobs ran only the five WorkBudget tests. The
+old direct path failed to open its nonexistent companion at both widths.
+
+The adjacent module gives those six groups one declaration each. The
+executable calls their same functions in the original order. Its wrapper
+stays in the original module for ordinary importers. Only the lexer
+registration in TowerParserServiceTests.cmake changes. The published
+lexer oracle, generator and production code retain their source blobs.
+
+At implementation `198ae064`, owner selection passed 11 declarations
+at each width. Lines 26–31 of the direct companion passed six. The extra
+five on the owner were lines 6–10 of `library/work_budget_test.tower`.
+The generated executable entry was byte-identical before and after.
+Its unchanged 166-byte stdout has SHA-256
+`51bb433ef6f952dbfcd23c352c0ccb36e8daf0f4066fc6d74c86d13ff336116e`.
+Each executable exited zero with empty stderr. The four selected CTests
+and the original executable CTest all passed.
+
+Extracting the 45 original `utility_check` statements and substituting
+only the assertion name reproduced every candidate predicate and message
+in order, including the direct NFA closure's index and pending-stack
+bounds. The RNG reference checks and the nested-row oracle retain their
+original implementations. On disposable Tower source copies, tracing the
+legacy executable, migrated executable, selected owner and selected direct
+entry produced one byte-identical 11,214,801-byte trace, SHA-256
+`811e166eee270d165e9140e3fb6e61c10e86720db6cb9a43893f4ff21c5d6faf`.
+It contains 250,067 RNG draws, 150 generated NFAs, 75,000 transition
+and 75,000 acceptance comparisons, 500 DFA tables, 95,000 chosen fragments
+and 202,068 paired maximal-prefix results. Every generated sample retained
+the zero-through-length-plus-one start positions, including NUL, truncated
+and invalid encodings, and two-, three- and four-byte UTF-8 fragments.
+The first observer trapped converting dead state −1 to unsigned. The final
+observer records state plus one, with zero encoding the dead state.
+
+Sequence ledger limits of 191, 192, 247 and 248 bytes yielded peaks of
+0, 192, 192 and 248. Only the last created the three-range sequence.
+Used bytes and live receipts returned to zero at every limit. The empty
+sequence retained its independent object-only check. The NFA compile
+sweep returned allocation refusal at indices 0 through 7 and succeeded
+at 8. Both lexer refusal and randomized table cleanup returned to their
+zero-buffer baselines. Changing the surviving match of `abc!` from
+three bytes to four made both selected routes exit 1 at
+`lexer_table_test.tower:158:5` at one and four jobs. The standalone
+executable rejected the same expectation on both revisions. Restoring
+the exact source bytes recovered both summaries and the selected IDs.
+
+Host 5 used one AMD Ryzen 9 5900XT, 16 physical cores with SMT, Linux
+x64 and Clang/LLVM 19.1.7. The cpuset was 0–31 with quota 3,071,999 μs
+per 100,000 μs (30.71999 CPUs). Matched processes held the host timing
+lock and used CPUs 0,2,4,6. GNU time measured one warm-up and two
+oppositely ordered measured pairs with a common source path and verified
+outputs. Each cell below reports mean wall/CPU seconds and the largest
+process peak RSS in KiB. The compile row emits the target object.
+The executable row times 32 serial launches of the linked object at
+the indicated compile width. Selected rows include driver startup,
+compilation, guest execution and reporting. The old direct entry was
+absent. The old owner timed five transitive cases.
+
+| Route | Jobs | Legacy wall / CPU / peak KiB | Migrated wall / CPU / peak KiB |
+| --- | ---: | ---: | ---: |
+| Compile | 1 | 0.585 / 0.580 / 125212 | 0.680 / 0.670 / 128916 |
+| Compile | 4 | 0.590 / 0.635 / 131476 | 0.725 / 0.790 / 139012 |
+| Executable ×32 | 1 | 0.295 / 0.295 / 3128 | 0.290 / 0.280 / 3104 |
+| Executable ×32 | 4 | 0.295 / 0.295 / 3124 | 0.285 / 0.280 / 3096 |
+| Selected owner | 1 | 0.755 / 0.755 / 138372 | 0.755 / 0.750 / 139312 |
+| Selected owner | 4 | 0.780 / 0.850 / 149156 | 0.795 / 0.875 / 149832 |
+| Selected direct | 1 | Absent | 0.660 / 0.655 / 127512 |
+| Selected direct | 4 | Absent | 0.690 / 0.755 / 136980 |
+
+Separate compiler timing runs attributed most additional object-build
+time to parsing. At one/four jobs it took 229/235 ms before and 319/353 ms
+after. Replacing the assertion invocations on the same new module graph
+with the old check calls took 320/352 ms. The compiler's measured emit
+phase stayed between 100 and 105 ms. The shared cgroup recorded zero
+throttles and a pre-existing 59,652,243,456-byte high-water mark throughout.
+The executable uses serial fault injection at either compile width.
+
+The public bootstrap hash begins `7430bdb3`. A single build owner invoked
+the lexer target in a private parser-only Ninja directory. Independent
+selected runs reused the existing host 5 SCC kit's test runtime and providers.
+For native sanitization the existing Tower LLVM instrumentation tool applied
+the address and thread passes to all eight object inputs, including the
+target, host and serial allocator, followed by a Clang 19 link. ASan with
+leak detection and TSan both returned the exact stdout and empty stderr.
+The TSan runtime hit its container personality check six times before a
+successful startup. This covers serial fixture lifetime. Tower source-level
+UBSan and simultaneous guest executions were outside the supported checks.
+
+The assignment packet contains the base-relative source bundle, raw commands,
+stdout, stderr, source and provider identities, allocator and oracle traces,
+timings, sanitizer maps and the failed controls. The shared checkout was
+mid-rebase with three unpublished commits. Qualification used a separate
+local main checkout. The manager owns integration and publication.
