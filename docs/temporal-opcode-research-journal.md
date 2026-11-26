@@ -110243,3 +110243,120 @@ runs cover native fixture discovery and execution. The release Wasm and
 native compiler have no source-level ASan, UBSan or TSan instrumentation.
 The test-only files live outside the compiler's source trees and explicit
 test-source packaging inventory. The manager owns integration and publication.
+
+### Two Bedrock round-trip registrations on 225d877f (host 5)
+
+Assignment a223841b continues the three-case packet on 442f3bea. Its archive,
+four required extracted members and internal SHA256SUMS matched. The bundle
+verified with 442f3bea as prerequisite. The shared checkout's pre-existing
+rebase refused the initial pull. A separate local main materialized the
+partial clone's base blobs before fetching the bundle (initial thin-pack
+attempts lacked delta bases). All work uses its 225d877f tip.
+
+Before editing the registrations, the portable shipping parser completed the
+two original filters. Captures include all six inspections plus the three
+events of the session created before the override. The two expected formatter
+files come from this run. The acceptance comparison uses the actual formatter
+result as input to the next parse, keeps the peer session open across the
+override and fresh-session refusal, and checks the exact located capture
+after parsing the formatted template. The earlier three registrations have
+their own complete predecessor observation streams at each transport width.
+
+| Original individually selectable Bedrock registration | Adjacent Tower test and oracle |
+| --- | --- |
+| local overrides preserve inherited bindings in other sessions and canonical grammar names round trip | `local_override_test.tower` opens the original 43-byte Foundation session before reading the 112-byte override. Both the original declarations (end offsets 18/51/78/112) and the formatted declarations (18/51/79/114) install the decoded rule name. The 115 formatter bytes match `inputs/local_override.expected`. Appending the legacy `~42;` to the actual formatter result consumes the rule and number at [116,118). A fresh Foundation session refuses the tilde at 19 and lacks that binding. The still-open session also lacks it, completes its declaration and call at 34/43, and reports their original Foundation nodes. |
+| quoted capture names use shared Identifier decoding and survive template formatting | `quoted_capture_test.tower` parses the original 156 bytes, checks offsets 18/40/68/156, and compares the actual 163-byte formatter result to `inputs/quoted_capture.expected`. Reformatting that result is byte-stable. The appended `keep(42);` produces one replacement and a node labelled 42 at [168,170). Changing only the quoted name in the template produces the checked public diagnostic at byte 136 after three declarations. Resetting the refused handle to the successful input reproduces the ordered events, revisions and located 42. |
+| foundation inherits bedrock without redeclaring any of its definitions | `inheritance_test.tower` retains the reserved-prefix, direct name capture, inherited rule and complete token-record checks. Retained fresh-declaration, GrammarAssignment collision and Whitespace collision controls exercised the otherwise dormant branch. |
+| shared bedrock whitespace, comments and identifiers affect declarations and ordinary code | `lexicon_test.tower` applies the original edits, checks the comment slice, the declaration using the changed separator and the same counted `shared_lexicon.expected` bytes. Changing 42 to 41 failed that selector. |
+| shared grammar rules can be referenced, extended and replaced without a reserved prefix | `grammar_test.tower` still requires successful parser completion for each original file in order (assignment, suffix, redefine, repeat, quoted, atom). |
+
+All paths in the mapping are under `scaffolding/tests/bedrock_cases`. The
+browser copies the existing event/node fields into the assertion interpreter
+and releases the retained parser in a finally block, including on assertion
+failure. Tower checks status, previous/current revisions, offsets, names,
+source ranges, formatter bytes and recovery. Both new golden-file mutations
+failed the corresponding Tower assertion and passed after byte restoration.
+
+The two exact Node names each selected one passing registration on all three
+configurations. The full file passed 14/14 with zero skips on each, before
+and after, in the producer's order. Pages f2214133's manifest matched the
+receipt packet, including the portable 41bb9b11, shared 72c882ee and Linux
+kit b6517d0c (public compiler source 8bc867b6). The first three selectors
+reproduced the producer's entire 1,122,480-byte observations per width
+(46125b80 portable/one, 72e931e9 four). The remaining nine JS test bodies
+are byte-identical. For the two ports, all six original inspections matched
+at like widths, including formatter spans, snapshots and node IDs. A separate
+stream includes the pinned terminal and every ordered event. Its first seven
+calls equal the original; all nine including refusal/reset equal a JS replay
+of the same calls. Graph-interpreted assertions reproduced the fast-interpreter
+event stream at each width. Across one and four the only differences were
+385 node IDs in the six inspections and 554 in the nine-event-stream records.
+
+Host 5 ran Debian 12 on a Ryzen 9 5900XT, 16 cores/32 threads, affinity and
+effective cpuset 0–31, quota 3071999/100000 (30.72 CPUs), memory limit
+129569390592 bytes. Under the host timing lock, fresh Node 24.22.3 processes
+used CPUs 0–3, warm files, a 45-second timeout, 4-byte guests and one run at
+a time. For the two-name pairs both arms saw the same candidate fixture
+inventory, shipping image and parser calls, including the refused-handle
+reset. The original JS arm needs only the subject reactor for these names.
+The candidate also compiles the declarations on its assertion reactor.
+Trace/allocator/worker probes ran separately. Component-wise medians over
+three pairs (middle pair reversed) give wall/user/system seconds and peak
+RSS KiB. The full-file row is one pair on the actual before/after trees.
+
+| Node workload | Before | After |
+| --- | --- | --- |
+| Two names, portable | 0.35 / 0.40 / 0.11 / 114768 | 0.76 / 0.92 / 0.13 / 154428 |
+| Two names, shared capacity 1 | 0.42 / 0.45 / 0.13 / 136736 | 0.95 / 1.10 / 0.15 / 189192 |
+| Two names, shared capacity 4 | 0.43 / 0.53 / 0.14 / 183108 | 1.13 / 1.53 / 0.27 / 296080 |
+| All 14, portable | 1.61 / 1.84 / 0.17 / 212476 | 1.73 / 1.97 / 0.16 / 215192 |
+
+Portable uses a serial coordinator per instance. Shared capacity one started
+one host worker per instance and dispatched zero pthread jobs. At capacity
+four the subject used slots 0/1 (30 launches each), and the assertion
+instance used all four (194/194/92/20). Sampled RUNNING slot counts reached
+two and four. Each selected assertion graph reported 14 dependency paths.
+The extra cost includes executing the checks and initializing the separate
+reactor and its workers. These short tests slowed at the larger width.
+The portable subject ended at 6913 live nodes, 16515072 linear bytes and
+zero exposed allocations in both arms. The added assertion instance ended
+at 13483 nodes, 28835840 linear bytes and zero exposed allocations. Eight
+pairs on the same shared capacity-four instances passed; all 16 assertion
+retirements reported 13483 nodes and zero exposed allocations.
+
+At native jobs one and four the public 7315b86e driver emitted the exact
+five successful legacy formatter products and diagnosed the fresh tilde and
+wrong-name inputs at 2:1 and 2:118. Both native shared-lexicon selections
+passed at each width. Direct new companion selections exit 1 on unavailable
+native bindings (`grammar_pin` and `diagnostic_read`). Native CLI formatting
+therefore covers only part of the browser oracle. Memcheck at one job and
+DRD at four on both native formatter subjects returned the expected bytes
+and reported zero errors. Memcheck reported 151054 reachable bytes and no
+lost bytes; DRD suppressed ten errors per run. Both tools warned about the
+debug section mapping. The published products lack source-instrumented
+ASan/UBSan/TSan coverage of the new assertion path.
+
+The ordinary formatter object reproduced 81ffc1b8 (564240 bytes) and the
+normalized depfile. Both configure-only Ninja graphs had identical 96
+inputs and 51 commands for towerc after normalizing checkout/cache and
+CMake's path-derived private depfile names. The public 25-unit project
+resolved the same 403 distinct imported paths in both passes, even with the
+Bedrock files offered as project sources. Its captured per-unit lists
+exclude the optional fixtures. The opt-in formatting manifest retains the
+companions and excludes the byte-exact parser subjects. No compiler build
+or publication was needed.
+
+Early fixture trials stopped at the reserved identifier `expected` and at
+unsupported constructor syntax. The corrected fixture uses named Tower
+initialization. The first native probe used an invalid flag; `--emit source`
+is the public spelling. A baseline-only instrumentation trial misquoted
+the template's dollar/backtick in a JS replacement string. The full stream
+comparison caught the different error text despite matching status and
+offset. The final matched replay reads the frozen control bytes. Configure
+required LLVM 19's bin directory on PATH. The differing private depfile
+hashes in the separate cache paths are retained with the normalized results.
+
+The host-5 packet for a223841b-ff35-4654-bc95-85c401bf7707 contains the
+source bundle, mapping, runnable measurement drivers, public image receipts,
+all comparison streams and failures. Manager integration and publication
+remain separate.

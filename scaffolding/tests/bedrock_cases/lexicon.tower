@@ -1,3 +1,4 @@
+import grammar;
 import backend.text;
 import library.test_fixtures;
 import library.vector;
@@ -24,7 +25,6 @@ fn shared_lexicon(bedrock: u8*): u8* {
 }
 
 // The public parser host returns counted UTF-8 stdout in the four-byte guest.
-extern fn grammar_expected(size: usize*): u8*;
 extern fn grammar_output(source: u8*, size: usize*): u8*;
 
 fn check_lexicon_output(source: u8*): void {
@@ -32,7 +32,7 @@ fn check_lexicon_output(source: u8*): void {
     output.data = grammar_output(source, &output.length);
     defer free(output.data);
     var wanted: FixtureBytes = default;
-    wanted.data = grammar_expected(&wanted.length);
+    wanted.data = grammar_expected("shared_lexicon", &wanted.length);
     defer free(wanted.data);
     assert(fixture_equal(output, wanted), "Shared lexicon guest stdout");
 }

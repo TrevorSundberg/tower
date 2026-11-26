@@ -1,0 +1,2 @@
+import foundation;
+parse Value = Number;parse Statement = Value ';';parse Value |= 'keep' '(' $`captured value`:Number ')' => replace { $`wrong name` };

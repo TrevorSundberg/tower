@@ -1,0 +1,37 @@
+import quoted_capture;
+import round_trip;
+import grammar;
+import backend.text;
+import compiler.format_diagnostic_cases.session;
+
+test() {
+    accept("quoted_capture");
+    assert(grammar_event_count(GrammarEntry.Source) == 4);
+    capture_declarations(68, 156);
+    var first = checked_format("quoted_capture");
+    defer free(first);
+
+    require_parse(first, GrammarEntry.Source);
+    assert(grammar_event_count(GrammarEntry.Source) == 4);
+    capture_declarations(69, 162);
+    var second = grammar_formatted();
+    defer free(second);
+    assert(backend_equal(first, second), "Formatted quoted capture must be stable");
+    var use = with_suffix(second, "keep(42);");
+    defer free(use);
+    require_parse(use, GrammarEntry.Source);
+    check_capture_use();
+
+    grammar_pin("wrong_capture");
+    assert(!grammar_finish_pinned(), "Unknown quoted capture must be refused");
+    assert(diagnostic_offset() == 136 && diagnostic_length() == NoErrorLength);
+    var message = diagnostic_text();
+    defer free(message);
+    assert(backend_equal(message,
+        "Replacement for Value must produce a valid Value. \"$`wrong name`\" is not a valid Value.\nUnknown replacement capture: $wrong name. Expected Number, 'keep' or $captured value."), message);
+    assert(grammar_event_count(GrammarEntry.Source) == 3);
+
+    grammar_reset_pinned(use);
+    assert(grammar_finish_pinned(), "Repaired grammar must parse in the refused session");
+    check_capture_use();
+}
