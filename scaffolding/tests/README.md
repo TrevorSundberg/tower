@@ -2004,6 +2004,23 @@ and select `^tower-selected-narrow-foreign-jobs-` in CTest. Both job counts
 link `narrow-foreign-library.o` as a separate native provider. The same
 registrations in the moved kit select `share/tower/tests/narrow_foreign.tower`.
 
+In the Linux GNU driver-test build and the Linux x64 execution-test build,
+`cmake --build "$B" --target tower-entity-tests` prepares the four entity
+registrations. Run the same filter in the build tree or the moved SccTests kit:
+
+```sh
+ctest --test-dir "$B" -R '^tower-selected-(entities|entity-views|generic-registry|entity-store)-jobs-' -V
+```
+
+Each owner selects one companion at jobs 1 and 4. The entities companion uses
+the interpreter to compare the nested script's stdout with `entities.expected`.
+The views and registry guests link the native test runtime and compiler memory
+archive. The 300-component store guest also links `runtime-instrumented.o`
+for its owner's buffer-count ABI. It reads and writes native payloads and
+checks the surviving query, both live counts and disposal. For direct selection,
+use the same driver arguments and replace the owner with its `_test.tower`
+sibling.
+
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability
 and utility helpers under `share/tower/tests`, and five native link inputs

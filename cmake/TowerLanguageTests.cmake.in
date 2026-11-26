@@ -10,11 +10,17 @@ function(register_language_tests name owner count)
   elseif(count EQUAL 0)
     set(outcome "tests selected")
   endif()
+  set(test_args ${ARGN})
+  if(ARGV3 STREQUAL "INTERPRETED")
+    list(POP_FRONT test_args)
+  else()
+    list(PREPEND test_args --test-native-runtime "@scc_objects@/guest-native-test.o")
+  endif()
   foreach(jobs IN ITEMS 1 4)
     set(test "tower-selected-${name}-jobs-${jobs}")
     add_test("${test}" "@scc_bin@/tower-selected-test-count" "${count} ${outcome} for ${source}"
       "@scc_bin@/towerc" --test "${source}"
-      --jobs "${jobs}" --test-details --test-native-runtime "@scc_objects@/guest-native-test.o" ${ARGN})
+      --jobs "${jobs}" --test-details ${test_args})
     set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused")
   endforeach()
 endfunction()
@@ -43,3 +49,11 @@ if(driver_tests)
   register_language_tests(gzip library/gzip 5 --link "@scc_objects@/tower-compiler-utf8.o"
     --link "@scc_objects@/libtower-compiler-memory.a")
 endif()
+
+# Nested fixture stdout/file access belongs to the interpreter. The other
+# three guests run the real entity implementation with native memory providers.
+register_language_tests(entities tests/entities 1 INTERPRETED)
+register_language_tests(entity-views tests/entity_views 1 --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(generic-registry tests/generic_registry 1 --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(entity-store tests/entity_store 1 --link "@scc_objects@/runtime-instrumented.o"
+  --link "@scc_objects@/libtower-compiler-memory.a")

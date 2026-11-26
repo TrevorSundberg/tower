@@ -8,7 +8,9 @@ get_property(guest_library GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
 tower_runtime_object(tower-selected-test-count "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/selected_test_count.tower" "${triple}")
 add_executable(tower-selected-test-count ${tower-selected-test-count_OBJECT} "${guest_library}")
 set_target_properties(tower-selected-test-count PROPERTIES LINKER_LANGUAGE C)
-add_custom_target(tower-language-tests DEPENDS towerc tower-selected-test-count tower-guest-native-test ${scc_providers})
+add_custom_target(tower-entity-tests ALL DEPENDS towerc tower-selected-test-count tower-guest-native-test
+  "${scc_allocator}" tower-compiler-memory)
+add_custom_target(tower-language-tests DEPENDS tower-entity-tests ${scc_providers})
 if(narrow_abi_tests)
   # The native test guest uses the same ELF profile as its uninstrumented runtime.
   tower_runtime_object(narrow-foreign-library
@@ -50,6 +52,12 @@ install(FILES scaffolding/library/bytes_test.tower scaffolding/library/graph_com
   DESTINATION scc-suite/share/tower/library ${scc_install})
 install(FILES scaffolding/host/memory.tower scaffolding/host/memory_libc.tower scaffolding/host/memory_types.tower
   DESTINATION scc-suite/share/tower/host ${scc_install})
-install(FILES scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
+install(FILES scaffolding/compiler/generic_registry.tower scaffolding/compiler/generic_registry_types.tower
+  scaffolding/compiler/entity_require.tower DESTINATION scc-suite/share/tower/compiler ${scc_install})
+install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.tower scaffolding/tests/entities.expected
+  scaffolding/tests/entity_views.tower scaffolding/tests/entity_views_test.tower scaffolding/tests/entity_views.expected
+  scaffolding/tests/generic_registry.tower scaffolding/tests/generic_registry_test.tower scaffolding/tests/generic_registry.expected
+  scaffolding/tests/generic_body_budget.tower scaffolding/tests/entity_store.tower scaffolding/tests/entity_store_test.tower
+  scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})
