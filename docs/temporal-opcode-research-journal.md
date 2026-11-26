@@ -114676,3 +114676,80 @@ and picked up the updated syntax-node object. Both passed on their first
 launch. The final incremental build had no work. Assignment packet
 `7a42df0f-3b01-4263-8276-3504048033a9` includes the source bundles on both
 bases and the raw measurements. Publication belongs to the manager.
+
+### Physical placement of the constructor fault assertions on 015bb1ef
+
+Assignment `d8522c86-c6af-4d4a-bc40-b5dc6398f55f`, host 4. The two
+constructor declarations already existed. The three-file manager patch
+on `015bb1ef45ad73411eef6ed87770c297881a8fa5` reproduced tree
+`09b7b2eb89b45ae0c4964dec74ebaf9a9c7d5e27`. With the published Linux
+x64 bootstrap `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+building the standalone diagnosed unknown function `work_budget_init`
+at `work_constructor_faults_fixture_test.tower:8:16`. The moved body
+uses library declarations through its own module scope. Adding its
+testing, compiler work, entity, entity type, work budget and budget type
+imports made the standalone and both test selections compile. The entry
+and fixture blobs match the manager patch. The packet includes the
+supplied tree, repair diff and final source hashes.
+
+The original and moved function bodies, including all nine predicates,
+compare byte for byte. Both declaration texts also match. They moved
+from lines 3 and 4 to 45 and 46 of the companion. The legacy main calls
+the same two sweeps. The fixture still owns the lifecycle export and
+declares the fault hooks. The link provides them from the single
+`work-instrumented-runtime.o` built from `host/memory_instrumented.tower`.
+The selected guests use that same object with `tower_work_serial.o`.
+
+The two declared `80b3e1f8` reference members were each two bytes,
+`30 0a`, SHA-256 `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa`.
+The host-4 baseline executable, native guest, allocator, serial transport
+and selected-count checker also matched that receipt's corresponding
+product hashes. On the current pin, jobs 1 and 4 produced identical
+standalone binaries within each source version. Every ordinary standalone
+wrote those same two bytes. Direct selection ran two tests. Owner
+discovery added eight graph and five budget tests at each width. The
+detailed case lists before and after matched after adjusting the two
+declaration line numbers.
+
+With the reference Tower observer inserted after the cleanup assertions,
+the standalone, direct selection and owner selection at both widths
+reproduced every byte of the original 72-row trace (SHA-256
+`2fd50eba49bff7c3e548beeb80074559c102ade0d4d69985f00bcd5e14c3aa62`).
+Eight units refused tickets 0–25 and succeeded at 26. The probed
+19-unit page refused 0–43 and succeeded at 44. Live grants, bytes,
+lanes, buffers and baseline were zero on every row, including both
+successes. Temporarily requiring one extra live buffer made the
+standalone abort (exit 134) and all four selections exit 1 with the leak
+assertion at `work_constructor_faults_fixture_test.tower:29:9`. The
+standalone reports the same message with its numeric source offset.
+Removing the observer and restoring the predicate reproduced the source
+and executable hashes. All five registered constructor CTests passed.
+
+Host 4 used a Ryzen 7 5800H, eight cores with SMT, affinity CPUs 0–15,
+quota 1,536,000/100,000 µs (15.36 CPUs), Linux x64, Clang/LLVM 19.1.7,
+Release. Three warm alternating batches of 200 standalone launches,
+timed individually under the host timing lock, gave median wall/CPU
+0.18/0.18 s on the baseline and 0.18/0.19 s after the move. All 1,200
+lines matched. Maximum batch RSS including the shell was 3,308 and
+3,136 KiB respectively. One warm sample per selection included compiler,
+link and guest execution. Direct wall times at jobs 1/4 were 1.09/1.12 s
+on both versions. Owner times were 1.52/1.50 s before and 1.51/1.53 s
+after. Maximum selected RSS was 204,008 and 203,792 KiB respectively.
+Each allocator sweep ran serially. Individual CPU and RSS readings are
+in the packet.
+
+The retained constructor sanitizer results used the earlier pin. Focused
+standalones on this pin passed ASan with leak detection on the first
+launch and TSan on the third, after two denied-personality startup
+failures. Both link maps identify the serial transport and fault
+allocator, and the packet includes instrumented IR for the moved bodies.
+The TSan provider hashes match host 4's retained profile. The ASan
+allocator object embeds the build's absolute IR path and its hash
+differs. Tower's instrumentation tool has no UBSan profile.
+
+The verified code tree before adding this journal is
+`e5eabadd01c00139b3e4ae20318d8171fb14d100`. The packet contains the
+commit bundle, raw observations, controls, commands and predicate map.
+The work used a separate local main at the assigned base to preserve
+the shared checkout's unpublished component/stage commit. Publication
+and integration onto subsequent main revisions belong to the manager.
