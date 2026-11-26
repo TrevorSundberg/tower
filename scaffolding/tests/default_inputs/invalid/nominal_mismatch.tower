@@ -1,0 +1,1 @@
+import tower;struct A{x:i32;}struct B{x:i32;}var a:A=default(B);
