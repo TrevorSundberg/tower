@@ -1,0 +1,19 @@
+import library.test_fixtures;
+import backend.text;
+
+extern fn roku_read(name: u8*, length: usize*): u8*;
+
+extern fn roku_submit(program: u8*, main: u8*): void;
+
+extern fn roku_take_output(length: usize*): u8*;
+
+fn check_simulator(program: u8*, main: u8*, wanted: FixtureBytes, label: u8*): void {
+    roku_submit(program, main);
+    var actual: FixtureBytes = default;
+    // The Node adapter runs the simulator between interpreter steps.
+    while actual.data == null {
+        actual.data = roku_take_output(&actual.length);
+    }
+    defer free(actual.data);
+    assert(fixture_equal(actual, wanted), label);
+}

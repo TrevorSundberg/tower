@@ -119072,3 +119072,133 @@ stayed between 70 and 74 ms. The new real direct/owner selections took
 were unchanged across the paired series. The packet contains each original
 stream, command, trace, failure, link and measurement, including single-CPU
 and full-allocation batches. Integration and publication belong to the manager.
+
+## Roku integer corpus and device package registrations on host 8
+
+Assignment `a881ba07-f7bb-4eec-ad8e-58120190d87d` starts at published
+`1cc5e97cd9c2d282673c4e7cb490e0e72b213483`. The initial pull encountered
+unrelated unpublished parser-row commits. Aborting restored the shared
+checkout to `ff4c96f7`. The implementation uses a separate local main at
+the assigned parent. Pages `8417c9ae4cd9accdf672b22d6676bd465c8a79d6`
+supplies the two frontend images and the compressed LLVM reactor. The installed
+BrighterScript 0.73.8 and brs-node 2.7.1 provide syntax validation and execution.
+
+The four original integer registrations and the conformance writer now select
+Tower test bodies by filename suffix. The numeric companions read the pinned
+WAST, check the population for each operation and render each original
+BrightScript assertion, including its chunk number, operands, trap or expected
+bits. The seeded differential uses wrapping Tower u64 arithmetic, a continuous
+seed across widths, and unsigned quotient and remainder. The Node boundary
+decodes the existing runtime text literals, validates and runs the submitted
+program, and transfers stdout. Tower checks its counted bytes in the shared
+simulator companion. For both package writers the adapter writes and reads
+actual filesystem bytes, which Tower compares to the generation buffer.
+
+The first native format check reported noncanonical source. The new and
+modified companions were formatted with the public bootstrap. Early Wasm
+trials exposed a missing direct import, reserved identifiers and an
+unconstrained i32 literal. The four individual integer selections subsequently
+compiled. The combined 758-case writer produced the original 154,216 bytes
+but exhausted the step allowance during byte-by-byte readback. Its larger
+per-step budget completes the same full comparison. The eight existing Tower
+selections retain their 4,096-step slices. A first attempt to wrap an immutable
+simulator export produced no trace files. The raw proof uses a load-time tap
+on the existing harness to retain its actual program, Main and normalized
+stdout around real simulator execution.
+
+The standalone device selection also loads and checks the shipped runtime
+marker before writing its corpus. The final fixture source is
+`868ac28a65971dbe757f005262c298d09bec2380`. Both original and final
+`node --test --test-concurrency=1 tests/roku/*.test.mjs` runs passed 13/13
+on each of the two images. The portable integer file also passed 4/4 when
+launched directly with the LLVM override unset. The public native bootstrap
+inventories each registration by its original owner and selection suffix.
+The eight earlier emitter selections use their original inputs, including
+the full 256-iteration population-count program.
+
+For every image and revision, the 39 simulator calls produced identical
+program bytes, Main bytes and stdout. An independent count of return/trap
+directives in the original files matched each generated Main by operation
+and kind. The i32 fixture has 364 returns and ten traps across 31 operations.
+The i64 fixture has 374 returns and ten traps across 32. All 384 generated
+seeded records include their index, width, operation, both full unsigned
+operands and their 16-digit hexadecimal expectation. Of the i64 expectations,
+72 have the high bit set.
+
+| Generated file | Bytes | SHA-256 on both images and revisions |
+| --- | ---: | --- |
+| expected.txt | 119 | `28a5e8c4114b0500ced9a4491aa57db5fa616f2d85d23e9d1b76aa2458281e08` |
+| integers-expected.txt | 43 | `aa305d9c4250dd54446446030dc37e2da6981ee6ca7914bf9f1d407bce820c97` |
+| integers.brs | 154216 | `e229f1798ce66c66de8603ac5f8c4c0f6eee9d848ee8617afce0e939e6ac9a2a` |
+| manifest | 77 | `d39b635bb2ead9e66a2814371e626e6de0967f49e13758f24a4ad7068cbc7726` |
+| source/Main.brs | 78 | `ec4c59107b628492ac18e78168870c5e4b2275510af9fd9a4b6ca517709083b7` |
+| source/program.brs | 58925 | `16622735144772a13e493da2c798ec615814f1e243ca8f0ca4451a951dd31950` |
+
+Changing the first pinned add expectation from 2 to 3 in either corpus
+failed at case zero. Flipping bit 63 of the last seeded remainder expectation
+failed at case 383 on the original and migrated harnesses. The original
+operands were 3614197246205838870 and 13534327440137370925 and the expected
+remainder was `3228353f204b4616` in hexadecimal. Each alteration changed one
+ASCII digit in the submitted Main. The runtime and the other case bytes
+stayed identical. Changing just the expected stdout terminator from LF to
+an exclamation point leaves the entire simulator request and its eleven
+output bytes identical. The original host assertion and the migrated
+shared Tower stdout assertion both reject that change.
+
+Host 8 is a Linux x86-64 Ryzen 9 7900X with 12 cores and 24 hardware
+threads. CPU quota was 2,304,000/100,000 µs and memory.max was
+63,577,260,032 bytes. Runs used Node 24.22.3, CPUs 0–3 on four distinct
+cores, one libuv thread and one Node registration at a time under the host
+timing lock. The shared test reactor used capacity one. The shared subject
+used the existing capacity four. Inputs and installed dependencies were
+warm. Each command launched fresh Node processes. The complete-suite figures
+include the real simulator and population workload. The five-registration
+samples include interpreter startup, both package writes and their outputs.
+They characterize the cost of moving these tests on this host.
+
+| Suite and frontend | Original wall / CPU s / peak KiB | Final wall / CPU s / peak KiB |
+| --- | ---: | ---: |
+| All 13, portable | 143.04 / 87.55 / 1,098,012 | 144.67 / 89.02 / 1,102,916 |
+| All 13, shared | 143.43 / 87.30 / 1,511,308 | 146.25 / 91.03 / 1,305,032 |
+| Five changed, portable, sample 1 | 7.07 / 3.41 / 350,240 | 8.65 / 5.37 / 382,552 |
+| Five changed, portable, sample 2 | 7.08 / 3.42 / 350,872 | 8.73 / 5.40 / 381,232 |
+| Five changed, shared, sample 1 | 7.18 / 3.66 / 430,028 | 8.91 / 5.65 / 447,344 |
+| Five changed, shared, sample 2 | 7.19 / 3.68 / 428,120 | 8.99 / 5.76 / 445,088 |
+
+The five-registration trials ran original/final/final/original on each
+image. They took 1.58–1.80 s longer after migration. In the first portable
+pair the combined integer writer increased from 3.8 to 396.6 ms and the
+conformance writer from 222.3 to 474.4 ms. The migrated path compiles and
+executes the Tower test bodies and reads back both packages. Some untimed
+development checks occurred during the original full-suite collection.
+The five-registration trials are the controlled comparison. No cgroup CPU
+throttling events were added during this assignment.
+
+A separate pre-format observer retained every original JavaScript BigInt.
+The 384 rows agreed with both images' rendered cases before and after the
+migration. The negative stdout control failed at byte 566 in
+`roku_simulator_test.tower`. After restoring the inputs, all five selections
+passed and all six files matched. A separate write fault flipped the last
+byte of each of the six actual disk files in turn. Each selected writer
+failed at byte 505 in `roku_package_test.tower` with that filename.
+Removing the fault restored five passes and all six files on each image.
+
+On both shipping reactors the integer probe initially reported 6,503 live
+nodes. After destroying each of the four selected handles it reported
+13,380, with Wasm linear memory capacity of 29,622,272 bytes. Immediately
+before destroying the combined writer handle it reported 31,088. The
+conformance package probe ended at 13,483 nodes and 28,508,160 bytes
+capacity. The public live-allocation export returned zero at the sampled
+boundaries. These observations do not count all allocations within a test.
+The frozen interpreters have no source sanitizer instrumentation for these
+Node/simulator transports. No native worker or compiler implementation
+changed. Physical-device execution remains open.
+
+The archive retains the original inputs, before/after request blobs,
+per-operation inventories, all seeded values, the six device hashes and
+bytes, mutation patches and raw controls, restoration, metrics, source
+bundle and commands. Two pending evidence shells saw an edited wrapper
+and exited before starting Node. Their replacements used the frozen wrapper.
+A preliminary shared run on the first implementation commit was superseded
+by the complete shared run on the final fixture source. Publication belongs
+to the manager.

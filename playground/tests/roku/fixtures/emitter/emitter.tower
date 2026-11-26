@@ -1,10 +1,8 @@
-import library.test_fixtures;
+import roku_simulator_test;
 import backend.text;
 
 // Compiler handles belong to the subject reactor. Text returned by the
 // adapter belongs to this test. Stdout has an explicit UTF-8 byte count.
-extern fn roku_read(name: u8*, length: usize*): u8*;
-
 extern fn roku_compile(source: u8*, pointer_bytes: u32): u32;
 
 extern fn roku_release(handle: u32): void;
@@ -21,25 +19,10 @@ extern fn roku_reference(handle: u32, length: usize*): u8*;
 
 extern fn roku_live_nodes(): u32;
 
-extern fn roku_submit(program: u8*, main: u8*): void;
-
-extern fn roku_take_output(length: usize*): u8*;
-
 var RokuPointerBytes: u32 = 4;
 
 fn roku_input(name: u8*): u8* {
     return roku_read(name, null);
-}
-
-fn check_simulator(program: u8*, main: u8*, wanted: FixtureBytes, label: u8*): void {
-    roku_submit(program, main);
-    var actual: FixtureBytes = default;
-    // The Node adapter runs the simulator between interpreter steps.
-    while actual.data == null {
-        actual.data = roku_take_output(&actual.length);
-    }
-    defer free(actual.data);
-    assert(fixture_equal(actual, wanted), label);
 }
 
 fn check_reconstructed(original: u32, optimize: bool, main: u8*, wanted: FixtureBytes, label: u8*): void {

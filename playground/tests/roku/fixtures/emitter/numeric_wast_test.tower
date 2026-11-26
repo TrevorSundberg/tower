@@ -1,0 +1,114 @@
+import numeric_cases_test;
+import roku_simulator_test;
+import library.testing;
+import backend.text;
+import library.vector;
+
+// Only numeric return/trap invocations from the pinned WAST are consumed.
+// Other directives include intentionally invalid modules.
+fn take_token(cursor: u8**, spelling: u8*): bool {
+    while **cursor == 32 || **cursor == 10 || **cursor == 9 || **cursor == 13 {
+        *cursor += 1;
+    }
+    if !backend_prefix(*cursor, spelling) {
+        return false;
+    }
+    *cursor += backend_length(spelling);
+    return true;
+}
+
+fn constant(cursor: u8**, width: u32): Operand {
+    var narrow = take_token(cursor, "(i32.const");
+    if !narrow {
+        assert(take_token(cursor, "(i64.const"), "Integer constant");
+    }
+    assert(width == 0 || width ==(narrow ? 32: 64), "WAST operand width");
+    var negative = take_token(cursor, "-");
+    var base: u64 = take_token(cursor, "0x") ? 16: 10;
+    var value: u64 = 0;
+    var digits: usize = 0;
+    while **cursor != 41 {
+        var c = **cursor;
+        *cursor += 1;
+        if c != 95 {
+            var digit: u8 = 0;
+            if c >= 48 && c <= 57 {
+                digit = c - 48;
+            }
+            else {
+                var lower = c | 32;
+                assert(lower >= 97 && lower <= 102, "Invalid WAST digit");
+                digit = lower - 97 + 10;
+            }
+            assert(convert(u64, digit) < base, "WAST digit outside radix");
+            value = value * base + convert(u64, digit);
+            digits++;
+        }
+    }
+    assert(digits != 0, "Empty WAST constant");
+    *cursor += 1;
+    return init(Operand) {
+        value: negative ? 0 -value: value, negative: negative
+    };
+}
+
+fn parse_wast(suite: NumericSuite*, width: u32): void {
+    var source = roku_read(width == 32 ? "i32.wast": "i64.wast", null);
+    defer free(source);
+    var counts: usize[sizeof(decltype(NumericOps)) / sizeof(NumericOp)] = default;
+    var cursor = source;
+    while *cursor != 0 {
+        var returns = take_token(&cursor, "(assert_return");
+        if returns || take_token(&cursor, "(assert_trap") {
+            assert(take_token(&cursor, "(invoke") && take_token(&cursor, "\""), "WAST invoke");
+            var name = cursor;
+            while *cursor != 34 && *cursor != 0 {
+                cursor++;
+            }
+            assert(*cursor == 34, "Unterminated WAST operation");
+            *cursor = 0;
+            cursor++;
+            var row: NumericCase = {
+                width: width, traps: !returns, .. default
+            };
+            var index = operation_index(name);
+            row.op = &NumericOps[index];
+            counts[index]++;
+            row.a = constant(&cursor, width);
+            row.binary = !take_token(&cursor, ")");
+            if row.binary {
+                row.b = constant(&cursor, width);
+                assert(take_token(&cursor, ")"), "WAST invoke arity");
+            }
+            if returns {
+                row.wanted = constant(&cursor, 0).value & width_mask(width);
+            } else {
+                assert(take_token(&cursor, "\""), "WAST trap message");
+                while *cursor != 34 && *cursor != 0 {
+                    cursor++;
+                }
+                assert(take_token(&cursor, "\""), "Unterminated WAST trap message");
+            }
+            assert(take_token(&cursor, ")"), "Unterminated WAST expectation");
+            emit_case(suite, &row);
+        }
+        while *cursor != 0 && *cursor != 10 {
+            cursor++;
+        }
+        if *cursor == 10 {
+            cursor++;
+        }
+    }
+    for(var i: usize = 0; i < sizeof(decltype(counts)) / sizeof(usize); i++) {
+        var op = &NumericOps[i];
+        var i64_only = backend_equal(op.name, "extend32_s");
+        assert(counts[i] ==(width == 32 && i64_only ? 0: op.pinned), op.name);
+    }
+}
+
+fn run_pinned(width: u32): void {
+    var suite: NumericSuite = default;
+    defer vector_dispose(&suite.body);
+    parse_wast(&suite, width);
+    run_numeric_suite(&suite);
+}

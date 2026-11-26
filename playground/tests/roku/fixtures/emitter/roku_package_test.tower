@@ -1,0 +1,31 @@
+import library.test_fixtures;
+import library.vector;
+import backend.text;
+
+extern fn roku_write(name: u8*, data: u8*, length: usize): void;
+
+extern fn roku_readback(name: u8*, length: usize*): u8*;
+
+fn write_package_file(name: u8*, data: u8*, length: usize): void {
+    roku_write(name, data, length);
+    var actual: FixtureBytes = default;
+    actual.data = roku_readback(name, &actual.length);
+    defer free(actual.data);
+    var wanted: FixtureBytes = {
+        data: data, length: length
+    };
+    assert(fixture_equal(actual, wanted), name);
+}
+
+fn write_package_text(name: u8*, text: u8*): void {
+    write_package_file(name, text, backend_length(text));
+}
+
+fn write_package_expected(name: u8*, output: FixtureBytes): void {
+    var wrapped: vector(u8) = default;
+    defer vector_dispose(&wrapped);
+    assert(backend_text(&wrapped, "TOWER_ROKU_BEGIN\n"));
+    assert(backend_text_append(&wrapped, output.data, output.length));
+    assert(backend_text(&wrapped, "TOWER_ROKU_END\n"));
+    write_package_file(name, wrapped.data, wrapped.length);
+}

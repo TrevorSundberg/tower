@@ -1,0 +1,25 @@
+import numeric_wast_test;
+import numeric_cases_test;
+import roku_package_test;
+import library.vector;
+import library.test_fixtures;
+
+test() {
+    var suite: NumericSuite = default;
+    defer vector_dispose(&suite.body);
+    var runtime = numeric_runtime();
+    defer free(runtime);
+    append(&suite.body, runtime);
+    append(&suite.body, "\n");
+    parse_wast(&suite, 32);
+    parse_wast(&suite, 64);
+    var passed: vector(u8) = default;
+    defer vector_dispose(&passed);
+    finish_suite(&suite, "tr_numeric_checks", &passed);
+    append(&suite.body, "\nfunction TowerRun() as object\ntr_numeric_checks()\nreturn {}\nend function\n");
+    write_package_file("integers.brs", suite.body.data, suite.body.length);
+    var wanted: FixtureBytes = {
+        data: passed.data, length: passed.length
+    };
+    write_package_expected("integers-expected.txt", wanted);
+}

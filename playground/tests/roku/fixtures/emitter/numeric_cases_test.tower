@@ -1,0 +1,292 @@
+import roku_simulator_test;
+import library.test_fixtures;
+import library.vector;
+import backend.text;
+
+// A and B expand to exact LongInteger literals, W to the operand width,
+// and M to the shift mask. Counts are for each pinned file (extend32 is i64-only).
+struct NumericOp {
+    name: u8*;
+    expression: u8*;
+    pinned: usize;
+}
+
+var NumericOps: NumericOp[32] = {
+    {
+        "add", "tr_add(A, B, W, false)", 8
+    },
+    {
+        "sub", "tr_sub(A, B, W, false)", 7
+    },
+    {
+        "mul", "tr_mul(A, B, W, false)", 9
+    },
+    {
+        "and", "tr_and(A, B, W, false)", 8
+    },
+    {
+        "or", "tr_or(A, B, W, false)", 8
+    },
+    {
+        "xor", "tr_xor(A, B, W, false)", 10
+    },
+    {
+        "div_u", "tr_div(A, B, W, false)", 16
+    },
+    {
+        "rem_u", "tr_rem(A, B, W, false)", 16
+    },
+    {
+        "div_s", "tr_div(A, B, W, true)", 20
+    },
+    {
+        "rem_s", "tr_rem(A, B, W, true)", 20
+    },
+    {
+        "shl", "tr_mask(tr_shl(A, B and M&), W)", 11
+    },
+    {
+        "shr_u", "tr_shr(tr_mask(A, W), B and M&)", 17
+    },
+    {
+        "shr_s", "tr_shrs(A, B, W)", 17
+    },
+    {
+        "rotl", "tr_rotl(A, B, W)", 13
+    },
+    {
+        "rotr", "tr_rotr(A, B, W)", 13
+    },
+    {
+        "clz", "tr_clz(A, W)", 8
+    },
+    {
+        "ctz", "tr_ctz(A, W)", 6
+    },
+    {
+        "popcnt", "tr_popcnt(A, W)", 8
+    },
+    {
+        "eqz", "tr_bool(tr_mask(A, W) = 0&)", 5
+    },
+    {
+        "extend8_s", "tr_convert(A, 8, true, W, true, false)", 7
+    },
+    {
+        "extend16_s", "tr_convert(A, 16, true, W, true, false)", 7
+    },
+    {
+        "extend32_s", "tr_convert(A, 32, true, W, true, false)", 10
+    },
+    {
+        "eq", "tr_bool(tr_compare(A, B, W, false) = 0)", 14
+    },
+    {
+        "ne", "tr_bool(tr_compare(A, B, W, false) <> 0)", 14
+    },
+    {
+        "lt_s", "tr_bool(tr_compare(A, B, W, true) < 0)", 14
+    },
+    {
+        "lt_u", "tr_bool(tr_compare(A, B, W, false) < 0)", 14
+    },
+    {
+        "le_s", "tr_bool(tr_compare(A, B, W, true) <= 0)", 14
+    },
+    {
+        "le_u", "tr_bool(tr_compare(A, B, W, false) <= 0)", 14
+    },
+    {
+        "gt_s", "tr_bool(tr_compare(A, B, W, true) > 0)", 14
+    },
+    {
+        "gt_u", "tr_bool(tr_compare(A, B, W, false) > 0)", 14
+    },
+    {
+        "ge_s", "tr_bool(tr_compare(A, B, W, true) >= 0)", 14
+    },
+    {
+        "ge_u", "tr_bool(tr_compare(A, B, W, false) >= 0)", 14
+    }
+};
+
+fn operation_index(name: u8*): usize {
+    for(var i: usize = 0; i < sizeof(decltype(NumericOps)) / sizeof(NumericOp); i++) {
+        if backend_equal(name, NumericOps[i].name) {
+            return i;
+        }
+    }
+    trap(name, source_offset());
+    return 0;
+}
+
+struct Operand {
+    value: u64;
+    negative: bool;
+}
+
+struct NumericCase {
+    op: NumericOp*;
+    width: u32;
+    a: Operand;
+    b: Operand;
+    binary: bool;
+    traps: bool;
+    wanted: u64;
+}
+
+struct NumericSuite {
+    body: vector(u8);
+    count: usize;
+}
+
+var CasesPerSub: usize = 64;
+enum ExpressionByte: u8 {
+    Left = 65, Right = 66, ShiftMask = 77, Width = 87
+}
+
+fn append(out: vector(u8)*, text: u8*): void {
+    assert(backend_text(out, text), "Append BrightScript");
+}
+
+fn decimal(out: vector(u8)*, n: u64): void {
+    var digits: u8[20];
+    var i = sizeof(decltype(digits));
+    loop {
+        digits[--i] = 48 + convert(u8, n % 10);
+        n /= 10;
+        if n == 0 {
+            break;
+        }
+    }
+    assert(backend_text_append(out, &digits[i], sizeof(decltype(digits)) -i));
+}
+
+fn hex_literal(out: vector(u8)*, n: u64): void {
+    var digits: u8[16];
+    var alphabet = "0123456789abcdef";
+    for(var i = sizeof(decltype(digits)); i != 0; i--) {
+        digits[i -1] = alphabet[convert(usize, n &15)];
+        n >>= 4;
+    }
+    append(out, "&h");
+    assert(backend_text_append(out, &digits[0], sizeof(decltype(digits))));
+    append(out, "&");
+}
+
+fn width_mask(width: u32): u64 {
+    return width == 32 ? convert(u64, ~convert(u32, 0)): ~convert(u64, 0);
+}
+
+fn operand_label(out: vector(u8)*, operand: Operand): void {
+    if operand.negative && operand.value != 0 {
+        append(out, "-");
+        decimal(out, 0 -operand.value);
+    } else {
+        decimal(out, operand.value);
+    }
+}
+
+fn render_expression(out: vector(u8)*, row: NumericCase*): void {
+    var pattern = row.op.expression;
+    var start: usize = 0;
+    for(var i: usize = 0;; i++) {
+        var byte = pattern[i];
+        if byte == 0 ||(byte >= 65 && byte <= 90) {
+            assert(backend_text_append(out, &pattern[start], i -start));
+            if byte == 0 {
+                return;
+            }
+            match convert(ExpressionByte, byte) {
+                ExpressionByte.Left => {
+                    hex_literal(out, row.a.value);
+                }
+                ExpressionByte.Right => {
+                    assert(row.binary);
+                    hex_literal(out, row.b.value);
+                }
+                ExpressionByte.ShiftMask => {
+                    append(out, row.width == 32 ? "31": "63");
+                }
+                ExpressionByte.Width => {
+                    append(out, row.width == 32 ? "32": "64");
+                }
+                _ => {
+                    assert(false, "Unknown numeric expression placeholder");
+                }
+            }
+            start = i + 1;
+        }
+    }
+}
+
+fn emit_case(suite: NumericSuite*, row: NumericCase*): void {
+    var out = &suite.body;
+    if suite.count % CasesPerSub == 0 {
+        if suite.count != 0 {
+            append(out, "end sub\n\n");
+        }
+        append(out, "sub check_");
+        decimal(out, convert(u64, suite.count));
+        append(out, "()\n");
+    }
+    if row.traps {
+        append(out, "    caught = false\n    try\n    ");
+    }
+    append(out, "    value = ");
+    render_expression(out, row);
+    if row.traps {
+        append(out, "\n    catch e\n        if instr(1, e.message, \"Tower:\") <> 1 then throw e\n        caught = true\n    end try\n    if not caught then throw \"Missing trap ");
+    } else {
+        append(out, "\n    if value <> ");
+        hex_literal(out, row.wanted);
+        append(out, " then throw \"Mismatch ");
+    }
+    decimal(out, convert(u64, suite.count));
+    append(out, row.width == 32 ? ": i32.": ": i64.");
+    append(out, row.op.name);
+    append(out, " ");
+    operand_label(out, row.a);
+    if row.binary {
+        append(out, ",");
+        operand_label(out, row.b);
+    }
+    append(out, row.traps ? "\"\n": ": \" + value.tostr()\n");
+    suite.count++;
+}
+
+fn finish_suite(suite: NumericSuite*, main: u8*, passed: vector(u8)*): void {
+    var out = &suite.body;
+    append(out, "end sub\n\nsub ");
+    append(out, main);
+    append(out, "()\n");
+    for(var i: usize = 0; i < suite.count; i += CasesPerSub) {
+        append(out, "    check_");
+        decimal(out, convert(u64, i));
+        append(out, "()\n");
+    }
+    append(passed, "passed ");
+    decimal(passed, convert(u64, suite.count));
+    append(out, "    print \"");
+    append(out, passed.data);
+    append(out, "\"\nend sub\n");
+    append(passed, "\n");
+}
+
+fn numeric_runtime(): u8* {
+    var runtime = roku_read("runtime.brs", null);
+    assert(backend_contains(runtime, "function tr_udiv("), "Shipped integer runtime");
+    return runtime;
+}
+
+fn run_numeric_suite(suite: NumericSuite*): void {
+    var passed: vector(u8) = default;
+    defer vector_dispose(&passed);
+    finish_suite(suite, "Main", &passed);
+    var runtime = numeric_runtime();
+    defer free(runtime);
+    var wanted: FixtureBytes = {
+        data: passed.data, length: passed.length
+    };
+    check_simulator(runtime, suite.body.data, wanted, "Integer simulator output");
+}
