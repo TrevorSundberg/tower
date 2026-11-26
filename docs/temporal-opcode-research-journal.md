@@ -108704,3 +108704,23 @@ Batches of 200 fresh serial fixture processes, including launch costs, took
 0.15/0.16 s wall for the jobs-1 objects and 0.16/0.15 s for jobs-4. Every
 process printed exactly `0\n`. These measurements cover fixture compilation
 and execution. The scheduler implementation did not change.
+
+The full relocated kit exposed 12 exact-count failures after the five groups
+passed in isolation. Owner discovery follows the import closure. At each job
+width, six existing owners ran their original declarations plus the five new
+budget declarations. The count runner correctly rejected the larger summaries.
+The default SCC and WorkGraph owners now require 7 and 13 respectively; the
+four entity-related owners require 6 each. Direct WorkGraph selection requires
+its original 8. The work-resume CTests use the existing final-line and empty
+stdout check on both entry points. An alternate SCC suffix still has its own
+count contract and the wrong SCC control failed at its original line 7.
+
+The unchanged input kit passed 24/24. The final build and moved kit each passed
+28/28. The complete coordinate lists matched between the two locations. All
+82 original declaration executions across the two job widths matched in order
+and multiplicity after removing the new budget coordinates. The final moved
+kit executed 162 declarations, including 60 new transitive executions and 20
+in its four new registrations. This increases suite cost: one warm baseline
+kit run took 21.95 s wall and 24.06 s CPU, peak 191060 KiB. The final moved
+kit took 30.05 s wall and 32.88 s CPU, peak 200344 KiB. The four separate
+work-resume CTests passed on the final configuration.
