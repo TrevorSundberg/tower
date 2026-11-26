@@ -1,0 +1,71 @@
+import .library.testing;
+import .library.entity_api;
+import .library.entity_types;
+import .library.work_budget_types;
+import entity_create_faults;
+
+extern fn puts(text: u8*): i32;
+
+test() { entity_create_faults(); }
+
+// Exercise one store through reuse, refusal, retry and disposal with the
+// single-owner fault allocator. Both refusals must preserve the same next ID.
+fn entity_create_faults(): void {
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    assert(store != null, "Create the store");
+    var root = entity_create(store);
+    assert(root != null, "Create the root entity");
+    var page = store.buffers.owned;
+    assert(page != null && page.components == null && page.live == 1 && page.capacity > 1,
+        "The root occupies one raw page slot with room for a peer");
+    var peers = alloc(Entity*, page.capacity);
+    assert(peers != null, "Allocate peer handles for the actual page capacity");
+    peers[0] = root;
+    var calls = tower_test_buffer_allocations();
+    var error = WorkBudgetError.None;
+    // A free raw-owner slot needs no allocation, even during allocation denial.
+    tower_test_buffer_fail_after(0);
+    var reused = entity_create_related_result(root, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(reused != null && error == WorkBudgetError.None
+        && tower_test_buffer_allocations() == calls && page.live == 2,
+        "Related creation uses the free slot without a physical allocation");
+    entity_release(reused);
+    for(var i: usize = 1; i < page.capacity; i++) {
+        peers[i] = entity_create(store);
+        assert(peers[i] != null && tower_test_buffer_allocations() == calls,
+            "Fill each remaining slot without a physical allocation");
+    }
+    var count = page.capacity;
+    assert(page.live == count && page.pool == null && store.entity_count == count,
+        "The full page leaves the available pool");
+    var prior = store.next_id;
+    var live = tower_test_buffer_count();
+    tower_test_buffer_fail_after(0);
+    var missing = entity_create_result(store, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(missing == null && error == WorkBudgetError.Memory
+        && tower_test_buffer_allocations() == calls + 1 && tower_test_buffer_count() == live
+        && store.next_id == prior && store.entity_count == count && store.views == 0,
+        "Direct refusal reports Memory and preserves buffers, IDs, entities and views");
+    tower_test_buffer_fail_after(0);
+    missing = entity_create_related_result(root, &error);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(missing == null && error == WorkBudgetError.Memory
+        && tower_test_buffer_allocations() == calls + 2 && tower_test_buffer_count() == live
+        && store.next_id == prior && store.entity_count == count && page.live == count
+        && root.references == 1 && root.child_count == 0,
+        "Related refusal also preserves page occupancy and root ownership");
+    var related = entity_create_related_result(root, &error);
+    assert(related != null && error == WorkBudgetError.None && related.id == prior
+        && related.store == store && related.parent == null && store.entity_count == count + 1
+        && tower_test_buffer_allocations() == calls + 3 && tower_test_buffer_count() == live + 1,
+        "Retry publishes the original next ID as an unattached entity on a new page");
+    entity_release(related);
+    for(var i: usize = 0; i < count; i++) { entity_release(peers[i]); }
+    free(peers);
+    assert(store.entity_count == 0 && entity_store_dispose(store)
+        && tower_test_buffer_count() == baseline, "Dispose the empty store and restore the buffer baseline");
+    puts("0");
+}

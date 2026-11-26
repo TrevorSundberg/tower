@@ -29,8 +29,12 @@ if(policy_triple MATCHES "^x86_64-.*linux")
   # existing memory object. All use the single-owner fault allocator/transport.
   foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults entity_mutation_results)
     string(REPLACE "_" "-" name "${unit}")
+    set(fault_entry "${unit}")
+    if(unit STREQUAL "entity_create_faults")
+      set(fault_entry entity_create_faults_main)
+    endif()
     tower_runtime_object(${name}
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fault_entry}.tower" "${policy_triple}")
     set(fault_memory)
     if(unit STREQUAL "work_budget_allocation" OR unit STREQUAL "entity_create_faults")
       list(APPEND fault_memory "${host_memory_OBJECT}")
@@ -79,6 +83,8 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^
     endforeach()
   endforeach()
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/TowerEntityCreateFaultTests.cmake")
 
 # Backend/frontend registration runs after the native compiler target exists.
 # Reuse its production allocator, without the frontend instrumentation override.
