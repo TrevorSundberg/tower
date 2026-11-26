@@ -1,0 +1,11 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var text = require_error("declaration_separator", 30, NoErrorLength, false);
+    defer free(text);
+    assert(backend_contains(text, "Expected '=' or ':'") && !backend_contains(text, "Missing"), text);
+    accept("typed_declaration");
+    accept("initialized_declaration");
+}

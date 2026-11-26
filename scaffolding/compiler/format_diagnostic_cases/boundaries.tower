@@ -1,0 +1,25 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var message = "Unexpected ';'. Expected a statement or grammar declaration.";
+    reject("pointer_boundary", 35, NoErrorLength, message);
+    reject("empty_boundary", 19, NoErrorLength, message);
+    reject("call_boundary", 29, NoErrorLength, message);
+    reject("function_boundary", 35, NoErrorLength, message);
+    var nested = require_error("nested_boundary", 45, NoErrorLength, false);
+    defer free(nested);
+    assert(!backend_contains(nested, "Required by") && !backend_contains(nested, "CoreCall")
+        && !backend_contains(nested, "CoreLocation"), nested);
+    var nullable = require_error("nullable_prefix", 81, NoErrorLength, false);
+    defer free(nullable);
+    assert(!backend_contains(nullable, "In rule Future"), nullable);
+    var partial = require_error("missing_separator", 28, 0, false);
+    defer free(partial);
+    assert(backend_contains(partial, "In rule CoreCallStatement") && !backend_contains(partial, "Required by"), partial);
+    var syntax = diagnostic_foundation_syntax();
+    defer free(syntax);
+    assert(foundation_line(partial) == rule_line(syntax, "parse CoreCallStatement ="), partial);
+    accept("empty_allowed");
+}

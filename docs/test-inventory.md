@@ -313,14 +313,16 @@ nodes during inspection and restore the exact idle count after destruction.
 
 ### Parser diagnostics
 
-Each of the ten names in the Node diagnostics suite selects a case in the
-[formatter companion](../scaffolding/compiler/format_diagnostic_test.tower).
+Each of the ten names in the Node diagnostics suite selects one Tower
+`test()` declaration from the [diagnostic cases](../scaffolding/compiler/format_diagnostic_cases).
 The parser reads the original bytes from ordinary files, including the six
 successful repairs. The two cache inputs are the original and edited source
 of one parser handle. Run the file with
 `node --test playground/tests/diagnostics.test.mjs` or select a name with
-Node's `--test-name-pattern`. The [Wasm selector](../scaffolding/compiler/format_diagnostic_cases/session_wasm.tower)
-calls the companion through the common test runner.
+Node's `--test-name-pattern`. For example, the cached-grammar name runs
+[the edit and cache-hit assertions](../scaffolding/compiler/format_diagnostic_cases/cache.tower)
+on a fresh execution handle. The common test runner saves the assertion's
+source map before the parser opens `input.tower` on the same reactor.
 
 Ordinary native `--test` on `scaffolding/compiler/format_diagnostic.tower`
 or its direct companion parses the repaired keyword and contextual lexer

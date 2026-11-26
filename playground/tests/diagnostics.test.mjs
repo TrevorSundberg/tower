@@ -3,8 +3,8 @@ import {files, runToEnd} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
 const cases = '.tower/compiler/format_diagnostic_cases/';
-const parser = await openTower();
 const encoder = new TextEncoder();
+
 function copyText(context, text) {
   if (typeof text !== 'string') throw new Error('Missing parser text');
   const bytes = encoder.encode(text);
@@ -21,39 +21,38 @@ function numberField(value) {
   return value;
 }
 
-let selected, handle, source, end;
-const checks = await openTower({imports:{
-  selected_diagnostic_case: context => copyText(context, selected),
+let parser, source, end;
+const compiler = await openTower({imports:{
   diagnostic_read(context, file, edit) {
     source = fixtureSource(cases + 'inputs/' + guestString(context, file) + '.tower');
-    if (edit) parser.reset(handle, source);
+    // Compilation saved the assertion handle's source map. Give the parser
+    // its own entry path before opening this case's first subject handle.
+    if (!parser) compiler.configureModules({entry:'input.tower'});
+    if (edit) compiler.reset(parser, source);
     else {
-      if (handle) parser.destroy(handle);
-      handle = undefined;
-      handle = parser.create(source);
+      if (parser) compiler.destroy(parser);
+      parser = undefined;
+      parser = compiler.create(source);
     }
-    end = runToEnd(parser, handle).end;
+    end = runToEnd(compiler, parser).end;
     return end.status === 'done';
   },
   diagnostic_text: context => copyText(context, end.error),
   diagnostic_offset: () => numberField(end.errorOffset),
   diagnostic_length: () => end.errorLength === undefined ? -1 : numberField(end.errorLength),
-  diagnostic_cache_hits: () => numberField(parser.inspect(handle).grammarCacheHits),
+  diagnostic_cache_hits: () => numberField(compiler.inspect(parser).grammarCacheHits),
   diagnostic_source_size: () => encoder.encode(source).length,
   diagnostic_foundation_syntax: context => copyText(context, fixtureSource('.tower/foundation_syntax.tower')),
 }});
 
-// The assertion reactor only compiles the companion, its fixture imports and text helpers.
-checks.configureModules({files:files.filter(({path}) => path.startsWith(cases) ||
-  path === '.tower/compiler/format_diagnostic_test.tower' || path === '.tower/backend/text.tower' ||
-  path.startsWith('.tower/library/'))});
+compiler.configureModules({files:files.filter(({path}) => path.startsWith(cases) ||
+  path === '.tower/backend/text.tower' || path.startsWith('.tower/library/'))});
 
 function check(name) {
-  selected = name;
-  try { runSelectedTest(checks, cases + 'session_wasm.tower', undefined, {suffix:'_wasm.tower'}); }
+  try { runSelectedTest(compiler, cases + name + '.tower'); }
   finally {
-    if (handle) parser.destroy(handle);
-    handle = end = source = selected = undefined;
+    if (parser) compiler.destroy(parser);
+    parser = source = end = undefined;
   }
 }
 
