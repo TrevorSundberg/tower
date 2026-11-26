@@ -88,8 +88,8 @@ function(tower_execution_tests)
         set(path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower")
         set(summary "1 test")
         if(entry STREQUAL "staged_capture_identity")
-          # Default owner discovery also reaches the five work_budget tests.
-          set(summary "6 tests")
+          # The typed context reaches the budget, graph and stack companions (5 + 8 + 2).
+          set(summary "16 tests")
         endif()
         foreach(jobs IN ITEMS 1 4)
           set(name "tower-selected-${entry}-jobs-${jobs}")
