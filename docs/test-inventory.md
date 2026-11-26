@@ -72,3 +72,24 @@ first in a short manifest, the same runner aborts on canonical text for the
 narrow provider, the ASan probe and the token fixture. It passes the scale
 and borrowed-view files, including the second formatting pass. The Node
 module-path test also checks the spellings of all five paths.
+
+### WorkGraph suspension cases on the native CLI
+
+From the repository root, the development compiler from `3ae475c2` runs all
+eight cases with either command. Use `--jobs 4` to exercise the other
+registered compiler width.
+
+```sh
+towerc --test scaffolding/library/work_graph.tower --test-details --jobs 1
+towerc --test scaffolding/library/work_graph_test.tower --test-details --jobs 1
+```
+
+The native CTest names are `tower-work-resume-owner-{1,4}` and
+`tower-work-resume-direct-{1,4}`. The [184-site map](evidence/work_resume_check_map.tsv)
+pairs each legacy check with its companion assertion. This includes the nonzero
+task ID check in the shared request helper. On success the legacy
+`scaffolding/tests/work_resume.tower` script prints a zero failure count. The
+companion writes empty guest stdout and reports its eight locations on stderr.
+The original `work_resume` browser registration still exercises its backend
+matrix. Run the CLI commands against the source checkout so the companion can
+import `scaffolding/host/memory.tower`.

@@ -105835,3 +105835,63 @@ Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
 Jenkins console, commands, inputs, comparison products, sanitizer attempts
 and local commit for review. The full Jenkins rerun and publication remain
 with the manager.
+
+### WorkGraph suspension through the installed development CLI
+
+Host 4, assignment `7c453851-3d07-4bca-9b13-300cc72456df`. Public
+`a5c4b40f` and candidate `6892489b` are both parents of the source merge
+`5b1c3967`. All six required members and both producer archives matched the
+transfer manifest. Each loose member also matched the bytes in its archive.
+The sealed Ubuntu x64 compiler package from `3ae475c2` had SHA-256
+`ddec8a02b149f80932b2120476422f502b97b3ee587b8de418d221609fc5cc74`.
+All 59 installed payload checks passed. The executable SHA-256 was
+`02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7`.
+
+In the predecessor packet, the adapted selector reported zero for the owner
+and eight for the explicit import. Here the installed `towerc --test` on
+the public source export reported zero for the bare owner before adding the
+companion. Adding the unchanged candidate beside it selected eight. Owner and
+explicit companion each passed at one and four jobs with empty guest stdout.
+The detailed reports had the same eight source locations in order. Both
+file inventories named just the adjacent companion. The unmodified legacy
+script printed exactly `0\n` with empty stderr at each width. The
+[map](evidence/work_resume_check_map.tsv) matched all 184 conditions and
+line numbers in both source files. Reversing the first retired-ticket finish
+check made the original script print `1\n` and still exit zero. The same edit
+to the assertion made both CLI entries exit 1 with empty stdout and one
+diagnostic at `work_graph_test.tower:36:5: Assertion failed`, at both widths.
+
+The ordinary owner compile with `--library --emit foundation --depfile`
+produced byte-identical Foundation and depfiles with the sibling present
+and absent at both widths. No companion, testing module or host memory
+module appeared in the depfile. Separate ordinary source formatting outputs
+also matched. Combining formatting with library/depfile options returned
+the driver's unsupported-options diagnostic. In a regular Linux native
+CMake configure with driver tests enabled, CTest preserved the 41 previous
+commands and properties and discovered four new ones. The test target path
+pointed to the sealed executable for this run. All four passed. Removing the
+sibling or reducing it to seven cases made the registered owner CTest fail.
+The existing semantic iteration owner also passed with the newly reachable
+WorkGraph cases. Its detailed report contained eleven passes.
+
+The checkout companion imports the existing Tower allocator implementation
+from `scaffolding/host/memory.tower`. The normal interpreter commands used
+only their input and installed CLI resources, with no external link input.
+Pointing the same executable at CMake's copied `share/tower/library` owner
+instead exposed an incomplete source closure. Its copied companion reported
+`Cannot read imported module: ../host/memory` at 2:21. The qualified entry
+points use the source checkout. Standalone resource-copy execution and
+successor package publication are outside this qualification.
+
+On Debian 12 x64, Ryzen 7 5800H (8 cores/16 threads), CPU quota 15.36,
+affinity 2–5, each sample was a fresh process with warmed files. The host
+timing lock serialized three repetitions per CLI entry and width. At jobs
+1/4, median wall time in seconds was 0.35/0.37 for the legacy script,
+0.46/0.49 for the owner and 0.46/0.49 for the companion. Corresponding
+median CPU times were 0.35/0.45, 0.45/0.60 and 0.45/0.61. Maximum process
+RSS in KiB was 118440/123276, 116852/127072 and 116860/127220. These
+measure the full commands including selection, interpretation and reporting.
+The CLI exposes no per-test allocation counter. The guest calls the graph
+coordinator sequentially. The predecessor's guest sanitizer and backend
+evidence belongs to its own run. This registration changes no compiler,
+scheduler or allocator code. Browser selectors remain active.
