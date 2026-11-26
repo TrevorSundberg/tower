@@ -1,5 +1,1 @@
-import tower;
-
-struct P { x: i32; }
-fn make(): P { return comptime(make()); }
-var p = comptime(make());
+import tower;struct P{x:i32;}fn make():P{return comptime(make());}var p=comptime(make());
