@@ -1,0 +1,195 @@
+import library.testing;
+import generic_inspection_types_checks;
+import generic_inspection_budget;
+import frontend_units;
+import editor_units;
+import .compiler.completion_types;
+import .compiler.semantic_work_ids;
+import .library.work_graph;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .library.vector;
+import .library.work_budget;
+import .library.work_pool;
+
+// Locate the same narrowest public entry as the IDE, without interpreting or
+// reconstructing types. Entries have scalar fields; the next entry bounds reads.
+fn inspection_hover(output: u8*, source: u8*, needle: u8*, offset: usize, wanted: u8*): void {
+    var location = strstr(source, needle);
+    assert(location != null, "Hover needle belongs to exact input");
+    var position = bits(usize, location) - bits(usize, source) + offset;
+    var selected: u8* = null;
+    var selected_end: u8* = null;
+    var span = ~convert(usize, 0);
+    var prefix = "{\"from\":";
+    var cursor = strstr(output, prefix);
+    while cursor != null {
+        var next = strstr(cursor + strlen(prefix), prefix);
+        var end = next ?? output + strlen(output);
+        var first = inspection_number(cursor + strlen(prefix));
+        var to = strstr(cursor, ",\"to\":");
+        assert(to != null && bits(usize, to) < bits(usize, end), "Public entry has bounded range");
+        var last = inspection_number(to + strlen(",\"to\":"));
+        if first <= position && position < last && last - first <= span {
+            selected = cursor; selected_end = end; span = last - first;
+        }
+        cursor = next;
+    }
+    assert(selected != null, "Hover source has a public entry");
+    var field = strstr(selected, "\"type\":\"");
+    var present = field != null && bits(usize, field) < bits(usize, selected_end);
+    if wanted == null { assert(!present, "Invalid array dereference has no type"); return; }
+    assert(present, "Typed hover retains its type field");
+    field += strlen("\"type\":\"");
+    assert(strncmp(field, wanted, strlen(wanted)) == 0 && field[strlen(wanted)] == *"\"", needle);
+}
+
+fn inspection_types_document(world: void*, environment: void*, width: u32, source: u8*, array: bool): void {
+    var query = language_document_world(world, environment, source, strlen(source), 0, width);
+    assert(query != null, "Concrete generic inspection admits its document");
+    defer completion_dispose(query);
+    var q = bits(CompletionQuery*, query);
+    var output = language_document_result(query);
+    assert(output != null && strstr(output, "\"complete\":true") != null
+        && strstr(output, "function template") != null, "Concrete generic inspection completes");
+    assert(q.program.pointer_bytes == width && q.program.resource.error == WorkBudgetError.None
+        && q.context.queries.running == 0 && q.context.workers.running == 0, "Inspection joins its target-owned work");
+    if array {
+        var found: usize = 0;
+        foreach(var node in &q.program.types) {
+            var value = sem_get(node);
+            if value.type.scalar == SArray && value.element.scalar == SI32 && value.length == 4 {
+                assert(value.type.record == node && value.type.pointer_bytes == width
+                    && value.element.pointers == 0 && semantic_size(&value.type) == value.length * sizeof(i32),
+                    "Canonical array identity retains element, extent, layout and target");
+                found++;
+            }
+        }
+        if found != 1 { puts(output); }
+        assert(found == 1, "One canonical four-element array serves inspection");
+    }
+    if strstr(source, "*p =") != null {
+        inspection_hover(output, source, "*p =", 0, "i32");
+        inspection_hover(output, source, "*p =", 3, "i32");
+        inspection_hover(output, source, "*q =", 0, "T");
+        inspection_hover(output, source, "*q =", 3, "T");
+        inspection_hover(output, source, "*p;", 0, "i32");
+        inspection_hover(output, source, "item =", 0, "i32");
+        if array { inspection_hover(output, source, "*items;", 0, null); }
+    }
+    var snapshot: vector(u8) = default;
+    defer vector_dispose(&snapshot);
+    editor_units_snapshot(output, &snapshot);
+    assert(vector_push(&snapshot, 0), "Terminate comparable inspection output");
+    puts(snapshot.data);
+}
+
+fn inspection_alias_dependency(world: void*, environment: void*): void {
+    var deep = "import tower;struct Word{v:u8;}";
+    var mid = "import tower;import deep as origin;var Word:type=origin.Word;";
+    var policy = "import tower;import mid as route;var Word:type=route.Word;";
+    var source = "import tower;import policy as cfg;print(comptime(sizeof(cfg.Word)));";
+    assert(frontend_modules_source(environment, "deep.tower", deep, strlen(deep))
+        && frontend_modules_source(environment, "mid.tower", mid, strlen(mid))
+        && frontend_modules_source(environment, "policy.tower", policy, strlen(policy)), "Install qualified type aliases");
+    var q = bits(CompletionQuery*, language_document_world(world, environment, source, strlen(source), 0, 8));
+    assert(q != null, "Compile qualified type aliases");
+    defer completion_dispose(bits(void*, q));
+    assert(q.program.error.length == 0 && q.program.resource.error == WorkBudgetError.None, "Qualified alias staged use");
+    var graph = &q.context.queries;
+    var consumer: usize = 0;
+    var producer: usize = 0;
+    foreach(var node in &q.program.types) {
+        var name = sem_get(node).name.data;
+        if name == null { continue; }
+        if strcmp(name, "Word@policy.tower") == 0 { consumer = work_find(graph, node, convert(u32, SemanticQuery.Declaration), 0); }
+        if strcmp(name, "Word@mid.tower") == 0 { producer = work_find(graph, node, convert(u32, SemanticQuery.Declaration), 0); }
+    }
+    assert(consumer != 0 && producer != 0, "Two distinct module declaration tickets");
+    // A successful check can observe a previously completed query. The read
+    // reservation distinguishes admission from such an after-the-fact edge.
+    var index = work_task(graph, consumer).access;
+    while index != 0 {
+        var claim = &graph.accesses.data[index - 1];
+        if claim.domain == convert(u64, SemanticWorkDomain.Compiler) && claim.component == convert(u64, SemanticAccess.Declaration)
+            && claim.mode == WorkAccessMode.Read && claim.first == producer && claim.end == producer + 1 { return; }
+        index = claim.next;
+    }
+    assert(false, "Qualified alias must reserve its exported declaration producer before checking");
+}
+
+fn inspection_types_trial(root: u8*, workers: usize, sample: bool): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock); defer vector_dispose(&foundation);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    var gate = work_signal_open(); assert(gate != null, "Inspection budget gate"); work_signal_post(gate);
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, workers, GenericInspectionBudgetBytes, 1)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Inspection budget");
+    var world = compiler_world_create_workers(workers);
+    assert(world != null && compiler_world_bind_budget(world, &budget), "Inspection world");
+    var environment = frontend_modules_create();
+    assert(environment != null && frontend_modules_bind_world(environment, world), "Inspection source owner");
+    frontend_modules_configure(environment, "input.tower", root);
+    generic_inspection_baseline(world, environment, bedrock.data, false);
+    generic_inspection_baseline(world, environment, foundation.data, true);
+    if sample {
+        inspection_types_document(world, environment, 4,
+            "import foundation; fn demo(T:type,p:i32*,q:T*):void { *p = 1; *q = *q; var item = *p; }", false);
+    } else {
+        inspection_alias_dependency(world, environment);
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            inspection_types_document(world, environment, width,
+                "import foundation; fn demo(T:type,p:i32*,q:T*,items:i32[4]):void { *p = 1; *q = *q; var item = *p; var invalid = *items; }", true);
+            inspection_types_document(world, environment, width,
+                "import foundation; fn demo(T:type,callback:function(i32,i32[4]),items:i32[4]*):void {}", true);
+            inspection_types_document(world, environment, width,
+                "import foundation; fn demo(T:type,items:array_type(i32,4)):void {}", true);
+            inspection_types_document(world, environment, width,
+                "import foundation; fn demo(T:type,invalid:i32[0],value:i32):void {}", false);
+            inspection_types_document(world, environment, width,
+                "import tower; fn extent():usize { if false { return 1/0; } return 4; } fn demo(T:type,items:i32[extent()]):void {}", true);
+            var source = "import foundation; fn demo(T:type,items:i32[4]):void {}";
+            inspection_types_document(world, environment, width, source, true);
+            var nodes = entity_store_count(compiler_world_store(world));
+            var components = entity_store_component_count(compiler_world_store(world));
+            inspection_types_document(world, environment, width, source, true);
+            assert(entity_store_count(compiler_world_store(world)) == nodes
+                && entity_store_component_count(compiler_world_store(world)) == components,
+                "Repeated constructor inspection releases temporary types and annotations");
+            var query = language_document_world(world, environment, source, strlen(source), 0, width);
+            assert(query != null, "Inspection denial starts from a real prepared array");
+            generic_inspection_late(query, &budget);
+            completion_dispose(query);
+            inspection_types_document(world, environment, width, source, true);
+            source = "import foundation; fn demo(T:type,items:i32[4]):void {} print(missing_value);";
+            query = language_document_world(world, environment, source, strlen(source), 0, width);
+            assert(query != null, "Ordinary document errors retain symbolic inspection");
+            var output = language_document_result(query);
+            assert(output != null && strstr(output, "function template") != null,
+                "An ordinary document error retains symbolic template inspection");
+            var q = bits(CompletionQuery*, query);
+            var diagnostic = "retained ordinary diagnostic";
+            for(var index: usize = 0; index <= strlen(diagnostic); index++) {
+                assert(vector_push(&q.program.error, diagnostic[index]), "Retained document diagnostic storage");
+            }
+            q.program.error_offset = bits(usize, strstr(source, "missing_value")) - bits(usize, source);
+            var offset = q.program.error_offset;
+            assert(language_document_inspect(q, false) && strcmp(q.program.error.data, diagnostic) == 0
+                && q.program.error_offset == offset && q.program.resource.error == WorkBudgetError.None,
+                "The inspection boundary preserves an owning ordinary diagnostic and its source offset");
+            completion_dispose(query);
+        }
+    }
+    frontend_modules_destroy(environment);
+    assert(frontend_world_clear(world) && compiler_world_dispose(world), "Inspection retires its world");
+    var retired: WorkBudgetSnapshot = default;
+    assert(work_budget_snapshot(&budget, &retired) && retired.live == 0 && retired.used_bytes == 0
+        && retired.used_lanes == 0 && work_budget_dispose(&budget), "Inspection retires every allocation and lane");
+    work_signal_close(gate);
+}
+
+test() { inspection_types_trial("scaffolding", 1, true); }
+test() { inspection_types_trial("scaffolding", 4, true); }
+test() { inspection_types_trial("scaffolding", 1, false); }
+test() { inspection_types_trial("scaffolding", 4, false); }

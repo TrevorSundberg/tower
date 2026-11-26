@@ -194,7 +194,7 @@ function(tower_lr_work_policy_test)
 
   if(triple MATCHES "^x86_64-.*linux")
     tower_runtime_object(generic-inspection-types-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_inspection_types_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/generic_inspection_types_main.tower" "${triple}")
     add_executable(tower-generic-inspection-types-tests ${sources} "${generic-inspection-types-checks_OBJECT}")
     set_target_properties(tower-generic-inspection-types-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-generic-inspection-types-tests PRIVATE ${libraries})
@@ -219,14 +219,18 @@ function(tower_lr_work_policy_test)
 
     if(TARGET tower-lr-row-services)
       get_property(editor_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
-      add_dependencies(tower-completion-alias-tests tower-lr-row-services tower-selected-test-count tower-guest-native-test)
-      tower_native_test_selections(completion-alias completion_alias_checks "19 tests" "4 tests"
-        --test-native-runtime "${editor_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
-        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
-      foreach(selection IN ITEMS owner direct)
-        foreach(jobs IN ITEMS 1 4)
-          set_tests_properties("tower-completion-alias-${selection}-jobs-${jobs}" PROPERTIES
-            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+      foreach(suite IN ITEMS completion-alias generic-inspection-types)
+        string(REPLACE "-" "_" unit "${suite}")
+        add_dependencies(tower-${suite}-tests tower-lr-row-services tower-selected-test-count tower-guest-native-test)
+        # Owner discovery includes five budget, eight graph and two stack tests.
+        tower_native_test_selections("${suite}" "${unit}_checks" "19 tests" "4 tests"
+          --test-native-runtime "${editor_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+          --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+        foreach(selection IN ITEMS owner direct)
+          foreach(jobs IN ITEMS 1 4)
+            set_tests_properties("tower-${suite}-${selection}-jobs-${jobs}" PROPERTIES
+              WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+          endforeach()
         endforeach()
       endforeach()
     endif()

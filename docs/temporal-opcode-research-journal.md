@@ -118559,3 +118559,27 @@ namespace suggestion and located the failed selected assertion in the
 companion. Restoring the bytes restored the original results. Host 2
 assignment `6c0626c5-d402-48c0-9376-03b3d19b3355` contains the commands,
 original observations, exit codes and resource measurements.
+
+### Selecting the native generic inspection type checks
+
+The generic type companion runs the original Foundation pointer sample,
+typed and invalid hovers, retained three-module alias dependency, canonical
+arrays and first and repeated document inspections. The shared late-denial
+fixture still occupies the actual document budget after admission, checks the
+failed query and tries inspection again after releasing pressure. Each full
+trial uses 4- and 8-byte guest pointers in one module environment. Both the
+executable and the selected entries run the original world teardown and check
+that no grant, byte or lane survives. The shared LR service supplies the same
+native compiler and Linux worker transport as for module alias completion.
+
+Direct selection passed four declarations at compiler jobs 1 and 4. An
+initial expected count of four on the owner failed because discovery also
+ran the five budget, eight graph and two stack declarations. The corrected
+owner count of nineteen passed at both job widths. Requiring `u32` at the
+first `*p =` hover made sample and full executables trap at both worker
+widths. Direct and owner selections located the failed type comparison in
+the companion at line 44. After restoring `i32`, all four CTests and all
+four standalone modes passed. The sample and full output bytes (including
+the original editor normalization) matched their pre-migration streams at
+both worker counts. The packet preserves the incorrect count and deliberate
+type-control runs alongside the successful runs.
