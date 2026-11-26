@@ -1,0 +1,18 @@
+import session;
+
+test() {
+    module_root_files();
+    module_replace_library("main.tower");
+    run_fixture("examples/functions.tower", false);
+    check_output("factorial.expected");
+
+    module_remove("tower.tower");
+    module_replace_library("main.tower");
+    run_fixture("examples/functions.tower", false);
+    check_error("main.tower", "Cannot read imported module: tower");
+
+    module_root_files();
+    module_replace_library("main.tower");
+    run_fixture("examples/functions.tower", false);
+    check_output("factorial.expected");
+}

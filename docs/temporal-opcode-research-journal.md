@@ -111478,3 +111478,87 @@ deliberately skipped case. Both decimal CI selectors ran four checks each
 with the documented default native build on Debian 12. Host 4's raw results
 cover this source freeze. After the separate arena migration the manager
 enumerated 50 registrations and confirmed the original 46 kept their order.
+
+### Module loader and path-name registrations on the public test frontends
+
+Assignment `6cbab505-6e9f-4261-bc31-394feeea23e1` started from public
+`8fdfe15a` in a private local main. Host 7's shared main already held an
+unpublished browser-target change. The original two Node files passed their
+14 and two names on each Pages image from `f2214133`. A portable trace
+captured the actual execution and parse requests, outputs, diagnostics,
+formatter bytes and ordered dependencies before changing the receivers.
+
+The resolution registrations open a fresh subject with its real module
+environment. A second reactor runs one explicit Tower test for the selected
+name. Edits and retries inside a case reuse the subject. The cold installation
+still receives its project before Foundation loads. The assertion VM uses a
+distinct discovery suffix because these entries have Node owners. The first
+bounded run used the default suffix and failed to open a same-stem Tower
+owner. A second compile rejected a pointer-to-integer conversion in the grammar
+edit helper. The replacement uses a byte offset. Additional bounded runs
+exposed a missing direct text import, the marker case's execution budget and
+an unsupported chained else-if. The raw early TAP results remain in the packet.
+
+The 14 resolution bodies use adjacent input programs and raw output, formatting
+and ordered dependency fixtures. Each dependency line is compared with one
+returned filename and the list must end at the same position. The saved
+identifier-only Bedrock fixture is the exact grammar produced by the previous
+registration. The project upgrade checks the order, fields and values of all
+three files after the first refresh, the active path, and the file count after
+the second refresh. The owned-path test supplies the ECMAScript scan expressions,
+checks each identifier segment, builds the candidate filename and decides when
+a library lookup is allowed. Node supplies filesystem entries, regular expression
+matches, POSIX path operations and the production project refresh call.
+
+The first full trace found that replacing a removed builtin in a Map changed
+its upload position. Its source bytes were right. Reinstalling the complete
+root collection now restores its iteration order. The direct execution cases
+request dependency observations only where the original run requested them.
+On both images, 145 project/loader records then matched the parent byte for
+byte, including file hashes in upload order, lexical entries, source requests,
+selected error files, diagnostics, ordered dependencies, both formatter passes
+and the failed Foundation installation. The four refresh input/result records
+also matched. The two path audits visited the same 1,871 filenames, read the same
+755 production sources and generated the same 4,638 lexical lookups in order.
+
+Swapping two valid dependency lines failed the ordered comparison. On the
+same parent-import project, the first output passed and the second real
+execution returned the same bytes. Replacing only the second expected output
+then failed the output comparison. A wrong edited-file expectation failed
+the upgrade case. An audit control initially climbed two directories to a
+real root module and passed. Climbing one directory instead diagnosed
+`audit_control/tower.tower`. Restoring the two-dot spelling with an alias
+passed. Restored suites passed on both images. The packet includes the
+intermediate failures, their inputs and the restored bytes.
+
+Each public reactor ran the two complete files at the default four-byte
+guest width and with the compile and test-compile requests set to eight
+bytes. The ordinary compile of every test entry on each reactor at both
+widths produced zero selected declarations, empty output and status done
+without test providers. The 16 entries and their two shared Tower modules
+passed the pinned Linux formatter. The project test-directory changes leave
+the production compiler, Playground application, module-scope suite and
+packaging inputs untouched.
+
+The following three paired runs per cell used fresh Node 24.22.3 processes
+on a warm filesystem, CPUs 4–5 on an AMD EPYC 7502, 30.72 CPUs of container
+quota and a 91,586,822,144-byte memory limit. The timing lock serializes all
+samples. Wall and process user plus system CPU are medians in seconds. RSS
+is the largest process peak in KiB across three samples.
+
+| Suite and reactor | Parent wall | Selected wall | Parent CPU | Selected CPU | Parent RSS | Selected RSS |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Resolution, portable | 4.78 | 6.06 | 5.38 | 6.86 | 160,360 | 167,056 |
+| Resolution, shared | 8.87 | 10.49 | 11.39 | 13.27 | 1,006,492 | 427,796 |
+| Path names, portable | 0.26 | 1.84 | 0.30 | 2.21 | 66,100 | 105,748 |
+| Path names, shared | 0.26 | 2.06 | 0.32 | 2.46 | 66,140 | 123,736 |
+
+The old path-name tests ran entirely in Node. Both new files reuse an
+assertion reactor across named entries. Resolution shares the compiled Wasm
+module while opening one subject instance per name. The shared subject has
+the public four-slot pool and its assertion VM has one slot. A separate
+lifetime trace counted 14 opens and three explicit closes in the old resolution
+file. The new one closed all 14 subjects and its assertion reactor. Allocation
+grants and source-level sanitizer coverage are unmeasured. These runs exercised
+the shipped Wasm under Node. They did not run a Chromium UI or rebuild an
+instrumented native compiler. The manager owns publication.

@@ -1,0 +1,80 @@
+import session;
+import library.testing;
+import library.vector;
+import backend.text;
+
+fn letter(byte: u8): bool {
+    return byte == *"_" ||(byte >= *"A" && byte <= *"Z") ||(byte >= *"a" && byte <= *"z");
+}
+
+// Check every nonempty segment, including the first character after each separator.
+fn identifiers(text: u8*, length: usize, separator: u8): bool {
+    var at_start = true;
+    for(var i: usize = 0; i < length; i++) {
+        var byte = text[i];
+        if at_start {
+            if !letter(byte) {
+                return false;
+            }
+        }
+        if !at_start && !letter(byte) &&(byte < *"0" || byte > *"9") && byte != separator {
+            return false;
+        }
+        at_start = byte == separator;
+    }
+    return !at_start;
+}
+
+fn check_import(file: u8*, name: u8*): void {
+    var parents: usize = 0;
+    while name[parents] == *"." {
+        parents++;
+    }
+    var tail = name + parents;
+    var count = backend_length(tail);
+    assert(identifiers(tail, count, *"."), name);
+    var target: vector(u8) = default;
+    defer vector_dispose(&target);
+    for(var i: usize = 0; i < parents; i++) {
+        assert(backend_text(&target, "../"));
+    }
+    for(var i: usize = 0; i < count; i++) {
+        assert(vector_push(&target, tail[i] == *"." ? *"/": tail[i]));
+    }
+    assert(backend_text(&target, ".tower"));
+    var local = path_local(file, target.data);
+    defer free(local);
+    assert(path_available(local) ||(parents == 0 && path_available(target.data)), local);
+}
+
+test() {
+    var count = path_count();
+    var sources = path_source_count();
+    for (var i: usize = 0; i < count; i++) {
+        var file = path_name(i);
+        defer free(file);
+        var stem = backend_length(file) -backend_length(".tower");
+        assert(identifiers(file, stem, *"/"), file);
+    }
+    // Only scaffolding files participate in import resolution. The two
+    // fixture directories under scaffolding supply their own lexical trees.
+    for (var i: usize = 0; i < sources; i++) {
+        var file = path_name(i);
+        defer free(file);
+        if backend_prefix(file, "tests/")
+        || backend_prefix(file, "compiler/semantic_module_cases/") {
+            continue;
+        }
+
+        path_read(file);
+        assert(path_scan("^import\\s+['\"]") == 0, file);
+        // Capture the spelling up to the optional alias. Keep the original
+        // multiline whitespace semantics, including between 'as' and its name.
+        var imports = path_scan("^import\\s+([^;]+?)(?:\\s+as\\s+[^;]*)?;");
+        for (var j: usize = 0; j < imports; j++) {
+            var name = path_capture(j, 1);
+            defer free(name);
+            check_import(file, name);
+        }
+    }
+}

@@ -1,0 +1,8 @@
+syntax/declarations.tower
+syntax/operations.tower
+bedrock.tower
+foundation_syntax.tower
+types.tower
+syntax/core.tower
+syntax/language.tower
+units/main.tower

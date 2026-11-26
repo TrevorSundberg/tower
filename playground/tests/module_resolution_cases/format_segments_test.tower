@@ -1,0 +1,10 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("foo/bar/baz.tower", "import_tower.tower");
+    install_file("foo.bar.tower", "import_tower.tower");
+    install_file("foo/bar.baz.tower", "import_tower.tower");
+    module_configure("main.tower");
+    round_trip("format_segments.tower", "format_segments.expected");
+}
