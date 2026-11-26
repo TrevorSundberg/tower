@@ -310,3 +310,23 @@ count. The release-only selector starts in a fresh compiler. It compiles an
 import-only Tower entry and an import-only Foundation entry, then measures
 that compiler's idle count. Each of the 60 real source handles must own live
 nodes during inspection and restore the exact idle count after destruction.
+
+### Parser diagnostics
+
+Each of the ten names in the Node diagnostics suite selects a case in the
+[formatter companion](../scaffolding/compiler/format_diagnostic_test.tower).
+The parser reads the original bytes from ordinary files, including the six
+successful repairs. The two cache inputs are the original and edited source
+of one parser handle. Run the file with
+`node --test playground/tests/diagnostics.test.mjs` or select a name with
+Node's `--test-name-pattern`. The [Wasm selector](../scaffolding/compiler/format_diagnostic_cases/session_wasm.tower)
+calls the companion through the common test runner.
+
+Ordinary native `--test` on `scaffolding/compiler/format_diagnostic.tower`
+or its direct companion parses the repaired keyword and contextual lexer
+fixtures and checks the two declaration forms and the allowed empty statement.
+Use `--test-details --jobs 1` or `--jobs 4` with the checkout Bedrock and
+Foundation paths. Each malformed fixture can also be passed directly to
+`--test` to observe its diagnostic. The operator repair in `plus_repair.tower`
+passes the parser and source formatter, then receives a void-operand error
+during type checking. The browser checks its original parse-only contract.

@@ -1,0 +1,138 @@
+// Parse the repaired custom statements before installing the test language.
+import format_diagnostic_cases.inputs.keyword_repaired as keyword;
+import format_diagnostic_cases.inputs.contextual_repaired as contextual;
+import tower;
+import format_diagnostic_cases.session;
+import format_diagnostic_cases.inputs.typed_declaration as typed;
+import format_diagnostic_cases.inputs.initialized_declaration as initialized;
+import format_diagnostic_cases.inputs.empty_allowed as empty_statement;
+import library.testing;
+import backend.text;
+
+fn missing_delimiter(file: u8*, offset: usize, message: u8*): void {
+    var text = require_error(file, offset, 0, false);
+    defer free(text);
+    assert(backend_prefix(text, message) && foundation_line(text) > 0, text);
+}
+
+fn delimiter_gaps(): void {
+    missing_delimiter("missing_separator", 28, "Missing ';'");
+    missing_delimiter("missing_eof", 28, "Missing ';'");
+    missing_delimiter("missing_paren", 27, "Missing ')'");
+    missing_delimiter("comment_gap", 28, "Missing ';'");
+}
+
+fn declaration_separator(): void {
+    var text = require_error("declaration_separator", 30, NoErrorLength, false);
+    defer free(text);
+    assert(backend_contains(text, "Expected '=' or ':'") && !backend_contains(text, "Missing"), text);
+    accept("typed_declaration");
+    accept("initialized_declaration");
+}
+
+fn line_break_repair(): void {
+    var line = require_error("line_break", 39, 0, false);
+    defer free(line);
+    assert(backend_prefix(line, "Possible missing ';' before 'print'") && backend_contains(line, "In rule CoreDeclare"), line);
+    accept("plus_repair");
+    var space = require_error("same_line", 40, NoErrorLength, false);
+    defer free(space);
+    assert(!backend_contains(space, "Missing") && !backend_contains(space, "Possible missing"), space);
+}
+
+fn grammar_literals(): void {
+    var say = require_error("keyword", 64, 0, false);
+    defer free(say);
+    assert(backend_contains(say, "Missing 'done' before 'say'"), say);
+    assert(backend_contains(say, "Statement = 'say' Number 'done' (input.tower:2:"), say);
+    accept("keyword_repaired");
+    var required = require_error("then_required", 69, 0, false);
+    defer free(required);
+    assert(backend_contains(required, "Missing 'then' before 'result'"), required);
+}
+
+fn ambiguous_repairs(): void {
+    reject("ambiguous", 47, NoErrorLength,
+        "Unexpected 'b'. Expected ',' or ':'.\nIn rule Statement (input.tower:1:19).");
+    reject("unsuccessful", 33, NoErrorLength, "Unexpected 'x'. Expected ';'.\nIn rule Statement = 'a' ';' 'b' (input.tower:1:19).");
+    reject("two_delimiters", 28, NoErrorLength, "Unexpected 'var'. Expected ')' or '*'.");
+    var missing = require_error("missing_name", 22, NoErrorLength, false);
+    defer free(missing);
+    assert(backend_contains(missing, "Expected Identifier"), missing);
+}
+
+fn conflict_choices(): void {
+    var shift = require_error("shift_reduce", 0, NoErrorLength, false);
+    defer free(shift);
+    assert(backend_contains(shift, "Grammar conflict (shift/reduce) on 'x'"), shift);
+    assert(backend_contains(shift, "continue Statement = 'x' 'x' (input.tower:1:25)"), shift);
+    assert(backend_contains(shift, "finish Statement = 'x' (input.tower:1:19)"), shift);
+    var sites: usize = 0;
+    for (var at = shift; *at != 0; at++) {
+        if backend_prefix(at, "input.tower:1:") { sites++; }
+    }
+    assert(sites == 2, shift);
+
+    var reduce = require_error("reduce_reduce", 55, NoErrorLength, false);
+    defer free(reduce);
+    assert(backend_contains(reduce, "reduce/reduce"), reduce);
+    assert(backend_contains(reduce, "A = Number (input.tower:2:11)"), reduce);
+    assert(backend_contains(reduce, "B = Number (input.tower:3:11)"), reduce);
+}
+
+fn cached_locations(): void {
+    var initial = require_error("cached", 61, 0, false);
+    defer free(initial);
+    assert(backend_contains(initial, "Statement = 'say' Number ';' (input.tower:2:19)"), initial);
+    assert(diagnostic_offset() == diagnostic_source_size(), "Insertion at original EOF");
+
+    var moved = require_error("cached_moved", 71, 0, true);
+    defer free(moved);
+    assert(backend_contains(moved, "Statement = 'say' Number ';' (input.tower:4:19)"), moved);
+    assert(diagnostic_offset() == diagnostic_source_size(), "Insertion at edited EOF");
+    assert(diagnostic_cache_hits() > 0, "Reuse the cached grammar after moving its declaration");
+}
+
+fn contextual_word(): void {
+    var text = require_error("contextual", 110, 0, false);
+    defer free(text);
+    assert(backend_contains(text, "Missing 'then'"), text);
+    accept("contextual_repaired");
+}
+
+fn fallback_limits(): void {
+    reject("broad", 1607, NoErrorLength, "Unexpected 'body'. Expected a statement or grammar declaration.");
+    reject("deep", 4286, NoErrorLength, "Unexpected ';'.");
+    assert(diagnostic_offset() + 1 == diagnostic_source_size(), "Reach the final invalid token");
+}
+
+fn statement_boundaries(): void {
+    var message = "Unexpected ';'. Expected a statement or grammar declaration.";
+    reject("pointer_boundary", 35, NoErrorLength, message);
+    reject("empty_boundary", 19, NoErrorLength, message);
+    reject("call_boundary", 29, NoErrorLength, message);
+    reject("function_boundary", 35, NoErrorLength, message);
+    var nested = require_error("nested_boundary", 45, NoErrorLength, false);
+    defer free(nested);
+    assert(!backend_contains(nested, "Required by") && !backend_contains(nested, "CoreCall")
+        && !backend_contains(nested, "CoreLocation"), nested);
+    var nullable = require_error("nullable_prefix", 81, NoErrorLength, false);
+    defer free(nullable);
+    assert(!backend_contains(nullable, "In rule Future"), nullable);
+    var partial = require_error("missing_separator", 28, 0, false);
+    defer free(partial);
+    assert(backend_contains(partial, "In rule CoreCallStatement") && !backend_contains(partial, "Required by"), partial);
+    var syntax = diagnostic_foundation_syntax();
+    defer free(syntax);
+    assert(foundation_line(partial) == rule_line(syntax, "parse CoreCallStatement ="), partial);
+    accept("empty_allowed");
+}
+
+test() {
+    assert(type_value(decltype(typed.answer)) == type_value(i32), "The colon introduces a type");
+    assert(initialized.answer == type_value(i32), "The equals sign introduces a type-valued initializer");
+}
+
+test() {
+    assert(type_value(decltype(empty_statement.x)) == type_value(i32), "The extended grammar accepts the second semicolon");
+}

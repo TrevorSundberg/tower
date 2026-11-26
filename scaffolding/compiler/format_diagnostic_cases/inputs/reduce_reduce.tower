@@ -1,0 +1,4 @@
+import foundation;
+parse A = Number;
+parse B = Number;
+parse Statement = A ';' | B ';';

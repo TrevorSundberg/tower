@@ -1,0 +1,3 @@
+import foundation;
+print(42)
+var answer: i32;

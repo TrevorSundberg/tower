@@ -1,0 +1,2 @@
+import foundation;
+var alias: i32*;;

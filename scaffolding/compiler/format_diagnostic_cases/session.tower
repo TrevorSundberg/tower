@@ -1,0 +1,81 @@
+import library.testing;
+import backend.text;
+
+// The host keeps the latest parser handle alive for an edit or inspection.
+// Each returned text is an owned NUL-terminated copy in the assertion VM.
+extern fn diagnostic_read(file: u8*, edit: bool): bool;
+extern fn diagnostic_text(): u8*;
+extern fn diagnostic_offset(): usize;
+extern fn diagnostic_length(): i32;
+extern fn diagnostic_cache_hits(): usize;
+extern fn diagnostic_source_size(): usize;
+extern fn diagnostic_foundation_syntax(): u8*;
+
+var NoErrorLength: i32 = -1;
+
+fn digit(byte: u8): bool { return byte >= *"0" && byte <= *"9"; }
+
+fn public_message(text: u8*): bool {
+    for (var at = text; *at != 0; at++) {
+        if backend_prefix(at, "at byte") || backend_prefix(at, "shift to state") { return false; }
+        if backend_prefix(at, "repeat(") && digit(at[backend_length("repeat(")]) { return false; }
+        if backend_prefix(at, "capture(") && digit(at[backend_length("capture(")]) { return false; }
+        if backend_prefix(at, "state") {
+            var tail = at + backend_length("state");
+            if *tail == *" " && digit(tail[1]) { return false; }
+            while *tail == *" " || (*tail >= 9 && *tail <= 13) { tail++; }
+            if *tail == *"(" { return false; }
+        }
+    }
+    return true;
+}
+
+fn require_error(file: u8*, offset: usize, length: i32, edit: bool): u8* {
+    assert(!diagnostic_read(file, edit), file);
+    assert(diagnostic_offset() == offset, file);
+    assert(diagnostic_length() == length, file);
+    var text = diagnostic_text();
+    assert(public_message(text), text);
+    return text;
+}
+
+fn reject(file: u8*, offset: usize, length: i32, message: u8*): void {
+    var text = require_error(file, offset, length, false);
+    defer free(text);
+    assert(backend_equal(text, message), text);
+}
+
+fn accept(file: u8*): void {
+    assert(diagnostic_read(file, false), file);
+}
+
+// Return the reported line, requiring a numeric column on the same citation.
+fn foundation_line(text: u8*): usize {
+    var path = ".tower/foundation_syntax.tower:";
+    while !backend_prefix(text, path) {
+        assert(*text != 0, "Missing Foundation rule location");
+        text++;
+    }
+    text += backend_length(path);
+    assert(digit(*text), "Missing rule line");
+    var line: usize = 0;
+    while digit(*text) {
+        line = line * 10 + convert(usize, *text - *"0");
+        text++;
+    }
+    assert(*text == *":" && digit(text[1]), "Missing rule column");
+    return line;
+}
+
+fn rule_line(source: u8*, declaration: u8*): usize {
+    var line: usize = 1;
+    while !backend_prefix(source, declaration) {
+        while *source != 10 {
+            assert(*source != 0, declaration);
+            source++;
+        }
+        source++;
+        line++;
+    }
+    return line;
+}

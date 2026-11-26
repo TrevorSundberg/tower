@@ -1,0 +1,2 @@
+parse Statement = 'if' Identifier 'then' Identifier ';';
+if condition result;
