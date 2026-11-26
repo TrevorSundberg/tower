@@ -1,4 +1,4 @@
-import session;
+import vm_test;
 
 test() {
     malformed("core_call.tower");

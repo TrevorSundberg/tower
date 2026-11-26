@@ -70,7 +70,7 @@ const check = selectedCases('execution_cases', {
     subject.destroy(handle);
     parsers.delete(handle);
   },
-});
+}, undefined, 'vm_test.tower');
 
 test('expanded trees lower to typed operations and execute the actual example', () => check('example', 40));
 test('integer semantics are explicit: wrapping, signedness, conversions and traps', () => check('integers'));

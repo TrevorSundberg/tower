@@ -81,5 +81,6 @@ fn malformed(file: u8*): void {
     assert(execution_steps() == 0, file);
     var error = execution_text("error");
     defer free(error);
-    assert(backend_contains(error, "Missing foundation tree") || backend_contains(error, "missing capture"), file);
+    assert(backend_contains(error, "Missing foundation tree") ||
+        backend_contains(error, "missing capture"), file);
 }

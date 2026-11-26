@@ -1,4 +1,4 @@
-import session;
+import vm_test;
 
 test() {
     finishes("pointer_alias.tower", "pointer_alias.expected");

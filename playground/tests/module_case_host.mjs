@@ -24,7 +24,7 @@ export async function moduleHost(options = {}, wrapper = grammar.foundation) {
 }
 
 // Keep the assertion VM separate from the project whose loader is under test.
-export function selectedCases(directory, imports, settle) {
+export function selectedCases(directory, imports, settle, support = 'session.tower') {
   const root = new URL(directory + '/', import.meta.url);
   const prefix = 'playground/tests/' + directory + '/';
   const libraries = Object.fromEntries(['library/testing', 'backend/text', 'library/vector']
@@ -34,7 +34,7 @@ export function selectedCases(directory, imports, settle) {
   return async (name, chunks = 10) => {
     checks ??= await moduleHost({imports, builtins:{...grammar, ...libraries}, threads:{capacity:1}});
     const entry = name + '_test.tower';
-    const files = [entry, 'session.tower'].map(path => ({path:prefix + path, text:read(root, path)}));
+    const files = [entry, support].map(path => ({path:prefix + path, text:read(root, path)}));
     // Each entry belongs to a named Node registration. Collect its explicit
     // test body directly, without requiring a same-stem Tower production file.
     const steps = selectedTestSteps(checks, prefix + entry, chunks, {files, suffix:'_module_test.tower'}, settle ? 8192 : undefined);
