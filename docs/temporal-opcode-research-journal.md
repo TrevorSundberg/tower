@@ -118194,3 +118194,60 @@ skip and three-line finalizer/CPU/RSS measurement. Jobs-1 selection ran two
 direct declarations and fifteen through the owner using the existing native
 guest and exported worker entry. Each family has its own store context and
 callback, so this migration adds no shared collector.
+
+### Entity stage native guest comparisons, host 5
+
+Assignment `e8db6b45-22de-4227-9961-f0a8e45d3ccd` used baseline
+`7ef7ab34de6e506f46cdefca5056e9a4481c33a4` and fixture commits `4018ab0`,
+`657fb9e` and `ebd0e59`. The checkout's `bootstrap/install.sh bootstrap` verified
+the installed package (`towerc` SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+Native Linux x64, Clang/LLVM 19.1.7, Release Ninja with one build at a time,
+Ryzen 9 5900XT, affinity 0,2,4,6 and cgroup quota 3,071,999/100,000 µs.
+One cache per compiler width (1/4) was reused across revisions. The original
+shared checkout has an unfinished rebase. All edits and commits used a separate
+main checkout pinned to the assigned public base.
+
+All 12 owner/direct and width selections passed. Observer-only Tower overlays
+logged real return values and drained state on both original and selected paths.
+Both widths and both selections matched the original 100 result records
+(default plus queued), 6 reentrant records and 1,288 concurrent records.
+During the reentrant callback, reclaiming was 1. On return it was 0 and child
+and survivor values were 789 and 456. All 160 worker trials drained to zero
+running work, live reservations, bytes and lanes. Workers reached the release
+barrier at widths 2 and 4, with 1 and 3 entries for partial admission. Each full
+worker matrix finalized 57,792 payloads. The four transition receipts were
+None, Exhausted, Capacity and Invalid. Independent controls changed the observed
+busy count, survivor write and worker increment. Each direct guest failed at
+its original comparison at both widths, and all six restored runs passed.
+
+Three paired warm samples compiled each standalone source to object at the
+same path. Mean wall seconds and maximum process peak RSS in KiB follow.
+
+| Family | Jobs | Original wall / RSS | Migrated wall / RSS |
+| --- | ---: | ---: | ---: |
+| Result | 1 | 0.990 / 169868 | 1.097 / 175416 |
+| Result | 4 | 0.953 / 177208 | 1.077 / 186868 |
+| Reentrant | 1 | 0.803 / 158788 | 0.897 / 161540 |
+| Reentrant | 4 | 0.787 / 166108 | 0.907 / 171880 |
+| Concurrent | 1 | 1.230 / 193604 | 1.373 / 196372 |
+| Concurrent | 4 | 1.170 / 201240 | 1.333 / 208120 |
+
+One additional linked and executed phase sample per width and family identified
+higher parse times on the expanded test sources. At jobs 1, result/reentrant/
+concurrent parse rose by 82/81/103 ms. Concurrent optimization also rose by
+48 ms. The packet retains CPU times, stdout and all phase samples. Sixty-four
+queued executions averaged 0.320 s before and after at both widths. Eight
+default concurrent executions averaged 0.150/0.153 s before/after at jobs 1
+and 0.157/0.150 s at jobs 4. These batch times include process launches.
+The 12 selected CTest invocations including compile and run took 0.93–1.70 s.
+No whole-compiler performance or allocator-census claim follows from these
+fixture runs.
+
+The configured address/leak and thread passes completed all six standalone
+modes, with instrumentation in each fixture object and the guest runtime.
+TSan needed 40 retries across the positive runs because the host sometimes
+denied its pre-main ASLR personality request. The existing two-worker race
+control returned 66 and reported the race in `work_kernel_execute`. The
+project provides no UBSan mode. The raw host packet includes the installer
+receipt, build commands, stdout/stderr, statuses, RSS, equivalent-output
+comparisons, temporary observer patches and restored mutation controls.
