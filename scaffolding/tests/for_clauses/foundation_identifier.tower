@@ -1,0 +1,3 @@
+import foundation;
+var for: i32 = 12;
+print(for);

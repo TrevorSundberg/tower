@@ -25,5 +25,8 @@ export fn main(argc: i32, argv: u8**): i32 {
     var input: BootstrapInputs = { repository: argv[1], compiler: argv[2], git: "/usr/bin/git", ..default };
     check_extra_resource(&input, "share/tower/library/project/custom.tower", true);
     check_extra_resource(&input, "share/tower/library/retired_builtin.tower", false);
+    check_extra_resource(&input, "share/tower/library/graph_components_test.tower", false);
+    check_extra_resource(&input, "share/tower/library/graph_components_wrong.tower", false);
+    check_extra_resource(&input, "share/tower/library/graph_components_expectations.tower", false);
     return 0;
 }

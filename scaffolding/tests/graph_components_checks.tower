@@ -112,8 +112,9 @@ fn component_property_check(input: ComponentPropertyInput*, wrong: bool): bool {
     return ok && clean;
 }
 
-fn graph_component_property_tests(wrong: bool): i32 {
-    var cases: usize = 0;
+struct ComponentPropertyCounts { cases: usize; shapes: u32; seeds: u32; }
+
+fn graph_component_fixed_cases(wrong: bool, totals: ComponentPropertyCounts*): bool {
     for(var shape: u32 = 0; shape < convert(u32, ComponentShape.Generated); shape++) {
         var input: ComponentPropertyInput = {count: ComponentPropertyNodes, shape: shape, ..default};
         if shape == convert(u32, ComponentShape.Empty) { input.count = 0; }
@@ -132,9 +133,14 @@ fn graph_component_property_tests(wrong: bool): i32 {
                 if (a + 1) % group == 0 && a + 1 < input.count { input.edges[a * input.count + a + 1] = 2; }
             }
         }
-        if !component_property_check(&input, wrong) { return 1; }
-        cases++;
+        if !component_property_check(&input, wrong) { return false; }
+        totals.cases++;
+        totals.shapes++;
     }
+    return true;
+}
+
+fn graph_component_seeded_cases(wrong: bool, totals: ComponentPropertyCounts*): bool {
     var seeds: u32[6] = default;
     seeds[0] = 1; seeds[1] = 7; seeds[2] = 42; seeds[3] = 31337; seeds[4] = 305419896; seeds[5] = 4294967295;
     var density_slots: u32 = 4;
@@ -148,12 +154,25 @@ fn graph_component_property_tests(wrong: bool): i32 {
                         if utility_random(&state) % density_slots < density { input.edges[a * count + b] = convert(u8, 1 + utility_random(&state) % 2); }
                     }
                 }
-                if !component_property_check(&input, wrong) { return 1; }
-                cases++;
+                if !component_property_check(&input, wrong) { return false; }
+                totals.cases++;
             }
         }
+        totals.seeds++;
     }
+    return true;
+}
+
+fn graph_component_report(totals: ComponentPropertyCounts*): usize {
+    var live = tower_test_buffer_count();
     printf("SCC properties: seeds=%u shapes=%u cases=%zu phase=%s live_buffers=%zu\n",
-        convert(u32, sizeof(decltype(seeds)) / sizeof(u32)), convert(u32, ComponentShape.Generated), cases, "passed", tower_test_buffer_count());
+        totals.seeds, totals.shapes, totals.cases, "passed", live);
+    return live;
+}
+
+fn graph_component_property_tests(wrong: bool): i32 {
+    var totals: ComponentPropertyCounts = default;
+    if !graph_component_fixed_cases(wrong, &totals) || !graph_component_seeded_cases(wrong, &totals) { return 1; }
+    graph_component_report(&totals);
     return 0;
 }

@@ -1,0 +1,4 @@
+import tower;
+print(123);
+for (var i = 0; false; i++) {}
+print(i);

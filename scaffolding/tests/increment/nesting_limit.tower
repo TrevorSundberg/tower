@@ -1,0 +1,35 @@
+import .increment_builtin;
+
+fn identity(x: i32): i32 { return x; }
+print(99);
+print(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    identity(identity(identity(identity(identity(identity(identity(identity(identity(identity(
+    1
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+    ))))))))))
+);

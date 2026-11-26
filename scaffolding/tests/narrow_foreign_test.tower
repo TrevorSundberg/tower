@@ -1,0 +1,14 @@
+import library.testing;
+import narrow_foreign;
+
+test() {
+    assert(foreign_i8_sum() == -127, "i8 foreign arguments/return");
+}
+
+test() {
+    assert(foreign_i16_sum() == -32000, "i16 foreign arguments/return");
+}
+
+test() {
+    assert(foreign_u16_sum() == 65000, "u16 foreign arguments/return");
+}

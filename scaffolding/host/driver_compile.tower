@@ -20,6 +20,9 @@ import driver_support;
 import driver_platform;
 import driver_format;
 import driver_test_discovery;
+import driver_test_affected;
+import driver_test_oracle;
+import driver_native_tests;
 import .compiler.test_file_rule;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -32,6 +35,7 @@ import .library.work_budget_types;
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
 extern fn entity_create_result(store: void*, error: WorkBudgetError*): void*;
 extern fn frontend_modules_swap_test_discovery(environment: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+extern fn frontend_modules_observe_source(environment: void*, context: void*, observer: function(void, void*, u8*, u8*, usize)): void;
 extern fn semantic_is_test_declaration(function_node: void*): bool;
 
 struct DriverCompilation {
@@ -47,6 +51,7 @@ struct DriverCompilation {
     profile: u32;
     packaged: bool;
     preserve_foundation: bool;
+    affected: DriverAffectedTest*;
 }
 
 extern fn type_object_program_result(root: void*, budget: WorkBudget*, contains: bool*): WorkBudgetError;
@@ -327,7 +332,7 @@ fn driver_compile_interpret(state: DriverCompilation*): i32 {
         else {
             interpreter_step(&execution.machine, 10000);
         }
-        driver_execution_flush(execution);
+        if !driver_execution_flush(execution) && execution.write_output != null { break; }
     }
     driver_timing_mark(state.timing, options.timings, "execute");
     if execution.machine.failed || execution.error.length != 0 || execution.program.resource.error != WorkBudgetError.None {
@@ -344,37 +349,81 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
         driver_error("Test entry must be UTF-8 without NUL bytes: ", test_file_selection_root(&request.tests)); return 1;
     }
     var modules = driver_request_modules(request);
-    var probe: DriverTestProbe = { options: request.options, directories: null };
+    var affected = state.affected;
+    var probe: DriverTestProbe = { options: request.options, affected: affected, ..default };
     var discovery: TestFileDiscovery = { selection: &request.tests, context: bits(void*, &probe), probe: driver_test_probe };
     {
         var previous = frontend_modules_swap_test_discovery(modules, &discovery);
         defer frontend_modules_swap_test_discovery(modules, previous);
         if !execution_session_compile_tests(&state.execution, input.data, input.length, convert(u32, sizeof(usize)), modules) {
+            if state.affected != null && !driver_affected_invalidate(affected) { driver_error("Cannot invalidate ", affected.receipt.data); }
             driver_compile_execution_report(state);
             return 1;
         }
     }
     var count = state.execution.program.test_count;
-    if count != 0 {
-        var result = driver_compile_interpret(state);
-        if result != 0 { return result; }
-        if request.options.test_details {
-            foreach (var node in &state.execution.program.functions) {
-                if semantic_is_test_declaration(node) { driver_compile_report(state, "test passed", sem_get(node).start); }
+    var oracle: DriverTestOracle = default;
+    driver_oracle_open(&oracle, request.options.test_oracle, affected != null);
+    defer { if oracle.file != null { fclose(oracle.file); } }
+    var reused = false;
+    if state.affected != null {
+        foreach (var node in &state.execution.program.functions) {
+            if semantic_is_test_declaration(node) {
+                var start = sem_get(node).start;
+                driver_affected_text(affected, "declaration");
+                driver_affected_field(affected, bits(u8*, &start), sizeof(usize));
             }
+        }
+        // Linked guest code can read inputs outside the interpreter's observation.
+        if request.options.test_runtime != null { affected.complete = false; }
+        reused = driver_affected_matches(affected, &oracle);
+        if !reused && !driver_affected_invalidate(affected) { driver_error("Cannot invalidate ", affected.receipt.data); return 1; }
+    }
+    if !reused {
+        var checking = affected != null || oracle.path != null;
+        if count != 0 {
+            var fixtures: ExecutionFixtureAccess = { selection: &request.tests, modules: modules };
+            if request.tests.fixtures.length != 0 { state.execution.fixtures = &fixtures; }
+            defer { state.execution.fixtures = null; }
+            if checking {
+                state.execution.output_context = bits(void*, &oracle);
+                state.execution.write_output = driver_oracle_write;
+            }
+            defer { state.execution.write_output = null; state.execution.output_context = null; }
+            var result: i32;
+            if request.options.test_runtime != null {
+                var started = driver_clock();
+                if !driver_compile_backend(state, request.options.target, BackendCodegen.Default) { return 1; }
+                state.width = backend_pointer_bytes(state.backend);
+                result = driver_compile_object(state, started, &oracle);
+            } else { result = driver_compile_interpret(state); }
+            if result != 0 { return result; }
+        }
+        if checking && !driver_oracle_valid(&oracle, request.tests.entry, state.execution.machine.output_truncated) { return 1; }
+    }
+    if count != 0 && request.options.test_details {
+        foreach (var node in &state.execution.program.functions) {
+            if semantic_is_test_declaration(node) { driver_compile_report(state, reused ? "test skipped" : "test passed", sem_get(node).start); }
         }
     }
     var summary: ByteBuffer = default;
     defer bytes_dispose(&summary);
     var ok = host_json_unsigned(&summary, convert(u64, count))
-        && driver_text(&summary, count == 0 ? " tests selected for " : count == 1 ? " test passed for " : " tests passed for ")
+        && driver_text(&summary, reused ? (count == 1 ? " test skipped for " : " tests skipped for ") : count == 0 ? " tests selected for " : count == 1 ? " test passed for " : " tests passed for ")
         && driver_text(&summary, request.tests.entry) && bytes_push(&summary, *"\n")
         && driver_platform_write_result(2, summary.data, summary.length);
     if !ok { driver_error("Cannot report test count for ", request.tests.entry); return 1; }
+    if state.affected != null && !reused {
+        if !affected.complete || state.execution.used_foreign || (oracle.path == null && oracle.observed != 0) {
+            driver_error("Suite executed without a reusable success for ", request.tests.entry);
+        } else {
+            if !driver_affected_publish(affected) { driver_error("Cannot publish ", affected.receipt.data); return 1; }
+        }
+    }
     return 0;
 }
 
-fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
+fn driver_compile_object(state: DriverCompilation*, started: u64, oracle: DriverTestOracle*): i32 {
     if state.execution.program.resource.error != WorkBudgetError.None {
         driver_compile_execution_report(state);
         return 1;
@@ -402,6 +451,9 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
         return 1;
     }
     var emitted = driver_clock();
+    if options.test_runtime != null {
+        return driver_native_tests(state.request, backend_bytes(state.backend), backend_size(state.backend), oracle);
+    }
     var wasm = strstr(options.target, "wasm") == options.target;
     var windows = strstr(options.target, "windows") != null;
     var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
@@ -500,7 +552,7 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
         var textual = driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
         || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript");
         if !textual && !options.interpret {
-            return driver_compile_object(state, started);
+            return driver_compile_object(state, started, null);
         }
     }
     if driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
@@ -516,15 +568,26 @@ export fn driver_compile(options: DriverOptions*, resources: u8*, timing: Driver
         driver_error("", driver_request_error(request));
         return 1;
     }
+    var state: DriverCompilation = default;
+    var affected: DriverAffectedTest = default;
+    defer driver_affected_close(&affected);
+    if options.test_state[0] != 0 {
+        if !driver_affected_open(&affected, request) {
+            driver_error("Cannot open affected-test state in ", options.test_state); return 1;
+        }
+        state.affected = &affected;
+        frontend_modules_observe_source(request.modules, bits(void*, &affected), driver_affected_source);
+    }
     var formatting = driver_same(options.emit, "source");
+    defer { if state.affected != null { frontend_modules_observe_source(request.modules, null, null); } }
     var baseline = formatting ? driver_format_grammar(options.source) : SyntaxFoundationBaseline;
     if !driver_install_grammar(request, false, baseline) {
+        if state.affected != null && !driver_affected_invalidate(&affected) { driver_error("Cannot invalidate ", affected.receipt.data); }
         return 1;
     }
     driver_timing_mark(timing, options.timings, "bootstrap");
     if formatting { return driver_format(request); }
     if options.test_mode == DriverTestMode.ListFiles { return driver_test_inventory(request); }
-    var state: DriverCompilation = default;
     state.request = request;
     state.timing = timing;
     var result = options.test_mode == DriverTestMode.Run ? driver_compile_tests(&state) : driver_compile_run(&state);

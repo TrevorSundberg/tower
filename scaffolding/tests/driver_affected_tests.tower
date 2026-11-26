@@ -1,0 +1,186 @@
+import tower;
+import driver;
+import driver_platform_api;
+import .host.driver_platform;
+import .host.driver_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+struct AffectedSuite {
+    compiler: u8*;
+    owner: u8*;
+    oracle: u8*;
+    suffix: u8*;
+    jobs: u8*;
+}
+
+fn affected_fixture(path: u8*, contents: u8*): void {
+    driver_check(driver_write_file(path, contents, strlen(contents)), path);
+}
+
+// Compare every declaration coordinate and the summary against this run's
+// independently executed full transcript, changing only the reported outcome.
+fn affected_check_skipped(full: ByteBuffer*): void {
+    var result: ByteBuffer = default;
+    defer bytes_dispose(&result);
+    var cursor = full.data;
+    var pass = ": test passed\n";
+    var at = strstr(cursor, pass);
+    while at != null {
+        driver_check(bytes_append(&result, cursor, bits(usize, at) - bits(usize, cursor))
+            && driver_text(&result, ": test skipped\n"), "skipped declaration");
+        cursor = at + strlen(pass); at = strstr(cursor, pass);
+    }
+    pass = " passed for ";
+    at = strstr(cursor, pass);
+    driver_check(at != null && bytes_append(&result, cursor, bits(usize, at) - bits(usize, cursor))
+        && driver_text(&result, " skipped for ") && driver_text(&result, at + strlen(pass))
+        && host_text_terminate(&result), "skipped summary");
+    driver_test_read("driver stderr.txt", result.data, true);
+}
+
+// Every decision has an independent execution, including cache hits. Guest
+// marker lines identify entered declarations even when a later assertion traps.
+fn affected_compare(suite: AffectedSuite*, label: u8*, reuse: bool, status: i32, stdout_text: u8*, detail: u8*): void {
+    driver_message(1, label, suite.owner, true);
+    var reference: ByteBuffer = default;
+    defer bytes_dispose(&reference);
+    for (var mode = 0; mode < 2; mode++) {
+        var args: DriverArguments;
+        driver_arguments_init(&args);
+        defer driver_arguments_dispose(&args);
+        driver_argument(&args, "", suite.compiler);
+        driver_argument(&args, "", "--test"); driver_argument(&args, "", suite.owner);
+        driver_argument(&args, "", "--test-details");
+        driver_argument(&args, "", "--test-suffix"); driver_argument(&args, "", suite.suffix);
+        driver_argument(&args, "", "--jobs"); driver_argument(&args, "", suite.jobs);
+        if suite.oracle != null {
+            driver_argument(&args, "", "--test-oracle"); driver_argument(&args, "", suite.oracle);
+        }
+        if mode != 0 {
+            driver_argument(&args, "", "--test-affected"); driver_argument(&args, "", ".");
+        }
+        driver_check(driver_test_capture_status(&args) == convert(i64, status), "affected/full exit");
+        driver_test_read("driver stdout.txt", mode != 0 && reuse ? "" : stdout_text, true);
+        if mode == 0 {
+            driver_test_read("driver stderr.txt", detail, false);
+            driver_check(driver_read_file("driver stderr.txt", &reference), "full transcript");
+            if status != 0 {
+                driver_check(strstr(reference.data, "test passed") == null && strstr(reference.data, "tests passed") == null,
+                    "failed selection must not report pass");
+            }
+        } else {
+            if reuse {
+                affected_check_skipped(&reference);
+            } else { driver_test_read("driver stderr.txt", reference.data, status != 0); }
+        }
+    }
+}
+
+fn driver_test_affected_suites(compiler: u8*): void {
+    var a: AffectedSuite = {compiler: compiler, owner: "a.tower", oracle: "a.out", suffix: "_test.tower", jobs: "1"};
+    var b = a;
+    b.owner = "b.tower"; b.oracle = "b.out";
+    var success = "2 tests passed for ";
+    var a_source = "import tower; import shared as helper;\nfn value():i32 { return helper.base()+10; }\ntest() { print(value()); }\n";
+    var b_source = "import tower; import shared as helper;\nfn value():i32 { return helper.base()+20; }\ntest() { print(value()); }\n";
+    var a_test = "import library.testing; import a as owner;\ntest() { print(owner.value()+1);\n    assert(owner.value()==10, \"wrong a expectation\"); }\n";
+    var b_test = "import library.testing; import b as owner;\ntest() { print(owner.value()+1);\n    assert(owner.value()==20, \"wrong b expectation\"); }\n";
+    affected_fixture("shared.tower", "import tower; fn base():i32 { return 0; }");
+    affected_fixture(a.owner, a_source); affected_fixture(b.owner, b_source);
+    affected_fixture("a_test.tower", a_test); affected_fixture("b_test.tower", b_test);
+    var a_lines = "10\n11\n"; var b_lines = "20\n21\n";
+    driver_platform_remove("unrelated.tower");
+    driver_platform_remove(a.oracle); driver_platform_remove(b.oracle);
+    affected_compare(&a, "missing oracle ", false, 1, a_lines, "Cannot read stdout oracle for ");
+    affected_compare(&b, "missing oracle ", false, 1, b_lines, "Cannot read stdout oracle for ");
+    affected_fixture(a.oracle, a_lines); affected_fixture(b.oracle, b_lines);
+    affected_compare(&a, "cold ", false, 0, a_lines, success);
+    affected_compare(&b, "cold ", false, 0, b_lines, success);
+    affected_compare(&a, "warm ", true, 0, a_lines, success);
+    affected_compare(&b, "warm ", true, 0, b_lines, success);
+    affected_fixture("unrelated.tower", "import tower; print(99);");
+    affected_compare(&a, "unrelated ", true, 0, a_lines, success);
+    affected_compare(&b, "unrelated ", true, 0, b_lines, success);
+
+    affected_fixture(a.owner, "import tower; import shared as helper;\nfn value():i32 { return 10+helper.base(); }\ntest() { print(value()); }\n");
+    affected_compare(&a, "changed a ", false, 0, a_lines, success);
+    affected_compare(&b, "changed a ", true, 0, b_lines, success);
+    affected_fixture(b.owner, "import tower; import shared as helper;\nfn value():i32 { return 20+helper.base(); }\ntest() { print(value()); }\n");
+    affected_compare(&a, "changed b ", true, 0, a_lines, success);
+    affected_compare(&b, "changed b ", false, 0, b_lines, success);
+    affected_fixture("shared.tower", "import tower; fn base():i32 { return 1-1; }");
+    affected_compare(&a, "shared ", false, 0, a_lines, success);
+    affected_compare(&b, "shared ", false, 0, b_lines, success);
+    affected_fixture("a_test.tower", "import library.testing; import a as owner;\ntest() { print(owner.value()+1);\n    assert(owner.value()==99, \"wrong a expectation\"); }\n");
+    affected_compare(&a, "wrong ", false, 1, a_lines, "a_test.tower:3:5: wrong a expectation");
+    affected_compare(&a, "still wrong ", false, 1, a_lines, "a_test.tower:3:5: wrong a expectation");
+    affected_compare(&b, "wrong a ", true, 0, b_lines, success);
+    affected_fixture("a_test.tower", a_test);
+    affected_compare(&a, "recovered ", false, 0, a_lines, success);
+
+    driver_platform_remove("b_test.tower"); affected_fixture(b.oracle, "20\n");
+    affected_compare(&b, "removed companion ", false, 0, "20\n", "1 test passed for ");
+    affected_compare(&b, "warm absent companion ", true, 0, "20\n", "1 test passed for ");
+    // A silent new declaration changes membership while output and oracle stay fixed.
+    affected_fixture("b_test.tower", "import library.testing;\ntest() { assert(true); }");
+    affected_compare(&b, "new companion ", false, 0, "20\n", "b_test.tower:2:1: test passed");
+    affected_fixture("a_spec.tower", a_test);
+    a.suffix = "_spec.tower";
+    affected_compare(&a, "suffix ", false, 0, a_lines, "a_spec.tower:2:1: test passed");
+    a.jobs = "4";
+    affected_compare(&a, "worker profile ", false, 0, a_lines, success);
+    affected_compare(&a, "warm worker profile ", true, 0, a_lines, success);
+    affected_fixture(a.oracle, "unexpected\n");
+    affected_compare(&a, "changed oracle ", false, 1, a_lines, "expected bytes 11, observed bytes 6, first divergent byte offset 0");
+    affected_compare(&a, "still wrong oracle ", false, 1, a_lines, "expected bytes 11, observed bytes 6, first divergent byte offset 0");
+    affected_fixture(a.oracle, "10\r\n11\n");
+    affected_compare(&a, "CR before LF ", false, 1, a_lines, "expected bytes 7, observed bytes 6, first divergent byte offset 2");
+    affected_fixture(a.oracle, "10\n11");
+    affected_compare(&a, "extra guest byte ", false, 1, a_lines, "expected bytes 5, observed bytes 6, first divergent byte offset 5");
+    affected_fixture(a.oracle, "10\n11\n!");
+    affected_compare(&a, "missing guest byte ", false, 1, a_lines, "expected bytes 7, observed bytes 6, first divergent byte offset 6");
+    affected_fixture("a_spec.tower", "import tower; extern fn platform_write(fd:i32, text:u8*, bytes:usize):usize;\ntest(){ platform_write(1, \"F\", 1); }");
+    affected_fixture(a.oracle, "10\nF");
+    affected_compare(&a, "foreign write ", false, 0, "10\nF", success);
+    affected_compare(&a, "repeat foreign write ", false, 0, "10\nF", success);
+    affected_silent_suite(compiler);
+    driver_platform_remove("shared.tower");
+    affected_compare(&a, "missing dependency ", false, 1, "", "shared");
+    affected_compare(&b, "missing dependency ", false, 1, "", "shared");
+}
+
+fn affected_silent_suite(compiler: u8*): void {
+    var suite: AffectedSuite = {compiler: compiler, owner: "silent.tower", oracle: null, suffix: "_test.tower", jobs: "1"};
+    var success = "1 test passed for ";
+    var good = "import library.testing;\ntest() { assert(true); }";
+    var wrong = "import library.testing;\ntest() { assert(false, \"silent assertion\"); }";
+    affected_fixture(suite.owner, good);
+    affected_compare(&suite, "silent cold ", false, 0, "", success);
+    affected_compare(&suite, "silent warm ", true, 0, "", success);
+    affected_fixture(suite.owner, wrong);
+    affected_compare(&suite, "silent failure ", false, 1, "", "silent.tower:2:10: silent assertion");
+    affected_fixture(suite.owner, good);
+    affected_compare(&suite, "silent repaired ", false, 0, "", success);
+    suite.oracle = "silent.out";
+    driver_platform_remove(suite.oracle);
+    affected_compare(&suite, "named missing ", false, 1, "", "oracle 'silent.out'");
+    driver_check(driver_test_directory(suite.oracle), "directory at expected path");
+    affected_compare(&suite, "invalid expected path ", false, 1, "", "oracle 'silent.out'");
+    driver_test_remove_directory(suite.oracle);
+    affected_fixture(suite.oracle, "");
+    affected_compare(&suite, "valid empty file ", false, 0, "", success);
+    affected_compare(&suite, "reuse valid empty ", true, 0, "", success);
+    suite.oracle = null;
+    affected_compare(&suite, "implicit after explicit empty ", false, 0, "", success);
+    suite.jobs = "4";
+    affected_compare(&suite, "silent profile ", false, 0, "", success);
+    affected_compare(&suite, "silent warm profile ", true, 0, "", success);
+    affected_fixture(suite.owner, "import tower; test() { print(3); }");
+    affected_compare(&suite, "stdout without oracle ", false, 0, "3\n", success);
+    affected_compare(&suite, "repeat stdout without oracle ", false, 0, "3\n", success);
+    suite.oracle = "silent.out";
+    affected_fixture(suite.owner, wrong);
+    driver_platform_remove(suite.oracle);
+    affected_compare(&suite, "assertion before oracle error ", false, 1, "", "silent.tower:2:10: silent assertion");
+}

@@ -1,0 +1,4 @@
+import foundation;
+
+var foreach: i32 = 42;
+print(foreach);

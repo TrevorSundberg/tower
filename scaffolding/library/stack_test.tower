@@ -1,0 +1,38 @@
+import library.testing;
+import stack;
+
+// An empty pop leaves the caller's output alone.
+test() {
+    var values: stack(i32);
+    stack_init(i32, &values);
+    defer stack_dispose(i32, &values);
+    var output = 123;
+    assert(!stack_pop(i32, &values, &output));
+    assert(output == 123);
+}
+
+// Grow the stack, move it over an existing element and drain it in LIFO order.
+test() {
+    var values: stack(i32);
+    var moved: stack(i32);
+    stack_init(i32, &values);
+    stack_init(i32, &moved);
+    defer stack_dispose(i32, &values);
+    defer stack_dispose(i32, &moved);
+
+    var count = 80;
+    for (var value = 0; value < count; value++) {
+        assert(stack_push(i32, &values, value));
+    }
+    stack_move(i32, &values, &values);
+    assert(stack_push(i32, &moved, 999));
+    stack_move(i32, &moved, &values);
+    assert(values.length == 0);
+    assert(values.data == null);
+
+    var output: i32 = 0;
+    for (var remaining = count; remaining > 0; remaining--) {
+        assert(stack_pop(i32, &moved, &output));
+        assert(output == remaining - 1, "Moved stack must pop in LIFO order");
+    }
+}

@@ -1,0 +1,1 @@
+import tower; print(123); fn f(): i32 { defer print(1); }

@@ -60,6 +60,49 @@ fn test_file_replace_suffix(path: u8*, from: u8*, to: u8*, result: vector(u8)*):
     return true;
 }
 
+// One direct import of library.test_fixtures in a selected companion grants
+// its actual owner as source and the owner's same-stem .expected as text.
+struct TestFixturePair {
+    companion: vector(u8);
+    source: vector(u8);
+    oracle: vector(u8);
+}
+
+fn test_fixture_pair_dispose(pair: TestFixturePair*): void {
+    vector_dispose(&pair.companion);
+    vector_dispose(&pair.source);
+    vector_dispose(&pair.oracle);
+}
+
+fn test_fixture_pairs_dispose(pairs: vector(TestFixturePair)*): void {
+    foreach (var &pair in pairs) { test_fixture_pair_dispose(pair); }
+    vector_dispose(pairs);
+}
+
+fn test_fixture_library(path: u8*): bool {
+    var module = "library/test_fixtures.tower";
+    var size = strlen(path);
+    var suffix = strlen(module);
+    if size < suffix { return false; }
+    var start = size - suffix;
+    return (start == 0 || path[start - 1] == *"/") && strcmp(path + start, module) == 0;
+}
+
+fn test_fixture_grant_pair(pairs: vector(TestFixturePair)*, rule: TestFileRule*, companion: u8*, owner: u8*): bool {
+    var pair: TestFixturePair = default;
+    if !test_file_append(&pair.companion, companion, strlen(companion) + 1)
+        || !test_file_append(&pair.source, owner, strlen(owner) + 1)
+        || !test_file_replace_suffix(owner, rule.source_suffix, ".expected", &pair.oracle) {
+        test_fixture_pair_dispose(&pair);
+        return false;
+    }
+    --pair.companion.length;
+    --pair.source.length;
+    if vector_push(pairs, pair) { return true; }
+    test_fixture_pair_dispose(&pair);
+    return false;
+}
+
 // key contains the exact NUL-delimited source suffix, companion suffix and
 // canonical requested path. Its storage pins all three views through discovery.
 // The requested path distinguishes an owner graph from an explicit single test.
@@ -68,9 +111,12 @@ struct TestFileSelection {
     rule: TestFileRule;
     entry: u8*;
     owner: vector(u8);
+    fixtures: vector(TestFixturePair);
+    registered_fixtures: bool;
 }
 
 fn test_file_selection_dispose(selection: TestFileSelection*): void {
+    test_fixture_pairs_dispose(&selection.fixtures);
     vector_dispose(&selection.owner);
     vector_dispose(&selection.key);
     *selection = default;

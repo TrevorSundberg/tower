@@ -1,0 +1,1 @@
+import foundation;loop { print(1234567890); }

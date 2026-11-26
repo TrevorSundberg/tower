@@ -1,0 +1,75 @@
+import tower;
+import print_value;
+
+struct Range { first: i32; count: i32; }
+struct Cursor { value: i32; remaining: i32; }
+var events = 0;
+
+fn Range_iterate_begin(source: Range*, state: Cursor*): void {
+    events = events * 10 + 1;
+    state.value = source.first - 1;
+    state.remaining = source.count;
+}
+fn Range_iterate_next(source: Range*, state: Cursor*): bool {
+    if state.remaining == 0 { return false; }
+    state.remaining--;
+    state.value++;
+    return true;
+}
+fn Range_iterate_element(source: Range*, state: Cursor*): i32* { return &state.value; }
+fn Range_iterate_end(source: Range*, state: Cursor*): void { events = events * 10 + 2; }
+
+struct Other { value: i32; }
+fn Other_iterate_begin(source: Other*, state: bool*): void { *state = false; }
+fn Other_iterate_next(source: Other*, state: bool*): bool {
+    if *state { return false; }
+    *state = true;
+    return true;
+}
+fn Other_iterate_element(source: Other*, state: bool*): i32* { return &source.value; }
+fn Other_iterate_end(source: Other*, state: bool*): void {}
+
+fn early(range: Range*): i32 {
+    foreach (var item in range) {
+        defer { events = events * 10 + 3; }
+        return item;
+    }
+    return 0;
+}
+
+fn protocol_cleanup(emit: function(void, i32)): void {
+    var range: Range = {first: 3, count: 3};
+    var item = 99;
+    events = 0;
+    foreach (var item in &range) {
+        defer { events = events * 10 + 3; }
+        if item == 3 { continue; }
+        emit(item);
+        break;
+    }
+    emit(events);
+    emit(item);
+
+    events = 0;
+    emit(early(&range));
+    emit(events);
+
+    events = 0;
+    range.count = 1;
+    foreach (var item in &range) {
+        foreach (var item in &range) {
+            emit(item);
+            continue;
+        }
+    }
+    emit(events);
+
+    events = 0;
+    range.count = 0;
+    foreach (var item in &range) { emit(99); }
+    emit(events);
+    var other: Other = {value: 42};
+    foreach (var item in &other) { emit(item); }
+}
+
+protocol_cleanup(print_value);

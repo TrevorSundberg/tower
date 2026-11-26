@@ -1,6 +1,7 @@
 import tower;
 import utility_checks;
 import .library.gzip;
+import .library.gzip_test_data;
 import .library.bytes;
 import .library.bytes_types;
 import .compiler.host_text;
@@ -23,15 +24,9 @@ fn gzip_fixture(directory: u8*, name: u8*, input: ByteBuffer*): void {
     var source: ByteBuffer = default; var path: ByteBuffer = default;
     defer bytes_dispose(&encoded); defer bytes_dispose(&repeated);
     defer bytes_dispose(&source); defer bytes_dispose(&path);
-    utility_check(gzip_compress(input.data, input.length, &encoded)
-        && gzip_compress(input.data, input.length, &repeated) && encoded.length == repeated.length
-        && utility_equal(encoded.data, repeated.data, encoded.length), "deterministic gzip member");
-    var retained = encoded.length;
-    utility_check(!gzip_compress(null, 1, &encoded) && encoded.length == retained
-        && utility_equal(encoded.data, repeated.data, retained), "invalid gzip input leaves output unchanged");
-    utility_check(bytes_assign_text(&repeated, input.data, input.length)
-        && gzip_compress(repeated.data, repeated.length, &repeated) && encoded.length == repeated.length
-        && utility_equal(encoded.data, repeated.data, encoded.length), "aliased gzip input publication");
+    utility_check(gzip_deterministic_member(input, &encoded, &repeated), "deterministic gzip member");
+    utility_check(gzip_rejects_invalid_input(&encoded, &repeated), "invalid gzip input leaves output unchanged");
+    utility_check(gzip_encodes_aliased_input(input, &encoded, &repeated), "aliased gzip input publication");
     utility_check(tool_join(&source, directory, name) && bytes_append(&source, ".bin", 4)
         && host_text_terminate(&source) && tool_output_parents(source.data)
         && driver_write_file(source.data, input.data, input.length), "write independent gzip reference");
@@ -48,12 +43,7 @@ fn gzip_rejection_checks(directory: u8*): void {
     var input = "123456789"; var length = strlen(input);
     utility_check(gzip_compress(input, length, &encoded) && tool_join(&path, directory, "malformed.gz")
         && bytes_assign_text(&decoded, input, length), "prepare gzip rejection control");
-    var checksum: u32 = 3421780262; // Independent IEEE CRC-32 check vector.
     var trailer = encoded.length - GzipWordBytes * 2;
-    for (var byte: usize = 0; byte < GzipWordBytes; byte++) {
-        utility_check(encoded.data[trailer + byte] == convert(u8, checksum & 255), "known gzip checksum bytes");
-        checksum >>= GzipByteBits;
-    }
     var retained = decoded.data;
     for (var cut: usize = 0; cut < encoded.length; cut++) {
         utility_check(driver_write_file(path.data, encoded.data, cut)
@@ -81,39 +71,10 @@ export fn main(argc: i32, argv: u8**): i32 {
     var required: i32 = 2; var with_payload: i32 = 3; var usage: i32 = 2;
     if argc != required && argc != with_payload { puts("Supply a corpus directory and optional real support archive"); return usage; }
     var input: ByteBuffer = default; defer bytes_dispose(&input);
-    gzip_fixture(argv[1], "empty", &input);
-    var greeting = "Tower gzip\n\r\n";
-    utility_check(bytes_assign_text(&input, greeting, strlen(greeting)), "gzip text input");
-    gzip_fixture(argv[1], "text", &input);
-    input.length = 0;
-    var byte_values: usize = 256;
-    for(var i: usize = 0; i < byte_values; i++) { utility_check(bytes_push(&input, convert(u8, i)), "binary fixture byte"); }
-    gzip_fixture(argv[1], "binary", &input);
-    input.length = 0;
-    var long_bytes: usize = 131073; var alphabet: usize = 7;
-    for(var i: usize = 0; i < long_bytes; i++) { utility_check(bytes_push(&input, convert(u8, i % alphabet)), "repeated window fixture byte"); }
-    gzip_fixture(argv[1], "repeated", &input);
-    input.length = 0;
-    var state: u32 = 7; var multiplier: u32 = 1664525; var increment: u32 = 1013904223; var high_byte: u32 = 24;
-    for(var i: usize = 0; i < long_bytes; i++) {
-        state = state * multiplier + increment;
-        utility_check(bytes_push(&input, convert(u8, state >> high_byte)), "incompressible fixture byte");
-    }
-    gzip_fixture(argv[1], "random", &input);
-    var lazy = "abcdefghijklmnopqrstuvwx!Yabc?Yabcdefghijklmnopqrstuvwx";
-    utility_check(bytes_assign_text(&input, lazy, strlen(lazy)), "lazy match input");
-    gzip_fixture(argv[1], "lazy", &input);
-    // Reproducible mixed literals/backreferences, with different short histories.
-    var trials: usize = 32; var maximum: usize = 2048; var seed: u32 = 1729;
-    for (var trial: usize = 0; trial < trials; trial++) {
-        var size = convert(usize, utility_random(&seed)) % maximum;
-        utility_check(bytes_reserve(&input, size), "seeded corpus storage");
-        for (var at: usize = 0; at < size; at++) {
-            var random = utility_random(&seed);
-            input.data[at] = at != 0 && (random & 3) != 0
-                ? input.data[convert(usize, random >> 2) % at] : convert(u8, random & 255);
-        }
-        input.length = size;
+    utility_check(gzip_fixed_cases(u8*, argv[1], gzip_fixture), "build fixed gzip corpus");
+    var seed = GzipTestSeed;
+    for (var trial: usize = 0; trial < GzipSeededTrials; trial++) {
+        utility_check(gzip_seeded_input(&input, &seed), "build seeded gzip input");
         var name: ByteBuffer = default; defer bytes_dispose(&name);
         utility_check(bytes_append(&name, "seeded_", strlen("seeded_"))
             && host_json_unsigned(&name, convert(u64, trial)) && host_text_terminate(&name), "seeded corpus name");

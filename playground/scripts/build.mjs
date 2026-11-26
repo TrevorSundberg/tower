@@ -38,9 +38,8 @@ try {
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 if (process.env.TOWER_REQUIRE_THREADS === '1' && !threads)
   throw new Error('Threaded deployment requires build-threads.sh.');
-const builtinModules = ['bedrock', 'foundation', 'foundation_syntax', 'types', 'tower',
-  ...(await readdir(path.join(root, '../scaffolding/library')))
-  .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign_grammar'];
+const builtinModules = (await readFile(path.join(root, '../scaffolding/builtin_modules.txt'), 'utf8'))
+  .trimEnd().split(/\r?\n/).map(file => file.slice(0, -path.extname(file).length));
 for (const name of builtinModules) {
   const destination = path.join(dist, name + '.tower');
   await mkdir(path.dirname(destination), {recursive:true});

@@ -1,0 +1,22 @@
+import tower;
+import library.testing;
+import forward;
+import forward_inputs.module as bindings;
+
+test() {
+    state.value = 42;
+    assert(result() == 42, "Function resolves the later binding and its record type");
+}
+
+test() {
+    bindings.later = 41;
+    bindings.value.left = bindings.read_later();
+    var sum = bindings.add(bindings.value.left, 1);
+    assert(sum == 42 && bindings.later == 41, "The local in add shadows the module variable");
+    bindings.later = 8;
+    var captured = bindings.read_later();
+    bindings.later = 9;
+    assert(captured == 8 && bindings.read_later() == 9, "An initializer observes the value at its execution");
+    bindings.entries[1] = 73;
+    assert(bindings.read_field() == 41 && bindings.read_index() == 73, "Earlier functions bind later fields and array storage");
+}

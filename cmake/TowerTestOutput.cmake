@@ -5,7 +5,11 @@ foreach(required IN ITEMS TOWER_COMPILER TOWER_INPUT TOWER_WORKERS TOWER_RESOURC
     message(FATAL_ERROR "Missing ${required} for the interpreter fixture")
   endif()
 endforeach()
-if(DEFINED TOWER_EXPECTED)
+set(mode --interpret)
+if(DEFINED TOWER_FINAL_LINE)
+  set(mode --test --test-details --test-suffix "${TOWER_TEST_SUFFIX}")
+endif()
+if(DEFINED TOWER_EXPECTED OR DEFINED TOWER_FINAL_LINE)
   get_filename_component(fixture "${TOWER_INPUT}" NAME)
   set(capture "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/${fixture}-${TOWER_WORKERS}")
   file(MAKE_DIRECTORY "${capture}")
@@ -15,11 +19,19 @@ else()
   set(streams OUTPUT_VARIABLE output ERROR_VARIABLE error)
 endif()
 execute_process(COMMAND "${TOWER_COMPILER}" "${TOWER_INPUT}"
-  --interpret --jobs "${TOWER_WORKERS}"
+  ${mode} --jobs "${TOWER_WORKERS}"
   --bedrock "${TOWER_RESOURCES}/bedrock.tower"
   --foundation "${TOWER_RESOURCES}/foundation.tower"
   RESULT_VARIABLE result ${streams})
-if(DEFINED TOWER_EXPECTED)
+if(DEFINED TOWER_FINAL_LINE)
+  file(SIZE "${capture}/stdout" output_bytes)
+  file(READ "${capture}/stderr" details)
+  message("${details}")
+  string(REGEX MATCH "[^\n]*\n$" final_line "${details}")
+  if(NOT result STREQUAL "0" OR NOT output_bytes EQUAL 0 OR NOT final_line STREQUAL "${TOWER_FINAL_LINE}\n")
+    message(FATAL_ERROR "${fixture} (--jobs ${TOWER_WORKERS}): exit=${result}, stdout bytes=${output_bytes}, expected final stderr line [${TOWER_FINAL_LINE}]. Captured: ${capture}/stdout and ${capture}/stderr")
+  endif()
+elseif(DEFINED TOWER_EXPECTED)
   execute_process(COMMAND "${CMAKE_COMMAND}" -E compare_files "${TOWER_EXPECTED}" "${capture}/stdout"
     RESULT_VARIABLE difference)
   file(SIZE "${capture}/stderr" error_bytes)

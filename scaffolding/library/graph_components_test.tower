@@ -1,0 +1,18 @@
+import tower;
+import library.testing;
+import graph_components_expectations;
+import .tests.graph_components_checks;
+
+test() {
+    var totals: ComponentPropertyCounts = default;
+    assert(graph_component_fixed_cases(false, &totals), "Fixed SCC shapes disagree with mutual reachability");
+    assert(graph_component_report(&totals) == 0, "Live buffers after fixed SCC cases");
+    assert(totals.cases == FixedComponentCases, "Incomplete fixed SCC corpus");
+}
+
+test() {
+    var totals: ComponentPropertyCounts = default;
+    assert(graph_component_seeded_cases(false, &totals), "Seeded SCC partition or ownership mismatch");
+    assert(graph_component_report(&totals) == 0, "Live buffers after seeded SCC cases");
+    assert(totals.cases == SeededComponentCases, "Incomplete seeded SCC corpus");
+}

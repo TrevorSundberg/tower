@@ -1,0 +1,23 @@
+import library.testing;
+import .tests.for_loops as loops;
+
+test() {
+    loops.starts = 0;
+    loops.checks = 0;
+    loops.steps = 0;
+    var sum = 0;
+    for (var i = loops.start(); loops.test(i); loops.advance(&i)) {
+        if i == 1 { continue; }
+        sum += i;
+    }
+    assert(loops.starts == 1, "Run the initializer once");
+    assert(loops.checks == 5, "Retest after each update");
+    assert(loops.steps == 4, "Continue runs the update");
+    assert(sum == 5, "Skip the body after continue");
+}
+
+test() {
+    assert(loops.header_jump() == 23, "Initializer jumps out of the loop");
+    assert(loops.early() == 42, "Return skips the update");
+    assert(loops.unconditional() == 17, "Empty clauses permit an unconditional return");
+}

@@ -1,0 +1,7 @@
+import tests.forward_browser;
+import tests.forward_parser_cases;
+
+test() {
+    var parser = browser_parser();
+    forward_activation(&parser);
+}

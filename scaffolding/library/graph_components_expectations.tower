@@ -1,0 +1,5 @@
+import tower;
+
+// Counts from the original fixed-shape and seeded reachability corpus.
+var FixedComponentCases: usize = 8;
+var SeededComponentCases: usize = 234;

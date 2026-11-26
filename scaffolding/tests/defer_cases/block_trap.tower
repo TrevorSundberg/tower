@@ -1,0 +1,1 @@
+import tower; defer print(3); { defer print(2); trap("cleanup-stop", 7); }

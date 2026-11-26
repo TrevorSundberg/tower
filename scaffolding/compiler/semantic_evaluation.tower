@@ -296,10 +296,14 @@ export fn sem_evaluation_request(c: SemanticContext*, result: SemanticEvaluation
 }
 
 fn sem_comptime(c: SemanticContext*, n: void*, expected_type: FoundationType*): void* {
+    return sem_comptime_operand(c, n, sem_member(n, "value"), expected_type);
+}
+
+fn sem_comptime_operand(c: SemanticContext*, n: void*, operand: void*, expected_type: FoundationType*): void* {
     var existing = sem_get(n);
     if existing != null { return sem_surface_expected(c, n, expected_type); }
     c.evaluation_depth++;
-    var expression = sem_operand(c, sem_member(n, "value"), expected_type);
+    var expression = sem_operand(c, operand, expected_type);
     c.evaluation_depth--;
     if !sem_ok(c) || expression == null { return n; }
     return sem_evaluation_expression(c, n, expression, c.integer_arguments ? null : c.current,

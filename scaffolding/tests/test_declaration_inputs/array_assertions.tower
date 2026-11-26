@@ -5,11 +5,15 @@ fn digits(): usize {
     return order[0] * 1000 + order[1] * 100 + order[2] * 10 + order[3];
 }
 
+fn check_order(): void {
+    assert(digits() == 1342, "Positional array order");
+}
+
 var messages = 0;
 fn failure_message(): u8* { messages++; return "Unexpected second evaluation"; }
 test() {
     var calls = 0;
     assert(++calls == 1, failure_message());
     assert(calls == 1 && messages == 0);
-    assert(digits() == 1342, "Positional array order");
+    check_order();
 }

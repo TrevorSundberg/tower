@@ -18,6 +18,8 @@ function(tower_execution_tests)
   target_link_libraries(tower-execution-tests PRIVATE ${libraries})
   enable_testing()
   add_test(NAME tower-execution COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  add_test(NAME tower-forward-references COMMAND tower-execution-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" forward-references)
+  set_tests_properties(tower-forward-references PROPERTIES TIMEOUT 60 LABELS "native;focused")
   add_test(NAME tower-execution-resource-root COMMAND tower-execution-tests
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" floating)
   set_tests_properties(tower-execution-resource-root PROPERTIES
@@ -53,17 +55,6 @@ function(tower_execution_tests)
   endforeach()
 
   if(TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND triple MATCHES "^x86_64-.*linux")
-    # Keep the three foreign calls across object boundaries, as in the native ABI trial.
-    tower_runtime_object(narrow-foreign-caller
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/narrow_foreign.tower" "${triple}" SOURCE)
-    tower_runtime_object(narrow-foreign-library
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/narrow_foreign_library.tower" "${triple}")
-    get_property(narrow_runtime GLOBAL PROPERTY TOWER_GUEST_host-linux-x64_OBJECT)
-    add_executable(tower-narrow-foreign-tests
-      "${narrow-foreign-caller_OBJECT}" "${narrow-foreign-library_OBJECT}" "${narrow_runtime}")
-    set_target_properties(tower-narrow-foreign-tests PROPERTIES LINKER_LANGUAGE C)
-    add_test(NAME tower-narrow-foreign COMMAND tower-narrow-foreign-tests)
-
     add_test(NAME tower-retained-source-updates COMMAND tower-execution-tests
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" retained-sources)
     set_tests_properties(tower-retained-source-updates PROPERTIES TIMEOUT 90 LABELS "native;focused;query")

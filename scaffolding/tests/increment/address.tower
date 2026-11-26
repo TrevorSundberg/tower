@@ -1,0 +1,29 @@
+import foundation;
+
+fn set(p: i32*): void { *p = 42; }
+struct S { field: i32; }
+
+var value: i32;
+var s: S;
+var array: i32[2];
+var byte: u8 = 0;
+var copy_to: i32;
+var exists: bool;
+
+fn addresses(): void {
+    set(&value);
+    set(&s.field);
+    set(&array[1]);
+    fill(&byte, 7, 1);
+    copy(&copy_to, &value, 4);
+    var raw: usize = bits(usize, &value);
+    exists = raw != 0;
+}
+
+addresses();
+print(value);
+print(s.field);
+print(array[1]);
+print(byte);
+print(copy_to);
+print(exists);

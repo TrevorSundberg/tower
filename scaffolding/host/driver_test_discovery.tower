@@ -1,5 +1,6 @@
 import tower;
 import driver_types;
+import driver_test_affected;
 import .compiler.test_file_rule;
 import driver_request;
 import driver_support;
@@ -30,6 +31,7 @@ extern fn frontend_modules_depfile_discovery(environment: void*, output: u8*, pa
 struct DriverTestProbe {
     options: DriverOptions*;
     directories: DriverArguments*;
+    affected: DriverAffectedTest*;
 }
 
 fn driver_test_watch_directory(directories: DriverArguments*, candidate: vector(u8)*): bool {
@@ -58,6 +60,11 @@ fn driver_test_probe(opaque: void*, candidate: vector(u8)*): TestFilePresence {
         driver_error("Cannot track companion directory for ", candidate.data); return TestFilePresence.Failed;
     }
     var kind = driver_platform_file_kind(candidate.data);
+    if probe.affected != null {
+        driver_affected_text(probe.affected, "probe");
+        driver_affected_field(probe.affected, candidate.data, candidate.length);
+        driver_affected_field(probe.affected, bits(u8*, &kind), sizeof(DriverFileKind));
+    }
     if kind == DriverFileKind.Missing { return TestFilePresence.Missing; }
     return kind == DriverFileKind.Regular ? TestFilePresence.Present : TestFilePresence.Failed;
 }
@@ -94,7 +101,7 @@ fn driver_test_inventory(request: DriverRequest*): i32 {
     var directories: DriverArguments;
     driver_arguments_init(&directories);
     defer driver_arguments_dispose(&directories);
-    var probe: DriverTestProbe = {options: options, directories: &directories};
+    var probe: DriverTestProbe = {options: options, directories: &directories, ..default};
     if !frontend_module_discover_tests(root, &request.tests, bits(void*, &probe), driver_test_probe, &companions) {
         driver_report(frontend_module_error(root), 0, input.data, input.length, entry, request.modules); return 1;
     }
@@ -103,6 +110,11 @@ fn driver_test_inventory(request: DriverRequest*): i32 {
             if !driver_test_output_safe(options, frontend_module_name(frontend_module_at(root, i))) { return 1; }
         }
     }
+    foreach (var &grant in &request.tests.fixtures) {
+        if !driver_test_output_safe(options, grant.oracle.data) { return 1; }
+        if options.depfile[0] != 0 { driver_argument(&directories, "", grant.oracle.data); }
+    }
+    if !directories.ok { driver_error("Cannot retain fixture dependencies for ", entry); return 1; }
     var list: ByteBuffer = default;
     defer bytes_dispose(&list);
     foreach (var &pair in &companions) {

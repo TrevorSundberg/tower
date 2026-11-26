@@ -1,0 +1,8 @@
+import tower;
+import library.vector;
+
+var values: vector(i32);
+vector_init(&values);
+defer vector_dispose(&values);
+vector_push(&values, 42);
+foreach (var &item in &values) { print(*item); }

@@ -89,8 +89,9 @@ test('a worker trap interrupts a blocked coordinator through shared failure stat
 });
 
 test('declaration, body checking, lowering and staging are deterministic at 1/2/4/8 workers', {skip:!bytes, timeout:120000}, async () => {
- const {loadTower, generatedSource} = await import('./compiler-fixtures.mjs');
+ const {loadTower, loadTowerBytes, generatedSource} = await import('./compiler-fixtures.mjs');
  const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
+ const lrFixture = process.env.TOWER_TEST_LR_WASM && await readFile(process.env.TOWER_TEST_LR_WASM);
  const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
  const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
  const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
@@ -122,7 +123,11 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
  const genericCanonical = new Map();
  for (const capacity of [1,2,4,8]) {
   phase('compiler:load', {capacity});
-  const tower = await loadTower(compiler, undefined, foundation, undefined, undefined, {threads:{capacity}});
+  // A release run supplies a separate work-enabled reactor for the LR export.
+  // Both explicit shared images must retain their identity under a portable suite override.
+  const load = lrFixture ? loadTowerBytes : loadTower;
+  const open = image => load(image, undefined, foundation, undefined, undefined, {threads:{capacity}});
+  const tower = await open(compiler);
   try {
    if (!stress) {
     stress = {};
@@ -133,7 +138,12 @@ test('declaration, body checking, lowering and staging are deterministic at 1/2/
    }
    const {workers:source, generic_workers:genericSource, window:windowSource, type_fields:typeFields} = stress;
    phase('lr:check', {capacity});
-   assert.equal(tower.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
+   const lrHost = lrFixture ? await open(lrFixture) : tower;
+   try {
+    assert.equal(lrHost.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
+   } finally {
+    if (lrFixture) lrHost.close();
+   }
    for (const width of [4,8]) {
     phase('world:check', {capacity, width});
     assert.equal(tower.exports.semantic_world_tests(width), 0, `World budgets and shared kernels at ${capacity} workers, width ${width}`);

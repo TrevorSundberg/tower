@@ -1,0 +1,27 @@
+import tower;
+import ..library.queue;
+import ..library.stack;
+import print_value;
+
+fn ring_order(emit: function(void, i32)): void {
+    var fifo: queue(i32);
+    queue_init(&fifo);
+    defer queue_dispose(&fifo);
+    var removed: i32;
+    for (var i = 0; i < 8; i++) { queue_push(&fifo, i); }
+    for (var i = 0; i < 6; i++) { queue_pop(&fifo, &removed); }
+    queue_push(&fifo, 8);
+    queue_push(&fifo, 9);
+    foreach (var item in &fifo) { emit(item); }
+    foreach (var &item in &fifo) { *item += 10; }
+    foreach (var item in &fifo) { emit(item); }
+
+    var lifo: stack(i32);
+    stack_init(&lifo);
+    defer stack_dispose(&lifo);
+    stack_push(&lifo, 4);
+    stack_push(&lifo, 5);
+    foreach (var item in &lifo) { emit(item); }
+}
+
+ring_order(print_value);

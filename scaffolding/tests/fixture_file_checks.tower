@@ -1,0 +1,96 @@
+import tower;
+import .compiler.execution_session;
+import .compiler.test_file_rule;
+import .library.vector;
+import .host.driver_request;
+import .host.driver_support;
+import .host.driver_platform;
+import execution_support;
+import frontend_units;
+
+extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
+
+extern fn frontend_modules_swap_test_discovery(modules: void*, next: TestFileDiscovery*): TestFileDiscovery*;
+
+extern fn frontend_modules_source(modules: void*, path: u8*, text: u8*, length: usize): bool;
+
+fn fixture_memory_input(modules: void*, path: u8*, text: vector(u8)*): void {
+    execution_check(frontend_modules_source(modules, path, text.data, text.length), path);
+}
+
+fn fixture_memory_trial(modules: void*, selection: TestFileSelection*, source: u8*, failure_line: usize, wanted: u8*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var discovery: TestFileDiscovery = {
+        selection: selection, .. default
+    };
+    {
+        var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+        defer frontend_modules_swap_test_discovery(modules, previous);
+        var ok = execution_session_compile_tests(&session, source, strlen(source), 8, modules);
+        if !ok {
+            puts(session.error.data ?? "Fixture compilation failed");
+        }
+        execution_check(ok && session.program.test_count == 2 && selection.fixtures.length == 2, "both fixture owners selected");
+    }
+    execution_check(strcmp(selection.fixtures.data[0].oracle.data, "mem/left/function_values.expected") == 0
+    && strcmp(selection.fixtures.data[1].source.data, "mem/right/function_values.tower") == 0
+    && strcmp(selection.fixtures.data[1].oracle.data, "mem/right/function_values.expected") == 0,
+    "dependency paths survive the discovery graph");
+    var access: ExecutionFixtureAccess = {
+        selection: selection, modules: modules
+    };
+    session.fixtures = &access;
+    execution_run(&session, 1000, 100000);
+    execution_check(session.machine.done && session.machine.failed ==(failure_line != 0)
+    && execution_text(&session.output, wanted), "registered fixture bytes and completion");
+    if failure_line == 0 {
+        driver_message(1, "Registered fixture stdout", "", true);
+        driver_platform_write(1, session.output.data, session.output.length);
+    } else {
+        var line: usize = 0;
+        var column: usize = 0;
+        var path = frontend_modules_location(modules, session.machine.error_offset, &line, &column);
+        driver_report(session.error.data, session.machine.error_offset, source, strlen(source), selection.entry, modules);
+        execution_check(strcmp(path, "mem/right/function_values_test.tower") == 0
+        && line == failure_line && column ==(failure_line == 6 ? 18: 5), "original read or assertion location");
+    }
+}
+
+fn fixture_file_checks(modules: void*, root: u8*): void {
+    var owner: vector(u8) = default;
+    var companion: vector(u8) = default;
+    var oracle: vector(u8) = default;
+    defer vector_dispose(&owner);
+    defer vector_dispose(&companion);
+    defer vector_dispose(&oracle);
+    units_read(root, "/tests/function_values.tower", &owner);
+    units_read(root, "/tests/function_values_test.tower", &companion);
+    units_read(root, "/tests/function_values.expected", &oracle);
+    fixture_memory_input(modules, "mem/left/function_values.tower", &owner);
+    fixture_memory_input(modules, "mem/left/function_values_test.tower", &companion);
+    fixture_memory_input(modules, "mem/left/function_values.expected", &oracle);
+    var condition = "if selected(41) != 4";
+    var digit = strstr(owner.data, condition);
+    execution_check(digit != null && digit[strlen(condition)] == *"2", "original function check");
+    digit[strlen(condition)] = *"1";
+    fixture_memory_input(modules, "mem/right/function_values.tower", &owner);
+    fixture_memory_input(modules, "mem/right/function_values_test.tower", &companion);
+
+    var entry = "mem/main.tower";
+    var source = "import left.function_values as left; import right.function_values as right;";
+    frontend_modules_configure(modules, entry, root);
+    var selection: TestFileSelection = default;
+    defer test_file_selection_dispose(&selection);
+    var rule = test_file_default_rule();
+    execution_check(frontend_test_selection_open(&selection, &rule, entry), "open memory fixture selection");
+    fixture_memory_trial(modules, &selection, source, 6, "0\n");
+    execution_check(oracle.length == 2 && oracle.data[1] == *"\n", "raw expected text");
+    oracle.data[0] = *"1";
+    oracle.data[1] = *"\r";
+    fixture_memory_input(modules, "mem/right/function_values.expected", &oracle);
+    fixture_memory_trial(modules, &selection, source, 8, "0\n");
+    oracle.data[1] = *"\n";
+    fixture_memory_input(modules, "mem/right/function_values.expected", &oracle);
+    fixture_memory_trial(modules, &selection, source, 0, "0\n1\n");
+}

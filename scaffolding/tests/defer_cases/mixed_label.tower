@@ -1,0 +1,1 @@
+import tower; print(123); fn f(): void { defer print(1); label(end); return; }

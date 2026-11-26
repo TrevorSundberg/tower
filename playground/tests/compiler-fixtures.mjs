@@ -21,6 +21,9 @@ export const files = await sources();
 Object.assign(builtins, Object.fromEntries(files.filter(file => /^\.tower\/(?:[^/]+|types\/[^/]+)\.tower$/.test(file.path)).map(file => [file.path.slice('.tower/'.length, -'.tower'.length), file.text])));
 export async function loadTower(bytes, log, bootstrap, foundation, bedrock = builtins.bedrock, options = {}) {
   if (process.env.TOWER_TEST_WASM) bytes = await readFile(process.env.TOWER_TEST_WASM);
+  return loadTowerBytes(bytes, log, bootstrap, foundation, bedrock, options);
+}
+export async function loadTowerBytes(bytes, log, bootstrap, foundation, bedrock = builtins.bedrock, options = {}) {
   const host = await createTower(bytes, log, bootstrap, foundation, bedrock, {tower:builtins.tower, builtins, ...options});
   host.configureModules({files});
   return host;

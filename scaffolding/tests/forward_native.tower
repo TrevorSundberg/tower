@@ -1,0 +1,106 @@
+import tower;
+import forward_parser_cases;
+import .host.syntax_baseline_api;
+import .compiler.execution_session;
+import .compiler.frontend_revision_types;
+import frontend_units;
+import frontend_session_world;
+import frontend_session_rules;
+import execution_support;
+import execution_core;
+import .host.driver_support;
+import .library.bytes_interface;
+import .library.bytes_types;
+import execution_semantics;
+import .compiler.syntax_session_types;
+import .library.vector;
+
+fn forward_input(root: u8*, name: u8*, modules: void*, source: ByteBuffer*): void {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    execution_check(driver_text(&path, root) && driver_text(&path, "/tests/forward_inputs/")
+        && driver_text(&path, name) && host_text_terminate(&path), name);
+    execution_check(driver_read_file(path.data, source), name);
+    frontend_modules_configure(modules, path.data, root);
+}
+
+fn forward_open(root: u8*, file: u8*): usize {
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    var world = compiler_host_world();
+    var modules = *syntax_host_environment(world);
+    forward_input(root, file, modules, &source);
+    var session = syntax_session_open(world, modules, source.data, null, SyntaxFoundationBaseline);
+    execution_check(session != null, file);
+    return bits(usize, session);
+}
+
+fn forward_pending(handle: usize, rule: u8*): bool {
+    var session = bits(SyntaxSession*, handle);
+    return syntax_session_rule_pending(session, session_view_rule(session, rule));
+}
+
+fn forward_close(handle: usize): void { syntax_destroy(bits(void*, handle)); }
+fn forward_revision(handle: usize): usize { return bits(SyntaxSession*, handle).revision; }
+
+fn forward_step_is(handle: usize, wanted: u8*): bool {
+    var session = bits(void*, handle);
+    var previous = forward_revision(handle);
+    var node = syntax_next(session);
+    var status: u8*;
+    if node != null {
+        world_session_check(compiler_node_world(node) == compiler_host_world(), "Forward parser owns the returned node");
+        entity_release(node);
+        status = forward_revision(handle) == previous ? "statement" : "declaration";
+    } else {
+        var error = syntax_get_error(session);
+        status = error[0] == 0 ? "done" : "error";
+        if strcmp(status, wanted) != 0 { puts(error); }
+    }
+    return strcmp(status, wanted) == 0;
+}
+
+fn forward_diagnostic(handle: usize, message: u8*, offset: usize): bool {
+    var error = syntax_get_error(bits(void*, handle));
+    puts(error);
+    return strstr(error, message) != null && bits(SyntaxSession*, handle).error_offset == offset;
+}
+
+fn forward_foundation_contains(root: u8*, rule: u8*): bool {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/foundation_syntax.tower", &source);
+    return strstr(source.data, rule) != null;
+}
+
+fn forward_invalid_binding(root: u8*, modules: void*, file: u8*, error: u8*, offset: usize): void {
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    forward_input(root, file, modules, &source);
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_check(!execution_session_compile(&session, source.data, source.length, 4, modules), file);
+    if session.error.data != null { puts(session.error.data); }
+    execution_check(execution_text(&session.error, error) && session.machine.error_offset == execution_semantic_entry_base(modules) + offset, error);
+}
+
+fn forward_reference_tests(root: u8*, modules: void*): void {
+    var parser: ForwardParser = {root: root, open: forward_open, close: forward_close,
+        step_is: forward_step_is, pending: forward_pending, revision: forward_revision, diagnostic: forward_diagnostic,
+        foundation_contains: forward_foundation_contains, check: execution_check};
+    forward_graph(&parser);
+    forward_activation(&parser);
+    forward_pinned(&parser);
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    forward_input(root, "module.tower", modules, &source);
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_compile(&session, source.data, 4, modules);
+    execution_run(&session, 1000, 100000);
+    execution_check(session.machine.done && !session.machine.failed
+        && execution_text(&session.output, forward_expected_output()), "Forward module initialization order");
+    execution_roundtrip(&session, modules, false);
+    forward_invalid_binding(root, modules, "duplicate.tower", "Duplicate module variable 'x'", 30);
+    forward_invalid_binding(root, modules, "local.tower", "Unknown local 'later'", 42);
+}
