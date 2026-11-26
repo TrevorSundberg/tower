@@ -106984,3 +106984,9 @@ suite and allocator are unchanged. The new packaging requires no compiler
 or bootstrap generation. Assignment `5f514e37-fdf7-4f2f-a3e4-df4c5d65442e`
 retains the CMake inputs, exact commands, diagnostics, case traces,
 per-file manifests and review bundles.
+
+### Deferred cleanup and the relocated WorkGraph suite
+
+The defer migration at c38b2ef7 moves evaluation, diagnostics, completions and trap checks to Tower fixtures. The existing nineteen-line output oracle remains readable in its own file. Each of six browser registrations passed on the portable and shared reactors, with 36 recorded observations matching the previous suite on each. Changing the expected return cleanup failed at semantic_defer_test.tower:7:5. The source owner's object and depfile matched with a deliberately broken companion. Running Tower assertions from a second browser VM added test time on this host. Receipt a9316a0c records the two paired samples and the remaining JavaScript reactor calls.
+
+The common optional Linux kit at 397ddd53 adds the three host memory source dependencies reached by work_graph_test.tower. With its original source and build hidden, the relocated owner and direct selections each ran eight tests at one and four workers. All four negative runs failed at the stale-ticket assertion on line 36. The ordinary 58-file distribution matched the prior hashes on that compiler. Receipt 5f514e37 retains the 184-check map and the raw SHA-256 and graph controls. In the integrated checkout the configured native test profile kept all 180 previous CTest commands and properties, and added four linked WorkGraph and two defer registrations. This registration check does not execute the new integrated compiler.

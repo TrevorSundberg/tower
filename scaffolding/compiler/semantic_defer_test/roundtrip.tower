@@ -1,0 +1,6 @@
+import output;
+
+test() {
+    // Two target widths, graph and fast interpreters, source and canonical Foundation.
+    check_defer_outputs(8);
+}

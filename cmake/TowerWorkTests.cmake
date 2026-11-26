@@ -190,6 +190,11 @@ if(TARGET towerc)
     set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
     tower_companion_test(tower-forward-bindings tests/forward.tower ${workers})
+    add_test(NAME tower-semantic-defer-companion-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_defer.tower")
+    set_tests_properties(tower-semantic-defer-companion-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
     tower_companion_test(tower-fixed-array-iteration compiler/semantic_iteration_test.tower ${workers})
     tower_companion_test(tower-generic-body-copy-types compiler/generic_body_types_test.tower ${workers})
     tower_companion_test(tower-semantic-layout-registry compiler/semantic_layout_test.tower ${workers})

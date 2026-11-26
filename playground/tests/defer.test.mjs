@@ -1,10 +1,12 @@
-import {test} from 'node:test';
+import {after, test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
+import {files, loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
 const read = path => readFile(new URL('../../' + path, import.meta.url));
 const foundation = (await read('scaffolding/foundation.tower')).toString();
-const tower = await loadTower(await read('build/browser-wasi/tower.wasm'), undefined, foundation);
+const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
+const tower = await loadTower(bytes, undefined, foundation);
+after(() => tower.close());
 const source = (await read('scaffolding/tests/defer_scopes.tower')).toString();
 const expected = (await read('scaffolding/tests/defer_scopes.expected.txt')).toString().replaceAll('\r\n', '\n');
 function finish(handle) {
@@ -16,7 +18,67 @@ function finish(handle) {
   }
   assert.fail('Deferred cleanup did not finish within the fixture budget');
 }
+// Keep the executing test and the compiler or IDE it calls in different Wasm instances.
+const fixtureRoot = '.tower/tests/defer_cases/';
+const fixtures = new Map(files.filter(file => file.path.startsWith(fixtureRoot))
+  .map(file => [file.path.slice(fixtureRoot.length), file.text]));
+function fixture(name) {
+  const text = fixtures.get(name + '.tower');
+  assert.notEqual(text, undefined, name);
+  return text;
+}
+function guestString(context, address) {
+  const memory = context.memory(), start = Number(address);
+  const end = memory.indexOf(0, start);
+  assert.notEqual(end, -1, 'unterminated fixture string');
+  return new TextDecoder().decode(memory.subarray(start, end));
+}
+const encoder = new TextEncoder();
+let observedOutputs;
+const probes = await loadTower(bytes, undefined, foundation, undefined, undefined, {threads: {capacity: 1}, imports: {
+  defer_read_output(context, slot, destination, capacity) {
+    const bytes = observedOutputs[Number(slot)];
+    if (destination && bytes.length <= Number(capacity)) context.memory().set(bytes, Number(destination));
+    return bytes.length;
+  },
+  defer_error_offset(context, path, fast) {
+    const name = guestString(context, path);
+    const handle = tower.compile(fixture(name));
+    try {
+      if (fast) tower.useFast(handle);
+      const result = finish(handle);
+      assert.equal(result.status, 'error', name);
+      observedOutputs = [encoder.encode(result.output), encoder.encode(result.error)];
+      return result.errorOffset;
+    } finally { tower.destroyExecution(handle); }
+  },
+  defer_completion_count(context, path, cursor, label) {
+    const result = tower.complete(fixture(guestString(context, path)), Number(cursor));
+    assert.equal(result.error, undefined);
+    if (!label) return result.options.length;
+    const text = guestString(context, label);
+    return result.options.filter(option => option.label === text).length;
+  },
+}});
+after(() => probes.close());
+
+// Each registered Node selector enters a real inline Tower test with its own capabilities.
+function checkCase(name, outputs = []) {
+  observedOutputs = outputs.map(text => encoder.encode(text));
+  probes.configureModules({entry:`.tower/compiler/semantic_defer_test/${name}.tower`});
+  const handle = probes.compileTests();
+  try {
+    const result = probes.execute(handle, 100000);
+    assert.equal(result.status, 'done', result.error && `${result.errorFile} at byte ${result.errorOffset}: ${result.error}`);
+    assert.equal(probes.testCount(handle), 1);
+  } finally {
+    probes.destroyExecution(handle);
+    observedOutputs = undefined;
+  }
+}
+
 test('defer preserves scope, exit order, return snapshots and captured bindings through Foundation', () => {
+  const outputs = [expected];
   const byWidth = new Map();
   for (const pointerBytes of [4, 8]) for (const fast of [false, true]) {
     const handle = tower.compile(source, {pointerBytes});
@@ -24,7 +86,7 @@ test('defer preserves scope, exit order, return snapshots and captured bindings 
       if (fast) tower.useFast(handle);
       const result = finish(handle);
       assert.equal(result.status, 'done', result.error);
-      assert.equal(result.output, expected);
+      outputs.push(result.output);
       const canonical = tower.foundation(handle).source;
       if (byWidth.has(pointerBytes)) assert.equal(canonical, byWidth.get(pointerBytes));
       else byWidth.set(pointerBytes, canonical);
@@ -34,80 +96,39 @@ test('defer preserves scope, exit order, return snapshots and captured bindings 
         if (fast) tower.useFast(round);
         const result = finish(round);
         assert.equal(result.status, 'done', result.error);
-        assert.equal(result.output, expected);
+        outputs.push(result.output);
         assert.equal(tower.foundation(round).source, canonical);
       } finally { tower.destroyExecution(round); }
     } finally { tower.destroyExecution(handle); }
   }
+  checkCase('roundtrip', outputs);
 });
 test('defer agrees with raw and optimized LLVM/Wasm', {skip: !!process.env.TOWER_INTERPRETER_ONLY}, async () => {
-  const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+  const outputs = [expected];
+  const llvm = await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
   for (const optimize of [false, true]) {
     const result = llvm.compile(source, {optimize});
     assert.equal(result.status, 'compiled', result.error);
     const executed = await executeWasm(result);
     assert.equal(executed.status, 'done', executed.error);
-    assert.equal(executed.output, expected);
+    outputs.push(executed.output);
   }
+  checkCase('llvm', outputs);
 });
 test('defer rejects escaping cleanup control flow and unavailable lexical bindings', () => {
-  const tooDeep = 'fn deep(): void { defer {' + '{'.repeat(70) + 'print(1);' + '}'.repeat(70)
-    + '} ' + '{'.repeat(70) + 'return;' + '}'.repeat(70) + '}';
-  for (const [body, error] of [
-    ['fn f(): void { defer { return; } }', /cannot return/],
-    ['loop { defer { break; } break; }', /requires an enclosing loop/],
-    ['loop { defer { continue; } break; }', /requires an enclosing loop/],
-    ['fn f(): void { defer print(1); label(end); return; }', /explicit function labels or jumps/],
-    ['fn f(): void { defer { jump(end); } label(end); return; }', /labels or jumps|cannot jump/],
-    ['fn f(): void { defer print(later); var later = 1; }', /Unknown local/],
-    ['fn f(): i32 { defer print(1); }', /without returning/],
-    [tooDeep, /defer expansion exceeds Foundation block nesting limit/],
-  ]) {
-    const handle = tower.compile('import tower; print(123); ' + body);
-    try {
-      const result = finish(handle);
-      assert.equal(result.status, 'error', body);
-      assert.match(result.error, error, body);
-      assert.equal(result.output, '', body);
-    } finally { tower.destroyExecution(handle); }
-  }
+  checkCase('diagnostics');
 });
 test('traps stop execution without unwinding and deferred traps preserve definite termination', () => {
-  for (const text of [
-    'defer print(3); { defer print(2); trap("cleanup-stop", 7); }',
-    'fn stopped(): i32 { defer print(2); defer trap("cleanup-stop", 7); } stopped();',
-    'fn stopped(): i32 { loop { defer trap("cleanup-stop", 7); break; } } stopped();',
-    'fn stopped(): i32 { for (;;) { defer trap("cleanup-stop", 7); break; } } stopped();',
-    'fn stopped(): i32 { for (;;) { defer trap("cleanup-stop", 7); continue; } } stopped();',
-  ]) for (const fast of [false, true]) {
-    const handle = tower.compile('import tower; ' + text);
-    try {
-      if (fast) tower.useFast(handle);
-      const result = finish(handle);
-      assert.equal(result.status, 'error');
-      assert.match(result.error, /cleanup-stop/);
-      assert.equal(result.output, '');
-    } finally { tower.destroyExecution(handle); }
-  }
+  checkCase('traps');
 });
 test('Foundation retains defer as an ordinary identifier', () => {
-  const handle = tower.compile('import foundation; var defer: i32 = 42; print(defer);');
-  try { assert.equal(finish(handle).output, '42\n'); }
-  finally { tower.destroyExecution(handle); }
+  const handle = tower.compile(fixture('foundation_identifier'));
+  try {
+    const result = finish(handle);
+    assert.equal(result.status, 'done', result.error);
+    checkCase('identifier', [result.output]);
+  } finally { tower.destroyExecution(handle); }
 });
 test('defer completion retains source bindings and cleanup control-flow scope', () => {
-  const labels = text => {
-    const at = text.lastIndexOf('|');
-    const source = text.slice(0, at) + text.slice(at + 1);
-    const result = tower.complete(source, Buffer.byteLength(source.slice(0, at)));
-    assert.equal(result.error, undefined);
-    return result.options.map(option => option.label);
-  };
-  assert.ok(labels('import tower; fn cleanup(): void {} defer cle|').includes('cleanup'));
-  assert.ok(labels('import tower; fn f(): void { defer { var local = 1; loc| } }').includes('local'));
-  assert.ok(!labels('import tower; fn f(): void { defer { var private = 1; } pri| }').includes('private'));
-  assert.deepEqual(labels('import tower; fn f(): void { var value: i32 = 1; defer print(value); { var value: bool = true; var result: i32 = val|; } }'), []);
-  assert.ok(!labels('import tower; fn f(): void { defer { ret| } }').includes('return'));
-  assert.ok(!labels('import tower; loop { defer { br| } break; }').includes('break'));
-  assert.ok(labels('import tower; defer { loop { br| } }').includes('break'));
+  checkCase('completion');
 });

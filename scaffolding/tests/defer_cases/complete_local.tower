@@ -1,0 +1,1 @@
+import tower; fn f(): void { defer { var local = 1; loc } }

@@ -1,0 +1,6 @@
+import library.testing;
+import output;
+
+test() {
+    assert(defer_output_text(0, "42\n"), "Foundation identifier output");
+}

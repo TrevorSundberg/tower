@@ -1,0 +1,15 @@
+import library.testing;
+import failure;
+
+fn check_defer_traps(fast: bool): void {
+    assert(defer_failure("block_trap", "cleanup-stop", 7, fast));
+    assert(defer_failure("return_trap", "cleanup-stop", 7, fast));
+    assert(defer_failure("loop_break_trap", "cleanup-stop", 7, fast));
+    assert(defer_failure("for_break_trap", "cleanup-stop", 7, fast));
+    assert(defer_failure("for_continue_trap", "cleanup-stop", 7, fast));
+}
+
+test() {
+    check_defer_traps(false);
+    check_defer_traps(true);
+}

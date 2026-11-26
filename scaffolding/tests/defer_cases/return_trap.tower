@@ -1,0 +1,1 @@
+import tower; fn stopped(): i32 { defer print(2); defer trap("cleanup-stop", 7); } stopped();
