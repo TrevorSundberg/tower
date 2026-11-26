@@ -1,0 +1,233 @@
+import library.testing;
+import driver_module_paths;
+import driver;
+import driver_platform_api;
+import .host.driver_support;
+import .host.driver_platform;
+import .host.driver_paths;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn host_json_quote(out: ByteBuffer*, source: u8*, length: usize): bool;
+
+// Both imports name one lexical file. A relative native entry must not make
+// its first dependency a different module from the absolute second spelling.
+fn driver_import_identity(compiler: u8*, resources: u8*): void {
+    var entry = "driver identity main.tower";
+    var helper = "driver identity helper.tower";
+    var absolute: ByteBuffer = default;
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&absolute);
+    defer bytes_dispose(&source);
+    defer driver_platform_remove(entry);
+    defer driver_platform_remove(helper);
+    driver_check(driver_platform_absolute(helper, &absolute), "absolute import identity");
+    var dependency = "import tower; print(42);";
+    driver_check(driver_write_file(helper, dependency, strlen(dependency)), "shared import identity fixture");
+    driver_check(driver_text(&source, "import \"./driver identity helper.tower\"; import ")
+        && host_json_quote(&source, absolute.data, absolute.length)
+        && driver_text(&source, ";") && driver_write_file(entry, source.data, source.length),
+        "relative and absolute imports");
+    absolute.length = 0;
+    driver_check(driver_platform_absolute(entry, &absolute), "absolute entry identity");
+    for(var variant: usize = 0; variant < 2; variant++) {
+        var args: DriverArguments = default;
+        driver_arguments_init(&args);
+        defer driver_arguments_dispose(&args);
+        driver_argument(&args, "", compiler);
+        driver_argument(&args, "", variant == 0 ? entry : absolute.data);
+        driver_argument(&args, "", "--interpret");
+        driver_argument(&args, "", "--bedrock"); driver_argument(&args, resources, "/bedrock.tower");
+        driver_argument(&args, "", "--foundation"); driver_argument(&args, resources, "/foundation.tower");
+        driver_check(driver_test_capture(&args) == 0, "native lexical module identity compilation");
+        driver_test_read("driver stdout.txt", "42\n", true);
+        driver_test_read("driver stderr.txt", "", true);
+    }
+}
+
+fn driver_import_run(files: DriverImportFiles*, compiler: u8*, source: u8*, output: u8*, missing: u8*): bool {
+    var args: DriverArguments = default; driver_arguments_init(&args);
+    var stdout_data: ByteBuffer = default; var stderr_data: ByteBuffer = default;
+    defer driver_arguments_dispose(&args);
+    defer bytes_dispose(&stdout_data); defer bytes_dispose(&stderr_data);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, files.root.data, "/a/b/main.tower");
+    driver_argument(&args, "", "--interpret");
+    driver_argument(&args, "", "--foundation");
+    driver_argument(&args, files.root.data, "/library/foundation.tower");
+    driver_argument(&args, "", "--bedrock");
+    driver_argument(&args, files.root.data, "/library/bedrock.tower");
+    if !args.ok || !driver_write_file(args.values.data[1], source, strlen(source)) { return false; }
+    var result = driver_test_capture(&args);
+    if !driver_read_file("driver stdout.txt", &stdout_data) || !driver_read_file("driver stderr.txt", &stderr_data) { return false; }
+    var ok = result == (missing == null ? 0 : 1) && driver_same(stdout_data.data, output);
+    if missing == null {
+        ok &&= stderr_data.length == 0;
+    } else {
+        ok &&= strstr(stderr_data.data, "/a/b/main.tower:1:") != null && strstr(stderr_data.data, missing) != null;
+    }
+    if !ok { driver_error("Filesystem import case failed: ", source); driver_error("Diagnostic: ", stderr_data.data); }
+    return ok;
+}
+
+fn driver_with_imports(compiler: u8*, resources: u8*, check: function(bool, DriverImportFiles*, u8*)): bool {
+    var files: DriverImportFiles = default;
+    var marker: ByteBuffer = default;
+    defer bytes_dispose(&files.root); defer bytes_dispose(&marker);
+    if !driver_platform_temporary(&marker) { return false; }
+    defer driver_platform_remove(marker.data);
+    if !driver_text(&files.root, marker.data) || !driver_text(&files.root, "_imports")
+        || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
+    driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
+    defer driver_import_close(&files);
+    return driver_mount_imports(&files, resources) && check(&files, compiler);
+}
+
+fn driver_mount_imports(files: DriverImportFiles*, resources: u8*): bool {
+    return driver_import_add(files, "/library", null) && driver_import_add(files, "/a", null)
+        && driver_import_add(files, "/a/b", null) && driver_import_add(files, "/CaseDir", null)
+        && driver_import_add(files, "/custom folder", null)
+        && driver_import_grammar(files, resources, "/bedrock.tower")
+        && driver_import_grammar(files, resources, "/foundation.tower")
+        && driver_import_grammar(files, resources, "/tower.tower")
+        && driver_import_add(files, "/a/b/main.tower", "")
+        && driver_import_add(files, "/a/one.tower", "import tower; print(1);")
+        && driver_import_add(files, "/two.tower", "import tower; print(2);")
+        && driver_import_add(files, "/CaseDir/Exact.tower", "import tower; print(42);")
+        && driver_import_add(files, "/custom folder/a-b.tower", "import tower; print(9);")
+        && driver_import_add(files, "/a/b/Helper.tower", "import tower; print(0);")
+        && driver_import_add(files, "/library/helper.tower", "import tower; print(3);")
+        && driver_import_add(files, "/effects.tower", "import tower; print(7);");
+}
+
+fn driver_import_checks(files: DriverImportFiles*, compiler: u8*): bool {
+    if !driver_import_run(files, compiler, "import .one; import ..two;", "1\n2\n", null)
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact.tower\";", "42\n", null)
+        || !driver_import_run(files, compiler, "import \"../../casedir/Exact.tower\";", "", "Cannot read imported module: ../../casedir/Exact.tower\n")
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/exact.tower\";", "", "Cannot read imported module: ../../CaseDir/exact.tower\n")
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact.Tower\";", "", "Cannot read imported module: ../../CaseDir/Exact.Tower\n")
+        || !driver_import_run(files, compiler, "import \"../../CaseDir/Exact\";", "", "Cannot read imported module: ../../CaseDir/Exact\n")
+        || !driver_import_run(files, compiler, "import \"../../custom folder/a-b.tower\";", "9\n", null)
+        || !driver_import_run(files, compiler, "import ..CaseDir.Exact; import \"../../CaseDir/Exact.tower\";", "42\n", null)
+        || !driver_import_run(files, compiler, "import helper;", "3\n", null)
+        || !driver_import_run(files, compiler, "import .helper;", "", "Cannot read imported module: ../helper\n") { return false; }
+    driver_argument(&files.files, files.root.data, "/alias.tower");
+    if !files.files.ok { return false; }
+    var alias = files.files.values.data[files.files.values.length - 1];
+    if !driver_test_symlink("effects.tower", alias) {
+        driver_platform_write(DriverImportStdout, "Symlink fixture unavailable\n", strlen("Symlink fixture unavailable\n"));
+        return true;
+    }
+    return driver_import_run(files, compiler, "import ..effects; import ..alias;", "7\n7\n", null);
+}
+
+// Exercise the production graph, including a companion-only import. The second
+// spelling of the owner must not emit a second line. No test grammar is needed.
+fn driver_import_companions(files: DriverImportFiles*, compiler: u8*): bool {
+    if !driver_import_add(files, "/inventory.tower", "import two; import \"./two.tower\";")
+        || !driver_import_add(files, "/only_in_test.tower", "import tower;")
+        || !driver_import_add(files, "/two_test.tower", "import only_in_test;") { return false; }
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--list-test-files");
+    driver_argument(&args, files.root.data, "/inventory.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    if !driver_inventory_output(files, "/two_test.tower\n") { return false; }
+    if !driver_import_add(files, "/two_test.tower", "import tower;\nimport missing_sidecar_dependency;") { return false; }
+    if driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stderr.txt", "two_test.tower:2:", false);
+    driver_test_read("driver stderr.txt", "Cannot read imported module: missing_sidecar_dependency", false);
+    driver_test_read("driver stdout.txt", "", true);
+    if !driver_import_add(files, "/two_spec.tower", "import only_in_test;")
+        || !driver_import_add(files, "/two_spec_spec.tower", "import missing_nested_test;") { return false; }
+    driver_argument(&args, "", "--test-suffix"); driver_argument(&args, "", "_spec.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    return driver_inventory_output(files, "/two_spec.tower\n");
+}
+
+// Compare the complete mounted identity, including the directory and line count.
+fn driver_inventory_output(files: DriverImportFiles*, line: u8*): bool {
+    var path: ByteBuffer = default; var reference: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&reference);
+    if !driver_platform_absolute(files.root.data, &path) || !driver_path_normalize(path.data, &reference)
+        || !driver_text(&reference, line) || !host_text_terminate(&reference) { return false; }
+    driver_test_read("driver stdout.txt", reference.data, true);
+    driver_test_read("driver stderr.txt", "", true);
+    return true;
+}
+
+fn driver_run_companions(files: DriverImportFiles*, compiler: u8*): bool {
+    var owner = "import tower; fn private_value():i32 { return 11; } print(7); test() { print(private_value()); }";
+    var companion = "import tower; import owner as subject; import extra as extra; test() { print(subject.private_value() + extra.value()); }";
+    if !driver_import_add(files, "/owner.tower", owner) || !driver_import_add(files, "/owner_test.tower", companion)
+        || !driver_import_add(files, "/extra.tower", "import tower; fn value():i32 { return 31; }") { return false; }
+    var args: DriverArguments;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--test");
+    driver_argument(&args, "", "--test-details");
+    driver_argument(&args, files.root.data, "/owner.tower");
+    if !args.ok || driver_test_capture(&args) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "11\n42\n", true);
+    driver_test_read("driver stderr.txt", "2 tests passed for ", false);
+    driver_test_read("driver stderr.txt", "owner.tower:1:", false);
+    driver_test_read("driver stderr.txt", "owner_test.tower:1:", false);
+
+    // An explicit companion runs only its own test, even when it imports its owner.
+    var direct: DriverArguments;
+    driver_arguments_init(&direct); defer driver_arguments_dispose(&direct);
+    driver_argument(&direct, "", compiler);
+    driver_argument(&direct, "", "--test"); driver_argument(&direct, "", "--test-details");
+    driver_argument(&direct, files.root.data, "/owner_test.tower");
+    if !direct.ok || driver_test_capture(&direct) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "42\n", true);
+    driver_test_read("driver stderr.txt", "1 test passed for ", false);
+    driver_test_read("driver stderr.txt", "owner_test.tower:1:", false);
+
+    var wrong = "import library.testing;\ntest() {\n    assert(false, \"Selected wrong expectation\");\n}";
+    if !driver_import_add(files, "/owner_test.tower", wrong) || driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stdout.txt", "11\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:3:5: Selected wrong expectation", false);
+    var statements: u8*[7] = {
+        "import tower;",
+        "fn initial(): i32 { print(5); return 0; }",
+        "var count = initial();",
+        "test() { print(count); }",
+        "{ var local = 2; count += local; }",
+        "test() { print(count); }",
+        "count++; return; print(99);"
+    };
+    var mixed: ByteBuffer = default; defer bytes_dispose(&mixed);
+    foreach (var statement in &statements) {
+        if mixed.length != 0 && !driver_text(&mixed, "\n") { return false; }
+        if !driver_text(&mixed, statement) { return false; }
+    }
+    if !host_text_terminate(&mixed) || !driver_import_add(files, "/owner_test.tower", mixed.data)
+        || driver_test_capture(&args) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "5\n11\n0\n3\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:5:1: test passed", false);
+    driver_test_read("driver stderr.txt", "4 tests passed for ", false);
+    var implicit = "import library.testing;\nprint(7);\nassert(false, \"Implicit assertion reached\");";
+    if !driver_import_add(files, "/owner_test.tower", implicit) || driver_test_capture(&args) != 1 { return false; }
+    driver_test_read("driver stdout.txt", "11\n7\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:3:1: Implicit assertion reached", false);
+    return true;
+}
+
+fn import_input(name: u8*): u8* {
+    var value = getenv(name);
+    assert(value != null, name);
+    return value;
+}
+
+fn mounted_import_test(check: function(bool, DriverImportFiles*, u8*)): bool {
+    return driver_with_imports(import_input("TOWER_DRIVER_COMPILER"), import_input("TOWER_DRIVER_SOURCES"), check);
+}
+
+test() { driver_import_identity(import_input("TOWER_DRIVER_COMPILER"), import_input("TOWER_DRIVER_SOURCES")); }
+test() { assert(mounted_import_test(driver_import_checks), "filesystem import spelling"); }
+test() { assert(mounted_import_test(driver_import_companions), "companion inventory"); }
+test() { assert(mounted_import_test(driver_run_companions), "selected companion execution"); }

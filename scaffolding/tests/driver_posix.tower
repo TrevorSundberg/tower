@@ -13,12 +13,6 @@ extern fn driver_posix_chmod(path: u8*, mode: u32): i32;
 
 extern fn symlink(target: u8*, link: u8*): i32;
 
-extern fn rmdir(path: u8*): i32;
-
-export fn driver_test_remove_directory(path: u8*): void { rmdir(path); }
-export fn driver_test_symlink(target: u8*, path: u8*): bool { return symlink(target, path) == 0; }
-export fn driver_test_make_executable(path: u8*): bool { return driver_posix_chmod(path, DriverTestPrivateMode) == 0; }
-
 export fn driver_test_posix_tool(out: ByteBuffer*, name: u8*): bool {
     out.length = 0;
     return driver_find_tool(out, name);

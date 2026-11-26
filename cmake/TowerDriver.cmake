@@ -9,6 +9,8 @@ if(TOWER_DRIVER_TESTS OR TOWER_EXECUTION_TESTS OR TOWER_BACKEND_TESTS)
   enable_testing()
 endif()
 
+include("${CMAKE_CURRENT_LIST_DIR}/TowerDriverLinkTests.cmake")
+
 function(tower_driver_guest_selections)
   if(NOT TARGET tower-driver-request-services)
     return()
@@ -57,6 +59,7 @@ function(tower_driver_guest_selections)
         "TOWER_C_CLANGXX=${TOWER_C_CLANGXX}" "TOWER_C_GXX=${TOWER_C_GXX}")
     endforeach()
   endif()
+  tower_driver_file_selections("${guest}" "${driver-posix-capture_OBJECT}")
 endfunction()
 
 function(tower_driver_integrate)
