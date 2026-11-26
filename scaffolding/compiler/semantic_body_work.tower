@@ -2069,6 +2069,9 @@ fn sem_bodies(c: SemanticContext*): void {
     var saved_isolated = c.declaration_isolated;
     var state = sem_bodies_begin(c);
     if state == null { work_cancel(&c.queries); return; }
+    // Early type evaluation can advance past ordinary functions before they
+    // become roots. A later signature-only specialization can extend that tail.
+    state.next = 1;
     c.declaration_subjects = &state.declarations;
     c.declaration_isolated = true;
     defer {
