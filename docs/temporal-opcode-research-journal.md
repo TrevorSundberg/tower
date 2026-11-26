@@ -110321,3 +110321,123 @@ bundle, moved kit, case map, link maps, discovery inventories, exact stdout
 and stderr, including the deliberate failures and restorations. Available
 disk was 39,427,772,416 bytes at intake and 39,294,967,808 before sealing
 the evidence on the shared filesystem. Publication belongs to the manager.
+
+### Keeping generated decimal round trips out of compiler companion discovery
+
+Host 1 started from the delivered `faf78e1d` over `bddf1331`. The archive
+SHA-256 was `300c85223bd220db9c5657ed9d6fe8a2bc789b63577beb10127937af2bd43df3`.
+All four manifest members matched the extracted bytes and the packet's internal
+checksums verified. The native driver in the optional kit identified by
+`e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`
+was reused with its runtime IR, provider objects and exact-count checker.
+
+The ordinary production import of `float_text` causes default test discovery
+to open `library/float_text_test.tower`. At the delivered revision this reached
+the generated loop from the bytecode, defer and iteration owners. The previous
+host's full bytecode and iteration runs (184.92 and 190.61 s) and this host's
+full runs below exercised that loop in the graph interpreter. The five compiler
+registrations reject an empty selection and accept any positive passing count.
+The separate native language-suite registrations compare a complete final line
+including the count and source path.
+
+The five small groups stay in the direct library companion. The sixth group
+uses the same formatter, parser, failure collector, seed, masks and finite
+filters in `tests/decimal_round_trips.tower`. Its adjacent default companion
+calls the group. The standalone still calls all six groups and reports every
+mismatch before its terminal failure count. The optional suite installs the
+new pair with its test resources. Its public and installed CTests and the
+decimal CI workflow execute the complete native guest.
+
+The configured native build enabled driver and work tests. The scan used the
+entry, suffix and resource arguments from the generated CTest registries,
+including the CMake-wrapped selections. It probed 87 checkout and 38 installed
+registrations at intake, then 91 and 42 after the split. All 38 original and all
+42 revised exact-count language CTests passed in each location. Only the four
+new fixture registrations select the generator in either registry. Both CI
+selectors ran locally and passed four CTests each.
+
+| Registered entry (jobs) | Before | After | Registered expectation |
+| --- | ---: | ---: | --- |
+| Bytecode package (1, 4) | 21 | 20 | Positive selection |
+| Semantic defer (1, 4) | 75 | 74 | Positive selection |
+| Semantic iteration (4) | 75 | 74 | Positive selection |
+| Float-text library owner (1, 4) | 15 | 14 | Exact |
+| Float-text direct companion (1, 4) | 6 | 5 | Exact |
+| Decimal round-trip fixture owner (1, 4) | — | 15 | Exact, including 9 arithmetic and 5 small decimal groups |
+| Decimal round-trip fixture companion (1, 4) | — | 1 | Exact, generated group only |
+
+The first three rows are checkout registrations. The last four rows also ship
+in SccTests. All five compiler CTests passed after the split. The unregistered
+one-job iteration owner also passed 74. Comparing the full bytecode and
+iteration pass-site lists removed exactly the generator at the old line 139.
+The retained host-4 bytecode sites used its pre-format lines, two earlier than
+the six final decimal sites. The iteration sites matched the formatted input.
+
+Host 1 ran Debian 12, LLVM 19.1.7, on a two-socket Xeon Gold 6244 with 16
+physical cores and 32 logical CPUs. The cgroup exposed CPUs 0–31 with quota
+1536000/100000 (15.36 CPUs). Every measured command held the host timing lock
+and ran on CPUs 0,2,4,6 with warm filesystem inputs. GNU time measured the
+compiler plus guest for the interpreted paths below. Each row is one full
+execution. RSS is process peak in KiB. Per-allocation Tower data was unavailable.
+
+| Graph-interpreted owner | Jobs | Decimal input | Passed | Wall s | User s | System s | Peak RSS KiB |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: |
+| Bytecode | 1 | Delivered library companion | 21 | 251.69 | 251.16 | 0.47 | 226856 |
+| Bytecode | 1 | Library companion removed | 15 | 2.17 | 2.03 | 0.14 | 224568 |
+| Bytecode | 1 | Split, fixture present | 20 | 6.88 | 6.73 | 0.14 | 226420 |
+| Iteration | 4 | Delivered library companion | 75 | 251.45 | 255.20 | 1.19 | 760584 |
+| Iteration | 4 | Library companion removed | 69 | 10.19 | 14.06 | 0.89 | 759828 |
+| Iteration | 4 | Split, fixture present | 74 | 14.96 | 19.02 | 1.09 | 758868 |
+| Bytecode | 1 | Split, fixture pair removed | 20 | 6.70 | 6.55 | 0.14 | 226704 |
+| Iteration | 4 | Split, fixture pair removed | 74 | 14.48 | 18.49 | 1.06 | 762532 |
+
+A second fixture-present observation took 7.50 s for bytecode and 15.04 s
+for iteration. With both new files physically absent, the pass sites, guest
+stdout, final counts and inventory lists matched the fixture-present controls
+byte for byte. Neither inventory depfile mentioned the pair. Ordinary bytecode
+and iteration compilation produced identical object hashes and depfiles before
+the split, after it and with the pair withheld. Peak RSS varied little across
+the test selections. The fixed decimal groups still add roughly five seconds
+to these interpreted invocations compared with removing the entire library
+companion. The retained scan's additional opt-in formatter registration uses
+`_cases_test.tower`. Its real inventory contained just the formatter companion
+on both source trees.
+
+Both worker settings on the checkout and on a separately moved complete
+scaffolding tree produced the same direct counts for bytecode (1), defer (3)
+and iteration (1). The moved tree also reproduced the owner counts at both
+widths. The actual installed suite passed all eight decimal selections without
+that extra source tree. Withholding only the generator companion made its
+installed owner pass 14 tests. The registered checker required 15 and CTest
+returned 8. Restoring the file passed. Removing the actual float-text library
+source made the direct entry return 1 and name the missing file.
+
+The case audit compared the five library groups, the generator body and its
+assertion against the delivered source. An observed native replay reached
+512 finite f64 and 511 finite f32 cases. Both standalones printed exactly
+`0\n` with empty stderr and status 0. Changing the installed parser's signed
+zero return failed the direct group on `-0.0` at 44:5 and the standalone
+trapped with two failures. Changing the midpoint expectation by one bit
+reported `1.000000059604644775390625` at 57:5 and reproduced the supplier's
+exact standalone output, trap and status 1. Changing the generated f32
+comparison failed its own direct companion at 6:5. Each restoration passed.
+All installed manifest file hashes matched after the controls.
+
+The unchanged arithmetic reference generated byte-identical LLVM IR,
+SHA-256 `9a2e7240dda647eee351d7558150226747098b9b1940126da82f7475f364e9be`.
+Clang 19 built it and all 10,240 checks completed with empty output and
+exit 0. All four edited or new Tower sources passed the release formatter.
+Address/leak and thread instrumentation of the standalone corpus and guest
+runtime both produced the required two stdout bytes and empty stderr. The
+host denied the TSan personality call on the first two launches. The same
+instrumented executable initialized on the third. The Tower IR tool exposes
+address and thread modes. Compiler-wide instrumentation, source UBSan and a
+remote Actions execution are outside this local evidence.
+
+Implementation commit `443f63c9` uses the supplied base on a private local
+main. The initial pull in the shared checkout conflicted in two unrelated
+browser files. Aborting that pull preserved the checkout at `203f2497` and
+its local commits. The handoff archive for assignment
+`2962a6a0-ba7e-416d-b9ea-062a18f94068` contains both revisions, the moved
+test kit, actual registries and inventories, per-command streams, timings and
+negative controls. The manager handles integration and publication.
