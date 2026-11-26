@@ -117284,3 +117284,118 @@ Restoring zero reproduced the object and PE. Host execve returned ENOEXEC
 and no Windows executor was installed. Native Windows runtime verification
 remains open. The manager owns integration and publication from the
 assignment's frozen parent.
+
+### Work buffer companion qualification on 5e1a16fa
+
+Host 6 qualified assignment de7c58c9-ea8f-4a47-a317-4426e349d321 against
+published main `5e1a16fa31f786b2acd99f121c6f51347d9bd51b`. The separate
+local main checkout excludes two unpublished commits from the shared checkout.
+All four implementation blobs reproduce the supplied patch. The standalone
+still runs layout, retention and vectors in order and prints zero with a final
+LF. At jobs 1 and 4 the unchanged parent fails direct selection on the absent
+companion and owner selection at link time on duplicate main. The migrated
+direct entry selects work_buffer_test lines 105, 106 and 107. Its owner adds
+work_budget_test lines 6 through 10. All eight coordinates have column 1.
+All five focused CTest registrations passed on the first candidate run.
+
+Implementation `4b114c938bbd3f4cb9cc28130d5171350a9753f2` moves the case
+bodies verbatim apart from substituting `assert` for `buffer_check`. The
+packet maps each parent predicate to its companion location, including all
+multiline and loop checks. There are 25 retention, four layout and 16 vector
+sites. A Tower observer in temporary copies passed each condition through
+once, recorded its result, and read the live values following that site.
+All 366 evaluations succeeded, including 66 allocation sizes and 257 pushes.
+The two observed standalones matched 1,169 expected output lines including
+their final zero. The eight observed direct/owner runs matched 1,168 lines
+against a literal x64 oracle with SHA-256
+`02eb57476981a9f384d1e2aa27f22b6b785977e1baff71b4c3a4d1b1d928f3e1`.
+For the parent selected reference only, an evidence-only adapter made main
+module-local and supplied three declarations calling the original cases.
+The original executable and the missing-companion/duplicate-main results
+above used the unmodified parent. The delivered direct and owner guests
+also passed explicit zero-byte stdout oracles.
+
+On this target the four-word header is 32 bytes. The zero-payload allocation
+size was 33. The last accepted payload, 18446744073709551575, gave an
+allocation size of 18446744073709551607. The next payload gave zero.
+Addresses for lengths 0 through 65 were non-null and divisible by 16. A
+64-byte retained buffer held a 96-byte grant. A replacement of 96 would
+need another 128 while the first grant was live, exceeding the 192-byte
+cap. Denial preserved the pointer, generation 2, capacity 64 and byte 73.
+The two retained buffers reached exactly 192, with two live grants after
+the executing lane returned. Swap preserved the two owners and bytes 29/73.
+Shrink left a 64-byte grant and generation 4. Releasing the original receipt
+returned Stale. Move cleared its source and self-move kept capacity 32.
+The unbudgeted buffer retained byte 11 after growth and an invalid resize.
+
+The 257 vector pushes yielded capacity 512, charge 4,128 and a replacement
+peak of 6,208 bytes. Each element matched its input and the sum was 32,896.
+The 1,535-element replacement would require 12,312 additional bytes,
+exceeding the 16,384 limit with the live 4,128-byte allocation. Refusal
+preserved length 257, capacity 512 and final element 256. Move and swap
+transferred the 257-element and single-element owners, the latter holding
+99. Popping an empty vector preserved the caller's 19. Both budgets drained
+to zero bytes and zero live grants. These ledger measurements cover compiler
+buffer charges. GNU time reports process RSS separately below.
+
+Three single-site negative controls changed the expected zero-payload size,
+retained byte and vector sum, one case at a time. Each failed the parent
+and candidate standalone with exit 1 and empty stdout. The parent's stderr
+named the original work buffer regression. Tower assertions reported
+`Assertion failed` in the candidate. Direct and owner selections failed
+at the individual assertion, at 63:5, 27:5 and 84:5 respectively, at both
+widths. Restoration passed both executables and all four selections. A final
+CTest run on the delivered source passed 5/5. The separate single-owner
+buffer fault-injection suite also passed its five registered routes.
+
+The local read-only native cache at `/tmp/native-29623a47/suite` supplied
+the guest runtime and allocator for the explicit selections. The provider
+objects and standalone guest matched the focused CMake build byte for byte.
+The CTest count checker came from the current build. File hashes and mtimes
+of the cached products were unchanged. All 61 packaged compiler/resource
+checks passed. The bootstrap SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The initial configure needed the checked-in bootstrap path explicitly. An
+attempt to request a map from the ordinary Tower executable linker failed
+on the Clang linker option. Removing the option let the normal build finish.
+Both failed commands are in the packet. The sanitizer builds used the
+supported Clang link path and emitted their maps.
+
+Release x86_64-pc-linux-gnu, Clang/LLVM 19.1.7, host 6 Xeon E5-2680 v4,
+12 visible CPUs, quota 1152000/100000 and memory limit 32282509312 bytes.
+A host timing lock serialized measurements on CPUs 0–3. Each row gives
+median wall seconds / median user plus system seconds / maximum RSS in KiB
+over three warm-filesystem samples with fresh processes, reversing the
+parent/candidate order for the middle pair. Selection includes discovery,
+compilation, link and execution. The standalone batch includes the shell
+launching 100 checked processes. Individual executable times were below
+GNU time's 0.01 s display resolution, with maximum RSS of 1,800 KiB on
+each freeze.
+
+| Entry | Jobs | Original | Candidate |
+| --- | ---: | ---: | ---: |
+| Object compilation | 1 | 0.63 / 0.63 / 105316 | 0.83 / 0.81 / 108764 |
+| Object compilation | 4 | 0.71 / 0.77 / 110544 | 1.00 / 1.12 / 122512 |
+| Direct selection | 1 | 0.68 / 0.68 / 106188 | 0.85 / 0.84 / 109912 |
+| Direct selection | 4 | 0.72 / 0.77 / 111364 | 0.96 / 1.07 / 123336 |
+| Owner selection | 1 | 1.00 / 0.98 / 120220 | 1.01 / 1.00 / 123344 |
+| Owner selection | 4 | 1.10 / 1.23 / 131316 | 1.15 / 1.29 / 133500 |
+| 100 standalone launches | — | 0.11 / 0.11 / 3260 | 0.10 / 0.11 / 3260 |
+
+Object builds at both widths reproduced each freeze's ELF and object across
+all three trials. The candidate adds the test grammar, companion and shim
+to the standalone depfile, bringing its Tower inputs from 16 to 19. In a
+four-job follow-up the original, candidate with original check helper, and
+delivered candidate took 0.72, 1.08 and 1.03 s median to compile. Replacing
+the assertion calls alone did not recover the parent's compile time.
+The sample covers this fixture and its imports.
+
+The complete standalone passed ASan with leak detection and TSan at their
+first launches, each with exact reference stdout and empty stderr. The IR
+extracts show instrumentation in all three bodies and the maps identify
+the fixture object and its production allocation provider in guest-work-tests.o.
+The cases execute on one guest thread. The selected `--jobs` widths control
+the compiler. Tower's sanitizer configuration supports address and thread
+modes. Source-level UBSan and cross-target execution have no result in this
+packet. The assignment changed only test sources and their Linux registration.
+The manager owns integration and publication.
