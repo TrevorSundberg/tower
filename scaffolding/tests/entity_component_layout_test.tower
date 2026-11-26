@@ -227,6 +227,85 @@ fn component_inline_index(): void {
         && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
 }
 
+var ComponentLayoutLargeBytes: usize = 32768;
+var ComponentLayoutAlignment: usize = 4096;
+
+// Run unchanged on native and wasm32. All receipts and offsets use this
+// target's actual types; no x64 header size is embedded in the reference.
+fn component_allocation_layout(report_layout: bool): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, ComponentLayoutBudgetBytes, 1));
+    var store: EntityStore* = null;
+    assert(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var store_bytes = budget.used_bytes;
+    var owner = entity_create(store);
+    var other = entity_create(store);
+    var type = entity_create(store);
+    var large_type = entity_create(store);
+    assert(owner != null && other != null && type != null && large_type != null
+        && entity_register(type, sizeof(u64), alignof(u64), 0)
+        && entity_register(large_type, ComponentLayoutLargeBytes, ComponentLayoutAlignment, 0));
+    var error = WorkBudgetError.Invalid;
+    var first = entity_component_add_result(owner, type, &error);
+    assert(first != null && error == WorkBudgetError.None && first.page != null);
+    *bits(u64*, first.data) = 1234567;
+    var second = entity_component_add_result(other, type, &error);
+    assert(second != null && error == WorkBudgetError.None
+        && second.page == first.page && first.page.live == 2
+        && second.data == first.data + first.page.stride
+        && bits(usize, first.data) % alignof(u64) == 0
+        && entity_component_from_data(first.data) == first
+        && entity_component_from_data(second.data) == second);
+    var page_bytes = compiler_buffer_allocation_size(first.page.allocation.capacity);
+    // Non-owning receipt snapshots test this payload's exact grant/lifetime.
+    // Descriptor/index grants are separate; entity_accounting checks their census.
+    var page_receipt = first.page.allocation.reservation;
+    assert(page_receipt.bytes == page_bytes
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
+        && budget.used_bytes > store_bytes + page_bytes);
+    var block: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes - 1, &block));
+    assert(entity_component_add_result(owner, large_type, &error) == null
+        && error == WorkBudgetError.Capacity && owner.component_count == 1);
+    assert(work_budget_release(&budget, &block));
+    var large = entity_component_add_result(owner, large_type, &error);
+    assert(large != null && error == WorkBudgetError.None && large.page == null
+        && bits(usize, large.data) % large_type.layout.data_alignment == 0
+        && entity_component_from_data(large.data) == large);
+    fill(large.data, 91, large_type.layout.data_size);
+    var allocation = bits(EntityComponentAllocation*, large);
+    var large_bytes = compiler_buffer_allocation_size(allocation.allocation.capacity);
+    var large_receipt = allocation.allocation.reservation;
+    assert(&allocation.component == large
+        && allocation.allocation.data == bits(u8*, large) && large_receipt.bytes == large_bytes
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
+        && large.data[large_type.layout.data_size - 1] == 91 && *bits(u64*, first.data) == 1234567);
+    var view = entity_view_open(owner);
+    assert(view != null && entity_component_add_result(owner, type, &error) == first
+        && error == WorkBudgetError.None);
+    entity_view_close(view);
+    if report_layout {
+        print(sizeof(usize)); print(sizeof(WorkBuffer)); print(sizeof(EntityComponentPage));
+        print(sizeof(EntityComponentAllocation)); print(page_bytes); print(large_bytes);
+        print(sizeof(EntityComponent));
+    }
+    assert(entity_component_remove(owner, type)
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.None
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None);
+    assert(entity_component_remove(other, type)
+        && work_budget_validate_result(&budget, &page_receipt) == WorkBudgetError.Stale
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.None);
+    assert(entity_component_remove(owner, large_type)
+        && work_budget_validate_result(&budget, &large_receipt) == WorkBudgetError.Stale
+        && store.storage.owned == null && budget.used_bytes > store_bytes);
+    entity_release(owner); entity_release(other); entity_release(type); entity_release(large_type);
+    assert(store.entity_count == 0 && store.component_count == 0
+        && entity_store_dispose(store) && budget.used_bytes == 0 && budget.live == 0
+        && work_budget_dispose(&budget));
+}
+
 test() { child_index_storage(); }
 test() { component_inline_index(); }
 test() { component_stage_policy(); }
+test() { component_allocation_layout(false); }
