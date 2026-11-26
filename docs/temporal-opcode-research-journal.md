@@ -105743,3 +105743,61 @@ one test with output 42 at both widths. Packet
 `7c1cce52-e4c5-4d2d-8069-55ea09f00681.tar.gz` carries the console, commands,
 logs, checked outputs and local review bundle. A full Jenkins rerun and
 publication remain with the manager.
+
+## Jenkins 55 Semantics dependency on the ParserNodes label setter
+
+At `3ae475c2edaca11573bcb74c47a287508ee48981`, Jenkins #55 reached the
+Linux x64 Semantics comparison and rejected `node_match_set_label_result`.
+Host 1 reproduced the same sole diagnostic and exit 1 with the original
+`verify_bootstrap_symbols --compare` and the `semantics` selector. A fresh
+Release build used the checked-in Linux x64 compiler and resources, with
+the driver and format test options enabled as in Jenkins.
+
+Commit `ec6ec43b` added the call in `sem_test_container`. It labels the
+synthetic nodes that group companion-file statements, propagating the
+setter's typed error before attachment. In the native objects, LLVM nm
+reports the setter undefined in Semantics and defined in ParserNodes.
+Entities already imports it for metadata copying. The fix adds its full
+spelling to the Semantics import list. The new fixture failed its acceptance
+assertion against the original verifier policy (exit 134). It also checks
+truncation, a suffix and attempted import by the provider.
+
+The original optimized Linux IR places the call inside `sem_test_container`.
+The native `tower-driver-module-paths` regression passed, including the
+mixed explicit/implicit companion and the source-located failing assertion.
+The corrected policy fixture and the CLI on the real 171-row Linux Semantics
+report each passed under ASan with leak detection and under initialized TSan.
+Twelve TSan launches exited 139 during startup at the container's denied
+`personality(ADDR_NO_RANDOMIZE)` call. The packet retains those attempts
+separately. Both sanitized executables link instrumented Tower host-library
+allocator code. The verifier scans symbols serially. The Tower LLVM
+instrumenter supports address and thread modes only.
+
+Host 1 has two Xeon Gold 6244 sockets (16 cores, 32 hardware threads) and a
+15.36-CPU quota. The native build used LLVM/Clang 19.1.7, four Ninja jobs,
+one Tower worker per compiler invocation and the pinned compiler SHA-256
+`0100aa61813fe15c4f058bf6e3b8265b9e214bdaf23484c80c5e428f59f59233`.
+The fresh successor's SHA-256 was
+`0f5302e1275356003f779e121ef0387e6fba615f5f230ffceae3c5e98ac6f919`.
+For matched successful reads, remove the one disputed row from the Linux
+report. With retained filesystem caches, three serial fresh processes per
+version on CPU 2 accepted the same 170 rows in less than the timer's 0.01 s
+resolution. At 512 copies (87,040 rows), median wall and CPU times were
+0.15/0.15 s before and 0.14/0.14 s after. Maximum process RSS was
+4,616/4,888 KiB before/after. The name extends an existing static string
+and the lookup still borrows its input without allocating per symbol.
+
+The default `--compare` command from `internal.sh` passed all 29 unit/target
+combinations and the custom and missing Foundation controls (361.11 s wall,
+574.03 s CPU, peak process RSS 954,588 KiB). Independent `cmp` checks matched
+all 29 object pairs and 29 optimized IR pairs. On the same 29 undefined-symbol
+reports the old verifier rejected only the four Semantics targets, with exactly
+this symbol each time. Each target's ParserNodes object defined the matching
+symbol, including the leading underscore in Mach-O. The corrected verifier
+accepted all 29. The Linux predecessor Semantics object and IR also matched
+the retained failed run byte for byte.
+
+Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
+Jenkins console, commands, inputs, comparison products, sanitizer attempts
+and local commit for review. The full Jenkins rerun and publication remain
+with the manager.

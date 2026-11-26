@@ -210,7 +210,7 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, maco
             || bootstrap_symbol_in("frontend_module_import_at frontend_module_import_count frontend_module_location frontend_module_name frontend_module_position", symbol, length)
             || bootstrap_symbol_in("frontend_module_root frontend_module_roots frontend_module_session frontend_module_size frontend_module_source frontend_module_test_role", symbol, length)
             || bootstrap_symbol_in("frontend_module_tree generic_definition host_json_quote host_json_unsigned host_source_error host_text_terminate", symbol, length)
-            || bootstrap_symbol_in("parser_match_get_type syntax_capture_comments syntax_completion_accepts syntax_completion_callable syntax_completion_close", symbol, length)
+            || bootstrap_symbol_in("node_match_set_label_result parser_match_get_type syntax_capture_comments syntax_completion_accepts syntax_completion_callable syntax_completion_close", symbol, length)
             || bootstrap_symbol_in("syntax_completion_create syntax_completion_enable syntax_completion_identifier syntax_completion_module syntax_component_type", symbol, length)
             || bootstrap_symbol_in("syntax_inspection_capture syntax_inspection_match syntax_inspection_reference syntax_inspection_template", symbol, length)
             || bootstrap_symbol_in("syntax_source_location tower_node_get_parent_member_name", symbol, length)
