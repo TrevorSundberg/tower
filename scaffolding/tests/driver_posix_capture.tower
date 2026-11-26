@@ -1,0 +1,31 @@
+import tower;
+
+extern fn close(fd: i32): i32;
+
+extern fn fileno(file: void*): i32;
+
+extern fn dup(fd: i32): i32;
+
+extern fn dup2(source: i32, destination: i32): i32;
+
+extern fn mkdir(path: u8*, mode: u32): i32;
+
+var DriverTestPrivateMode: u32 = 448;
+
+export fn driver_test_directory(path: u8*): bool { return mkdir(path, DriverTestPrivateMode) == 0; }
+
+export fn driver_test_file(file: void*): i32 {
+    return fileno(file);
+}
+
+export fn driver_test_dup(fd: i32): i32 {
+    return dup(fd);
+}
+
+export fn driver_test_dup2(source: i32, destination: i32): i32 {
+    return dup2(source, destination);
+}
+
+export fn driver_test_close(fd: i32): void {
+    close(fd);
+}

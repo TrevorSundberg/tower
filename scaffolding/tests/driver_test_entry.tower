@@ -1,0 +1,7 @@
+import tower;
+import driver;
+
+// Only the standalone executable dispatches the aggregate by command line.
+export fn driver_tests(argc: i32, argv: u8**): i32 {
+    return driver_test_run(argc, argv);
+}

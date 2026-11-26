@@ -7,4 +7,4 @@ import host.driver_link;
 import host.driver_prepare;
 import host.driver_paths_windows;
 import tests.driver_windows;
-import tests.driver;
+import tests.driver_test_entry;
