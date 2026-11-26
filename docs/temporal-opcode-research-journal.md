@@ -119308,3 +119308,27 @@ selected runs. The restored discovered owner runs 31 tests, nine of which
 belong to the complete module-cache suite. Its stdout matches the reference
 standalone byte for byte. Each selected family retains its original parser
 or budget owner through its final read.
+
+### Host 7 acceptance for native execution and module-cache selections
+
+At code revision bc1da092, all 12 direct and discovered selections at jobs
+1 and 4 matched their original CLI stdout. All 14 focused registrations
+passed. The original execution aggregate, six pointer modes and both
+parser-only consumers matched both streams. The 1,290-line inventory maps
+the frozen predicate bodies to their new files. All ten wrong-expectation
+controls failed the ordinary and selected execution. Observation runs for
+four ordinary modes on both source revisions used the same production
+service objects. Their traces matched, including both full-cache denials
+and zero post-disposal charges. Five additional two-worker retained runs
+saw two concurrent LR workers.
+
+The two supported sanitizer profiles each completed all four standalone
+modes and detected their deliberate sensitivity controls. The TSan runtime
+had 88 failed startups across the positive cases and eight on the control.
+The packet retains each failed attempt and the subsequent completed test.
+An additional parser-only configure with an empty project include failed in
+CMake. Unsetting the optional include restored the ordinary parser-only build.
+The [selection report](native_module_test_selection_10271859.md) gives the
+source inventory, sampling conditions, return codes, timings, memory and
+coverage. The final report affects documentation only. All code measurements
+refer to bc1da092.
