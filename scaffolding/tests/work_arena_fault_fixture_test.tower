@@ -1,0 +1,57 @@
+import library.testing;
+import work_arena_fault_fixture;
+import .library.work_arena;
+import .library.work_budget_types;
+
+test() { arena_first_chunk_refusal(); }
+test() { arena_growth_refusal(); }
+
+fn check_first_refusal(fixture: ArenaFaultFixture*, output: u8**): void {
+    assert(arena_fault_allocate(&fixture.arena, 64, output) == WorkBudgetError.Memory,
+        "Refusing the first allocation must report Memory");
+    assert(*output == null, "First refusal leaves the output null");
+    assert(fixture.arena.first == null && fixture.arena.last == null, "First refusal publishes no chunk");
+    assert(fixture.budget.live == 0 && fixture.budget.used_bytes == 0, "First refusal retains no charge");
+    assert(tower_test_buffer_count() == fixture.baseline, "First refusal leaks no allocation");
+}
+
+fn arena_first_chunk_refusal(): void {
+    var fixture: ArenaFaultFixture = default;
+    arena_fault_init(&fixture);
+    var output: u8* = null;
+    check_first_refusal(&fixture, &output);
+    arena_fault_dispose(&fixture);
+}
+
+fn arena_growth_refusal(): void {
+    var fixture: ArenaFaultFixture = default;
+    arena_fault_init(&fixture);
+    var output: u8* = null;
+    check_first_refusal(&fixture, &output);
+    var size: usize = 64;
+    assert(work_arena_allocate_result(&fixture.arena, size, 8, &output) == WorkBudgetError.None && output != null,
+        "Retrying the first allocation returns a slice");
+    var first = output;
+    fill(first, 63, size);
+    var chunk = fixture.arena.first;
+    var live = tower_test_buffer_count();
+    var bytes = fixture.budget.used_bytes;
+    assert(arena_fault_allocate(&fixture.arena, 4000, &output) == WorkBudgetError.Memory,
+        "Physical allocation of a second chunk must report Memory when refused");
+    assert(output == first, "Growth refusal preserves the output address");
+    assert(fixture.arena.first == chunk && fixture.arena.last == chunk, "Growth refusal preserves both chunk links");
+    for (var i: usize = 0; i < size; i++) {
+        assert(first[i] == 63, "Growth refusal preserves every byte of the first slice");
+    }
+    assert(tower_test_buffer_count() == live, "Growth refusal preserves the live allocation count");
+    assert(fixture.budget.live == 1 && fixture.budget.used_bytes == bytes, "Growth refusal preserves the charge");
+
+    assert(work_arena_allocate_result(&fixture.arena, 4000, 8, &output) == WorkBudgetError.None,
+        "Retrying the second chunk allocation succeeds");
+    assert(output != null && output != first && fixture.arena.first == chunk && fixture.arena.last != chunk,
+        "Retry appends a new chunk and returns a distinct slice");
+    for (var i: usize = 0; i < size; i++) {
+        assert(first[i] == 63, "Successful growth preserves every byte of the first slice");
+    }
+    arena_fault_dispose(&fixture);
+}

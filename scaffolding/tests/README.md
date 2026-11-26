@@ -1305,6 +1305,13 @@ cancelled and denied work, stable slice addresses, retained grants after joins,
 and complete chunk transfer before disposal. These checks cover explicit arena
 ownership, not fallible allocation propagation throughout the compiler.
 
+The serial executable and the adjacent `tests/work_arena_fault_fixture_test.tower`
+companion share the first-allocation and chunk-growth refusal checks. In the
+optional native language kit, run `ctest -R '^tower-selected-work-arena-faults'`
+from the kit directory. At jobs 1 and 4 the fixture owner selects its two checks
+and five budget checks. Direct companion selection runs the two arena checks.
+Both link the kit's instrumented allocator. The job count controls compilation.
+
 The opt-in `tower-measure-work-arena-profile` target runs `arena16 1 large`.
 Its executable accepts `baseline|arena4|arena16|arena64`, worker count `1|2|4|8`,
 and `small|large` (2,048 or 262,144 objects). Compare equivalent inputs using
