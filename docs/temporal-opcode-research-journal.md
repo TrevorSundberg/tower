@@ -122956,3 +122956,138 @@ The combined owner used a separate work directory containing copies of
 the four browser C files. Source discovery and all 19 reported locations
 are retained. Deployment and integration against later main belong to
 the manager.
+
+### F13 native linking and filesystem import selections
+
+Host 2, assignment `b604741d-9677-40ab-ae49-462819ec14b3`, used the published
+`c01c60a53374a73dae0176e6a1a3b7878ce8fe3b` tree. The audit packet from
+`5d481bf0-a965-4e5d-a108-4938e728b79b` and the extracted and archived bytes of
+all six named members matched their receipt. The original M034 ranges omit
+individual link products and M038 predates companion discovery and execution.
+The comparison therefore follows each current child process as well as the
+nine historical ranges. On the parent each owner already selected all nine
+formatter and seven SHA-256 declarations. Each explicit new filename failed
+on that parent. The CLI-only registration now owns the imports of the two
+suites and their cross-target caller. This preserves the original formatter
+selection. Both native entries and the new declarations call the same checks.
+
+The executable tests use the original foreign fixture, linking, memory,
+storage, LLVM, platform and forward modules. The filesystem tests still
+construct the original spellings and edits inside a mounted temporary root.
+The ordinary module-path selector needs only a compiler and its language
+resources, including when these have moved. The new explicit-companion
+control checks that importing its owner still produces only the companion's
+42. Both inventory suffixes require the whole normalized path and one newline.
+The browser producer emitted the x64 and ARM64 program and linked-library
+ELFs with the existing cross-compilation tests. The consumers ran those exact
+bytes with the native host and QEMU. Opt into the linking CTests with
+`TOWER_DRIVER_LINK_TESTS=ON` after producing the archive and exports.
+`TOWER_DRIVER_WASM_ARCHIVE` and `TOWER_DRIVER_BROWSER_EXPORTS` accept
+separately mounted inputs. The four module-path selections use the ordinary
+native driver test build.
+
+The accepted code is `ce19ee13e98870fadc1dac2cc4229595f7187636`. Initial
+implementation `8283b043` still kept the command status, output-existence
+and executable-mode checks in owner helpers. These verdicts and the mount
+admission sequence now live in the companions. The cross-target driver can
+still use its original helper signatures. Its standalone entry alone imports
+the link, cross-target and module-path suites. The original runner continues
+to use one mount for the complete series. Each selected case can open and
+dispose its own mount. Directory/descriptor/permission calls and the
+fork/exec/wait transport, including its 30-second alarm, are the original
+POSIX implementations shared with the selected guest.
+
+Direct CMake configuration needed the documented explicit path to the in-tree
+bootstrap. The first small-unit compiles caught the reserved identifier
+`expected`. The aggregate then caught the target-pack caller of the existing
+download helper. Both were repaired before testing the final code. The
+separate wrong-result probes initially needed an empty owner for their
+own direct companion. The evidence retains these diagnostics.
+
+On the Ryzen 5 3600, affinity and effective cpuset were 0–11, CPU quota
+1,152,000 µs per 100,000 µs period (11.52 CPUs) and the memory cap was
+32,222,740,480 bytes. The Release build used Clang/LLVM 19.1.7. The checked-in
+bootstrap SHA-256 started `7430bdb3`, and the actual built child compiler
+started `1e3fdba4`. The final legacy linking run took 7.37/7.23 s at
+one/four harness compiler jobs, compared with 7.39/7.33 s on the parent.
+Filesystem paths took 5.37/5.53 s against 5.29/5.04 s. The candidate launches
+one additional direct companion process. The ordinary native suite took
+12.51/12.59 s against 12.64/12.39 s with identical top-level streams. All
+timing trials used fresh processes, warm files, private work directories and
+a host lock. The child compiler and guest arguments retain their original
+settings. These one-sample timings measure route costs, including process
+startup and guest compilation where applicable.
+
+The standalone traces matched all 24 linking children, four browser exports
+and 20 original module-path children in order at both widths, including the
+Clang target-triple warning. Each native route checked a further direct test
+selection, bringing the final combined count to 49. Owner and direct traces
+matched all applicable rows after accounting for the separately linked object
+running in the archive test and the 20 formatter subprocesses inherited by
+an owner. The inventory comparison normalizes only the root taken from that
+child's argv. A second observer checked the actual mounted source bytes and
+file hashes in each request, including the two paths to a single inode.
+All 15 original linker products and four exported ELFs matched the parent
+byte-for-byte on both routes and widths. The archive's single member matched
+the separately retained foreign fixture object.
+
+Changing only the forward guest expectation from 42 to 43 rejected the original
+entry and both selections with `./module-forward`. Changing only the
+two-spelling import expectation from one 42 to two rejected all three routes
+with the offending import statement. The unchanged archive, Wasm and LLVM
+guest helpers passed with the link mutation present. Inventory and direct
+versus inferred companion execution passed with the lexical mutation present.
+Each restored companion passed again. A copied package with spaces in its
+path ran both original selectors from another working directory. With only
+the x64 exports mounted and QEMU omitted, the driver executed both x64 files
+and printed its explicit ARM64 skip. A Windows x64 object retained the
+standalone entry symbol. Windows process behavior was not executed here.
+
+ASan with leak detection and TSan each completed all three instrumented
+standalone selectors with the regular child compiler. The link maps identify
+the guest driver runtime, POSIX child transport and instrumented driver test
+object. The changed comparison, command, compilation and mount functions
+contain sanitizer callbacks. Each sanitizer started on the first attempt
+for the final freeze. The repository has no separate native Tower IR UBSan
+mode. The packet records supported instrumentation and contains raw commands,
+streams, per-child and per-file joins, product hashes, exact source bundle,
+host limits and timing/RSS rows.
+
+At one/four jobs the new linking owner ran 24 declarations in 11.24/11.21 s
+wall and 11.73/12.10 s CPU, with peak RSS 199,060/208,468 KiB. The eight-test
+direct companion took 8.62/8.56 s wall and 9.03/9.24 s CPU, 195,320/204,992 KiB.
+The 20-test path owner took 9.12/8.84 s wall and 9.75/9.80 s CPU,
+200,224/209,060 KiB. Its four-test direct companion took 6.65/6.61 s wall
+and 7.15/7.55 s CPU, 197,024/204,500 KiB. Independently replaying only the
+additional nested direct child with the three original mounted file hashes
+took 0.28 s wall and 0.31 s CPU, 79,788 KiB. Full paired parent figures,
+including the parents' smaller owner selections, are in the evidence table.
+
+All 15 registered ordinary, formatting, module-path and linking CTests
+passed on the accepted implementation. Owner and direct counts at each width
+were 24/8 for linking and 20/4 for paths. The native suite and selected
+routes passed after restoring both corruptions. A fresh receiver starting
+from c01c60a5 fast-forwarded the code bundle to tree
+`5316850ea7a5b6bd866efd57f7ed19ab07445c22`. The two source commits and this
+journal entry are ready for manager integration. Host evidence is assignment
+`b604741d-9677-40ab-ae49-462819ec14b3.tar.gz`, including the per-case and
+per-route tables in `accepted/`.
+
+The final shared-checkout pull fast-forwarded the published base to
+`80376d0dbe635bed0dee35ed15e83cc63dec5ecd`, which already included the C
+backend/profile handoff. The local reconciliation retained its C selector
+arms and CMake registrations, used the single published fork/exec/wait
+implementation and added the three remaining POSIX file operations. The
+six linking, mounted-path and POSIX source files matched the exact-parent
+candidate byte-for-byte. The independent integration code commit is
+`48583cff702fc8df65e06dda3762b9cebb3266e0` on 80376d0d. Its fresh native
+build passed the 15 ordinary, formatting and F13 registrations and both
+complete C backend registrations. The first two C profile invocations
+exposed missing system multilib development headers and startup objects.
+Three digest-checked Debian development packages extracted to an
+assignment-local directory supplied the headers and linker inputs to the
+same Clang/GCC C and C++ drivers. All four real 32-bit probe executables
+ran and printed the same bytes. Both original and direct profile CTests
+then passed. Generated profile C hashes and the two complete backend JSON
+outputs matched across original and direct invocations. The initial failures,
+retry and both source bundles are in the evidence packet.
