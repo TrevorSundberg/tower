@@ -4,6 +4,7 @@ import .library.vector;
 import .compiler.host_handle_types;
 import .compiler.semantic_program_types;
 import .compiler.execution_session;
+import .compiler.test_file_rule;
 import .library.work_vector_types;
 
 // Transport ownership only. Programs own ordinary Foundation entity roots;
@@ -17,6 +18,8 @@ struct IdeExecution {
     // The interpreter callbacks receive the first member's machine.
     execution: ExecutionSession;
     handle: u32;
+    tests: TestFileSelection;
+    access: ExecutionFixtureAccess;
 }
 
 struct IdeState {

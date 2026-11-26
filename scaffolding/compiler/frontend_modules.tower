@@ -1034,6 +1034,39 @@ export fn frontend_fixture_child(parent: ModuleEnvironment*, entry: u8*): Module
     return child;
 }
 
+// Browser execution can outlive its input upload. Keep the compiled source map
+// and only the registered oracle inputs named by this selection's grants.
+export fn frontend_fixture_snapshot(parent: ModuleEnvironment*, selection: TestFileSelection*): ModuleEnvironment* {
+    var snapshot = frontend_modules_create();
+    if snapshot == null { return null; }
+    var ok = frontend_modules_bind_world(snapshot, parent.world);
+    if ok {
+        frontend_modules_configure(snapshot, module_text(&parent.entry), module_text(&parent.library));
+        frontend_modules_fallback(snapshot, module_text(&parent.fallback));
+        for (var i: usize = 0; i < parent.aliases.length; i++) {
+            var alias = &parent.aliases.data[i];
+            frontend_modules_builtin(snapshot, alias.name.data, alias.path.data);
+        }
+        for (var i: usize = 0; i < parent.sources.length; i++) {
+            var source = parent.sources.data[i];
+            ok = vector_push(&snapshot.bases, parent.bases.data[i]) && vector_push(&snapshot.sources, source);
+            if !ok { break; }
+            syntax_source_retain(source);
+        }
+    }
+    if ok {
+        foreach (var &pair in &selection.fixtures) {
+            var oracle = module_registered_input(parent, pair.oracle.data);
+            if oracle != null && !frontend_modules_source(snapshot, oracle.name.data, oracle.text.data, oracle.text.length) {
+                ok = false; break;
+            }
+        }
+    }
+    if ok { return snapshot; }
+    frontend_modules_destroy(snapshot);
+    return null;
+}
+
 export fn frontend_fixture_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*, source: bool, registered_only: bool): u8* {
     var status = ModuleMissing;
     if source { status = module_snapshot_read(environment, path, text); }
