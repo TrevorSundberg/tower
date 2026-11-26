@@ -1,0 +1,59 @@
+import library.test_fixtures;
+
+// The browser supplies the terminal observations from this instance's four
+// function_values selections. Read text as bytes into a caller-sized buffer.
+extern fn fixture_result_text(name: u8*, field: u8*, data: u8*, capacity: usize): usize;
+extern fn fixture_result_number(name: u8*, field: u8*): i32;
+
+fn text_bytes(text: u8*): FixtureBytes {
+    var length: usize = 0;
+    while text[length] != 0 { ++length; }
+    return {data: text, length: length};
+}
+
+fn result_matches(name: u8*, field: u8*, text: u8*): bool {
+    var wanted = text_bytes(text);
+    var buffer = alloc(u8, wanted.length + 1);
+    defer free(buffer);
+    var count = fixture_result_text(name, field, buffer, wanted.length);
+    return fixture_equal({data: buffer, length: count}, wanted);
+}
+
+fn expect_terminal(name: u8*, status: u8*, output: u8*): void {
+    assert(fixture_result_number(name, "count") == 1, name);
+    assert(fixture_result_number(name, "outputTruncated") == 0, name);
+    assert(result_matches(name, "status", status), name);
+    assert(result_matches(name, "output", output), name);
+}
+
+fn expect_success(name: u8*): void {
+    expect_terminal(name, "done", "0\n");
+    assert(result_matches(name, "error", ""), name);
+    assert(result_matches(name, "errorFile", ""), name);
+    assert(fixture_result_number(name, "errorOffset") == 0, name);
+}
+
+fn expect_failure(name: u8*, message: u8*, offset: i32): void {
+    expect_terminal(name, "error", "");
+    assert(result_matches(name, "error", message), "Selected fixture diagnostic differs");
+    assert(result_matches(name, "errorFile", ".tower/tests/function_values_test.tower"), name);
+    assert(fixture_result_number(name, "errorOffset") == offset, name);
+}
+
+test() {
+    expect_success("older");
+    expect_success("restored");
+    expect_failure("missing", "Cannot open fixture: .tower/tests/function_values.expected", 168);
+    expect_failure("wrong", "Function values stdout differs from function_values.expected", 243);
+
+    // This selection has a different grant on the same instance. The later
+    // mount replaces both files. Pin each value independently to catch a pair
+    // that still agrees after both have changed.
+    var source_output = fixture_stdout("live_grants.tower");
+    defer free(source_output.data);
+    var oracle = fixture_text("live_grants.expected");
+    defer free(oracle.data);
+    var word_bytes = text_bytes(sizeof(usize) == 4 ? "4\n" : "8\n");
+    assert(fixture_equal(source_output, word_bytes), "Retained word-size fixture source");
+    assert(fixture_equal(oracle, word_bytes), "Retained word-size fixture oracle");
+}

@@ -1,6 +1,7 @@
 import tower;
 import ide_types;
 import .compiler.execution_session;
+import .compiler.execution_fixtures;
 import ide_api;
 import ide_state;
 import ide_text;
@@ -25,8 +26,11 @@ extern fn sem_resource_message(error: WorkBudgetError): u8*;
 // Each execution owns its root, typed program indexes, cache and guest storage.
 // Destruction takes the handle first; a stale handle cannot reach freed state.
 fn ide_execution_close(session: ExecutionSession*): void {
+    var owner = bits(IdeExecution*, session);
     execution_session_close(session);
-    free(session);
+    if owner.access.modules != null { frontend_modules_destroy(owner.access.modules); }
+    test_file_selection_dispose(&owner.tests);
+    free(owner);
 }
 
 fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, foundation: bool): ExecutionSession* {
@@ -116,6 +120,7 @@ fn ide_execution_fast(session: ExecutionSession*): bool {
     return ready;
 }
 
+extern fn frontend_fixture_snapshot(parent: void*, selection: TestFileSelection*): void*;
 extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
 extern fn frontend_modules_enter_test_root(modules: void*, selection: TestFileSelection*, saved: vector(u8)*, length: usize*): u8*;
 extern fn frontend_modules_leave_test_root(modules: void*, saved: vector(u8)*): void;
@@ -147,6 +152,18 @@ export fn tw_exec_create_tests(modules: void*, entry: u8*, suffix: u8*, width: u
         var previous = frontend_modules_swap_test_discovery(modules, &discovery);
         defer frontend_modules_swap_test_discovery(modules, previous);
         if execution_session_compile_tests(session, source, length, width, modules) {
+            if selection.fixtures.length != 0 {
+                var snapshot = frontend_fixture_snapshot(modules, &selection);
+                if snapshot == null {
+                    ide_execution_close(session);
+                    ide_error("Cannot retain selected test fixtures");
+                    return 0;
+                }
+                owner.tests = selection;
+                selection = default;
+                owner.access = { selection: &owner.tests, modules: snapshot };
+                session.fixtures = &owner.access;
+            }
             if session.program.test_count != 0 { execution_session_start(session); }
             else { session.machine.done = true; }
         }
@@ -454,6 +471,10 @@ export fn im_append(machine: IMState*, text: u8*, count: usize): void {
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
     var session = bits(ExecutionSession*, machine);
+    var fixture_result: u64 = 0;
+    if session.fixtures != null && execution_fixture_foreign(session, node, args, count, false, &fixture_result) {
+        return fixture_result;
+    }
     var function = sem_get(node);
     var request: ByteBuffer = default;
     ide_text(&request, "{\"name\":");
