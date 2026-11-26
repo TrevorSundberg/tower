@@ -1,0 +1,9 @@
+import tower;
+
+// Observe one document through the playground's cursor and diagnostic entry
+// points. Each text result is an owned NUL-terminated copy.
+extern fn observe_editor(text: u8*, path: u8*, cursor_utf16: usize, diagnostic_byte: usize): void;
+extern fn editor_number(point: u8*, field: u8*): usize;
+extern fn editor_text(point: u8*, field: u8*): u8*;
+extern fn editor_display_label(file: u8*, line: usize, column: usize): u8*;
+extern fn editor_default_label(line: usize): u8*;

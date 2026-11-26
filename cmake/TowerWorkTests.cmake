@@ -207,6 +207,12 @@ if(TARGET towerc)
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
     set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
+    set(location_owner "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax_source.tower")
+    add_test(NAME tower-source-location-${workers}
+      COMMAND "${CMAKE_COMMAND}" "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"
+        "-DTOWER_INPUT=${location_owner}" "-DTOWER_WORKERS=${workers}" "-DTOWER_RESOURCES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+        "-DTOWER_TEST_SUFFIX=_test.tower" "-DTOWER_FINAL_LINE=1 test passed for ${location_owner}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestOutput.cmake")
     tower_companion_test(tower-struct-field-values compiler/semantic_values_test.tower ${workers})
     tower_companion_test(tower-bytecode-package compiler/bytecode_package.tower ${workers})
     tower_companion_test(tower-inference-types compiler/semantic_types_test.tower ${workers})
