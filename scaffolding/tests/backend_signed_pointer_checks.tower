@@ -1,6 +1,6 @@
 import tower;
 import backend_pointer_order_checks;
-import module_body_type_checks;
+import module_body_type_checks_test;
 import frontend_units;
 import .compiler.format_types;
 import .compiler.format_storage;

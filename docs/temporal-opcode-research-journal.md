@@ -119202,3 +119202,23 @@ and exited before starting Node. Their replacements used the frozen wrapper.
 A preliminary shared run on the first implementation commit was superseded
 by the complete shared run on the final fixture source. Publication belongs
 to the manager.
+
+### Native module body type trials from the original execution selectors
+
+At public 10271859 the two focused modes use the same helper also called by
+the signed and canonical pointer suites. The companion now owns that helper
+and both original inputs and failure oracles. The native selected guest uses
+the execution driver platform, interpreter, host callbacks and worker transport.
+The LR-only service lacked the Fast interpreter. Owner discovery also runs
+five existing budget cases, so its checked count is seven and the direct
+count is two. Both selections at jobs 1 and 4 produced the same 2,988 stdout
+bytes as the standalone query run. The reproducer remained silent.
+
+Host 7, Linux x64 Release, public bootstrap, warmed filesystem, fresh
+processes, inner worker counts 1/4, pointer sizes 4/8. Original and restored
+query runs took 6.36 and 6.43 s wall, 6.54 and 6.51 s CPU, 86,504 and
+88,388 KiB peak RSS. Changing the first 32-bit answer from 42 to 41 reached
+the same output predicate in all paths. The legacy check flushed its message
+and aborted (134). Both native selections reported guest failure (1).
+The restored modes and all four selections exited zero. Raw commands, build
+attempts, stdout, stderr and times are in assignment fb09c3b5.

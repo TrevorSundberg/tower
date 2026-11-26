@@ -1,5 +1,5 @@
 import tower;
-import module_body_type_checks;
+import module_body_type_checks_test;
 import frontend_units;
 import .host.driver_api;
 import .host.driver_support;

@@ -39,7 +39,7 @@ import narrow_checks;
 import function_checks;
 import integer_negation_checks;
 import body_runs;
-import module_body_type_checks;
+import module_body_type_checks_test;
 import editor_observations;
 import backend_pointer_order_checks;
 import backend_signed_pointer_checks;
