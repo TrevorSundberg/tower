@@ -109532,3 +109532,31 @@ slice counters took 3.30 and 5.30 s wall, 6.67 and 8.73 s CPU, and 257,452
 and 301,840 KiB peak RSS. The candidate keeps the five Tower-selected lookups
 against the LLVM compiler's host string and compares canonical text, type
 tables and all output bytes using Tower's `fixture_equal`.
+
+### Selecting interpreter invocation, world and stage fixtures
+
+Host 3 assignment 925c833c began at f528f182. The published portable reactor
+(41bb9b11) passed the bounded invocation name first, then the three original
+Node registrations. The invocation fixture interleaves two invocations on one
+frozen Foundation graph before exercising strict storage, fuel and output.
+The world fixture drains four jobs across two stores and checks denial with
+outstanding receipts. Its stage fixture holds a query view over two private
+stages and checks address identity through publication, discard and rollback.
+The shared compiler registrations also consume the exported world and stage
+fixtures. The native LR query smoke calls their evaluation dependency. Keep
+the three fixture implementations intact and exercise their ABI from selected
+Tower declarations.
+
+Trial default companions beside compiler/interpreter, compiler/world and
+library/entity_stage entered unrelated selections. The installed driver's
+file inventory for bytecode_package included the interpreter test, generics
+included the world and stage tests, and entity_pages included the stage
+test. Those clients have no bindings for these three external kernel tests.
+The qualified suffix `_kernel_tests.tower` permits explicit owner discovery
+and default direct-file execution. An initial qualified filename ending in
+`_kernel_test.tower` made default direct selection look for a missing
+`_kernel.tower` owner. Supplying the longer suffix worked but compiled the
+implementation owner in the assertion guest. Selecting the qualified file
+as a standalone test avoids that work. A single portable reactor supplies
+the three external calls. Each link or callback returns the fixture result
+unchanged.
