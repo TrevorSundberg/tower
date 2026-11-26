@@ -118630,3 +118630,25 @@ the instrumentation. These runs cover the single-owner fault allocator.
 The repository instrumenter supports address and thread passes. Standalone
 undefined-behavior instrumentation and parallel formatter execution have no
 coverage here.
+
+### Native semantic refusal and lifecycle tests on host 7
+
+Assignment d47a6256-a8df-453a-ab1b-22ad14e754e5 starts at public
+`aeb497f5dceee7a8ab1a608fa41c44bbb61dbc29`. A separate local main preserves
+the shared checkout's unpublished commit. The Release build uses the public
+Linux x64 bootstrap, Clang/LLVM 19, Ninja and one private CMake cache.
+The original five standalone CTests passed. Owner selection collided with
+the exported standalone main at compiler jobs 1 and 4. Direct selection
+reported the missing companion. The first query-smoke aggregate passed its
+lifecycle call and later stopped at its distinct-thread clone-overlap check.
+
+Observer overlays recorded the original predicate order, results and numeric
+receipts at compiler jobs 1/4, inner workers 1/4 and the original target
+pointer widths. Denied pool setup returned Capacity in both ledgers. Only
+the pending declaration reported offset 83. All three query refusals returned
+Capacity in the program and graph. The constructor reported offset 83 and
+waited for a type. The body reported offset 0 and waited for a function.
+Both joined the independent peer with value 42. The declaration reported
+offset 0 with no evaluation probes. Each lifecycle denial kept its original
+owner offset, and each closing budget snapshot had zero bytes, lanes and
+grants. These observations precede the test migration.

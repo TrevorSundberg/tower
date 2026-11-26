@@ -287,13 +287,24 @@ function(tower_lr_work_policy_test)
     endforeach()
 
     tower_runtime_object(semantic-pool-budget-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks_main.tower" "${triple}")
     add_executable(tower-semantic-pool-budget-tests ${sources} "${semantic-pool-budget-checks_OBJECT}")
     set_target_properties(tower-semantic-pool-budget-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-semantic-pool-budget-tests PRIVATE ${libraries})
     target_link_options(tower-semantic-pool-budget-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
     add_test(NAME tower-semantic-pool-budget-tests COMMAND tower-semantic-pool-budget-tests)
     set_tests_properties(tower-semantic-pool-budget-tests PROPERTIES TIMEOUT 60)
+
+    if(TARGET tower-lr-row-services)
+      # These selected fixtures need the native semantic provider and threaded transport.
+      function(tower_semantic_test_selections suite unit owner_count direct_count)
+        add_dependencies(tower-${suite}-tests tower-lr-row-services tower-guest-native-test tower-selected-test-count)
+        tower_native_test_selections("${suite}" "${unit}" "${owner_count} tests" "${direct_count} tests"
+          --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+          --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+      endfunction()
+      tower_semantic_test_selections(semantic-pool-budget semantic_pool_budget_checks 19 4)
+    endif()
 
     tower_runtime_object(semantic-query-failure-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks.tower" "${triple}")

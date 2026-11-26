@@ -1,0 +1,6 @@
+import tower;
+import semantic_pool_budget_checks;
+
+export fn main(): i32 {
+    return semantic_pool_budget_tests();
+}
