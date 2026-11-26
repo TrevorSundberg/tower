@@ -114727,3 +114727,47 @@ was null and its declaration ordinal was 15. The distinct optional
 `known_producer` had the same parent and an inferred evaluation. Task 197
 had no direct edge to that inferred evaluation. The test follows the
 required producer and compares its ordering metadata with the capture.
+
+At both outer compiler widths the direct selector ran the declaration at
+`staged_capture_identity_test.tower:77` once. The owner ran six declarations
+in order, starting with the capture case and then `budget_receipts`,
+`budget_reference`, `budget_limits`, `budget_optional` and `budget_validate`
+at lines 6–10 of `library/work_budget_test.tower`. The original executable
+and all four selected entries captured the same producer facts. Each ran
+the ordinary, edited, ordinary, edited sequence at inner widths 1, 1, 4, 4.
+Both successful trials produced the same 3,065 canonical bytes (SHA-256
+`15402b44a52a2cbf7714e93a625a2d9b55d1caff7a723f7361e4bb9f0e2e76a4`)
+and `8\n24\n147\n8\n`. Both edited trials returned one failed unit, no
+program or root observation, and the original mutable/escaped-storage
+diagnostic at `profile_seed.tower:3:1`. Joined peak lane reservations were
+1 and 4, with zero held at the snapshot. Peak charged bytes were 21,173,243
+and 25,165,688. Batch close drains workers, worlds and the remaining grants.
+
+In the raw control, a second real sibling declared its own `salt: u8 = 23`.
+Changing the salt read from the provider to that sibling kept every Foundation
+and guest byte. Both executables rejected it. The selected owner and direct
+entry rejected it at companion line 71 at both compiler widths. Starting
+the inner loop at four in a temporary copy isolated that width past the
+first failure. Restoring the provider read passed all routes. The bounded
+observer used each format buffer's byte count. A draft that used `puts` on
+the formatter's counted buffer emitted surplus bytes and was discarded.
+
+Six repeated native runs and the restored five CTests passed. The normal
+native cache was reused throughout. On a Ryzen 5 3600, Linux x64, LLVM 19
+Release, host quota 11.52 CPUs and timing affinity 0–3, three warm-cache
+fresh processes per version ran in alternating order. Original wall time
+was 0.93–1.00 s, CPU 0.97–1.06 s and peak RSS 83,068–84,068 KiB. Migrated
+wall time was 0.92–0.95 s, CPU 0.96–0.99 s and peak RSS 83,172–84,800 KiB.
+Each sample covered all four batches. One compile-and-run sample per
+selector at jobs 1/4 took 1.95/2.01 s (owner, 151,236/161,104 KiB) and
+1.82/1.90 s (direct, 138,732/148,428 KiB). These are fixture costs.
+
+The supported address/leak and thread sanitizer native CTests both passed.
+Their link maps identify the production runtime allocator and Linux worker
+transport. The instrumented publication hook and common trial ran through
+the original executable. The selected guest used its ordinary native test
+runtime. Tower's instrumenter exposes address and thread modes. There is
+no source-level UBSan result. The raw packet for assignment
+`2661ec6d-ccd0-4684-a4a7-16e080ba62a9` includes commands, maps, traces,
+failed drafts, the control, hashes and exact source bundles. The manager
+owns publication.
