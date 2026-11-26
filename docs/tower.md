@@ -38,6 +38,12 @@ The command reports the number of passed tests or an empty selection. A
 standalone executable statement in a discovered companion produces a diagnostic
 at that statement until implicit companion bodies are supported.
 
+From a native source build, run `build/native/towerc --test module.tower
+--test-details` to see each passing block's file, line and column. Guest output
+goes to stdout and the test report goes to stderr. To pair `module.tower` with
+`module_spec.tower`, add `--test-suffix _spec.tower`. This changes discovery
+for that request. An ordinary build does not probe either companion.
+
 Import `library.testing` for source-located assertions. The condition runs once.
 A failed assertion stops execution at the start of the assertion in its owning
 file. An optional message expression runs only on failure. The default message

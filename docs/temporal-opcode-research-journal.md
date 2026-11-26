@@ -105523,3 +105523,36 @@ The native census surfaced a warm layout profile that aborted before checking an
 Receipt 076d1afd-f4e4-4840-95cf-0611de1fac63 includes the independent native struct reference and the wrong-offset control. Receipt d5753853-d9bf-4ba8-8b06-da3f6bd62275 qualifies the same fixture with the typed layout registry. The manager reconstructed the tested tree be921538 from 773e9b85 and e09d528c and verified all 348 evidence digests. At both pool startup settings, one worker retained 1,144 bytes and four workers retained 1,312 bytes at the join. Each retained one lane and three grants. The eight positive and negative ledger records matched the earlier execution byte for byte, with zero final bytes, lanes and grants in every case. Each negative control returned exit 1 and reported offset 4 when given the incorrect expectation of 5. Six layout calls in each shape used one or four distinct threads at the respective widths. Thread identities establish participation; these runs did not measure speedup.
 
 The newly built compiler passed the two typed-registry CTests and the linked frontier smoke on the worker. Targeted ASan and leak checks passed. On integration with public 32316524, the production compiler, runtime libraries, frontier fixture and its CMake recipe matched the qualified tree. Configuring the merged Linux native backend/work profile registered the smoke and both registry cases. The new language-test compiler is being qualified separately.
+
+### Combined native test mode, aggregate values and floating type arguments
+
+Receipt `0beb5002-2a80-47d9-84c8-002a0d1a8183` built the combined source
+of `ab1454cbc` through `playground/scripts/build-native.sh` with the public
+Linux bootstrap. The source digest for CMake, cmake, bootstrap, scaffolding
+and the native build script was
+`b5684b439ba75710c3c95485f1e5baac14d37859f75ec58d220c8c660b155ff5`.
+The frontier smoke integrated in `1a83f7ba` adds a test registration and
+fixture. Its compiler, grammar, runtime and bootstrap match the qualified inputs.
+
+At jobs 1 and 4, the relocated CLI ran an inline test with positional structs,
+nested fixed arrays, borrowed mutation and a break. It evaluated an f32
+constructor argument to give an extent of three and distinguished f64 signed
+zeros in nominal identity. The ordinary script still called a function named
+`test` and read a field named `test`. It printed 7. Default test discovery
+printed 10 then 42, direct companion selection printed 42, and switching to
+`_spec.tower` printed 10 then 73. The manager replayed all four paths at
+both widths and changed the companion expectation to 43. The failing run
+returned 1, printed only 10 and located the assertion at `owner_test.tower:7:5`.
+The worker also built the same ordinary executable and depfile byte-for-byte
+with companions present, their private import broken, and all test-only files
+removed. Its seven registered regressions and direct LR type smoke passed.
+
+The clean build on Debian x86-64 used LLVM 19.1.7, CPUs 0–11, a quota of
+11.52 CPUs and six outer build jobs. It took 35.42 wall seconds and 122.84 CPU
+seconds, peaking at 783,536 KiB RSS. Single fresh-process owner tests took
+0.50 s with one worker and 0.66 s with four. These observations qualify
+behavior at both widths. The packet contains the raw outputs, CPU and memory
+records and all 57 relocated compiler/resource digests. This is native source
+qualification. The public bootstrap and the browser compiler have their own
+release checks. Whole-file implicit tests and affected-test selection are
+separate open cases.
