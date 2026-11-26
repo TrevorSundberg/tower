@@ -109151,3 +109151,36 @@ controls and local failure traces are in host 1 packet
 `7f020327-2a90-4250-83e8-798ead7e1e5a`. These measure the browser test
 harness. The patch changes no Tower runtime, allocator or native thread code.
 The full Jenkins rerun and publication remain with the manager.
+
+### 2026-11-26 — Optional package ownership and backend world tests
+
+Host 5 ran the two ownership registrations from public test source `46e22072`
+against the repaired compiler `3cc57ae4` (production code `f7ef2275`). The
+production images skipped both registrations. The ordinary LLVM build with
+`TOWER_BACKEND_TESTS=ON` called both source-world exports and returned zero
+from each. Requiring that capability on the production LLVM image failed.
+
+The optional portable kit shares its existing `PackageCheck` enum with an
+adjacent Tower test. The browser selects the result module and its
+`_ownership_test.tower` companion and binds the guest's zero-argument call
+to the real `ide_package_tests` export of the provider instance. Selecting
+the implementation module itself also initialized its IDE state inside the
+guest and failed on `core_component_type`. The result module lets the provider
+keep its own handles and allocator. Moving the enum produced a byte-identical
+Wasm IDE object. The native CLI discovers the companion with the optional
+suffix and reports a missing native interpreter binding if asked to execute it.
+
+Each enabled registration passed once with zero skips. A debugger trace of
+the package test recorded all twelve width cases, 24 typed resource records,
+two denied retries per case and twelve Foundation recovery calls. With a live
+provider handle, expecting `PackageCheck.Recovery` failed at the Tower
+assertion on line 8, column 5. Restoring `Passed` on the same two instances
+succeeded, the handle still printed `42`, and both handle tables drained.
+
+Node 24.22.3 ran the same selectors sequentially on the Ryzen 9 5900XT,
+on CPUs 0,2,4,6 with a 30.72-CPU cgroup quota. In one sample per case the
+package baseline and migrated test took 0.72/0.92 s wall, 1.12/1.32 s CPU and
+170,292/188,124 KiB peak RSS. The backend baseline and final run took
+0.69/0.69 s wall, 1.07/1.09 s CPU and 215,816/219,656 KiB peak RSS.
+Host 5 packet `5d41ab00-39ee-42cb-9b4b-c8c82f5abb90` includes raw TAP,
+capability failures, both test-only images and their build and source receipts.

@@ -1,0 +1,9 @@
+import library.testing;
+import ide_package_check_result;
+
+// The enabled compiler owns the execution handles and the verified package bytes.
+extern fn ide_package_tests(): u32;
+
+test() {
+    assert(ide_package_tests() == convert(u32, PackageCheck.Passed), "Package ownership checks");
+}

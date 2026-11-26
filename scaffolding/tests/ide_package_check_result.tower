@@ -1,0 +1,7 @@
+import tower;
+
+enum PackageCheck: u32 {
+    Passed = 0, Prepare = 1, Load = 2, Foundation = 3, Execution = 4,
+    Profile = 5, InvalidProgram = 6, Lifetime = 7, PackageBytes = 8, Input = 9,
+    Resource, Receipt, Recovery
+}
