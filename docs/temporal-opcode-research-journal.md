@@ -119072,3 +119072,84 @@ stayed between 70 and 74 ms. The new real direct/owner selections took
 were unchanged across the paired series. The packet contains each original
 stream, command, trace, failure, link and measurement, including single-CPU
 and full-allocation batches. Integration and publication belong to the manager.
+
+### Native work admission, constructor and single-owner allocator test migration
+
+Host 8, public base `81b334273836ab56dbbe94e9562e6d4a70fb775b`, assignment
+`ab60086d-56e6-4eb8-820f-efb06acec915`. The opening pull conflicted with
+unpublished parser work and was aborted. An isolated main checkout uses the
+assigned tree and its checksum-verified Linux x64 bootstrap. Release Ninja
+with Clang/LLVM 19 and one compiler job built the three original CMake targets
+in one cache. Configuration initially lacked the unversioned clang on PATH.
+Adding the system LLVM 19 bin directory resolved it. The three original CTests
+passed. The Linux pool and named pthread entry, constructor's derived physical
+limits, and portable allocator's two complete failure sweeps are the respective
+baselines. Preserve the existing standalone commands and observe joined state
+before comparing the selected guests.
+
+The delivered layout adds adjacent fixture owners. All three original sources
+still export their original C entry signatures. Comparing Ninja's jobs-1
+command inventories found every one of the 13 original commands byte for byte,
+including the entry compilation and final link for each executable. An earlier
+layout with entry adapters passed the tests but changed the input commands.
+Its separate receipts and Git bundle remain in the packet. The final layout
+was rebuilt, traced, mutated, restored and measured independently.
+
+| Original executable | Owner / direct tests at both jobs 1 and 4 | Checked state on this host |
+| --- | ---: | --- |
+| Kernel admission (`ba40dbc`) | 6 / 1 | The real pthread callback ran 1,104 batch jobs in 128 joined batches, plus 16 ordinary jobs. The coordinator participated. Observed distinct threads were 1, 2 and 4 according to the grant and job count. The largest skewed reservation used 4,194,304 bytes. Each round retained its original callback, result, guard word and scratch checks. All grants drained. The named-pool boolean refusal also reports Invalid through the typed call. |
+| Constructor budget (`752dff3`) | 15 / 2 | Invalid inputs preserved output ownership. Five physical caps (1, 1,104, 3,472, 3,632 and 7,799 bytes) reported Capacity. The successful constructor used 21,115 bytes in 17 grants, consumed all eight tickets and drained. The separate store occupied 2,368 bytes in one grant and drained. |
+| Instrumented work (`646b0ee`) | 6 / 1 | The original serial transport ran on the allocator owner's pthread. Attempt zero refused the pool with Memory. Attempts 1 through 8 refused callback scratch after 0 through 7 completions. Attempt 9 completed all eight jobs with nine allocation calls. Both sweeps reproduced this prefix and restored the live allocation count after every attempt. |
+
+The first two original executables wrote `0\n`. The third reproduced its
+104-byte policy message. All exited zero with empty stderr. Evidence-only
+Tower observers compared 1,633 admission rows, 14 constructor rows and
+112 allocation rows from the original executables against the migrated
+standalones and all twelve selected routes. All fifteen comparisons were
+byte-identical. The packet maps each of the 22 admission, 20 constructor
+and 11 instrumented check calls, plus callback branches, failure returns
+and teardown, to its companion. Production code and the allocator are unchanged.
+
+Eighteen one-change controls failed the standalone and all four corresponding
+native selections (90 expected failures). These cover payload values, lane
+peaks, callback restoration, named refusal, budget drain, Invalid and Capacity,
+tickets, physical store charge/disposal, pool Memory, serial execution,
+scratch results, exact replay counts, live allocations, a disabled injector
+and changing either false return to success. The constructor's mismatched
+capacity expectation printed 3632, 3, 1 before failure. Native assertion
+diagnostics identify their source in the companion. Restoration passed all
+15 focused CTests in the same build directory at compiler widths 1 and 4.
+
+Ryzen 9 7900X, Linux x64, Clang/LLVM 19.1.7, Release Ninja. Host affinity
+0–23 and CPU quota 2,304,000/100,000 µs. Timed runs held the common host
+lock on CPUs 0–7, one process tree at a time. One warm-up and three paired
+samples reversed version order on alternate pairs. No additional quota
+throttling was recorded. The compiler and its 61-entry SHA-256 manifest
+came from the assigned public tree. Compiler SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+
+| Object compilation | Compiler jobs | Original wall s / CPU s / peak KiB | Migrated wall s / CPU s / peak KiB |
+| --- | ---: | ---: | ---: |
+| work_kernel_admission | 1 | 0.30 / 0.29 / 110792 | 0.36 / 0.36 / 113704 |
+| work_kernel_admission | 4 | 0.31 / 0.33 / 117140 | 0.39 / 0.42 / 127036 |
+| work_constructor_budget | 1 | 0.61 / 0.60 / 160792 | 0.69 / 0.68 / 163440 |
+| work_constructor_budget | 4 | 0.59 / 0.66 / 166724 | 0.69 / 0.77 / 174224 |
+| work_instrumented | 1 | 0.21 / 0.20 / 102080 | 0.27 / 0.27 / 104604 |
+| work_instrumented | 4 | 0.23 / 0.24 / 107424 | 0.31 / 0.34 / 120144 |
+
+Times are medians and RSS is the largest process peak across samples.
+Single jobs-1 phase samples put parsing at 142/199, 256/332 and 120/181 ms
+before/after, respectively. Each entry now imports test grammar and a fixture
+module. Median elapsed for 32 prelinked launches at jobs 1/4 was 0.11/0.11 s
+original and 0.11/0.12 s migrated for admission, and 0.01 s on each route
+for the other executables. These measurements cover the fixtures only.
+
+AddressSanitizer with leak detection passed all three original CTest commands.
+The thread-instrumented standalones also completed with their original output
+and empty stderr. TSan's intentional two-pthread control reported the race in
+`work_kernel_execute` and exited 66. The container denied the TSan ASLR
+personality request on ten admission, three instrumented-work and eight
+race-control starts before successful runtime initialization. All attempts
+are retained. The serial allocator suite exercises a single owner under TSan.
+The project provides no Tower UBSan profile. Manager integration and
+publication remain outside this assignment.
