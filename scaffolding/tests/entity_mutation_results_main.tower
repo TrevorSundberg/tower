@@ -1,0 +1,16 @@
+import tower;
+import entity_mutation_results_test;
+
+extern fn puts(text: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    invalid_and_ordered();
+    child_results();
+    queue_alias_without_growth();
+    queue_alias_growth_sweep();
+    allocation_sweep(MutationOperation.Attach);
+    allocation_sweep(MutationOperation.NamedStage);
+    allocation_sweep(MutationOperation.Queue);
+    puts("Typed entity mutation and allocation rollback passed.");
+    return 0;
+}

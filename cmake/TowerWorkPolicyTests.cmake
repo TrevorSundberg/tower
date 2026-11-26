@@ -27,7 +27,7 @@ if(policy_triple MATCHES "^x86_64-.*linux")
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower" "${policy_triple}")
   # Buffer/arena fixtures import host.memory; the ledger fixture links the
   # existing memory object. All use the single-owner fault allocator/transport.
-  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults entity_mutation_results)
+  foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
@@ -42,12 +42,7 @@ if(policy_triple MATCHES "^x86_64-.*linux")
       "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")
     set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE C)
     target_link_libraries(tower-${name}-tests PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
-    if(unit STREQUAL "entity_mutation_results")
-      # This self-contained fixture already imports the portable transport.
-      set_target_properties(tower-${name}-tests PROPERTIES TOWER_SERIAL_WORK_TRANSPORT TRUE)
-    else()
-      target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial)
-    endif()
+    target_link_libraries(tower-${name}-tests PRIVATE tower-compiler-work-serial)
     add_test(NAME tower-${name}-tests COMMAND tower-${name}-tests)
     set_tests_properties(tower-${name}-tests PROPERTIES TIMEOUT 30)
   endforeach()
@@ -89,6 +84,8 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^
   tower_work_fault_selections(entity_component_faults "12 tests" "7 tests")
   tower_work_fault_selections(entity_stage_result_faults "9 tests" "4 tests")
 endif()
+
+include("${CMAKE_CURRENT_LIST_DIR}/TowerMutationResultTests.cmake")
 
 # Backend/frontend registration runs after the native compiler target exists.
 # Reuse its production allocator, without the frontend instrumentation override.
