@@ -46,6 +46,22 @@ add_executable(tower-entity-tests "${tower-entity-tests_OBJECT}")
 set_target_properties(tower-entity-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(tower-entity-tests PRIVATE tower-compiler-memory tower-compiler-utilities)
 add_test(NAME tower-entity-tests COMMAND tower-entity-tests)
+if(NOT CMAKE_CROSSCOMPILING AND service_triple MATCHES "^x86_64-.*linux.*gnu")
+  add_dependencies(tower-entity-tests tower-guest-native-test tower-selected-test-count)
+  get_property(entity_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  foreach(selection IN ITEMS entity_store entity_store_native_test)
+    set(entity_path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${selection}.tower")
+    foreach(jobs IN ITEMS 1 4)
+      set(entity_name "tower-selected-${selection}-native-jobs-${jobs}")
+      add_test(NAME "${entity_name}" COMMAND tower-selected-test-count "1 test passed for ${entity_path}"
+        "${TOWER_BOOTSTRAP_COMPILER}" --test "${entity_path}" --jobs "${jobs}" --test-details
+        --test-suffix _native_test.tower --test-native-runtime "${entity_runtime}"
+        --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/entity_store_native.expected"
+        --link "$<TARGET_FILE:tower-compiler-memory>")
+      set_tests_properties("${entity_name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+    endforeach()
+  endforeach()
+endif()
 
 # Keep storage coverage in the existing aggregate as well as the opt-in focused
 # native runner. This object imports only layouts/interfaces and test fixtures.
