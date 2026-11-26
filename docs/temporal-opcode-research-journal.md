@@ -116317,3 +116317,99 @@ native link needed the documented TowerBackend project include. The first
 draft retired the old template file. Running its original path showed that
 it also selects the nine emission cases, so the delivered source preserves
 that entry and its ABI bindings. The manager owns public integration.
+
+### Native backend response declarations on fababa9f
+
+Host 6, assignment 229e275a-3e07-42af-8508-a1ea2a3fec78. The Linux standalone on
+fababa9f9fccf9a848fc3928ec5441055413b4dd was the reference for both
+selectors. Each printed zero buffers before and after and 169 reserved bytes.
+The unknown selector aborted with its original diagnostic. The checked-in
+compiler SHA-256 was 7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896.
+
+The checks module is the discovery owner so importing the production session in
+another program does not introduce a dependency on the fault-test ABI. Its two
+adjacent declarations exercise the healthy million-report loop and the denial
+matrix through the same callback-taking function used by the standalone.
+Single-quoted Tower strings keep the JSON bytes embedded for callers without
+a fixture directory. The source offset field needs a quoted identifier in
+this module because the assertion grammar introduces source_offset().
+
+The native test guest compiles the actual session and links the compiler services
+with the single-owner allocator and portable serial transport. The LLVM library
+is also a direct input to the guest linker. The original standalone retains its
+own main. Its platform bindings and the selected-test shared library use the
+same object. CMake must initialize the native guest before reading its path
+during deferred backend registration. Backend-only configuration also needs
+directory-scope enable_testing() for CTest to write the registry. The first
+empty inventory and missing runtime argument are retained in the packet.
+
+Implementation 40e3b2b2 runs 2 directly selected tests and 16 through the
+owner at compiler jobs 1 and 4. Both registrations include the same two
+response declarations. Owner discovery also reaches float_bits (9) and
+work_budget (5). The original tower-backend-response CTest still exercises
+denial by default, and its executable accepts healthy for the million-report
+loop. Both standalone byte streams match the parent. The invalid argument
+still exits 134 with the original selector message.
+
+An independently compiled Tower caller supplied tracking callbacks to the
+exported ABI. Every callback delegated to the instrumented allocator. Its
+complete 302-line denial trace matched the parent, including each live count
+and allocation ticket before arming or disarming denial. There were 112
+allocation calls, including the successful retry. The healthy trace contained
+five allocation calls and no denial or allocation-query callback. The ABI
+object in library mode defines backend_response_checks and has no undefined
+tower_test_buffer_* symbols. Each standalone invocation returned to zero
+outstanding buffers. The sorted embedded JSON bytes also matched.
+
+The native cases checked all six causes at 0, 73, 4294967295 and
+18446744073709551615 with zero or one prior grant, the failed success-report
+path, prior typed and ordinary failures, a separate session, and escaped error
+and success reports after recovery. Changing the last expected digit of the
+maximum offset to 4 aborted standalone denial and trapped in the companion
+at line 74 in all four selections. Healthy still passed. Restoring the exact
+file passed the same controls. Omitting the shared services failed on
+tower_test_buffer_count. Omitting LLVM failed on LLVMGetBufferStart. Omitting
+the native test runtime rejected the --link arguments. All three returned 1.
+
+With backend tests disabled and work tests enabled, 165 generated registrations
+had identical normalized commands and the towerc build graph contained no
+response fixture or instrumented allocator. The selected guest provider
+explicitly links tower_work_serial.o. The standalone ASan/LSan and TSan links
+both included runtime-instrumented.o and tower_work_serial.o. The changed
+check_backend_response function contains instrumented loads and stores in
+both modes. Both original selectors passed each sanitizer on the first launch
+with their reference stdout and empty stderr. These were single-owner runs.
+Tower has no source-level UBSan mode. The 32-bit conditional offset spelling
+remains in the fixture. Execution here used 64-bit usize.
+
+Host 6 exposed twelve Xeon E5-2680 v4 CPUs, cgroup quota 1152000/100000
+and memory.max 32282509312. Measured processes were bound to CPUs 0–3.
+Clang/LLVM 19.1.7, Release, x86_64-pc-linux-gnu, warm filesystem, fresh
+process per trial. Three serial pairs per entry ran under the host timing
+lock, reversing order for the middle pair. Each cell gives median wall
+seconds / median user+system seconds / maximum peak RSS in KiB. The parent
+had no equivalent selected declarations, so a temporary companion called its
+original two modes. Selected measurements include public compiler startup,
+discovery, compilation, link and execution.
+
+| Entry | Compiler jobs | Parent | Companion |
+| --- | ---: | ---: | ---: |
+| healthy | standalone | 0.04 / 0.03 / 52,292 | 0.04 / 0.04 / 52,228 |
+| denial | standalone | 0.02 / 0.01 / 52,604 | 0.01 / 0.00 / 52,284 |
+| owner | 1 | 6.90 / 6.90 / 309,464 | 7.04 / 7.04 / 311,836 |
+| owner | 4 | 6.50 / 7.19 / 323,908 | 7.15 / 7.86 / 325,048 |
+| direct | 1 | 6.06 / 6.06 / 290,864 | 6.26 / 6.26 / 294,776 |
+| direct | 4 | 6.06 / 6.63 / 301,312 | 6.34 / 6.99 / 308,568 |
+
+The largest observed median increase was 0.65 s for the four-job owner
+selection. A follow-up four-job owner run with driver timings took 6.86 s
+on the parent. Two runs of the delivered assertions took 6.63 and 6.70 s.
+Substituting the old utility_check calls in a temporary copy took 6.93 and
+6.38 s. This comparison did not isolate a repeatable cost from the assertion
+grammar. The driver reports only bootstrap and total for this path. The
+standalone callback trace and output remained identical. The packet retains
+all samples and the initial timing wrapper failure caused by the driver
+printing timings after its test summary.
+
+The source and evidence bundle is for manager integration on the requested
+parent. No compiler, runtime or browser implementation changed.
