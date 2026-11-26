@@ -1,4 +1,5 @@
 import suite;
+import reply_test;
 
 test() {
     var old = request("document", '{"method":"document","source":"old"}');

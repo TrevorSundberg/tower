@@ -117740,3 +117740,88 @@ grew from 8,388,608 to 28,311,552 bytes in the first case and held that size
 through the next two. Node retained 3/2/2 request handles and 8/5/5 value
 handles through the respective cases and dropped the tables on exit. These
 measurements cover the tests. The manager owns publication and hosted checks.
+
+### Browser language-service reply comparisons in an explicitly supplied helper
+
+Host 8, November 26, assignment 9e7c8db8-1d2a-4696-a0fc-b0cf250fd9ca.
+The acceptance check was exact equality with the original 54 ordered page
+service events on each shipping reactor while selecting one test body per
+named case. The source freeze was public
+`a7ce48f546aceda7b0a48897488cf3b19b1ab08e`. The initial pull encountered
+five parser conflicts in the shared checkout. Aborting that pull restored
+its prior local main. An independent main checkout supplied the assigned
+freeze for the worker commit and all measurements.
+
+The producer packet from 76f03750 was 14,818,305 bytes, SHA-256
+`624488c5c1fe9a95567d839f27e5731ea833ff2f87eb6cb532e24dea3340ab72`.
+Verified its receipt, the three declared member hashes and lengths, and
+each extracted member against its unique archive entry before running it.
+The declared inputs were `traces.sh` (464 bytes) and two original JSONL
+streams (7,892 bytes each). The two reactor binaries and deployment manifest
+also matched the Git blobs from Pages `8417c9ae4cd9accdf672b22d6676bd465c8a79d6`.
+
+All seven source blobs match the supplied diff. The three test companions
+import `reply_test` for `text_is` and `reply_array`. The Node runner supplies
+that file alongside the entry and named companion. Its optional helper list
+defaults to empty for the other three editor callers. An initial local
+transcription misplaced a closing brace and failed parsing. Matching the
+provided blob IDs fixed the transcription before qualification.
+
+On both images the three unfiltered service tests passed. The four-file
+run passed all 17 registrations (3 service, 4 completion, 4 diagnostic delay,
+6 hover). Applying the original pageService observer in a disposable copy
+and comparing with `cmp` gave identical 19 order, 17 preemption and 18
+cancellation events, in sequence, on each image. All four original and
+candidate streams hash to
+`8568fad7cd754e9de08913965be3d6cbd245a89f656c7b77e5f2e63a6ecce7db`.
+The release test-count export returned one for each named selection. With a
+virtual reply.tower owner importing suite and the real reply_test.tower as
+its default companion, the export returned zero. Injecting a Tower test body
+changed the count to one. The initial sensitivity observer checked execution
+status first and stopped at 'executing'. Reading the count first exposed the
+intended 1-versus-0 failure. Removing the body restored all counts and tests.
+
+| Disposable service fault | Failing cases | Tower check |
+| --- | --- | --- |
+| Null record prototype | order, cancel | Service reply is a plain object |
+| Null array prototype | order, preempt | Expected reply field holds a plain array |
+| Append an option | order, preempt | Reply array length |
+| Extra undefined record field | order, cancel | Service reply has exactly one field |
+| Enumerable array symbol | order, preempt | Reply array enumerable fields |
+| Box the snapshot string | cancel | Document uses the next snapshot reply |
+| Admit a retired worker's reply in both delivery gates | preempt, cancel | Completion uses the current worker reply / Document uses the next snapshot reply |
+| Dispatch queued requests FIFO | order | Foreground completion precedes queued document |
+
+All 16 faulted processes exited 1. Each restored three-case process exited
+0. Each frontend also passed the 17 registrations with V8 explicit Wasm
+bounds and stack checks, one file per process with test isolation disabled.
+The release images lack source ASan, UBSan and TSan instrumentation. This
+change exercises the Node page fixture, service callbacks and interpreter.
+Worker capacity stays at one. These checks measure neither native compiler
+thread scaling nor execution inside a real browser page.
+
+The raw packet contains the commands, TAP, stderr, GNU time and cgroup
+counters for each arm. Node 24.22.3 ran on a Ryzen 9 7900X, 12 cores and
+24 logical CPUs, cpuset 0–23, CPU quota 2304000/100000 and memory limit
+63,577,260,032 bytes. Both frozen arms ran fresh Node processes on CPUs 0–3,
+with warm filesystem inputs, the host timing lock, one file at a time and
+`--test --test-concurrency=1 --test-reporter=tap`. Each image and suite had
+one warmup pair and four measured pairs in alternating order. All per-arm
+test names, outcomes, totals and skip counts matched. No measured sample
+added cgroup throttled time.
+
+| Frontend and process selection | Median wall s, base → helper | Median user + system s | Highest peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable, service 3 | 0.410 → 0.445 | 0.560 → 0.595 | 113080 → 113604 |
+| Threaded, service 3 | 0.490 → 0.540 | 0.640 → 0.680 | 134484 → 133860 |
+| Portable, editor 17 | 1.730 → 1.765 | 2.405 → 2.460 | 114860 → 114956 |
+| Threaded, editor 17 | 2.120 → 2.175 | 2.910 → 2.955 | 196604 → 197588 |
+
+A separate four-pair observer summed elapsed time inside compileTests across
+the three cases. The median increased from 253 to 286 ms portable and 293 to
+335 ms threaded. This accounts for most of the service-suite increase.
+Both arms grew from 8 MiB to 27 MiB of reactor linear memory in the first
+case and stayed there through the other two. Request/value counts were
+3/8, 2/5 and 2/5 in both arms. Raw process peak RSS and linear-memory
+capacity measure different resources. The manager owns integration and
+publication of the focused source commit.

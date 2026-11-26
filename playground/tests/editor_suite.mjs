@@ -7,7 +7,7 @@ import {copyText, guestString} from './guest_text.mjs';
 
 const source = path => readFile(new URL('../../' + path, import.meta.url), 'utf8');
 
-export function editorSuite(folder, fixtureNames, imports, settle) {
+export function editorSuite(folder, fixtureNames, imports, settle, helpers = []) {
   let host, needsTurn;
   const fixtures = new Map();
   const bindings = {
@@ -38,7 +38,8 @@ export function editorSuite(folder, fixtureNames, imports, settle) {
     setup();
     const entry = root + 'suite.tower';
     const suffix = '_' + name + '_test.tower';
-    const files = await Promise.all([entry, root + 'suite' + suffix].map(async path => ({path, text:await source(path)})));
+    const paths = [entry, root + 'suite' + suffix, ...helpers.map(file => root + file)];
+    const files = await Promise.all(paths.map(async path => ({path, text:await source(path)})));
     // A foreign call is synchronous. Let native promise reactions run between
     // bounded interpreter steps. A suite awaiting a service event can supply
     // its pending promise here so Node also runs the service's timer.
