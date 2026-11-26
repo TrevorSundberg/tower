@@ -1,0 +1,9 @@
+import tower;
+import entity_attach_leases_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var failures = child_lease_transfers();
+    failures += leased_attachment();
+    print(failures);
+    return failures == 0 ? 0 : 1;
+}
