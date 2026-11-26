@@ -162,9 +162,11 @@ if(TARGET towerc)
     add_test(NAME tower-generic-body-copy-types-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generic_body_types_test.tower"
-        --interpret --jobs ${workers}
+        --test --test-details --jobs ${workers}
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(tower-generic-body-copy-types-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
     add_test(NAME tower-semantic-layout-registry-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_layout_test.tower"

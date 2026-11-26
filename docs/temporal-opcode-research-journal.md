@@ -105567,3 +105567,29 @@ The coordinator registers whole-domain Layout and TypeIndex reads and a one-quer
 Host 5 used the public Linux x64 pin, LLVM 19.1.7, a Ryzen 9 5900XT and affinity 0,2,4,6. Effective cpuset was 0–31 with 3,071,999 µs quota per 100,000 µs. Each of five paired processes ran four waves of four requests on one live pool, verified every output, then disposed the pool, world and ledger. Median 8,192-node wave times in baseline/candidate order were 4.123/4.100 ms at one worker and 2.577/2.456 ms at four. All twenty large four-worker waves overlapped on each build. Maximum RSS across measured processes was 73,316/73,304 KiB. These timings describe this native fixture. Shared-host noise limits small differences. The registered quota, storage and query checks, qualified companion, and 1/4-worker ASan/LSan and TSan live-pool controls exercised this path. Some TSan launches hit the host personality restriction before entry. Source-level UBSan is unavailable in this configuration.
 
 The semantic session still holds other raw pointers. Its shared stage-open extern and session registry each require one concrete projection here. Changing the stage return in this module alone produced incompatible declarations of the same link symbol. The worker payload, generic graph subject, and dynamically selected ECS component data retain their existing transport contracts. Assignment `5146cf5c-6968-4e41-ad6a-f5cbe0b9044d` carries the controls, coordinate-checked census, source and per-run logs.
+
+### Running the generic copy contract as an adjacent language test
+
+The typed clone request from `0a68f72e` was reviewed against its parent
+`7d4dc96e`. Its supplied companion ran through ordinary interpretation. With
+the `e2ebb16a` native test command, that companion failed at line 17 because
+the check was a top-level executable statement. The companion now declares
+one `test()` with separate assertions for the registry instance and the
+stage anchor. Its two CTest registrations select it through the built
+compiler and reject an empty selection.
+
+The manager ran the qualified native CLI from receipt `0beb5002` with the
+integrated source files. Both owner and direct selection ran one test at
+one and four workers. Reversing the stage-anchor comparison failed at
+`generic_body_types_test.tower:15:5` at both widths. Ordinary interpretation
+of the same wrong companion excluded its test body and returned zero.
+Only test requests select the new body. The initial native build uses the public pin.
+
+For the worker's rebased native pair in receipt `5146cf5c`, the manager
+recalculated the wave medians from all job intervals on affinity 0,2,4,6
+(cpuset 0–31, quota 30.72 CPUs). Each wave produced 8,192 clone nodes.
+The candidate took 4.074 ms at one worker and 2.442 ms at four, with
+overlap on distinct threads in all 20 four-worker waves. Maximum process
+RSS was 73,332 and 73,588 KiB respectively. The parent took 4.141 and
+2.494 ms. Those are live-pool clone timings on the worker's freeze.
+Each interval covers one wave on an already running compiler pool.
