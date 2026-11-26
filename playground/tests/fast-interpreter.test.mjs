@@ -1,10 +1,11 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {loadTower,generatedSource} from './compiler-fixtures.mjs';
+import {generatedSource} from './compiler-fixtures.mjs';
+import {fixtureSource, openTower, runSelectedTest} from './compiler_test_host.mjs';
 import {compareResults} from '../src/comparison.mjs';
 const read = path => readFile(new URL('../../'+path,import.meta.url));
-const tower = await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
+const tower = await openTower();
 
 function run(source,fast,width=4,budget=100000) {
   const handle=tower.compile(source,{pointerBytes:width});
@@ -68,20 +69,34 @@ test('wide operands do not impose byte-sized program limits',async()=>{
   assert.equal(wideRegisters.output,'63\n');
   assert.ok(wideRegisters.cache.registerCapacityBytes>256*8);
 });
-test('cancellation slices, cache lifetime, invalid programs and output limits',()=>{
-  const nodes=tower.exports.tw_live_nodes(), allocations=tower.exports.tw_live_allocations();
-  for(let i=0;i<30;i++){
-    const handle=tower.compile('import foundation;loop { print(1234567890); }');
-    tower.useFast(handle);
-    assert.equal(tower.execute(handle,0).steps,0);
-    const result=tower.execute(handle,100000);
-    assert.equal(result.status,'executing');assert.equal(result.steps,100000);assert.equal(result.outputTruncated,true);
-    assert.throws(()=>tower.useFast(handle),/before executing/);
-    tower.destroyExecution(handle);
-  }
-  assert.equal(tower.exports.tw_live_nodes(),nodes);
-  assert.equal(tower.exports.tw_live_allocations(),allocations);
-  agree('import foundation;print(99); var a: Unknown;',4,7,'error');
+test('cancellation slices, cache lifetime, invalid programs and output limits', async () => {
+  const owner = '.tower/tests/fast_cancellation.tower';
+  const source = fixtureSource(owner);
+  const subject = await openTower();
+  let handle, result;
+  const checks = await openTower({threads:{capacity:1}, imports:{
+    cancel_nodes: () => subject.exports.tw_live_nodes(),
+    cancel_components: () => subject.exports.tower_component_get_allocated_count(),
+    cancel_allocations: () => subject.exports.tw_live_allocations(),
+    cancel_open() { handle = subject.compile(source); },
+    cancel_destroy() { subject.destroyExecution(handle); handle = undefined; },
+    cancel_fast() {
+      try { subject.useFast(handle); return true; }
+      catch (error) {
+        if (/before executing/.test(error.message)) return false;
+        throw error;
+      }
+    },
+    cancel_step(_context, budget) {
+      result = subject.execute(handle, budget);
+      return result.steps;
+    },
+    cancel_executing: () => result.status === 'executing',
+    cancel_truncated: () => result.outputTruncated,
+  }});
+  try { runSelectedTest(checks, owner); }
+  finally { if (handle !== undefined) subject.destroyExecution(handle); }
+  agree(fixtureSource('.tower/tests/fast_cancellation_invalid.tower'),4,7,'error');
 });
 
 test('foundation CFG labels, forward edges and parallel-copy loops round trip',()=>{

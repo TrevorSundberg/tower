@@ -107557,3 +107557,22 @@ link the UTF-8 object and allocator archive. The original standalone oracle
 still runs the external decoder. Slot 8 compared 39 encoded/raw pairs and
 rejected all 29 truncated members, a reserved block and a bad CRC. A changed
 Tower checksum assertion failed at gzip_test.tower:52:9.
+
+### Cold cancellation in the Playground interpreter
+
+The isolated cancellation selector previously compared a fresh compiler with
+one that had parsed its first Foundation import. On both release reactors
+the first compile and destroy left 7,804 live nodes, up from 6,503. Retiring
+the parser and module caches in the diagnostic run reduced both the fresh
+and exercised services to 5,383 nodes and 6,139 components.
+
+The [Tower companion](../scaffolding/tests/fast_cancellation_test.tower)
+now establishes its reference by compiling the same graph, executing zero
+steps and destroying its handle. Each of 30 fast cancellations must return
+to exactly that idle node, component and allocation count. The browser host
+supplies handle operations and observes output truncation and refusal to
+switch interpreter after execution. The invalid program remains a separate
+source file. On both portable and shared reactors, withholding the fifteenth
+handle destruction failed the assertion. Restoring destruction reproduced
+the positive transcript byte for byte. The isolated selector and its full
+13-test module each passed twice per reactor in worker receipt 9f454c12.
