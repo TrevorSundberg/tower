@@ -1,25 +1,10 @@
 import {test} from 'node:test';
 import {files, runToEnd} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
+import {copyText, diagnosticFields, numberField} from './parser_observations.mjs';
 
 const cases = '.tower/compiler/format_diagnostic_cases/';
 const encoder = new TextEncoder();
-
-function copyText(context, text) {
-  if (typeof text !== 'string') throw new Error('Missing parser text');
-  const bytes = encoder.encode(text);
-  const address = context.allocate(bytes.length + 1);
-  if (!address) throw new Error('Cannot allocate parser observation');
-  const memory = context.memory();
-  memory.set(bytes, address);
-  memory[address + bytes.length] = 0;
-  return address;
-}
-
-function numberField(value) {
-  if (!Number.isSafeInteger(value) || value < 0) throw new Error('Invalid numeric parser observation');
-  return value;
-}
 
 let parser, source, end;
 const compiler = await openTower({imports:{
@@ -37,9 +22,7 @@ const compiler = await openTower({imports:{
     end = runToEnd(compiler, parser).end;
     return end.status === 'done';
   },
-  diagnostic_text: context => copyText(context, end.error),
-  diagnostic_offset: () => numberField(end.errorOffset),
-  diagnostic_length: () => end.errorLength === undefined ? -1 : numberField(end.errorLength),
+  ...diagnosticFields(() => end),
   diagnostic_cache_hits: () => numberField(compiler.inspect(parser).grammarCacheHits),
   diagnostic_source_size: () => encoder.encode(source).length,
   diagnostic_foundation_syntax: context => copyText(context, fixtureSource('.tower/foundation_syntax.tower')),
