@@ -1,0 +1,163 @@
+import library.testing;
+import semantic_capture_continuation_checks;
+import semantic_admission_result;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+
+var CaptureContinuationBytes: usize = 1048576;
+var CaptureContinuationRevision: u64 = 119;
+
+fn capture_continuation_trial(width: u32, workers: usize, mode: CaptureContinuationMode, result: SemanticAdmissionResult*): void {
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 83;
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    var subject = sem_create(root);
+    sem_attach(subject, KDeclare).start = 7;
+    var budget: WorkBudget = default;
+    sem_require(work_budget_init(&budget, workers, CaptureContinuationBytes, CaptureContinuationRevision));
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    if mode != CaptureContinuationMode.Take {
+        var warm = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), 0);
+        sem_require(warm != 0 && work_seal(&context.queries, warm) && work_demand(&context.queries, warm));
+        var ticket: WorkTicket = default;
+        sem_require(work_take(&context.queries, &ticket) && work_finish(&context.queries, &ticket, true));
+    }
+    // Use the actual retained source-proof producer. Observe mode completes its
+    // scan before capture demand; the other cases retain that real dependency.
+    var proof = sem_source_binding_request(&context, subject);
+    sem_require(proof != 0);
+    if mode == CaptureContinuationMode.Observe {
+        sem_require(work_demand(&context.queries, proof));
+        var state = sem_source_bindings_pump(&context);
+        while state == SemanticPumpResult.Progress { state = sem_source_bindings_pump(&context); }
+        sem_require(state == SemanticPumpResult.Complete && work_task(&context.queries, proof).state == WorkState.Succeeded);
+    }
+    var query = sem_capture_request(&context, subject);
+    sem_require(query != 0 && work_demand(&context.queries, query));
+    if mode == CaptureContinuationMode.Suspend || mode == CaptureContinuationMode.Observe {
+        var consumer = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), 1);
+        sem_require(consumer != 0);
+        var argument: u64 = 2;
+        while context.queries.edges.length < context.queries.edges.capacity {
+            var dependency = work_request(&context.queries, root, convert(u32, SemanticQuery.BodyInputs), argument++);
+            sem_require(dependency != 0 && work_depend(&context.queries, consumer, dependency));
+        }
+    }
+    var consumers: usize = 0;
+    if mode == CaptureContinuationMode.Finish {
+        sem_require(sem_capture_pump(&context) == SemanticPumpResult.Progress);
+        var state = sem_source_bindings_pump(&context);
+        while state == SemanticPumpResult.Progress { state = sem_source_bindings_pump(&context); }
+        sem_require(state == SemanticPumpResult.Complete && work_task(&context.queries, query).state == WorkState.Ready);
+        consumers = context.queries.scratch.capacity + 1;
+        for(var index: usize = 0; index < consumers; index++) {
+            var consumer = work_request(&context.queries, subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+            sem_require(consumer != 0 && work_depend(&context.queries, consumer, query)
+                && work_seal(&context.queries, consumer) && work_demand(&context.queries, consumer));
+        }
+    }
+    var pressure: WorkReservation = default;
+    if mode == CaptureContinuationMode.Take { work_task(&context.queries, query).dispatch = ~convert(u64, 0); }
+    if mode != CaptureContinuationMode.Healthy && mode != CaptureContinuationMode.Take {
+        var snapshot: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+        sem_require(work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &pressure) == WorkBudgetError.None);
+    }
+    var state = sem_capture_pump(&context);
+    if mode == CaptureContinuationMode.Healthy {
+        semantic_admission_check(state == SemanticPumpResult.Progress && work_ok(&context.queries)
+            && work_task(&context.queries, query).state == WorkState.Waiting && context.queries.running == 0,
+            "Capture suspends on the actual source proof without executing its initializer", result);
+    } else {
+        var offset: usize = mode == CaptureContinuationMode.Take ? 83 : 7;
+        semantic_admission_check(state == SemanticPumpResult.Failed && program.resource.error ==
+            (mode == CaptureContinuationMode.Take ? WorkBudgetError.Invalid : WorkBudgetError.Capacity)
+            && program.resource.offset == offset && context.queries.cancelled && context.queries.running == 0
+            && context.workers.running == 0,
+            "Capture graph denial retains phase or declaration ownership and retires its ticket", result);
+        if pressure.active { sem_require(work_budget_release_result(&budget, &pressure) == WorkBudgetError.None); }
+    }
+    for(var index: usize = 0; index < consumers; index++) {
+        var consumer = work_find(&context.queries, subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+        semantic_admission_check(consumer != 0 && work_task(&context.queries, consumer).state == WorkState.Cancelled,
+            "Failed capture propagation never executes a dependent consumer", result);
+    }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var tasks = context.queries.tasks.length;
+    var retained = program.resource;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        var again = sem_capture_pump(&context);
+        semantic_admission_check(again == (mode == CaptureContinuationMode.Healthy ? SemanticPumpResult.Waiting : SemanticPumpResult.Failed)
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks && program.resource.error == retained.error
+            && program.resource.offset == retained.offset && context.queries.running == 0,
+            "Repeated capture wait or failure replays no metadata, work or receipt", result);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    semantic_admission_check(compiler_world_dispose(world), "Capture continuation releases its world", result);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    semantic_admission_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Capture continuation releases graph reservations", result);
+}
+
+fn capture_continuation_cases(mode: CaptureContinuationMode): SemanticAdmissionResult {
+    var result: SemanticAdmissionResult = default;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            capture_continuation_trial(width, workers, mode, &result);
+        }
+    }
+    return result;
+}
+
+test() {
+    var result = capture_continuation_cases(CaptureContinuationMode.Healthy);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = capture_continuation_cases(CaptureContinuationMode.Take);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = capture_continuation_cases(CaptureContinuationMode.Suspend);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = capture_continuation_cases(CaptureContinuationMode.Observe);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = capture_continuation_cases(CaptureContinuationMode.Finish);
+    assert(result.failures == 0, result.first_failure);
+}
