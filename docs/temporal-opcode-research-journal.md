@@ -121698,3 +121698,117 @@ to the assignment and reused across build steps. The first configure lacked
 an unversioned clang on PATH. Retrying with a changed compiler identity in
 that incomplete cache lost configure options. A fresh cache with the LLVM 19
 path and explicit public pin built successfully. The manager owns publication.
+
+### Native staged aggregates and declaration attributes in selected Tower tests
+
+Host 3 used published `a06327e4f6494fbdcea4302ff1829254b4d3e3d3` for
+assignment `4af4fd8a-fe1a-4d44-87dd-015d01788f7a`. The 257,138-byte
+producer archive had SHA-256
+`90bd88ec3f01404a6055b5cad6b521485094154abbd5cf63aa14589585f85c1e`.
+The receipt, the six supplied files and the six corresponding archived
+members matched. The M025/S103 range ends before five aggregate
+rejections. M026/S104 and S105 include the constructor and metadata
+inspection, cyclic import, execution and six attribute rejections.
+
+The reference was `tower-execution-tests RESOURCE_ROOT aggregate-stages`
+and `attributes`. Both baseline owner selections at jobs 1 and 4 reached
+only the five work-budget tests. All four direct selections exited 1 at
+discovery because the companion files were absent. The attributes executable
+also retains its separate grammar attribute suite.
+
+Commit `531cee06` keeps both native selectors calling the same named cases
+as the adjacent `test()` declarations. The selected entry opens a driver
+request, binds the module environment, installs Bedrock and Foundation,
+and invokes the case against the resource directory. The original selectors
+retain their existing shared request. The positive subjects, the cyclic
+imports and the eleven individual rejection inputs are Tower files. CMake's
+optional execution tests use the existing native guest, execution services
+and exact-count runner. Owner/direct selection reaches 12/7 aggregate and
+13/8 attribute tests. Each direct aggregate or attribute body also has a
+callable identity for isolated execution.
+
+An evidence-only observer recorded both engines' output, the original and
+reparsed Foundation bytes and replay output, each body trial's guest bytes
+and Foundation, actual compile diagnostics and successful pthread creation.
+Reformatting the recursive aggregate initially shifted the diagnostic from
+`19918 -> 19918` to `19928 -> 19928`. The original substring check passed
+both. The cycle formatter prints the subject's source start. Commit
+`a505e761` preserves the original expression position. The observer patch
+and both captures are in the packet. Its first build rejected a misplaced
+foreign declaration before an import. Moving the declaration after the
+imports allowed the observation build to run.
+
+On the corrected source, the original selectors and all eight standard
+selected routes produced identical semantic records within each family.
+The aggregate capture and staged aggregate each returned `0\n` on graph,
+fast and replay at both guest widths. The cyclic attribute import and
+its replay returned `42\n`. The ordinary attribute subject returned
+`0\n` on its original graph and replay. Both 4-byte and 8-byte guests
+retained the nominal Representation fields (4/4 and 8/8), the reference
+to `twice` and the typed byte array [3, 7] across reparse. The existing
+1,000-step slices and 100,000-step outer limit, reparse limit, typed
+callbacks, graph/fast memory and diagnostic checks all remain in use.
+
+Inside the 16 aggregate and eight attribute body trials, requested compiler
+widths 1, 2, 4 and 8 produced 0, 4, 13 and 18 successful pthread starts per
+subject and guest width, including with outer jobs 1. These are cumulative
+starts over the trial. The original execution and the selected guests linked
+the production Linux transport. The two event stream hashes after removing
+transport and runner messages were `b902a236a0652a4a60885721826da3a95abc598cf73977e13408412fcd2fa0a2`
+and `7c9f487cea6a49ae7f16f51cf70b25050954ab2106429105f6e354877ee324b4`.
+The packet retains individual Foundation and output files, diagnostic text,
+case identities, raw streams, commands, build inputs and hashes.
+
+Three matched release pairs per executable and build width ran one process
+at a time after instrumentation and controls drained. The published Linux
+x64 bootstrap was 7430bdb3, Clang was 19.1.7, and the target was
+x86_64-pc-linux-gnu. Each sample launched a fresh process against warm
+filesystem caches with affinity 24–31 on an AMD EPYC 7542. The shared
+cgroup allowed 12.288 CPUs. The native selectors take the resource root and
+suite name. The jobs column refers to compilation of those executables.
+The selected tests use the runner's explicit jobs argument.
+
+| Original selector | Build jobs | Revision | Median wall (s) | Median CPU (s) | Highest peak RSS (KiB) |
+| --- | ---: | --- | ---: | ---: | ---: |
+| aggregate-stages | 1 | base | 5.96 | 6.79 | 133336 |
+| aggregate-stages | 1 | candidate | 5.97 | 6.76 | 133952 |
+| aggregate-stages | 4 | base | 5.94 | 6.74 | 131140 |
+| aggregate-stages | 4 | candidate | 5.91 | 6.70 | 133376 |
+| attributes | 1 | base | 3.06 | 3.45 | 117568 |
+| attributes | 1 | candidate | 3.06 | 3.43 | 115556 |
+| attributes | 4 | base | 3.06 | 3.45 | 118844 |
+| attributes | 4 | candidate | 3.04 | 3.44 | 114776 |
+
+The two original selectors reproduced their respective 180 and 215 stdout
+bytes with empty stderr in every pair. Changing the expected nested field
+from 42 to 43, the expected metadata array element from 7 to 8, and the
+required uninitialized diagnostic each failed in isolation, with exit 1
+on the original selector and both selected routes at jobs 1 and 4. The
+capture positive control passed during the aggregate and diagnostic faults.
+The import cycle passed during the metadata fault. The original fail-fast
+helper prints its individual message before exiting. The selected runner
+also reports that the child exited without its completion or trap record.
+After restoration, each of the 15 cases passed as the only selected case.
+The eight registered CTests passed with exact counts (80 test executions
+across the matrix, including 20 work-budget executions).
+
+Both supported LLVM 19 sanitizer profiles started on the first attempt and
+exited 0 on each original selector and on the 15-case selected setup,
+with no reported finding. The ordinary instrumented executables used their
+CMake link closures. A separate Tower entry called the selected setup under
+each sanitizer because the native selected-test service target is release-only.
+The instrumented setup checks predate the fixture-only cycle-position repair.
+The original-selector sanitizer runs used the corrected fixture. The link
+maps identify runtime-allocate.o and tower_work_host.o. The changed functions'
+machine code contains the ASan checks and TSan access instrumentation. Tower
+provides no UBSan profile. The release-only runner, sanitizer replays and
+worker-start counts provide distinct evidence. Cumulative allocation and
+retained-world counters were not sampled in this test-only migration.
+
+The uninstrumented aggregate owner/direct commands took 10.34/9.78 s at
+jobs 1 and 10.28/9.79 s at jobs 4. The attribute commands took 7.70/6.92 s
+and 7.80/7.18 s respectively. The former owners took 2.19–2.31 s to run
+five unrelated tests. The former direct commands exited at discovery in
+0.55–0.73 s. The added time buys execution of the original cases. Full
+per-process wall/user/system time, peak RSS and selected source locations
+are in the assignment archive. Publication belongs to the manager.
