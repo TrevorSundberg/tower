@@ -114248,3 +114248,192 @@ outputs, exit statuses, observer patches and per-run timing. Qualification
 uses the requested 2556019c resources. Public main advanced to 401c402e with
 a new bootstrap during the run. Integration and publication belong to the
 manager.
+
+### Semantic-port browser registrations select Tower assertions
+
+Host 2 based this local change on public `8fdfe15a`. The original 19 Node
+filters use 15 existing script subjects, a layout/binding script, two groups
+of invalid sources and a Tower generator. The published portable and shared
+frontend reactors and LLVM reactor are built from `8bc867b6`. The release
+manifest and cached payload hashes are in packet
+`42ac440a-37a5-4d95-9537-e451b7b9f31f`. The shared checkout had unrelated
+unpublished commits and its initial pull conflicted in the SHA-256 companion.
+The host aborted that rebase and used an isolated local main at the requested
+pin. A history fetch from the shallow checkout failed on a missing promisor
+object. The isolated checkout used the existing object store for the pin.
+
+Each table registration selects `tests/semantic_port_cases/matrix.tower`.
+At each pointer width the subject runs on Graph and Fast. Both formatted
+programs reparse and execute on Graph. The Fast canonical source also goes
+through optimized and unoptimized LLVM Foundation output and both results run
+on Fast. The source and four-byte Fast canonical source build executable Wasm.
+Tower compares all 14 counted outputs to raw bytes, the four complete pairs of
+Foundation texts, and the optimized population-count intrinsic at both widths
+for `backend_popcount`. The three distinct table outputs use the zero,
+language_control and work_observe expected files.
+
+The layouts and deep filters select `layouts.tower` and `deep.tower`.
+The former uses separate raw results for four- and eight-byte layouts. The
+latter runs the ordinary layout generator on Fast before compiling its output.
+The semantic and parser rejection filters select `diagnostics.tower` and
+`syntax.tower`. A passive log of the original isolated selectors recorded
+61 replies from 21 invalid subjects. The selected programs request each
+subject by name and check the full first diagnostic, original input file,
+byte offset and empty interpreter output. The two parser cases retain the
+original default width and LLVM compile. The transport destroys each portable
+handle even on failure. Only the separate assertion reactor receives the
+observation callbacks. The original subjects and generator are unchanged.
+
+The first mixed selection failed at the call to `backend_equal` because
+`matrix.tower` lacked a direct import. Adding the import passed. Choosing
+the zero oracle for `language_control` then failed the Graph output assertion.
+Changing `enum_index`'s expected offset from 77 to 76 failed the named
+rejection in the shared frontend. Restoring each change passed on the same
+profile. The packet retains the changes, locations, exit codes and streams.
+
+The frozen implementation is `3f28b7514`. All 19 named filters passed on
+each side and each public frontend, with no skips. For each of the 15 table
+registrations the original and migrated phase sequences matched all 42
+events on each frontend. On the shared frontend the ordered subject records
+matched across 227 ordinary compilations, 124 canonical formats and 33
+executable Wasm runs. Each ordinary compile reported zero selected tests.
+Each migrated filter selected one. Handle creation and destruction counts
+balanced. Separate transport captures matched all 61 first diagnostic
+replies byte-for-byte before and after on each frontend. Substituting an
+absent intrinsic spelling failed the optimized LLVM check and restoration
+passed. The packet includes a per-name mapping and both public frontend pairs.
+
+The ordinary native `--emit foundation --target wasm32-unknown-unknown`
+outputs for language_control, semantics and layout_depth_source were byte
+identical. Both revisions passed the pinned Linux package checksums. The
+ordinary depfiles excluded the assertion inputs. In a separate six-filter
+portable process the subject hosts both finished with 13,381 live nodes.
+The migrated assertion host finished with 13,483 live nodes. All three
+reported zero exposed live allocations. The compiler, allocator and worker
+implementation were unchanged. No instrumented compiler was built or run.
+
+GNU time measured fresh Node v24.22.3 processes on one Ryzen 5 3600 host,
+affinity 0–11, CPU quota 11.52, memory ceiling 32,222,740,480 bytes. Runs
+were sequential with warm filesystem caches. The shared subject transport
+used the default four child slots and its separate assertion host used one.
+Each cell below summarizes 19 single samples, one per name. CPU is user plus
+system time. RSS is the largest process peak in KiB. Both shared runs include
+the same passive transport tap.
+
+| Frontend | Wall seconds before / after | CPU seconds before / after | Peak RSS before / after |
+| --- | ---: | ---: | ---: |
+| Portable | 385.73 / 414.68 | 626.06 / 664.09 | 2,691,760 / 2,746,128 |
+| Shared | 417.75 / 450.09 | 711.46 / 751.21 | 2,812,232 / 2,883,308 |
+
+The four entity_tables Foundation comparisons covered 4,334,568 bytes per
+side. That selected test took 346,787,013 interpreter steps within its
+409,600,000-step limit. The portable interval from the final executable
+run through completion grew from 2.7 to 4,164.3 ms. That interval includes
+the selected test's setup, transfers and exact comparisons. Per-process
+wall and CPU include compiler and host startup. This handoff is local.
+
+### Semantic-port assertion filenames on the shipping reactors
+
+Host 2 assignment `7a692a1a-f2f0-43a5-af8f-2eb55e0eb349` consumed
+the verified source bundle, 19-name mapping and reactor digest list from
+`42ac440a-37a5-4d95-9537-e451b7b9f31f`. The archive, extracted members
+and internal file checksums passed. Local merge `81344ad6` joins public
+`7f444166` and packet tip `23a25cc7`. The shared checkout's initial pull
+conflicted on an unrelated SHA-256 companion. Aborting that pull restored
+its unpublished main. The merge and implementation use an independent main.
+
+Commit `8f558f73` renames the five direct entries for matrix, layouts,
+deep layout, semantic diagnostics and parser diagnostics. The assertion
+project uploads those programs and their original helper and dependencies.
+The Node transport selects the renamed path directly with the suite-specific
+companion filter used by other browser tests. Each call requires exactly one
+Tower test. The subjects, assertion bytes, expected files and Node titles
+remain identical to the packet.
+
+The acceptance run uses Git blobs from Pages `9788bd66`. The deployment
+manifest SHA-256 is `10d884873c1d8511b4e2d8232d961a922c095f1cf002e20260df712d2eb407da`.
+All three raw images and the compressed LLVM image match their manifest sizes
+and SHA-256 values. Their compiler source is `64fcfc1a`. The producer's
+`f2214133` results supply the frozen diagnostic replies and comparison records.
+
+Both shipping frontends reproduced the producer's complete ordered 61 replies
+byte for byte. They cover nineteen semantic inputs at four and eight bytes
+and through LLVM, plus two parser inputs at four bytes and through LLVM.
+The three independent corruptions exited 1 on both frontends. The wrong
+stdout failed the Graph comparison at byte 585 of `results.tower`. Offset
+76 in place of 77 failed `enum_index` at byte 1256 of the same helper.
+The invented intrinsic names failed the population-count check at byte 877
+of `matrix_test.tower`. Restoring the exact source bytes passed all six
+selections. Both wasm32 and wasm64 optimized outputs contain calls to
+`llvm.ctpop.i32` and `llvm.ctpop.i64`. Each complete optimized IR file
+matched across the good, corrupt and restored assertion runs.
+
+With V8 explicit Wasm bounds checks each frontend passed all five entry
+types together on reused reactors. Each reported exactly one selected test
+and its renamed entry in the compiler dependency list. The assertion
+reactor reported 6,503 nodes at load and 13,483 after drain, with memory
+capacity growing from 8,388,608 to 28,442,624 bytes. The legacy allocation
+counter stayed zero. These shipping images do not expose source-level
+ASan, UBSan or TSan instrumentation.
+
+Public main advanced to `eb1bdbe4` during measurement. Its integrations
+changed seven Tower files in the broad subject upload. Its selected-test
+runner also introduced a step generator, with the existing synchronous
+entry consuming those steps. The first freeze had completed 33 of 38
+individual names successfully when the outer loop stopped. The active
+measurement finished normally. The reconciled checkout `370722b6` has
+`eb1bdbe4` as its first parent and preserves `23a25cc7` and `8f558f73` in
+its history. The final matrix uses a fresh log directory on this checkout.
+The matched unrenamed input is the Git merge tree
+`7ffb44338e105cff2529c284b252fbcbd552a0ab` of `eb1bdbe4` and `23a25cc7`.
+Only the five filenames, browser adapter and journal differ between these
+two inputs. The packet keeps the initial measurements in a separate directory.
+
+GNU time measured one fresh Node 24.22.3 process per case and frontend on
+warm files. All measured commands used the same host lock and 600-second
+process limit. Host 2 has a Ryzen 5 3600, 6 physical cores and 12 logical
+CPUs. Affinity was 0–11, the CPU quota was 1,152,000 µs per 100,000 µs,
+the memory limit was 32,222,740,480 bytes and the PID limit was 2,816.
+The shared subject used its default four-slot worker capacity and the
+separate assertion host used capacity one. The portable and shared runs
+each include the same LLVM reactor.
+
+| Shipping frontend and subject | Wall s before / after | User s before / after | System s before / after | Peak RSS KiB before / after |
+| --- | ---: | ---: | ---: | ---: |
+| Portable, backend_import_constants | 2.30 / 2.24 | 4.06 / 3.91 | 0.33 / 0.35 | 281,636 / 301,340 |
+| Shared, backend_import_constants | 2.94 / 2.89 | 5.02 / 4.85 | 0.53 / 0.57 | 404,048 / 365,432 |
+| Portable, entity_tables | 76.24 / 76.66 | 117.79 / 117.67 | 2.15 / 2.20 | 2,764,368 / 2,770,516 |
+| Shared, entity_tables | 81.08 / 80.75 | 125.30 / 124.72 | 7.22 / 7.23 | 2,872,840 / 2,869,920 |
+
+The complete transport trace is identical within each of the four matched
+pairs. The small shared case showed the largest peak RSS variation, with
+similar wall time in both arms. A single sample per arm measures the cost
+of these named runs and cannot establish a throughput or scaling trend.
+During validation Pages advanced to `266e45d5` and public main to
+`2556019c`. All three reactor blobs differ in that later Pages tree.
+The evidence uses the requested `9788bd66` throughout.
+
+All 19 original names passed on each shipping frontend on `370722b6`,
+with one selected test per process, zero skips, cancellations or failures,
+and matching compile and destroy counts. Each of the 15 matrix names
+preserved the 42-event phase sequence. All 38 complete JSONL transport
+traces matched the corresponding retained shared-frontend trace, including
+subject execution steps, output bytes, canonical sizes and hashes and
+linked Wasm results. Each frontend reproduced 227 ordinary compiles,
+19 selected tests, 124 canonical formats and 33 linked executions. Its
+ordered 61 diagnostic replies hash to
+`8165b10d76cbac4f021092a01aedbbe2b7a0f384c326eca073749c79db8604e9`.
+
+| 19-name matrix | Wall s | User CPU s | System CPU s | Maximum process RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Portable on 9788bd66 | 414.07 | 645.65 | 15.98 | 2,770,516 |
+| Shared on 9788bd66 | 448.64 | 703.25 | 43.87 | 2,869,920 |
+
+The producer's unrenamed assertions on `f2214133` took 414.68 / 450.09
+wall seconds, 664.09 / 751.21 CPU seconds and peaked at 2,746,128 /
+2,883,308 KiB respectively. These historical totals cover different
+compiler images and uploaded inputs. The four matched pairs above isolate
+the filename and selection change on the requested images. Assignment
+`7a692a1a-f2f0-43a5-af8f-2eb55e0eb349` includes the verified bundle,
+raw streams, timings, controls, LLVM IR and deployment manifest.
+Integration with later public commits and publication belong to the manager.
