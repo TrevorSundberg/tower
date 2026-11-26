@@ -340,3 +340,29 @@ document. To run the UTF-8 snapshot check with ordinary companion discovery,
 run `towerc --test scaffolding/compiler/syntax_source_cases/snapshot.tower
 --test-details --foundation scaffolding/foundation.tower` from the repository
 root. Both fixtures read the same Tower string. [Editor checks](../scaffolding/compiler/syntax_source_cases/editor_test.tower) · [Snapshot check](../scaffolding/compiler/syntax_source_cases/snapshot_test.tower)
+
+### Test ownership at fdd32148
+
+At revision `fdd32148`, 161 of the 521 original top-level Node registrations
+reached a Tower assertion through language test selection. Seven of those
+also kept a case-specific JavaScript assertion. Across the original 521,
+363 kept a JavaScript assertion, three delegated to a compiled suite, and one
+moved entirely to the native parser companion. The original registration
+identities and their successors are in `manifest/node-original.tsv`.
+
+| Surface at this revision | Count | Where to find each case in the archive |
+| --- | ---: | --- |
+| Top-level Node registrations | 517 across 52 files | `manifest/node-current.tsv` |
+| CTest names across 20 configurations | 297 distinct, 279 in native opt-in | `manifest/ctest-names.tsv`, `manifest/ctest-profiles.tsv` |
+| Playwright cases | 124 authored, 248 desktop/mobile registrations | `manifest/playwright.tsv` |
+| JavaScript files in scope | 157, including 47 production host modules | `manifest/javascript-files.tsv` |
+| Historical native case, selector and helper records | 4,791 | `manifest/native-original.tsv` |
+| Explicit Tower tests | 277 declarations in 180 files | `manifest/tower-sites.tsv` |
+
+The archive records the path, Git object and mode for all 2,740 in-scope
+paths. The audit excludes 37 temporal research paths. The Roku count uses
+the earlier registration list after its inputs and lockfile matched.
+Desktop/mobile and one/four-worker repetitions count once when tracking a
+migration. After this snapshot, `622d2cba` moved two more Bedrock cases
+and `dc3bcdc7` moved the Playground comparison case.
+[Download the registration and source tables](evidence/test_inventory_fdd32148.tar.gz).

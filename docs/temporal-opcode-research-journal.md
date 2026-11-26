@@ -111211,3 +111211,22 @@ built. The public images lack source-instrumented ASan/UBSan/TSan coverage.
 Manager integration and publication remain open. The assignment archive
 contains the focused bundle, standalone overlay, checksums, commands,
 individual CPU/RSS medians and per-process observations.
+
+### Reconciling test registration ownership at fdd32148
+
+Receipt `2b0865f7` traced the original Node registrations, CTest
+configurations, browser listings and native case maps. The manager compared
+all 2,740 in-scope path, mode and blob triples with `git ls-tree -rz fdd32148`
+and recounted original and current Node cases from their individual rows.
+Of the 521 original cases, 161 reached selected Tower assertions and 363
+still had a JavaScript oracle, with seven cases in both counts. Three cases
+only checked an existing compiled suite and one had moved to native tests.
+The 517 names at the snapshot and the 521 historical cases have separate
+tables. The 13 unchanged Roku names carry their prior listing. The remaining
+504 current Node names were listed at the audited revision.
+
+Each archived member matches the independently verified receipt. The census
+records selection and source ownership. It supplies no runtime timing or
+new suite execution. The next open rows from the snapshot are the scanner
+override and formatter span/spacing suites. Two Bedrock cases listed there
+already shipped in `622d2cba`. See [the tables](test-inventory.md#test-ownership-at-fdd32148).
