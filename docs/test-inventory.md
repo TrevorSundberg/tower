@@ -72,3 +72,51 @@ first in a short manifest, the same runner aborts on canonical text for the
 narrow provider, the ASan probe and the token fixture. It passes the scale
 and borrowed-view files, including the second formatting pass. The Node
 module-path test also checks the spellings of all five paths.
+
+### Borrowed foreach
+
+The default filename rule pairs the existing worker unit with
+`iteration_parallel_unit_test.tower`. Run the owner to execute the five
+Tower tests in the table. Each fixture also has an ordinary script entry
+that prints its observations. The browser suite reads those same files.
+[Worker companion](../scaffolding/tests/iteration_parallel_unit_test.tower) ·
+[Fixtures](../scaffolding/tests/foreach_inputs) ·
+[Browser selectors](../playground/tests/foreach.test.mjs)
+
+```sh
+bootstrap/linux-x64/towerc --test scaffolding/tests/iteration_parallel_unit.tower --test-details --jobs 1
+bootstrap/linux-x64/towerc --test scaffolding/tests/iteration_parallel_unit.tower --test-details --jobs 4
+node --test --test-concurrency=1 playground/tests/foreach.test.mjs
+```
+
+| Fixture | Assertions shared by native and browser runs | Exact output values, each followed by LF |
+| --- | --- | --- |
+| `vector_values` | Empty traversal skips the body. The source is called once. A scalar copy can change independently. Element pointers double the backing values. An aggregate borrow updates each field in place, and a copied pointer reads the first record while its owner is live. | 11, 12, 13, 1, 1, 2, 4, 6, 21, 22, 21 |
+| `ring_order` | Six pops and two pushes wrap the queue. Value and borrowed traversal cover both ring segments. The stack alias traverses oldest to newest. | 6, 7, 8, 9, 16, 17, 18, 19, 4, 5 |
+| `protocol_cleanup` | Range begin appends 1, end appends 2 and body cleanup appends 3. Continue then break checks cleanup and shadowing. Return saves the element before cleanup. Nested and empty ranges close exactly once. Other uses a separate protocol in the same module. | 4, 1332, 99, 3, 132, 3, 1122, 12, 42 |
+| `loop_targets` | Continue selects the enclosing loop, a deferred loop reads the still-live vector, and return leaves the nested loops with the first element. | 26, 1, 2, 1 |
+| `worker_checksum` | The existing exported transform updates three caller-owned values through its borrowed view. The existing checksum reads back that storage. | 39 |
+
+For each row the original browser selector checks Graph and Fast at 32 and
+64 bits, the exact output after reparsing Foundation, and byte-stable
+Foundation at the second emission. LLVM executes the source with optimization
+off and on, and the optimized canonical Foundation. Browser Tests also
+discovers the companion from the worker unit and checks the combined stream.
+
+| Remaining original selector | Fixtures and assertions |
+| --- | --- |
+| Invalid programs | `scalar_source`, `missing_protocol`, `aggregate_copy`, `escaped_item`, `mismatched_state`, `scalar_element`, `void_element`, `missing_return`. Each must finish with an error, the corresponding diagnostic and empty output. The selector uses the interpreter. |
+| Formatting and Foundation names | Parse and format `format_borrow` twice, require byte equality, execute the formatted text and expect 42 LF. In `foundation_identifier` the ordinary variable named `foreach` also prints 42 LF. |
+
+Fixed-array iteration already runs through the `semantic_iteration.tower`
+owner and directly through the one- and four-job fixed-array registrations.
+Its companion checks the source call count, copied values, borrowed writes,
+the untouched tail after a break and cleanup on return. The same owner also
+executes the existing layout and generic clone checks. The compiler-thread
+fixture exercises implicit protocol construction in two bodies, the
+compiler-worker selector compiles the shared unit, and `body_runs.tower`
+checks protocol failures during body work. The Bedrock foreach and replacement
+examples teach grammar declarations. The collections example and
+`language_collections.tower` cover ordinary stack and queue operations.
+[Existing fixed-array companion](../scaffolding/compiler/semantic_iteration_test.tower) ·
+[Borrowed iteration contract](borrowed-iteration.md)
