@@ -109513,3 +109513,49 @@ The ordinary aggregate ran both assertions at jobs 1 and 4 with the original
 53, including the instantiation frame. The declaration-world test also
 passed both pointer widths. Assignment 10b3f97f holds the build commands,
 native compiler stderr, host quota and measured runs.
+
+The staged rejection suite now has 24 explicit declarations in one checked-in
+companion. All 24 original sources failed ordinary native compilation and
+interpretation with identical stderr. The two generic bodies instantiate
+when ordinary root statements are checked. A separate control compiled
+successfully and failed only on interpretation with division by zero.
+The portable and LLVM registrations each retained both guest pointer widths.
+The two runners compare the same literal diagnostic file through the same
+Tower byte-and-offset assertion. Native checks also compare the source path,
+line and column. Browser checks retain their original path and status fields
+and the portable pre-execution observations. All 96 recorded browser rows
+matched the producer packet field for field.
+
+Both native selections ran 24 declarations at jobs 1 and 4. The first
+registered-input run of the expanded suite reached the two-proof harness's
+fixed step ceiling. Scaling that harness allowance by the declared case
+count ran the complete suite at both guest widths in both worker worlds.
+A wrong child with identical bytes, an altered frame, a wrong byte offset,
+a changed child line, undeclared or missing data, traversal, a symlink and
+a permission denial all failed. Restoration ran 24 again. Discovery named
+all 24 sources, 24 oracles and the declaration in its depfile. The ordinary
+owner object required none of those inputs. Affected mode conservatively
+executed the foreign-calling suite on unchanged and changed runs.
+
+The Linux x86-64 and AArch64 drivers use their respective ABI values for
+opening a regular leaf without following a symlink. A Tower probe linked to
+AArch64 libc opened the real child and refused a symlink to it under QEMU.
+The Windows and Darwin boundaries cross-compiled. On the frozen Linux x64
+driver, withholding all 24 sources, their 24 oracles, the declaration, the
+companion and its library still produced a byte-identical ordinary object.
+The default native link succeeded and the executable exited silently.
+
+Host 1 used CPUs 4–11 of affinity 0–31, with a quota of 15.36 CPUs on Xeon
+Gold 6244. Single warm direct selections at jobs 1 and 4 took respectively
+5.37 and 7.54 seconds wall, 5.36 and 8.45 seconds CPU, and 87984 and 96892
+KiB peak RSS. The 48-registration browser selection took 10.94 seconds wall,
+16.03 seconds CPU and 271248 KiB peak RSS. Each final independent native
+interpretation at jobs 1 and 4 matched the original stderr byte for byte.
+
+On the final Linux x64 binaries, ASan with leak checking and TSan each
+passed all 24 disk cases at jobs 1 and 4. Each also passed the two original
+proofs at both pointer widths in both worker worlds. The uninstrumented
+registered harness ran all 24 in each of those four combinations. TSan's
+successful final runs were attempts 20, 3 and 6 respectively. The 26 earlier
+starts stopped before main when the host denied its ASLR personality
+request. The receipt includes these statuses and the successful traces.

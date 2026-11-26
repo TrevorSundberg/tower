@@ -60,13 +60,14 @@ fn test_file_replace_suffix(path: u8*, from: u8*, to: u8*, result: vector(u8)*):
     return true;
 }
 
-// One direct import of library.test_fixtures in a selected companion grants
-// its actual owner as source and the owner's same-stem .expected as text.
+// Registered module inputs and frozen fixture data own counted UTF-8 bytes.
 struct ModuleInput {
     name: vector(u8);
     text: vector(u8);
 }
 
+// A selected companion grants the owner and either its same-stem oracle or
+// the sibling pairs from its .fixtures declaration.
 struct TestFixturePair {
     inputs: vector(ModuleInput);
     companion: vector(u8);

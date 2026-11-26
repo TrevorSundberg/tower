@@ -1114,7 +1114,8 @@ fn module_fixture_snapshot(owner: FrontendModule*, selection: TestFileSelection*
     if !node_text_set(&input.name, path.data) || !vector_reserve(&pair.inputs, pair.inputs.length + 1) {
         module_fail(owner, "Cannot retain declared fixture: ", path.data); return false;
     }
-    pair.inputs.data[pair.inputs.length++] = input;
+    pair.inputs.data[pair.inputs.length] = input;
+    ++pair.inputs.length;
     input = default;
     return true;
 }
@@ -1143,14 +1144,14 @@ fn module_fixture_set(owner: FrontendModule*, selection: TestFileSelection*, pai
         }
         if at == start { module_fail(owner, "Empty sibling fixture name in ", pair.inputs.data[0].name.data); return false; }
         path.length = directory;
-        if !test_file_append(&path, list.data + start, at - start) || !test_file_append(&path, ".tower", 7) { break; }
+        if !test_file_append(&path, list.data + start, at - start) || !test_file_append(&path, ".tower", strlen(".tower") + 1) { break; }
         --path.length;
         foreach (var &prior in &pair.inputs) {
             if module_equal(prior.name.data, path.data) { module_fail(owner, "Duplicate declared fixture: ", path.data); return false; }
         }
         if !module_fixture_snapshot(owner, selection, pair, &path, registered) { return false; }
         path.length -= strlen(".tower");
-        if !test_file_append(&path, ".expected", 10) { break; }
+        if !test_file_append(&path, ".expected", strlen(".expected") + 1) { break; }
         --path.length;
         if !module_fixture_snapshot(owner, selection, pair, &path, registered) { return false; }
         if at < list.length { ++at; }
@@ -1198,16 +1199,18 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         var module = frontend_module_load_companion(owner, path.data);
         if module == null { return false; }
         module.companion = true;
+        var granted = false;
+        var declared = false;
         foreach (var dependency in &module.dependencies) {
             var imported = frontend_module_name(dependency);
-            var declared = test_fixture_library(imported, "library/test_rejections.tower");
-            if declared || test_fixture_library(imported, "library/test_fixtures.tower") {
-                if !test_fixture_grant_pair(&grants, rule, path.data, name) {
-                    module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
-                }
-                if declared && !module_fixture_set(owner, selection, &grants.data[grants.length - 1], probe == null) { return false; }
-                break;
+            granted ||= test_fixture_library(imported, "library/test_fixtures.tower");
+            declared ||= test_fixture_library(imported, "library/test_rejections.tower");
+        }
+        if granted || declared {
+            if !test_fixture_grant_pair(&grants, rule, path.data, name) {
+                module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
             }
+            if declared && !module_fixture_set(owner, selection, &grants.data[grants.length - 1], probe == null) { return false; }
         }
         var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
         if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }

@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("comptime_return.tower");
-    defer free(error);
-    assert(stage_error_offset() == 14, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Function 'incomplete' can finish without returning a value"), error);
+    check_browser_rejection("comptime_return.tower", 14);
 }

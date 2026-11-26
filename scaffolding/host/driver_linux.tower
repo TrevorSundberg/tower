@@ -141,6 +141,3 @@ fn driver_linux_execute(executable: u8*, argv: u8**, output: i32): i32 {
     }
     return 1;
 }
-
-// O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC for read-only fixture data.
-export fn driver_fixture_open_flags(): i32 { return 131072 | 2048 | 524288; }

@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("decltype_body_comptime.tower");
-    defer free(error);
-    assert(stage_error_offset() == 53, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Unknown local 'missing_body_value'\nInstantiated by invalid(1) at line 4, column 16."), error);
+    check_browser_rejection("decltype_body_comptime.tower", 53);
 }

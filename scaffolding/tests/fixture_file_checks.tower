@@ -150,7 +150,8 @@ fn fixture_diagnostic_profiles(modules: void*, root: u8*): void {
         }
         var access: ExecutionFixtureAccess = {selection: &selection, modules: modules};
         session.fixtures = &access;
-        execution_run(&session, 1000, 100000);
+        execution_run(&session, 1000, subjects * 100000);
+        if session.machine.failed { puts(session.error.data ?? "Registered fixture failed without a diagnostic"); }
         execution_check(session.machine.done && !session.machine.failed, "registered diagnostic fields and guest ownership");
     }
 }

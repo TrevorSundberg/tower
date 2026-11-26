@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("comptime_generic_selected.tower");
-    defer free(error);
-    assert(stage_error_offset() == 97, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Division by zero"), error);
+    check_browser_rejection("comptime_generic_selected.tower", 97);
 }

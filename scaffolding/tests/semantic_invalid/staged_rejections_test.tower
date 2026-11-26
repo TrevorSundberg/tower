@@ -8,3 +8,91 @@ test() {
 test() {
     check_fixture_rejection("tests/semantic_invalid/decltype_body_comptime.tower", "decltype_body_comptime.expected", 53, 2, 40);
 }
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_header_cycle.tower", "decltype_header_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_parameter_cycle.tower", "decltype_parameter_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_parameter_field_cycle.tower", "decltype_parameter_field_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_field_cycle.tower", "decltype_field_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_generic_header_cycle.tower", "decltype_generic_header_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_layout_cycle.tower", "decltype_layout_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_type_field_cycle.tower", "decltype_type_field_cycle.expected", 98, 3, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_aggregate_operator.tower", "decltype_aggregate_operator.expected", 95, 5, 22);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/aggregate_inferred_copy.tower", "aggregate_inferred_copy.expected", 103, 5, 16);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_body_runtime.tower", "decltype_body_runtime.expected", 53, 2, 40);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_unknown.tower", "decltype_unknown.expected", 34, 2, 21);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_cycle.tower", "comptime_cycle.expected", 73, 3, 14);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_defer_cycle.tower", "comptime_defer_cycle.expected", 135, 7, 7);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_return.tower", "comptime_return.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_output.tower", "comptime_output.expected", 67, 3, 14);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_uninitialized.tower", "comptime_uninitialized.expected", 85, 3, 14);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_dead_pointer.tower", "comptime_dead_pointer.expected", 149, 4, 14);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_fuel.tower", "comptime_fuel.expected", 57, 3, 14);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/comptime_generic_selected.tower", "comptime_generic_selected.expected", 97, 3, 36);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/inference_alias_invalid.tower", "inference_alias_invalid.expected", 146, 5, 11);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/declaration_index_cycle.tower", "declaration_index_cycle.expected", 14, 2, 1);
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/declaration_index_type.tower", "declaration_index_type.expected", 79, 4, 27);
+}
