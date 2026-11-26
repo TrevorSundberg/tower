@@ -126,12 +126,20 @@ towerc --test path/to/owner.tower --test-affected .tower-test-state --test-oracl
 ```
 
 Without a state directory, every invocation runs all selected tests. With a
-private state directory and no oracle file, an unchanged suite may skip after
-a complete, silent pass. A suite that prints then runs on each invocation. An
-explicit expectation permits reuse after a byte-for-byte match. Guest foreign
-calls always require execution. Skips emit no guest output and `--test-details`
-identifies skipped declarations. Each owner suite shares initialization, writes
-and first-failure order.
+private state directory, an unchanged interpreted suite can reuse a complete,
+silent pass. A suite that prints needs an explicit `--test-oracle` file to
+reuse its result after a byte-for-byte match. Guest foreign calls and linked
+suites always run. Skips emit no guest output. Use `--test-details` to see
+which declarations ran or skipped. Each owner suite shares initialization,
+writes and first-failure order.
+
+For example, the compound-operator suite can skip its 14 passing declarations
+after an unrelated edit. The operator trace suite reads `operators.expected`
+through a guest fixture call, so it reruns and catches edits to either the
+golden file or its sibling program. The entry path also matters. Testing the
+gzip owner in the linked kit runs three gzip declarations and two imported
+byte-buffer declarations. Testing `gzip_test.tower` directly runs the three
+gzip declarations.
 
 The directory holds a 32-byte SHA-256 success receipt per canonical entry.
 Its identity includes the running compiler bytes, rule, target and workers,

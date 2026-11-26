@@ -108090,3 +108090,25 @@ rejection, successful retry, and relocation. The sample printed 42 in the
 interpreter and in the linked executable at both locations. The verification
 used a mirror of the immutable package paths. The release README links the
 versioned archive and retains the three tested command blocks.
+
+### Affected selection on migrated fixtures
+
+Host 2 ran the full and affected test commands on the same entry, state
+transition and worker count in receipt `7ed73a26`. The manager compared all
+104 pairs of raw exit codes, stdout, declaration locations and first errors
+at one and four workers. Ten affected invocations reused a passing result,
+six recorded a reusable pass, and 66 reran successfully without storing one.
+The remaining 22 pairs failed as expected. Changes to either operator golden
+or its sibling program reached the companion assertion at 8:5. An imported
+byte-buffer assertion failed at 17:5 through the bytes and gzip owners. The
+direct gzip entry still ran its three declarations successfully. Restoring the
+files restored the original results. The matching native profile listed 212
+CTest registrations and all 16 targeted invocations passed.
+
+With failing fixtures present, ordinary compilation reproduced the objects
+and depfiles for five entries. Those depfiles exclude the migrated test
+inputs. The default native compiler's own link command still includes the
+older parser integration fixture and live syntax fixture. The browser
+`tw_self_test` entry calls both, as do dedicated test runners. Follow-up
+`caab3b2a` is tracing their native linkage separately. This review changed
+documentation only and made no runtime performance claim.

@@ -54,7 +54,7 @@ transport coverage.
 | `tw_inspect(handle) -> pointer` | Return current grammar/highlights without advancing parsing or installing declarations. |
 | `tw_complete(source, byteLength, cursor, mode, filePointers, fileLengths, fileCount) -> pointer` | Completion query at a UTF-8 byte boundary. Mode is 0 for ordinary source, 1 for Foundation over Bedrock, 2 for Bedrock over the immutable seed. Other files contribute module declarations, not their locals. Returns borrowed `{from,to,options:[{label,type,detail}]}` or `{error}` JSON until the next completion call. Inputs share an 8 MiB limit; at most 1,024 additional files. |
 | `tw_destroy(handle)` | Release a session. An unknown/already destroyed handle is harmless. |
-| `tw_self_test() -> int` | Run the existing C++ suites; zero on success, invariant failure traps. |
+| `tw_self_test() -> int` | Run the Tower node, parser integration and live syntax fixtures. Returns zero on success and traps on an invariant failure. |
 | `tw_live_nodes()`, `tw_live_allocations()` | Test counters for Tower-managed allocations (not all libc++ memory). |
 
 Step/inspect results are borrowed UTF-8, NUL-terminated JSON. Copy a result
