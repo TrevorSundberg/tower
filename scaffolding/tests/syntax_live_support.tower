@@ -66,8 +66,12 @@ fn live_span(source: u8*, start: usize, length: usize, text: u8*): bool {
     utility_check(start <= strlen(source) && length <= strlen(source) - start, "Live syntax provenance range");
     return length == strlen(text) && utility_equal(source + start, text, length);
 }
+fn live_source_matches(node: void*, source: u8*, text: u8*): bool {
+    var span = live_match(node);
+    return live_span(source, span.start, span.length, text);
+}
 fn live_source(node: void*, source: u8*, text: u8*): void {
-    var span = live_match(node); utility_check(live_span(source, span.start, span.length, text), "Live syntax exact original source span");
+    utility_check(live_source_matches(node, source, text), "Live syntax exact original source span");
 }
 fn live_next_source(session: SyntaxSession*, source: u8*, text: u8*): void { var node = live_next(session); defer tower_node_release_ref(node); live_source(node, source, text); }
 fn live_find(root: void*, label: u8*): void* {
