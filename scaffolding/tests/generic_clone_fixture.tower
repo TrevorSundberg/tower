@@ -2,6 +2,9 @@ import tower;
 import .compiler.parser_types;
 import .compiler.format_api;
 import .library.vector;
+import .library.entity_types;
+import .library.entity_stage_types as stages;
+import .compiler.generic_registry_types as registry;
 import .library.work_budget_types;
 import utility_checks;
 
@@ -19,6 +22,7 @@ extern fn entity_member_index(node: void*, name: u8*): usize;
 extern fn parser_match_create(node: void*): ParserMatchData*;
 extern fn node_match_set_label(value: ParserMatchData*, text: u8*): bool;
 extern fn generic_begin(root: void*): void*;
+extern fn entity_stage_open(anchor: void*): void*;
 extern fn generic_register(context: void*, definition: void*): u32;
 extern fn generic_parameter_count(context: void*, definition: void*): usize;
 extern fn generic_type_parameter(context: void*, definition: void*, index: usize): bool;
@@ -95,6 +99,16 @@ fn generic_clone_fixture_world(fixture: GenericCloneFixture*, width: usize, dept
         && generic_type_parameter(fixture.context, fixture.definition, 0), "Clone fixture ordinary generic parameter");
 }
 
+// These projections cover the linked runner ABI. Each input comes from the
+// same checked fixture and the stage comes only from the stage allocator.
+fn generic_clone_fixture_context(fixture: GenericCloneFixture*): registry.GenericContext* {
+    return bits(registry.GenericContext*, fixture.context);
+}
+
+fn generic_clone_fixture_stage(fixture: GenericCloneFixture*): stages.EntityStage* {
+    return bits(stages.EntityStage*, entity_stage_open(fixture.root));
+}
+
 fn generic_clone_fixture_body(instance: void*): void* {
     return entity_child_at(instance, entity_member_index(instance, "body"));
 }
@@ -106,6 +120,10 @@ fn generic_clone_fixture_instance(fixture: GenericCloneFixture*): void* {
     var destination = generic_clone_fixture_body(instance);
     utility_check(destination != null && entity_child_count(destination) == 0, "Deferred header leaves body empty");
     return instance;
+}
+
+fn generic_clone_fixture_node(fixture: GenericCloneFixture*): Entity* {
+    return bits(Entity*, generic_clone_fixture_instance(fixture));
 }
 
 fn generic_clone_fixture_check(fixture: GenericCloneFixture*, instance: void*): void {

@@ -1,6 +1,8 @@
 import tower;
 import .library.work_budget_types;
 import .library.entity_types;
+import .library.entity_stage_types as stages;
+import generic_registry_types as registry;
 
 // Internal clone storage layout, shared with exact allocation-boundary checks.
 struct CloneFrame {
@@ -24,9 +26,9 @@ fn generic_clone_diagnostic(error: WorkBudgetError): u8* {
 
 // Internal worker arguments, borrowing canonical entities from one compiler world.
 struct GenericBodyCopy {
-    context: void*;
-    node: void*;
-    stage: void*;
+    context: registry.GenericContext*;
+    node: Entity*;
+    stage: stages.EntityStage*;
     limit: usize;
     copied: usize;
     success: bool;

@@ -501,9 +501,9 @@ export fn generic_body_complete(context: GenericContext*, node: Entity*, copied:
 // and provenance are immutable during dispatch; no shared retain/attach occurs.
 export fn compiler_generic_body_kernel(payload: void*): void {
     var result = bits(GenericBodyCopy*, payload);
-    var context = bits(GenericContext*, result.context);
-    var node = bits(Entity*, result.node);
-    var stage = bits(EntityStage*, result.stage);
+    var context = result.context;
+    var node = result.node;
+    var stage = result.stage;
     var instance = bits(GenericInstance*, compiler_component_get(node, context.instance_type));
     var destination = compiler_node_member(node, "body");
     var remaining = result.limit;

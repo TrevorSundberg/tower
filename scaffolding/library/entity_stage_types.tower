@@ -1,0 +1,36 @@
+import tower;
+import entity_types;
+import work_vector_types;
+
+// A worker owns these actual canonical entities, not a shadow graph or commands
+// containing another node model. Existing parent links and dense type indexes
+// remain unchanged until the coordinator publishes after all readers join.
+struct EntityStage {
+    anchor: Entity*;
+    nodes: work_vector(EntityStageNode);
+    references: work_vector(Entity*);
+    held: usize;
+    cancellations: work_vector(EntityStageCancellation);
+    leases: work_vector(EntityStageLease);
+    storage: EntityComponentPool;
+    buffers: EntityComponentPool;
+}
+
+// One complete payload's pending references. Context and borrowed fields stay
+// private and address-stable until hold/publication or discard, after join.
+struct EntityStageCancellation {
+    first: usize;
+    stop: usize;
+    cancel: function(void, void*);
+    context: void*;
+}
+
+struct EntityStageNode {
+    node: Entity*;
+    name: u8*;
+}
+
+struct EntityStageLease {
+    node: Entity*;
+    components: usize;
+}

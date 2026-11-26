@@ -1,0 +1,17 @@
+import tower;
+import generic_body_types as copies;
+import generic_registry as registry;
+import .library.entity_types as entities;
+import .library.entity_stage as stages;
+
+// Keep the original qualified provider types usable by request constructors.
+fn generic_body_copy_types_test(): bool {
+    var instance: registry.GenericInstance = default;
+    var context: registry.GenericContext = { first: &instance, ..default };
+    var node: entities.Entity = default;
+    var stage: stages.EntityStage = { anchor: &node, ..default };
+    var request: copies.GenericBodyCopy = { context: &context, node: &node, stage: &stage, ..default };
+    return request.context.first == &instance && request.node == request.stage.anchor;
+}
+
+if !generic_body_copy_types_test() { trap("Generic body request lost its typed owners", 0); }
