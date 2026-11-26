@@ -10,7 +10,7 @@ target_sources(tower-frontend-tests PRIVATE "${tower-emission-oracle_OBJECT}" "$
 set_target_properties(tower-frontend-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_options(tower-frontend-tests PRIVATE -fno-exceptions)
 target_compile_definitions(tower-frontend-tests PRIVATE TOWER_COMPILER_MEMORY_TESTS=1)
-target_link_libraries(tower-frontend-tests PRIVATE ${test_libraries})
+target_link_libraries(tower-frontend-tests PRIVATE ${test_libraries} tower-parser-fixtures)
 enable_testing()
 add_test(NAME tower-frontend COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
 add_test(NAME tower-frontend-structure-reuse COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" structure-reuse)
