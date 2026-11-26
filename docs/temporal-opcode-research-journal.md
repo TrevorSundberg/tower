@@ -113325,3 +113325,65 @@ reactor reported 6,503 nodes at load and 13,483 after drain, with memory
 capacity growing from 8,388,608 to 28,442,624 bytes. The legacy allocation
 counter stayed zero. These shipping images do not expose source-level
 ASan, UBSan or TSan instrumentation.
+
+Public main advanced to `eb1bdbe4` during measurement. Its integrations
+changed seven Tower files in the broad subject upload. Its selected-test
+runner also introduced a step generator, with the existing synchronous
+entry consuming those steps. The first freeze had completed 33 of 38
+individual names successfully when the outer loop stopped. The active
+measurement finished normally. The reconciled checkout `370722b6` has
+`eb1bdbe4` as its first parent and preserves `23a25cc7` and `8f558f73` in
+its history. The final matrix uses a fresh log directory on this checkout.
+The matched unrenamed input is the Git merge tree
+`7ffb44338e105cff2529c284b252fbcbd552a0ab` of `eb1bdbe4` and `23a25cc7`.
+Only the five filenames, browser adapter and journal differ between these
+two inputs. The packet keeps the initial measurements in a separate directory.
+
+GNU time measured one fresh Node 24.22.3 process per case and frontend on
+warm files. All measured commands used the same host lock and 600-second
+process limit. Host 2 has a Ryzen 5 3600, 6 physical cores and 12 logical
+CPUs. Affinity was 0–11, the CPU quota was 1,152,000 µs per 100,000 µs,
+the memory limit was 32,222,740,480 bytes and the PID limit was 2,816.
+The shared subject used its default four-slot worker capacity and the
+separate assertion host used capacity one. The portable and shared runs
+each include the same LLVM reactor.
+
+| Shipping frontend and subject | Wall s before / after | User s before / after | System s before / after | Peak RSS KiB before / after |
+| --- | ---: | ---: | ---: | ---: |
+| Portable, backend_import_constants | 2.30 / 2.24 | 4.06 / 3.91 | 0.33 / 0.35 | 281,636 / 301,340 |
+| Shared, backend_import_constants | 2.94 / 2.89 | 5.02 / 4.85 | 0.53 / 0.57 | 404,048 / 365,432 |
+| Portable, entity_tables | 76.24 / 76.66 | 117.79 / 117.67 | 2.15 / 2.20 | 2,764,368 / 2,770,516 |
+| Shared, entity_tables | 81.08 / 80.75 | 125.30 / 124.72 | 7.22 / 7.23 | 2,872,840 / 2,869,920 |
+
+The complete transport trace is identical within each of the four matched
+pairs. The small shared case showed the largest peak RSS variation, with
+similar wall time in both arms. A single sample per arm measures the cost
+of these named runs and cannot establish a throughput or scaling trend.
+During validation Pages advanced to `266e45d5` and public main to
+`2556019c`. All three reactor blobs differ in that later Pages tree.
+The evidence uses the requested `9788bd66` throughout.
+
+All 19 original names passed on each shipping frontend on `370722b6`,
+with one selected test per process, zero skips, cancellations or failures,
+and matching compile and destroy counts. Each of the 15 matrix names
+preserved the 42-event phase sequence. All 38 complete JSONL transport
+traces matched the corresponding retained shared-frontend trace, including
+subject execution steps, output bytes, canonical sizes and hashes and
+linked Wasm results. Each frontend reproduced 227 ordinary compiles,
+19 selected tests, 124 canonical formats and 33 linked executions. Its
+ordered 61 diagnostic replies hash to
+`8165b10d76cbac4f021092a01aedbbe2b7a0f384c326eca073749c79db8604e9`.
+
+| 19-name matrix | Wall s | User CPU s | System CPU s | Maximum process RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Portable on 9788bd66 | 414.07 | 645.65 | 15.98 | 2,770,516 |
+| Shared on 9788bd66 | 448.64 | 703.25 | 43.87 | 2,869,920 |
+
+The producer's unrenamed assertions on `f2214133` took 414.68 / 450.09
+wall seconds, 664.09 / 751.21 CPU seconds and peaked at 2,746,128 /
+2,883,308 KiB respectively. These historical totals cover different
+compiler images and uploaded inputs. The four matched pairs above isolate
+the filename and selection change on the requested images. Assignment
+`7a692a1a-f2f0-43a5-af8f-2eb55e0eb349` includes the verified bundle,
+raw streams, timings, controls, LLVM IR and deployment manifest.
+Integration with later public commits and publication belong to the manager.
