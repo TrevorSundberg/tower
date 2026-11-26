@@ -1,0 +1,13 @@
+import library.platform;
+
+var message: u8* = "hello λ\n";
+var written = platform_write(1, message, 9);
+print(written);
+written = platform_write(2, message, 5);
+written = platform_write(0, message, 5);
+print(written);
+
+var lambda: u8* = "λ";
+written = platform_write(1, lambda, 1);
+lambda = lambda + 1;
+written = platform_write(1, lambda, 1);

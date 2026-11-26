@@ -111230,3 +111230,108 @@ records selection and source ownership. It supplies no runtime timing or
 new suite execution. The next open rows from the snapshot are the scanner
 override and formatter span/spacing suites. Two Bedrock cases listed there
 already shipped in `622d2cba`. See [the tables](test-inventory.md#test-ownership-at-fdd32148).
+
+### Platform abort and ordered-write registrations on host 4
+
+Assignment `e5dd3f2e-3e8b-4962-9079-62bfddf07986` uses public main
+`192b48a5`. The registration census and the original host file identify the
+abort and ordered-write registrations at lines 17 and 51. Lines 61 and 71
+register the direct Wasm import/table and typed built-in callers. The existing
+abort host review identifies the two instantiation errors, the runtime abort
+and the independent staged denial. Host 4 ran each public name and the full
+file before editing. Separate Node boundary traces retained every interpreter
+slice, LLVM compile result, module import list, Wasm outcome and descriptor
+call, including the two one-byte writes CE and BB. Both public images passed.
+
+The two Tower entries live beside the browser platform implementation. Their
+foreign observation declarations belong only to the browser test project. The
+ordered-write program and its byte golden live beside the existing abort
+fixtures. The initial assertion compilation diagnosed a missing direct import
+of backend.text in the staged diagnostic check. The entry now imports it.
+
+The writes entry initially used the grammar keyword `expected` as a local.
+Renaming it to `wanted` allowed the released grammar to compile the test.
+Each registration now selects one explicit entry. The abort test requests
+its own width and interpreter for each synchronous observation. JavaScript
+collects LLVM's asynchronous guest results before entering the Tower test and
+exposes the actual import list, caught LinkError identity and diagnostic
+fields. Each test owns a separate assertion instance. Its finally block closes
+any subject execution still open after an assertion failure.
+
+The writes test calls the ordinary interpreter with a budget of one. Each
+returned chunk consumes exactly that many bytes of the remaining golden.
+Both arms took 95 calls, with nonempty chunks at steps 15, 19, 34, 55 and 92.
+The descriptor trace in each engine was stdout (9 bytes), stderr (5),
+descriptor 0 (return −1), stdout CE and stdout BB. The 21-byte golden ends in
+CE BB. The LLVM guest compiled from the extracted original and the named
+program was byte-identical (`8e9c68d2…`). No production provider changed.
+
+| Input | Graph and fast, at widths 4 and 8 | LLVM compilation and guest |
+| --- | --- | --- |
+| Unused abort | Done, 42 LF | Compiled, env.abort present, same output |
+| Invoked abort | Error, 7 LF, Program aborted | Compiled, env.abort present, same output and error |
+| Wrong parameter and wrong result | Empty output, exact unsupported-signature diagnostic in each case | Both compiled and independently rejected at instantiation with WebAssembly.LinkError |
+| Unknown external | Empty output, exact missing-implementation diagnostic | Compiled, host rejected the same external by name |
+| Staged abort | Default graph, step 0, explicit evaluation capability required, empty output | Compiler returned the same diagnostic at input byte 84 |
+
+All four public names passed individually and together on portable and shared.
+For the full file the compared streams include 129 interpreter results,
+11 LLVM compilations, seven returned Wasm executions, three rejected executions
+and ten descriptor calls. Comparison groups records by API, preserving every
+record's order within that API. The two Tower tests collect the asynchronous
+LLVM observations first. The two retained registrations produced the same guest
+binaries, sources and 32/64-bit formatted Foundation. The table/import caller's
+body and the built-in caller's assertions are unchanged.
+
+Changing the invoked abort's wanted diagnostic to `Program aborteD` failed
+the original registration and the selected Tower error-field assertion.
+Changing just byte 21 from BB to BC failed the original output comparison and
+the Tower interpreter chunk assertion. All eight deliberate failures and eight
+restored single-name passes are in the packet. The production reactors in all
+runs were the ordinary release builds from `8bc867b6`. The manifest of Pages
+`f2214133` verified portable `41bb9b11…`, shared `72c882ee…`, the compressed
+LLVM image and the public Linux x64 package. The expanded LLVM image hashed to
+`15b4f33b…`. All 60 Linux package payloads verified.
+
+The initial separate assertion instance added startup work. Inspecting all four
+callers showed their subjects need the five language files and library/platform.
+The host now supplies those inputs directly, reuses the compiled Wasm module,
+and opens an assertion instance only for a selected Tower case. That instance
+reads four Tower support modules, the observation helper and its entry. The
+retained built-in caller still creates an independent interpreter. No browser
+test source enters ordinary native module discovery. The native release
+selected only function_values_test.tower through the function_values owner,
+whose companion imports library.platform. The owner printed the same stdout
+and passed at jobs 1 and 4 on both arms.
+
+Host 4 ran Debian 12, Node 24.22.3 and LLVM 19.1.7 on an 8-core/16-thread
+Ryzen 7 5800H. Affinity was CPUs 0,2,4,6 and the cgroup quota was 15.36 CPUs.
+GNU time measured one fresh Node process at a time under the host timing lock,
+with warm files, test concurrency one and the phase observer enabled on both
+arms. The shared subject uses the standard four worker slots and the separate
+assertion instance uses one. These are medians of three matched runs in seconds.
+
+| Selection | Portable public → candidate | Shared public → candidate |
+| --- | ---: | ---: |
+| Abort | 1.19 → 1.31 | 1.43 → 1.65 |
+| Writes | 1.12 → 1.24 | 1.30 → 1.53 |
+| Direct Wasm and table imports | 0.80 → 0.57 | 0.88 → 0.65 |
+| Typed calls | 0.98 → 0.71 | 1.19 → 0.91 |
+| All four | 1.45 → 1.86 | 1.79 → 2.43 |
+
+For the full file portable median user/system time moved from 1.95/0.28 to
+2.43/0.18 seconds and peak RSS from 257152 to 210432 KiB. Shared moved from
+2.52/0.40 to 3.26/0.33 seconds and 387676 to 338164 KiB. The packet includes
+all 60 matched timing rows and per-case memory capacities. Runtime allocation
+counts are unavailable. These costs include compiling and interpreting the
+new assertions.
+
+Linux executables built from both writes sources reproduced the merged golden
+and the separate descriptors. The candidate write program and public guest
+runtime also ran with address/leak and thread instrumentation. Both returned
+zero with identical stdout and stderr. The link maps, IR instrumentation hooks
+and native depfiles identify the code exercised. This serial guest check has
+no concurrent guest work. The public Wasm reactors have no supported sanitizer
+build in this comparison, and the Tower IR tool has no UBSan mode. The
+assignment packet retains the source bundle, hashes, raw traces, negative
+controls and reproduction commands for manager review.

@@ -1,0 +1,34 @@
+import platform_observations;
+import library.test_fixtures;
+
+fn check_one_step_writes(wanted: FixtureBytes): void {
+    platform_open("platform_writes", 4, false);
+    defer platform_close();
+    var consumed: usize = 0;
+    var resumed = false;
+    loop {
+        var running = platform_step(1);
+        var chunk = observed("output");
+        defer free(chunk.data);
+        assert(chunk.length <= wanted.length - consumed, "Extra interpreter output");
+        var part: FixtureBytes = {data: wanted.data + consumed, length: chunk.length};
+        assert(fixture_equal(chunk, part), "Interpreter output bytes");
+        consumed += chunk.length;
+        if !running { break; }
+        resumed = true;
+    }
+    assert(field_is("status", "done"));
+    assert(resumed, "Resume the interpreter one step at a time");
+    assert(consumed == wanted.length, "Incomplete interpreter output");
+}
+
+test() {
+    var wanted = observed("expected");
+    defer free(wanted.data);
+    check_one_step_writes(wanted);
+
+    platform_llvm("platform_writes");
+    assert(field_is("compilation", "compiled"));
+    assert(field_is("status", "done"));
+    assert(bytes_match("output", wanted), "Wasm output bytes");
+}
