@@ -105830,3 +105830,74 @@ validates declaration membership in the selected CoreBlock. The CLI returned
 42 for the ordinary guest and selected the requested test at its original line.
 The development pin and its resources have their original hashes. This
 candidate uses the new spelling in guest inputs only.
+
+### Native qualification of conditional declarations
+
+Implementation `f0d01077a388bb94ac307eb2f1b3192ea1fd41f5` on public
+`a5c4b40f` was built on host 5 with the checked-in Linux x64 compiler
+`0100aa61813fe15c4f058bf6e3b8265b9e214bdaf23484c80c5e428f59f59233`. The clean command was
+`TOWER_NATIVE_BUILD=/tmp/t45147/release TOWER_BUILD_JOBS=8 bash playground/scripts/build-native.sh`.
+Clang/LLVM 19.1.7, Release, one inner bootstrap worker. The new compiler was
+`9c373025c595658350ee2fb8485ea9380a6c82bc263f06d975b9e81fd7635171`.
+The native build took 17.32 s with 783,348 KiB peak child RSS.
+
+With `towerc INPUT --jobs 1|4`, the two arms selected by changing
+`6 * 7 == 42` to `6 * 7 == 41` produced native and interpreted bytes
+`11\n12\n` and `21\n22\n`. The two independent callers used the selected
+function. Each `--test --test-details` request selected one test, on line 4
+or 7 respectively, with output `12\n` or `23\n`. The outputs of
+`--emit exe` and `--emit foundation` were identical across jobs for each
+input. Reparsing the latter with `--interpret-fast` reproduced ordinary
+stdout. An unaffected guest retained ordinary/test outputs `17\n` and
+`19\n`. Twelve on/off pairs at the same source path reproduced all 48 normal
+and test results in fresh four-worker processes.
+
+An inactive duplicate function with an undefined result type and callee
+compiled. Calling a false-only function from outside failed at its use. An
+unreached guard operand that prints produced no output. A reached print in a
+guard failed at its source line under the staged effect policy. An integer
+guard failed at line 2 column 13. A write in an excluded function preserved
+the ordinary staged read of a module variable. Enabling that same function
+invalidated the capture proof. Cyclic declaration-only imports also executed
+the selected function. The adjacent execution-suite coverage checks imports,
+the explicit target pointer widths 4 and 8, package reconstruction, dormant
+name collisions, failed declarations and a drained world budget.
+
+On an AMD Ryzen 9 5900XT with 16 cores/32 threads, the process affinity was
+0–31, CPU quota 3071999/100000, memory.max 129569390592 bytes. Matched guest
+timings used CPUs 0–3, warm file caches and fresh compiler processes. Below
+are medians of three wall seconds, process CPU seconds and peak RSS in KiB.
+The small and operator guests used `--interpret`. The larger existing graph
+fixture used `--emit exe --timings` and its guest printed `0\n` for every
+sample. Before and after used the same native build configuration and inputs.
+
+| Guest | Jobs | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | ---: | --- | --- |
+| Ordinary control | 1 | 0.16 / 0.15 / 81952 | 0.17 / 0.16 / 82240 |
+| Ordinary control | 4 | 0.18 / 0.18 / 86732 | 0.18 / 0.18 / 87088 |
+| Operators | 1 | 0.16 / 0.16 / 81748 | 0.16 / 0.16 / 81964 |
+| Operators | 4 | 0.18 / 0.19 / 87108 | 0.18 / 0.19 / 86364 |
+| Work graph | 1 | 0.68 / 0.67 / 118592 | 0.67 / 0.66 / 118708 |
+| Work graph | 4 | 0.68 / 0.72 / 123728 | 0.68 / 0.72 / 123468 |
+
+Four workers gave no speedup on these inputs. The first block grammar cost
+a median 0.19 s and 90,012 KiB for the four-worker control. Reuse of CoreIf
+reduced that overhead. An exploratory library-only graph object had zero
+defined symbols, which prompted the switch to the executable graph fixture.
+Its 392,960 Foundation bytes matched across versions. The original cross-version
+ELF hash check failed. All 35 raw IR changes were trap source offsets advanced
+by the exact 237 bytes added to the imported language resource. Within each
+version the executable bytes matched at both job counts.
+
+The execution selector `tower-execution-tests scaffolding test-declarations`
+passed in 1.39 s with peak RSS 98,336 KiB. Its query, lexical control and type
+controls ran through `tower-lr-work-tests scaffolding` with selectors
+`query-smoke`, `control-smoke` and `type-smoke`, respectively. The test worlds
+released their memory and lane grants. ASan/LSan and TSan each completed the
+execution selector and four CLI runs with the expected bytes. ASan suite peak
+was 697,024 KiB and TSan suite peak was 317,332 KiB. Fifty-nine TSan launches
+failed at the host's denied ASLR personality call before execution. The packet
+retains those failures. Source-level UBSan is unsupported. Browser, release
+publication and general module-bound guard dependencies are outside this
+qualification. Raw commands, artifacts and diagnostics belong to receipt
+`45147dfe-e21f-4107-a699-3e3a7a6166f5`.
