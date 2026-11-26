@@ -1,0 +1,84 @@
+import tower;
+import .library.entity_types;
+import .library.work_budget_types;
+import .compiler.generic_body_types;
+import generic_clone_fixture;
+import utility_checks;
+
+// Actual registry/header APIs; only the fixture's syntax is synthetic.
+fn generic_clone_fixture_open(fixture: GenericCloneFixture*, width: usize, depth: usize,
+    workers: usize, budget: WorkBudget*): void {
+    var world = compiler_world_create_workers(workers);
+    utility_check(world != null, "Clone fixture world");
+    if budget != null {
+        utility_check(compiler_world_bind_budget(world, budget), "Clone world freezes its physical budget");
+    }
+    generic_clone_fixture_world(fixture, width, depth, world);
+}
+
+fn generic_clone_fixture_world(fixture: GenericCloneFixture*, width: usize, depth: usize, world: void*): void {
+    generic_clone_fixture_build(fixture, width, depth, world);
+    utility_check(generic_parameter_count(fixture.context, fixture.definition) == 1
+        && generic_type_parameter(fixture.context, fixture.definition, 0), "Clone fixture ordinary generic parameter");
+}
+
+fn generic_clone_fixture_instance(fixture: GenericCloneFixture*): void* {
+    var instance = generic_clone_fixture_defer(fixture);
+    utility_check(instance != null && generic_body_pending(fixture.context, instance), "Clone fixture deferred instance");
+    var destination = generic_clone_fixture_body(instance);
+    utility_check(destination != null && entity_child_count(destination) == 0, "Deferred header leaves body empty");
+    return instance;
+}
+
+fn generic_clone_fixture_node(fixture: GenericCloneFixture*): Entity* {
+    return bits(Entity*, generic_clone_fixture_instance(fixture));
+}
+
+fn generic_clone_fixture_check(fixture: GenericCloneFixture*, instance: void*): void {
+    var destination = generic_clone_fixture_body(instance);
+    utility_check(!generic_body_pending(fixture.context, instance) && entity_child_count(destination) == fixture.width,
+        "Clone publication marks instance ready");
+    for(var branch: usize = 0; branch < fixture.width; branch++) {
+        var cursor = entity_child_at(destination, branch);
+        var source = entity_child_at(fixture.body, branch);
+        for(var level: usize = 0; level < fixture.depth; level++) {
+            utility_check(cursor != null, "Cloned branch retains full depth");
+            var span = parser_match_create(cursor);
+            utility_check(span.start == branch * fixture.depth + level + 1 && strcmp(span.label.data, "CloneLeaf") == 0,
+                "Cloned branch preserves ordered metadata");
+            utility_check(generic_origin(fixture.context, cursor) == fixture.definition
+                && generic_definition(fixture.context, cursor) == source,
+                "Cloned branch preserves exact declaration and use provenance");
+            if level + 1 < fixture.depth {
+                cursor = entity_child_at(cursor, entity_member_index(cursor, "next"));
+                source = entity_child_at(source, entity_member_index(source, "next"));
+            }
+        }
+    }
+}
+
+fn generic_clone_fixture_close(fixture: GenericCloneFixture*): void {
+    entity_release(fixture.root);
+    utility_check(compiler_world_dispose(fixture.world), "Clone fixture world teardown");
+    *fixture = default;
+}
+
+extern fn compiler_generic_body_kernel(payload: void*): void;
+extern fn entity_stage_publish(stage: void*): bool;
+extern fn generic_body_complete(context: void*, node: void*, copied: usize): void;
+
+test() {
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 2, 2, 1, null);
+    var node = generic_clone_fixture_node(&fixture);
+    var stage = generic_clone_fixture_stage(&fixture);
+    utility_check(stage != null, "Clone fixture publication stage");
+    var copy: GenericBodyCopy = {context: generic_clone_fixture_context(&fixture), node: node,
+        stage: stage, limit: fixture.width * fixture.depth, ..default};
+    compiler_generic_body_kernel(bits(void*, &copy));
+    utility_check(copy.success && copy.copied == copy.limit && entity_stage_publish(bits(void*, stage)),
+        "Clone fixture publishes its complete ordered body");
+    generic_body_complete(fixture.context, bits(void*, node), copy.copied);
+    generic_clone_fixture_check(&fixture, bits(void*, node));
+    generic_clone_fixture_close(&fixture);
+}

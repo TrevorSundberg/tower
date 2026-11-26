@@ -1,5 +1,6 @@
 import tower;
 import generic_clone_fixture;
+import generic_clone_fixture_test;
 import storage_api;
 import utility_checks;
 import .compiler.semantic_context_types;

@@ -121830,3 +121830,119 @@ memory/heap run. The optimized shipping reactors have no native source
 ASan, UBSan or TSan instrumentation. No compiler, runtime or deployment
 assets changed. The unmodified todo.txt blob is `bac009f4`. The verified
 bundle and raw logs are for manager review and publication.
+
+### Host 5 shared generic clone and inspection fixtures at 9760a3c5
+
+Assignment 44ea1ba0 verified the SHA-256 of the audit archive and all six
+named members on the recipient. The two fixture blobs still match the
+d45d8b10 audit freeze. S381–384 and S393–395 therefore still apply.
+At the published base the pool budget, three query failure modes, both
+inspection worker selections (each includes both pointer widths), serial
+storage, storage quota and diagnostics, LR editor and query smoke passed.
+Sixteen existing owner/direct registrations also passed. The migration keeps
+their real registry, deferred instance, stage, world and budget operations
+and original diagnostic functions. The manager owns publication.
+
+#### Original routes, selected cases and failure sensitivity
+
+Implementation `9bdea70a` keeps the synthetic syntax construction, real
+generic registry, clone stage, inspection service and budget implementation.
+The table gives physical locations under `scaffolding/tests`. The moved
+predicate/message fragments in all seven rows matched the base bytes.
+
+| Audit range | Selected file and lines | Original decision |
+| --- | --- | --- |
+| S381 | generic_clone_fixture_test.tower 21–22 | Registered count and type parameter |
+| S382 | generic_clone_fixture_test.tower 27–30 | Pending instance and empty named body |
+| S383 | generic_clone_fixture_test.tower 37–58 | Publication, width/depth, metadata and exact origin/definition links |
+| S384 | generic_clone_fixture_test.tower 60–64 | World disposal after root release |
+| S393 | generic_inspection_budget_test.tower 15–65 | First Capacity and source offset, counts, drained work, cleared public output and terminal retry |
+| S394 | generic_inspection_budget_test.tower 69–125 | Denial after successful inspection, fresh cache recovery and complete retirement |
+| S395 | generic_inspection_budget_test.tower 127–134 | Four denied-document trials at widths 4/8 and workers 1/4 |
+
+The clone declaration at line 70 uses a two-by-two body, deferred header,
+real kernel, stage publication, ready transition and checked close. The
+inspection declaration at line 136 runs the four original trials. The
+original storage, diagnostic, quota, parallel clone, semantic pump, pool
+budget and failed-query trials all call the same clone checks. F24's
+inspection trial calls the shared late-denial body inside its width loop.
+F15 reaches it through the editor and aggregate LR entries. The historical,
+base and implementation caller maps are in the packet.
+
+With the public Linux x64 pin, the owner/direct declaration counts were
+2/1 for clone, 16/1 for inspection budget, 18/1 for generic-result storage,
+20/4 for inspection types, 21/4 for pool budget and 20/3 for query failure.
+Actual transitive discovery also includes the new declarations in
+backend-import-bytes (10/3), overflow-native (9/2) and completion-alias
+(20/4). Both jobs 1 and jobs 4 passed the nine owner/direct pairs. The old
+count guards correctly failed during discovery. Early configuration needed
+the explicit checked-in compiler path and the LLVM 19 bin directory. An
+initial import of the assertion grammar reserved an existing local spelling
+`source_offset` in storage. Using the original abort-and-flush checks and
+ordinary Tower test declarations preserves the storage source and failures.
+
+The pool-budget default, constructor/body/declaration query selectors, F24
+sample and checks at each worker count, serial storage and its quota and
+diagnostic selectors, and LR editor all matched base exit, stdout and stderr
+byte for byte. F24 checks emitted 151,228 bytes per worker count. Invalid
+CLI arguments retained their diagnostics and exits. Default LR and query
+smoke passed on both revisions. The full default run took 88.59/87.90 s.
+Query smoke matched after masking only measured thread IDs and nanoseconds.
+The complete default also emits live scheduler/budget and event observations.
+Raw streams for both revisions remain in the packet.
+
+Eleven independent mutations changed the registered count, pending state,
+empty width, published width, clone provenance, root lifetime, offset,
+Capacity, public result, no-replay node count or trial rejection. Each base
+CLI and migrated CLI exited 134 with identical streams for that mutation.
+Each migrated direct selection exited 1 with the matching domain diagnostic.
+Keeping the actual fixture root live made the world reject disposal. The
+offset control printed actual 0 and expected 1 after both Capacity receipts.
+Every mutated file was restored and its bytes checked.
+
+#### Host 5 measurements and instrumentation
+
+The checkout used public bootstrap SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All 61 package members verified. Builds used Linux x86-64, Clang/LLVM 19.1.7,
+Release, Ninja and one worker per compiler invocation. The host was a Ryzen 9
+5900XT with affinity 0–31 and 30.72 CPU equivalents of quota. The measurements
+pinned each fresh process to CPUs 0–3 on distinct cores. Four before/after
+pairs alternated order on warm files, one process at a time. Every measured
+pair had identical stdout and stderr.
+
+| Original entry | Mean wall s before / after | Mean user + system s | Mean maximum RSS KiB |
+| --- | ---: | ---: | ---: |
+| F24 checks, one worker | 0.2225 / 0.2250 | 0.2225 / 0.2225 | 71,805 / 71,642 |
+| F24 checks, four workers | 0.2700 / 0.2650 | 0.2950 / 0.2925 | 77,228 / 77,862 |
+| F14 serial storage | 0.2550 / 0.2525 | 0.2525 / 0.2425 | 65,362 / 65,079 |
+| F15 editor | 1.8675 / 1.8725 | 2.7750 / 2.7650 | 222,256 / 212,941 |
+
+The two-by-two serial clone reported four copied nodes, 14 kernel allocator
+calls and 416 peak charged bytes. The checked/unchecked storage inspections
+reported 47/20 physical allocations in both revisions. The original zero-owner
+and lane-grant checks passed. These process measurements cover fixture moves
+and retain the original variation in worker scheduling. The native clone
+intervals in query smoke included real overlap at two and four workers.
+
+The address build with leak detection and the thread build each completed
+ten routes covering storage, quota, pool admission, all three failure modes,
+both inspection worker counts, LR editor and query smoke. TSan had 77
+pre-main startup failures at the container's denied personality request.
+Each retry and the successful command for every route are retained. The
+instrumented query-smoke processes completed in 38.01 s (ASan) and 117.66 s
+(TSan). The public selected guest runs without instrumentation. The build
+offers address and thread profiles and has no UBSan profile.
+
+An independently fetched receiver applied the implementation bundle. Five
+more injections ran through the selected consumer entries at jobs 4.
+Generic-result storage detected the retained root, pool budget the wrong
+parameter count, query failure the nonempty-header expectation, inspection
+types the wrong offset on width 8 alone, and inspection budget the no-replay
+count. Restoring each source recovered 1, 4, 3, 4 and 1 passing declarations,
+respectively. All 28 pre-existing selected registrations matched their base
+guest stdout byte for byte. The public driver reports the new discovery
+counts and source locations on stderr. The 36 final selected registrations
+passed, including the eight new ones. The packet is
+`44ea1ba0-1790-42e1-9e13-206d6f4f1cde.tar.gz`. This closes the seven
+assigned ranges. F14 and F15 have additional cases in the separate audit
+rows. Integration onto later main and publication belong to the manager.

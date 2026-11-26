@@ -43,13 +43,16 @@ function(tower_storage_tests)
       tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-evaluation tower-compiler-memory)
     target_link_options(tower-storage-services PRIVATE "LINKER:-z,defs")
     add_dependencies(tower-storage-tests tower-storage-services tower-selected-test-count tower-guest-native-test)
-    tower_native_test_selections(generic-result-storage generic_result_storage "17 tests" "1 test"
+    tower_native_test_selections(generic-clone-fixture generic_clone_fixture "2 tests" "1 test"
+      --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-storage-services>")
+    tower_native_test_selections(generic-result-storage generic_result_storage "18 tests" "1 test"
       --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-storage-services>")
     if(TOWER_BACKEND_TESTS AND TARGET tower-backend-native)
       target_link_libraries(tower-storage-services PRIVATE tower-backend-native LLVM)
-      # Owner discovery also selects the five work_budget declarations.
-      tower_native_test_selections(backend-import-bytes backend_import_bytes "8 tests" "3 tests"
+      # Owner discovery also selects the budget, clone and body-copy declarations.
+      tower_native_test_selections(backend-import-bytes backend_import_bytes "10 tests" "3 tests"
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
         --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
@@ -122,8 +125,8 @@ function(tower_storage_tests)
     set_tests_properties(tower-overflow-native-wrong PROPERTIES WILL_FAIL TRUE)
     if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
       add_dependencies(tower-overflow-native-tests tower-selected-test-count tower-guest-native-test)
-      # Owner discovery includes the five work_budget declarations.
-      tower_native_test_selections(overflow-native backend_overflow_native "7 tests" "2 tests"
+      # Owner discovery includes the budget, clone and body-copy declarations.
+      tower_native_test_selections(overflow-native backend_overflow_native "9 tests" "2 tests"
         --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-overflow-native-services>"
         --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-overflow-native-services>")
       foreach(selection IN ITEMS owner direct)

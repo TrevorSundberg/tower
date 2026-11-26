@@ -241,11 +241,8 @@ function(tower_lr_work_policy_test)
     target_link_options(tower-completion-alias-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
     if(TARGET tower-lr-row-services)
       get_property(editor_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
-      foreach(suite IN ITEMS completion-alias generic-inspection-types)
-        string(REPLACE "-" "_" unit "${suite}")
-        add_dependencies(tower-${suite}-tests tower-lr-row-services tower-selected-test-count tower-guest-native-test)
-        # Owner discovery includes five budget, eight graph and two stack tests.
-        tower_native_test_selections("${suite}" "${unit}_checks" "19 tests" "4 tests"
+      function(tower_inspection_selections suite unit owner_count direct_count)
+        tower_native_test_selections("${suite}" "${unit}" "${owner_count} tests" "${direct_count}"
           --test-native-runtime "${editor_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
           --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
         foreach(selection IN ITEMS owner direct)
@@ -254,7 +251,14 @@ function(tower_lr_work_policy_test)
               WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
           endforeach()
         endforeach()
+      endfunction()
+      foreach(target IN ITEMS tower-completion-alias-tests tower-generic-inspection-types-tests)
+        add_dependencies("${target}" tower-lr-row-services tower-selected-test-count tower-guest-native-test)
       endforeach()
+      # The owners also discover five budget, eight graph and two stack tests.
+      tower_inspection_selections(completion-alias completion_alias_checks 20 "4 tests")
+      tower_inspection_selections(generic-inspection-types generic_inspection_types_checks 20 "4 tests")
+      tower_inspection_selections(generic-inspection-budget generic_inspection_budget 16 "1 test")
     endif()
 
     foreach(workers IN ITEMS 1 4)
@@ -403,7 +407,7 @@ function(tower_lr_work_policy_test)
           --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
       endfunction()
       tower_semantic_test_selections(semantic-lifecycle-frontier semantic_lifecycle_frontier_checks 20 5)
-      tower_semantic_test_selections(semantic-pool-budget semantic_pool_budget_checks 19 4)
+      tower_semantic_test_selections(semantic-pool-budget semantic_pool_budget_checks 21 4)
     endif()
 
     tower_runtime_object(semantic-query-failure-checks
@@ -418,7 +422,7 @@ function(tower_lr_work_policy_test)
     endforeach()
 
     if(TARGET tower-lr-row-services)
-      tower_semantic_test_selections(semantic-query-failure semantic_query_failure_checks 18 3)
+      tower_semantic_test_selections(semantic-query-failure semantic_query_failure_checks 20 3)
     endif()
 
     # This entry owns wrapper initialization and the real compiler providers.

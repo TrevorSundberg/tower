@@ -63,20 +63,9 @@ fn generic_clone_child(store: void*, parent: void*, label: u8*, role: u8*, start
     return child;
 }
 
-// Actual registry/header APIs; only the fixture's syntax is synthetic.
-fn generic_clone_fixture_open(fixture: GenericCloneFixture*, width: usize, depth: usize,
-    workers: usize, budget: WorkBudget*): void {
-    var world = compiler_world_create_workers(workers);
-    utility_check(world != null, "Clone fixture world");
-    if budget != null {
-        utility_check(compiler_world_bind_budget(world, budget), "Clone world freezes its physical budget");
-    }
-    generic_clone_fixture_world(fixture, width, depth, world);
-}
-
 // Takes ownership of an already constructed world, including a world whose
 // entity/component pages were bound to a byte ledger at construction.
-fn generic_clone_fixture_world(fixture: GenericCloneFixture*, width: usize, depth: usize, world: void*): void {
+fn generic_clone_fixture_build(fixture: GenericCloneFixture*, width: usize, depth: usize, world: void*): void {
     *fixture = {world: world, width: width, depth: depth, ..default};
     fixture.store = compiler_world_store(fixture.world);
     fixture.root = entity_create(fixture.store);
@@ -95,8 +84,6 @@ fn generic_clone_fixture_world(fixture: GenericCloneFixture*, width: usize, dept
         }
     }
     generic_register(fixture.context, fixture.definition);
-    utility_check(generic_parameter_count(fixture.context, fixture.definition) == 1
-        && generic_type_parameter(fixture.context, fixture.definition, 0), "Clone fixture ordinary generic parameter");
 }
 
 // These projections cover the linked runner ABI. Each input comes from the
@@ -113,44 +100,7 @@ fn generic_clone_fixture_body(instance: void*): void* {
     return entity_child_at(instance, entity_member_index(instance, "body"));
 }
 
-fn generic_clone_fixture_instance(fixture: GenericCloneFixture*): void* {
+fn generic_clone_fixture_defer(fixture: GenericCloneFixture*): void* {
     var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
-    var instance = generic_instantiate_deferred(fixture.context, fixture.definition, fixture.definition, &argument, 1);
-    utility_check(instance != null && generic_body_pending(fixture.context, instance), "Clone fixture deferred instance");
-    var destination = generic_clone_fixture_body(instance);
-    utility_check(destination != null && entity_child_count(destination) == 0, "Deferred header leaves body empty");
-    return instance;
-}
-
-fn generic_clone_fixture_node(fixture: GenericCloneFixture*): Entity* {
-    return bits(Entity*, generic_clone_fixture_instance(fixture));
-}
-
-fn generic_clone_fixture_check(fixture: GenericCloneFixture*, instance: void*): void {
-    var destination = generic_clone_fixture_body(instance);
-    utility_check(!generic_body_pending(fixture.context, instance) && entity_child_count(destination) == fixture.width,
-        "Clone publication marks instance ready");
-    for(var branch: usize = 0; branch < fixture.width; branch++) {
-        var cursor = entity_child_at(destination, branch);
-        var source = entity_child_at(fixture.body, branch);
-        for(var level: usize = 0; level < fixture.depth; level++) {
-            utility_check(cursor != null, "Cloned branch retains full depth");
-            var span = parser_match_create(cursor);
-            utility_check(span.start == branch * fixture.depth + level + 1 && strcmp(span.label.data, "CloneLeaf") == 0,
-                "Cloned branch preserves ordered metadata");
-            utility_check(generic_origin(fixture.context, cursor) == fixture.definition
-                && generic_definition(fixture.context, cursor) == source,
-                "Cloned branch preserves exact declaration and use provenance");
-            if level + 1 < fixture.depth {
-                cursor = entity_child_at(cursor, entity_member_index(cursor, "next"));
-                source = entity_child_at(source, entity_member_index(source, "next"));
-            }
-        }
-    }
-}
-
-fn generic_clone_fixture_close(fixture: GenericCloneFixture*): void {
-    entity_release(fixture.root);
-    utility_check(compiler_world_dispose(fixture.world), "Clone fixture world teardown");
-    *fixture = default;
+    return generic_instantiate_deferred(fixture.context, fixture.definition, fixture.definition, &argument, 1);
 }

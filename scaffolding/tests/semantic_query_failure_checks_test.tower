@@ -1,5 +1,6 @@
 import library.testing;
 import generic_clone_fixture;
+import generic_clone_fixture_test;
 import .compiler.semantic_query_api;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;

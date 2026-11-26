@@ -19,7 +19,7 @@ import body_runs;
 import lr_budget;
 import generic_clone_parallel;
 import generic_quota_checks;
-import generic_inspection_budget;
+import generic_inspection_budget_test;
 import semantic_publish_checks;
 import utility_checks;
 import semantic_lifecycle_checks;
