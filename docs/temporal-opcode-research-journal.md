@@ -117380,3 +117380,20 @@ printing timings after its test summary.
 
 The source and evidence bundle is for manager integration on the requested
 parent. No compiler, runtime or browser implementation changed.
+
+### Original component allocation layout case in the native test suite
+
+Public source 5e1a16fa still ran the pooled-versus-dedicated allocation case
+only through the standalone main. Its companion now selects that case directly
+and through the owner. The original entry also prints the target layout sizes.
+
+Linux jobs 1 and 4 each passed four direct and nine owner cases. All four
+selected runs matched the original standalone's 66 observations and 17
+allocation-layout values. Those include both addresses through view closure,
+the just-retired and still-live receipts, and final zero usage. Substituting a
+retired receipt failed all six Linux entry/width combinations. The Linux and
+wasm32 standalones preserved their original eight output lines. The Linux
+address/leak and thread sanitizer runs passed. Windows x64 cross-linking and
+ExitProcess forwarding were checked. Native Windows execution remains open.
+The 9bbea04c qualification packet contains the per-run conditions, measured
+costs, raw traces, wrong-receipt control and restoration.

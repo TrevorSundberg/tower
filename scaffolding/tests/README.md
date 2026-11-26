@@ -1321,8 +1321,9 @@ On Linux, `tower-entity-component-layout-tests` builds the exported main in
 `entity_component_layout_main.tower`. The Windows module body and the Linux
 entry both call the same fixture main, including its pooled and standalone
 allocation checks and target-size output. The adjacent
-`entity_component_layout_test.tower` selects the three original child-index,
-inline-component-index and stage-policy cases. Owner selection also runs the
+`entity_component_layout_test.tower` selects four original cases covering the child index,
+inline component index, stage policy and pooled versus dedicated allocations.
+Owner selection also runs the
 five work-budget tests. Run all five registrations with
 `ctest --test-dir "$TOWER_NATIVE_BUILD" -R "^tower-entity-component-layout-" -V`.
 
