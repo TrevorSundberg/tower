@@ -1930,15 +1930,15 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC and SHA-256 companions through the
+The optional language suite runs the SCC, SHA-256 and WorkGraph suspension companions through the
 public driver on Linux GNU. In a native build configured with
-`TOWER_DRIVER_TESTS=ON`, build the suite and run both owners at one and four
+`TOWER_DRIVER_TESTS=ON`, build the suite and run the registrations at one and four
 compiler jobs. Set `B` to
 the native build directory.
 
 ```sh
 cmake --build "$B" --target tower-language-tests
-ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256)-jobs-' -V
+ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256|work-graph(-direct)?)-jobs-' -V
 ```
 
 For a checkout-independent installation, set `PREFIX` to a writable staging
@@ -1951,7 +1951,7 @@ ctest --test-dir "$PREFIX/scc-suite" -V
 TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tower-selected-graph-components-jobs-1$' -V
 ```
 
-Each registration selects its owner with `towerc --test`. With the default
+The registrations use `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The last
 command supplies the alternate suffix to the same driver. It deliberately
@@ -1964,6 +1964,14 @@ The same installation registers `tower-selected-sha256-jobs-1` and
 support direct portable interpretation. The companion and ordinary-named `library/test_data.tower` are private test inputs.
 `tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
 and the SCC registration names remain supported.
+
+For WorkGraph, `tower-selected-work-graph-jobs-{1,4}` selects the owner and
+`tower-selected-work-graph-direct-jobs-{1,4}` selects the companion. Both run
+the eight suspension declarations. The companion imports `../host/memory`,
+so the kit installs `memory.tower`, `memory_libc.tower` and `memory_types.tower`
+under `share/tower/host`. The linked program uses the kit's guest test runtime
+and production `libtower-compiler-memory.a`. The original assertion map is in
+`docs/evidence/work_resume_check_map.tsv`.
 
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability
