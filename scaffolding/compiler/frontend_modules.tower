@@ -1034,6 +1034,8 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
     root.graph.single_companion = selection.owner.data != null;
     var path: vector(u8) = default;
     defer vector_dispose(&path);
+    var grants: vector(TestFixturePair) = default;
+    defer test_fixture_pairs_dispose(&grants);
     var found: vector(TestFileCompanion) = default;
     defer vector_dispose(&found);
     for (var i: usize = 0; i < frontend_module_count(root); i++) {
@@ -1055,9 +1057,20 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         var module = frontend_module_load_companion(owner, path.data);
         if module == null { return false; }
         module.companion = true;
+        foreach (var dependency in &module.dependencies) {
+            if test_fixture_library(frontend_module_name(dependency)) {
+                if !test_fixture_grant_pair(&grants, rule, path.data, name) {
+                    module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
+                }
+                break;
+            }
+        }
         var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
         if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }
     }
+    test_fixture_pairs_dispose(&selection.fixtures);
+    vector_move(&selection.fixtures, &grants);
+    selection.registered_fixtures = probe == null;
     vector_move(pairs, &found);
     return true;
 }

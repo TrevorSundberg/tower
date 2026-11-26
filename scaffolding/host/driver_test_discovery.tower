@@ -103,6 +103,11 @@ fn driver_test_inventory(request: DriverRequest*): i32 {
             if !driver_test_output_safe(options, frontend_module_name(frontend_module_at(root, i))) { return 1; }
         }
     }
+    foreach (var &grant in &request.tests.fixtures) {
+        if !driver_test_output_safe(options, grant.oracle.data) { return 1; }
+        if options.depfile[0] != 0 { driver_argument(&directories, "", grant.oracle.data); }
+    }
+    if !directories.ok { driver_error("Cannot retain fixture dependencies for ", entry); return 1; }
     var list: ByteBuffer = default;
     defer bytes_dispose(&list);
     foreach (var &pair in &companions) {
