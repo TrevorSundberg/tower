@@ -145,9 +145,17 @@ function(tower_lr_work_policy_test)
     tower_native_test_selections(dependency-permutations compiler_dependency_permutations "6 tests" "1 test"
       --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+    foreach(unit IN ITEMS alias_type_query_checks module_loop_query_checks)
+      string(REPLACE "_" "-" suite "${unit}")
+      tower_native_test_selections("${suite}" "${unit}" "6 tests" "1 test"
+        --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+    endforeach()
     foreach(selection IN ITEMS owner direct)
       foreach(jobs IN ITEMS 1 4)
-        set_tests_properties("tower-dependency-permutations-${selection}-jobs-${jobs}" PROPERTIES
+        set_tests_properties("tower-alias-type-query-checks-${selection}-jobs-${jobs}"
+          "tower-module-loop-query-checks-${selection}-jobs-${jobs}"
+          "tower-dependency-permutations-${selection}-jobs-${jobs}" PROPERTIES
           WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 180)
       endforeach()
     endforeach()

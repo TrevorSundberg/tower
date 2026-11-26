@@ -1,0 +1,76 @@
+import library.testing;
+import module_loop_query_checks;
+import frontend_units;
+import .library.vector;
+import .library.work_budget;
+
+fn module_loop_query_checks(root: u8*): void {
+    var capture = "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer";
+    var cases: LoopQueryFailure[9];
+    cases[0] = {path: "/tests/semantic_invalid/while_type.tower", location: "value {",
+        message: "Expected bool, got i32; use an explicit conversion"};
+    cases[1] = {path: "/tests/semantic_invalid/module_for_condition_scalar.tower", location: "value;",
+        message: "Expected bool, got i32; use an explicit conversion"};
+    cases[2] = {path: "/tests/semantic_invalid/module_loop_update_capture.tower", location: "var input",
+        message: capture};
+    cases[3] = {path: "/tests/semantic_invalid/module_loop_query_cycle.tower", location: "struct Recursive",
+        message: "Recursive by-value layout: Recursive -> Recursive; use a pointer"};
+    cases[4] = {path: "/tests/semantic_invalid/module_header_capture_update.tower", location: "var index: i32 = 0", message: capture};
+    cases[5] = {path: "/tests/semantic_invalid/module_header_capture_body.tower", location: "var index: i32 = 0", message: capture};
+    cases[6] = {path: "/tests/semantic_invalid/module_header_capture_escape.tower", location: "var index: i32 = 0", message: capture};
+    cases[7] = {path: "/tests/semantic_invalid/module_block_capture_write.tower", location: "var local", message: capture};
+    cases[8] = {path: "/tests/semantic_invalid/module_header_capture_shadow.tower", location: "var index: i32 = 0", message: capture};
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for (var index: usize = 0; index < sizeof(decltype(cases)) / sizeof(LoopQueryFailure); index++) {
+        var source: vector(u8) = default;
+        defer vector_dispose(&source);
+        units_read(root, cases[index].path, &source);
+        var at = strstr(source.data, cases[index].location);
+        units_check(at != null, "Loop failure source marker");
+        var position = bits(usize, at) - bits(usize, source.data);
+        var expected_line: usize = 1;
+        var expected_column: usize = 1;
+        for (var offset: usize = 0; offset < position; offset++) {
+            if source.data[offset] == 10 { expected_line++; expected_column = 1; }
+            else { expected_column++; }
+        }
+        var first_offset: usize = 0;
+        for (var width: u32 = 4; width <= 8; width *= 2) {
+            for (var workers: usize = 1; workers <= 4; workers *= 4) {
+                var batch = frontend_units_create(1, workers, width, 1, 1, bedrock.data, foundation.data, root);
+                units_check(batch != null, "Module loop query batch");
+                defer frontend_units_close(batch);
+                units_check(units_source(batch, 1, root, cases[index].path, source.data, strlen(source.data)), "Loop query input");
+                while !frontend_units_step(batch, true) {}
+                var error = frontend_units_error(batch);
+                if strcmp(error, cases[index].message) != 0 { puts(error); }
+                units_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                    && strcmp(error, cases[index].message) == 0, "Exact loop diagnostic without partial publication");
+                var offset = frontend_units_error_offset(batch);
+                var line: usize = 0;
+                var column: usize = 0;
+                var file = frontend_modules_location(frontend_units_environment(batch, 1), offset, &line, &column);
+                units_check(file != null && strstr(file, cases[index].path) != null
+                    && line == expected_line && column == expected_column, "Exact loop source location");
+                if first_offset == 0 { first_offset = offset; }
+                var before: WorkBudgetSnapshot = default;
+                var after: WorkBudgetSnapshot = default;
+                units_check(offset == first_offset && work_budget_snapshot(frontend_units_work_budget(batch), &before)
+                    && before.used_lanes == 0 && frontend_units_step(batch, false) && frontend_units_step(batch, true)
+                    && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+                    && after.used_bytes == before.used_bytes && after.live == before.live && after.used_lanes == 0
+                    && strcmp(frontend_units_error(batch), cases[index].message) == 0 && frontend_units_error_offset(batch) == offset,
+                    "Loop failure retains first cause, drains workers and acquires no retry owners");
+            }
+        }
+    }
+    puts("Module loop queries: exact bool/capture/cycle errors and offsets, terminal ownership at 32/64 bits and workers 1/4 passed.");
+}
+
+test() {
+    module_loop_query_checks("scaffolding");
+}
