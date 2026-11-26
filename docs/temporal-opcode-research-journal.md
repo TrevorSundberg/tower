@@ -121571,3 +121571,109 @@ worker policy are unchanged. The suite also passed with V8 explicit Wasm
 bounds checks, stack checks and forced memory moves on growth. The release
 images carry no native ASan/UBSan or TSan test configuration. This change
 exercises the interpreter and Node transport. Manager publication is pending.
+
+### Shared lifecycle output and body admission on host 8
+
+Assignment `1f47e817-519e-4080-9aa7-c80245a8d52a` used public
+`7bf913e1d8f8400ab4afcc6edcc5d65d93e5876b`. The recipient verified
+the 257,138-byte audit archive (SHA-256
+`90bd88ec3f01404a6055b5cad6b521485094154abbd5cf63aa14589585f85c1e`)
+and independently compared the sizes, hashes and extracted bytes of all six
+declared members. Its original inventory is 91b3e1f8 and its source review
+is d45d8b10. The shared checkout had five unpublished commits. The opening
+rebase conflicted in unrelated parser work and was aborted. Implementation
+used an isolated local main at the assigned public revision.
+
+At the start, 583213c7 already routed F18's joined-root observer through
+`staged_capture_publication_test.tower`. The provider calls the typed
+guest inspector synchronously and then the original publication kernel.
+The remaining shared interpreter-output and canonical-receipt checks were
+ordinary functions. F64's first registered frontier declaration likewise
+called an ordinary body/declaration admission matrix. Source commit
+`24b922e8368e9506dab11988411f57b062566600` moves S585/S586 into
+`semantic_lifecycle_output_test.tower`, the aggregate pin and 42 lifecycle
+cases into `semantic_lifecycle_checks_test.tower`, and S569–S573 into
+`semantic_body_admission_checks_test.tower`. The original call sites share
+those functions. F64 keeps accumulated outcome failures so every retry and
+disposal still executes. Guard failures use Tower assertion spans. The
+ordinary modules retain foreign declarations and the shared lifecycle types.
+
+The first split missed direct Tower imports. Importing the byte interface
+for absolute paths then exposed an incompatible foreign declaration in the
+frontend aggregate. The full selected lifecycle suite now uses the same
+scaffolding working directory as the module-body tests. F18 imports just
+the two receipt helpers so selection keeps its original 16 owner/one direct
+declarations. F64 retains 20/five. The new full lifecycle owner/direct
+registrations expect six/one, including five existing budget declarations
+on the owner. An intermediate frontend relink encountered the still-running
+executable. Linking after that process exited succeeded.
+
+The canonical checked-in Linux x64 compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Release CMake/Ninja used Clang/LLVM 19.1.7, x86_64-pc-linux-gnu and one
+compiler worker. The frozen baseline and candidate reused the same native
+provider objects. F18 linked the renamed interpreter and original host
+callback, F64 the normal semantic provider. F10 used its serial transport
+and instrumented allocator. F12 and F15 retained their production workers.
+All 14 paired routes passed. Capture, frontier and their eight selected
+owner/direct runs, frontend default, execution capture-policy and LR lifecycle
+40–41 had identical process outputs. Query-smoke retained its receipts and
+overlap checks with process-specific thread IDs and interval timings.
+
+Single warm-filesystem samples on a Ryzen 9 7900X used CPUs 0–3 of 0–23,
+quota 2304000/100000 and memory limit 63577260032 bytes. Baseline to
+candidate wall seconds, user plus system seconds and peak RSS KiB were
+0.61/0.64/83168 to 0.59/0.61/83380 for capture,
+0.01/0.01/53684 to 0.01/0.01/54392 for frontier, and
+34.05/34.04/192192 to 34.39/34.39/191856 for frontend default. Each
+sample ran in a separate process with the host timing lock. These samples
+cover the test migration and do not establish a compiler speedup.
+
+Separate Tower observation overlays used the normal native and selected
+entrypoints. The original and migrated LR `lifecycle 0 41` streams matched
+all 240,326 bytes, including 156 interpreter outputs and 168 formatted or
+diagnostic receipts across target widths 32/64 and worker budgets 1/4.
+The focused F18 observation stream matched all 6,590 bytes on standalone
+and direct selection at both compiler widths. Each valid run printed
+8, 24, 147, 8, demanded salt and left model undemanded. Reaching the escaped
+model instead diagnosed its provider at line 3, column 1 before publication.
+The same comparisons for F64 matched 30,444 bytes, covering all 50 trials
+and 366 accumulated predicates. Both publish-pinned trials at each worker
+count recorded Busy at offset 17 with zero running queries and workers.
+
+Crossing 147 with 146 at the same output length, corrupting a retained
+canonical byte before the four-worker comparison, or expecting Capacity
+for the publish-pinned Busy result rejected each original and migrated
+standalone and both direct selections. The first two exit 134 standalone
+and 1 selected. Selected failures now identify the two assertion sites
+in `semantic_lifecycle_output_test.tower`. The joined denial exits 1 on
+all three routes after checking all four combinations. Requiring a running
+worker at the joined-pin boundary independently trapped in the new body
+admission companion. A crossed F18 provider failed to link
+`driver_platform_absolute`; that is a linkage rejection. The reciprocal
+cross ran all five F64 declarations successfully. Three invalid LR range
+inputs exited 1 at argument validation. Sixteen further ordinary frontier
+processes completed the full matrix.
+
+Native address instrumentation with leak detection and native thread
+instrumentation each passed capture, frontier and LR aggregate cases
+40–41. Linker maps identify the production allocator and POSIX worker
+archive members. Instrumented LLVM contains sanitizer calls in both
+receipt functions and the body-admission trial and join callback.
+TSan had seven capture and 32 frontier startup failures before successful
+runs. Each failed before fixture output at the host's denied ASLR
+personality request. All attempts are retained. Selected guests used the
+ordinary real native providers. The project has no separate UBSan profile.
+
+All 12 registered selections and both original focused CTests passed on
+the frozen source. The eight existing selected registrations kept their
+published counts. The prior host guest runtime and count runner matched
+the measured build byte for byte and passed an additional four-job F64
+selection against the current provider. The older ready LR shared library
+had a different digest. Commands, registrations, observed outputs, trial
+modes, control patches, link maps, raw process timings, original intake
+and executable artifacts are in the assignment packet. Disk availability
+was 35,186,274,304 bytes before the paired evidence collection and about
+34 GB after the instrumented artifacts. The worker made local commits for
+manager review. Integration, other audited families and publication remain
+outside this assignment.
