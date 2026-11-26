@@ -113792,3 +113792,13 @@ The maps identify `runtime-instrumented.o` and `tower_work_serial.o`. Other
 objects used the ordinary parser build. Tower supports address and thread IR
 instrumentation here. UBSan, threaded guest execution, WASI and browser builds
 were outside this native evidence. Manager integration and publication remain.
+
+The assigned-base bundle retains commit `a84c69fd` on eb1bdbe4. During the
+run, published main advanced to `2556019c18add8a24d8007cb3c2639b694400eba`.
+The rebased implementation `39afdfec` kept the same suite object. Ninja
+rebuilt the changed parser-nodes provider and relinked both the CLI and the
+reader service library. All six integrated CTests passed, including the
+no-argument aggregate. The observed CLI again reproduced the base trace.
+Fresh ASan/LSan and TSan runs on the integrated provider (1,621 parser
+definitions) passed on their first launches with the original suite output.
+The paired performance table uses the assigned-base providers throughout.
