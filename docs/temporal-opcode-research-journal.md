@@ -115251,3 +115251,90 @@ UBSan is unsupported by the Tower LLVM instrumentation. Full-repository
 formatting and browser publication are outside this qualification. Raw
 commands, source bundle, wrong-map diagnostics and restoration hashes are in
 the assignment receipt for manager review.
+
+### Ledger allocation rollback through native test discovery
+
+Host 5 qualified assignment `b35595f4-3416-4970-b898-80a0febb8f82` on
+public `2344ddc374b70c8610f53ccc468b17c285ef412b`. The opening pull in
+the shared checkout encountered an existing rebase. The remote did not
+supply the manager commit object `f7d57c46b1c731172656683ab01750da0e3b5eab`.
+Applying the supplied four-file change in a separate local main reproduced its
+expected Git tree `bf3c247ceb70f2284d8c78cf161d6e3e08846d32`, recorded in
+local source commit `5e331309e1e0649ab4770911d04761c30a187d59`. The
+qualification and bundle are relative to that public base. The manager owns
+integration onto subsequent main revisions and publication.
+
+The Linux x64 bootstrap and its packaged resources passed their checksum
+manifest. The compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The focused Release target used Clang/LLVM 19.1.7, x86_64-pc-linux-gnu,
+`TOWER_NATIVE=ON`, `TOWER_WORK_TESTS=ON`, and one compiler job per object.
+Building just `tower-work-budget-allocation-tests` used the existing
+fault allocator and serial transport. The candidate obtains host memory
+through its fixture import. Removing the separate host_memory.o from
+this link worked on the supplied tree. The production ledger and the
+allocator and transport implementations kept their base blobs.
+
+The companion contains all 17 assertion sites, including the serial
+transport check. The capacity check derives the 32-element bound from
+the actual receipt array. The original and candidate standalones both
+wrote exactly `Work budget allocation rollback and receipt ownership passed.`
+followed by LF, with empty stderr. The four exact-count CTests passed.
+Direct selection listed the companion at line 77 once at each of jobs 1
+and 4. Owner selection at each width listed it and the five work_budget_test
+declarations at lines 6–10. Jobs set compiler width. The running fixture
+checks that the worker transport is serial.
+
+Evidence-only Tower observations captured 11 ordered states per round for
+rounds 0–15. Each round was compared byte for byte across the original and
+migrated standalones and all four migrated selections. All six 176-row
+streams had SHA-256
+`bfea9a569405ea12067b0fbdab5a99ff9a502855e154c93db6f0e44509ab684d`.
+The packet includes the per-round hashes, both observer sources, allocator
+call deltas, all receipt fields and raw outputs. In every round:
+
+- The empty grant used zero allocator calls. The first positive byte
+  request returned Memory (3) on call 1 with an empty ledger. Re-enabling
+  allocation admitted the next reservation on call 2 at slot 1, generation 1.
+- Filling the eight slots held one buffer and eight live grants, lanes
+  and bytes. Borrowed validation made no allocator call. Denied growth
+  returned Memory on call 3. Capacity, length, storage identity, generation 8
+  and all current and peak charges held. The inactive output before and
+  after denial had a null owner, revision 7, slot 3, generation 9, 77 lanes
+  and 99 bytes.
+- Releasing slot 1 freed one grant. Reuse while allocation was still
+  denied returned slot 1, generation 9, with the call count still 3.
+  Releasing the generation-1 copy returned Stale (4) while the replacement
+  held its grant. Ordinary releases returned live grants, lanes and bytes
+  to zero. The final ledger buffer was freed by disposal.
+
+Changing the actual reuse predicate from `!=` to `==` made the standalone
+abort (134) and all four selected invocations exit 1. Each reported
+“Freed slot reuse needs no allocation”. The selection diagnostics named
+the companion at line 58. Restoring the source reproduced the candidate
+executable byte for byte. All five registered CTests passed again.
+
+GNU time measured one invocation or shell batch at a time under the
+host timing lock on a Ryzen 9 5900XT, 16 cores / 32 hardware threads.
+The host cpuset was 0–31, quota 3,071,999 µs per 100,000 µs (30.72 CPUs).
+Timing affinity was restricted to CPUs 0–3. Six warm-filesystem pairs
+alternated launch order, with 200 fresh standalone processes per arm per
+pair. All 2,400 output lines matched. The selected samples include
+compiling, linking and running the guest. There were three per selection.
+RSS is maximum reported process RSS in KiB, including the shell for batches.
+
+| Workload | Median wall s | Median user + system s | Maximum RSS KiB |
+| --- | ---: | ---: | ---: |
+| Original, 200 launches | 0.11 | 0.115 | 3,128 |
+| Migrated, 200 launches | 0.11 | 0.115 | 3,124 |
+| Direct, jobs 1 / 4 | 0.34 / 0.38 | 0.33 / 0.42 | 98,336 / 112,012 |
+| Owner, jobs 1 / 4 | 0.43 / 0.47 | 0.43 / 0.51 | 110,944 / 119,972 |
+
+The focused standalone passed native ASan with leak detection on launch
+1 and native TSan on launch 7. The first six TSan launches exited 139 in
+runtime startup at the denied ADDR_NO_RANDOMIZE personality call. The
+packet preserves their diagnostics, the successful stdout and empty
+stderr, instrumented fixture IR, provider hashes and link commands.
+These runs exercise a single-owner allocator. Tower's sanitizer build
+profile supports address and thread instrumentation only. Follow-up
+validation on an integrated tree belongs to the manager.
