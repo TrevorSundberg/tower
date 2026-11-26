@@ -122302,3 +122302,89 @@ behind its existing exported ABI so native guest discovery can use the
 production interpreter without importing the independent execution-session
 test host. The legacy entry interleaves successes and rejections in its
 original pointer-width order.
+
+At implementation `6e8b20da` each direct selection ran the two F14
+declarations, and each owner ran nine, at both one and four compiler jobs.
+The seven additional declarations came from clone, budget and generic body
+copy. The F25 registrations kept their original 2/9 counts. The three
+`tower-storage-tests scaffolding` selectors `backend-import-overflow-i1`,
+`backend-import-overflow-wide` and `backend-import` exited zero with the
+original 13, 49 and 72 stdout lines and empty stderr. The combined case
+reported 200 allocations, 293125 peak bytes and 233134 retained bytes
+before teardown. Every trial compared the ending buffer count to its own
+starting count and checked zero grants, bytes and lanes.
+
+An untimed Tower observer retained the 38 verified LLVM inputs (including
+the repeated prior-error fixtures), 30 canonical reconstructions and all
+60 Graph/Fast responses. Legacy original and candidate bytes matched in
+order. Both selected routes matched the original canonical stream and
+each engine's thirty `0\n` records. The two declarations visit the rejected
+fixtures first, and the LLVM comparison retained multiplicity. The native
+correct/wrong exits were 0/1. All 166 correct and 12 wrong files including
+linked programs and child stdout matched the public base in the standalone
+and four registered F25 selections.
+
+Replacing the expected prior diagnostic and attaching a semantic component
+to the rejected output each aborted the original and candidate wide
+selectors with status 134. Both owner and direct selections at each job
+count returned 1 at the moved assertions (38:9 and 42:9 in the respective
+mutations). Changing the independent half-times-half expected product from
+0 to 1 made the F14 wide selector finish teardown and return 1, the new
+success declaration fail at 91:5, and F25 fail at the native i8/both oracle
+(`backend_overflow_native_test.tower:81:5`). The focused i1 selector kept
+its bytes throughout. Restoration reproduced the frozen binary hashes and
+passed all 18 registered overflow and neighboring byte-import checks.
+
+Linux x86-64 host 5 has a Ryzen 9 5900XT, 16 cores/32 threads, cpuset 0–31
+and a 30.71999-CPU quota. Release Ninja used Clang/LLVM 19.1.7, the shipped
+Linux bootstrap, eight build lanes and one compiler job per object. With
+CPUs 0,2,4,6, warm filesystem cache, fresh processes and one warmup plus
+three alternating pairs under the host timing lock, original/candidate
+median wall seconds, median CPU seconds and maximum process RSS (KiB) were:
+
+| Selector | Original wall / CPU / RSS | Candidate wall / CPU / RSS |
+| --- | --- | --- |
+| Storage i1 | 0.34 / 0.34 / 75956 | 0.34 / 0.34 / 76212 |
+| Storage wide | 1.37 / 1.36 / 76948 | 1.39 / 1.38 / 77104 |
+| Storage combined | 1.75 / 1.74 / 77456 | 1.73 / 1.72 / 77188 |
+| Native correct | 2.82 / 2.82 / 98220 | 2.82 / 2.82 / 97744 |
+| Native wrong | 0.43 / 0.43 / 97912 | 0.43 / 0.42 / 97892 |
+
+At jobs 1/4 the new direct compile/link/run medians were 2.10/2.14 s wall,
+2.10/2.19 s CPU, 110376/119020 KiB peak RSS. Owner medians were 2.26/2.28
+s wall, 2.25/2.33 s CPU, 125132/133788 KiB peak. The guest uses the
+single-owner transport. Four compiler jobs gave no speedup on these cases.
+
+The address/leak and thread instrumented storage and F25 standalones
+completed all five original modes with matching outputs and native files.
+ASan/LSan completed each on the first launch. TSan completed i1, wide,
+combined, native correct and native wrong on attempts 8, 2, 16, 16 and 5.
+The other 42 launches exited 139 at the denied `ADDR_NO_RANDOMIZE`
+personality request before executing the suite. The completed trials had
+no sanitizer findings. Instrumented symbol receipts include the storage
+entry, LLVM fixture, execution provider, allocator and serial transport.
+The selected native guest and emitted child programs used their ordinary
+runtimes. Source-level UBSan is unavailable in these Tower IR profiles.
+
+The private Release cache served both layouts and was restored after the
+observers. An independent checkout fetched the exact public prerequisite,
+verified the branch-preserving implementation bundle, fast-forwarded main,
+and configured a fresh Release build with the checked-in bootstrap.
+Building only `tower-storage-tests` supplied its guest and provider
+dependencies and passed the four F14 registrations. Building the native
+target then passed all six F25 registrations. Standalone reruns in that
+checkout reproduced all three storage streams and the 178 native artifacts.
+The original and migrated F25 binaries and providers had identical hashes.
+The storage program SHA-256 changed from
+`c3e9eb2b1ef0f90b275b9279c38ab6b7fc0a6738bd3ec0252c23402375d661fd` to
+`09d8ba679343dfffc5a25fcbfabf7aed3e2a4e2c36e1c29d8b57966eade1eabe`.
+
+The shared checkout had an unfinished rebase and three local commits.
+The worker used an isolated main at the assignment base and left publication
+to the manager. The initial configure omitted the required bootstrap path.
+The successful configure used `-DTOWER_BOOTSTRAP_COMPILER=$PWD/bootstrap/linux-x64/towerc`,
+`-DTOWER_STORAGE_TESTS=ON`, `-DTOWER_BACKEND_TESTS=ON` and the project CMake
+backend include. Free disk was 50,457,100,288 bytes before the builds and
+49,780,781,056 before retiring the instrumented cache. Raw commands, source
+locations, timings, hashes, branch receipt and program bytes are in the
+assignment archive.
