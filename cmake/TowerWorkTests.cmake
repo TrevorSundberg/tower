@@ -141,21 +141,8 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       tower-guest-native-test tower-selected-test-count)
     function(tower_work_native_selections suite unit owner_summary direct_summary)
       add_dependencies(tower-${suite}-tests tower-work-native-test-support)
-      foreach(selection IN ITEMS owner direct)
-        set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
-        set(summary "${owner_summary}")
-        if(selection STREQUAL "direct")
-          set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_test.tower")
-          set(summary "${direct_summary}")
-        endif()
-        foreach(jobs IN ITEMS 1 4)
-          set(name "tower-${suite}-${selection}-jobs-${jobs}")
-          add_test(NAME "${name}" COMMAND tower-selected-test-count "${summary} passed for ${entry}"
-            "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
-            ${ARGN} --link "${work_allocator}")
-          set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
-        endforeach()
-      endforeach()
+      tower_native_test_selections("${suite}" "${unit}" "${owner_summary}" "${direct_summary}"
+        ${ARGN} --link "${work_allocator}")
     endfunction()
     # Ready owner discovery includes eight graph and five budget declarations.
     tower_work_native_selections(work-ready work_ready "18 tests" "5 tests" ${work_guest_args})
