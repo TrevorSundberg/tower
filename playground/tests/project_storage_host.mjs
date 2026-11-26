@@ -17,6 +17,9 @@ function attempt(operation) {
   try { operation(); }
   catch (failure) { error = failure.message; }
 }
+function hasPrototype(value, prototype) {
+  return value != null && Object.getPrototypeOf(value) === prototype;
+}
 const check = selectedCases('project_storage_cases', {
   storage_clear_files() { files = []; },
   storage_file(ctx, path, text) { files.push({path:guestString(ctx, path), text:guestString(ctx, text)}); },
@@ -62,10 +65,11 @@ const check = selectedCases('project_storage_cases', {
   archive_name: (ctx, offset, length) =>
     moduleText(ctx, new TextDecoder('utf-8', {fatal:true}).decode(new Uint8Array(directory.buffer, offset, length))),
   archive_is_array: (ctx, group) => Array.isArray(imported[guestString(ctx, group)]),
+  archive_array_prototype: (ctx, group) => hasPrototype(imported[guestString(ctx, group)], Array.prototype),
   archive_array_length: (ctx, group) => imported[guestString(ctx, group)].length,
-  archive_plain_record: (ctx, group) => Object.getPrototypeOf(imported[guestString(ctx, group)]) === Object.prototype,
-  archive_plain_file: (_ctx, index) => Object.getPrototypeOf(imported.files[index]) === Object.prototype,
-  archive_byte_array: (ctx, name) => Object.getPrototypeOf(imported.links[guestString(ctx, name)]) === Uint8Array.prototype,
+  archive_plain_record: (ctx, group) => hasPrototype(imported[guestString(ctx, group)], Object.prototype),
+  archive_plain_file: (_ctx, index) => hasPrototype(imported.files[index], Object.prototype),
+  archive_byte_array: (ctx, name) => hasPrototype(imported.links[guestString(ctx, name)], Uint8Array.prototype),
   archive_count: (ctx, group) => Object.keys(imported[guestString(ctx, group)]).length,
   archive_key(ctx, group, index) {
     const name = guestString(ctx, group);

@@ -45,6 +45,7 @@ fn check_builtin(index: usize, name: u8*): void {
 // The importer uses manifest order to reconstruct the project. Also inspect
 // the exported ZIP directory and the local headers it actually references.
 extern fn archive_is_array(group: u8*): bool;
+extern fn archive_array_prototype(group: u8*): bool;
 extern fn archive_array_length(group: u8*): usize;
 extern fn archive_plain_record(group: u8*): bool;
 extern fn archive_plain_file(index: usize): bool;
@@ -106,11 +107,12 @@ test() {
 
     check_zip_order();
     assert(archive_is_array("files"), "Imported files form an array");
+    assert(archive_array_prototype("files"), "Imported files have the Array prototype");
     assert(archive_array_length("files") == 2, "Imported file array length");
     assert(archive_count("files") == 2, "File count");
+    assert(archive_plain_file(0) && archive_plain_file(1), "Imported files have plain record prototypes");
     check_text(archive_key("files", 0), "src/main.tower", "First file");
     check_text(archive_key("files", 1), "data/large.txt", "Second file");
-    assert(archive_plain_file(0) && archive_plain_file(1), "Imported files have plain record prototypes");
     assert(archive_file_fields(0) == 2 && archive_file_fields(1) == 2, "File record fields");
     check_text(archive_file_text(0), source, "Entry source");
     var actual = archive_file_text(1);
