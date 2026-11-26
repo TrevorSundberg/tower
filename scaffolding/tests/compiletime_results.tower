@@ -1,4 +1,4 @@
-import tests.compiletime_case;
+import compiletime_case;
 
 fn check_compiletime(value: CompiletimeCase): void {
     check_native_compiletime(value);

@@ -109432,3 +109432,13 @@ The fresh default Ninja graph matched all 51 producer commands. All 501
 recorded ordinary inputs and 37 retained products matched their qualified
 hashes. Assignment `29d83b92` records both streams, CPU times, output hashes,
 the published template/parser/inference controls and the bundle ancestry.
+
+The CTest commands supply project resource paths. Running the shipped
+`towerc --test` without those overrides exposed a lookup of
+`tests/compiletime_case` from the installed resource directory. Resolve
+`compiletime_case` beside `compiletime_results` and `backend/text` relative
+to the project helper. All eight bare owner/direct selections passed. Each
+rejected wrong output and wrong type, denied the sibling grant and passed
+after restoration. The browser's real profile and results modules compiled
+to identical objects with identical depfiles before and after the import
+edits. The browser execution results remain those of their original receipt.
