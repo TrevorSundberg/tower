@@ -1,0 +1,117 @@
+import tower;
+import frontend_units;
+import .library.testing;
+import utility_checks;
+import .backend.execution_functions;
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .library.vector;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn getenv(name: u8*): u8*;
+
+fn backend_execution_index_case(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    var source: vector(u8) = default;
+    var entry: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    defer vector_dispose(&source);
+    defer vector_dispose(&entry);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    var filename = "/tests/backend_execution_roots.tower";
+    units_read(root, filename, &source);
+    units_path(root, filename, &entry);
+    var batch = frontend_units_create(1, 1, 8, 1, 8, bedrock.data, foundation.data, root);
+    assert(batch != null, "execution-index private compilation owner");
+    defer frontend_units_close(batch);
+    assert(frontend_units_source(batch, 1, entry.data, source.data, source.length),
+        "execution-index source snapshot");
+    while !frontend_units_step(batch, true) { }
+    assert(frontend_units_failed(batch) == 0 && !frontend_units_cancelled(batch),
+        "execution-index source checks successfully");
+    var program = frontend_units_program(batch, 1);
+    assert(program != null, "execution-index completed program");
+    var before: FormatResult = default;
+    var after: FormatResult = default;
+    defer format_dispose(&before);
+    defer format_dispose(&after);
+    format_entity(&before, program.root, null, null, null);
+    assert(!before.failed && before.text.length != 0, "execution-index original canonical Foundation");
+
+    var retained: vector(u8) = default;
+    defer vector_dispose(&retained);
+    assert(backend_execution_functions(program.root, program.functions.data, program.functions.length, &retained),
+        "execution-index derives runtime function roots");
+    assert(retained.length == program.functions.length && program.functions.data[0] == program.root,
+        "execution-index covers the published function slots and root");
+    var observed: usize = 0;
+    var dead: usize = 0;
+    var called: usize = 0;
+    for(var index: usize = 1; index < program.functions.length; index++) {
+        var name = sem_get(program.functions.data[index]).name.data;
+        if strcmp(name, "unused_type") == 0 {
+            assert(retained.data[index] == 0, "unused declaration stays outside executable index");
+            dead = index;
+            observed++;
+            continue;
+        }
+        if strcmp(name, "direct") == 0 || strcmp(name, "callback") == 0
+            || strcmp(name, "recursive") == 0 || strcmp(name, "retained_export") == 0 {
+            assert(retained.data[index] == 1, "calls, function values, recursion and exports remain executable");
+            observed++;
+            if strcmp(name, "direct") == 0 { called = index; }
+        } else {
+            assert(retained.data[index] == 0, "uncalled declarations have a clear index byte");
+        }
+    }
+    assert(observed == 5 && dead != 0 && called != 0 && retained.data[0] == 1, "execution-index known source declarations and module effects");
+    vector_dispose(&retained);
+
+    // Change only a disposable caller index: declaration identities and the
+    // canonical graph must survive rejection of the mismatched function slot.
+    var mismatched: vector(void*) = default;
+    defer vector_dispose(&mismatched);
+    foreach(var function in &program.functions) {
+        assert(vector_push(&mismatched, function), "execution-index identity fixture");
+    }
+    mismatched.data[called] = program.functions.data[dead];
+    assert(!backend_execution_functions(program.root, mismatched.data, mismatched.length, &retained),
+        "execution-index rejects mismatched declaration identity");
+    vector_dispose(&retained);
+
+    // The frontend and the selected guest both use the serial fault allocator.
+    var baseline = tower_test_buffer_count();
+    var succeeded = false;
+    var rejected = false;
+    for(var limit: usize = 0; limit < 64; limit++) {
+        tower_test_buffer_fail_after(limit);
+        succeeded = backend_execution_functions(program.root, program.functions.data, program.functions.length, &retained);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        vector_dispose(&retained);
+        assert(tower_test_buffer_count() == baseline, "execution-index allocation failure releases private vectors");
+        if succeeded { break; }
+        rejected = true;
+    }
+    assert(succeeded && rejected, "execution-index allocation sweep exercises failure and reaches success");
+    format_entity(&after, program.root, null, null, null);
+    assert(!after.failed && before.text.length == after.text.length
+        && utility_equal(before.text.data, after.text.data, before.text.length),
+        "execution-index success and failures preserve exact canonical Foundation");
+}
+
+fn check_backend_execution_index(root: u8*): void {
+    var baseline = tower_test_buffer_count();
+    backend_execution_index_case(root);
+    assert(tower_test_buffer_count() == baseline, "execution-index closes the source world and all output owners");
+}
+
+test() {
+    var root = getenv("TOWER_EXECUTION_INDEX_ROOT");
+    assert(root != null, "execution-index fixture resource root");
+    check_backend_execution_index(root);
+}

@@ -1629,6 +1629,13 @@ existing executable-function index fixture, including exact canonical preservati
 declaration identity and allocation-failure cleanup. The default frontend suite
 also runs it. Its pure backend helper avoids importing the full lowering unit.
 
+On native Linux x64 with `TOWER_BACKEND_TESTS=ON`, build `tower-frontend-tests`
+and run `ctest --test-dir BUILD -R '^tower-execution-index-' -V`. The four
+registrations link the serial compiler service and fault allocator and set
+`TOWER_EXECUTION_INDEX_ROOT` to the scaffolding directory containing the grammar
+and source fixture. At both compiler widths the direct companion runs one
+index case. Owner discovery also runs five work-budget declarations.
+
 For full native module/cache/session regressions, configure the existing native
 work/backend test build with `-DTOWER_MODULE_TESTS=ON`, build
 `tower-module-cache-tests`, then run it with `scaffolding` as the working directory

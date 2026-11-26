@@ -122534,3 +122534,63 @@ on stderr, empty stdout. The global defined and undefined symbol names matched.
 Build-tree work-owner discovery and direct selections passed at jobs 1 and 4
 with the original counts of 7 and 2. Commands, streams and original artifacts'
 hashes are in the assignment packet.
+
+### F10 execution index, S007 and S008, host 4
+
+On public `47febb5b`, `backend_execution_index_test.tower` now contains the
+original case comparisons and final source-world disposal check. The default
+frontend and its `execution-index` selector call the same case. It reads the
+external `backend_execution_roots.tower` and uses the real frontend, formatter
+and backend index. Each byte has an exact expected value. The focused native
+guest links the existing response service with its serial transport and
+instrumented allocator. The S007 count and retention controls report lines 72
+and 58. S008 checks disposal at line 110.
+
+A trial extraction of the input helpers broke an existing direct import of
+`units_read`. Keeping the original frontend unit module preserved all of its
+callers. Discovery then ran the index and the module's five budget declarations.
+The corrected owner/direct registrations require 6/1 at jobs 1 and 4. A draft
+using unbraced `else if` failed the pinned grammar. The dead-name branch now
+continues after checking its byte.
+
+Separate observation builds of the original and both migrated guest widths
+returned the same eight index bytes, in hex `01 00 00 00 01 01 01 01`.
+Slots 1–3 were signed_integer, unsigned_integer and unused_type. Slots 4–7
+were direct, callback, recursive and retained_export. Replacing the called
+slot with the dead declaration was rejected. Denials 0–3 and success at 4
+returned to 11,581 live buffers after each private result was disposed.
+Closing the world returned to zero. Canonical Foundation before and after each
+complete case had 3,293 identical bytes, SHA-256
+`5b9a4f1b48caff6bf3a04ca67a8908c5765300cc27be79747b7077d90acb00db`.
+
+Changing only the expected count, changing the unused slot from zero to one,
+and disabling the fault injection each failed through both selection modes
+at both widths and through the original standalone selector. Restoring the
+source restored all five routes. The original and migrated ordinary library
+objects had the same defined/undefined symbols at both widths and the same
+three exported LLVM signatures. Clean no-test build commands and a replayed
+production link preserved driver SHA-256
+`143d6eafc5cc28e8b65758fa177574b7ffc3759552b77e4f069a91b7cebff8f4`.
+The optional provider from b07d1b42 was byte-identical to its parent.
+All four prior work-owner registrations passed from the relocated SccTests kit.
+
+Ryzen 7 5800H, affinity 0–15, cgroup quota 15.36 CPUs, memory cap
+64,061,702,144 bytes, Linux x64 Release and LLVM 19.1.7. The checked-in
+bootstrap compiled the complete frontend entry at jobs 1 and 4. Each version
+produced identical binaries across widths. Six alternating original/migrated
+pairs followed a warmup per binary on CPU 0 under the host timing lock.
+These are per-process means for the serial index selector.
+
+| Entry build jobs | Wall s, original / migrated | CPU s, original / migrated | Peak RSS KiB, original / migrated |
+| --- | --- | --- | --- |
+| 1 | 0.202 / 0.200 | 0.195 / 0.200 | 75,294 / 74,940 |
+| 4 | 0.200 / 0.202 | 0.195 / 0.197 | 75,166 / 75,506 |
+
+One full frontend pair on CPUs 0–3 had identical streams and exits. Wall time
+was 54.14 / 53.91 s, CPU 54.13 / 53.88 s and peak RSS 192,340 / 194,228 KiB.
+ASan and TSan each completed both frontend selectors and the isolated optional
+provider probe, including its intentional abort. TSan had 24 startup failures
+in the host personality call for the selectors and 26 for the probe. The packet
+separates those failures from completed executions. The sanitizer link maps
+identify the serial transport and instrumented allocator. The project has no
+UBSan profile. Integration and publication belong to the manager.

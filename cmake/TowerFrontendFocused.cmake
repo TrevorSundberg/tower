@@ -22,3 +22,19 @@ foreach(selector IN ITEMS graph-components lr-components lr-scratch-budget compi
   add_test(NAME tower-frontend-${selector} COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${selector})
   set_tests_properties(tower-frontend-${selector} PROPERTIES TIMEOUT 60 LABELS "native;focused")
 endforeach()
+
+if(TARGET tower-response-services)
+  # The response service already pairs the serial frontend with the fault allocator.
+  get_property(index_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  add_dependencies(tower-frontend-tests tower-response-services tower-guest-native-test tower-selected-test-count)
+  # Owner discovery also reaches the five work-budget declarations.
+  tower_native_test_selections(execution-index backend_execution_index "6 tests" "1 test"
+    --test-native-runtime "${index_guest}" --link "$<TARGET_FILE:tower-response-services>"
+    --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-response-services>")
+  foreach(selection IN ITEMS owner direct)
+    foreach(jobs IN ITEMS 1 4)
+      set_tests_properties(tower-execution-index-${selection}-jobs-${jobs} PROPERTIES
+        ENVIRONMENT "TOWER_EXECUTION_INDEX_ROOT=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+    endforeach()
+  endforeach()
+endif()
