@@ -1,0 +1,22 @@
+import suite;
+
+test() {
+    open_cache(false);
+    var a = snapshot('{"source":"x","compilerRevision":0}');
+    var b = snapshot('{"source":"y","compilerRevision":0}');
+    var first = request_document(a);
+    assert(request_document(a) == first, "Reuse the in-flight Promise");
+    var second = request_document(b);
+    assert(canceled(0), "Changing source canceled the first request");
+
+    resolve_call(0, '{"entries":[{"from":0,"to":1,"signature":"old"}]}');
+    assert(await_document(first) == NullReply, "Discard the stale reply");
+    resolve_call(1, '{"entries":[{"from":0,"to":1,"signature":"new"}]}');
+    var ready = await_document(second);
+    assert(request_document(b) == ready, "Reuse the identical ready index");
+    check_text(reply_signature(ready, 0), "new", "Current document signature");
+
+    request_document(snapshot('{"source":"y","compilerRevision":1}'));
+    assert(request_count() == 3, "Compiler revision starts another request");
+    clear_cache();
+}

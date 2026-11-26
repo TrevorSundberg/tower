@@ -1,61 +1,92 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {loadTower} from './compiler-fixtures.mjs';
-import {DocumentQueries,hoverAt,hoverIndex,hasHoverDetails} from '../src/language-queries.mjs';
-const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,
-  (await read('scaffolding/foundation.tower')).toString(),undefined,(await read('scaffolding/bedrock.tower')).toString());
-function inspect(source) {
-  tower.configureModules({entry:'input.tower',files:[]});
-  const result=tower.inspectDocument(source);assert.equal(result.error,undefined);
-  return hoverIndex(source,result);
+import {after, test} from 'node:test';
+import {editorSuite} from './editor_suite.mjs';
+import {guestString} from './guest_text.mjs';
+import {moduleHost, moduleText} from './module_case_host.mjs';
+import {DocumentQueries, hoverAt, hoverIndex, hasHoverDetails} from '../src/language-queries.mjs';
+
+const tower = await moduleHost();
+after(() => tower.close());
+const json = (ctx, pointer) => JSON.parse(guestString(ctx, pointer));
+let source, entries, entry;
+let cache, calls, snapshots, values, deliveries;
+
+function handle(value) {
+  const index = values.indexOf(value);
+  return index < 0 ? values.push(value) - 1 : index;
 }
-function at(source,needle) {return hoverAt(inspect(source),source.lastIndexOf(needle)+1);}
 
-// Semantic fixtures and assertions run through npm test:ide in Tower.
-test('invalid document requests become host exceptions',()=>{
-  assert.throws(()=>tower.inspectDocument('import foundation; var pointer:i32*;',{pointerBytes:3}),/Invalid/);
-  assert.throws(()=>tower.inspectDocument('import foundation; var x:i32;\0print(x);'),/Invalid/);
+const run = editorSuite('hover_queries', ['inputs/unicode.tower', 'inputs/documentation.tower'], {
+  inspect_exception(ctx, text, afterNul, options) {
+    const input = guestString(ctx, text) + (afterNul ? '\0' + guestString(ctx, afterNul) : '');
+    const configuration = options ? json(ctx, options) : undefined;
+    try { tower.inspectDocument(input, configuration); }
+    catch (error) { return moduleText(ctx, error.message); }
+    return moduleText(ctx, '');
+  },
+  inspect_source(ctx, text) {
+    source = guestString(ctx, text);
+    tower.configureModules({entry:'input.tower', files:[]});
+    const result = tower.inspectDocument(source);
+    entries = hoverIndex(source, result);
+    return result.error === undefined ? 0 : moduleText(ctx, result.error);
+  },
+  index_reply(ctx, text, reply) {
+    source = guestString(ctx, text);
+    entries = hoverIndex(source, json(ctx, reply));
+  },
+  select_hover(_ctx, position) { entry = hoverAt(entries, position); },
+  select_hover_side(_ctx, position, side) { entry = hoverAt(entries, position, side); },
+  hover_is_null: () => entry === null,
+  hover_text: (ctx, field) => moduleText(ctx, entry[guestString(ctx, field)]),
+  hover_offset: (ctx, field) => entry[guestString(ctx, field)],
+  hover_slice: ctx => moduleText(ctx, source.slice(entry.from, entry.to)),
+  selected_details: (ctx, token) => hasHoverDetails(entry, guestString(ctx, token)),
+  token_details: (ctx, record, token) => hasHoverDetails(json(ctx, record), guestString(ctx, token)),
+
+  open_cache(_ctx, immediateNullReply) {
+    calls = [];
+    snapshots = [];
+    values = [null];
+    deliveries = new Map();
+    cache = new DocumentQueries({request() {
+      let resolve;
+      const promise = immediateNullReply ? Promise.resolve(null) : new Promise(done => { resolve = done; });
+      const call = {promise, resolve, canceled:false, cancel() { this.canceled = true; }};
+      calls.push(call);
+      return call;
+    }});
+  },
+  snapshot: (ctx, payload) => snapshots.push(json(ctx, payload)) - 1,
+  request_document: (_ctx, input) => handle(cache.request(snapshots[input])),
+  is_promise: (_ctx, id) => values[id] instanceof Promise,
+  request_count: () => calls.length,
+  canceled: (_ctx, index) => calls[index].canceled,
+  resolve_call(ctx, index, reply) { calls[index].resolve(json(ctx, reply)); },
+  delivered(_ctx, id) {
+    if (!deliveries.has(id)) {
+      const delivery = {done:false};
+      deliveries.set(id, delivery);
+      values[id].then(value => Object.assign(delivery, {done:true, value}),
+        error => Object.assign(delivery, {done:true, error}));
+    }
+    return deliveries.get(id).done;
+  },
+  delivered_value(_ctx, id) {
+    const delivery = deliveries.get(id);
+    if ('error' in delivery) throw delivery.error;
+    return handle(delivery.value);
+  },
+  reply_signature: (ctx, id, index) => moduleText(ctx, values[id][index].signature),
+  clear_cache() { cache.clear(); },
 });
 
-test('Unicode ranges use UTF-8 transport and UTF-16 editor offsets; comments stay empty',()=>{
-  const source='import foundation;\n// 雪🚀\nvar `雪`:i32 = 42; print(`雪`);';
-  const entries=inspect(source),entry=hoverAt(entries,source.lastIndexOf('雪'));
-  assert.equal(entry.signature,'var `雪`: i32');assert.equal(entry.type,'i32');
-  assert.equal(source.slice(entry.from,entry.to),'`雪`');
-  assert.equal(hoverAt(entries,source.indexOf('🚀')),null);
-});
+function check(selection) {
+  return run(selection, () => { source = entries = entry = cache = calls = snapshots = values = deliveries = undefined; });
+}
 
-test('presentation hides bare syntax tokens and converts declaration offsets after Unicode',()=>{
-  const source='import foundation;\n// 雪🚀\nvar value = 42;\nprint(value);';
-  const entry=at(source,'value);');assert.equal(entry.declarationFrom,source.indexOf('var value'));
-  assert.equal(entry.documentation,'雪🚀');
-  assert.equal(hasHoverDetails(entry,'value'),true);
-  for(const text of ['var',';','unknown'])assert.equal(hasHoverDetails({kind:'syntax',signature:text},text),false);
-  assert.equal(hasHoverDetails({kind:'type',signature:'i32',type:'i32'},'i32'),true);
-});
-
-test('the presentation index selects the smallest containing range and respects token edges',()=>{
-  const entries=hoverIndex('abcdef',{entries:[{from:0,to:6,signature:'outer'},{from:2,to:4,signature:'inner'}]});
-  assert.equal(hoverAt(entries,3).signature,'inner');assert.equal(hoverAt(entries,4).signature,'outer');
-  assert.equal(hoverAt(entries,4,-1).signature,'inner');assert.equal(hoverAt(entries,6),null);
-});
-
-test('document cache shares work and rejects replies from old inputs',async()=>{
-  const calls=[];const cache=new DocumentQueries({request(key,payload){let resolve;const promise=new Promise(done=>resolve=done);const request={promise,cancel(){request.canceled=true;}};calls.push({key,payload,resolve,request});return request;}});
-  const a={source:'x',compilerRevision:0},b={source:'y',compilerRevision:0};
-  const first=cache.request(a);assert.equal(cache.request(a),first);
-  const second=cache.request(b);assert.equal(calls[0].request.canceled,true);
-  calls[0].resolve({entries:[{from:0,to:1,signature:'old'}]});assert.equal(await first,null);
-  calls[1].resolve({entries:[{from:0,to:1,signature:'new'}]});const ready=await second;
-  assert.equal(cache.request(b),ready);assert.equal(ready[0].signature,'new');
-  cache.request({...b,compilerRevision:1});assert.equal(calls.length,3);cache.clear();
-});
-
-test('a canceled document request can be retried for the same snapshot',async()=>{
-  let count=0;
-  const cache=new DocumentQueries({request(){count++;return {promise:Promise.resolve(null),cancel(){}};}});
-  assert.equal(await cache.request({source:'x'}),null);
-  assert.equal(await cache.request({source:'x'}),null);assert.equal(count,2);
-});
+test('invalid document requests become host exceptions', () => check('invalid'));
+test('Unicode ranges use UTF-8 transport and UTF-16 editor offsets; comments stay empty', () => check('unicode'));
+test('presentation hides bare syntax tokens and converts declaration offsets after Unicode', () => check('presentation'));
+test('the presentation index selects the smallest containing range and respects token edges', () => check('edges'));
+test('document cache shares work and rejects replies from old inputs', () => check('cache'));
+test('a canceled document request can be retried for the same snapshot', () => check('retry'));

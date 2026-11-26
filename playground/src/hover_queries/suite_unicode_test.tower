@@ -1,0 +1,13 @@
+import suite;
+
+test() {
+    inspect_fixture("inputs/unicode.tower");
+    // UTF-16 cursor on the final 雪. The preceding rocket takes two code units.
+    select_hover(51);
+    check_text(hover_text("signature"), "var `雪`: i32", "Bound Unicode name");
+    check_text(hover_text("type"), "i32", "Bound type");
+    assert(hover_offset("from") == 50 && hover_offset("to") == 53, "UTF-16 identifier boundaries");
+    check_text(hover_slice(), "`雪`", "Quoted identifier under cursor");
+    select_hover(23);
+    assert(hover_is_null(), "No hover on the rocket in the comment");
+}

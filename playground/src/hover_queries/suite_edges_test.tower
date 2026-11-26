@@ -1,0 +1,13 @@
+import suite;
+
+test() {
+    index_reply("abcdef", '{"entries":[{"from":0,"to":6,"signature":"outer"},{"from":2,"to":4,"signature":"inner"}]}');
+    select_hover(3);
+    check_text(hover_text("signature"), "inner", "Smallest containing range");
+    select_hover(4);
+    check_text(hover_text("signature"), "outer", "Right side of inner end");
+    select_hover_side(4, -1);
+    check_text(hover_text("signature"), "inner", "Left side of inner end");
+    select_hover(6);
+    assert(hover_is_null(), "Outside both ranges");
+}

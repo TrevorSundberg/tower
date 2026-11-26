@@ -1,0 +1,7 @@
+import suite;
+
+test() {
+    var error = "Invalid or unallocatable language query";
+    check_text(inspect_exception("import foundation; var pointer:i32*;", null, '{"pointerBytes":3}'), error, "Invalid pointer width");
+    check_text(inspect_exception("import foundation; var x:i32;", "print(x);", null), error, "Embedded NUL");
+}

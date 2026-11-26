@@ -1,0 +1,3 @@
+import foundation;
+// 雪🚀
+var `雪`:i32 = 42; print(`雪`);
