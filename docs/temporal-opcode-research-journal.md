@@ -105743,3 +105743,31 @@ one test with output 42 at both widths. Packet
 `7c1cce52-e4c5-4d2d-8069-55ea09f00681.tar.gz` carries the console, commands,
 logs, checked outputs and local review bundle. A full Jenkins rerun and
 publication remain with the manager.
+
+### Default initialization in the semantic expression companion
+
+At public 3ae475c2, the seven named cases in playground/tests/default.test.mjs
+exercise three compiler entry points. The portable graph and fast interpreters
+run Tower and emitted Foundation at four- and eight-byte pointer widths. The
+LLVM reactor compiles the Tower input with optimization off and on, then
+compiles optimized Foundation. The seventh case opens two syntax sessions to
+format, reparse and format again before executing the result.
+
+TowerDefault in tower.tower reaches sem_default in semantic_expressions.tower
+via sem_value and declaration/reset checking. Scalars retain their contextual
+or explicit type. Aggregate defaults mark the destination for the fill in
+semantic_expression_lowering.tower. semantic_aggregates.tower also handles value
+materialization. Existing default_initialization.tower checks typed, inferred,
+borrowed, deferred and staged cases in the shared-worker suite. The original
+default_struct_values.tower supplies the independent struct-copy/staging case.
+
+The adjacent semantic_expressions_test.tower reads declarations from the guest
+programs and exercises their values with source-located assertions. Test mode
+executes selected bodies after module initialization. The standalone guest
+programs still exercise their ordinary module statements, including top-level
+defer and indexed reset. An initial extraction moved some statements into
+functions. The final four extracted programs preserve the original statement
+order and scopes. All twenty canonical Foundation texts (five programs, two
+widths and two interpreter modes) match their original bytes. Both full Node
+runs passed 7/7 with the same frozen reactors. The complete execution transcript,
+including formatted source and eight diagnostic offsets, also matched.
