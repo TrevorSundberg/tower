@@ -9,6 +9,7 @@ scaffolding/tests/generic_call_inputs/*.expected text eol=lf
 scaffolding/tests/template_inputs/**/*.expected text eol=lf
 scaffolding/tests/semantic_invalid/type_numeric_mutable.expected text eol=lf
 scaffolding/examples/templates.expected text eol=lf
+scaffolding/compiler/syntax_session_format_inputs/*.expected text eol=lf
 scaffolding/compiler/bytecode_package_cases/*.expected text eol=lf
 CNAME text eol=lf
 

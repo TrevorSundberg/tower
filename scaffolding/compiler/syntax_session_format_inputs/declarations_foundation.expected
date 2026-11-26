@@ -1,0 +1,53 @@
+import foundation_syntax;
+
+/* Signedness is part of the primitive representation contract, not a host*/
+/* promotion rule. Widths are target bits; supported widths are 8, 16, 32 and 64.*/
+fn signed_integer(width: address_type()): type_type() {
+    return integer_type(width, 1);
+}
+
+fn unsigned_integer(width: address_type()): type_type() {
+    return integer_type(width, 0);
+}
+
+var i8: type = integer_type(8, 1);
+
+var u8: type = integer_type(8, 0);
+
+var i16: type = integer_type(16, 1);
+
+var u16: type = integer_type(16, 0);
+
+var i32: type = integer_type(32, 1);
+
+var u32: type = integer_type(32, 0);
+
+var i64: type = integer_type(64, 1);
+
+var u64: type = integer_type(64, 0);
+
+var f32: type = float_type(32);
+
+var f64: type = float_type(64);
+
+var bool: type = boolean_type();
+
+var void: type = empty_type();
+
+/* This representation takes its width from the explicit target description.*/
+var usize: type = address_type();
+
+var x: i32 = 1;
+print(x);
+
+struct Pair {
+    value: i32;
+}
+
+fn answer(p: Pair*): i32 {
+    return p.value;
+}
+
+var p: Pair;
+var q: Pair* = &p;
+p.value = answer(q);

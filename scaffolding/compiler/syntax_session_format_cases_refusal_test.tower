@@ -1,0 +1,4 @@
+import library.testing;
+import syntax_session_format_cases;
+
+test() { check_format_refusal(); }

@@ -1,0 +1,84 @@
+import library.testing;
+import .frontend_revision_types;
+import .format_types;
+import .semantic_program_types;
+import .foundation_types;
+import ..host.driver_api;
+import ..library.bytes_types;
+import ..library.bytes_interface;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_configure(modules: void*, entry: u8*, library: u8*): void;
+extern fn frontend_modules_destroy(modules: void*): void;
+extern fn compiler_host_world(): void*;
+extern fn syntax_session_open(world: void*, modules: void*, source: u8*, module: void*, mode: u32): void*;
+extern fn syntax_next(session: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_get_error(session: void*): u8*;
+extern fn syntax_format_into(session: void*, output: FormatResult*, error: u8**): bool;
+extern fn strlen(text: u8*): usize;
+
+export fn format_case_read(path: u8*, size: usize*): u8* {
+    var text: ByteBuffer = default;
+    assert(driver_read_file(path, &text), path);
+    *size = text.length;
+    return text.data;
+}
+
+fn case_modules(): void* {
+    var modules = frontend_modules_create();
+    assert(modules is not null, "Create formatter module environment");
+    frontend_modules_configure(modules, "input.tower", ".");
+    return modules;
+}
+
+fn case_copy(data: u8*, length: usize, size: usize*): u8* {
+    var bytes: ByteBuffer = default;
+    assert(bytes_assign_text(&bytes, data, length), "Copy formatter bytes");
+    *size = bytes.length;
+    return bytes.data;
+}
+
+export fn format_case_apply(input: u8*, refusal: bool, size: usize*): u8* {
+    var modules = case_modules();
+    defer frontend_modules_destroy(modules);
+    var session = syntax_session_open(compiler_host_world(), modules, input, null, SyntaxFoundationBaseline);
+    assert(session is not null, "Open formatter session");
+    defer syntax_destroy(session);
+    loop {
+        var root = syntax_next(session);
+        if root is null { break; }
+        entity_release(root);
+    }
+    var error = syntax_get_error(session);
+    assert(error[0] == 0, error);
+    var output: FormatResult = default;
+    defer format_dispose(&output);
+    var ready = syntax_format_into(session, &output, &error);
+    if refusal {
+        assert(!ready && error[0] != 0 && output.text.length == 0, "Expected formatter refusal");
+        return case_copy(error, strlen(error), size);
+    }
+    assert(ready && error[0] == 0, error);
+    return case_copy(output.text.data, output.text.length, size);
+}
+
+export fn format_case_foundation(input: u8*, size: usize*): u8* {
+    var modules = case_modules();
+    defer frontend_modules_destroy(modules);
+    var root = tower_node_create();
+    defer entity_release(root);
+    var program: SemanticProgram = default;
+    // Match the public browser compiler's four-byte guest pointer profile.
+    semantic_initialize(&program, root, 4);
+    defer semantic_program_dispose(&program);
+    var source = init(FrontendSource) { data: input, length: strlen(input) };
+    frontend_compile_sources(&program, &source, 1, modules);
+    assert(program.error.length == 0, "Compile declaration fixture");
+    var output: FormatResult = default;
+    defer format_dispose(&output);
+    format_entity(&output, root, syntax_component_type(), null, parser_match_get_type());
+    assert(!output.failed, "Emit canonical Foundation");
+    return case_copy(output.text.data, output.text.length, size);
+}

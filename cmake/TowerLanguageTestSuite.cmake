@@ -4,10 +4,7 @@ get_property(scc_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
 get_property(scc_allocator GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
 set(scc_providers "${scc_runtime}" "${scc_allocator}" "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-bytes.o"
   "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-utf8.o" "$<TARGET_FILE:tower-compiler-memory>")
-get_property(guest_library GLOBAL PROPERTY TOWER_GUEST_host-library_OBJECT)
-tower_runtime_object(tower-selected-test-count "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/selected_test_count.tower" "${triple}")
-add_executable(tower-selected-test-count ${tower-selected-test-count_OBJECT} "${guest_library}")
-set_target_properties(tower-selected-test-count PROPERTIES LINKER_LANGUAGE C)
+tower_selected_test_count("${triple}")
 add_custom_target(tower-entity-tests ALL DEPENDS towerc tower-selected-test-count tower-guest-native-test
   "${scc_allocator}" tower-compiler-memory)
 add_custom_target(tower-language-tests DEPENDS tower-entity-tests ${scc_providers})

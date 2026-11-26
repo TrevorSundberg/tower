@@ -109716,3 +109716,213 @@ wall, 1.59/1.59 s CPU and 183536/177488 KiB peak RSS. Each sample used a
 fresh process and warm files. Compiler and reactor bytes came from the
 existing products. The final unfiltered suite ledger, image identities and
 resource records for the frozen commit belong to this assignment's packet.
+### Host 8 — five source-formatting registrations on 46e22072
+
+The predecessor `playground/tests/formatting.test.mjs` has Git blob
+`9b994c05e5aa8335cf93a3e3417305cb5b91860b`. The native `tower-format`
+suite in `cmake/TowerFormatTests.cmake` already checks canonical text and
+ordered source spans, comments, a show replacement, individual affixes,
+Foundation and allocation failures. Its inputs differ from these five.
+The driver and frontend-session fixtures use exactly the same 55-byte lexical
+input. The latter also supplies the complete refusal without a trailing LF.
+The increment definitions and teaching example still come from their original
+files. The suffix starts with LF and ends at its semicolon. The separate
+formatter-port registrations retain their UTF-8 mapping, numeric and seeded
+spacing coverage.
+
+The five original Node names still filter separately. Each `test()` at line
+4 under `playground/tests/fixtures/formatting/checks/` receives a measured
+owner module for the selected case. Source parsing, formatting and canonical
+Foundation emission use the public reactor. Its assertion session compares
+counted bytes against raw sibling files and the live second pass. The
+complete comment and affix oracles also pin the surrounding layout. The
+literal and example serve as their own byte oracles. The lexical case parses
+successfully, checks the exact format refusal and formats the valid literal
+on the same reactor afterward.
+
+| Original registration | Selected companion and observations |
+| --- | --- |
+| source and foundation formatting share declaration spacing and indentation | `declarations_test.tower`, exact source layout, second format and source-format identity of emitted Foundation |
+| comments, strings and replacement invocations retain their original meaning | `comments_test.tower`, exact show invocation with four comments, second format and the quoted literal |
+| formatting refuses a layout that changes custom lexical meaning | `refusal_test.tower`, exact changed-parse diagnostic and successful literal formatting afterward |
+| custom prefix and postfix operators attach to their operand, including increment | `increment_test.tower`, exact builtin-plus-suffix layout including both comments, second format and unchanged standalone teaching example |
+| affix spacing follows rule shape, keeps infix spacing and separates adjacent operators | `affixes_test.tower`, exact nested-prefix, postfix and infix layout and second format |
+
+On Node 24.22.3, the public Pages reactor at `dd6651b1` (SHA-256
+`41bb9b1164da536eaabf57957d08e131b3472a1463931c5bc41110d85f130a3f`)
+passed the five names together and separately before and after. Across both
+runs all 38 original parser inputs, terminal events, format results (with
+spans), compilation input and Foundation result matched byte for byte at
+the JS API boundary. The extra three records are the valid literal's input,
+parse completion and formatted output after refusal. The five selected Tower
+tests finished with empty guest stdout and no diagnostic. Changing the raw
+infix oracle from `x %% y` to `x%%y` failed only the fifth test. Substituting
+an allocation refusal failed only the third. Both failures pointed to byte
+60 in their respective Tower companions, and each restore passed all five.
+
+The installed Linux x64 compiler (SHA-256
+`7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`)
+independently formatted the on-disk inputs at jobs 1 and 4, including the
+joined increment program, and reproduced the browser bytes on both passes.
+It emitted the same 1,087-byte Foundation, rejected the lexical input with
+exit 1 and the 87-byte diagnosis plus the CLI's terminating LF, then formatted
+the valid literal. The native observation projects matched the materialized
+browser projects. Installed `towerc --test --test-details` ran each project
+by owner and direct companion at both widths, one declaration at line 4 per
+selection. These owners carry live formatter results and oracles supplied by
+the test transport. The packet includes them for direct native replay.
+Both wrong oracles failed at line 5 column 5 and passed after restoration
+in both native selection modes at both widths. The existing static increment
+example and its companion also passed normally at both widths.
+
+Ordinary `--library --emit object` compilation of
+`scaffolding/compiler/syntax_session_format.tower` in the pristine and
+candidate trees produced the same object (SHA-256
+`81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9`)
+and depfile after replacing checkout prefixes. All test declarations and
+inputs were absent from its dependencies. ASan/LSan and initialized TSan
+executed the five assertion bodies as ordinary Tower guest functions.
+The public host runtime passed both, with 14 TSan startups denied at the
+host ASLR personality check before initialization succeeded. The separate
+guest-test-runtime runs passed on their first launches. These are serial
+guest checks. The project LLVM tool exposes address and thread modes.
+
+Three serial pairs of fresh Node processes ran on an AMD Ryzen 9 7900X
+under Linux x64 with warm files, affinity CPUs 0–3, effective cpuset 0–23,
+quota 2304000/100000 and a 63,577,260,032-byte limit. The command was
+`node --test --test-concurrency=1 playground/tests/formatting.test.mjs`.
+Median wall / user+system CPU / peak RSS changed from
+0.40 s / 0.55 s / 133,344 KiB to 0.56 s / 0.76 s / 132,372 KiB. The cost
+includes compiling and executing the five extra Tower assertion sessions.
+An initial two-reactor trial took 0.77 s and 162,520 KiB. Reusing the subject
+reactor after releasing each formatter handle retained the exact observations.
+The browser API results carry no per-case allocation or worker-overlap
+counters. The native job counts qualify selection and identical results.
+Host-8 packet `97b92e94-be33-404e-8e6e-d3afd8811a02` retains the individual
+named runs, native projects, raw bytes, commands, diagnostics and controls.
+Manager review and publication remain open.
+
+A second three-pair series on CPU 0 alone measured medians of
+0.57 s / 0.56 s / 132,780 KiB before and 0.78 s / 0.77 s / 132,012 KiB
+after on the assigned base. During handoff public main advanced to
+`cd21d55c`. The local rebase retained the concurrent generic-input LF rule
+alongside the formatting rule. All five tests passed again, every captured
+result and selected project matched the assigned-base run, and the production
+object and normalized dependencies matched. Replacing the real refusal at the
+observation boundary with a different error, then separately with a success,
+failed only the lexical test at the same Tower assertion. Restoring the public
+response passed all five. Both focused bundles are in the packet.
+
+### Running the five source-format checks from the production owner
+
+Host 2, assignment `bc445be1-3cc3-4e57-8326-73b5bdaa1d80`. The eight
+manifest members and the 961,034-byte predecessor archive matched their
+declared SHA-256 values. The verified integration bundle adds `dacbbccc`
+to public `cd21d55c`. Its five companions compared strings in owner modules
+materialized by JavaScript. The installed native acceptance condition was to
+open `compiler/syntax_session_format.tower` itself with `--test`, format the
+original sources, and fail at a Tower comparison on a changed raw oracle.
+
+All five run in one linked guest using `--test-suffix _cases_test.tower`.
+Each also has a separate selector. The adjacent case functions share the
+raw sources and oracles with the browser. Declarations check both formatting
+passes, compile the first result, compare the emitted 1,087 bytes of
+Foundation with the retained oracle and source-format that emission. Comments
+check the replacement invocation, all four comments and the untouched literal.
+The lexical case requires successful parsing, a real format refusal and the
+exact diagnostic, followed by successful formatting of the literal. Increment
+joins the current builtin and the 308-byte suffix, checks both passes and
+formats the existing teaching example. Affixes check nested prefix, postfix
+and infix spelling on both passes.
+
+The installed driver discovers unrelated dependencies' companions with its
+default suffix. The first failure is the conflicting foreign declaration of
+`frontend_modules_test_input_root` in `test_file_rule_test.tower`. A test
+suffix isolates this owner. A straight static link against the retained
+parser provider failed on duplicate `node_payload_size`. The owner includes
+part of that compiled unit. The focused native target links parser, semantics,
+entities, utilities, allocation and the ordinary evaluation provider into a
+shared library. The initial interpreter provider left seven driver callbacks
+unresolved. The evaluation provider supplies its invocation host and the
+final link checks definitions. The guest statically links the small Tower test
+host. That host uses `driver_read_file`, explicit syntax sessions,
+`syntax_format_into` and the ordinary Foundation emitter. Changing only the
+refusal string in the checked-in production owner failed the located assertion
+with both linked provider hashes held fixed. Restoring the owner passed.
+
+The scoped fixture interpreter grants the selected owner's own source and
+same-stem oracle. The tests here read other siblings. On this release a linked
+operators companion requiring that service failed with undefined ELF symbol
+`test_fixture_load`. The unlinked formatter selection reported the missing
+interpreter binding for `format_case_read`. The commands and the supported
+Linux GNU test ABI are in the [test README](../scaffolding/tests/README.md#testing-the-production-source-formatter).
+
+All five original browser names passed singly and together with the unchanged
+public reactor `41bb9b11`. The assertion interpreter uses the checked-in helper
+and per-name companion. Its three foreign calls transport raw file bytes,
+a public format response, or the public Foundation response. Formatting
+reselects the subject entry before opening the handle. The compiler and
+assertions can reuse the same reactor. A two-reactor trial and the final
+single-reactor run matched all numbered observations. An initial single-
+reactor edit retained an obsolete variable name and failed all five.
+Compiling the whole formatter as the browser assertion owner worked for
+comments but cost 8.09 s and 454,368 KiB for that one selection.
+A byte comparison at the public API boundary matched all 38 predecessor
+records, including span arrays and terminal parser events, as well as the
+three post-refusal recovery records. The browser additionally closed a live
+parse after the first declaration at offset 18, then observed the released
+handle's rejection before the refusal and recovery sequence.
+
+Removing the spaces in the affix oracle and independently replacing the
+refusal oracle each failed the selected native comparison. They pointed to
+`syntax_session_format_cases.tower` at 26:5 and 79:5 respectively.
+Each mutation failed just its browser name. Both restorations passed.
+The normal library object and its normalized depfile compared equal across
+the two local trees and the predecessor packet. The 564,240-byte object
+retained SHA-256 `81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9`.
+The normal object, executable link inputs and public package inventory
+exclude the new test resources. The optional repository formatting inventory
+leaves the six raw subjects to their exact-byte tests.
+
+Measurements used fresh processes, warm files, a host timing lock, Node
+24.22.3, the installed Linux x64 compiler `7315b86e`, and identical subject
+bytes. The Ryzen 5 3600 has six cores, twelve hardware threads, effective
+cpuset 0–11, quota 1,152,000/100,000 and a 32,222,740,480-byte memory limit.
+Wall and user-plus-system CPU are seconds. RSS is KiB. Browser entries are
+medians of three alternating pairs, with the maximum RSS over the three runs.
+Native entries are single observations on affinity 0–3, with both the source
+and output checked. The predecessor native command collects the live CLI
+outputs, materializes and verifies each owner and runs its five interpreted
+tests. The successor includes compilation, native link and execution of the
+real owner once for all five. Building the reusable providers is outside
+these measurements.
+
+| Workload | Before wall / CPU / peak RSS | After wall / CPU / peak RSS |
+| --- | --- | --- |
+| Five browser names, affinity 0 | 1.21 / 1.20 / 137512 | 1.28 / 1.27 / 144528 |
+| Five browser names, affinity 0–3 | 0.97 / 1.44 / 136096 | 0.99 / 1.54 / 141892 |
+| Native end to end, jobs 1 | 3.95 / 3.91 / 85144 | 12.76 / 12.79 / 622592 |
+| Native end to end, jobs 4 | 4.37 / 4.60 / 95320 | 11.62 / 14.17 / 642708 |
+
+Running five separate native owner compiles initially took 60.44 s. Grouping
+the same declarations amortizes compilation. The compiler job setting applies
+to guest preparation. The public reactor and the linked fixture expose no
+per-case allocator or overlap counters. These numbers measure the cost of
+testing the owner. No production formatter source changed. The manager owns
+publication and the packet keeps the source history, checks, timings, controls
+and replay inputs.
+
+The existing optional language kit's count checker enforces the complete
+five-test summary and the driver's exit status for the focused CTest.
+The installed driver also ran all five with the native test host instrumented
+under ASan/LSan and TSan. Its ELF linker rejected the directly instrumented
+objects with an unsupported profile or relocation. Linking those same host
+functions as PIC shared objects allowed both installed runs to complete.
+A separate Tower replay exercised the case functions, checked-in formatter
+and test host with instrumentation on all three. Both runs exited zero,
+reported completion through the real guest test runtime and emitted no
+sanitizer finding. Their maps and hook excerpts identify the instrumented
+functions. The unchanged service DSO supplies the native allocator and Linux
+work transport. The replay covers these case calls serially. The Tower LLVM
+instrumenter exposes address and thread modes. Source-level UBSan and a
+fully instrumented published browser reactor remain outside this evidence.

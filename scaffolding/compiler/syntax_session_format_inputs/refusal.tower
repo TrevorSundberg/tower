@@ -1,0 +1,1 @@
+skip Whitespace = /~+/;parse~Statement~=~'x''y'';';x~y;

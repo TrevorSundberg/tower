@@ -1,0 +1,107 @@
+import library.testing;
+import library.test_fixtures;
+
+// Both hosts return an owned, NUL-terminated copy and its exact byte count.
+extern fn format_case_read(path: u8*, size: usize*): u8*;
+extern fn format_case_apply(input: u8*, refusal: bool, size: usize*): u8*;
+extern fn format_case_foundation(input: u8*, size: usize*): u8*;
+
+fn case_file(path: u8*): FixtureBytes {
+    var bytes: FixtureBytes = default;
+    bytes.data = format_case_read(path, &bytes.length);
+    assert(bytes.data is not null, path);
+    return bytes;
+}
+
+fn case_format(source: u8*, refusal: bool): FixtureBytes {
+    var bytes: FixtureBytes = default;
+    bytes.data = format_case_apply(source, refusal, &bytes.length);
+    assert(bytes.data is not null, "Expected formatter outcome");
+    return bytes;
+}
+
+fn case_check_twice(source: u8*, wanted: FixtureBytes): void {
+    var first = case_format(source, false);
+    defer free(first.data);
+    assert(fixture_equal(first, wanted), "Canonical source bytes");
+    var second = case_format(first.data, false);
+    defer free(second.data);
+    assert(fixture_equal(second, first), "Canonical source changed on second format");
+}
+
+fn case_unchanged(path: u8*): void {
+    var input = case_file(path);
+    defer free(input.data);
+    var actual = case_format(input.data, false);
+    defer free(actual.data);
+    assert(fixture_equal(actual, input), path);
+}
+
+fn check_format_declarations(): void {
+    var input = case_file("compiler/syntax_session_format_inputs/declarations.tower");
+    defer free(input.data);
+    var wanted = case_file("compiler/syntax_session_format_inputs/declarations.expected");
+    defer free(wanted.data);
+    var formatted = case_format(input.data, false);
+    defer free(formatted.data);
+    assert(fixture_equal(formatted, wanted), "Declaration spacing and indentation");
+    var second = case_format(formatted.data, false);
+    defer free(second.data);
+    assert(fixture_equal(second, formatted), "Declaration second pass");
+    var canonical: FixtureBytes = default;
+    canonical.data = format_case_foundation(formatted.data, &canonical.length);
+    defer free(canonical.data);
+    assert(canonical.data is not null, "Emit canonical Foundation");
+    var foundation_bytes = case_file("compiler/syntax_session_format_inputs/declarations_foundation.expected");
+    defer free(foundation_bytes.data);
+    assert(fixture_equal(canonical, foundation_bytes), "Emitted Foundation bytes");
+    var again = case_format(canonical.data, false);
+    defer free(again.data);
+    assert(fixture_equal(again, canonical), "Canonical Foundation changed on source format");
+}
+
+fn check_format_comments(): void {
+    var input = case_file("compiler/syntax_session_format_inputs/comments.tower");
+    defer free(input.data);
+    var wanted = case_file("compiler/syntax_session_format_inputs/comments.expected");
+    defer free(wanted.data);
+    case_check_twice(input.data, wanted);
+    case_unchanged("compiler/syntax_session_format_inputs/literal.tower");
+}
+
+fn check_format_refusal(): void {
+    var input = case_file("compiler/syntax_session_format_inputs/refusal.tower");
+    defer free(input.data);
+    var wanted = case_file("compiler/syntax_session_format_inputs/refusal.expected");
+    defer free(wanted.data);
+    var diagnostic = case_format(input.data, true);
+    defer free(diagnostic.data);
+    assert(fixture_equal(diagnostic, wanted), "Expected the changed-parse refusal");
+    case_unchanged("compiler/syntax_session_format_inputs/literal.tower");
+}
+
+fn check_format_increment(): void {
+    var definitions = case_file("tests/increment_builtin.tower");
+    defer free(definitions.data);
+    var suffix = case_file("compiler/syntax_session_format_inputs/increment_suffix.tower");
+    defer free(suffix.data);
+    var size = definitions.length + suffix.length;
+    assert(size >= definitions.length && size < ~convert(usize, 0));
+    var source = alloc(u8, size + 1);
+    assert(source is not null);
+    defer free(source);
+    copy(source, definitions.data, definitions.length);
+    copy(source + definitions.length, suffix.data, suffix.length + 1);
+    var wanted = case_file("compiler/syntax_session_format_inputs/increment.expected");
+    defer free(wanted.data);
+    case_check_twice(source, wanted);
+    case_unchanged("examples/increment.tower");
+}
+
+fn check_format_affixes(): void {
+    var input = case_file("compiler/syntax_session_format_inputs/affixes.tower");
+    defer free(input.data);
+    var wanted = case_file("compiler/syntax_session_format_inputs/affixes.expected");
+    defer free(wanted.data);
+    case_check_twice(input.data, wanted);
+}
