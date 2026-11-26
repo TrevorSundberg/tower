@@ -1,0 +1,123 @@
+import library.testing;
+import .compiler.lr_work;
+import .compiler.lr_runtime;
+import .compiler.lr_types;
+import .compiler.lr_analysis;
+import .compiler.lr_states;
+import .compiler.lr_lalr;
+import .library.work_vector;
+import .library.work_buffer;
+import .library.work_vector_types;
+import .library.work_budget;
+import .library.work_arena_api;
+
+test() { assert(lr_ordered_row_budget_trial(), "Ordered LR row budget, retry or borrowed input failed"); }
+test() { assert(lr_action_owner_trial(false), "Unbounded LR action owner or stable reuse failed"); }
+test() { assert(lr_action_owner_trial(true), "Bounded LR action denial, transfer or stable reuse failed"); }
+
+// Literal shift output exercises the real action kernel's first private chunk,
+// refusal/retry, joined transfer and subsequent serial reuse of stable storage.
+fn lr_action_owner_trial(bounded: bool): bool {
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 1, 1048576, 1) { return false; }
+    defer { if budget.used_bytes != 0 || budget.used_lanes != 0 || !work_budget_dispose(&budget) { trap("LR action trial retained budget owners", 0); } }
+    var ledger = bounded ? &budget : null;
+    var rule: LRProduction = {count: 1, ..default};
+    var symbol: LRSymbol = {nonterminal: lr_none(), first: 65, last: 67};
+    var error = WorkBudgetError.None;
+    var analysis = lr_analysis_create_budget_result(&rule, 1, &symbol, 1, 1, ledger, &error);
+    defer lr_analysis_destroy(analysis);
+    if analysis == null || !lr_analysis_compute(analysis) { return false; }
+    var states = lr_states_create_result(analysis, &error);
+    defer lr_states_destroy(states);
+    if states == null { return false; }
+    var graph = lr_states_propagation_begin_result(states, false, &error);
+    defer lr_propagation_destroy(graph);
+    if graph == null { return false; }
+    var result: work_vector(LRAction) = default;
+    var task: LRActionTask = {states: states, lookahead: graph, results: &result, count: 1, ..default};
+    compiler_lr_action_kernel(bits(void*, &task));
+    if task.resource_error != WorkBudgetError.Invalid || result.data != null { return false; }
+    if !work_arena_init(&task.scratch, ledger, states.records.chunk_bytes) { return false; }
+    defer work_arena_dispose(&task.scratch);
+    var state = states.states.data[0];
+    var original = state.actions.data;
+    if bounded {
+        var before: WorkBudgetSnapshot = default;
+        if !work_budget_snapshot(&budget, &before) { return false; }
+        var hold: WorkReservation = default;
+        if work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &hold) != WorkBudgetError.None { return false; }
+        defer {
+            if hold.active && work_budget_release_result(&budget, &hold) != WorkBudgetError.None {
+                trap("LR action trial lost competing grant", 0);
+            }
+        }
+        compiler_lr_action_kernel(bits(void*, &task));
+        var refused = task.resource_error == WorkBudgetError.Capacity && result.data == null
+            && task.scratch.first == null && state.actions.data == original && state.actions.length == 0
+            && budget.used_bytes == before.used_bytes + hold.bytes && budget.live == before.live + 1
+            && budget.used_lanes == before.used_lanes;
+        if work_budget_release_result(&budget, &hold) != WorkBudgetError.None || !refused { return false; }
+    }
+    compiler_lr_action_kernel(bits(void*, &task));
+    if task.resource_error != WorkBudgetError.None || result.length != 1 || state.actions.length != 0
+        || state.actions.data != original || result.data[0].first != 65 || result.data[0].last != 67
+        || result.data[0].rule != lr_none() || result.data[0].state != 1 { return false; }
+    var chunk = task.scratch.first;
+    if chunk == null || task.scratch.last != chunk { return false; }
+    if bounded {
+        var foreign: WorkArena = default;
+        if !work_arena_init(&foreign, null, states.records.chunk_bytes) { return false; }
+        defer work_arena_dispose(&foreign);
+        if work_arena_append(&foreign, &task.scratch) || foreign.first != null || foreign.last != null
+            || task.scratch.first != chunk || task.scratch.last != chunk { return false; }
+    }
+    if !work_arena_init(&states.action_storage, ledger, states.records.chunk_bytes)
+        || !work_arena_append(&states.action_storage, &task.scratch) || task.scratch.first != null
+        || task.scratch.last != null || states.action_storage.first != chunk || states.action_storage.last != chunk { return false; }
+    state.actions = result;
+    var stable = state.actions.data;
+    return !state.actions_owned && lr_lalr_state_actions_result(states, graph, 0, &state.actions) == WorkBudgetError.None
+        && state.actions.data == stable && state.actions.length == 1 && state.actions.data[0].first == 65
+        && state.actions.data[0].last == 67 && state.actions.data[0].rule == lr_none() && state.actions.data[0].state == 1;
+}
+
+// A non-power-of-two sorted row must fit its actual input charge. Normalizing
+// its private copy must leave the state's terminal ranges untouched.
+fn lr_ordered_row_budget_trial(): bool {
+    var entries: LRAction[17] = default;
+    var count = sizeof(decltype(entries)) / sizeof(LRAction);
+    for(var i: usize = 0; i < count; i++) {
+        var terminal = convert(u32, i);
+        entries[i] = {first: terminal, last: terminal, rule: lr_none(), state: 1};
+    }
+    var input: work_vector(LRAction) = {data: &entries[0], length: count, capacity: count, ..default};
+    var budget: WorkBudget = default;
+    if !work_budget_init(&budget, 1, compiler_buffer_allocation_size(sizeof(decltype(entries))), 1) { return false; }
+    defer { if budget.used_bytes != 0 || budget.used_lanes != 0 || !work_budget_dispose(&budget) { trap("Ordered LR row retained a grant", 0); } }
+    var row: LRRow = {budget: &budget, ..default};
+    defer work_vector_dispose(&row.actions);
+    var hold: WorkReservation = default;
+    if work_budget_reserve_result(&budget, 0, 0, 1, &hold) != WorkBudgetError.None { return false; }
+    var error = WorkBudgetError.None;
+    var refused = !lr_row_collect(&row, &input, &error) && error == WorkBudgetError.Capacity
+        && row.actions.data == null && row.actions.length == 0 && budget.used_bytes == hold.bytes && budget.live == 1;
+    if work_budget_release_result(&budget, &hold) != WorkBudgetError.None || !refused { return false; }
+    if !lr_row_collect(&row, &input, &error) || error != WorkBudgetError.None
+        || row.actions.length != count || row.actions.data == input.data
+        || budget.live != 1 || budget.used_bytes != budget.bytes { return false; }
+
+    // A later row cannot charge a second copy while the accepted row is live.
+    var next: LRRow = {budget: &budget, ..default};
+    defer work_vector_dispose(&next.actions);
+    if lr_row_collect(&next, &input, &error) || error != WorkBudgetError.Capacity
+        || next.actions.data != null || next.actions.length != 0
+        || budget.live != 1 || budget.used_bytes != budget.bytes { return false; }
+    for(var i: usize = 0; i < count; i++) {
+        var action = &row.actions.data[i];
+        if action.first != convert(u32, i) || action.last != action.first
+            || action.rule != lr_none() || action.state != 1 { return false; }
+    }
+    row.actions.data[0].last = row.actions.data[count - 1].last;
+    return entries[0].last == 0 && input.length == count;
+}
