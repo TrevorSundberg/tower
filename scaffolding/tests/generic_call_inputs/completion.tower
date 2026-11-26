@@ -1,0 +1,1 @@
+import tower; fn choose(T:type,a:T,b:T):T{return a;} var wide:i64=42; var narrow:i32=1; choose(wide, );

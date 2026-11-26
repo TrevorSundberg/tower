@@ -108704,3 +108704,53 @@ At jobs 1 and 4, both native entries selected the same two test coordinates. Sep
 All ten external names and statuses matched. The original and migrated raw event streams, including grammar metadata, matched byte for byte. Changing the `missing_eof` expectation from 28 to 29 failed the named delimiter case at the Tower offset assertion. Restoring 28 passed. The subject's 32 create/destroy pairs and single reset matched in exposed node and allocation counts at every observed boundary. The migrated subject used one extra 64 KiB Wasm page at some intermediate observations. Final subject memory was 18,153,472 bytes with 6,913 live nodes. The assertion reactor reached 32,702,464 bytes of linear memory, with 14,877 nodes after each test handle was destroyed. The production allocation counter returned zero throughout.
 
 Host 4 ran Debian 12 on a Ryzen 7 5800H, 16 logical CPUs available, quota 15.36 CPUs. GNU time wrapped fresh Node 24.22.3 processes pinned to CPUs 0,2,4,6, using the serial portable release, a warm filesystem and the shared timing lock. Three matched pairs, alternating order, gave median wall / user+system seconds / peak RSS KiB of 0.45 / 0.66 / 117468 before and 1.90 / 2.37 / 159936 after. The added cost includes compiling and executing the ten Tower selections. Native owner/direct wall times were 0.58/0.58 seconds at one job and 0.66/0.65 at four. Memcheck on direct discovery at one job and DRD at four completed with zero reported errors. Memcheck reported 151,054 bytes still reachable and zero lost bytes. Its initial startup failed until the matching glibc debug symbols were available at the loader path. The frozen binaries have no source-level ASan, UBSan or TSan instrumentation. This migration changes the tests and fixtures. The review archive contains the commands, installed input hashes, raw events, mutation results, process measurements and local bundle. Publication belongs to the manager.
+### Generic call deduction in the semantic owner and released engines
+
+Host 3, assignment 0cc1c28a-5893-4b5d-a724-c1efd3efb1cf. The input was
+public main `3ca5e7cc`. The migration is `3e634eb4`. The original suite
+ran first with the installed Pages portable (`41bb9b11`) and ordinary LLVM
+(`15b4f33b`) reactors. Their distributed blobs matched Pages `c9773ec3`.
+The native driver was the checked-in `7315b86e` compiler with checkout grammar
+resources. All three products stayed fixed throughout the comparison.
+
+The seven Node registrations retain their names and order. The semantic
+[companion](../scaffolding/compiler/semantic_call_inference_test.tower) uses
+the existing cast-inference functions, the scalar worker kernel and the new
+ordinary input modules. Browser tests read counted observations through the
+existing inference test ABI. The graph and fast interpreters run the source
+and reparse its full Foundation at both pointer widths. The LLVM reactor
+compiles source and Foundation, then the Wasm host runs both guests.
+The editor request still completes the missing second operand and formats the
+checked source. A Tower test counts one id(i64) definition across inferred and
+explicit calls. The seven invalid inputs preserve the original byte positions.
+
+Both revisions passed 7/7. A transport trace compared 66 portable executions,
+all 59 emitted Foundation texts, 14 emitted Wasm binaries and their stdout,
+the ordered completion options and formatted text. All matched, including
+the source file, byte offset, message and empty output of each rejection.
+The new worker fixture imports inferred_parallel_unit in place of concatenating
+a source string. Its canonical output and both guest binaries matched.
+The native owner selected 41 existing and seven new declarations in total.
+Direct selection ran the seven new tests. Both paths passed at jobs 1 and 4,
+as did the two generated direct CTests. Changing 39 to 40 failed at native
+companion line 67. Changing the raw worker oracle separately failed in the
+browser Tower byte comparison. Both restored selections passed.
+
+A warm-filesystem pair used the captured original source bytes, the same
+module inventory and fresh Node 24.22.3 processes on an EPYC 7542. Affinity
+was CPUs 0–3 and the cgroup quota was 1,228,800 µs per 100,000 µs.
+The original and migrated suites used 20.20/13.61 s wall, 5.67/6.98 s CPU
+and 261,500/296,956 KiB maximum RSS respectively. One sample per endpoint
+includes process startup and compilation of the test declarations. The new
+suite opens a second interpreter for the Tower assertions. This pair measures
+test cost and supports no compiler speedup claim.
+
+The ordinary argument-order, collection and worker guests also produced exact
+stdout with ASan/LSan and TSan using instrumented emitted IR and the public
+host runtime. An initial link driver invocation ran ASan on already instrumented
+IR a second time and crashed in next(). Compiling each instrumented module
+to an object before the sanitizer link corrected the measurement. These are
+scalar guest checks. The portable/LLVM compilers are the released uninstrumented
+products and Tower has no source-level UBSan for these fixtures. The evidence
+packet contains the failed attempt, all run commands, raw observations and
+source ancestry for manager review.

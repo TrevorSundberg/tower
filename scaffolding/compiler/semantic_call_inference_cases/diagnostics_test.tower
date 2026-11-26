@@ -1,0 +1,40 @@
+import compiler.semantic_types_test.observations;
+import backend.text;
+
+extern fn deduction_execute(name: u8*): usize;
+
+fn reject(name: u8*, offset: usize, message: u8*): void {
+    assert(deduction_execute(name) == offset, name);
+    var status = observation("status");
+    defer free(status.data);
+    assert(backend_equal(status.data, "error"), name);
+    var file = observation("errorFile");
+    defer free(file.data);
+    assert(backend_equal(file.data, "input.tower"), name);
+    var error = observation("error");
+    defer free(error.data);
+    assert(backend_equal(error.data, message), name);
+    var output = observation("output");
+    defer free(output.data);
+    assert(output.length == 0, name);
+}
+
+test() {
+    var cannot_infer = "Cannot infer type argument 'T'; pass explicit type arguments";
+    reject("invalid/conflicting", 83, "Conflicting inferred types for 'T'");
+    reject("invalid/return_only", 59, cannot_infer);
+    reject("invalid/null_only", 45, cannot_infer);
+    reject("invalid/arity", 45, "Wrong argument count for template 'id'");
+    reject("invalid/range", 76, "Integer literal out of range for u8");
+    reject("invalid/nominal", 155, cannot_infer);
+    reject("invalid/fixed_count", 155, "Expected buffer(i32, 2)*, got buffer(i32, 3)*");
+
+    inference_select("explicit");
+    var wanted = observation("expected");
+    defer free(wanted.data);
+    deduction_execute("explicit_call");
+    var status = observation("status");
+    defer free(status.data);
+    assert(backend_equal(status.data, "done"));
+    expect_bytes("output", wanted);
+}
