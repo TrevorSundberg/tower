@@ -1,0 +1,65 @@
+import session;
+import backend.text;
+import library.vector;
+
+fn fragment_offset(text: u8*, fragment: u8*): usize {
+    var at: usize = 0;
+    while text[at] != 0 && !backend_prefix(text + at, fragment) { ++at; }
+    return at;
+}
+
+fn replace_first(text: u8*, before: u8*, after: u8*): u8* {
+    var match_at = fragment_offset(text, before);
+    var out: vector(u8) = default;
+    assert(backend_text_append(&out, text, match_at));
+    if text[match_at] != 0 {
+        assert(backend_text(&out, after));
+        assert(backend_text(&out, text + match_at + backend_length(before)));
+    }
+    return out.data;
+}
+
+fn append_crlf(out: vector(u8)*, text: u8*): void {
+    var line: usize = 0;
+    for (var at: usize = 0; text[at] != 0; ++at) {
+        if text[at] == *"\n" {
+            assert(backend_text_append(out, text + line, at - line));
+            assert(backend_text(out, "\r\n"));
+            line = at + 1;
+        }
+    }
+    assert(backend_text(out, text + line));
+}
+
+test() {
+    var foundation = storage_source("foundation");
+    defer free(foundation);
+    var syntax = storage_source("foundation_syntax");
+    defer free(syntax);
+    var bedrock = storage_source("bedrock");
+    defer free(bedrock);
+    var custom_bedrock = replace_first(bedrock, "[A-Za-z0-9_]*", "[A-Za-z0-9_-]*");
+    defer free(custom_bedrock);
+    assert(!backend_equal(custom_bedrock, bedrock), "Use the customized Bedrock Identifier");
+    var core = syntax + fragment_offset(syntax, "parse CoreType");
+    assert(*core != 0, "Foundation grammar begins at CoreType");
+    // In versions without a print literal the original edit is a no-op.
+    var grammar = replace_first(core, "'print'", "'emit'");
+    defer free(grammar);
+    var preamble = storage_source("full_preamble");
+    defer free(preamble);
+    var saved: vector(u8) = default;
+    defer vector_dispose(&saved);
+    append_crlf(&saved, preamble);
+    append_crlf(&saved, grammar);
+
+    var upgraded = select_foundation(foundation, saved.data, foundation, custom_bedrock);
+    defer free(upgraded);
+    var custom = "\ntoken Number = /[0-9]+/ as number;\n// my grammar\n";
+    assert(backend_prefix(upgraded, foundation), "Bundled Foundation prefix");
+    reject_inherited_declarations(upgraded, true);
+    var overrides = upgraded + backend_length(foundation);
+    assert(backend_prefix(overrides, custom), "Keep Number and the user's grammar comment");
+    assert(backend_equal(overrides + backend_length(custom), grammar), "Complete edited grammar");
+    check_selection(foundation, upgraded, foundation, custom_bedrock, upgraded);
+}

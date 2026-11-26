@@ -1,0 +1,14 @@
+import session;
+
+test() {
+    var foundation = storage_source("foundation");
+    defer free(foundation);
+    var legacy = storage_source("legacy");
+    defer free(legacy);
+    var bedrock = storage_source("bedrock");
+    defer free(bedrock);
+
+    check_selection(foundation, legacy, null, bedrock, foundation);
+    check_selection(foundation, legacy, "old bundled module", bedrock, foundation);
+    check_selection(foundation, legacy, foundation, bedrock, foundation);
+}

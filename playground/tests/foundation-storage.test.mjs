@@ -1,50 +1,42 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { selectFoundation } from '../src/foundation-storage.mjs';
-import { readFile } from 'node:fs/promises';
-const legacy = await readFile(new URL('./fixtures/foundation_legacy.tower', import.meta.url), 'utf8');
-const foundation = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
-const foundationSyntax = await readFile(new URL('../../scaffolding/foundation_syntax.tower', import.meta.url), 'utf8');
-const bedrock = await readFile(new URL('../../scaffolding/bedrock.tower', import.meta.url), 'utf8');
+import {readFileSync} from 'node:fs';
+import {test} from 'node:test';
+import {selectFoundation} from '../src/foundation-storage.mjs';
+import {guestString} from './guest_text.mjs';
+import {moduleText, selectedCases} from './module_case_host.mjs';
 
-test('the old lexer shown in the editor upgrades even when a newer baseline was already saved', async () => {
-  for (const baseline of [null, 'old bundled module', foundation]) {
-    assert.equal(await selectFoundation(foundation, legacy, baseline, { bedrock }), foundation);
+const fixtures = new Map([
+  ...['foundation', 'bedrock', 'foundation_syntax'].map(name => [name, '../../scaffolding/' + name + '.tower']),
+  ['legacy', './fixtures/foundation_legacy.tower'],
+  ...['full_preamble', 'edited_lexer', 'lexical_overrides'].map(name => [name, './foundation_storage_cases/inputs/' + name + '.tower']),
+].map(([name, path]) => [name, readFileSync(new URL(path, import.meta.url), 'utf8')]));
+
+let pending, result;
+async function settle() {
+  try { await pending; }
+  finally { pending = undefined; }
+}
+const check = selectedCases('foundation_storage_cases', {
+  storage_source: (ctx, name) => moduleText(ctx, fixtures.get(guestString(ctx, name))),
+  storage_start(ctx, bundled, saved, baseline, bedrock) {
+    if (pending) throw new Error('A Foundation selection is still pending');
+    const text = pointer => pointer ? guestString(ctx, pointer) : null;
+    const args = [text(bundled), text(saved), text(baseline)];
+    if (bedrock) args.push({bedrock:text(bedrock)});
+    pending = selectFoundation(...args).then(value => { result = value; });
+  },
+  storage_pending: () => Boolean(pending),
+  storage_result: ctx => moduleText(ctx, result),
+}, settle);
+
+async function run(name) {
+  try { await check(name, 2048); }
+  finally {
+    try { await settle(); }
+    finally { result = undefined; }
   }
-});
+}
 
-test('upgrading an old full Foundation removes inherited defaults and preserves custom grammar', async () => {
-  const lexical = legacy.split('\n').filter(line => /^(?:skip |token (?:Identifier|String) )/.test(line)).join('\n');
-  const header = legacy.split('\n').slice(0, 2).join('\n');
-  const grammar = foundationSyntax.slice(foundationSyntax.indexOf('parse CoreType')).replace("'print'", "'emit'");
-  const saved = header + '\n' + lexical + '\ntoken Number = /[0-9]+/ as number;\n// my grammar\n' + grammar;
-  const customBedrock = bedrock.replace('[A-Za-z0-9_]*', '[A-Za-z0-9_-]*');
-  const upgraded = await selectFoundation(foundation, saved.replaceAll('\n', '\r\n'), foundation, {bedrock:customBedrock});
-  assert.ok(upgraded.startsWith(foundation));
-  assert.doesNotMatch(upgraded, /^(?:skip (?:Whitespace|LineComment|BlockComment)|token (?:Identifier|String))\b/m);
-  assert.ok(upgraded.includes('// my grammar\n' + grammar));
-  assert.ok(upgraded.includes('token Number = /[0-9]+/ as number;'));
-  assert.equal(await selectFoundation(foundation, upgraded, foundation, {bedrock:customBedrock}), upgraded);
-});
-
-test('custom lexical edits survive upgrading the legacy lexer-only module', async () => {
-  const saved = legacy.replace('token Identifier = /[A-Za-z_][A-Za-z0-9_]*/', 'token Identifier = /@[a-z]+/')
-    .replace('token Number = /[0-9]+/', 'token Number = /[0-9]+(\\.[0-9]+)?/') + '// custom lexer\n';
-  const upgraded = await selectFoundation(foundation, saved, foundation, {bedrock});
-  assert.ok(upgraded.includes('token Identifier = /@[a-z]+/ as identifier;'));
-  assert.ok(upgraded.includes('token Number = /[0-9]+(\\.[0-9]+)?/ as number;'));
-  assert.ok(upgraded.includes('// custom lexer'));
-  assert.ok(upgraded.startsWith(foundation));
-  assert.ok(upgraded.includes('import foundation_syntax;'));
-  assert.ok(foundationSyntax.includes('parse CoreFunction'));
-  assert.doesNotMatch(upgraded, /^skip (?:Whitespace|LineComment|BlockComment)\b/m);
-  assert.equal(await selectFoundation('unrecognized bundled module', saved, foundation, {bedrock}), saved);
-});
-test('bundled updates replace untouched defaults and preserve edited or unrecognized modules', async () => {
-  assert.equal(await selectFoundation('new module', null, null), 'new module');
-  assert.equal(await selectFoundation('new module', 'old module', 'old module'), 'new module');
-  assert.equal(await selectFoundation('new module', 'custom module', 'old module'), 'custom module');
-  assert.equal(await selectFoundation('new module', 'unknown old module', null), 'unknown old module');
-  assert.equal(await selectFoundation('new module', '', null), '');
-  assert.equal(await selectFoundation('new module', 'old\r\nmodule', 'old\nmodule'), 'new module');
-});
+test('the old lexer shown in the editor upgrades even when a newer baseline was already saved', () => run('session_old_lexer'));
+test('upgrading an old full Foundation removes inherited defaults and preserves custom grammar', () => run('session_full_grammar'));
+test('custom lexical edits survive upgrading the legacy lexer-only module', () => run('session_lexical_edits'));
+test('bundled updates replace untouched defaults and preserve edited or unrecognized modules', () => run('session_defaults'));
