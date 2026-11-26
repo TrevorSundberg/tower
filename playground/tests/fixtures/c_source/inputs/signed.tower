@@ -1,0 +1,1 @@
+import foundation; export fn signed32(value:i32):i32 { return value; } export fn signed64(value:i64):i64 { return value; }

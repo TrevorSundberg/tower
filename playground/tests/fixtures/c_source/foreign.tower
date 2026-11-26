@@ -1,0 +1,15 @@
+import observations;
+import backend.text;
+
+extern fn c_emit_error(handle: u32): u8*;
+
+test() {
+    var handle = c_open("foreign.tower");
+    defer c_release(handle);
+    var error = c_emit_error(handle);
+    assert(error != null, "C emission unexpectedly succeeded");
+    defer free(error);
+    var wanted = c_input("foreign.expected");
+    defer free(wanted);
+    assert(backend_equal(error, wanted), "Foreign C ABI diagnostic");
+}
