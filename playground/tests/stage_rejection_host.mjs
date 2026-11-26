@@ -40,7 +40,7 @@ function checkObservation(checker, name, backend, pointerBytes, observation) {
  readMessage = false;
  portable = backend === 'portable';
  try {
-  const entry = `${directory}${name}_browser.tower`;
+  const entry = `${directory}${name}_browser_test.tower`;
   runSelectedTest(checker, entry, 10, {pointerBytes, suffix:'_browser_test.tower'});
   if (!readMessage) throw new Error(entry + ' did not read the subject diagnostic');
  } catch (error) {

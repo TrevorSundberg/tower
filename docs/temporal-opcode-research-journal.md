@@ -112418,3 +112418,16 @@ rejected all 24 inputs. Expected-diagnostic support remains a separate task.
 The production compiler and Wasm reactors were reused. The evidence measures
 the public test path. Sanitizer compiler builds, CI and publication are
 outside this focused run. The manager owns publication.
+
+### Names of the staged diagnostic assertion files
+
+The published browser suite selects one Tower assertion for each invalid source
+and backend. The 24 original source fixtures must keep their names because the
+diagnostic compares the input filename. The assertion files now end in
+`_browser_test.tower` beside those inputs. The browser driver uses its existing
+configured companion suffix. The 24 assertion file contents, the actual invalid
+inputs, the expected locations and the required and forbidden frames are
+byte-identical to the set verified in receipt
+`2ef2ae68-7529-4363-9ceb-9d5e887ae707`. That run exercised all 48 negative
+registrations and all 88 entries in the file. Execution after the rename is
+tracked separately.
