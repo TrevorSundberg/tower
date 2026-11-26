@@ -111048,3 +111048,166 @@ UBSan run or source instrumentation of the native test driver in this receipt.
 The assignment archive contains the bundle, raw commands, artifact identities,
 per-process status/streams, selected IDs, failed controls and timings. The
 production compiler was reused. Manager review and publication are pending.
+### Bedrock registration startup on published 622d2cba (host 3)
+
+Assignment `c6fe6a0e-1b77-4de0-854f-a5fe3959a865` compares the five
+individual Node registrations and the complete 14-case suite. The baseline
+is main `622d2cba`, tree `e5ac5bec`. The producer archive `28487a23`,
+its six required members and its internal checksums verified. Host 5's two-name
+comparison against the earlier JavaScript checks had increased median wall time
+from 0.35 to 0.76 s portable, 0.42 to 0.95 s shared/1, and 0.43 to 1.13 s
+shared/4. Those measurements and the recorded inspection streams established
+the workload. The new comparison uses the published Tower-backed registrations
+on both arms. Both use the producer's manifest-verified portable `41bb9b11`
+and shared `72c882ee` Wasm images from source `8bc867b6`.
+
+The browser test host originally read all 1,860 scaffolding Tower files.
+It configured the subject reactor with five language files and immediately
+uploaded all 1,860 plus the five language files again. A grammar edit or
+restoration could repeat the broad upload. On the separate assertion reactor,
+construction and each call to `runSelectedTest` submitted 80 files (349,271
+UTF-8 source bytes), including the whole library subtree. An entry-only change
+in `moduleInputs.configure` clears and uploads the full configured set.
+With the ordinary default Wasm path the old eager import of
+`compiler_test_host.mjs` also reads the image independently of this suite's
+own read. The timing overrides supplied the image explicitly to both arms.
+
+Both constructors install the Bedrock source and the Foundation wrapper.
+Immediately after installation each module environment reports imports of
+Bedrock, Foundation syntax and types. For the assertions, the real
+`compileTests` starts from the owner, collects the selected companion,
+and checks its transitive imports, including the Tower language.
+In registration order the used-path counts are 12, 13, 11, 14 and 14.
+All five reach grammar, the diagnostic session, backend text, vector and
+testing. Lexicon and both round trips also use test fixtures. The latter
+two import the round-trip helpers. The graph lists, order and test count
+of one per invocation match across arms. The 80 transported files had
+never represented 80 parsed dependencies.
+
+The change is confined to the Node test host. The subject gets the five
+language files. Each invocation gives the assertion reactor the selected
+files below, read from the checkout. Subject fixture names are restricted to
+Bedrock, Foundation and Tower files in the case inputs directory. The callback
+reads the selected file when requested. The fixture filename inventory is
+constructed before opening either reactor. Additional imports in future
+assertion fixtures will need matching paths in this small explicit project.
+The host keeps the subject's immutable grammar seed and pinned sessions
+separate from assertion compilation. It compiles the Wasm module once, opens
+the second instance only on an assertion selection, and calls the ordinary
+collector and interpreter for each selected companion.
+
+| Assertion request | Files supplied | Source bytes |
+| --- | ---: | ---: |
+| Construction | 5 | 19,865 |
+| Inheritance | 12 | 32,109 |
+| Lexicon | 13 | 33,025 |
+| Grammar | 11 | 29,528 |
+| Local override | 14 | 34,186 |
+| Quoted capture | 14 | 34,385 |
+
+Across all 14 tests the subject went from 12 uploads, 20,520 file submissions
+and 97,843,601 bytes to 11 uploads, 55 submissions and 218,404 bytes. The
+assertion reactor still performed six uploads, going from 480 submissions and
+2,095,626 bytes to 69 and 183,098. These counts cover source payloads passed
+to the module environment, excluding path strings, NULs and observation
+copies. Both arms opened 49 subject parser handles, reset five times,
+formatted 46 times and compiled two subject executions. The assertion
+reactor compiled five separate execution handles. The isolated two-name run
+opened eight subject handles. Handle 1 stayed live through the fresh refusal
+and completed on its original Foundation state. The quoted case fed its
+actual 163-byte formatter output back, parsed the appended use, saw the
+bad capture at byte 136 on handle 8, reset that handle with the 172-byte
+repaired source and completed. Both pins were released.
+
+The six original inspections and nine parse results for the round trips,
+and the earlier three-case observation stream, matched the producer byte for
+byte at like widths. Shared/4 reproduced `25f50d7c` and `e02d284c` for the
+two new cases. For the complete suite, both arms produced identical 46-record
+observation and 53-record terminal streams at each width, including node
+identities. Their subject terminal statuses, handle IDs and module-environment
+dependency reports also matched. A dependency report taken when a handle is
+created can still be empty. The subject probe sampled after stepping it.
+The nine original JavaScript bodies and all Tower fixtures were byte-identical.
+
+On a private copy, changing a live subject fixture on disk between calls
+failed the named local-override assertion. Restoring it passed again on the
+same two instances on portable and shared/4. Changing the shared Tower helper
+failed at its changed assertion. Each of the three wrong golden files failed
+its selector, and each repair passed. Removing the local override oracle
+threw ENOENT from the observer after pinning. That registration failed, its
+execution and pin were destroyed, and the quoted registration passed on the
+same instances. Appending the producer's fresh declaration to the observed
+Foundation source passed. Its GrammarAssignment and Whitespace collisions
+each failed with the corresponding name. The restored source passed.
+
+A deliberately failing `library/testing_test.tower` beside the transitive
+testing import left all 14 selections passing on shared/4. A broad-project
+control selecting the grammar **owner** made the same collector return two
+tests and fail the one-test count. The accepted host registers only the one
+companion and selects that companion by name. For the full suite the two
+reactors' created and destroyed parser/execution handles balanced at every
+width. Started worker IDs matched both the termination requests and actual
+Node exit events and resolved termination promises (0 portable, 2 shared/1,
+8 shared/4 per process). Portable after closure reported 6,913 subject and
+13,483 assertion live nodes, zero exposed allocations on both; final linear
+memory went from 37,093,376 to 27,983,872 subject bytes and 28,835,840 to
+28,442,624 assertion bytes. These are reactor counters, separate from
+process peak RSS.
+
+The performance comparison used fresh Node 24.22.3 processes and warm
+tmpfs source exports on a Linux x64 EPYC 7542 (32 cores, 64 threads).
+Effective cpuset was 0–63, cgroup v1 CPU quota 1228800/100000 (12.288 CPUs),
+memory limit 57,954,795,520 bytes. Each measured process had actual affinity
+24–27 on four distinct physical cores. The host timing lock enclosed every
+run, including probes. The command was
+`taskset -c 24-27 /usr/bin/time -f '%e %U %S %M %x' timeout 60 node --import variant.mjs --test [--test-name-pattern=^EXACT_NAME$] playground/tests/bedrock.test.mjs`,
+with TOWER_TEST_WASM set to the selected image. The existing capacity hook
+set the shared worker count. Each pair ran published then candidate, the
+second pair reversed order, and the third repeated the first. No observation
+hooks ran during timing. Two initial exploratory runs on busy CPUs 0–3
+took 14.63 and 47.39 s and are excluded. The first smaller-upload prototype
+still read the whole fixture tree. The next prototype snapshotted subject
+texts at startup. The final arm reads each permitted subject text on request
+and was measured again against the frozen baseline.
+
+Three matched pairs per workload yielded the following component-wise
+medians (wall/user/system seconds, peak RSS KiB). All 54 pairs covering the
+exact individual names and all 14 together had lower elapsed time and peak
+RSS on the candidate. All nine two-name pairs did too.
+
+| Workload | Published | Candidate |
+| --- | --- | --- |
+| All 14, portable | 2.77 / 3.42 / 0.19 / 217228 | 2.20 / 2.86 / 0.08 / 139748 |
+| All 14, shared/1 | 3.75 / 4.48 / 0.21 / 238988 | 3.12 / 3.80 / 0.08 / 168520 |
+| All 14, shared/4 | 4.57 / 6.14 / 0.42 / 354356 | 3.90 / 5.37 / 0.34 / 281264 |
+| Two round trips, portable | 1.17 / 1.61 / 0.16 / 155080 | 0.96 / 1.37 / 0.07 / 116844 |
+| Two round trips, shared/1 | 1.52 / 2.00 / 0.15 / 189420 | 1.30 / 1.74 / 0.07 / 150224 |
+| Two round trips, shared/4 | 2.03 / 3.08 / 0.30 / 296416 | 1.83 / 2.86 / 0.28 / 252348 |
+
+| Exact individual selection | Portable wall s | Shared/1 wall s | Shared/4 wall s |
+| --- | ---: | ---: | ---: |
+| Inheritance | 0.98 → 0.78 | 1.26 → 1.07 | 1.64 → 1.45 |
+| Lexicon | 1.26 → 0.93 | 1.64 → 1.30 | 2.03 → 1.69 |
+| Grammar | 0.96 → 0.74 | 1.23 → 1.02 | 1.54 → 1.35 |
+| Local override | 1.01 → 0.79 | 1.29 → 1.09 | 1.66 → 1.44 |
+| Quoted capture | 1.00 → 0.81 | 1.32 → 1.10 | 1.71 → 1.49 |
+
+In a separate portable trace, constructing the assertion reactor cost 81/78 ms
+(published/candidate). Its five compile calls took 411/407, 106/102, 72/71,
+123/122 and 122/122 ms. On shared/4 the corresponding calls took 784/780,
+231/210, 157/162, 256/267 and 258/256 ms. The first invocation includes a
+cold assertion graph. Later invocations still compile their own graph on the
+live instance. These single instrumentation samples locate the work; the
+observed end-to-end benefit comes with removing the recursive fixture read
+and shrinking repeated source uploads. The measurements give no basis for
+a compiler cache or a claim of faster parsing.
+
+The local checkout already carried `4d31252d`. The experiment on published
+main added its small shared `guest_text.mjs` boundary and changed only the
+Bedrock host. The integrated host passed the same 14 names with zero skips,
+at all three widths, in ordinary Node and with V8 explicit Wasm bounds
+checks. Its full raw streams matched the frozen experiment. No compiler was
+built. The public images lack source-instrumented ASan/UBSan/TSan coverage.
+Manager integration and publication remain open. The assignment archive
+contains the focused bundle, standalone overlay, checksums, commands,
+individual CPU/RSS medians and per-process observations.

@@ -1,15 +1,29 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
-import { builtins, files, loadTowerBytes, runToEnd } from './compiler-fixtures.mjs';
-import { loadTower as createTower } from '../src/tower-host.mjs';
-import { fixtureSource, guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
+import { loadTower as createTower, runToEnd } from '../src/tower-host.mjs';
+import { guestString } from './guest_text.mjs';
+import { requireStatus, runSelectedTest } from './selected_test.mjs';
 import { copyText, diagnosticFields, numberField } from './parser_observations.mjs';
+const root = new URL('../../scaffolding/', import.meta.url);
+const source = path => readFileSync(new URL(path, root), 'utf8');
+const builtins = Object.fromEntries(['bedrock', 'foundation_syntax', 'types', 'foundation', 'tower']
+  .map(name => [name, source(name + '.tower')]));
 const {foundation, foundation_syntax:foundationSyntax, bedrock} = builtins;
+const caseRoot = 'tests/bedrock_cases/';
+const inputs = new URL(caseRoot + 'inputs/', root);
+const fixtures = new Set(['bedrock.tower', 'foundation.tower',
+  ...readdirSync(inputs, {withFileTypes:true}).filter(file => file.isFile() && file.name.endsWith('.tower'))
+    .map(file => caseRoot + 'inputs/' + file.name)]);
+function fixtureSource(path) {
+  if (!fixtures.has(path)) throw new Error('Missing Tower fixture ' + path);
+  return source(path);
+}
+
 const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
   new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
-const tower = await loadTowerBytes(wasm, undefined, foundation, undefined, bedrock);
+const tower = await createTower(wasm, undefined, foundation, undefined, bedrock, {builtins, tower:builtins.tower});
 function inspect(source, kind = '') {
   const handle = kind === 'bedrock' ? tower.createBedrock(source) : kind === 'foundation' ? tower.createFoundation(source) : tower.create(source);
   try { const result = runToEnd(tower, handle); return { ...result, formatted: tower.format(handle), snapshot: tower.inspect(handle) }; }
@@ -17,8 +31,6 @@ function inspect(source, kind = '') {
 }
 function restore() { tower.configureModules({builtins:{foundation_syntax:foundationSyntax}}); tower.configureBedrock(bedrock); tower.configure(foundation); }
 
-const caseRoot = '.tower/tests/bedrock_cases/';
-const inputs = new URL('../../scaffolding/tests/bedrock_cases/inputs/', import.meta.url);
 const input = name => fixtureSource(caseRoot + 'inputs/' + name + '.tower');
 const entries = ['', 'foundation', 'bedrock'];
 let checks, last, inspections, currentSource, pinned;
@@ -47,7 +59,7 @@ const observations = {
   },
   ...diagnosticFields(() => last.end),
   grammar_file(context, path) {
-    return copyText(context, fixtureSource('.tower/' + guestString(context, path)));
+    return copyText(context, fixtureSource(guestString(context, path)));
   },
   grammar_parse: (context, source, entry) => parse(guestString(context, source), entry),
   grammar_pin(context, file) {
@@ -104,13 +116,18 @@ const observations = {
 
 async function check(entry) {
   checks ??= await createTower(wasm, undefined, foundation, undefined, bedrock, {
-    tower:builtins.tower, builtins, imports:observations, project:{files:files.filter(({path}) =>
-      (path.startsWith(caseRoot) && !path.startsWith(caseRoot + 'inputs/')) ||
-      path === '.tower/compiler/format_diagnostic_cases/session.tower' ||
-      path === '.tower/backend/text.tower' || path.startsWith('.tower/library/'))},
+    tower:builtins.tower, builtins, imports:observations,
   });
+  // The collector starts at the owner and loads its selected companion.
+  const modules = ['library/testing', 'library/vector', 'backend/text',
+    'compiler/format_diagnostic_cases/session', caseRoot + 'grammar'];
+  if (entry !== 'grammar') modules.push(caseRoot + entry);
+  if (['lexicon', 'local_override', 'quoted_capture'].includes(entry)) modules.push('library/test_fixtures');
+  if (['local_override', 'quoted_capture'].includes(entry)) modules.push(caseRoot + 'round_trip');
+  const companion = caseRoot + entry + '_test';
+  const files = [...modules, companion].map(name => ({path:'.tower/' + name + '.tower', text:source(name + '.tower')}));
   inspections = {};
-  try { runSelectedTest(checks, caseRoot + entry + '_test.tower'); }
+  try { runSelectedTest(checks, '.tower/' + companion + '.tower', 10, {files}); }
   finally {
     if (pinned !== undefined) tower.destroy(pinned);
     pinned = last = currentSource = inspections = undefined;
