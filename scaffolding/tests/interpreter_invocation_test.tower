@@ -2,7 +2,9 @@ import library.testing;
 
 extern fn interpreter_invocation_tests(width: u32): u32;
 
-test() {
+fn check_invocation(): void {
     assert(interpreter_invocation_tests(4) == 0, "Invocation values, strict storage, effects and fuel at four-byte pointer width");
     assert(interpreter_invocation_tests(8) == 0, "Invocation values, strict storage, effects and fuel at eight-byte pointer width");
 }
+
+check_invocation();

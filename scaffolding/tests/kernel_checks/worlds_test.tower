@@ -1,0 +1,3 @@
+import worlds;
+
+run_check();

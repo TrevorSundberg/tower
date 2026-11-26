@@ -1,0 +1,3 @@
+import invocation;
+
+run_check();

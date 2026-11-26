@@ -1,0 +1,3 @@
+import .semantic_world_test;
+
+fn run_check(): void { check_stage(); }

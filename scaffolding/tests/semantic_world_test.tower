@@ -1,8 +1,16 @@
 import library.testing;
 
 extern fn semantic_world_tests(width: u32): u32;
+extern fn semantic_stage_tests(): u32;
 
-test() {
+fn check_worlds(): void {
     assert(semantic_world_tests(4) == 0, "Independent compiler worlds at four-byte pointer width");
     assert(semantic_world_tests(8) == 0, "Independent compiler worlds at eight-byte pointer width");
 }
+
+fn check_stage(): void {
+    assert(semantic_stage_tests() == 0, "Pinned indexes and canonical nodes survive entity staging");
+}
+
+check_worlds();
+check_stage();

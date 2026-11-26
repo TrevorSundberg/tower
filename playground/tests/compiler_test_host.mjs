@@ -1,8 +1,10 @@
 // Browser transport for language tests executed by real Tower and LLVM reactors.
 import {after} from 'node:test';
-import assert from 'node:assert/strict';
+import {requireStatus} from './selected_test.mjs';
 import {readFile} from 'node:fs/promises';
 import {builtins, executeWasm, files, loadLLVM, loadTower} from './compiler-fixtures.mjs';
+
+export {requireStatus, runSelectedTest} from './selected_test.mjs';
 
 const read = path => readFile(new URL('../../' + path, import.meta.url));
 const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
@@ -15,11 +17,6 @@ export async function openTower(options) {
 export async function openLLVM() {
   const bytes = process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm');
   return loadLLVM(bytes, undefined, builtins.foundation);
-}
-
-export function requireStatus(result, status) {
-  assert.equal(result.status, status, result.error && `${result.errorFile ?? 'input'} at byte ${result.errorOffset}: ${result.error}`);
-  assert.ok(!result.outputTruncated, 'Truncated guest output');
 }
 
 export async function llvmOutput(llvm, source, options) {
@@ -43,20 +40,4 @@ export function guestString(context, pointer) {
   const memory = context.memory(), end = memory.indexOf(0, start);
   if (end < 0) throw new Error('Unterminated guest string');
   return decoder.decode(memory.subarray(start, end));
-}
-
-export function runSelectedTest(tower, entry, chunks = 10, {files, ...testOptions} = {}) {
-  tower.configureModules(files ? {entry, files} : {entry});
-  const handle = tower.compileTests(testOptions);
-  try {
-    const checked = tower.execute(handle, 0);
-    if (checked.status === 'error') requireStatus(checked, 'done');
-    assert.equal(tower.testCount(handle), 1, entry);
-    tower.useFast(handle);
-    for (let i = 0; i < chunks; i++) {
-      const result = tower.execute(handle, 100_000);
-      if (result.status !== 'executing') return requireStatus(result, 'done');
-    }
-    assert.fail(entry + ' exceeded its execution budget');
-  } finally { tower.destroyExecution(handle); }
 }

@@ -1,7 +1,0 @@
-import library.testing;
-
-extern fn semantic_stage_tests(): u32;
-
-test() {
-    assert(semantic_stage_tests() == 0, "Pinned indexes and canonical nodes survive entity staging");
-}
