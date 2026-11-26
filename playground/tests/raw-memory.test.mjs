@@ -1,9 +1,9 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { isDeepStrictEqual } from 'node:util';
 import { files, loadTower, loadLLVM, executeWasm } from './compiler-fixtures.mjs';
-import { fixtureSource, guestString, openTower, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
+import { fixtureSource, guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = p => readFile(new URL('../../' + p, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
@@ -36,9 +36,10 @@ const cases = [
 
 // The assertion interpreter sees counted guest outputs and the host objects
 // returned by the real formatter and LLVM compiler. The companion owns the oracle.
-let sample;
+let sample, assertionHost;
+after(() => assertionHost?.close());
 const encoder = new TextEncoder();
-const assertionHost = await openTower({imports:{
+const imports = {
   raw_bytes(context, file, stream, length) {
     const key = guestString(context, file) + '/' + guestString(context, stream);
     const bytes = sample.streams.get(key);
@@ -58,8 +59,9 @@ const assertionHost = await openTower({imports:{
       && isDeepStrictEqual(sample.formatted[key], sample.round[key]);
   },
   raw_ir_contains: (context, text) => sample.ir.includes(guestString(context, text)),
-}});
+};
 async function checkOutputs(stem, path, outputs, formatted, round, ir) {
+  assertionHost ??= await loadTower(bytes, undefined, grammar, undefined, undefined, {imports});
   const entry = '.tower/' + path + stem;
   const streams = new Map(Object.entries(outputs).map(([engine, output]) =>
     [stem + '.tower/' + engine, encoder.encode(output)]));
