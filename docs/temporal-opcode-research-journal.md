@@ -105556,3 +105556,82 @@ records and all 57 relocated compiler/resource digests. This is native source
 qualification. The public bootstrap and the browser compiler have their own
 release checks. Whole-file implicit tests and affected-test selection are
 separate open cases.
+
+## Selected sibling fixtures through native test execution
+
+At published `e2ebb16a01763fb182c2704d9b3a956356b1ae6b`, the inventory
+mapped `function_values.expected` to the complete stdout of
+`towerc scaffolding/tests/function_values.tower --interpret`. The retained
+core proof `eb27254c41434dae87d060544a977afe68a707bf` used the producer
+selection and assertion APIs. Its LF and CR oracles are two bytes each. The
+published native command given that opt-in companion failed with
+`No native interpreter binding for 'test_fixture_load'`.
+
+The discovery change `c325db07` grants two lexical paths to a selected
+companion that directly imports `library.test_fixtures`. The caller can
+obtain both paths from the frozen selection after releasing the graph.
+The native inventory appends the oracle path to its existing depfile. The
+execution change `dd8ff47a` looks up the active contextual declaration in the
+outer session's source map. The guest supplies a basename. The host supplies
+the owner and the call offset. The nested ordinary interpreter borrows the
+selected graph's source snapshots, including its imported grammar, and has its
+own diagnostic map. The guest compares counted stdout with counted text.
+The original source, oracle, profiles and registrations remain in place.
+
+Selecting either the owner or the companion via native `--test` produced
+`30 0a` at one and four workers. With `--test-details` stderr named the
+companion at `3:1`. Replacing only the LF with CR failed the assertion at
+`function_values_test.tower:8:5`. Removing the oracle failed the read at
+`6:18` despite a same-named library file. Restoration passed. An additional
+counted write inside the ordinary source participated in the comparison.
+Requesting a path outside the grant failed at the call. On disk and in
+registered memory, one graph selected two owners with identical basenames.
+Their repaired outputs in order were `30 0a 31 0a`. The memory regression
+`dd61206a` checks the right-hand missing read, bad ending and repair on the
+same module environment. The surrounding test checks that bytes, jobs and
+lanes drain to zero. The sanitized memory run had a valid physical file at
+the missing registered key.
+
+GNU Make consumed the existing `--list-test-files -o inventory --depfile ...`
+output. Touching just the oracle required one inventory rebuild. Deletion
+and repair were visible through the missing-file and directory dependencies.
+The ordinary object kept its hash and timestamp through all three changes.
+The ordinary object depfile named the source and its usual grammar imports.
+The packet includes them both as well as raw argv, stdout, stderr and status.
+
+Host 4 used a Ryzen 7 5800H, Linux x86-64, LLVM 19, a 15.36-CPU quota and
+a 64,061,702,144-byte memory limit. Fresh-process comparisons ran one at a
+time on CPUs 0–3 after one warmup, with three measured samples. At one/four
+workers the parent ordinary interpreter averaged 0.200/0.233 s and the
+candidate 0.203/0.230 s. The existing three-declaration native selection
+averaged 0.203/0.230 s on each binary. For the new fixture, means were
+0.463/0.557 s wall, 0.400/0.543 s user and 0.057/0.073 s system. Maximum
+RSS was 93,524/103,072 KiB. The small fixture took longer at four workers.
+The source compiles once to collect tests and again as an ordinary entry
+to reproduce the original stdout contract.
+
+The public bootstrap rejected an early unbraced nested conditional. The
+corrected parser unit and the native build completed. ASan with leak
+detection ran both disk selection forms, both widths, the failure paths and
+the memory suite. TSan ran both widths and the memory suite. Five attempts
+to start the TSan memory process failed the platform's `ADDR_NO_RANDOMIZE`
+personality check. Attempt six completed. The link maps identify the
+production allocator and worker objects. The changed compiled functions
+contain memory access instrumentation in both builds. This project's native
+instrumentation options are address and thread. Affected-selection scheduling,
+browser integration and release publication have their own owners.
+
+The coordinator packet is `fd7ba15d-2a87-41b8-8640-9d494c36583d.tar.gz`.
+It includes commands, exact inputs and bytes, the source tree, the commits,
+the native executable and its resources.
+
+A fresh Release build with the public Linux x64 bootstrap finished in
+24.42 s wall, 83.55 s user and 5.16 s system, with 786,448 KiB peak RSS.
+The next build had no work. Both executables matched the warm build byte for
+byte. Nine runtime LLVM files include their build directory in the ModuleID
+comment. All bytes after the first line matched. The packet carries the
+clean-build resources. The existing native module-path CTest passed.
+A filesystem trace showed one open of the exact oracle during the selected
+test and no test-only file accesses during ordinary object compilation.
+The raw-source API also returned the original 3,367 bytes through the
+native test interpreter.
