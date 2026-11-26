@@ -1,16 +1,14 @@
-import tower;
+import library.testing;
 import .compiler.compiler_kernel;
 import .library.work_pool;
-import .library.work_budget_types;
 import .host.memory;
 
-// Linux test composition binds this wrapper and the separate ordinary transport
-// through runtime_bind. Only the coordinator opens signals. The fault
-// affects one host semaphore request; allocation and all workers stay real.
+// The coordinator alone arms and consumes the one-shot signal fault. The
+// separately linked Linux transport exports its ordinary open under this name.
 extern fn __real_work_signal_open(): void*;
-var DispatchFailSignal: bool;
+var DispatchFailSignal: bool = false;
 var DispatchScratchBytes: usize = 262144;
-export fn __wrap_work_signal_open(): void* {
+export fn work_signal_open(): void* {
     if DispatchFailSignal { DispatchFailSignal = false; return null; }
     return __real_work_signal_open();
 }
@@ -26,34 +24,8 @@ struct DispatchResultJob {
     observed: usize;
 }
 
-struct DispatchObservation {
-    pool: WorkPool*; jobs: DispatchResultJob*; count: usize;
-    started: usize; joined: usize;
-}
-
-fn dispatch_observe(context: void*, payload: void*, ordinal: usize, lanes: usize, entering: bool): void {
-    var observer = bits(DispatchObservation*, context);
-    if payload == null {
-        dispatch_check(ordinal == observer.count && lanes <= observer.pool.count && observer.pool.running == 0);
-        if entering { observer.started++; }
-        else {
-            observer.joined++;
-            for(var i: usize = 0; i < observer.count; i++) {
-                dispatch_check(observer.jobs[i].observed == observer.jobs[i].calls * 2);
-            }
-        }
-        return;
-    }
-    dispatch_check(ordinal < observer.count && payload == bits(void*, &observer.jobs[ordinal].kernel));
-    var job = &observer.jobs[ordinal];
-    dispatch_check(job.observed % 2 == (entering ? convert(usize, 0) : convert(usize, 1)));
-    job.observed++;
-}
-
-fn dispatch_check(ok: bool): void {
-    if !ok { trap("Typed dispatch ownership regression", 0); }
-}
-
+// Each worker borrows one kernel and its enclosing job through the join.
+// The scratch allocation belongs to this invocation of the host callback.
 export fn work_kernel_execute(payload: void*): void {
     var kernel = bits(CompilerKernel*, payload);
     var job = bits(DispatchResultJob*, kernel.payload);
@@ -62,131 +34,12 @@ export fn work_kernel_execute(payload: void*): void {
         work_signal_wait(job.release);
     }
     var memory = alloc(u8, DispatchScratchBytes);
-    dispatch_check(memory != null);
+    assert(memory != null, "Allocate private worker scratch");
     var value = convert(u8, job.input);
     fill(memory, value, DispatchScratchBytes);
-    dispatch_check(memory[0] == value && memory[DispatchScratchBytes - 1] == value);
+    assert(memory[0] == value && memory[DispatchScratchBytes - 1] == value,
+        "Both ends of the worker scratch retain its input byte");
     free(memory);
     job.calls++;
     job.result = job.input * job.input + 7;
-}
-
-fn dispatch_invalid(): void {
-    var closed: WorkPool = default;
-    closed.resource_error = WorkBudgetError.Capacity;
-    var job: DispatchResultJob = default;
-    job.kernel.payload = bits(void*, &job);
-    var jobs: DispatchResultJob*[1]; jobs[0] = &job;
-    dispatch_check(compiler_kernel_dispatch_result(null, &jobs[0], 0) == WorkBudgetError.None);
-    dispatch_check(work_pool_batch_result(null, null, 0, 0, 0) == WorkBudgetError.None);
-    dispatch_check(compiler_kernel_dispatch_result(null, &jobs[0], 1) == WorkBudgetError.Invalid);
-    dispatch_check(compiler_kernel_dispatch_result(&closed, &jobs[0], 1) == WorkBudgetError.Invalid);
-    dispatch_check(compiler_kernel_dispatch_result(&closed, bits(DispatchResultJob**, null), 1)
-        == WorkBudgetError.Invalid);
-    jobs[0] = null;
-    dispatch_check(compiler_kernel_dispatch_admitted_result(&closed, &jobs[0], 1, 1)
-        == WorkBudgetError.Invalid);
-    dispatch_check(closed.resource_error == WorkBudgetError.Capacity && job.calls == 0);
-}
-
-fn dispatch_failure(round: usize): void {
-    var jobs: DispatchResultJob[4] = default;
-    var count = sizeof(decltype(jobs)) / sizeof(DispatchResultJob);
-    var pool: WorkPool = default;
-    dispatch_check(work_pool_open(&pool, count) && pool.threaded && pool.count == count);
-    defer work_pool_close(&pool);
-    var observation = init(DispatchObservation) {pool: &pool, jobs: &jobs[0], count: count, ..default};
-    pool.observation = bits(void*, &observation); pool.observe = dispatch_observe;
-    var pointers: DispatchResultJob*[4];
-    dispatch_check(sizeof(decltype(pointers)) / sizeof(DispatchResultJob*) == count);
-    for(var i: usize = 0; i < count; i++) {
-        jobs[i].prefix = 12345;
-        jobs[i].input = round + i;
-        jobs[i].kernel.payload = bits(void*, &jobs[i]);
-        pointers[i] = &jobs[i];
-    }
-    DispatchFailSignal = true;
-    dispatch_check(compiler_kernel_dispatch_result(&pool, &pointers[0], count) == WorkBudgetError.Memory);
-    dispatch_check(!DispatchFailSignal && pool.claim == null && pool.running == 0
-        && pool.peak == 0 && pool.resource_error == WorkBudgetError.Memory);
-    for(var i: usize = 0; i < count; i++) { dispatch_check(jobs[i].calls == 0); }
-    dispatch_check(compiler_kernel_dispatch_result(&pool, &pointers[0], 0) == WorkBudgetError.None
-        && pool.resource_error == WorkBudgetError.Memory);
-    // No execution happened on this pre-dispatch failure. A new valid call
-    // resets the receipt; normal successes are checked through both APIs.
-    dispatch_check(compiler_kernel_dispatch_result(&pool, &pointers[0], count) == WorkBudgetError.None);
-    dispatch_check(pool.running == 0 && pool.resource_error == WorkBudgetError.None);
-    dispatch_check(compiler_kernel_dispatch_admitted(&pool, &pointers[0], count, 0));
-    for(var i: usize = 0; i < count; i++) {
-        dispatch_check(jobs[i].calls == 2 && jobs[i].prefix == 12345
-            && jobs[i].result == (round + i) * (round + i) + 7);
-    }
-    // Closing a failed pool retains the fixed failure after freeing storage.
-    work_signal_close(pool.claim); pool.claim = null;
-    DispatchFailSignal = true;
-    dispatch_check(!compiler_kernel_dispatch(&pool, &pointers[0], count));
-    dispatch_check(observation.started == 4 && observation.joined == observation.started);
-    work_pool_close(&pool);
-    dispatch_check(pool.resource_error == WorkBudgetError.Memory && pool.count == 0 && pool.slots == null);
-}
-
-fn dispatch_busy(): void {
-    var pool: WorkPool = default;
-    dispatch_check(work_pool_open(&pool, 2) && pool.threaded);
-    var entered = work_signal_open();
-    var release = work_signal_open();
-    dispatch_check(entered != null && release != null);
-    defer work_signal_close(entered);
-    defer work_signal_close(release);
-    var prior: DispatchResultJob = default;
-    prior.kernel.payload = bits(void*, &prior);
-    prior.entered = entered; prior.release = release; prior.input = 19;
-    dispatch_check(work_pool_submit(&pool, bits(void*, &prior.kernel)));
-    work_signal_wait(entered);
-    var next: DispatchResultJob = default;
-    next.kernel.payload = bits(void*, &next);
-    var jobs: DispatchResultJob*[1]; jobs[0] = &next;
-    dispatch_check(compiler_kernel_dispatch_result(&pool, &jobs[0], 1) == WorkBudgetError.Busy);
-    dispatch_check(!compiler_kernel_dispatch(&pool, &jobs[0], 1));
-    dispatch_check(pool.running == 1 && pool.resource_error == WorkBudgetError.None && next.calls == 0);
-    dispatch_check(compiler_kernel_dispatch_result(&pool, &jobs[0], 0) == WorkBudgetError.None
-        && pool.running == 1);
-    // The owner still has to unblock and drain its earlier borrow. Reading its
-    // result before this join would be a race, even after the Busy rejection.
-    work_signal_post(release);
-    work_pool_close(&pool);
-    dispatch_check(prior.calls == 1 && prior.result == 368 && next.calls == 0);
-}
-
-fn dispatch_named(): void {
-    var jobs: DispatchResultJob[2] = default;
-    var count = sizeof(decltype(jobs)) / sizeof(DispatchResultJob);
-    var pool: WorkPool = default;
-    dispatch_check(work_pool_open_named(&pool, count, "work_thread_entry", null));
-    defer work_pool_close(&pool);
-    var pointers: DispatchResultJob*[2];
-    dispatch_check(sizeof(decltype(pointers)) / sizeof(DispatchResultJob*) == count);
-    for(var i: usize = 0; i < count; i++) {
-        jobs[i].kernel.payload = bits(void*, &jobs[i]);
-        pointers[i] = &jobs[i];
-    }
-    dispatch_check(compiler_kernel_dispatch_admitted_result(&pool, &pointers[0], count, 1)
-        == WorkBudgetError.Invalid);
-    dispatch_check(pool.running == 0 && pool.claim == null && jobs[0].calls == 0 && jobs[1].calls == 0);
-    // Inline work never sends a batch descriptor to the named entry.
-    dispatch_check(compiler_kernel_dispatch_admitted_result(&pool, &pointers[0], count, 0)
-        == WorkBudgetError.None);
-    dispatch_check(jobs[0].calls == 1 && jobs[1].calls == 1);
-}
-
-export fn main(argc: i32, argv: u8**): i32 {
-    DispatchFailSignal = false;
-    dispatch_invalid();
-    for(var round: usize = 0; round < 16; round++) {
-        dispatch_failure(round);
-        dispatch_busy();
-    }
-    dispatch_named();
-    print(0);
-    return 0;
 }

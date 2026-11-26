@@ -1738,14 +1738,16 @@ across reversed readiness, earlier pending work and differing numeric offsets.
 The existing `tower-query-continuations` CTest registration includes both.
 
 Linux x64 dispatch fixtures use ordinary-source initialization for their mutable
-coordinator-only controls. Existing Tower `runtime_bind` connects each wrapper
-and a separate real transport; no linker `--wrap` support is required. Build/run:
+coordinator-only controls. The work fixture exports its wrapper as
+`work_signal_open`. Tower's `runtime_bind` gives the separately compiled Linux
+implementation the name `__real_work_signal_open`. The standalone and native
+test runner call the same cases in `work_dispatch_result_test.tower`.
 
 ```sh
 cmake --build build/native --parallel 1 --target \
   tower-work-dispatch-result-tests tower-semantic-dispatch-tests
 ctest --test-dir build/native --output-on-failure \
-  -R '^tower-(work-dispatch-result-tests|semantic-dispatch-(default|admission|source))$'
+  -R '^tower-(work-dispatch-result-(tests|(owner|direct)-jobs-(1|4))|semantic-dispatch-(default|admission|source))$'
 build/native/tower-lr-work-tests scaffolding receipt-smoke
 ```
 
@@ -1753,9 +1755,10 @@ The work fixture checks invalid/busy/admitted calls, actual peer draining, named
 transport restrictions and exact-once results after a denied dispatch. Semantic
 modes check pre-dispatch and graph-admission denial, terminal cancellation, typed
 source receipts, no publication/replay and complete cleanup. Allocation and
-workers use the production providers. Supported `TOWER_SANITIZER=address|thread`
-builds use the same registration and symbol bindings; serial allocation-failure
-fixtures remain separate. No universal race-freedom claim follows from a pass.
+workers use the production providers. Ordinary direct selection runs three
+dispatch tests. Default owner selection adds five work-budget tests. Supported
+`TOWER_SANITIZER=address|thread` builds execute the standalone with the same
+wrapped transport.
 
 The existing normal/fault factories also register the constructor, scheduling
 storage and physical component-page fixtures on Linux x64:

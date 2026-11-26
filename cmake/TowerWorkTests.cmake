@@ -36,9 +36,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       string(REPLACE "_" "-" target "tower-${unit}-tests")
       set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
       set(fixture_mode)
-      if(unit STREQUAL "work_dispatch_result")
-        set(fixture_mode SOURCE __wrap_work_signal_open work_signal_open)
-      elseif(unit STREQUAL "work_linux_affinity_faults")
+      if(unit STREQUAL "work_dispatch_result" OR unit STREQUAL "work_linux_affinity_faults")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
         set(fixture_mode SOURCE)
       endif()
@@ -155,6 +153,26 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
           "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
           --test-oracle "${affinity_oracle}" --test-native-runtime "${affinity_guest}"
           --link "${affinity_transport}" --link "${affinity_allocator}")
+        set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+      endforeach()
+    endforeach()
+
+    # Both selected guests need the existing native runtime, allocator and
+    # count checker. Dispatch links its own real, signal-wrapped transport.
+    add_dependencies(tower-work-dispatch-result-tests tower-affinity-test-support)
+    foreach(selection IN ITEMS owner direct)
+      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_dispatch_result.tower")
+      set(count 8) # Three dispatch tests plus five work-budget tests.
+      if(selection STREQUAL "direct")
+        set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_dispatch_result_test.tower")
+        set(count 3)
+      endif()
+      foreach(jobs IN ITEMS 1 4)
+        set(name "tower-work-dispatch-result-${selection}-jobs-${jobs}")
+        add_test(NAME "${name}" COMMAND tower-selected-test-count "${count} tests passed for ${entry}"
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
+          --test-native-runtime "${affinity_guest}" --link "${work-dispatch-transport_OBJECT}"
+          --link "${host_work_dispatch_OBJECT}" --link "${affinity_allocator}")
         set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
       endforeach()
     endforeach()
