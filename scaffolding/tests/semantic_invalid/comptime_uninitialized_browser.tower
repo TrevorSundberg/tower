@@ -1,9 +1,8 @@
 import rejection_observation;
-import backend.text;
 
 test() {
     var error = rejection_message("comptime_uninitialized.tower");
     defer free(error);
     assert(stage_error_offset() == 85, "Unexpected source byte offset");
-    assert(backend_equal(error, "Strict evaluation reads an uninitialized local"), error);
+    assert(rejection_equal(error, "Strict evaluation reads an uninitialized local"), error);
 }

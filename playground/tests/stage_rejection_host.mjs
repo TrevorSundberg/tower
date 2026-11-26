@@ -1,7 +1,8 @@
 // Subject handles close before the selected Tower test reads these fields.
 import {after} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {builtins, files, loadTowerBytes} from './compiler-fixtures.mjs';
+import {loadTower} from '../src/tower-host.mjs';
+import {builtins, files} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, runSelectedTest} from './compiler_test_host.mjs';
 
 let result, portable, readMessage;
@@ -48,7 +49,7 @@ function checkObservation(checker, name, backend, pointerBytes, observation) {
 }
 
 const directory = '.tower/tests/semantic_invalid/';
-// Selecting a test re-registers its files. Keep just its imports live for this pair.
+// Install the assertion project's sources when the private reactor opens.
 const assertionInputs = files.filter(({path}) => path.startsWith(directory) ||
  path.startsWith('.tower/library/') || path === '.tower/backend/text.tower');
 
@@ -59,8 +60,9 @@ after(() => checker?.close());
 export async function checkStageRejection(host, project, name, backend) {
  if (!checker) {
   const wasm = await readFile(process.env.TOWER_TEST_WASM || new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
-  checker = await loadTowerBytes(wasm, undefined, builtins.foundation, undefined, builtins.bedrock, {imports});
-  checker.configureModules({files:assertionInputs});
+  checker = await loadTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock, {
+   imports, builtins, tower:builtins.tower, project:{files:assertionInputs},
+  });
  }
  const entry = directory + name + '.tower';
  const source = fixtureSource(entry);

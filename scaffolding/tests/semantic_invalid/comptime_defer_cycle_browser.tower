@@ -1,9 +1,8 @@
 import rejection_observation;
-import backend.text;
 
 test() {
     var error = rejection_message("comptime_defer_cycle.tower");
     defer free(error);
     assert(stage_error_offset() == 135, "Unexpected source byte offset");
-    assert(backend_equal(error, "Compile-time dependency cycle: 19953 -> 19953"), error);
+    assert(rejection_equal(error, "Compile-time dependency cycle: 19953 -> 19953"), error);
 }

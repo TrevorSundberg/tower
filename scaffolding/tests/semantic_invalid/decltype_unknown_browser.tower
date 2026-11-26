@@ -1,9 +1,8 @@
 import rejection_observation;
-import backend.text;
 
 test() {
     var error = rejection_message("decltype_unknown.tower");
     defer free(error);
     assert(stage_error_offset() == 34, "Unexpected source byte offset");
-    assert(backend_equal(error, "Unknown local 'missing'"), error);
+    assert(rejection_equal(error, "Unknown local 'missing'"), error);
 }

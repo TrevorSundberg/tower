@@ -1,9 +1,8 @@
 import rejection_observation;
-import backend.text;
 
 test() {
     var error = rejection_message("inference_alias_invalid.tower");
     defer free(error);
     assert(stage_error_offset() == 146, "Unexpected source byte offset");
-    assert(backend_equal(error, "Cannot infer type argument 'T'; pass explicit type arguments"), error);
+    assert(rejection_equal(error, "Cannot infer type argument 'T'; pass explicit type arguments"), error);
 }
