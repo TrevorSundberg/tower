@@ -1,0 +1,11 @@
+import tower;
+import generic_inspection_types_checks_test;
+import frontend_units;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    units_check(argc == 4, "Usage: tower-generic-inspection-types-tests RESOURCE_ROOT WORKERS sample|checks");
+    var workers: usize = strcmp(argv[2], "1") == 0 ? 1 : 4;
+    var sample = strcmp(argv[3], "sample") == 0;
+    inspection_types_trial(argv[1], workers, sample);
+    return 0;
+}
