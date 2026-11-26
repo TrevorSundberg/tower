@@ -1,79 +1,92 @@
-import tower;
+import library.testing;
+import backend_import_overflow;
 import backend_import_storage;
-import frontend_units;
 import storage_api;
 import utility_checks;
-import .compiler.execution_session;
-import .compiler.syntax_version_types;
-import .library.vector;
+import .compiler.format_types;
 import .library.work_budget;
+import .library.work_budget_types;
 
-extern fn frontend_world_clear(world: void*): bool;
-extern fn frontend_modules_create(): void*;
-extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
-extern fn frontend_modules_destroy(environment: void*): void;
-extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
-extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
-extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
-extern fn printf(format: u8*, width: u32, integer: u32, mode: u8*, engine: usize): i32;
-
-var OverflowCheckBytes: usize = 2147483648;
-var OverflowCheckSteps: usize = 100000;
+extern fn overflow_fixture_execute_output(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*, wanted: u8*): bool;
+extern fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, mode: u8*): void*;
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
 
 fn overflow_fixture_execute(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*): bool {
     return overflow_fixture_execute_output(resource, text, width, integer, mode, "0\n");
 }
 
-export fn overflow_fixture_execute_output(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*, wanted: u8*): bool {
-    var budget: WorkBudget = default;
-    var world: void* = null;
-    utility_check(work_budget_init(&budget, 1, OverflowCheckBytes, 1)
-        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Overflow recheck world");
-    var environment = frontend_modules_create();
-    utility_check(environment != null && frontend_modules_bind_world(environment, world), "Overflow recheck module owner");
-    frontend_modules_configure(environment, "overflow_reconstruction.tower", resource);
-    var bedrock: vector(u8) = default;
-    var foundation: vector(u8) = default;
-    units_read(resource, "/bedrock.tower", &bedrock);
-    units_read(resource, "/foundation.tower", &foundation);
-    var diagnostic: SyntaxVersionDiagnostic = default;
-    var installed = syntax_baseline_install(world, environment, bedrock.data, false, &diagnostic)
-        && syntax_baseline_install(world, environment, foundation.data, true, &diagnostic);
-    syntax_version_diagnostic_dispose(&diagnostic);
-    vector_dispose(&foundation);
-    vector_dispose(&bedrock);
-    utility_check(installed, "Overflow recheck explicit languages");
+fn overflow_fixture_trial(resource: u8*, width: u32, integer: u32, mode: u8*, prior: bool): bool {
+    var buffers = tower_test_buffer_count();
+    var budget: WorkBudget = default; var world: void* = null;
+    assert(work_budget_init(&budget, 1, BackendAdmissionBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Overflow import world");
+    var store = compiler_world_store(world);
+    var root = entity_create(store); var output = entity_create(store);
+    var backend = backend_import_fixture_overflow(root, width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown", integer, mode);
+    assert(backend != null, "Overflow LLVM verifier accepts fixture");
+    if prior { backend_import_fixture_failure(backend, BackendAdmissionOffset); }
+    var nodes = entity_store_count(store); var components = entity_store_component_count(store);
+    var rejected = prior || integer > 64 || strcmp(mode, "aggregate") == 0 || strcmp(mode, "vector") == 0;
+    var accepted = backend_import_foundation(backend, output);
+    var text: FormatResult = {checked: true, budget: &budget, ..default};
+    if rejected {
+        var wanted = prior ? "Earlier backend diagnostic" : integer > 64 || strcmp(mode, "vector") == 0
+            ? "Unsigned multiplication overflow requires a scalar integer up to 64 bits"
+            : "Unsigned multiplication overflow requires scalar extractvalue consumers";
+        if accepted || strcmp(backend_error(backend), wanted) != 0 { puts(backend_error(backend)); }
+        assert(!accepted && strcmp(backend_error(backend), wanted) == 0
+            && backend_resource_error(backend) == WorkBudgetError.None
+            && backend_error_offset(backend) == (prior ? BackendAdmissionOffset : 0), "Overflow exact rejection and first diagnostic");
+        assert(entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && entity_child_count(output) == 0 && sem_get(output) == null, "Overflow failure publishes no partial stage");
+    } else {
+        if !accepted { puts(backend_error(backend)); }
+        assert(accepted && backend_resource_error(backend) == WorkBudgetError.None, "Overflow import succeeds");
+        format_entity(&text, output, null, null, null);
+        assert(!text.failed, "Overflow checked canonical Foundation");
+    }
+    backend_close(backend); entity_release(output); entity_release(root);
+    assert(compiler_world_dispose(world), "Overflow LLVM world closes before recheck");
+    var ok = rejected || overflow_fixture_execute(resource, &text, width, integer, mode);
+    format_dispose(&text);
+    assert(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Overflow all owners and buffers drained");
+    return ok;
+}
+
+fn backend_import_overflow_tests(resource: u8*, selection: OverflowImportSelection): i32 {
+    assert(!work_thread_available() && work_thread_capacity() == 1, "Overflow import accounting requires the single-owner work host");
+    var widths: u32[5] = {1, 8, 16, 32, 64};
+    var modes: u8*[3] = {"both", "product", "flag"};
     var ok = true;
-    for(var engine: usize = 0; engine < 2; engine++) {
-        printf("Overflow target%u i%u %s engine%zu recheck\n", width * 8, integer, mode, engine);
-        fflush(null);
-        var session: ExecutionSession = default;
-        var compiled = execution_session_compile(&session, text.text.data, text.text.length, width, environment);
-        if !compiled {
-            puts(session.error.data ?? "Missing recheck error");
-            utility_check(!execution_session_start(&session) && !execution_session_fast(&session)
-                && session.machine.steps == 0, "Failed recheck cannot execute Graph or Fast");
-            ok = false;
-        } else {
-            if engine != 0 { utility_check(execution_session_fast(&session), "Overflow Fast admission"); }
-            var steps: usize = 0;
-            while !session.machine.done && !session.machine.failed && steps < OverflowCheckSteps {
-                execution_session_step(&session, 7);
-                steps++;
-            }
-            if session.machine.failed { puts(session.error.data ?? "Missing execution error"); }
-            var matched = session.machine.done && !session.machine.failed && session.output.length == strlen(wanted)
-                && utility_equal(session.output.data, wanted, session.output.length);
-            if !matched {
-                puts("Overflow exact reference mismatch count failed");
-                ok = false;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        if selection != OverflowImportSelection.Rejections {
+            foreach(var integer in &widths) {
+                if selection == OverflowImportSelection.I1 && integer != 1 { continue; }
+                if selection == OverflowImportSelection.Wide && integer == 1 { continue; }
+                foreach(var mode in &modes) {
+                    if !overflow_fixture_trial(resource, width, integer, mode, false) { ok = false; }
+                }
             }
         }
-        execution_session_close(&session);
+        if selection != OverflowImportSelection.I1 && selection != OverflowImportSelection.Successes {
+            overflow_fixture_trial(resource, width, 8, "aggregate", false);
+            overflow_fixture_trial(resource, width, 8, "vector", false);
+            overflow_fixture_trial(resource, width, 128, "aggregate", false);
+            overflow_fixture_trial(resource, width, 8, "aggregate", true);
+        }
     }
-    frontend_modules_destroy(environment);
-    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Overflow recheck world cleanup");
-    utility_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
-        && work_budget_dispose(&budget), "Overflow recheck zero grants");
-    return ok;
+    if selection != OverflowImportSelection.Rejections && selection != OverflowImportSelection.Successes {
+        puts(ok ? "Overflow verified LLVM / canonical recheck / Graph+Fast and zero owners passed." : "Overflow reconstruction failed; all owners drained.");
+    }
+    return ok ? 0 : 1;
+}
+
+test() {
+    assert(backend_import_overflow_tests(".tower", OverflowImportSelection.Rejections) == 0, "Overflow rejection matrix at both pointer widths");
+}
+
+test() {
+    assert(backend_import_overflow_tests(".tower", OverflowImportSelection.Successes) == 0, "Overflow extraction matrix in Graph and Fast at both pointer widths");
 }
