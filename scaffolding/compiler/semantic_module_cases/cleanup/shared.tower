@@ -1,0 +1,4 @@
+import tower;
+var value = 1;
+print(10);
+defer print(value);

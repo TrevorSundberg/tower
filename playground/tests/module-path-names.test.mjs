@@ -23,7 +23,8 @@ test('every owned Tower source path has an ordinary dotted import spelling',asyn
     for(const part of file.slice(0,-6).split('/'))assert.match(part,/^[A-Za-z_][A-Za-z_0-9]*$/,file);
   }
   for(const file of files) {
-    if(!file.startsWith('tests/')) {
+    // The module-scope tests supply their own lexical file trees for these fixtures.
+    if(!file.startsWith('tests/') && !file.startsWith('compiler/semantic_module_cases/')) {
       const source=await readFile(new URL(file,root),'utf8');
       assert.doesNotMatch(source,/^import\s+['"]/m,file+': production imports use dotted names');
       for(const imported of source.matchAll(/^import\s+([^;]+);/gm)) {

@@ -1,0 +1,6 @@
+import tower;
+import left.tools as left;
+import right.tools as right;
+var a: left.Item;
+var b: right.Item;
+var p: left.Item* = &b;

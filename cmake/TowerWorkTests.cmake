@@ -180,16 +180,21 @@ if(TARGET towerc)
         --test-details --jobs ${workers})
     set_tests_properties(tower-parser-precedence-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
-    add_test(NAME tower-work-resume-owner-${workers}
-      COMMAND $<TARGET_FILE:towerc> --test
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph.tower" --test-details --jobs ${workers})
-    add_test(NAME tower-work-resume-direct-${workers}
-      COMMAND $<TARGET_FILE:towerc> --test
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph_test.tower" --test-details --jobs ${workers})
-    # Reject successful partial or duplicate selections. A FAIL expression
-    # preserves CTest's normal handling of a nonzero compiler exit.
-    set_tests_properties(tower-work-resume-owner-${workers} tower-work-resume-direct-${workers}
-      PROPERTIES FAIL_REGULAR_EXPRESSION "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
+    foreach(entry IN ITEMS owner direct)
+      if(entry STREQUAL "owner")
+        set(fixture work_graph)
+        set(count 13) # Eight graph tests plus five budget tests.
+      else()
+        set(fixture work_graph_test)
+        set(count 8)
+      endif()
+      set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/${fixture}.tower")
+      add_test(NAME tower-work-resume-${entry}-${workers}
+        COMMAND "${CMAKE_COMMAND}" "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"
+          "-DTOWER_INPUT=${input}" "-DTOWER_WORKERS=${workers}" "-DTOWER_RESOURCES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+          "-DTOWER_TEST_SUFFIX=_test.tower" "-DTOWER_FINAL_LINE=${count} tests passed for ${input}"
+          -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestOutput.cmake")
+    endforeach()
 
     add_test(NAME tower-counted-loops-${workers}
       COMMAND $<TARGET_FILE:towerc> --test

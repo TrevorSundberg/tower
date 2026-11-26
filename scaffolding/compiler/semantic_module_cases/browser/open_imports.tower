@@ -1,0 +1,12 @@
+import scopes;
+
+test() {
+    use_twins();
+    assert(scope_rejects("twins/open_ambiguous.tower", "Ambiguous imported name 'helper'; use an import alias",
+        "main.tower", "helper()"), "Ambiguity is diagnosed at the use");
+    assert(both_outputs("twins/local_override.tower", "twins/local_override.expected"), "Local function shadows open imports");
+    assert(scope_rejects("twins/alias_hidden.tower", "Unknown function 'helper'", "main.tower", "helper()"),
+        "An aliased import keeps its declarations qualified");
+    assert(scope_rejects("twins/missing_member.tower", "Unknown function 'left.missing'", "main.tower", "left.missing()"),
+        "Missing qualified member");
+}

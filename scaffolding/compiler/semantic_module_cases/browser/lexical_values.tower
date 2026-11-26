@@ -1,0 +1,11 @@
+import scopes;
+
+test() {
+    use_twins();
+    assert(both_outputs("twins/shadow_value.tower", "twins/shadow_value.expected"), "A lexical record shadows an alias");
+    assert(scope_rejects("twins/shadow_call.tower", "Field access requires a struct or a single pointer to a struct",
+        "main.tower", "lib.helper()"), "Member access binds the lexical integer");
+    scope_reset();
+    assert(scope_rejects("empty/indexed_call.tower", "Call requires a function value",
+        "main.tower", "values[0]()"), "Indexed values are not looked up as escaped function names");
+}

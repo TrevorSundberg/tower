@@ -760,6 +760,39 @@ the unused native callback registry; the fixture checks userdata/owner/type,
 exactly-once finalization, independent-store ownership and allocation balance.
 This does not introduce general first-class function pointers.
 
+The grammar-attribute cases also run as six independent declarations in
+`tests/syntax_live_attributes_test.tower`. On Linux GNU, use the native test
+runtime and the actual parser-only build's service objects. Build
+`tower-parser-tests` in the parser-only build and `towerc` and
+`tower-guest-native-test` in the native build. Set `parser` and `native` to
+those absolute build directories. From `scaffolding/`, run in Bash:
+
+```bash
+links=()
+for unit in tower-compiler-parser-nodes tower-frontend-world-tests \
+    tower-compiler-parser-format tower-compiler-parser-integration \
+    tower-compiler-template-build tower-compiler-syntax-host tower-shared-graph-components \
+    tower-compiler-semantics tower-compiler-frontend-units tower-compiler-entities \
+    tower-shared-lifecycle tower-compiler-legacy runtime-legacy-storage \
+    tower-compiler-utf8 tower-compiler-bytes tower_work_serial tower-compiler-evaluation \
+    runtime-instrumented tower-compiler-host; do
+  links+=(--link "$parser/$unit.o")
+done
+for jobs in 1 4; do
+  "$native/towerc" --test tests/syntax_live_attributes.tower --jobs "$jobs" --test-details \
+    --test-native-runtime "$native/guest-native-test.o" "${links[@]}" || exit 1
+done
+```
+
+The direct selector is `tests/syntax_live_attributes_test.tower`. The guest
+runtime owns the child entry and assertion trap. The parser build supplies
+its checked allocator, serial work transport, evaluation callbacks and file
+reader. The synthetic programs open ordinary syntax sessions and import
+`bedrock`. The precedence test reads `tests/syntax_attribute_inputs/precedence.tower`
+and checks its bytes against the self-contained input used by the native
+aggregate and Wasm `tw_self_test`. Both paths use the same span and rejection
+checks.
+
 The same command also selects `regex`, `lexicon`, `lr-grammar`, `lr-analysis`,
 and `emission`. These nine focused suites replace their duplicate executables
 and generated entry programs; their existing CTest names remain unchanged.
@@ -1963,10 +1996,35 @@ for jobs in 1 4; do
 done
 ```
 
-Each command selects one declaration. Default discovery supplies the store fixture
+Each direct companion selects one declaration. Each owner also discovers the
+five reservation tests through its work-budget dependency. Default discovery supplies the store fixture
 and its payload accessors for both native selections. The browser selects the
 same test with a different companion suffix to exercise the reactor exports.
 It independently observes both query counts at that boundary.
+
+### Entity-stage reference ownership
+
+The stage's lifecycle callback belongs to the client that registered the
+component. Use the ownership-specific suffix to select this fixture's
+finalizer when testing the library owner. Other clients, including
+`entity_pages.tower`, supply their own export of the same name.
+
+```sh
+for jobs in 1 4; do
+  for entry in entity_stage entity_stage_ownership_test; do
+    "$CC_TOWER" --test "$S/library/${entry}.tower" --test-suffix _ownership_test.tower \
+      --jobs "$jobs" --test-details --bedrock "$S/bedrock.tower" --foundation "$S/foundation.tower" \
+      --test-native-runtime "$P/guest-native-test.o" --link "$P/tower-compiler-bytes.o" \
+      --link "$P/tower-compiler-utf8.o" --link "$P/libtower-compiler-memory.a" || exit 1
+  done
+done
+```
+
+Each entry selects two declarations. One publishes held references after
+closing a pinned view. The other discards staged references and checks
+duplicate names. Each creates its own store and measures its own finalizer
+calls. The `entity_stage_ownership` semantic-port case also runs the two
+worlds in order and checks cumulative counts of two, three and four.
 
 ### Focused LR closure ordering and frontend iteration cost
 
@@ -1982,7 +2040,7 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack, queue, gzip and narrow foreign ABI companions through the
+The optional language suite runs the SCC, SHA-256, WorkGraph suspension, work-budget reservation, stack, queue, gzip and narrow foreign ABI companions through the
 public driver on Linux GNU. In a native build configured with
 `TOWER_DRIVER_TESTS=ON`, build the suite and run the registrations at one and four
 compiler jobs. Set `B` to
@@ -2006,7 +2064,8 @@ TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tow
 The registrations use `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The kit requires
-the driver's final stderr line to report exactly two SCC, seven SHA-256
+the driver's final stderr line to report exactly seven tests for the SCC owner
+(two SCC and five reservation declarations), seven SHA-256
 or three narrow foreign declarations for the selected owner. A compiler or guest failure fails
 the registration even if the guest printed the expected summary. The last
 command supplies the alternate suffix to the same driver. It deliberately
@@ -2022,11 +2081,19 @@ and the SCC registration names remain supported.
 
 For WorkGraph, `tower-selected-work-graph-jobs-{1,4}` selects the owner and
 `tower-selected-work-graph-direct-jobs-{1,4}` selects the companion. Both run
-the eight suspension declarations. The companion imports `../host/memory`,
+the eight suspension declarations. The owner also selects the five budget
+declarations. The companion imports `../host/memory`,
 so the kit installs `memory.tower`, `memory_libc.tower` and `memory_types.tower`
 under `share/tower/host`. The linked program uses the kit's guest test runtime
 and production `libtower-compiler-memory.a`. The original assertion map is in
 `docs/evidence/work_resume_check_map.tsv`.
+
+Run `towerc --test scaffolding/library/work_budget.tower --test-details` to
+select the five reservation groups. Selecting `work_budget_test.tower` directly
+runs the same groups. Both commands emit empty guest stdout. The native
+`tower-work-budget-tests` fixture calls the same scenarios and prints `0`.
+The kit's `tower-selected-work-budget(-direct)?-jobs-(1|4)` registrations
+check the count using the linked native guest.
 
 The stack and queue owner registrations run two declarations each. From the
 installed suite directory, select both owners with
@@ -2048,7 +2115,8 @@ registrations. Run the same filter in the build tree or the moved SccTests kit:
 ctest --test-dir "$B" -R '^tower-selected-(entities|entity-views|generic-registry|entity-store)-jobs-' -V
 ```
 
-Each owner selects one companion at jobs 1 and 4. The entities companion uses
+Each owner selects its own companion and the budget companion at jobs 1 and 4.
+The entities companion uses
 the interpreter to compare the nested script's stdout with `entities.expected`.
 The views and registry guests link the native test runtime and compiler memory
 archive. The 300-component store guest also links `runtime-instrumented.o`

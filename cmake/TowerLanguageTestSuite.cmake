@@ -46,7 +46,8 @@ get_property(scc_runtimes GLOBAL PROPERTY TOWER_GUEST_NATIVE_RESOURCES)
 install(FILES ${scc_runtimes} DESTINATION scc-suite/share/tower ${scc_install})
 install(FILES scaffolding/library/bytes_test.tower scaffolding/library/graph_components_test.tower scaffolding/library/graph_components_wrong.tower
   scaffolding/library/graph_components_expectations.tower scaffolding/library/sha256_test.tower
-  scaffolding/library/test_data.tower scaffolding/library/work_graph_test.tower
+  scaffolding/library/test_data.tower scaffolding/library/work_graph_test.tower scaffolding/library/work_budget_test.tower
+  scaffolding/library/entity_stage_ownership_test.tower
   scaffolding/library/stack_test.tower scaffolding/library/queue_test.tower
   scaffolding/library/gzip_test.tower scaffolding/library/gzip_test_data.tower
   DESTINATION scc-suite/share/tower/library ${scc_install})
@@ -58,6 +59,7 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/entity_views.tower scaffolding/tests/entity_views_test.tower scaffolding/tests/entity_views.expected
   scaffolding/tests/generic_registry.tower scaffolding/tests/generic_registry_test.tower scaffolding/tests/generic_registry.expected
   scaffolding/tests/generic_body_budget.tower scaffolding/tests/entity_store.tower scaffolding/tests/entity_store_test.tower
+  scaffolding/tests/entity_stage_ownership_cases.tower
   scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})

@@ -1,0 +1,8 @@
+// Each program also runs as its own test entry against its own module tree.
+import semantic_module_cases.twins.canonical as twins_canonical;
+import semantic_module_cases.visibility.declared_dependency as visibility_declared_dependency;
+import semantic_module_cases.twins.local_override as twins_local_override;
+import semantic_module_cases.callable.local_override as callable_local_override;
+import semantic_module_cases.twins.shadow_value as twins_shadow_value;
+import semantic_module_cases.diamond.main as diamond_main;
+import semantic_module_cases.cleanup.main as cleanup_main;

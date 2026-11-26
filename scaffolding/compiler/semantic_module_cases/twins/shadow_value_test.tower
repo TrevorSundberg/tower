@@ -1,0 +1,6 @@
+import library.testing;
+import shadow_value as program;
+
+test() {
+    assert(program.local() == 3, "The function reads the lexical record field");
+}

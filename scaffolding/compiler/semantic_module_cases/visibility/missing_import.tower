@@ -1,0 +1,2 @@
+import tower;
+fn answer(): i32 { return hidden(); }

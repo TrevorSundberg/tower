@@ -1,0 +1,5 @@
+import tower;
+import left.tools;
+import right.tools;
+fn helper(): i32 { return 7; }
+print(helper());

@@ -40,7 +40,8 @@ fn builtin_module_namespace(path: u8*): bool {
 }
 
 // Returned paths borrow text until the consumer finishes copying its modules.
-fn builtin_modules_read(repository: u8*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*): bool {
+fn package_inventory_read(repository: u8*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*,
+    accepts: function(bool, u8*)): bool {
     var path: ByteBuffer = default; defer bytes_dispose(&path);
     if !tool_join(&path, repository, inventory_name)
         || !tool_read_file(path.data, BuiltinInventoryLimit, text) || !host_text_terminate(text) { return false; }
@@ -53,8 +54,12 @@ fn builtin_modules_read(repository: u8*, inventory_name: u8*, text: ByteBuffer*,
         var name = text.data + start;
         text.data[end] = 0;
         if !package_member_name(name, end - start)
-            || !builtin_module_namespace(name) || !vector_push(modules, name) { return false; }
+            || !accepts(name) || !vector_push(modules, name) { return false; }
         at++;
     }
     return modules.length != 0;
+}
+
+fn builtin_modules_read(repository: u8*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*): bool {
+    return package_inventory_read(repository, inventory_name, text, modules, builtin_module_namespace);
 }

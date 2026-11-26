@@ -1,0 +1,30 @@
+import tower;
+import library.testing;
+import syntax_live_attributes;
+import .library.bytes_types;
+import .library.bytes_interface;
+import utility_checks;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+
+test() { attribute_editor_labels(); }
+
+test() { attribute_lexical_roundtrips(); }
+
+test() { attribute_precedence_roundtrips(); }
+
+test() { attribute_invalid_lexical(); }
+
+test() { attribute_invalid_precedence(); }
+
+test() {
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    assert(driver_read_file("tests/syntax_attribute_inputs/precedence.tower", &input), "Read grammar attribute fixture");
+    var embedded: ByteBuffer = default;
+    defer bytes_dispose(&embedded);
+    attribute_expression_input(&embedded);
+    assert(input.length == embedded.length && utility_equal(input.data, embedded.data, input.length),
+        "Callable self-test and native fixture use the same grammar and statements");
+    attribute_expression_checks(input.data);
+}

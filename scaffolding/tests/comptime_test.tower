@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import compiletime_results;
+
+test() {
+    check_compiletime({
+        file: "comptime.tower", output: "0\n",
+        declaration: "fn calculate(value: i32): i32",
+        ..default
+    });
+}

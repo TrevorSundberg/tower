@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import compiletime_results;
+
+test() {
+    check_compiletime({
+        file: "comptime_flow.tower", output: "0\n",
+        declaration: "fn cleaned(): i32",
+        ..default
+    });
+}

@@ -1,0 +1,4 @@
+import tower;
+import left.tools as lib;
+fn local(): i32 { var lib: i32 = 1; return lib.helper(); }
+print(local());

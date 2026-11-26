@@ -1,0 +1,9 @@
+import scopes;
+
+test() {
+    scope_reset();
+    scope_file("shared.tower", "diamond/shared.tower");
+    scope_file("left.tower", "diamond/left.tower");
+    scope_file("right.tower", "diamond/right.tower");
+    assert(both_outputs("diamond/main.tower", "diamond/main.expected"), "Initialize the diamond once in dependency order");
+}

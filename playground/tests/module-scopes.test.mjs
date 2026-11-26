@@ -1,10 +1,12 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
+import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 import {loadTower, runToEnd} from '../src/tower-host.mjs';
 import {loadLLVM, executeWasm} from '../src/llvm-host.mjs';
 import {hoverAt, hoverIndex} from '../src/language-queries.mjs';
-import {builtins as grammar} from './compiler-fixtures.mjs';
+import {builtins as grammar, files as sources} from './compiler-fixtures.mjs';
 
 const read = name => readFile(new URL(name, new URL('../../', import.meta.url)));
 const compiler = await loadTower(await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, grammar.foundation,
@@ -34,84 +36,83 @@ function fails(source, files, message, path) {
   if (path) assert.equal(result.errorFile, path);
 }
 
-const twins = [1, 2].map((n, i) => file(`${i ? 'right' : 'left'}/tools.tower`, `import tower;
-// Helper from module ${n}.
-fn helper(): i32 { return hidden(); }
-fn hidden(): i32 { return ${n}; }
-struct Item { value: i32; }
-var count: i32 = ${n};
-`));
+const scopes = '.tower/compiler/semantic_module_cases/';
+const fixture = path => fixtureSource(scopes + path);
+const twins = ['left/tools.tower', 'right/tools.tower'].map(path => file(path, fixture('twins/' + path)));
+const fixtureRoot = new URL('../../scaffolding/compiler/semantic_module_cases/', import.meta.url);
+const encoder = new TextEncoder();
+function copyText(context, text, size) {
+  const bytes = typeof text === 'string' ? encoder.encode(text) : text;
+  const pointer = context.allocate(bytes.length + 1);
+  if (!pointer) throw new Error('Cannot copy module test observation');
+  const memory = context.memory();
+  if (size !== undefined) new DataView(memory.buffer, memory.byteOffset, memory.byteLength).setUint32(Number(size), bytes.length, true);
+  memory.set(bytes, pointer);
+  memory[pointer + bytes.length] = 0;
+  return pointer;
+}
+
+// This interpreter runs the assertions. The compiler above receives only the
+// selected project's lexical files and its normal grammar libraries.
+let inputs, entrySource, result;
+const checks = await openTower({imports:{
+  scope_reset() { inputs = []; },
+  scope_file(context, path, backing) {
+    inputs.push(file(guestString(context, path), fixture(guestString(context, backing))));
+  },
+  scope_execute(context, program, fast) {
+    entrySource = fixture(guestString(context, program));
+    result = run(entrySource, inputs, Boolean(fast));
+  },
+  scope_roundtrip(context, program) {
+    entrySource = fixture(guestString(context, program));
+    configure(inputs);
+    const handle = compiler.compile(entrySource);
+    try {
+      const round = compiler.compileFoundation(compiler.foundation(handle).source);
+      try { result = compiler.execute(round, 100000); }
+      finally { compiler.destroyExecution(round); }
+    } finally { compiler.destroyExecution(handle); }
+  },
+  scope_field: (context, name, size) => copyText(context, result[guestString(context, name)], size),
+  scope_expected: (context, name, size) => copyText(context, readFileSync(new URL(guestString(context, name), fixtureRoot)), size),
+  scope_error_offset: () => result.errorOffset,
+  scope_error_source(context) {
+    const text = result.errorFile === 'main.tower' ? entrySource : inputs.find(input => input.path === result.errorFile).text;
+    return copyText(context, text);
+  },
+}});
+// Selecting an assertion entry reuploads its configured files. Only the checks
+// and their shared libraries belong to this interpreter's module environment.
+checks.configureModules({files: sources.filter(({path}) =>
+  path.startsWith(scopes + 'browser/') || path.startsWith('.tower/library/') || path === '.tower/backend/text.tower')});
 
 test('canonical module scopes distinguish identical basenames, functions, nominal types and globals', () => {
-  succeeds(`import tower; import left.tools as left; import "right/tools.tower" as right;
-print(left.helper()); print(right.helper());
-var a: left.Item; var b: right.Item; a.value = 30; b.value = 40;
-print(a.value); print(b.value); left.count = 5; right.count = 6;
-print(left.count); print(right.count);`, twins, '1\n2\n30\n40\n5\n6\n');
-  fails('import tower; import left.tools as left; import right.tools as right; var a: left.Item; var b: right.Item; var p: left.Item* = &b;',
-    twins, /Expected|type|compatible/i);
+  runSelectedTest(checks, scopes + 'browser/identity.tower');
 });
 
 test('sibling and transitive declarations cannot satisfy an undeclared dependency', () => {
-  const files = [file('left.tower', 'import tower; fn answer(): i32 { return hidden(); }'),
-    file('right.tower', 'import tower; fn hidden(): i32 { return 42; }')];
-  fails('import tower; import left; import right; print(answer());', files, /Unknown function 'hidden'/, 'left.tower');
-  files[0].text = 'import tower; import right; fn answer(): i32 { return hidden(); }';
-  succeeds('import tower; import left; print(answer());', files, '42\n');
-  fails('import tower; import left; print(hidden());', files, /Unknown function 'hidden'/, 'main.tower');
+  runSelectedTest(checks, scopes + 'browser/dependencies.tower');
 });
 
 test('open imports diagnose ambiguity at use, while aliases and local declarations disambiguate', () => {
-  fails('import tower; import left.tools; import right.tools; print(helper());', twins, /Ambiguous imported name 'helper'/);
-  succeeds('import tower; import left.tools; import right.tools; fn helper(): i32 { return 7; } print(helper());', twins, '7\n');
-  fails('import tower; import left.tools as left; print(helper());', twins, /Unknown function 'helper'/);
-  fails('import tower; import left.tools as left; print(left.missing());', twins, /Unknown function/);
+  runSelectedTest(checks, scopes + 'browser/open_imports.tower');
 });
 
 test('callable visibility is shared by ordinary functions and templates', () => {
-  const files = [file('a.tower', 'import tower; fn helper(value: i32): i32 { return value; }'),
-    file('b.tower', 'import tower; fn helper(T: type, value: T): T { return value; }')];
-  fails('import tower; import a; import b; print(helper(1));', files, /Ambiguous imported name/);
-  succeeds('import tower; import b; fn helper(value: i32): i32 { return value; } print(helper(7));', files, '7\n');
-  fails('import tower; fn Same(T: type): type { struct Item { value: T; } return Item; } fn Same(T: type, value: T): T { return value; }', [], /Duplicate template/);
+  runSelectedTest(checks, scopes + 'browser/callables.tower');
 });
 
 test('a lexical value shadows an alias and indexed calls are not name spellings', () => {
-  succeeds('import tower; import left.tools as lib; struct Holder { count: i32; } fn local(): i32 { var lib: Holder; lib.count = 3; return lib.count; } print(local());', twins, '3\n');
-  fails('import tower; import left.tools as lib; fn local(): i32 { var lib: i32 = 1; return lib.helper(); } print(local());', twins, /Field access requires a struct/);
-  fails('import tower; fn `values[0]`(): i32 { return 1; } var values: i32[1]; print(values[0]());', [], /Call requires a function value/);
+  runSelectedTest(checks, scopes + 'browser/lexical_values.tower');
 });
 
 test('aliases preserve canonical identity, dependency order and diamond initialization', () => {
-  const files = [
-    file('shared.tower', 'import tower; print(1); var value: i32 = 40;'),
-    file('left.tower', 'import tower; import shared as common; print(2); fn answer(): i32 { return common.value; }'),
-    file('right.tower', 'import tower; import "./shared.tower"; print(3); fn other(): i32 { var n = value + 2; return n; }'),
-  ];
-  succeeds('import tower; import left; import right; import "left.tower" as again; print(answer()); print(again.answer()); print(other());', files,
-    '1\n2\n3\n40\n40\n42\n');
+  runSelectedTest(checks, scopes + 'browser/initialization.tower');
 });
 
 test('module cleanup retains dependency bindings and runs once after program statements', () => {
-  const files = [
-    file('shared.tower', 'import tower; var value = 1; print(10); defer print(value);'),
-    file('left.tower', 'import tower; import shared as common; print(20); defer print(2); fn change(): void { common.value = 9; }'),
-    file('right.tower', 'import tower; import shared; print(30); defer print(3);'),
-  ];
-  const source = 'import tower; import left; import right; print(40); change(); defer print(4);';
-  const expected = '10\n20\n30\n40\n4\n3\n2\n9\n';
-  succeeds(source, files, expected);
-  configure(files);
-  const handle = compiler.compile(source);
-  try {
-    const canonical = compiler.foundation(handle).source;
-    const round = compiler.compileFoundation(canonical);
-    try {
-      const result = compiler.execute(round, 100000);
-      assert.equal(result.status, 'done', result.error);
-      assert.equal(result.output, expected);
-    } finally { compiler.destroyExecution(round); }
-  } finally { compiler.destroyExecution(handle); }
+  runSelectedTest(checks, scopes + 'browser/cleanup.tower');
 });
 
 test('qualified templates resolve their own dependencies and keep concrete type identity', () => {

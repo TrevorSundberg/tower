@@ -1,0 +1,4 @@
+import tower;
+import "./shared.tower";
+print(3);
+fn other(): i32 { var n = value + 2; return n; }
