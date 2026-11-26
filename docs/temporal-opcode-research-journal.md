@@ -110211,3 +110211,73 @@ objects produced zero failures and empty stderr in both modes. This exercises
 the case helpers in a serial guest. The Tower instrumentation tool supports
 address and thread modes. Assignment `64b14835-6875-4781-8b93-2424eb9ada6e`
 retains the case-to-line map, input identities, link maps and raw runs.
+
+### Public float-bits discovery and source-format qualification
+
+Host 3 checked assignment `640db66c-0829-4b2f-b572-138aee31c9ae` on
+`bddf13315bf8f484b8d8e9fdb0b801f426450401`, directly above `442f3bea`.
+The source bundle and five named evidence files matched the producer's archive
+and manifest. The public Pages tree at `f2214133` supplied the versioned
+8bc867b6 Linux x64 package and the portable and LLVM reactors. All 60 Linux
+package hashes matched the default checkout package. The installed compiler's
+SHA-256 was `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`.
+The earlier 41de9006 timings and sanitizer results belong to that earlier build.
+
+The public standalone interpreter and linked guest printed `0\n` at one
+and four jobs. Default discovery from the owner and direct companion selected
+the same nine declaration locations. The two new count-checked CTests passed.
+The two bytecode-package registrations went from 6 to 15, the two defer
+registrations and four-job iteration from 60 to 69. The original sites retained
+their order and guest bytes. Both new registrations also passed from a moved,
+float-only test kit using the installed compiler. Withholding the companion
+failed both count checks. An intentionally wrong even-lower midpoint expected
+1065353217, reported actual 1065353216 and failed both at line 56, column 5.
+Restoring the exact companion restored both passes.
+
+The formatter file list gained the companion. The installed public compiler
+rejected its source with `--check-format`. The repair applies its indentation
+and block layout, with two line joins above the corpus to preserve the assertion
+locations. The 44 original arguments and labels and the ordered table of 48
+statements, including conversion status reads, still reproduce both retained
+tables byte for byte. The published CLI accepted the repaired source. A
+supplemental retained native formatter runner from `249a7484` contains the
+same repository-sweep check and formatter owner source. Given the reviewed
+checkout resources, the new companion failed its canonical-source assertion
+before the repair. The repaired companion, standalone and invalid grammar
+control passed together. This is a focused projection of the opt-in sweep.
+The public base already has unrelated formatting drift.
+
+The checkout-backed for-loops, foreach, operators, compiletime, bytecode and
+module-path-names Node modules exercised the released reactors. The for-loop
+observation tests selected 4 and 1, foreach selected 9 and the compound
+operator check selected 14. The operator rejection, compiletime and enabled
+bytecode assertion calls each selected one. The release reactor lacks the
+optional bytecode ownership export. The packet records the individual Node
+names, anonymous Tower declaration sites, counts, guest output, canonical
+hashes and filtered file inventories. The production float owner and consumer
+objects and depfiles remained byte-identical at both native widths. The
+published editable project includes the production owner. Its 776 paths
+exclude both the standalone and its companion. All 113 Pages asset hashes
+verified. Ship the companion with the requested tests and retain the existing
+binary, project and manifest provenance.
+
+All timings in the packet used fresh processes and warm source files on one
+AMD EPYC 7542 host, affinity 0–3, with a shared 12.288-CPU quota and a
+57,954,795,520-byte memory limit. The public stock and submitted six-module
+runs each passed 111 Node names with one capability skip. The three
+transitive native owners run at five registrations. The stock five took
+63.13 s wall, 43.21 s user, 1.71 s system and 760,712 KiB peak RSS. The
+repaired seven, including the two new registrations, took 65.49 s wall,
+43.91 s user, 1.71 s system and 768,216 KiB peak RSS. The packet provides
+individual commands and process peaks. These differently sized groups
+measure qualification cost. Compiler and Pages publication remain with the
+manager.
+
+Over three alternating standalone pairs, median wall seconds at jobs 1 and 4
+were 0.37 and 1.57 on stock, and 0.51 and 2.73 after repair. Maximum RSS
+was 95,076 and 99,908 KiB on stock and 99,580 and 107,348 KiB after repair.
+Each run returned the same two output bytes. The full optional sweep still
+stopped on `backend/bindings.tower` first on all three trees. The supplemental
+sweep runner's implementation identity and its resource-root preflights are
+in the packet. The six repaired Node modules also passed 111 names with the
+same capability skip.
