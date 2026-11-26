@@ -1289,6 +1289,20 @@ never concatenated. Ordinary projects likewise compile their first Tower file's
 import closure, including an entry containing only imports, and recompile when
 an imported file changes.
 
+To run a compiler test, select an owner such as `compiler/utf8.tower` and choose
+**Run tests**. Tower discovers companions across the owner's imports. Selecting
+`compiler/utf8_test.tower` runs just that companion. **Test settings** controls
+the companion suffix. A failure links to the assertion in the editable source.
+
+The project packager reads test inputs from
+`scaffolding/compiler_project_test_sources.txt`. When a companion gains an
+import under `scaffolding/tests/`, run
+`towerc --list-test-files COMPANION -o selected.txt --depfile selected.d` and
+include the required test source paths from the depfile, relative to
+`scaffolding/`. The compiler's build units keep their own import closures.
+The native harness calls some helper modules explicitly. Selecting one of
+those files in the browser can report **No tests found**.
+
 **Build workers** applies to the next manual or automatic compiler rebuild.
 Automatic uses up to two workers. Choose 1 for serial compilation, or request
 2 or 4 workers. The coordinator caps each request at the browser's reported
