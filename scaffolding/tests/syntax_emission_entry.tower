@@ -1,38 +1,19 @@
 import tower;
 import .compiler.syntax_emission_types;
 import utility_checks;
+import syntax_emission_context;
 
-extern fn syntax_create(source: u8*, module: void*): void*;
-extern fn syntax_destroy(session: void*): void;
-extern fn syntax_native_bedrock(): void*;
-extern fn syntax_component_type(): void*;
-extern fn parser_rule_get_type(): void*;
-extern fn parser_reference_get_type(): void*;
-extern fn parser_string_get_type(): void*;
-extern fn parser_range_get_type(): void*;
 extern fn syntax_emission_tests(input: SyntaxEmissionInput*): usize;
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_node_get_allocated_count(): usize;
 
 fn syntax_emission_test_entry(): void {
-    var warm = syntax_create("", null);
-    utility_check(warm is not null, "Emission fixture initializes the host world");
-    syntax_destroy(warm);
-    var context: SyntaxEmissionInput;
-    fill(&context, 0, sizeof(SyntaxEmissionInput));
-    context.root = syntax_native_bedrock(); context.syntax_kind = syntax_component_type();
-    context.rule_kind = parser_rule_get_type(); context.reference_kind = parser_reference_get_type();
-    context.string_kind = parser_string_get_type(); context.range_kind = parser_range_get_type();
-    utility_check(context.root is not null, "Emission fixture has Bedrock entities");
+    var context = emission_test_context();
     for (var pass: usize = 0; pass < 2; ++pass) {
-        var buffers = tower_test_buffer_count();
-        var entities = tower_node_get_allocated_count();
+        var live = emission_test_live_counts();
         utility_check(syntax_emission_tests(&context) == 0, "Emission fixed/generated/template/failure fixtures");
         // The first pass initializes ordinary shared compiler caches. Repeating
         // the complete suite must retain neither result buffers nor input nodes.
         if pass != 0 {
-            utility_check(buffers == tower_test_buffer_count(), "Emission fixtures release their buffers");
-            utility_check(entities == tower_node_get_allocated_count(), "Emission fixtures release their entities");
+            emission_test_check_released(live);
         }
     }
     puts("Tower emission: fixed, 400 generated, template, failure and lifetime checks passed.");
