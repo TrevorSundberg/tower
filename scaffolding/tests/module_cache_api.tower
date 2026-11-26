@@ -1,0 +1,36 @@
+import tower;
+import .compiler.frontend_modules;
+import .compiler.frontend_revision_types;
+import .compiler.syntax_version_types;
+import .compiler.syntax_view;
+import .library.work_budget_types;
+
+// Exercise the compatibility host entry point in this legacy test suite.
+extern fn syntax_create(source: u8*, module: FrontendModule*): void*;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_get(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, output: void**): WorkBudgetError;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn frontend_world_clear(world: void*): bool;
+extern fn compiler_world_pinned(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn syntax_world_revision(world: void*, mode: u32): FrontendRevision*;
+extern fn frontend_revision_release(revision: FrontendRevision*): void;
+extern fn syntax_revision_rule(revision: FrontendRevision*, name: u8*, length: usize): SyntaxRuleView*;
+extern fn entity_references(entity: void*): usize;
+extern fn entity_retain(entity: void*): usize;
+extern fn entity_child_at(parent: void*, index: usize): void*;
+extern fn puts(text: u8*): i32;
+extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool,
+    diagnostic: SyntaxVersionDiagnostic*): bool;
+extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn frontend_units_create_bounded_result(count: usize, workers: usize, retained_bytes: usize, width: u32,
+    revision: u64, profile: u64, bedrock: u8*, foundation: u8*, library: u8*, error: WorkBudgetError*): void*;
+extern fn frontend_units_close(batch: void*): void;
+
+var ModuleCloneBudgetBytes: usize = 134217728;

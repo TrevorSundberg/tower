@@ -119261,3 +119261,24 @@ Expecting three modules after editing shared.tower produced legacy exit 35
 The remaining sections at this boundary are 233–465 (baseline installation,
 startup and clone denials) and 587–845 (seed and first-import reader leases).
 The separate in-memory selection predicate lives in test_file_rule_checks.
+
+### Cache clone denial, checked admission and baseline replacement
+
+Original frontend_modules.tower lines 233–465 now run as four selected
+declarations. The two clone trials keep every original cache entry, check the
+entity and component counts under full byte pressure, retry through the same
+grammar and drain their grants. A separate trial denies bound, unbound and
+private environment admission, then checks the returned idle parser. Another
+retains the old declaration through edits and a failed baseline installation.
+The native object and the selected declarations use the same typed fixture
+interface and the existing parser functions. A first split missed the direct
+import for module_require. The corrected build preserved both access to the
+original private helpers and the identity of their module types.
+
+Three temporary expectations changed the retry graph size, the one-byte
+startup error, and the declaration identity after replacing shared.tower.
+Each failed the original cache executable and the direct selection. The
+restored standalone produced the original 209 bytes. The reference observer
+recorded 134,217,728 bytes and 1,244 live grants at both clone denials, then
+zero bytes, live grants and lanes. At this boundary the remaining predicates
+in frontend_modules.tower are the two lease protocols, original lines 587–844.

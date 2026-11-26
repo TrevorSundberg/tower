@@ -191,7 +191,7 @@ function(tower_lr_work_policy_test)
     if(TARGET tower-lr-row-services)
       tower_format_test_host("${triple}")
       add_dependencies(tower-module-cache-tests tower-format-test-host tower-lr-row-services tower-selected-test-count tower-guest-native-test)
-      tower_native_test_selections(module-cache module_cache_suite "24 tests" "2 tests"
+      tower_native_test_selections(module-cache module_cache_suite "28 tests" "6 tests"
         --test-native-runtime "${row_guest}" --link "${format-test-host_OBJECT}" --link "$<TARGET_FILE:tower-lr-row-services>"
         --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
       foreach(jobs IN ITEMS 1 4)
