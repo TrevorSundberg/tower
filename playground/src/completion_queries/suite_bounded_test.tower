@@ -1,4 +1,4 @@
-import transport;
+import suite;
 import library.testing;
 
 test() {

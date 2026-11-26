@@ -36,11 +36,12 @@ export function editorSuite(folder, fixtureNames, imports) {
     }
     needsTurn = false;
     setup();
-    const entry = root + name + '_test.tower';
-    const files = await Promise.all([root + 'transport.tower', entry].map(async path => ({path, text:await source(path)})));
+    const entry = root + 'suite.tower';
+    const suffix = '_' + name + '_test.tower';
+    const files = await Promise.all([entry, root + 'suite' + suffix].map(async path => ({path, text:await source(path)})));
     // A foreign call is synchronous. Let native promise reactions run between
     // bounded interpreter steps while this same selected test is still live.
-    for (const _ of selectedTestSteps(host, entry, 256, {files, suffix:'_browser_test.tower'}, 256)) {
+    for (const _ of selectedTestSteps(host, entry, 256, {files, suffix}, 256)) {
       if (needsTurn) {
         needsTurn = false;
         await Promise.resolve();

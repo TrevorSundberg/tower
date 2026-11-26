@@ -112296,3 +112296,10 @@ The local Wasm build has SHA-256 `73660e4a…` and predates the test entry
 point. The cached published portable `41bb9b11…` and shared `72c882ee…`
 reactors from compiler source `8bc867b6` match the retained Pages manifest.
 The bounded selections used those public resources without a compiler build.
+
+At the first freeze `78b5a38b`, opening each assertion file directly selected
+one test in Wasm. Native `--list-test-files` enumerates discovered companions
+and returned an empty inventory for that form. Using `suite.tower` as the
+owner and one named suffix per case gives both frontends the same file
+selection. An explicit four-job native inventory listed `suite_exact_test.tower`
+and the bounded completion and deadline selections then passed in Node.
