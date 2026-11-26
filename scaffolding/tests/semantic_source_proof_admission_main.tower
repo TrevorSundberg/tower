@@ -1,0 +1,22 @@
+import semantic_source_proof_admission_checks_test;
+
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+fn source_proof_select(mode: u8*): SourceProofCase {
+    if strcmp(mode, "healthy") == 0 { return source_proof_healthy; }
+    if strcmp(mode, "query") == 0 { return source_proof_query_refused; }
+    if strcmp(mode, "edge") == 0 { return source_proof_edge_refused; }
+    if strcmp(mode, "cancelled") == 0 { return source_proof_cancelled; }
+    if strcmp(mode, "failed") == 0 { return source_proof_prior_failure; }
+    if strcmp(mode, "finish") == 0 { return source_proof_finish_refused; }
+    return null;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var exercise: SourceProofCase = source_proof_healthy;
+    if argc > 1 { exercise = source_proof_select(argv[1]); }
+    if exercise == null { puts("Unknown source proof admission selector"); return 1; }
+    var result = source_proof_cases(exercise);
+    return result.failures == 0 ? 0 : 1;
+}
