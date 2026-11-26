@@ -1,0 +1,61 @@
+import library.testing;
+import .library.entity_types;
+import .library.entity_api;
+
+// The browser supplies the store exports and accesses payloads in that reactor's
+// memory. The linked native guest uses the same ABI with local payload access.
+extern fn entity_query_count(type: Entity*): usize;
+extern fn entity_query_at(type: Entity*, index: usize): EntityComponent*;
+extern fn entity_component_from_data(data: u8*): EntityComponent*;
+extern fn entity_component_remove(owner: Entity*, type: Entity*): bool;
+extern fn entity_store_count(store: EntityStore*): usize;
+extern fn entity_store_component_count(store: EntityStore*): usize;
+extern fn entity_payload_write(data: u8*, value: u32): void;
+extern fn entity_payload_read(data: u8*): u32;
+
+struct StoredComponent {
+    owner: Entity*;
+    component: EntityComponent*;
+    data: u8*;
+    seen: bool;
+}
+
+test() {
+    var world = entity_store_create();
+    var type = entity_create(world);
+    var alignment: usize = 64;
+    assert(entity_register(type, sizeof(u32), alignment, 0), "Register an over-aligned payload");
+    var rows: StoredComponent[300];
+    var count = sizeof(decltype(rows)) / sizeof(StoredComponent);
+    for (var i: usize = 0; i < count; i++) {
+        var owner = entity_create(world);
+        var component = entity_component_add(owner, type);
+        var data = entity_component_data(component);
+        assert(data != null && bits(usize, data) % alignment == 0, "64-byte payload alignment");
+        entity_payload_write(data, convert(u32, i));
+        rows[i] = {owner: owner, component: component, data: data, seen: false};
+    }
+    assert(entity_query_count(type) == count, "All components appear in the query");
+    foreach (var &row in &rows) {
+        assert(entity_component_get(row.owner, type) == row.component, "Owner retains component identity");
+        assert(entity_component_data(row.component) == row.data, "Payload address remains stable");
+        assert(entity_component_from_data(row.data) == row.component, "Reverse lookup identifies the component");
+    }
+    for (var i: usize = 0; i < count; i += 2) {
+        assert(entity_component_remove(rows[i].owner, type), "Remove every even component");
+    }
+    var survivors = entity_query_count(type);
+    assert(survivors == count / 2, "Half the components survive");
+    for (var i: usize = 0; i < survivors; i++) {
+        var component = entity_query_at(type, i);
+        var value = convert(usize, entity_payload_read(entity_component_data(component)));
+        assert(value < count && value % 2 == 1, "Only odd payloads survive");
+        assert(!rows[value].seen && rows[value].component == component, "Each surviving component appears once");
+        rows[value].seen = true;
+    }
+    entity_release(type);
+    foreach (var &row in &rows) { entity_release(row.owner); }
+    assert(entity_store_count(world) == 0, "No live entities after release");
+    assert(entity_store_component_count(world) == 0, "No live components after release");
+    assert(entity_store_dispose(world), "Dispose the empty store");
+}

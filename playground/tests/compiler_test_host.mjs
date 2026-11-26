@@ -45,9 +45,9 @@ export function guestString(context, pointer) {
   return decoder.decode(memory.subarray(start, end));
 }
 
-export function runSelectedTest(tower, entry, chunks = 10) {
+export function runSelectedTest(tower, entry, chunks = 10, options) {
   tower.configureModules({entry});
-  const handle = tower.compileTests();
+  const handle = tower.compileTests(options);
   try {
     const checked = tower.execute(handle, 0);
     if (checked.status === 'error') requireStatus(checked, 'done');

@@ -1916,6 +1916,34 @@ playground/tests/bytecode.test.mjs`. The file closes its host transport and uses
 selected artifact without requiring an unrelated default browser build. This is
 package coverage, not the browser concurrency or integrated release matrix.
 
+### Entity fixture companions
+
+The four selectors in `playground/tests/compiler-entities.test.mjs` use the
+existing entity, pinned-view and generic-registry programs, and the running
+compiler's exported component store. For native selection, set `S` to the
+checkout's absolute `scaffolding` directory, `CC_TOWER` to the qualified
+Linux driver and `P` to the optional language kit's `providers` directory.
+
+```sh
+for jobs in 1 4; do
+  for suffix in "" _test; do
+    "$CC_TOWER" --test "$S/tests/entities${suffix}.tower" --jobs "$jobs" --test-details --foundation "$S/foundation.tower" || exit 1
+    for name in entity_views generic_registry; do
+      "$CC_TOWER" --test "$S/tests/${name}${suffix}.tower" --jobs "$jobs" --test-details --foundation "$S/foundation.tower" \
+        --test-native-runtime "$P/guest-native-test.o" --link "$P/libtower-compiler-memory.a" || exit 1
+    done
+    "$CC_TOWER" --test "$S/tests/entity_store${suffix}.tower" --jobs "$jobs" --test-details --foundation "$S/foundation.tower" \
+      --test-native-runtime "$P/guest-native-test.o" \
+      --link "$P/runtime-instrumented.o" --link "$P/libtower-compiler-memory.a" || exit 1
+  done
+done
+```
+
+Each command selects one declaration. Default discovery supplies the store fixture
+and its payload accessors for both native selections. The browser selects the
+same test with a different companion suffix to exercise the reactor exports.
+It independently observes both query counts at that boundary.
+
 ### Focused LR closure ordering and frontend iteration cost
 
 `tower-frontend-tests RESOURCE_ROOT graph-components` checks the generic SCC

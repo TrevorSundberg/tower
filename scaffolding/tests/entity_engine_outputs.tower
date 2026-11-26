@@ -1,0 +1,24 @@
+import library.testing;
+import utility_checks;
+
+// Slot zero is the original byte-for-byte stdout oracle. The remaining slots
+// are the outputs captured from the interpreter and LLVM-generated Wasm.
+extern fn entity_output_count(): usize;
+extern fn entity_read_output(slot: usize, destination: u8*, capacity: usize): usize;
+extern fn entity_rebuilds_foundation(): bool;
+
+test() {
+    var runs: usize = entity_rebuilds_foundation() ? 10 : 4;
+    assert(entity_output_count() == runs, "Missing entity fixture execution");
+    var size = entity_read_output(0, null, 0);
+    assert(size != 0, "Missing entity fixture stdout oracle");
+    var wanted = alloc(u8, size);
+    defer free(wanted);
+    var actual = alloc(u8, size);
+    defer free(actual);
+    assert(entity_read_output(0, wanted, size) == size);
+    for (var slot: usize = 1; slot <= runs; slot++) {
+        assert(entity_read_output(slot, actual, size) == size, "Entity fixture stdout length");
+        assert(utility_equal(actual, wanted, size), "Entity fixture stdout bytes");
+    }
+}
