@@ -116199,3 +116199,110 @@ The ready producer ran its original and new 4,447-row traces. The dispatch
 producer recorded 98 pthread creates and joins on each of six routes. Those
 measurements precede the CMake integration. The manager only configured the
 combined tree on the control host.
+### Discovering the two original entity attachment lease cases
+
+Host 6 qualified assignment `cbfaa346-ff30-41c9-a123-22b37dcc5a6e` on public
+`6fdb5d04b182d92637ded26e60c18cb3ab4b0e57`. The shared checkout had an
+unpublished commit. A separate local main kept the qualification on the exact
+base. Applying the four supplied file changes reproduced tree
+`8584954baf000d0818e7cfb79502193960541815` in commit `a8c4c2c7`.
+The Linux x64 public pin was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Its packaged checksum manifest passed.
+
+The standalone still runs child transfer first, then attachment, prints the
+combined failure count and returns the original status. Comparing the executable
+bodies verified every original check, the conditional repairs, release order
+and both calls to store disposal. The test companion imports the entities,
+component types, stage operations, host memory and portable transport directly.
+The standalone imports that companion. The original and relocated fixture
+objects have identical undefined symbol lists. Each CMake executable links the
+fixture object with `guest-work-tests.o`, which supplies the production guest
+allocator. Both wrote exactly `0\n`, with empty stderr and exit 0. A plain
+`towerc ENTRY -o EXE` also brings the packaged startup main. On both versions
+it reports the same duplicate ELF main at jobs 1 and 4. The standalone uses
+the established CMake link.
+
+Four new native CTests run the count checker at jobs 1 and 4. The direct
+entry lists exactly the two declarations at companion lines 8 and 12.
+The owner also discovers the five declarations at `work_budget_test.tower`
+lines 6–10. Both interpreted selections gave the same counts. Native
+selection requires `guest-native-test.o` and `runtime-allocate.o`. Omitting
+the allocator failed on `tower_deallocate`. A fresh build of just
+`tower-entity-attach-leases-tests` supplied the checker and both objects.
+The original standalone and all four new CTests passed. The remaining
+registrations retained their commands and properties.
+
+Temporary Tower probes read each store while it was live. A separate expected
+ledger matched the original standalone, relocated standalone and all four
+native selections. Each entity row records its ID, parent ID, references,
+child count, first and last child IDs, and lease state. Root ID 0 is distinct
+from a null pointer. During denied indexed replacement, root 0 still held
+child 1, with two references. Replacement 2 had one reference and no parent.
+Discard cleared child 1's lease. A successful retry moved the root's slot to
+2, left child 1 detached with one reference, and gave 2 two references.
+Taking leased child 2 returned null with its parent, slot and references intact.
+
+In the second store root 0 held parents 1 and 2. Leasing parent 1 denied
+moving child 3 to parent 2. Child 3 retained parent 1 and two references.
+The two parent child counts stayed 1 and 0. Leasing child 3 denied attaching
+replacement 4 under the same name. The original edge still named child 3,
+and replacement 4 remained detached at one reference. All four stages listed
+exactly the intended entity, and discard cleared each lease. Both stores had
+zero entities, components and views, and empty owned pools immediately before
+each disposal returned true. The packet contains the row definitions and
+scalar streams, including the separate standalone failure count.
+
+Four independent controls reversed just one expected result at a time for
+indexed replacement, taking the last child, named replacement and moving the
+child to its next parent. Both standalones printed `1\n` and exited 1 for
+each edit. Both native selections failed at both widths, at line 9 for
+indexed replacement and take, and line 13 for named replacement and reparent.
+Restoring the originals passed all six routes.
+
+Paired runs used Linux x64, Intel Xeon E5-2680 v4, LLVM/Clang 19.1.7 Release,
+the public compiler and target `x86_64-pc-linux-gnu`. The allowed mask was
+0–11 with quota 1,152,000 µs per 100,000 µs (11.52 CPUs). The timing process
+and children used CPUs 0–3 under the host timing lock. The cgroup throttle
+count stayed at 234. Each fresh child ran alone on warm files. The Tower
+measurement wrapper used the monotonic clock around fork/exec/wait4 and
+collected child user time, system time, peak RSS and wait status. Every
+standalone output and each linked timed object were checked.
+
+| Workload | Pairs | Median wall, original / relocated | Median CPU, original / relocated | Maximum RSS KiB, original / relocated |
+| --- | ---: | ---: | ---: | ---: |
+| Standalone, serial guest | 24 | 0.872 / 0.898 ms | 0.760 / 0.778 ms | 1,296 / 1,296 |
+| Compile standalone object, jobs 1 | 3 | 1.730 / 1.838 s | 1.729 / 1.838 s | 159,612 / 162,268 |
+| Compile standalone object, jobs 4 | 3 | 1.708 / 1.945 s | 1.910 / 2.195 s | 166,404 / 174,756 |
+
+The relocation adds the test companion and testing grammar to the standalone
+compile. In separate instrument-free driver timing samples, parse rose from
+646 to 794 ms at one job and from 665 to 914 ms at four. Object emission
+took 340/334 ms and 354/357 ms respectively. One native compile-and-run
+per selection at jobs 1/4 took 2.130/2.186 s for the owner and 1.904/1.911 s
+for the companion. Peak RSS was 174,108/184,880 KiB and 160,340/171,196 KiB.
+These costs include compiler startup. The fixture itself opens no workers.
+
+The supported address/leak and thread sanitizer configurations both passed
+the standalone CTest on their first launch. The link maps place guest
+allocation in `guest-work-tests.o` and the portable work transport in the
+fixture object. Instrumented IR contains checked accesses in both migrated
+functions. TSan inlined them into the linked main, whose disassembly retains
+the probes. The selected native guests ran with the ordinary test runtime.
+No concurrent mutation or source-level UBSan coverage is claimed. The raw
+packet preserves the initial CMake configuration errors (LLVM tool path and
+cache reset), final configure and link commands, maps, oracle and control
+streams, raw measurements and source bundles. The manager owns publication.
+
+During qualification public main advanced to
+`ba9e9c442af3ef945a4a8d477a2175233f95114f`. The exact-base bundle ends
+at `22c5552f`. On rebase, the newer native selection helper supplied the
+same guest, production allocator, count checks and job widths with one
+registration call. The CMake diff against the new public parent changes
+only the attachment fixture's input selection and registration. A fresh
+focused build reproduced all six exact-base artifacts byte for byte,
+including the standalone, fixture object, checker, two guest runtimes and
+selected allocator. The five CTests and both sanitizer standalones passed
+again. Swapping the expected owner/direct counts made the checker reject
+both otherwise passing runs. The packet includes this rebased source
+bundle for integration on the newer parent.
