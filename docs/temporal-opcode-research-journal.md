@@ -108690,3 +108690,71 @@ in the JS harness and introduces no compiler, worker or allocator code.
 The full Jenkins pipeline and publication are pending manager review.
 Host 1 packet `4ade3a78-7004-4d4b-8cb2-701bd0ee41e6` retains the original
 console, build and selection logs, timing samples, packet bytes and replay outputs.
+
+### Compile-time rejection fixtures on the published portable and LLVM reactors
+
+Host 2 started from public `3ca5e7cc`. The 2,870 bytes of the original
+24-row rejection table (through its closing brace) hashed to
+`86100114687c5cfa8bb5203adbf17a74ce07deedd9e4e0957210ba8635029d8d`.
+An initial pull conflicted with an unpublished SHA-256 companion in the shared
+checkout. The rebase was aborted and an independent main used for this change.
+Pages commit `c9773ec3` supplied the portable and compressed LLVM reactors
+built at `8bc867b6`. The raw executables were 1,711,218 and 35,456,501 bytes.
+
+On the frozen public source the bounded negative-only Node run passed all 48
+registrations. It observed 96 terminal errors. The Tower entries in
+the adjacent `_browser.tower` files compare the full message and its byte
+offset and check the source filename against the selected case. In the
+portable interpreter they also require zero steps and complete empty output.
+Each LLVM target retains its own compile, and each result goes through a
+single selected Tower declaration at the corresponding pointer width.
+
+The 24 unchanged sources total 2,790 bytes. Across two backends and two widths
+the compilers received 11,160 source bytes and returned 6,208 diagnostic bytes.
+All 96 comparisons retained the exact messages, relative byte offsets and raw
+compiler offsets. The sixth source-map entry starts at byte 19,870. The
+self-cycle witnesses are `19909 -> 19909` and `19953 -> 19953`. The old host
+labelled every error `input.tower` when filtered, or
+`.tower/tests/comptime_capture_values.tower` in the full run. Setting the entry
+to the actual subject corrected all 96 filenames. Packet `cases.tsv` records
+each subject's Git blob, registered input positions, size, source coordinate
+and assertion identity.
+
+All 48 registrations passed in isolation. An instrumented positive run counted
+one test per subcase and 1,026,384 completed assertion steps with empty output.
+An added trap after the last assertion failed all 48 registrations at their
+respective Tower files. An incorrect division message and an offset of 54 for
+the true offset of 53 each failed. Calling `invalid(1)` directly removed the
+wrapper frame. Calling `invalid(1)` inside the wrapper retained the wrapper
+frame and replaced the valid `invalid(value)` frame. Both edits kept the same
+terminal error and failed its trace assertion. An empty test also failed the
+host's diagnostic-read check. Each field, trace and empty-test control failed on both backends at each
+width, using an 8-byte-first run to reach the second width before failure.
+Restoration passed. All 88 names passed in their original order on the assigned
+base and on a separate source export of public `46e22072` with the focused
+patch. Its newer positive cases and shared helper applied without edits.
+
+The pinned Linux compiler produced byte-identical reference stderr (including
+file, line, column and trace) and empty stdout for all 24 inputs at jobs 1 and
+4. Native `--test` on 22 original owners rejects their declarations before a
+companion can run. The two generic body owners omit their top-level calls in
+test mode and select zero by default. Pairing their browser assertions with
+`--test-suffix _browser.tower` reaches a missing `stage_text` binding on both
+owner and direct entry. All 24 unpaired assertion entries need this browser
+observation. The native fixture grant returns text or stdout and propagates
+child errors to the outer execution. It exposes no child diagnostic record
+for an assertion to inspect. The ordinary native rejection runs supply the
+independent reference.
+
+Host 2 used a Ryzen 5 3600, Node 24.22.3, CPU affinity 0,2,4,6 and a cgroup
+quota of 11.52 CPUs. Three serial matched fresh-process pairs on warm files
+had median wall / CPU / process peak RSS of 1.58 s / 2.78 s / 240,944 KiB
+before and 9.03 s / 11.22 s / 312,760 KiB after. The new work includes a
+second portable reactor and compilation and execution of 96 selected tests.
+An early checker opened within a Node test closed at that test's teardown.
+Another trial used the subject's full file set for each checker selection and
+took 11.45 s wall. The final checker opens on first use, has suite lifetime
+and registers its assertion inputs separately from the subject. The selected
+production Wasm binaries are uninstrumented. This change adds test code and
+host transport and changes no compiler or worker code. Source bundle and raw
+packet `e3f9a80d-e11a-49de-ae9d-c0263fa498be` are for manager publication.
