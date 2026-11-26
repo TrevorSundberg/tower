@@ -1,0 +1,81 @@
+import library.testing;
+import text_checks;
+
+struct RoundTrip {
+    output: u8*;
+    reparsed_output: u8*;
+    foundation: u8*;
+    re_emitted: u8*;
+}
+
+struct Execution {
+    status: u8*;
+    error: u8*;
+    output: u8*;
+}
+
+struct Observations {
+    golden: u8*;
+    graph32: RoundTrip;
+    fast32: RoundTrip;
+    graph64: RoundTrip;
+    fast64: RoundTrip;
+    condition: Execution;
+    update: Execution;
+    private_header: Execution;
+    private_body: Execution;
+    braces: Execution;
+    missing_return: Execution;
+    identifier: u8*;
+    first_format: u8*;
+    second_format: u8*;
+    formatted_output: u8*;
+}
+
+extern fn counted_loop_observations(): Observations*;
+
+fn round_trip(run: RoundTrip*, golden: u8*): void {
+    assert(same_text(run.output, golden), "Source output differs from for_loops.expected.txt");
+    assert(same_text(run.reparsed_output, golden), "Reparsed output differs from for_loops.expected.txt");
+    assert(same_text(run.foundation, run.re_emitted), "Foundation changed on re-emission");
+}
+
+test() {
+    var seen = counted_loop_observations();
+    round_trip(&seen.graph32, seen.golden);
+    round_trip(&seen.fast32, seen.golden);
+    round_trip(&seen.graph64, seen.golden);
+    round_trip(&seen.fast64, seen.golden);
+}
+
+fn failure(result: Execution*): u8* {
+    assert(same_text(result.status, "error"), "Invalid loop must fail before execution");
+    assert(same_text(result.output, ""), "Invalid loop executed the preceding print");
+    return result.error;
+}
+
+fn name_error(message: u8*): bool {
+    return contains_text(message, "Unknown") || contains_text(message, "unknown")
+        || contains_text(message, "Unresolved") || contains_text(message, "unresolved");
+}
+
+test() {
+    var seen = counted_loop_observations();
+    assert(contains_text(failure(&seen.condition), "Expected bool"), "Non-bool condition");
+    assert(name_error(failure(&seen.update)), "Unresolved update");
+    assert(name_error(failure(&seen.private_header)), "Header binding escaped the loop");
+    assert(name_error(failure(&seen.private_body)), "Body local visible in update");
+    assert(contains_text(failure(&seen.braces), "Missing '{'"), "Body requires braces");
+    assert(contains_text(failure(&seen.missing_return), "return"), "Conditional loop can fall through");
+}
+
+test() {
+    var seen = counted_loop_observations();
+    assert(same_text(seen.identifier, "12\n"), "Foundation permits for as a binding name");
+}
+
+test() {
+    var seen = counted_loop_observations();
+    assert(same_text(seen.first_format, seen.second_format), "Formatting must be idempotent");
+    assert(same_text(seen.formatted_output, "0\n1\n2\n"), "Formatted headers must execute");
+}

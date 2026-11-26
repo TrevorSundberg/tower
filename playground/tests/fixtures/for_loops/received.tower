@@ -1,0 +1,3 @@
+// observations.tower is a temporary module containing the reactor's measured data.
+import observations;
+export fn counted_loop_observations(): Observations* { return &actual; }

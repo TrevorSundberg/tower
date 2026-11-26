@@ -105801,3 +105801,46 @@ Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
 Jenkins console, commands, inputs, comparison products, sanitizer attempts
 and local commit for review. The full Jenkins rerun and publication remain
 with the manager.
+
+## Counted-loop reactor assertions through native Tower tests
+
+On published `3ae475c2`, host 3 ported the five registrations in
+`playground/tests/for-loops.test.mjs`. The [Tower interpreter cases](../scaffolding/compiler/semantic_control_cases/interpreters.tower)
+check the 17-line golden output at four graph/fast and pointer-width combinations,
+the output after each Foundation reparse, and byte-identical re-emission. Six
+invalid programs each require error status, their diagnostic class and empty
+output despite a preceding print. The Foundation-only binding prints 12.
+Formatting the compact loop twice must give identical text, and executing the
+formatted result must print 0, 1 and 2. The [LLVM case](../scaffolding/compiler/semantic_control_cases/llvm.tower)
+checks the same golden for raw and optimized Wasm guests. The original positive
+source and golden file are unchanged.
+
+The native test interpreter can write output but cannot call the reactor or
+spawn a compiler. Node performs those operations, checks terminal statuses
+and passes the returned text as named fields to a real Tower receiver fixture.
+`towerc --test --test-details` locates each of the five cases at its checked-in
+source. All 40 captured data values agreed byte for byte with the original
+runner's assertion operands. Changing the Foundation identifier expectation to
+13 in an isolated copy exited 1 at `interpreters.tower:74:5` at jobs 1 and 4.
+The default native [owner companion](../scaffolding/compiler/semantic_control_test.tower)
+reuses functions from the original counted-loop program. Isolated owner and
+direct selections each ran its two cases at both job counts. The live reactor
+checks enter through the existing Node test glob.
+
+A clean ordinary build used the checked-in public bootstrap. The owner object
+depfile omitted companions, and the linked native guest printed its exact golden.
+The enabled CTest selections passed 3/3 and the existing `control-smoke` passed.
+The first configuration had no enabled CTests. Registering the work tests and
+enabling the backend test target supplied the two focused commands. Passing
+the installed LLVM 19 Clang path repaired the native guest link. ASan/LSan and
+TSan each completed both observation suites at one and four jobs. These checks
+cover the native reader. The original and migrated browser runs both used the
+published Pages reactors from build source `0823b028`.
+
+Three interleaved warm-file process pairs on an AMD EPYC 7542, CPUs 24–27,
+had median old/new wall times of 1.93/2.97 s and median CPU times of 3.90/4.95 s.
+Maximum process RSS was 283424/256404 KiB. The two native assertion invocations
+alone took 0.63 and 0.38 s at one worker. The focused suite now pays for both.
+Packet `d2632ec7-4201-4b97-bea2-9a263abfe38b.tar.gz` records the registration
+and oracle inventory, raw inputs and outputs, timings, failure controls,
+build identities, source commits and sanitizer results.
