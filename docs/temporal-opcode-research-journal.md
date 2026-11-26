@@ -105556,3 +105556,46 @@ records and all 57 relocated compiler/resource digests. This is native source
 qualification. The public bootstrap and the browser compiler have their own
 release checks. Whole-file implicit tests and affected-test selection are
 separate open cases.
+## Jenkins 51 — UTF-8 diagnostic read after Wasm memory growth
+
+At `323165245b6254e671aacba105e8dfc903a5affa`, Jenkins reported 512 passes,
+one failure and two skips in 515 Node tests. The native UTF-8 test and the
+two companion Wasm tests passed. The failing test had already checked that
+`tw_create` returned zero for a rejected source when `memory.indexOf` threw
+at `playground/tests/compiler-utf8.test.mjs:58`. Console SHA-256
+`1a10045d21ca761101ebe53e4ed2f21bd2f7ca22c7e791937b84ab8da29ae9c7`.
+
+Host 5 reproduced the same exception using the checked-in Linux x64 bootstrap,
+WASI SDK 34.0 and `bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=OFF`.
+A separate trace of the first input, a single NUL, recorded 13,762,560 bytes
+before `tw_create` and 13,828,096 afterward. The old view then reported zero
+bytes. Reading `tw_last_error` returned offset 6,153,648 with the new size
+unchanged. The rejection path assigns the diagnostic into the IDE state's byte
+buffer. Its allocation can grow linear memory even though the guest offsets
+remain valid.
+
+The Node fixture now acquires a view for each input write and another after
+obtaining the diagnostic pointer. It checks the terminating NUL before decoding.
+The standalone truncation test likewise allocates its result before taking the
+view used to locate the last byte of memory.
+
+From the repository root, `node --test --test-concurrency=1
+playground/tests/compiler-utf8.test.mjs` ran with the same portable reactor
+(SHA-256 `d20df1dc5dd371122fae9e473bb011b089bccbd93ba5ab99555ad68716bb8c64`)
+and the same `TOWER_TEST_LLVM_WASM` for both runs. That companion reactor came
+from Pages commit `3d57e291e231171776ea5b77e207749615c64edf`, compiler source
+`0823b028fba66eb19de815f4d49d4fdbc0bdc56a`. Its gzip matched the manifest and
+its decompressed SHA-256 was `f84fc37c57b2681583a5b4fb4eddd688cae5212916c0ac190e75c2a29510f1f5`.
+
+| Fixture | Pass/fail | Exit | Wall s | User + system s | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Original | 2/1 | 1 | 3.18 | 6.54 + 0.33 | 333468 |
+| Repaired | 3/0 | 0 | 3.00 | 6.19 + 0.32 | 347856 |
+
+Ryzen 9 5900XT, 16 cores/32 threads, CPUs 0–31, 30.72 CPU quota, Node v24.22.3,
+one fresh Node invocation at a time, one sample per revision, filesystem cache
+retained. The failed run stopped the first test at the first diagnostic, so
+these process measurements compare different amounts of completed work. The
+adjacent `compiler-bytes.test.mjs` passed 3/3 with the same reactors. The patch
+changes only the JS fixture at the Wasm ABI boundary. Native Tower sanitizers
+do not instrument that code. A full Jenkins rerun remains open for integration.
