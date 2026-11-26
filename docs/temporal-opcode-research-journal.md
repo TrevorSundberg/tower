@@ -105873,3 +105873,48 @@ These are single validation samples for a test expectation edit. The full
 Jenkins pipeline rerun remains open. Assignment
 `8da5f5b9-1c06-42db-8b3c-d507a73c7f6e` carries the console, raw runs,
 commands, host details and checksums for manager review.
+
+## Aggregate initialization through native test discovery
+
+On host 6 the published compiler at `4b2685e5` interpreted the standalone
+`named_initialization_test.tower` at one and four workers and printed 0.
+The two work-test registrations now run five explicit blocks beside
+`semantic_aggregates.tower`. That module materializes aggregate values and
+calls the initialization lowering. `semantic_expressions.tower` checks field
+binding, arity and types. `semantic_expression_lowering.tower` captures the
+destination and emits the field stores.
+
+The suite uses the existing 1342 array-order assertion and the existing
+contextual-default fixture. The nested named rows still initialize at module
+scope. A local positional batch checks both mixed-width samples and the wide
+trailing field. Resetting a counted pointer checks source-order effects,
+reads through aliases and both adjacent objects byte by byte. The original
+named, default and struct-value programs remain inputs to their compiler API
+and browser comparisons.
+
+Both generated `tower-named_initialization_test` registrations use the
+supported `_spec.tower` suffix to run the explicit source as their root. They
+require exit zero, empty guest stdout and the six-pass summary, including the
+imported array assertion block. Requesting the companion with the default rule
+passed five blocks. Requesting its real owner passed nine. The existing full
+semantic-iteration owner CTest also passed all nine. Changing the order oracle
+from 123 to 132 failed at the assertion on line 63. Removing one block or
+all blocks also failed both focused registrations. The named example's former
+implicit companion has moved. Use the aggregate owner for the suite.
+
+Under Ubuntu 24.04.5 with LLVM 19.1.1 on a Xeon E5-2680 v4, affinity 0–11
+and quota 11.52 CPUs, three successive-host samples gave old/new median
+end-to-end CTest times of 0.61/0.74 s at jobs 1 and 0.75/0.99 s at jobs 4.
+Median new peak RSS was 79,504/90,464 KiB. Full aggregate owner requests took
+15.01/12.46 s and peaked at 678,332/694,756 KiB. The host ran one compiler
+request at a time on a warm filesystem.
+
+All 27 existing named/struct rejection inputs and four supplemental array or
+default errors produced identical located CLI diagnostics at the two widths.
+Four ordinary fixtures agreed across Graph, Fast, canonical Foundation reread
+and emitted Linux executables. A missing test-only import failed discovery.
+The ordinary aggregate library object and its depfile stayed byte-identical,
+as did the named guest executable, output and depfile. Receipt
+`4b6a9a24-e859-44ec-a6cd-25fdbbbd577b` contains the per-case map, exact
+commands and observations. The browser matrices and full execution API binary
+remain registered and were outside this native fixture run.

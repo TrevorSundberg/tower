@@ -179,8 +179,18 @@ if(TARGET towerc)
         --interpret --jobs ${workers}
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
         --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    # Run the explicit blocks as a small root. The semantic-iteration owner gate
+    # above also reaches this companion using the default discovery rule.
+    add_test(NAME tower-named_initialization_test-${workers}
+      COMMAND "${CMAKE_COMMAND}"
+        "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"
+        "-DTOWER_INPUT=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_aggregates_test.tower"
+        "-DTOWER_WORKERS=${workers}"
+        "-DTOWER_RESOURCES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+        "-DTOWER_EXPECTED_TESTS=6"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestCount.cmake")
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
-        module_header_capture_controls named_initialization_test)
+        module_header_capture_controls)
       string(REPLACE "-" "_" fixture "${name}")
       set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}")
       set(expected)
