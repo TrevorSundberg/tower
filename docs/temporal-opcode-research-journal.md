@@ -117499,3 +117499,152 @@ The world ledger peaked at 19,146,105 bytes with one worker and 23,129,518 with 
 The same six predicates passed in the instrumented standalone through their ordinary file/argv registrations. ASan with leak detection took 8.71 s wall and peaked at 543,048 KiB. TSan took 26.62 s and peaked at 233,164 KiB. The link maps place allocation in `runtime-allocate.o` and pthread transport in `tower_work_host.o` from `libtower-compiler-memory.a`. The packet includes the instrumented callback IR, function attributes, link maps and exact command lines. All eight instrumented reconstructions matched the reference Foundation and LLVM. The first ASan configuration, with execution tests disabled, generated no top-level CTest registry on this parent. CTest exited 8. Enabling the execution-test profile produced the registrations and the run passed. Tower source-level UBSan is unavailable.
 
 With backend and execution tests disabled, the ordinary compiler linked and ran the guest at both widths. Its link command, dynamic dependencies and symbol table excluded the new provider and case functions. Both Wasm object depfiles excluded the companion and test API. Touching the companion left Ninja clean and preserved the compiler SHA-256 `4499ebcd67b6459d8455712aed39696b8266692967d254660d8707f57627a1c9`. That compiler also passed direct and owner discovery with the explicit test provider. Validation covers the Linux x64 backend test transport. The packet includes raw stdout, stderr, statuses, GNU time reports, source and tool identities, reference and migrated outputs, and a bundle relative to the published parent. Publication belongs to the manager.
+
+### Second-pass emission retention and shared live syntax comparisons
+
+Assignment `305a8607-f837-4329-a04e-c2c0429b1c99`, host 7, used public
+`f9c23aecf48d977b1b90e8b83b7771d72f9724fd`. The initial rebase encountered
+two add/add conflicts replaying an unrelated unpublished project-storage
+commit. Aborting restored the shared checkout to `f88c9eaa`. Source commit
+`f32976b3a79d8cb86029d744f130c7f197cdd413` is a direct child of the
+requested public commit in a separate local checkout of main.
+
+The focused emission CLI now calls the same two-pass function as the entry
+companion's single test. Each pass takes live counts and checks the existing
+export's complete suite result for zero. Only the second pass compares
+buffer and entity counts, in that order. The same two count assertions
+still run around each of the nine individual cases. The CLI prints the
+original banner once. The parser's full entry still uses the caller's
+context and one pass with the original status codes. An initial import of
+the entry test from the nine-case companion made owner discovery select ten
+cases. Moving only the count assertions to the context companion restored
+nine for the owner, direct and template selectors. The independent oracle
+object retained SHA-256 `68362b725b529dd17a9f7fc1025bc59c5b6751f84cdac111cc9560990709b4e9`.
+
+The live support companion owns these original decisions shared by the
+attribute, grammar, lexical and replacement readers.
+
+- A successful next construct has a node and an empty diagnostic. On a
+  missing node the helper still prints the parser diagnostic.
+- Clean end consumes one parse result and requires a null node and empty
+  diagnostic. Rejection requires a null node and nonempty diagnostic.
+  The attribute suite still checks the diagnostic substring separately and
+  checks clean end independently on the source and reparsed readers.
+- A span requires an existing node with a match component. Its start must
+  be within the source and its length must fit the remaining bytes. A
+  match requires the expected length and exact bytes starting at that
+  offset. Style text likewise requires the expected length and bytes.
+  Parser traversal, fixture building, allocation tracking and formatting
+  continue through their original helpers.
+
+At jobs 1 and 4 the original and migrated two-pass traces each produced
+800 RNG end states, with the 400th and 800th both 2811643849. The second
+pass retained 1,996 buffers and 1,017 entities before and after. All nine
+individual fixtures returned to those counts. The attribute trace compared
+the five canonical declarations, style bytes, thirteen rejection messages
+and the three precedence spans byte for byte. The spans were `n*n`,
+`n+n` and `n^n` at byte offsets 608, 618 and 632. The raw fixture retained
+SHA-256 `f46402333df63582b51bf405e6356a550110ecda0cfd239f0f4103f99789a486`.
+Direct attribute selection ran six cases. Its owner ran those six plus
+five work-budget cases. The raw observed stdout sizes were 16,770 bytes
+for two-pass emission, 9,016 for the nine emission cases, 1,152 for the
+attribute cases, 8,697 for the live suite and 18,544 for the full parser.
+
+The packet includes GNU time output and stream sizes for every timed
+command. Host 7 ran Linux x64 on an AMD EPYC 7502 with 64 logical CPUs,
+affinity 0–3 for matched timings, a 3,071,999/100,000 µs CPU quota
+(30.72 CPUs), and a 91,586,822,144-byte memory limit. The parser-only
+Release build used Clang/LLVM 19.1.7 and the manifest-verified Linux x64
+bootstrap `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Commands ran sequentially under the host timing lock on a warm filesystem.
+Compiler width applies to the build or selected-test compiler. The parser
+guest uses the serial test allocator and transport.
+
+| Command | Jobs | Original wall / CPU s / peak KiB | Migrated wall / CPU s / peak KiB | Successful stdout + stderr bytes |
+| --- | ---: | ---: | ---: | ---: |
+| Full parser | 1 | 2.27 / 2.25 / 50096 | 2.30 / 2.26 / 50096 | 1788 + 193 |
+| Two-pass emission CLI | 1 | 0.72 / 0.71 / 4616 | 0.73 / 0.71 / 5168 | 84 + 0 |
+| Live CLI | 1 | 0.42 / 0.41 / 15372 | 0.42 / 0.42 / 15436 | 237 + 0 |
+| Direct emission | 1 | 1.41 / 1.38 / 116396 | 1.47 / 1.42 / 116508 | 0 + 820 |
+| Direct emission | 4 | 1.56 / 1.63 / 126244 | 1.58 / 1.67 / 125832 | 0 + 820 |
+| Direct attributes | 1 | 1.12 / 1.11 / 117424 | 1.18 / 1.16 / 118136 | 0 + 623 |
+| Direct attributes | 4 | 1.28 / 1.34 / 126592 | 1.36 / 1.45 / 125860 | 0 + 623 |
+
+These are individual samples. The additional compiler work was visible even
+for the ordinary emission object, which stayed byte-identical at 31,584
+bytes. At one job it took 0.82 s wall before and 1.00 s after. Parser main
+changed from 26,592 to 26,320 bytes and the live fixture from 65,808 to
+69,368. Each width reproduced its revision's three objects.
+
+Eight temporary source controls ran independently on both revisions. The
+first moved the actual first precedence span's start by one byte. Two others
+appended a valid extra token declaration to the original round-trip session
+and the reparsed session in turn. An empty invalid fixture exercised clean
+EOF where a rejection was expected. Changing the expected unknown-attribute
+message preserved the actual parser diagnostic and failed the substring
+check. Appending a real declaration to the grammar reader's whitespace-only
+input exercised its own clean-end check after the attributes had passed.
+Reserving a byte vector without disposing it, or retaining a newly created
+related entity, in the late FIRST fixture exercised the buffer and entity
+comparisons separately. Neither control altered an expected count.
+
+All 37 parent and 45 candidate negative invocations failed at the expected
+decision. This includes owner and direct selection at both widths and the
+new two-pass selection on both lifetime faults. Ordinary failing entries
+exited 134 and selected entries exited 1. On migrated utility checks the
+selected guest now reports a trap with the companion source location.
+Originally it printed the check and the runner reported a missing completion
+record. After removing the probes the candidate reproduced its passing raw
+streams. The packet also records an unsuccessful attempt to use the unbound
+allocator name and a rejected declaration of its reserved runtime spelling.
+The verified buffer control used the ordinary Tower vector allocator.
+
+The full parser-only Release CTest profile passed all 61 registrations.
+The two-pass, live and aggregate WASI entries reproduced the parent output
+(84, 237 and 1,980 bytes) with SDK 34's 8 MiB stack. Recompiling the three
+affected objects at four jobs and relinking reproduced each revision's own
+native parser, native service library and WASI executable byte for byte.
+
+For ASan and TSan the ordinary parser's complete native link inputs were
+emitted as LLVM IR or taken from their bound IR, run through Tower's LLVM
+19 instrumentation tool and linked with the corresponding Clang runtime.
+The maps resolve the checked allocator from the runtime-instrumented member
+and parser work from tower_work_serial.o. Both focused suites passed ASan
+with leak detection (5.64 and 3.49 s wall) and TSan (12.65 and 8.15 s).
+The TSan emission process started on its first attempt. The live process
+completed on attempt four after three container personality failures during
+startup. IR excerpts show instrumentation in the two-pass function, count
+checks, span field reads and byte comparisons. ASan emits no direct hooks
+in live_match or live_span, which obtain the component or compare scalar
+bounds and call the instrumented readers. These cases exercise the fault allocator through the
+serial worker transport. The project provides no Tower UBSan profile.
+
+Three additional instrumented timing samples per object and width put most
+of the parser-main compile difference in parsing. At one job its median
+parse phase rose from 515.23 to 769.98 ms and median wall time rose from 0.82
+to 1.09 s. At four jobs the corresponding figures were 578.28 to 932.07
+ms and 0.88 to 1.24 s. The entry now imports the selected assertion grammar
+and lifetime companion. At one job the live fixture's median parse phase
+rose from 740.50 to 808.92 ms and emission's from 555.36 to 585.45 ms.
+All 36 timed objects matched their ordinary build products. The packet
+records every phase, elapsed and CPU time, peak RSS and object size.
+
+The native frontend emission and grammar-equivalence selectors and the
+execution attributes selector reproduced respectively 84, 350 and 215
+stdout bytes with empty stderr on both revisions. Rebuilding the four
+affected native fixture objects with four jobs and replaying the ordinary
+link recipes reproduced each revision's one-job executables. The first
+optional native configure omitted the backend CMake integration fragment.
+The first grammar-equivalence command ran outside the resource directory
+and reported a missing Bedrock import. The verified commands enable
+`cmake/TowerBackend.cmake` and run in `scaffolding`.
+
+Reproduction starts with the public bootstrap manifest, the parser-only
+Release profile and its `tower-parser-tests` and `tower-reader-test-services`
+targets. The packet's `commands/run` records the argv for each native
+aggregate or selected guest, `commands/compare` checks streams and
+`commands/width` and the link replay scripts check objects and executables.
+The observer and fault diffs apply only to the identified source revision.
+The saved CTest logs include the registered commands and working directories.
+Manager publication and hosted/browser validation remain outside this local
+source handoff.
