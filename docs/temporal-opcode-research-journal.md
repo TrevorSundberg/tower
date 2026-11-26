@@ -107479,3 +107479,24 @@ and four workers the native driver reported all nine locations and retained
 the 93-byte output. The two new registered CTests passed. The browser
 discovery expectation now includes the four imported cases; the earlier
 eight-selector browser receipt used the published-base fixture tree.
+
+### Unfiltered Node release check with a separate LR test reactor
+
+Receipt `764add0d` ran the seven migrated modules on the executable inputs
+from `f85511c5`. All 44 selected cases passed. The unfiltered release run
+recorded 508 passes, two failures and two opt-in skips. Both failures reproduced
+independently. Copying the builtin module manifest into the packaging fixture
+restored verification of 98 and 86 emitted asset hashes. The other failure
+occurred on the call to `lr_work_tests`: the shipped shared compiler omits
+that test export. A work-enabled shared reactor ran the LR assertion at worker
+widths 1, 2, 4 and 8. The rest of the determinism selector continued to exercise
+the shipped compiler. The existing single work-enabled override also passed.
+
+The full worker run used four pinned physical cores on a Ryzen 7 5800H with a
+15.36-CPU quota. Wall time was 372.20 s, CPU time 635.05 s and peak RSS
+2,807,832 KiB. No complete post-repair run was part of that receipt.
+Manager integration lets the split configuration open both specified shared
+reactors even when other test modules use a portable `TOWER_TEST_WASM`
+override. The default single-reactor configuration still honors its existing
+override. The split and single configurations and the unfiltered command
+require verification together on the updated fixture tree.
