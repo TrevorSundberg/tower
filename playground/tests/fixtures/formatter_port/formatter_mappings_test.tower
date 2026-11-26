@@ -1,0 +1,39 @@
+import formatter;
+import backend.text;
+import library.testing;
+
+test() {
+    var input = formatter_file("mappings.tower");
+    defer free(input);
+    var wanted = formatter_file("mappings.expected");
+    defer free(wanted);
+    var formatted = formatted_source(input);
+    defer free(formatted);
+    assert(backend_equal(formatted, wanted), "Formatted UTF-8 text");
+
+    var input_size = backend_length(input);
+    var formatted_size = backend_length(formatted);
+    var count = formatter_span_count();
+    assert(count == 14, "UTF-8 mapping count");
+    for (var i: usize = 0; i < count; i++) {
+        var begin = formatter_span_field(i, "begin");
+        var end = formatter_span_field(i, "end");
+        var source = formatter_span_field(i, "source");
+        assert(begin < end && end <= formatted_size, "Invalid formatted byte range");
+        assert(source <= input_size && end - begin <= input_size - source, "Invalid source byte range");
+        for (var offset: usize = 0; offset < end - begin; offset++) {
+            assert(formatted[begin + offset] == input[source + offset], "UTF-8 mapping byte");
+        }
+    }
+    var first = formatter_response();
+    defer free(first);
+    var repeated = formatted_source(input);
+    defer free(repeated);
+    var second = formatter_response();
+    defer free(second);
+    assert(backend_equal(first, second), "Repeated formatter response");
+
+    var fixed = formatted_source(formatted);
+    defer free(fixed);
+    assert(backend_equal(fixed, formatted), "UTF-8 formatting fixed point");
+}

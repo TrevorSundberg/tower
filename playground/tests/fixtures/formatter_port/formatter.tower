@@ -1,0 +1,10 @@
+import tower;
+
+// Each returned string is an owned UTF-8 copy. Span and response queries
+// describe the most recent successful format or Foundation call.
+extern fn formatter_file(name: u8*): u8*;
+extern fn formatted_source(input: u8*): u8*;
+extern fn canonical_foundation(input: u8*): u8*;
+extern fn formatter_response(): u8*;
+extern fn formatter_span_count(): usize;
+extern fn formatter_span_field(index: usize, field: u8*): usize;
