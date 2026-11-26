@@ -106314,3 +106314,52 @@ separate processes took 0.40/0.52 s wall and 0.38/0.58 s CPU with peak RSS
 jobs 1 and 0.29 s at jobs 4. Assignment
 `28574c86-5e3e-47c6-9c56-b8bbd88937a5` retains the command streams, case
 map, resource manifests and bundle for review.
+
+### 2026-11-26 — Gzip publication and the independent decoder
+
+Host 8 started at `fbfdabf8`. The native inventory identifies the standalone
+`gzip_checks` program by fixture blob `f7f13751`. The documented caller
+builds it as a library object with a native main, links the guest host
+library and supplies a corpus directory and optional support archive. A
+retained executable and its 77 default-corpus files were available. The
+production packager and the DEFLATE profiler call the encoder directly.
+
+Three adjacent declarations cover the six fixed inputs, the original 32
+seeded inputs, and the four checksum bytes for `123456789`. Both entrypoints
+use the same Tower generators and publication predicates. The native fixture
+also applies those predicates to a supplied real file. It still generates
+the file pairs, bounds and compares the independent decoder's output, rejects
+all 29 truncations, corrupts the block type and CRC separately, checks
+retained decoder output on failure and verifies recovery. The shared runner
+retains its original implementation. The gzip registration supplies the
+existing guest runtime, UTF-8 object and allocator archive. The encoder
+imports the byte operations itself.
+
+Using the relocated optional kit, owner and direct selection each reported
+three passed declarations at jobs 1 and 4. The published bootstrap ran the
+same four selections with default interpretation. Inverting one bit of the
+expected trailer produced driver exit 1 at `gzip_test.tower:52:9` in all
+four linked selections, then the restored CTests passed. The optional kit
+added the two gzip test files and updated its private CTest registry. An
+ordinary empty-member consumer returned 20 and emitted identical objects
+at both widths in the optional and production packages. Its depfiles
+contained only production sources.
+
+The earlier executable and the revised fixture both decoded all 39 members
+with GNU gzip, including a 27,873,942-byte real LLVM support archive. All
+79 files matched, including the recovered malformed-control member and the
+original compressed support stream. An external comparison separately
+observed 142 GNU gzip invocations across both corpora, including every
+truncation, the reserved block, the bad checksum and recovery. ASan with
+leak detection and TSan passed the revised standalone fixture and its guest
+runtime on the 38 generated pairs and malformed controls.
+
+The matched standalone binaries used the same compiler, guest object,
+Clang link and support bytes on a Ryzen 9 7900X with affinity 0–23 and
+quota 23.04 CPUs. Across three sequential warm runs, before/after median
+wall time was 3.44/3.45 s, CPU time was 3.42/3.43 s and peak RSS was
+99496/99080 KiB. The linked owner at jobs 1/4 took 0.39/0.45 s median wall
+and 0.38/0.50 s CPU, with peak RSS 101852/116656 KiB. The published
+interpreter took 60.28–61.08 s per selection. Assignment
+`d3686d91-0cd2-4b53-b8c2-178be428f0c4` retains the inputs, raw commands,
+streams, diagnostic, timings, manifests and Git bundle.

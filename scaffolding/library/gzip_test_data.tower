@@ -1,0 +1,78 @@
+import tower;
+import bytes;
+import bytes_types;
+import gzip;
+import test_data;
+
+var GzipFixedCases: usize = 6;
+var GzipSeededTrials: usize = 32;
+var GzipTestSeed: u32 = 1729;
+
+fn gzip_fixture_text(input: ByteBuffer*, text: u8*): bool {
+    var length: usize = 0;
+    while text[length] != 0 { length++; }
+    return bytes_assign_text(input, text, length);
+}
+
+// The visitor borrows each input until it returns. The buffer is then reused.
+fn gzip_fixed_cases(Context: type, context: Context, visit: function(void, Context, u8*, ByteBuffer*)): bool {
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    visit(context, "empty", &input);
+    if !gzip_fixture_text(&input, "Tower gzip\n\r\n") { return false; }
+    visit(context, "text", &input);
+
+    input.length = 0;
+    for (var i: usize = 0; i < 256; i++) {
+        if !bytes_push(&input, convert(u8, i)) { return false; }
+    }
+    visit(context, "binary", &input);
+
+    var long_bytes: usize = 131073;
+    input.length = 0;
+    for (var i: usize = 0; i < long_bytes; i++) {
+        if !bytes_push(&input, convert(u8, i % 7)) { return false; }
+    }
+    visit(context, "repeated", &input);
+
+    var state: u32 = 7;
+    input.length = 0;
+    for (var i: usize = 0; i < long_bytes; i++) {
+        state = state * 1664525 + 1013904223;
+        if !bytes_push(&input, convert(u8, state >> 24)) { return false; }
+    }
+    visit(context, "random", &input);
+    if !gzip_fixture_text(&input, "abcdefghijklmnopqrstuvwx!Yabc?Yabcdefghijklmnopqrstuvwx") { return false; }
+    visit(context, "lazy", &input);
+    return true;
+}
+
+fn gzip_seeded_input(input: ByteBuffer*, seed: u32*): bool {
+    var size = convert(usize, test_xorshift32(seed)) % 2048;
+    if !bytes_reserve(input, size) { return false; }
+    for (var at: usize = 0; at < size; at++) {
+        var random = test_xorshift32(seed);
+        input.data[at] = at != 0 && (random & 3) != 0
+            ? input.data[convert(usize, random >> 2) % at] : convert(u8, random & 255);
+    }
+    input.length = size;
+    return true;
+}
+
+fn gzip_same_member(first: ByteBuffer*, second: ByteBuffer*): bool {
+    return first.length == second.length && test_bytes_equal(first.data, second.data, first.length);
+}
+
+fn gzip_deterministic_member(input: ByteBuffer*, encoded: ByteBuffer*, repeated: ByteBuffer*): bool {
+    return gzip_compress(input.data, input.length, encoded)
+        && gzip_compress(input.data, input.length, repeated) && gzip_same_member(encoded, repeated);
+}
+
+fn gzip_rejects_invalid_input(encoded: ByteBuffer*, previous: ByteBuffer*): bool {
+    return !gzip_compress(null, 1, encoded) && gzip_same_member(encoded, previous);
+}
+
+fn gzip_encodes_aliased_input(input: ByteBuffer*, encoded: ByteBuffer*, scratch: ByteBuffer*): bool {
+    return bytes_assign_text(scratch, input.data, input.length)
+        && gzip_compress(scratch.data, scratch.length, scratch) && gzip_same_member(encoded, scratch);
+}

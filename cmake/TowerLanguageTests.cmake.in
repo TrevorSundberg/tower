@@ -24,3 +24,5 @@ register_language_tests(sha256 sha256 "1 test passed for;[2-6] tests passed for"
 set(work_graph_incomplete "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
 register_language_tests(work-graph work_graph "${work_graph_incomplete}" --link "@scc_objects@/libtower-compiler-memory.a")
 register_language_tests(work-graph-direct work_graph_test "${work_graph_incomplete}" --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(gzip gzip "(^|\n)([0-24-9]|[1-9][0-9]+) tests? (passed|selected) for "
+  --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")

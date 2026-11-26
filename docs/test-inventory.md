@@ -104,3 +104,20 @@ The [case map](evidence/language_collections_checks.tsv) pairs all 25 failure
 codes in `language_collections.tower` with their adjacent assertions.
 The browser suite continues to run the original script, which prints zero
 across its interpreter, Foundation round-trip and LLVM comparisons.
+
+### Gzip encoding and publication
+
+Use `towerc --test scaffolding/library/gzip.tower --test-details` for the
+owner or substitute `gzip_test.tower` for direct selection. Six fixed cases
+and 32 seeded cases exercise deterministic encoding, invalid input with a
+previously populated output, and an input borrowed from the output buffer.
+A third declaration checks all four little-endian CRC trailer bytes for
+`123456789`. The optional native registration uses the existing guest test
+runtime, UTF-8 object and production allocator archive.
+
+The inventory's standalone `gzip_checks DIRECTORY [PAYLOAD]` selector still
+writes and decodes every pair, checks the decoded bytes against the input,
+and rejects all 29 truncations of the known member. It also checks a reserved
+block, bad checksum, retained decoder output on errors and subsequent
+recovery. Both entries use the same Tower generators and publication checks.
+The optional support archive remains an explicit filesystem input.
