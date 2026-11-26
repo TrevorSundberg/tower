@@ -1,0 +1,1 @@
+import foundation;  var x:i32=1; print(x);   struct Pair{value:i32;} fn answer(p:Pair*):i32{return p.value;} var p:Pair;var q:Pair*=&p;p.value=answer(q);

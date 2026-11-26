@@ -1,0 +1,21 @@
+import compiler.format_diagnostic_cases.session;
+import library.testing;
+
+extern fn replacement_revision(): usize;
+extern fn replacement_previous_revision(): usize;
+
+fn rejected(file: u8*, revision: usize, offset: usize, message: u8*): void {
+    reject(file, offset, NoErrorLength, message);
+    assert(replacement_revision() == revision, file);
+    assert(replacement_previous_revision() == revision, file);
+}
+
+fn reject_unknown_capture(): void {
+    rejected("unknown_capture", 3, 221,
+        "Replacement for Expression must produce a valid Expression. \"$missing\" is not a valid Expression.\nUnknown replacement capture: $missing. Expected Identifier, Number or 'bad'.");
+}
+
+fn reject_expression_semicolon(): void {
+    rejected("expression_semicolon", 3, 222,
+        "Replacement for Expression must produce a valid Expression. \"1;\" is not a valid Expression.\nUnexpected end of input. Expected end of input.");
+}

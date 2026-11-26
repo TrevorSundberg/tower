@@ -1,0 +1,4 @@
+import foundation;
+// λ
+parse Statement |= 'fart' $name:Identifier ';'
+    => replace { $name - $name; };

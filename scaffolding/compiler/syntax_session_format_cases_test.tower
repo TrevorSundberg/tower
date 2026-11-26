@@ -1,0 +1,12 @@
+import library.testing;
+import syntax_session_format_cases;
+
+test() { check_format_declarations(); }
+
+test() { check_format_comments(); }
+
+test() { check_format_refusal(); }
+
+test() { check_format_increment(); }
+
+test() { check_format_affixes(); }

@@ -1,0 +1,3 @@
+// A custom grammar needs its own numeric token; the Bedrock seed has none.
+[number] token Number = /[0-9]+/;
+parse Expression = Identifier | Number;parse Statement = Expression ';';parse Expression |= 'bad' => replace { 1;

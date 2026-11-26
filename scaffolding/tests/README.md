@@ -74,6 +74,43 @@ return ordered owner/companion handles borrowed from the root graph. Use a fresh
 root per discovery, release it after consuming those handles, and dispose the
 selection with `test_file_selection_dispose`.
 
+### Testing the production source formatter
+
+On Linux x64, configure a native build with `TOWER_FORMAT_TESTS=ON` and the
+published bootstrap. Build the focused providers and run the checked-in owner.
+
+```sh
+cmake --build "$B" --target tower-format-owner-tests
+ctest --test-dir "$B" -R '^tower-format-owner$' -V
+```
+
+The registration runs these five Tower tests in one native guest. With `B`
+set to the absolute build directory, the equivalent installed command runs from
+`scaffolding/`.
+
+```sh
+../bootstrap/linux-x64/towerc --test compiler/syntax_session_format.tower \
+  --test-suffix _cases_test.tower --test-details --jobs 1 \
+  --test-native-runtime "$B/guest-native-test.o" --link "$B/format-test-host.o" \
+  --link "$B/libtower-format-test-services.so" --link "-Wl,-rpath,$B"
+```
+
+To run one case, use `_cases_declarations_test.tower`, `_cases_comments_test.tower`,
+`_cases_refusal_test.tower`, `_cases_increment_test.tower` or
+`_cases_affixes_test.tower` as the suffix. The same arguments also accept the
+corresponding companion as the entry. The suffix selects the formatter's
+companion independently of the tests in its parser and scheduler dependencies.
+
+The native host reads the raw inputs relative to `scaffolding/` using
+`driver_read_file`. The interpreter's scoped fixture service grants only the
+selected owner's source and its same-stem expected file. Here one owner tests
+several other files, including the original increment definitions and example.
+The guest calls its compiled `syntax_format_into` and obtains the remaining
+parser and evaluation symbols from the test-only shared library. The browser
+runs each named assertion against the public reactor through
+`playground/tests/formatting.test.mjs`. Both hosts compare the same counted
+bytes, including final line endings.
+
 ### Reading a selected companion's fixtures
 
 A direct import of `library.test_fixtures` in a selected companion grants its

@@ -1,0 +1,8 @@
+
+var value:i32=5; ++ value; value ++;
+var before:i32=value ++; var after:i32=++ value;
+print(value ++); print(++ value);
+var sum:i32=value ++ + ++ value;
+var array:i32[2]; var index:i32=0; array[index ++] ++;
+struct S{field:i32;} var s:S; ++ s.field; s.field ++;
+++ /* keep */ value; value /* keep too */ ++;
