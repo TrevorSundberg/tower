@@ -1,0 +1,74 @@
+import library.test_fixtures;
+import backend.text;
+
+// Compiler handles belong to the subject reactor. Text returned by the
+// adapter belongs to this test. Stdout has an explicit UTF-8 byte count.
+extern fn roku_read(name: u8*, length: usize*): u8*;
+
+extern fn roku_compile(source: u8*, pointer_bytes: u32): u32;
+
+extern fn roku_release(handle: u32): void;
+
+extern fn roku_foundation(handle: u32): u8*;
+
+extern fn roku_llvm(canonical: u8*, optimize: bool): u8*;
+
+extern fn roku_emit(handle: u32, comments: bool): u8*;
+
+extern fn roku_emit_error(handle: u32): u8*;
+
+extern fn roku_reference(handle: u32, length: usize*): u8*;
+
+extern fn roku_live_nodes(): u32;
+
+extern fn roku_submit(program: u8*, main: u8*): void;
+
+extern fn roku_take_output(length: usize*): u8*;
+
+var RokuPointerBytes: u32 = 4;
+
+fn roku_input(name: u8*): u8* {
+    return roku_read(name, null);
+}
+
+fn check_simulator(program: u8*, main: u8*, wanted: FixtureBytes, label: u8*): void {
+    roku_submit(program, main);
+    var actual: FixtureBytes = default;
+    // The Node adapter runs the simulator between interpreter steps.
+    while actual.data == null {
+        actual.data = roku_take_output(&actual.length);
+    }
+    defer free(actual.data);
+    assert(fixture_equal(actual, wanted), label);
+}
+
+fn check_reconstructed(original: u32, optimize: bool, main: u8*, wanted: FixtureBytes, label: u8*): void {
+    var canonical = roku_foundation(original);
+    defer free(canonical);
+    var reconstructed = roku_llvm(canonical, optimize);
+    defer free(reconstructed);
+    var round = roku_compile(reconstructed, RokuPointerBytes);
+    defer roku_release(round);
+    var emitted = roku_emit(round, true);
+    defer free(emitted);
+    check_simulator(emitted, main, wanted, label);
+}
+
+fn check_reference(name: u8*, optimize: bool): void {
+    var source = roku_input(name);
+    defer free(source);
+    var original = roku_compile(source, RokuPointerBytes);
+    defer roku_release(original);
+    var reference = roku_compile(source, RokuPointerBytes);
+    defer roku_release(reference);
+    var wanted: FixtureBytes = default;
+    wanted.data = roku_reference(reference, &wanted.length);
+    defer free(wanted.data);
+    check_reconstructed(original, optimize, null, wanted, name);
+}
+
+fn expected_output(name: u8*): FixtureBytes {
+    var bytes: FixtureBytes = default;
+    bytes.data = roku_read(name, &bytes.length);
+    return bytes;
+}

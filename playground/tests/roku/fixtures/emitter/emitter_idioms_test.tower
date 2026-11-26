@@ -1,0 +1,26 @@
+import emitter;
+
+extern fn roku_idiom_count(): usize;
+
+extern fn roku_idiom_name(index: usize): u8*;
+
+extern fn roku_idiom_source(index: usize): u8*;
+
+extern fn roku_idiom_expected(index: usize, length: usize*): u8*;
+
+test() {
+    var count = roku_idiom_count();
+    assert(count != 0, "Empty scalar idiom corpus");
+    for (var i: usize = 0; i < count; i++) {
+        var name = roku_idiom_name(i);
+        defer free(name);
+        var source = roku_idiom_source(i);
+        defer free(source);
+        var handle = roku_compile(source, RokuPointerBytes);
+        defer roku_release(handle);
+        var wanted: FixtureBytes = default;
+        wanted.data = roku_idiom_expected(i, &wanted.length);
+        defer free(wanted.data);
+        check_reconstructed(handle, true, null, wanted, name);
+    }
+}

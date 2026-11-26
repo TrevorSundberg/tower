@@ -1,0 +1,20 @@
+import emitter;
+
+fn check_trap(name: u8*, main: u8*): void {
+    var source = roku_input(name);
+    defer free(source);
+    var handle = roku_compile(source, RokuPointerBytes);
+    defer roku_release(handle);
+    var caught = expected_output("caught.expected");
+    defer free(caught.data);
+    check_reconstructed(handle, false, main, caught, name);
+    check_reconstructed(handle, true, main, caught, name);
+}
+
+test() {
+    var main = roku_input("catch.brs");
+    defer free(main);
+    check_trap("divide_zero.tower", main);
+    check_trap("divide_overflow.tower", main);
+    check_trap("conversion_overflow.tower", main);
+}

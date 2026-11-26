@@ -1,0 +1,5 @@
+import tower;
+var a: i32 = 1;
+var b: i32 = 0;
+var c = a / b;
+print(c);
