@@ -123,6 +123,11 @@ the four browser C inputs into the work directory before selection.
   --link "-Wl,-rpath,$build"
 ```
 
+Selecting `driver_c_cases.tower` as the owner discovers all three C
+companions, the formatter and SHA-256. Supply the four download files and
+set `TOWER_FORMAT_COMPILER` and `TOWER_FORMAT_LIBRARY` to the same compiler
+and resource root for that combined run.
+
 Pass explicit executable and scaffolding paths. Optional case names such as
 `integers`, `comments` or `signed_rounding` select focused runs; unknown names
 fail. The download mode runs in the deployment verifier's artifact directory
