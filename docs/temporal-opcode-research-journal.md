@@ -108195,3 +108195,28 @@ again after restoring the inputs. The unfiltered run took 371.99 s wall,
 624.77 s user and 19.95 s system with a peak RSS of 2,737,480 KiB on four
 physical cores under a 15.36-CPU quota. This measures the test run, including
 its subprocesses' work, and supplies no compiler scaling comparison.
+### Loopback Pages candidate with the f85 production-link project
+
+Host 3 qualified the packaging and serving gate for assignment 635cba24-3b70-47f8-a61d-29fcc86a8cbe. The public Pages parent was `890bbf7fa2058e70271579db2e70c86cd59c1aa6`, tree `750ca7603597c001b08d006c95089f0935c011c5`. The four authenticated archives, 13 required members and their loose copies matched. All 112 parent files matched Git. Each of the three retained Linux archives also matched the paths, modes and blobs from its own package commit.
+
+The stock production build used source `8bc867b6`, the checked-in Linux bootstrap, the locked UI dependencies and both required release flags. Its asset packager reproduced the producer executable hash. It installed the 5d6 portable and shared frontends, the actual 14dc LLVM and f85 cross reactors, and f85 project SHA-256 `747b999f27425cd11a196ba145f524d5c84dab8b1cac711b10f7a7773c987c78`. Both served backend gzip streams matched their production receipts. The project and target checks compared 603 source entries, 25 original objects, both response files, ordinary link arguments and opened-file hashes, 3,227 archive members, all 11 compressed support files and seven target files. The app bundle matched the parent. Eleven dependency paths in its source map changed with the local npm install layout. All other source-map fields matched. The packet preserves the original stock manifest and the final per-asset origins. The historical archives retain their original source and package identities.
+
+The final 114-file tree is `d7eba8ad0d7b774541f111c8e630ff16ea9943f7`, deployment commit `c9773ec34989ef2b733409286d243ef6dd2a23a0`, manifest SHA-256 `64c557af29815f72a2fa6644d42ed59cbc000dbdc3f48579d61aae7212f4d645`. The new 2,220,899-byte Linux archive is `b6517d0c72adca86ce2255b08efdcf80d2acaa2abfcc5f8622c7ae63d056bbdb`. The executable installer is the Git blob from `598df993` and pins package `15cacf5a`. All nine provenance commits are reachable from the transferred installer head. The supplied manager source snapshot ends at `8bc867b6`, before the two Linux commits. Integration ancestry against a later manager head and hosted checks require that head. Recipe selection, Node unfiltered testing and edited self-host generations have separate owners.
+
+The unchanged deployment verifier rejected a changed served CNAME with exit 1. After restoration it verified all 113 responses and passed desktop and mobile execution with empty page-error arrays. The downloaded x64 ELF from each browser printed 5, 84 and 42. Eight static controls passed in one Playwright lane. Each form factor exercised portable and isolated shared execution, ordinary output 42, owner/direct counts 2/1, navigation to score_test.tower:10:5 and repair on the same worker. All eight observed final worker sets were empty. A fresh HTTP download passed all 62 package-path checks. The extracted compiler interpreted and linked a guest that printed 42. The exact installer passed fresh, repeated and relocated execution via loopback TLS at the immutable Git identities. The first Chromium launch lacked libnspr4.so. Supplying the existing browser shared libraries allowed the same checks to run. An initial shell trace entered the Linux stdout comparison. Moving tracing to its own descriptor preserved the six expected output bytes.
+
+Host 3 used an AMD EPYC 7542, cpuset 0–63, a 12.288-CPU quota and 57,954,795,520-byte memory limit. Single executions took 8.64 s wall / 8.55 s CPU / 139,536 KiB maximum RSS for packaging, 60.77 s / 26.36 s / 324,984 KiB for deployment verification and 86.84 s / 72.25 s / 452,564 KiB for the eight browser cases. These are qualification costs. No compiler or runtime code changed. A fresh parent-only receiver imported the Git bundle and matched all 114 files. A second reconstruction applied lossless deltas to the public parent, used the exact stock Tower compressor, and reproduced the same commit, tree, modes and SHA-256 inventory. The smaller transport fits the evidence cap. The full dist and Git bundle remain on host 3. Public refs were unchanged.
+
+The manager reconstructed the candidate directly in the Git object store from
+the public Pages parent, the complete file replacements, the two previously
+verified backend gzip streams, and the selected linker-support packet.
+All 114 file hashes and modes reproduced tree
+`d7eba8ad0d7b774541f111c8e630ff16ea9943f7` and commit
+`c9773ec34989ef2b733409286d243ef6dd2a23a0`. The manifest enumerates 113
+assets. Its SHA-256 is
+`64c557af29815f72a2fa6644d42ed59cbc000dbdc3f48579d61aae7212f4d645`.
+The three previous Linux archives retained their Git blobs and modes. All
+nine source and package commits in the manifest and asset-origin table are
+ancestors of integrated main, including the installer at `598df993`.
+These checks exercised local Git and the loopback deployment. Public-host
+verification must use the manifest actually served following the atomic push.
