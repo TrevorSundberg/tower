@@ -1,0 +1,17 @@
+import tower;
+import .compiler.syntax_session_types;
+import .compiler.syntax_view;
+import utility_checks;
+
+extern fn syntax_session_rule_count(session: SyntaxSession*): usize;
+extern fn syntax_session_rule(session: SyntaxSession*, index: usize): SyntaxRuleView*;
+extern fn syntax_session_rule_pending(session: SyntaxSession*, index: usize): bool;
+extern fn strcmp(a: u8*, b: u8*): i32;
+
+fn session_view_rule(session: SyntaxSession*, name: u8*): usize {
+    for (var i: usize = 0; i < syntax_session_rule_count(session); ++i) {
+        if strcmp(syntax_session_rule(session, i).name, name) == 0 { return i; }
+    }
+    utility_check(false, "session rule exists");
+    return 0;
+}

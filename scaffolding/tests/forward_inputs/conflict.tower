@@ -1,0 +1,1 @@
+parse A = B;parse B = 'x' | 'x';parse Statement = A;

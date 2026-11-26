@@ -1,0 +1,71 @@
+import tower;
+import library.testing;
+import backend.text;
+import tests.forward_parser_cases;
+
+// Each returned text is a fresh copy in guest memory. The latest event comes
+// from one real parser step or execution of a source fixture.
+extern fn parser_open(root: u8*, file: u8*): usize;
+extern fn parser_close(handle: usize): void;
+extern fn parser_step(handle: usize): void;
+extern fn parser_pending(handle: usize, rule: u8*): bool;
+extern fn parser_revision(handle: usize): usize;
+extern fn event_text(field: u8*): u8*;
+extern fn event_offset(): usize;
+extern fn observed_text(name: u8*): u8*;
+extern fn execute_fixture(file: u8*): void;
+
+fn browser_check(ok: bool, message: u8*): void { assert(ok, message); }
+
+fn event_is(field: u8*, wanted: u8*): bool {
+    var actual = event_text(field);
+    defer free(actual);
+    return backend_equal(actual, wanted);
+}
+
+fn browser_step_is(handle: usize, wanted: u8*): bool {
+    parser_step(handle);
+    return event_is("status", wanted);
+}
+
+fn browser_diagnostic(handle: usize, message: u8*, offset: usize): bool {
+    var text = event_text("error");
+    defer free(text);
+    return event_offset() == offset && backend_contains(text, message);
+}
+
+fn browser_foundation_contains(root: u8*, rule: u8*): bool {
+    var syntax = observed_text("foundation_syntax.tower");
+    defer free(syntax);
+    return backend_contains(syntax, rule);
+}
+
+fn browser_output(engine: u8*): void {
+    var output = observed_text(engine);
+    defer free(output);
+    assert(backend_equal(output, forward_expected_output()), engine);
+}
+
+fn browser_rejection(file: u8*, message: u8*, offset: usize): void {
+    execute_fixture(file);
+    assert(event_is("status", "error"), file);
+    assert(event_is("error", message) && event_offset() == offset, message);
+}
+
+extern fn selected(name: u8*): bool;
+
+fn browser_registration(): void {
+    var parser: ForwardParser = {root: null, open: parser_open, close: parser_close,
+        step_is: browser_step_is, pending: parser_pending, revision: parser_revision, diagnostic: browser_diagnostic,
+        foundation_contains: browser_foundation_contains, check: browser_check};
+    if selected("graph") { forward_graph(&parser); return; }
+    if selected("activation") { forward_activation(&parser); return; }
+    if selected("pinned") { forward_pinned(&parser); return; }
+    assert(selected("module"), "Unknown forward-reference registration");
+    browser_output("interpreter");
+    browser_output("LLVM source");
+    browser_output("LLVM Foundation");
+    browser_rejection("duplicate.tower", "Duplicate module variable 'x'", 30);
+    browser_rejection("local.tower", "Unknown local 'later'", 42);
+}
+browser_registration();

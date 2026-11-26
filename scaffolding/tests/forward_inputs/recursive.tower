@@ -1,0 +1,1 @@
+parse A = 'start' B;parse B = A | 'end';parse Statement = A;start start end

@@ -106838,3 +106838,9 @@ retains those failures. Source-level UBSan is unsupported. Browser, release
 publication and general module-bound guard dependencies are outside this
 qualification. Raw commands, artifacts and diagnostics belong to receipt
 `45147dfe-e21f-4107-a699-3e3a7a6166f5`.
+
+### Forward-reference companion and the four-worker owner gate
+
+The forward-reference migration at 77f65fda keeps four browser registrations, checks their parser and execution results in Tower, and uses external Tower grammar inputs. Its packet includes 15 failing controls and matching six-line interpreter and LLVM guest output. On the integrated source, two new CTest entries run the ordinary forward.tower owner at jobs 1 and 4. The published Linux pin selected and passed the declarations at forward_test.tower:6:1 and 11:1 in both entries. The other 178 generated registrations kept their commands. The browser/LLVM transport still has JavaScript callers.
+
+A separate full-owner check on 3fa3348a completed 53 of 54 checks successfully. In the remaining four-worker TSan run, sem_set_type wrote a four-byte field while sem_type_query_syntax read the same address during declaration work. Both stacks reached semantic_declaration_kernel. The direct companion selected all six declarations cleanly. Receipt d3f9a5d7 contains the failing stack and instrumented binary identity. The full-owner gate remains open pending an ownership repair and a repeat on the integrated compiler.

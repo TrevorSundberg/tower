@@ -1,0 +1,1 @@
+parse GrammarDeclaration = 'rule' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement Missing ';';
