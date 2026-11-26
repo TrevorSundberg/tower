@@ -99,12 +99,15 @@ function(tower_lr_work_policy_test)
   get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
   tower_runtime_object(lr-work-main "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/lr_work_main.tower" "${triple}" lr_work_test_main main)
   set(receipt_objects)
-  foreach(suite IN ITEMS receipt failure_order lifecycle_frontier)
+  foreach(suite IN ITEMS receipt failure_order)
     tower_runtime_object(semantic-${suite}-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_checks.tower" "${triple}"
       main semantic_${suite}_tests)
     list(APPEND receipt_objects "${semantic-${suite}-checks_OBJECT}")
   endforeach()
+  tower_runtime_object(semantic-lifecycle_frontier-checks
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_lifecycle_frontier_checks.tower" "${triple}")
+  list(APPEND receipt_objects "${semantic-lifecycle_frontier-checks_OBJECT}")
   get_target_property(sources tower-backend-tests SOURCES)
   list(REMOVE_ITEM sources "${CMAKE_CURRENT_BINARY_DIR}/tower-backend-test-main.o")
   get_target_property(libraries tower-backend-tests LINK_LIBRARIES)
@@ -296,12 +299,8 @@ function(tower_lr_work_policy_test)
     set(staging_targets)
     foreach(suite IN ITEMS flow lifecycle_frontier staging_frontier)
       string(REPLACE "_" "-" name "semantic-${suite}")
-      set(entry "semantic_${suite}_checks")
-      if(NOT suite STREQUAL "lifecycle_frontier")
-        set(entry "${entry}_main")
-      endif()
       tower_runtime_object(${name}-checks
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower" "${triple}")
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_checks_main.tower" "${triple}")
       add_executable(tower-${name}-tests ${sources} "${${name}-checks_OBJECT}")
       set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE CXX)
       target_link_libraries(tower-${name}-tests PRIVATE ${libraries})
@@ -356,7 +355,7 @@ function(tower_lr_work_policy_test)
     endforeach()
 
     tower_runtime_object(semantic-pool-budget-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_pool_budget_checks_main.tower" "${triple}")
     add_executable(tower-semantic-pool-budget-tests ${sources} "${semantic-pool-budget-checks_OBJECT}")
     set_target_properties(tower-semantic-pool-budget-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-semantic-pool-budget-tests PRIVATE ${libraries})
@@ -364,8 +363,20 @@ function(tower_lr_work_policy_test)
     add_test(NAME tower-semantic-pool-budget-tests COMMAND tower-semantic-pool-budget-tests)
     set_tests_properties(tower-semantic-pool-budget-tests PROPERTIES TIMEOUT 60)
 
+    if(TARGET tower-lr-row-services)
+      # These selected fixtures need the native semantic provider and threaded transport.
+      function(tower_semantic_test_selections suite unit owner_count direct_count)
+        add_dependencies(tower-${suite}-tests tower-lr-row-services tower-guest-native-test tower-selected-test-count)
+        tower_native_test_selections("${suite}" "${unit}" "${owner_count} tests" "${direct_count} tests"
+          --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+          --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+      endfunction()
+      tower_semantic_test_selections(semantic-lifecycle-frontier semantic_lifecycle_frontier_checks 20 5)
+      tower_semantic_test_selections(semantic-pool-budget semantic_pool_budget_checks 19 4)
+    endif()
+
     tower_runtime_object(semantic-query-failure-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks_main.tower" "${triple}")
     add_executable(tower-semantic-query-failure-tests ${sources} "${semantic-query-failure-checks_OBJECT}")
     set_target_properties(tower-semantic-query-failure-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-semantic-query-failure-tests PRIVATE ${libraries})
@@ -374,6 +385,10 @@ function(tower_lr_work_policy_test)
       add_test(NAME tower-semantic-query-failure-${mode} COMMAND tower-semantic-query-failure-tests ${mode})
       set_tests_properties(tower-semantic-query-failure-${mode} PROPERTIES TIMEOUT 60)
     endforeach()
+
+    if(TARGET tower-lr-row-services)
+      tower_semantic_test_selections(semantic-query-failure semantic_query_failure_checks 18 3)
+    endif()
 
     # This entry owns wrapper initialization and the real compiler providers.
     # Supplying both transport objects prevents extraction of the default host

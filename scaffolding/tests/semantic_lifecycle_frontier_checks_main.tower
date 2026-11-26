@@ -1,0 +1,6 @@
+import tower;
+import semantic_lifecycle_frontier_checks;
+
+export fn main(): i32 {
+    return semantic_lifecycle_frontier_tests();
+}

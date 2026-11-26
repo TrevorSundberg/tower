@@ -1,0 +1,275 @@
+import library.testing;
+import generic_clone_fixture;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .compiler.interpreter_context_types;
+import .compiler.compiler_kernel;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn puts(text: u8*): i32;
+
+enum QueryFailureMode: u32 { Constructor, Body, Declaration }
+var QueryFailureBudgetBytes: usize = 1048576;
+var QueryFailureBudgetRevision: u64 = 94;
+
+struct QueryFailureProbe {
+    invocation: IMInvocation*;
+    waiting_type: bool;
+    waiting_function: bool;
+    done: bool;
+    value: u64;
+    storage_error: WorkBudgetError;
+}
+
+extern fn work_kernel_execute(payload: void*): void;
+
+fn query_failure_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    if kernel.kind != CompilerKernelKind.Evaluate { work_kernel_execute(payload); return; }
+    var probe = bits(QueryFailureProbe*, kernel.payload);
+    var actual: CompilerKernel = {kind: CompilerKernelKind.Evaluate, payload: bits(void*, probe.invocation)};
+    work_kernel_execute(bits(void*, &actual));
+    probe.waiting_type = probe.invocation.context.waiting_type;
+    probe.waiting_function = probe.invocation.context.waiting_function;
+    probe.done = probe.invocation.state.done;
+    probe.value = probe.invocation.context.result;
+    probe.storage_error = probe.invocation.state.storage_error;
+}
+
+fn query_failure_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn query_failure_gate(c: SemanticContext*): usize {
+    var gate = work_request(&c.queries, sem_create(c.program.root), convert(u32, SemanticQuery.BodyInputs), 0);
+    sem_require(gate != 0 && work_seal(&c.queries, gate));
+    return gate;
+}
+
+fn query_failure_release(c: SemanticContext*, gate: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, gate) && work_finish(&c.queries, &ticket, true));
+}
+
+fn query_failure_literal(c: SemanticContext*, scalar: u32, bits_value: u64): void* {
+    var node = sem_create(c.program.root);
+    var value = sem_attach(node, KOperand);
+    value.type = {scalar: scalar, pointer_bytes: c.program.pointer_bytes, ..default};
+    value.constant = true;
+    value.bits = bits_value;
+    return node;
+}
+
+fn query_failure_stage(c: SemanticContext*, input: void*, gate: usize): SemanticEvaluation* {
+    var subject = sem_create(c.program.root);
+    var value = sem_attach(subject, KOperand);
+    value.type = sem_get(input).type;
+    value.constant = true;
+    value.start = sem_get(input).start;
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+    *result = default;
+    result.subject = subject;
+    result.owner = c.program.root;
+    result.literal = subject;
+    result.expression = input;
+    result.requested = true;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+    *result.ready = default;
+    result.ready.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_push(&c.evaluation_jobs, bits(void*, result));
+    var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.Evaluation), 0);
+    sem_require(query != 0 && work_depend(&c.queries, query, gate));
+    sem_evaluation_request(c, result);
+    return result;
+}
+
+fn query_failure_fill(c: SemanticContext*): void {
+    // Leave the next real producer request at the actual retained task bound.
+    // Undemanded filler identities carry no executable work or effects.
+    var argument: u64 = 1;
+    while c.queries.tasks.length < c.queries.tasks.capacity {
+        sem_require(work_request(&c.queries, c.program.root,
+            convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+    }
+    // An existing request can grow the derived hash index before lookup.
+    // Warm that index so pressure reaches the intended new producer task.
+    sem_require(work_request(&c.queries, c.program.root,
+        convert(u32, SemanticQuery.BodyInputs), argument - 1) != 0);
+}
+
+fn query_failure_trial(width: u32, workers: usize, mode: QueryFailureMode, graph_bytes: usize*): u32 {
+    var failures: u32 = 0;
+    var measuring = *graph_bytes == 0;
+    var signal = work_signal_open();
+    sem_require(signal != null);
+    defer work_signal_close(signal);
+    work_signal_post(signal);
+    var budget: WorkBudget = default;
+    sem_require(*graph_bytes < QueryFailureBudgetBytes);
+    sem_require(work_budget_init(&budget, workers, QueryFailureBudgetBytes - *graph_bytes, QueryFailureBudgetRevision)
+        && work_budget_synchronize(&budget, signal, work_signal_wait, work_signal_post));
+    // Measure setup under the original shared cap first. Its actual peak is a
+    // sufficient bound for the graph's subset of those buffers, including
+    // replacement overlap. Split that same total cap before creating owners;
+    // pressure then denies graph admission, not private interpreter/producer
+    // metadata. Only the coordinator uses this graph ledger.
+    var graph_budget: WorkBudget = default;
+    var admission = &budget;
+    if !measuring {
+        sem_require(work_budget_init(&graph_budget, workers, *graph_bytes, QueryFailureBudgetRevision));
+        admission = &graph_budget;
+    }
+    var fixture: GenericCloneFixture = default;
+    generic_clone_fixture_open(&fixture, 0, 0, workers, &budget);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, fixture.root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    context.generics = fixture.context;
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), admission));
+    sem_require(work_pool_open_kernel_budget(&context.workers, workers, query_failure_execute, &budget));
+    var first: SemanticEvaluation* = null;
+    var peer: SemanticEvaluation* = null;
+    var first_probe: QueryFailureProbe = default;
+    var peer_probe: QueryFailureProbe = default;
+    if mode == QueryFailureMode.Declaration {
+        var query = work_request(&context.queries, fixture.root, convert(u32, SemanticQuery.GenericBody), 0);
+        sem_require(query != 0 && work_access(&context.queries, query,
+            convert(u64, SemanticWorkDomain.Compiler), convert(u64, SemanticAccess.GenericBody),
+            query, 1, WorkAccessMode.Write) && work_seal(&context.queries, query)
+            && work_demand(&context.queries, query));
+        sem_require(context.queries.executing.capacity == 0);
+    } else {
+        sem_evaluation_begin(&context);
+        var input = sem_create(fixture.root);
+        if mode == QueryFailureMode.Constructor {
+            var operation = sem_attach(input, KTypeConstruct);
+            operation.type = {scalar: SType, pointer_bytes: width, ..default};
+            operation.op = convert(u32, TypeConstructionKind.Integer);
+            operation.left = query_failure_literal(&context, SI32, 32);
+            operation.right = query_failure_literal(&context, SBool, 1);
+            operation.start = 83;
+        } else {
+            var callee = generic_clone_fixture_instance(&fixture);
+            var function = sem_attach(callee, KFunction);
+            function.type = {scalar: SI32, pointer_bytes: width, ..default};
+            function.start = 83;
+            var call = sem_attach(input, KCall);
+            call.type = function.type;
+            call.binding = callee;
+            call.start = 83;
+        }
+        var first_gate = query_failure_gate(&context);
+        var peer_gate = query_failure_gate(&context);
+        first = query_failure_stage(&context, input, first_gate);
+        peer = query_failure_stage(&context, query_failure_literal(&context, SI32, 42), peer_gate);
+        first_probe.invocation = &first.invocation;
+        peer_probe.invocation = &peer.invocation;
+        first.kernel.payload = bits(void*, &first_probe);
+        peer.kernel.payload = bits(void*, &peer_probe);
+        query_failure_check(sem_evaluation_pump(&context) == SemanticPumpResult.Waiting
+            && first.started && peer.started && !first.invocation.state.failed && !peer.invocation.state.failed,
+            "Query failure starts only after both independent invocations are prepared", &failures);
+        // The failing producer reaches coordinator publication before its peer.
+        query_failure_release(&context, first_gate);
+        query_failure_release(&context, peer_gate);
+        query_failure_fill(&context);
+    }
+    var snapshot: WorkBudgetSnapshot = default;
+    if measuring {
+        sem_require(work_budget_snapshot(&budget, &snapshot));
+        *graph_bytes = snapshot.peak_bytes;
+        sem_context_dispose(&context);
+        semantic_program_dispose(&program);
+        generic_clone_fixture_close(&fixture);
+        sem_require(work_budget_snapshot(&budget, &snapshot));
+        query_failure_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
+            && work_budget_dispose(&budget), "Measured setup retires every graph/interpreter/world owner", &failures);
+        return failures;
+    }
+    var occupied: WorkReservation = default;
+    sem_require(work_budget_snapshot(admission, &snapshot) && snapshot.used_bytes < snapshot.bytes
+        && work_budget_reserve_result(admission, 0, 0, snapshot.bytes - snapshot.used_bytes, &occupied) == WorkBudgetError.None);
+    var tasks = context.queries.tasks.length;
+    var task_data = context.queries.tasks.data;
+    var state = mode == QueryFailureMode.Declaration ? sem_declarations_pump(&context) : sem_evaluation_pump(&context);
+    if state != SemanticPumpResult.Failed || program.resource.error != WorkBudgetError.Capacity
+        || context.queries.resource_error != WorkBudgetError.Capacity {
+        puts("Query denial receipt: width, workers, mode, pump, program, graph, first/peer interpreter storage errors");
+        generic_clone_number(convert(usize, width)); generic_clone_number(workers);
+        generic_clone_number(convert(usize, mode)); generic_clone_number(convert(usize, state));
+        generic_clone_number(convert(usize, program.resource.error));
+        generic_clone_number(convert(usize, context.queries.resource_error));
+        generic_clone_number(convert(usize, first_probe.storage_error));
+        generic_clone_number(convert(usize, peer_probe.storage_error));
+    }
+    query_failure_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Capacity
+        && context.queries.resource_error == WorkBudgetError.Capacity
+        && program.resource.offset == (mode == QueryFailureMode.Constructor ? 83 : 0),
+        "A failed dependency producer cannot become successful idle progress", &failures);
+    query_failure_check(context.queries.running == 0 && context.workers.running == 0,
+        "Failed producer registration retires every joined ticket before teardown", &failures);
+    query_failure_check(context.queries.tasks.length == tasks && context.queries.tasks.data == task_data,
+        "Denied graph admission preserves existing task identities and storage", &failures);
+    if first != null {
+        query_failure_check((mode == QueryFailureMode.Constructor ? first_probe.waiting_type : first_probe.waiting_function)
+            && peer_probe.done && peer_probe.value == 42
+            && first_probe.storage_error == WorkBudgetError.None && peer_probe.storage_error == WorkBudgetError.None,
+            "Real interpreter suspension and independent peer completion precede producer registration failure", &failures);
+        query_failure_check(first.ready.ready && first.ready.failed && peer.ready.ready && peer.ready.failed
+            && first.invocation.state.memory.data == null && peer.invocation.state.memory.data == null
+            && sem_get(first.subject).bits == 0 && sem_get(peer.subject).bits == 0,
+            "Producer failure drains all joined invocations without publishing the remaining peer", &failures);
+    }
+    var nodes = entity_store_count(fixture.store);
+    var components = entity_store_component_count(fixture.store);
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        state = mode == QueryFailureMode.Declaration ? sem_declarations_pump(&context) : sem_evaluation_pump(&context);
+        query_failure_check(state == SemanticPumpResult.Failed && entity_store_count(fixture.store) == nodes
+            && entity_store_component_count(fixture.store) == components && context.queries.running == 0,
+            "Repeated failed dependency pumps retain the first receipt without replay", &failures);
+    }
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    generic_clone_fixture_close(&fixture);
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    query_failure_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
+        && work_budget_dispose(&budget), "Failed query retires private interpreter and world ownership", &failures);
+    sem_require(work_budget_snapshot(admission, &snapshot));
+    query_failure_check(snapshot.used_bytes == occupied.bytes && snapshot.live == 1,
+        "Only the independent pressure owner survives failed query cleanup", &failures);
+    sem_require(work_budget_release_result(admission, &occupied) == WorkBudgetError.None
+        && work_budget_snapshot(admission, &snapshot));
+    query_failure_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
+        && work_budget_dispose(admission), "Failed query retires its graph and pressure ownership", &failures);
+    return failures;
+}
+
+fn query_failure_cases(mode: QueryFailureMode): u32 {
+    var failures: u32 = 0;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            var graph_bytes: usize = 0;
+            failures += query_failure_trial(width, workers, mode, &graph_bytes);
+            failures += query_failure_trial(width, workers, mode, &graph_bytes);
+        }
+    }
+    return failures;
+}
+
+test() { assert(query_failure_cases(QueryFailureMode.Constructor) == 0, "Constructor query refusal"); }
+test() { assert(query_failure_cases(QueryFailureMode.Body) == 0, "Body query refusal"); }
+test() { assert(query_failure_cases(QueryFailureMode.Declaration) == 0, "Declaration query refusal"); }
