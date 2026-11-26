@@ -108645,3 +108645,54 @@ was replaced by reading the captured ELF type field. The browser and bootstrap
 were not rebuilt. The manager owns integration and publication.
 
 On integration the combined native configuration retained all 216 existing CTest commands and properties and added eight exact-count registrations. The manager compared the member bytes of both optional install archives with their inventories and the 15 additional installed sources and oracles with the checkout. The twelve ordinary output runs matched the three checked-in expected files. The captured native store completion and its replay were identical. These comparisons cover the registered entity suites; unrelated CTest outcomes have separate receipts.
+
+### Entity-stage reference ownership declarations on host 8
+
+On public `aed77666`, the `entity_stage_ownership` semantic-port fixture
+printed one failure count after two stores had run. Its retained phase queued
+the same target twice for the first child and once for the second. Dropping
+the caller's reference under the view left zero, the first hold acquired
+three and a second hold kept three. Releasing the published tree finalized two
+payloads. The subsequent viewed discard and duplicate-name discard took the
+cumulative finalizer count to three and four. Both stores had to dispose.
+
+The two declarations next to `library/entity_stage.tower` each create a store
+and compare callback counts relative to entry. The linked browser sequence
+still checks the absolute counts. Both paths use the same fixture setup, real
+payload finalizer, invalid-reference batches and named-child operations.
+In a disposable default-suffix trial, `tests/entity_pages.tower` discovered
+the stage companion and failed with a duplicate `tower_entity_finalize`
+export. The documented `_ownership_test.tower` suffix isolates this client.
+The ordinary stage object was byte-identical before and after
+(`081c318225c703e738ce1c0d36915ad967119cacd0ec822d8962b62ea1f11bbc`).
+Its depfile and the default inventories for stage and entity pages excluded
+the fixture.
+
+The optional native kit's driver (`a4f6f566`) selected two passing
+declarations at lines 6 and 18 for both the stage owner and direct companion,
+at jobs 1 and 4. Each declaration also passed in isolation at both settings.
+An expected post-publication count of two failed at line 10, column 5 at
+both settings; restoring three passed. The linked guest needed the existing
+bytes and UTF-8 objects as well as the memory archive and guest runtime.
+Separate reads of the finalizer counter in the old and new ordinary programs
+both printed two, three, four and the final zero.
+
+The original Node semantic-port selector passed in both trees with the same
+portable (`41bb9b11`) and ordinary LLVM (`15b4f33b`) products. The 42 phases
+and all 14 LF-terminated zero outputs matched, including the 32/64-bit
+Graph/Fast and Foundation paths and the two executable Wasm32 results. One
+serial pair took 39.14 and 39.93 s wall, 55.64 and 56.39 s CPU, and peaked
+at 2,557,884 and 2,592,076 KiB RSS. Processes used cores 0–3 on a Ryzen 9
+7900X, with a 23.04-CPU quota, a 63,577,260,032-byte cap and zero swap.
+Three paired runs of the ordinary interpreted test program printed the same
+bytes; median wall times rose from 0.33 to 0.40 s at one job and 0.32 to
+0.41 s at four. These include parsing and executing the expanded fixture.
+The ordinary production owner has no added source dependency.
+
+The project LLVM instrumenter covered the two declaration bodies as ordinary
+guest functions against the same providers. ASan/LSan and an initialized TSan
+guest completed with clean reports. Sixteen TSan processes failed at startup
+on the host's denied ASLR personality operation before the successful run.
+These cases use one guest thread. The project instrumenter offers address and
+thread modes. The host-8 evidence for bf4fbc70 includes the assertion map,
+compiler and provider identities, full commands, output, limits and timings.

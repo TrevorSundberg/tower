@@ -1,0 +1,40 @@
+import library.testing;
+import entities;
+import entity_stage;
+import .tests.entity_stage_ownership_cases;
+
+test() {
+    var world = ownership_case();
+    var before = finalized;
+    publish_held_children(&world);
+    assert(entity_references(world.target) == 3, "Publication transfers all three held references");
+    assert(finalized == before, "Published components still own their target");
+    entity_release(world.kind);
+    entity_release(world.root);
+    assert(finalized == before + 2, "Releasing the root finalizes both published components");
+    assert(entity_store_dispose(world.store), "All three held references were released");
+}
+
+test() {
+    var world = ownership_case();
+    var before = finalized;
+    var view = entity_view_open(world.root);
+    var stage = stage_held_child(&world, "value");
+    assert(entity_references(world.target) == 1, "Staging leaves the caller's reference alone");
+    entity_stage_discard(stage);
+    assert(entity_references(world.target) == 1, "Discard balances the queued payload reference");
+    assert(entity_child_count(world.root) == 0, "Discard publishes no children");
+    assert(finalized == before + 1, "Discard finalizes the payload before the view closes");
+    entity_view_close(view);
+
+    stage = reject_duplicate_children(&world);
+    entity_stage_discard(stage);
+    assert(entity_references(world.target) == 1, "Rejected children leave the caller's reference intact");
+    assert(finalized == before + 2, "Discard of the rejected stage finalizes its one payload");
+
+    reject_existing_child(&world);
+    entity_release(world.target);
+    entity_release(world.kind);
+    entity_release(world.root);
+    assert(entity_store_dispose(world.store), "Discarded stages leave no live owners");
+}

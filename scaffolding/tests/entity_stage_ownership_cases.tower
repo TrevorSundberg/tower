@@ -1,0 +1,105 @@
+import library.testing;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+
+struct HeldReferences { first: Entity*; second: Entity*; }
+var HeldLifecycle: usize = 1;
+var finalized: usize = 0;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    assert(lifecycle == HeldLifecycle, "Unexpected component lifecycle");
+    assert(entity_component_data(component) == data, "Finalize the component's own payload");
+    var held = bits(HeldReferences*, data);
+    if held.first != null { entity_release(held.first); }
+    if held.second != null { entity_release(held.second); }
+    finalized++;
+}
+
+struct OwnershipCase { store: EntityStore*; root: Entity*; kind: Entity*; target: Entity*; }
+
+fn ownership_case(): OwnershipCase {
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    assert(entity_register(kind, sizeof(HeldReferences), alignof(HeldReferences), HeldLifecycle),
+        "Register the reference-owning component");
+    return {store: store, root: root, kind: kind, target: entity_create(store)};
+}
+
+fn queue_references(stage: EntityStage*, owner: Entity*, kind: Entity*, first: Entity*, second: Entity*): void {
+    var held = bits(HeldReferences*, entity_component_data(entity_component_add(owner, kind)));
+    *held = default;
+    var refs: Entity*[2];
+    refs[0] = first;
+    refs[1] = second;
+    assert(entity_stage_references(stage, &refs[0], sizeof(decltype(refs)) / sizeof(Entity*)),
+        "Queue every non-null payload reference, including repeated targets");
+    *held = {first: first, second: second};
+}
+
+fn publish_held_children(world: OwnershipCase*): void {
+    var stage = entity_stage_open(world.root);
+    var view = entity_view_open(world.root);
+    var first = entity_stage_create_named(stage, world.root, "first");
+    var second = entity_stage_create_named(stage, world.root, "second");
+    var leaf = entity_stage_create_named(stage, first, "leaf");
+    queue_references(stage, first, world.kind, world.target, world.target);
+    queue_references(stage, second, world.kind, world.target, null);
+
+    var rejected: Entity*[2];
+    var count = sizeof(decltype(rejected)) / sizeof(Entity*);
+    rejected[0] = world.target;
+    rejected[1] = leaf;
+    assert(!entity_stage_references(stage, &rejected[0], count), "Reject a staged referent");
+    var other = entity_store_create();
+    rejected[1] = entity_create(other);
+    assert(!entity_stage_references(stage, &rejected[0], count), "Reject a foreign referent");
+    entity_release(rejected[1]);
+    assert(entity_store_dispose(other), "A rejected batch retains no foreign entity");
+
+    assert(entity_references(world.target) == 1, "Queuing does not retain the target yet");
+    assert(entity_child_count(world.root) == 0, "Staged children are still private");
+    assert(entity_release(world.target) == 0, "The view pins the target after its last release");
+    entity_stage_hold(stage);
+    assert(entity_references(world.target) == 3, "Hold acquires all three payload references");
+    entity_stage_hold(stage);
+    assert(entity_references(world.target) == 3, "A second hold acquires nothing");
+    assert(!entity_stage_publish(stage), "An open view prevents publication");
+    entity_view_close(view);
+    assert(entity_stage_publish(stage), "Publish after the last view closes");
+
+    assert(entity_child_count(world.root) == 2, "Both root children are published");
+    assert(entity_child_count(first) == 1, "The first child owns the leaf");
+    assert(entity_child_at(world.root, entity_member_index(world.root, "first")) == first, "Find first by name");
+    assert(entity_child_at(world.root, entity_member_index(world.root, "second")) == second, "Find second by name");
+    assert(entity_child_at(first, entity_member_index(first, "leaf")) == leaf, "Find the nested leaf by name");
+}
+
+fn stage_held_child(world: OwnershipCase*, name: u8*): EntityStage* {
+    var stage = entity_stage_open(world.root);
+    var child = entity_stage_create_named(stage, world.root, name);
+    queue_references(stage, child, world.kind, world.target, null);
+    return stage;
+}
+
+fn reject_duplicate_children(world: OwnershipCase*): EntityStage* {
+    var stage = stage_held_child(world, "same");
+    assert(entity_stage_create_named(stage, world.root, "same") != null, "Stage the second new name");
+    assert(!entity_stage_publish(stage), "Reject duplicate new names");
+    assert(entity_child_count(world.root) == 0, "Neither child was published");
+    assert(entity_references(world.target) == 1, "Failed publication acquired no payload references");
+    return stage;
+}
+
+fn reject_existing_child(world: OwnershipCase*): void {
+    var child = entity_create(world.store);
+    assert(entity_attach(child, world.root, "same"), "Attach the existing member");
+    entity_release(child);
+    var stage = entity_stage_open(world.root);
+    assert(entity_stage_create_named(stage, world.root, "same") != null, "Stage the existing name");
+    assert(!entity_stage_publish(stage), "Reject replacement of a published member");
+    assert(entity_child_count(world.root) == 1, "Keep the single published child");
+    assert(entity_child_at(world.root, entity_member_index(world.root, "same")) == child, "Keep the original member");
+    entity_stage_discard(stage);
+}
