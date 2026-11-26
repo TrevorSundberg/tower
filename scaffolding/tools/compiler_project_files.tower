@@ -143,6 +143,9 @@ fn compiler_project_dependencies(project: CompilerProjectFiles*, build: u8*, obj
             puts("Cannot resolve required compiler project dependency:"); puts(path.data); puts(strerror(*__errno_location())); return false;
         }
         if tool_path_relative(&name, path.data, source_root.data) {
+            if builtin_module_namespace(name.data) && wasm_names_get(&project.names, wasm_text_bytes(name.data)) == WasmNoIndex {
+                puts("Compiler unit depends on a module outside the builtin inventory:"); puts(name.data); return false;
+            }
             if !compiler_project_read_source(project, name.data, path.data) { return false; }
         } else {
             // Admit only the exact build runtime and this object's generated
