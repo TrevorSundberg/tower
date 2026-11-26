@@ -111740,3 +111740,62 @@ allocator and the linked service transport. The serial ownership replay
 does not instrument the entire browser or provide Tower source-level UBSan.
 The assignment packet contains dependency ledgers, command lines, exact
 messages and outcomes, failed probes, source bundle and project delta.
+
+## Formatter selection on the 135605ef release source
+
+Host 6 reproduced the manager tree `2be7bb11572335a203aa2887373bbc59240e44bf`
+and merged its exact commit `135605ef` with `e2ee7240` in `0da4e513`.
+The two host conflicts were in `ide_execution.tower` and `ide_types.tower`.
+For each file, 198ee7ab and the manager parent had the same Git blob.
+The merge took the formatter parent's version of those two files.
+The four-product release and its external publication belong to the manager.
+
+The stock project packager on the two sources produced 826 and 836 unique files.
+The 25 compilation units, ordered reactor recipes and eleven compressed support
+and import assets matched. On the manager project both browser frontends found
+five aggregate tests and stopped at the unbound `format_case_read` call. On the
+combined project both stock Tests buttons passed 22 owner, five default and
+five aggregate tests. Changing each of the five golden files made the
+corresponding assertion fail. The edited refusal pointed to
+`syntax_session_format_cases_checks.tower:79:5`. Removing its golden pointed
+to `syntax_session_format_cases_test.tower:8:10`. Restoring the path passed
+all five on the original worker. The native owner passed at one and four
+workers. The native inference and modules owners selected 69 tests apiece.
+The packed project selected 60 apiece. WorkGraph selected 13 in both.
+An ordinary project containing all 836 path/text pairs ran its existing
+`compiler/bytecode_package_cases/valid.tower` entry and printed 42.
+Each of the three formatter externals reported its unbound-function diagnostic
+when called by ordinary source on that same worker.
+
+Only the browser IDE object consumed the five changed host source files.
+It reproduced the 4f6d24ea object with SHA-256 beginning `db637055`.
+Neither eaafb0f6 physical backend command includes it. A different input
+had already changed between the sealed build and the manager parent.
+Both backends link `tower-syntax-live-cases.o`. Its two changed syntax-live
+sources and new `library/testing.tower` dependency changed its size from
+56,391 to 59,513 bytes. Independent compilations
+on the manager parent and the merged checkout
+produced `21c607d4fc1d1adcfcb024f2a8691606cf9176c88a2cf62cf5ce08e10028180d`.
+The entities object's three path-qualified nominal names also vary by
+checkout directory. Recompiling merged source at the producer's absolute path
+reproduced the sealed entities object byte for byte.
+
+The receiver replayed the sealed linker commands with the production pin
+`7315b86e` used for the changed object. Exactly one of 85 LLVM file inputs
+and one of 96 cross file inputs changed. Both wrapper response files and
+the argument order matched. A fresh link on the manager object's bytes
+and a second receiver using the delivered object reproduced the products.
+The packaged LLVM and cross hashes begin `ee653d3b` and `a5078270`.
+Both retained ABI 3, all loader declarations and their signatures.
+Both executed `syntax_attribute_tests` and compiled guests with checked IR,
+object bytes and stdout. The cross compiler reproduced the six target
+executables in the incoming receipt. ASan/LSan and TSan each ran the three
+live formatter handles with the instrumented merged IDE. The native service
+library supplied the parser and allocator. This covered serial handle lifetime.
+
+The host was an Intel Xeon E5-2680 v4. Browser sessions used CPUs 0,2,4,6
+under the host timing lock. Raw requests, link file-open order, byte hashes,
+native IDs, exact diagnostics, products and the source bundle accompany
+assignment `468d75c1-9f52-4eae-82fe-91820eb6256c`. The verified delta from
+the manager's packed project is 2,650 bytes. Its reconstruction hashes to
+`247898e87d825e3c52a4d014a1240781f8ee8221dd261f870bcfbf2c83d49ae3`.
