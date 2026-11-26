@@ -118182,3 +118182,15 @@ updates the live survivor, and discards the remaining stage before returning.
 Entry, payload values, cleared stage handles and store drain are checked at
 their original boundaries. The public native guest passed one direct and six
 owner tests at jobs 1. The standalone still prints zero.
+
+### Native concurrent entity stage companion, host 5
+
+The selected transition loop still drives all four kernel outcomes. The worker
+loop still runs 16 rounds with 128 children and five outcomes at each supported
+width (2 and 4 here). All admitted workers post the entry signal before any
+release signal. The coordinator joins them, checks distinct pthread identities,
+and owns the finalizers. The executable keeps its argument-controlled transition
+skip and three-line finalizer/CPU/RSS measurement. Jobs-1 selection ran two
+direct declarations and fifteen through the owner using the existing native
+guest and exported worker entry. Each family has its own store context and
+callback, so this migration adds no shared collector.
