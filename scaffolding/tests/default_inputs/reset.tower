@@ -1,0 +1,21 @@
+import tower;
+
+struct Pair { x: i32; y: i32; }
+var pairs: Pair[2] = default;
+var calls = 0;
+var index = 0;
+fn source(): Pair* { calls++; return &pairs[0]; }
+
+pairs[0].x = 9;
+pairs[1].x = 8;
+source()[index++] = default;
+print(calls);
+print(index);
+print(pairs[0].x);
+print(pairs[1].x);
+
+fn reset(p: Pair*): void { defer *p = default; p.x = 7; }
+reset(&pairs[1]);
+print(pairs[1].x);
+for (var i = 0; i < 2; i++, pairs[0] = default) { pairs[0].x = 17; }
+print(pairs[0].x);

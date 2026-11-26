@@ -1,0 +1,87 @@
+import tower;
+import library.testing;
+import library.vector;
+import .tests.default_inputs.scalars as scalars;
+import .tests.default_inputs.aggregate as aggregate;
+import .tests.default_inputs.reset as effects;
+import .tests.default_inputs.generics as generics;
+import .tests.default_struct_values as copies;
+import .tests.default_inputs.format as syntax;
+
+test() {
+    assert(scalars.a == 0);
+    assert(scalars.b == 0);
+    assert(scalars.c == 0);
+    assert(scalars.d == 0);
+    assert(scalars.e == 0);
+    assert(!scalars.f);
+    assert(scalars.p == null);
+    assert(scalars.inferred == 0);
+    assert(!default);
+    assert(scalars.negative == 0);
+    assert(scalars.zero() == 0);
+    assert(scalars.take(default) == 0);
+    assert(scalars.choice == 0);
+    assert(default == scalars.inferred);
+    assert(convert(u32, scalars.tag) == 0);
+}
+
+test() {
+    for (var i: usize = 0; i < sizeof(aggregate.Outer); i++) {
+        assert(aggregate.bytes[i] == 0);
+    }
+    fill(&aggregate.value, 255, sizeof(aggregate.Outer));
+    aggregate.value = default;
+    for (var i: usize = 0; i < sizeof(aggregate.Outer); i++) {
+        assert(aggregate.bytes[i] == 0);
+    }
+    assert(aggregate.value.pointer == null);
+    assert(aggregate.inferred.wide == 0);
+    assert(aggregate.array[2] == 0);
+    aggregate.value.items[1].wide = 42;
+    aggregate.value.items[1] = default;
+    assert(aggregate.value.items[1].wide == 0);
+}
+
+test() {
+    effects.pairs[0].x = 9;
+    effects.pairs[1].x = 8;
+    effects.source()[effects.index++] = default;
+    assert(effects.calls == 1);
+    assert(effects.index == 1);
+    assert(effects.pairs[0].x == 0);
+    assert(effects.pairs[1].x == 8);
+    effects.reset(&effects.pairs[1]);
+    assert(effects.pairs[1].x == 0);
+    for (var i = 0; i < 2; i++, effects.pairs[0] = default) { effects.pairs[0].x = 17; }
+    assert(effects.pairs[0].x == 0);
+}
+
+test() {
+    assert(generics.same(default, generics.typed) == 0);
+    assert(generics.same(default(u64), 42) == 0);
+    defer vector_dispose(&generics.values);
+    assert(vector_push(&generics.values, 42));
+    assert(generics.values.data[0] == 42);
+    defer vector_dispose(&generics.explicit);
+    assert(vector_push(&generics.explicit, 7));
+    assert(generics.forward == 0);
+    generics.cell.n = 9;
+    generics.clear(&generics.cell);
+    assert(generics.cell.n == 0);
+    assert(comptime(generics.stage()) == 0);
+}
+
+test() {
+    copies.copied.value = 7;
+    assert(copies.original.value == 0);
+    assert(copies.copied.value == 7);
+    assert(comptime(copies.staged_zero()) == 0);
+}
+
+test() {
+    assert(syntax.item.x == 0);
+    syntax.item.x = 5;
+    syntax.item = default(syntax.Item);
+    assert(syntax.item.x == 0);
+}
