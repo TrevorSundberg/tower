@@ -111478,3 +111478,120 @@ deliberately skipped case. Both decimal CI selectors ran four checks each
 with the documented default native build on Debian 12. Host 4's raw results
 cover this source freeze. After the separate arena migration the manager
 enumerated 50 registrations and confirmed the original 46 kept their order.
+
+### LLVM differential registrations on the published scoped-fixture reactors
+
+Host 1 migrated all 45 `LLVM matches interpreter: …` selectors from public
+`8fdfe15aac3db1eabc2492c5108aa5228bab84f3`. Implementation commit
+`da8f5902` retains the six following registrations byte for byte. The named
+selectors open 16 existing file-backed programs, ten rows of the shared
+scalar-idiom corpus, the existing 300-function generator and 18 formerly
+inline inputs. The latter retain the original bytes, including UTF-8 and
+diagnostic offsets. The scalar corpus also supplies expected output to the
+Roku and driver checks. It remains the common source and oracle for those
+ten rows. Each other selector reads raw expected bytes with LF checkout
+attributes. The evidence packet's `selection.tsv` enumerates every binding.
+
+Two shared, explicitly selected Tower declarations run in their own frontend
+instance. The synchronous pipeline asks for each host observation only after
+the preceding assertions have passed. It checks graph status and trap text,
+Fast execution, both Foundation emission requests, independent prepared and
+reloaded executions, the package profile, the canonical round trip and LLVM
+and disassembly text. The subject keeps its ordinary entry and original
+execution budget. Prepared storage is released before cache reconstruction.
+A second declaration checks the mapped result of the asynchronous linked
+Wasm invocation against the graph and the independent stdout oracle. Each
+scalar selector additionally executes the same linked module with an
+instrumented production platform provider after the default call passes.
+Both that execution and the six interpreted scalar runs must make one
+fd 1, zero-byte write returning zero. The suite transports the call records
+independently of program output. [Node transport](../playground/tests/llvm-execution.test.mjs)
+· [Synchronous checks](../playground/tests/fixtures/llvm_execution/pipeline.tower)
+· [Linked result](../playground/tests/fixtures/llvm_execution/wasm_result.tower)
+
+The matched public images came from Pages `9788bd66`, all built from
+`64fcfc1a5d3d33a42a8cc05260b334c81d84ef2b`. Their raw SHA-256 prefixes
+are `d6a600a1` for portable, `afc9562b` for shared and `cc1c69da` for
+LLVM. The packet includes the full manifest, hashes and release assets.
+An initial check used the earlier published images from the host's stale
+Pages ref `516deee1`. The original and changed suites were rerun on the
+requested release. The initial shared checkout pull conflicted while
+replaying an unrelated browser commit. Aborting that pull restored all
+five local commits. The implementation uses a separate local main.
+
+The original registration targets wasm32. Independent 64-bit frontend
+runs selected eight-byte pointers on the source, assertion session and
+package preparation, and requested LLVM Foundation for wasm64 both with and
+without optimization. The public Foundation-only reparse function fixes
+pointer width at four, so the supplemental round trip uses the ordinary
+width-aware compile entry on the canonical text. An explicit request to link
+the 64-bit division-zero program failed on `tower-input.o` with “unsupported
+Wasm link feature”. The 64-bit comparisons end at canonical replay and
+compare graph stdout with the independent expected bytes. All linked guest
+execution claimed here targets wasm32.
+
+In an early assertion compile the pipeline needed its own backend-text
+import. A byte-at-a-time 64-bit supplemental run exhausted the assertion
+step budget on the extra full bounded-stdout comparison. Comparing complete
+words with byte copies and the remaining bytes individually fit the same
+budget. The first spelling used a variable where this compiler required a
+type in `sizeof`. Fixing it to `sizeof(u64)` passed. A separate experiment
+cached bytecode for the assertion programs. The 45-case portable sample
+fell from 35.30 to 30.60 seconds, but the wrong graph assertion was reported
+at byte 19390 of the pipeline instead of byte 1566 of the actual observer.
+Applying Foundation spans also attributed it to the wrong source. The
+delivered suite shares the reactors and uses direct public selection per
+invocation, preserving the assertion location.
+
+Changing the type-objects expected profile from zero to one failed on the
+first prepared package before loading that package or executing linked Wasm.
+Changing the last LF to X in the bounded-output file failed in the partial
+word comparison after linked execution. Both restorations passed. Ordinary
+compilation selected zero tests and emitted empty stdout for both assertion
+entries at four and eight bytes. Direct test compilation selected exactly
+one declaration per entry. The production browser project and compiler
+sources have no dependency on these fixtures.
+
+GNU time measured one fresh Node 24.22.3 process per matrix cell on warm
+filesystem inputs. Each held the host timing lock with affinity 0,2,4,6 on
+a dual-socket Xeon Gold 6244, 16 physical cores, 32 logical CPUs, Debian 12,
+CPU quota 1536000/100000 and memory limit 136709144576 bytes. Every pair
+enabled identical phase logging and source/response artifact capture. The
+assertion session uses one lane on the shared image. Per-phase CPU, RSS,
+live frontend nodes, legacy allocation counts and memory capacity are in
+the packet. RSS below is the maximum for the measured command in KiB.
+
+| Subject | Target | Wall s, before → after | User s | System s | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| portable | wasm32 | 26.90 → 35.04 | 39.62 → 48.80 | 1.16 → 1.14 | 681644 → 716912 |
+| shared/1 | wasm32 | 29.07 → 39.54 | 39.31 → 50.90 | 1.20 → 1.19 | 704564 → 750708 |
+| shared/4 | wasm32 | 35.69 → 46.49 | 54.74 → 66.34 | 3.64 → 3.87 | 767016 → 809796 |
+| portable | 64-bit frontend | 25.39 → 29.62 | 35.63 → 40.53 | 1.05 → 1.07 | 674520 → 694940 |
+| shared/1 | 64-bit frontend | 27.58 → 32.53 | 35.46 → 40.71 | 1.06 → 1.01 | 697072 → 729732 |
+| shared/4 | 64-bit frontend | 33.65 → 39.82 | 50.31 → 56.93 | 3.53 → 3.72 | 752896 → 786800 |
+
+All 45 names passed on both arms of all six comparisons. Each wasm32 pair
+matched 315 complete stdout streams and 405 backend result records. Each
+64-bit frontend pair matched 270 streams and 360 result records. Each pair
+also matched all 270 saved source, canonical, emission and response files.
+The comparison includes terminal output chunks as well as the aggregate
+streams. Source compiler and LLVM behavior, allocator implementation and
+worker transport were unchanged. The increase includes direct Tower
+selection and checking, plus a second linked execution and result check
+for each scalar row.
+
+In an isolated copy of the final assertion sources, expecting two calls only
+in the instrumented linked scalar execution reported the failure at byte
+241 of `wasm_result.tower`. The default linked call had already passed.
+Restoring that source and the independently corrupted profile assertion
+passed both names. Both frontend images passed six focused cases under
+explicit V8 Wasm bounds checks. The isolated Node shared-image invocation
+rejected inherited worker flags. In-process test registration with the
+same bounds switches passed. The published images provide no source-level
+ASan, UBSan or TSan coverage. The six unchanged module registrations passed
+under their own filter on the original and delivered module.
+
+Assignment `8370a516-9090-4ef2-ba9e-bd90f5cd686f` contains the source
+bundle, selector and cost tables, raw stdout/stderr, source and emitted
+artifacts, release receipts and failure/restoration runs. Local handoff
+leaves integration and publication with the manager.
