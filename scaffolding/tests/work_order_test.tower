@@ -1,0 +1,68 @@
+import library.testing;
+import work_order;
+import .host.memory;
+import .library.work_graph;
+import .library.vector;
+import utility_checks;
+
+fn work_order_checks(check: function(void, bool, u8*)): void {
+    // More than two semantic preparation windows: sort all ready work, not
+    // just the first admitted window, independent of producer completion order.
+    var pairs: usize = 513;
+    var revision: u64 = 17;
+    var profile: u64 = 8;
+    var graph: WorkGraph;
+    work_init(&graph, revision, profile);
+    defer work_dispose(&graph);
+    var producers: vector(WorkTicket) = default;
+    var consumers: vector(usize) = default;
+    defer vector_dispose(&producers);
+    defer vector_dispose(&consumers);
+    check(vector_reserve(&producers, pairs), "Allocate producer receipts");
+    for(var i: usize = 0; i < pairs; i++) {
+        var producer = work_request(&graph, null, convert(u32, OrderTestQuery.Producer), convert(u64, i));
+        var consumer = work_request(&graph, null, convert(u32, OrderTestQuery.Consumer), convert(u64, i));
+        check(producer != 0 && consumer != 0, "Register ordered queries");
+        check(vector_push(&consumers, consumer), "Retain consumer identity");
+        check(work_depend(&graph, consumer, producer), "Consumer waits for producer");
+        check(work_seal(&graph, producer) && work_seal(&graph, consumer), "Seal producer and consumer");
+        check(work_demand(&graph, consumer), "Demand each dependency chain");
+    }
+    for(var i: usize = 0; i < pairs; i++) {
+        check(work_take_query(&graph, &producers.data[i], convert(u32, OrderTestQuery.Producer)),
+            "Admit all independent producers");
+    }
+    check(!work_order_ready(&graph), "Ordering requires all workers to relinquish claims");
+    for(var i = pairs; i != 0;) {
+        check(work_finish(&graph, &producers.data[--i], true), "Reverse producer completion");
+    }
+    var stale: WorkTicket;
+    check(work_take(&graph, &stale) && stale.task == consumers.data[pairs - 1],
+        "Ordinary dispatch retains completion-order FIFO");
+    var stale_revision = stale;
+    stale_revision.revision++;
+    check(!work_finish(&graph, &stale_revision, true) && graph.running == 1,
+        "Another revision cannot publish or release the current dispatch");
+    var stale_profile = stale;
+    stale_profile.profile++;
+    check(!work_finish(&graph, &stale_profile, false) && graph.running == 1,
+        "Another semantic profile cannot fail or release the current dispatch");
+    check(work_yield(&graph, &stale), "Yield leaves a consumed ready entry and stale receipt");
+    check(work_order_ready(&graph), "Order complete ready frontier at phase join");
+    for(var i: usize = 0; i < pairs; i++) {
+        var ticket: WorkTicket;
+        check(work_take(&graph, &ticket) && ticket.task == consumers.data[i],
+            "Consumer admission follows stable request identity across all windows");
+        check(!work_finish(&graph, &stale, true), "Ordering never revives a stale receipt");
+        check(work_finish(&graph, &ticket, true), "Ordered consumer finishes once");
+    }
+    check(work_order_ready(&graph) && graph.ready.length == 0 && graph.head == 0,
+        "Ordering compacts an exhausted frontier");
+    puts("Work graph: reversed dependency completions retain deterministic continuation order.");
+}
+
+fn work_order_tests(): void { work_order_checks(utility_check); }
+
+fn work_order_assert(ok: bool, message: u8*): void { assert(ok, message); }
+
+test() { work_order_checks(work_order_assert); }

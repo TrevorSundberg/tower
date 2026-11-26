@@ -1,0 +1,122 @@
+import library.testing;
+import work_pool_fixture;
+import .library.work_pool;
+import .host.memory;
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(PoolTestJob*, payload);
+    job.thread = pthread_self();
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    // Concurrent allocation/fill/free must survive shared-memory growth, not
+    // merely scalar jobs which never exercise the compiler's allocator path.
+    var memory = alloc(u8, job.bytes);
+    if memory == null { job.result = ~convert(u64, 0); return; }
+    fill(memory, convert(u8, job.input), job.bytes);
+    job.result = job.input * job.input;
+    if memory[0] != convert(u8, job.input) || memory[job.bytes - 1] != convert(u8, job.input) {
+        job.result = ~convert(u64, 0);
+    }
+    free(memory);
+}
+
+fn pool_test_close(pool: WorkPool*, entered: void*, release: void*, drained: usize*): void {
+    // An early return can leave kernels waiting on release. Unblock and
+    // join them while their stack jobs and both signals are still alive.
+    for (var i: usize = 0; i < pool.running; i++) { work_signal_post(release); }
+    while pool.running != 0 {
+        var job = bits(PoolTestJob*, work_pool_receive(pool, true));
+        if job != null && job.result == job.input * job.input { (*drained)++; }
+    }
+    work_pool_close(pool);
+    work_signal_close(entered);
+    work_signal_close(release);
+}
+
+fn pool_test_run(lanes: usize, fail_after: usize, drained: usize*): i32 {
+    var pool: WorkPool = default;
+    var entered: void* = null;
+    var release: void* = null;
+    var jobs: PoolTestJob[4] = default;
+    defer pool_test_close(&pool, entered, release, drained);
+    if !work_pool_open(&pool, 4) { return 1; }
+    if !pool.threaded || pool.count != lanes { return 2; }
+    entered = work_signal_open();
+    release = work_signal_open();
+    if entered == null || release == null { return 3; }
+    var round: u64 = 1;
+    while round < 17 {
+        var i: usize = 0;
+        while i < pool.count {
+            jobs[i].entered = entered;
+            jobs[i].release = release;
+            jobs[i].input = round + convert(u64, i);
+            jobs[i].bytes = round == 1 ? 8388608 : convert(usize, round * 257);
+            if !work_pool_submit(&pool, bits(void*, &jobs[i])) { return 4; }
+            i++;
+            if i == fail_after {
+                for (var waiting: usize = 0; waiting < i; waiting++) { work_signal_wait(entered); }
+                return PoolTestInjectedFailure;
+            }
+        }
+        if work_pool_submit(&pool, bits(void*, &jobs[0])) { return 5; }
+        // Every admitted worker must reach this barrier simultaneously. The
+        // browser fixture supplies four lanes; smaller native policies use all
+        // their lanes. A synchronous dispatch cannot pass this barrier.
+        i = 0;
+        while i < pool.count { work_signal_wait(entered); i++; }
+        if work_pool_receive(&pool, false) != null { return 6; }
+        i = 0;
+        while i < pool.count { work_signal_post(release); i++; }
+        i = 0;
+        while i < pool.count {
+            var job = bits(PoolTestJob*, work_pool_receive(&pool, true));
+            if job == null { return 7; }
+            if job.result != job.input * job.input { return 8; }
+            i++;
+        }
+        i = 0;
+        while i < pool.count {
+            var j: usize = 0;
+            while j < i {
+                if jobs[i].thread == jobs[j].thread { return 9; }
+                j++;
+            }
+            i++;
+        }
+        round++;
+    }
+    if pool.peak != pool.count || pool.running != 0 { return 10; }
+    return 0;
+}
+
+fn pool_test_lanes(): usize {
+    var available = work_thread_capacity();
+    return available > 4 ? 4 : available;
+}
+
+fn pool_test_drain_trial(lanes: usize, admitted: usize): i32 {
+    var drained: usize = 0;
+    var status = pool_test_run(lanes, admitted, &drained);
+    if status != PoolTestInjectedFailure { return status == 0 ? PoolTestMissingFailure : status; }
+    return drained == admitted ? 0 : PoolTestIncompleteDrain;
+}
+
+test() {
+    var lanes = pool_test_lanes();
+    assert(lanes >= 2, "Concurrent pool test requires at least two available lanes");
+    var drained: usize = 0;
+    assert(pool_test_run(lanes, 0, &drained) == 0, "All sixteen pool rounds overlap and return their own results");
+}
+
+test() {
+    var lanes = pool_test_lanes();
+    assert(lanes >= 2, "Partial drain requires at least two available lanes");
+    assert(pool_test_drain_trial(lanes, 1) == 0, "Drain the one admitted job before releasing its inputs");
+}
+
+test() {
+    var lanes = pool_test_lanes();
+    assert(lanes >= 2, "Full drain requires at least two available lanes");
+    assert(pool_test_drain_trial(lanes, lanes) == 0, "Drain every admitted job before releasing its inputs");
+}
