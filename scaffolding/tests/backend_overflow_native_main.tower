@@ -1,0 +1,14 @@
+import tower;
+import backend_overflow_native;
+import backend_overflow_native_test;
+import utility_checks;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    utility_check(argc == 5 && (strcmp(argv[4], "correct") == 0 || strcmp(argv[4], "wrong") == 0),
+        "Usage: tower-overflow-native-tests RESOURCE_ROOT CLANG RUNTIME_ROOT correct|wrong (fresh artifact cwd)");
+    var run: OverflowNativeRun = {resource: argv[1], clang: argv[2], runtime_root: argv[3],
+        wrong: strcmp(argv[4], "wrong") == 0, artifact_prefix: ""};
+    return overflow_native_cases(&run);
+}

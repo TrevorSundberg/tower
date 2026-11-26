@@ -121026,3 +121026,94 @@ the public manifest and verified hashes, raw process/worker traces, all
 binary comparisons, injected failures, restored results and local Git
 bundles. The implementation at the requested freeze is `12f30be7`.
 Publication belongs to the manager.
+
+### Default native overflow selection, 2026-11-26
+
+Host 5, assignment `10ac2344-c626-4d77-aa54-3969d016173e`, public base
+`ba1a5ba28a091e81daa92e45a32df0aace778e35`. The supplied SHA-256 manifest
+matched the prior archive and its actual `assignment.bundle`, `alternate-full.sh`
+and `README.md` members. The entry and predicates came from the overflow
+change in `7f7cb52c`. Its default owner failed on duplicate interpreter
+callbacks and its direct native guest failed on duplicate `main`. The retained
+alternate-suffix run supplied the output reference. The public-base original
+reproduced the retained 166 positive files, 12 negative files and both streams.
+
+The registered legacy CLI now gets its C entry from
+`backend_overflow_native_main.tower`. The owner declares the run inputs.
+The adjacent companion executes the original native emission, child process,
+literal stdout oracle, reconstruction and teardown checks. Only the two wrong
+trials in a selected run prefix their artifacts with `wrong_`, so both
+positive and negative objects, executables, stdout and Foundation survive in
+each work directory. The standalone keeps the original modes and filenames.
+
+Both entries link the same DSO with the accounting allocator, serial work
+transport, LLVM backend and production interpreter. The existing
+`overflow_fixture_execute_output` is exported from that provider. Its narrow
+declaration lets discovery reach the two overflow tests and five work-budget
+tests without discovering the independent execution-session test host.
+The first split still imported the recheck implementation in the companion.
+Default owner selection then found two incompatible foreign declarations of
+`printf`. Moving that import into the provider fixed the collision. Linking
+the standalone directly to the CMake target first introduced an unsupported
+`-rpath-link` flag. The final rule passes the provider file and tracks its
+build dependency. The x64 runtime resource is an explicit prerequisite.
+
+The public packaged compiler passed the six CTests with the default suffix
+and grammar. A relocated source-built compiler with its ordinary resources
+also passed the four selections. Each owner ran seven declarations and each
+direct companion ran two at jobs 1 and 4. The selected stdout equalled the
+concatenated original wrong and correct streams. All 178 files matched byte
+for byte after removing the selected negative filename prefix. Inspection of
+the selected object, running guest executable, standalone, guest runtime and
+shared provider showed one C entry per executable. The provider defines the
+allocator, native fixture, Graph/Fast recheck and interpreter callback and
+depends on LLVM 19. The captured native guest and standalone both name it
+in their ELF dependencies.
+
+Changing the good literal from byte zero to two failed on the first correct
+raw i1 trial in the unmodified-layout original and the migrated standalone.
+All four registered selections and all four relocated compiler commands
+reported the native output comparison in the companion. Restoring that
+literal passed the six registrations and reproduced the artifact manifests.
+
+Measurements used Linux x64, Ryzen 9 5900XT, CPUs 0–31, quota 30.71999 CPUs,
+LLVM/Clang 19.1.7, Release Ninja and the pinned Linux x64 bootstrap. The
+standalone asserts one runtime lane. Three process pairs per mode followed
+a warmup under the host timing lock, with the middle pair reversed. Positive
+median wall/CPU seconds were 2.78/2.78 original and 2.85/2.84 migrated, with
+maximum RSS 98,072 and 98,428 KiB. Negative medians were 0.44/0.43 for both,
+with peaks 98,476 and 97,624 KiB. One packaged compiler selection per
+route and job count measured wall/CPU/peak KiB including compilation and
+execution. Owner jobs 1 and 4 used 4.09/4.06/152036 and 4.16/4.31/160788.
+Direct jobs 1 and 4 used 3.95/3.94/139668 and 4.08/4.21/147492.
+
+ASan with leak detection completed both legacy modes on the first launch.
+TSan completed the positive and negative modes on attempts 9 and 4. All 11
+earlier attempts exited 139 at the denied ADDR_NO_RANDOMIZE request before
+the trials. Completed runs reproduced the original stdout, stderr, exit
+codes and files. Instrumentation covered the harness and shared provider.
+The emitted child programs and packaged selected guest used their ordinary
+native runtime. Tower's LLVM instrumentation supports address and thread
+modes. Eight adjacent backend import/storage registrations also passed.
+Assignment evidence includes the failed configurations, negative and restored
+JUnit and raw output, ELF symbols and relocations, artifact hashes, timings,
+and package inputs. Public integration remains with the manager.
+
+A receiver starting with an empty build directory exposed two warm-cache
+dependencies. When the DSO did not yet exist, CMake emitted a library
+search flag that the Tower ELF linker rejected. The native link now passes
+the full service path as a link option and tracks it as both a target and
+file dependency. Instrumented links use the Clang driver. Building only the
+suite also exposed a missing runtime-host-linux-x64.ll. The suite now depends
+on the hosted resource used by driver_link_compile_arguments. The standalone
+and four default selections then passed all six CTests in 19.41 seconds.
+
+An independent bundle receiver at implementation commit 835b0edc built only
+the suite and its prerequisites from empty in 16.71 s (791,800 KiB peak).
+Its six registrations passed in 19.55 s. The relocated compiler reproduced
+all 178 files for each selection and job count against the received source.
+With the final link rule ASan/LSan again completed both CLI modes. TSan
+completed the correct mode on its second launch. All 64 final wrong-mode
+launches exited 139 before guest execution with the same denied personality
+request. The earlier instrumented link completed that mode on attempt 4.
+The final wrong-mode TSan result is therefore limited to startup evidence.
