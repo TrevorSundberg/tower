@@ -1,9 +1,18 @@
-# Keep the live fixtures' existing interface-object contract across profiles.
-get_property(live_triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
-tower_runtime_object(tower-syntax-live-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_live.tower" "${live_triple}")
-target_sources(tower-compiler-parser-nodes INTERFACE "${tower-syntax-live-cases_OBJECT}")
+if(TOWER_BROWSER OR TOWER_PARSER_ONLY OR TOWER_BACKEND_TESTS)
+  tower_runtime_object(tower-syntax-live-cases "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/syntax_live.tower" "${triple}")
+  tower_runtime_object(tower-compiler-parser-fixtures "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/parser_integration.tower" "${triple}")
+  if(TOWER_BROWSER)
+    # tw_self_test and the editable browser compiler use the original object order.
+    target_sources(tower-compiler-parser-nodes INTERFACE "${tower-syntax-live-cases_OBJECT}")
+    set(browser_parser_fixture "${tower-compiler-parser-fixtures_OBJECT}")
+  else()
+    add_library(tower-parser-fixtures INTERFACE)
+    target_sources(tower-parser-fixtures INTERFACE "${tower-syntax-live-cases_OBJECT}" "${tower-compiler-parser-fixtures_OBJECT}")
+  endif()
+endif()
 
 function(tower_syntax_test_runner)
+  target_link_libraries(tower-parser-tests PRIVATE tower-parser-fixtures)
   add_test(NAME tower-live-syntax COMMAND tower-parser-tests --suite live)
   set_tests_properties(tower-live-syntax PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
 endfunction()

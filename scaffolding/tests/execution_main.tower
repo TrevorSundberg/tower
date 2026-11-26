@@ -29,6 +29,7 @@ import execution_type_construction;
 import named_initialization_checks;
 import struct_value_checks;
 import comptime_aggregate_checks;
+import syntax_live_attributes;
 import declaration_attribute_checks;
 import type_binding_checks;
 import known_binding_checks;
@@ -42,10 +43,6 @@ import module_body_type_checks;
 import editor_observations;
 import backend_pointer_order_checks;
 import backend_signed_pointer_checks;
-
-extern fn syntax_attribute_tests(): void;
-
-
 
 export fn main(argc: i32, argv: u8**): i32 {
     if argc == 5 && strcmp(argv[2], "backend-signed-pointer") == 0 {

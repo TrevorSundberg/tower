@@ -108471,3 +108471,41 @@ expose no per-case allocation measurements or sanitizer instrumentation.
 The review packet retains the single-commit bundle, exact selector and
 assertion maps, raw baseline and migrated observations, commands, mutation
 diffs, restored runs and timings. Publication belongs to the manager.
+
+## Native CLI parser fixture link ownership (2026-11-26)
+
+Qualification 7ed73a26 found two test files in the ordinary native towerc link. Assignment caab3b2a on host 2 reconstructed its exact tree 0cc81c69 and used the default Ubuntu compiler from 15cacf5a (SHA-256 7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138). The initial build reproduced all 24 explicit object positions. Both fixture objects and the distinct production parser integration object matched the retained native cache byte for byte.
+
+The parser-nodes interface propagated tests/parser_integration.tower and tests/syntax_live.tower to every consumer. Their three external definitions were parser_tests, syntax_tests and syntax_attribute_tests. The parser and frontend runners call the first two. The native execution runner calls only syntax_attribute_tests. Browser host.ide_selftest calls tower_tests, parser_tests and syntax_tests for the public tw_self_test entry, including when IDE fixtures are disabled. Production compiler/parser_integration.tower supplies parser_table_finish_buffer_result for syntax template and version construction.
+
+Source commit 27fb85f3 attaches the two fixture objects to the parser and frontend test runners and preserves their existing browser positions. The execution runner imports syntax_live_attributes directly. Both ordinary native and the 212-registration driver/work/backend profile lost the two fixture edges from towerc. The default ELF shrank from 2,319,848 to 2,279,360 bytes. Each single-fixture touch formerly caused an object compile and a CLI link. With the change both touches performed zero actions. Touching compiler/parser_integration.tower still rebuilt its object and the CLI once, even after the old fixture objects were removed from the build directory. The immediate repeat was clean. Two warm relinks took 0.08/0.06 seconds before and 0.06/0.06 seconds after. The AMD Ryzen 5 3600 had 12 online CPUs, a quota of 11.52 CPUs, and a 32,222,740,480-byte memory limit. Matched commands used CPUs 0–3.
+
+The tiny program and the real operator program produced byte-identical native executables, Foundation and stdout. The named live syntax, parser aggregate, foreach example and frontend CTests passed. Corrupting parser check 501 failed in the parser, frontend and browser self-test while the independent execution attributes selector passed. Reversing the grammar attribute label comparison failed in all four. Both restorations passed. The execution attributes selector passed under Clang 19 ASan/LSan and TSan. Both maps identified runtime-allocate.o and tower_work_host.o. The native grammar-equivalence selector initially ran from the wrong directory and could not load bedrock. Running from scaffolding reproduced the full expected trace.
+
+The WASI core parser and live selectors passed. Release and IDE-enabled portable reactor bytes matched before and after. Both kept tw_self_test. Only the enabled build exported ide_tests and passed the existing IDE runner. Portable, shared, LLVM and cross CMake recipes and generated Tower units matched, including the expanded linker invocations and editable compiler object names. LLVM and cross were compared at generation time. Jenkins and publication were outside the local run. Packet caab3b2a-dcf8-4c3d-b25b-399c1d8db8b2 contains the commands, maps, depfiles, checksums, sensitivity runs, timings and verified source bundle.
+
+The manager applied the four reviewed fixture-link changes above to integrated
+main. The worker's parent reconstructed an older test tree. Comparing each of
+the four incoming blobs preserved the current struct-disposal and inference
+fixtures. The 40,488-byte reduction was measured in a source-built native
+executable. The versioned Linux download in the prepared Pages site was built
+at `8bc867b6`.
+
+An independent receiver reproduced the Pages tree from its public parent.
+Two loopback verification runs on desktop and mobile each fetched 113 responses
+totaling 114,892,073 bytes. The verifier rejected the altered CNAME between
+the two runs. On the frozen compile and link inputs, the two optional browser
+ownership registrations each ran to completion in its enabled profile.
+The production cross-compiler suite retained its two explicit skips.
+The corrected struct suite independently returned all 60 handles to its own
+observed idle count on both released frontend profiles.
+
+The ordinary Tests playground example passed. In the editable compiler
+project, the UI disabled its Run tests action. A direct request for the generic
+body types owner and its companion ran one test. Requests for the UTF-8 owner
+and companion reached a missing import. Adding the cases source alone exposed
+a second missing import, and supplying the oracle as well allowed one test to
+run. None of the twelve adjacent companions appeared among the sources read by
+the 25 ordinary units. The isolated UI experiment enabled selection, showed a
+failing assertion at its real source location and recovered after restoration.
+Receipts `55164741`, `eb3d16df`, `73439df5` and `41ccd8f5` retain the raw runs.
