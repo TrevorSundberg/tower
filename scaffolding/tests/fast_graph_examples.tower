@@ -1,0 +1,42 @@
+import library.testing;
+import tests.browser_comparison;
+
+extern fn example_open(path: u8*, width: u32): void;
+extern fn example_close(): void;
+extern fn example_fast(): void;
+extern fn example_step(budget: u32): u32;
+extern fn example_slices(budget: u32, limit: u32): u32;
+extern fn example_status_is(status: u8*): bool;
+extern fn example_result(): u8*;
+
+var ExampleTurnLimit: u32 = 100000;
+
+fn example_run(path: u8*, width: u32, budget: u32, fast: bool): u8* {
+    example_open(path, width);
+    defer example_close();
+    assert(example_step(0) == 0, "No steps before interpreter selection");
+    if example_status_is("error") { trap(example_result(), source_offset()); }
+    if fast { example_fast(); }
+    assert(example_step(0) == 0, "No steps after interpreter selection");
+    var turns = example_slices(budget, ExampleTurnLimit);
+    assert(turns < ExampleTurnLimit, "Execution must terminate");
+    var result = example_result();
+    assert(example_status_is("done"), result);
+    return result;
+}
+
+fn example_pair(path: u8*, width: u32, budget: u32): void {
+    var graph = example_run(path, width, budget, false);
+    defer free(graph);
+    var fast = example_run(path, width, budget, true);
+    defer free(fast);
+    assert(comparison_is(graph, fast, "[]"), "Graph and Fast observable results differ");
+}
+
+fn fast_graph_example(path: u8*): void {
+    for (var width: u32 = 4; width <= 8; width *= 2) {
+        example_pair(path, width, 1);
+        example_pair(path, width, 7);
+        example_pair(path, width, 100000);
+    }
+}

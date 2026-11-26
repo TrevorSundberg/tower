@@ -6,11 +6,25 @@ import {loadTower as createTower} from '../src/tower-host.mjs';
 import {builtins, files, generatedSource, loadTowerBytes} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 import {compareResults} from '../src/comparison.mjs';
+import {compare_results} from './comparison_host.mjs';
+import {copyText} from './guest_text.mjs';
 const read = path => readFile(new URL('../../'+path,import.meta.url));
 const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
   new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
 const tower = await loadTowerBytes(wasm, undefined, builtins.foundation);
 after(() => tower.close());
+
+// Return the terminal response with every output slice, or the last response
+// at the caller's limit. Both the JS and Tower callers check the turn count.
+function executeSlices(handle, budget, limit) {
+  let result, output = '', turns = 0;
+  do {
+    result = tower.execute(handle, budget);
+    output += result.output;
+    ++turns;
+  } while (turns < limit && result.status === 'executing');
+  return {result:{...result, output}, turns};
+}
 
 function run(source,fast,width=4,budget=100000) {
   const handle=tower.compile(source,{pointerBytes:width});
@@ -25,9 +39,9 @@ function run(source,fast,width=4,budget=100000) {
     }
     if(fast)tower.useFast(handle);
     assert.equal(tower.execute(handle,0).steps,0);
-    let output='',result,turns=0;
-    do {result=tower.execute(handle,budget);output+=result.output;assert.ok(++turns<100000,'execution must terminate');} while(result.status==='executing');
-    return {...result,output,cache:fast?tower.fastStats(handle):null};
+    const {result, turns} = executeSlices(handle, budget, 100000);
+    assert.ok(turns < 100000, 'execution must terminate');
+    return {...result,cache:fast?tower.fastStats(handle):null};
   } finally {tower.destroyExecution(handle);}
 }
 function agree(source,width=4,budget=7,status='done'){
@@ -37,10 +51,62 @@ function agree(source,width=4,budget=7,status='done'){
   assert.deepEqual(compareResults(graph,fast),[],JSON.stringify({source,graph,fast}));
   return fast;
 }
-for(const name of ['execution','functions','increment','inference','templates','structs','memory']) test('fast and graph: '+name,async()=>{
-  const source=(await read('scaffolding/examples/'+name+'.tower')).toString();
-  for(const width of [4,8])for(const budget of [1,7,100000])agree(source,width,budget);
-});
+async function openExampleChecks() {
+  let handle, step, fast;
+  function closeExample() {
+    if (handle !== undefined) tower.destroyExecution(handle);
+    handle = step = undefined;
+  }
+  const imports = {
+    compare_results,
+    example_open(context, path, width) {
+      handle = tower.compile(fixtureSource(guestString(context, path)), {pointerBytes:width});
+      fast = false;
+    },
+    example_close:closeExample,
+    example_fast() { tower.useFast(handle); fast = true; },
+    example_step(_context, budget) {
+      step = tower.execute(handle, budget);
+      return step.steps;
+    },
+    example_slices(_context, budget, limit) {
+      const {result, turns} = executeSlices(handle, budget, limit);
+      step = result;
+      return turns;
+    },
+    example_status_is: (context, status) => step.status === guestString(context, status),
+    example_result(context) {
+      const cache = fast ? tower.fastStats(handle) : null;
+      return copyText(context, JSON.stringify({...step, cache}));
+    },
+  };
+  const assertionFiles = files.filter(({path}) => path.endsWith('_fast_graph_test.tower') ||
+    ['.tower/tests/fast_graph_examples.tower', '.tower/tests/browser_comparison.tower',
+      '.tower/library/testing.tower', '.tower/backend/text.tower', '.tower/library/vector.tower'].includes(path));
+  const host = await createTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock,
+    {tower:builtins.tower, builtins, imports, project:{files:assertionFiles}, threads:{capacity:1}});
+  return {host, closeExample};
+}
+
+let exampleChecks;
+after(async () => (await exampleChecks)?.host.close());
+function registerExample(name) {
+  test('fast and graph: ' + name, async () => {
+    const {host, closeExample} = await (exampleChecks ??= openExampleChecks());
+    try {
+      runSelectedTest(host, '.tower/examples/' + name + '_fast_graph_test.tower',
+        undefined, {suffix:'_browser_test.tower'});
+    } finally { closeExample(); } // A guest assertion can bypass defer.
+  });
+}
+registerExample('execution');
+registerExample('functions');
+registerExample('increment');
+registerExample('inference');
+registerExample('templates');
+registerExample('structs');
+registerExample('memory');
+
 test('all integer operations, widths, signed comparisons, conversions and traps',()=>{
   for(const [type,a,b] of [['u8','250','3'],['u32','4294967294','3'],['i32','-17','3'],['u64','18446744073709551614','3'],['i64','-5000000000','3']])
     for(const op of ['+','-','*','/','%','&','|','^','==','!=','<','<=','>','>='])

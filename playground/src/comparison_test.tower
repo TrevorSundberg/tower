@@ -1,14 +1,5 @@
 import library.testing;
-import backend.text;
-
-// The test host calls the editor's compareResults with these two JSON values.
-extern fn compare_results(left: u8*, right: u8*): u8*;
-
-fn comparison_is(left: u8*, right: u8*, fields: u8*): bool {
-    var actual = compare_results(left, right);
-    defer free(actual);
-    return backend_equal(actual, fields);
-}
+import tests.browser_comparison;
 
 test() {
     var done = '{"status":"done","output":"42\\n","steps":42}';
