@@ -1,0 +1,8 @@
+import tower;
+
+struct A { x: i32; }
+fn a(): A { return { x: 1 }; }
+[a()]
+var x = 1;
+x++;
+print(comptime(x));

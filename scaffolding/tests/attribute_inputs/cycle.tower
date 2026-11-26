@@ -1,0 +1,4 @@
+import tower;
+import tests.attribute_cycle_a;
+
+print(comptime(attribute_total()));

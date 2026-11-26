@@ -1,54 +1,18 @@
 import tower;
-import body_runs;
-import frontend_units;
+import comptime_aggregate_checks_test;
 import execution_support;
-import execution_core;
-import struct_value_checks;
-import .compiler.execution_session;
-import .library.vector;
-
-fn comptime_aggregate_source_tests(modules: void*, root: u8*, filename: u8*): void {
-    var source: vector(u8) = default;
-    var bedrock: vector(u8) = default;
-    var foundation: vector(u8) = default;
-    defer vector_dispose(&source);
-    defer vector_dispose(&bedrock);
-    defer vector_dispose(&foundation);
-    units_read(root, filename, &source);
-    units_read(root, "/bedrock.tower", &bedrock);
-    units_read(root, "/foundation.tower", &foundation);
-    for(var width: u32 = 4; width <= 8; width += 4) {
-        var graph: ExecutionSession = default;
-        var fast: ExecutionSession = default;
-        defer execution_session_close(&graph);
-        defer execution_session_close(&fast);
-        execution_compile(&graph, source.data, width, modules);
-        execution_compile(&fast, source.data, width, modules);
-        execution_check(execution_session_start(&graph) && execution_session_fast(&fast), "Staged aggregate engines start");
-        execution_run(&graph, 1000, 100000);
-        execution_run(&fast, 1000, 100000);
-        execution_same(&graph, &fast);
-        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Staged aggregate values and relocations");
-        execution_roundtrip(&graph, modules, false);
-        var canonical: vector(u8) = default;
-        defer vector_dispose(&canonical);
-        for(var workers: usize = 1; workers <= 8; workers *= 2) {
-            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &canonical);
-        }
-    }
-}
 
 fn aggregate_capture_tests(modules: void*, root: u8*): void {
-    comptime_aggregate_source_tests(modules, root, "/tests/aggregate_capture_inputs.tower");
+    aggregate_capture_values(modules, root);
     puts("Aggregate captures: nested values, private copies, Foundation and workers pass.");
 }
 
 fn comptime_aggregate_tests(modules: void*, root: u8*): void {
-    comptime_aggregate_source_tests(modules, root, "/tests/comptime_aggregates.tower");
-    struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{var p:P;return p;}var p=comptime(make());", "uninitialized");
-    struct_value_reject(modules, "import tower;struct P{x:i32*;}fn make():P{var x=42;return {x:&x};}var p=comptime(make());", "non-relocatable raw pointer");
-    struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{print(42);return {x:42};}var p=comptime(make());", "output");
-    struct_value_reject(modules, "import tower;struct P{x:i32;}fn make():P{return comptime(make());}var p=comptime(make());", "dependency cycle");
-    struct_value_reject(modules, "import tower;struct P{f:function(i32);}fn real():i32{return 42;}fn forged():P{var p:P={f:real};var bytes=bits(usize*,&p.f);*bytes=999;return p;}var p=comptime(forged());", "invalid function reference");
+    staged_aggregate_values(modules, root);
+    aggregate_reject_uninitialized(modules, root);
+    aggregate_reject_raw_pointer(modules, root);
+    aggregate_reject_output(modules, root);
+    aggregate_reject_dependency_cycle(modules, root);
+    aggregate_reject_forged_callback(modules, root);
     puts("Staged aggregates: nested fields, arrays, exact bits, typed callbacks, Foundation and workers pass.");
 }

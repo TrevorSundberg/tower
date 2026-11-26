@@ -1,0 +1,8 @@
+import tower;
+
+struct P { x: i32; }
+fn make(): P {
+    print(42);
+    return { x: 42 };
+}
+var p = comptime(make());

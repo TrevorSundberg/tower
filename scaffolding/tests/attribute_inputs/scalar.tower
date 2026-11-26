@@ -1,0 +1,4 @@
+import tower;
+
+[42]
+fn f(): void {}

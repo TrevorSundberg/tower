@@ -1,0 +1,6 @@
+import tower;
+
+struct A { x: i32; }
+fn a(): A { return { x: 1 }; }
+[a()][a()]
+fn f(): void {}

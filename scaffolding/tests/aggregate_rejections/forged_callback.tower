@@ -1,0 +1,11 @@
+import tower;
+
+struct P { f: function(i32); }
+fn real(): i32 { return 42; }
+fn forged(): P {
+    var p: P = { f: real };
+    var bytes = bits(usize*, &p.f);
+    *bytes = 999;
+    return p;
+}
+var p = comptime(forged());
