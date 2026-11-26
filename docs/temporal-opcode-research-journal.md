@@ -109365,3 +109365,22 @@ Each of the ten external names also ran alone against the base and candidate. An
 Raising the early EOF offset from 28 to 29 failed in session.tower at byte 1413. Changing the contextual case's expected keyword failed in contextual.tower at byte 156 with the live missing-then diagnostic citing input.tower:2:56. The single-fault runs passed the other nine names. The double-fault run passed eight, including both names after the contextual failure. All handles closed on these paths. Two further controls made an expected parser error succeed and required a zero length for an omitted length. They failed at session.tower bytes 1365 and 1462. Restoring the inputs and assertions reproduced the entire reference stream.
 
 Native owner and direct selection at one and four jobs returned the same inventory, two byte-identical declaration bodies in order, empty stdout and the original passing summaries. Moving the browser assertions out of the companion moved the native test locations from lines 131/136 to 10/15. Direct Memcheck at one job and DRD at four completed with zero reported errors. The frozen release provides no source-level sanitizer instrumentation. The shared test helper and release assets are unchanged. Assignment 93339038 carries the source bundle and raw evidence; the manager owns publication.
+
+### Editable inputs for the generic-call inference companion
+
+The combined compiler test tree at `5ed79b5b` contains
+`compiler/semantic_call_inference_test.tower`. Its seven assertions import
+five files in `tests/generic_call_inputs/`, plus `tests/generic_cast_inference.tower`
+and `tests/inferred_parallel_unit.tower`. All seven sources exist in the
+checkout. None occurred in the earlier 674-file project from receipt
+`766ec17b` or in the combined optional source inventory. The project packager
+recurses through compiler sources and reads external test fixtures from that
+inventory. The companion therefore lacked its inputs in the editable project.
+
+Added the seven imported paths to `compiler_project_test_sources.txt`. The
+two transitive library dependencies of the cast fixture, stack and vector,
+already occur in the project. Checked the inventory against the import
+declarations, actual source paths and the ordinary builtin module list.
+The earlier 41-test Playground result applies to the semantic-types owner
+on the prior package. The integrated generic-call companion needs its own
+seven-test run and a failed assertion followed by recovery on the real worker.
