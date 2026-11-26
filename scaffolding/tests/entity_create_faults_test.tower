@@ -69,3 +69,7 @@ fn entity_create_faults(): void {
         && tower_test_buffer_count() == baseline, "Dispose the empty store and restore the buffer baseline");
     puts("0");
 }
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected entity creation fault finalizer", 0);
+}

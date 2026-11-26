@@ -1,10 +1,5 @@
 import tower;
-import .library.entity_types;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_allocations(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
-
-export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
-    trap("Unexpected entity creation fault finalizer", 0);
-}

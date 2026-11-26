@@ -114778,3 +114778,66 @@ main at the assignment base. The evidence packet contains the ownership
 map, original and migrated observations, commands, receipts, sensitivity
 controls and local source bundle. Manager integration and publication remain
 outside this host's assignment.
+
+### Unexpected entity creation finalizer in the test companion
+
+Host 4 qualified assignment 268546bd-13f1-47a5-b8c1-7bc57fa893bc on the
+producer's commit `8b6bfae686686e519a346ece14c8308b101a215b`. The input
+archive SHA-256 was `9154d7a36f0d38325c62f20cd101476629d15caea7d5784af2781e998df98e3b`.
+Both the supplied files and bytes extracted from the archive matched the
+manifest. The trace hash was `45188d457263990da40c074022cba8d38a694a593d2483d3afd447e93c9065dc`
+and the incremental bundle hash was `6a416d482048c2b454864d20773f755120dcd50044b429bdd90089e6bad30621`.
+The initial pull on shared main was current at `91415a8e`. A shared-clone
+attempt failed while packing a missing promisor object. A fresh local main
+with the checkout's objects as an alternate fetched the verified bundle.
+
+The supplied patch moved the three-line callback verbatim and removed its
+import from the owner. The companion's original 71 lines, including the 11
+assertions, compared byte-for-byte to the fetched commit. The entity provider
+still references the external finalizer. The fixture object defines it and
+the old main, and both symbols resolve in the linked ELF.
+
+Release Ninja builds at compiler jobs 1 and 4 used the pinned Linux x64
+compiler (`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`),
+LLVM/Clang 19.1.7 and CMake/CTest 3.25.1. In each build the old standalone
+and the four owner/direct registrations passed before the move, after it
+and after restoration. Standalone stdout was exactly two bytes (30 0a hex)
+with empty stderr. The selected processes wrote those same bytes and each
+reported one passing declaration at companion line 9. In an observation-only
+build, the producer's insertions reproduced all 626 retained bytes on both
+standalones and all four selections, including the two Memory refusals,
+retry ID 20 and zero buffers after disposal.
+
+The sensitivity edit registered the live retry entity as a type with
+lifecycle 1, attached one component to the root and removed it through
+`entity_component_remove_result`. The library reached the companion callback
+during disposal. The standalone exited 134 with
+`Tower compiler internal trap at 0: Unexpected entity creation fault finalizer`.
+CTest exited 8 with all five registrations failing on that diagnostic.
+Each selected guest reported the offset-zero location at bedrock.tower:1:1.
+Restoring the candidate recovered both original candidate ELF hashes
+(`65975a2c62565924e2a79bc9c7dc1f1667e7f0242500acfde2c66be3446f9457`).
+
+On the Ryzen 7 5800H (8 cores/16 threads, affinity 0–15, quota 15.36 CPUs),
+each matched owner/direct selection compiled and executed in a fresh process
+under the host timing lock. One warm-up preceded three serial samples per
+width and route with warm files. Figures are median wall and user+system
+seconds and maximum process RSS in KiB. The guest allocator is single-owner.
+
+| Selection | Jobs | Producer wall / CPU / RSS | Moved callback wall / CPU / RSS |
+| --- | ---: | ---: | ---: |
+| Owner | 1 | 0.34 / 0.33 / 98,736 | 0.33 / 0.33 / 97,404 |
+| Direct | 1 | 0.34 / 0.33 / 98,556 | 0.34 / 0.33 / 96,928 |
+| Owner | 4 | 0.43 / 0.46 / 108,156 | 0.42 / 0.45 / 106,720 |
+| Direct | 4 | 0.43 / 0.46 / 111,596 | 0.43 / 0.46 / 106,812 |
+
+On the restored source, the standalone passed ASan with leak detection on its
+first launch and TSan on its sixth. Five TSan launches failed the runtime's
+personality check before guest execution. The link maps identify the six
+Tower objects, including the fault allocator and serial transport. The
+callback's emitted IR carries the ASan attribute and TSan function hooks.
+These sanitized runs covered normal disposal. The ordinary native sensitivity
+runs covered the forced callback. Selected guests have no sanitizer CTest
+registration, and the Tower IR tool supports address and thread modes only.
+The evidence packet holds the original commands, timings, raw outputs, link
+maps, checksums and source bundle. The manager owns publication.
