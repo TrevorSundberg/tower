@@ -116715,3 +116715,103 @@ selected allocator. The five CTests and both sanitizer standalones passed
 again. Swapping the expected owner/direct counts made the checker reject
 both otherwise passing runs. The packet includes this rebased source
 bundle for integration on the newer parent.
+### Moving the six live grammar attribute cases into their Tower companion
+
+On host 2, source commit `4351907b883197d517cd3a92ae302d19962b3a50`
+has parent `79972b2f123a937811a66764cbbf608d1a7f8192`. The decompressed
+manager patch had SHA-256
+`a1cc00fadb35b2f742fcf7253164a98a6f95a197f16ac4f16e49141ac3838add`.
+Applying it to the index reproduced the supplied tree
+`eceeea2f7cc74ad5c0733dc68969ebba40ab47b7`. The ordinary module exports
+`syntax_attribute_tests(): void` and calls the companion's aggregate.
+The declaration grammar still imports Bedrock and its operator dependencies.
+A byte comparison of the original helper and aggregate bodies, accounting
+only for the aggregate's new private name, passed. The six original test
+declarations also compared byte for byte. The raw precedence fixture retained
+SHA-256 `f46402333df63582b51bf405e6356a550110ecda0cfd239f0f4103f99789a486`.
+
+The direct imports of the ordinary module are `syntax_live` and
+`execution_main`. The former supplies the parser's full and live entries,
+the frontend grammar-equivalence selector, and the IDE's `tw_self_test`.
+The latter calls the same export for execution attributes. The editable
+compiler maps its syntax fixture object to `tests/syntax_live.tower`.
+The native frontend and execution selectors both passed. The native parser
+and WASI IDE links each retained a single definition of the fixture exports.
+Counting strong definitions across *all* native input archive members also
+finds 16 pre-existing serial/host transport names on both revisions. Each
+occurs only once in the linked parser. The WASI object inputs contained zero
+duplicate strong definitions. The ordinary native and Wasm fixture objects
+had no unresolved `driver_read_file`, and the reactor had no such import.
+
+The released Linux x64 development compiler (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`)
+and all its listed resources passed their manifest checks. The full native
+parser and `--suite live` passed on the parent and candidate. Their stdout
+and stderr matched exactly across revisions and across one and four jobs
+compiling the fixture. The full parser wrote 1,788 stdout and 193 stderr
+bytes. Its trace reported zero warm allocations, one denial, and 12,664 live
+bytes in the item graph. Replaying the original link recipes with only the
+fixture compiled at four jobs reproduced the one-job candidate parser and
+IDE reactor byte for byte.
+
+The native guest used the parser build's test runtime and reader service
+library. Direct selection passed six cases. Default owner discovery in the
+complete checkout passed those same six plus five imported work-budget tests.
+Both requests produced identical stdout and stderr at one and four jobs.
+A focused resource tree copied the owner's actual source dependencies,
+builtin grammars and raw fixture, omitting the unrelated work-budget
+companion. Under normal discovery both direct and owner then passed exactly
+six on both revisions and at both widths. Candidate test declarations are
+at lines 169, 171, 173, 175, 177 and 179. Only the summary's requested path
+differs between those two focused requests. Parent locations precede the
+moved bodies. The IDE-enabled SDK 34 reactor passed the repository's Node
+self-test and its separate IDE fixture runner. Loading the same reactor with
+only builtin grammar/type modules and calling `tw_self_test` returned zero
+in both width builds.
+
+Changing the expected unknown-attribute diagnostic made all four focused
+requests exit 1 at companion line 30. The parser reported the actual
+`Unknown grammar attribute 'unknown'`. The ordinary live selector aborted
+and the builtin-only Wasm call trapped. Restoring the expectation reproduced
+the passing aggregate and six-case streams byte for byte.
+
+| Warm filesystem, fresh process | Parent wall / CPU seconds / peak KiB | Candidate wall / CPU seconds / peak KiB |
+| --- | --- | --- |
+| Full native parser, fixture compiled at one job | 1.71 / 1.71 / 50,536 | 1.70 / 1.69 / 50,508 |
+| Full native parser, fixture compiled at four jobs | 1.67 / 1.66 / 50,492 | 1.67 / 1.66 / 50,448 |
+| Direct six, one job including compilation | 0.78 / 0.77 / 118,884 | 0.77 / 0.76 / 117,844 |
+| Direct six, four jobs including compilation | 0.86 / 0.96 / 127,508 | 0.84 / 0.92 / 128,188 |
+
+Each cell is one observation, taken sequentially under the host timing lock
+on an AMD Ryzen 5 3600. The container had CPUs 0–11, quota 1,152,000 µs per
+100,000 µs (11.52 CPUs) and a 32,222,740,480-byte memory limit. Measurements
+used CPUs 0–3, Clang 19.1.7, Release builds and Node 24.22.3. Ninja used up
+to three build jobs with one worker per bootstrap invocation. The four-job
+comparison changed the fixture compile width while reusing frozen service
+objects. These measurements describe the fixture and test drivers.
+
+A separate fixture-byte control appended one LF only to the focused copy of
+the raw input. The sixth direct test failed at line 186 on the file/embedded
+comparison. Restoring the original bytes reproduced the six passing results.
+
+The standalone WASI parser also passed the full aggregate (2.43 s, 155,108
+KiB peak) and the live selector. Its live stdout matched native exactly.
+An initial manual link omitted the 8 MiB stack used by `check_core wasi`.
+That process reached the entity-registry fixture diagnostic and was
+terminated after 64.87 s. Relinking the same objects with
+`-Wl,-z,stack-size=8388608` completed the aggregate. The separate IDE
+reactor runs above used their own established link settings.
+
+Both supported native sanitizer profiles built the execution caller from
+this tree and ran its `attributes` selector. The selected function IR
+contains ASan and TSan calls. Both link maps include `runtime-allocate.o`
+and `tower_work_host.o`. ASan took 15.02 s and 633,976 KiB peak, TSan
+50.30 s and 331,320 KiB. Each produced the original 215 stdout bytes, empty
+stderr and status zero. The project has no separate UBSan configuration.
+The source change moves test bodies and introduces no scheduler or
+allocation-policy change. No self-hosting or release rebuild was undertaken.
+
+Raw evidence for assignment `44dfd99c-cc3b-4470-9b2e-08d8cf5c8e98`
+includes the commands, status, streams, times, frozen inputs, positive and
+negative controls, native and Wasm symbol inventories, sanitizer maps and
+source bundle. Source and journal are local for manager publication.
