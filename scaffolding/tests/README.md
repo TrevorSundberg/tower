@@ -53,6 +53,7 @@ and runs the linked executable as a child. Guest stdout and stderr remain
 available. The test runtime reserves descriptor 3 in that child for its private
 same-host result. On a trap the driver maps the original offset through the
 request's source table. An early process exit fails the request.
+
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
 two exact NUL-terminated suffixes and the normalized requested path, in that
@@ -1836,6 +1837,25 @@ controls without the broader grammar/failure campaigns. CTest registers these as
 existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
+
+The adjacent SCC companion runs both families against these providers in a
+Linux GNU native build configured with `TOWER_DRIVER_TESTS=ON` and
+`TOWER_BACKEND_TESTS=ON`. From the
+repository root, set `B` to the absolute native build directory and run
+
+```sh
+cmake --build "$B" --target towerc tower-guest-native-test runtime-instrumented.o
+"$B/towerc" --test scaffolding/library/graph_components.tower --test-details --jobs 1 \
+  --test-native-runtime "$B/guest-native-test.o" --link "$B/runtime-instrumented.o" \
+  --link "$B/tower-compiler-bytes.o" --link "$B/tower-compiler-utf8.o" \
+  --link "$B/libtower-compiler-memory.a"
+```
+
+Selecting `scaffolding/library/graph_components_test.tower` directly runs
+the same two declarations. The selected object defines the production graph
+kernel. The instrumented object supplies the allocator and its live-buffer
+ledger. The two stdout summaries report 8 fixed and 234 seeded trials, each
+with zero live buffers. The existing legacy registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,

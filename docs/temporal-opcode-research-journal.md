@@ -105743,3 +105743,73 @@ one test with output 42 at both widths. Packet
 `7c1cce52-e4c5-4d2d-8069-55ea09f00681.tar.gz` carries the console, commands,
 logs, checked outputs and local review bundle. A full Jenkins rerun and
 publication remain with the manager.
+
+### Host 8 linked SCC companion on e2ebb16a
+
+Assignment 890c278d-b588-49b7-b359-c381ae4fc78b reproduced the b85fc4df
+failure on public e2ebb16a. Default test execution stopped on the first
+`tower_test_buffer_count` read. The old native frontend still returned the
+242-case summary and rejected the one-node reflexive corruption with zero
+live buffers. Both producer source packets and the previous raw matrices
+were available through the verified Host 8 receipt.
+
+Local driver change 2ec292e6 lowers the existing selected semantic program
+through the ordinary native object backend. The Linux GNU hosted object
+linker borrows the named test runtime and the caller's link inputs. The child
+enters the selected `tower_main` through the existing guest program entry.
+The startup records completion only on return. The trap ABI sends the source
+offset and message to the driver's existing location formatter. The request
+owns the temporary files until the process exits. CLI regressions cover a
+native libc call, a located assertion, and an early exit with status zero.
+
+The companion and legacy registration share the original production kernel,
+Floyd–Warshall oracle, generated edges and per-trial ownership checks. Both
+families count completed trials. On owner and direct requests, jobs 1 and 4,
+with and without details, each run reported 8 fixed and 234 seeded cases
+with zero live buffers and two passed declarations. In separate logged runs
+all 242 adjacency matrices and their order matched the b85fc4df native trace
+byte for byte at each width and route. All four logged negative runs matched
+its exact empty and singleton inputs. Inverting the reflexive expectation
+reported `graph_components_test.tower:7:5` and returned 1. The genuine allocator
+probe counted one additional live buffer while allocated and returned to its
+initial count on release. Its missing symbols, as providers were added, were
+tower_test_buffer_count, compiler_buffer_allocate, bytes_reserve and
+tower_utf8_validate. The selected object itself defines graph_components_result.
+
+Ordinary objects were identical across jobs and positive/negative companions.
+Their depfiles omitted both companion and helper. Initial native configuration
+copied the adjacent source into the runtime via its library glob. The native
+resource selection and browser builtin list now exclude default companions.
+The final browser builtin list matched the native source module inventory.
+Browser execution and release packaging were outside this Linux native check.
+
+Linux x86-64 Host 8, Ryzen 9 7900X, affinity 0–23, quota 23.04 cores,
+Clang/LLVM 19.1.7, Release. Three sequential fresh processes per width on
+warm filesystem caches timed the same owner with details. Jobs 1 averaged
+0.317 s wall and 0.310 s combined CPU with 106560 KiB peak RSS. Jobs 4
+averaged 0.393 s wall and 0.443 s combined CPU with 117844 KiB peak RSS.
+The legacy prelinked executable took 0.01 s at this timer's resolution.
+The earlier 0/242 request has no completed SCC workload time. Both the native
+test-link CLI regression and the existing portable module-path suite passed.
+
+Separate instrumented compiler builds reproduced the positive and the located
+negative at both widths under ASan/LSan and TSan. Nine TSan launches failed
+during initialization at the host personality restriction. Only subsequent
+or first-attempt executions with the exact expected streams count. The child
+and provider objects in these runs used the ordinary allocator instrumentation
+for the live-buffer checks. They did not receive compiler sanitizer coverage.
+Tower source-language UBSan is unsupported. The retained packet contains the
+source bundle, executable and provider identities, actual selected object and
+ELF, independent link map, raw streams, case-by-case comparison and replay.
+The source is for manager review. The legacy registration remains active.
+
+A separate child startup check instrumented the actual guest-native-test LLVM
+module in address and thread modes. The hosted Tower linker rejected those
+instrumented ELF objects. Clang linked each to the captured selected object and
+the same native providers. Successful positive and rejecting singleton runs
+reproduced the byte-exact stdout and binary completion/trap records in both
+modes. This covers the startup/report transport. The selected SCC object and
+its providers remained ordinary objects. Four simultaneous ordinary CLI
+requests also preserved all expected outputs and drained their shared temporary
+directory. An independent system link map attributes the kernel to the selected
+object and the live counter to runtime-instrumented.o.

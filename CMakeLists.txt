@@ -93,6 +93,11 @@ if(TOWER_NATIVE)
   file(GLOB builtin_modules CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
     "scaffolding/library/*.tower" "scaffolding/backend/foreign_grammar.tower")
   foreach(resource IN LISTS builtin_modules)
+    if(resource MATCHES "_test[.]tower$")
+      # A reconfigured build may still contain the old, copied module.
+      file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/share/tower/${resource}")
+      continue()
+    endif()
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   tower_compiler_utilities()
