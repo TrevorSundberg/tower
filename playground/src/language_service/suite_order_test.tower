@@ -1,0 +1,22 @@
+import suite;
+
+test() {
+    var warm = request("warm", '{"method":"warm"}');
+    var document = request("document", '{"method":"document"}');
+    var completion = request("complete", '{"method":"complete"}');
+
+    assert(post_count(0) == 1, "Only the warm request was posted");
+    assert(text_is(posted_field(0, 0, "method"), "warm"), "Warm request runs first");
+    reply(0, posted_id(0, 0), "null");
+    await_result(warm);
+
+    assert(text_is(posted_field(0, 1, "method"), "complete"), "Foreground completion precedes queued document");
+    reply(0, posted_id(0, 1), '{"options":[]}');
+    reply_array(await_result(completion), "options", 0);
+
+    assert(text_is(posted_field(0, 2, "method"), "document"), "Document follows completion");
+    reply(0, posted_id(0, 2), '{"entries":[]}');
+    reply_array(await_result(document), "entries", 0);
+    assert(post_count(0) == 3, "Three requests posted");
+    assert(worker_count() == 1, "One worker handled all three requests");
+}

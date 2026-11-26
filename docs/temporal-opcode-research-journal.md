@@ -117666,3 +117666,77 @@ the compiler. Tower's sanitizer configuration supports address and thread
 modes. Source-level UBSan and cross-target execution have no result in this
 packet. The assignment changed only test sources and their Linux registration.
 The manager owns integration and publication.
+### Three language service scheduling registrations on the Pages frontends
+
+Assignment 76f03750-7b94-43d6-b57c-1c1504f9c29c, host 1, starts from
+5e1a16fa31f786b2acd99f121c6f51347d9bd51b. Its original Node file uses the
+pageService fixture and awaits the real service timer on document preemption.
+The hover and completion transports already keep their JS values and native
+promises in Node. Their interpreter pump yields to a microtask, which by itself
+cannot deliver the preemption timer. The proposed port awaits the selected
+service promise at that same boundary. The original three names passed in
+both baseline runs. The original file does not instantiate a compiler.
+
+The implemented port selects the three Tower companions through the original
+unfiltered language-service.test.mjs registrations. Each case supplies its
+requests, replies, worker indexes and observations. At a guest promise turn,
+editorSuite can now await the selected call's delivery. Other callers keep a
+single microtask turn. Production LanguageService and pageService still own
+the queue, 16 ms preemption, owner ports, termination and dispatch. Node
+reports the actual reply object's prototype, own enumerable fields (including
+symbols), array length, and primitive string code units. Tower checks the sole
+expected field, the entire dense array and its exact contents. The first
+qualification attempt failed to compile an unsupported cast spelling. Using
+Tower's ordinary convert operation fixed the failure.
+
+Pages 8417c9ae4cd9accdf672b22d6676bd465c8a79d6 supplies tower.wasm
+(SHA-256 eb6c48780d67876e1c0726f0e3aad12f761db973c3e5f647e79c362805ad6e1a)
+and tower-threads.wasm (616c0885632d614372a61ea677402df2454fa118357f49c1ce548fca0391d84a).
+Both files matched their Git blobs and the deployment manifest. The release
+app source map matched the three checkout modules for the service, group and
+compiler selection byte for byte. Each of the four original/migrated trace
+runs recorded 54 identical ordered events, including admissions, queued and
+active IDs, worker creation/ownership/retirement, posts, replies and resolved
+promises. Warm, completion and document posted IDs 1, 3, 2 on worker 0 and
+resolved to null, {"options":[]} and {"entries":[]}. Preemption and explicit
+cancellation each retired worker 0 after ID 1 and delivered null. With the
+replacement's ID 2, the stale and live deliveries carried ["stale"]/["current"]
+for options or ["old"]/["new"] for entries. Both promises delivered the live
+object. The next posted snapshot's source was "new". Fixture teardown closed
+the surviving worker in each case.
+
+On both images a FIFO queue failed the migrated foreground-before-document
+assertion. Removing the group and service retired-worker gates failed the
+current-completion and next-snapshot assertions. Four additional controls
+inserted an undefined record field, added an enumerable symbol to an array,
+removed the record prototype, or boxed the returned string. Each failed its
+Tower assertion and the original Node comparison. Each restored unfiltered
+three-test process exited 0. The three other editorSuite files and this one
+also passed together (17/17 on each image). Explicit V8 Wasm bounds and stack
+checks passed on both. On the shared image Node 24's isolated test subprocess
+first passed invalid inherited options to Worker.execArgv. Running each
+unfiltered file with --test-isolation=none exercised the same flags and the
+native worker successfully. The public Wasm binaries lack native sanitizer
+instrumentation. The simulated workers exercise the real page and service
+transport without running a language-worker compiler binary of their own.
+
+Node 24.22.3 ran on two Xeon Gold 6244 sockets, 32 logical CPUs, cpuset
+0–31 and quota 1536000/100000. The timed commands used CPUs 0–3, one test
+file at a time under the host timing lock, --test-concurrency=1, one lazy
+assertion reactor per migrated process and capacity 1 for the shared image.
+GNU time measured a fresh process tree on warm filesystem inputs, one warmup
+pair and three alternating measured pairs per image. Observers were disabled.
+
+| Image and suite | Median wall s | Median user + system s | Maximum peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable original | 0.15 | 0.16 | 63,100 |
+| Portable migrated | 0.86 | 1.42 | 110,608 |
+| Shared original | 0.15 | 0.16 | 62,868 |
+| Shared migrated | 1.05 | 1.64 | 130,932 |
+
+The added time includes loading the assertion reactor, compiling each
+companion and running it. In a separate observer each reactor's linear memory
+grew from 8,388,608 to 28,311,552 bytes in the first case and held that size
+through the next two. Node retained 3/2/2 request handles and 8/5/5 value
+handles through the respective cases and dropped the tables on exit. These
+measurements cover the tests. The manager owns publication and hosted checks.

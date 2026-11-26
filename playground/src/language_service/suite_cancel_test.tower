@@ -1,0 +1,16 @@
+import suite;
+
+test() {
+    var old = request("document", '{"method":"document","source":"old"}');
+    cancel(old);
+    assert(is_null(await_result(old)), "Canceled document resolves to null");
+    assert(terminated(0), "Canceled document worker retired");
+
+    var next = request("document", '{"method":"document","source":"new"}');
+    assert(text_is(posted_field(1, 0, "source"), "new"), "Next worker received the new snapshot");
+    var id = posted_id(1, 0);
+    reply(0, id, '{"entries":["old"]}');
+    reply(1, id, '{"entries":["new"]}');
+    var entries = reply_array(await_result(next), "entries", 1);
+    assert(text_is(field(entries, "0"), "new"), "Document uses the next snapshot reply");
+}
