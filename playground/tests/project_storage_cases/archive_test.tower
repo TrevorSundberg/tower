@@ -44,6 +44,11 @@ fn check_builtin(index: usize, name: u8*): void {
 
 // The importer uses manifest order to reconstruct the project. Also inspect
 // the exported ZIP directory and the local headers it actually references.
+extern fn archive_is_array(group: u8*): bool;
+extern fn archive_array_length(group: u8*): usize;
+extern fn archive_plain_record(group: u8*): bool;
+extern fn archive_plain_file(index: usize): bool;
+extern fn archive_byte_array(name: u8*): bool;
 extern fn archive_inspect_blob(): void;
 extern fn archive_size(): usize;
 extern fn archive_u16(at: usize): usize;
@@ -100,20 +105,26 @@ test() {
     require_success();
 
     check_zip_order();
+    assert(archive_is_array("files"), "Imported files form an array");
+    assert(archive_array_length("files") == 2, "Imported file array length");
     assert(archive_count("files") == 2, "File count");
     check_text(archive_key("files", 0), "src/main.tower", "First file");
     check_text(archive_key("files", 1), "data/large.txt", "Second file");
+    assert(archive_plain_file(0) && archive_plain_file(1), "Imported files have plain record prototypes");
     assert(archive_file_fields(0) == 2 && archive_file_fields(1) == 2, "File record fields");
     check_text(archive_file_text(0), source, "Entry source");
     var actual = archive_file_text(1);
     defer free(actual);
     assert(archive_file_size(1) == size, "Unicode byte length");
     assert(same_bytes(actual, large, size), "Unicode file bytes");
+    assert(archive_plain_record("builtins"), "Builtins have a plain record prototype");
     assert(archive_count("builtins") == 2, "Builtin count");
     check_builtin(0, "foundation");
     check_builtin(1, "bedrock");
+    assert(archive_plain_record("links"), "Links have a plain record prototype");
     assert(archive_count("links") == 1, "Link count");
     check_text(archive_key("links", 0), "fixture.o", "Link name");
+    assert(archive_byte_array("fixture.o"), "Imported link has the Uint8Array prototype");
     assert(archive_link_length("fixture.o") == 3, "Link length");
     assert(archive_link_byte("fixture.o", 0) == 0 && archive_link_byte("fixture.o", 1) == 255
         && archive_link_byte("fixture.o", 2) == 3, "Binary link bytes");

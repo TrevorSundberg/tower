@@ -17,11 +17,6 @@ function attempt(operation) {
   try { operation(); }
   catch (failure) { error = failure.message; }
 }
-function link(name) {
-  const bytes = imported.links[name];
-  if (Object.getPrototypeOf(bytes) !== Uint8Array.prototype) throw new Error('Expected binary link');
-  return bytes;
-}
 const check = selectedCases('project_storage_cases', {
   storage_clear_files() { files = []; },
   storage_file(ctx, path, text) { files.push({path:guestString(ctx, path), text:guestString(ctx, text)}); },
@@ -66,16 +61,12 @@ const check = selectedCases('project_storage_cases', {
   archive_u32: (_ctx, offset) => directory.getUint32(offset, true),
   archive_name: (ctx, offset, length) =>
     moduleText(ctx, new TextDecoder('utf-8', {fatal:true}).decode(new Uint8Array(directory.buffer, offset, length))),
-  archive_count(ctx, group) {
-    const name = guestString(ctx, group), value = imported[name];
-    if (name === 'files') {
-      if (!Array.isArray(value) || Object.keys(value).length !== value.length)
-        throw new Error('Expected a dense array of project files');
-      return value.length;
-    }
-    if (Object.getPrototypeOf(value) !== Object.prototype) throw new Error('Expected plain project record ' + name);
-    return Object.keys(value).length;
-  },
+  archive_is_array: (ctx, group) => Array.isArray(imported[guestString(ctx, group)]),
+  archive_array_length: (ctx, group) => imported[guestString(ctx, group)].length,
+  archive_plain_record: (ctx, group) => Object.getPrototypeOf(imported[guestString(ctx, group)]) === Object.prototype,
+  archive_plain_file: (_ctx, index) => Object.getPrototypeOf(imported.files[index]) === Object.prototype,
+  archive_byte_array: (ctx, name) => Object.getPrototypeOf(imported.links[guestString(ctx, name)]) === Uint8Array.prototype,
+  archive_count: (ctx, group) => Object.keys(imported[guestString(ctx, group)]).length,
   archive_key(ctx, group, index) {
     const name = guestString(ctx, group);
     return moduleText(ctx, name === 'files' ? imported.files[index].path : Object.keys(imported[name])[index]);
@@ -85,8 +76,8 @@ const check = selectedCases('project_storage_cases', {
   archive_file_size: (_ctx, index) => Buffer.byteLength(imported.files[index].text),
   archive_field: (ctx, field) => moduleText(ctx, imported[guestString(ctx, field)]),
   archive_builtin: (ctx, name, original) => moduleText(ctx, (original ? builtins : imported.builtins)[guestString(ctx, name)]),
-  archive_link_length: (ctx, name) => link(guestString(ctx, name)).length,
-  archive_link_byte: (ctx, name, index) => link(guestString(ctx, name))[index],
+  archive_link_length: (ctx, name) => imported.links[guestString(ctx, name)].length,
+  archive_link_byte: (ctx, name, index) => imported.links[guestString(ctx, name)][index],
   drive_mount() { attempt(() => wasi.mountFiles(files)); },
   drive_file_count: () => wasi.files.size,
   drive_has_file: (ctx, path) => wasi.files.has(guestString(ctx, path)),
