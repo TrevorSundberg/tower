@@ -1,5 +1,6 @@
 import tower;
 import ide_types;
+import .compiler.execution_session;
 import ide_api;
 import ide_text;
 
@@ -54,9 +55,9 @@ fn ide_parser(handle: u32): IdeParser* {
     return bits(IdeParser*, host_handles_get(&state.handles, 0, handle));
 }
 
-fn ide_execution(handle: u32): IdeExecution* {
+fn ide_execution(handle: u32): ExecutionSession* {
     var state = ide_state();
-    return bits(IdeExecution*, host_handles_get(&state.handles, 1, handle));
+    return bits(ExecutionSession*, host_handles_get(&state.handles, 1, handle));
 }
 
 export fn tw_last_error(): u8* {

@@ -1,6 +1,5 @@
 // Project files are plain source text. IndexedDB stores whole project snapshots
 // atomically; localStorage is only used for the small last-project preference.
-export const examples = ['foreach', 'execution', 'increment', 'inference', 'templates', 'match', 'collections', 'functions', 'structs', 'memory', 'replacements', 'tokens'];
 export function filePath(path) {
   if (typeof path !== 'string' || !path || path.length > 1024 || /[\\\x00-\x1f:]/.test(path) || path.split('/').some(p => !p || p === '.' || p === '..') || path === '.tower' || path.startsWith('.tower/'))
     throw new Error('Use a relative file path, such as src/main.tower.');

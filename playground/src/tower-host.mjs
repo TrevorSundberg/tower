@@ -121,6 +121,13 @@ export async function loadTower(bytes, log = () => {}, bootstrap, foundation, be
       });
     },
     compile: (source, { pointerBytes = 4 } = {}) => remember(withSource(source, (pointer, length) => exports.tw_exec_create_target(pointer, length, pointerBytes))),
+    compileTests({suffix, pointerBytes = 4} = {}) {
+      transport?.check();
+      const handle = modules.createTests(suffix, pointerBytes);
+      if (!handle) throw new Error(string(exports.tw_last_error()));
+      return remember(handle);
+    },
+    testCount: handle => exports.tw_exec_test_count(handle),
     compileFiles(files, {pointerBytes = 4} = {}) {
       if (!files.length || files.length > 1024) throw new Error('Project needs 1?1,024 source files.');
       modules.configure({entry:files[0].path, files});

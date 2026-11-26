@@ -1,0 +1,5 @@
+// Execute prints 42. Run tests checks the inline and adjacent score tests.
+// Change the expectation in score_test.tower to see an assertion location.
+import tower;
+import score;
+print(double_score(21));

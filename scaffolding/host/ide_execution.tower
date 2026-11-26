@@ -1,9 +1,11 @@
 import tower;
 import ide_types;
+import .compiler.execution_session;
 import ide_api;
 import ide_state;
 import ide_text;
 import syntax_baseline_api;
+import .compiler.test_file_rule;
 import .compiler.syntax_version_types;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -22,23 +24,16 @@ extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
 // Each execution owns its root, typed program indexes, cache and guest storage.
 // Destruction takes the handle first; a stale handle cannot reach freed state.
-fn ide_execution_close(session: IdeExecution*): void {
-    if session.fast != null {
-        fast_interpreter_dispose(session.fast);
-    }
-    work_vector_dispose(&session.error);
-    work_vector_dispose(&session.output);
-    interpreter_storage_dispose(&session.machine);
-    semantic_program_dispose(&session.program);
-    entity_release(session.program.root);
+fn ide_execution_close(session: ExecutionSession*): void {
+    execution_session_close(session);
     free(session);
 }
 
-fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, foundation: bool): IdeExecution* {
-    var session = alloc(IdeExecution, 1);
-    var exists = session != null;
-    ide_require(exists);
-    *session = default;
+fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, foundation: bool): ExecutionSession* {
+    var owner = alloc(IdeExecution, 1);
+    ide_require(owner != null);
+    *owner = default;
+    var session = &owner.execution;
     semantic_initialize(&session.program, tower_node_create(), width);
     session.machine.budget = compiler_world_work_budget(compiler_node_world(session.program.root));
     var state = ide_state();
@@ -73,7 +68,7 @@ fn ide_execution_compile(sources: FrontendSource*, count: usize, width: u32, fou
     return session;
 }
 
-fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool): IdeExecution* {
+fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool): ExecutionSession* {
     var text = ide_copy(source, length);
     var input: FrontendSource;
     input.data = text;
@@ -83,7 +78,7 @@ fn ide_execution_text(source: u8*, length: usize, width: u32, foundation: bool):
     return session;
 }
 
-fn ide_execution_publish(session: IdeExecution*): u32 {
+fn ide_execution_publish(session: ExecutionSession*): u32 {
     if session.program.resource.error != WorkBudgetError.None {
         ide_static_error(sem_resource_message(session.program.resource.error));
         ide_execution_close(session);
@@ -95,7 +90,7 @@ fn ide_execution_publish(session: IdeExecution*): u32 {
         ide_execution_close(session);
         ide_error("Cannot allocate execution handle");
     } else {
-        session.handle = handle;
+        bits(IdeExecution*, session).handle = handle;
     }
     return handle;
 }
@@ -109,7 +104,7 @@ fn ide_execution_capacity(): bool {
     return true;
 }
 
-fn ide_execution_fast(session: IdeExecution*): bool {
+fn ide_execution_fast(session: ExecutionSession*): bool {
     if session.machine.failed || session.program.resource.error != WorkBudgetError.None { return false; }
     if session.machine.steps != 0 {
         return false;
@@ -119,6 +114,49 @@ fn ide_execution_fast(session: IdeExecution*): bool {
     }
     var ready = session.fast != null;
     return ready;
+}
+
+extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
+extern fn frontend_modules_enter_test_root(modules: void*, selection: TestFileSelection*, saved: vector(u8)*, length: usize*): u8*;
+extern fn frontend_modules_leave_test_root(modules: void*, saved: vector(u8)*): void;
+extern fn frontend_modules_swap_test_discovery(modules: void*, current: TestFileDiscovery*): TestFileDiscovery*;
+
+export fn tw_exec_create_tests(modules: void*, entry: u8*, suffix: u8*, width: u32): u32 {
+    if modules == null || entry == null || (width != 4 && width != 8) {
+        ide_error("Invalid test compilation request"); return 0;
+    }
+    if !ide_execution_capacity() { return 0; }
+    var rule = test_file_default_rule();
+    if suffix != null { rule.companion_suffix = suffix; }
+    var selection: TestFileSelection = default;
+    defer test_file_selection_dispose(&selection);
+    if !frontend_test_selection_open(&selection, &rule, entry) {
+        ide_error("Invalid test file selection"); return 0;
+    }
+    var saved: vector(u8) = default;
+    var length: usize = 0;
+    var source = frontend_modules_enter_test_root(modules, &selection, &saved, &length);
+    if source == null { ide_error("Cannot open registered test owner"); return 0; }
+    defer frontend_modules_leave_test_root(modules, &saved);
+    var owner = alloc(IdeExecution, 1);
+    if owner == null { ide_error("Cannot allocate test execution"); return 0; }
+    *owner = default;
+    var session = &owner.execution;
+    var discovery: TestFileDiscovery = { selection: &selection, ..default };
+    {
+        var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+        defer frontend_modules_swap_test_discovery(modules, previous);
+        if execution_session_compile_tests(session, source, length, width, modules) {
+            if session.program.test_count != 0 { execution_session_start(session); }
+            else { session.machine.done = true; }
+        }
+    }
+    return ide_execution_publish(session);
+}
+
+export fn tw_exec_test_count(handle: u32): usize {
+    var session = ide_execution(handle);
+    return session == null ? 0 : session.program.test_count;
 }
 
 export fn tw_exec_create_target(source: u8*, bytes: usize, width: u32): u32 {
@@ -215,7 +253,7 @@ export fn tw_exec_create_files(sources: u8**, lengths: u32*, count: u32, width: 
 
 export fn tw_exec_destroy(handle: u32): void {
     var state = ide_state();
-    var session = bits(IdeExecution*, host_handles_take(&state.handles, 1, handle));
+    var session = bits(ExecutionSession*, host_handles_take(&state.handles, 1, handle));
     if session != null {
         ide_execution_close(session);
     }
@@ -286,7 +324,7 @@ export fn tw_exec_output(handle: u32, data: u8*, length: usize): void {
 
 var IdeExecutionStepLimit: u32 = 100000;
 
-fn ide_execution_step(session: IdeExecution*, budget: u32): void {
+fn ide_execution_step(session: ExecutionSession*, budget: u32): void {
     if budget > IdeExecutionStepLimit { budget = IdeExecutionStepLimit; }
     session.machine.failed ||= session.error.length != 0 || session.program.resource.error != WorkBudgetError.None;
     if session.program.resource.error != WorkBudgetError.None {
@@ -381,12 +419,12 @@ export fn tw_set_foundation(source: u8*, bytes: usize): i32 {
 extern fn tw_foreign_call(handle: u32, request: u8*): u64;
 
 export fn im_pointer_bytes(machine: IMState*): usize {
-    var session = bits(IdeExecution*, machine);
+    var session = bits(ExecutionSession*, machine);
     return convert(usize, session.program.pointer_bytes);
 }
 
 export fn im_root(machine: IMState*): void* {
-    var session = bits(IdeExecution*, machine);
+    var session = bits(ExecutionSession*, machine);
     return session.program.root;
 }
 
@@ -395,7 +433,7 @@ export fn im_has_foreign(machine: IMState*): bool {
 }
 
 export fn im_fail(machine: IMState*, text: u8*, offset: usize): void {
-    var session = bits(IdeExecution*, machine);
+    var session = bits(ExecutionSession*, machine);
     im_text_fail(machine, &session.error, text, ide_length(text), offset);
 }
 
@@ -410,12 +448,12 @@ export fn im_missing_foreign(machine: IMState*, node: void*, offset: usize): voi
 }
 
 export fn im_append(machine: IMState*, text: u8*, count: usize): void {
-    var session = bits(IdeExecution*, machine);
+    var session = bits(ExecutionSession*, machine);
     im_text_append(machine, &session.output, &session.error, text, count);
 }
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
-    var session = bits(IdeExecution*, machine);
+    var session = bits(ExecutionSession*, machine);
     var function = sem_get(node);
     var request: ByteBuffer = default;
     ide_text(&request, "{\"name\":");
@@ -447,7 +485,7 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
     ide_quote_bytes(&request, result_type.data, result_type.length);
     bytes_dispose(&result_type);
     ide_text(&request, "}");
-    var result = tw_foreign_call(session.handle, ide_result(&request));
+    var result = tw_foreign_call(bits(IdeExecution*, session).handle, ide_result(&request));
     bytes_dispose(&request);
     machine.failed ||= session.error.length != 0 || session.program.resource.error != WorkBudgetError.None;
     return result;

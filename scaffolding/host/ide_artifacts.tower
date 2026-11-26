@@ -1,6 +1,7 @@
 import tower;
 import .library.work_vector;
 import ide_types;
+import .compiler.execution_session;
 import ide_api;
 import ide_state;
 import ide_text;
@@ -25,7 +26,7 @@ var IdePackageHeaderBytes: usize = 56;
 var IdePackageNarrowPointerBytes: u32 = 4;
 var IdePackageWidePointerBytes: u32 = 8;
 
-fn ide_program_format(session: IdeExecution*, formatted: FormatResult*): void {
+fn ide_program_format(session: ExecutionSession*, formatted: FormatResult*): void {
     *formatted = default;
     var present = session != null;
     present &&= session.program.error.length == 0;
@@ -94,7 +95,7 @@ fn ide_package_reset(): void {
 // Check the exact Foundation bytes stored in the envelope once. Encoding and
 // verification use that graph; an external package loader reconstructs the same
 // text independently. The returned session owns fresh guest storage and nodes.
-fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32): IdeExecution* {
+fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32): ExecutionSession* {
     var state = ide_state();
     var canonical = ide_execution_text(source, length, width, true);
     if canonical.program.resource.error != WorkBudgetError.None {
@@ -121,7 +122,7 @@ fn ide_prepare_package_text(source: u8*, length: usize, width: u32, profile: u32
 
 // A handle may already have executed or contain noncanonical source. Preserve
 // its snapshot contract by formatting and reconstructing independent storage.
-fn ide_prepare_package(handle: u32, profile: u32): IdeExecution* {
+fn ide_prepare_package(handle: u32, profile: u32): ExecutionSession* {
     ide_package_reset();
     var session = ide_execution(handle);
     if session != null && session.program.resource.error != WorkBudgetError.None {

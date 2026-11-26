@@ -14,16 +14,16 @@ async function permitExecution(event) {
   });
 }
 async function receive(event) {
-  const {command, id, source, foundation, bedrock, backend, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, comments=true, compiler, library='.tower'} = event.data;
+  const {command, id, source, foundation, bedrock, backend, testMode, testSuffix, pointerBytes=4, inputs={}, files, drive=[], builtins={}, entry='input.tower', bytecode, optimize=true, comments=true, compiler, library='.tower'} = event.data;
   useCompiler(compiler);
   if (command === 'warm') {
     try { await warmCompiler('./tower-llvm.wasm.gz'); postMessage({warm:true}); }
     catch (error) { postMessage({warm:true,error:error.message}); }
     return;
   }
-  let tower, handle;
+  let tower, handle, testCount;
   const timings = {};
-  const send = data => postMessage({ id, backend, ...data, ...(data.result ? {result:projectDiagnostic(data.result, files)} : {}) });
+  const send = data => postMessage({ id, backend, ...(testMode ? {testCount} : {}), ...data, ...(data.result ? {result:projectDiagnostic(data.result, files)} : {}) });
   try {
     send({ phase: 'Loading…' });
     let formatted = backend === 'interpreter' ? undefined : event.data.formatted;
@@ -39,20 +39,23 @@ async function receive(event) {
       timings.load = frontend.loadMs; timings.loadCached = frontend.cached;
       let at = performance.now();
       tower.mountFiles(drive);
-      handle = tower.compile(files?.[0]?.text ?? source,{pointerBytes});
+      handle = testMode ? tower.compileTests({pointerBytes, suffix:testSuffix}) : tower.compile(files?.[0]?.text ?? source,{pointerBytes});
+      if (testMode) testCount = tower.testCount(handle);
       timings.tower = performance.now() - at;
       const checked = tower.execute(handle, 0);
       if (checked.status === 'error') { send({ result: checked, timings }); return; }
-      at = performance.now();
-      if (!comments) tower.stripComments(handle);
-      formatted = tower.foundation(handle);
-      timings.instructions = performance.now() - at;
+      if (!testMode) {
+        at = performance.now();
+        if (!comments) tower.stripComments(handle);
+        formatted = tower.foundation(handle);
+        timings.instructions = performance.now() - at;
+      }
     } else {
       // The coordinator forwards only canonical text and source locations for
       // this revision/profile. Each backend retains its own compiler and memory.
       timings.frontendShared = true;
     }
-    send({ foundation: formatted.source, formatted, timings });
+    if (formatted) send({ foundation: formatted.source, formatted, timings });
     if (backend === 'interpreter' || backend === 'fast') {
       if (backend === 'fast') {
         send({phase:optimize?'Optimizing with LLVM…':'Lowering through LLVM…'});

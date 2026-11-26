@@ -38,7 +38,6 @@ try {
 } catch (error) { if (error.code !== 'ENOENT') throw error; }
 if (process.env.TOWER_REQUIRE_THREADS === '1' && !threads)
   throw new Error('Threaded deployment requires build-threads.sh.');
-await copyFile(path.join(root, '../scaffolding/examples/foreach.tower'), path.join(dist, 'foreach.tower'));
 const builtinModules = ['bedrock', 'foundation', 'foundation_syntax', 'types', 'tower',
   ...(await readdir(path.join(root, '../scaffolding/library')))
   .filter(name => name.endsWith('.tower')).sort().map(name => 'library/' + name.slice(0, -6)), 'backend/foreign_grammar'];
@@ -48,11 +47,6 @@ for (const name of builtinModules) {
   await copyFile(path.join(root, '../scaffolding', name + '.tower'), destination);
 }
 await writeFile(path.join(dist, 'builtins.json'), JSON.stringify(builtinModules));
-await copyFile(path.join(root, '../scaffolding/examples/tokens.tower'), path.join(dist, 'tokens.tower'));
-await copyFile(path.join(root, '../scaffolding/examples/replacements.tower'), path.join(dist, 'replacements.tower'));
-// Examples declare their own Bedrock, Foundation or Tower dependency.
-for (const name of ['execution', 'increment', 'inference', 'templates', 'match', 'collections', 'functions', 'structs', 'memory']) await writeFile(path.join(dist, name + '.tower'),
-  await readFile(path.join(root, '../scaffolding/examples/' + name + '.tower'), 'utf8'));
 let llvm = false;
 try {
   await copyFile(path.join(root, '../build/browser-wasi-llvm/tower-llvm.wasm'), path.join(dist, 'tower-llvm.wasm'));
@@ -109,5 +103,5 @@ for (const name of ['@codemirror/view', '@codemirror/state', '@codemirror/comman
 }
 await writeFile(path.join(dist, 'THIRD-PARTY-NOTICES.txt'), licenses);
 await writeFile(path.join(dist, '.nojekyll'), '');
-tool(packager, [toolPath(dist)], {stdio:'inherit'});
+tool(packager, [toolPath(dist), toolPath(path.join(root, '../scaffolding/examples'))], {stdio:'inherit'});
 console.log(`Static playground built: ${dist} (LLVM module ${llvm ? 'included' : 'not built'})`);
