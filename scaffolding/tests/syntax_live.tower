@@ -5,8 +5,14 @@ import syntax_live_grammar;
 import syntax_live_lexical;
 import syntax_live_attributes;
 
+export fn syntax_replacement_tests(): void {
+    live_seed_tests();
+    live_replacement_tests();
+}
+
 export fn syntax_tests(): void {
     syntax_attribute_tests();
-    live_seed_tests(); live_replacement_tests(); live_boundary_tests(); live_revision_tests(); live_invalid_tests(); live_cache_tests(); live_pattern_tests(); live_lexical_tests();
+    syntax_replacement_tests();
+    live_boundary_tests(); live_revision_tests(); live_invalid_tests(); live_cache_tests(); live_pattern_tests(); live_lexical_tests();
     puts("Live syntax checks passed (declarations, captures, revisions, boundaries, conflicts, ownership, grammar cache, lexical rules).");
 }

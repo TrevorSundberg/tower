@@ -14,27 +14,16 @@ extern fn syntax_native_bedrock(): void*;
 extern fn syntax_completion_create(text: u8*, mode: u32): void*;
 extern fn syntax_component_type(): void*;
 extern fn syntax_equal(a: void*, b: void*, locations: bool): bool;
-extern fn tower_component_get_allocated_count(): usize;
-extern fn tower_memory_get_allocated_count(): usize;
-extern fn tower_memory_free(memory: void*): void;
 extern fn tower_node_get_child_count(node: void*): usize;
 extern fn tower_node_get_id(node: void*): usize;
 extern fn tower_node_add_ref(node: void*): usize;
 extern fn syntax_get_origin(node: void*): SyntaxOrigin*;
-extern fn parser_tree_debug_string(node: void*): u8*;
 extern fn format_entity(out: FormatResult*, node: void*, syntax: void*, foundation: void*, matches: void*): void;
 extern fn format_dispose(out: FormatResult*): void;
 extern fn syntax_format_into(session: void*, out: FormatResult*, error: u8**): bool;
 extern fn strstr(text: u8*, part: u8*): u8*;
 extern fn host_text_terminate(out: ByteBuffer*): bool;
 
-struct LiveAllocations { nodes: usize; components: usize; memory: usize; }
-fn live_allocations(value: LiveAllocations*): void {
-    value.nodes = tower_node_get_allocated_count(); value.components = tower_component_get_allocated_count(); value.memory = tower_memory_get_allocated_count();
-}
-fn live_released(value: LiveAllocations*): void {
-    utility_check(value.nodes == tower_node_get_allocated_count() && value.components == tower_component_get_allocated_count() && value.memory == tower_memory_get_allocated_count(), "Live syntax releases nodes, components and memory");
-}
 fn live_base(): u8* { return "parse Variable = Identifier;parse Expression = Identifier | AttributeInteger;parse Statement = Expression ';';"; }
 fn live_feature(): u8* { return "parse ForEach = 'for' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';parse Statement |= ForEach;"; }
 fn live_join(out: ByteBuffer*, a: u8*, b: u8*, c: u8*): void {
@@ -67,9 +56,4 @@ fn live_format(out: FormatResult*, root: void*): void {
     // FormatResult is length-delimited; legacy source/string APIs need an
     // explicit terminator. A reused allocation may contain nonzero suffix data.
     utility_check(host_text_terminate(bits(ByteBuffer*, &out.text)), "Terminate live formatted source for legacy string APIs");
-}
-fn live_format_equal(a: FormatResult*, b: FormatResult*): void { utility_check(a.text.length == b.text.length && utility_equal(a.text.data, b.text.data, a.text.length), "Live syntax canonical text equality"); }
-fn live_dump_contains(node: void*, text: u8*): void {
-    var dump = parser_tree_debug_string(node); utility_check(dump is not null, "Live syntax debug output allocation"); defer tower_memory_free(bits(void*, dump));
-    utility_check(strstr(dump, text) is not null, "Retained syntax tree debug contents");
 }

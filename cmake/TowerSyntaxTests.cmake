@@ -14,5 +14,17 @@ endif()
 function(tower_syntax_test_runner)
   target_link_libraries(tower-parser-tests PRIVATE tower-parser-fixtures)
   add_test(NAME tower-live-syntax COMMAND tower-parser-tests --suite live)
-  set_tests_properties(tower-live-syntax PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  add_test(NAME tower-live-replacements COMMAND tower-parser-tests --suite replacements)
+  if(TARGET tower-reader-test-services)
+    get_property(runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    tower_native_test_selections(live-replacements syntax_live_replacements "7 tests" "2 tests"
+      --test-native-runtime "${runtime}" --link "$<TARGET_FILE:tower-reader-test-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-reader-test-services>")
+    # Selected seed readers install the same relative grammar files as --suite live.
+    set_tests_properties(
+      tower-live-replacements-owner-jobs-1 tower-live-replacements-direct-jobs-1
+      tower-live-replacements-owner-jobs-4 tower-live-replacements-direct-jobs-4
+      PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+  endif()
+  set_tests_properties(tower-live-syntax tower-live-replacements PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
 endfunction()

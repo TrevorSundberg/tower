@@ -2,6 +2,7 @@ import tower;
 import library.testing;
 import .compiler.syntax_session_types;
 import .compiler.parser_types;
+import .compiler.format_types;
 import .library.vector;
 import storage_api;
 import utility_checks;
@@ -42,4 +43,36 @@ fn live_source_matches(node: void*, source: u8*, text: u8*): bool {
 
 fn live_text(value: vector(u8)*, text: u8*): bool {
     return value.length == strlen(text) && utility_equal(value.data, text, value.length);
+}
+
+extern fn tower_component_get_allocated_count(): usize;
+extern fn tower_memory_get_allocated_count(): usize;
+extern fn tower_memory_free(memory: void*): void;
+extern fn parser_tree_debug_string(node: void*): u8*;
+extern fn strstr(text: u8*, part: u8*): u8*;
+
+struct LiveAllocations { nodes: usize; components: usize; memory: usize; }
+
+fn live_allocations(value: LiveAllocations*): void {
+    value.nodes = tower_node_get_allocated_count();
+    value.components = tower_component_get_allocated_count();
+    value.memory = tower_memory_get_allocated_count();
+}
+
+fn live_released(value: LiveAllocations*): void {
+    assert(value.nodes == tower_node_get_allocated_count()
+        && value.components == tower_component_get_allocated_count()
+        && value.memory == tower_memory_get_allocated_count(), "Live syntax releases nodes, components and memory");
+}
+
+fn live_format_equal(a: FormatResult*, b: FormatResult*): void {
+    assert(a.text.length == b.text.length && utility_equal(a.text.data, b.text.data, a.text.length),
+        "Live syntax canonical text equality");
+}
+
+fn live_dump_contains(node: void*, text: u8*): void {
+    var dump = parser_tree_debug_string(node);
+    assert(dump is not null, "Live syntax debug output allocation");
+    defer tower_memory_free(bits(void*, dump));
+    assert(strstr(dump, text) is not null, "Retained syntax tree debug contents");
 }
