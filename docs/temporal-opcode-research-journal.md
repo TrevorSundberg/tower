@@ -119222,3 +119222,21 @@ the same output predicate in all paths. The legacy check flushed its message
 and aborted (134). Both native selections reported guest failure (1).
 The restored modes and all four selections exited zero. Raw commands, build
 attempts, stdout, stderr and times are in assignment fb09c3b5.
+
+### Selected retained-source edits and model queries
+
+The retained-sources execution selector owns the model and provider changes.
+Its companion opens the same fixture resources and runs the original sequence
+on one world, module environment and execution session per worker width. It
+checks the changed imported source, failed and repaired shared leaf, inactive
+provider, escaped value versus available type, partial Fast machine replacement
+and alternating 32/64-bit targets. The original serial and two-worker output
+was 216 bytes with observed LR overlap 0 and 2 respectively. The migrated
+standalone produced identical bytes, exit 0, at 3.11 s wall, 3.14 s CPU and
+98,340 KiB RSS against 3.01 s wall, 3.09 s CPU and 99,356 KiB on the base.
+
+Demanding the west provider's nominal type after switching to east failed
+with the original field-identity message in the CLI and both selected native
+guests (all exit 1). The selected owner runs the five reachable budget tests
+as well. Isolating its owner from execution_world avoids adding a retained
+compilation to every unrelated execution-session discovery.

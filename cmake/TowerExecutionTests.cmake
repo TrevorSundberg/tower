@@ -30,11 +30,13 @@ function(tower_execution_tests)
     tower_selected_test_count("${triple}")
     get_property(execution_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
     add_dependencies(tower-execution-tests tower-execution-services tower-guest-native-test tower-selected-test-count)
-    tower_native_test_selections(module-body-type module_body_type_checks "7 tests" "2 tests"
-      --test-native-runtime "${execution_guest}" --link "$<TARGET_FILE:tower-execution-services>"
+    set(execution_services --test-native-runtime "${execution_guest}" --link "$<TARGET_FILE:tower-execution-services>"
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-execution-services>")
+    tower_native_test_selections(module-body-type module_body_type_checks "7 tests" "2 tests" ${execution_services})
+    tower_native_test_selections(retained-sources retained_sources "6 tests" "1 test" ${execution_services})
     foreach(jobs IN ITEMS 1 4)
       set_tests_properties(tower-module-body-type-owner-jobs-${jobs} tower-module-body-type-direct-jobs-${jobs}
+        tower-retained-sources-owner-jobs-${jobs} tower-retained-sources-direct-jobs-${jobs}
         PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     endforeach()
   endif()
