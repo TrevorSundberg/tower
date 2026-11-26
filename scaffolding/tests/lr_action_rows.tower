@@ -1,0 +1,14 @@
+import tower;
+import lr_action_rows_test;
+
+extern fn puts(text: u8*): i32;
+
+fn lr_action_row_tests(): u32 {
+    var failures: u32 = 0;
+    if !lr_ordered_row_budget_trial() { puts("Ordered LR row budget, retry or borrowed input failed"); failures++; }
+    if !lr_action_owner_trial(false) || !lr_action_owner_trial(true) {
+        puts("LR action private owner, denial, transfer or stable reuse failed");
+        failures++;
+    }
+    return failures;
+}

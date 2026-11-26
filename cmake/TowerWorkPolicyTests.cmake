@@ -120,6 +120,21 @@ function(tower_lr_work_policy_test)
   # Keep release coverage, but permit focused development checks without running
   # every independent compiler subsystem through the same test entry.
   add_test(NAME tower-lr-worker-equivalence COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" lr)
+  if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+    # The selected guest defines LR operations too. Share the normal native
+    # parser services across the ELF boundary, including their production allocator.
+    add_library(tower-lr-row-services SHARED)
+    set_target_properties(tower-lr-row-services PROPERTIES LINKER_LANGUAGE C)
+    target_link_libraries(tower-lr-row-services PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
+      tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-compiler-evaluation)
+    target_link_options(tower-lr-row-services PRIVATE "LINKER:-z,defs")
+    get_property(row_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    add_dependencies(tower-lr-work-tests tower-lr-row-services tower-guest-native-test tower-selected-test-count)
+    # The owner also discovers five budget, eight graph and four precedence cases.
+    tower_native_test_selections(lr-action-rows lr_action_rows "20 tests" "3 tests"
+      --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+  endif()
   add_test(NAME tower-native-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" units)
   foreach(mode IN ITEMS dependency-stress dependency-stress-wrong-result)
     add_test(NAME tower-${mode} COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${mode})
