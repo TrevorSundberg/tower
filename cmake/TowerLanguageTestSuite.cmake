@@ -50,6 +50,7 @@ install(FILES scaffolding/library/bytes_test.tower scaffolding/library/graph_com
   scaffolding/library/gzip_test.tower scaffolding/library/gzip_test_data.tower
   DESTINATION scc-suite/share/tower/library ${scc_install})
 install(FILES scaffolding/host/memory.tower scaffolding/host/memory_libc.tower scaffolding/host/memory_types.tower
+  scaffolding/host/work_linux.tower scaffolding/host/work_dispatch.tower
   DESTINATION scc-suite/share/tower/host ${scc_install})
 install(FILES scaffolding/compiler/generic_registry.tower scaffolding/compiler/generic_registry_types.tower
   scaffolding/compiler/entity_require.tower DESTINATION scc-suite/share/tower/compiler ${scc_install})
@@ -57,6 +58,7 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/entity_views.tower scaffolding/tests/entity_views_test.tower scaffolding/tests/entity_views.expected
   scaffolding/tests/generic_registry.tower scaffolding/tests/generic_registry_test.tower scaffolding/tests/generic_registry.expected
   scaffolding/tests/generic_body_budget.tower scaffolding/tests/entity_store.tower scaffolding/tests/entity_store_test.tower
+  scaffolding/tests/work_arena_shared_fixture.tower scaffolding/tests/work_arena_shared_fixture_test.tower
   scaffolding/tests/work_arena_fault_fixture.tower scaffolding/tests/work_arena_fault_fixture_test.tower
   scaffolding/tests/entity_stage_ownership_cases.tower
   scaffolding/tests/decimal_round_trips.tower scaffolding/tests/decimal_round_trips_test.tower

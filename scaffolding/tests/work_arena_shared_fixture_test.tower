@@ -1,0 +1,102 @@
+import library.testing;
+import work_arena_shared_fixture;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+
+test() { shared_arenas(SharedArenaCase.Grow); }
+test() { shared_arenas(SharedArenaCase.Cancel); }
+test() { shared_arenas(SharedArenaCase.Deny); }
+
+// The coordinator owns the lane and the pointer sampled at the barrier.
+struct ArenaParticipant {
+    job: ArenaJob;
+    lane: WorkReservation;
+    first: ArenaValue*;
+}
+
+fn shared_arenas(mode: SharedArenaCase): void {
+    var workers: ArenaParticipant[4] = default;
+    var count = sizeof(decltype(workers)) / sizeof(ArenaParticipant);
+    var gate = work_gate_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    assert(gate != null && entered != null && release != null, "Open the budget gate and worker rendezvous");
+    defer work_gate_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+
+    var initial = count * compiler_buffer_allocation_size(ArenaChunkBytes);
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, count, mode == SharedArenaCase.Deny ? initial : 524288, 1), "Open the shared budget");
+    assert(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave), "Synchronize the budget");
+    var joined: WorkArena = default;
+    assert(work_arena_init(&joined, &budget, ArenaChunkBytes), "Initialize the receiving arena");
+    var pool: WorkPool = default;
+    assert(work_pool_open(&pool, count) && pool.threaded && pool.count == count, "Open four native worker slots");
+    for (var i: usize = 0; i < count; i++) {
+        var job = &workers[i].job;
+        job.ordinal = i + 1;
+        job.entered = entered;
+        job.release = release;
+        job.denied = mode == SharedArenaCase.Deny;
+        assert(work_arena_init(&job.arena, &budget, ArenaChunkBytes), "Initialize a private arena");
+        assert(work_budget_reserve(&budget, 1, 1, 0, &workers[i].lane), "Reserve the worker lane");
+        assert(work_pool_submit(&pool, bits(void*, job)), "Submit the arena job");
+    }
+
+    // Every worker has published its first slice and must wait for release.
+    for (var i: usize = 0; i < count; i++) { work_signal_wait(entered); }
+    var held: WorkBudgetSnapshot;
+    var sampled = work_budget_snapshot(&budget, &held);
+    var early = work_pool_receive(&pool, false);
+    foreach (var &worker in &workers) {
+        worker.first = worker.job.first;
+        worker.job.cancelled = mode == SharedArenaCase.Cancel;
+    }
+    for (var i: usize = 0; i < count; i++) { work_signal_post(release); }
+    var received: usize = 0;
+    while pool.running != 0 {
+        if work_pool_receive(&pool, true) != null { received++; }
+    }
+    work_pool_close(&pool);
+    assert(sampled && held.used_bytes == initial && held.used_lanes == count, "The rendezvous holds four chunks and four lanes");
+    assert(early == null && received == count, "All jobs finish after release and are drained before close");
+
+    var values = mode == SharedArenaCase.Grow ? ArenaValuesPerJob : convert(usize, 1);
+    for (var i: usize = 0; i < count; i++) {
+        var job = &workers[i].job;
+        assert(job.completed, "The worker completed with its first slice intact");
+        assert(job.thread != pthread_self(), "The job ran off the coordinator");
+        for (var j: usize = 0; j < i; j++) {
+            assert(job.thread != workers[j].job.thread, "Each waiting job ran on a distinct pthread");
+        }
+        if mode == SharedArenaCase.Deny {
+            assert(job.refusal == WorkBudgetError.Capacity && job.output == bits(u8*, workers[i].first),
+                "Denied growth reports Capacity and preserves the output pointer");
+        }
+        assert(work_budget_release(&budget, &workers[i].lane), "Return the joined worker lane");
+        assert(work_arena_append(&joined, &job.arena), "Transfer the private chunks to the receiving arena");
+        work_arena_dispose(&job.arena);
+        assert(job.first != null && job.first == workers[i].first && job.first.index == 0 && job.first.owner == i + 1
+            && job.first.first == 17 && job.first.last == 29, "The first slice survives the wait, growth and transfer");
+        assert(job.last.index == values - 1 && job.last.last == 29, "The last slice survives private arena disposal");
+        if mode != SharedArenaCase.Grow {
+            assert(job.last == job.first, "Cancellation and denial leave only the first slice");
+        }
+    }
+
+    var arena: WorkArenaSnapshot;
+    var state: WorkBudgetSnapshot;
+    assert(work_arena_snapshot(&joined, &arena) && work_budget_snapshot(&budget, &state), "Read joined ownership");
+    assert(state.used_lanes == 0 && state.used_bytes == arena.retained, "Only the transferred chunks remain charged");
+    assert(arena.payload == count * values * sizeof(ArenaValue), "The joined arena owns every worker value");
+    assert(!work_budget_dispose(&budget), "Live chunks prevent budget disposal");
+    work_arena_dispose(&joined);
+    assert(work_budget_snapshot(&budget, &state) && state.used_bytes == 0 && state.live == 0, "Disposal returns all receipts and bytes");
+    assert(work_budget_dispose(&budget), "Dispose the drained budget");
+}

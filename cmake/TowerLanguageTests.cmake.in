@@ -63,6 +63,12 @@ if(driver_tests)
   set(arena_fault_links --link "@scc_objects@/runtime-instrumented.o" ${compiler_memory_links})
   register_language_tests(work-arena-faults tests/work_arena_fault_fixture 7 ${arena_fault_links})
   register_language_tests(work-arena-faults-direct tests/work_arena_fault_fixture_test 2 ${arena_fault_links})
+  if("@triple@" MATCHES "^x86_64-.*linux")
+    # Four real pthreads meet at the fixture barrier even at one compiler job.
+    set(arena_memory --link "@scc_objects@/libtower-compiler-memory.a")
+    register_language_tests(work-arena-shared tests/work_arena_shared_fixture 8 ${arena_memory})
+    register_language_tests(work-arena-shared-direct tests/work_arena_shared_fixture_test 3 ${arena_memory})
+  endif()
   register_language_tests(gzip library/gzip 5 --link "@scc_objects@/tower-compiler-utf8.o"
     --link "@scc_objects@/libtower-compiler-memory.a")
 endif()
