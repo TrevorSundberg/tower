@@ -112418,3 +112418,14 @@ rejected all 24 inputs. Expected-diagnostic support remains a separate task.
 The production compiler and Wasm reactors were reused. The evidence measures
 the public test path. Sanitizer compiler builds, CI and publication are
 outside this focused run. The manager owns publication.
+
+### Original native compiler buffer contract in three Tower tests
+
+The original frontend harness invokes a Boolean ABI during its allocator
+checks. Its companion now owns the size and overflow expectations, the loop
+over all 130 payload sizes, and the integer and floating-point record
+round trip. The existing entry calls those same predicates in the original
+order. A zero alignment fails the independently selected payload check before
+a remainder operation. The optional test kit registers the owner at one and
+four jobs against the compiler memory provider and installs both source files.
+The allocation bounds and data values come from the original suite.

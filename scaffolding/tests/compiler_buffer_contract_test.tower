@@ -1,0 +1,55 @@
+import tower;
+import .library.testing;
+
+extern fn compiler_buffer_allocation_size(size: usize): usize;
+extern fn compiler_buffer_alignment(): usize;
+extern fn compiler_buffer_allocate(size: usize): void*;
+extern fn compiler_buffer_free(pointer: void*): void;
+
+struct BufferContractRecord {
+    integer: u64;
+    fraction: f64;
+}
+
+// Query the two sides of the overflow boundary without allocating at the limit.
+fn buffer_size_contract(): bool {
+    var word = sizeof(usize);
+    var maximum = ~convert(usize, 0);
+    var limit = maximum - 5 * word;
+    var alignment = compiler_buffer_alignment();
+    return alignment == 2 * word && alignment >= alignof(BufferContractRecord) &&
+        compiler_buffer_allocation_size(0) == 4 * word + 1 &&
+        compiler_buffer_allocation_size(1) == 4 * word + 1 &&
+        compiler_buffer_allocation_size(17) == 4 * word + 17 &&
+        compiler_buffer_allocation_size(limit) == maximum - word &&
+        compiler_buffer_allocation_size(limit + 1) == 0 &&
+        compiler_buffer_allocation_size(maximum) == 0;
+}
+
+fn buffer_payload_alignment_contract(): bool {
+    var alignment = compiler_buffer_alignment();
+    if alignment == 0 { return false; }
+    for (var size: usize = 0; size <= 129; size++) {
+        var pointer = compiler_buffer_allocate(size);
+        if pointer is null { return false; }
+        var aligned = bits(usize, pointer) % alignment == 0;
+        fill(pointer, 42, size);
+        compiler_buffer_free(pointer);
+        if !aligned { return false; }
+    }
+    return true;
+}
+
+fn buffer_record_contract(): bool {
+    var record = bits(BufferContractRecord*, compiler_buffer_allocate(sizeof(BufferContractRecord)));
+    if record is null { return false; }
+    defer compiler_buffer_free(bits(void*, record));
+    if bits(usize, record) % alignof(BufferContractRecord) != 0 { return false; }
+    record[0] = {integer: 123456789012345, fraction: 1.25};
+    return record.integer == 123456789012345 &&
+        bits(u64, record.fraction) == 4608308318706860032;
+}
+
+test() { assert(buffer_size_contract(), "Compiler buffer size and overflow boundaries"); }
+test() { assert(buffer_payload_alignment_contract(), "Alignment of compiler buffers of size zero through 129"); }
+test() { assert(buffer_record_contract(), "Aligned compiler buffer preserves integer and floating fields"); }

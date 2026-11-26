@@ -1,44 +1,7 @@
 import tower;
+import compiler_buffer_contract_test;
 
-extern fn compiler_buffer_allocation_size(size: usize): usize;
-extern fn compiler_buffer_alignment(): usize;
-extern fn compiler_buffer_allocate(size: usize): void*;
-extern fn compiler_buffer_free(pointer: void*): void;
-
-struct BufferContractRecord {
-    integer: u64;
-    fraction: f64;
-}
-
-// Shared native/WASI checks: queries do not attempt the huge boundary requests.
+// The frontend's existing native harness consumes this Boolean ABI.
 export fn compiler_buffer_contract_tests(): bool {
-    var word = sizeof(usize);
-    var maximum = ~convert(usize, 0);
-    var limit = maximum - 5 * word;
-    var alignment = compiler_buffer_alignment();
-    if alignment != 2 * word || alignment < alignof(BufferContractRecord) { return false; }
-    if compiler_buffer_allocation_size(0) != 4 * word + 1 ||
-        compiler_buffer_allocation_size(1) != 4 * word + 1 ||
-        compiler_buffer_allocation_size(17) != 4 * word + 17 ||
-        compiler_buffer_allocation_size(limit) != maximum - word ||
-        compiler_buffer_allocation_size(limit + 1) != 0 ||
-        compiler_buffer_allocation_size(maximum) != 0 { return false; }
-    for(var size: usize = 0; size <= 129; size++) {
-        var pointer = compiler_buffer_allocate(size);
-        if pointer is null { return false; }
-        var aligned = bits(usize, pointer) % alignment == 0;
-        fill(pointer, 42, size);
-        compiler_buffer_free(pointer);
-        if !aligned { return false; }
-    }
-    var record = bits(BufferContractRecord*, compiler_buffer_allocate(sizeof(BufferContractRecord)));
-    if record is null { return false; }
-    var valid = bits(usize, record) % alignof(BufferContractRecord) == 0;
-    if valid {
-        record[0] = {integer: 123456789012345, fraction: 1.25};
-        valid = record.integer == 123456789012345 &&
-            bits(u64, record.fraction) == 4608308318706860032;
-    }
-    compiler_buffer_free(bits(void*, record));
-    return valid;
+    return buffer_size_contract() && buffer_payload_alignment_contract() && buffer_record_contract();
 }
