@@ -109292,3 +109292,108 @@ selected guest. The public compilers retain their release instrumentation,
 and source-level UBSan for Tower is unavailable. The raw packet contains the
 oracle tables, commands, source inputs, binaries, link maps and original
 compiler provenance for manager review.
+
+### Ordinary body admission after signature-only specialization
+
+Host 2 reproduced the two default-suffix discovery failures on manager main
+`aed77666`. Input packet `1813f3a3` supplied the 220-byte type-fields
+companion (SHA-256 `4e686811`) and the 305-byte lazy-body companion
+(`05a75e40`). All seven declared members matched their byte counts and
+hashes. The test-only commit `da8a7ed0` provided their observation modules.
+The compiler repair and its regression are commit `f7ef2275815a`, directly
+on the manager revision.
+
+The serial portable reactor from `8bc867b6` (`41bb9b11`) reproduced both
+retained selected Foundation documents byte for byte. With each owner as
+entry, the fast interpreter took five steps and read zero observations, even
+after changing the companion's expected stdout from zero to one. The ELF
+checked in at `8bc867b6` is `02bbc282`. The Ubuntu executable built from
+that source and pinned by `15cacf5a` is `7315b86e`. The earlier commands
+use a checkout-relative path. The declared test bundle's parent `c2d339ea`
+has the latter ELF at that path. Both exact executables exited 139 for both
+owners on this host. In all four debugger runs, the graph interpreter was
+reading address 0x80 in `ix_enter`. The selected function had no body.
+The recorded native call stack runs through the ordinary interpreter and
+test driver.
+
+Test selection retained the declaration and incremented its count.
+During early type evaluation, the semantic body pipeline advanced its
+function cursor past ordinary functions, including the test, while ordinary
+roots were disabled. An additional signature-only specialization then extended
+the function table. At ordinary admission the cursor was still inside the
+table, so the end-of-table rescan did not occur. With only the new undemanded
+tail to scan, the first ordinary pump returned Complete. Its cursor and
+function count were both 19 for type-fields and both 20 for lazy-body.
+Other helper functions also lacked bodies in the old Foundation.
+
+The coordinator now restarts the cursor when it enables ordinary body roots.
+Existing body receipts still prevent rechecking completed work. The lazy
+specialization still needs an actual demand. The source regression adds two
+unevaluated calls to the registered discovery/reset case, one with an integer
+and one with a pointer. Its unused generic body contains an unresolved name.
+The existing session must execute the inline and implicit companion bodies
+in order, then run only the ordinary owner after switching modes. Replacing
+only the semantics object with the old one in the new runner reproduced 139.
+
+Using the published Ubuntu driver to compile the changed semantics unit and
+relink the local compiler entry points gave native ELF `beafd497` and
+diagnostic portable reactor `0666236b`. Default discovery at jobs 1 and 4
+passed both original companions, failed every changed expected stdout at
+`compiletime_case.tower:18:5`, and passed every restoration. A separate
+literal assertion in each companion failed at its own line 3 and recovered
+at both widths. Explicit companion selection also passed. On one retained
+Wasm host instance, each original consumed two width observations, each
+changed value failed in `browser_observations.tower` after the first receipt,
+and each restored version consumed both. Type-fields and lazy-body executed
+1,480,260 and 6,824,684 steps respectively on each passing request. Both
+ordinary owners printed zero, with identical native objects before and
+after at each width. The existing generic-body companion passed.
+
+The native test-declarations and query-smoke selectors passed. The same
+test-declarations selector ran both worker widths under LLVM 19 ASan with
+leak detection and TSan. Both recorded zero exit, sanitizer attributes on
+`sem_bodies`, and link maps containing the production allocation and worker
+transport objects. CMake supports address and thread instrumentation here.
+Undefined-behavior instrumentation and a threaded browser run remain outside
+this evidence.
+
+Three alternating, serial warm-filesystem comparisons ran on Ryzen 5 3600
+CPUs 0–3, with 11.52 CPUs of host quota. Median ordinary wall seconds for
+baseline/candidate were 0.22/0.23 and 0.26/0.24 for lazy-body at jobs 1/4,
+and 0.21/0.21 and 0.26/0.25 for type-fields. For the six-selection Wasm
+probe the median changed from 1.51 to 1.76 s wall and 2.16 to 2.55 s CPU.
+Maximum RSS across the three runs was 191068/167300 KiB. The candidate
+executes the previously omitted assertions. Per-owner CPU/RSS samples,
+source and object identities, commands, receipts, original failures and
+the local bundle are in packet `a2a3d18c-30b8-4d93-bfa2-cc94373013c6`.
+Publication, browser registration changes and release builds remain with
+their respective owners.
+
+### Preserve waiting bodies when recovering skipped ordinary roots
+
+In the Ubuntu 24.04 strict comparison of 3cc57ae4, resetting the body cursor
+when ordinary roots became eligible admitted work_budget_init ahead of
+compiler_world_worker_reserve. This changed the order of generic Entity and
+EntityStage specializations and changed the entities object. Simply recovering
+a pending prefix on every stalled suffix restored the entities object and both
+real decltype tests, but changed the optimized parser-nodes IR on Linux.
+Tracing that compile found two recoveries while earlier work was waiting, at
+node_payload_size and lr_reserve_result(LRActionGrowth). Stock and trial
+admitted the same bodies in a different sequence. The first emitted difference
+was the control temporary in lr_propagation_solve_components_result.
+
+Keep the ordinary cursor through root admission, return progress for completed
+work, and preserve Waiting while an earlier body has outstanding work. Only
+when a pump would otherwise finish after walking an exhausted suffix does it
+look for a still-pending earlier function. It uses the existing signature/body
+demand check and owns no new persistent state. The coordinator performs this
+check after worker publication and error handling.
+
+Using the same Ubuntu LLVM 19.1.1 host, an unchanged bootstrap comparer
+accepted all four entities targets. At one and four workers, the Linux parser
+object and optimized IR matched the public pin byte for byte. Both actual
+decltype owners and their directly selected companions rejected a changed
+expected byte at compiletime_case.tower:18:5 and passed after restoration at
+both widths. A runtime call still diagnosed missing_body_value. The host 6
+receipt c5a50ceb contains the three cursor comparisons, the rejected
+intermediate, resource measurements and the independent release gates.
