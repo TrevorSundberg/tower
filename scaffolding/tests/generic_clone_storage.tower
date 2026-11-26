@@ -72,12 +72,12 @@ fn generic_clone_page_capacity(): void {
         "Generic clone constructs a physically bounded world");
     var fixture: GenericCloneFixture = default;
     generic_clone_fixture_world(&fixture, 2, 2, world);
-    var instance = generic_clone_fixture_instance(&fixture);
-    var destination = generic_clone_fixture_body(instance);
+    var instance = generic_clone_fixture_node(&fixture);
+    var destination = generic_clone_fixture_body(bits(void*, instance));
     var nodes = entity_store_count(fixture.store);
     var components = entity_store_component_count(fixture.store);
     for(var attempt: usize = 0; attempt < 2; attempt++) {
-        var stage = entity_stage_open(fixture.root);
+        var stage = generic_clone_fixture_stage(&fixture);
         var view = entity_view_open(fixture.root);
         utility_check(stage != null && view != null, "Generic page trial prepares its stage and view");
         var pressure: WorkReservation = default;
@@ -89,15 +89,15 @@ fn generic_clone_page_capacity(): void {
                 && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes - frames, &pressure)
                     == WorkBudgetError.None, "Generic page denial leaves exactly its initial clone frames");
         }
-        var request: GenericBodyCopy = {context: fixture.context, node: instance, stage: stage,
+        var request: GenericBodyCopy = {context: generic_clone_fixture_context(&fixture), node: instance, stage: stage,
             limit: fixture.width * fixture.depth, budget: &budget, ..default};
         compiler_generic_body_kernel(bits(void*, &request));
-        entity_stage_hold(stage);
+        entity_stage_hold(bits(void*, stage));
         entity_view_close(view);
         if attempt == 0 {
             utility_check(!request.success && request.copied == 0 && request.storage_error == WorkBudgetError.Capacity,
                 "Generic body preserves metadata page Capacity after scratch admission");
-            entity_stage_discard(stage);
+            entity_stage_discard(bits(void*, stage));
             utility_check(entity_child_count(destination) == 0 && entity_store_count(fixture.store) == nodes
                 && entity_store_component_count(fixture.store) == components,
                 "Failed metadata cloning publishes no partial body or retained components");
@@ -105,10 +105,10 @@ fn generic_clone_page_capacity(): void {
                 "Release exact generic metadata page pressure");
         } else {
             utility_check(request.success && request.copied == request.limit
-                && request.storage_error == WorkBudgetError.None && entity_stage_publish(stage),
+                && request.storage_error == WorkBudgetError.None && entity_stage_publish(bits(void*, stage)),
                 "Generic body recovers with a fresh stage after metadata Capacity");
-            generic_body_complete(fixture.context, instance, request.copied);
-            generic_clone_fixture_check(&fixture, instance);
+            generic_body_complete(fixture.context, bits(void*, instance), request.copied);
+            generic_clone_fixture_check(&fixture, bits(void*, instance));
         }
     }
     generic_clone_fixture_close(&fixture);
@@ -212,15 +212,15 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
     var fixture: GenericCloneFixture = default;
     generic_clone_fixture_open(&fixture, width, depth, 1, budgeted ? &budget : null);
     var store = fixture.store;
-    var instance = generic_clone_fixture_instance(&fixture);
-    var destination = generic_clone_fixture_body(instance);
+    var instance = generic_clone_fixture_node(&fixture);
+    var destination = generic_clone_fixture_body(bits(void*, instance));
     var nodes = entity_store_count(store);
     var components = entity_store_component_count(store);
-    var stage = entity_stage_open(fixture.root);
+    var stage = generic_clone_fixture_stage(&fixture);
     var view = entity_view_open(fixture.root);
     utility_check(stage != null && view != null, "Clone fixture stage and input view");
     var count = width * depth;
-    var request: GenericBodyCopy = { context: fixture.context, node: instance, stage: stage,
+    var request: GenericBodyCopy = { context: generic_clone_fixture_context(&fixture), node: instance, stage: stage,
         limit: short_limit ? count - 1 : count, budget: budgeted ? &budget : null, ..default };
     var occupied: WorkReservation = default;
     if deny_growth {
@@ -233,7 +233,7 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
     compiler_generic_body_kernel(bits(void*, &request));
     tower_test_buffer_fail_after(~convert(usize, 0));
     var allocations = tower_test_buffer_allocations() - started;
-    entity_stage_hold(stage);
+    entity_stage_hold(bits(void*, stage));
     entity_view_close(view);
     if fail_allocation || short_limit || deny_growth {
         var copied = fail_allocation ? 0 : deny_growth ? CloneInitialFrames : count - 1;
@@ -246,14 +246,14 @@ fn generic_clone_storage_trial(width: usize, depth: usize, failure_index: usize,
         }
         utility_check(matched,
             "Clone failure reports exact partial count and distinct resource error");
-        entity_stage_discard(stage);
+        entity_stage_discard(bits(void*, stage));
         utility_check(entity_child_count(destination) == 0 && entity_store_count(store) == nodes
             && entity_store_component_count(store) == components, "Failed clone publishes no children or retained payloads");
     } else {
         utility_check(request.success && request.copied == count && request.storage_error == WorkBudgetError.None
-            && entity_stage_publish(stage), "Clone success publishes exact node count");
-        generic_body_complete(fixture.context, instance, request.copied);
-        generic_clone_fixture_check(&fixture, instance);
+            && entity_stage_publish(bits(void*, stage)), "Clone success publishes exact node count");
+        generic_body_complete(fixture.context, bits(void*, instance), request.copied);
+        generic_clone_fixture_check(&fixture, bits(void*, instance));
         puts("Generic clone: width, depth, copied nodes, serial allocator calls during kernel");
         generic_clone_number(width); generic_clone_number(depth);
         generic_clone_number(request.copied); generic_clone_number(allocations);
@@ -287,7 +287,7 @@ fn generic_clone_quota_tests(): void {
     var buffers = tower_test_buffer_count();
     var fixture: GenericCloneFixture = default;
     generic_clone_fixture_open(&fixture, 0, 0, 1, null);
-    var request: GenericBodyCopy = {context: fixture.context, node: fixture.root, ..default};
+    var request: GenericBodyCopy = {context: generic_clone_fixture_context(&fixture), node: bits(Entity*, fixture.root), ..default};
     var allocations = tower_test_buffer_allocations();
     compiler_generic_body_kernel(bits(void*, &request));
     utility_check(!request.success && request.storage_error == WorkBudgetError.Invalid

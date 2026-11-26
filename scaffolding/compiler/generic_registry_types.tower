@@ -1,0 +1,28 @@
+import tower;
+import .library.entity_types;
+
+var GenericParameterLimit: usize = 64;
+
+struct GenericInstance {
+    definition: Entity*;
+    use: Entity*;
+    node: Entity*;
+    body_source: Entity*;
+    body_ready: bool;
+    arguments: Entity*[GenericParameterLimit];
+    count: usize;
+    next: GenericInstance*;
+}
+
+// This linked index is derived from instance components, scoped to one program
+// and its explicit target. It is not a second representation of the program.
+struct GenericContext {
+    root: Entity*;
+    template_type: Entity*;
+    instance_type: Entity*;
+    origin_type: Entity*;
+    first: GenericInstance*;
+    count: usize;
+    copied: usize;
+    error: u8*;
+}

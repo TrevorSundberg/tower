@@ -4,6 +4,7 @@ import .library.entity_types;
 import .library.vector;
 import .library.work_budget_types;
 import entity_require;
+import generic_registry_types as registry;
 
 fn compiler_component_get(node: Entity*, type: Entity*): void* {
     if node == null {
@@ -50,7 +51,7 @@ enum GenericKind: u32 {
 
 var GenericInstanceLimit: usize = 512;
 var GenericNodeLimit: usize = 65536;
-var GenericParameterLimit: usize = 64;
+var GenericParameterLimit: usize = registry.GenericParameterLimit;
 
 struct GenericTemplate {
     parameters: Entity*[GenericParameterLimit];
@@ -63,34 +64,14 @@ struct GenericTemplate {
     body_measured: bool;
 }
 
-struct GenericInstance {
-    definition: Entity*;
-    use: Entity*;
-    node: Entity*;
-    body_source: Entity*;
-    body_ready: bool;
-    arguments: Entity*[GenericParameterLimit];
-    count: usize;
-    next: GenericInstance*;
-}
+var GenericInstance: type = registry.GenericInstance;
 
 struct GenericOrigin {
     definition: Entity*;
     use: Entity*;
 }
 
-// This linked index is derived from instance components, scoped to one program
-// and its explicit target. It is not a second representation of the program.
-struct GenericContext {
-    root: Entity*;
-    template_type: Entity*;
-    instance_type: Entity*;
-    origin_type: Entity*;
-    first: GenericInstance*;
-    count: usize;
-    copied: usize;
-    error: u8*;
-}
+var GenericContext: type = registry.GenericContext;
 
 export fn generic_begin(root: Entity*): GenericContext* {
     var error = WorkBudgetError.None;
