@@ -105581,3 +105581,17 @@ A one-digit corruption of the abc vector in an isolated copy exited 1 at the
 whole-message assertion in sha256_test.tower:25:5. The grammar reserves
 `expected` in parameter position. Renaming that parameter to `wanted` resolved
 the parse diagnostic. Packet 98188150 contains raw commands, streams and times.
+
+The companion's binary corpus uses the original seed 1789 and the same 260
+prefixes. It finalizes a single live byte stream at each length and compares
+all 32 bytes against the digest of a fresh whole update. The legacy executable
+also replays each prefix from the beginning, including 33,670 byte updates
+and intervening finishes across the loop. Those repeated operations remain
+available in the native fixture. The language test compares SHA-256 of the
+260 ordered raw digests with
+`ddda469d69de4d6d0d341bb4b8fcbb953d4bcd24aeb7ac77218a3f27fe042dae`.
+GNU sha256sum read the binary files individually and supplied those 8,320
+digest bytes in numeric filename order. GNU basenc decoded the hex after the
+first transport attempt found xxd unavailable. A checked narrowing conversion
+rejected the first attempt to use an entire xorshift word as a byte. Restoring
+the original low-byte mask preserves the generator and its conversion contract.

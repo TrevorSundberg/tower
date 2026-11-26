@@ -52,3 +52,26 @@ test() {
     sha256_test_vector("abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu",
         "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1");
 }
+
+// Compare every binary prefix with its live stream and the independent file oracle.
+test() {
+    var bytes: u8[260];
+    var random: u32 = 1789;
+    var stream: Sha256;
+    var corpus: Sha256;
+    sha256_init(&stream);
+    sha256_init(&corpus);
+    for (var length: usize = 0; length < sizeof(decltype(bytes)); length++) {
+        var whole: Sha256;
+        sha256_init(&whole);
+        assert(sha256_update(&whole, length == 0 ? null : &bytes[0], length));
+        var digest = sha256_finish(&whole);
+        var snapshot = sha256_finish(&stream);
+        assert(utility_equal(&snapshot.bytes[0], &digest.bytes[0], Sha256DigestBytes));
+        assert(sha256_update(&corpus, &digest.bytes[0], Sha256DigestBytes));
+        bytes[length] = convert(u8, utility_random(&random) & convert(u32, ~convert(u8, 0)));
+        assert(sha256_update(&stream, &bytes[length], 1));
+    }
+    // SHA-256 of the 260 raw sha256sum digests in numeric prefix-length order.
+    assert(sha256_test_matches(&corpus, "ddda469d69de4d6d0d341bb4b8fcbb953d4bcd24aeb7ac77218a3f27fe042dae"));
+}
