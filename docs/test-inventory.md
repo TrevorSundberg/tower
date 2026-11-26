@@ -187,5 +187,7 @@ and output truncation. An LLVM skip is visible in the test report.
 
 The browser probes run as Tower tests in a second Wasm instance. This keeps
 the assertion program's own compiler allocations outside the measured node
-count. The release-only selector uses the same initial standalone compiler
-state as the original `--test-name-pattern='struct/type nodes'` invocation.
+count. The release-only selector starts in a fresh compiler. It compiles an
+import-only Tower entry and an import-only Foundation entry, then measures
+that compiler's idle count. Each of the 60 real source handles must own live
+nodes during inspection and restore the exact idle count after destruction.
