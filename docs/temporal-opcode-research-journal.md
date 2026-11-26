@@ -116815,3 +116815,98 @@ Raw evidence for assignment `44dfd99c-cc3b-4470-9b2e-08d8cf5c8e98`
 includes the commands, status, streams, times, frozen inputs, positive and
 negative controls, native and Wasm symbol inventories, sanitizer maps and
 source bundle. Source and journal are local for manager publication.
+
+### Native graph component corpus at 1e5ab20d, host 3
+
+The public standalone reported six seeds, eight shapes and 242 cases. Both
+native selection routes reported 8 fixed and 234 seeded cases with zero
+live buffers at jobs 1 and 4. Alternate-suffix and standalone controls
+rejected the singleton after disposing its result. The SCC companion called
+the original all-pairs oracle and ownership/refusal checks through an
+ordinary-named test helper. The frontend test executable and alternate
+companion were the other callers. The optional SccTests install owns the
+helper and both companions. The ordinary compiler uses its builtin module list.
+
+The shared `tests/graph_components_checks_test.tower` now owns the original
+Floyd–Warshall oracle, adjacency allocation and release, membership walk,
+pair and reverse-edge predicates, budget and allocator checks, fixed cases
+and reporting. The existing positive library companion owns the generated
+cases and the aggregate called by the legacy frontend. All six original
+function bodies compare byte for byte. The alternate companion imports
+only the shared module. An earlier candidate imported the positive companion
+there and returned the expected error but ran 244 inputs before exiting.
+The input trace exposed the extra declarations. During the move, Tower also
+diagnosed a late import and an indirect call to the reporting helper. The
+final imports resolve those dependencies directly.
+
+Both original SCC declarations retain their locations at 6:1 and 13:1.
+On the source tree and after moving the installed SccTests kit, the owner
+reported seven passed declarations (five budget, two SCC) and the direct
+companion two at each width. The raw stdout lines matched the public
+baseline byte for byte. The detail streams matched after removing the root
+path, including the counts and locations. The alternate suffix reached
+`graph_components_wrong.tower:7:5` after the empty and singleton inputs,
+printed its original diagnostic with zero live buffers and returned 1.
+CTest returned 8 for that control and 0 on normal selection immediately
+afterward at both widths. The standalone also returned 0, 1 and 0 in order.
+Its baseline and final executable were byte-identical, SHA-256
+`d7930aa349c5d364d42dcce31f02de8c76f9efbcec1daec178ab1ae477c34ce0`.
+
+A separate Tower observer recorded seed, shape, node count and all 144 edge
+multiplicities at each trial. The two standalone runs, both source routes and
+both installed routes reproduced all 242 ordered records. The full trace
+was 38,720 bytes, SHA-256
+`a08f24ab719f644fd8220f166a64f098e6e89f153cc27736cc60921dc6628c66`.
+The wrong prefix was 320 bytes. The standalone allocator observer measured
+669 allocation calls on each revision. It observed three live buffers before
+retiring nonempty adjacency, and zero after each of 242 trials. Forcing the
+real allocator to refuse the singleton's next allocation before constructing
+its adjacency and before calling the provider produced the respective
+original phase diagnostics with zero live buffers. Each restored companion
+passed. Withholding the installed allocator object failed the link on
+`tower_test_buffer_count`.
+
+The optional CMake manifest installs the renamed helper under
+`share/tower/tests`. The normal builtin inventory and bootstrap files retain
+their identities. An ordinary library object and a normal importing program
+had identical code across baseline, candidate and installation. Their depfiles
+exclude the oracle and companions. All three linked programs returned zero.
+The installed test discovery depfiles resolve the SCC inputs within the
+relocated kit. The focused build used the verified Linux pin
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+the published runtime texts, and fresh test runtime, allocator, bytes, UTF-8,
+memory archive, SCC and frontend fixture objects. The standalone link reused
+the other frontend and backend support objects from the host's retained
+build. The packet identifies each link input. Compiler generation, broader
+frontend selections and browser execution were outside this assignment.
+
+Host 3 ran Linux x86-64 on one AMD EPYC 7542, 32 cores and 64 hardware
+threads. The cgroup allowed CPUs 0–63 and 1,228,800 µs per 100,000 µs.
+Each timed process used CPUs 24–27 under the host timing lock. Four paired
+warm-filesystem samples per route alternated which revision ran first.
+GNU time measured the process and its children. The throttled-period count
+stayed at 833. Width controls compiler jobs. The guest runs the serial
+allocation counter.
+
+| Entry | Median elapsed s, before / after | Median user + system s, before / after | Maximum RSS KiB, before / after |
+| --- | --- | --- | --- |
+| Standalone | 0.020 / 0.020 | 0.010 / 0.010 | 52,288 / 52,528 |
+| Owner, jobs 1 | 0.785 / 0.775 | 0.775 / 0.770 | 117,936 / 118,044 |
+| Owner, jobs 4 | 0.875 / 0.870 | 0.995 / 0.995 | 128,632 / 128,560 |
+| Direct, jobs 1 | 0.600 / 0.600 | 0.595 / 0.600 | 105,852 / 105,692 |
+| Direct, jobs 4 | 0.710 / 0.715 | 0.815 / 0.815 | 120,560 / 120,216 |
+
+Focused Clang/LLVM 19.1.7 ASan with leak detection and TSan each ran the
+original standalone selector and rejecting control at the final source
+freeze. Their maps and IR identify the instrumented SCC checks, kernel,
+allocator and serial transport. The positive runs completed and the negative
+runs returned the original diagnostic and status. The selected CLI guests
+used the ordinary build of the real test allocator. Tower source UBSan and
+guest worker race coverage are outside these measurements.
+
+Assignment `aff2d8bb-c413-45a0-b65f-f980079a56e4` contains the raw
+commands, both source freezes, input records, link receipts, measurements and
+relocated kit. The initial shared-checkout rebase conflicted in unrelated
+editor work. Aborting it restored the existing local commits. This change
+uses a private main checkout at the assigned public revision. The manager
+owns integration and publication.

@@ -63,7 +63,7 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/work_arena_fault_fixture.tower scaffolding/tests/work_arena_fault_fixture_test.tower
   scaffolding/tests/entity_stage_ownership_cases.tower
   scaffolding/tests/decimal_round_trips.tower scaffolding/tests/decimal_round_trips_test.tower
-  scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
+  scaffolding/tests/graph_components_checks_test.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})
 install(FILES scaffolding/compiler/semantic_statements_cfg_output.tower

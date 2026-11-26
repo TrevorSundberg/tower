@@ -25,7 +25,7 @@ import lr_analysis_comparisons;
 import lr_analysis_failures;
 import lr_scratch_budget;
 import lr_components;
-import graph_components_checks;
+import .library.graph_components_test;
 import syntax_emission_entry;
 
 extern fn parser_tests(): void;
