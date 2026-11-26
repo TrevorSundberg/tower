@@ -14,9 +14,9 @@ extern fn request_key(id: i32): u8*;
 extern fn canceled(id: i32): bool;
 extern fn delivered(id: i32): bool;
 extern fn promise_turn(): void;
-extern fn received_null(id: i32): bool;
-extern fn reply(id: i32, json: u8*): void;
-extern fn received_reply(id: i32, sender: i32): bool;
+var NullAnswer: i32 = 0;
+extern fn reply(id: i32, json: u8*): i32;
+extern fn delivered_value(id: i32): i32;
 extern fn start_request(key: u8*, payload: u8*): i32;
 extern fn posted_id(): i32;
 

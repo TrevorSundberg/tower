@@ -8,8 +8,9 @@ fn check_prediction(timing: ReplyTiming): void {
     predict("{}");
     var prediction = request_id(0);
     var answer = '{"options":[{"label":"x"}]}';
+    var sent = NullAnswer;
     if timing != ReplyTiming.InFlight {
-        reply(prediction, answer);
+        sent = reply(prediction, answer);
     }
     if timing == ReplyTiming.AfterDelivery {
         await_delivery(prediction);
@@ -21,10 +22,10 @@ fn check_prediction(timing: ReplyTiming): void {
     assert(request_count() == 1, "Exact inputs share one request");
     assert(delivered(result) == (timing == ReplyTiming.AfterDelivery), "Delivery state when the query returns");
     if timing == ReplyTiming.InFlight {
-        reply(prediction, answer);
+        sent = reply(prediction, answer);
     }
     await_delivery(result);
-    assert(received_reply(result, prediction), "The promise delivers the same answer object");
+    assert(sent != NullAnswer && delivered_value(result) == sent, "The promise delivers the same answer object");
 }
 
 test() {

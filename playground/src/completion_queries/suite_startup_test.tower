@@ -20,10 +20,10 @@ fn check_priority(warming: bool): void {
         reply(startup, "null");
     }
     assert(posted_id() == foreground, "Post the foreground request first");
-    reply(foreground, '{"options":[]}');
+    var sent = reply(foreground, '{"options":[]}');
     assert(posted_id() == prediction, "Then post the prediction");
     await_delivery(foreground);
-    assert(received_reply(foreground, foreground), "Deliver the foreground answer");
+    assert(sent != NullAnswer && delivered_value(foreground) == sent, "Deliver the foreground answer");
 }
 
 test() {

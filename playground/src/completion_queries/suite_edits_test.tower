@@ -10,7 +10,7 @@ fn invalidates(edit: u8*): void {
     assert(next == request_id(1) && next != previous, edit);
     assert(canceled(previous) && !canceled(next), edit);
     await_delivery(previous);
-    assert(received_null(previous), edit);
+    assert(delivered_value(previous) == NullAnswer, edit);
 }
 
 test() {

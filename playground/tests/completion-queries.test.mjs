@@ -6,7 +6,11 @@ import {pageService} from './fixtures/page_service.mjs';
 
 const json = (context, pointer) => JSON.parse(guestString(context, pointer));
 const edited = (context, pointer) => Object.assign(structuredClone(payload), json(context, pointer));
-let page, queries, calls, payload;
+let page, queries, calls, payload, values;
+function valueId(value) {
+  const id = values.indexOf(value);
+  return id < 0 ? values.push(value) - 1 : id;
+}
 const byId = id => {
   const call = calls.find(call => call.task.id === id);
   if (!call) throw new Error('Unknown language request ' + id);
@@ -28,6 +32,7 @@ const run = editorSuite('completion_queries', ['payload.json'], {
     // Retire pending work before installing the next independent prediction.
     page.service.stop();
     calls = [];
+    values = [null];
     queries = new CompletionQueries({request});
   },
   predict: (context, patch) => queries.predict(edited(context, patch)),
@@ -45,13 +50,12 @@ const run = editorSuite('completion_queries', ['payload.json'], {
     if (call.error) throw call.error;
     return call.delivered;
   },
-  received_null: (_, id) => byId(id).value === null,
+  delivered_value: (_, id) => valueId(byId(id).value),
   reply(context, id, text) {
-    const call = byId(id);
-    call.answer = json(context, text);
-    page.workers.at(-1).reply(id, call.answer);
+    const answer = json(context, text);
+    page.workers.at(-1).reply(id, answer);
+    return valueId(answer);
   },
-  received_reply: (_, id, sender) => byId(id).value === byId(sender).answer,
   start_request(context, key, text) {
     request(guestString(context, key), json(context, text));
     return calls.at(-1).task.id;
@@ -66,7 +70,7 @@ async function check(t, selection) {
     page = pageService(t);
   };
   try { await run(selection, setup); }
-  finally { calls = queries = page = undefined; }
+  finally { calls = values = queries = page = undefined; }
 }
 
 test('an exact prediction shares a ready or in-flight Tower response without another request', t => check(t, 'exact'));
