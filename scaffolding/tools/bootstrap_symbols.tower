@@ -111,9 +111,9 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, maco
         // The shared Wasm LR fixture inspects the action arena across replacement.
         if wasm && bootstrap_symbol_in("work_arena_snapshot", symbol, length) { return true; }
         if bootstrap_symbol_in("graph_components_result graph_components_dispose", symbol, length) { return true; }
-        // Configured scanner-reference fixtures use string length and the
-        // existing fail-fast test reporter; these are not global allowances.
-        if bootstrap_symbol_in("fflush puts strlen", symbol, length) { return true; }
+        // Companion file discovery compares filename suffixes. Scanner fixtures
+        // also use the string length and the fail-fast reporter.
+        if bootstrap_symbol_in("fflush puts strcmp strlen", symbol, length) { return true; }
         // Diagnostic text retains the ParserFormat provider's buffer result.
         if bootstrap_symbol_in("parser_presentation_buffer_result", symbol, length) { return true; }
         if bootstrap_symbol_in("parser_structure_cache_copy parser_structure_cache_dispose", symbol, length) { return true; }
@@ -205,10 +205,10 @@ fn bootstrap_symbol_allowed(unit: BootstrapUnit, windows: bool, wasm: bool, maco
             || bootstrap_symbol_in("generic_origin foundation_name_append foundation_nodes_prepend compiler_clone_tree compiler_clone_tree_result compiler_clone_tree_owned_result entity_child_name entity_component_at", symbol, length)
             || bootstrap_symbol_in("entity_component_count entity_component_type entity_id entity_retain entity_view_close entity_view_open", symbol, length)
             || bootstrap_symbol_in("format_dependent_summary format_dependent_view format_dispose format_grammar_preview format_summary", symbol, length)
-            || bootstrap_symbol_in("frontend_module_alias frontend_module_at frontend_module_attach_comments frontend_module_comments frontend_module_count", symbol, length)
+            || bootstrap_symbol_in("frontend_module_alias frontend_module_at frontend_module_attach_comments frontend_module_collect_tests frontend_module_comments frontend_module_count", symbol, length)
             || bootstrap_symbol_in("frontend_module_dependency_at frontend_module_destroy frontend_module_diagnostic frontend_module_error frontend_module_finish", symbol, length)
             || bootstrap_symbol_in("frontend_module_import_at frontend_module_import_count frontend_module_location frontend_module_name frontend_module_position", symbol, length)
-            || bootstrap_symbol_in("frontend_module_root frontend_module_roots frontend_module_session frontend_module_size frontend_module_source", symbol, length)
+            || bootstrap_symbol_in("frontend_module_root frontend_module_roots frontend_module_session frontend_module_size frontend_module_source frontend_module_test_role", symbol, length)
             || bootstrap_symbol_in("frontend_module_tree generic_definition host_json_quote host_json_unsigned host_source_error host_text_terminate", symbol, length)
             || bootstrap_symbol_in("parser_match_get_type syntax_capture_comments syntax_completion_accepts syntax_completion_callable syntax_completion_close", symbol, length)
             || bootstrap_symbol_in("syntax_completion_create syntax_completion_enable syntax_completion_identifier syntax_completion_module syntax_component_type", symbol, length)
