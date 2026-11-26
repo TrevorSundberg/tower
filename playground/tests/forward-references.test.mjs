@@ -19,47 +19,50 @@ function string(context, pointer) {
   return decoder.decode(memory.subarray(pointer, end));
 }
 
+const encoder = new TextEncoder();
+function copyText(context, value) {
+  if (typeof value !== 'string') throw new Error('Missing text observation');
+  const bytes = encoder.encode(value);
+  const pointer = context.allocate(bytes.length + 1);
+  if (!pointer) throw new Error('Unable to copy observation into Tower');
+  const memory = context.memory();
+  memory.set(bytes, pointer);
+  memory[pointer + bytes.length] = 0;
+  return pointer;
+}
+
 const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
 const tower = await loadTower(bytes, undefined, foundation);
 after(() => tower.close());
-const steps = new Map();
-const outputs = new Map();
-let selection;
+const sessions = new Set();
+const outputs = new Map([['foundation_syntax.tower', sources.get('.tower/foundation_syntax.tower')]]);
+let selection, event;
 const observations = {
   selected: (context, name) => selection === string(context, name),
   parser_open(context, _root, name) {
     const handle = tower.create(input(string(context, name)));
-    steps.set(handle, undefined);
+    sessions.add(handle);
     return handle;
   },
   parser_close(_context, handle) {
     tower.destroy(handle);
-    steps.delete(handle);
+    sessions.delete(handle);
   },
-  parser_step_is(context, handle, wanted) {
-    const event = tower.step(handle);
-    steps.set(handle, event);
-    return event.status === string(context, wanted);
-  },
+  parser_step(_context, handle) { event = tower.step(handle); },
   parser_pending(context, handle, rule) {
     const name = string(context, rule);
-    return steps.get(handle).rules.find(item => item.name === name)?.pending ?? false;
+    const found = tower.inspect(handle).rules.find(item => item.name === name);
+    if (!found) throw new Error("Missing grammar rule " + name);
+    return found.pending;
   },
   parser_revision: (_context, handle) => tower.inspect(handle).revision,
-  parser_diagnostic(context, handle, message, offset) {
-    const event = steps.get(handle);
-    return event.errorOffset === offset && event.error.includes(string(context, message));
-  },
-  foundation_contains: (context, _root, rule) =>
-    sources.get('.tower/foundation_syntax.tower').includes(string(context, rule)),
-  output_equals: (context, engine, wanted) =>
-    outputs.get(string(context, engine)) === string(context, wanted),
-  compile_rejected(context, file, message, offset) {
+  event_text: (context, field) => copyText(context, event[string(context, field)]),
+  event_offset: () => event.errorOffset,
+  observed_text: (context, name) => copyText(context, outputs.get(string(context, name))),
+  execute_fixture(context, file) {
     const handle = tower.compile(input(string(context, file)));
-    try {
-      const result = tower.execute(handle);
-      return result.status === 'error' && result.errorOffset === offset && result.error === string(context, message);
-    } finally { tower.destroyExecution(handle); }
+    try { event = tower.execute(handle); }
+    finally { tower.destroyExecution(handle); }
   },
 };
 
@@ -71,12 +74,17 @@ function check(name) {
   selection = name;
   const handle = checks.compile(sources.get(entry));
   try {
-    const result = checks.execute(handle);
-    if (result.status !== 'done') throw new Error(result.error || result.status);
+    checks.useFast(handle);
+    for (let chunk = 0; chunk < 10; chunk++) {
+      const result = checks.execute(handle, 100_000);
+      if (result.status === "done") return;
+      if (result.status !== "executing") throw new Error(result.error || result.status);
+    }
+    throw new Error("Forward-reference assertions exceeded one million steps");
   } finally {
     checks.destroyExecution(handle);
-    for (const handle of steps.keys()) tower.destroy(handle);
-    steps.clear();
+    for (const open of sessions) tower.destroy(open);
+    sessions.clear();
   }
 }
 
