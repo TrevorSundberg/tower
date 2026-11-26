@@ -159,6 +159,11 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
+    add_test(NAME tower-utf8-companion-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
+    set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
     add_test(NAME tower-fixed-array-iteration-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration_test.tower"

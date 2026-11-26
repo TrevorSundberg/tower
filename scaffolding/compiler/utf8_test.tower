@@ -1,0 +1,37 @@
+import library.testing;
+import utf8;
+import .tests.utf8_cases;
+import .tests.utf8_oracle;
+import .tests.utility_checks;
+
+fn check_utf8_input(bytes: u8*, length: usize): void {
+    var scalar: u32 = 3735928559;
+    var wanted: u32 = 0;
+    var width = reference_utf8_decode(bytes, length, &wanted);
+    assert(tower_utf8_decode(bytes, length, &scalar) == width, "UTF-8 decode width");
+    assert(scalar == wanted, "UTF-8 decoded scalar");
+    assert(tower_utf8_validate(bytes, length, 0) == reference_utf8_validate(bytes, length, 0), "UTF-8 validation");
+    var reject = reference_utf8_validate(bytes, length, 1);
+    assert(tower_utf8_validate(bytes, length, 1) == reject, "UTF-8 reject NUL");
+    assert(tower_utf8_validate(bytes, length, 42) == reject, "UTF-8 nonzero NUL policy");
+}
+
+fn check_utf8_scalar(scalar: u32): void {
+    assert(tower_utf8_encode(scalar, null, 0) == reference_utf8_encode(scalar, null, 0), "UTF-8 size query");
+    var actual: u8[7];
+    var wanted: u8[7];
+    for (var capacity: usize = 0; capacity <= 4; capacity++) {
+        fill(&actual[0], 165, sizeof(decltype(actual)));
+        fill(&wanted[0], 165, sizeof(decltype(wanted)));
+        var width = reference_utf8_encode(scalar, &wanted[1], capacity);
+        assert(tower_utf8_encode(scalar, &actual[1], capacity) == width, "UTF-8 encode width");
+        assert(utility_equal(&actual[0], &wanted[0], sizeof(decltype(actual))), "UTF-8 bytes and guards");
+    }
+}
+
+test() {
+    var state = utf8_visit_cases(check_utf8_input, check_utf8_scalar, Utf8RandomTrials, 0);
+    assert(state == 629074146, "UTF-8 first random stream");
+    state = utf8_visit_cases(check_utf8_input, check_utf8_scalar, Utf8RandomTrials, state);
+    assert(state == 863989070, "UTF-8 second random stream");
+}

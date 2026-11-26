@@ -1,0 +1,7 @@
+import tests.utf8_cases;
+
+// The host reads each borrowed input before the visitor returns.
+extern fn record_utf8_input(bytes: u8*, length: usize): void;
+extern fn record_utf8_scalar(scalar: u32): void;
+
+export fn all_utf8_inputs(state: u32): u32 { return utf8_visit_cases(record_utf8_input, record_utf8_scalar, Utf8RandomTrials, state); }
