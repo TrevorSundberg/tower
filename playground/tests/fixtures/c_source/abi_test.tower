@@ -1,0 +1,22 @@
+import observations;
+import backend.text;
+
+fn signed_signature(text: u8*, prefix: u8*): void {
+    var parameter = c_find(text, prefix);
+    assert(parameter != null, prefix);
+    parameter += backend_length(prefix);
+    assert(c_digit(*parameter));
+    while c_digit(*parameter) {
+        parameter++;
+    }
+    assert(*parameter == *")");
+}
+
+test() {
+    var handle = c_open("signed.tower");
+    defer c_release(handle);
+    var text = c_emit(handle, true);
+    defer free(text);
+    signed_signature(text, "int32_t signed32(int32_t v");
+    signed_signature(text, "int64_t signed64(int64_t v");
+}

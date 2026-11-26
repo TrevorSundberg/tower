@@ -112628,3 +112628,137 @@ Assignment `8370a516-9090-4ef2-ba9e-bd90f5cd686f` contains the source
 bundle, selector and cost tables, raw stdout/stderr, source and emitted
 artifacts, release receipts and failure/restoration runs. Local handoff
 leaves integration and publication with the manager.
+
+### Selecting the six C emitter checks through the public test language
+
+Host 8 assignment `e7cb0386-3fa7-4065-a46a-808639fecce1` started from
+`8fdfe15aac3db1eabc2492c5108aa5228bab84f3` on a private local main. The
+required initial pull conflicted with local parser budget work. Aborting that
+pull restored the shared checkout at `ff4c96f7`. The private checkout does
+not include those commits. The two public refs at intake were the assigned
+main and Pages `f2214133`. The latter supplied the portable and shared
+frontends (`41bb9b11`, `72c882ee`) and ordinary LLVM (`15b4f33b` after
+decompression). All six original Node names passed on each frontend.
+
+The six entry files in `playground/tests/fixtures/c_source` own the assertions.
+Each original filter opens just its entry. They share the subject reactor,
+the assertion reactor and a lazily opened LLVM reactor. The selected tests
+drive real compile, execute, Foundation formatting, C emission, comment strip,
+round trip and destruction calls through typed imports. Keeping the probe in
+a second instance lets the release test inspect the subject's own counters.
+The generator still executes to produce all 128 live declarations. Source
+and expected files stay under the Node test directory. Early bounded checks
+caught a reserved identifier, a missing direct import and an unsupported
+ordered comparison of pointers. The packet keeps these failures.
+
+Final named runs selected one Tower test apiece on portable and shared.
+For the original 8-byte subject and the LLVM wasm64 target, every emitted
+C text, both sides of Foundation round trips, LLVM inputs and outputs and
+the foreign diagnostic matched original bytes on both public frontends.
+The packet retains both directions of file comparison and every repeated
+call. The release loop returned to 7,804 live nodes and zero counted
+allocations after three compile/strip/destroy cycles. The per-call comment
+option also left the live canonical Foundation unchanged. The 128 generated
+comments kept their declaration numbers and canonical order, including
+the qualified names for f32 and f64. Separate wide-pointer executions of
+the assertion VM passed all six on both images.
+
+A wrong signed parameter, a retained execution, a wrong comment owner
+and a request for the raw LLVM profile in both arms each made its original
+filter fail at the selected Tower assertion. Each individual restoration
+passed. Keeping comments on the supposedly stripped increment path and
+changing one expected diagnostic byte also failed their own selections.
+Restoring each passed. Clang independently rejected an unsigned parameter
+declaration for the emitted signed32 definition. The original signed
+declaration compiled again. All seven authored assertion/helper modules passed the public
+native formatter. The three small subject inputs retain their original
+bytes. The public native compiler `7315b86e` built the same C emitter
+object on both source trees (SHA-256 `1143594c7371d2c8110e1929d93fc28dc7bef52135720318740920aad2e5198c`),
+with identical relative dependencies and an empty default test inventory.
+
+Clang 19.1.7 compiled the ten distinct emitted C texts per arm on Linux
+x64. The raw and stripped comment programs and both LLVM comment programs
+printed 42, the four increment variants printed 5, 6, 7, 7, 9 on separate
+lines, and the generated bulk guest printed 127. The public Tower driver
+compiled a caller of the emitted signed32 and signed64 definitions. A C
+header checked both declarations at compile time and the linked caller
+printed -2147483648 and -4294967297 on separate lines. All native output
+files matched their raw oracles, including final LF, in ordinary and
+address/undefined-instrumented builds with leak detection. TSan initially
+failed during its personality syscall. The same instrumented bulk guest
+ran through the system ELF loader with the expected stdout and empty
+stderr. This instrumentation covers generated C. The two public Wasm
+frontends and the LLVM reactor were production binaries.
+
+Host 8 used a 12-core, 24-thread Ryzen 9 7900X. The cgroup quota was
+2304000/100000 microseconds and its memory limit was 63,577,260,032 bytes.
+Each matched Node 24.22.3 process used CPUs 0–3, one test at a time, one
+libuv thread and warm files. The portable frontend was serial. The shared
+subject had four worker slots and the separate shared probe had one.
+The table gives medians of three fresh processes per arm. CPU is GNU time
+user plus system, and RSS is its peak in KiB.
+
+| Public frontend | Wall s before / after | CPU s before / after | Peak RSS KiB before / after |
+| --- | ---: | ---: | ---: |
+| Portable | 0.89 / 1.48 | 1.44 / 1.94 | 244560 / 263120 |
+| Shared | 1.02 / 1.74 | 1.71 / 2.34 | 324072 / 346584 |
+
+The selected harness pays for another reactor and for compiling and
+executing the six assertion entries. The largest selected workload was
+the increment test at 40,338,422 fast-interpreter steps. It searches the
+complete source and output for each example note, including the stripped
+paths. The original harness used Node string searches. These costs measure
+the test harness with its added guest executions. They do not estimate
+emitter throughput or parallel scaling.
+
+During verification the manager advanced public main to `21f409e5` and
+Pages to `9788bd66`. With the assigned source freeze unchanged, both
+original and migrated registrations passed all six on that publication's
+portable and shared frontends with its ordinary LLVM. Integration and
+publication of the migration belong to the manager.
+
+## 2026-11-26 — direct selection of six C emitter tests on Pages 9788bd66
+
+Host 5 merged the advertised main from receipt e7cb0386 (`070e59f6`) into
+public `21f409e5` on a separate local main. The shared checkout had an
+unfinished rebase. In the first renamed run the default companion rule
+looked for six same-stem owners and failed before executing any test.
+The runner now uses the browser target suite's explicit-entry convention.
+It registers the selected `*_test.tower`, observations.tower and three
+library modules on the assertion reactor. The six test bodies are byte-for-byte
+renames. The subject still receives the original program inputs.
+
+Git objects from Pages `9788bd66` supplied the portable, shared and LLVM
+reactors built from `64fcfc1a`. All three installed hashes matched the release
+manifest. The expanded LLVM image also matched the retained digest. Each
+frontend passed the six original Node registrations together. Twelve anchored
+name selections each requested the corresponding renamed entry, reported
+Tower test count 1 and finished. Across those runs all 1,470 recorded
+compiler inputs, emitted texts, diagnostics and execution records matched
+the corresponding files from the reviewed migration. The release test began
+and ended with 7,804 live nodes and zero counted allocations on both frontends.
+
+Changing the ABI expectation to an unsigned 32-bit parameter failed at
+abi_test.tower byte 141 on both reactors. Each isolated run passed after
+restoring the original bytes. Clang 19.1.7 linked each freshly emitted C
+implementation with the retained signed declarations, original Tower caller
+IR and x86-64 Linux runtime. Both plain and ASan/UBSan C builds printed
+`-2147483648` and `-4294967297` on separate lines and exited zero.
+
+The shared module imports env.memory, wasi.thread-spawn, the work_host
+functions and WASI file operations including path_open and fd_read. The
+live-grants registration ran on both frontends. Existing handles retained
+the selected source and oracle across later mounts. The absent oracle
+failed at byte 168 and the changed owner output failed at byte 243. A
+separate run requested an out-of-grant oracle present in the project and
+failed in live_grants_test.tower at byte 2323 on both.
+
+One serial before/after full-suite pair per frontend used the same release
+bytes, Node 24.22.3, CPUs 0–3 on a Ryzen 9 5900XT, test concurrency one,
+one libuv thread and fresh processes on warm files. The shared subject used
+four slots and its assertion reactor one. Portable wall time was 1.86/1.88 s,
+CPU 2.47/2.49 s and peak RSS 270568/250564 KiB. Shared wall time was
+2.21/2.18 s, CPU 3.00/2.97 s and peak RSS 363428/327840 KiB. One pair
+does not establish a speedup. The release reactors were uninstrumented.
+Packet `1ecd1d86-3a3e-4885-9b59-2ad4cd7e070f` contains raw outputs,
+controls, identities and the source bundle for manager publication.

@@ -1,105 +1,82 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {loadTower,loadLLVM,generatedSource} from './compiler-fixtures.mjs';
-const read=path=>readFile(new URL('../../'+path,import.meta.url));
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-const source='import foundation;\n// original note\nfn answer():i32 { /* body note */ return 42; } print(answer()); // end note\n';
+import {readdir, readFile} from 'node:fs/promises';
+import {files, generatedSource} from './compiler-fixtures.mjs';
+import {fixtureSource, guestString, openLLVM, openTower, requireStatus, runSelectedTest} from './compiler_test_host.mjs';
+import {copyText} from './guest_text.mjs';
 
-test('C consumes the same entities, preserves comments, strips on request and releases storage',()=>{
-  const warm=tower.compile(source,{pointerBytes:8});
-  tower.execute(warm,0); tower.foundation(warm); tower.cSource(warm); tower.destroyExecution(warm);
-  const before=tower.exports.tw_live_nodes();
-  const allocations=tower.exports.tw_live_allocations();
-  for(let i=0;i<3;i++) {
-    const h=tower.compile(source,{pointerBytes:8});
-    try {
-      assert.notEqual(tower.execute(h,0).status,'error');
-      const canonical=tower.foundation(h).source;
-      const round=tower.compile(canonical,{pointerBytes:8});
-      try { assert.equal(tower.foundation(round).source,canonical); } finally { tower.destroyExecution(round); }
-      for(const note of ['original note','body note','end note']) assert.ok(canonical.includes(note));
-      const output=tower.cSource(h);
-      assert.match(output,/int main\(void\)/);
-      assert.match(output,/#define TC_POINTER_BYTES 8/);
-      for(const note of ['original note','body note','end note']) assert.ok(output.includes(note));
-      assert.ok(!tower.cSource(h,{comments:false}).includes('original note'));
-      tower.stripComments(h);
-      assert.ok(!tower.foundation(h).source.includes('original note'));
-      assert.ok(!tower.cSource(h).includes('body note'));
-    }finally{tower.destroyExecution(h);}
-  }
-  assert.equal(tower.exports.tw_live_nodes(),before);
-  assert.equal(tower.exports.tw_live_allocations(),allocations);
-});
+const root = new URL('./fixtures/c_source/', import.meta.url);
+const read = path => readFile(new URL(path, root), 'utf8');
+const inputs = new Map();
+for (const name of await readdir(new URL('inputs/', root))) {
+  if (name.endsWith('.tower') || name.endsWith('.expected')) inputs.set(name, await read('inputs/' + name));
+}
+inputs.set('increment.tower', fixtureSource('.tower/examples/increment.tower'));
 
-test('LLVM optimization carries comments through compilable foundation and C',async()=>{
-  const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
-  const h=tower.compile(source,{pointerBytes:8});
-  try {
-    for(const optimize of [false,true]) {
-      const result=llvm.compile(tower.foundation(h).source,{emit:'foundation',optimize,target:'wasm64-unknown-unknown'});
-      assert.equal(result.status,'compiled',result.error);
-      const generated=tower.compile(result.foundation,{pointerBytes:8});
-      try {
-        assert.notEqual(tower.execute(generated,0).status,'error');
-        for(const note of ['original note','body note','end note']) assert.ok(tower.cSource(generated).includes(note));
-      }finally{tower.destroyExecution(generated);}
-    }
-  }finally{tower.destroyExecution(h);}
-});
+const tower = await openTower();
+const handles = new Set();
+let llvm;
+function release(handle) {
+  tower.destroyExecution(handle);
+  handles.delete(handle);
+}
 
-test('increment replacements preserve every example comment in raw and optimized C',async()=>{
-  const source=(await read('scaffolding/examples/increment.tower')).toString();
-  const notes=[...source.matchAll(/^\/\/ (.+)$/gm)].map(match=>match[1].trim());
-  assert.ok(notes.includes('5: the old value, then 6: the updated variable.'));
-  const h=tower.compile(source,{pointerBytes:8});
-  const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
-  try {
-    const canonical=tower.foundation(h).source;
-    for(const note of notes) assert.ok(canonical.includes(note),note);
-    for(const optimize of [false,true]) {
-      let generated=h;
-      if(optimize) {
-        const result=llvm.compile(canonical,{emit:'foundation',optimize,target:'wasm64-unknown-unknown'});
-        assert.equal(result.status,'compiled',result.error);
-        generated=tower.compile(result.foundation,{pointerBytes:8});
-      }
-      try {
-        const c=tower.cSource(generated),stripped=tower.cSource(generated,{comments:false});
-        for(const note of notes) {
-          assert.ok(c.includes(note),note);
-          assert.ok(!stripped.includes(note),note);
-        }
-        if(!optimize) assert.ok(c.indexOf('5: the old value')>c.indexOf('int main(void)'));
-      } finally { if(generated!==h) tower.destroyExecution(generated); }
-    }
-  } finally { tower.destroyExecution(h); }
-});
+// Keep subject handles and their allocation counters in a separate reactor.
+const probe = await openTower({threads:{capacity:1}, imports:{
+  c_input(ctx, name) {
+    const key = guestString(ctx, name);
+    if (!inputs.has(key)) throw new Error('Missing C emitter fixture ' + key);
+    return copyText(ctx, inputs.get(key));
+  },
+  c_compile(ctx, source, pointerBytes) {
+    const handle = tower.compile(guestString(ctx, source), {pointerBytes});
+    handles.add(handle);
+    return handle;
+  },
+  c_release: (_, handle) => release(handle),
+  c_foundation: (ctx, handle) => copyText(ctx, tower.foundation(handle).source),
+  c_emit: (ctx, handle, comments) => copyText(ctx, tower.cSource(handle, {comments:Boolean(comments)})),
+  c_emit_error(ctx, handle) {
+    try { tower.cSource(handle); }
+    catch (error) { return copyText(ctx, error.message); }
+    return 0;
+  },
+  c_strip: (_, handle) => tower.stripComments(handle),
+  c_nodes: () => tower.exports.tw_live_nodes(),
+  c_allocations: () => tower.exports.tw_live_allocations(),
+  c_execute(ctx, handle) {
+    const result = tower.execute(handle, 100_000);
+    requireStatus(result, 'done');
+    return copyText(ctx, result.output);
+  },
+  c_llvm(ctx, source, optimize, target) {
+    const result = llvm.compile(guestString(ctx, source), {emit:'foundation', optimize:Boolean(optimize), target:guestString(ctx, target)});
+    requireStatus(result, 'compiled');
+    return copyText(ctx, result.foundation);
+  },
+}});
 
-test('foreign C++ names diagnose instead of producing invalid C',()=>{
-  const h=tower.compile('import foundation; extern fn `cpp_name(void space::function())`():void; `cpp_name(void space::function())`();',{pointerBytes:8});
-  try{assert.throws(()=>tower.cSource(h),/plain C identifier/);}finally{tower.destroyExecution(h);}
-});
+const suite = files.filter(({path}) => ['.tower/backend/text.tower', '.tower/library/testing.tower',
+  '.tower/library/vector.tower'].includes(path));
+suite.push({path:'observations.tower', text:await read('observations.tower')});
+async function check(name) {
+  const entry = name + '_test.tower';
+  const files = [...suite, {path:entry, text:await read(entry)}];
+  // Each explicit entry is standalone under the browser companion rule.
+  try { runSelectedTest(probe, entry, 500, {files, suffix:'_browser_test.tower'}); }
+  finally { for (const handle of handles) release(handle); }
+}
+async function checkLLVM(name) {
+  llvm ??= await openLLVM();
+  return check(name);
+}
 
-test('C ABI signatures retain signed parameters and return types',()=>{
-  const h=tower.compile('import foundation; export fn signed32(value:i32):i32 { return value; } export fn signed64(value:i64):i64 { return value; }',{pointerBytes:8});
-  try {
-    const text=tower.cSource(h);
-    assert.match(text,/int32_t signed32\(int32_t v\d+\)/);
-    assert.match(text,/int64_t signed64\(int64_t v\d+\)/);
-  }finally{tower.destroyExecution(h);}
-});
-
-test('bulk comment indexing keeps declaration associations and canonical order',async()=>{
-  const source=await generatedSource(tower,new URL('../../scaffolding/tests/stress/comment_functions.tower',import.meta.url));
-  const h=tower.compile(source,{pointerBytes:8});
-  try {
-    const canonical=tower.foundation(h).source;
-    for(let i=0;i<128;i++) assert.match(canonical,new RegExp('/\\* note_'+i+'\\*/\\nfn (?:f'+i+'|`f'+i+'@input\\.tower`)\\('));
-    const round=tower.compile(canonical,{pointerBytes:8});
-    try { assert.equal(tower.foundation(round).source,canonical); } finally { tower.destroyExecution(round); }
-    assert.equal((tower.cSource(h).match(/note_\d+/g)??[]).length,128);
-  }finally{tower.destroyExecution(h);}
+test('C consumes the same entities, preserves comments, strips on request and releases storage', () => check('release'));
+test('LLVM optimization carries comments through compilable foundation and C', () => checkLLVM('llvm'));
+test('increment replacements preserve every example comment in raw and optimized C', () => checkLLVM('increment'));
+test('foreign C++ names diagnose instead of producing invalid C', () => check('foreign'));
+test('C ABI signatures retain signed parameters and return types', () => check('abi'));
+test('bulk comment indexing keeps declaration associations and canonical order', async () => {
+  inputs.set('generated.tower', await generatedSource(tower,
+    new URL('../../scaffolding/tests/stress/comment_functions.tower', import.meta.url)));
+  return check('bulk');
 });

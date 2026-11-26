@@ -1,0 +1,26 @@
+import observations;
+import backend.text;
+
+fn llvm_comments(canonical: u8*, optimize: bool): u8* {
+    var foundation = c_llvm(canonical, optimize, "wasm64-unknown-unknown");
+    c_notes(foundation, true);
+    var generated = c_compile(foundation, CPointerBytes);
+    defer c_release(generated);
+    c_guest_output(generated, "42\n");
+    var output = c_emit(generated, true);
+    defer free(output);
+    c_notes(output, true);
+    return foundation;
+}
+
+test() {
+    var handle = c_open("comments.tower");
+    defer c_release(handle);
+    var canonical = c_foundation(handle);
+    defer free(canonical);
+    var raw = llvm_comments(canonical, false);
+    defer free(raw);
+    var optimized = llvm_comments(canonical, true);
+    defer free(optimized);
+    assert(!backend_equal(raw, optimized), "LLVM profiles produced identical Foundation");
+}
