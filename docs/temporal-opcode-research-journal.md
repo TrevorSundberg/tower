@@ -105831,3 +105831,43 @@ host 2 reconstructed Pages tree 750ca760, verified 111 HTTP response bodies
 on loopback, ran the desktop and mobile checks and checked the installer
 against matching and older prefixes. Receipts 888c72f9 and 5e904379 record
 those results. These measurements precede public network installation.
+
+### Bounded native CTest cost for explicit iteration and layout blocks
+
+Host 6 compared the two proposed companion registrations on fixture tree
+`42ee051ebce980c62be183c81eed59b1aeb9506c` using the published
+`e3872c21` compiler. With the default suffix, requesting
+`semantic_iteration_test.tower` or `semantic_layout_test.tower` directly
+compiled a 94-module graph and ran one block. In the published compiler,
+`driver_request_open` calls `test_file_selection_root` and reads the
+corresponding owner into `DriverSourceText`. The frontend finishes ordinary
+imports before collecting tests. The direct-case filter limits companion
+discovery after those imports have loaded. Each ordinary owner used 92
+modules. Each complete owner test request used 104 modules, discovered five
+companions and ran nine blocks, including both migrated blocks.
+
+For the two isolated registrations, pass the supported
+`--test-suffix _spec.tower` to `--test`. This makes the existing fixture file
+the root, so its explicit block runs at its original source location.
+Iteration loaded seven modules and layout loaded 23. Their original
+`--interpret` scripts loaded six and 22, respectively. The one added import
+in each case was `library/testing.tower`. The ordinary owner integration CTest
+uses the default suffix. No fixture or compiler change is required.
+
+On Ubuntu 24.04.5 / LLVM 19.1.1, with warm filesystem pages and separate
+processes, first one-worker direct runs took 14.96 s for iteration and 14.97 s
+for layout. The isolated runs took 0.59 s and 0.99 s. Their two repeats took
+0.59/0.63 s and 1.10/1.01 s. First four-worker direct runs took 11.68 s and
+12.03 s, and isolated runs took 0.83 s and 1.31 s. The first one-worker RSS
+fell from 669,960 to 79,460 KiB and from 670,052 to 110,776 KiB. The host's
+CPU quota was 11.52 CPUs. In a separate one-worker `--timings` run the direct
+compile phases took 14.34/14.45 s and test execution took under 2 ms for each.
+These results cover the two explicit suites and this pin.
+
+The generated four focused CTests and the existing real-owner CTest passed.
+The direct registrations rejected wrong assertions and empty selections at
+both widths. Default owner requests reached the same wrong assertions, and
+ordinary owner builds with an unreadable test-only import reproduced their
+clean objects and dependency files. Host 6 receipt
+`5fb8902d-ec4a-4627-85dc-9cff0e9ffc18` contains the entry and module names,
+ordered selections, first and repeated samples, controls and raw streams.
