@@ -1,0 +1,6 @@
+import tower;
+import semantic_query_failure_checks;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    return semantic_query_failure_tests(argc, argv);
+}

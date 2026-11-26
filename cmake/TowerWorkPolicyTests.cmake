@@ -307,7 +307,7 @@ function(tower_lr_work_policy_test)
     endif()
 
     tower_runtime_object(semantic-query-failure-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_query_failure_checks_main.tower" "${triple}")
     add_executable(tower-semantic-query-failure-tests ${sources} "${semantic-query-failure-checks_OBJECT}")
     set_target_properties(tower-semantic-query-failure-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-semantic-query-failure-tests PRIVATE ${libraries})
@@ -316,6 +316,10 @@ function(tower_lr_work_policy_test)
       add_test(NAME tower-semantic-query-failure-${mode} COMMAND tower-semantic-query-failure-tests ${mode})
       set_tests_properties(tower-semantic-query-failure-${mode} PROPERTIES TIMEOUT 60)
     endforeach()
+
+    if(TARGET tower-lr-row-services)
+      tower_semantic_test_selections(semantic-query-failure semantic_query_failure_checks 18 3)
+    endif()
 
     # This entry owns wrapper initialization and the real compiler providers.
     # Supplying both transport objects prevents extraction of the default host
