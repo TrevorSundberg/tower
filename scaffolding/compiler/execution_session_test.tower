@@ -44,7 +44,7 @@ fn execution_test_discovery_reset(modules: void*): void {
     var session: ExecutionSession = default;
     defer execution_session_close(&session);
     var source = "import tower; print(7); test() { print(11); }";
-    var companion = "import tower; test() { print(42); }";
+    var companion = "import tower; print(42);";
     var rule = test_file_default_rule();
     var selection: TestFileSelection = default;
     defer test_file_selection_dispose(&selection);

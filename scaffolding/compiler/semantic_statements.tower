@@ -21,9 +21,12 @@ import semantic_declarations;
 import semantic_body_work;
 import semantic_source_bindings;
 import semantic_flow;
+import component_kinds;
+import parser_types;
 import .library.vector;
 
 extern fn type_object_abi_safe(type: FoundationType*): bool;
+extern fn node_match_set_label_result(value: ParserMatchData*, label: u8*): WorkBudgetError;
 
 // Semantic compiler over shared Foundation components.
 // Temporary indexes and scratch allocations are scoped to one compilation.
@@ -812,10 +815,32 @@ fn sem_function_finish(c: SemanticContext*, n: void*, cursor: SemanticBlockCurso
     }
 }
 
-// Select the executable items before the source-binding proof captures them.
-// The parser retains each body's original parent, module and source span.
+// These containers group already-parsed statements for the ordinary function
+// body checker. Their diagnostic anchor is the first real statement's span.
+fn sem_test_container(c: SemanticContext*, parent: void*, role: u8*, label: u8*, at: void*): void* {
+    var error: WorkBudgetError;
+    var node = entity_create_related_result(parent, &error);
+    if node != null {
+        defer entity_release(node);
+        var span = bits(ParserMatchData*, compiler_world_component_result(compiler_node_world(parent), node, CompilerParserMatch, &error));
+        if span != null {
+            span.start = sem_match(at).start;
+            span.length = sem_match(at).length;
+            error = node_match_set_label_result(span, label);
+            if error == WorkBudgetError.None { error = entity_attach_result(node, parent, role); }
+            if error == WorkBudgetError.None { return node; }
+        }
+    }
+    sem_module_error(c.program, error, sem_offset(c, at));
+    return null;
+}
+
+// Select before source-binding proof or body jobs acquire any syntax leases.
+// Module publication supplies contiguous items in dependency and source order.
 fn sem_select_tests(c: SemanticContext*): void {
     var items = &sem_get(c.program.root).items;
+    var script_owner: void* = null;
+    var body: void* = null;
     var kept: usize = 0;
     foreach(var node in items) {
         if sem_is(node, "TowerTest") {
@@ -827,16 +852,41 @@ fn sem_select_tests(c: SemanticContext*): void {
                 return;
             }
             if !c.program.test_mode || sem_test_role(c, node) == ModuleTestRole.Dependency { continue; }
-        } else {
-            if c.program.test_mode && !sem_declaration_subject(node) && !sem_is(node, "CoreAttributed") {
-                if sem_test_role(c, node) == ModuleTestRole.Companion {
-                    sem_fail(c, node, "Executable companion statements require a test() block");
-                    return;
-                }
-                continue;
-            }
+            items.data[kept++] = node;
+            continue;
         }
-        items.data[kept++] = node;
+        if !c.program.test_mode || sem_declaration_subject(node) || sem_is(node, "CoreAttributed") {
+            items.data[kept++] = node;
+            continue;
+        }
+        if sem_test_role(c, node) != ModuleTestRole.Companion { continue; }
+        var owner = sem_owner(c, node);
+        if owner != script_owner {
+            script_owner = owner;
+            // Keep the declaration under the source root that owns its first
+            // statement so ordinary module and source-base lookup still apply.
+            var root = node;
+            while sem_parent(root) != c.program.root { root = sem_parent(root); }
+            var declaration = sem_test_container(c, root, null, "TowerTest", node);
+            if declaration == null { return; }
+            body = sem_test_container(c, declaration, "body", "CoreBlock", node);
+            if body == null { return; }
+            items.data[kept++] = declaration;
+        }
+        // The block checker consumes Statement children. Keep source roots in
+        // place even when an imported grammar uses Statement as its root.
+        var statement = sem_is(node, "Statement") ? node : sem_parent(node);
+        var parent = body;
+        if !sem_is(statement, "Statement") || sem_parent(statement) == c.program.root {
+            parent = sem_test_container(c, body, null, "Statement", node);
+            if parent == null { return; }
+            statement = node;
+        }
+        var error = entity_attach_result(statement, parent, null);
+        if error != WorkBudgetError.None {
+            sem_module_error(c.program, error, sem_offset(c, node));
+            return;
+        }
     }
     items.length = kept;
 }
@@ -1002,15 +1052,20 @@ fn sem_run(c: SemanticContext*): void {
     sem_attributes_check(c);
     sem_bodies(c);
     if c.program.test_count != 0 && sem_ok(c) {
-        // Use each retained header as an ordinary zero-argument call. Its
-        // binding is private to this request and needs no source-level alias.
+        // An implicit declaration has no source header. Its call inherits the
+        // declaration's source anchor and the same private function binding.
         var declarations = statements.length;
         for(var index: usize = 0; index < declarations; index++) {
             var node = statements.data[index];
             if !sem_is(node, "TowerTest") { continue; }
             var head = sem_member(node, "head");
-            var call = sem_node_result(c, head, KCall);
-            if call == null { return; }
+            if head == null {
+                head = sem_control_node(c, node, KCall);
+                if head == null { return; }
+            } else {
+                if sem_node_result(c, head, KCall) == null { return; }
+            }
+            var call = sem_get(head);
             call.binding = node;
             call.type = sem_get(node).type;
             if !sem_push_checked(c, statements, head) { return; }

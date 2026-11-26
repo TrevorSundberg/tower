@@ -37,8 +37,11 @@ to stdout, and reports the passing count or an empty selection on stderr.
 Compilation and execution errors return a nonzero status at the source location.
 Add `--test-details` to report each passed declaration's file, line and column
 after the selection finishes successfully.
-An explicit companion runs its own blocks with the owner's declarations available
-through ordinary imports. Put executable companion statements inside `test() {}`.
+An explicit companion runs its own tests with the owner's declarations available
+through ordinary imports. Its executable top-level statements form one implicit
+test. The first such statement determines the test's position among explicit
+`test() {}` blocks. Module-level declarations and initializers keep their usual
+scope. A helper-only file adds zero tests.
 
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
