@@ -72,3 +72,33 @@ first in a short manifest, the same runner aborts on canonical text for the
 narrow provider, the ASan probe and the token fixture. It passes the scale
 and borrowed-view files, including the second formatting pass. The Node
 module-path test also checks the spellings of all five paths.
+
+### Published source at `4b2685e5`
+
+The tree contains 2,066 tracked paths, including two submodule pins.
+`scaffolding/tests` grew from 682 to 697 paths. Its 15 additions comprise six
+Tower sources and nine stdout files. Across the same 20 configuration profiles,
+CTest exposes 216 distinct names, including all 202 from the earlier census.
+The native opt-in profile exposes 198, up from 184. The formatter-only profile
+now exposes 36.
+
+The Node source maps to 508 top-level cases in the ordinary npm selection and
+13 in the separate Roku selection, plus seven nested ordinary cases. Playwright
+lists 246 project registrations. The four additions exercise the Tests example
+at two worker widths on desktop and mobile. The two editor suites retain 54
+TextMate scope assertions.
+
+All eight tracked `_test.tower` files have an owner. With the pinned compiler
+at one worker, direct selection ran one body in each of six files. The other
+two selected zero. Their Tower assertions run through compiled callers.
+`execution_main.tower` calls the helpers in `execution_session_test.tower`,
+and `module_cache_checks.tower` calls the helper in `test_file_rule_test.tower`.
+Owner selection can also reach tests through imports. For example,
+`--test semantic_iteration.tower` ran three bodies and direct selection of its
+companion ran one.
+
+The host 3 inventory receipt `3743bc35-f63e-4008-a365-8c5bd2b494fc` records
+commands, path and selector tables, and the separate execution results. Its
+focused `tower-narrow-foreign` CTest passed. The three ABI comparisons live in
+`narrow_foreign.tower`. The linked provider supplies the additions. Suite-wide
+execution status is open for this source.
