@@ -112762,3 +112762,84 @@ CPU 2.47/2.49 s and peak RSS 270568/250564 KiB. Shared wall time was
 does not establish a speedup. The release reactors were uninstrumented.
 Packet `1ecd1d86-3a3e-4885-9b59-2ad4cd7e070f` contains raw outputs,
 controls, identities and the source bundle for manager publication.
+
+### Native regex assertions under Tower test selection, 2026-11-26
+
+Host 7 started assignment fe8f1e74 on published 21f409e5. In a fresh
+Clang 19 Release parser-only Ninja configuration, the registered
+`tower-regex` command ran `tower-parser-tests --suite regex` and passed.
+The independent reader in `tests/regex_oracle.tower` builds its own NFA and
+DFA. Both sides match through the real lexer table API. Failure injection
+uses the parser profile's serial worker transport and instrumented allocator.
+
+Seven declarations in `tests/regex_test.tower` now own the checks. The
+fixture-local grammar takes each block once in source and expands it into a
+normal Tower test and a named function for the original parser and frontend
+entries. The frontend presentation-budget path can still call just the
+pattern resource case. The random case warms its own world before measuring
+retained entities and buffers. The other cases get independent worlds.
+
+An initial companion at the production lowering module also appeared when
+selecting the source formatter. Moving it beside the existing optional
+`tests/regex.tower` fixture leaves the formatter discovery unchanged. Linking
+parser interface objects as a static archive plus the existing compiler memory
+archive passed. Direct discovery lists the regex companion. Owner discovery
+also finds the five work budget tests. An early count of seven for the owner
+therefore failed the exact terminal-line check, and twelve passed.
+
+| Original regex.tower checks | Declaration in regex_test.tower | Observed coverage |
+| --- | --- | --- |
+| `regex_test_pattern_resources` | 41:1, `regex_test_pattern_resources` | Cold and cached Capacity, pinned Busy, successful retry, all 43 measured reader grants refused individually with Memory, invalid counted pointer, syntax diagnostic, ledger, lanes, entities and buffers restored. |
+| `regex_test_scratch_failures` | 135:1, `regex_scratch_refusals` | All 25 lowering grants refused in turn. Each reported Memory with an allocation diagnostic. Short span reported Invalid with a bounded offset. The live buffer count recovered at each step and the formatted tree matched after the sweep. |
+| `regex_test_result_counted` | 200:1, `regex_counted_result` | Counted `a NUL b` matched three bytes. Reusing the populated table gave Invalid and preserved that match. |
+| Three `regex_test_result_semantic` calls | 231:1, `regex_semantic_diagnostics` | Nullable pattern, reversed range and surrogate escape. Checked the diagnostic substring, offset, None resource result and independent rejection for each. |
+| Six `regex_test_case` calls | 268:1, `regex_fixed_prefixes` | Both matchers produced the original longest prefixes 2, 4, 3, 3, 0 and 3. |
+| `regex_test_limits` and `regex_test_reject` | 294:1, `regex_complexity_limits` | Byte count, accepting NFA state, nesting depth and exponential DFA subset cases, each rejected with diagnostics by both implementations. |
+| `regex_test_compare`, `regex_test_inputs` and seeded loops in `regex_tests` | 337:1, `regex_oracle_comparisons` | MT19937 reference draws, seed 1380271960, 300 generated, 19 literals, 500 arbitrary and two counted inputs. Checked acceptance, grammar span and diagnostics, every sample offset and retained owners. |
+
+The source-to-source assertion map in the packet accounts for all 66 original
+`utility_check` sites and the explicit disagreement abort. The two input vector
+allocation guards stay with the generators. World setup/teardown assertions
+are shared by six declarations. The four MT19937 reference checks and the
+oracle's 20 internal construction guards stay in their original shared
+modules. Every original suite check runs through the selected path.
+
+Two observed runner builds wrote counted bytes before comparison and captured
+each matched input, offset and both returned lengths. The two traces compared
+byte-for-byte across 821 patterns, 9,480 samples and 135,704 offset pairs.
+The measured allocation counts and every indexed reader refusal also matched.
+The unobserved executables were used for timing. The ordinary lowering object
+and normalized depfile matched the parent. The frontend aggregate compiled
+with its new import. The parser suite object also compiled for Wasm32 and
+Windows x64. Executable validation covered Linux x64.
+
+The original CTest and all four new registrations passed. Requiring Memory
+for the pinned grammar made the legacy runner abort and CTest return 8.
+Both owner and direct selections at jobs 1 and 4 failed at regex_test.tower
+76:5. Restoring Busy reproduced the original passing candidate object and
+executable bytes and all five CTests passed. The direct selections ran
+seven declarations and the owner selections ran twelve.
+
+Matched runs used an AMD EPYC 7502 with 32 physical cores, SMT, affinity
+0–3 and a cgroup quota of 3071999/100000. Each timed operation held the
+host timing lock. One warm-up pair preceded three alternating pairs. The
+published e2d03c1e driver compiled the corresponding frozen fixture in
+library mode for x86_64-pc-linux-gnu. The suite object shrank from 55,160
+to 54,280 bytes. The table gives median wall/user/system seconds and maximum
+peak RSS in KiB.
+
+| Workload | Parent | Candidate |
+| --- | --- | --- |
+| Suite object, jobs 1 | 0.88 / 0.79 / 0.09 / 122772 | 1.06 / 0.95 / 0.11 / 135392 |
+| Suite object, jobs 4 | 0.90 / 0.88 / 0.12 / 128268 | 1.17 / 1.15 / 0.18 / 145412 |
+| Ten fresh serial runner processes | 0.38 / 0.34 / 0.04 / 4136 | 0.41 / 0.37 / 0.03 / 4176 |
+
+Compilation now imports the assertion grammar and expands each named suite
+case into a callable and a module test. The native guest still uses one
+serial fault allocator at both compiler widths. Focused ASan/LSan and TSan
+instrumented the changed suite object and ran it through the parser CLI with
+the same providers. ASan/LSan passed on its first run. Five TSan launches
+failed in the host personality check before startup and the sixth passed.
+The maps identify runtime-instrumented and tower_work_serial. The provider
+objects were uninstrumented. The Tower IR tool has no UBSan mode. These
+runs cover the serial suite. Manager integration and publication are pending.
