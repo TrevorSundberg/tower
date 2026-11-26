@@ -1,0 +1,57 @@
+import tower;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget_types;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+
+enum SharedArenaCase: u32 { Grow, Cancel, Deny }
+var ArenaValuesPerJob: usize = 2048;
+var ArenaChunkBytes: usize = 4096;
+
+struct ArenaValue { index: usize; owner: usize; first: u64; last: u64; }
+struct ArenaJob {
+    arena: WorkArena;
+    entered: void*;
+    release: void*;
+    first: ArenaValue*;
+    last: ArenaValue*;
+    ordinal: usize;
+    thread: usize;
+    cancelled: bool;
+    denied: bool;
+    refusal: WorkBudgetError;
+    output: u8*;
+    completed: bool;
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(ArenaJob*, payload);
+    job.thread = pthread_self();
+    job.first = bits(ArenaValue*, work_arena_allocate(&job.arena, sizeof(ArenaValue), alignof(ArenaValue)));
+    if job.first != null {
+        *job.first = init(ArenaValue) {owner: job.ordinal, first: 17, last: 29, ..default};
+    }
+    job.last = job.first;
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    if job.first == null { return; }
+    if job.denied {
+        job.output = bits(u8*, job.first);
+        job.refusal = work_arena_allocate_result(&job.arena, ArenaChunkBytes, 8, &job.output);
+        job.completed = true;
+        return;
+    }
+    if !job.cancelled {
+        for (var i: usize = 1; i < ArenaValuesPerJob; i++) {
+            var value = bits(ArenaValue*, work_arena_allocate(&job.arena, sizeof(ArenaValue), alignof(ArenaValue)));
+            if value == null { return; }
+            *value = init(ArenaValue) {index: i, owner: job.ordinal, first: 17, last: 29};
+            job.last = value;
+            if job.first.index != 0 || job.first.owner != job.ordinal || job.first.last != 29 { return; }
+        }
+    }
+    job.completed = true;
+}

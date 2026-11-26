@@ -1312,6 +1312,13 @@ from the kit directory. At jobs 1 and 4 the fixture owner selects its two checks
 and five budget checks. Direct companion selection runs the two arena checks.
 Both link the kit's instrumented allocator. The job count controls compilation.
 
+On Linux x64, `ctest -R '^tower-selected-work-arena-shared'` in the driver
+test kit runs the corresponding pthread suite with the ordinary allocator.
+Allow the process at least four CPUs in its affinity mask. Each of its three
+cases waits for four distinct workers at the barrier. The owner also selects
+the five budget cases. The standalone `tower-work-arena-shared-tests` runs the
+same growth, cancellation and capacity-denial checks and prints one zero line.
+
 The opt-in `tower-measure-work-arena-profile` target runs `arena16 1 large`.
 Its executable accepts `baseline|arena4|arena16|arena64`, worker count `1|2|4|8`,
 and `small|large` (2,048 or 262,144 objects). Compare equivalent inputs using

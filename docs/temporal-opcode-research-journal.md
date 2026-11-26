@@ -111048,3 +111048,91 @@ UBSan run or source instrumentation of the native test driver in this receipt.
 The assignment archive contains the bundle, raw commands, artifact identities,
 per-process status/streams, selected IDs, failed controls and timings. The
 production compiler was reused. Manager review and publication are pending.
+
+### Shared arena ownership through the native pthread companion, 2026-11-26
+
+Host 1 verified staged packet 16418f6e and all five requested members for
+assignment `548a4257-8609-40c6-87cd-eac1c06811f5`. Public b197e64b and
+the supplied serial fixture 83f0ad43 merged to the required tree
+`979a6b3b75ab144a5ce841927c1418745c2970ad`. Before editing, CMake generated
+164 registrations. The four generated serial selections matched the retained
+commands after path normalization and passed with the instrumented allocator
+(seven owner IDs, two direct IDs at each width). The named shared executable
+reproduced the retained e2d54d2e binary, 32ddfce7 object, normalized depfile
+and single zero line. The retained shared stress log recorded ten passes.
+
+The [worker fixture](../scaffolding/tests/work_arena_shared_fixture.tower)
+uses the existing Linux gate, signals, pool, dispatch callback and ordinary
+memory provider. The [companion](../scaffolding/tests/work_arena_shared_fixture_test.tower)
+snapshots the four outstanding lanes and first pointers before releasing the
+workers. It drains the jobs before checking thread identities and transfers
+each private arena before disposing it. Growth checks 2048 values per worker.
+Cancellation and capacity denial retain the first value alone. The denied
+call must return Capacity with the same output pointer. The original
+executable and the three Tower test declarations call the same scenarios.
+
+The root CTest command file matched after path normalization, including the
+43 entries whose unbuilt executable omitted the command from CTest JSON.
+All 164 parent registrations retained their properties. Four Linux x64
+registrations add jobs 1/4 for the owner (five budget tests plus companion
+11:1, 12:1 and 13:1) and the direct companion (those three IDs). All passed
+in the build and moved SccTests kit. The native guest links the ordinary
+memory archive and imports work_linux and work_dispatch. The native object
+linker already exports the callback. Omitting the trial's extra export flag
+passed. No new shim or production resource was required. The unchanged serial
+fault selections also passed from the relocated kit with their own provider.
+
+In an observation copy, each mode reported four pthread_self values distinct
+from each other and the coordinator, 16512 charged bytes and four lanes at
+the barrier, four completed receives, then zero lanes, receipts and bytes.
+Both widths reproduced those invariants. A three-CPU affinity control exited
+1 at the four-slot assertion. Requiring Memory on denied growth exited 1 at
+companion 79:13 at both widths. Requiring equal sibling pthread IDs in the
+named executable exited 1 and failed its CTest (8). A trial wrapper expected
+the serial trap's abort code here. The shared guest runtime prints the message
+and returns 1. Restoring both comparisons reproduced the passing object and
+selections, empty standalone stderr and stdout bytes 30 0a. The named
+shared CTest also passed ten consecutive runs.
+
+At jobs 1/4 the ordinary arena object retained SHA-256
+be615750af2fad8ba6dc2ce1c1975bc2b4847a6de5414f5446de2320631e3444
+and the exact depfile. The independent work_arena standalone client retained
+its object (33c5944b), linked ELF, normalized dependencies and zero line.
+The prior packet's independent consumer passed the same six IDs at both
+widths with ordinary allocation.
+
+The prior assignment kept the executable products and optional kit and
+cleaned the intermediate caches. We reused its driver, providers and retained
+executables, populated focused baseline caches, and rebuilt the changed target
+in each warm cache. No compiler target was built. The baseline TSan executable
+matched the retained binary. The two baseline ASan files differed in their
+embedded IR paths and ELF build IDs. The new IR has 68 ASan call sites in the
+worker kernel and 91 in the coordinator scenario; TSan has 46 and 74. Three
+candidate ASan runs with leak checks passed. Candidate TSan runs 3, 6 and 39
+passed. The other 36 launches failed inside TSan's restricted ADDR_NO_RANDOMIZE
+personality request, before the fixture ran. The retained TSan executable
+passed on its fifth launch. Source-level UBSan has no supported Tower mode.
+The optional guest runs used the normal native test driver.
+
+Host 1 used two Xeon Gold 6244 sockets with eight cores each and SMT, cpuset
+0–31, quota 1536000/100000 (15.36 CPUs), Clang 19.1.7 and the public 7315b86e
+Linux x64 driver. Matched commands used affinity 0–3, one operation under
+the host timing lock, one warm pair and three alternating pairs. Compilation
+used --library and x86_64-pc-linux-gnu. Both arms linked at jobs 1 and 4 and
+ran the resulting executables. Each sample within an arm reproduced its
+object. The fixture object grew from 22408 to 24608 bytes with the added
+assertion grammar, messages and barrier observations. The table gives median
+wall, user and system seconds and maximum peak RSS in KiB.
+
+| Workload | Parent wall / user / system / RSS | Candidate wall / user / system / RSS |
+| --- | --- | --- |
+| Shared fixture compilation, jobs 1 | 0.52 / 0.46 / 0.03 / 111432 | 0.65 / 0.58 / 0.05 / 115496 |
+| Shared fixture compilation, jobs 4 | 0.60 / 0.60 / 0.06 / 116308 | 0.82 / 0.86 / 0.07 / 126780 |
+| 100 fresh three-scenario executions, jobs-1 build | 0.11 / 0.03 / 0.12 / 3332 | 0.11 / 0.03 / 0.11 / 3120 |
+
+The execution timing includes process launch and checks all 100 output lines.
+The configured compiler job count and the four threads observed in each guest
+measure separate operations. Early compiler trials diagnosed the enum's missing
+underlying type and required a braced alternative. The assignment packet holds
+the source bundle, registrations, linked inputs, receipts and raw observations.
+Manager integration and publication are pending.
