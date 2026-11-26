@@ -1,0 +1,8 @@
+import compiler_threads;
+
+test() {
+    // Each call opens and drains a real four-lane pool on the same Wasm instance.
+    for (var repeat = 0; repeat < 128; ++repeat) {
+        assert(run_pool() == 0, "Four distinct pthreads must clear the barrier on every reuse");
+    }
+}

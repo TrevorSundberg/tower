@@ -1,368 +1,206 @@
 import {test} from 'node:test';
 import {Worker} from 'node:worker_threads';
-import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {compilerThreads} from '../src/compiler-threads.mjs';
 import {TowerWASI} from '../src/wasi-host.mjs';
+import {loadTower as loadChecks} from '../src/tower-host.mjs';
+import {copyText, guestString} from './guest_text.mjs';
+import {selectedTestSteps} from './selected_test.mjs';
 
-// Optional host-side progress only; synchronous Wasm can prevent timeout callbacks.
 const phase = (name, details = {}) => {
- if (process.env.TOWER_TEST_PHASES === '1') console.error(JSON.stringify({phase:name, ...details}));
+  if (process.env.TOWER_TEST_PHASES === '1') console.error(JSON.stringify({phase:name, ...details}));
 };
 
 let bytes;
 try { bytes = await readFile(process.env.TOWER_TEST_WORK_WASM ?? 'build/browser-wasi-threads/tower-work-tests.wasm'); }
 catch (error) {
- if (error.code !== 'ENOENT' || process.env.TOWER_REQUIRE_THREADS === '1') throw error;
+  if (error.code !== 'ENOENT' || process.env.TOWER_REQUIRE_THREADS === '1') throw error;
+}
+
+async function selected(name, imports, settle) {
+  const entry = 'compiler_threads.tower', suffix = '_' + name + '_test.tower';
+  const files = await Promise.all([entry, 'compiler_threads' + suffix].map(async path =>
+    ({path, text:await readFile(new URL(path, import.meta.url), 'utf8')})));
+  const modules = ['bedrock','foundation_syntax','types','foundation','tower','library/testing','library/test_data','backend/text','library/vector'];
+  const builtins = Object.fromEntries(await Promise.all(modules.map(async path =>
+    [path, await readFile('scaffolding/' + path + '.tower', 'utf8')])));
+  const image = await readFile(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm');
+  const checks = await loadChecks(image, undefined, builtins.foundation, undefined, builtins.bedrock,
+    {tower:builtins.tower, builtins, imports, threads:{capacity:1}});
+  try {
+    for (const _ of selectedTestSteps(checks, entry, 65536, {files, suffix}, 2048)) {
+      if (settle) await settle();
+    }
+  } finally { checks.close(); }
+}
+
+async function withPool(options, run) {
+  const module = await WebAssembly.compile(bytes);
+  const transport = await compilerThreads(module, options);
+  try {
+    const wasi = new TowerWASI();
+    const instance = await WebAssembly.instantiate(module, {
+      env:transport.env, wasi:transport.wasi, wasi_snapshot_preview1:wasi.wasiImport,
+    });
+    transport.attach(instance);
+    wasi.initialize(instance);
+    await run(instance.exports, transport);
+  } finally { transport.close(); }
 }
 
 test('the Tower pool overlaps four distinct Wasm threads and reuses their jobs', {skip:!bytes, timeout:30000}, async () => {
- phase('pool:start');
- const module = await WebAssembly.compile(bytes);
- const transport = await compilerThreads(module);
- try {
-  const wasi = new TowerWASI();
-  const instance = await WebAssembly.instantiate(module, {
-   env:transport.env, wasi:transport.wasi, wasi_snapshot_preview1:wasi.wasiImport,
-  });
-  transport.attach(instance); wasi.initialize(instance);
-  // The Tower fixture holds all four workers behind one barrier. Queue width
-  // alone cannot pass it. Repeat the complete pool lifecycle in one host too.
-  for (let repeat = 0; repeat < 128; repeat++) {
-   assert.equal(instance.exports.main(), 0, `pool lifecycle ${repeat}`);
-   phase('pool:completed', {repeat});
-  }
- } finally { transport.close(); }
+  phase('pool:start');
+  let repeat = 0;
+  await withPool({}, wasm => selected('pool', {run_pool() {
+    const result = wasm.main();
+    phase('pool:completed', {repeat:repeat++, result});
+    return result;
+  }}));
 });
 
 test('a joined pthread returns its physical slot before the next four-lane pool', {skip:!bytes}, async t => {
- const module = await WebAssembly.compile(bytes);
- const gate = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
- let status;
- const exits = [];
- const transport = await compilerThreads(module, {workerFactory(url) {
-  const child = exits.length ? new Worker(url) :
-    new Worker(new URL('./compiler-handoff-worker.mjs', import.meta.url), {workerData:gate});
-  exits.push(new Promise(resolve => child.once('exit', resolve)));
-  if (exits.length === 1) {
-   const post = child.postMessage.bind(child);
-   child.postMessage = (message, ...args) => {
-    if (message.initialize) status = message.status;
-    return post(message, ...args);
-   };
+  const gate = new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT));
+  let status;
+  const exits = [];
+  function workerFactory(url) {
+    const child = exits.length ? new Worker(url) :
+      new Worker(new URL('./compiler-handoff-worker.mjs', import.meta.url), {workerData:gate});
+    exits.push(new Promise(resolve => child.once('exit', resolve)));
+    if (exits.length === 1) {
+      const post = child.postMessage.bind(child);
+      child.postMessage = (message, ...args) => {
+        if (message.initialize) status = message.status;
+        return post(message, ...args);
+      };
+    }
+    return child;
   }
-  return child;
- }});
- try {
-  const wait = Atomics.wait;
-  t.mock.method(Atomics, 'wait', (array, slot, ...args) => {
-   if (array === status && slot === 0) {
-    Atomics.store(gate, 0, 1);
-    Atomics.notify(gate, 0);
-   }
-   return wait(array, slot, ...args);
-  });
-  const wasi = new TowerWASI();
-  const instance = await WebAssembly.instantiate(module, {
-   env:transport.env, wasi:transport.wasi, wasi_snapshot_preview1:wasi.wasiImport,
-  });
-  transport.attach(instance); wasi.initialize(instance);
-  assert.equal(instance.exports.main(), 0);
-  assert.equal(Atomics.load(gate, 0), 1);
- } finally { transport.close(); await Promise.all(exits); }
+  try {
+    await withPool({workerFactory}, wasm => {
+      const wait = Atomics.wait;
+      t.mock.method(Atomics, 'wait', (array, slot, ...args) => {
+        if (array === status && slot === 0) {
+          Atomics.store(gate, 0, 1);
+          Atomics.notify(gate, 0);
+        }
+        return wait(array, slot, ...args);
+      });
+      return selected('handoff', {run_pool:() => wasm.main(), handoff_gate:() => Atomics.load(gate, 0)});
+    });
+  } finally { await Promise.all(exits); }
 });
 
 test('a worker trap interrupts a blocked coordinator through shared failure state', {skip:!bytes, timeout:10000}, async () => {
- phase('trap:start');
- const module = await WebAssembly.compile(bytes);
- const transport = await compilerThreads(module, {workerURL:new URL('./compiler-failure-worker.mjs', import.meta.url)});
- try {
-  const wasi = new TowerWASI();
-  const instance = await WebAssembly.instantiate(module, {
-   env:transport.env, wasi:transport.wasi, wasi_snapshot_preview1:wasi.wasiImport,
-  });
-  transport.attach(instance); wasi.initialize(instance);
-  assert.throws(() => instance.exports.main(), /Injected compiler worker failure/);
-  assert.equal(transport.failed(), true);
+  phase('trap:start');
+  await withPool({workerURL:new URL('./compiler-failure-worker.mjs', import.meta.url)}, (wasm, transport) =>
+    selected('trap', {
+      run_until_trap(ctx) {
+        try { wasm.main(); }
+        catch (error) { return copyText(ctx, error.message); }
+        return copyText(ctx, '');
+      },
+      transport_failed:() => transport.failed(),
+    }));
   phase('trap:completed');
- } finally { transport.close(); }
 });
 
 test('declaration, body checking, lowering and staging are deterministic at 1/2/4/8 workers', {skip:!bytes, timeout:120000}, async () => {
- const {loadTower, loadTowerBytes, generatedSource} = await import('./compiler-fixtures.mjs');
- const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
- const lrFixture = process.env.TOWER_TEST_LR_WASM && await readFile(process.env.TOWER_TEST_LR_WASM);
- const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
- const delayedLayout = await readFile('scaffolding/tests/decltype_layout.tower', 'utf8');
- const genericHeaders = await readFile('scaffolding/tests/decltype_generic_headers.tower', 'utf8');
- const aggregateTypes = await readFile('scaffolding/tests/decltype_aggregate.tower', 'utf8');
- const bodyContinuation = await readFile('scaffolding/tests/body_continuation.tower', 'utf8');
- const lazyBodies = await readFile('scaffolding/tests/decltype_lazy_body.tower', 'utf8');
- const lazyBodyBudget = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
- const demandedBodyBudget = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
- const expressionTypes = await readFile('scaffolding/tests/decltype_expressions.tower', 'utf8');
- const declarationContinuations = await readFile('scaffolding/tests/declaration_continuations.tower', 'utf8');
- const declarationInference = await readFile('scaffolding/tests/declaration_inference.tower', 'utf8');
- const declarationOperands = await readFile('scaffolding/tests/declaration_operands.tower', 'utf8');
- const enumExpressions = await readFile('scaffolding/tests/enum_expressions.tower', 'utf8');
- const defaults = await readFile('scaffolding/tests/default_initialization.tower', 'utf8');
- const namedInitialization = await readFile('scaffolding/tests/named_initialization.tower', 'utf8');
- const structValues = await readFile('scaffolding/tests/struct_values.tower', 'utf8');
- const knownBindings = await readFile('scaffolding/tests/known_bindings.tower', 'utf8');
- const computedTypeArguments = await readFile('scaffolding/tests/computed_type_arguments.tower', 'utf8');
- let stress;
- const dependencyCanonical = new Map();
- let windowCanonical;
- let genericCycleDiagnostic;
- let genericBodyBudgetDiagnostic;
- let operatorCycleDiagnostic;
- const continuationDiagnostics = new Map();
- const canonical = new Map();
- const moduleCanonical = new Map();
- let iterationCanonical;
- const genericCanonical = new Map();
- for (const capacity of [1,2,4,8]) {
-  phase('compiler:load', {capacity});
-  // A release run supplies a separate work-enabled reactor for the LR export.
-  // Both explicit shared images must retain their identity under a portable suite override.
-  const load = lrFixture ? loadTowerBytes : loadTower;
-  const open = image => load(image, undefined, foundation, undefined, undefined, {threads:{capacity}});
-  const tower = await open(compiler);
-  try {
-   if (!stress) {
-    stress = {};
-    for (const name of ['workers', 'generic_workers', 'window', 'type_fields']) {
-     phase('source:generate', {capacity, name});
-     stress[name] = await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
+  const {builtins, files, loadTower, loadTowerBytes, generatedSource} = await import('./compiler-fixtures.mjs');
+  const compiler = await readFile('build/browser-wasi-threads/tower.wasm');
+  const lrFixture = process.env.TOWER_TEST_LR_WASM && await readFile(process.env.TOWER_TEST_LR_WASM);
+  const sources = new Map(files.map(file => [file.path, file.text]));
+  const fixture = path => {
+    const source = sources.get('.tower/tests/' + path + '.tower');
+    if (source === undefined) throw new Error('Missing compiler thread fixture ' + path);
+    return source;
+  };
+  let tower, capacity, pending, lrCode, result, foundationSize;
+  const live = new Set(), mounted = [];
+  const open = image => (lrFixture ? loadTowerBytes : loadTower)(image, undefined,
+    builtins.foundation, undefined, undefined, {threads:{capacity}});
+  function start(operation) {
+    if (pending) throw new Error('Overlapping compiler test requests');
+    pending = operation();
+  }
+  async function settle() {
+    try { await pending; } finally { pending = undefined; }
+  }
+  function destroy(handle) {
+    tower.destroyExecution(handle);
+    live.delete(handle);
+  }
+  const imports = {
+    request_open(_, workers) {
+      capacity = workers;
+      phase('compiler:load', {capacity});
+      start(async () => { tower = await open(compiler); });
+    },
+    request_source(ctx, key) {
+      const path = guestString(ctx, key);
+      start(async () => {
+        const source = await generatedSource(tower, 'scaffolding/tests/' + path + '.tower');
+        sources.set('.tower/tests/' + path + '.tower', source);
+      });
+    },
+    request_lr() {
+      start(async () => {
+        const lr = lrFixture ? await open(lrFixture) : tower;
+        try { lrCode = lr.exports.lr_work_tests(); }
+        finally { if (lrFixture) lr.close(); }
+      });
+    },
+    waiting:() => Boolean(pending),
+    lr_code:() => lrCode,
+    semantic_world:(_, width) => tower.exports.semantic_world_tests(width),
+    mount_fixture(ctx, filename, key) {
+      mounted.push({path:guestString(ctx, filename), text:fixture(guestString(ctx, key))});
+    },
+    configure_entry(ctx, entry) {
+      tower.configureModules({entry:guestString(ctx, entry), files:mounted.splice(0)});
+    },
+    compile_fixture(ctx, key, width) {
+      const path = guestString(ctx, key);
+      phase('fixture:compile', {capacity, path, width});
+      const handle = tower.compile(fixture(path), {pointerBytes:width});
+      live.add(handle);
+      result = undefined;
+      return handle;
+    },
+    select_fast:(_, handle) => tower.useFast(handle),
+    execute_step(_, handle, budget) {
+      const step = tower.execute(handle, budget);
+      step.output = (result?.output ?? '') + step.output;
+      result = step;
+    },
+    executing:() => result.status === 'executing',
+    status_text:ctx => copyText(ctx, result.status),
+    output_text:ctx => copyText(ctx, result.output),
+    diagnostic:ctx => copyText(ctx, result.error ?? ''),
+    diagnostic_offset:() => result.errorOffset,
+    foundation_text(ctx, handle) {
+      const text = tower.foundation(handle).source;
+      foundationSize = Buffer.byteLength(text);
+      return copyText(ctx, text);
+    },
+    foundation_size:() => foundationSize,
+    output_size:() => Buffer.byteLength(result.output),
+    destroy_fixture:(_, handle) => destroy(handle),
+    close_compiler:() => tower.close(),
+    closed_compile_error(ctx, source) {
+      const input = guestString(ctx, source);
+      let handle;
+      try { handle = tower.compile(input); }
+      catch (error) { return copyText(ctx, error.message); }
+      destroy(handle);
+      return copyText(ctx, '');
+    },
+  };
+  try { await selected('determinism', imports, settle); }
+  finally {
+    try { await settle(); }
+    finally {
+      try { for (const handle of live) destroy(handle); }
+      finally { tower?.close(); }
     }
-   }
-   const {workers:source, generic_workers:genericSource, window:windowSource, type_fields:typeFields} = stress;
-   phase('lr:check', {capacity});
-   const lrHost = lrFixture ? await open(lrFixture) : tower;
-   try {
-    assert.equal(lrHost.exports.lr_work_tests(), 0, `LR tables and ECS cleanup at ${capacity} workers`);
-   } finally {
-    if (lrFixture) lrHost.close();
-   }
-   for (const width of [4,8]) {
-    phase('world:check', {capacity, width});
-    assert.equal(tower.exports.semantic_world_tests(width), 0, `World budgets and shared kernels at ${capacity} workers, width ${width}`);
-   }
-   for (const pointerBytes of [4,8]) for (let repeat = 0; repeat < 2; repeat++) {
-    phase('workers:execute', {capacity, pointerBytes, repeat});
-    const handle = tower.compile(source, {pointerBytes});
-    try {
-     if (repeat) tower.useFast(handle);
-     let output = '', result;
-     do { result = tower.execute(handle, 10000); output += result.output; } while (result.status === 'executing');
-     assert.equal(result.status, 'done', result.error);
-     assert.equal(output, '504\n7\n42\n42\n0\n136\n-120\n-2147483648\n');
-     const text = tower.foundation(handle).source;
-     if (!canonical.has(pointerBytes)) canonical.set(pointerBytes, text);
-     assert.equal(text, canonical.get(pointerBytes), `workers=${capacity}, width=${pointerBytes}, repeat=${repeat}`);
-    } finally { tower.destroyExecution(handle); }
-   }
-   phase('invalid:check', {capacity, name:'worker_body_errors'});
-   const invalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_body_errors.tower','utf8'));
-   try {
-    const result = tower.execute(invalid);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /unknownFirst/);
-    assert.doesNotMatch(result.error, /unknownSecond/);
-   } finally { tower.destroyExecution(invalid); }
-   for (const name of ['worker_suffix_error','worker_prefix_error']) {
-    phase('invalid:check', {capacity, name});
-    const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8'));
-    try {
-     const result=tower.execute(broken);
-     assert.equal(result.status,'error');
-     assert.match(result.error,/unknownFirst/);
-     assert.doesNotMatch(result.error,/unknownSecond/);
-    } finally { tower.destroyExecution(broken); }
-   }
-   for (const firstFails of [false,true]) {
-    phase('invalid:check', {capacity, name:firstFails ? 'worker_first_error' : 'worker_later_error'});
-    const broken = tower.compile(await readFile(`scaffolding/tests/semantic_invalid/worker_${firstFails ? 'first' : 'later'}_error.tower`,'utf8'));
-    try {
-     const result=tower.execute(broken);
-     assert.equal(result.status,'error');
-     assert.match(result.error,firstFails ? /unknownFirst/ : /unknownSecond/);
-     if (firstFails) assert.doesNotMatch(result.error,/unknownSecond/);
-    } finally { tower.destroyExecution(broken); }
-   }
-   phase('window:execute', {capacity});
-   const window = tower.compile(windowSource);
-   try {
-    let result, output='';
-    do { result=tower.execute(window,100000); output+=result.output; } while(result.status==='executing');
-    assert.equal(result.status,'done',result.error);
-    assert.equal(output,'33930\n');
-    const source=tower.foundation(window).source;
-    windowCanonical ??= source;
-    assert.equal(source,windowCanonical,`body preparation windows at ${capacity} workers`);
-   } finally { tower.destroyExecution(window); }
-   phase('iteration:execute', {capacity});
-   const iteration = tower.compile(await readFile('scaffolding/tests/worker_iteration.tower','utf8'));
-   try {
-    let result, output = '';
-    do { result = tower.execute(iteration, 10000); output += result.output; } while (result.status === 'executing');
-    assert.equal(result.status, 'done', result.error);
-    assert.equal(output, '46\n46\n7\n');
-    const text = tower.foundation(iteration).source;
-    iterationCanonical ??= text;
-    assert.equal(text, iterationCanonical, `implicit protocol publication at ${capacity} workers`);
-   } finally { tower.destroyExecution(iteration); }
-   for (const pointerBytes of [4,8]) for (let fast = 0; fast < 2; fast++) {
-    phase('generic:execute', {capacity, pointerBytes, fast});
-    const handle = tower.compile(genericSource, {pointerBytes});
-    try {
-     if (fast) tower.useFast(handle);
-     let result, output = '';
-     do { result = tower.execute(handle, 10000); output += result.output; } while (result.status === 'executing');
-     assert.equal(result.status, 'done', result.error);
-     assert.equal(output, '28\n36\n504\n504\n73\n');
-     const text = tower.foundation(handle).source;
-     if (!genericCanonical.has(pointerBytes)) genericCanonical.set(pointerBytes, text);
-     assert.equal(text, genericCanonical.get(pointerBytes), `generic bodies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
-    } finally { tower.destroyExecution(handle); }
-   }
-   phase('invalid:check', {capacity, name:'worker_generic_errors'});
-   const genericInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_generic_errors.tower','utf8'));
-   try {
-    const result = tower.execute(genericInvalid);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /unknownFirst/);
-    assert.doesNotMatch(result.error, /unknownSecond/);
-   } finally { tower.destroyExecution(genericInvalid); }
-   phase('invalid:check', {capacity, name:'worker_type_errors'});
-   const typeInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_type_errors.tower','utf8'));
-   try {
-    const result = tower.execute(typeInvalid);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /Unknown type 'MissingFirst'/);
-    assert.doesNotMatch(result.error, /MissingSecond/);
-   } finally { tower.destroyExecution(typeInvalid); }
-   phase('invalid:check', {capacity, name:'worker_leaf_errors'});
-   const leafInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_leaf_errors.tower','utf8'));
-   try {
-    const result = tower.execute(leafInvalid);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /Unknown local 'unknownFirst'/);
-    assert.doesNotMatch(result.error, /unknownSecond/);
-   } finally { tower.destroyExecution(leafInvalid); }
-   phase('invalid:check', {capacity, name:'decltype_cycle'});
-   const leafCycle = tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_cycle.tower','utf8'));
-   try {
-    const result = tower.execute(leafCycle);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /initializer dependency cycle first -> second -> first/);
-   } finally { tower.destroyExecution(leafCycle); }
-   for (const name of [
-    'comptime_generic_selected', 'worker_generic_mismatch', 'inference_alias_invalid',
-    'declaration_index_cycle', 'worker_index_errors',
-   ]) {
-    phase('invalid:check', {capacity, name});
-    const source=await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`,'utf8');
-    const handle=tower.compile(source);
-    try {
-     const result=tower.execute(handle);
-     assert.equal(result.status,'error');
-     assert.match(result.error,/Division by zero|Expected (i32|u64), got bool|Cannot infer type argument 'T'|initializer dependency cycle first -> second -> first|An index must be an integer/);
-     const diagnostic={error:result.error,offset:result.errorOffset};
-     if (!continuationDiagnostics.has(source)) continuationDiagnostics.set(source,diagnostic);
-     assert.deepEqual(diagnostic,continuationDiagnostics.get(source),`declaration continuation errors at ${capacity} workers`);
-    } finally { tower.destroyExecution(handle); }
-   }
-   phase('invalid:check', {capacity, name:'worker_field_errors'});
-   const fieldsInvalid = tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_field_errors.tower','utf8'));
-   try {
-    const result = tower.execute(fieldsInvalid);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, /duplicate field 'first'/);
-    assert.doesNotMatch(result.error, /duplicate field 'second'/);
-   } finally { tower.destroyExecution(fieldsInvalid); }
-   for (const [fixtureIndex, fixture] of [delayedLayout, genericHeaders, typeFields, aggregateTypes, bodyContinuation, lazyBodies, lazyBodyBudget, expressionTypes, declarationContinuations, declarationInference, declarationOperands, enumExpressions, defaults, namedInitialization, structValues, knownBindings, computedTypeArguments].entries())
-   for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
-    phase('dependency:execute', {capacity, fixtureIndex, pointerBytes, fast});
-    const handle=tower.compile(fixture,{pointerBytes});
-    try {
-     if (fast) tower.useFast(handle);
-     let result, output='';
-     do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
-     assert.equal(result.status,'done',result.error);
-     assert.equal(output,'0\n',`delayed layout: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
-     const key = fixture + pointerBytes;
-     const text = tower.foundation(handle).source;
-     if (!dependencyCanonical.has(key)) dependencyCanonical.set(key, text);
-     assert.equal(text, dependencyCanonical.get(key), `generic/layout dependencies: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
-    } finally { tower.destroyExecution(handle); }
-   }
-   phase('invalid:check', {capacity, name:'worker_operator_cycle'});
-   const operatorCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/worker_operator_cycle.tower','utf8'));
-   try {
-    const result=tower.execute(operatorCycle);
-    assert.equal(result.status,'error');
-    assert.match(result.error,/initializer dependency cycle left -> right -> left/);
-    operatorCycleDiagnostic ??= result.error;
-    assert.equal(result.error,operatorCycleDiagnostic,`operator cycle at ${capacity} workers`);
-   } finally { tower.destroyExecution(operatorCycle); }
-   phase('invalid:check', {capacity, name:'generic_body_demanded'});
-   const bodyBudget=tower.compile(demandedBodyBudget);
-   try {
-    const result=tower.execute(bodyBudget);
-    assert.equal(result.status,'error');
-    assert.match(result.error,/Template expansion exceeds 65536 nodes/);
-    assert.equal(result.output,'');
-    genericBodyBudgetDiagnostic ??= result.error;
-    assert.equal(result.error,genericBodyBudgetDiagnostic,`clone budget at ${capacity} workers`);
-   } finally { tower.destroyExecution(bodyBudget); }
-   phase('invalid:check', {capacity, name:'decltype_generic_header_cycle'});
-   const genericCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_generic_header_cycle.tower','utf8'));
-   try {
-    const result=tower.execute(genericCycle);
-    assert.equal(result.status,'error');
-    assert.match(result.error,/initializer dependency cycle/);
-    genericCycleDiagnostic ??= result.error;
-    assert.equal(result.error, genericCycleDiagnostic, `signature cycle at ${capacity} workers`);
-   } finally { tower.destroyExecution(genericCycle); }
-   phase('invalid:check', {capacity, name:'decltype_layout_cycle'});
-   const layoutCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_layout_cycle.tower','utf8'));
-   try {
-    const result=tower.execute(layoutCycle);
-    assert.equal(result.status,'error');
-    assert.match(result.error,/Recursive by-value layout: Recursive -> Recursive/);
-   } finally { tower.destroyExecution(layoutCycle); }
-   phase('invalid:check', {capacity, name:'decltype_type_field_cycle'});
-   const typeCycle=tower.compile(await readFile('scaffolding/tests/semantic_invalid/decltype_type_field_cycle.tower','utf8'));
-   try {
-    const result=tower.execute(typeCycle);
-    assert.equal(result.status,'error');
-    assert.match(result.error,/initializer dependency cycle/);
-   } finally { tower.destroyExecution(typeCycle); }
-   phase('modules:configure', {capacity});
-   tower.configureModules({entry:'main.tower', files:[
-    {path:'left.tower', text:await readFile('scaffolding/tests/worker_modules/left.tower','utf8')},
-    {path:'right.tower', text:await readFile('scaffolding/tests/worker_modules/right.tower','utf8')},
-   ]});
-   const modules = await readFile('scaffolding/tests/worker_modules/main.tower','utf8');
-   for (const pointerBytes of [4,8]) for (let fast=0; fast<2; fast++) {
-    phase('modules:execute', {capacity, pointerBytes, fast});
-    const handle=tower.compile(modules,{pointerBytes});
-    try {
-     if (fast) tower.useFast(handle);
-     let result, output='';
-     do { result=tower.execute(handle,10000); output+=result.output; } while(result.status==='executing');
-     assert.equal(result.status,'done',result.error);
-     assert.equal(output,'9\n10\n9\n17\n8\n16\n');
-     const text=tower.foundation(handle).source;
-     assert.doesNotMatch(text,/missing_import_body/);
-     if (!moduleCanonical.has(pointerBytes)) moduleCanonical.set(pointerBytes,text);
-     assert.equal(text,moduleCanonical.get(pointerBytes),`imported queries: workers=${capacity}, width=${pointerBytes}, fast=${fast}`);
-    } finally { tower.destroyExecution(handle); }
-   }
-  } finally { phase('compiler:close', {capacity}); tower.close(); }
-  assert.throws(() => tower.compile('print(1);'), /compiler is closed/);
-  assert.doesNotThrow(() => tower.destroyExecution(0));
-  phase('capacity:completed', {capacity});
- }
+  }
 });

@@ -1,0 +1,6 @@
+import compiler_threads;
+
+test() {
+    assert(run_pool() == 0, "A joined pthread must return its slot before the next pool opens");
+    assert(handoff_gate() == 1, "The coordinator must acknowledge the delayed physical slot");
+}

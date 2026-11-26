@@ -1,0 +1,30 @@
+import library.testing;
+
+extern fn run_pool(): i32;
+extern fn handoff_gate(): i32;
+extern fn run_until_trap(): u8*;
+extern fn transport_failed(): bool;
+
+// Opening worker groups and running source producers may yield to Node.
+extern fn request_open(workers: u32): void;
+extern fn request_source(path: u8*): void;
+extern fn request_lr(): void;
+extern fn waiting(): bool;
+extern fn lr_code(): i32;
+extern fn semantic_world(width: u32): i32;
+extern fn compile_fixture(path: u8*, width: u32): u32;
+extern fn select_fast(handle: u32): void;
+extern fn execute_step(handle: u32, budget: u32): void;
+extern fn executing(): bool;
+extern fn status_text(): u8*;
+extern fn output_text(): u8*;
+extern fn diagnostic(): u8*;
+extern fn diagnostic_offset(): usize;
+extern fn foundation_text(handle: u32): u8*;
+extern fn foundation_size(): usize;
+extern fn output_size(): usize;
+extern fn destroy_fixture(handle: u32): void;
+extern fn mount_fixture(filename: u8*, path: u8*): void;
+extern fn configure_entry(filename: u8*): void;
+extern fn close_compiler(): void;
+extern fn closed_compile_error(source: u8*): u8*;

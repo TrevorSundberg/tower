@@ -121571,3 +121571,62 @@ worker policy are unchanged. The suite also passed with V8 explicit Wasm
 bounds checks, stack checks and forced memory moves on growth. The release
 images carry no native ASan/UBSan or TSan test configuration. This change
 exercises the interpreter and Node transport. Manager publication is pending.
+
+### Original shared compiler thread registrations on the Tower test runner
+
+Host 2 froze the four registrations at public main `d3170bb1` for assignment
+`e78e917f-de74-4a51-ad5b-9d4024d1cd02`. The ordinary Node test file keeps
+the original names, order and deadlines. Each selects one adjacent companion
+of `compiler_threads.tower` through `selectedTestSteps`. Tower calls the
+shared work fixture 128 times on one instance. A separate instance uses the
+delayed READY store and the coordinator's wait on physical slot zero. The
+third instance throws from the injected child and wakes the blocked main
+call. Tower checks the exception text and shared failure flag. Node owns
+the workers, Atomics gate, Wasm instances and teardown.
+
+The fourth selection runs the original LR and world exports, the generated
+stress programs, Graph and Fast executions at four- and eight-byte targets,
+17 dependency fixtures, two imported modules and 20 negative cases per worker
+capacity. Tower retains the serial canonical bytes per fixture and width and
+checks subsequent executions against them. Each continuation diagnostic has
+its own expected substring, plus the serial full message and byte offset.
+A trial using byte-by-byte interpreted Foundation equality exhausted 65,536
+chunks of 2,048 steps during capacity two. Comparing complete u64 words
+and then the remaining bytes passed within that budget. Optional phase
+logging stays at host calls. Two selection setup trials exposed a missing
+initializer default and the released runner's owner requirement. Direct
+function imports were needed for the text helpers in the companions.
+
+The compiler and portable assertion frontend came from Pages `8417c9ae`.
+The pool and LR test images matched the host 2 qualification receipts for
+the same release source `0da4e513`. Unchanged and migrated registrations
+passed 4/4. The original and migrated transport taps agreed on 412 ordered
+source executions, including all 80 errors and 328 canonical outputs. The
+packet carries the guest output, diagnostics, offsets and the 24 distinct
+Foundation texts verified against those hashes. Both portable trials
+terminated all 42 physical worker threads. Each successful pool main
+reported 12 pthread starts and 12 completed join callbacks, including the
+delayed-handoff run. The injected run reported four starts and zero completed
+joins before the shared exception. Neither the registered deadlines nor the
+outer 180-second watchdog expired. The shared assertion frontend also selected
+1/1/1/1 and observed all 46 physical exits.
+
+Four simultaneous bad expectations and a separate alias-diagnostic mutation
+failed at their Tower assertion locations with exit 1. Restored sources
+passed. Two fresh-process timing pairs ran one suite at a time in opposite
+orders on the Ryzen 5 3600, CPUs 0–11, six physical cores and an 11.52-CPU
+quota. Both used Node 24.22.3 with test concurrency one, warm files and
+tracing disabled. Original wall times were 21.09 and 21.71 s, CPU 47.87 and
+49.53 s, peak RSS 633148 and 631660 KiB. Selected wall times were 24.13
+and 24.20 s, CPU 52.44 and 52.61 s, peak RSS 563428 and 564572 KiB.
+The selected matrix took 21.61–21.65 s. Its shared-frontend replay made
+1,152 host-to-guest allocations requesting 9,646,448 bytes. Its sampled guest
+memory extent reached 5,692,992 bytes. This measures copied observations and
+address-space extent. It excludes internal compiler allocations.
+
+The packet contains the unmodified original, verified public inputs,
+incremental Git bundle, reconstructible source snapshots, invocations,
+TAP, exit codes, memory and timing samples. Source commit `803ccbb1`
+applies directly to the assigned pin. The released JS/Wasm path ran ordinary
+concurrency stress. Native sanitizer coverage does not extend to this path.
+The manager owns publication.
