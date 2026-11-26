@@ -54,30 +54,35 @@ if(policy_triple MATCHES "^x86_64-.*linux")
 endif()
 
 # The bootstrap's selected-test guest uses the ordinary native linker. The
-# sanitizer configurations exercise the same sweep bodies via the standalone.
+# sanitizer configurations exercise the same fault checks via the standalone.
 if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^x86_64-.*linux.*gnu")
   tower_guest_runtime(native-test "${policy_triple}" posix ON UNINSTRUMENTED)
   tower_guest_runtime(host-library "${policy_triple}" posix OFF UNINSTRUMENTED)
   tower_selected_test_count("${policy_triple}")
-  get_property(constructor_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
-  get_target_property(constructor_transport tower-compiler-work-serial INTERFACE_SOURCES)
-  add_dependencies(tower-work-constructor-faults-tests tower-guest-native-test tower-selected-test-count)
-  foreach(selection IN ITEMS owner direct)
-    set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_constructor_faults_fixture.tower")
-    # Owner discovery includes eight work_graph tests and five work_budget tests.
-    set(count 15)
-    if(selection STREQUAL "direct")
-      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_constructor_faults_fixture_test.tower")
-      set(count 2)
-    endif()
-    foreach(jobs IN ITEMS 1 4)
-      set(name "tower-work-constructor-faults-${selection}-jobs-${jobs}")
-      add_test(NAME "${name}" COMMAND tower-selected-test-count "${count} tests passed for ${entry}"
-        "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
-        --test-native-runtime "${constructor_guest}" --link "${policy_runtime}" --link "${constructor_transport}")
-      set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+  get_property(policy_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  get_target_property(policy_transport tower-compiler-work-serial INTERFACE_SOURCES)
+  function(tower_work_fault_selections unit owner_summary direct_summary)
+    string(REPLACE "_" "-" suite "${unit}")
+    add_dependencies(tower-${suite}-tests tower-guest-native-test tower-selected-test-count)
+    foreach(selection IN ITEMS owner direct)
+      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_fixture.tower")
+      set(summary "${owner_summary}")
+      if(selection STREQUAL "direct")
+        set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_fixture_test.tower")
+        set(summary "${direct_summary}")
+      endif()
+      foreach(jobs IN ITEMS 1 4)
+        set(name "tower-${suite}-${selection}-jobs-${jobs}")
+        add_test(NAME "${name}" COMMAND tower-selected-test-count "${summary} passed for ${entry}"
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
+          --test-native-runtime "${policy_guest}" --link "${policy_runtime}" --link "${policy_transport}")
+        set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+      endforeach()
     endforeach()
-  endforeach()
+  endfunction()
+  # Both owners discover five budget tests. The constructor also discovers eight graph tests.
+  tower_work_fault_selections(work_constructor_faults "15 tests" "2 tests")
+  tower_work_fault_selections(work_buffer_faults "6 tests" "1 test")
 endif()
 
 # Backend/frontend registration runs after the native compiler target exists.
