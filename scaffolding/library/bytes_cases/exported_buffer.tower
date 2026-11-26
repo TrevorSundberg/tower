@@ -1,0 +1,27 @@
+import library.testing;
+
+// Addresses and header words belong to the subject reactor's wasm32 memory.
+extern fn seed_address(): u32;
+extern fn buffer_data(): u32;
+extern fn buffer_length(): u32;
+extern fn buffer_capacity(): u32;
+extern fn subject_byte(address: u32): u8;
+extern fn subject_assign(address: u32, length: u32): bool;
+extern fn subject_append(address: u32, length: u32): bool;
+extern fn subject_reserve(capacity: u32): bool;
+
+test() {
+    assert(subject_assign(seed_address(), 5));
+    for (var i: u32 = 0; i < 8; i++) {
+        assert(subject_append(buffer_data(), buffer_length()), "Exported self-append");
+    }
+    assert(buffer_length() == 1280);
+    var capacity = buffer_capacity();
+    assert(subject_assign(buffer_data() + 3, 1000));
+    var data = buffer_data();
+    assert(subject_byte(data) == 101 && subject_byte(data + 1000) == 0);
+    var length = buffer_length();
+    assert(length == 1000 && buffer_capacity() == capacity);
+    assert(!subject_reserve(~convert(u32, 0)));
+    assert(buffer_data() == data && buffer_length() == length && buffer_capacity() == capacity);
+}

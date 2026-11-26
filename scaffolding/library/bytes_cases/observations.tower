@@ -1,0 +1,10 @@
+import library.testing;
+import ..tests.utility_checks;
+
+extern fn read_observation(name: u8*, destination: u8*, capacity: usize): usize;
+
+fn output_matches(name: u8*, wanted: u8*, length: usize): bool {
+    var actual = alloc(u8, length);
+    defer free(actual);
+    return read_observation(name, actual, length) == length && utility_equal(actual, wanted, length);
+}

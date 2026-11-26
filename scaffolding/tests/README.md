@@ -574,7 +574,8 @@ comparisons, seeded mixed inputs, truncation/corruption rejection and recovery.
 file (10,000 tiny, 100 small or one large compression), prints input/output bytes,
 retained output capacity and repetition count, then checks buffer disposal.
 
-The gzip companion runs three declarations through `towerc --test`. The first
+The gzip owner selects the two imported byte-buffer tests and its three local
+declarations. Direct selection of `gzip_test.tower` runs the latter three. The first
 two check repeated encoding, rejection without changing the output, and input
 that aliases the output. They use the same six fixed inputs and 32 seeded
 inputs as the standalone fixture. The third checks the little-endian CRC-32

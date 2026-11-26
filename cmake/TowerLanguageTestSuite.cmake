@@ -42,7 +42,7 @@ foreach(resource IN LISTS builtin_modules)
 endforeach()
 get_property(scc_runtimes GLOBAL PROPERTY TOWER_GUEST_NATIVE_RESOURCES)
 install(FILES ${scc_runtimes} DESTINATION scc-suite/share/tower ${scc_install})
-install(FILES scaffolding/library/graph_components_test.tower scaffolding/library/graph_components_wrong.tower
+install(FILES scaffolding/library/bytes_test.tower scaffolding/library/graph_components_test.tower scaffolding/library/graph_components_wrong.tower
   scaffolding/library/graph_components_expectations.tower scaffolding/library/sha256_test.tower
   scaffolding/library/test_data.tower scaffolding/library/work_graph_test.tower
   scaffolding/library/stack_test.tower scaffolding/library/queue_test.tower
