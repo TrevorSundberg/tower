@@ -1,0 +1,107 @@
+import library.testing;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+
+fn buffer_retention(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    var header = sizeof(usize) * 4;
+    assert(work_budget_init(&budget, 2, 128 + header * 2, 1));
+    assert(work_budget_init(&other, 2, 4096, 1));
+    defer work_budget_dispose(&other);
+    var outer: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 1, 1, 0, &outer));
+    var input: WorkBuffer = default;
+    var output: WorkBuffer = default;
+    assert(work_buffer_resize(&input, &budget, 64, 0) == WorkBudgetError.None);
+    fill(input.data, 73, input.capacity);
+    var original = input.data;
+    var receipt = input.reservation;
+    assert(work_buffer_resize(&input, &budget, 96, 64) == WorkBudgetError.Capacity);
+    assert(input.data == original && input.capacity == 64 && input.data[63] == 73);
+    assert(input.reservation.generation == receipt.generation && budget.used_bytes == 64 + header);
+    assert(work_buffer_resize(&input, &other, 64, 64) == WorkBudgetError.Invalid);
+    assert(work_buffer_resize(&input, &budget, ~convert(usize, 0), 64) == WorkBudgetError.Invalid);
+    assert(work_buffer_resize(&input, &budget, budget.bytes, 64) == WorkBudgetError.Capacity
+        && input.data == original && input.reservation.generation == receipt.generation);
+    assert(work_buffer_resize(&output, &budget, 64, 0) == WorkBudgetError.None);
+    fill(output.data, 29, output.capacity);
+    assert(work_budget_release(&budget, &outer));
+    assert(budget.used_lanes == 0 && budget.used_bytes == budget.bytes && !work_budget_dispose(&budget));
+    // Publication/ownership transfer holds both allocations without reserving
+    // again. A joined lane does not permit another retained buffer to fit.
+    work_buffer_swap(&input, &output);
+    assert(input.data[63] == 29 && output.data == original && budget.used_bytes == budget.bytes);
+    var denied: WorkBuffer = default;
+    assert(work_buffer_resize(&denied, &budget, 1, 0) == WorkBudgetError.Capacity && denied.data == null);
+    work_buffer_dispose(&input);
+    assert(work_buffer_resize(&output, &budget, 32, 32) == WorkBudgetError.None);
+    assert(output.data[31] == 73 && budget.used_bytes == 32 + header);
+    assert(work_budget_release_result(&budget, &receipt) == WorkBudgetError.Stale);
+    work_buffer_move(&input, &output);
+    assert(output.data == null && !output.reservation.active && input.data[31] == 73);
+    work_buffer_move(&input, &input);
+    assert(input.capacity == 32);
+    work_buffer_dispose(&input);
+    assert(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    assert(work_buffer_resize(&input, null, 17, 0) == WorkBudgetError.None && !input.reservation.active);
+    fill(input.data, 11, 17);
+    assert(work_buffer_resize(&input, null, 33, 17) == WorkBudgetError.None && input.data[16] == 11);
+    assert(work_buffer_resize(&input, null, 0, 1) == WorkBudgetError.Invalid);
+    assert(work_buffer_resize(&input, null, 0, 0) == WorkBudgetError.None && input.data == null);
+}
+
+fn buffer_layout(): void {
+    var word = sizeof(usize);
+    var maximum = ~convert(usize, 0);
+    assert(compiler_buffer_allocation_size(0) == word * 4 + 1);
+    assert(compiler_buffer_allocation_size(maximum - word * 5) == maximum - word);
+    assert(compiler_buffer_allocation_size(maximum - word * 5 + 1) == 0);
+    for(var size: usize = 0; size <= 65; size++) {
+        var memory = compiler_buffer_allocate(size);
+        assert(memory != null && bits(usize, memory) % compiler_buffer_alignment() == 0);
+        fill(memory, 37, size);
+        compiler_buffer_free(memory);
+    }
+}
+
+fn buffer_vectors(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 16384, 2));
+    var values: work_vector(u64) = default;
+    var retained: work_vector(u64) = default;
+    for(var i: usize = 0; i < 257; i++) { assert(work_vector_push(&values, &budget, convert(u64, i))); }
+    assert(values.capacity == 512 && budget.used_bytes == 4096 + sizeof(usize) * 4);
+    assert(bits(usize, values.data) % alignof(u64) == 0);
+    var reference: u64 = 0;
+    foreach(var &value in &values) { reference += *value; }
+    assert(reference == 32896);
+    assert(!work_vector_reserve(&values, &budget, ~convert(usize, 0)) && values.length == 257);
+    assert(!work_vector_reserve(&values, null, 512));
+    assert(work_vector_reserve_result(&values, &budget, ~convert(usize, 0)) == WorkBudgetError.Invalid);
+    assert(work_vector_reserve_result(&values, &budget, 1535) == WorkBudgetError.Capacity
+        && values.capacity == 512 && values.length == 257 && values.data[256] == 256);
+    var popped: u64 = 0;
+    assert(work_vector_pop(&values, &popped) && popped == 256);
+    assert(work_vector_push_result(&values, &budget, popped) == WorkBudgetError.None);
+    work_vector_move(&retained, &values);
+    assert(values.data == null && retained.length == 257 && retained.data[256] == 256);
+    assert(work_vector_push(&values, &budget, convert(u64, 99)));
+    work_vector_swap(&retained, &values);
+    assert(values.length == 257 && retained.length == 1 && retained.data[0] == 99);
+    work_vector_dispose(&values);
+    work_vector_dispose(&retained);
+    popped = 19;
+    assert(!work_vector_pop(&values, &popped) && popped == 19);
+    assert(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+}
+
+test() { buffer_layout(); }
+test() { buffer_retention(); }
+test() { buffer_vectors(); }
