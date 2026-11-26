@@ -16,9 +16,35 @@ fn driver_link_output(actual: DriverExecutionResult*, wanted: u8*, program: u8*)
     assert(driver_execution_equal(&actual.output, &reference), program);
 }
 
+fn link_checked_command(args: DriverArguments*, wanted: u8*): void {
+    var actual = driver_execution_capture(args); defer driver_execution_close(&actual);
+    driver_check(actual.code == DriverExecutionSuccess, "linking command exit status (see driver stderr.txt)");
+    if wanted != null { driver_link_output(&actual, wanted, args.values.data[args.values.length - 1]); }
+}
+
+fn link_compile_fixture(context: DriverLinking*, relative: u8*, output: u8*, target: u8*,
+    library: bool, object: bool, link: u8*, second_link: u8*): void {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    driver_check(driver_text(&path, context.compiler.grammar) && driver_text(&path, relative)
+        && host_text_terminate(&path), "linking source path");
+    driver_platform_remove(output);
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    driver_execution_arguments(&args, &context.compiler, path.data, target, object ? "--emit" : null,
+        object ? "object" : null, output, true, null);
+    if library { driver_argument(&args, "", "--library"); }
+    if link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", link); }
+    if second_link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", second_link); }
+    if target != null && !object && context.target_linker != null {
+        driver_argument(&args, "", "--linker"); driver_argument(&args, "", context.target_linker);
+    }
+    if context.clang != null { driver_argument(&args, "", "--cc"); driver_argument(&args, "", context.clang); }
+    link_checked_command(&args, null);
+    driver_check(driver_platform_exists(output), output);
+}
+
 fn driver_linking_case(context: DriverLinking*, source: u8*, executable: u8*, wanted: u8*, interpret: bool): void {
     driver_message(DriverLinkingStdout, "Linking case: ", source, true);
-    driver_linking_compile(context, source, executable, null, false, false, null, null);
+    link_compile_fixture(context, source, executable, null, false, false, null, null);
     driver_linking_execute(executable, wanted);
     if interpret {
         var path: ByteBuffer = default; defer bytes_dispose(&path);
@@ -35,12 +61,12 @@ fn link_native_archive(context: DriverLinking*): void {
     var linked = driver_target_output(DriverTargetCase.Linking);
     var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
     driver_message(DriverLinkingStdout, "Linking case: ", "native archive and exported callback", true);
-    driver_linking_compile(context, "/tests/foreign_fixture.tower", "native-fixture.o", null, true, true, null, null);
+    link_compile_fixture(context, "/tests/foreign_fixture.tower", "native-fixture.o", null, true, true, null, null);
     driver_platform_remove("native-fixture.a");
     driver_argument(&args, "", context.ar); driver_argument(&args, "", "rcsD");
     driver_argument(&args, "", "native-fixture.a"); driver_argument(&args, "", "native-fixture.o");
-    driver_linking_run(&args, null);
-    driver_linking_compile(context, "/tests/linking.tower", "native-linking", null, false, false, "native-fixture.a", null);
+    link_checked_command(&args, null);
+    link_compile_fixture(context, "/tests/linking.tower", "native-linking", null, false, false, "native-fixture.a", null);
     driver_linking_execute("native-linking", linked);
 }
 
@@ -52,12 +78,12 @@ fn link_wasm_archive(context: DriverLinking*): void {
     // Exercise the compiler's built-in default rather than an explicit tool.
     var builtin = *context;
     builtin.target_linker = null;
-    driver_linking_compile(&builtin, "/tests/linking.tower", "native-compiled.wasm", "wasm32-unknown-unknown",
+    link_compile_fixture(&builtin, "/tests/linking.tower", "native-compiled.wasm", "wasm32-unknown-unknown",
         false, false, context.wasm_archive, null);
     var archive: ByteBuffer = default; defer bytes_dispose(&archive);
     assert(driver_read_file(context.wasm_archive, &archive) && driver_write_file("tower-input.o", archive.data, archive.length),
         "link input may use the default generated-object spelling");
-    driver_linking_compile(&builtin, "/tests/linking.tower", "named-input.wasm", "wasm32-unknown-unknown",
+    link_compile_fixture(&builtin, "/tests/linking.tower", "named-input.wasm", "wasm32-unknown-unknown",
         false, false, "tower-input.o", null);
     var previous: ByteBuffer = default; var repeated: ByteBuffer = default;
     defer bytes_dispose(&previous); defer bytes_dispose(&repeated);
@@ -70,7 +96,7 @@ fn link_wasm_archive(context: DriverLinking*): void {
 
 fn link_separate_object(context: DriverLinking*): void {
     var linked = driver_target_output(DriverTargetCase.Linking);
-    driver_linking_compile(context, "/tests/linking.tower", "tower.o", null, false, true, null, null);
+    link_compile_fixture(context, "/tests/linking.tower", "tower.o", null, false, true, null, null);
     var resources: ByteBuffer = default; var runtime: ByteBuffer = default;
     defer bytes_dispose(&resources); defer bytes_dispose(&runtime);
     assert(driver_resource_root(&resources, context.compiler.compiler)
@@ -81,7 +107,7 @@ fn link_separate_object(context: DriverLinking*): void {
     driver_argument(&separate, "", context.clang); driver_argument(&separate, "", "tower.o");
     driver_argument(&separate, "", "native-fixture.a"); driver_argument(&separate, "", runtime.data);
     driver_argument(&separate, "", "-o"); driver_argument(&separate, "", "separate-link");
-    driver_linking_run(&separate, null); driver_linking_execute("separate-link", linked);
+    link_checked_command(&separate, null); driver_linking_execute("separate-link", linked);
 }
 
 fn link_memory(context: DriverLinking*): void {
@@ -92,12 +118,12 @@ fn link_memory(context: DriverLinking*): void {
 fn link_storage(context: DriverLinking*): void {
     driver_linking_case(context, "/tests/storage.tower", "native-storage",
         "true\ntrue\n10\n84\ntrue\n0\ntrue\n16\ntrue\ntrue\n42\n200\ntrue\n597\n42\nfalse\n200\n", true);
-    driver_linking_compile(context, "/library/storage.tower", "storage.o", null, true, true, null, null);
-    driver_linking_compile(context, "/library/bytes.tower", "bytes.o", null, true, true, null, null);
+    link_compile_fixture(context, "/library/storage.tower", "storage.o", null, true, true, null, null);
+    link_compile_fixture(context, "/library/bytes.tower", "bytes.o", null, true, true, null, null);
 }
 
 fn link_llvm(context: DriverLinking*): void {
-    driver_linking_compile(context, "/tests/llvm_c.tower", "llvm-c-api", null, false, false, context.llvm, null);
+    link_compile_fixture(context, "/tests/llvm_c.tower", "llvm-c-api", null, false, false, context.llvm, null);
     driver_linking_execute("llvm-c-api", "42\n");
 }
 
@@ -110,13 +136,20 @@ fn link_forward(context: DriverLinking*): void {
 }
 
 
+fn link_run_download(file: u8*, runner: u8*, wanted: u8*): void {
+    driver_check(driver_test_make_executable(file), "browser export executable permission");
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    if runner != null { driver_argument(&args, "", runner); }
+    driver_argument(&args, "./", file); link_checked_command(&args, wanted);
+}
+
 fn link_browser_exports(qemu: u8*): void {
     var output = "5\n84\n42\n8\n41\n42\n";
-    driver_download_execute("linux.elf", null, output);
-    driver_download_execute("library-linux.elf", null, "42\n");
+    link_run_download("linux.elf", null, output);
+    link_run_download("library-linux.elf", null, "42\n");
     if qemu != null && qemu[0] != 0 {
-        driver_download_execute("linux-arm.elf", qemu, output);
-        driver_download_execute("library-linux-arm.elf", qemu, "42\n");
+        link_run_download("linux-arm.elf", qemu, output);
+        link_run_download("library-linux-arm.elf", qemu, "42\n");
     } else { driver_message(DriverLinkingStdout, "SKIP browser-exported ARM64 execution: supply a QEMU executable", "", true); }
 }
 

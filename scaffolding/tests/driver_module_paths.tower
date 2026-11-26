@@ -50,19 +50,6 @@ fn driver_import_grammar(files: DriverImportFiles*, resources: u8*, name: u8*): 
         && driver_import_add(files, path.data, source.data);
 }
 
-fn driver_with_imports(compiler: u8*, resources: u8*, check: function(bool, DriverImportFiles*, u8*)): bool {
-    var files: DriverImportFiles = default;
-    var marker: ByteBuffer = default;
-    defer bytes_dispose(&files.root); defer bytes_dispose(&marker);
-    if !driver_platform_temporary(&marker) { return false; }
-    defer driver_platform_remove(marker.data);
-    if !driver_text(&files.root, marker.data) || !driver_text(&files.root, "_imports")
-        || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
-    driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
-    defer driver_import_close(&files);
-    return driver_mount_imports(&files, resources) && check(&files, compiler);
-}
-
 fn driver_all_imports(files: DriverImportFiles*, compiler: u8*): bool {
     return driver_import_checks(files, compiler) && driver_import_companions(files, compiler)
         && driver_run_companions(files, compiler);

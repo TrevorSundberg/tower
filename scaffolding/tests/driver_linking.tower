@@ -1,13 +1,7 @@
 import tower;
-import driver;
 import driver_differentials;
-import driver_platform_api;
 import driver_linking_test;
 import .host.driver_support;
-import .host.driver_platform;
-import .host.driver_link;
-import .library.bytes_types;
-import .library.bytes_interface;
 
 // Linux x64 validation over explicit tool/artifact inputs. Reuse the normal
 // driver capture transport and its child deadline; do not invoke a shell.
@@ -18,9 +12,7 @@ struct DriverLinking {
 var DriverLinkingStdout: i32 = 1;
 
 fn driver_linking_run(args: DriverArguments*, wanted: u8*): void {
-    var actual = driver_execution_capture(args); defer driver_execution_close(&actual);
-    driver_check(actual.code == DriverExecutionSuccess, "linking command exit status (see driver stderr.txt)");
-    if wanted != null { driver_link_output(&actual, wanted, args.values.data[args.values.length - 1]); }
+    link_checked_command(args, wanted);
 }
 
 fn driver_linking_execute(executable: u8*, wanted: u8*): void {
@@ -30,22 +22,7 @@ fn driver_linking_execute(executable: u8*, wanted: u8*): void {
 
 fn driver_linking_compile(context: DriverLinking*, relative: u8*, output: u8*, target: u8*,
     library: bool, object: bool, link: u8*, second_link: u8*): void {
-    var path: ByteBuffer = default; defer bytes_dispose(&path);
-    driver_check(driver_text(&path, context.compiler.grammar) && driver_text(&path, relative)
-        && host_text_terminate(&path), "linking source path");
-    driver_platform_remove(output);
-    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
-    driver_execution_arguments(&args, &context.compiler, path.data, target, object ? "--emit" : null,
-        object ? "object" : null, output, true, null);
-    if library { driver_argument(&args, "", "--library"); }
-    if link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", link); }
-    if second_link != null { driver_argument(&args, "", "--link"); driver_argument(&args, "", second_link); }
-    if target != null && !object && context.target_linker != null {
-        driver_argument(&args, "", "--linker"); driver_argument(&args, "", context.target_linker);
-    }
-    if context.clang != null { driver_argument(&args, "", "--cc"); driver_argument(&args, "", context.clang); }
-    driver_linking_run(&args, null);
-    driver_check(driver_platform_exists(output), output);
+    link_compile_fixture(context, relative, output, target, library, object, link, second_link);
 }
 
 fn driver_test_linking(context: DriverLinking*): i32 {
@@ -62,10 +39,7 @@ fn driver_test_linking(context: DriverLinking*): i32 {
 }
 
 fn driver_download_execute(file: u8*, runner: u8*, wanted: u8*): void {
-    driver_check(driver_test_make_executable(file), "browser export executable permission");
-    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
-    if runner != null { driver_argument(&args, "", runner); }
-    driver_argument(&args, "./", file); driver_linking_run(&args, wanted);
+    link_run_download(file, runner, wanted);
 }
 
 fn driver_test_browser_exports(qemu: u8*): i32 {

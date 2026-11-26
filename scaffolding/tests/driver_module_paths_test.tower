@@ -70,6 +70,19 @@ fn driver_import_run(files: DriverImportFiles*, compiler: u8*, source: u8*, outp
     return ok;
 }
 
+fn driver_with_imports(compiler: u8*, resources: u8*, check: function(bool, DriverImportFiles*, u8*)): bool {
+    var files: DriverImportFiles = default;
+    var marker: ByteBuffer = default;
+    defer bytes_dispose(&files.root); defer bytes_dispose(&marker);
+    if !driver_platform_temporary(&marker) { return false; }
+    defer driver_platform_remove(marker.data);
+    if !driver_text(&files.root, marker.data) || !driver_text(&files.root, "_imports")
+        || !host_text_terminate(&files.root) || !driver_test_directory(files.root.data) { return false; }
+    driver_arguments_init(&files.files); driver_arguments_init(&files.directories);
+    defer driver_import_close(&files);
+    return driver_mount_imports(&files, resources) && check(&files, compiler);
+}
+
 fn driver_mount_imports(files: DriverImportFiles*, resources: u8*): bool {
     return driver_import_add(files, "/library", null) && driver_import_add(files, "/a", null)
         && driver_import_add(files, "/a/b", null) && driver_import_add(files, "/CaseDir", null)
