@@ -195,6 +195,7 @@ if(TARGET towerc)
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
     set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
+    tower_companion_test(tower-struct-field-values compiler/semantic_values_test.tower ${workers})
     tower_companion_test(tower-forward-bindings tests/forward.tower ${workers})
     add_test(NAME tower-semantic-defer-companion-${workers}
       COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}

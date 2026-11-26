@@ -1,0 +1,14 @@
+import foundation;
+
+struct Pair {
+    x: i32;
+    y: i32;
+}
+
+var p: Pair;
+var a: i32* = &p.y;
+*a = 12;
+print(p.y);
+var same: i32* = &p.y;
+var equal: bool = a == same;
+print(equal);

@@ -1,0 +1,24 @@
+import foundation;
+
+struct S0 { x: i32; }
+struct S1 { a: S0; b: S0; }
+struct S2 { a: S1; b: S1; }
+struct S3 { a: S2; b: S2; }
+struct S4 { a: S3; b: S3; }
+struct S5 { a: S4; b: S4; }
+struct S6 { a: S5; b: S5; }
+struct S7 { a: S6; b: S6; }
+struct S8 { a: S7; b: S7; }
+struct S9 { a: S8; b: S8; }
+struct S10 { a: S9; b: S9; }
+struct S11 { a: S10; b: S10; }
+struct S12 { a: S11; b: S11; }
+struct S13 { a: S12; b: S12; }
+struct S14 { a: S13; b: S13; }
+struct S15 { a: S14; b: S14; }
+struct S16 { a: S15; b: S15; }
+struct S17 { a: S16; b: S16; }
+struct S18 { a: S17; b: S17; }
+struct S19 { a: S18; b: S18; }
+struct S20 { a: S19; b: S19; }
+struct S21 { a: S20; b: S20; }

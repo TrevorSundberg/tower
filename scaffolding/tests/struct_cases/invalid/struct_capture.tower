@@ -1,0 +1,4 @@
+import foundation;
+print(99);
+parse CoreStruct = 'broken';
+broken

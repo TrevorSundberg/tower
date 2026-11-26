@@ -1,0 +1,25 @@
+import library.testing;
+
+// The host supplies the observations from each actual compiler handle. Types
+// are compared as complete structured values and stdout as the original text.
+extern fn struct_status(engine: u8*, status: u8*): bool;
+extern fn struct_same(left: u8*, right: u8*, property: u8*): bool;
+extern fn struct_has_llvm(): bool;
+
+test() {
+    assert(struct_status("source", "done"), "Source execution failed");
+    assert(struct_same("source", "expected", "output"), "Source stdout");
+    assert(struct_same("source", "roundtrip", "foundation"), "Canonical Foundation changed");
+    assert(struct_same("source", "roundtrip", "types"), "Canonical type registry changed");
+    assert(struct_status("roundtrip", "done"), "Round-trip execution failed");
+    assert(struct_same("roundtrip", "expected", "output"), "Round-trip stdout");
+    assert(struct_same("roundtrip", "source", "error"), "Round-trip error");
+    if struct_has_llvm() {
+        assert(struct_status("compiler", "compiled"), "LLVM compilation failed");
+        assert(struct_same("llvm", "source", "status"), "LLVM execution status");
+        assert(struct_same("llvm", "source", "error"), "LLVM execution error");
+        assert(struct_same("llvm", "source", "errorOffset"), "Mapped LLVM error location");
+        assert(struct_same("llvm", "source", "output"), "LLVM stdout");
+        assert(struct_same("llvm", "source", "outputTruncated"), "LLVM output truncation");
+    }
+}

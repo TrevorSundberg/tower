@@ -1,0 +1,49 @@
+import library.testing;
+import .tests.struct_cases.nested as nested;
+import .tests.struct_cases.recursive as recursive;
+import .tests.struct_cases.redirect as redirect;
+import .tests.struct_cases.forward as forward;
+import .tests.struct_cases.layout as layout;
+
+test() {
+    var source: nested.Outer = {flag: true, pair: {x: -3, y: 8}};
+    var snapshot = source;
+    var borrowed = &source.pair;
+    borrowed.x += 4;
+    assert(source.pair.x == 1 && snapshot.pair.x == -3, "A nested copy has independent field storage");
+    assert(snapshot.flag && snapshot.pair.y == 8);
+}
+
+test() {
+    var first: redirect.Pair = {x: 1};
+    var next: redirect.Pair = {x: 2};
+    var slot: redirect.Ref = {p: &first};
+    var snapshot = slot;
+    slot.p.x = redirect.redirect(&slot, &next);
+    assert(first.x == 9 && next.x == 2, "The destination is captured before the call");
+    assert(slot.p == &next && snapshot.p == &first, "A copied pointer retains its original referent");
+}
+
+test() {
+    var a: recursive.Node;
+    var b: recursive.Node;
+    a.next = &b;
+    b.next = &a;
+    assert(a.next == &b && a.next.next == &a);
+    var p: forward.Pair = {x: 40};
+    var alias = forward.identity(&p);
+    alias.x = forward.add(p.x, 2);
+    assert(alias == &p && p.x == 42);
+}
+
+test() {
+    var value: layout.Outer;
+    var start = bits(usize, &value);
+    assert(sizeof(layout.Inner) == 8 && alignof(layout.Inner) == 4);
+    assert(bits(usize, &value.lead) == start);
+    assert(bits(usize, &value.nested) - start == 4);
+    assert(bits(usize, &value.nested.value) - start == 8);
+    assert(bits(usize, &value.tail) - start == 12);
+    assert(bits(usize, &value.link) - start == 16);
+    assert(sizeof(layout.Outer) == 16 + sizeof(layout.Outer*));
+}

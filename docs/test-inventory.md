@@ -153,3 +153,39 @@ The [case map](evidence/language_collections_checks.tsv) pairs all 25 failure
 codes in `language_collections.tower` with their adjacent assertions.
 The browser suite continues to run the original script, which prints zero
 across its interpreter, Foundation round-trip and LLVM comparisons.
+
+### Struct values, reflected fields and source handles
+
+Run `towerc --test scaffolding/compiler/semantic_values.tower --test-details`
+to select the four field-access declarations through their owner. Select
+`semantic_values_test.tower` directly to run just those four. They exercise
+a nested copy and borrow, assignment through a pointer redirected by the RHS,
+forward and recursive pointer identity, and target-sized layout. The native
+CTest registrations are `tower-struct-field-values-{1,4}`.
+
+`node --test playground/tests/structs.test.mjs` retains all 12 original
+selectors. Nine read a source and its stdout oracle. Each runs the portable
+compiler, recompiles its canonical Foundation, compares the complete type
+registry, and checks emitted LLVM/Wasm execution including mapped diagnostics
+and output truncation. An LLVM skip is visible in the test report.
+[Guest sources and expected files](../scaffolding/tests/struct_cases)
+
+| Original selector | Guest input |
+| --- | --- |
+| Milestone example | Existing `examples/structs.tower`, with `milestone.expected` |
+| Nested inline structs | `nested.tower` |
+| Recursive pointer fields | `recursive.tower` |
+| Forward types and functions | `forward.tower` |
+| Field destination captured before a call redirects its pointer | `redirect.tower` |
+| Pointer stored in a field aliases a scalar | `scalar_alias.tower` |
+| Field pointers before initialization | `field_address.tower` |
+| Empty structs still have distinct storage | `empty.tower` |
+| Quoted type and field names | `quoted.tower` |
+| Deterministic layout and fields | `layout.tower` and `browser/layout.tower` check the four primitives, both aggregate layouts and the entire recursive link field record |
+| Invalid structs and field operations | `browser/diagnostics.tower` selects 19 named inputs under `invalid/`, requiring the diagnostic before any steps or printed bytes, then checks the 4 MiB storage and field path limits |
+| Struct/type node release | `browser/release.tower` measures live nodes across 20 repetitions of the milestone, self-field and missing-field compile/execute/reflect/destroy sequence |
+
+The browser probes run as Tower tests in a second Wasm instance. This keeps
+the assertion program's own compiler allocations outside the measured node
+count. The release-only selector uses the same initial standalone compiler
+state as the original `--test-name-pattern='struct/type nodes'` invocation.
