@@ -1873,7 +1873,8 @@ nonzero. Direct selection of the corresponding companion uses the same
 providers shown by `ctest -V`.
 
 The same installation registers `tower-selected-sha256-jobs-1` and
-`tower-selected-sha256-jobs-4` through the portable interpreter. Its SHA-256
+`tower-selected-sha256-jobs-4` through the same linked test runtime. SHA-256 also runs through the portable
+interpreter when invoked directly. Its SHA-256
 companion and ordinary-named `library/test_data.tower` are private test inputs.
 `tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
 and the SCC registration names remain supported.
