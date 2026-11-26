@@ -58,6 +58,7 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/entity_views.tower scaffolding/tests/entity_views_test.tower scaffolding/tests/entity_views.expected
   scaffolding/tests/generic_registry.tower scaffolding/tests/generic_registry_test.tower scaffolding/tests/generic_registry.expected
   scaffolding/tests/generic_body_budget.tower scaffolding/tests/entity_store.tower scaffolding/tests/entity_store_test.tower
+  scaffolding/tests/entity_store_cases_test.tower
   scaffolding/tests/compiler_buffer_contract.tower scaffolding/tests/compiler_buffer_contract_test.tower
   scaffolding/tests/work_arena_shared_fixture.tower scaffolding/tests/work_arena_shared_fixture_test.tower
   scaffolding/tests/work_arena_fault_fixture.tower scaffolding/tests/work_arena_fault_fixture_test.tower

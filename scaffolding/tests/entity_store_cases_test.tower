@@ -1,0 +1,152 @@
+import library.testing;
+import .host.memory;
+import .library.entities;
+import .library.entity_types;
+
+extern fn puts(text: u8*): i32;
+extern fn tower_test_buffer_count(): usize;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+var TestEntityByteLifecycle: usize = 1;
+var TestEntityCountLifecycle: usize = 2;
+
+// Ordinary Tower dispatch for this test-owned store. The compiler's lifecycle
+// bridge is not linked here and no native callback wrapper is required.
+export fn tower_entity_finalize(kind: usize, component: EntityComponent*, data: u8*): void {
+    assert(entity_component_data(component) == data, "Entity finalizer payload identity");
+    assert(entity_component_from_data(data) == component, "Entity finalizer reverse identity");
+    assert(entity_component_owner(component) is not null && entity_component_type(component) is not null, "Entity finalizer owner/type lifetime");
+    if kind == TestEntityByteLifecycle {
+        assert(data[0] == 123, "Entity finalizer payload value");
+    } else {
+        assert(kind == TestEntityCountLifecycle, "Entity finalizer lifecycle identity");
+        var counter = *bits(usize**, data);
+        ++*counter;
+    }
+}
+
+fn entity_test_empty(store: EntityStore*, baseline: usize): void {
+    assert(entity_store_count(store) == 0, "Entity store leaked node");
+    assert(entity_store_component_count(store) == 0, "Entity store leaked component");
+    assert(tower_test_buffer_count() == baseline, "Entity store leaked allocation");
+}
+
+fn entity_test_parent_name(child: Entity*): u8* {
+    var parent = entity_parent(child);
+    if parent is null { return null; }
+    return entity_child_name(parent, entity_child_index(parent, child));
+}
+
+fn entity_store_native_checks(): void {
+    var initial = tower_test_buffer_count();
+    var store = entity_store_create();
+    assert(store is not null, "Entity store create");
+    var baseline = tower_test_buffer_count();
+    {
+        var parent = entity_create(store);
+        assert(parent is not null && entity_store_count(store) == 1, "Entity create parent");
+        assert(entity_parent(parent) is null && entity_references(parent) == 1, "Entity initial parent/reference");
+        assert(entity_child_count(parent) == 0 && entity_component_count(parent) == 0, "Entity initial contents");
+        var child = entity_create(store);
+        assert(entity_store_count(store) == 2, "Entity create child");
+        assert(entity_attach(child, parent, null), "Entity attach");
+        assert(entity_references(parent) == 1 && entity_references(child) == 2, "Entity attach owns child");
+        assert(entity_id(child) > entity_id(parent), "Entity monotonic identity");
+        assert(entity_parent(child) == parent && entity_child_count(parent) == 1, "Entity attached relation");
+        assert(entity_child_at(parent, 0) == child && entity_child_index(parent, child) == 0, "Entity child index");
+        entity_release(child);
+        assert(entity_references(child) == 1 && entity_references(parent) == 1 && entity_store_count(store) == 2, "Entity containment retains child");
+        assert(entity_release(parent) == 0, "Entity releases contained subtree");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        var child = entity_create(store);
+        assert(entity_attach(child, parent, null), "Entity detach fixture attach");
+        assert(entity_references(parent) == 1 && entity_references(child) == 2, "Entity detach fixture references");
+        entity_release(child);
+        assert(entity_references(parent) == 1 && entity_references(child) == 1 && entity_store_count(store) == 2, "Entity detach fixture ownership");
+        assert(entity_attach(child, null, null), "Entity detach unretained child");
+        assert(entity_references(parent) == 1 && entity_store_count(store) == 1, "Entity detach destroys unretained child");
+        assert(entity_release(parent) == 0, "Entity detach parent release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        var child = entity_create(store);
+        assert(entity_references(parent) == 1 && entity_references(child) == 1, "Entity retained detach initial refs");
+        assert(entity_attach(child, parent, null), "Entity retained detach attach");
+        assert(entity_references(parent) == 1 && entity_references(child) == 2, "Entity retained detach owned refs");
+        assert(entity_attach(child, null, null), "Entity retained detach");
+        assert(entity_references(child) == 1 && entity_store_count(store) == 2, "Entity retained detach preserves child");
+        assert(entity_release(parent) == 0 && entity_release(child) == 0, "Entity retained detach release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var parent = entity_create(store);
+        assert(entity_test_parent_name(parent) is null, "Entity root has no member name");
+        assert(entity_member_index(parent, "member1") == ~convert(usize, 0) && entity_member_index(parent, "member2") == ~convert(usize, 0), "Entity absent member sentinel");
+        var first = entity_create(store);
+        assert(entity_attach(first, parent, "member1"), "Entity first named attach");
+        assert(entity_references(parent) == 1 && entity_references(first) == 2, "Entity first named references");
+        assert(entity_parent(first) == parent && strcmp(entity_test_parent_name(first), "member1") == 0, "Entity first member name");
+        assert(entity_member_index(parent, "member1") == 0 && entity_child_at(parent, 0) == first && entity_child_index(parent, first) == 0, "Entity first member lookup");
+        var second = entity_create(store);
+        assert(entity_attach(second, parent, "member2"), "Entity second named attach");
+        assert(entity_references(parent) == 1 && entity_references(first) == 2 && entity_references(second) == 2 && entity_store_count(store) == 3, "Entity second named references");
+        assert(entity_parent(second) == parent && strcmp(entity_test_parent_name(second), "member2") == 0, "Entity second member name");
+        assert(entity_member_index(parent, "member2") == 1 && entity_child_at(parent, 1) == second && entity_child_index(parent, second) == 1, "Entity second member lookup");
+        assert(entity_attach(second, parent, "member1"), "Entity replace same named member");
+        assert(entity_references(parent) == 1 && entity_references(first) == 1 && entity_references(second) == 2 && entity_store_count(store) == 3, "Entity replacement reference transfer");
+        assert(entity_parent(first) is null && entity_test_parent_name(first) is null, "Entity displaced child detached");
+        assert(entity_parent(second) == parent && strcmp(entity_test_parent_name(second), "member1") == 0, "Entity replacement member name");
+        assert(entity_member_index(parent, "member1") == 0 && entity_child_at(parent, 0) == second && entity_member_index(parent, "member2") == ~convert(usize, 0), "Entity replacement lookup order");
+        assert(entity_release(parent) == 0, "Entity named parent release");
+        assert(entity_references(first) == 1 && entity_references(second) == 1 && entity_store_count(store) == 2, "Entity named children retained");
+        assert(entity_parent(first) is null && entity_parent(second) is null, "Entity named children orphaned");
+        assert(entity_release(first) == 0 && entity_release(second) == 0, "Entity named children release");
+    }
+    entity_test_empty(store, baseline);
+    {
+        var owner = entity_create(store);
+        var type = entity_create(store);
+        assert(entity_references(type) == 1 && entity_component_count(owner) == 0 && entity_component_at(owner, 0) is null, "Entity component initial state");
+        assert(entity_component_data(null) is null && entity_component_from_data(null) is null, "Entity null component access");
+        assert(entity_register(type, 1, 1, TestEntityByteLifecycle), "Entity register byte payload");
+        var component = entity_component_add(owner, type);
+        assert(entity_store_count(store) == 2 && entity_store_component_count(store) == 1, "Entity component allocation counts");
+        assert(entity_references(type) == 2 && entity_references(owner) == 1, "Entity component retains type");
+        assert(entity_component_count(owner) == 1 && entity_component_at(owner, 0) == component && entity_component_at(owner, 1) is null, "Entity component enumeration");
+        assert(entity_component_get(owner, type) == component && entity_component_type(component) == type && entity_component_owner(component) == owner, "Entity component identity");
+        var data = entity_component_data(component);
+        data[0] = 123;
+        assert(entity_component_from_data(data) == component, "Entity component reverse lookup");
+        assert(entity_component_add(owner, type) == component, "Entity duplicate component preserves identity");
+        entity_release(owner);
+        assert(entity_store_count(store) == 1 && entity_store_component_count(store) == 0 && entity_references(type) == 1, "Entity component destruction releases type");
+        entity_release(type);
+    }
+    entity_test_empty(store, baseline);
+    {
+        // Native entities.cpp also counted removal/destruction callbacks while
+        // the component retains its type after the caller releases that type.
+        var destroyed: usize = 0;
+        var type = entity_create(store);
+        var owner = entity_create(store);
+        assert(entity_register(type, 16, alignof(usize*), TestEntityCountLifecycle), "Entity register counted payload");
+        var component = entity_component_add(owner, type);
+        *bits(usize**, entity_component_data(component)) = &destroyed;
+        assert(entity_query_count(type) == 1 && entity_query_at(type, 0) == component, "Entity component query identity");
+        assert(entity_component_remove(owner, type), "Entity explicit component removal");
+        assert(destroyed == 1 && entity_query_count(type) == 0, "Entity removal callback and query cleanup");
+        component = entity_component_add(owner, type);
+        *bits(usize**, entity_component_data(component)) = &destroyed;
+        entity_release(type);
+        entity_release(owner);
+        assert(destroyed == 2, "Entity owner/type finalizer lifetime");
+    }
+    entity_test_empty(store, baseline);
+    assert(entity_store_dispose(store), "Entity store dispose");
+    assert(tower_test_buffer_count() == initial, "Entity store full allocation cleanup");
+    puts("Tower entities: containment, named replacement, component identity and finalizer lifetime passed.");
+}

@@ -1,0 +1,4 @@
+import entity_store;
+
+// Keep the shared-store trial out of the installed and browser selections.
+test() { entity_store_tests(); }

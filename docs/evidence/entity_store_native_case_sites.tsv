@@ -1,0 +1,69 @@
+original_entity_store_line	entity_store_cases_test_line	dynamic_hits	label
+20	16	3	Entity finalizer payload identity
+21	17	3	Entity finalizer reverse identity
+22	18	3	Entity finalizer owner/type lifetime
+24	20	1	Entity finalizer payload value
+26	22	2	Entity finalizer lifecycle identity
+33	29	6	Entity store leaked node
+34	30	6	Entity store leaked component
+35	31	6	Entity store leaked allocation
+47	43	1	Entity store create
+51	47	1	Entity create parent
+52	48	1	Entity initial parent/reference
+53	49	1	Entity initial contents
+55	51	1	Entity create child
+56	52	1	Entity attach
+57	53	1	Entity attach owns child
+58	54	1	Entity monotonic identity
+59	55	1	Entity attached relation
+60	56	1	Entity child index
+62	58	1	Entity containment retains child
+63	59	1	Entity releases contained subtree
+69	65	1	Entity detach fixture attach
+70	66	1	Entity detach fixture references
+72	68	1	Entity detach fixture ownership
+73	69	1	Entity detach unretained child
+74	70	1	Entity detach destroys unretained child
+75	71	1	Entity detach parent release
+81	77	1	Entity retained detach initial refs
+82	78	1	Entity retained detach attach
+83	79	1	Entity retained detach owned refs
+84	80	1	Entity retained detach
+85	81	1	Entity retained detach preserves child
+86	82	1	Entity retained detach release
+91	87	1	Entity root has no member name
+92	88	1	Entity absent member sentinel
+94	90	1	Entity first named attach
+95	91	1	Entity first named references
+96	92	1	Entity first member name
+97	93	1	Entity first member lookup
+99	95	1	Entity second named attach
+100	96	1	Entity second named references
+101	97	1	Entity second member name
+102	98	1	Entity second member lookup
+103	99	1	Entity replace same named member
+104	100	1	Entity replacement reference transfer
+105	101	1	Entity displaced child detached
+106	102	1	Entity replacement member name
+107	103	1	Entity replacement lookup order
+108	104	1	Entity named parent release
+109	105	1	Entity named children retained
+110	106	1	Entity named children orphaned
+111	107	1	Entity named children release
+117	113	1	Entity component initial state
+118	114	1	Entity null component access
+119	115	1	Entity register byte payload
+121	117	1	Entity component allocation counts
+122	118	1	Entity component retains type
+123	119	1	Entity component enumeration
+124	120	1	Entity component identity
+127	123	1	Entity component reverse lookup
+128	124	1	Entity duplicate component preserves identity
+130	126	1	Entity component destruction releases type
+140	136	1	Entity register counted payload
+143	139	1	Entity component query identity
+144	140	1	Entity explicit component removal
+145	141	1	Entity removal callback and query cleanup
+150	146	1	Entity owner/type finalizer lifetime
+153	149	1	Entity store dispose
+154	150	1	Entity store full allocation cleanup

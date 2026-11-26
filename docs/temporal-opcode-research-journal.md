@@ -120284,3 +120284,91 @@ RSS was 885,480 / 907,864 KiB. The original selections failed before running
 these cases. Assignment `113f922c-7d48-4de3-a64f-abbce6a05b3b` includes the
 full output, case mappings, trial overlays, thread traces, link recipes, maps,
 timings, wrong expectations and verified public-base bundle for the manager.
+
+## Native entity store aggregate on public 480d45c4, 2026-11-26
+
+Host 4 built and ran the unchanged parser-only `tower-entity-tests` first.
+Its generated main calls `entity_store_tests()` and writes a 98-byte success
+line. The existing `entity_store_test.tower` registers lifecycle zero, writes
+300 aligned payloads, removes the even ones and queries 150 survivors.
+`entities_test.tower` checks a separate script's stdout. Neither runs the
+native aggregate's six scenarios on one store, its three finalizer invocations
+or its six intermediate allocator checks.
+
+The new `entity_store_cases_test.tower` holds the shared trial and callback.
+Both entry points reach it through the original exported function. The
+payload accessors keep their original ABI. Only `entity_store_native_test.tower`
+declares the additional test. Putting that declaration alongside the shared
+functions made the installed owner execute seven declarations even when the
+helper had a nonstandard filename. Keeping the declaration in its scoped
+companion restored six. The optional kit installs the shared helper. The
+parser-only Linux x64 owner and direct registrations select the native suffix
+and compare stdout with the unchanged executable's bytes.
+
+| Original entity_store lines | Shared companion lines | Inputs and checks |
+| --- | --- | --- |
+| 19–30 | 15–26 | Forward and reverse payload identity, live owner/type, byte 123, counted lifecycle |
+| 32–42 | 28–38 | Empty node, component and live-buffer baselines, parent/name lookup |
+| 44–65 | 40–61 | One store, initial references, containment, ordered child index, subtree release |
+| 66–88 | 62–84 | Detach the unretained child, then detach with an external reference |
+| 89–113 | 85–109 | Replace member1 with member2's child, preserve ordering and release the orphans |
+| 114–133 | 110–129 | Null access, one-byte layout, enumeration, duplicate add, reverse lookup, type release |
+| 134–156 | 130–152 | 16-byte counted payload, explicit removal, owner release after type release, disposal and final allocation baseline |
+
+The [case-site map](evidence/entity_store_native_case_sites.tsv) records all
+68 original predicates and their 90 dynamic hits. In evidence-only runs each
+successful check logged its label, live buffers and cumulative allocation
+calls. The original executable, migrated executable and four selected guests
+produced the same 91 lines. The six empty-store checkpoints each retained one
+buffer, after 2, 3, 4, 7, 14 and 25 allocation calls. Disposal returned the
+last buffer. The ordinary, unobserved runs also matched the 98-byte oracle.
+
+Changing the finalizer count from two to three made the original executable
+print its count diagnostic and exit 134. Restoring the source reproduced its
+binary. After migration, four independent mutations of the ID order, byte
+value, finalizer count and final live-buffer count each failed the executable
+and both selections at jobs 1 and 4. Each restoration passed all five CTests.
+Changing one oracle byte failed the four registrations at offset 16. The
+restored kit passed both store selections in the build tree and all eight
+related entity registrations after relocation. The portable and shared
+browser reactors each ran the original single-declaration test on both source
+trees, including the host's independent 300/150 query count check.
+
+### Same-host cost and instrumentation
+
+Release Ninja, Clang/LLVM 19.1.7, published Linux bootstrap
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+x86_64-pc-linux-gnu. The Ryzen 7 5800H exposed 8 cores with SMT, a quota of
+15.36 CPUs and a 64,061,702,144-byte memory limit. Warm-file commands held
+the host timing lock and used CPUs 0,2,4,6, one invocation at a time.
+Cells give median wall seconds / median user plus system seconds / maximum
+RSS KiB over three samples. For the matched native selection only, an
+evidence-only copy of the new registration called the original aggregate.
+The default selection retained its original inputs.
+
+| Work | Compiler jobs | Original | Migrated |
+| --- | ---: | --- | --- |
+| Aggregate object | 1 | 0.82 / 0.82 / 145352 | 0.95 / 0.95 / 148828 |
+| Aggregate object | 4 | 0.82 / 0.91 / 151608 | 1.02 / 1.13 / 161040 |
+| Native selection with stdout oracle | 1 | 0.84 / 0.83 / 145680 | 0.98 / 0.97 / 149232 |
+| Native selection with stdout oracle | 4 | 0.86 / 0.94 / 152392 | 1.03 / 1.14 / 160188 |
+| Default six-test selection | 1 | 1.09 / 1.08 / 162380 | 1.14 / 1.13 / 164828 |
+| Default six-test selection | 4 | 1.12 / 1.26 / 172888 | 1.18 / 1.32 / 176436 |
+| 100 fresh aggregate executions | 1 | 0.06 / 0.06 / 2988 | 0.06 / 0.06 / 2940 |
+
+The aggregate now loads the shared companion and assertion grammar. One
+separate phase sample per build put parsing at 356 → 444 ms at one job and
+323 → 495 ms at four. Emission took 155–158 ms throughout. The 100-process
+batch includes shell overhead and has 0.01 s timer resolution. Compiler
+worker counts do not change this trial's serial store operations.
+
+The parser-only CMake profile cannot enable the project's native sanitizer
+switch. Host 4 emitted IR for its actual entry and link inputs, used the
+project's LLVM 19 instrumenter, reconstructed the memory archive and ran the
+ordinary main. ASan with leak detection and TSan both completed with the
+original output. One TSan launch failed during startup at the personality
+request. Maps show the single-owner instrumented allocator and serial work
+transport. Source-level UBSan is unavailable in this IR path. Browser checks
+used existing reactors. Raw commands, outputs, maps, startup failure and the
+base-relative source bundle accompany assignment 1c082372. Manager owns
+publication.
