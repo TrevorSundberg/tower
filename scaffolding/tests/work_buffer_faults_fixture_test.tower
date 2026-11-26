@@ -1,4 +1,6 @@
 import work_buffer_faults_fixture;
+import .library.work_budget;
+import .library.work_buffer;
 
 fn buffer_reserve_and_growth_refusal(): void {
     var baseline = tower_test_buffer_count();
