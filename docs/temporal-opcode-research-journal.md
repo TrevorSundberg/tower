@@ -107378,3 +107378,69 @@ and resources came directly from the frozen Ubuntu package. Upstream registered
 247 passes and one failure across 248 tests. The optional repository formatter
 sweep still reports noncanonical spacing in `scaffolding/backend/bindings.tower`.
 Publication and hosted download verification remain with the manager.
+
+### Generic body demand in the compiletime browser selectors
+
+Host 1, assignment `8de0a56a-759a-47d1-9a90-d3cf9a093deb`. The four
+registrations at the start of `playground/tests/compiletime.test.mjs` now run
+inline tests in `scaffolding/tests/generic_body_browser`. Local parent
+`598df993` retains the public `4b2685e5` suite and all three input blobs.
+The shared checkout had unpublished UI commits. A conflicting initial pull was
+aborted and the work proceeded on an independent copy of the retained main.
+
+The original lazy source prints the last of 32 signature query values minus
+one. Both sources import `generic_body_cases.tower` with 240 distinct print
+statements in `large`. The demanded source calls all 32 specializations.
+The original and migrated selectors used the same production reactors from
+`8bc867b6`. Both source archives, all three staged members and the decompressed
+LLVM reactor matched the producer sizes and SHA-256 digests. The portable and
+raw LLVM hashes start with `41bb9b11` and `15b4f33b`. No build was needed.
+
+| Original selector in compiletime.test.mjs | Selected Tower case and observed result |
+| --- | --- |
+| Line 34, signature-only portable | `lazy_portable.tower` at widths 4 and 8. Graph source, fast source and fast canonical execution each printed exactly `0\n`. The 2,545-byte Foundation texts matched byte for byte across the migration, SHA-256 `70cf52ddd3bf7a0022cfe6785642de6c172cb92c12927786f403976a10d43ba6`. The graph contained no emitted specialization of large. |
+| Line 43, signature-only LLVM | `lazy_llvm.tower` compared the output of the emitted optimized wasm32 module with `0\n`. |
+| Line 51, demanded portable | `demanded_portable.tower` checked the error and empty output at widths 4 and 8. Both recorded zero steps. |
+| Line 63, demanded LLVM | `demanded_llvm.tower` checked the actual compile rejection. Both backends reported the same full diagnostic including the instantiation trace. |
+
+The exact message was `Template expansion exceeds 65536 nodes (cumulative GenericNodeLimit)`
+followed by `Instantiated by large(S16) at line 9, column 7.` The error file
+was `.tower/tests/generic_body_cases.tower`, byte 166. The positive and
+negative registrations keep their original names and compiler calls. The
+browser test interpreter reads named observations only after the subject
+handles have closed. It restores the module entry after each selection.
+The adjacent native companion uses `fixture_stdout` on the actual lazy source.
+
+Both full Node runs passed all 88 names in the same order with zero skips.
+The native owner and direct companion each selected and passed line 4 at jobs
+1 and 4. Use `bootstrap/linux-x64/towerc --test scaffolding/tests/generic_body_lazy.tower --test-details --jobs 1 --bedrock scaffolding/bedrock.tower --foundation scaffolding/foundation.tower`.
+The repository language paths supply the tests library root for the existing
+import in the owner. The first native trial with only installed resources
+could not resolve `tests.generic_body_cases`. Early browser trials rejected
+a reserved parameter name and an unimported text helper. The corrected
+selections and the earlier errors are retained in the packet.
+
+Changing the browser expected stdout to `1\n` failed both lazy selectors.
+Independently replacing all demanded calls with reads of the corresponding
+signature values failed both rejection selectors. The portable trial completed
+with 32 printed ones and LLVM generated a 1,976-byte module. Changing only the
+expected trace to S17 failed both diagnostic checks. Changing only the native
+expected output failed at companion line 9. All controls were restored and
+the positive runs passed again.
+
+Debian 12, two Xeon Gold 6244 sockets, affinity 0–31, quota 15.36 CPUs,
+Node 24.22.3, serial production reactors. Three matched pairs ran one process
+at a time under the host timing lock, warm filesystem and fresh VMs, alternating
+pair order. Median wall/CPU seconds and maximum process RSS in KiB were
+1.91/3.75/259560 before and 2.71/4.97/291492 after. The migrated path
+compiles and executes six Tower test selections in addition to the same
+backend operations. A trial with a second portable reactor reached 301908 KiB
+on the focused run. Reusing the subject reactor reduced peak RSS. One full
+file pair took 7.59/15.03/361452 and 8.25/15.54/340228 respectively.
+Native owner jobs 1 and 4 took 0.62/0.61/90264 and 0.79/0.92/100540.
+These timings measure test discovery and execution. The release binaries
+expose no per-case allocation measurements or sanitizer instrumentation.
+
+The review packet retains the single-commit bundle, exact selector and
+assertion maps, raw baseline and migrated observations, commands, mutation
+diffs, restored runs and timings. Publication belongs to the manager.
