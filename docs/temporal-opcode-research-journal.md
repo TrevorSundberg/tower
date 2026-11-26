@@ -111048,3 +111048,84 @@ UBSan run or source instrumentation of the native test driver in this receipt.
 The assignment archive contains the bundle, raw commands, artifact identities,
 per-process status/streams, selected IDs, failed controls and timings. The
 production compiler was reused. Manager review and publication are pending.
+### Default discovery from the source formatter owner on Linux x64
+
+Host 2 started at `437d50cfbae49f54099d7c0df0d1465e74dcf9cc`.
+The acceptance check was to omit `--test-suffix` when testing
+`scaffolding/compiler/syntax_session_format.tower`, execute each of the
+five existing formatter IDs once and account for every additional selection.
+The installed compiler, native test runtime, test host and service DSO were
+the verified inputs from the preceding formatter run.
+
+Before changing source, the default selected four companion files and failed
+at `compiler/test_file_rule_test.tower:7:1` on the foreign symbol
+`frontend_modules_test_input_root`. Its erased declaration took a
+`void*` environment and returned `void*`. The production definition at
+`compiler/frontend_modules.tower:1087` takes `ModuleEnvironment*` and
+returns `FrontendModule*`. Importing the production declarations in the
+companion removes its duplicate module API declarations. The two opaque
+handles in a discovered pair are cast at the typed module-name lookup.
+The optional module-cache provider already imports the implementation and
+now exports the check to its separately linked test entry. The focused
+`tower-module-cache-regressions` CTest ran the in-memory selection, frozen
+keys, leases and module cache checks.
+
+The formatter's default companion imports the existing case source. The
+public discovery traversal visits that source's companion and runs the
+original five declarations. An initial version repeated those declarations
+and ran 27 tests. The import alone produced 22. In execution order, all
+locations below have column 1 and are relative to `scaffolding/`.
+
+| Selected file | Test lines |
+| --- | --- |
+| `library/work_budget_test.tower` | 6, 7, 8, 9, 10 |
+| `compiler/lr_runtime_test.tower` | 10, 16, 19, 22 |
+| `library/work_graph_test.tower` | 13, 67, 100, 150, 185, 224, 245, 273 |
+| `compiler/syntax_session_format_cases_test.tower` | 4 declarations, 6 comments, 8 refusal, 10 increment, 12 affixes |
+
+Two more files appear in the six-file inventory. The rule companion exposes
+the in-memory check, and the formatter companion imports the case source.
+Both contain zero contextual declarations. Explicit companion selection
+visits only that companion. Use the five-case companion or the named
+suffixes for focused checks. Each named suffix passed individually. The
+unrelated `library/work_graph.tower` entry ran all 13 graph and budget tests.
+
+Each measured run compiled and executed a new linked guest. Three pairs per
+width used the same installed compiler bytes, fixed raw fixtures and warm
+providers. The order was prior/default, default/prior, prior/default. Host 2
+had a Ryzen 5 3600, six cores, twelve hardware threads, effective cpuset
+0–11 and a quota of 1,152,000 µs per 100,000 µs. Each run had affinity
+0–3. The table gives median elapsed and user-plus-system seconds and the
+largest process peak across the three runs.
+
+| Selection | Jobs | Wall s | CPU s | Peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Previous five-case suffix | 1 | 12.86 | 12.89 | 622584 |
+| Default, 22 tests | 1 | 13.71 | 13.73 | 657684 |
+| Previous five-case suffix | 4 | 11.55 | 14.11 | 642988 |
+| Default, 22 tests | 4 | 12.38 | 14.97 | 683328 |
+
+All twelve runs had empty stdout. Stderr contained the ordered locations and
+the count. Each selection's inventory and depfile matched across widths.
+The driver emits dependency files with `--list-test-files -o`. The linked
+guest reads the formatter's raw files at runtime. Substituting the 45-byte
+allocation refusal for the 87-byte changed-parse refusal failed at
+`syntax_session_format_cases.tower:79:5`. Restoring the bytes passed 22.
+A normal library compile reproduced the prior production object
+`81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9`,
+dependency list and production link inputs. The ordinary compile still
+rejected the erased foreign declaration. The existing invalid argument at
+`tests/semantic_invalid/argument_type.tower:7:16` gave the same diagnostic
+on both revisions.
+
+The optional formatter CTest now checks the ordinary owner command and all
+22 results. Its provider build had no work. Address/LeakSanitizer and
+ThreadSanitizer replays of the typed in-memory check each completed once
+with the real guest runtime, serial world and retained Linux service DSO.
+The project IR instrumenter provides address and thread modes. The browser
+inputs and reactor hash matched the previous run. Rechecking its retained
+traces matched all 38 original observations, the five named results and
+the destroy/invalid-handle/refusal/recovery sequence. Browser timings and
+checks from that revision were reused. The fe325b8e evidence contains raw
+commands, process outputs, exact inputs, selection inventories, dependency
+files, result records and the integration bundle on the cd21d55c ancestry.

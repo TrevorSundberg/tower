@@ -1,6 +1,6 @@
 import tower;
-import .compiler.test_file_rule_test;
 
+extern fn test_file_rule_checks(): bool;
 extern fn frontend_modules_tests(): usize;
 extern fn module_cache_empty_seed_leases(): void;
 extern fn module_first_import_leases(): void;

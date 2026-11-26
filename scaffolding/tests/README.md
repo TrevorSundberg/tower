@@ -84,18 +84,22 @@ cmake --build "$B" --target tower-format-owner-tests
 ctest --test-dir "$B" -R '^tower-format-owner$' -V
 ```
 
-The registration runs these five Tower tests in one native guest. With `B`
-set to the absolute build directory, the equivalent installed command runs from
-`scaffolding/`.
+The default suffix runs 22 tests from this owner in one native guest. Five
+exercise the formatter, five cover work budgets, four cover the LR runtime and
+eight cover the work graph. With `B` set to the absolute build directory, run
+the installed compiler from `scaffolding/`.
 
 ```sh
 ../bootstrap/linux-x64/towerc --test compiler/syntax_session_format.tower \
-  --test-suffix _cases_test.tower --test-details --jobs 1 \
+  --test-details --jobs 1 \
   --test-native-runtime "$B/guest-native-test.o" --link "$B/format-test-host.o" \
   --link "$B/libtower-format-test-services.so" --link "-Wl,-rpath,$B"
 ```
 
-To run one case, use `_cases_declarations_test.tower`, `_cases_comments_test.tower`,
+The owner's default companion imports `syntax_session_format_cases.tower`.
+Discovery follows that import and selects its existing five-case companion once.
+Use `--test-suffix _cases_test.tower` on the production owner to run just those
+five. To run one case, use `_cases_declarations_test.tower`, `_cases_comments_test.tower`,
 `_cases_refusal_test.tower`, `_cases_increment_test.tower` or
 `_cases_affixes_test.tower` as the suffix. The same arguments also accept the
 corresponding companion as the entry. The suffix selects the formatter's

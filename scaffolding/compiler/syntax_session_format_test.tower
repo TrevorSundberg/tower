@@ -1,0 +1,2 @@
+// Owner discovery follows this import to the existing five formatter tests.
+import syntax_session_format_cases;
