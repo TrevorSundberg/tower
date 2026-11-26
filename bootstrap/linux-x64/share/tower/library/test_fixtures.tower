@@ -9,13 +9,15 @@ struct FixtureBytes {
 
 extern fn test_fixture_load(name: u8*, name_length: usize, interpret: bool, length: usize*): u8*;
 
-fn fixture_load(name: u8*, interpret: bool): FixtureBytes {
+fn fixture_text_length(name: u8*): usize {
     var count: usize = 0;
-    while name[count] != 0 {
-        ++count;
-    }
+    while name[count] != 0 { ++count; }
+    return count;
+}
+
+fn fixture_load(name: u8*, interpret: bool): FixtureBytes {
     var result: FixtureBytes = default;
-    result.data = test_fixture_load(name, count, interpret, &result.length);
+    result.data = test_fixture_load(name, fixture_text_length(name), interpret, &result.length);
     return result;
 }
 
@@ -37,4 +39,30 @@ fn fixture_equal(a: FixtureBytes, b: FixtureBytes): bool {
         }
     }
     return true;
+}
+
+// A successful ordinary compilation returns an empty diagnostic. On rejection
+// the file and message share one guest allocation. The offset is local to file.
+struct FixtureDiagnostic {
+    file: FixtureBytes;
+    message: FixtureBytes;
+    offset: usize;
+    line: usize;
+    column: usize;
+}
+
+extern fn test_fixture_compile(name: u8*, name_length: usize, file_length: usize*, message_length: usize*,
+    offset: usize*, line: usize*, column: usize*): u8*;
+
+fn fixture_diagnostic(name: u8*): FixtureDiagnostic {
+    var result: FixtureDiagnostic = default;
+    result.file.data = test_fixture_compile(name, fixture_text_length(name), &result.file.length, &result.message.length,
+        &result.offset, &result.line, &result.column);
+    if result.file.data != null { result.message.data = result.file.data + result.file.length; }
+    return result;
+}
+
+fn fixture_diagnostic_dispose(result: FixtureDiagnostic*): void {
+    if result.file.data != null { free(result.file.data); }
+    *result = default;
 }
