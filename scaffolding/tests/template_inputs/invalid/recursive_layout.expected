@@ -1,0 +1,2 @@
+Recursive by-value layout: f(i32) -> f(i32); use a pointer
+Instantiated by f(i32) at line 1, column 94.

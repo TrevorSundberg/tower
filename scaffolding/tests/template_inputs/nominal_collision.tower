@@ -1,0 +1,10 @@
+import tower;
+fn box(T: type): type { struct Result { value: T; } return Result; }
+struct `box(i32)` { other: i32; }
+struct `i32[2]` { other: i32; }
+struct Left { value: i32; } struct Right { value: i32; }
+var a: box(i32); a.value = 42; print(a.value);
+var b: box(Left); b.value.value = 3; print(b.value.value);
+var c: box(Right); c.value.value = 4; print(c.value.value);
+var d: box(i32[2]); d.value[1] = 7; print(d.value[1]);
+var e: box(`i32[2]`); e.value.other = 8; print(e.value.other);

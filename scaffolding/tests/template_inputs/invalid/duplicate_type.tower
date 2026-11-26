@@ -1,0 +1,1 @@
+import tower; print(123); struct type { value: i32; } struct type {}

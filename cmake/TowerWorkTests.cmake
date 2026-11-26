@@ -211,6 +211,7 @@ if(TARGET towerc)
     tower_companion_test(tower-bytecode-package compiler/bytecode_package.tower ${workers})
     tower_companion_test(tower-inference-types compiler/semantic_types_test.tower ${workers})
     tower_companion_test(tower-generic-call-inference compiler/semantic_call_inference_test.tower ${workers})
+    tower_companion_test(tower-template-specializations compiler/generics_test.tower ${workers})
     tower_companion_test(tower-forward-bindings tests/forward.tower ${workers})
     add_test(NAME tower-semantic-defer-companion-${workers}
       COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}

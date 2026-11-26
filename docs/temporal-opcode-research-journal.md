@@ -109439,3 +109439,65 @@ The local handoff retains the faster experiment and its source ancestry.
 The ordinary browser coordinator, release products and native owner inputs
 are unchanged. Validation used the retained release builds and their existing
 instrumentation. There was no new sanitizer build or published deployment.
+### Template registration, specialization and instantiation errors in selected tests
+
+Host 3 assignment c622fc0d-1b0d-4e63-bb25-326f63f90c18 used public
+`3ca5e7cc`. Implementation `0b3af9ee` places the native
+[companion](../scaffolding/compiler/generics_test.tower) beside the module
+that registers templates and looks up their instances by definition and
+ordered argument identities. The browser's sixteen original registration
+names select sixteen distinct [Tower declarations](../scaffolding/compiler/generics_cases).
+The JS host transports files, calls the editor, runs the graph, fast and
+LLVM guests, and releases each registration's observations after its test.
+
+The original suite passed first with the installed Pages portable and ordinary
+LLVM products, SHA-256 prefixes 41bb9b11 and 15b4f33b. Its eleven successful
+programs ran in the graph interpreter at both pointer widths. A separate
+reference run switched runnable programs to the fast interpreter. Trying to
+switch an already rejected compile handle failed at the host API, before a
+guest could run. The successful reference kept those compile-time errors on
+their original path. Extracting the original inline inputs preserved all
+source bytes, including the declaration on the first line and the use on the
+second line of the broken function fixture.
+
+On those frozen products the migration reproduced the 88 source/replay
+execution results and canonical texts across the two engines and widths,
+and all 22 emitted Wasm binaries and their stdout. The example formatted
+back to its exact source, with the same formatter spans. All 22 original
+rejections matched in file, byte offset and full message, including the
+instantiation stack. Each executed zero steps with empty stdout. Two new
+controls took the size binding's address or omitted its initializer. Both
+were rejected at byte 106. The ordinary LLVM compiler also reproduced all
+24 diagnostic records in an independent before/after probe.
+
+The installed 7315b86e compiler discovered ten declarations through generics
+and nine directly at jobs 1 and 4, preserving the existing generic-body types
+declaration on the owner. Both new CTests and all sixteen individual Node
+name filters passed. In a disposable checkout, a final trap added to each
+browser declaration identified sixteen distinct original test bodies after
+their preceding assertions ran. Independently, changing a printed value,
+the expected boolean-parameter message and the absent identifier in the
+two-line source each failed its named Tower declaration. All restored
+selections passed. An initial receiver used the reserved word expected as
+a binding, and a later stack receiver omitted its direct backend.text import.
+The packet includes the failures and corrected runs.
+
+Host 3 pinned each timed process to CPUs 0–3 on an AMD EPYC 7542. The cgroup
+quota was 1,228,800 µs per 100,000 µs. Two alternating warm-filesystem pairs
+used the same input tree, 112 portable compile requests and 22 emitted LLVM
+guests in both harnesses. Original/migrated wall times were 5.96/10.65 s
+and 8.53/15.31 s. CPU was 5.15/7.44 s and 5.03/7.39 s. Peak RSS was
+251,116/274,724 KiB and 247,164/281,380 KiB. The migrated suite includes
+compilation and execution of sixteen selected declarations in a second
+interpreter. The unmodified original and production candidate also ran
+separately. The original includes graph execution only for its positive cases.
+
+The selected nine-declaration, 64-bit Foundation guest printed 99 twice,
+from the template parameter shadowing fixture. Its reachable Linux x64 guest
+IR and the public hosted runtime were instrumented separately for ASan/LSan
+and TSan. Both links ran the selected test entry and reproduced the two
+lines, with 24 instrumented guest definitions. This covers the scalar
+selected guest. The public compilers retain their release instrumentation,
+and source-level UBSan for Tower is unavailable. The raw packet contains the
+oracle tables, commands, source inputs, binaries, link maps and original
+compiler provenance for manager review.

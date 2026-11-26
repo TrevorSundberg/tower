@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/type_numeric_negation"), "Double negation preserves the positive extent");
+}

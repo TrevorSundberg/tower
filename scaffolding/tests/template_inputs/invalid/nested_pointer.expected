@@ -1,0 +1,9 @@
+Foundation pointer nesting limit is 16
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.
+Instantiated by f(T*) at line 1, column 67.

@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(rejected("tests/template_inputs/invalid/boolean_parameter", 113), "Reject the declared boolean parameter");
+}

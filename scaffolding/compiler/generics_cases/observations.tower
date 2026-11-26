@@ -1,0 +1,73 @@
+import library.test_fixtures;
+import backend.text;
+
+// Each test sees the selected compiler's bytes, including any trailing LF.
+// The assertion interpreter owns the copy, independently of the compiler handle.
+extern fn template_read(field: u8*, destination: u8*, capacity: usize): usize;
+extern fn template_select(path: u8*): void;
+extern fn template_engine(pointer_bytes: usize, fast: bool): void;
+extern fn template_has_llvm(): bool;
+extern fn template_format(): void;
+extern fn template_reject(path: u8*): usize;
+extern fn template_steps(): usize;
+
+fn sample(field: u8*): FixtureBytes {
+    var count = template_read(field, null, 0);
+    var data = alloc(u8, count + 1);
+    assert(data != null, field);
+    assert(template_read(field, data, count) == count, field);
+    data[count] = 0;
+    return {data: data, length: count};
+}
+
+fn equals_sample(field: u8*, wanted: FixtureBytes): bool {
+    var actual = sample(field);
+    defer free(actual.data);
+    return fixture_equal(actual, wanted);
+}
+
+fn same_bytes(left: u8*, right: u8*): bool {
+    var wanted = sample(right);
+    defer free(wanted.data);
+    return equals_sample(left, wanted);
+}
+
+fn engine_matches(width: usize, fast: bool, wanted: FixtureBytes): bool {
+    template_engine(width, fast);
+    return equals_sample("output", wanted) && equals_sample("replay output", wanted)
+        && same_bytes("replay Foundation", "Foundation");
+}
+
+fn program_matches(path: u8*): bool {
+    template_select(path);
+    var wanted = sample("expected");
+    defer free(wanted.data);
+    for (var width: usize = 4; width <= 8; width *= 2) {
+        if !engine_matches(width, false, wanted) || !engine_matches(width, true, wanted) {
+            return false;
+        }
+    }
+    return !template_has_llvm() || (equals_sample("LLVM source", wanted)
+        && equals_sample("LLVM Foundation", wanted));
+}
+
+fn occurrences(text: FixtureBytes, spelling: u8*): usize {
+    var count: usize = 0;
+    for (var i: usize = 0; i < text.length; ++i) {
+        if backend_prefix(text.data + i, spelling) { ++count; }
+    }
+    return count;
+}
+
+fn rejected(path: u8*, offset: usize): bool {
+    var actual_offset = template_reject(path);
+    var status = sample("status");
+    defer free(status.data);
+    var file = sample("errorFile");
+    defer free(file.data);
+    var output = sample("output");
+    defer free(output.data);
+    return backend_equal(status.data, "error") && backend_equal(file.data, "input.tower")
+        && actual_offset == offset && template_steps() == 0 && output.length == 0
+        && same_bytes("error", "expected");
+}

@@ -1,0 +1,1 @@
+import tower; print(123); fn f(T: type): type { struct S { value: T; } return i32; } var x: f(i32);

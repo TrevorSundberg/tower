@@ -1,0 +1,7 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/template_inputs/type_grammar"), "Type application with the local grammar override");
+    assert(program_matches("tests/template_inputs/parameter_shadow"), "The local T prints 99 and next runs once per call");
+    assert(program_matches("tests/type_identity_composition"), "Preserve the pointer, identity and fixed return types");
+}

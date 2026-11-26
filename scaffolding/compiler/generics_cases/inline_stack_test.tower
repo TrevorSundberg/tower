@@ -1,0 +1,14 @@
+import observations;
+import backend.text;
+
+test() {
+    assert(program_matches("examples/templates"), "Pop both specialized stack values in order");
+    var text = sample("Foundation");
+    defer free(text.data);
+    assert(occurrences(text, "struct `buffer(i32, 4)`") == 1);
+    assert(backend_contains(text.data, "data: array_type(integer_type(32, 1), 4);"));
+    assert(!backend_contains(text.data, "T: type"));
+    assert(!backend_contains(text.data, "fn buffer("));
+    template_format();
+    assert(same_bytes("formatted", "source"), "The example is a source formatting fixed point");
+}

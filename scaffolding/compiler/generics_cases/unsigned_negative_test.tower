@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(rejected("tests/template_inputs/invalid/unsigned_negative", 83), "Unsigned negation wraps before the extent check");
+}

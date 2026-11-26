@@ -1,0 +1,12 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/template_inputs/nominal_collision"), "Keep all five box layouts distinct");
+    var text = sample("Foundation");
+    defer free(text.data);
+    assert(occurrences(text, "struct `box(i32)_2`") == 1);
+    assert(occurrences(text, "struct `box(Left)`") == 1);
+    assert(occurrences(text, "struct `box(Right)`") == 1);
+    assert(occurrences(text, "struct `box(i32[2])`") == 1);
+    assert(occurrences(text, "struct `box(i32[2])_2`") == 1);
+}

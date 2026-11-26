@@ -1,0 +1,7 @@
+import observations;
+
+test() {
+    assert(rejected("tests/semantic_invalid/type_numeric_mutable", 125), "A later assignment prevents capture");
+    assert(rejected("tests/template_inputs/invalid/escaped", 106), "Taking the address prevents capture");
+    assert(rejected("tests/template_inputs/invalid/uninitialized", 106), "The binding has no initializer");
+}

@@ -1,0 +1,9 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/compiler_scans"), "Interleaved pair and buffer values");
+    var text = sample("Foundation");
+    defer free(text.data);
+    assert(occurrences(text, "struct `pair(i32, u32)`") == 1);
+    assert(occurrences(text, "struct `pair(u32, i32)`") == 1);
+}

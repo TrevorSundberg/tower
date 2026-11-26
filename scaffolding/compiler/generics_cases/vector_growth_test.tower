@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/template_inputs/vector_growth"), "Growth and reserve refusal preserve scalar and pointer elements");
+}
