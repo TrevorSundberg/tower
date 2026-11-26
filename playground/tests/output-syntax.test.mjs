@@ -36,7 +36,10 @@ const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM ||
     },
     output_token_count: () => tokens.length,
     output_token_text: (context, index) => copyText(context, tokens[index][0]),
-    output_token_tag: (context, index) => copyText(context, tokens[index][1] ?? ''),
+    output_token_tag: (context, index) => {
+      const tag = tokens[index][1];
+      return tag === null ? 0 : copyText(context, tag);
+    },
     output_token_join: context => copyText(context, tokens.map(([text]) => text).join('')),
   }});
 after(() => tower.close());
@@ -53,7 +56,8 @@ for (const [name, title] of [
   ['prefix', 'prefixed x86 instructions are highlighted'],
 ]) {
   test(title, async () => {
-    const path = directory + name + '_test.tower';
-    runSelectedTest(tower, path, 100, {files:[helper, {path, text:await source(path)}]});
+    const suffix = '_' + name + '_test.tower';
+    const path = directory + 'tokens' + suffix;
+    runSelectedTest(tower, helper.path, 100, {suffix, files:[helper, {path, text:await source(path)}]});
   });
 }

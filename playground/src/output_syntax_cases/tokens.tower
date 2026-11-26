@@ -21,7 +21,7 @@ fn expect_token(spelling: u8*, tag: u8*, substring: bool): void {
         if substring ? backend_contains(text, spelling) : backend_equal(text, spelling) {
             var actual = output_token_tag(i);
             defer free(actual);
-            if backend_equal(actual, tag) { return; }
+            if actual != null && backend_equal(actual, tag) { return; }
         }
     }
     assert(false, spelling);

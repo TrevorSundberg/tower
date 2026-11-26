@@ -1,4 +1,6 @@
 import tokens;
+import library.testing;
+import backend.text;
 
 test() {
     var error = output_tokenize("tower", "");

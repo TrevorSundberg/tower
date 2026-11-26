@@ -1,4 +1,6 @@
 import tokens;
+import library.testing;
+import backend.text;
 
 test() {
     var prefix = "<img src=x onerror=alert(1)> ";
