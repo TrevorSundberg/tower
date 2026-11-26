@@ -14,14 +14,14 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The checked-in Linux x64 compiler was built from `3ae475c2edaca11573bcb74c47a287508ee48981`.
-Package commit `e3872c21682584bd61135399dd4d89ee863ae111` holds the
-2,299,240-byte executable and its adjacent resources. The executable SHA-256 is
-`02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7`.
-This compiler runs inline tests and adjacent companion files with the native test command.
-The release archive and installer select this same compiler and verify the payloads.
-The [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
-give each compiler its own prefix and immutable installer command.
+The checked-in Linux x64 compiler was built from
+`8bc867b69cc6084b9da09a51475c7c740efd9419`. Package commit
+`15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6` holds the 2,319,768-byte
+executable (SHA-256 `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`)
+and its adjacent resources. The native test command runs inline and companion
+tests and supports fixture files and affected-test selection. The review archive
+contains the same package, including its build metadata. For archive extraction,
+installer identity and earlier downloads, see the [Linux install instructions](../README.md#install-the-linux-x64-development-compiler).
 See the [9ab581c8 pin and host verification](../docs/temporal-opcode-research-journal.md#canonical-linux-production-generations-at-9ab581c8)
 and [previous generation record](../docs/compiler_generation_c49c8b37.md). Executable and
 adjacent resources are hashed together in `development.json`, including the

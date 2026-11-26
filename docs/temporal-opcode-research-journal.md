@@ -107337,3 +107337,44 @@ generated build registry retained all 192 entries and the original driver
 arguments on all twelve wrapped commands. The manager separately checked the
 twelve installed registrations' paths and counts. The first worker matrix
 executed the SCC and SHA-256 registrations on its relocated installation.
+
+### Local installer qualification for the Ubuntu 8bc867b6 test compiler
+
+Host 1, assignment `d66dff57-7ef4-48b7-a8f2-d7e93ca4eee7`. The two
+producer archives and all seven required members matched their declared sizes,
+SHA-256 digests and archived bytes. The package at `15cacf5a` has the build
+source `8bc867b6` as its sole parent. The complete sealed archive SHA-256 is
+`b6517d0c72adca86ce2255b08efdcf80d2acaa2abfcc5f8622c7ae63d056bbdb`.
+Independent extraction and Git tree comparison reproduced the paths, sizes,
+bytes and regular-file modes of all 62 files. The 60 payloads and their checksum
+list belong under `linux-x64`. The archive also includes `development.json`.
+
+The installer changes the two pins used by the previous release at `9fd1db84`.
+Its Git blob is `eff1c8a75b268d02f5c9168fa72e999a5a1cc2bb` and its SHA-256
+is `0d4b4bfa643818241887d7cac92e0a789f132a0d724d158eb2fde00f88d99fc6`.
+Bash and curl fetched the installer and package from their immutable paths on a
+loopback HTTPS mirror. Separate corruption of the list and a fixture-library
+payload returned 1 and left the fresh prefix empty. Restoring the original bytes
+allowed the same prefix to install. Repeat verification passed. Selecting a
+verified predecessor prefix returned 1 and the predecessor verified again.
+The README archive and installer examples ran from fresh directories. After a
+move, both the interpreter and linked sample again printed 42. The linked ELF
+matched its fresh-install counterpart byte for byte.
+
+The installed function-values owner and direct companion each passed one test
+at jobs 1 and 4. Changing its expected file failed at line 8, column 5 and
+restoring it passed. Its foreign output forced execution on repeat. The separate
+two-test owner skipped on a warm repeat, reran after an imported edit, rejected
+a changed stdout oracle at byte 4 and passed after repair. The observed exits,
+stdout and diagnostics matched the producer after substituting the fixture paths.
+Discovery included the adjacent expected file.
+
+Checks ran one invocation at a time on Debian 12 x86-64, LLVM/Clang 19.1.7,
+Xeon Gold 6244, affinity 0–31, quota 15.36 CPUs. One loopback fresh install took
+0.26 s wall, 0.15 s user, 0.08 s system and 51,992 KiB peak process RSS. Repeat
+verification took 0.11 s wall, 0.08 s user, 0.02 s system and 52,212 KiB. These
+are installer observations with the existing four-transfer limit. The compiler
+and resources came directly from the frozen Ubuntu package. Upstream registered
+247 passes and one failure across 248 tests. The optional repository formatter
+sweep still reports noncanonical spacing in `scaffolding/backend/bindings.tower`.
+Publication and hosted download verification remain with the manager.

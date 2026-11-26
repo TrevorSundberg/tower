@@ -33,7 +33,60 @@ targets, limitations, build commands and deployment checks.
 ## Install the Linux x64 development compiler
 
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
-coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
+coreutils, GNU tar and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
+
+### Test compiler built from `8bc867b6`
+
+The Linux x64 review candidate was built on Ubuntu 24.04.5 with LLVM 19.1.1.
+It supports inline tests, adjacent companions, fixture files and affected-test
+selection. The candidate is awaiting publication. If you have the review archive
+`8bc867b6-linux-x64.tar.gz`, run these commands from the directory containing it.
+They verify the archive, extract it into a fresh prefix and check all 60 payloads.
+
+```sh
+(
+  set -eu
+  printf '%s  %s\n' b6517d0c72adca86ce2255b08efdcf80d2acaa2abfcc5f8622c7ae63d056bbdb \
+    8bc867b6-linux-x64.tar.gz | sha256sum --check
+  prefix="$HOME/.local/Tower Dev 8bc867b6"
+  mkdir -p "$HOME/.local"
+  mkdir -m 700 "$prefix"
+  tar -xzpf 8bc867b6-linux-x64.tar.gz -C "$prefix"
+  cd "$prefix/linux-x64"
+  sha256sum --check SHA256SUMS
+  ./towerc --version
+)
+```
+
+Once the installer and package are published, this immutable command installs
+the same compiler or verifies it in an existing matching prefix.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/eff1c8a75b268d02f5c9168fa72e999a5a1cc2bb) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 8bc867b6"
+```
+
+Keep `linux-x64/towerc` and its adjacent resources together when moving the
+installation. To try it, save the distribution sample as `example.tower` and
+run the following commands in that directory. Both runs print `42`. [Sample program](scaffolding/tests/distribution_program.tower)
+
+```sh
+compiler="$HOME/.local/Tower Dev 8bc867b6/linux-x64/towerc"
+"$compiler" example.tower --interpret
+"$compiler" example.tower --cc clang-19 -o example && ./example
+```
+
+| Candidate object | Identity |
+| --- | --- |
+| Compiler build source | `8bc867b69cc6084b9da09a51475c7c740efd9419` |
+| Package commit used for every installer request | `15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6` |
+| SHA-256 of `towerc` (2,319,768 bytes) | `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138` |
+| SHA-256 of `linux-x64/SHA256SUMS` | `15ae00aa12ae28f926fee13882a4ce81341643725462da4da62fb84def6c05df` |
+| SHA-256 of the installer | `0d4b4bfa643818241887d7cac92e0a789f132a0d724d158eb2fde00f88d99fc6` |
+
+### Published compiler built from `3ae475c2`
+
 Use this command to install the compiler
 built at `3ae475c2` from package commit `e3872c21`. The versioned
 prefix lets you keep an earlier installation alongside it.
