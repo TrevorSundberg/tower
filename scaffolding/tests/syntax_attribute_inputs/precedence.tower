@@ -1,0 +1,13 @@
+import bedrock;
+[comment] skip Hash = /#[^\r\n]*/;
+# skipped by the attribute
+parse AttributeExpression = 'n';
+[precedence(10,left)] parse AttributeExpression |= $left:AttributeExpression '+' $right:AttributeExpression;
+[precedence(20,left)] parse AttributeExpression |= $left:AttributeExpression '*' $right:AttributeExpression;
+[precedence(30,right)] parse AttributeExpression |= $left:AttributeExpression '^' $right:AttributeExpression;
+[precedence(5,nonassoc)] parse AttributeExpression |= $left:AttributeExpression '<' $right:AttributeExpression;
+parse Statement = 'emit' AttributeExpression ';';
+emit n+n*n;
+emit n+n+n;
+emit n^n^n;
+emit n<n<n;

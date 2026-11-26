@@ -752,6 +752,39 @@ the unused native callback registry; the fixture checks userdata/owner/type,
 exactly-once finalization, independent-store ownership and allocation balance.
 This does not introduce general first-class function pointers.
 
+The grammar-attribute cases also run as six independent declarations in
+`tests/syntax_live_attributes_test.tower`. On Linux GNU, use the native test
+runtime and the actual parser-only build's service objects. Build
+`tower-parser-tests` in the parser-only build and `towerc` and
+`tower-guest-native-test` in the native build. Set `parser` and `native` to
+those absolute build directories. From `scaffolding/`, run in Bash:
+
+```bash
+links=()
+for unit in tower-compiler-parser-nodes tower-frontend-world-tests \
+    tower-compiler-parser-format tower-compiler-parser-integration \
+    tower-compiler-template-build tower-compiler-syntax-host tower-shared-graph-components \
+    tower-compiler-semantics tower-compiler-frontend-units tower-compiler-entities \
+    tower-shared-lifecycle tower-compiler-legacy runtime-legacy-storage \
+    tower-compiler-utf8 tower-compiler-bytes tower_work_serial tower-compiler-evaluation \
+    runtime-instrumented tower-compiler-host; do
+  links+=(--link "$parser/$unit.o")
+done
+for jobs in 1 4; do
+  "$native/towerc" --test tests/syntax_live_attributes.tower --jobs "$jobs" --test-details \
+    --test-native-runtime "$native/guest-native-test.o" "${links[@]}" || exit 1
+done
+```
+
+The direct selector is `tests/syntax_live_attributes_test.tower`. The guest
+runtime owns the child entry and assertion trap. The parser build supplies
+its checked allocator, serial work transport, evaluation callbacks and file
+reader. The synthetic programs open ordinary syntax sessions and import
+`bedrock`. The precedence test reads `tests/syntax_attribute_inputs/precedence.tower`
+and checks its bytes against the self-contained input used by the native
+aggregate and Wasm `tw_self_test`. Both paths use the same span and rejection
+checks.
+
 The same command also selects `regex`, `lexicon`, `lr-grammar`, `lr-analysis`,
 and `emission`. These nine focused suites replace their duplicate executables
 and generated entry programs; their existing CTest names remain unchanged.
