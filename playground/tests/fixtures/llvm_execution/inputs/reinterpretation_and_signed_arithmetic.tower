@@ -1,0 +1,1 @@
+import foundation; var a: u32; var b: i32; a = 4294967295; b = bits(i32, a); print(b); b = -5 / 2; print(b); b = -5 % 2; print(b);

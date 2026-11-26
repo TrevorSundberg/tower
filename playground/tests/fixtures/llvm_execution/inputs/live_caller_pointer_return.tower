@@ -1,0 +1,1 @@
+import foundation; fn identity(x: i32*): i32* { return x; } var x: i32; var p: i32*; p = &x; p = identity(p); *p = 42; print(x);

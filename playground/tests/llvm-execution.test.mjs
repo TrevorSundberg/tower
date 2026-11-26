@@ -1,183 +1,264 @@
-import { test } from 'node:test';
+import {after, test} from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, writeFile } from 'node:fs/promises';
-import { join } from 'node:path';
-import { loadTower, generatedSource } from './compiler-fixtures.mjs';
-import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
-import { originalDiagnostic } from '../src/foundation-source.mjs';
+import {readFile} from 'node:fs/promises';
+import {writeFileSync} from 'node:fs';
+import {join} from 'node:path';
+import {builtins, files, loadTower, loadTowerBytes, generatedSource, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
+import {loadTower as createTower} from '../src/tower-host.mjs';
+import {platformImports} from '../src/platform.mjs';
+import {copyText, guestString} from './guest_text.mjs';
+import {runSelectedTest} from './selected_test.mjs';
+import {originalDiagnostic} from '../src/foundation-source.mjs';
+
 const read = path => readFile(new URL('../../' + path, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
-// The shared loaders own override reads; do not eagerly require an unused
-// default artifact. This differential gate requires LLVM, including filtered runs.
-const towerBytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
+const towerBytes = await readFile(process.env.TOWER_TEST_WASM || new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
 const llvmBytes = process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm');
-const tower = await loadTower(towerBytes, undefined, grammar, grammar);
+const fixtures = 'playground/tests/fixtures/llvm_execution/';
+const idioms = JSON.parse(await read('scaffolding/tests/llvm-scalar-idioms.json'));
+
+// Forward the real ABI operation and retain its arguments and return separately
+// from program stdout. Reconstructed packages can also call the platform.
+let writes;
+function traceWrites(sink) {
+  const platform = platformImports(sink);
+  return {platform_write(context, stream, pointer, length) {
+    const result = platform.platform_write(context, stream, pointer, length);
+    writes?.push({stream, length:Number(length), result:Number(result)});
+    return result;
+  }};
+}
+const tower = await loadTowerBytes(towerBytes, undefined, grammar, grammar, undefined, {
+  imports:traceWrites((_stream, bytes, context) => context.output(bytes)),
+});
+after(() => tower.close());
 const llvm = await loadLLVM(llvmBytes, undefined, grammar, grammar);
 
+function fixture(name, file, golden, generate = false) {
+  const stem = name.replaceAll(' ', '_').replaceAll(',', '');
+  return {name, file:file ?? fixtures + 'inputs/' + stem + '.tower', golden:golden ?? stem, generate};
+}
+
 const cases = [
-  ['type objects', (await read('scaffolding/tests/type_object_values.tower')).toString(), '0\n', null, 0],
-  ['computed type arguments', (await read('scaffolding/tests/computed_type_arguments.tower')).toString(), '0\n'],
-  ['function values', (await read('scaffolding/tests/function_values.tower')).toString(), '0\n'],
-  ['integer negation', (await read('scaffolding/tests/integer_negation.tower')).toString(), '0\n'],
-  ['floating values', (await read('scaffolding/tests/floating_point.tower')).toString(), '0\n'],
-  ['narrow integers', (await read('scaffolding/tests/narrow_integers.tower')).toString(), '0\n'],
-  ['narrow floating conversions', (await read('scaffolding/tests/narrow_floats.tower')).toString(), '0\n'],
-  ['narrow output', (await read('scaffolding/tests/narrow_output.tower')).toString(), '-128\n-32768\n65535\n32768\n-32768\n32768\ntrue\n-1\n-1\n1\n1\n-128\n'],
-  ['floating output', (await read('scaffolding/tests/floating_output.tower')).toString(), '1.00000001e-1\n1.0000000000000001e-1\n1.5\n-0.0\ninf\n-inf\nnan\n4.9406564584124654e-324\n1.7976931348623157e308\n'],
-  ['named field initialization', (await read('scaffolding/tests/named_initialization.tower')).toString(), '0\n'],
-  ['resumable control bodies', (await read('scaffolding/tests/body_continuation.tower')).toString(), '0\n'],
-  ['struct values', (await read('scaffolding/tests/struct_values.tower')).toString(), '0\n'],
-  ['known bindings', (await read('scaffolding/tests/known_bindings.tower')).toString(), '0\n'],
-  ...JSON.parse((await read('scaffolding/tests/llvm-scalar-idioms.json')).toString()).map(([name,source,expected])=>[name,source,expected]),
-  ['more than 256 functions', () => generatedSource(tower,new URL('../../scaffolding/tests/stress/llvm_functions.tower',import.meta.url)), '299\n0\n'],
-  ['quoted names preserve bindings', 'import foundation; fn `add-one`(`odd name`: i32): i32 { var `var`: i32 = `odd name` + 1; return `var`; } var `x-y`: i32 = `add-one`(41); var p: i32* = &`x-y`; var equal: bool = p == p; print(equal); print(`x-y`);', 'true\n42\n'],
-  ['escaped quoted names', 'import foundation; var `back\\\\tick\\`line\\n`: i32 = 5; print(`back\\\\tick\\`line\\n`);', '5\n'],
-  ['forward calls and recursion', (await read('scaffolding/examples/functions.tower')).toString(), '720\n721\n'],
-  ['replacements and loops', (await read('scaffolding/examples/execution.tower')).toString(), '15\n16\n'],
-  ['prefix and postfix increment replacements', (await read('scaffolding/examples/increment.tower')).toString(), '5\n6\n7\n7\n9\n'],
-  ['mutual recursion', `import foundation; fn even(n: i32): bool { var b: bool; b = n == 0; if b { return true; } var p: i32; p = n - 1; b = odd(p); return b; }
-    fn odd(n: i32): bool { var b: bool; b = n == 0; if b { return false; } var p: i32; p = n - 1; b = even(p); return b; }
-    var a: bool; a = even(8); print(a); a = odd(8); print(a);`, 'true\nfalse\n'],
-  ['unsigned result and wrapping', 'import foundation; fn f(x: u32): u32 { x = x + 1; return x; } var x: u32; x = f(4294967295); print(x);', '0\n'],
-  ['live caller pointer return', 'import foundation; fn identity(x: i32*): i32* { return x; } var x: i32; var p: i32*; p = &x; p = identity(p); *p = 42; print(x);', '42\n'],
-  ['capture call destination before effects', `import foundation; fn change(pp: i32**, q: i32*): i32 { *pp = q; return 42; }
-    var a: i32; var b: i32; a = 1; b = 2; var p: i32*; var q: i32*; var pp: i32**; p = &a; q = &b; pp = &p;
-    *p = change(pp, q); print(a); print(b); var equal: bool = p == q; print(equal);`, '42\n2\ntrue\n'],
-  ['division zero', 'import foundation; var a: i32; a = 7 / 0;', '', /Division by zero/],
-  ['division overflow', 'import foundation; var a: i32; a = -2147483648 / -1;', '', /overflow/],
-  ['remainder overflow', 'import foundation; var a: i32; a = -2147483648 % -1;', '', /overflow/],
-  ['checked conversion', 'import foundation; var a: i32; var b: u32; a = -1; b = convert(u32, a);', '', /out of range/],
-  ['reinterpretation and signed arithmetic', 'import foundation; var a: u32; var b: i32; a = 4294967295; b = bits(i32, a); print(b); b = -5 / 2; print(b); b = -5 % 2; print(b);', '-1\n-2\n-1\n'],
-  ['continue and break', 'import foundation; var n: i32; var b: bool; n = 0; loop { n = n + 1; b = n < 3; if b { continue; } print(n); break; }', '3\n'],
-  ['break skips unentered sibling loops', 'import foundation; loop { print(1); break; loop { print(99); break; } print(2); } print(3);', '1\n3\n'],
-  ['continue skips unentered sibling loops', 'import foundation; var n: i32 = 0; var stop: bool; loop { n = n + 1; stop = n == 3; if stop { break; } continue; loop { break; } print(99); } print(n);', '3\n'],
-  ['initializers, type names and shadowing', 'import foundation; var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);', '9\n4\n'],
-  ['bare calls and call as an ordinary name', 'import foundation; fn call(value: i32): i32 { return value; } var call: i32 = call(4); print(call);', '4\n'],
-  ['replacement trap source mapping', "import foundation; parse Statement |= 'bad' => replace { var a: i32 = 1 / 0; };\n// λ雪\nbad", '', /Division by zero/],
-  ['bounded output', 'import foundation; var n: i32; var b: bool; n = 0; loop { print(123456789); n = n + 1; b = n == 7000; if b { break; } }', '123456789\n'.repeat(6553)],
+  fixture('type objects', 'scaffolding/tests/type_object_values.tower', 'zero'),
+  fixture('computed type arguments', 'scaffolding/tests/computed_type_arguments.tower', 'zero'),
+  fixture('function values', 'scaffolding/tests/function_values.tower', 'zero'),
+  fixture('integer negation', 'scaffolding/tests/integer_negation.tower', 'zero'),
+  fixture('floating values', 'scaffolding/tests/floating_point.tower', 'zero'),
+  fixture('narrow integers', 'scaffolding/tests/narrow_integers.tower', 'zero'),
+  fixture('narrow floating conversions', 'scaffolding/tests/narrow_floats.tower', 'zero'),
+  fixture('narrow output', 'scaffolding/tests/narrow_output.tower'),
+  fixture('floating output', 'scaffolding/tests/floating_output.tower'),
+  fixture('named field initialization', 'scaffolding/tests/named_initialization.tower', 'zero'),
+  fixture('resumable control bodies', 'scaffolding/tests/body_continuation.tower', 'zero'),
+  fixture('struct values', 'scaffolding/tests/struct_values.tower', 'zero'),
+  fixture('known bindings', 'scaffolding/tests/known_bindings.tower', 'zero'),
+  ...idioms.map(([name, source, expected]) => ({name, source, expected, scalar:true})),
+  fixture('more than 256 functions', 'scaffolding/tests/stress/llvm_functions.tower', undefined, true),
+  fixture('quoted names preserve bindings'),
+  fixture('escaped quoted names'),
+  fixture('forward calls and recursion', 'scaffolding/examples/functions.tower'),
+  fixture('replacements and loops', 'scaffolding/examples/execution.tower'),
+  fixture('prefix and postfix increment replacements', 'scaffolding/examples/increment.tower'),
+  fixture('mutual recursion'),
+  fixture('unsigned result and wrapping', undefined, 'zero'),
+  fixture('live caller pointer return'),
+  fixture('capture call destination before effects'),
+  fixture('division zero', undefined, 'empty'),
+  fixture('division overflow', undefined, 'empty'),
+  fixture('remainder overflow', undefined, 'empty'),
+  fixture('checked conversion', undefined, 'empty'),
+  fixture('reinterpretation and signed arithmetic'),
+  fixture('continue and break'),
+  fixture('break skips unentered sibling loops'),
+  fixture('continue skips unentered sibling loops'),
+  fixture('initializers, type names and shadowing'),
+  fixture('bare calls and call as an ordinary name'),
+  fixture('replacement trap source mapping', undefined, 'empty'),
+  fixture('bounded output'),
 ];
-for (const [name, input, expected, failure, canonicalProfile] of cases) test(`LLVM matches interpreter: ${name}`, async () => {
-  const phase = (label, details = {}) => {
-    if (process.env.TOWER_TEST_PHASES) console.log(JSON.stringify({case:name, phase:label,
-      milliseconds:performance.now(), cpu:process.cpuUsage(), rss:process.memoryUsage().rss,
-      maxRssKiB:process.resourceUsage().maxRSS,
-      portableCapacityBytes:tower.exports.memory.buffer.byteLength,
-      portableLiveNodes:tower.exports.tw_live_nodes(),
-      portableLegacyAllocations:tower.exports.tw_live_allocations(),
-      packageBytes:tower.exports.tw_exec_bytecode_size(), ...details}));
-  };
-  const save = async (suffix, text) => {
-    if (process.env.TOWER_TEST_ARTIFACTS) await writeFile(join(process.env.TOWER_TEST_ARTIFACTS,
-      name.replaceAll(' ', '_')+'_'+suffix),text);
-  };
-  // A filtered run must not compile an unrelated generated fixture at import.
-  const source = typeof input === 'function' ? await input() : input;
-  await save('source.tower',source);
-  const executionBatches = 1000, batchSteps = 10000;
+
+function execute(handle, scalar) {
+  let result, output = '';
+  writes = scalar ? [] : undefined;
+  try {
+    for (let batch = 0; batch < 1000; ++batch) {
+      result = tower.execute(handle, 10000);
+      output += result.output;
+      if (result.status !== 'executing') break;
+    }
+    return {result, output, writes};
+  } finally { writes = undefined; }
+}
+
+function* pipeline(row, source, sample, phase, save) {
   phase('Graph compile');
   const handle = tower.compile(source);
   try {
     phase('Graph execute');
-    let reference, output = '';
-    for (let i = 0; i < executionBatches; ++i) {
-      reference = tower.execute(handle, batchSteps); output += reference.output;
-      if (reference.status !== 'executing') break;
-    }
-    assert.notEqual(reference.status, 'executing');
-    assert.equal(reference.status, failure ? 'error' : 'done', 'Graph: '+reference.error);
-    if (failure) assert.match(reference.error, failure);
-    phase('Graph result',{result:reference,output});
+    const graph = execute(handle, row.scalar);
+    sample.graph = {...graph.result, output:graph.output};
+    yield ['Graph', {...sample.graph, writes:graph.writes}];
+    phase('Graph result', graph);
     phase('Fast compile');
-    const fastHandle = tower.compile(source);
+    const fast = tower.compile(source);
     try {
       phase('Fast select');
-      tower.useFast(fastHandle);
+      tower.useFast(fast);
       phase('Fast execute');
-      let fast, fastOutput = '';
-      for (let i = 0; i < executionBatches; ++i) {
-        fast = tower.execute(fastHandle, batchSteps); fastOutput += fast.output;
-        if (fast.status !== 'executing') break;
-      }
-      assert.notEqual(fast.status, 'executing', 'Fast exceeded the Graph execution budget');
-      for (const key of ['status','error','errorOffset','outputTruncated']) assert.equal(fast[key], reference[key], 'fast '+key);
-      assert.equal(fastOutput, output, 'fast output');
-      phase('Fast result',{result:fast,output:fastOutput});
-    } finally { tower.destroyExecution(fastHandle); }
+      const run = execute(fast, row.scalar);
+      yield ['Fast', {...run.result, output:run.output, writes:run.writes}];
+      phase('Fast result', run);
+    } finally { tower.destroyExecution(fast); }
+
     phase('Foundation format');
     const formatted = tower.foundation(handle);
-    await save('foundation_input.tower',formatted.source);
-    for(const optimize of [false,true]) {
-      phase(`LLVM Foundation ${optimize}`);
-      const optimized=llvm.compile(formatted.source,{emit:'foundation',optimize});
-      const {foundation,before,after,...response}=optimized;
-      await save(`profile_${optimize}_response.json`,JSON.stringify(response,null,2)+'\n');
-      if(foundation!==undefined)await save(`profile_${optimize}_emitted.tower`,foundation);
-      phase(`LLVM Foundation ${optimize} result`,{result:response});
-      assert.equal(optimized.status,'compiled',optimized.error);
-      // LLVM has already formatted Foundation. Use the production package
-      // entry point to check those exact bytes and create fresh guest storage.
-      // Keeping a compiled guest while snapshotting it reconstructs a second
-      // large graph unnecessarily and can exhaust the reactor's memory ceiling.
-      phase(`LLVM Foundation ${optimize} package prepare`);
-      const prepared=tower.prepareFoundationPackage(optimized.foundation,{optimizationProfile:optimized.optimizationProfile});
-      const guest=prepared.handle;
+    sample.formatted = formatted;
+    save('foundation_input.tower', formatted.source);
+    for (const optimize of [false,true]) {
+      const label = 'LLVM Foundation ' + optimize;
+      phase(label);
+      const {foundation, before, after, ...response} = llvm.compile(formatted.source, {emit:'foundation', optimize});
+      save(`profile_${optimize}_response.json`, JSON.stringify(response,null,2)+'\n');
+      if (foundation !== undefined) save(`profile_${optimize}_emitted.tower`, foundation);
+      phase(label + ' result', {result:response});
+      yield ['LLVM Foundation', {...response, optimize}];
+      phase(label + ' package prepare');
+      const prepared = tower.prepareFoundationPackage(foundation, {optimizationProfile:response.optimizationProfile});
       try {
-        phase(`LLVM Foundation ${optimize} Fast select`);
-        tower.useFast(guest);
-        phase(`LLVM Foundation ${optimize} Fast execute`);
-        let state, text='';
-        for (let i = 0; i < executionBatches; ++i) {
-          state=tower.execute(guest,batchSteps);text+=state.output;
-          if (state.status !== 'executing') break;
-        }
-        assert.notEqual(state.status, 'executing', `LLVM Foundation ${optimize} exceeded the Graph execution budget`);
-        state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
-        for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`LLVM bytecode ${optimize} ${key}`);
-        assert.equal(text,output,`LLVM bytecode ${optimize} output`);
-        phase(`LLVM Foundation ${optimize} Fast result`,{result:state,output:text});
-        phase(`LLVM Foundation ${optimize} package bytes`);
-        const packageBytes=prepared.bytecode;
-        assert.equal(new DataView(packageBytes.buffer).getUint32(24,true),canonicalProfile??(optimize?1:2));
-      } finally {tower.destroyExecution(guest);}
-      // Independent envelope/cache verification still reconstructs the package,
-      // after releasing the previous guest rather than retaining both graphs.
-      phase(`LLVM Foundation ${optimize} package load`);
-      const restored=tower.loadBytecode(prepared.bytecode);
+        phase(label + ' Fast select');
+        tower.useFast(prepared.handle);
+        phase(label + ' Fast execute');
+        const run = execute(prepared.handle, row.scalar);
+        run.result = originalDiagnostic(run.result, formatted.spans, formatted.sourceMap);
+        yield ['prepared execution', {...run.result, output:run.output, writes:run.writes}];
+        phase(label + ' Fast result', run);
+        phase(label + ' package bytes');
+        const {buffer, byteOffset, byteLength} = prepared.bytecode;
+        yield ['package profile', {profile:new DataView(buffer, byteOffset, byteLength).getUint32(24, true)}];
+      } finally { tower.destroyExecution(prepared.handle); }
+      // Release the prepared guest before independently reconstructing the cache.
+      phase(label + ' package load');
+      const restored = tower.loadBytecode(prepared.bytecode);
       try {
-        phase(`LLVM Foundation ${optimize} loaded execute`);
-        let state,text='';
-        for (let i = 0; i < executionBatches; ++i) {
-          state=tower.execute(restored,batchSteps);text+=state.output;
-          if (state.status !== 'executing') break;
-        }
-        assert.notEqual(state.status, 'executing', `loaded LLVM bytecode ${optimize} exceeded the Graph execution budget`);
-        state=originalDiagnostic(state,formatted.spans,formatted.sourceMap);
-        for(const key of ['status','error','errorOffset','outputTruncated'])assert.equal(state[key],reference[key],`loaded LLVM bytecode ${optimize} ${key}`);
-        assert.equal(text,output,`loaded LLVM bytecode ${optimize} output`);
-        phase(`LLVM Foundation ${optimize} loaded result`,{result:state,output:text});
-      } finally {tower.destroyExecution(restored);}
+        phase(label + ' loaded execute');
+        const run = execute(restored, row.scalar);
+        run.result = originalDiagnostic(run.result, formatted.spans, formatted.sourceMap);
+        yield ['loaded execution', {...run.result, output:run.output, writes:run.writes}];
+        phase(label + ' loaded result', run);
+      } finally { tower.destroyExecution(restored); }
     }
     phase('canonical roundtrip');
     const roundtrip = tower.compileFoundation(formatted.source);
-    try { assert.equal(tower.foundation(roundtrip).source, formatted.source); }
-    finally { tower.destroyExecution(roundtrip); }
+    try {
+      yield ['canonical roundtrip', {canonical:formatted.source, reformatted:tower.foundation(roundtrip).source}];
+    } finally { tower.destroyExecution(roundtrip); }
     phase('LLVM Wasm compile');
-    const compiled = llvm.compile(formatted.source);
-    assert.equal(compiled.status, 'compiled', compiled.error || reference.error);
-    assert.match(compiled.before, /define void @tower_main/);
-    assert.match(compiled.disassembly, /func\[\d+\] <tower_main>:/);
-    assert.match(compiled.disassembly, /end/);
-    assert.doesNotMatch(compiled.disassembly, /\.byte/, 'every emitted Wasm instruction decodes');
+    sample.compiled = llvm.compile(formatted.source);
+    yield ['LLVM Wasm', sample.compiled];
+  } finally { tower.destroyExecution(handle); }
+}
+
+let sample, assertionHost;
+async function openAssertions() {
+  const inputs = files.filter(({path}) => ['.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
+    '.tower/backend/text.tower', '.tower/library/vector.tower'].includes(path));
+  for (const path of ['observations.tower', 'pipeline.tower', 'wasm_result.tower'])
+    inputs.push({path, text:(await read(fixtures + path)).toString()});
+
+  function field(context, key) {
+    const name = guestString(context, key);
+    if (name === 'case') return sample.row.name;
+    if (name === 'expected') return sample.expected;
+    if (name === 'scalar') return !!sample.row.scalar;
+    if (name === 'traced') return sample.current.writes !== undefined;
+    if (name === 'write count') return sample.current.writes.length;
+    if (name.startsWith('write ')) return sample.current.writes[0][name.slice(6)];
+    if (name === 'compiler diagnostic') return sample.current.error ?? '';
+    return name.startsWith('graph ') ? sample.graph[name.slice(6)] : sample.current[name];
+  }
+  return createTower(towerBytes, undefined, grammar, undefined, builtins.bedrock, {
+    builtins, tower:builtins.tower, project:{files:inputs}, threads:{capacity:1}, imports:{
+      llvm_next(context, stage) {
+        const next = sample.steps.next();
+        assert.equal(next.done, false, 'Missing host observation');
+        assert.equal(next.value[0], guestString(context, stage), 'Unexpected host operation');
+        sample.current = next.value[1];
+      },
+      llvm_text: (context, key) => copyText(context, field(context, key)),
+      llvm_number(context, key) {
+        const value = field(context, key);
+        if (typeof value !== 'boolean' && !Number.isInteger(value)) throw new Error('Expected numeric observation');
+        return Number(value);
+      },
+      llvm_bytes(context, key, length) {
+        const value = field(context, key);
+        if (typeof value !== 'string' && !Buffer.isBuffer(value)) throw new Error('Missing byte observation');
+        const bytes = Buffer.from(value);
+        const address = context.allocate(bytes.length || 1);
+        if (!address) throw new Error('Cannot copy observed bytes');
+        const memory = context.memory();
+        memory.set(bytes, address);
+        const view = new DataView(memory.buffer, memory.byteOffset, memory.byteLength);
+        if (context.pointerBytes === 8) view.setBigUint64(Number(length), BigInt(bytes.length), true);
+        else view.setUint32(Number(length), bytes.length, true);
+        return address;
+      },
+      llvm_matches(context, key, pattern) {
+        const text = field(context, key);
+        if (typeof text !== 'string') throw new Error('Missing backend text');
+        return new RegExp(guestString(context, pattern)).test(text);
+      },
+    },
+  });
+}
+after(() => assertionHost?.close());
+
+for (const row of cases) test(`LLVM matches interpreter: ${row.name}`, async () => {
+  const phase = (label, details = {}) => {
+    if (process.env.TOWER_TEST_PHASES) console.log(JSON.stringify({case:row.name, phase:label,
+      milliseconds:performance.now(), cpu:process.cpuUsage(), rss:process.memoryUsage().rss,
+      maxRssKiB:process.resourceUsage().maxRSS, portableCapacityBytes:tower.exports.memory.buffer.byteLength,
+      portableLiveNodes:tower.exports.tw_live_nodes(), portableLegacyAllocations:tower.exports.tw_live_allocations(),
+      packageBytes:tower.exports.tw_exec_bytecode_size(), ...details}));
+  };
+  const save = (suffix, value) => {
+    if (process.env.TOWER_TEST_ARTIFACTS) writeFileSync(join(process.env.TOWER_TEST_ARTIFACTS,
+      row.name.replaceAll(' ', '_') + '_' + suffix), value);
+  };
+  const source = row.generate ? await generatedSource(tower, new URL('../../' + row.file, import.meta.url))
+    : row.source ?? (await read(row.file)).toString();
+  save('source.tower', source);
+  assertionHost ??= await openAssertions();
+  sample = {row, expected:row.expected ?? await read(fixtures + 'expected/' + row.golden + '.expected')};
+  sample.steps = pipeline(row, source, sample, phase, save);
+  try {
+    runSelectedTest(assertionHost, 'pipeline.tower', 300);
     phase('LLVM Wasm execute');
-    const executed = await executeWasm(compiled);
-    if (failure) phase(`LLVM Wasm diagnostic: reference ${reference.errorOffset}, returned ${executed.errorOffset}`);
-    const actual = originalDiagnostic(executed, formatted.spans, formatted.sourceMap);
-    phase('LLVM Wasm result',{result:actual});
-    for (const key of ['status', 'error', 'errorOffset', 'outputTruncated']) assert.equal(actual[key], reference[key], key);
-    assert.equal(actual.output, output); assert.equal(actual.output, expected);
-    if (failure) assert.match(actual.error, failure); else assert.equal(actual.status, 'done');
+    const actual = await executeWasm(sample.compiled);
+    if (sample.graph.status === 'error')
+      phase(`LLVM Wasm diagnostic: reference ${sample.graph.errorOffset}, returned ${actual.errorOffset}`);
+    sample.current = originalDiagnostic(actual, sample.formatted.spans, sample.formatted.sourceMap);
+    phase('LLVM Wasm result', {result:sample.current});
+    runSelectedTest(assertionHost, 'wasm_result.tower', 300);
+    if (row.scalar) {
+      // Keep the default linked execution above. Observe an independent call
+      // through the real platform implementation with a separate byte sink.
+      writes = [];
+      try {
+        const probe = await executeWasm(sample.compiled, undefined, {imports:traceWrites(() => {})});
+        sample.current = {...originalDiagnostic(probe, sample.formatted.spans, sample.formatted.sourceMap), writes};
+        phase('LLVM Wasm platform calls', {result:sample.current});
+        runSelectedTest(assertionHost, 'wasm_result.tower', 300);
+      } finally { writes = undefined; }
+    }
+    assert.ok(sample.steps.next().done, 'Unconsumed host operation');
     phase('complete');
-  } finally { tower.destroyExecution(handle); phase('released'); }
+  } finally {
+    sample.steps.return();
+    sample = undefined;
+    phase('released');
+  }
 });
 
 test('increment helper calls inline with a runtime pointer argument', () => {

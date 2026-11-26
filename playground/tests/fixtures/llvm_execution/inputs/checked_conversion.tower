@@ -1,0 +1,1 @@
+import foundation; var a: i32; var b: u32; a = -1; b = convert(u32, a);

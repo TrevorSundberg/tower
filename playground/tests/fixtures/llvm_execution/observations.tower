@@ -1,0 +1,90 @@
+import library.test_fixtures;
+import backend.text;
+
+// Each advance runs the next host operation. A failed assertion stops the
+// pipeline before its next compile, load or guest execution.
+extern fn llvm_next(stage: u8*): void;
+extern fn llvm_text(field: u8*): u8*;
+extern fn llvm_bytes(field: u8*, length: usize*): u8*;
+extern fn llvm_number(field: u8*): u32;
+extern fn llvm_matches(field: u8*, pattern: u8*): bool;
+
+fn observed_bytes(field: u8*): FixtureBytes {
+    var value: FixtureBytes = default;
+    value.data = llvm_bytes(field, &value.length);
+    return value;
+}
+
+fn expect_same_bytes(field: u8*, reference: u8*): void {
+    var actual = observed_bytes(field);
+    defer free(actual.data);
+    var wanted = observed_bytes(reference);
+    defer free(wanted.data);
+    assert(actual.length == wanted.length, field);
+    // A bounded stdout observation can contain 65 KiB. Compare full words
+    // with overlap-safe byte copies, including when either address is unaligned.
+    var at: usize = 0;
+    while actual.length - at >= sizeof(u64) {
+        var left: u64;
+        var right: u64;
+        copy(&left, actual.data + at, sizeof(u64));
+        copy(&right, wanted.data + at, sizeof(u64));
+        assert(left == right, field);
+        at += sizeof(u64);
+    }
+    while at < actual.length {
+        assert(actual.data[at] == wanted.data[at], field);
+        ++at;
+    }
+}
+
+fn required_diagnostic(name: u8*): u8* {
+    if backend_equal(name, "division zero") || backend_equal(name, "replacement trap source mapping") {
+        return "Division by zero";
+    }
+    if backend_equal(name, "division overflow") || backend_equal(name, "remainder overflow") {
+        return "overflow";
+    }
+    if backend_equal(name, "checked conversion") { return "out of range"; }
+    return null;
+}
+
+fn check_terminal(name: u8*): void {
+    var diagnostic = required_diagnostic(name);
+    var status = llvm_text("status");
+    defer free(status);
+    assert(!backend_equal(status, "executing"), "Graph execution exceeded the step budget");
+    if diagnostic != null {
+        assert(backend_equal(status, "error"), "Expected runtime trap");
+        var error = llvm_text("error");
+        defer free(error);
+        assert(backend_contains(error, diagnostic), diagnostic);
+    } else {
+        assert(backend_equal(status, "done"), name);
+    }
+}
+
+fn check_execution(): void {
+    expect_same_bytes("status", "graph status");
+    expect_same_bytes("error", "graph error");
+    assert(llvm_number("errorOffset") == llvm_number("graph errorOffset"), "errorOffset");
+    assert(llvm_number("outputTruncated") == llvm_number("graph outputTruncated"), "outputTruncated");
+    expect_same_bytes("output", "graph output");
+}
+
+fn check_compiled(): void {
+    var status = llvm_text("status");
+    defer free(status);
+    var error = llvm_text("compiler diagnostic");
+    defer free(error);
+    assert(backend_equal(status, "compiled"), error);
+}
+
+fn check_external_call(): void {
+    if llvm_number("scalar") != 0 {
+        assert(llvm_number("write count") == 1, "platform_write call count");
+        assert(llvm_number("write stream") == 1, "platform_write stdout");
+        assert(llvm_number("write length") == 0, "platform_write byte count");
+        assert(llvm_number("write result") == 0, "platform_write return value");
+    }
+}

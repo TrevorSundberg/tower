@@ -1,0 +1,1 @@
+import foundation; var i32: i32 = 4; { var i32: i32 = 9; print(i32); } print(i32);

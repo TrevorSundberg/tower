@@ -1,0 +1,37 @@
+import observations;
+import backend.text;
+import library.testing;
+
+test() {
+    var name = llvm_text("case");
+    defer free(name);
+    llvm_next("Graph");
+    check_terminal(name);
+    check_external_call();
+    llvm_next("Fast");
+    check_execution();
+    check_external_call();
+    for (var optimize: u32 = 0; optimize < 2; ++optimize) {
+        llvm_next("LLVM Foundation");
+        assert(llvm_number("optimize") == optimize, "LLVM optimization request");
+        check_compiled();
+        llvm_next("prepared execution");
+        check_execution();
+        check_external_call();
+        llvm_next("package profile");
+        var profile: u32 = optimize == 0 ? 2 : 1;
+        if backend_equal(name, "type objects") { profile = 0; }
+        assert(llvm_number("profile") == profile, "canonical package profile");
+        llvm_next("loaded execution");
+        check_execution();
+        check_external_call();
+    }
+    llvm_next("canonical roundtrip");
+    expect_same_bytes("reformatted", "canonical");
+    llvm_next("LLVM Wasm");
+    check_compiled();
+    assert(llvm_matches("before", "define void @tower_main"), "LLVM tower_main definition");
+    assert(llvm_matches("disassembly", "func\\[\\d+\\] <tower_main>:"), "Wasm tower_main definition");
+    assert(llvm_matches("disassembly", "end"), "Wasm end");
+    assert(!llvm_matches("disassembly", "\\.byte"), "every emitted Wasm instruction decodes");
+}

@@ -1,0 +1,3 @@
+import foundation; parse Statement |= 'bad' => replace { var a: i32 = 1 / 0; };
+// λ雪
+bad
