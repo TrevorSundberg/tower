@@ -574,6 +574,21 @@ comparisons, seeded mixed inputs, truncation/corruption rejection and recovery.
 file (10,000 tiny, 100 small or one large compression), prints input/output bytes,
 retained output capacity and repetition count, then checks buffer disposal.
 
+The gzip companion runs three declarations through `towerc --test`. The first
+two check repeated encoding, rejection without changing the output, and input
+that aliases the output. They use the same six fixed inputs and 32 seeded
+inputs as the standalone fixture. The third checks the little-endian CRC-32
+trailer against the independent `123456789` vector. In the optional language
+suite, run `ctest -R '^tower-selected-gzip-jobs-' -V` from the installed
+`scc-suite` directory. To select the companion directly, use the arguments
+shown by CTest with `share/tower/library/gzip_test.tower` as the entry.
+
+The standalone `gzip_checks.tower` entry also runs the shared publication
+checks on an optional real support file. It retains the paired file writes,
+bounded GNU gzip capture, all prefix truncations, reserved-block and CRC
+corruptions, and recovery using the original member. Its process boundary
+checks both the decoder status and the caller's retained output after failure.
+
 `tool_process_checks.tower` validates the Linux tool runner with exact child
 arguments, empty strings, ordinary exits, signals, exec/redirection failures,
 large binary stdout capture and unchanged output on failure. Build it as
@@ -1930,7 +1945,7 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack and queue companions through the
+The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack, queue, gzip and narrow foreign ABI companions through the
 public driver on Linux GNU. In a native build configured with
 `TOWER_DRIVER_TESTS=ON`, build the suite and run the registrations at one and four
 compiler jobs. Set `B` to
@@ -1954,8 +1969,8 @@ TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tow
 The registrations use `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The kit requires
-the driver's final stderr line to report exactly two SCC declarations or seven
-SHA-256 declarations for the selected owner. A compiler or guest failure fails
+the driver's final stderr line to report exactly two SCC, seven SHA-256
+or three narrow foreign declarations for the selected owner. A compiler or guest failure fails
 the registration even if the guest printed the expected summary. The last
 command supplies the alternate suffix to the same driver. It deliberately
 fails on the singleton at `graph_components_wrong.tower:7:5` and returns
@@ -1982,6 +1997,11 @@ installed suite directory, select both owners with
 `stack_test.tower` or `queue_test.tower` takes the same arguments printed by
 CTest. The published bootstrap also runs either owner or companion with
 `--test`, `--jobs` and `--test-details`.
+
+With only `TOWER_EXECUTION_TESTS=ON`, build `tower-narrow-foreign-tests`
+and select `^tower-selected-narrow-foreign-jobs-` in CTest. Both job counts
+link `narrow-foreign-library.o` as a separate native provider. The same
+registrations in the moved kit select `share/tower/tests/narrow_foreign.tower`.
 
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability

@@ -1,0 +1,40 @@
+import library.testing;
+
+// The selected test drives a separate, freshly loaded browser compiler.
+extern fn cancel_nodes(): usize;
+extern fn cancel_components(): usize;
+extern fn cancel_allocations(): usize;
+extern fn cancel_open(): void;
+extern fn cancel_destroy(): void;
+extern fn cancel_fast(): bool;
+extern fn cancel_step(budget: u32): u32;
+extern fn cancel_executing(): bool;
+extern fn cancel_truncated(): bool;
+
+test() {
+    // Measure first use without a fast cache or executed guest instruction.
+    var cold = cancel_nodes();
+    cancel_open();
+    var live = cancel_nodes();
+    assert(cancel_step(0) == 0 && cancel_executing(), "cold graph at step zero");
+    cancel_destroy();
+    var idle = cancel_nodes();
+    var components = cancel_components();
+    var allocations = cancel_allocations();
+    assert(live > cold, "cold compile owns graph execution nodes");
+    assert(live > idle, "destroy releases graph execution nodes");
+
+    var budget: u32 = 100000;
+    for (var i: usize = 0; i < 30; i++) {
+        cancel_open();
+        assert(cancel_fast(), "select fast interpreter before execution");
+        assert(cancel_step(0) == 0, "zero-budget slice");
+        assert(cancel_step(budget) == budget && cancel_executing(), "bounded infinite execution");
+        assert(cancel_truncated(), "guest output limit");
+        assert(!cancel_fast(), "cannot switch interpreter after execution");
+        cancel_destroy();
+        assert(cancel_nodes() == idle, "cancelled execution releases its nodes");
+        assert(cancel_components() == components, "cancelled execution releases its components");
+        assert(cancel_allocations() == allocations, "cancelled execution releases tracked allocations");
+    }
+}

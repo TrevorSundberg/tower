@@ -1,0 +1,70 @@
+import library.testing;
+import .tests.test_declaration_inputs.array_assertions as array_case;
+import .tests.default_struct_values as defaults;
+
+test() {
+    array_case.check_order();
+}
+
+struct Row { values: i32[2]; }
+var trace = 0;
+fn mark(value: i32): i32 {
+    trace = 10 * trace + value;
+    return value;
+}
+
+var rows: Row[2] = {
+    {values: {mark(1), mark(2)}},
+    {values: {mark(3), mark(4)}},
+};
+
+test() {
+    assert(trace == 1234, "Nested elements evaluate once in source order");
+    assert(rows[0].values[1] == 2 && rows[1].values[0] == 3);
+}
+
+fn staged(): i32 {
+    var pair: i32[2] = {19, 23};
+    return pair[0] + pair[1];
+}
+
+test() {
+    assert(comptime(staged()) == 42, "Staged array element sum");
+    assert(comptime(defaults.staged_zero()) == 0, "Contextual struct default");
+}
+
+struct Sample { tag: u8; value: i32; valid: bool; }
+struct Batch { samples: Sample[2]; weight: u64; }
+
+test() {
+    var batch: Batch = {
+        {{3, -17, false}, {9, 70000, true}},
+        4294967297,
+    };
+    assert(batch.samples[0].tag == 3 && batch.samples[0].value == -17 && !batch.samples[0].valid);
+    assert(batch.samples[1].tag == 9 && batch.samples[1].value == 70000 && batch.samples[1].valid);
+    assert(batch.weight == 4294967297, "Wide field after nested samples");
+}
+
+var slots: Sample[3];
+var visits = 0;
+var effects = 0;
+fn middle(): Sample* { visits++; return &slots[1]; }
+fn tag(): u8 { effects = effects * 10 + 1; return 13; }
+fn observed(): i32 { effects = effects * 10 + 2; return convert(i32, slots[1].tag) + 70000; }
+fn valid(): bool { effects = effects * 10 + 3; return slots[1].value == 70013; }
+
+test() {
+    fill(&slots, 165, sizeof(decltype(slots)));
+    visits = 0;
+    effects = 0;
+    *middle() = {tag(), observed(), valid()};
+    assert(visits == 1, "Reset evaluates the destination once");
+    assert(effects == 123, "Reset evaluates fields in source order");
+    assert(slots[1].tag == 13 && slots[1].value == 70013 && slots[1].valid, "Aliased reads see earlier stores");
+    var left = bits(u8*, &slots[0]);
+    var right = bits(u8*, &slots[2]);
+    for(var i: usize = 0; i < sizeof(Sample); i++) {
+        assert(left[i] == 165 && right[i] == 165, "Reset stays within the destination");
+    }
+}

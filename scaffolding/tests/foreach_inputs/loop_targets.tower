@@ -1,0 +1,37 @@
+import tower;
+import ..library.vector;
+import print_value;
+
+fn nested_return(values: vector(i32)*): i32 {
+    foreach (var item in values) {
+        for (var i = 0; i < 2; i++) {
+            if i == 0 { continue; }
+            return item;
+        }
+    }
+    return 0;
+}
+
+fn loop_targets(emit: function(void, i32)): void {
+    var values: vector(i32);
+    vector_init(&values);
+    defer vector_dispose(&values);
+    vector_push(&values, 1);
+    vector_push(&values, 2);
+    var sum = 0;
+    for (var i = 0; i < 3; i++) {
+        foreach (var item in &values) {
+            if item == 1 { continue; }
+            sum += item;
+        }
+        if i == 1 { continue; }
+        sum += 10;
+    }
+    emit(sum);
+    {
+        defer { foreach (var item in &values) { emit(item); } }
+    }
+    emit(nested_return(&values));
+}
+
+loop_targets(print_value);

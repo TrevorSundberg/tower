@@ -1,0 +1,55 @@
+import library.testing;
+import bytes;
+import bytes_types;
+import gzip;
+import gzip_test_data;
+
+fn gzip_check_publication(input: ByteBuffer*): void {
+    var encoded: ByteBuffer = default;
+    var repeated: ByteBuffer = default;
+    defer bytes_dispose(&encoded);
+    defer bytes_dispose(&repeated);
+    assert(gzip_deterministic_member(input, &encoded, &repeated), "Deterministic gzip member");
+    assert(gzip_rejects_invalid_input(&encoded, &repeated), "Invalid input changed the gzip member");
+    assert(gzip_encodes_aliased_input(input, &encoded, &repeated), "Aliased gzip input publication");
+}
+
+fn gzip_check_fixed(count: usize*, name: u8*, input: ByteBuffer*): void {
+    gzip_check_publication(input);
+    *count += 1;
+}
+
+// Empty, text, all bytes, repeated-window, incompressible and lazy-match inputs.
+test() {
+    var count: usize = 0;
+    assert(gzip_fixed_cases(usize*, &count, gzip_check_fixed), "Build fixed gzip corpus");
+    assert(count == GzipFixedCases, "Incomplete fixed gzip corpus");
+}
+
+// Mixed literals and backreferences from the original sequence of 32 trials.
+test() {
+    var input: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    var seed = GzipTestSeed;
+    for (var trial: usize = 0; trial < GzipSeededTrials; trial++) {
+        assert(gzip_seeded_input(&input, &seed), "Build seeded gzip input");
+        gzip_check_publication(&input);
+    }
+}
+
+// Independent IEEE CRC-32 vector for the ASCII digits, serialized little-endian.
+test() {
+    var input: ByteBuffer = default;
+    var encoded: ByteBuffer = default;
+    defer bytes_dispose(&input);
+    defer bytes_dispose(&encoded);
+    assert(gzip_fixture_text(&input, "123456789"));
+    assert(gzip_compress(input.data, input.length, &encoded));
+    assert(encoded.length >= GzipWordBytes * 2);
+    var trailer = encoded.length - GzipWordBytes * 2;
+    var checksum: u32 = 3421780262;
+    for (var byte: usize = 0; byte < GzipWordBytes; byte++) {
+        assert(encoded.data[trailer + byte] == convert(u8, checksum & 255), "Known gzip CRC-32 trailer");
+        checksum >>= GzipByteBits;
+    }
+}

@@ -1,0 +1,5 @@
+import tower;
+
+struct Box { value: i32; }
+var box: Box;
+foreach (var item in &box) {}
