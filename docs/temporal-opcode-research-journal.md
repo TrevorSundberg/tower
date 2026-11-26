@@ -109560,3 +109560,59 @@ implementation owner in the assertion guest. Selecting the qualified file
 as a standalone test avoids that work. A single portable reactor supplies
 the three external calls. Each link or callback returns the fixture result
 unchanged.
+
+The Node module keeps its three original names. The callbacks forward scalar
+arguments and results on one reactor. Each selected declaration needs only
+its own file and library/testing in addition to the loader's language inputs.
+Sending those two files on selection avoids uploading the entire fixture
+collection again. The three declarations total 824 bytes. The registration
+module is 1,007 bytes, up from 994. The portable and shared Wasm products
+are the installed release files of 1,711,218 and 1,782,124 bytes.
+
+Each exact name filter ran one body. Traces of the actual portable exports
+matched five calls in order. Invocation returned 0 at widths 4 and 8, world
+returned 0 at widths 4 and 8, and stage returned 0 with no argument. The
+original and final modules also passed 3/3 on the released shared reactor
+with worker capacity four under Node. Changing each expected return to one
+failed in Tower at line 6 or 7, column 5. All three selections passed after
+restoration. The existing separate shared-worker and compiler-thread suites
+retain their original registrations.
+
+The 7315b86e Linux x64 compiler selected one test per direct entry at jobs
+1 and 4. The native test runtime linked the three public functions through
+a shared library. The first linked check imported an unrelated storage
+fixture with missing denial hooks. The ordinary evaluation unit plus the
+invocation fixture supplied the required ABI. A second link compiled the
+query-checks unit from the assigned tree too. Both used the installed host
+3 LR support objects. Both reference calls printed five zeros, and the
+world selections emitted the same 3,696-byte resource transcript. An
+eight-byte selected Foundation graph per case ran through ASan/LSan and
+TSan, using the existing instrumented allocator and Linux worker objects.
+All six exits were zero with matching stdout and empty stderr. An initial
+IR command put --library after --emit and produced an object. Putting
+--emit llvm last supplied the instrumenter's required input. These trials
+cover the selected calls. The supporting compiler objects have their own
+build identities. Source-level Tower UBSan was unavailable.
+
+In two final alternating pairs, fresh Node 24.22.3 processes reused warmed
+files on the AMD EPYC 7542. Affinity was CPUs 0–3 on a 64-logical-CPU host
+with a 12.288-CPU quota. GNU time measured the whole three-registration
+process. Wall time varied substantially even at similar process CPU time.
+
+| Arm | Pair | Wall s | User s | System s | Peak KiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Stock | 1 | 2.33 | 0.69 | 0.14 | 131836 |
+| Selected | 1 | 12.76 | 1.18 | 0.09 | 133624 |
+| Selected | 2 | 9.54 | 1.17 | 0.09 | 133848 |
+| Stock | 2 | 8.97 | 0.74 | 0.13 | 130884 |
+
+All three ordinary owner depfiles excluded the optional inputs. A first
+cross-directory stage object comparison differed on three path-qualified
+private type names. At the same absolute path, the stock, candidate and
+deliberately malformed companion runs produced byte-identical objects
+and depfiles for each owner. Default bytecode, generics and entity-page
+test inventories matched stock. Receipt 925c833c-312d-46d9-adfb-1650a2d6e311
+retains the raw traces, failed attempts, per-process measurements, link
+maps, provider hashes and source bundle. Validation covered these three
+registrations and their dependencies. Release publication belongs to the
+manager.

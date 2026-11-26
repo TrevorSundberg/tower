@@ -1,5 +1,5 @@
 import {test} from 'node:test';
-import {openTower, runSelectedTest} from './compiler_test_host.mjs';
+import {fixtureSource, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
 const tower = await openTower({imports: {
   interpreter_invocation_tests: (_, width) => tower.exports.interpreter_invocation_tests(width),
@@ -7,14 +7,14 @@ const tower = await openTower({imports: {
   semantic_stage_tests: () => tower.exports.semantic_stage_tests(),
 }});
 
-test('Tower invocation contexts isolate values, strict storage, effects and fuel', () => {
-  runSelectedTest(tower, '.tower/compiler/interpreter_kernel_tests.tower');
-});
-
-test('shared semantic/interpreter kernels follow independent compiler worlds', () => {
-  runSelectedTest(tower, '.tower/compiler/world_kernel_tests.tower');
-});
-
-test('worker entity staging preserves pinned indexes and publishes stable canonical nodes', () => {
-  runSelectedTest(tower, '.tower/library/entity_stage_kernel_tests.tower');
-});
+for (const [name, owner] of [
+  ['Tower invocation contexts isolate values, strict storage, effects and fuel', 'compiler/interpreter'],
+  ['shared semantic/interpreter kernels follow independent compiler worlds', 'compiler/world'],
+  ['worker entity staging preserves pinned indexes and publishes stable canonical nodes', 'library/entity_stage'],
+]) {
+  test(name, () => {
+    const entry = '.tower/' + owner + '_kernel_tests.tower';
+    const files = [entry, '.tower/library/testing.tower'].map(path => ({path, text:fixtureSource(path)}));
+    runSelectedTest(tower, entry, 1, {files});
+  });
+}
