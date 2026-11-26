@@ -84,8 +84,10 @@ cmake --build "$B" --target tower-allocator-benchmark-declaration
 cmake --build "$B" --target tower-runtime-abi-benchmark-declaration
 ```
 
-Each target selects its `_benchmark.tower` companion, checks for empty guest
-stdout and uses the same allocation provider as its standalone executable.
+Each target selects its `_benchmark_test.tower` companion using the default
+filename rule. The matching `_benchmark.tower` module allows selection by
+owner as well. The test checks for empty guest stdout and uses the same
+allocation provider as its standalone executable.
 The original `tower-allocator-tests` accepts any extra argument for the
 benchmark. Use `tower-runtime-abi-tests --benchmark` for the production
 allocator. The default declarations and CTest registrations run the ABI checks.

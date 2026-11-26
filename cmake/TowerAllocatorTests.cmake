@@ -63,10 +63,10 @@ if(TOWER_ALLOCATOR_TESTS)
         --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.expected")
 
       # Explicit targets keep the measured workload out of default builds and CTest runs.
-      set(benchmark "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}_benchmark.tower")
+      set(benchmark "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}_benchmark_test.tower")
       add_custom_target(tower-${suite}-benchmark-declaration
         COMMAND tower-selected-test-count "1 test passed for ${benchmark}"
-          "${TOWER_BOOTSTRAP_COMPILER}" --test "${benchmark}" --test-suffix _benchmark.tower ${selection}
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${benchmark}" ${selection}
           --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/benchmark.expected"
         DEPENDS tower-${suite}-tests VERBATIM)
     endforeach()

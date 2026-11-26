@@ -121492,3 +121492,18 @@ build mode. WASI SDK 34 passed both default registrations and both manual
 benchmarks through the project host. The Windows x64 object retained its
 `mainCRTStartup` and runtime ABI exports. Windows execution, independent
 manager review and publication remain open.
+
+### Default discovery for optional allocator benchmarks
+
+Review of receipt `5f55ad50` compared both benchmark functions with the
+pre-migration source at `9760a3c5`. Their bodies match byte for byte.
+Stdout, stderr and exit status match across the baseline, migrated and
+independently rebuilt programs for eleven command lines, including both
+division traps. The optional declarations in that receipt required a custom
+filename suffix. Give each benchmark its own module and adjacent
+`_benchmark_test.tower` companion so the normal filename rule can find it.
+The two existing opt-in build targets select the companions directly.
+Ordinary ABI tests retain their separate owners, providers and output oracles.
+Qualification of the new paths requires both direct and owner discovery on
+the native installation. The earlier timing and sanitizer results cover the
+benchmark functions.

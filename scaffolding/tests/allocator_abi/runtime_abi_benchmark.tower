@@ -1,3 +1,1 @@
-import runtime_abi_test;
-
-test() { assert(runtime_abi_benchmark() == 0, "Allocation benchmark failed"); }
+import tower;

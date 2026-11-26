@@ -1,0 +1,3 @@
+import allocator_glue_test;
+
+test() { assert(allocator_glue_benchmark() == 0, "Allocation benchmark failed"); }
