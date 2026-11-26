@@ -118972,3 +118972,103 @@ control returned 66 and reported the race in `work_kernel_execute`. The
 project provides no UBSan mode. The raw host packet includes the installer
 receipt, build commands, stdout/stderr, statuses, RSS, equivalent-output
 comparisons, temporary observer patches and restored mutation controls.
+### Linux per-thread affinity and the serial mask provider on host 6
+
+Assignment `fda82b57-7d21-47ba-b840-2f636a6c4297` started at public
+`1cc5e97cd9c2d282673c4e7cb490e0e72b213483`. The supplied move retained
+the successful standalone count and lanes. Its adapter printed them after
+the trial returned, moving the output across the deferred pool close.
+After a successful pthread join, GDB changed the return register to 22
+before the caller tested it. Both programs exited 1 with “Cannot join
+compiler worker”. On CPUs 0 and 2 only the original had already written
+the two lines containing 2. The repaired trial prints in the original
+position when called from the standalone. The new native selection checks
+the same trial with the standalone output disabled.
+
+Implementation `75be10192075d10fc087b0ecdf999eb0de3a70b0` was built
+with the public Linux x64 compiler, SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All 61 package checksums passed. Release Ninja configurations used
+`TOWER_NATIVE=ON`, `TOWER_WORK_TESTS=ON`, the checkout's pinned executable,
+Clang/LLVM 19.1.7, and compiler jobs 1 and 4. Each cache ran one build at
+a time. The 205 pre-existing CTest commands and properties matched after
+normalizing build directories and excluding CMake backtrace IDs. Four
+real-affinity selectors brought the inventory to 209. The original six
+focused tests and repaired ten passed in both builds. Actual owner discovery
+in each family found its own test and the five work-budget declarations.
+Each direct selection ran only its own test. The supplied 6/1 expectations
+were accurate. Before the move, attempting to select the real owner linked
+two definitions of main, and the direct companion did not exist.
+
+The following observations held in both legacy builds, both repaired builds
+and replays of the actual owner and direct guest ELFs captured at each
+compiler width. The guest runs use the production Linux pool and glibc.
+
+| Allowed CPUs | Standalone stdout, successive lines | Worker observations |
+| --- | --- | --- |
+| 0 | 1, 1 | One inline call on the parent, 1,000 singleton reads, one matching receipt |
+| 0,2 | 2, 2 | Two pthreads restricted separately to 0 and 2, 1,000 singleton reads apiece |
+| 0–11 | 12, 2 | Two pthreads restricted separately to 0 and 1, 1,000 singleton reads apiece |
+
+In each two-lane syscall trace the parent's full-mask read occurred after
+both workers' last restricted read and before either restoration. Each
+worker's 128-byte capture and successful restore agreed with its inherited
+mask. GDB sampled the kernel's per-thread allowed lists after the set calls,
+matched the returned job pointers to the original submissions and recorded
+two zero join statuses. A single CPU uses no pthread join. Both entry
+objects and captured selected guests had one pool callback. Only the serial
+provider imported the three wrapped operations. Refusing the initial
+128-byte kernel query preserved the explicit glibc mask-limit diagnostic
+and exit 1. Refusing a spawn returned 2. Narrowing the pool's capacity query
+after the parent counted two CPUs returned 3. The host itself had 12 CPUs
+and its kernel answered the ordinary capacity probe in one word.
+
+The serial standalone ELF was byte-identical before and after, at both
+widths. At libc's count call, all 64 captured masks (33 words each) matched
+across standalones and selections. Their 16,896 bytes have SHA-256
+`27cb44fde7f1ecc67da19f37286ec19967fc8a905d694b5175d5d65965ab85a1`.
+An evidence-only Tower checker reconstructed each bit from seed 731 and
+compared its sums with all 64 libc counts. They ranged from 183 to 298,
+with 21 above the pool maximum of 256. The wrapped transport made 483
+queries and 412 allocation attempts. All 410 successful allocations
+matched the next nonnull free. The two denied allocations led to null
+cleanup. Standalone and selected stdout was exactly `412\n544\n0\n`.
+Those lines report allocation attempts, peak charged bytes, and live bytes.
+
+Changing the real worker's singleton expectation to two failed in the
+standalone and both selections at both compiler widths. Three independent
+serial controls retained a stale owner pointer after free, passed an offset
+pointer from the transport to the free interceptor, and queried PID 1.
+Each reached its specific diagnostic on all six routes. Every restoration
+reproduced the standalone object and executable and passed the same routes.
+ASan with leak detection and TSan each passed both final standalones on
+CPUs 0 and 2 on the first launch. The maps, IR and disassembly identify the
+instrumented worker, host memory functions, wrapped providers, production
+Linux transport and libc pthread boundary. The selector driver ran normally.
+The repository offers address and thread passes for emitted Tower IR.
+Source-level UBSan and larger physical kernel masks remain outside this run.
+
+The Xeon E5-2680 v4 VM had 12 visible CPUs, a quota of 11.52 CPUs and a
+32,282,509,312-byte memory ceiling. Warm-file samples ran sequentially under
+the host timing lock. Compiler affinity was 0,2,4,6. One warm-up preceded
+three alternating-order samples. Values below are median wall seconds,
+median user plus system seconds and maximum peak RSS in KiB. Batch rows
+include 64 fresh standalone launches and a byte comparison after each one.
+
+| Operation | Jobs | Public source | Repaired |
+| --- | ---: | ---: | ---: |
+| Real fixture object | 1 | 0.73 / 0.73 / 107268 | 0.87 / 0.86 / 110088 |
+| Real fixture object | 4 | 0.76 / 0.82 / 113744 | 1.03 / 1.17 / 121516 |
+| Real batch, CPUs 0,2 | 1 | 0.23 / 0.27 / 3276 | 0.23 / 0.28 / 3316 |
+| Real batch, CPUs 0,2 | 4 | 0.23 / 0.28 / 3216 | 0.23 / 0.28 / 3248 |
+| Serial fault owner | 1 | 0.97 / 0.96 / 121216 | 0.96 / 0.95 / 121180 |
+| Serial fault owner | 4 | 1.14 / 1.28 / 130876 | 1.10 / 1.22 / 131748 |
+
+The real standalone grew from 17 to 20 source dependencies with its
+adapter, companion and testing import. In separate phase samples parse time
+rose from 368 to 515 ms at one job and 436 to 728 ms at four. Emission
+stayed between 70 and 74 ms. The new real direct/owner selections took
+0.87/1.06 s at one job and 1.04/1.21 s at four. Cgroup throttling counters
+were unchanged across the paired series. The packet contains each original
+stream, command, trace, failure, link and measurement, including single-CPU
+and full-allocation batches. Integration and publication belong to the manager.

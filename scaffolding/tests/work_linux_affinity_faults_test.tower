@@ -6,6 +6,75 @@ import .library.work_budget_types;
 
 extern fn __sched_cpucount(bytes: usize, mask: usize*): i32;
 
+// Guest traps terminate without unwinding a deferred cleanup.
+fn affinity_fault_trap(message: u8*): void {
+    AffinityFault = null;
+    trap(message, 0);
+}
+
+export fn __wrap_sched_getaffinity(pid: i32, bytes: usize, mask: usize*): i32 {
+    if pid != 0 || mask == null || bytes % sizeof(usize) != 0 {
+        affinity_fault_trap("Query the current thread with a whole-word mask");
+    }
+    AffinityFault.queries++;
+    if AffinityFault.mode == AffinityMockMode.Error
+        || (AffinityFault.mode == AffinityMockMode.ResizeError && bytes > sizeof(usize)) {
+        *__errno_location() = AffinityMockAddressError;
+        return -1;
+    }
+    if bytes < sizeof(decltype(AffinityFault.mask)) {
+        *__errno_location() = AffinityMockSizeError;
+        return -1;
+    }
+    // Leave the caller's padding untouched after the last supplied word.
+    copy(mask, &AffinityFault.mask[0], sizeof(decltype(AffinityFault.mask)));
+    return 0;
+}
+
+export fn __wrap_compiler_buffer_allocate(bytes: usize): void* {
+    if AffinityFault.live != null || AffinityFault.live_bytes != 0 {
+        affinity_fault_trap("Release the previous affinity buffer before growing the mask");
+    }
+    var ordinal = AffinityFault.calls++;
+    if ordinal == AffinityFault.fail_at { return null; }
+    var memory = compiler_buffer_allocate(bytes);
+    if memory != null {
+        AffinityFault.live = memory;
+        AffinityFault.live_bytes = compiler_buffer_allocation_size(bytes);
+        if AffinityFault.live_bytes > AffinityFault.peak_bytes {
+            AffinityFault.peak_bytes = AffinityFault.live_bytes;
+        }
+        fill(memory, 255, bytes);
+    }
+    return memory;
+}
+
+export fn __wrap_compiler_buffer_free(pointer: void*): void {
+    if pointer == null { return; }
+    if pointer != AffinityFault.live || AffinityFault.live_bytes == 0 {
+        affinity_fault_trap("Free the currently owned affinity buffer");
+    }
+    compiler_buffer_free(pointer);
+    AffinityFault.live = null;
+    AffinityFault.live_bytes = 0;
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    affinity_fault_trap("Denied affinity must not dispatch");
+}
+
+fn affinity_capacity(state: AffinityFaultState*): usize {
+    AffinityFault = state;
+    defer { AffinityFault = null; }
+    return work_thread_capacity();
+}
+
+fn affinity_pool_open(state: AffinityFaultState*, pool: WorkPool*): bool {
+    AffinityFault = state;
+    defer { AffinityFault = null; }
+    return work_pool_open(pool, 1);
+}
+
 test() { linux_affinity_faults(); }
 
 fn affinity_query(state: AffinityFaultState*): usize {
