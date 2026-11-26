@@ -100,10 +100,17 @@ function(tower_storage_tests)
     tower_runtime_object(tower-overflow-native "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_overflow_native_main.tower" "${triple}")
     add_executable(tower-overflow-native-tests "${tower-overflow-native_OBJECT}")
     set_target_properties(tower-overflow-native-tests PROPERTIES LINKER_LANGUAGE CXX)
-    # The direct ELF linker accepts the provider path and its runpath. Passing
-    # the target transitively would add the system linker's -rpath-link option.
-    add_dependencies(tower-overflow-native-tests tower-overflow-native-services tower-runtime-resource-linux-x64)
-    target_link_libraries(tower-overflow-native-tests PRIVATE "$<TARGET_FILE:tower-overflow-native-services>")
+    add_dependencies(tower-overflow-native-tests tower-runtime-resource-host-linux-x64)
+    if(TOWER_SANITIZER)
+      target_link_libraries(tower-overflow-native-tests PRIVATE tower-overflow-native-services)
+    else()
+      # The Tower ELF linker accepts full input paths. CMake's library search
+      # flags depend on whether the shared object already exists at configure time.
+      add_dependencies(tower-overflow-native-tests tower-overflow-native-services)
+      set_property(TARGET tower-overflow-native-tests APPEND PROPERTY LINK_DEPENDS "$<TARGET_FILE:tower-overflow-native-services>")
+      target_link_options(tower-overflow-native-tests PRIVATE "$<TARGET_FILE:tower-overflow-native-services>"
+        "-Wl,-rpath,$<TARGET_FILE_DIR:tower-overflow-native-services>")
+    endif()
     foreach(mode IN ITEMS correct wrong)
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${mode}")
       add_test(NAME tower-overflow-native-${mode} COMMAND tower-overflow-native-tests

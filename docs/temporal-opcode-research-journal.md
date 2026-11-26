@@ -120257,3 +120257,12 @@ modes. Eight adjacent backend import/storage registrations also passed.
 Assignment evidence includes the failed configurations, negative and restored
 JUnit and raw output, ELF symbols and relocations, artifact hashes, timings,
 and package inputs. Public integration remains with the manager.
+
+A receiver starting with an empty build directory exposed two warm-cache
+dependencies. When the DSO did not yet exist, CMake emitted a library
+search flag that the Tower ELF linker rejected. The native link now passes
+the full service path as a link option and tracks it as both a target and
+file dependency. Instrumented links use the Clang driver. Building only the
+suite also exposed a missing runtime-host-linux-x64.ll. The suite now depends
+on the hosted resource used by driver_link_compile_arguments. The standalone
+and four default selections then passed all six CTests in 19.41 seconds.
