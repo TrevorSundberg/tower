@@ -105326,6 +105326,40 @@ reference check; receipt aa5e7156 includes the standalone link and failure
 log. Host 1 owns diagnosis under 076d1afd. No performance measurements apply
 to publishing the inventory, which changes neither the compiler nor its assets.
 
+### WorkGraph scheduling cases through semantic test collection
+
+Host 2 froze public `6c31f333` for assignment `4ba04cf5-16b5-41f4-9302-bd078b641a69`
+and applied the three test-language commits from `a01617e3..1b8b20cb` in its
+validation tree. The candidate adds eight [adjacent test blocks](../scaffolding/library/work_graph_test.tower).
+The 184 source assertions preserve the legacy conditions and their order,
+including the shared request helper's nonzero handle check at 18 call sites.
+The existing browser registration still runs the original script and checks
+its printed failure count across its backend matrix.
+
+The bundled `test-declarations` selector passed its stock fixtures. For this
+experiment its test fixture accepted the explicit companion import and expected
+count, saved the collected Foundation, and allowed enough interpreter steps
+for the real graph. The existing world, budget, compile, step, report and
+disposal paths ran at one and four compiler jobs. Graph and Fast executed the
+suspension and diamond cases first, then all eight. The four full outputs were
+empty and their 429,605-byte Foundation files matched. All eight calls carried
+their companion declaration offsets in source order. Selecting only the owner
+collected zero. Ordinary library compiles emitted identical depfiles and
+Foundation even with a broken import in the adjacent file. Accepting a retired
+ticket at the first stale finish assertion produced exit 1 at line 36, column 5
+at both widths. The assertion uses the original module source map.
+
+On Linux x64 the exact collected program also ran natively and under ASan/LSan
+and initialized TSan. The guest exercised coordinator calls in sequence.
+Source-language UBSan and browser execution of the new declarations remain
+open. On the Ryzen 5 3600, affinity 0–3, quota 11.52 CPUs and cgroup cap
+32,222,740,480 bytes, one warm-cache Graph/Fast verification process per width
+took 0.83/0.88 s wall and 0.82/1.07 s CPU, with peak RSS 120,148/132,484 KiB.
+Both worlds released all charged bytes and lanes. The evidence archive includes
+the line-by-line oracle map, the test-fixture diff, the failed configure/build
+attempts, matched Foundation replay samples, link maps and the deliberate
+failure. Adoption by ordinary released tooling remains a separate gate.
+
 ### Borrowed foreach on fixed-size arrays
 
 A pointer to a fixed array carries an element type and a checked extent.
