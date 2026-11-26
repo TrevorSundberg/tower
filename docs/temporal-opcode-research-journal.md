@@ -119297,3 +119297,14 @@ cache registration and selected path failed both modified expectations.
 Both selected cases and the restored standalone completed with the original
 teardown predicates. The in-memory companion selection check in the separate
 test_file_rule_checks file is the remaining entry in the executable.
+
+### Native module-cache reporting and frozen selection
+
+The leading in-memory case now runs the same source insertion, key freezing,
+suffix mutation and refused replacement checks in module_cache_cases/discovery_test.
+Both entry paths emit the original three success lines in order. Requiring
+one selected companion after adding mem_spec.tower failed the legacy and
+selected runs. The restored discovered owner runs 31 tests, nine of which
+belong to the complete module-cache suite. Its stdout matches the reference
+standalone byte for byte. Each selected family retains its original parser
+or budget owner through its final read.

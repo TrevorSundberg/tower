@@ -5,6 +5,8 @@ import .compiler.syntax_reader;
 import .library.vector;
 import library.testing;
 import module_cache_api;
+import module_cache_suite;
+import module_cache_cases.discovery_test;
 import module_cache_cases.admission_test;
 import module_cache_cases.leases_test;
 
@@ -292,6 +294,7 @@ fn module_session_tests(): usize {
     return result;
 }
 
+test() { assert(module_cache_selection_passed(), "In-memory companion selection failed"); }
 test() { module_cache_empty_seed_leases(); }
 test() { module_first_import_leases(); }
 test() { assert(module_resolution_checks() == 0, "Module resolution, edits and cache isolation"); }
@@ -299,4 +302,4 @@ test() { assert(module_session_tests() == 0, "Module session reuse and retiremen
 test() { module_clone_budget_test(false); }
 test() { module_clone_budget_test(true); }
 test() { module_startup_test(); }
-test() { module_baseline_imports_test(); }
+test() { module_baseline_imports_test(); module_cache_report_success(); }

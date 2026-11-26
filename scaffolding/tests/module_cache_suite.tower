@@ -9,9 +9,18 @@ extern fn fflush(stream: void*): i32;
 
 // Focused entry over the existing module/cache/session regressions. Link with
 // the parser_modules profile and run with scaffolding as the working directory.
-fn module_cache_run(): i32 {
-    if !test_file_rule_checks() { puts("In-memory companion selection failed"); return 1; }
+fn module_cache_selection_passed(): bool {
+    if !test_file_rule_checks() { puts("In-memory companion selection failed"); return false; }
     puts("In-memory companion selection and frozen keys passed.");
+    return true;
+}
+
+fn module_cache_report_success(): void {
+    puts("Module cache, resolution, immutable grammar and session checks passed.");
+}
+
+fn module_cache_run(): i32 {
+    if !module_cache_selection_passed() { return 1; }
     module_cache_empty_seed_leases();
     module_first_import_leases();
     fflush(null); // Preserve the new case's result if a later legacy check traps.
@@ -20,6 +29,6 @@ fn module_cache_run(): i32 {
         puts("Module cache regression failed; exit status is the fixture failure code.");
         return convert(i32, result);
     }
-    puts("Module cache, resolution, immutable grammar and session checks passed.");
+    module_cache_report_success();
     return 0;
 }
