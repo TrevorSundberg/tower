@@ -1,0 +1,37 @@
+import session;
+import backend.text;
+
+test() {
+    var base = grammar_fixture("base");
+    defer free(base);
+    var prefix = joined(base, "\nparse Statement |= ", "");
+    defer free(prefix);
+    var quotes: u8*[2] = {"''", "\"\""};
+    foreach (var &quote in &quotes) {
+        var source = joined(prefix, *quote, ";");
+        defer free(source);
+        grammar_parse(source);
+        check_status("error");
+        assert(grammar_end_revision() == 4, "Empty literal changed revision");
+        var error = grammar_end_text("error");
+        defer free(error);
+        assert(backend_contains(error, "Token literal is empty"), error);
+        assert(grammar_end_offset() == backend_length(prefix), "Empty literal offset");
+    }
+    var invalid: u8*[6] = {"parse Statement |= Expression ';';", "parse Statement = Missing;",
+        "parse Bad = Bad;", "parse Bad = 'a b';", "parse Bad = $Expression $Expression;", "parse Statement = ;"};
+    foreach (var &bad in &invalid) {
+        var source = joined(base, *bad, "");
+        defer free(source);
+        grammar_parse(source);
+        check_status("error");
+        assert(grammar_end_revision() == 4, *bad);
+        var message = grammar_end_text("error");
+        defer free(message);
+        assert(*message != 0, *bad);
+    }
+    var recovered = joined(base, "42;", "");
+    defer free(recovered);
+    grammar_parse(recovered);
+    check_status("done");
+}

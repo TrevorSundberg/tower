@@ -121328,3 +121328,18 @@ original JS and the supplied Tower test. The final presence assertion caught
 it at byte 2141. Removing the adapter restored all 15 registrations on each
 image. The local packet contains the 138 source-located failures, injected
 records, original and restored controls, raw traces and paired measurements.
+
+### Wasm registration migration on host 3
+
+Assignment 108b8c50-389d-4ef9-a6f8-02bb0cf07d4c starts at public
+`c5d896ea` with Pages `8417c9ae`. Only the manager publishes. The four
+existing entries are revisions, lookahead, keyword_boundaries and name_styles
+(registrations 2–5). The first group moves the exported selftest result (1),
+live preview (6), invalid declarations and recovery (7), editor byte-to-unit
+mapping (8) and scanner highlights (9). The guest drives the actual subject
+handle and reads its observations through the selected-test host. The editor
+still computes the mapping and slices the original UTF-16 string in Node.
+Subject handles remain owned until released or the registration exits.
+On the first compilation the two borrowed string-table entries needed an
+explicit dereference. After correction the portable suite passed 15/15.
+Foundation, ABI lifetime, cache reuse and lexical registrations follow.

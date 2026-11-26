@@ -1,0 +1,18 @@
+import session;
+import backend.text;
+
+test() {
+    var numeric = grammar_fixture("numeric");
+    defer free(numeric);
+    var source = joined(numeric, "parse Statement = Identifier '=>' Number ';';x=>42;", "");
+    defer free(source);
+    grammar_parse(source);
+    check_status("done");
+    assert(highlight_exists("operator", "=>"), "Multi-character operator");
+    var malformed: u8*[4] = {"/* unfinished", "\"unterminated", "parse Statement = '#';☃", "parse Statement = 'a\\q';"};
+    foreach (var &bad in &malformed) {
+        grammar_parse(*bad);
+        check_status("error");
+        assert(highlight_exists("invalid", null) || (backend_prefix(*bad, "/*") && highlight_exists("operator", null)), *bad);
+    }
+}

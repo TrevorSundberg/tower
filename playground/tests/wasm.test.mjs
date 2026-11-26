@@ -19,16 +19,41 @@ function analyze(source) {
   try { return { ...runToEnd(tower, handle), snapshot: tower.inspect(handle) }; }
   finally { tower.destroy(handle); }
 }
-test('all native node, parser and syntax tests also pass in WASM without exceptions', () => {
-  assert.equal(tower.exports.tw_self_test(), 0);
-});
+test('all native node, parser and syntax tests also pass in WASM without exceptions', () => checkGrammar('self_tests'));
 // The assertion VM reads the same public parser records as the other Wasm
 // tests in this file. Parsing another input replaces the current record.
 let parsed;
-const fixtures = new Map(Object.entries({example, base, loop,
+const sessions = new Map();
+function openSession(source, create = tower.create) {
+  const handle = create(source);
+  sessions.set(handle, source);
+  return handle;
+}
+function dispose(handle) {
+  tower.destroy(handle);
+  sessions.delete(handle);
+}
+let offsets;
+const fixtures = new Map(Object.entries({example, base, loop, numeric,
   names:await readFile(new URL('wasm_grammar_cases/highlight_names.tower', import.meta.url), 'utf8'),
 }));
 const grammarCase = selectedCases('wasm_grammar_cases', {
+  grammar_self_test: () => tower.exports.tw_self_test(),
+  grammar_open: (c, source) => openSession(guestString(c, source)),
+  grammar_step(_, handle) { parsed = {end:tower.step(handle)}; },
+  grammar_inspect(_, handle) {
+    parsed = {snapshot:tower.inspect(handle), sourceBytes:Buffer.from(sessions.get(handle))};
+  },
+  grammar_number: (c, field) => numberField(parsed.snapshot[guestString(c, field)]),
+  grammar_end_offset: () => numberField(parsed.end.errorOffset),
+  grammar_node_terminal: (_, i, j) => parsed.events[i].nodes[j].production === null,
+  editor_offsets(c, input) { offsets = byteOffsets(guestString(c, input)); },
+  editor_slice: (c, input, start, end) =>
+    moduleText(c, guestString(c, input).slice(offsets[start], offsets[end])),
+  editor_offsets_count: () => offsets.length,
+  editor_offset: (_, i) => numberField(offsets[i]),
+  editor_source_units: (c, input) => guestString(c, input).length,
+  editor_encoded_bytes: (c, input) => new TextEncoder().encode(guestString(c, input)).length,
   grammar_fixture: (c, name) => moduleText(c, fixtures.get(guestString(c, name))),
   grammar_parse(c, input) {
     const source = guestString(c, input);
@@ -53,66 +78,21 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_highlight_kind: (c, i) => moduleText(c, parsed.snapshot.highlights[i].kind),
   grammar_highlight_offset: (c, i, field) => numberField(parsed.snapshot.highlights[i][guestString(c, field)]),
 });
-async function checkGrammar(name) {
-  try { await grammarCase(name); }
-  finally { parsed = undefined; }
+async function checkGrammar(name, chunks) {
+  try { await grammarCase(name, chunks); }
+  finally {
+    for (const handle of sessions.keys()) dispose(handle);
+    parsed = offsets = undefined;
+  }
 }
 test('real example crosses eight grammar revisions and retains named nested captures', () => checkGrammar('revisions'));
 test('construct lookahead continues shared prefixes, preserves boundaries and reports real conflicts', () => checkGrammar('lookahead'));
 test('keyword classification follows declaration boundaries, including removal and whole words', () => checkGrammar('keyword_boundaries'));
 test('names keep identifier styling while actual keywords, grammar names and captures stay distinct', () => checkGrammar('name_styles'));
-test('highlight preview never consumes input or commits future declarations', () => {
-  const handle = tower.create(base + loop + 'for(x in xs){}');
-  try {
-    assert.equal(tower.inspect(handle).revision, 0);
-    assert.equal(tower.inspect(handle).offset, 0);
-    for (let revision = 1; revision <= 6; revision++) {
-      assert.equal(tower.step(handle).revision, revision);
-      const preview = tower.inspect(handle);
-      assert.equal(tower.inspect(handle).offset, preview.offset);
-    }
-    assert.equal(tower.step(handle).status, 'statement');
-  } finally { tower.destroy(handle); }
-});
-test('invalid grammar returns an error, preserves revision, and does not poison the next session', () => {
-  for (const quotes of ["''", '""']) {
-    const source = base + '\nparse Statement |= ' + quotes + ';';
-    const { end } = analyze(source);
-    assert.equal(end.status, 'error');
-    assert.equal(end.revision, 4);
-    assert.match(end.error, /Token literal is empty/);
-    assert.equal(end.errorOffset, source.indexOf(quotes));
-  }
-  for (const bad of ["parse Statement |= Expression ';';", 'parse Statement = Missing;', 'parse Bad = Bad;',
-    "parse Bad = 'a b';", 'parse Bad = $Expression $Expression;', 'parse Statement = ;']) {
-    const { end } = analyze(base + bad);
-    assert.equal(end.status, 'error', bad); assert.equal(end.revision, 4, bad); assert.ok(end.error);
-  }
-  assert.equal(analyze(base + '42;').end.status, 'done');
-});
-test('UTF-8 spans, emoji, strings and comments survive the JSON and editor boundaries', () => {
-  const source = '// 🚀 café\nparse Statement = String \';\';"雪🚀 ; // }";';
-  const { events, end, snapshot } = analyze(source);
-  assert.equal(end.status, 'done');
-  const offsets = byteOffsets(source), token = events.at(-1).nodes.find(n => n.production === null && n.label.startsWith('"'));
-  assert.equal(source.slice(offsets[token.start], offsets[token.end]), '"雪🚀 ; // }"');
-  assert.equal(snapshot.highlights[0].kind, 'comment');
-  assert.equal(offsets.length, new TextEncoder().encode(source).length + 1);
-  assert.equal(offsets.at(-1), source.length);
-});
-test('new multi-character punctuation and malformed lexical input use the native scanner', () => {
-  const source = numeric + "parse Statement = Identifier '=>' Number ';';x=>42;";
-  const good = analyze(source);
-  assert.equal(good.end.status, 'done');
-  assert.ok(good.snapshot.highlights.some(t => t.kind === 'operator' && source.slice(t.start,t.end) === '=>'));
-  for (const bad of ['/* unfinished', '"unterminated', "parse Statement = '#';☃", "parse Statement = 'a\\q';"]) {
-    const result = analyze(bad);
-    assert.equal(result.end.status, 'error');
-    // With foundation arithmetic installed, '/' is a legal token even when
-    // an incomplete block comment fails to match the user-defined skip rule.
-    assert.ok(result.snapshot.highlights.some(t => t.kind === 'invalid' || (bad.startsWith('/*') && t.kind === 'operator')));
-  }
-});
+test('highlight preview never consumes input or commits future declarations', () => checkGrammar('preview'));
+test('invalid grammar returns an error, preserves revision, and does not poison the next session', () => checkGrammar('invalid_grammar'));
+test('UTF-8 spans, emoji, strings and comments survive the JSON and editor boundaries', () => checkGrammar('editor_offsets'));
+test('new multi-character punctuation and malformed lexical input use the native scanner', () => checkGrammar('scanner'));
 
 test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => {
   const module = tower.createFoundation(bootstrap), pinned = tower.create('import foundation; print(3);');
