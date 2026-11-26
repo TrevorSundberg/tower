@@ -121630,3 +121630,26 @@ TAP, exit codes, memory and timing samples. Source commit `803ccbb1`
 applies directly to the assigned pin. The released JS/Wasm path ran ordinary
 concurrency stress. Native sanitizer coverage does not extend to this path.
 The manager owns publication.
+
+### F13 foreign process transport on host 6
+
+Assignment `3f5b6836-6694-402d-8aa6-ef03c0a5b860` starts at published
+`2705094e8f55475a2c2261f76f155be8039c1448`. The recipient verified the
+archive and the six declared members against manifest SHA-256. M028/S108–109
+and M029/S110–116 cover the fixture matrix and its C/C++ comparisons.
+The original driver calls the common validator with a compiler and resource
+root for backend/profiles and with neither for downloads. The latter takes
+four existing browser files in the artifact directory. The measurement CLI
+is another caller of the C compilation helper.
+
+The formatter guest's five POSIX capture functions are shared with the
+ordinary driver. Raw C validation also needs the existing fork/execv/waitpid
+function, including its alarm, EINTR retry and negative signal results.
+Move that same implementation into the capture object. The ordinary POSIX
+entry already imports this object. The selected guest links the formatter's
+request service, which defines driver_errno. No Windows ABI changes.
+The private Release Ninja baseline used the checked-in Linux bootstrap,
+LLVM 19, one compiler job and four build lanes. A traced baseline completed
+448 C89/C++98 executions and 96 C99/C++11 executions, including all four
+32-bit hosted compiler drivers, at the assigned pin. These are case counts,
+excluding compiler launches and the three expected layout compile failures.
