@@ -119072,3 +119072,63 @@ stayed between 70 and 74 ms. The new real direct/owner selections took
 were unchanged across the paired series. The packet contains each original
 stream, command, trace, failure, link and measurement, including single-CPU
 and full-allocation batches. Integration and publication belong to the manager.
+### Counted LLVM initializer bytes through native test selection, 2026-11-26
+
+Host 4, assignment `a3d847de-e376-4332-9a31-a4a9d4a701da`. The patch on
+`d76e331a` produced tree `355b38313217dbfa5df2f91f6aad3ff6ad5887c2`
+and matched all three supplied blob IDs. The comparison commit `1600faf6`
+was unavailable in this checkout. Existing storage executables predated the
+base. A single Ninja cache built the original entry, the migrated entry and
+the sanitizer profiles in order using the checked-in Linux x64 bootstrap.
+
+The companion now owns the reconstruction, fresh parse, interpreter run,
+literal comparisons and teardown checks. The original three CLI modes
+call the same trial. Native selections use the checked-in count helper and
+guest, the real LLVM fixture in the native backend test object, and the
+storage services' serial work transport and accounting allocator. Each
+trial checks the transport. Each selected CTest has a private working
+directory with `.tower` linked to source scaffolding. The initial owner
+registration expected three tests. Both job counts also discovered the
+five work-budget declarations. The corrected helper requires eight for
+the owner and three for direct selection. JUnit records each declaration.
+The four pre-existing generic-result registrations using the same services
+also passed in the focused and expanded native test configurations.
+
+A temporary Tower observer wrote the actual interpreter buffer before
+disposal and read the live buffer count after frontend close. For each of
+the three modes and both guest widths, the fresh original and all four
+selected commands produced the same 57 ASCII bytes across 19 lines.
+The single-transcript SHA-256 was
+`414310225ced27cf5432abdd85bf47962a7535e1a99b046e03acd0038fe69d82`.
+Each six-trial stream including its state observations had SHA-256
+`be25ce2a55bf6d8cf1246bd9442ecc50f88d09e31593f4a44e8ec242bfe9025c`.
+All executions completed, all frontend failure and cancellation checks
+passed, and all final buffer counts and original budget balances were zero.
+Both storage executables returned 0, 1, 1, 0 with byte-identical stdout
+and empty stderr. The negative reasons were
+`Wrong expected byte129 rejected after clean teardown.` and
+`Wrong expected guard94 rejected after clean teardown.`.
+Changing 128 to 129 in the good oracle made the direct jobs-1 CTest fail
+at the literal comparison. Restoring it passed all seven byte CTests.
+
+On a Ryzen 7 5800H with CPUs 0–15, quota 15.36 CPUs, Clang/LLVM 19.1.7,
+Release, each storage entry used one lane. After one warmup, three pairs of
+fresh positive processes ran sequentially under the host timing lock with
+the middle order reversed. Both executables had median 0.25 s wall and
+0.25 s CPU. Maximum RSS was 96,800 KiB original and 97,948 KiB migrated.
+One observer-off CTest per selection measured wall seconds / CPU seconds /
+peak KiB including compilation and execution. Owner jobs 1 and 4 measured
+1.79 / 1.79 / 157,264 and 1.76 / 1.89 / 166,604. Direct jobs 1 and 4
+measured 1.57 / 1.57 / 145,436 and 1.62 / 1.74 / 154,124.
+
+ASan with leak detection completed all four storage invocations on first
+launch. TSan completed the first three on attempts 1, 12 and 4. Its repeat
+positive hit 32 startup failures at the denied ADDR_NO_RANDOMIZE request.
+A non-PIE relink of the same objects completed that repeat on attempt 2.
+Completed runs matched the ordinary exits and output with empty stderr.
+Link maps identify the accounting allocator and portable transport. ASan
+retained the trial symbol. TSan instrumented its IR and inlined the trial
+into the linked two-width loop called by main. Sanitizer coverage is for
+the storage executable. Selected CLI runs used the ordinary native guest.
+The packet contains the commands, mutation, JUnit, observer, raw streams,
+hashes, host limits, timings, maps and disassembly for manager review.

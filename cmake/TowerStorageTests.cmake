@@ -46,6 +46,24 @@ function(tower_storage_tests)
     tower_native_test_selections(generic-result-storage generic_result_storage "17 tests" "1 test"
       --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-storage-services>")
+    if(TOWER_BACKEND_TESTS AND TARGET tower-backend-native)
+      target_link_libraries(tower-storage-services PRIVATE tower-backend-native LLVM)
+      # Owner discovery also selects the five work_budget declarations.
+      tower_native_test_selections(backend-import-bytes backend_import_bytes "8 tests" "3 tests"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-storage-services>")
+      foreach(selection IN ITEMS owner direct)
+        foreach(jobs IN ITEMS 1 4)
+          set(dir "${CMAKE_CURRENT_BINARY_DIR}/backend-import-bytes-${selection}-${jobs}")
+          file(MAKE_DIRECTORY "${dir}")
+          file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${dir}/.tower" SYMBOLIC)
+          set_tests_properties(tower-backend-import-bytes-${selection}-jobs-${jobs} PROPERTIES
+            WORKING_DIRECTORY "${dir}" LABELS "native;backend;focused;storage")
+        endforeach()
+      endforeach()
+    endif()
   endif()
   foreach(mode IN ITEMS syntax-reset-resources syntax-expansion-resources syntax-expansion-success syntax-session-old)
     add_test(NAME tower-${mode} COMMAND tower-storage-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${mode})
