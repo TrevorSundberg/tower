@@ -1,0 +1,10 @@
+import library.testing;
+import entity_views as fixture;
+
+test() {
+    fixture.failures = 0;
+    fixture.views();
+    assert(fixture.failures == 0, "Pinned views retain their query and defer reclamation until the last close");
+    fixture.batches();
+    assert(fixture.failures == 0, "Batched queries retain exactly the surviving owner");
+}

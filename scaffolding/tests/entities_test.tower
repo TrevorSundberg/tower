@@ -1,0 +1,9 @@
+import library.test_fixtures;
+
+test() {
+    var actual = fixture_stdout("entities.tower");
+    defer free(actual.data);
+    var wanted = fixture_text("entities.expected");
+    defer free(wanted.data);
+    assert(fixture_equal(actual, wanted), "entities fixture stdout");
+}

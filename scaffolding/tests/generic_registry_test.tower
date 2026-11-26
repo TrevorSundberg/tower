@@ -1,0 +1,7 @@
+import library.testing;
+import .host.memory;
+import generic_registry as fixture;
+
+test() {
+    assert(fixture.registry_failures() == 0, "Program-local registry bindings and component ownership");
+}

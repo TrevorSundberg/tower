@@ -10,6 +10,10 @@ extern fn strcmp(left: u8*, right: u8*): i32;
 var TestEntityByteLifecycle: usize = 1;
 var TestEntityCountLifecycle: usize = 2;
 
+// The native ABI caller and the component store share an address space.
+export fn entity_payload_write(data: u8*, value: u32): void { *bits(u32*, data) = value; }
+export fn entity_payload_read(data: u8*): u32 { return *bits(u32*, data); }
+
 // Ordinary Tower dispatch for this test-owned store. The compiler's lifecycle
 // bridge is not linked here and no native callback wrapper is required.
 export fn tower_entity_finalize(kind: usize, component: EntityComponent*, data: u8*): void {

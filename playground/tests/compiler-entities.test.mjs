@@ -2,15 +2,43 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
-import {loadTower} from './compiler-fixtures.mjs';
-import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
-const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const imports={tower_entity_finalize:()=>{throw new Error('Plain components do not need host finalization');},
- abort:()=>{throw new Error('Compiler ownership allocation failed');}};
-const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,undefined,{imports});
-const source='import library.entities; import tests.entities;';
-const expected='true\ntrue\n1\n1\ntrue\ntrue\n42\ntrue\ntrue\n1\n0\n0\ntrue\n';
+import {executeWasm} from './compiler-fixtures.mjs';
+import {openLLVM,openTower,runSelectedTest} from './compiler_test_host.mjs';
+
+const imports = {
+  tower_entity_finalize() { throw new Error('Plain components do not need host finalization'); },
+  abort() { throw new Error('Compiler ownership allocation failed'); },
+};
+const tower = await openTower({imports});
+const store = tower.exports;
+const storeCalls = Object.fromEntries([
+  'entity_store_create', 'entity_store_dispose', 'entity_store_count', 'entity_store_component_count',
+  'entity_create', 'entity_release', 'entity_register', 'entity_query_at',
+  'entity_component_add', 'entity_component_remove', 'entity_component_get',
+  'entity_component_data', 'entity_component_from_data',
+].map(name => [name, {wasm:store[name]}]));
+
+// The probe's own pointers and the compiler store's payload pointers refer to
+// different Wasm memories. Only the two payload operations access compiler memory.
+let observations, rebuildsFoundation;
+const exportedQueryCounts = [];
+const probes = await openTower({threads:{capacity:1}, imports:{
+  ...storeCalls,
+  entity_query_count(_context, type) {
+    const count = store.entity_query_count(type);
+    exportedQueryCounts.push(count);
+    return count;
+  },
+  entity_payload_write(_context, data, value) { new DataView(store.memory.buffer).setUint32(data, value, true); },
+  entity_payload_read(_context, data) { return new DataView(store.memory.buffer).getUint32(data, true); },
+  entity_output_count() { return observations.length - 1; },
+  entity_rebuilds_foundation() { return rebuildsFoundation; },
+  entity_read_output(context, slot, destination, capacity) {
+    const bytes = observations[slot];
+    if (destination && bytes.length <= capacity) context.memory().set(bytes, destination);
+    return bytes.length;
+  },
+}});
 let compilation=0;
 async function compileLLVM(llvm,input,options={}) {
  const name='llvm-'+(++compilation),directory=process.env.TOWER_TEST_ARTIFACTS;
@@ -28,84 +56,66 @@ async function compileLLVM(llvm,input,options={}) {
  return result;
 }
 
-test('the shared entity library runs under both interpreter layouts and LLVM',async()=>{
- let canonical;
- for(const pointerBytes of [4,8]){
-  const h=tower.compile(source,{pointerBytes});
-  try{
-   let output='',result;
-   do {result=tower.execute(h,100000);output+=result.output;}while(result.status==='executing');
-   assert.equal(result.status,'done',result.error);assert.equal(output,expected);
-   const formatted=tower.foundation(h).source;
-   const round=tower.compile(formatted,{pointerBytes});
-   try {
-    assert.equal(tower.foundation(round).source,formatted);
-   }finally{tower.destroyExecution(round);}
-   // Executable LLVM below targets wasm32. Canonical layouts are target-bound.
-   if(pointerBytes===4)canonical=formatted;
-  }finally{tower.destroyExecution(h);}
- }
- const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
- for(const input of [source,canonical]){
-  const compiled=await compileLLVM(llvm,input);assert.equal(compiled.status,'compiled',compiled.error);
-  const result=await executeWasm(compiled,undefined,{imports});
-  assert.equal(result.status,'done',result.error);assert.equal(result.output,expected);
- }
-});
+function interpret(source, pointerBytes, outputs, {fast = false, execute = true} = {}) {
+ const handle = tower.compile(source, {pointerBytes});
+ try {
+  if (fast) tower.useFast(handle);
+  if (execute) {
+   let output = '', result;
+   do {
+    result = tower.execute(handle, 100000);
+    assert.ok(!result.outputTruncated, 'Truncated interpreter output');
+    output += result.output;
+   } while (result.status === 'executing');
+   assert.equal(result.status, 'done', result.error);
+   outputs.push(Buffer.from(output));
+  }
+  const formatted = tower.foundation(handle);
+  assert.equal(typeof formatted.source, 'string', formatted.error);
+  return formatted.source;
+ } finally { tower.destroyExecution(handle); }
+}
 
-for(const [title,fixture] of [
- ['Tower world views pin query ranges and defer ownership reclamation','entity_views'],
- ['Tower generic registries belong to their programs and reclaim their types','generic_registry'],
-])test(title,async()=>{
- // The standalone program owns its allocator; the library only declares its ABI.
- const source=`import host.memory; import tests.${fixture};`;
- const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
- const run=(source,pointerBytes,fast)=>{
-  const h=tower.compile(source,{pointerBytes});
-  try{
-   if(fast)tower.useFast(h);
-   let output='',result;
-   do{result=tower.execute(h,100000);output+=result.output;}while(result.status==='executing');
-   assert.equal(result.status,'done',result.error);assert.equal(output,'0\n');
-   return tower.foundation(h).source;
-  }finally{tower.destroyExecution(h);}
- };
- for(const pointerBytes of [4,8]){
-  const canonical=run(source,pointerBytes,false);
-  assert.equal(run(canonical,pointerBytes,true),canonical);
-  for(const optimize of [false,true]){
-   const rebuilt=await compileLLVM(llvm,canonical,{emit:'foundation',optimize,
-    target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
-   assert.equal(rebuilt.status,'compiled',rebuilt.error);
-   run(rebuilt.foundation,pointerBytes,true);
+for (const [title, fixture] of [
+ ['the shared entity library runs under both interpreter layouts and LLVM', 'entities'],
+ ['Tower world views pin query ranges and defer ownership reclamation', 'entity_views'],
+ ['Tower generic registries belong to their programs and reclaim their types', 'generic_registry'],
+]) test(title, async () => {
+ const rebuild = fixture !== 'entities';
+ const source = `import ${rebuild ? 'host.memory' : 'library.entities'}; import tests.${fixture};`;
+ const outputs = [await readFile(new URL(`../../scaffolding/tests/${fixture}.expected`, import.meta.url))];
+ const llvm = await openLLVM();
+ let wasm32;
+ for (const pointerBytes of [4, 8]) {
+  const canonical = interpret(source, pointerBytes, outputs);
+  assert.equal(interpret(canonical, pointerBytes, outputs, {fast:rebuild, execute:rebuild}), canonical);
+  if (pointerBytes === 4) wasm32 = canonical;
+  if (rebuild) for (const optimize of [false, true]) {
+   const result = await compileLLVM(llvm, canonical, {emit:'foundation', optimize,
+    target:pointerBytes === 8 ? 'wasm64-unknown-unknown' : 'wasm32-unknown-unknown'});
+   assert.equal(result.status, 'compiled', result.error);
+   interpret(result.foundation, pointerBytes, outputs, {fast:true});
   }
  }
- for(const optimize of [false,true]){
-  const compiled=await compileLLVM(llvm,source,{optimize});assert.equal(compiled.status,'compiled',compiled.error);
-  const result=await executeWasm(compiled,undefined,{imports});
-  assert.equal(result.status,'done',result.error);assert.equal(result.output,'0\n');
+ const requests = rebuild ? [[source, {optimize:false}], [source, {optimize:true}]] : [[source, {}], [wasm32, {}]];
+ for (const [input, options] of requests) {
+  const compiled = await compileLLVM(llvm, input, options);
+  assert.equal(compiled.status, 'compiled', compiled.error);
+  const result = await executeWasm(compiled, undefined, {imports});
+  assert.equal(result.status, 'done', result.error);
+  assert.ok(!result.outputTruncated, 'Truncated compiled output');
+  outputs.push(Buffer.from(result.output));
  }
+ observations = outputs;
+ rebuildsFoundation = rebuild;
+ try { runSelectedTest(probes, '.tower/tests/entity_engine_outputs.tower', 32); }
+ finally { observations = undefined; }
 });
 
-test('the browser compiler exposes its real Tower entity store and component query index',()=>{
- const e=tower.exports,world=e.entity_store_create(),type=e.entity_create(world),nodes=[];
- assert.equal(e.entity_register(type,4,64,0),1);
- for(let i=0;i<300;i++){
-  const node=e.entity_create(world),component=e.entity_component_add(node,type),data=e.entity_component_data(component);
-  assert.equal(data%64,0);new DataView(e.memory.buffer).setUint32(data,i,true);nodes.push({node,component,data});
- }
- assert.equal(e.entity_query_count(type),300);
- for(const {node,component,data} of nodes){
-  assert.equal(e.entity_component_get(node,type),component);assert.equal(e.entity_component_data(component),data);
-  assert.equal(e.entity_component_from_data(data),component);
- }
- for(let i=0;i<nodes.length;i+=2)assert.equal(e.entity_component_remove(nodes[i].node,type),1);
- for(let i=0;i<150;i++){
-  const component=e.entity_query_at(type,i),data=e.entity_component_data(component);
-  assert.equal(new DataView(e.memory.buffer).getUint32(data,true)%2,1);
- }
- e.entity_release(type);
- for(const {node} of nodes)e.entity_release(node);
- assert.equal(e.entity_store_count(world),0);assert.equal(e.entity_store_component_count(world),0);
- assert.equal(e.entity_store_dispose(world),1);
+test('the browser compiler exposes its real Tower entity store and component query index', () => {
+ // Use the ABI declarations alone. Default companion discovery also loads
+ // the native owner, whose definitions would shadow the compiler exports.
+ exportedQueryCounts.length = 0;
+ runSelectedTest(probes, '.tower/tests/entity_store_test.tower', 5000, {suffix:'_browser_test.tower'});
+ assert.deepEqual(exportedQueryCounts, [300, 150]);
 });

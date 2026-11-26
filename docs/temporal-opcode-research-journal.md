@@ -108307,3 +108307,102 @@ The same-output signed-type mutation failed at line 21 and removed the
 receipt. Restoring the source executed four passes and reproduced the receipt
 bytes. The unconditionally executed owner/direct comparisons above use
 fresh processes without affected selection.
+### Sealed entity fixture migration on host 8, 2026-11-26
+
+Packet 920a07ca-38fe-4ef1-8fac-61c4a22bc9fb uses source 8bc867b6
+(tree 6952042a). Its three evidence archives and twelve named members matched
+their receipt SHA-256s. The Ubuntu compiler is 7315b86e, the portable and
+shared reactors are 41bb9b11 and 72c882ee, and the ordinary LLVM reactor is
+15b4f33b. All 62 package entries matched the complete package manifest.
+
+The first registration imports tests.entities and emits thirteen lines. The
+next two import host.memory and tests.entity_views or tests.generic_registry,
+each emitting one failure count. The registry program also exercises
+registry_body_budget. The fourth creates its store through the running browser
+compiler's exports. The previous receipts at b1d5d314 and 980898ed describe
+the respective shared-library/store and views/registry matrices.
+
+The companions sit beside those standalone fixtures and tests/entity_store.
+The entity transcript uses the existing counted child-stdout facility. Its
+100,000-step nested limit stopped the views program. The standalone registry
+also needed the allocator provided by the original importing root. The linked
+companions instead call the existing view/batch functions and the original
+registry sequence, now callable by the ordinary script and the selected test.
+The browser still runs the original import roots at both widths, compares full
+canonical text, runs reconstructed Foundation and executes the emitted Wasm.
+A small selected Tower receiver checks every output against raw fixture bytes.
+The store companion uses typed foreign calls. Two accessors read and write
+payload words in the compiler reactor's memory. The native guest uses local
+pointer access for the same operations. The survivor query checks identity and
+uniqueness as well as parity, with no assumption about query order.
+
+A passing parity mutation/repair pair alone missed an ABI binding error.
+In the first browser probe, default direct-companion selection included
+tests/entity_store.tower. Its canonical Foundation defined entity_store_create.
+A call trace counted 150 reads through the host accessor and zero store export
+calls. Those runs are superseded. Selecting the identical file with the
+_browser_test.tower suffix leaves the real ABI declarations external. The
+adapter independently records the two counts returned by the export, which
+also guards against a future local definition shadowing it. With default native
+discovery the owner supplies the payload accessors itself. Removing a redundant
+separate native archive preserved both native selections.
+
+**Acceptance evidence.** The old and final four Node registrations passed on
+both reactors with ordinary LLVM. On each reactor, 24 real guest outputs
+matched byte for byte (4 entity, 10 views, 10 registry). All 150 survivor
+values also matched in observed query order. The final trace counted 2,559
+real export calls, including 300 additions, 300 reverse lookups, 150 removals
+and 150 query-at calls. Both exports reported the sequence 300 and 150 for
+query length, then 0 entities, 0 components and successful disposal. Requiring
+even survivors failed on both reactors and both native job counts at the
+parity assertion (entity_store_test.tower:52:9). Restoring odd survivors passed.
+The shared-library and views compiler inputs and retained Foundation results
+matched the baseline. Registry canonical text changed with its callable scope
+and round-tripped at each width. The ordinary CLI also reproduced all three
+transcripts on both revisions at one and four jobs.
+
+The qualified CLI selected exactly one test on all sixteen fixture owner and
+direct runs at one and four jobs. The optional kit's five linked support
+products matched their relocated installation receipt from host 8. With the
+new sources, all twelve existing optional-kit command counts matched:
+SCC 2, SHA-256 7, stack and queue 2 each, WorkGraph owner and direct 8 each.
+Before/after --list-test-files inventories for the 22 pre-existing companion
+owners with a sibling source and the four new fixture owners differed only by
+the four intended pairs. The host guest_native_test.tower support file has no
+corresponding owner. No companion was installed beside the broadly imported
+library/entities or compiler/generic_registry. The two other users of the
+browser selection helper (defer and forward references) passed 10/10 on each
+reactor with their default rule.
+
+**Cost on host 8.** Ryzen 9 7900X, Debian 12, LLVM 19.1.7, Node 24.22.3,
+four pinned logical CPUs (0–3), 23.04-CPU cgroup quota, 63,577,260,032-byte
+memory ceiling, no swap. Fresh processes, warm files, one timed workload at a
+time. The shared subject uses its default four-worker capacity, the separate
+assertion reactor capacity one. Full four-selector suite, one sample per cell,
+wall/CPU seconds and maximum process RSS KiB:
+
+| Subject | Original | Final |
+| --- | --- | --- |
+| Portable | 61.35 / 82.12 / 2,167,812 | 60.71 / 82.77 / 2,180,036 |
+| Shared | 59.37 / 86.23 / 2,241,812 | 59.17 / 87.74 / 2,274,064 |
+
+For the isolated export selector, three further pairs gave median process
+wall times 0.22 to 0.50 s portable and 0.27 to 0.62 s shared. Maximum process
+RSS across those samples rose from 113,804 to 159,624 KiB portable and 176,584
+to 241,460 KiB shared. Median selector-body times rose from 0.84 to 217.81 ms
+and 0.85 to 257.54 ms respectively. The new case compiles and executes a Tower
+test and transports actual export calls between instances. The separate tiny
+print(42) CLI control returned 42 on both inputs and job counts (0.13–0.15 s).
+The raw packet includes per-run argv, stdout/stderr, GNU time, cgroup counters,
+LLVM phase receipts and Foundation. The cgroup peak is shared lifetime data.
+These timings measure the test change; the compiler products were frozen.
+
+Address/LeakSanitizer and initialized ThreadSanitizer runs passed the ordinary
+entity transcript and the selected 64-bit canonical store, views and registry
+guests. The instrumented Tower function counts were 142, 149, 146 and 167
+respectively. The kit startup/report and linked support were ordinary products.
+Eleven TSan launches exited 139 before initialization when the container
+refused personality(ADDR_NO_RANDOMIZE); the successful retries and all failures
+are retained. There is no source-level UBSan for these Tower inputs. No new
+compiler, browser release or sanitizer compiler build was required. The local
+commit and raw packet are for manager review and publication.
