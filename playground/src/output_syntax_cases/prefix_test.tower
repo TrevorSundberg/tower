@@ -1,0 +1,7 @@
+import tokens;
+
+test() {
+    tokenize("x86", "0x00001000  rep stosq");
+    expect_token("rep", "keyword", false);
+    expect_token("stosq", "keyword", false);
+}

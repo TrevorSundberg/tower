@@ -1,0 +1,7 @@
+import tokens;
+
+test() {
+    var error = output_tokenize("tower", "");
+    defer free(error);
+    assert(backend_contains(error, "shared compiler lexer"), error);
+}

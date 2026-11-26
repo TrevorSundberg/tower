@@ -1,0 +1,11 @@
+import tokens;
+
+test() {
+    tokenize("llvm", "define i32 @main() {\nentry:\n %value = load i32, ptr @global, align 4 ; read\n ret i32 %value\n}");
+    expect_token("define", "keyword", false);
+    expect_token("@main", "variableName", false);
+    expect_token("entry", "labelName", false);
+    expect_token("load", "keyword", false);
+    expect_token("ptr", "typeName", false);
+    expect_token("ret", "keyword", false);
+}
