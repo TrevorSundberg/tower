@@ -72,3 +72,46 @@ first in a short manifest, the same runner aborts on canonical text for the
 narrow provider, the ASan probe and the token fixture. It passes the scale
 and borrowed-view files, including the second formatting pass. The Node
 module-path test also checks the spellings of all five paths.
+
+### UTF-8 codec and the public Wasm boundary
+
+At `3ae475c2`, `playground/tests/compiler-utf8.test.mjs` registered three suites.
+All three still run. The native command `towerc --test scaffolding/compiler/utf8.tower`
+and direct selection of `scaffolding/compiler/utf8_test.tower` now run the same
+two waves of codec inputs. The native work-test configuration registers
+`tower-utf8-companion-1` and `tower-utf8-companion-4`.
+
+| Original Node suite (line at 3ae475c2) | Portable coverage in Tower | Observations retained at the JS boundary |
+| --- | --- | --- |
+| Linked browser codec and malformed sources (49) | The adjacent companion checks the returned width, decoded scalar, three NUL policies, size query, capacities 0–4 and all seven destination/guard bytes against the independent Tower reference in `tests/utf8_oracle.tower`. | The test still writes into the linked reactor's exported memory and compares its codec with fatal `TextDecoder` and `TextEncoder`. Five rejected source buffers go through `tw_create`, followed by a fresh memory view for the diagnostic and a successful Unicode grammar session. |
+| Standalone codec recompiled by LLVM (70) | The shared visitor in `tests/utf8_cases.tower` replays the fixed rows and continues the random stream for the second codec. The native companion checks that stream too. | LLVM compiles the actual codec, the module has zero imports, and its exports run against the same JS oracle. Three truncated reads at the end of linear memory, the one-past-end empty read, and byte-identical recompilation remain in JS. |
+| Interpreter, LLVM and canonical Foundation (91) | `tests/utf8_roundtrip.tower` replaces generated Tower statements. Its 430-line expected file contains the original JS oracle's output for the bounded corpus. | The host runs the source and reparsed Foundation through interpretation and LLVM/Wasm, comparing complete output on all four paths. The interpreter step allowance remains 1,000,000. |
+
+Each wave visits 82 bounded byte inputs (12 explicit, 38 boundary prefixes and
+32 seeded) and 17 scalar boundaries, plus 10,000 random byte inputs and 10,000
+random scalars. The seed is `0x1ba72983`. The intermediate and final xorshift32
+states are 629074146 and 863989070. The test-only Wasm module
+`tests/utf8_wasm_cases.tower` passes each borrowed byte span or unsigned scalar
+to JS synchronously. It compiles separately from the import-free codec under test.
+The existing native exhaustive and protected-page UTF-8 CTest remains active.
+
+### WorkGraph suspension cases on the native CLI
+
+From the repository root, the development compiler from `3ae475c2` runs all
+eight cases with either command. Use `--jobs 4` to exercise the other
+registered compiler width.
+
+```sh
+towerc --test scaffolding/library/work_graph.tower --test-details --jobs 1
+towerc --test scaffolding/library/work_graph_test.tower --test-details --jobs 1
+```
+
+The native CTest names are `tower-work-resume-owner-{1,4}` and
+`tower-work-resume-direct-{1,4}`. The [184-site map](evidence/work_resume_check_map.tsv)
+pairs each legacy check with its companion assertion. This includes the nonzero
+task ID check in the shared request helper. On success the legacy
+`scaffolding/tests/work_resume.tower` script prints a zero failure count. The
+companion writes empty guest stdout and reports its eight locations on stderr.
+The original `work_resume` browser registration still exercises its backend
+matrix. Run the CLI commands against the source checkout so the companion can
+import `scaffolding/host/memory.tower`.

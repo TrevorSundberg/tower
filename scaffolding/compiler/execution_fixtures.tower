@@ -1,0 +1,168 @@
+import tower;
+import execution_session;
+import test_file_rule;
+import interpreter_types;
+import foundation_types;
+import foundation_tags;
+import .library.vector;
+
+extern fn frontend_modules_location(modules: void*, offset: usize, line: usize*, column: usize*): u8*;
+
+extern fn frontend_fixture_child(modules: void*, entry: u8*): void*;
+
+extern fn frontend_fixture_read(modules: void*, path: u8*, text: vector(u8)*, source: bool, registered_only: bool): u8*;
+
+extern fn frontend_modules_destroy(modules: void*): void;
+
+extern fn semantic_is_test_declaration(node: void*): bool;
+
+extern fn sem_get(node: void*): FoundationNode*;
+
+extern fn interpreter_bytes(machine: IMState*, address: u64, count: usize, offset: usize): u8*;
+
+extern fn interpreter_allocate(machine: IMState*, count: usize): u64;
+
+extern fn interpreter_write(machine: IMState*, address: u64, value: u64, type: FoundationType*, offset: usize): void;
+
+extern fn memcmp(a: u8*, b: u8*, length: usize): i32;
+
+var FixtureStepLimit: usize = 100000;
+
+fn fixture_leaf_matches(path: u8*, name: u8*, length: usize): bool {
+    var leaf = path;
+    for(var i: usize = 0; path[i] != 0; i++) {
+        if path[i] == *"/" {
+            leaf = path + i + 1;
+        }
+    }
+    return strlen(leaf) == length && memcmp(leaf, name, length) == 0;
+}
+
+// The nearest active selected declaration supplies the authority. The first
+// call out of it supplies the diagnostic location, including through helpers.
+fn execution_fixture_grant(session: ExecutionSession*, at: usize*): TestFixturePair* {
+    var frames = &session.machine.frames;
+    for(var i = frames.length; i != 0; --i) {
+        var frame = &frames.data[i -1];
+        if !semantic_is_test_declaration(frame.function) {
+            continue;
+        }
+        var start = sem_get(frame.function).start;
+        *at = i < frames.length ? frames.data[i].call_offset: start;
+        var line: usize = 0;
+        var column: usize = 0;
+        var owner = frontend_modules_location(session.fixtures.modules, start, &line, &column);
+        foreach(var & pair in &session.fixtures.selection.fixtures) {
+            if strcmp(pair.companion.data, owner) == 0 {
+                return pair;
+            }
+        }
+        break;
+    }
+    return null;
+}
+
+fn execution_fixture_fail(session: ExecutionSession*, reason: u8*, path: u8*, at: usize): u64 {
+    var message: vector(u8) = default;
+    defer vector_dispose(&message);
+    if path != null && test_file_append(&message, reason, strlen(reason))
+    && test_file_append(&message, ": ", 2) && test_file_append(&message, path, strlen(path) + 1) {
+        reason = message.data;
+    }
+    execution_session_fail(session, reason, at);
+    return 0;
+}
+
+fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize): u64 {
+    var at: usize = 0;
+    var pair = execution_fixture_grant(session, &at);
+    if pair == null || count != 4 {
+        return execution_fixture_fail(session, "No fixture grant for this test", null, at);
+    }
+    var length = convert(usize, args[1]);
+    var name = interpreter_bytes(&session.machine, args[0], length, at);
+    if name == null {
+        return 0;
+    }
+    var source = fixture_leaf_matches(pair.source.data, name, length);
+    var run = args[2] != 0;
+    if !source &&(run || !fixture_leaf_matches(pair.oracle.data, name, length)) {
+        return execution_fixture_fail(session, "Fixture was not granted for this test", null, at);
+    }
+    var path = source ? pair.source.data: pair.oracle.data;
+    var text: vector(u8) = default;
+    defer vector_dispose(&text);
+    var modules = session.fixtures.modules;
+    var error = frontend_fixture_read(modules, path, &text, source, session.fixtures.selection.registered_fixtures);
+    if error != null {
+        return execution_fixture_fail(session, error, path, at);
+    }
+    var data = text.data;
+    var size = text.length;
+    var child: ExecutionSession = default;
+    defer execution_session_close(&child);
+    if run {
+        var inputs = frontend_fixture_child(modules, path);
+        if inputs == null {
+            return execution_fixture_fail(session, "Cannot open fixture environment", path, at);
+        }
+        defer frontend_modules_destroy(inputs);
+        if execution_session_compile(&child, data, size, session.program.pointer_bytes, inputs) {
+            child.fixtures = session.fixtures;
+            execution_session_step(&child, FixtureStepLimit);
+        }
+        if child.machine.failed || !child.machine.done || child.machine.output_truncated {
+            return execution_fixture_fail(session, child.error.data ?? "Incomplete fixture execution", path, at);
+        }
+        data = child.output.data;
+        size = child.output.length;
+    }
+    var address = interpreter_allocate(&session.machine, size);
+    if address == 0 {
+        return execution_fixture_fail(session, "Cannot allocate fixture bytes", path, at);
+    }
+    var target = interpreter_bytes(&session.machine, address, size, at);
+    if target == null {
+        return 0;
+    }
+    if size != 0 {
+        copy(target, data, size);
+    }
+    var word: FoundationType = {
+        scalar: SUSize, pointer_bytes: session.program.pointer_bytes, .. default
+    };
+    interpreter_write(&session.machine, args[3], convert(u64, size), &word, at);
+    return address;
+}
+
+// Ordinary child code may write counted stdout. Capture it along with print()
+// instead of letting platform_write bypass the outer test's comparison.
+fn execution_fixture_foreign(session: ExecutionSession*, node: void*, args: u64*, count: usize, capture_stdout: bool, result: u64*): bool {
+    var name = sem_get(node).name.data;
+    if session.program.test_mode && strcmp(name, "test_fixture_load") == 0 {
+        *result = execution_fixture_load(session, args, count);
+        return true;
+    }
+    if(capture_stdout || !session.program.test_mode) && strcmp(name, "platform_write") == 0 {
+        if count != 3 || args[0] != 1 {
+            execution_session_fail(session, "Fixture execution requires stdout", 0);
+        } else {
+            var length = convert(usize, args[2]);
+            if !session.program.test_mode &&(length > InterpreterOutputLimit || session.machine.output_bytes > InterpreterOutputLimit -length) {
+                execution_session_fail(session, "Fixture output exceeds interpreter limit", 0);
+                return true;
+            }
+            var data = interpreter_bytes(&session.machine, args[1], length, 0);
+            if data != null {
+                execution_session_append(session, data, length);
+                *result = args[2];
+            }
+        }
+        return true;
+    }
+    if !session.program.test_mode {
+        execution_session_fail(session, "Unsupported external call in fixture execution", 0);
+        return true;
+    }
+    return false;
+}

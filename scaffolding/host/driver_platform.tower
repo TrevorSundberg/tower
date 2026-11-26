@@ -12,6 +12,10 @@ extern fn driver_platform_temporary(out: ByteBuffer*): bool;
 
 extern fn driver_platform_run(argv: u8**): i32;
 
+// Synchronous execution of an absolute Linux GNU test guest. The caller owns
+// the libc FILE and reads it after the child has exited.
+extern fn driver_platform_test_stdout(argv: u8**, file: void*): i32;
+
 // Resolved running executable, independent of cwd, PATH and argv[0].
 extern fn driver_platform_executable(out: ByteBuffer*): bool;
 

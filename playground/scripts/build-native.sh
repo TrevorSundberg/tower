@@ -14,5 +14,12 @@ cmake "$@" -S "$repo" -B "$native" -G Ninja -DTOWER_NATIVE=ON -DTOWER_BOOTSTRAP_
   -DCMAKE_C_COMPILER="$compiler_bin/clang" -DCMAKE_CXX_COMPILER="$compiler_bin/clang++"
 cmake --build "$native" --target towerc --parallel "${TOWER_BUILD_JOBS:-4}"
 mkdir -p "$repo/build/native"
+# The flat builtin library is build-owned. Keep nested project resources.
+for module in "$repo/build/native/share/tower/library/"*.tower; do
+  if [[ -f "$module" && ! -f "$native/share/tower/library/${module##*/}" ]]; then
+    printf 'Stale native distribution resource: %s. Remove it before copying the compiler.\n' "$module" >&2
+    exit 1
+  fi
+done
 cp "$native/towerc" "$repo/build/native/towerc"
 cp -R "$native/share" "$repo/build/native/"

@@ -1,0 +1,29 @@
+# Match the public driver's terminal stderr line after a successful invocation.
+function(register_language_tests name owner count)
+  # CTest evaluates installed registrations in the moved kit's working directory.
+  file(REAL_PATH "." suite_dir BASE_DIRECTORY ".")
+  get_filename_component(source "@scc_library@/${owner}.tower" ABSOLUTE BASE_DIR "${suite_dir}")
+  set(outcome "tests passed")
+  if(count EQUAL 1)
+    set(outcome "test passed")
+  elseif(count EQUAL 0)
+    set(outcome "tests selected")
+  endif()
+  foreach(jobs IN ITEMS 1 4)
+    set(test "tower-selected-${name}-jobs-${jobs}")
+    add_test("${test}" "@scc_bin@/tower-selected-test-count" "${count} ${outcome} for ${source}"
+      "@scc_bin@/towerc" --test "${source}"
+      --jobs "${jobs}" --test-details --test-native-runtime "@scc_objects@/guest-native-test.o" ${ARGN})
+    set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused")
+  endforeach()
+endfunction()
+
+set(scc_suffix_args)
+if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
+  list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
+endif()
+register_language_tests(graph-components graph_components 2
+  ${scc_suffix_args}
+  --link "@scc_objects@/runtime-instrumented.o" --link "@scc_objects@/tower-compiler-bytes.o"
+  --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(sha256 sha256 7)

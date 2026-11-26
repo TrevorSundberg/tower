@@ -65,6 +65,37 @@ The library expands an assertion to ordinary conditional control flow and
 `trap(message, source_offset())`. The compiler resolves `source_offset()` to
 the invocation's `u32` byte offset in the compilation's module source map.
 
+## Conditional module declarations
+
+In a compiler built with this feature, `comptime if` evaluates a boolean
+expression and contributes the selected block's declarations to the enclosing
+module in source order. The `else` block is optional.
+
+```tower
+import tower;
+comptime if (sizeof(decltype(null)) == 8) {
+    fn address_bytes(): i32 { return 8; }
+    test() { print(address_bytes()); }
+} else {
+    fn address_bytes(): i32 { return 4; }
+}
+print(address_bytes());
+```
+
+Here the explicit compilation target determines the result. Both blocks must
+parse. Only the selected declarations participate in name lookup, binding
+proofs, test discovery within the module, and Foundation output. A selected
+`test()` still runs only for a test request.
+
+Selection precedes module binding. This first case supports closed expressions
+such as literal arithmetic, comparisons and target layout queries over
+`decltype` of literals. Module variables, user functions and named types are
+unavailable in the condition. The ordinary staged interpreter enforces its
+effect policy. Selected members can be ordinary variable, function, struct,
+enum or test declarations, including existing attribute and linkage forms.
+Imports, grammar activation, nested conditionals and function-local conditional
+declarations are outside this form.
+
 ## Function values
 
 Use `function(Result, Parameters...)` for typed noncapturing callbacks. They work

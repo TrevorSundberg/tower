@@ -57,7 +57,20 @@ extern fn _exit(code: i32): void;
 
 extern fn waitpid(pid: i32, status: i32*, flags: i32): i32;
 
+extern fn fileno(file: void*): i32;
+extern fn dup2(source: i32, destination: i32): i32;
+
+export fn driver_platform_test_stdout(argv: u8**, file: void*): i32 {
+    var fd = fileno(file);
+    if fd < 0 { driver_error("Cannot open the native test stdout descriptor", ""); return 1; }
+    return driver_linux_execute(argv[0], argv, fd);
+}
+
 export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
+    return driver_linux_execute(executable, argv, -1);
+}
+
+fn driver_linux_execute(executable: u8*, argv: u8**, output: i32): i32 {
     // A close-on-exec pipe distinguishes exec failure from a tool returning 127.
     // The child only invokes libc async-signal-safe operations before exec/_exit.
     var descriptors: i32[2];
@@ -68,7 +81,10 @@ export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
     var pid = fork();
     if pid == 0 {
         close(descriptors[0]);
-        execv(executable, argv);
+        if output < 0 || dup2(output, 1) >= 0 {
+            if output > 2 { close(output); }
+            execv(executable, argv);
+        }
         var error = driver_error_code();
         write(descriptors[1], bits(u8*, &error), sizeof(i32));
         _exit(127);

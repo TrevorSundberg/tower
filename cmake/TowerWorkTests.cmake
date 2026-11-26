@@ -150,6 +150,14 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
 endif()
 if(TARGET towerc)
+  function(tower_compiler_companion_test name fixture workers)
+    add_test(NAME ${name}-${workers}
+      COMMAND $<TARGET_FILE:towerc> "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/${fixture}"
+        --test --test-details --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(${name}-${workers} PROPERTIES FAIL_REGULAR_EXPRESSION "0 tests selected")
+  endfunction()
   add_test(NAME tower-semantic-iteration-companions
     COMMAND $<TARGET_FILE:towerc> --test
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration.tower"
@@ -159,26 +167,32 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
-    add_test(NAME tower-fixed-array-iteration-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration_test.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    add_test(NAME tower-generic-body-copy-types-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generic_body_types_test.tower"
-        --test --test-details --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-generic-body-copy-types-${workers} PROPERTIES
+    add_test(NAME tower-work-resume-owner-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph.tower" --test-details --jobs ${workers})
+    add_test(NAME tower-work-resume-direct-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph_test.tower" --test-details --jobs ${workers})
+    # Reject successful partial or duplicate selections. A FAIL expression
+    # preserves CTest's normal handling of a nonzero compiler exit.
+    set_tests_properties(tower-work-resume-owner-${workers} tower-work-resume-direct-${workers}
+      PROPERTIES FAIL_REGULAR_EXPRESSION "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
+
+    add_test(NAME tower-counted-loops-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_control_test.tower"
+        --test-details --jobs ${workers})
+    set_tests_properties(tower-counted-loops-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
-    add_test(NAME tower-semantic-layout-registry-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_layout_test.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    add_test(NAME tower-utf8-companion-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
+    set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
+    tower_compiler_companion_test(tower-fixed-array-iteration semantic_iteration_test.tower ${workers})
+    tower_compiler_companion_test(tower-generic-body-copy-types generic_body_types_test.tower ${workers})
+    tower_compiler_companion_test(tower-semantic-layout-registry semantic_layout_test.tower ${workers})
+    tower_compiler_companion_test(tower-default-initialization semantic_expressions_test.tower ${workers})
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
         module_header_capture_controls named_initialization_test)
       string(REPLACE "-" "_" fixture "${name}")

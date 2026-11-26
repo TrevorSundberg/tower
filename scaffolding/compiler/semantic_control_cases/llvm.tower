@@ -1,0 +1,16 @@
+import library.testing;
+import text_checks;
+
+struct Observations {
+    golden: u8*;
+    raw: u8*;
+    optimized: u8*;
+}
+
+extern fn counted_loop_observations(): Observations*;
+
+test() {
+    var seen = counted_loop_observations();
+    assert(same_text(seen.raw, seen.golden), "Raw LLVM/Wasm loop output");
+    assert(same_text(seen.optimized, seen.golden), "Optimized LLVM/Wasm loop output");
+}

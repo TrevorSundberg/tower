@@ -1,0 +1,60 @@
+import tower;
+import tool_files_posix;
+import tool_streams_posix;
+import .library.bytes;
+import .library.bytes_types;
+import .library.vector;
+import .library.zip_archive;
+import .compiler.host_text;
+import .compiler.utf8;
+
+extern fn strchr(text: u8*, character: i32): u8*;
+
+var BuiltinInventoryLimit: usize = 67108864;
+
+// Plain sha256sum records cannot encode newlines/backslashes unambiguously.
+// Resource names also retain the existing portable relative-path policy.
+fn package_member_name(name: u8*, length: usize): bool {
+    if !zip_name_valid(name, length) || tower_utf8_validate(name, length, 1) == 0 { return false; }
+    var first_printable: u8 = 32; var delete_character: u8 = 127;
+    for (var at: usize = 0; at < length; at++) {
+        if name[at] < first_printable || name[at] == delete_character { return false; }
+    }
+    return true;
+}
+
+// The flat compiler module namespaces reject stale copies as well as missing
+// inventory members. Nested project libraries remain separate package resources.
+fn builtin_module_namespace(path: u8*): bool {
+    var library = "library/";
+    if strncmp(path, library, strlen(library)) == 0 {
+        var name = path + strlen(library);
+        var suffix = ".tower";
+        var length = strlen(name);
+        return length >= strlen(suffix) && strcmp(name + length - strlen(suffix), suffix) == 0
+            && strchr(name, convert(i32, ToolPathByte.Slash)) == null;
+    }
+    return strcmp(path, "bedrock.tower") == 0 || strcmp(path, "foundation.tower") == 0
+        || strcmp(path, "foundation_syntax.tower") == 0 || strcmp(path, "types.tower") == 0
+        || strcmp(path, "tower.tower") == 0 || strcmp(path, "backend/foreign_grammar.tower") == 0;
+}
+
+// Returned paths borrow text until the consumer finishes copying its modules.
+fn builtin_modules_read(repository: u8*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    if !tool_join(&path, repository, inventory_name)
+        || !tool_read_file(path.data, BuiltinInventoryLimit, text) || !host_text_terminate(text) { return false; }
+    var at: usize = 0;
+    while at < text.length {
+        var start = at;
+        while at < text.length && text.data[at] != *"\n" { at++; }
+        var end = at;
+        if end > start && text.data[end - 1] == *"\r" { end--; }
+        var name = text.data + start;
+        text.data[end] = 0;
+        if !package_member_name(name, end - start)
+            || !builtin_module_namespace(name) || !vector_push(modules, name) { return false; }
+        at++;
+    }
+    return modules.length != 0;
+}

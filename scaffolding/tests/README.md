@@ -43,6 +43,21 @@ test. The first such statement determines the test's position among explicit
 `test() {}` blocks. Module-level declarations and initializers keep their usual
 scope. A helper-only file adds zero tests.
 
+
+On a Linux GNU host, `--test-native-runtime OBJECT` selects native execution
+for the same declarations. Build the optional `tower-guest-native-test` target
+and pass its `guest-native-test.o`. Supply native dependencies with the usual
+`--link` arguments, including an allocator when the program requires one.
+Only pass trusted native inputs. The driver lowers the selected program once
+and runs the linked executable as a child. Guest stdout and stderr remain
+available. The test runtime reserves descriptor 3 in that child for its private
+same-host result. On a trap the driver maps the original offset through the
+request's source table. An early process exit fails the request. A linked run
+with `--test-oracle FILE` compares the child's actual stdout bytes, including
+writes by linked providers. With `--test-affected DIR`, linked suites run on
+every invocation because a provider may read files outside the recorded input
+set. Interpreted suites keep their ordinary affected-test selection.
+
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
 two exact NUL-terminated suffixes and the normalized requested path, in that
@@ -59,6 +74,33 @@ return ordered owner/companion handles borrowed from the root graph. Use a fresh
 root per discovery, release it after consuming those handles, and dispose the
 selection with `test_file_selection_dispose`.
 
+### Reading a selected companion's fixtures
+
+A direct import of `library.test_fixtures` in a selected companion grants its
+contextual `test()` blocks two files. They are the actual owner's source and
+the adjacent `.expected` file with the same stem. Pass the exact basename to
+`fixture_text(name)` for counted UTF-8 text or `fixture_stdout(source_name)`
+for ordinary interpreter stdout. Each returns a guest-owned `FixtureBytes`.
+Free its `data` after use. `fixture_equal` compares the lengths and every byte,
+including the final line ending. See [the function-values test](function_values_test.tower).
+The child interpreter uses the selected graph's source snapshots and captures
+both `print` and counted writes to stdout.
+
+After successful discovery, `TestFileSelection.fixtures` owns an ordered
+`TestFixturePair` per opted-in companion. Its `companion`, `source` and
+`oracle` paths have explicit byte lengths and trailing NULs. These paths
+survive release of the graph. A subsequent successful discovery replaces them.
+Disposing or reopening the selection releases them. A registered-input caller
+passes a null discovery probe and registers the expected text under its exact
+owner-relative key. The test host binds the selection and source map for the
+duration of execution.
+
+Use the existing `--list-test-files` command with the entry and
+`-o inventory --depfile inventory.d` to track disk inputs. The depfile names
+the owner source and the exact expected path, even while the latter is missing.
+The runtime read reports a missing expected file at its call site. Ordinary
+compilation continues to use the entry and its ordinary imports.
+
 Keep source inputs and expected text readable as files. Track each old case by
 its runner, selector, fixtures, expected outcome and execution modes until its
 Tower replacement checks the same behavior. For example, the five cases in the
@@ -67,6 +109,39 @@ Foundation round trips, raw and optimized LLVM/Wasm, six invalid loop headers
 or bodies, a Foundation identifier, and formatting idempotence. The positive
 output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
 and [expected output](for_loops.expected.txt).
+
+### Running affected native tests
+
+Use `--test-oracle FILE` to require exact guest stdout from a full or affected
+run. The file may be empty or contain arbitrary bytes. A missing or unreadable
+file, a mismatch, or incomplete guest output fails the command. A mismatch
+reports the owner, oracle, byte lengths and zero-based first divergent offset.
+Compiler and guest failures retain their original diagnostic and exit status.
+
+```sh
+towerc --test path/to/owner.tower --test-oracle expected.stdout
+mkdir -p .tower-test-state
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-details
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-oracle expected.stdout
+```
+
+Without a state directory, every invocation runs all selected tests. With a
+private state directory and no oracle file, an unchanged suite may skip after
+a complete, silent pass. A suite that prints then runs on each invocation. An
+explicit expectation permits reuse after a byte-for-byte match. Guest foreign
+calls always require execution. Skips emit no guest output and `--test-details`
+identifies skipped declarations. Each owner suite shares initialization, writes
+and first-failure order.
+
+The directory holds a 32-byte SHA-256 success receipt per canonical entry.
+Its identity includes the running compiler bytes, rule, target and workers,
+grammar/module paths and bytes, probes, selected declaration offsets and the
+stdout policy. An explicit file contributes its path and contents. Keep the
+installation, sources and oracle frozen during each invocation. A miss retires
+the old receipt before execution. A complete new receipt is staged beside it
+and published by rename after a successful verdict.
+Run `ctest -R '^tower-driver-affected$' --output-on-failure` in a native build
+configured with `TOWER_DRIVER_TESTS=ON`.
 
 ## Generic body demand fixtures
 
@@ -484,9 +559,15 @@ a library object, link `guest-host-library.o`, then run it by absolute path.
 The argument helper avoids the published bootstrap's duplicate-literal issue
 when string literals are passed directly to inferred generic calls.
 
-`sha256_checks.tower` checks standard SHA-256 vectors, all chunk splits, a million
-`a` bytes, non-consuming finalization and rejected input. Pass a writable fixture
-directory, then independently verify its 260 binary fixtures with
+`build/native/towerc --test scaffolding/library/sha256.tower --test-details`
+discovers the adjacent SHA-256 suite. To select it explicitly, pass
+`scaffolding/library/sha256_test.tower` to the same command. It checks four
+standard vectors at every split, a million streamed `a` bytes, rejected
+updates, and whole versus incremental digests at all 260 binary prefix lengths.
+
+The direct native fixture `sha256_checks.tower` also exercises file creation
+and replays every prefix from an empty stream. Pass a writable fixture
+directory to its executable, then independently verify the 260 files with
 `sha256sum --quiet -c <directory>/checksums.txt`.
 `tool_files_checks.tower` takes a new fixture directory and checks bounded reads,
 resource traversal, file/directory symlink policy and atomic publication refusing
@@ -1826,6 +1907,52 @@ controls without the broader grammar/failure campaigns. CTest registers these as
 existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
+
+The optional language suite runs the SCC and SHA-256 companions through the
+public driver on Linux GNU. In a native build configured with
+`TOWER_DRIVER_TESTS=ON`, build the suite and run both owners at one and four
+compiler jobs. Set `B` to
+the native build directory.
+
+```sh
+cmake --build "$B" --target tower-language-tests
+ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256)-jobs-' -V
+```
+
+For a checkout-independent installation, set `PREFIX` to a writable staging
+directory. Move the resulting `scc-suite` directory as a unit. The host needs
+CTest and the shared libraries required by its native compiler.
+
+```sh
+cmake --install "$B" --component SccTests --prefix "$PREFIX"
+ctest --test-dir "$PREFIX/scc-suite" -V
+TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tower-selected-graph-components-jobs-1$' -V
+```
+
+Each registration selects its owner with `towerc --test`. With the default
+file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
+locations and checks zero live buffers in the linked allocator. The kit requires
+the driver's final stderr line to report exactly two SCC declarations or seven
+SHA-256 declarations for the selected owner. A compiler or guest failure fails
+the registration even if the guest printed the expected summary. The last
+command supplies the alternate suffix to the same driver. It deliberately
+fails on the singleton at `graph_components_wrong.tower:7:5` and returns
+nonzero. Direct selection of the corresponding companion uses the same
+providers shown by `ctest -V`.
+
+The same installation registers `tower-selected-sha256-jobs-1` and
+`tower-selected-sha256-jobs-4` through the same linked test runtime. The seven SHA-256 declarations also
+support direct portable interpretation. The companion and ordinary-named `library/test_data.tower` are private test inputs.
+`tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
+and the SCC registration names remain supported.
+
+For graph components the private installation adds two adjacent fixtures and their corpus-count module
+`graph_components_expectations.tower` under `share/tower/library`, the reachability
+and utility helpers under `share/tower/tests`, and five native link inputs
+under `providers`. The normal native and browser compilers take their language
+sources from `scaffolding/builtin_modules.txt`. Add production modules there
+when introducing them. A helper used only by companions belongs to the optional
+installation even if its name matches the ordinary source suffix. The legacy graph-components registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,

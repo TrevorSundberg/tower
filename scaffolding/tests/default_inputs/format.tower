@@ -1,0 +1,1 @@
+import tower;struct Item{x:i32;}var item:Item=(default);item=default(Item);print(item.x);

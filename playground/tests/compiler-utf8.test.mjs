@@ -15,25 +15,32 @@ function decode(bytes){
  try{return [count,decoder.decode(Uint8Array.from(bytes.slice(0,count))).codePointAt(0)];}catch{return [0,0];}
 }
 function validate(bytes,rejectNul){try{decoder.decode(Uint8Array.from(bytes));return rejectNul&&bytes.includes(0)?0:1;}catch{return 0;}}
-let random=0x1ba72983;
-function next(){random^=random<<13;random^=random>>>17;random^=random<<5;return random>>>0;}
-const scalars=[0,1,127,128,2047,2048,55295,55296,56319,56320,57343,57344,65535,65536,1114111,1114112,4294967295];
-const cases=[[],[0],[65],[194],[194,32],[192,128],[193,191],[224,128,128],[237,160,128],[244,144,128,128],[245,128,128,128],[255]];
-for(const scalar of scalars.filter(n=>n<=1114111&&(n<55296||n>57343))){const bytes=[...encoder.encode(String.fromCodePoint(scalar))];for(let n=0;n<=bytes.length;n++)cases.push(bytes.slice(0,n));}
-for(let i=0;i<32;i++)cases.push(Array.from({length:next()%9},()=>next()&255));
+const caseSource=(await read('scaffolding/tests/utf8_wasm_cases.tower')).toString();
+let caseModule,state=0;
+function visitCases(input,scalar){
+ if(!caseModule){
+  const fixture=llvm.compile(caseSource);
+  assert.equal(fixture.status,'compiled',fixture.error);
+  caseModule=new WebAssembly.Module(fixture.wasm);
+ }
+ const e=new WebAssembly.Instance(caseModule,{env:{
+  record_utf8_input(pointer,length){input(new Uint8Array(e.memory.buffer,pointer,length));},
+  record_utf8_scalar(value){scalar(value>>>0);},
+ }}).exports;
+ state=e.all_utf8_inputs(state);
+}
 
 function checkExports(e,allocate,free){
  const pointer=allocate(64);
  try{
   const memory=new Uint8Array(e.memory.buffer),view=new DataView(e.memory.buffer);
-  for(let i=0;i<10000+cases.length;i++){
-   const bytes=i<cases.length?cases[i]:Array.from({length:next()%9},()=>next()&255);
+  function checkInput(bytes){
    memory.set(bytes,pointer);view.setUint32(pointer+16,0xdeadbeef,true);
    const count=e.tower_utf8_decode(pointer,bytes.length,pointer+16);
    assert.deepEqual([count,view.getUint32(pointer+16,true)],decode(bytes),bytes.toString());
    for(const reject of [0,1,42])assert.equal(e.tower_utf8_validate(pointer,bytes.length,reject),validate(bytes,reject));
   }
-  for(const scalar of [...scalars,...Array.from({length:10000},()=>next()%0x110001)]){
+  function checkScalar(scalar){
    const valid=scalar<=1114111&&(scalar<55296||scalar>57343),bytes=valid?encoder.encode(String.fromCodePoint(scalar)):[];
    assert.equal(e.tower_utf8_encode(scalar,0,0),bytes.length);
    for(let capacity=0;capacity<=4;capacity++){
@@ -43,6 +50,7 @@ function checkExports(e,allocate,free){
     assert.deepEqual([...memory.slice(pointer+31,pointer+38)],[165,...(fits?[...bytes]:[]),...Array(6-(fits?bytes.length:0)).fill(165)]);
    }
   }
+  visitCases(checkInput,checkScalar);
  }finally{free(pointer);}
 }
 
@@ -89,17 +97,8 @@ test('the compiler can recompile its own codec into standalone Wasm without runt
 });
 
 test('the same Tower utility executes in the interpreter and LLVM, including canonical round trips',async()=>{
- let source=utility+`\nvar data: u8[8]; var scalar: u32 = 0; var count: usize = 0;\n`,expected='';
- for(const bytes of cases){
-  bytes.forEach((byte,i)=>source+=`data[${i}] = ${byte};\n`);
-  source+=`count = tower_utf8_decode(&data[0], ${bytes.length}, &scalar); print(count); print(scalar); print(tower_utf8_validate(&data[0], ${bytes.length}, 0)); print(tower_utf8_validate(&data[0], ${bytes.length}, 1));\n`;
-  expected+=[...decode(bytes),validate(bytes,0),validate(bytes,1)].map(n=>n+'\n').join('');
- }
- for(const scalar of scalars){
-  const valid=scalar<=1114111&&(scalar<55296||scalar>57343),bytes=valid?[...encoder.encode(String.fromCodePoint(scalar))]:[];
-  source+=`fill(&data[0], 165, 8); count = tower_utf8_encode(${scalar}, &data[0], 4); print(count); print(tower_utf8_encode(${scalar}, null, 0)); print(data[0]); print(data[1]); print(data[2]); print(data[3]);\n`;
-  expected+=[bytes.length,bytes.length,...bytes,...Array(4-bytes.length).fill(165)].map(n=>n+'\n').join('');
- }
+ const source=(await read('scaffolding/tests/utf8_roundtrip.tower')).toString();
+ const expected=(await read('scaffolding/tests/utf8_roundtrip.expected')).toString();
  const h=tower.compile(source);
  let canonical;
  try{

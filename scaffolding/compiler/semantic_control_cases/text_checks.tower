@@ -1,0 +1,18 @@
+import tower;
+
+// The transport accepts NUL-free text from the reactor and preserves its bytes.
+fn same_text(left: u8*, right: u8*): bool {
+    for (var at: usize = 0; left[at] == right[at]; at++) {
+        if left[at] == 0 { return true; }
+    }
+    return false;
+}
+
+fn contains_text(source: u8*, fragment: u8*): bool {
+    for (var start = source; *start != 0; start++) {
+        var at: usize = 0;
+        while fragment[at] != 0 && start[at] == fragment[at] { at++; }
+        if fragment[at] == 0 { return true; }
+    }
+    return false;
+}

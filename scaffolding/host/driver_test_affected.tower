@@ -1,0 +1,125 @@
+import tower;
+import driver_request;
+import driver_test_oracle;
+import driver_mapped_file;
+import driver_support;
+import driver_platform;
+import driver_types;
+import .library.sha256;
+import .library.bytes_interface;
+import .library.bytes_types;
+
+extern fn compiler_world_worker_limit(world: void*): usize;
+extern fn driver_platform_file_kind(path: u8*): DriverFileKind;
+extern fn remove(path: u8*): i32;
+extern fn rename(from: u8*, to: u8*): i32;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fwrite(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+
+struct DriverAffectedTest {
+    hash: Sha256;
+    digest: Sha256Digest;
+    previous: DriverMappedFile;
+    receipt: ByteBuffer;
+    modules: usize;
+    complete: bool;
+}
+
+fn driver_affected_close(test: DriverAffectedTest*): void {
+    driver_platform_unmap(&test.previous);
+    bytes_dispose(&test.receipt);
+}
+
+// Ordered length-prefixed fields, following the standalone affected-test selector.
+fn driver_affected_field(test: DriverAffectedTest*, data: u8*, length: usize): void {
+    test.complete &&= sha256_update(&test.hash, bits(u8*, &length), sizeof(usize))
+        && sha256_update(&test.hash, data, length);
+}
+
+fn driver_affected_text(test: DriverAffectedTest*, text: u8*): void {
+    driver_affected_field(test, text, strlen(text));
+}
+
+fn driver_affected_open(test: DriverAffectedTest*, request: DriverRequest*): bool {
+    var options = request.options;
+    sha256_init(&test.hash);
+    test.complete = true;
+    driver_affected_text(test, request.tests.entry);
+    var owner = sha256_finish(&test.hash);
+    var hex: u8[Sha256DigestBytes * 2 + 1];
+    sha256_hex(&owner, &hex[0]);
+    if !driver_text(&test.receipt, options.test_state) || !driver_text(&test.receipt, "/tower-pass-")
+        || !driver_text(&test.receipt, &hex[0]) || !host_text_terminate(&test.receipt) { return false; }
+    var kind = driver_platform_file_kind(test.receipt.data);
+    if kind != DriverFileKind.Missing {
+        if kind != DriverFileKind.Regular { return false; }
+        if !driver_platform_map(test.receipt.data, &test.previous)
+            && driver_platform_file_kind(test.receipt.data) != DriverFileKind.Missing { return false; }
+    }
+    driver_affected_field(test, request.tests.key.data, request.tests.key.length);
+    driver_affected_field(test, request.text[DriverSourceText].data, request.text[DriverSourceText].length);
+    driver_affected_text(test, request.root);
+    driver_affected_text(test, options.target);
+    driver_affected_text(test, request.bedrock_path.data);
+    driver_affected_text(test, request.foundation_path.data);
+    driver_affected_field(test, request.text[DriverBedrockText].data, request.text[DriverBedrockText].length);
+    driver_affected_field(test, request.text[DriverFoundationText].data, request.text[DriverFoundationText].length);
+    var workers = compiler_world_worker_limit(request.world);
+    driver_affected_field(test, bits(u8*, &workers), sizeof(usize));
+    driver_affected_field(test, bits(u8*, &options.jobs), sizeof(usize));
+    driver_affected_field(test, bits(u8*, &options.test_details), sizeof(bool));
+    driver_affected_field(test, bits(u8*, &options.timings), sizeof(bool));
+    var path: ByteBuffer = default;
+    var compiler: DriverMappedFile = default;
+    defer bytes_dispose(&path);
+    defer driver_platform_unmap(&compiler);
+    test.complete &&= driver_platform_executable(&path) && driver_platform_map(path.data, &compiler);
+    driver_affected_field(test, compiler.data, compiler.length);
+    return true;
+}
+
+fn driver_affected_source(context: void*, path: u8*, data: u8*, length: usize): void {
+    var test = bits(DriverAffectedTest*, context);
+    driver_affected_text(test, "module");
+    driver_affected_text(test, path);
+    driver_affected_field(test, data, length);
+    test.modules++;
+}
+
+fn driver_affected_matches(test: DriverAffectedTest*, oracle: DriverTestOracle*): bool {
+    if oracle.path == null { driver_affected_text(test, "implicit silence"); }
+    else {
+        test.complete &&= oracle.readable;
+        driver_affected_text(test, "explicit stdout");
+        driver_affected_text(test, oracle.path);
+        driver_affected_field(test, &oracle.digest.bytes[0], Sha256DigestBytes);
+    }
+    test.complete &&= test.modules != 0;
+    test.digest = sha256_finish(&test.hash);
+    return test.complete && test.previous.length == sizeof(Sha256Digest)
+        && memcmp(&test.digest.bytes[0], test.previous.data, sizeof(Sha256Digest)) == 0;
+}
+
+fn driver_affected_invalidate(test: DriverAffectedTest*): bool {
+    driver_platform_unmap(&test.previous);
+    var kind = driver_platform_file_kind(test.receipt.data);
+    if kind != DriverFileKind.Regular { return kind == DriverFileKind.Missing; }
+    return remove(test.receipt.data) == 0 || driver_platform_file_kind(test.receipt.data) == DriverFileKind.Missing;
+}
+
+// Exclusive sibling staging keeps incomplete writes invisible. A terminated
+// process may leave a .tmp file, which is never consulted during selection.
+fn driver_affected_publish(test: DriverAffectedTest*): bool {
+    var stage: ByteBuffer = default;
+    defer bytes_dispose(&stage);
+    if !driver_text(&stage, test.receipt.data) || !driver_text(&stage, ".")
+        || !host_json_unsigned(&stage, driver_clock()) || !driver_text(&stage, ".tmp")
+        || !host_text_terminate(&stage) { return false; }
+    var file = fopen(stage.data, "wbx");
+    if file == null { return false; }
+    defer driver_platform_remove(stage.data);
+    var written = fwrite(&test.digest.bytes[0], 1, sizeof(Sha256Digest), file);
+    return fclose(file) == 0 && written == sizeof(Sha256Digest) && rename(stage.data, test.receipt.data) == 0;
+}

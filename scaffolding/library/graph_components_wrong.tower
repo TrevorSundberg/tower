@@ -1,0 +1,8 @@
+import tower;
+import library.testing;
+import .tests.graph_components_checks;
+
+test() {
+    var totals: ComponentPropertyCounts = default;
+    assert(graph_component_fixed_cases(true, &totals), "Deliberately wrong SCC partition");
+}

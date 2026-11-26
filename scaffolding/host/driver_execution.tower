@@ -1,4 +1,5 @@
 import tower;
+import .compiler.execution_fixtures;
 import driver_api;
 import .compiler.execution_session;
 import driver_support;
@@ -26,9 +27,15 @@ fn driver_execution_fast(execution: ExecutionSession*): bool {
     return execution_session_fast(execution);
 }
 
-fn driver_execution_flush(execution: ExecutionSession*): void {
-    driver_platform_write(1, execution.output.data, execution.output.length);
+fn driver_execution_write(execution: ExecutionSession*, fd: i32, data: u8*, length: usize): bool {
+    if execution.write_output != null { return execution.write_output(execution.output_context, fd, data, length); }
+    return driver_platform_write_result(fd, data, length);
+}
+
+fn driver_execution_flush(execution: ExecutionSession*): bool {
+    var ok = driver_execution_write(execution, 1, execution.output.data, execution.output.length);
     execution.output.length = 0;
+    return ok;
 }
 
 export fn im_pointer_bytes(machine: IMState*): usize {
@@ -69,6 +76,10 @@ extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
 extern fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool;
 
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
+    var session = bits(ExecutionSession*, machine);
+    session.used_foreign = true;
+    var result: u64 = 0;
+    if session.fixtures != null && execution_fixture_foreign(session, node, args, count, false, &result) { return result; }
     var function = sem_get(node);
     if function.name.length != 14 || memcmp(function.name.data, "platform_write", 14) != 0 || count != 3 {
         var text: ByteBuffer = default;
@@ -87,8 +98,8 @@ export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): 
     if data == null {
         return ~convert(u64, 0);
     }
-    driver_execution_flush(bits(ExecutionSession*, machine));
-    if driver_platform_write_result(convert(i32, args[0]), data, convert(usize, args[2])) {
+    driver_execution_flush(session);
+    if driver_execution_write(session, convert(i32, args[0]), data, convert(usize, args[2])) {
         return args[2];
     }
     return ~convert(u64, 0);

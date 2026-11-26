@@ -28,68 +28,51 @@ async function compare(source,expected){
  }
  return canonical;
 }
-test('default uses exact contextual and explicit scalar types',async()=>{
- await compare(`import tower;
- var a:i32=default;var b:i64=default;var c:u64=default;var d:usize=default;
- var e:u8=default;var f:bool=default;var p:i32* =default;
- print(a);print(b);print(c);print(d);print(e);print(f);print(p==null);
- var inferred=default(u64);print(inferred);print(!default);var negative:i32=-default;print(negative);
- fn zero():u32{return default;}fn take(v:u64):u64{return v;}print(zero());print(take(default));
- var choice:u64=true?default:7;print(choice);print(default==inferred);
- enum Kind:u32{Ready=7}var tag:Kind=default;print(convert(u32,tag));`,
- '0\n0\n0\n0\n0\nfalse\ntrue\n0\ntrue\n0\n0\n0\n0\ntrue\n0\n');
+const inputs = 'scaffolding/tests/default_inputs/';
+const source = name => read(inputs + name + '.tower').then(bytes => bytes.toString());
+async function compareFile(stem) {
+ const program = (await read(stem + '.tower')).toString();
+ const expected = (await read(stem + '.expected.txt')).toString().replaceAll('\r\n', '\n');
+ return compare(program, expected);
+}
+
+test('default uses exact contextual and explicit scalar types', async () => {
+ await compareFile(inputs + 'scalars');
 });
-test('aggregate defaults initialize complete target storage including padding and nested arrays',async()=>{
- const canonical=await compare(`import tower;
- struct Inner{small:u8;wide:u64;}struct Outer{items:Inner[3];pointer:i32*;}
- var value:Outer=default;var bytes=bits(u8*,&value);var total:u64=0;
- for(var i:usize=0;i<sizeof(Outer);i++){total+=convert(u64,bytes[i]);}print(total);
- fill(&value,255,sizeof(Outer));value=default;total=0;
- for(var i:usize=0;i<sizeof(Outer);i++){total+=convert(u64,bytes[i]);}print(total);print(value.pointer==null);
- var inferred=default(Inner);print(inferred.wide);var array:i32[3]=default;print(array[2]);
- value.items[1].wide=42;value.items[1]=default;print(value.items[1].wide);`, '0\n0\ntrue\n0\n0\n0\n');
- assert.match(canonical,/fill\(/);assert.doesNotMatch(canonical,/\bdefault\b/);
+test('aggregate defaults initialize complete target storage including padding and nested arrays', async () => {
+ const canonical = await compareFile(inputs + 'aggregate');
+ assert.match(canonical, /fill\(/);
+ assert.doesNotMatch(canonical, /\bdefault\b/);
 });
-test('reset evaluates a destination once and preserves surrounding effects and deferred cleanup',async()=>{
- await compare(`import tower;struct Pair{x:i32;y:i32;}
- var pairs:Pair[2]=default;var calls=0;var index=0;
- fn source():Pair*{calls++;return &pairs[0];}
- pairs[0].x=9;pairs[1].x=8;source()[index++]=default;
- print(calls);print(index);print(pairs[0].x);print(pairs[1].x);
- fn reset(p:Pair*):void{defer *p=default;p.x=7;}
- reset(&pairs[1]);print(pairs[1].x);
- for(var i=0;i<2;i++,pairs[0]=default){pairs[0].x=17;}print(pairs[0].x);`, '1\n1\n0\n8\n0\n0\n');
+test('reset evaluates a destination once and preserves surrounding effects and deferred cleanup', async () => {
+ await compareFile(inputs + 'reset');
 });
-test('generic inference and ordinary compile-time execution share default semantics',async()=>{
- await compare(`import tower;import library.vector;
- fn same(T:type,a:T,b:T):T{return a;}
- fn clear(T:type,p:T*):void{*p=default;}
- var typed:u64=42;print(same(default,typed));print(same(default(u64),42));
- var values:vector(i32)=default;defer vector_dispose(&values);vector_push(&values,42);print(values.data[0]);
- var explicit=default(vector(i32));vector_push(&explicit,7);vector_dispose(&explicit);
- var forward=default(decltype(later));var later:u64=9;if forward!=0{print(99);}
- struct Cell{n:i32;flag:bool;}var cell:Cell=default;cell.n=9;clear(&cell);print(cell.n);
- fn stage():i32{var n:i32=default;n=17;n=default;return n;}
- print(comptime(stage()));`, '0\n0\n42\n0\n0\n');
+test('generic inference and ordinary compile-time execution share default semantics', async () => {
+ await compareFile(inputs + 'generics');
 });
-test('default values support ordinary struct copies and staged scalar results',async()=>{
- await compare((await read('scaffolding/tests/default_struct_values.tower')).toString(),'0\n7\n0\n');
+test('default values support ordinary struct copies and staged scalar results', async () => {
+ await compareFile('scaffolding/tests/default_struct_values');
 });
-test('default diagnoses missing types and incompatible conversions',()=>{
- for(const [source,message] of [
-  ['var n=default;',/requires a target type/],
-  ['var n=default(void);',/non-void/],
-  ['var n:i32=default(u32);',/Expected i32/],
-  ['struct A{x:i32;}struct B{x:i32;}var a:A=default(B);',/Expected A/],
-  ['struct A{x:i32;}print(default(A));',/^print requires a scalar or pointer value$/],
-  ['struct A{x:i32;}var a:A=default;var b=(a=default);',/void/],
-  ['fn id(T:type,x:T):T{return x;}print(id(default));',/Cannot infer type argument/],
-  ['struct A{x:i32;}var a:A=default;a+=default;',/integer|aggregate/i],
- ]){const result=execute('import tower;'+source);assert.equal(result.status,'error',source);assert.match(result.error,message,source);}
+test('default diagnoses missing types and incompatible conversions', async () => {
+ for (const [name, offset, message] of [
+  ['missing_type', 19, /requires a target type/],
+  ['void_type', 19, /non-void/],
+  ['scalar_mismatch', 23, /Expected i32/],
+  ['nominal_mismatch', 53, /Expected A/],
+  ['print_aggregate', 35, /^print requires a scalar or pointer value$/],
+  ['consumed_reset', 45, /void/],
+  ['missing_argument_type', 49, /Cannot infer type argument/],
+  ['compound_reset', 45, /integer|aggregate/i],
+ ]) {
+  const result = execute(await source('invalid/' + name));
+  assert.equal(result.status, 'error', name);
+  assert.match(result.error, message, name);
+  assert.equal(result.errorOffset, offset, name);
+ }
 });
-test('formatting preserves default syntax and Foundation keeps its ordinary identifier',()=>{
- const source='import tower;struct Item{x:i32;}var item:Item=(default);item=default(Item);print(item.x);';
- const handle=tower.create(source);
+test('formatting preserves default syntax and Foundation keeps its ordinary identifier',async()=>{
+ const input=await source('format');
+ const handle=tower.create(input);
  let formatted;
  try{const result=runToEnd(tower,handle);assert.equal(result.end.status,'done',result.end.error);formatted=tower.format(handle);assert.equal(formatted.error,undefined);}
  finally{tower.destroy(handle);}
@@ -97,5 +80,5 @@ test('formatting preserves default syntax and Foundation keeps its ordinary iden
  try{assert.equal(runToEnd(tower,again).end.status,'done');assert.equal(tower.format(again).source,formatted.source);}
  finally{tower.destroy(again);}
  assert.equal(execute(formatted.source).output,'0\n');
- assert.equal(execute('import foundation;var default:i32=42;print(default);').output,'42\n');
+ assert.equal(execute(await source('identifier')).output,'42\n');
 });

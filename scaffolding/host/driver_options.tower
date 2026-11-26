@@ -22,7 +22,7 @@ fn driver_equal(a: u8*, b: u8*): bool {
 }
 
 export fn driver_help(): u8* {
-    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|source|c|brightscript]\n  [--unit library-source.tower] [--jobs count] [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--unit-retained-bytes count] (with --unit; default 268435456; snapshots and retained objects, not total process memory)\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--check-format] [--help] [--version]\n  towerc --test source-or-companion [--test-suffix suffix] [--jobs count] [--test-details]\n  towerc --list-test-files source-or-companion [--test-suffix suffix] [-o inventory [--depfile file]]\n  towerc --link-executable input.o --link other.o --link library.so -o executable [--target linux-gnu-triple] [--sysroot path] [--jobs count]\n";
+    return "towerc source.tower -o output [--target triple|roku] [--emit object|llvm|llvm-optimized|exe|bytecode|foundation|source|c|brightscript]\n  [--unit library-source.tower] [--jobs count] [--link object-or-library] [--cc clang] [--linker tool] [--sysroot path]\n  [--unit-retained-bytes count] (with --unit; default 268435456; snapshots and retained objects, not total process memory)\n  [--raw-ir file] [--optimized-ir file] [--no-optimize] [--strip-comments] [--interpret|--interpret-fast] [--library] [--timings]\n  [--bedrock file] [--foundation file] [--depfile file] [--check-format] [--help] [--version]\n  towerc --test source-or-companion [--test-suffix suffix] [--jobs count] [--test-details] [--test-oracle expected-stdout] [--test-affected state-directory] [--test-native-runtime runtime.o [--link provider]...]\n  towerc --list-test-files source-or-companion [--test-suffix suffix] [-o inventory [--depfile file]]\n  towerc --link-executable input.o --link other.o --link library.so -o executable [--target linux-gnu-triple] [--sysroot path] [--jobs count]\n";
 }
 
 export fn driver_version(): u8* {
@@ -86,6 +86,9 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
     options.link_executable = false;
     options.test_mode = DriverTestMode.None;
     options.test_details = false;
+    options.test_state = "";
+    options.test_oracle = null;
+    options.test_runtime = null;
     options.test_rule = test_file_default_rule();
     var index: usize = 1;
     loop {
@@ -176,6 +179,9 @@ export fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target:
         if driver_equal(arg, "--foundation") {
             slot = &options.foundation;
         }
+        if driver_equal(arg, "--test-affected") { slot = &options.test_state; }
+        if driver_equal(arg, "--test-oracle") { slot = &options.test_oracle; }
+        if driver_equal(arg, "--test-native-runtime") { slot = &options.test_runtime; }
         if driver_equal(arg, "--test-suffix") { slot = &options.test_rule.companion_suffix; }
         if driver_equal(arg, "--depfile") {
             slot = &options.depfile;

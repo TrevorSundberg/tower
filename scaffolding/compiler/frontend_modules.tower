@@ -122,6 +122,10 @@ struct ModuleEnvironment {
     active_graphs: usize;
     active: FrontendModule*;
     test_discovery: TestFileDiscovery*;
+    // A synchronous nested fixture compilation borrows the finished selection's source map.
+    fixture_parent: ModuleEnvironment*;
+    observe_source: function(void, void*, u8*, u8*, usize);
+    observe_context: void*;
 }
 
 struct ModuleGraph {
@@ -391,6 +395,9 @@ fn module_registered_input(environment: ModuleEnvironment*, path: u8*): ModuleIn
 }
 
 fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u32 {
+    if environment.fixture_parent != null {
+        return module_snapshot_read(environment.fixture_parent, path, text);
+    }
     var input = module_registered_input(environment, path);
     if input != null {
         module_require(bytes_assign_text(text, input.text.data, input.text.length));
@@ -508,6 +515,13 @@ fn module_new_result(graph: ModuleGraph*, name: u8*, text: u8*, length: usize): 
 
 // Publish dependencies before their importer, using the same completion order
 // as execution. Cached clones take this path too; discovery order is not order.
+export fn frontend_modules_observe_source(environment: ModuleEnvironment*, context: void*,
+    observer: function(void, void*, u8*, u8*, usize)): void {
+    environment.observe_context = context;
+    environment.observe_source = observer;
+}
+
+// Dependency-first completion also covers cached clones and grammar imports.
 fn module_complete_result(module: FrontendModule*): bool {
     var graph = module.graph;
     if graph.resource_error != WorkBudgetError.None || graph.clone_error != null { return false; }
@@ -529,6 +543,9 @@ fn module_complete_result(module: FrontendModule*): bool {
         graph.environment.used.data[graph.environment.used.length++] = dependency;
     }
     graph.order.data[graph.order.length++] = module;
+    if graph.environment.observe_source != null {
+        graph.environment.observe_source(graph.environment.observe_context, module.source.name.data, module.source.text.data, module.source.text.length);
+    }
     module.state = ModuleLoaded;
     return true;
 }
@@ -785,6 +802,7 @@ export fn frontend_modules_builtin(environment: ModuleEnvironment*, name: u8*, p
 }
 
 fn module_alias(environment: ModuleEnvironment*, name: u8*, path: vector(u8)*): bool {
+    environment = environment.fixture_parent ?? environment;
     var i = environment.aliases.length;
     loop {
         if i == 0 {
@@ -995,6 +1013,41 @@ fn module_load_input(parent: FrontendModule*, name: u8*, path: u8*, text: vector
     return result;
 }
 
+// Read a path already granted by discovery. Source execution uses the frozen
+// owner snapshot and a private source map. Its imports can see only that graph.
+fn module_snapshot_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u32 {
+    foreach (var source in &environment.sources) {
+        if module_equal(path, source.name.data) {
+            return bytes_assign_text(text, source.text.data, source.text.length) ? ModuleReady : ModuleReadFailure;
+        }
+    }
+    return ModuleMissing;
+}
+
+export fn frontend_fixture_child(parent: ModuleEnvironment*, entry: u8*): ModuleEnvironment* {
+    var child = frontend_modules_create();
+    if child == null { return null; }
+    if !frontend_modules_bind_world(child, parent.world) { frontend_modules_destroy(child); return null; }
+    frontend_modules_configure(child, entry, module_text(&parent.library));
+    frontend_modules_fallback(child, module_text(&parent.fallback));
+    child.fixture_parent = parent;
+    return child;
+}
+
+export fn frontend_fixture_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*, source: bool, registered_only: bool): u8* {
+    var status = ModuleMissing;
+    if source { status = module_snapshot_read(environment, path, text); }
+    else {
+        if !registered_only || module_registered_input(environment, path) != null { status = module_read(environment, path, text); }
+    }
+    if status == ModuleReady { return null; }
+    if status == ModuleMissing { return "Cannot open fixture"; }
+    if status == ModulePathCase { return "Fixture path case mismatch"; }
+    if status == ModuleInvalidSource { return "Fixture must be UTF-8 without NUL bytes"; }
+    if status == ModuleSourceLimit { return "Fixture exceeds module size limit"; }
+    return "Cannot read fixture";
+}
+
 export fn frontend_module_load_companion(owner: FrontendModule*, path: u8*): FrontendModule* {
     if frontend_module_error(owner)[0] != 0 { return null; }
     var text: vector(u8) = default;
@@ -1054,6 +1107,8 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
     root.graph.single_companion = selection.owner.data != null;
     var path: vector(u8) = default;
     defer vector_dispose(&path);
+    var grants: vector(TestFixturePair) = default;
+    defer test_fixture_pairs_dispose(&grants);
     var found: vector(TestFileCompanion) = default;
     defer vector_dispose(&found);
     for (var i: usize = 0; i < frontend_module_count(root); i++) {
@@ -1075,9 +1130,20 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         var module = frontend_module_load_companion(owner, path.data);
         if module == null { return false; }
         module.companion = true;
+        foreach (var dependency in &module.dependencies) {
+            if test_fixture_library(frontend_module_name(dependency)) {
+                if !test_fixture_grant_pair(&grants, rule, path.data, name) {
+                    module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
+                }
+                break;
+            }
+        }
         var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
         if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }
     }
+    test_fixture_pairs_dispose(&selection.fixtures);
+    vector_move(&selection.fixtures, &grants);
+    selection.registered_fixtures = probe == null;
     vector_move(pairs, &found);
     return true;
 }
@@ -1352,29 +1418,35 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
             if cyclic {
                 var invalid = current.declarations.length != 0;
                 invalid ||= current.roots.length == 0;
+                var reader: SyntaxReader = {
+                    source: current.source, match_kind: compiler_world_type(graph.world, CompilerParserMatch), ..default
+                };
                 foreach(var & root in &current.roots) {
                     var node = entity_child_at(*root, 0);
-                    var reader: SyntaxReader = default;
-                    reader.match_kind = compiler_world_type(graph.world, CompilerParserMatch);
                     var span = syntax_reader_span(&reader, node);
-                    if module_equal(span.label.data, "Statement") {
+                    if span != null && module_equal(module_text(&span.label), "Statement") {
                         node = entity_child_at(node, 0);
                         span = syntax_reader_span(&reader, node);
                     }
-                    if module_equal(span.label.data, "CoreAttributed") {
+                    if span != null && module_equal(module_text(&span.label), "CoreAttributed") {
                         node = entity_child_at(syntax_reader_member(node, "declaration"), 0);
                         span = syntax_reader_span(&reader, node);
                     }
-                    var declaration = module_equal(span.label.data, "CoreFunction");
-                    declaration ||= module_equal(span.label.data, "CoreExternal");
-                    declaration ||= module_equal(span.label.data, "CoreExport");
-                    declaration ||= module_equal(span.label.data, "CoreStruct");
-                    declaration ||= module_equal(span.label.data, "CoreEnum");
+                    if span == null {
+                        module_fail(current, reader.error, ""); return;
+                    }
+                    var label = module_text(&span.label);
+                    var declaration = module_equal(label, "CoreFunction");
+                    declaration ||= module_equal(label, "CoreExternal");
+                    declaration ||= module_equal(label, "CoreExport");
+                    declaration ||= module_equal(label, "CoreStruct");
+                    declaration ||= module_equal(label, "CoreEnum");
                     // Ordinary variables may be proved fixed compile-time values
                     // by semantics. Defer only that proof; grammar and executable
                     // statements still cannot take part in an import cycle.
-                    declaration ||= module_equal(span.label.data, "CoreDeclare");
-                    declaration ||= module_equal(span.label.data, "TowerTest");
+                    declaration ||= module_equal(label, "CoreDeclare");
+                    declaration ||= module_equal(label, "TowerTest");
+                    declaration ||= module_equal(label, "TowerConditionalDeclaration");
                     if !declaration {
                         invalid = true;
                     }

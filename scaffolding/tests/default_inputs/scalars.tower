@@ -1,0 +1,34 @@
+import tower;
+
+var a: i32 = default;
+var b: i64 = default;
+var c: u64 = default;
+var d: usize = default;
+var e: u8 = default;
+var f: bool = default;
+var p: i32* = default;
+print(a);
+print(b);
+print(c);
+print(d);
+print(e);
+print(f);
+print(p == null);
+
+var inferred = default(u64);
+print(inferred);
+print(!default);
+var negative: i32 = -default;
+print(negative);
+
+fn zero(): u32 { return default; }
+fn take(v: u64): u64 { return v; }
+print(zero());
+print(take(default));
+var choice: u64 = true ? default : 7;
+print(choice);
+print(default == inferred);
+
+enum Kind: u32 { Ready = 7 }
+var tag: Kind = default;
+print(convert(u32, tag));
