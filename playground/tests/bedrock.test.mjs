@@ -1,11 +1,14 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower, runToEnd } from './compiler-fixtures.mjs';
-const foundation = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
-const foundationSyntax = await readFile(new URL('../../scaffolding/foundation_syntax.tower', import.meta.url), 'utf8');
-const bedrock = await readFile(new URL('../../scaffolding/bedrock.tower', import.meta.url), 'utf8');
-const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined, foundation, undefined, bedrock);
+import { builtins, files, loadTowerBytes, runToEnd } from './compiler-fixtures.mjs';
+import { loadTower as createTower } from '../src/tower-host.mjs';
+import { fixtureSource, guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
+import { copyText, diagnosticFields } from './parser_observations.mjs';
+const {foundation, foundation_syntax:foundationSyntax, bedrock} = builtins;
+const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
+const tower = await loadTowerBytes(wasm, undefined, foundation, undefined, bedrock);
 function inspect(source, kind = '') {
   const handle = kind === 'bedrock' ? tower.createBedrock(source) : kind === 'foundation' ? tower.createFoundation(source) : tower.create(source);
   try { const result = runToEnd(tower, handle); return { ...result, formatted: tower.format(handle), snapshot: tower.inspect(handle) }; }
@@ -13,54 +16,95 @@ function inspect(source, kind = '') {
 }
 function restore() { tower.configureModules({builtins:{foundation_syntax:foundationSyntax}}); tower.configureBedrock(bedrock); tower.configure(foundation); }
 
-test('foundation inherits bedrock without redeclaring any of its definitions', () => {
-  assert.doesNotMatch(bedrock, /\b__/);
-  const inherited = inspect(foundation, 'foundation');
-  const defined = inspect(bedrock, 'bedrock');
-  assert.equal(inherited.end.status, 'done', inherited.end.error);
-  assert.equal(defined.end.status, 'done', defined.end.error);
-  const bedrockNames = new Set([...defined.snapshot.tokens, ...defined.snapshot.rules].map(item => item.name));
-  for (const declaration of inherited.events) {
-    if (declaration.nodes[0].semantic === 'import') continue;
-    const name = declaration.nodes.find(node => node.parent === 0 && node.role === 'name');
-    assert.ok(name, 'a declaration must expose its name capture');
-    assert.ok(!bedrockNames.has(name.label), `Foundation redeclares Bedrock's ${name.label}`);
+const caseRoot = '.tower/tests/bedrock_cases/';
+const outputPath = 'tests/bedrock_cases/inputs/shared_lexicon.expected';
+const expectedOutput = await readFile(new URL('../../scaffolding/' + outputPath, import.meta.url), 'utf8');
+const entries = ['', 'foundation', 'bedrock'];
+let checks, last, inspections, currentSource;
+after(() => { checks?.close(); tower.close(); });
+
+function parse(source, entry) {
+  const kind = entries[entry];
+  if (kind === undefined) throw new Error('Unknown parser entry ' + entry);
+  currentSource = source;
+  last = inspections[kind] = inspect(source, kind);
+  return last.end.status === 'done';
+}
+
+function countedText(context, text, size) {
+  if (context.pointerBytes !== 4) throw new Error('Bedrock observations require the four-byte guest');
+  const pointer = copyText(context, text);
+  const memory = context.memory();
+  new DataView(memory.buffer, memory.byteOffset).setUint32(size, Buffer.byteLength(text), true);
+  return pointer;
+}
+
+const observations = {
+  diagnostic_read(context, file, edit) {
+    if (edit) throw new Error('Expected a fresh Bedrock parser session');
+    return parse(fixtureSource(caseRoot + 'inputs/' + guestString(context, file) + '.tower'), 0);
+  },
+  ...diagnosticFields(() => last.end),
+  grammar_file(context, path) {
+    return copyText(context, fixtureSource('.tower/' + guestString(context, path)));
+  },
+  grammar_parse: (context, source, entry) => parse(guestString(context, source), entry),
+  foundation_event_count: () => inspections.foundation.events.length,
+  foundation_node_count: (_context, event) => inspections.foundation.events[event].nodes.length,
+  foundation_node_parent: (_context, event, node) => inspections.foundation.events[event].nodes[node].parent ?? -1,
+  foundation_node_text: (context, event, node, field) =>
+    copyText(context, inspections.foundation.events[event].nodes[node][guestString(context, field)]),
+  grammar_symbol_index(context, entry, table, key) {
+    const name = guestString(context, key);
+    return inspections[entries[entry]].snapshot[guestString(context, table)].findIndex(row => row.name === name);
+  },
+  bedrock_token_count: () => inspections.bedrock.snapshot.tokens.length,
+  bedrock_token_name: (context, index) => copyText(context, inspections.bedrock.snapshot.tokens[index].name),
+  grammar_token_record(context, entry, index) {
+    const token = inspections[entries[entry]].snapshot.tokens[index];
+    return copyText(context, JSON.stringify(token));
+  },
+  grammar_install(context, source) {
+    tower.configureBedrock(guestString(context, source));
+    tower.configure(foundation);
+  },
+  highlight_count: () => last.snapshot.highlights.length,
+  highlight_field(context, index, field) {
+    const item = last.snapshot.highlights[index], key = guestString(context, field);
+    return copyText(context, key === 'text' ? currentSource.slice(item.start, item.end) : item[key]);
+  },
+  grammar_expected: (context, size) => countedText(context, expectedOutput, size),
+  grammar_output(context, source, size) {
+    const execution = tower.compile(guestString(context, source));
+    try {
+      const result = tower.execute(execution);
+      requireStatus(result, 'done');
+      return countedText(context, result.output, size);
+    } finally { tower.destroyExecution(execution); }
+  },
+};
+
+async function check(entry) {
+  checks ??= await createTower(wasm, undefined, foundation, undefined, bedrock, {
+    tower:builtins.tower, builtins, imports:observations, project:{files:files.filter(({path}) =>
+      (path.startsWith(caseRoot) && !path.startsWith(caseRoot + 'inputs/')) ||
+      path === '.tower/compiler/format_diagnostic_cases/session.tower' ||
+      path === '.tower/backend/text.tower' || path.startsWith('.tower/library/'))},
+  });
+  inspections = {};
+  try { runSelectedTest(checks, caseRoot + entry + '_test.tower'); }
+  finally {
+    last = currentSource = inspections = undefined;
   }
-  for (const token of defined.snapshot.tokens) {
-    assert.deepEqual(inherited.snapshot.tokens.find(t => t.name === token.name), token);
-  }
-  assert.ok(inherited.snapshot.rules.some(rule => rule.name === 'GrammarAssignment'));
+}
+
+test('foundation inherits bedrock without redeclaring any of its definitions', () => check('inheritance'));
+
+test('shared bedrock whitespace, comments and identifiers affect declarations and ordinary code', async () => {
+  try { await check('lexicon'); } finally { restore(); }
 });
 
-test('shared bedrock whitespace, comments and identifiers affect declarations and ordinary code', () => {
-  const edited = bedrock.replace('[ \\t\\r\\n]+', '[ ~\\t\\r\\n]+')
-    .replace('[A-Za-z0-9_]*', '[A-Za-z0-9_-]*')
-    .replace('skip LineComment = /', 'skip LineComment = /#[^\\r\\n]*|');
-  try {
-    tower.configureBedrock(edited); tower.configure(foundation);
-    const source = 'import foundation;\nparse~extra-rule~=~Number;\n# shared comment\nvar~player-name:~i32~=~42;print(~player-name);';
-    const result = inspect(source);
-    assert.equal(result.end.status, 'done', result.end.error);
-    assert.ok(result.snapshot.highlights.some(t => t.kind === 'comment' && source.slice(t.start, t.end) === '# shared comment'));
-    const execution = tower.compile(source);
-    try { assert.equal(tower.execute(execution).output, '42\n'); } finally { tower.destroyExecution(execution); }
-    assert.equal(inspect(edited.replace('parse GrammarDeclaration', 'parse~GrammarDeclaration'), 'bedrock').end.status, 'done');
-  } finally { restore(); }
-});
-
-test('shared grammar rules can be referenced, extended and replaced without a reserved prefix', () => {
-  for (const source of [
-    "parse Statement = 'assignment' GrammarAssignment ';';assignment =;assignment |=;",
-    "import foundation;\nparse GrammarSuffix |= '!';parse Value = Number;parse Statement = Value ';';42;",
-    "import foundation;\nparse GrammarAssignment = '=' | '|=';parse Statement = Number ';';42;",
-    "import foundation;\nparse __repeat0 = Number;parse Statement = __repeat0* ';';1 2;",
-    "import foundation;\nparse `document(0)` = Number;parse Statement = `document(0)` ';';42;",
-    "parse Statement = 'atom' GrammarAtom ';';atom 'literal';atom $name:Identifier;"
-  ]) {
-    const result = inspect(source);
-    assert.equal(result.end.status, 'done', result.end.error);
-  }
-});
+test('shared grammar rules can be referenced, extended and replaced without a reserved prefix', () => check('grammar'));
 
 test('local overrides preserve inherited bindings in other sessions and canonical grammar names round trip', () => {
   const pinned = tower.create('import foundation;\nvar x: i32 = 1;print(x);');

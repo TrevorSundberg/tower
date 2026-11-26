@@ -1,0 +1,11 @@
+import grammar;
+import compiler.format_diagnostic_cases.session;
+
+test() {
+    accept("assignment");
+    accept("suffix");
+    accept("redefine");
+    accept("repeat");
+    accept("quoted");
+    accept("atom");
+}

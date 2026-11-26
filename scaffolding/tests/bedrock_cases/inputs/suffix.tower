@@ -1,0 +1,2 @@
+import foundation;
+parse GrammarSuffix |= '!';parse Value = Number;parse Statement = Value ';';42;

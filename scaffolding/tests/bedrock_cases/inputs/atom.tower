@@ -1,0 +1,1 @@
+parse Statement = 'atom' GrammarAtom ';';atom 'literal';atom $name:Identifier;

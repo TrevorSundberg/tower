@@ -1,0 +1,44 @@
+import grammar;
+import backend.text;
+import library.testing;
+
+extern fn foundation_event_count(): usize;
+extern fn foundation_node_count(event: usize): usize;
+extern fn foundation_node_parent(event: usize, node: usize): i32;
+extern fn foundation_node_text(event: usize, node: usize, field: u8*): u8*;
+extern fn grammar_symbol_index(entry: GrammarEntry, table: u8*, name: u8*): i32;
+extern fn bedrock_token_count(): usize;
+extern fn bedrock_token_name(index: usize): u8*;
+extern fn grammar_token_record(entry: GrammarEntry, index: usize): u8*;
+
+fn word_byte(b: u8): bool {
+    return (b >= *"A" && b <= *"Z") || (b >= *"a" && b <= *"z")
+        || (b >= *"0" && b <= *"9") || b == *"_";
+}
+
+fn check_public_names(source: u8*): void {
+    var previous_word = false;
+    for (var at = source; *at != 0; at++) {
+        assert(previous_word || !backend_prefix(at, "__"), "Bedrock contains a reserved prefix");
+        previous_word = word_byte(*at);
+    }
+}
+
+fn check_foundation_declaration(event: usize): void {
+    var semantic = foundation_node_text(event, 0, "semantic");
+    defer free(semantic);
+    if backend_equal(semantic, "import") { return; }
+    var count = foundation_node_count(event);
+    for (var node: usize = 1; node < count; node++) {
+        if foundation_node_parent(event, node) != 0 { continue; }
+        var role = foundation_node_text(event, node, "role");
+        defer free(role);
+        if !backend_equal(role, "name") { continue; }
+        var name = foundation_node_text(event, node, "label");
+        defer free(name);
+        assert(grammar_symbol_index(GrammarEntry.Bedrock, "tokens", name) < 0, name);
+        assert(grammar_symbol_index(GrammarEntry.Bedrock, "rules", name) < 0, name);
+        return;
+    }
+    assert(false, "A declaration must expose its name capture");
+}

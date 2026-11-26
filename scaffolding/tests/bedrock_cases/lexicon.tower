@@ -1,0 +1,38 @@
+import backend.text;
+import library.test_fixtures;
+import library.vector;
+
+fn edit_once(source: u8*, original: u8*, replacement: u8*): u8* {
+    var offset: usize = 0;
+    while !backend_prefix(source + offset, original) {
+        assert(source[offset] != 0, original);
+        offset++;
+    }
+    var result: vector(u8) = default;
+    assert(backend_text_append(&result, source, offset));
+    assert(backend_text(&result, replacement));
+    assert(backend_text(&result, source + offset + backend_length(original)));
+    return result.data;
+}
+
+fn shared_lexicon(bedrock: u8*): u8* {
+    var whitespace = edit_once(bedrock, "[ \\t\\r\\n]+", "[ ~\\t\\r\\n]+");
+    defer free(whitespace);
+    var identifier = edit_once(whitespace, "[A-Za-z0-9_]*", "[A-Za-z0-9_-]*");
+    defer free(identifier);
+    return edit_once(identifier, "skip LineComment = /", "skip LineComment = /#[^\\r\\n]*|");
+}
+
+// The public parser host returns counted UTF-8 stdout in the four-byte guest.
+extern fn grammar_expected(size: usize*): u8*;
+extern fn grammar_output(source: u8*, size: usize*): u8*;
+
+fn check_lexicon_output(source: u8*): void {
+    var output: FixtureBytes = default;
+    output.data = grammar_output(source, &output.length);
+    defer free(output.data);
+    var wanted: FixtureBytes = default;
+    wanted.data = grammar_expected(&wanted.length);
+    defer free(wanted.data);
+    assert(fixture_equal(output, wanted), "Shared lexicon guest stdout");
+}
