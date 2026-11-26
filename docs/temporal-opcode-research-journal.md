@@ -109944,3 +109944,52 @@ the fresh installer took 0.31 s wall, 0.10 s user, 0.01 s system and
 transfer of the installer. The installed package and its compiler build source
 retain their producer identities. Assignment `67d8f652` supplies the exact
 download files and a metadata delta for the manager's atomic Pages publication.
+
+### Production Pages assembly and default companion checks at d49c239f
+
+Host 8 reconstructed the two manager merge records from the five verified
+input archives for assignment 4087c731. The frozen release source is
+d49c239f18195404b97bcaa7b8249711c06f1f1d, tree
+78c9ef8cfe170bcc12ab14142e646eada4e1fc9a. Pages candidate 061f279c
+has parent f2214133 and tree 4eaada7a685e4466a4ee9f07420f932247b27874.
+The four supplied production images come from 41de9006, the installer
+from 23538529 and the Ubuntu package from 7e34072d. A fresh local receiver
+checked every blob and mode. Only the manager publishes.
+
+The ordinary packager produced 794 editable files and 25 units. The
+published predecessor had 776 files. The ordered arguments, unit list, ten
+support packs and imports file matched. The two release-compressed LLVM
+assets matched the producer's complete streams. On the served site the
+generic-call owner and direct tests passed 60 and seven. WorkBudget passed
+five through each path. The first two editor builds compiled 25 units each.
+The third reused all 25 and activated the same three modules. Generation
+four activated an edit to semantic_values, returned its distinguishing null
+diagnostic and ran a guest that printed 42. Four generations and both guest
+runs took 84.91 s wall, 189.89 sampled process-tree CPU seconds and
+3,019,894,784 bytes peak summed RSS. The host had CPUs 0–23, a 23.04 CPU
+quota and a 63,577,260,032-byte memory limit. Desktop, mobile, the Tests
+example and the loopback Ubuntu installation passed.
+
+Importing the two actual default decltype cases into the stock editor
+selected one declaration through every owner and direct path. Both portable
+and shared images reached the unregistered test_fixture_load at guest
+pointer widths four and eight. Deliberately changing the nominal type
+assertions failed at line 6, column 5 in each companion. Restoring the
+source on the same instance restored the provider diagnostic. The installed
+Ubuntu CLI supplied this capability. Its 16 original/restored and eight
+wrong-output checks had the expected outcomes. The producer's separate
+browser observation host provided an explicit fixture adapter.
+
+The additional default compiler/generics companion reached a missing
+tests/compiler_scans import on the frozen project. The complete source
+request opened nine fixture files outside that inventory. Optional source
+commit 470636e6 adds exactly those nine import paths to
+compiler_project_test_sources.txt. The separate 803-file packaging trial
+passed 15 owner and nine direct declarations. A wrong first assertion failed
+at compiler/generics_test.tower line 18, column 5, and restoration passed.
+The 89,500-byte ordinary generics object and the 34 ordered input records
+matched between the 794- and 803-file projects. Two warm, sequential
+ordinary packager samples took 7.86 and 7.74 s wall and peaked at 293408
+and 293544 KiB RSS, respectively. The sealed deployment retains the
+requested 794-file frozen project. The packet supplies both source
+revisions and the separate Pages bundle.
