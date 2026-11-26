@@ -117284,3 +117284,14 @@ Restoring zero reproduced the object and PE. Host execve returned ENOEXEC
 and no Windows executor was installed. Native Windows runtime verification
 remains open. The manager owns integration and publication from the
 assignment's frozen parent.
+### Original entity page cases on the Linux native test runner (host 5, November 26)
+
+The original standalone fixtures at `1e5ab20d` supply the stdout reference.
+The verified bundle `a0bdb13d` moves the five reuse cases and three seeded
+property cases to adjacent companions. Each executable and selected guest
+compiles one suite's lifecycle callback. The public Linux x64 bootstrap
+compiled both standalone entrypoints and both default-suffix selection routes
+without linkage changes. The direct routes select five and three cases. Owner
+discovery adds five work-budget tests to each. The optional native work suite
+uses the shared count checker at compiler widths one and four. The property
+oracle is the 137-byte standalone capture in seed order.
