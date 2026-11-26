@@ -1,0 +1,20 @@
+import observations;
+
+test() {
+    assert(rejected("tests/template_inputs/invalid/missing_argument", 101), "missing argument");
+    assert(rejected("tests/template_inputs/invalid/unknown_argument", 105), "unknown argument");
+    assert(rejected("tests/template_inputs/invalid/type_as_value", 107), "type as value");
+    assert(rejected("tests/template_inputs/invalid/number_as_type", 73), "number as type");
+    assert(rejected("tests/template_inputs/invalid/value_type", 85), "value type");
+    assert(rejected("tests/template_inputs/invalid/duplicate_parameter", 40), "duplicate parameter");
+    assert(rejected("tests/template_inputs/invalid/recursive_layout", 48), "recursive layout");
+    assert(rejected("tests/template_inputs/invalid/recursive_call", 0), "recursive call");
+    assert(rejected("tests/template_inputs/invalid/nested_pointer", 68), "nested pointer");
+    assert(rejected("tests/template_inputs/invalid/constructor_effect", 0), "constructor effect");
+    assert(rejected("tests/template_inputs/invalid/local_struct", 48), "local struct");
+    assert(rejected("tests/template_inputs/invalid/export_template", 26), "export template");
+    assert(rejected("tests/template_inputs/invalid/nominal_value", 111), "nominal value");
+    assert(rejected("tests/template_inputs/invalid/duplicate_function", 49), "duplicate function");
+    assert(rejected("tests/template_inputs/invalid/duplicate_type", 26), "duplicate type");
+    assert(rejected("tests/template_inputs/invalid/origin", 55), "origin");
+}

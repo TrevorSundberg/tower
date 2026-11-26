@@ -1,0 +1,1 @@
+Templates cannot be extern or export declarations; export a concrete wrapper

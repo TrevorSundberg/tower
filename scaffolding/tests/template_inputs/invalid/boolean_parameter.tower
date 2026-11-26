@@ -1,0 +1,1 @@
+import tower; print(123); fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } fn bad(n: bool): type { return i32; } var x: bad(1);

@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/type_numeric_known"), "An immutable known extent gives two i32 slots");
+}

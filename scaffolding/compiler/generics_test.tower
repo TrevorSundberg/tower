@@ -1,0 +1,82 @@
+import library.testing;
+import library.vector;
+import .tests.compiler_scans as scans;
+import .examples.templates as stacks;
+import .tests.type_numeric_composition as extents;
+import .tests.type_numeric_known as known;
+import .tests.type_numeric_negation as negation;
+import .tests.type_identity_composition as identities;
+import .tests.template_inputs.parameter_shadow as effects;
+import .tests.template_inputs.forward_recursion as forward_list;
+import .tests.template_inputs.nominal_collision as boxes;
+
+test() {
+    var pair: scans.pair(i32, u32);
+    pair.left = scans.identity(i32, 17);
+    pair.right = scans.identity(u32, 23);
+    var repeated: scans.pair(i32, u32)* = &pair;
+    assert(repeated.left == 17 && repeated.right == 23);
+    assert(type_value(decltype(pair)) != type_value(scans.pair(u32, i32)));
+}
+
+test() {
+    var values: stacks.stack(i32) = default;
+    stacks.push(&values, 10);
+    stacks.push(&values, 20);
+    assert(stacks.pop(&values) == 20);
+    assert(stacks.pop(&values) == 10);
+    assert(type_value(decltype(values.storage)) == type_value(stacks.buffer(i32, 4)));
+}
+
+test() {
+    var two = type_value(extents.buffer(i32, 2));
+    assert(type_value(extents.wrapped(i32, 2)) == two);
+    assert(type_value(extents.buffer(i32, 3)) != two);
+    assert(sizeof(extents.wrapped(i32, 2)) == 2 * sizeof(i32));
+    assert(sizeof(extents.fixed(3)) == 3 * sizeof(i32));
+}
+
+test() {
+    assert(type_value(decltype(known.value)) == type_value(known.buffer(i32, 2)));
+}
+
+test() {
+    assert(type_value(decltype(negation.value)) == type_value(negation.buffer(i32, 2)));
+}
+
+test() {
+    effects.calls = 0;
+    assert(effects.id(i32, effects.next()) == 1);
+    assert(effects.id(i32, effects.next()) == 2);
+    assert(effects.calls == 2);
+    var value = 42;
+    assert(identities.id(i32*, &value) == &value);
+}
+
+test() {
+    var element: forward_list.list(i32) = default;
+    var alias: forward_list.alias(i32)* = &element;
+    alias.next = &element;
+    alias.value = forward_list.factorial(i32, 5);
+    assert(element.next == alias && element.value == 120);
+}
+
+test() {
+    assert(type_value(decltype(boxes.b)) != type_value(decltype(boxes.c)));
+    assert(type_value(decltype(boxes.d)) != type_value(decltype(boxes.e)));
+    assert(type_value(decltype(boxes.a)) != type_value(boxes.`box(i32)`));
+}
+
+test() {
+    var values: vector(i32) = default;
+    defer vector_dispose(&values);
+    for (var i: i32 = 0; i < 40; ++i) {
+        assert(vector_push(i32, &values, i));
+    }
+    assert(!vector_reserve(i32, &values, ~convert(usize, 0)));
+    assert(values.length == 40 && values.data[39] == 39);
+    var pointers: vector(i32*) = default;
+    defer vector_dispose(&pointers);
+    assert(vector_push(i32*, &pointers, &values.data[39]));
+    assert(*pointers.data[0] == 39);
+}

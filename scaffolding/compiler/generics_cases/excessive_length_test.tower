@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(rejected("tests/template_inputs/invalid/excessive_length", 83), "Array extent above 1048576");
+}

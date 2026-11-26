@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    assert(rejected("tests/template_inputs/invalid/zero_length", 83), "Zero-length instantiated array");
+}
