@@ -1,8 +1,9 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {readFileSync} from 'node:fs';
 import {generatedSource} from './compiler-fixtures.mjs';
-import {fixtureSource, openTower, runSelectedTest} from './compiler_test_host.mjs';
+import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 import {compareResults} from '../src/comparison.mjs';
 const read = path => readFile(new URL('../../'+path,import.meta.url));
 const tower = await openTower();
@@ -99,37 +100,74 @@ test('cancellation slices, cache lifetime, invalid programs and output limits', 
   agree(fixtureSource('.tower/tests/fast_cancellation_invalid.tower'),4,7,'error');
 });
 
-test('foundation CFG labels, forward edges and parallel-copy loops round trip',()=>{
-  const source=`import foundation;fn exchange(n: u32): u32 {
-    var a: u32 = 1; var b: u32 = 2; var temporary: u32;
-    label(head);
-    var done = n == 0;
-    if done { jump(exit); }
-    temporary = a; a = b; b = temporary; n = n - 1;
-    jump(head);
-    label(exit);
-    return a;
-  }
-  print(exchange(9)); print(exchange(10));`;
-  for(const width of [4,8]) for(const budget of [1,7,100000]) {
-    assert.equal(agree(source,width,budget).output,'2\n1\n');
-    const h=tower.compile(source,{pointerBytes:width});
-    try { const text=tower.foundation(h);assert.ok(!text.error);assert.equal(agree(text.source,width,budget).output,'2\n1\n'); }
-    finally {tower.destroyExecution(h);}
-  }
-});
+async function checkCfg(name) {
+  const inputs = new URL('../../scaffolding/tests/semantic_statements_cfg_inputs/', import.meta.url);
+  const handles = new Set();
+  const encoder = new TextEncoder();
+  let step;
 
-test('CFG validation and explicit traps use the shared semantic path',()=>{
-  for(const [source,pattern] of [
-    ['fn f(): void { label(a); jump(a); label(a); }',/Duplicate/],
-    ['fn f(): void { jump(missing); }',/Unknown function label/],
-    ['fn f(): void { if true { label(a); } }',/direct statements/],
-    ['fn f(): void { label(a); print(1); label(b); }',/must end/],
-    ['fn f(): i32 { label(a); }',/return/],
-    ['fn f(): void { label(42); }',/identifier/],
-  ]) {const input='import foundation;'+source;assert.match(run(input,false).error,pattern);agree(input,4,7,'error');}
-  for(const width of [4,8]) {
-    const result=agree('import foundation;trap("explicit failure", 17);',width,1,'error');
-    assert.equal(result.error,'explicit failure');assert.equal(result.errorOffset,17);
+  // Returned buffers live in the assertion guest. Never retain a memory view
+  // across an allocation. All subject executions use the original input entry.
+  function copy(context, data, size) {
+    const bytes = typeof data === 'string' ? encoder.encode(data) : data;
+    const pointer = context.allocate(bytes.length + 1);
+    if (!pointer) throw new Error('Cannot allocate CFG observation');
+    const memory = context.memory();
+    memory.set(bytes, pointer);
+    memory[pointer + bytes.length] = 0;
+    if (size) {
+      const view = new DataView(memory.buffer, memory.byteOffset, memory.byteLength);
+      if (context.pointerBytes === 8) view.setBigUint64(Number(size), BigInt(bytes.length), true);
+      else view.setUint32(Number(size), bytes.length, true);
+    }
+    return pointer;
   }
-});
+
+  const checks = await openTower({threads:{capacity:1}, imports:{
+    cfg_file(context, path, size) {
+      const file = guestString(context, path);
+      if (!/^[a-z_]+\.(tower|expected)$/.test(file)) throw new Error('Invalid CFG fixture name');
+      return copy(context, readFileSync(new URL(file, inputs)), size);
+    },
+    cfg_open(context, source, width) {
+      const handle = tower.compile(guestString(context, source), {pointerBytes:width});
+      handles.add(handle);
+      return handle;
+    },
+    cfg_close(_context, handle) {
+      tower.destroyExecution(handle);
+      handles.delete(handle);
+    },
+    cfg_fast(context, handle) {
+      let message = '';
+      try { tower.useFast(handle); }
+      catch (error) { message = error.message; }
+      return copy(context, message);
+    },
+    cfg_foundation(context, handle, size) {
+      const result = tower.foundation(handle);
+      if (result.error) throw new Error(result.error);
+      return copy(context, result.source, size);
+    },
+    cfg_step(_context, handle, budget) {
+      step = tower.execute(handle, budget);
+      return step.output.length !== 0;
+    },
+    cfg_steps: () => step.steps,
+    cfg_executing: () => step.status === 'executing',
+    cfg_truncated: () => step.outputTruncated,
+    cfg_offset: () => step.errorOffset,
+    cfg_field: (context, name, size) => copy(context, step[guestString(context, name)], size),
+  }});
+  try {
+    // Run this companion's inline test directly. The subject already contains
+    // the semantic checker. A separate suffix excludes dependency companions.
+    runSelectedTest(checks, '.tower/compiler/semantic_statements_cfg_' + name + '_test.tower',
+      undefined, {suffix:'_browser_test.tower'});
+  } finally {
+    for (const handle of handles) tower.destroyExecution(handle);
+  }
+}
+
+test('foundation CFG labels, forward edges and parallel-copy loops round trip', () => checkCfg('roundtrip'));
+test('CFG validation and explicit traps use the shared semantic path', () => checkCfg('validation'));

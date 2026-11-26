@@ -1,0 +1,31 @@
+import compiler.semantic_statements_cfg_cases;
+import library.testing;
+import library.test_fixtures;
+
+fn cfg_roundtrip(source: FixtureBytes, canonical: FixtureBytes, output: FixtureBytes,
+width: u32, budget: u32, graph_slices: u32, fast_slices: u32): void {
+    var empty: FixtureBytes = default;
+    cfg_pair(source.data, width, budget, graph_slices, fast_slices, "done", output, empty, 0);
+
+    var handle = cfg_open(source.data, width);
+    defer cfg_close(handle);
+    var emitted: FixtureBytes = default;
+    emitted.data = cfg_foundation(handle, &emitted.length);
+    defer free(emitted.data);
+    assert(fixture_equal(emitted, canonical), "All emitted Foundation bytes");
+    cfg_pair(emitted.data, width, budget, graph_slices, fast_slices, "done", output, empty, 0);
+}
+
+test() {
+    var source = cfg_read("exchange.tower");
+    defer free(source.data);
+    var canonical = cfg_read("emitted.expected");
+    defer free(canonical.data);
+    var output = cfg_read("exchange.expected");
+    defer free(output.data);
+    for (var width: u32 = 4; width <= 8; width *= 2) {
+        cfg_roundtrip(source, canonical, output, width, 1, 162, 239);
+        cfg_roundtrip(source, canonical, output, width, 7, 24, 35);
+        cfg_roundtrip(source, canonical, output, width, 100000, 1, 1);
+    }
+}

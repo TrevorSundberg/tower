@@ -1,0 +1,116 @@
+import library.testing;
+import library.test_fixtures;
+import library.vector;
+import backend.text;
+
+// Calls into the subject reactor. Every returned text is a guest-owned copy.
+extern fn cfg_file(name: u8*, size: usize*): u8*;
+
+extern fn cfg_open(source: u8*, width: u32): u32;
+
+extern fn cfg_close(handle: u32): void;
+
+extern fn cfg_fast(handle: u32): u8*;
+
+extern fn cfg_foundation(handle: u32, size: usize*): u8*;
+
+extern fn cfg_step(handle: u32, budget: u32): bool;
+
+extern fn cfg_steps(): u32;
+
+extern fn cfg_executing(): bool;
+
+extern fn cfg_truncated(): bool;
+
+extern fn cfg_offset(): u32;
+
+extern fn cfg_field(name: u8*, size: usize*): u8*;
+
+fn cfg_read(name: u8*): FixtureBytes {
+    var value: FixtureBytes = default;
+    value.data = cfg_file(name, &value.length);
+    return value;
+}
+
+fn cfg_observed(name: u8*): FixtureBytes {
+    var value: FixtureBytes = default;
+    value.data = cfg_field(name, &value.length);
+    return value;
+}
+
+struct CfgResult {
+    output: vector(u8);
+    status: FixtureBytes;
+    error: FixtureBytes;
+    offset: u32;
+    truncated: bool;
+}
+
+fn cfg_dispose(result: CfgResult*): void {
+    vector_dispose(&result.output);
+    free(result.status.data);
+    free(result.error.data);
+}
+
+fn cfg_collect(output: vector(u8)*): void {
+    var chunk = cfg_observed("output");
+    defer free(chunk.data);
+    assert(backend_text_append(output, chunk.data, chunk.length), "Collect the entire output slice");
+}
+
+fn cfg_run(source: u8*, width: u32, budget: u32, fast: bool, slices: u32): CfgResult {
+    var handle = cfg_open(source, width);
+    defer cfg_close(handle);
+    var result: CfgResult = default;
+    cfg_step(handle, 0);
+    assert(cfg_steps() == 0, "No guest step before selection");
+    var ready = cfg_executing();
+    assert(ready ==(slices != 0), "Semantic rejection precedes interpreter selection");
+    if fast {
+        var selection = cfg_fast(handle);
+        defer free(selection);
+        if ready {
+            assert(backend_equal(selection, ""), "Select Fast on the checked program");
+        } else {
+            assert(backend_equal(selection, "Select the fast interpreter before executing a program"),
+            "Fast selection refuses the rejected program");
+        }
+    }
+    if ready {
+        cfg_step(handle, 0);
+        assert(cfg_steps() == 0 && cfg_executing(), "No guest step after selection");
+        for(var turn: u32 = 0; turn < slices; ++turn) {
+            if cfg_step(handle, budget) {
+                cfg_collect(&result.output);
+            }
+            assert(cfg_executing() ==(turn + 1 < slices), "Expected number of execution slices");
+        }
+    } else {
+        cfg_collect(&result.output);
+    }
+    result.status = cfg_observed("status");
+    result.error = cfg_observed("error");
+    result.offset = cfg_offset();
+    result.truncated = cfg_truncated();
+    return result;
+}
+
+fn cfg_stdout(result: CfgResult*): FixtureBytes {
+    return {
+        data: result.output.data, length: result.output.length
+    };
+}
+
+fn cfg_pair(source: u8*, width: u32, budget: u32, graph_slices: u32, fast_slices: u32,
+status: u8*, output: FixtureBytes, error: FixtureBytes, offset: u32): void {
+    var graph = cfg_run(source, width, budget, false, graph_slices);
+    defer cfg_dispose(&graph);
+    var fast = cfg_run(source, width, budget, true, fast_slices);
+    defer cfg_dispose(&fast);
+    assert(fixture_equal(graph.status, fast.status) && backend_equal(graph.status.data, status), "CFG terminal status");
+    assert(fixture_equal(cfg_stdout(&graph), cfg_stdout(&fast)), "Graph and Fast output bytes");
+    assert(fixture_equal(cfg_stdout(&graph), output), "CFG output bytes");
+    assert(fixture_equal(graph.error, fast.error) && fixture_equal(graph.error, error), "CFG diagnostic bytes");
+    assert(graph.offset == fast.offset && graph.offset == offset, "CFG diagnostic byte offset");
+    assert(!graph.truncated && !fast.truncated, "Complete Graph and Fast output");
+}
