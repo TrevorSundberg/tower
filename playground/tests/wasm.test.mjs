@@ -24,15 +24,15 @@ test('all native node, parser and syntax tests also pass in WASM without excepti
 });
 // The assertion VM reads the same public parser records as the other Wasm
 // tests in this file. Parsing another input replaces the current record.
-let parsed, parsedSource;
+let parsed;
 const fixtures = new Map(Object.entries({example, base, loop,
   names:await readFile(new URL('wasm_grammar_cases/highlight_names.tower', import.meta.url), 'utf8'),
 }));
 const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_fixture: (c, name) => moduleText(c, fixtures.get(guestString(c, name))),
   grammar_parse(c, input) {
-    parsedSource = guestString(c, input);
-    parsed = analyze(parsedSource);
+    const source = guestString(c, input);
+    parsed = { ...analyze(source), sourceBytes:Buffer.from(source) };
   },
   grammar_end_text: (c, field) => moduleText(c, parsed.end[guestString(c, field)]),
   grammar_end_revision: () => numberField(parsed.end.revision),
@@ -47,7 +47,7 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_highlights: () => parsed.snapshot.highlights.length,
   grammar_highlight_text(c, i) {
     const {start, end} = parsed.snapshot.highlights[i];
-    return moduleText(c, parsedSource.slice(start, end));
+    return moduleText(c, parsed.sourceBytes.toString('utf8', start, end));
   },
   grammar_highlight_revision: (_, i) => numberField(parsed.snapshot.highlights[i].revision),
   grammar_highlight_kind: (c, i) => moduleText(c, parsed.snapshot.highlights[i].kind),
@@ -55,7 +55,7 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
 });
 async function checkGrammar(name) {
   try { await grammarCase(name); }
-  finally { parsed = undefined; parsedSource = undefined; }
+  finally { parsed = undefined; }
 }
 test('real example crosses eight grammar revisions and retains named nested captures', () => checkGrammar('revisions'));
 test('construct lookahead continues shared prefixes, preserves boundaries and reports real conflicts', () => checkGrammar('lookahead'));

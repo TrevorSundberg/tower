@@ -34,7 +34,8 @@ test() {
             assert(backend_equal(kind, kinds[seen]), "for classification across the declaration");
             assert(grammar_highlight_revision(i) == revisions[seen], "for declaration revision");
             seen++;
-        } else if !found_forest && backend_equal(word, "forest") {
+        }
+        if !found_forest && backend_equal(word, "forest") {
             var kind = grammar_highlight_kind(i);
             defer free(kind);
             assert(backend_equal(kind, "identifier"), "forest is a whole identifier");
