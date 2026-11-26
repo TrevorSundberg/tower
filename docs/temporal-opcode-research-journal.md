@@ -107034,3 +107034,67 @@ ordinary owner builds with an unreadable test-only import reproduced their
 clean objects and dependency files. Host 6 receipt
 `5fb8902d-ec4a-4627-85dc-9cff0e9ffc18` contains the entry and module names,
 ordered selections, first and repeated samples, controls and raw streams.
+### Host 1 integrated native driver on f8b86e05
+
+The five producer packet and bundle hashes matched the assignment manifest. All
+bundle prerequisites were ancestors of public 5a134705. Six manager commit and
+tree checks reproduced f8b86e0587996148c7d419239793ff3834a4cb8d, tree
+78917ff13032a91f58f57c4d25cc9f7ac159077d. The private main clone used the
+59-file published bootstrap, Linux x64 compiler SHA-256
+02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7. Debian
+12, Clang/LLVM 19.1.7, Release, four outer jobs and one bootstrap worker. The
+generated host driver object compiled first. Its target and prerequisite actions
+took 11.35 s wall, 11.28 s CPU and 208,708 KiB peak RSS. The remaining normal
+build took 23.40 s wall, 75.98 s CPU and 787,048 KiB. The production compiler
+e1eded72a3393af76b0872b9d6fbaa34cd071946403df232c43dd428ae18a800 linked a
+guest calling getpid, printed 27 and reported one pass at line 3, exit 0.
+
+The original CTest executable failed to compile at driver_native_link.tower
+line 34 because the grammar reserves `expected`. Commit 4d48de47 renames that
+one local variable. The repaired harness linked in 2.33 s wall, 2.32 s CPU
+and 217,008 KiB. It used the same production compiler for both generated CTests.
+tower-driver-affected passed in 38.50 s and tower-driver-native-test-link in
+2.12 s. Separate address- and thread-instrumented builds of the repaired host
+harness passed the native-link regression with the ordinary compiler and guest.
+The Tower IR instrumentation supports address and thread modes. The semantic
+expression owner race has a separate investigation.
+
+The relocated kit selected two graph declarations, running 8 shape and 234
+generated cases with zero live buffers, and seven SHA-256 declarations through
+both owners and both direct companions at one and four jobs. The real portable
+function_values owner and companion emitted exactly 30 0a (hex) in all four
+selections. Changing the sibling expected file to CRLF failed at line 8 column
+5. The execution suite also checked registered sibling inputs, both target
+widths, selected declarations and reconstructed packages. Imported conditional
+declarations returned 8/16 at 32/64 bits. The cyclic imported case supplied by
+the producer returned 37 at both widths and both worker counts. An integer guard
+failed at the imported source at both widths.
+
+Linked and portable runs had identical raw streams and exits for correct,
+wrong, short, long and missing stdout expectations, including a guest stderr
+marker. A live interpreted receipt first skipped the unchanged suite. Adding
+a linked native writer to the same source and oracle produced 97 instead of
+27, rejected offset zero, and retired the receipt. Replacing a linked provider
+object at the same path changed 27 to 28. The reserved-symbol backend failure
+and premature exit(0) both returned 1 with no pass receipt. Full and affected
+runs agreed on edited owners and removed/reintroduced companions. A wrong real
+SHA block-size edit failed twice and the corrected owner reran. Unchanged
+known successes skipped. The ordinary function_values object and depfile were
+byte-identical across a broken companion and changed expected bytes. Graph
+and SHA ordinary objects and depfiles also excluded their test helpers.
+
+Matched direct selections used fresh processes, warm files, CPUs 0–3 under a
+host timing lock, three pairs with the middle order reversed. Host 1 has two
+Xeon Gold 6244 sockets, 32 logical CPUs, a 15.36-CPU quota and a
+136,709,144,576-byte memory limit. Median wall/CPU seconds and peak process
+RSS in KiB were 0.62/0.61/105552 and 0.78/0.88/114812 for graph at jobs 1
+and 4. SHA measured 0.49/0.49/97868 and 0.60/0.68/109512. Four jobs took
+longer in both small linked selections. All timed streams matched the direct
+reference. The build and runtime samples represent distinct command scopes.
+
+Assignment d3727e17-8d19-41bc-aac9-3c1038265d02 retains the manager packet,
+input and review bundles, exact commands, selected coordinates, resource and
+provider hashes, raw process streams, statuses, timings and the relocated kit.
+The manager owns publication. These results qualify the frozen native integration
+with its fixture repair. They do not establish a portable release or a repair
+of the separate owner race.

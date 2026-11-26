@@ -31,16 +31,16 @@ fn driver_test_native_link(compiler: u8*, runtime: u8*): void {
     driver_test_read("driver stdout.txt", "27\n", true);
     driver_test_read("driver stderr.txt", "native selected.tower:3:1: test passed", false);
     driver_test_read("driver stderr.txt", "1 test passed for ", false);
-    var expected: u8* = "native selected.expected";
-    driver_check(driver_write_file(expected, "27\n", 3), "write native stdout expectation");
+    var oracle_path: u8* = "native selected.expected";
+    driver_check(driver_write_file(oracle_path, "27\n", 3), "write native stdout expectation");
     for(var i: usize = 0; i < 2; i++) {
-        driver_check(driver_test_linked_source(compiler, runtime, source, expected) == 0, "linked stdout oracle");
+        driver_check(driver_test_linked_source(compiler, runtime, source, oracle_path) == 0, "linked stdout oracle");
         driver_test_read("driver stdout.txt", "27\n", true);
         driver_test_read("driver stderr.txt", "1 test passed for ", false);
         driver_test_read("driver stderr.txt", "without a reusable success", false);
     }
-    driver_check(driver_write_file(expected, "28\n", 3), "change native stdout expectation");
-    driver_check(driver_test_linked_source(compiler, runtime, source, expected) == 1, "reject wrong linked stdout");
+    driver_check(driver_write_file(oracle_path, "28\n", 3), "change native stdout expectation");
+    driver_check(driver_test_linked_source(compiler, runtime, source, oracle_path) == 1, "reject wrong linked stdout");
     driver_test_read("driver stdout.txt", "27\n", true);
     driver_test_read("driver stderr.txt", "first divergent byte offset 1", false);
     source = "import library.testing;\ntest() {\n    assert(false, \"native mismatch\");\n}\n";
