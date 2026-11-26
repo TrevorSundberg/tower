@@ -7,6 +7,84 @@ import .library.bytes_interface;
 import storage_api;
 import mt19937;
 import syntax_validation_fixture;
+import validation_oracle;
+import utility_checks;
+import .compiler.syntax_view;
+
+extern fn syntax_validate(rules: SyntaxRuleView*, count: usize, tokens: void**, token_count: usize, kind: void*, error: ByteBuffer*, offset: usize*, pending: void**): bool;
+
+fn validation_compare(f: ValidationFixture*, message: u8*, wanted_offset: usize): bool {
+    var actual_view: ValidationView;
+    validation_view_init(&actual_view, f);
+    defer validation_view_dispose(&actual_view);
+    var reference_view: ValidationView;
+    validation_view_init(&reference_view, f);
+    defer validation_view_dispose(&reference_view);
+
+    var error: ByteBuffer = default;
+    var reference_error: ByteBuffer = default;
+    var offset: usize = 777777;
+    var reference_offset = offset;
+    var buffers = tower_test_buffer_count();
+    var nodes = tower_node_get_allocated_count();
+    var actual = syntax_validate(actual_view.rules.data, actual_view.rules.length, f.tokens.data, f.tokens.length,
+        syntax_component_type(), &error, &offset, actual_view.pending.data);
+    var reference = validation_oracle(reference_view.rules.data, reference_view.rules.length, f.tokens.data, f.tokens.length,
+        &reference_error, &reference_offset, reference_view.pending.data);
+    assert(actual == reference && error.length == reference_error.length &&
+        utility_equal(error.data, reference_error.data, error.length) && offset == reference_offset,
+        "Validation exact independent reference result, message and offset");
+    for (var index: usize = 0; index < actual_view.pending.length; ++index) {
+        assert(actual_view.pending.data[index] == reference_view.pending.data[index], "Validation exact pending term identity/order");
+    }
+    if message is not null {
+        assert(error.length == strlen(message) && utility_equal(error.data, message, error.length) && actual == (error.length == 0),
+            "Validation fixed expected diagnostic/result");
+    }
+    if wanted_offset != ValidationNoOffset { assert(offset == wanted_offset, "Validation fixed source offset"); }
+    var failed = error.length != 0;
+    bytes_dispose(&error);
+    bytes_dispose(&reference_error);
+    assert(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Validation temporary cleanup");
+    return failed;
+}
+
+fn validation_expect(f: ValidationFixture*, message: u8*): void { validation_compare(f, message, ValidationNoOffset); }
+
+fn validation_failures(f: ValidationFixture*): void {
+    validation_compare(f, null, ValidationNoOffset);
+    var view: ValidationView;
+    validation_view_init(&view, f);
+    defer validation_view_dispose(&view);
+    var expected_error: ByteBuffer = default;
+    defer bytes_dispose(&expected_error);
+    var offset: usize = 777777;
+    var wanted = syntax_validate(view.rules.data, view.rules.length, f.tokens.data, f.tokens.length,
+        syntax_component_type(), &expected_error, &offset, view.pending.data);
+    var buffers = tower_test_buffer_count();
+    var nodes = tower_node_get_allocated_count();
+    var finished = false;
+    for (var failure: usize = 0; failure < 1024 && !finished; ++failure) {
+        var error: ByteBuffer = default;
+        offset = 123;
+        tower_test_buffer_fail_after(failure);
+        var success = syntax_validate(view.rules.data, view.rules.length, f.tokens.data, f.tokens.length,
+            syntax_component_type(), &error, &offset, view.pending.data);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        finished = success || error.length != 0;
+        if finished {
+            assert(success == wanted && error.length == expected_error.length && utility_equal(error.data, expected_error.data, error.length),
+                "Validation allocation sweep reaches exact result");
+        } else {
+            for (var index: usize = 0; index < view.pending.length; ++index) {
+                assert(view.pending.data[index] is null, "Validation allocation failure clears pending terms");
+            }
+        }
+        bytes_dispose(&error);
+        assert(tower_test_buffer_count() == buffers && tower_node_get_allocated_count() == nodes, "Validation allocation failure cleanup");
+    }
+    assert(finished, "Validation allocation sweep terminates");
+}
 
 fn validation_dependency_tests(): void {
     {
