@@ -1,0 +1,29 @@
+import session;
+import backend.text;
+
+fn missing(fixture: u8*, spelling: u8*): void {
+    module_configure("units/main.tower");
+    execute_file(fixture);
+    check_error("units/main.tower", "Cannot read imported module:");
+    var error = module_field("error");
+    defer free(error);
+    assert(backend_contains(error, spelling), spelling);
+}
+
+test() {
+    module_root_files();
+    install_file("custom folder/a-b.tower", "answer.tower");
+    install_file("no_extension", "import_tower.tower");
+    install_file("Other.Tower", "import_tower.tower");
+    module_configure("units/main.tower");
+    execute_file("exact_entry.tower");
+    check_output("answer.expected");
+    check_dependencies("exact_deps.expected");
+
+    missing("no_suffix.tower", "tower");
+    missing("wrong_language_case.tower", "Tower.tower");
+    missing("missing_suffix.tower", "custom folder/a-b");
+    missing("wrong_folder_case.tower", "Custom folder/a-b.tower");
+    missing("wrong_file_case.tower", "custom folder/A-b.tower");
+    missing("wrong_suffix_case.tower", "Other.tower");
+}

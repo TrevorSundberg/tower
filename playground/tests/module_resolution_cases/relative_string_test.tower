@@ -1,0 +1,17 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("shared/helpers.tower", "answer.tower");
+    module_configure("units/main.tower");
+    execute_file("relative_entry.tower");
+    check_output("answer.expected");
+    check_dependencies("relative_deps.expected");
+
+    module_remove("shared/helpers.tower");
+    install_file("../shared/helpers.tower", "answer.tower");
+    module_configure("units/main.tower");
+    execute_file("relative_entry.tower");
+    check_error("units/main.tower", "Cannot read imported module: ../shared/helpers");
+    check_dependencies("missing_relative_deps.expected");
+}

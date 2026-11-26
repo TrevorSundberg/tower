@@ -1,0 +1,14 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("a/b/helper.tower", "one.tower");
+    install_file("a/helper.tower", "two.tower");
+    install_file("helper.tower", "three.tower");
+    for (var pass: usize = 0; pass < 2; pass++) {
+        module_configure("a/b/c/main.tower");
+        execute_file("parents_entry.tower");
+        check_output("parents.expected");
+        check_dependencies("parents_deps.expected");
+    }
+}

@@ -1,45 +1,79 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
 import {CompletionQueries} from '../src/completion-queries.mjs';
+import {editorSuite} from './editor_suite.mjs';
+import {copyText, guestString} from './guest_text.mjs';
+import {pageService} from './fixtures/page_service.mjs';
 
-function fixture() {
-  const calls=[];
-  const queries=new CompletionQueries({request(key,payload) {
-    let resolve;const promise=new Promise(done=>resolve=done);
-    const request={promise,resolve,cancel(){request.canceled=true;resolve(null);}};
-    calls.push({key,payload,request});return request;
-  }});
-  const payload={method:'complete',source:'point.',cursor:6,activePath:'main.tower',compilerRevision:0,library:'.tower',
-    foundation:'foundation',bedrock:'bedrock',builtins:{tower:'tower'},files:[{path:'lib.tower',text:'struct Point { x:i32; }'}]};
-  return {queries,calls,payload};
+const json = (context, pointer) => JSON.parse(guestString(context, pointer));
+const edited = (context, pointer) => Object.assign(structuredClone(payload), json(context, pointer));
+let page, queries, calls, payload, values;
+function valueId(value) {
+  const id = values.indexOf(value);
+  return id < 0 ? values.push(value) - 1 : id;
 }
-test('an exact prediction shares a ready or in-flight Tower response without another request',async()=>{
-  for(const ready of [false,true]) {
-    const {queries,calls,payload}=fixture();queries.predict(payload);
-    const answer={options:[{label:'x'}]};if(ready)calls[0].request.resolve(answer);
-    queries.retain(structuredClone(payload));
-    const query=queries.query(structuredClone(payload));
-    if(!ready)calls[0].request.resolve(answer);
-    assert.equal(await query.promise,answer);assert.equal(calls.length,1);
-  }
+const byId = id => {
+  const call = calls.find(call => call.task.id === id);
+  if (!call) throw new Error('Unknown language request ' + id);
+  return call;
+};
+function request(key, payload) {
+  const {service} = page;
+  const handle = service.request(key, payload);
+  const task = service.queued.get(key) ?? service.active;
+  const call = {task, handle, delivered:false};
+  calls.push(call);
+  handle.promise.then(value => Object.assign(call, {delivered:true, value}),
+    error => { call.error = error; });
+  return handle;
+}
+const run = editorSuite('completion_queries', ['payload.json'], {
+  open_queries(context, base) {
+    payload = json(context, base);
+    // Retire pending work before installing the next independent prediction.
+    page.service.stop();
+    calls = [];
+    values = [null];
+    queries = new CompletionQueries({request});
+  },
+  predict: (context, patch) => queries.predict(edited(context, patch)),
+  retain_prediction: (context, patch) => queries.retain(edited(context, patch)),
+  query(context, patch) {
+    const handle = queries.query(edited(context, patch));
+    return calls.find(call => call.handle === handle)?.task.id ?? -1;
+  },
+  request_count: () => calls.length,
+  request_id: (_, index) => calls[index].task.id,
+  request_key: (context, id) => copyText(context, byId(id).task.key),
+  canceled: (_, id) => byId(id).task.canceled === true,
+  delivered(_, id) {
+    const call = byId(id);
+    if (call.error) throw call.error;
+    return call.delivered;
+  },
+  delivered_value: (_, id) => valueId(byId(id).value),
+  reply(context, id, text) {
+    const answer = json(context, text);
+    page.workers.at(-1).reply(id, answer);
+    return valueId(answer);
+  },
+  start_request(context, key, text) {
+    request(guestString(context, key), json(context, text));
+    return calls.at(-1).task.id;
+  },
+  posted_id: () => page.workers.at(-1).posted.at(-1).id,
 });
-test('source, cursor, file, grammar and imported source edits all invalidate predictions',()=>{
-  for(const change of [p=>p.source+=' ',p=>p.cursor--,p=>p.activePath='other.tower',
-    p=>p.foundation+=' ',p=>p.bedrock+=' ',p=>p.builtins.tower+=' ',p=>p.files[0].text+=' ',p=>p.compilerRevision++,p=>p.library='.']) {
-    const {queries,calls,payload}=fixture();queries.predict(payload);
-    const next=structuredClone(payload);change(next);queries.query(next);
-    assert.equal(calls.length,2);assert.equal(calls[0].request.canceled,true);
-  }
-});
-test('predictions are bounded to one query and an intervening edit cancels it',()=>{
-  const {queries,calls,payload}=fixture();queries.predict(payload);queries.predict(payload);
-  assert.equal(calls.length,1);
-  queries.predict({...payload,cursor:0});assert.equal(calls[0].request.canceled,true);
-  queries.retain(payload);assert.equal(calls[1].request.canceled,true);
-});
-test('speculation cannot coalesce away a foreground query queued during startup',()=>{
-  const {queries,calls,payload}=fixture();
-  queries.query({...payload,source:'point',cursor:5});queries.predict(payload);
-  assert.deepEqual(calls.map(call=>call.key),['complete','prediction']);
-  assert.equal(calls[0].request.canceled,undefined);
-});
+
+async function check(t, selection) {
+  // Open the simulated page after reactor startup (a threaded compiler uses
+  // the native Node Worker transport outside the page).
+  const setup = () => {
+    page = pageService(t);
+  };
+  try { await run(selection, setup); }
+  finally { calls = values = queries = page = undefined; }
+}
+
+test('an exact prediction shares a ready or in-flight Tower response without another request', t => check(t, 'exact'));
+test('source, cursor, file, grammar and imported source edits all invalidate predictions', t => check(t, 'edits'));
+test('predictions are bounded to one query and an intervening edit cancels it', t => check(t, 'bounded'));
+test('speculation cannot coalesce away a foreground query queued during startup', t => check(t, 'startup'));

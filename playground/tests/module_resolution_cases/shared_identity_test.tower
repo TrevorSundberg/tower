@@ -1,0 +1,10 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("foo/bar/baz.tower", "effect.tower");
+    module_configure("units/main.tower");
+    execute_file("identity_entry.tower");
+    check_output("identity.expected");
+    check_dependencies("identity_deps.expected");
+}

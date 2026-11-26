@@ -1,0 +1,29 @@
+import library.testing;
+
+extern fn path_count(): usize;
+
+extern fn path_source_count(): usize;
+
+extern fn path_name(index: usize): u8*;
+
+extern fn path_available(name: u8*): bool;
+
+extern fn path_local(importer: u8*, target: u8*): u8*;
+
+extern fn path_read(file: u8*): void;
+
+extern fn path_scan(expression: u8*): usize;
+
+extern fn path_capture(index: usize, group: usize): u8*;
+
+extern fn upgrade_open(project: u8*, recipe: u8*): void;
+
+extern fn upgrade_refresh(): void;
+
+extern fn upgrade_count(): usize;
+
+extern fn upgrade_keys(index: usize): usize;
+
+extern fn upgrade_field(index: usize, key: u8*): u8*;
+
+extern fn upgrade_active(): u8*;

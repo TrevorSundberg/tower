@@ -1,0 +1,11 @@
+import suite;
+import library.testing;
+
+test() {
+    edit(1);
+    update("editor", "error", 1);
+    update("editor", null, 1);
+    assert(published_is('[["editor",null]]'), "Clear the error immediately");
+    advance(10000);
+    assert(timers_fired() == 1 && published_is('[["editor",null]]'), "The deadline cannot restore a cleared error");
+}

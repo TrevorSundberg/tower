@@ -1,0 +1,16 @@
+import session;
+import backend.text;
+
+test() {
+    run_fixture("sibling_entry.tower", false);
+    check_output("extension.expected");
+
+    var suffix = module_fixture("import_absent.tower");
+    defer free(suffix);
+    var error = module_install_with_suffix(suffix);
+    defer free(error);
+    assert(backend_contains(error, "Cannot read imported module: absent"), error);
+
+    run_fixture("sibling_entry.tower", false);
+    check_output("extension.expected");
+}

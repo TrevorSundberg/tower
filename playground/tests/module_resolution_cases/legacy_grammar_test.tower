@@ -1,0 +1,11 @@
+import session;
+
+test() {
+    install_file("legacy.tower", "legacy_bedrock.tower");
+    install_file("helper.tower", "hello.tower");
+    module_configure("main.tower");
+    var source = module_fixture("legacy_entry.tower");
+    defer free(source);
+    module_parse(source, false);
+    field_is("status", "done");
+}
