@@ -356,6 +356,9 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
     }
     var count = state.execution.program.test_count;
     if count != 0 {
+        var fixtures: ExecutionFixtureAccess = { selection: &request.tests, modules: modules };
+        if request.tests.fixtures.length != 0 { state.execution.fixtures = &fixtures; }
+        defer { state.execution.fixtures = null; }
         var result = driver_compile_interpret(state);
         if result != 0 { return result; }
         if request.options.test_details {

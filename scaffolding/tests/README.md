@@ -56,6 +56,33 @@ return ordered owner/companion handles borrowed from the root graph. Use a fresh
 root per discovery, release it after consuming those handles, and dispose the
 selection with `test_file_selection_dispose`.
 
+### Reading a selected companion's fixtures
+
+A direct import of `library.test_fixtures` in a selected companion grants its
+contextual `test()` blocks two files. They are the actual owner's source and
+the adjacent `.expected` file with the same stem. Pass the exact basename to
+`fixture_text(name)` for counted UTF-8 text or `fixture_stdout(source_name)`
+for ordinary interpreter stdout. Each returns a guest-owned `FixtureBytes`.
+Free its `data` after use. `fixture_equal` compares the lengths and every byte,
+including the final line ending. See [the function-values test](function_values_test.tower).
+The child interpreter uses the selected graph's source snapshots and captures
+both `print` and counted writes to stdout.
+
+After successful discovery, `TestFileSelection.fixtures` owns an ordered
+`TestFixturePair` per opted-in companion. Its `companion`, `source` and
+`oracle` paths have explicit byte lengths and trailing NULs. These paths
+survive release of the graph. A subsequent successful discovery replaces them.
+Disposing or reopening the selection releases them. A registered-input caller
+passes a null discovery probe and registers the expected text under its exact
+owner-relative key. The test host binds the selection and source map for the
+duration of execution.
+
+Use the existing `--list-test-files` command with the entry and
+`-o inventory --depfile inventory.d` to track disk inputs. The depfile names
+the owner source and the exact expected path, even while the latter is missing.
+The runtime read reports a missing expected file at its call site. Ordinary
+compilation continues to use the entry and its ordinary imports.
+
 Keep source inputs and expected text readable as files. Track each old case by
 its runner, selector, fixtures, expected outcome and execution modes until its
 Tower replacement checks the same behavior. For example, the five cases in the

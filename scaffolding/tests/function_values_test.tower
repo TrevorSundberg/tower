@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import library.platform;
+test() {
+    var actual = fixture_stdout("function_values.tower");
+    defer free(actual.data);
+    var wanted = fixture_text("function_values.expected");
+    defer free(wanted.data);
+    assert(fixture_equal(actual, wanted), "Function values stdout differs from function_values.expected");
+    assert(platform_write(1, actual.data, actual.length) == convert(i64, actual.length), "Cannot write fixture stdout");
+}

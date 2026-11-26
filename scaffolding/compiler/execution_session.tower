@@ -1,5 +1,6 @@
 import tower;
 import interpreter_types;
+import test_file_rule;
 import interpreter_text;
 import semantic_program_types;
 import foundation_types;
@@ -9,6 +10,11 @@ import .library.bytes_interface;
 import .library.work_budget_types;
 import .library.work_vector;
 import .library.work_vector_types;
+
+struct ExecutionFixtureAccess {
+    selection: TestFileSelection*;
+    modules: void*;
+}
 
 // One request owns its checked Foundation entities, derived execution cache and
 // guest storage. The module environment is borrowed only during compilation.
@@ -20,6 +26,8 @@ struct ExecutionSession {
     error: work_vector(u8);
     output: work_vector(u8);
     started: bool;
+    // Borrowed only while stepping a native selected test or capturing its child.
+    fixtures: ExecutionFixtureAccess*;
 }
 
 extern fn compiler_node_world(node: void*): void*;

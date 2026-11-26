@@ -1345,7 +1345,7 @@ fn ix_print_value(m: IMExecution*, value: u64, type: FoundationType*): void {
     text[length] = 10;
     length++;
     var total = m.state.output_bytes + length;
-    if total <= 65536 {
+    if total <= InterpreterOutputLimit {
         ix_append(m, &text[0], length);
     } else {
         m.state.output_truncated = true;
