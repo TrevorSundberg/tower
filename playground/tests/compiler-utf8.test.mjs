@@ -52,10 +52,14 @@ test('the browser compiler links the Tower codec, with Unicode and malformed-inp
  // Exercise the actual source-loading boundary, not just the exported codec.
  const pointer=e.tw_alloc(8);
  try{
-  const memory=new Uint8Array(e.memory.buffer);
   for(const bytes of [[0],[192,128],[237,160,128],[244,144,128,128],[226,130]]){
-   memory.set(bytes,pointer);assert.equal(e.tw_create(pointer,bytes.length),0);
-   const start=e.tw_last_error(),end=memory.indexOf(0,start);
+   new Uint8Array(e.memory.buffer).set(bytes,pointer);
+   assert.equal(e.tw_create(pointer,bytes.length),0);
+   // Reporting the error can grow Wasm memory and detach earlier views.
+   const start=e.tw_last_error();
+   const memory=new Uint8Array(e.memory.buffer);
+   const end=memory.indexOf(0,start);
+   assert.notEqual(end,-1,'Expected a NUL-terminated diagnostic');
    assert.match(decoder.decode(memory.slice(start,end)),/valid UTF-8 without NUL/);
   }
  }finally{e.tw_free(pointer);}
@@ -72,7 +76,8 @@ test('the compiler can recompile its own codec into standalone Wasm without runt
  const instance=await WebAssembly.instantiate(module,{}),e=instance.exports;
  checkExports(e,size=>e.tower_allocate(size,1),e.tower_deallocate);
  // Truncated input exactly at the Wasm memory boundary must never read beyond it.
- const memory=new Uint8Array(e.memory.buffer),result=e.tower_allocate(4,4);
+ const result=e.tower_allocate(4,4);
+ const memory=new Uint8Array(e.memory.buffer);
  for(const bytes of [[194],[224,128],[240,128,128]]){
   const start=memory.length-bytes.length;memory.set(bytes,start);
   assert.equal(e.tower_utf8_decode(start,bytes.length,result),0);

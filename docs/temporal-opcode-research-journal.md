@@ -105377,3 +105377,47 @@ On the public 6c31f333 native opt-in build, four additional registrations kept a
 Host 4 built the test changes with its checked-in Linux x64 compiler, exercised all four additions under ASan and completed TSan runs after host startup retries. Its full registration comparison covered 188 existing and four new cases. It did not execute all 192. The format sweep still stops on backend/bindings.tower. The measured existing driver formatting selector ran on a Ryzen 7 5800H with CPU affinity 2–5, 15.36 cores of quota and identical compiler bytes. Its median wall was 1.88 s before and after, median CPU 1.94 s each, and maximum sampled RSS 82,028 and 81,412 KiB respectively. Original streams, per-case instrumentation and negative controls are in packet 940097a7-58c2-4511-b0ef-8004e960eaa5.
 
 On integration with the typed layout registry, the manager compared the generated CTest commands and properties in its available native profile (C-output tests disabled because GCC was unavailable). All 100 original entries matched and exactly the same four names were added. The two generated token CTests passed with the public bootstrap, an incorrect expected file failed even though the guest exited zero, and the rejected borrowed view returned the exact diagnostic with the output sentinel intact. The integrated narrow caller and provider were built as separate objects and their registered native test passed. The language-level migration inventory records the original selectors and expected bytes.
+
+## Jenkins 51 — UTF-8 diagnostic read after Wasm memory growth
+
+At `323165245b6254e671aacba105e8dfc903a5affa`, Jenkins reported 512 passes,
+one failure and two skips in 515 Node tests. The native UTF-8 test and the
+two companion Wasm tests passed. The failing test had already checked that
+`tw_create` returned zero for a rejected source when `memory.indexOf` threw
+at `playground/tests/compiler-utf8.test.mjs:58`. Console SHA-256
+`1a10045d21ca761101ebe53e4ed2f21bd2f7ca22c7e791937b84ab8da29ae9c7`.
+
+Host 5 reproduced the same exception using the checked-in Linux x64 bootstrap,
+WASI SDK 34.0 and `bash playground/scripts/build-wasm.sh -DTOWER_IDE_TESTS=OFF`.
+A separate trace of the first input, a single NUL, recorded 13,762,560 bytes
+before `tw_create` and 13,828,096 afterward. The old view then reported zero
+bytes. Reading `tw_last_error` returned offset 6,153,648 with the new size
+unchanged. The rejection path assigns the diagnostic into the IDE state's byte
+buffer. Its allocation can grow linear memory even though the guest offsets
+remain valid.
+
+The Node fixture now acquires a view for each input write and another after
+obtaining the diagnostic pointer. It checks the terminating NUL before decoding.
+The standalone truncation test likewise allocates its result before taking the
+view used to locate the last byte of memory.
+
+From the repository root, `node --test --test-concurrency=1
+playground/tests/compiler-utf8.test.mjs` ran with the same portable reactor
+(SHA-256 `d20df1dc5dd371122fae9e473bb011b089bccbd93ba5ab99555ad68716bb8c64`)
+and the same `TOWER_TEST_LLVM_WASM` for both runs. That companion reactor came
+from Pages commit `3d57e291e231171776ea5b77e207749615c64edf`, compiler source
+`0823b028fba66eb19de815f4d49d4fdbc0bdc56a`. Its gzip matched the manifest and
+its decompressed SHA-256 was `f84fc37c57b2681583a5b4fb4eddd688cae5212916c0ac190e75c2a29510f1f5`.
+
+| Fixture | Pass/fail | Exit | Wall s | User + system s | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Original | 2/1 | 1 | 3.18 | 6.54 + 0.33 | 333468 |
+| Repaired | 3/0 | 0 | 3.00 | 6.19 + 0.32 | 347856 |
+
+Ryzen 9 5900XT, 16 cores/32 threads, CPUs 0–31, 30.72 CPU quota, Node v24.22.3,
+one fresh Node invocation at a time, one sample per revision, filesystem cache
+retained. The failed run stopped the first test at the first diagnostic, so
+these process measurements compare different amounts of completed work. The
+adjacent `compiler-bytes.test.mjs` passed 3/3 with the same reactors. The patch
+changes only the JS fixture at the Wasm ABI boundary. Native Tower sanitizers
+do not instrument that code. A full Jenkins rerun remains open for integration.
