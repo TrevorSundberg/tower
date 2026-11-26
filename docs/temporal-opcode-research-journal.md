@@ -109705,3 +109705,152 @@ compiler_buffer_allocation_size and syntax_kind_name respectively. The
 alternate ownership fixture defines its own native finalizer. The release
 evidence for assignment 053eeb38-345e-4fc9-94ec-7f57c51618ee records the
 repacked selections, ordinary object comparison and staged-site checks.
+### Ordinary body admission after signature-only specialization
+
+Host 2 reproduced the two default-suffix discovery failures on manager main
+`aed77666`. Input packet `1813f3a3` supplied the 220-byte type-fields
+companion (SHA-256 `4e686811`) and the 305-byte lazy-body companion
+(`05a75e40`). All seven declared members matched their byte counts and
+hashes. The test-only commit `da8a7ed0` provided their observation modules.
+The compiler repair and its regression are commit `f7ef2275815a`, directly
+on the manager revision.
+
+The serial portable reactor from `8bc867b6` (`41bb9b11`) reproduced both
+retained selected Foundation documents byte for byte. With each owner as
+entry, the fast interpreter took five steps and read zero observations, even
+after changing the companion's expected stdout from zero to one. The ELF
+checked in at `8bc867b6` is `02bbc282`. The Ubuntu executable built from
+that source and pinned by `15cacf5a` is `7315b86e`. The earlier commands
+use a checkout-relative path. The declared test bundle's parent `c2d339ea`
+has the latter ELF at that path. Both exact executables exited 139 for both
+owners on this host. In all four debugger runs, the graph interpreter was
+reading address 0x80 in `ix_enter`. The selected function had no body.
+The recorded native call stack runs through the ordinary interpreter and
+test driver.
+
+Test selection retained the declaration and incremented its count.
+During early type evaluation, the semantic body pipeline advanced its
+function cursor past ordinary functions, including the test, while ordinary
+roots were disabled. An additional signature-only specialization then extended
+the function table. At ordinary admission the cursor was still inside the
+table, so the end-of-table rescan did not occur. With only the new undemanded
+tail to scan, the first ordinary pump returned Complete. Its cursor and
+function count were both 19 for type-fields and both 20 for lazy-body.
+Other helper functions also lacked bodies in the old Foundation.
+
+The coordinator now restarts the cursor when it enables ordinary body roots.
+Existing body receipts still prevent rechecking completed work. The lazy
+specialization still needs an actual demand. The source regression adds two
+unevaluated calls to the registered discovery/reset case, one with an integer
+and one with a pointer. Its unused generic body contains an unresolved name.
+The existing session must execute the inline and implicit companion bodies
+in order, then run only the ordinary owner after switching modes. Replacing
+only the semantics object with the old one in the new runner reproduced 139.
+
+Using the published Ubuntu driver to compile the changed semantics unit and
+relink the local compiler entry points gave native ELF `beafd497` and
+diagnostic portable reactor `0666236b`. Default discovery at jobs 1 and 4
+passed both original companions, failed every changed expected stdout at
+`compiletime_case.tower:18:5`, and passed every restoration. A separate
+literal assertion in each companion failed at its own line 3 and recovered
+at both widths. Explicit companion selection also passed. On one retained
+Wasm host instance, each original consumed two width observations, each
+changed value failed in `browser_observations.tower` after the first receipt,
+and each restored version consumed both. Type-fields and lazy-body executed
+1,480,260 and 6,824,684 steps respectively on each passing request. Both
+ordinary owners printed zero, with identical native objects before and
+after at each width. The existing generic-body companion passed.
+
+The native test-declarations and query-smoke selectors passed. The same
+test-declarations selector ran both worker widths under LLVM 19 ASan with
+leak detection and TSan. Both recorded zero exit, sanitizer attributes on
+`sem_bodies`, and link maps containing the production allocation and worker
+transport objects. CMake supports address and thread instrumentation here.
+Undefined-behavior instrumentation and a threaded browser run remain outside
+this evidence.
+
+Three alternating, serial warm-filesystem comparisons ran on Ryzen 5 3600
+CPUs 0–3, with 11.52 CPUs of host quota. Median ordinary wall seconds for
+baseline/candidate were 0.22/0.23 and 0.26/0.24 for lazy-body at jobs 1/4,
+and 0.21/0.21 and 0.26/0.25 for type-fields. For the six-selection Wasm
+probe the median changed from 1.51 to 1.76 s wall and 2.16 to 2.55 s CPU.
+Maximum RSS across the three runs was 191068/167300 KiB. The candidate
+executes the previously omitted assertions. Per-owner CPU/RSS samples,
+source and object identities, commands, receipts, original failures and
+the local bundle are in packet `a2a3d18c-30b8-4d93-bfa2-cc94373013c6`.
+Publication, browser registration changes and release builds remain with
+their respective owners.
+
+### Preserve waiting bodies when recovering skipped ordinary roots
+
+In the Ubuntu 24.04 strict comparison of 3cc57ae4, resetting the body cursor
+when ordinary roots became eligible admitted work_budget_init ahead of
+compiler_world_worker_reserve. This changed the order of generic Entity and
+EntityStage specializations and changed the entities object. Simply recovering
+a pending prefix on every stalled suffix restored the entities object and both
+real decltype tests, but changed the optimized parser-nodes IR on Linux.
+Tracing that compile found two recoveries while earlier work was waiting, at
+node_payload_size and lr_reserve_result(LRActionGrowth). Stock and trial
+admitted the same bodies in a different sequence. The first emitted difference
+was the control temporary in lr_propagation_solve_components_result.
+
+Keep the ordinary cursor through root admission, return progress for completed
+work, and preserve Waiting while an earlier body has outstanding work. Only
+when a pump would otherwise finish after walking an exhausted suffix does it
+look for a still-pending earlier function. It uses the existing signature/body
+demand check and owns no new persistent state. The coordinator performs this
+check after worker publication and error handling.
+
+Using the same Ubuntu LLVM 19.1.1 host, an unchanged bootstrap comparer
+accepted all four entities targets. At one and four workers, the Linux parser
+object and optimized IR matched the public pin byte for byte. Both actual
+decltype owners and their directly selected companions rejected a changed
+expected byte at compiletime_case.tower:18:5 and passed after restoration at
+both widths. A runtime call still diagnosed missing_body_value. The host 6
+receipt c5a50ceb contains the three cursor comparisons, the rejected
+intermediate, resource measurements and the independent release gates.
+
+### Native discovery of the two decltype observation fixtures
+
+On public `6f666ed6` with the Ubuntu pin `7e34072d`, both
+`scaffolding/tests/decltype_lazy_body.tower` and `decltype_type_fields.tower`
+selected zero tests at one and four workers. Their browser declarations use
+the `_browser.tower` suffix. Receipt `c7c77158` kept the two native companions
+as external inputs. Install those companions next to their owners and register
+both owners with the existing CTest helper at each worker width.
+
+Each companion runs its owner's source through the existing fixture grant
+and checks for the exact bytes `0\n`. The native helper reads output, while
+the browser helper also inspects Foundation declarations. The native tests
+now import the actual owner and check its types in Tower. Asking for the
+invalid generic's signature gives `i32` and `i32*`. Inspecting the nested
+field and the generic read result gives `u32` and `u64`. Calling the invalid
+generic in the existing negative fixture still diagnoses `missing_body_value`.
+
+The shipped Ubuntu compiler built from `41de9006` selected one body per
+owner or direct companion at one and four workers. Changing the expected
+output, changing an asserted type, and changing the owner to print a failure
+each reached a located assertion. Access to the other owner's source failed
+at the fixture grant. Restoring the files returned all selections to green.
+Removing both companions failed all four new CTests on zero discovery.
+Syntactically invalid companions left both ordinary objects, executable bytes,
+depfiles and guest output identical to the corresponding ordinary controls.
+
+On host 6 (Xeon E5-2680 v4, affinity 0–11, 11.52 CPUs quota), one warm-file
+sample per owner at jobs 1/4 took 0.44/0.58 s before and 1.01/1.42 s after
+installation for lazy body, and 0.43/0.59 s before and 1.03/1.41 s after for
+field types. The installed owner runs peaked at 87,780–101,560 KiB RSS.
+The fresh default Ninja graph matched all 51 producer commands. All 501
+recorded ordinary inputs and 37 retained products matched their qualified
+hashes. Assignment `29d83b92` records both streams, CPU times, output hashes,
+the published template/parser/inference controls and the bundle ancestry.
+
+The CTest commands supply project resource paths. Running the shipped
+`towerc --test` without those overrides exposed a lookup of
+`tests/compiletime_case` from the installed resource directory. Resolve
+`compiletime_case` beside `compiletime_results` and `backend/text` relative
+to the project helper. All eight bare owner/direct selections passed. Each
+rejected wrong output and wrong type, denied the sibling grant and passed
+after restoration. The browser's real profile and results modules compiled
+to identical objects with identical depfiles before and after the import
+edits. The browser execution results remain those of their original receipt.

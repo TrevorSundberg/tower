@@ -1,0 +1,13 @@
+import library.test_fixtures;
+import compiletime_results;
+import decltype_type_fields as owner;
+
+test() {
+    assert(type_value(decltype(owner.direct)) == type_value(u32), "The directly inspected inner field is u32");
+    assert(type_value(decltype(owner.selected)) == type_value(u64), "The read result follows the wrapped inner field");
+    check_compiletime({
+        file: "decltype_type_fields.tower", output: "0\n",
+        declaration: "var direct: u32;",
+        ..default
+    });
+}
