@@ -121653,3 +121653,31 @@ LLVM 19, one compiler job and four build lanes. A traced baseline completed
 448 C89/C++98 executions and 96 C99/C++11 executions, including all four
 32-bit hosted compiler drivers, at the assigned pin. These are case counts,
 excluding compiler launches and the three expected layout compile failures.
+
+### F13 case ownership and the two original dispatcher calls
+
+After `d54cf703`, the executable entry dispatches both original calls into
+the same Tower case code as direct guest selection. Keeping that dispatch
+at the executable entry keeps the C suites out of unrelated driver selection
+graphs, including formatter discovery through the measurement imports.
+`driver_c_cases_test.tower` owns the 28-case inventory, the five-by-fourteen
+integer program, its literal stdout and case/profile eligibility.
+`driver_c_validation_test.tower` owns variant ordering, the graph, fast and
+native references, byte/status comparisons, layout and coverage decisions.
+`driver_c_downloads_test.tower` uses the same compiler comparison with the
+original 42-newline, empty-stderr, zero-status reference. JSON recording
+still serializes native results for the MSVC consumer. The measurement
+caller retains its warning-free C compilation check. Source-file reading,
+argument construction, process creation and the real compilers stay at their
+existing boundaries. The 11 file-backed programs are read from the supplied
+resource root and copied into the work directory.
+
+Two initial builds diagnosed the measurement module's indirect JSON extern
+and an unsupported value operand to sizeof. An explicit declaration and
+sizeof(decltype(array)) restored the ordinary build. On host 6 all 1,092
+original backend child argv/status pairs and 231 profile pairs reproduced
+in order. Both CLIs reproduced baseline stdout and empty stderr. Backend
+also reproduced expected.json. The original graph-only reference now has
+a fast differential for each raw/optimized variant, adding 56 executions
+to backend and 24 to profiles. The installed direct profile guest already
+matched all 255 pairs and stdout, with its test location and count on stderr.

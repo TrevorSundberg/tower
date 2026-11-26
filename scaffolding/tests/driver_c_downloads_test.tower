@@ -1,0 +1,24 @@
+import library.testing;
+import driver;
+import driver_differentials;
+import driver_c_tools;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+import driver_c_downloads;
+import driver_c_validation_test;
+
+fn driver_c_download(context: DriverCValidation*, name: u8*): void {
+    if !driver_c_selected(context, name) { return; }
+    var source = driver_c_path(name, ".c"); defer bytes_dispose(&source);
+    driver_test_read(source.data, "int main(void)", false);
+    var reference: DriverExecutionResult = default; defer driver_execution_close(&reference);
+    driver_check(driver_text(&reference.output, "42\n"), "browser fixture expected output");
+    driver_c_compare(context, name, source.data, &reference, false, DriverCWidth64);
+    driver_c_record(context, name, source.data, &reference);
+    driver_message(DriverDifferentialStdout, "Browser C output passed: ", name, true);
+}
+
+test() { driver_c_installed(DriverCMode.Downloads); }

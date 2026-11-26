@@ -2,7 +2,7 @@ import tower;
 import driver;
 import driver_measure;
 import driver_differentials;
-import driver_c_validation;
+import driver_c_tools;
 import .host.driver_support;
 import .host.driver_platform;
 import .library.bytes_types;
@@ -113,7 +113,9 @@ fn measure_c_runtime(report: MeasureReport*, inputs: MeasureInputs*, name: u8*, 
             defer bytes_dispose(&path);
             driver_argument(&paths, "", path.data); driver_check(paths.ok, "runtime measurement artifact list");
             var saved = paths.values.data[paths.values.length - 1];
-            driver_c_compile(&context, convert(DriverCTool, tool), c.data, saved, false, DriverCWidth64, true);
+            var compiled = driver_c_compile(&context, convert(DriverCTool, tool), c.data, saved, false, DriverCWidth64, true);
+            defer driver_execution_close(&compiled);
+            driver_check(compiled.code == DriverExecutionSuccess && compiled.error.length == 0, "warning-free C/C++ compilation");
             measure_executable_series(&group, saved, saved);
         }
     }

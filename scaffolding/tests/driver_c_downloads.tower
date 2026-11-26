@@ -1,0 +1,24 @@
+import tower;
+import driver;
+import driver_differentials;
+import driver_c_tools;
+import .host.driver_support;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn host_json_quote(out: ByteBuffer*, source: u8*, length: usize): bool;
+
+fn driver_c_record(context: DriverCValidation*, stem: u8*, file: u8*, result: DriverExecutionResult*): void {
+    // Keep the existing MSVC artifact contract; use the shared JSON writer.
+    var out = &context.results;
+    driver_check((context.rows == 0 || driver_text(out, ",\n"))
+        && driver_text(out, "{\"name\":") && host_json_quote(out, stem, strlen(stem))
+        && driver_text(out, ",\"file\":") && host_json_quote(out, file, strlen(file))
+        && driver_text(out, ",\"stdout\":") && host_json_quote(out, result.output.data, result.output.length)
+        && driver_text(out, ",\"stderr\":") && host_json_quote(out, result.error.data, result.error.length)
+        && driver_text(out, ",\"code\":"), "C expectation JSON fields");
+    var code = result.code;
+    if code < 0 { driver_check(driver_text(out, "-"), "negative process status"); code = -code; }
+    driver_check(host_json_unsigned(out, convert(u64, code)) && driver_text(out, "}"), "C expectation JSON status");
+    context.rows++;
+}

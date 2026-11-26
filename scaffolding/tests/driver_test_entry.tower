@@ -1,7 +1,25 @@
 import tower;
 import driver;
+import driver_c_tools;
+import driver_c_validation_test;
+import .host.driver_support;
 
 // Only the standalone executable dispatches the aggregate by command line.
 export fn driver_tests(argc: i32, argv: u8**): i32 {
+    if argc > 1 {
+        if driver_same(argv[1], "--c-backend") || driver_same(argv[1], "--c-profiles") {
+            var required_arguments: i32 = 8; var filtered_arguments: i32 = 9; var usage: i32 = 2;
+            if argc != required_arguments && argc != filtered_arguments { return usage; }
+            var filter: u8* = argc == filtered_arguments ? argv[8] : null;
+            var mode = driver_same(argv[1], "--c-backend") ? DriverCMode.Native : DriverCMode.Profiles;
+            return driver_test_c_validation(mode, argv[2], argv[3], argv + 4, filter);
+        }
+        if driver_same(argv[1], "--c-downloads") {
+            var required_arguments: i32 = 6; var filtered_arguments: i32 = 7; var usage: i32 = 2;
+            if argc != required_arguments && argc != filtered_arguments { return usage; }
+            var filter: u8* = argc == filtered_arguments ? argv[6] : null;
+            return driver_test_c_validation(DriverCMode.Downloads, null, null, argv + 2, filter);
+        }
+    }
     return driver_test_run(argc, argv);
 }

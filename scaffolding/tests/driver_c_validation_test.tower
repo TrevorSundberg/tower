@@ -1,0 +1,162 @@
+import library.testing;
+import driver;
+import driver_differentials;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+import driver_c_tools;
+import driver_c_cases;
+import driver_c_validation;
+import driver_c_cases_test;
+import driver_c_downloads;
+import driver_c_downloads_test;
+
+fn driver_c_selected(context: DriverCValidation*, name: u8*): bool {
+    return context.compiler.filter == null || driver_same(context.compiler.filter, name);
+}
+
+fn driver_c_expect(actual: DriverExecutionResult*, reference: DriverExecutionResult*): void {
+    driver_check(actual.code == reference.code, "exact differential exit status");
+    driver_check(driver_execution_equal(&actual.output, &reference.output), "differential stdout bytes");
+    driver_check(driver_execution_equal(&actual.error, &reference.error), "differential diagnostic bytes");
+}
+
+fn driver_c_compare(context: DriverCValidation*, stem: u8*, source: u8*, reference: DriverExecutionResult*,
+    modern: bool, width: usize): void {
+    for(var tool: usize = 0; tool < convert(usize, DriverCTool.Count); tool++) {
+        for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
+            // Modern profiles previously exercised only O2; the legacy matrix retains both levels.
+            if modern && option == 0 { continue; }
+            var executable: ByteBuffer = default; defer bytes_dispose(&executable);
+            driver_check(driver_text(&executable, stem) && driver_text(&executable, "_cc")
+                && host_json_unsigned(&executable, convert(u64, tool)) && driver_text(&executable, option == 0 ? "_O0" : "_O2")
+                && host_text_terminate(&executable), "compiled C artifact name");
+            var built = driver_c_compile(context, convert(DriverCTool, tool), source, executable.data, modern, width, option != 0);
+            defer driver_execution_close(&built);
+            driver_check(built.code == DriverExecutionSuccess && built.error.length == 0, "warning-free C/C++ compilation");
+            var actual = driver_c_run(executable.data); defer driver_execution_close(&actual);
+            driver_c_expect(&actual, reference);
+            context.checks++;
+        }
+    }
+}
+
+fn driver_c_layout_rejection(context: DriverCValidation*, source: u8*, width: usize, alignment: bool): void {
+    var mismatch = driver_c_mismatched_compile(context, source, width, alignment);
+    defer driver_execution_close(&mismatch);
+    driver_check(mismatch.code == DriverExecutionFailure && host_text_terminate(&mismatch.error)
+        && strstr(mismatch.error.data, alignment ? "tc_u64_alignment" : "tc_pointer_width") != null,
+        "C compiler rejects incompatible target layout");
+}
+
+fn driver_c_variant(context: DriverCValidation*, name: u8*, source: u8*, graph: DriverExecutionResult*,
+    width: usize, optimize: bool): void {
+    var modern = context.mode == DriverCMode.Profiles;
+    var stem = driver_c_path(name, modern ? (width == DriverCWidth32 ? "_32" : "_64") : "");
+    defer bytes_dispose(&stem);
+    driver_check(driver_text(&stem, optimize ? "_optimized" : "_raw") && host_text_terminate(&stem), "C variant name");
+    var c = driver_c_path(stem.data, ".c"); defer bytes_dispose(&c);
+    var target: u8* = modern ? (width == DriverCWidth32 ? "wasm32-unknown-unknown" : "x86_64-unknown-linux-gnu") : null;
+    driver_platform_remove(c.data);
+    var emitted = driver_execution_command(&context.compiler, source, target, "--emit", "c", c.data, optimize, null);
+    defer driver_execution_close(&emitted);
+    driver_check(emitted.code == DriverExecutionSuccess, "C source emission");
+    driver_test_read(c.data, "int main(void)", false);
+    if modern {
+        driver_test_read(c.data, width == DriverCWidth32 ? "#define TC_POINTER_BYTES 4" : "#define TC_POINTER_BYTES 8", false);
+    }
+    if driver_same(name, "comments") {
+        driver_test_read(c.data, "carry source notes", false); driver_test_read(c.data, "nested note", false);
+        driver_test_read(c.data, "trailing note", false);
+    }
+    if modern {
+        driver_c_compare(context, stem.data, c.data, graph, true, width);
+        var index: usize = width == DriverCWidth32 ? 0 : 1;
+        if !context.layout_checked[index] {
+            driver_c_layout_rejection(context, c.data, width, false);
+            if width == DriverCWidth32 { driver_c_layout_rejection(context, c.data, width, true); }
+            context.layout_checked[index] = true;
+        }
+    } else {
+        var native = driver_c_path(stem.data, "_native"); defer bytes_dispose(&native);
+        driver_platform_remove(native.data);
+        var built = driver_execution_command(&context.compiler, source, null, null, null, native.data, optimize, null);
+        defer driver_execution_close(&built);
+        driver_check(built.code == DriverExecutionSuccess, "LLVM reference compilation");
+        var reference = driver_c_run(native.data); defer driver_execution_close(&reference);
+        driver_check((reference.code == DriverExecutionSuccess) == (graph.code == DriverExecutionSuccess)
+            && driver_execution_equal(&reference.output, &graph.output), "LLVM reference matches graph");
+        driver_c_compare(context, stem.data, c.data, &reference, false, width);
+        driver_c_record(context, stem.data, c.data, &reference);
+    }
+    driver_message(DriverDifferentialStdout, "C output passed: ", stem.data, true);
+}
+
+fn driver_c_case(context: DriverCValidation*, name: u8*, text: u8*, profile: bool, fails: bool): void {
+    if !driver_c_selected(context, name) || (context.mode == DriverCMode.Profiles && !profile) { return; }
+    var source = driver_c_path(name, ".tower"); defer bytes_dispose(&source);
+    driver_check(driver_write_file(source.data, text, strlen(text)), "write C differential fixture");
+    for(var index: usize = 0; index < DriverCProfileCount; index++) {
+        var modern = context.mode == DriverCMode.Profiles;
+        if !modern && index != 0 { break; }
+        var width = index == 0 && modern ? DriverCWidth32 : DriverCWidth64;
+        var target: u8* = modern ? (width == DriverCWidth32 ? "wasm32-unknown-unknown" : "x86_64-unknown-linux-gnu") : null;
+        var graph = driver_execution_command(&context.compiler, source.data, target, "--interpret", null, null, true, null);
+        defer driver_execution_close(&graph);
+        driver_check(graph.code == (fails ? DriverExecutionFailure : DriverExecutionSuccess), "C fixture reference execution");
+        if driver_same(name, "integers") { driver_c_integer_output(&graph); }
+        for(var option: usize = 0; option < DriverOptimizationVariants; option++) {
+            var fast = driver_execution_command(&context.compiler, source.data, target, "--interpret-fast", null, null, option != 0, null);
+            defer driver_execution_close(&fast);
+            driver_c_expect(&fast, &graph);
+            driver_c_variant(context, name, source.data, &graph, width, option != 0);
+        }
+    }
+}
+
+fn driver_test_c_validation(mode: DriverCMode, compiler: u8*, grammar: u8*, tools: u8**, filter: u8*): i32 {
+    var context: DriverCValidation = default;
+    context.compiler = init(DriverDifferentials) { compiler: compiler, grammar: grammar, filter: filter, ..default };
+    context.mode = mode; context.tools = tools;
+    defer bytes_dispose(&context.results);
+    if mode != DriverCMode.Profiles {
+        driver_platform_remove("expected.json");
+        driver_check(driver_text(&context.results, "[\n"), "C expectations array");
+    }
+    if mode == DriverCMode.Downloads {
+        driver_c_download(&context, "desktop-c-raw"); driver_c_download(&context, "desktop-c-optimized");
+        driver_c_download(&context, "mobile-c-raw"); driver_c_download(&context, "mobile-c-optimized");
+    } else { driver_c_cases(&context); }
+    driver_check(context.checks != 0, "C-output filter selects a case");
+    if mode != DriverCMode.Profiles {
+        driver_check(driver_text(&context.results, "\n]\n")
+            && driver_write_file("expected.json", context.results.data, context.results.length), "publish complete C expectations");
+    }
+    print(context.checks);
+    return 0;
+}
+
+fn driver_c_environment(name: u8*): u8* {
+    var value = getenv(name);
+    assert(value != null && value[0] != 0, name);
+    return value;
+}
+
+fn driver_c_installed(mode: DriverCMode): void {
+    var tools: u8*[4];
+    tools[0] = driver_c_environment("TOWER_C_CLANG");
+    tools[1] = driver_c_environment("TOWER_C_GCC");
+    tools[2] = driver_c_environment("TOWER_C_CLANGXX");
+    tools[3] = driver_c_environment("TOWER_C_GXX");
+    var filter = getenv("TOWER_C_FILTER");
+    if mode == DriverCMode.Downloads {
+        driver_test_c_validation(mode, null, null, &tools[0], filter);
+    } else {
+        driver_test_c_validation(mode, driver_c_environment("TOWER_C_COMPILER"),
+            driver_c_environment("TOWER_C_LIBRARY"), &tools[0], filter);
+    }
+}
+
+test() { driver_c_installed(DriverCMode.Profiles); }
