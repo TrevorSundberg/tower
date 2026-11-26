@@ -105754,7 +105754,7 @@ compiles optimized Foundation. The seventh case opens two syntax sessions to
 format, reparse and format again before executing the result.
 
 TowerDefault in tower.tower reaches sem_default in semantic_expressions.tower
-via sem_value and declaration/reset checking. Scalars retain their contextual
+via sem_operand_impl and declaration/reset checking. Scalars retain their contextual
 or explicit type. Aggregate defaults mark the destination for the fill in
 semantic_expression_lowering.tower. semantic_aggregates.tower also handles value
 materialization. Existing default_initialization.tower checks typed, inferred,
@@ -105771,3 +105771,65 @@ order and scopes. All twenty canonical Foundation texts (five programs, two
 widths and two interpreter modes) match their original bytes. Both full Node
 runs passed 7/7 with the same frozen reactors. The complete execution transcript,
 including formatted source and eight diagnostic offsets, also matched.
+
+| Original Node case (line at 3ae475c2) | Current guest input and retained oracle |
+| --- | --- |
+| Scalar types (31) | default_inputs/scalars.tower. Fifteen exact lines include bool, null, unary defaults, argument/return, conditional and unnamed enum zero. |
+| Aggregate storage (42) | aggregate.tower. Sum every byte before and after poisoning and resetting the complete storage. Check pointer, nested and array values. Canonical text still contains fill and excludes the default keyword. |
+| Reset effects (53) | reset.tower. Counts, both neighbors, deferred reset and loop increment produce 1, 1, 0, 8, 0, 0. |
+| Inference and staging (63) | generics.tower. Two inferred calls, two vectors, a later declaration's type, a generic clear and a staged reset retain 0, 0, 42, 0, 0. |
+| Struct copies (75) | The original default_struct_values.tower prints 0, 7, 0. |
+| Diagnostics (78) | Eight complete files in default_inputs/invalid contain the exact former input bytes. Each Wasm compile still checks error status and the original message predicate. Offsets 19, 19, 23, 53, 35, 45, 49 and 45 match the original invocations. Importing these files would prevent a contextual test body from running. |
+| Formatting and Foundation identifier (90) | format.tower and identifier.tower preserve the exact parser inputs. Wasm still checks both parse completions, first formatter success, byte-idempotence, and execution of the formatted source and the Foundation identifier. The native companion also checks the typed Item reset. |
+
+Host 2 built the native test compiler from 3ae475c2 with the public Linux x64
+bootstrap 0100aa61, LLVM 19.1.7, six Ninja jobs and one compiler worker.
+The compiler SHA-256 is
+9f750a0b4f9b979c7ddb7c854263930faa9c3ba987733936965fc4e550483be9.
+The unchanged Wasm reactors have manifest compiler source 902a358f. The Node
+module registry and syntax inputs came from this checkout. Hardware was a
+Ryzen 5 3600, six cores/twelve threads, quota 11.52 CPUs. Timed test commands
+used fresh processes on CPUs 0–3 against warm files, one command at a time.
+
+| Selection | Tests before / after | Wall seconds before / after | User + system seconds before / after | Peak process RSS KiB before / after |
+| --- | ---: | ---: | ---: | ---: |
+| Node, all original selectors | 7 / 7 | 2.11 / 2.13 | 4.23 / 4.33 | 317012 / 313212 |
+| Semantic expression owner, jobs 1 | 3 / 9 | 8.55 / 8.60 | 8.51 / 8.58 | 679720 / 687336 |
+| Owner, jobs 4 | 3 / 9 | 6.20 / 6.25 | 10.13 / 10.16 | 690780 / 699824 |
+| Companion directly, jobs 1 | new / 6 | — / 8.49 | — / 8.48 | — / 676364 |
+| Companion directly, jobs 4 | new / 6 | — / 6.12 | — / 10.00 | — / 692492 |
+
+The Node rows are per-column medians of three paired runs. The native rows are
+individual runs and include the cost of compiling the owner's import graph.
+The ordinary owner object compiled in 15.30 / 15.26 seconds before / after,
+producing identical object and depfile bytes. Replacing the companion with a
+missing import in an isolated copy also left both ordinary outputs identical.
+Test selection in that copy named the missing import and exited 1.
+Replacing the first i32 default with default(i32) + 1 failed in the original
+Node test at 21:98 and in the companion at its assertion site, 12:5. Both
+exited 1. Both native interpreters ran all five standalone programs, and the emitted
+executables matched their respective output files. Each of the eight negative
+files exited 1 with the same diagnostic and position at jobs 1 and 4. The
+native source formatter reproduced the same bytes on its second pass.
+
+Both fully instrumented compiler builds reached a read at address 0x28 in
+syntax_reader_span from module_validate_cycles before the real owner tests
+could execute. The same fault reproduces on the unmodified public owner.
+In frontend_modules.tower the cycle walk initializes the reader's match kind.
+syntax_reader_span consults reader.source.text.length. The currently empty
+reader source there needs a separate compiler investigation. ASan exited 1
+and TSan exited 66. These are compiler execution failures after startup.
+
+For narrower coverage, both instrumented compilers interpreted the five real
+standalone guest scripts at four jobs. Each separately instrumented Linux x64
+guest and runtime also ran with its original output. The byte-identical six
+contextual assertion bodies passed both sanitizers at one and four jobs in a
+fixture-only selection, using an evidence-only empty owner to omit the cyclic
+compiler imports. The full-owner sanitizer failure remains open. Tower supplies
+address and thread instrumentation. Source-language UBSan coverage is unavailable.
+
+Packet 975b3707-132f-47ba-9fc7-6d84babce99c contains the complete assertion
+mapping, frozen inputs, reactors, source-built compiler, raw streams, commands,
+times, link maps, controls and Git bundle. Space before the build was
+56,440,700,928 bytes available. The native compiler build peaked at 785,072
+KiB process RSS. No release-cache build or publication was performed.
