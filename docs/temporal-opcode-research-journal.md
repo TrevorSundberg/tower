@@ -105326,6 +105326,40 @@ reference check; receipt aa5e7156 includes the standalone link and failure
 log. Host 1 owns diagnosis under 076d1afd. No performance measurements apply
 to publishing the inventory, which changes neither the compiler nor its assets.
 
+### WorkGraph scheduling cases through semantic test collection
+
+Host 2 froze public `6c31f333` for assignment `4ba04cf5-16b5-41f4-9302-bd078b641a69`
+and applied the three test-language commits from `a01617e3..1b8b20cb` in its
+validation tree. The candidate adds eight [adjacent test blocks](../scaffolding/library/work_graph_test.tower).
+The 184 source assertions preserve the legacy conditions and their order,
+including the shared request helper's nonzero handle check at 18 call sites.
+The existing browser registration still runs the original script and checks
+its printed failure count across its backend matrix.
+
+The bundled `test-declarations` selector passed its stock fixtures. For this
+experiment its test fixture accepted the explicit companion import and expected
+count, saved the collected Foundation, and allowed enough interpreter steps
+for the real graph. The existing world, budget, compile, step, report and
+disposal paths ran at one and four compiler jobs. Graph and Fast executed the
+suspension and diamond cases first, then all eight. The four full outputs were
+empty and their 429,605-byte Foundation files matched. All eight calls carried
+their companion declaration offsets in source order. Selecting only the owner
+collected zero. Ordinary library compiles emitted identical depfiles and
+Foundation even with a broken import in the adjacent file. Accepting a retired
+ticket at the first stale finish assertion produced exit 1 at line 36, column 5
+at both widths. The assertion uses the original module source map.
+
+On Linux x64 the exact collected program also ran natively and under ASan/LSan
+and initialized TSan. The guest exercised coordinator calls in sequence.
+Source-language UBSan and browser execution of the new declarations remain
+open. On the Ryzen 5 3600, affinity 0–3, quota 11.52 CPUs and cgroup cap
+32,222,740,480 bytes, one warm-cache Graph/Fast verification process per width
+took 0.83/0.88 s wall and 0.82/1.07 s CPU, with peak RSS 120,148/132,484 KiB.
+Both worlds released all charged bytes and lanes. The evidence archive includes
+the line-by-line oracle map, the test-fixture diff, the failed configure/build
+attempts, matched Foundation replay samples, link maps and the deliberate
+failure. Adoption by ordinary released tooling remains a separate gate.
+
 ### Borrowed foreach on fixed-size arrays
 
 A pointer to a fixed array carries an element type and a checked extent.
@@ -106303,3 +106337,62 @@ the IDE export also fails the documented npm IDE prerequisite. Its counted-loop
 selection passes through `npm run test:node`. Packet
 `b6aaeb66-98c8-4dd3-8c8a-0f2c76d9ccfe.tar.gz` contains the matched samples,
 exact inputs, failure controls, complete npm output and runnable source bundle.
+### WorkGraph suspension through the installed development CLI
+
+Host 4, assignment `7c453851-3d07-4bca-9b13-300cc72456df`. Public
+`a5c4b40f` and candidate `6892489b` are both parents of the source merge
+`5b1c3967`. All six required members and both producer archives matched the
+transfer manifest. Each loose member also matched the bytes in its archive.
+The sealed Ubuntu x64 compiler package from `3ae475c2` had SHA-256
+`ddec8a02b149f80932b2120476422f502b97b3ee587b8de418d221609fc5cc74`.
+All 59 installed payload checks passed. The executable SHA-256 was
+`02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7`.
+
+In the predecessor packet, the adapted selector reported zero for the owner
+and eight for the explicit import. Here the installed `towerc --test` on
+the public source export reported zero for the bare owner before adding the
+companion. Adding the unchanged candidate beside it selected eight. Owner and
+explicit companion each passed at one and four jobs with empty guest stdout.
+The detailed reports had the same eight source locations in order. Both
+file inventories named just the adjacent companion. The unmodified legacy
+script printed exactly `0\n` with empty stderr at each width. The
+[map](evidence/work_resume_check_map.tsv) matched all 184 conditions and
+line numbers in both source files. Reversing the first retired-ticket finish
+check made the original script print `1\n` and still exit zero. The same edit
+to the assertion made both CLI entries exit 1 with empty stdout and one
+diagnostic at `work_graph_test.tower:36:5: Assertion failed`, at both widths.
+
+The ordinary owner compile with `--library --emit foundation --depfile`
+produced byte-identical Foundation and depfiles with the sibling present
+and absent at both widths. No companion, testing module or host memory
+module appeared in the depfile. Separate ordinary source formatting outputs
+also matched. Combining formatting with library/depfile options returned
+the driver's unsupported-options diagnostic. In a regular Linux native
+CMake configure with driver tests enabled, CTest preserved the 41 previous
+commands and properties and discovered four new ones. The test target path
+pointed to the sealed executable for this run. All four passed. Removing the
+sibling or reducing it to seven cases made the registered owner CTest fail.
+The existing semantic iteration owner also passed with the newly reachable
+WorkGraph cases. Its detailed report contained eleven passes.
+
+The checkout companion imports the existing Tower allocator implementation
+from `scaffolding/host/memory.tower`. The normal interpreter commands used
+only their input and installed CLI resources, with no external link input.
+Pointing the same executable at CMake's copied `share/tower/library` owner
+instead exposed an incomplete source closure. Its copied companion reported
+`Cannot read imported module: ../host/memory` at 2:21. The qualified entry
+points use the source checkout. Standalone resource-copy execution and
+successor package publication are outside this qualification.
+
+On Debian 12 x64, Ryzen 7 5800H (8 cores/16 threads), CPU quota 15.36,
+affinity 2–5, each sample was a fresh process with warmed files. The host
+timing lock serialized three repetitions per CLI entry and width. At jobs
+1/4, median wall time in seconds was 0.35/0.37 for the legacy script,
+0.46/0.49 for the owner and 0.46/0.49 for the companion. Corresponding
+median CPU times were 0.35/0.45, 0.45/0.60 and 0.45/0.61. Maximum process
+RSS in KiB was 118440/123276, 116852/127072 and 116860/127220. These
+measure the full commands including selection, interpretation and reporting.
+The CLI exposes no per-test allocation counter. The guest calls the graph
+coordinator sequentially. The predecessor's guest sanitizer and backend
+evidence belongs to its own run. This registration changes no compiler,
+scheduler or allocator code. Browser selectors remain active.

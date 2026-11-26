@@ -94,3 +94,24 @@ states are 629074146 and 863989070. The test-only Wasm module
 `tests/utf8_wasm_cases.tower` passes each borrowed byte span or unsigned scalar
 to JS synchronously. It compiles separately from the import-free codec under test.
 The existing native exhaustive and protected-page UTF-8 CTest remains active.
+
+### WorkGraph suspension cases on the native CLI
+
+From the repository root, the development compiler from `3ae475c2` runs all
+eight cases with either command. Use `--jobs 4` to exercise the other
+registered compiler width.
+
+```sh
+towerc --test scaffolding/library/work_graph.tower --test-details --jobs 1
+towerc --test scaffolding/library/work_graph_test.tower --test-details --jobs 1
+```
+
+The native CTest names are `tower-work-resume-owner-{1,4}` and
+`tower-work-resume-direct-{1,4}`. The [184-site map](evidence/work_resume_check_map.tsv)
+pairs each legacy check with its companion assertion. This includes the nonzero
+task ID check in the shared request helper. On success the legacy
+`scaffolding/tests/work_resume.tower` script prints a zero failure count. The
+companion writes empty guest stdout and reports its eight locations on stderr.
+The original `work_resume` browser registration still exercises its backend
+matrix. Run the CLI commands against the source checkout so the companion can
+import `scaffolding/host/memory.tower`.
