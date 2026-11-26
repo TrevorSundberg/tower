@@ -115284,3 +115284,78 @@ timing lock, measured original/changed wall seconds of 1.63/2.39 portable and
 2.57/3.52 shared. CPU seconds were 2.38/3.46 and 4.26/5.55, with peak RSS
 188788/224868 and 339988/390384 KiB. These single process samples include the
 extra assertion VM and test compilation. The production frontend is unchanged.
+
+### Project ZIP and mounted drive on the same two shipping frontends
+
+The other three original Node registrations now select archive_test,
+rejection_test and remount_test in playground/tests/project_storage_cases.
+The archive case builds the Unicode input in Tower, adds the sibling source
+and binary fixture, then reads the real import result after the Blob promise
+settles between interpreter steps. It compares all 7,700,000 payload bytes,
+the two file records in order, both builtin sources, three link bytes,
+active file and fresh ID. It also reads names and offsets from the six
+physical local headers and central directory entries in the exported Blob.
+The rejection case checks all seven paths, the folder conflict, byte 70 XOR
+1, the invalid blob and duplicate records. The drive case opens descriptor
+4 through the mounted WASI preopen, observes BADF after remount, and checks
+the retained bytes, file count and live descriptor after a refused mount
+containing one valid prefix. The isolated original refused mount also runs.
+
+The first per-word ZIP loop exhausted the selected interpreter budget.
+Comparing word pointers inside a function with a single assertion at the
+caller finished in 9,205 execution calls including the initial check.
+The ZIP directory probe initially used unsupported hexadecimal literals,
+then used sizeof on a value. Named decimal signatures and sizeof(decltype)
+worked. A draft refusal probe inserted its valid prefix twice and reached
+the duplicate-path diagnostic first. The final fixture separates the original
+refusal from the one-prefix case. Logs include these failed attempts.
+
+Host 7 ran Node v24.22.3 on an AMD EPYC 7502, 32 physical cores with SMT,
+affinity CPUs 0–63, quota 3071999/100000 (30.72 CPUs) and cgroup memory
+limit 91,586,822,144 bytes. Each fresh Node process ran one test file on
+a warm filesystem under the host timing lock. The portable image was serial,
+the shared subject used its default capacity 4 and each checker capacity 1.
+Three trials rotated original, frontend-only and complete sources. Measurements
+include file loading, host and VM startup, compilation, ZIP work and disposal.
+
+| Profile and revision | Median wall s | Median user + system s | Max RSS KiB |
+|---|---:|---:|---:|
+| Portable, original | 1.63 | 2.38 | 192,520 |
+| Portable, frontend cases | 2.31 | 3.43 | 220,976 |
+| Portable, all eight | 4.13 | 5.43 | 277,072 |
+| Shared, original | 2.47 | 4.14 | 341,488 |
+| Shared, frontend cases | 3.50 | 5.46 | 398,344 |
+| Shared, all eight | 5.54 | 7.79 | 447,220 |
+
+The added time and memory include two assertion VMs, two additional
+diagnostic programs, physical archive inspection and the guest copy and full
+comparison of the large payload. The ZIP checker reported 19,602,592 guest
+memory bytes before handle destruction and zero for that handle afterward
+on each image. The original successful subject executions used 4,194,304.
+These are sampled interpreter memory lengths. Production allocator grants
+and per-job contention are unavailable on these packaged images.
+
+On both profiles all eight original and all eight migrated registrations
+passed, with zero skipped. Independent capture runs matched all 52 reference
+observations in order among 59 final observations, including exact subject
+outputs, Foundation metadata, errors, ordered dependencies, all three input
+blobs and drive states. Each run separately checked ID freshness before
+normalizing random UUIDs. The exported 7,708,578-byte ZIP had SHA-256
+c8cfcc9883314f05bee9b283fb182d27484dc1986baf48dee75f62302e30d041
+on both versions and images. The two images came directly from Pages
+8417c9ae4cd9accdf672b22d6676bd465c8a79d6, with manifest build source
+0da4e5137453044c9fff9eba262537608de31b6f. Its JS source maps matched the
+checkout's project, archive, WASI and Tower hosts byte for byte.
+
+Fifteen storage expectation changes failed individually on each image,
+including a one-byte change at the end of the Unicode oracle. Each restored
+selection passed. With the frontend cases this gives 48 negative exits 1
+and 48 restored exits 0. All 14 module-resolution and two module-path
+registrations passed on both images after the optional promise-settling
+hook was added to the selected-case transport. Explicit V8 bounds and stack
+checks with the Wasm trap handler disabled passed both images. Node's test
+subprocess could not start the flagged shared workers because of inherited
+execArgv. Running with test isolation disabled completed that check. No
+native compiler or allocator was rebuilt or sanitized in this browser test
+migration. The manager packet includes the commands, raw TAP, observations,
+ZIPs, control diffs, source map, timing samples and local commits.
