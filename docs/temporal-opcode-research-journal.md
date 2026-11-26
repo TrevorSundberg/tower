@@ -114069,3 +114069,40 @@ no-argument aggregate. The observed CLI again reproduced the base trace.
 Fresh ASan/LSan and TSan runs on the integrated provider (1,621 parser
 definitions) passed on their first launches with the original suite output.
 The paired performance table uses the assigned-base providers throughout.
+
+### Four selected tests for the native contextual lexicon
+
+Host 6, assignment a42f0661, started from published `eb1bdbe4eebf5ea8dc9a4ddc958766e0de78ab90` in a private checkout of main. The shared checkout had seven unpublished commits. A parser-only Release build reproduced the original `tower-lexicon` CTest. The first configure needed the explicit checked-in compiler path and the second needed LLVM 19's bin directory on PATH.
+
+`tests/syntax_lexer.tower` is the fixture owner used by the parser's suite switch, the frontend's `RESOURCE_ROOT lexicon` switch and their aggregates. Its exported function retains the original order and shares one warm pattern, compiler world and allocation baseline across all four groups. The companion holds the assertions and provides individually runnable groups. The differential and fault-injection selections each open and close their own warm fixture. The previous reader registration already defines a shared library containing the real parser services and fault allocator in this native configuration.
+
+| Original group | Selected case in syntax_lexer_test.tower | Checks |
+| --- | --- | --- |
+| MT19937 check and `lexicon_test_differential` | First | Checks the reference draws, then 15 fixed inputs and 150 generated with seed 1279613001. Independent skip, identifier, declaration and selection results cover every offset through length + 1, six contexts and both declaration modes. Checks ties, style, LR query upper bounds, pinned entities and live buffers. |
+| `lexicon_test_declaration_prefix` | Second | The same two literals select shorter accepted punctuation, ordinary longest match or longest match without a parser context. |
+| `lexicon_test_matching_queries` | Third | No match, accepted match, rejected match, short punctuation fallback and ordinary punctuation retain LR query counts 0, 1, 1, 3 and 0. |
+| `lexicon_test_failures` | Fourth | Refuses creation and token, literal and declaration-start insertion. Checks empty state, token retry, survival of that token and absence of a partial declaration. |
+
+Direct and owner discovery each ran four lexicon declarations and zero transitive declarations. An initial owner expectation of nine copied the reader suite's transitive count and failed the exact-summary guard at both widths. The detailed inventory showed only the four locations in the lexicon companion. The original oracle and random generator files retain their base blobs.
+
+All 50 original assertion messages remain in the companion. From the token constants through the last query test, replacing `utility_check` with `assert` makes the parent and candidate source blocks byte-identical. The independent oracle retains its three allocation guards and MT19937 its four reference checks. Separate observed runs recorded the bytes of all 165 inputs, 1,612 offsets and 20,956 paired choices. Each choice record includes length, token ID, skip flag, LR checks and style. Parent and candidate parser traces matched byte-for-byte, including the original summary. The four selected runs matched the same trace through its final choice. The pinned differential phase started with 183 entities and 634 live buffers in every trace. The ordinary runs retain the checks on allocations during selection, on releasing the fixture, and again after world disposal.
+
+On Linux x86-64 the original parser CTest, candidate parser CTest and frontend `RESOURCE_ROOT lexicon` selector printed the same summary. Each executable linked the actual services from source at the assignment revision, with the candidate fixture as the only source delta affecting the cases. Rebuilding the old and new suite objects at jobs 1 and 4 gave byte-identical objects across widths within each revision. Relinking each of those four objects into the parser and invoking `--suite lexicon` reproduced the summary. The selected CTests use the existing reader shared library and native test runtime. Setting the expected short-punctuation LR query count to 2 made all five candidate CTests fail and the frontend switch abort. All four selected failures reported the original assertion text at `syntax_lexer_test.tower:276:5`. Restoring 3 recovered the exact companion, suite object and parser binary hashes. All five CTests and the frontend selector passed again.
+
+The compiler was the checked-in Linux x64 pin from `41de9006`, package `7e34072d`, executable SHA-256 `e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`. All 60 package entries verified. The build used Clang/LLVM 19.1.7, Release, x86_64-pc-linux-gnu, four outer Ninja slots and one compiler job per object. Host 6 exposed 12 logical CPUs (Intel Xeon E5-2680 v4), affinity 0–11, quota 1152000/100000 µs and memory.max 32282509312 bytes.
+
+Under the host timing lock, one warm-up round preceded three measured rounds on a warm filesystem, with the parent/candidate order reversed each round. The object measurements compiled each revision's fixture against the same grammar. The prelinked runs used the same provider objects. The table gives componentwise median wall, user and system seconds and the largest process peak RSS in KiB.
+
+| Invocation | Parent wall / user / sys / RSS | Candidate wall / user / sys / RSS |
+| --- | --- | --- |
+| Compile suite object, jobs 1 | 0.70 / 0.65 / 0.05 / 105144 | 0.86 / 0.80 / 0.06 / 110512 |
+| Compile suite object, jobs 4 | 0.77 / 0.76 / 0.06 / 111484 | 1.02 / 1.05 / 0.08 / 123144 |
+| 20 fresh prelinked suite processes | 0.12 / 0.10 / 0.02 / 3284 | 0.12 / 0.10 / 0.02 / 3320 |
+| Compile and run owner, jobs 1 / 4 | | 0.91 / 0.80 / 0.08 / 111888 and 1.06 / 1.05 / 0.12 / 123960 |
+| Compile and run companion, jobs 1 / 4 | | 0.90 / 0.83 / 0.06 / 112020 and 1.03 / 1.04 / 0.10 / 123980 |
+
+The suite object shrank from 27,352 to 24,440 bytes. The extra companion and testing grammar cost 0.16 s at one compiler job and 0.25 s at four in this object-build comparison. Four jobs increased elapsed time on this small compilation. Guest assertions and injected refusals use the serial transport at both widths.
+
+Focused ASan with leak detection and TSan each passed the restored parser switch on the first launch. The Tower LLVM tool instrumented 38 fixture/oracle definitions and 1,616 parser-node definitions, including the production selector. Link maps show the instrumented objects, the serial work provider and the fault allocator. The other linked objects were ordinary builds. The Tower IR tool supports address and thread modes only. The fixture runs provide no concurrent guest coverage. The packet includes the exact invocations, both link maps, count-guard and wrong-value failures, traced rows, measurements and a source bundle for manager integration.
+
+The restored no-argument parser aggregate passed its registered CTest (2.78 s elapsed, 50,472 KiB). Looking for a frontend aggregate CTest in the focused native cache returned no registrations and a nonzero status with `--no-tests=error`. Running that executable directly with the scaffolding resource root reached its final lexicon call and passed (98.33 s elapsed, 97.61 s user, 0.71 s system, 190,268 KiB). Both incremental builds then reported no work. Publication belongs to the manager.
