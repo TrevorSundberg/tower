@@ -107337,3 +107337,58 @@ generated build registry retained all 192 entries and the original driver
 arguments on all twelve wrapped commands. The manager separately checked the
 twelve installed registrations' paths and counts. The first worker matrix
 executed the SCC and SHA-256 registrations on its relocated installation.
+
+## Running adjacent compiler project tests on the frozen browser release
+
+Host 3, 2026-11-26, assignment `6d5bc862-5056-4e6a-b0e0-5ecc6e092249`.
+Source `8bc867b6` and Pages candidate `c9773ec3` supplied 603 editable files,
+12 paths ending in `_test.tower` and 25 ordinary object units. The editor hid
+Run tests for the compiler project and routed every execution to Rebuild.
+The UTF-8 companion also imported two missing Tower files. With the original
+project, Tower first reported `../tests/utf8_cases` on line 3 of the companion.
+
+The Linux release compiler's `--list-test-files` depfiles identified 29 test
+source paths across the actual owner/companion pairs. One was already in the
+project. Commit `9307da87` packages the source text at the same lexical paths.
+The frozen-recipe driver used the package source reader and JSON writer with
+the retained units and reactor arguments. Before the change it reproduced
+`747b999f27425cd11a196ba145f524d5c84dab8b1cac711b10f7a7773c987c78`.
+Afterward every original row matched and all 28 additions matched release
+source. The 631-file recipe hash is
+`e79e8ec2171d66bcbe9f6f064da8b552981156992ead60bee2bd59d469fcfcec`.
+
+Commit `29930ddd` sends a selected document to the interpreter through the
+existing test request. It records source edits as soon as a build is scheduled
+so file selection after cancellation cannot rearm the edit timer. Desktop and
+mobile Chromium ran both `generic_body_types` and `utf8` by owner and direct
+companion. Reversing an equality selected the assertion at companion line 15,
+column 5. Restoring it passed. Renaming the UTF-8 input reproduced the stock
+diagnostic, and restoring its path passed 95,188,364 interpreter steps. A
+renamed `_spec.tower` companion ran from either selection under that suffix.
+The ordinary Rebuild button dispatched a 631-file build request. The observer
+stopped it before object generation. Both profiles drained their workers.
+
+Nine owners ran nonzero tests. Six semantic owners discovered the same 17
+tests across their imports. Their direct companions selected 2, 3, 3, 6, 1 and 1
+respectively for control, defer, expression lowering, expressions, iteration
+and layout. LR selected four. Each generic-body and UTF-8 request selected one.
+The execution-session and test-file-rule helpers selected zero. Explicit
+diagnostic-only Tower calls to the helpers reached unavailable foreign providers
+`work_signal_open` and `compiler_world_create_workers`. The Linux runtime
+provider `host/guest_native_test.tower` has no corresponding owner. Its
+registered entry points use file descriptor 3 to report native results.
+
+A single object worker compiled the 25 ordinary units with the baseline,
+expanded project and reversed assertion. All per-unit source lists and object
+hashes matched. The compiler reported 427 distinct paths including unit
+entries. All twelve companion paths and all 28 added paths were absent.
+The existing `tests/utility_checks.tower` was an ordinary dependency. On the
+same EPYC 7542 host, the candidate runs took 97.07 and 97.94 s and peaked at
+796,588 and 808,300 KiB respectively. Native package serialization took 0.05 s
+for each input. AddressSanitizer exercised the shared reader, normal output and
+missing/invalid input recovery. The stock UI build with both backend and thread
+requirements reproduced the candidate bundles. The deployment verifier passed
+on loopback. The candidate Pages tree is `8949f831bbb033db036a523b8b5a0cf0002b9159`.
+The manager holds integration and hosted verification. The assignment packet
+contains raw per-entry imports, requests, results, source and deployment bundles,
+replay commands and resource measurements.
