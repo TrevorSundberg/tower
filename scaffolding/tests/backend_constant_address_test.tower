@@ -1,4 +1,4 @@
-import library.testing;
+import .library.testing;
 import backend_constant_address_api;
 import .library.bytes_interface;
 import .library.bytes_types;
@@ -9,6 +9,10 @@ extern fn getenv(name: u8*): u8*;
 extern fn strcmp(left: u8*, right: u8*): i32;
 extern fn strstr(text: u8*, part: u8*): u8*;
 extern fn memcmp(left: u8*, right: u8*, size: usize): i32;
+
+fn constant_operand_verified(valid: bool): void {
+    assert(valid, "Unsupported constant remains valid LLVM");
+}
 
 fn constant_operand_check(result: ConstantOperandResult*, prior: bool): void {
     var wanted = prior ? "Earlier constant operand error" : "Unsupported LLVM value in foundation return path";
@@ -35,7 +39,7 @@ fn constant_address_case(width: u8*, workers: u8*, output: u8*): void {
     assert(runtime != null, "Supply the Wasm runtime object for backend reconstruction");
     var args: u8*[9] = {"backend-source", ".tower/bedrock.tower", ".tower/foundation.tower", runtime,
         ".tower/tests/backend_constant_address.tower", output, width, workers, "constant-address"};
-    var checks: ConstantAddressChecks = {operand: constant_operand_check, compiled: constant_address_check};
+    var checks: ConstantAddressChecks = {verified: constant_operand_verified, operand: constant_operand_check, compiled: constant_address_check};
     assert(backend_source_native_run(convert(i32, sizeof(decltype(args)) / sizeof(u8*)), &args[0], &checks) == 0,
         "Write the checked Foundation and optimized LLVM");
 }

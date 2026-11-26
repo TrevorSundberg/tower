@@ -1,0 +1,20 @@
+import tower;
+import backend_source;
+import backend_source_native_test;
+import backend_clock_native;
+import backend_constant_operand_checks;
+import backend_constant_address_api;
+import backend_constant_address_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 4 && strcmp(argv[1], "--constant-address-equal") == 0 {
+        constant_address_equal(argv[2], argv[3]);
+        return 0;
+    }
+    var checks: ConstantAddressChecks = {verified: constant_operand_verified, operand: constant_operand_check, compiled: constant_address_check};
+    return backend_source_native_run(argc, argv, &checks);
+}
+
+export fn backend_source_native_run(argc: i32, argv: u8**, checks: ConstantAddressChecks*): i32 {
+    return backend_source_cases(argc, argv, checks);
+}

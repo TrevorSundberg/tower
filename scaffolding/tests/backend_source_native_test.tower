@@ -1,0 +1,305 @@
+import .library.testing;
+import backend_source_test;
+import backend_source_native;
+import backend_constant_address_test;
+import backend_constant_address_api;
+import .backend.source_session;
+import .backend.session;
+import utility_checks;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .compiler.syntax_version_types;
+import .compiler.grammar_types;
+import .compiler.parser_types;
+import .compiler.component_kinds;
+import .library.work_vector;
+import .library.work_vector_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+
+// Read existing joined owners only. These physical categories overlap logical
+// payload counts below; they must not be added to the ledger a second time.
+fn reconstruction_storage(probe: ReconstructionProbe*, store: EntityStore*): void {
+    var rows: usize = 0; var single: usize = 0; var single_bytes: usize = 0;
+    var components: usize = 0; var children: usize = 0; var instances: usize = 0;
+    var indexes: usize = 0;
+    for(var bucket: usize = 0; bucket < sizeof(decltype(store.tables)) / sizeof(EntityTable*); bucket++) {
+        var table = store.tables[bucket];
+        while table != null {
+            indexes += reconstruction_buffer(bits(u8*, table.rows));
+            for(var i: usize = 0; i < table.length; i++) {
+                var node = table.rows[i]; rows++;
+                // The first index is descriptor-owned on inline Entities.
+                var bytes = node.components == &node.inline_components[0] ? 0
+                    : reconstruction_buffer(bits(u8*, node.components));
+                components += bytes;
+                if node.children != &node.inline_children[0] {
+                    children += reconstruction_buffer(bits(u8*, node.children));
+                }
+                instances += reconstruction_buffer(bits(u8*, node.instances));
+                if node.component_count == 1 { single++; single_bytes += bytes; }
+            }
+            table = table.next;
+        }
+    }
+    var payload_pages: usize = 0; var descriptor_pages: usize = 0;
+    var page = store.storage.owned;
+    while page != null { payload_pages += compiler_buffer_allocation_size(page.allocation.capacity); page = page.owned_next; }
+    page = store.buffers.owned;
+    while page != null { descriptor_pages += compiler_buffer_allocation_size(page.allocation.capacity); page = page.owned_next; }
+    var snapshot: WorkBudgetSnapshot = default;
+    assert(rows <= store.entity_count && work_budget_snapshot(probe.budget, &snapshot)
+        && payload_pages + descriptor_pages + indexes + components + children + instances <= snapshot.used_bytes,
+        "Joined physical storage categories do not double count");
+    printf("indexed_entities=%zu single_components=%zu single_index_bytes=%zu component_indexes=%zu child_indexes=%zu instance_indexes=%zu table_indexes=%zu\n",
+        rows, single, single_bytes, components, children, instances, indexes);
+    printf("payload_page_bytes=%zu descriptor_page_bytes=%zu unindexed_entities=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        payload_pages, descriptor_pages, store.entity_count - rows, 0, 0, 0, 0);
+}
+
+fn reconstruction_census(probe: ReconstructionProbe*, parsed: bool): void {
+    var store = bits(EntityStore*, compiler_world_store(probe.world));
+    reconstruction_storage(probe, store);
+    for(var id: u32 = 0; id < CompilerComponentCount; id++) {
+        var kind = bits(Entity*, compiler_world_type_existing(probe.world, id));
+        if kind == null { continue; }
+        var pages: usize = 0; var slots: usize = 0; var live: usize = 0; var bytes: usize = 0;
+        var page = store.storage.owned;
+        while page != null {
+            if page.type_id == kind.id {
+                pages++; slots += page.capacity; live += page.live;
+                bytes += compiler_buffer_allocation_size(page.allocation.capacity);
+            }
+            page = page.owned_next;
+        }
+        printf("kind=%zu count=%zu payload=%zu pages=%zu slots=%zu page_live=%zu page_bytes=%zu\n",
+            convert(usize, id), kind.instance_count, kind.instance_count * kind.layout.data_size, pages, slots, live, bytes);
+        if id == CompilerFoundation { reconstruction_foundation_pages(store, kind); }
+    }
+    var usage: ReconstructionUsage = default;
+    assert(getrusage(0, &usage) == 0, "Joined native process memory");
+    printf("peak_rss_kib=%zu entities_bytes=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        convert(usize, usage.peak_rss), store.entity_count * sizeof(Entity), 0, 0, 0, 0, 0);
+    if !parsed { return; }
+    var kind = bits(Entity*, compiler_world_type_existing(probe.world, CompilerParserMatch));
+    var maximum: usize = 0;
+    var rules: work_vector(ReconstructionRule) = default;
+    defer work_vector_dispose(&rules);
+    // Parser IDs include sparse/sentinel values. Size this private diagnostic
+    // by groups actually present, never by the numeric high-water ID.
+    for(var i: usize = 0; i < kind.instance_count; i++) {
+        var component = kind.instances[i];
+        var item = bits(ParserMatchData*, component.data);
+        if convert(usize, item.id) > maximum { maximum = convert(usize, item.id); }
+        var index: usize = 0;
+        while index < rules.length && rules.data[index].id != item.id { index++; }
+        if index == rules.length {
+            var group: ReconstructionRule = {id: item.id, ..default};
+            assert(work_vector_push_result(&rules, probe.budget, group) == WorkBudgetError.None,
+                "Observer histogram group admission");
+        }
+        var row = &rules.data[index];
+        row.label = item.label.data; row.count++; row.bytes += item.label.capacity;
+        if component.owner.child_count == 0 { row.leaves++; }
+        if component.owner.child_count == 1 {
+            var role = component.owner.children[0].name;
+            if role == null || role[0] == 0 { row.wrappers++; }
+        }
+    }
+    var counted: usize = 0;
+    foreach(var &row in &rules) { counted += row.count; }
+    assert(counted == kind.instance_count, "Observer covers every parser component");
+    printf("parse_groups=%zu largest_parse_id=%zu observer_capacity=%zu reserved=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+        rules.length, maximum, rules.capacity * sizeof(ReconstructionRule), 0, 0, 0, 0);
+    var percent: usize = 100;
+    for(var id: usize = 0; id < rules.length; id++) {
+        var row = &rules.data[id];
+        if row.count < kind.instance_count / percent { continue; }
+        puts(row.label ?? "");
+        printf("parse_id=%zu count=%zu leaves=%zu unnamed_wrappers=%zu label_capacity=%zu reserved=%zu reserved=%zu\n",
+            convert(usize, row.id), row.count, row.leaves, row.wrappers, row.bytes, 0, 0);
+    }
+}
+
+fn reconstruction_observe(payload: void*, phase: GrammarPhase, entering: bool, first: usize, second: usize): void {
+    if phase != GrammarPhase.FrontendParse && phase != GrammarPhase.SemanticDispose { return; }
+    var probe = bits(ReconstructionProbe*, payload);
+    var store = bits(EntityStore*, compiler_world_store(probe.world));
+    var snapshot: WorkBudgetSnapshot = default;
+    assert(work_budget_snapshot(probe.budget, &snapshot), "Reconstruction joined budget");
+    if phase == GrammarPhase.FrontendParse && entering {
+        probe.parses++;
+        if probe.parses == 2 && probe.deny {
+            // A real second frontend request, after import/format have joined.
+            assert(snapshot.used_lanes == 0 && work_budget_reserve_result(probe.budget,
+                0, 0, snapshot.bytes - snapshot.used_bytes, &probe.occupied) == WorkBudgetError.None,
+                "Recheck physical admission pressure");
+            assert(driver_write_file(probe.output, probe.source.foundation.data,
+                probe.source.foundation.length), "Preserve pre-recheck public output");
+        }
+    }
+    printf("phase=%zu entering=%zu entities=%zu components=%zu bytes=%zu grants=%zu lanes=%zu\n",
+        convert(usize, phase), entering ? 1 : 0, store.entity_count, store.component_count,
+        snapshot.used_bytes, snapshot.live, snapshot.used_lanes);
+    fflush(null);
+    if probe.census {
+        if phase == GrammarPhase.FrontendParse && entering && probe.parses == 2 { reconstruction_ir(probe); }
+        reconstruction_census(probe, phase == GrammarPhase.FrontendParse && !entering);
+        fflush(null);
+    }
+    if phase == GrammarPhase.FrontendParse && !entering && probe.occupied.active {
+        assert(work_budget_release_result(probe.budget, &probe.occupied) == WorkBudgetError.None,
+            "Recheck pressure released after join");
+    }
+}
+
+fn backend_source_cases(argc: i32, argv: u8**, checks: ConstantAddressChecks*): i32 {
+    var required_arguments: i32 = 4;
+    var reconstruction = argc == 8 || argc == 9;
+    var denial = argc == 9 && strcmp(argv[8], "deny-recheck") == 0;
+    var census = argc == 9 && strcmp(argv[8], "census") == 0;
+    var constant_address = argc == 9 && strcmp(argv[8], "constant-address") == 0;
+    var optimized = argc == 9 && (strcmp(argv[8], "optimized") == 0 || constant_address);
+    assert(argc == required_arguments || reconstruction,
+        "backend source checks: BEDROCK FOUNDATION WASM_RUNTIME_OBJECT [INPUT OUTPUT WIDTH WORKERS [deny-recheck|census|optimized|constant-address]] or --constant-address-equal SERIAL PARALLEL");
+    var workers: usize = 1;
+    var width: u32 = 4;
+    if reconstruction {
+        assert(strcmp(argv[6], "4") == 0 || strcmp(argv[6], "8") == 0, "Reconstruction target width");
+        assert(strcmp(argv[7], "1") == 0 || strcmp(argv[7], "4") == 0, "Reconstruction workers");
+        width = strcmp(argv[6], "4") == 0 ? 4 : 8;
+        workers = strcmp(argv[7], "1") == 0 ? 1 : 4;
+        assert(!denial || (workers == 1 && strcmp(argv[8], "deny-recheck") == 0), "Serial recheck denial transport");
+        assert(argc != 9 || denial || census || optimized, "Known reconstruction observation mode");
+    }
+    var budget: WorkBudget = default;
+    var gate: void* = null;
+    if reconstruction {
+        gate = work_signal_open(); assert(gate != null, "Reconstruction budget gate"); work_signal_post(gate);
+        var bytes: usize = convert(usize, 24) * 1024 * 1024 * 1024;
+        assert(work_budget_init(&budget, workers, bytes, 1)
+            && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post), "Reconstruction bounded budget");
+    }
+    defer {
+        if reconstruction {
+            var final: WorkBudgetSnapshot = default;
+            assert(work_budget_snapshot(&budget, &final) && final.live == 0
+                && final.used_bytes == 0 && final.used_lanes == 0, "Reconstruction final zero owners");
+            printf("final_bytes=%zu grants=%zu lanes=%zu peak_bytes=%zu ledger_bytes=%zu reserved=%zu reserved=%zu\n",
+                final.used_bytes, final.live, final.used_lanes, final.peak_bytes, final.retained, 0, 0);
+            assert(work_budget_dispose(&budget), "Reconstruction ledger disposal");
+            work_signal_close(gate);
+        }
+    }
+    var bedrock: ByteBuffer = default;
+    var foundation: ByteBuffer = default;
+    var runtime: ByteBuffer = default;
+    defer { bytes_dispose(&runtime); bytes_dispose(&foundation); bytes_dispose(&bedrock); }
+    assert(driver_read_file(argv[1], &bedrock) && driver_read_file(argv[2], &foundation)
+        && driver_read_file(argv[3], &runtime), "Read exact backend source test inputs");
+    var fixture: BackendWorldFixture = default;
+    if reconstruction {
+        assert(compiler_world_create_result(workers, &budget, &fixture.world) == WorkBudgetError.None,
+            "Fully accounted reconstruction world");
+    } else { fixture.world = compiler_world_create_workers(workers); }
+    fixture.modules = frontend_modules_create();
+    defer { assert(backend_world_close(&fixture), "Source session fixture ownership drains"); }
+    assert(fixture.world != null && fixture.modules != null, "Source session explicit world");
+    frontend_modules_configure(fixture.modules, "world_input.tower", ".tower");
+    assert(frontend_modules_source(fixture.modules, ".tower/bedrock.tower", bedrock.data, bedrock.length)
+        && frontend_modules_source(fixture.modules, ".tower/foundation.tower", foundation.data, foundation.length), "Source session baseline spans");
+    var diagnostic: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&diagnostic);
+    assert(syntax_baseline_install(fixture.world, fixture.modules, bedrock.data, false, &diagnostic)
+        && syntax_baseline_install(fixture.world, fixture.modules, foundation.data, true, &diagnostic), "Source session baselines");
+    if reconstruction {
+        var input: ByteBuffer = default;
+        if constant_address { backend_constant_operand_rejection(fixture.world, width, checks); }
+        defer bytes_dispose(&input);
+        assert(driver_read_file(argv[4], &input), "Read frozen reconstruction input");
+        fixture.source = backend_source_create(runtime.data, runtime.length);
+        assert(fixture.source != null && backend_session_set_target(fixture.source.backend,
+            width == 4 ? "wasm32-unknown-unknown" : "wasm64-unknown-unknown"), "Reconstruction source target");
+        var saved: ByteBuffer = default;
+        defer bytes_dispose(&saved);
+        var healthy = "import foundation;fn answer():i32{return 42;}print(answer());";
+        if denial {
+            var first = backend_source_compile_world(fixture.source, fixture.world, healthy, strlen(healthy),
+                BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+            assert(backend_source_test_has(first, "\"status\":\"compiled\"")
+                && bytes_append(&saved, fixture.source.foundation.data, fixture.source.foundation.length), "Prior valid canonical owner");
+        }
+        var probe: ReconstructionProbe = {world: fixture.world, budget: &budget, source: fixture.source,
+            output: argv[5], deny: denial, census: census, ..default};
+        compiler_world_grammar(fixture.world).observer = {context: bits(void*, &probe), event: reconstruction_observe};
+        defer compiler_world_grammar(fixture.world).observer = default;
+        var result = backend_source_compile_world(fixture.source, fixture.world, input.data, input.length,
+            BackendSourceImport | (optimized ? 0 : BackendSourceUnoptimized), fixture.modules, null);
+        puts(result);
+        if constant_address {
+            checks.compiled(width, probe.parses, result, fixture.source.backend.backend.optimized,
+                fixture.source.foundation.data);
+        }
+        printf("input_bytes=%zu output_bytes=%zu backend_resource=%zu backend_offset=%zu reserved=%zu reserved=%zu reserved=%zu\n",
+            input.length, fixture.source.foundation.length, convert(usize, fixture.source.backend.backend.resource_error),
+            fixture.source.backend.backend.error_offset, 0, 0, 0);
+        if optimized && fixture.source.backend.backend.optimized != null {
+            var path: ByteBuffer = default;
+            defer bytes_dispose(&path);
+            assert(bytes_append(&path, argv[5], strlen(argv[5]))
+                && bytes_append(&path, ".ll", strlen(".ll")) && bytes_push(&path, 0), "Optimized IR receipt path");
+            var ir = fixture.source.backend.backend.optimized;
+            assert(driver_write_file(path.data, ir, strlen(ir)), "Save actual optimized reconstruction IR");
+        }
+        if denial {
+            var rolled_back = probe.parses == 2 && !probe.occupied.active
+                && fixture.source.backend.backend.resource_error == WorkBudgetError.Capacity
+                && backend_source_test_has(result, "\"resourceError\":\"Capacity\"")
+                && saved.length == fixture.source.foundation.length
+                && utility_equal(saved.data, fixture.source.foundation.data, saved.length);
+            probe.deny = false;
+            var retry = backend_source_compile_world(fixture.source, fixture.world, healthy, strlen(healthy),
+                BackendSourceImport | BackendSourceUnoptimized, fixture.modules, null);
+            puts(retry);
+            var recovered = backend_source_test_has(retry, "\"status\":\"compiled\"")
+                && saved.length == fixture.source.foundation.length
+                && utility_equal(saved.data, fixture.source.foundation.data, saved.length);
+            if !rolled_back { puts("Recheck denial did not preserve the prior canonical output"); return 1; }
+            if !recovered { puts("Recheck retry did not reproduce the prior canonical output"); return 1; }
+            puts("Recheck typed denial / rollback / fresh canonical retry passed");
+            return 0;
+        }
+        assert(driver_write_file(argv[5], fixture.source.foundation.data, fixture.source.foundation.length), "Save exact reconstructed output");
+        return backend_source_test_has(result, "\"status\":\"compiled\"") ? 0 : 1;
+    }
+    var result = backend_source_environment_cases(fixture.modules, runtime.data, runtime.length);
+    if result != 0 { return result; }
+    result = backend_source_world_cases(bedrock.data, foundation.data, runtime.data, runtime.length);
+    if result != 0 { return result; }
+    puts("Backend source sessions/worlds: shared Tower assertions passed.");
+    return 0;
+}
+
+
+extern fn getenv(name: u8*): u8*;
+
+fn backend_source_selected(guest: u8*, output: u8*, width: u8*, workers: u8*, mode: u8*): void {
+    var runtime = getenv("TOWER_CONSTANT_ADDRESS_RUNTIME");
+    assert(runtime != null, "Supply the Wasm runtime object for source session tests");
+    var args: u8*[9] = {"backend-source", ".tower/bedrock.tower", ".tower/foundation.tower", runtime,
+        guest, output, width, workers, mode};
+    var checks: ConstantAddressChecks = {verified: constant_operand_verified, operand: constant_operand_check,
+        compiled: constant_address_check};
+    var argc: i32 = guest == null ? 4 : (mode == null ? 8 : 9);
+    assert(backend_source_cases(argc, &args[0], &checks) == 0, "Backend source session result");
+}
+
+test() { backend_source_selected(null, null, null, null, null); }
+test() { backend_source_selected(".tower/tests/struct_reconstruction_small.tower", "plain.tower", "4", "1", null); }
+test() { backend_source_selected(".tower/tests/struct_reconstruction_small.tower", "denied_recheck.tower", "4", "1", "deny-recheck"); }
+test() { backend_source_selected(".tower/tests/struct_reconstruction_small.tower", "census.tower", "4", "1", "census"); }
+test() { backend_source_selected(".tower/tests/backend_pointer_order.tower", "pointer_order_4_1.tower", "4", "1", "optimized"); }
+test() { backend_source_selected(".tower/tests/backend_pointer_order.tower", "pointer_order_4_4.tower", "4", "4", "optimized"); }
+test() { backend_source_selected(".tower/tests/backend_pointer_order.tower", "pointer_order_8_1.tower", "8", "1", "optimized"); }
+test() { backend_source_selected(".tower/tests/backend_pointer_order.tower", "pointer_order_8_4.tower", "8", "4", "optimized"); }

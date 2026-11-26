@@ -8,7 +8,9 @@ struct ConstantOperandResult {
     children: usize; has_semantic: bool;
 }
 struct ConstantAddressChecks {
+    verified: function(void, bool);
     operand: function(void, ConstantOperandResult*, bool);
     compiled: function(void, u32, usize, u8*, u8*, u8*);
 }
 extern fn backend_source_native_run(argc: i32, argv: u8**, checks: ConstantAddressChecks*): i32;
+extern fn backend_constant_operand_rejection(world: void*, width: u32, checks: ConstantAddressChecks*): void;
