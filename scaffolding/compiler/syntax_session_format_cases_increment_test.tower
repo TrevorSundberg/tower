@@ -1,4 +1,4 @@
-import library.testing;
-import syntax_session_format_cases;
+import library.test_fixtures;
+import syntax_session_format_cases_checks;
 
 test() { check_format_increment(); }

@@ -45,8 +45,8 @@ function(tower_format_tests)
       tower-guest-native-test "${format-test-host_OBJECT}")
     get_property(test_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
     set(owner "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/syntax_session_format.tower")
-    add_test(NAME tower-format-owner COMMAND tower-selected-test-count "5 tests passed for ${owner}" "${TOWER_BOOTSTRAP_COMPILER}"
-      --test "${owner}" --test-suffix _cases_test.tower --jobs 1 --test-details
+    add_test(NAME tower-format-owner COMMAND tower-selected-test-count "22 tests passed for ${owner}" "${TOWER_BOOTSTRAP_COMPILER}"
+      --test "${owner}" --jobs 1 --test-details
       --test-native-runtime "${test_runtime}" --link "${format-test-host_OBJECT}"
       --link "$<TARGET_FILE:tower-format-test-services>" --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-format-test-services>")
     set_tests_properties(tower-format-owner PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")

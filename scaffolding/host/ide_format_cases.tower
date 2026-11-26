@@ -1,0 +1,142 @@
+import tower;
+import ide_api;
+import ide_types;
+import .compiler.execution_session;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.format_types;
+import .compiler.interpreter_types;
+import .compiler.syntax_session_types;
+import .library.vector;
+import ide_syntax;
+import .compiler.execution_fixtures;
+import .compiler.frontend_revision_types;
+
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn strlen(text: u8*): usize;
+extern fn frontend_modules_create(): void*;
+extern fn frontend_modules_source(modules: void*, name: u8*, text: u8*, length: usize): bool;
+extern fn im_memory_size(machine: IMState*): usize;
+extern fn syntax_session_open(world: void*, modules: void*, text: u8*, module: void*, mode: u32): SyntaxSession*;
+
+fn ide_formatter_suite(path: u8*): bool {
+    if strcmp(path, "compiler/syntax_session_format_cases_affixes_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_cases_comments_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_cases_declarations_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_cases_increment_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_cases_refusal_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_cases_test.tower") == 0 { return true; }
+    if strcmp(path, "compiler/syntax_session_format_test.tower") == 0 { return true; }
+    return false;
+}
+
+// A separate registered-only environment holds just the editable fixture bytes.
+// It lives with the test handle across subsequent uploads to the same IDE.
+fn ide_formatter_snapshot(owner: IdeExecution*, modules: void*): bool {
+    owner.format_inputs = frontend_modules_create();
+    if owner.format_inputs == null { return false; }
+    var paths: u8*[14];
+    paths[0] = "compiler/syntax_session_format_inputs/affixes.expected";
+    paths[1] = "compiler/syntax_session_format_inputs/affixes.tower";
+    paths[2] = "compiler/syntax_session_format_inputs/comments.expected";
+    paths[3] = "compiler/syntax_session_format_inputs/comments.tower";
+    paths[4] = "compiler/syntax_session_format_inputs/declarations.expected";
+    paths[5] = "compiler/syntax_session_format_inputs/declarations.tower";
+    paths[6] = "compiler/syntax_session_format_inputs/declarations_foundation.expected";
+    paths[7] = "compiler/syntax_session_format_inputs/increment.expected";
+    paths[8] = "compiler/syntax_session_format_inputs/increment_suffix.tower";
+    paths[9] = "compiler/syntax_session_format_inputs/literal.tower";
+    paths[10] = "compiler/syntax_session_format_inputs/refusal.expected";
+    paths[11] = "compiler/syntax_session_format_inputs/refusal.tower";
+    paths[12] = "examples/increment.tower";
+    paths[13] = "tests/increment_builtin.tower";
+    for (var i: usize = 0; i < sizeof(decltype(paths)) / sizeof(u8*); i++) {
+        var bytes: vector(u8) = default;
+        defer vector_dispose(&bytes);
+        var error = frontend_fixture_read(modules, paths[i], &bytes, false, true);
+        if error != null {
+            if strcmp(error, "Cannot open fixture") == 0 { continue; }
+            return false;
+        }
+        if !frontend_modules_source(owner.format_inputs, paths[i], bytes.data, bytes.length) { return false; }
+    }
+    return true;
+}
+
+fn ide_formatter_result(session: ExecutionSession*, text: u8*, length: usize, size: u64, at: usize): u64 {
+    var address = interpreter_allocate(&session.machine, length + 1);
+    if address == 0 { return execution_fixture_fail(session, "Cannot allocate formatter result", null, at); }
+    var target = interpreter_bytes(&session.machine, address, length + 1, at);
+    if target == null { return 0; }
+    if length != 0 { copy(target, text, length); }
+    target[length] = 0;
+    var word: FoundationType = { scalar: SUSize, pointer_bytes: session.program.pointer_bytes, ..default };
+    interpreter_write(&session.machine, size, convert(u64, length), &word, at);
+    return address;
+}
+
+fn ide_formatter_call(owner: IdeExecution*, name: u8*, args: u64*, count: usize, at: usize): u64 {
+    var session = &owner.execution;
+    var apply = strcmp(name, "format_case_apply") == 0;
+    if count != (apply ? 3 : 2) || args[0] == 0 {
+        return execution_fixture_fail(session, "Invalid formatter arguments", null, at);
+    }
+    var input = interpreter_bytes(&session.machine, args[0], 1, at);
+    if input == null { return 0; }
+    var available = im_memory_size(&session.machine) - convert(usize, args[0]);
+    var length: usize = 0;
+    while length < available && input[length] != 0 { length++; }
+    if length == available { return execution_fixture_fail(session, "Unterminated formatter input", null, at); }
+    if strcmp(name, "format_case_read") == 0 {
+        var text: vector(u8) = default;
+        defer vector_dispose(&text);
+        var error = frontend_fixture_read(owner.format_inputs, input, &text, false, true);
+        if error != null { return execution_fixture_fail(session, error, input, at); }
+        return ide_formatter_result(session, text.data, text.length, args[1], at);
+    }
+    var modules = frontend_fixture_child(session.fixtures.modules, "input.tower");
+    if modules == null { return execution_fixture_fail(session, "Cannot open formatter environment", null, at); }
+    defer frontend_modules_destroy(modules);
+    var output: FormatResult = default;
+    defer format_dispose(&output);
+    if apply {
+        var syntax = bits(void*, syntax_session_open(frontend_modules_world(modules), modules, input, null, SyntaxFoundationBaseline));
+        if syntax == null { return execution_fixture_fail(session, "Cannot open formatter session", null, at); }
+        defer syntax_destroy(syntax);
+        loop {
+            var root = syntax_next(syntax);
+            if root == null { break; }
+            entity_release(root);
+        }
+        var error = syntax_get_error(syntax);
+        if error[0] != 0 { return execution_fixture_fail(session, error, null, at); }
+        var formatted = syntax_format_into(syntax, &output, &error);
+        if !formatted {
+            if args[1] != 0 && error[0] != 0 {
+                return ide_formatter_result(session, error, strlen(error), args[2], at);
+            }
+            return execution_fixture_fail(session, error, null, at);
+        }
+        if args[1] != 0 { return execution_fixture_fail(session, "Expected formatter refusal", null, at); }
+    } else {
+        var child: ExecutionSession = default;
+        defer execution_session_close(&child);
+        if !execution_session_compile(&child, input, length, session.program.pointer_bytes, modules) {
+            return execution_fixture_fail(session, child.error.data ?? "Cannot compile formatter input", null, at);
+        }
+        ide_program_format(&child, &output);
+        if output.failed { return execution_fixture_fail(session, "Cannot format Foundation", null, at); }
+    }
+    return ide_formatter_result(session, output.text.data, output.text.length, args[count - 1], at);
+}
+
+fn ide_formatter_foreign(owner: IdeExecution*, node: void*, args: u64*, count: usize, result: u64*): bool {
+    var name = sem_get(node).name.data;
+    if strcmp(name, "format_case_read") != 0 && strcmp(name, "format_case_apply") != 0
+        && strcmp(name, "format_case_foundation") != 0 { return false; }
+    var at: usize = 0;
+    var grant = execution_fixture_grant(&owner.execution, &at);
+    if grant == null || !ide_formatter_suite(grant.companion.data) { return false; }
+    *result = ide_formatter_call(owner, name, args, count, at);
+    return true;
+}

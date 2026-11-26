@@ -1,35 +1,19 @@
 import tower;
-import test_file_rule;
+import .compiler.test_file_rule;
+import .compiler.frontend_modules;
 import .library.vector;
 import .library.work_budget_types;
 
-extern fn frontend_test_selection_open(selection: TestFileSelection*, rule: TestFileRule*, entry: u8*): bool;
-extern fn frontend_modules_test_input_root(world: void*, environment: void*, selection: TestFileSelection*, error: WorkBudgetError*): void*;
-extern fn frontend_module_discover_tests(root: void*, selection: TestFileSelection*, context: void*,
-    probe: function(TestFilePresence, void*, vector(u8)*), pairs: vector(TestFileCompanion)*): bool;
-extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
-extern fn frontend_module_session(module: void*): void*;
-extern fn syntax_read_import(session: void*): void;
-extern fn syntax_get_error(session: void*): u8*;
-extern fn frontend_module_finish(module: void*): void;
-extern fn frontend_module_count(module: void*): usize;
-extern fn frontend_module_name(module: void*): u8*;
-extern fn frontend_module_error(module: void*): u8*;
-extern fn frontend_module_destroy(module: void*): void;
 extern fn compiler_world_create_workers(workers: usize): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn frontend_world_clear(world: void*): bool;
-extern fn frontend_modules_create(): void*;
-extern fn frontend_modules_destroy(environment: void*): void;
-extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
-extern fn frontend_module_root_world(world: void*, source: u8*, environment: void*): void*;
 extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
 
-fn test_file_input(environment: void*, path: u8*, text: u8*): bool {
+fn test_file_input(environment: ModuleEnvironment*, path: u8*, text: u8*): bool {
     return frontend_modules_source(environment, path, text, strlen(text));
 }
 
-fn test_file_memory_check(world: void*, environment: void*, selection: TestFileSelection*, wanted: u8*,
+fn test_file_memory_check(world: void*, environment: ModuleEnvironment*, selection: TestFileSelection*, wanted: u8*,
     ordinary_count: usize, selected_count: usize): bool {
     var error = WorkBudgetError.None;
     var root = frontend_modules_test_input_root(world, environment, selection, &error);
@@ -44,8 +28,8 @@ fn test_file_memory_check(world: void*, environment: void*, selection: TestFileS
     var pairs: vector(TestFileCompanion) = default;
     defer vector_dispose(&pairs);
     if !frontend_module_discover_tests(root, selection, null, null, &pairs) || pairs.length != selected_count { return false; }
-    var matches = pairs.length == 0 || (strcmp(frontend_module_name(pairs.data[0].module), wanted) == 0
-        && strcmp(frontend_module_name(pairs.data[0].owner), "a_test.tower/n.v2.tower") == 0);
+    var matches = pairs.length == 0 || (strcmp(frontend_module_name(bits(FrontendModule*, pairs.data[0].module)), wanted) == 0
+        && strcmp(frontend_module_name(bits(FrontendModule*, pairs.data[0].owner)), "a_test.tower/n.v2.tower") == 0);
     // A completed graph includes test-only imports. Never reuse that expanded
     // graph as the ordinary closure of another discovery.
     return matches && !frontend_module_discover_tests(root, selection, null, null, &pairs)
@@ -56,7 +40,7 @@ fn test_file_key_equal(left: TestFileSelection*, right: TestFileSelection*): boo
     return left.key.length == right.key.length && memcmp(left.key.data, right.key.data, left.key.length) == 0;
 }
 
-fn test_file_rule_checks(): bool {
+export fn test_file_rule_checks(): bool {
     var world = compiler_world_create_workers(1);
     if world == null { return false; }
     defer { if !frontend_world_clear(world) || !compiler_world_dispose(world) { trap("Test profile world cleanup", 0); } }

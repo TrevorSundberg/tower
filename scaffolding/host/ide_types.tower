@@ -20,6 +20,7 @@ struct IdeExecution {
     handle: u32;
     tests: TestFileSelection;
     access: ExecutionFixtureAccess;
+    format_inputs: void*;
 }
 
 struct IdeState {
