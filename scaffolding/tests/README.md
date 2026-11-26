@@ -147,6 +147,22 @@ or bodies, a Foundation identifier, and formatting idempotence. The positive
 output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
 and [expected output](for_loops.expected.txt).
 
+The Foundation CFG exchange fixture runs through the installed driver's ordinary
+test selection. From the repository root, either command executes the same Tower
+assertion against the actual loop output and its adjacent four-byte oracle.
+
+```sh
+bootstrap/linux-x64/towerc --test scaffolding/tests/semantic_statements_cfg_inputs/exchange.tower --test-details
+bootstrap/linux-x64/towerc --test scaffolding/tests/semantic_statements_cfg_inputs/exchange_test.tower --test-details
+```
+
+The optional language kit also registers both entries at one and four jobs.
+From the moved kit, run `ctest -R '^tower-selected-cfg-exchange'`. Its fixture
+service executes Graph at the driver's target width. The two CFG registrations
+in `playground/tests/fast-interpreter.test.mjs` share the byte assertion and
+exercise Graph and Fast selection, execution slices, trap locations and emitted
+Foundation through the reactor.
+
 ### Running affected native tests
 
 Use `--test-oracle FILE` to require exact guest stdout from a full or affected

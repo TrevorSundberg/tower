@@ -110248,3 +110248,105 @@ of the full-owner cost. Per-case allocator counts and worker overlap were
 unmeasured. The raw packet contains the timing series, exact filters and
 sources, diagnostics, controls, dependency checks and local Git bundle.
 Manager review and publication remain pending.
+
+### Ordinary native CFG selection and browser assertion setup
+
+Host 1, assignment `62a5e990-26f9-4cb3-aca0-40cf556750e2`. The received
+archive, nine named inputs and full member inventory verified. The source
+bundle fast-forwarded public `442f3bea` to `fb42c4de`. The retained portable
+subject traces compare equal over 2,060 records. The native failure originates
+in `driver_execution.im_foreign`. Its test-fixture hook handles
+`test_fixture_load` against a selected companion's exact source/oracle grant.
+There is no interpreter binding for the browser callback `cfg_file`.
+`fixture_stdout` compiles a child ExecutionSession, steps Graph at the
+parent's pointer width with a 100000-step bound, and propagates a child trap
+to the parent. The native host fixture in `execution_world.tower` can select
+Fast and inspect status, offsets and memory directly. Those calls take a real
+session and compiler module environment in the host process. The optional
+language kit installs named sources under its private resource root and links
+guest providers only for its linked selections.
+
+In `75c884bc`, ordinary `--test` on the real exchange owner and on
+`exchange_test.tower` both select the adjacent companion. It runs the loop
+with 9 and 10 iterations through `fixture_stdout`, reads the exact sibling
+`exchange.expected` through `fixture_text` and calls `cfg_check_output`.
+The browser uses that same Tower assertion and the same four bytes.
+A relative import locates the helper in both the checkout and the moved kit.
+The optional SccTests component installs the helper, owner, companion and
+oracle. CTest used the installed registry in a path containing spaces,
+the public Linux x64 driver and the focused four-resource installation.
+All four entries passed. The prior owner selected zero tests. The native
+wrong oracle `1\n2\n` exited 1 at the shared Tower assertion. Restoring
+`2\n1\n` passed. Owner and direct took 0.53 and 0.49 s at one job,
+0.72 and 0.64 s at four, with CPU affinity 0–3. Direct Graph execution of
+the underlying loop took 0.12 s on the port and 0.11 s on the candidate.
+
+The interpreter grants source and oracle access from its selected test
+frame. Its child returns counted stdout on success and fails the parent at
+the fixture call on a child error. A test that inspects the child's diagnostic,
+changes the slice budget, switches to Fast or asks for emitted Foundation
+would need access to that child session. The stock linked optional guest
+also reports an undefined ELF symbol for `test_fixture_load`. A compiled
+test could link additional providers, but this kit ships neither the
+selection grant implementation nor the host's compiler sessions as guest
+services. As an independent control, the installed compiler's ordinary
+`--interpret` and `--interpret-fast` both ran the original and the emitted
+source, matched the four output bytes and reported the explicit failure at
+column 18 for Wasm32 and x86-64 targets. Both emit commands matched all
+1,256 golden bytes. The i686 LLVM layout was rejected. Test mode also
+diagnosed a request to combine `--test` and `--interpret-fast`.
+
+In `b72eaa89`, the two browser names lazily share a single assertion reactor
+and select their original Tower entries independently. Each execution retains
+its existing subject and cleanup. The assertion reactor receives eight
+project files (13,392 UTF-8 bytes) plus five builtins. The subject still
+receives the full inventory. `moduleInputs.configure` clears and uploads
+the current inventory even for an entry-only update. In four counterbalanced
+instrumented samples per configuration on the portable image, using the
+bounded inventory with fresh reactors reduced median total per-entry upload
+time from 82.31 to 0.30 ms. Reusing that bounded reactor reduced median
+combined opening time from 174.18 to 90.22 ms and the second test's median
+compilation from 451.42 to 141.88 ms. The threaded measurements show the
+same effects. The packet retains all four configurations, including a warm
+full-inventory reactor, with the same candidate source and compiled Wasm
+module. The original port's instrumentation and the initial portable
+fresh/warm prototype are separate captures.
+
+The six uninstrumented samples per cell used every ordering of
+`442f3bea`, `fb42c4de` and `b72eaa89` once per image. Each sample ran the
+two existing names, with a fresh Node 24.22.3 process and warm files, under
+the same host timing lock. GNU time values are medians in seconds and
+maximum observed peak RSS in KiB. Host 1 had two Xeon Gold 6244 sockets,
+32 logical CPUs, effective cpuset 0–31 and quota 1536000/100000. Node test
+concurrency was one, with portable affinity 0 and threaded affinity 0–3.
+The threaded subject used capacity four and the assertion host capacity one.
+
+| Image | Source | Wall | User | System | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Portable | Published | 0.915 | 0.760 | 0.150 | 139940 |
+| Portable | Prior port | 2.140 | 1.935 | 0.205 | 211580 |
+| Portable | Candidate | 1.640 | 1.460 | 0.170 | 162852 |
+| Threaded | Published | 1.055 | 1.695 | 0.300 | 207440 |
+| Threaded | Prior port | 2.685 | 3.555 | 0.400 | 307564 |
+| Threaded | Candidate | 2.060 | 2.915 | 0.360 | 250064 |
+
+On both images, all three sources produced the receipt's identical 260,423
+bytes over 2,060 ordered subject calls, SHA-256 `1d68339df321bdd75623fcc8fa92fbed123fe1470d5550cd781a81bc30a620bb`.
+These include every compile, Fast selection, zero/positive-budget step,
+Foundation emission and destroy. Each name ran alone and all 13 registrations
+passed. Swapped branch bytes, a changed emitted byte, a changed trap message
+and offset 16 in place of 17 each failed the intended Tower assertion and
+passed after restoration on the same host. The emitted-byte failure left a
+live subject handle for the cleanup path. The shared-image worker opened,
+terminated and exited once. Selecting an unrelated case started zero CFG
+workers.
+
+All 17 prior raw inputs matched their retained hashes. The ordinary semantic
+owner and semantics unit reproduced the two retained object files byte for
+byte. Their depfiles exclude the optional tests. The unrelated entities and
+graph-components selection lists and depfiles matched after path normalization.
+The new owner's discovery depfile contains its exact oracle. Both Wasm images
+also passed explicit V8 bounds checks. These public binaries supply no
+source-level sanitizer or per-allocation evidence for this run. The packet
+includes the focused build commands, failing controls, raw records, sample
+logs and source bundle. Publication belongs to the manager.
