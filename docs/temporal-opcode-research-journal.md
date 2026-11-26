@@ -105831,3 +105831,34 @@ host 2 reconstructed Pages tree 750ca760, verified 111 HTTP response bodies
 on loopback, ran the desktop and mobile checks and checked the installer
 against matching and older prefixes. Receipts 888c72f9 and 5e904379 record
 those results. These measurements precede public network installation.
+
+### Jenkins 57 boolean compile-time parameter assertion
+
+Jenkins tested `5a134705ddd75bf942cad22664bcbbe1ae5f5c20`. Its Node suite
+reported 512 passes, one failure and two skips among 515 tests. In
+`playground/tests/templates.test.mjs` the boolean constructor parameter had
+already failed before any output or execution steps. The remaining assertion
+expected “require an integer type”. The declared floating numeric parameter
+change documented above admits both integers and floats in
+`sem_numeric_parameter`. Native semantic case 52 already checks the full
+diagnostic for a boolean parameter. The browser test now checks that same
+message exactly. The input and pre-execution assertions are identical.
+
+Host 1 built the browser interpreter from the assigned source with the public
+bootstrap, WASI SDK 34, four build jobs and one worker per bootstrap invocation.
+The first configure lacked an unversioned host clang. Adding the LLVM 19 bin
+directory to PATH completed the build. The reactor SHA-256 was
+`42bac6391df208c5a1ede3df3e0530931e5b0143ef73107602a40559c9e3cd74`.
+Positive template cases also exercised the manifest-verified LLVM reactor
+from Pages commit `516deee1e985b02bbae5822aa401fbf25648f027`, built from
+`0823b028fba66eb19de815f4d49d4fdbc0bdc56a`.
+
+On Node 24.22.3, `node --test --test-concurrency=1 playground/tests/templates.test.mjs`
+reproduced the sole mismatch (15/16, exit 1), then passed 16/16 (exit 0) with
+the same reactors. The two fresh processes ran sequentially on Xeon Gold 6244
+with 32 logical CPUs available, quota 15.36 CPUs. Wall/CPU/peak RSS were
+2.79 s / 6.40 s / 245820 KiB before and 2.88 s / 6.85 s / 258628 KiB after.
+These are single validation samples for a test expectation edit. The full
+Jenkins pipeline rerun remains open. Assignment
+`8da5f5b9-1c06-42db-8b3c-d507a73c7f6e` carries the console, raw runs,
+commands, host details and checksums for manager review.
