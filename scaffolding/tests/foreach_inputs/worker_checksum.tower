@@ -1,0 +1,14 @@
+import tower;
+import .iteration_parallel_unit;
+
+fn worker_checksum(): u32 {
+    var values: u32[3];
+    values[0] = 1;
+    values[1] = 2;
+    values[2] = 3;
+    var count = sizeof(decltype(values)) / sizeof(u32);
+    iteration_transform(&values[0], count);
+    return iteration_checksum(&values[0], count);
+}
+
+print(worker_checksum());

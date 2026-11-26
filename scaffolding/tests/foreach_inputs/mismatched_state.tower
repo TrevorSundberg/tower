@@ -1,0 +1,12 @@
+import tower;
+
+struct Range { first: i32; }
+struct Cursor { value: i32; }
+
+fn Range_iterate_begin(source: Range*, state: Cursor*): void { state.value = source.first; }
+fn Range_iterate_next(source: Range*, state: bool*): bool { return false; }
+fn Range_iterate_element(source: Range*, state: Cursor*): i32* { return &state.value; }
+fn Range_iterate_end(source: Range*, state: Cursor*): void {}
+
+var range: Range;
+foreach (var item in &range) {}
