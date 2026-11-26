@@ -1,0 +1,27 @@
+import library.test_fixtures;
+import backend.text;
+
+// The browser copies a result field or the sibling golden into guest-owned memory.
+// The length excludes the terminator and includes every byte of the output.
+extern fn platform_observation(field: u8*, length: usize*): u8*;
+extern fn platform_open(fixture: u8*, pointer_bytes: usize, fast: bool): void;
+extern fn platform_step(budget: usize): bool;
+extern fn platform_close(): void;
+extern fn platform_llvm(fixture: u8*): void;
+
+fn observed(field: u8*): FixtureBytes {
+    var bytes: FixtureBytes = default;
+    bytes.data = platform_observation(field, &bytes.length);
+    return bytes;
+}
+
+fn bytes_match(field: u8*, wanted: FixtureBytes): bool {
+    var actual = observed(field);
+    defer free(actual.data);
+    return fixture_equal(actual, wanted);
+}
+
+fn field_is(field: u8*, text: u8*): bool {
+    var wanted: FixtureBytes = {data: text, length: backend_length(text)};
+    return bytes_match(field, wanted);
+}

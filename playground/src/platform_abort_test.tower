@@ -1,0 +1,70 @@
+import platform_observations;
+import backend.text;
+
+extern fn platform_has_import(module_name: u8*, name: u8*): bool;
+extern fn platform_link_error(): bool;
+
+fn expect_interpreter(fixture: u8*, width: usize, fast: bool, status: u8*, output: u8*, error: u8*): void {
+    platform_open(fixture, width, fast);
+    defer platform_close();
+    platform_step(100000);
+    assert(field_is("status", status), fixture);
+    assert(field_is("output", output), fixture);
+    assert(field_is("error", error), fixture);
+}
+
+fn interpreter_matrix(fixture: u8*, status: u8*, output: u8*, error: u8*): void {
+    for (var width: usize = 4; width <= 8; width *= 2) {
+        expect_interpreter(fixture, width, false, status, output, error);
+        expect_interpreter(fixture, width, true, status, output, error);
+    }
+}
+
+fn compiled(fixture: u8*): void {
+    platform_llvm(fixture);
+    assert(field_is("compilation", "compiled"), fixture);
+}
+
+fn valid_abort(fixture: u8*, status: u8*, output: u8*, error: u8*): void {
+    interpreter_matrix(fixture, status, output, error);
+    compiled(fixture);
+    assert(platform_has_import("env", "abort"), fixture);
+    assert(field_is("status", status), fixture);
+    assert(field_is("output", output), fixture);
+    assert(field_is("error", error), fixture);
+}
+
+fn wrong_abi(fixture: u8*): void {
+    interpreter_matrix(fixture, "error", "", "Unsupported signature for external function 'abort': expected fn(): void");
+    compiled(fixture);
+    assert(platform_link_error(), fixture);
+}
+
+fn expect_staged_refusal(field: u8*): void {
+    var diagnostic = observed(field);
+    defer free(diagnostic.data);
+    assert(backend_contains(diagnostic.data, "External call requires an explicit evaluation capability"), field);
+}
+
+test() {
+    valid_abort("platform_abort_unused", "done", "42\n", "");
+    valid_abort("platform_abort", "error", "7\n", "Program aborted");
+    wrong_abi("platform_abort_parameter");
+    wrong_abi("platform_abort_result");
+
+    var unknown = "No implementation registered for external function 'tower_unknown_external'";
+    interpreter_matrix("platform_unknown_external", "error", "", unknown);
+    compiled("platform_unknown_external");
+    assert(field_is("status", "rejected"));
+    assert(field_is("error", unknown));
+
+    platform_open("platform_abort_staged", 4, false);
+    defer platform_close();
+    platform_step(100000);
+    assert(field_is("status", "error"));
+    assert(field_is("output", ""));
+    expect_staged_refusal("error");
+    platform_llvm("platform_abort_staged");
+    assert(field_is("compilation", "error"));
+    expect_staged_refusal("diagnostic");
+}
