@@ -1,0 +1,6 @@
+import tower;
+import work_signal_observe as observer;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    return observer.main(argc, argv);
+}
