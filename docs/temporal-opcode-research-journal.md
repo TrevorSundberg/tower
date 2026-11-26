@@ -110427,3 +110427,215 @@ runs cover native fixture discovery and execution. The release Wasm and
 native compiler have no source-level ASan, UBSan or TSan instrumentation.
 The test-only files live outside the compiler's source trees and explicit
 test-source packaging inventory. The manager owns integration and publication.
+### Foundation CFG browser tests on the published semantic checker
+
+Host 1, assignment `2269b2da-21eb-48f5-86f2-bb3ae934c3ca`. The baseline
+was public main `442f3bea` and Pages `f2214133`. The shared checkout had
+five local commits. A private main rooted at the published source preserved
+that history. The two registrations at the end of
+`playground/tests/fast-interpreter.test.mjs` exercised Foundation directly.
+Existing fixtures in `tests/body_continuation.tower` and
+`tests/comptime_flow.tower` cover labeled returns. The Fast storage fixture
+constructs a labeled graph for storage accounting. None exercises the emitted
+exchange loop on both public interpreters or the six original rejections.
+
+`semantic_statements.tower` collects direct function labels before checking
+the body, resolves forward jumps, checks label arguments and enforces block
+termination. The flow query in `semantic_flow.tower` checks whether the
+non-void function can reach its end. The builtin trap resolves to `KTrap`.
+The Graph interpreter executes the checked operation and the Fast interpreter
+lowers it to a packed instruction. The existing public execution and Foundation
+APIs supply those services to two adjacent, individually selectable Tower
+companions. The raw inputs under `tests/semantic_statements_cfg_inputs/`
+preserve the original spacing and final byte, including the missing final
+newline in all eight program strings. Counted oracle files retain the actual
+output, diagnostics and all 1,256 emitted bytes. Only these raw sources are
+excluded from the optional canonical-spelling sweep.
+
+The public browser owner selection used entry `compiler/semantic_statements.tower`
+with `_cfg_roundtrip_test.tower` or `_cfg_validation_test.tower`. The first
+prototype imported both the semantic unit's byte-buffer interface and the
+byte-buffer implementation, which conflicted at `bytes_append`. Reusing the
+available vector append removed the duplicate declaration. The first round-trip
+owner run exhausted the assertion guest's ten chunks. Reading only nonempty
+output slices and giving the full owner thirty chunks passed both selections.
+Together they took 38.06 s and peaked at 887,556 KiB on one CPU. The final Node
+registrations execute the same inline tests directly from the two companion files
+with `_browser_test.tower` as the discovery suffix and the standard ten-chunk
+limit. This avoids compiling the installed semantics a second time. Only the
+assertion reactor is limited to one lane for its foreign callbacks. A guest trap
+can bypass lexical cleanup. The host releases outstanding subject handles in
+a finally block.
+
+Source `ffd47045` passed both exact Node names separately, together and in
+the complete file (13/13, including the seven generated example registrations)
+with the public portable and threaded images. Stock also passed 13/13 on each.
+A final portable full-owner run selected exactly one declaration per suffix
+and passed both in 34.98 s. The installed Linux CLI with repository language
+resources lists the two correct companions using the same owner and suffixes.
+Its direct execution exits 1 at the first missing browser binding, `cfg_file`.
+The public Wasm subject runs the production semantic operations. The Node
+registration supplies its API observations to the test guest. These checks
+require that browser host profile.
+
+On the portable image the original and ported registrations produced
+byte-identical ordered JSONL for all 52 source compiles, 1,930 execute calls,
+20 Fast selections or refusals, six Foundation emissions and 52 destructions.
+The 2,060 records hash to
+`1d68339df321bdd75623fcc8fa92fbed123fe1470d5550cd781a81bc30a620bb`.
+They include source bytes, pointer widths, budgets, complete step responses
+and handle identities. The old helper's unused Fast-cache statistics were
+outside the comparison. Each width reparses the actual emission for each
+budget. At budgets 1, 7 and 100000 the exchange loop took 162/239, 24/35
+and 1/1 Graph/Fast slices on both source forms. Both engines emitted the
+four bytes `32 0a 31 0a` in hex. The six rejections had zero guest steps and
+byte offsets 52, 33, 43, 53, 18 and 33 in fixture order. The explicit failure
+at byte 17 took one Graph slice and three Fast slices at both widths.
+
+On each public image a warm positive was followed by a wrong raw oracle
+and restoration. Swapping the two printed answers failed at byte 3588 of
+`semantic_statements_cfg_cases.tower`. Changing the first byte of the trap
+message failed at byte 3663. Both restored runs passed on the same subject
+and assertion reactors, with zero outstanding subject handles at each boundary.
+Each run compiled a fresh assertion handle. The portable and threaded focused
+runs also passed with V8 explicit Wasm bounds checks. The isolated Node test
+child initially passed flags rejected by the Worker constructor. Running the
+same file through Node's in-process test registration with the same V8 switch
+passed both threaded cases. The public reactors and Node build carry no
+source-level ASan, UBSan or TSan qualification for these runs.
+
+The ordinary owner object and its depfile were byte-identical across the port.
+The 715,040-byte Linux object hashes to
+`f64b2cca07e59d1c077b37e0ce43991e51a052db649a5652361d0be925747e1f`.
+The ordinary owner and semantics service unit depfiles include the real semantic
+source and exclude every new CFG path. Compiling the service unit required
+explicit repository Bedrock and Foundation roots to resolve `compiler.services`.
+The packager walks compiler sources, so a future editable source project can
+contain the adjacent assertion modules. It only adds sources under `tests/`
+from its explicit inventory. None of the 17 raw input/oracle paths is listed
+there or in the bootstrap inventories. Test data and foreign observation
+callbacks introduce no production dependency.
+
+Three alternating pairs per image used fresh Node 24.22.3 processes, warm files,
+GNU time and the host timing lock. From the repository root the command was
+`node --test --test-concurrency=1 --test-name-pattern='^(foundation CFG labels|CFG validation)' playground/tests/fast-interpreter.test.mjs`.
+`TOWER_TEST_WASM` selected the manifest-verified portable (`41bb9b11`) or
+threaded (`72c882ee`) reactor. Host 1 used two Xeon Gold 6244 sockets, 32
+logical CPUs, effective cpuset 0–31 and quota 1536000/100000. The table
+reports median wall seconds, median user plus system seconds and maximum
+process peak RSS in KiB. Test concurrency was one. Threaded subjects used
+the standard host capacity of four.
+
+| Image and affinity | Original wall / CPU / KiB | Tower assertions wall / CPU / KiB |
+| --- | --- | --- |
+| Portable, CPU 0 | 0.94 / 0.93 / 140436 | 2.12 / 2.11 / 214728 |
+| Threaded, CPUs 0–3 | 1.01 / 1.88 / 208312 | 2.55 / 3.83 / 304272 |
+
+The added time and memory include compiling and executing the Tower assertion
+guests and copying observations between reactors. Direct entry avoids most
+of the full-owner cost. Per-case allocator counts and worker overlap were
+unmeasured. The raw packet contains the timing series, exact filters and
+sources, diagnostics, controls, dependency checks and local Git bundle.
+Manager review and publication remain pending.
+
+### Ordinary native CFG selection and browser assertion setup
+
+Host 1, assignment `62a5e990-26f9-4cb3-aca0-40cf556750e2`. The received
+archive, nine named inputs and full member inventory verified. The source
+bundle fast-forwarded public `442f3bea` to `fb42c4de`. The retained portable
+subject traces compare equal over 2,060 records. The native failure originates
+in `driver_execution.im_foreign`. Its test-fixture hook handles
+`test_fixture_load` against a selected companion's exact source/oracle grant.
+There is no interpreter binding for the browser callback `cfg_file`.
+`fixture_stdout` compiles a child ExecutionSession, steps Graph at the
+parent's pointer width with a 100000-step bound, and propagates a child trap
+to the parent. The native host fixture in `execution_world.tower` can select
+Fast and inspect status, offsets and memory directly. Those calls take a real
+session and compiler module environment in the host process. The optional
+language kit installs named sources under its private resource root and links
+guest providers only for its linked selections.
+
+In `75c884bc`, ordinary `--test` on the real exchange owner and on
+`exchange_test.tower` both select the adjacent companion. It runs the loop
+with 9 and 10 iterations through `fixture_stdout`, reads the exact sibling
+`exchange.expected` through `fixture_text` and calls `cfg_check_output`.
+The browser uses that same Tower assertion and the same four bytes.
+A relative import locates the helper in both the checkout and the moved kit.
+The optional SccTests component installs the helper, owner, companion and
+oracle. CTest used the installed registry in a path containing spaces,
+the public Linux x64 driver and the focused four-resource installation.
+All four entries passed. The prior owner selected zero tests. The native
+wrong oracle `1\n2\n` exited 1 at the shared Tower assertion. Restoring
+`2\n1\n` passed. Owner and direct took 0.53 and 0.49 s at one job,
+0.72 and 0.64 s at four, with CPU affinity 0–3. Direct Graph execution of
+the underlying loop took 0.12 s on the port and 0.11 s on the candidate.
+
+The interpreter grants source and oracle access from its selected test
+frame. Its child returns counted stdout on success and fails the parent at
+the fixture call on a child error. A test that inspects the child's diagnostic,
+changes the slice budget, switches to Fast or asks for emitted Foundation
+would need access to that child session. The stock linked optional guest
+also reports an undefined ELF symbol for `test_fixture_load`. A compiled
+test could link additional providers, but this kit ships neither the
+selection grant implementation nor the host's compiler sessions as guest
+services. As an independent control, the installed compiler's ordinary
+`--interpret` and `--interpret-fast` both ran the original and the emitted
+source, matched the four output bytes and reported the explicit failure at
+column 18 for Wasm32 and x86-64 targets. Both emit commands matched all
+1,256 golden bytes. The i686 LLVM layout was rejected. Test mode also
+diagnosed a request to combine `--test` and `--interpret-fast`.
+
+In `b72eaa89`, the two browser names lazily share a single assertion reactor
+and select their original Tower entries independently. Each execution retains
+its existing subject and cleanup. The assertion reactor receives eight
+project files (13,392 UTF-8 bytes) plus five builtins. The subject still
+receives the full inventory. `moduleInputs.configure` clears and uploads
+the current inventory even for an entry-only update. In four counterbalanced
+instrumented samples per configuration on the portable image, using the
+bounded inventory with fresh reactors reduced median total per-entry upload
+time from 82.31 to 0.30 ms. Reusing that bounded reactor reduced median
+combined opening time from 174.18 to 90.22 ms and the second test's median
+compilation from 451.42 to 141.88 ms. The threaded measurements show the
+same effects. The packet retains all four configurations, including a warm
+full-inventory reactor, with the same candidate source and compiled Wasm
+module. The original port's instrumentation and the initial portable
+fresh/warm prototype are separate captures.
+
+The six uninstrumented samples per cell used every ordering of
+`442f3bea`, `fb42c4de` and `b72eaa89` once per image. Each sample ran the
+two existing names, with a fresh Node 24.22.3 process and warm files, under
+the same host timing lock. GNU time values are medians in seconds and
+maximum observed peak RSS in KiB. Host 1 had two Xeon Gold 6244 sockets,
+32 logical CPUs, effective cpuset 0–31 and quota 1536000/100000. Node test
+concurrency was one, with portable affinity 0 and threaded affinity 0–3.
+The threaded subject used capacity four and the assertion host capacity one.
+
+| Image | Source | Wall | User | System | Peak RSS KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| Portable | Published | 0.915 | 0.760 | 0.150 | 139940 |
+| Portable | Prior port | 2.140 | 1.935 | 0.205 | 211580 |
+| Portable | Candidate | 1.640 | 1.460 | 0.170 | 162852 |
+| Threaded | Published | 1.055 | 1.695 | 0.300 | 207440 |
+| Threaded | Prior port | 2.685 | 3.555 | 0.400 | 307564 |
+| Threaded | Candidate | 2.060 | 2.915 | 0.360 | 250064 |
+
+On both images, all three sources produced the receipt's identical 260,423
+bytes over 2,060 ordered subject calls, SHA-256 `1d68339df321bdd75623fcc8fa92fbed123fe1470d5550cd781a81bc30a620bb`.
+These include every compile, Fast selection, zero/positive-budget step,
+Foundation emission and destroy. Each name ran alone and all 13 registrations
+passed. Swapped branch bytes, a changed emitted byte, a changed trap message
+and offset 16 in place of 17 each failed the intended Tower assertion and
+passed after restoration on the same host. The emitted-byte failure left a
+live subject handle for the cleanup path. The shared-image worker opened,
+terminated and exited once. Selecting an unrelated case started zero CFG
+workers.
+
+All 17 prior raw inputs matched their retained hashes. The ordinary semantic
+owner and semantics unit reproduced the two retained object files byte for
+byte. Their depfiles exclude the optional tests. The unrelated entities and
+graph-components selection lists and depfiles matched after path normalization.
+The new owner's discovery depfile contains its exact oracle. Both Wasm images
+also passed explicit V8 bounds checks. These public binaries supply no
+source-level sanitizer or per-allocation evidence for this run. The packet
+includes the focused build commands, failing controls, raw records, sample
+logs and source bundle. Publication belongs to the manager.

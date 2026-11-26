@@ -1,0 +1,33 @@
+import compiler.semantic_statements_cfg_cases;
+import library.testing;
+import library.test_fixtures;
+
+fn cfg_invalid(input: u8*, diagnostic: u8*, offset: u32): void {
+    var source = cfg_read(input);
+    defer free(source.data);
+    var error = cfg_read(diagnostic);
+    defer free(error.data);
+    var initial = cfg_run(source.data, 4, 100000, false, 0);
+    defer cfg_dispose(&initial);
+    assert(fixture_equal(initial.error, error), input);
+    var empty: FixtureBytes = default;
+    cfg_pair(source.data, 4, 7, 0, 0, "error", empty, error, offset);
+}
+
+test() {
+    cfg_invalid("duplicate.tower", "duplicate.expected", 52);
+    cfg_invalid("missing_target.tower", "missing_target.expected", 33);
+    cfg_invalid("nested.tower", "nested.expected", 43);
+    cfg_invalid("fallthrough.tower", "fallthrough.expected", 53);
+    cfg_invalid("missing_return.tower", "missing_return.expected", 18);
+    cfg_invalid("identifier.tower", "identifier.expected", 33);
+
+    var source = cfg_read("trap.tower");
+    defer free(source.data);
+    var error = cfg_read("trap.expected");
+    defer free(error.data);
+    var empty: FixtureBytes = default;
+    for (var width: u32 = 4; width <= 8; width *= 2) {
+        cfg_pair(source.data, width, 1, 1, 3, "error", empty, error, 17);
+    }
+}

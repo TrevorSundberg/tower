@@ -1,0 +1,11 @@
+import foundation;fn exchange(n: u32): u32 {
+    var a: u32 = 1; var b: u32 = 2; var temporary: u32;
+    label(head);
+    var done = n == 0;
+    if done { jump(exit); }
+    temporary = a; a = b; b = temporary; n = n - 1;
+    jump(head);
+    label(exit);
+    return a;
+  }
+  print(exchange(9)); print(exchange(10));

@@ -1,0 +1,1 @@
+import foundation;fn f(): void { label(42); }

@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import ..compiler.semantic_statements_cfg_output;
+
+test() {
+    var actual = fixture_stdout("exchange.tower");
+    defer free(actual.data);
+    var wanted = fixture_text("exchange.expected");
+    defer free(wanted.data);
+    cfg_check_output(actual, wanted);
+}

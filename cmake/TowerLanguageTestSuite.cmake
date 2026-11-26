@@ -60,3 +60,9 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})
+install(FILES scaffolding/compiler/semantic_statements_cfg_output.tower
+  DESTINATION scc-suite/share/tower/compiler ${scc_install})
+install(FILES scaffolding/tests/semantic_statements_cfg_inputs/exchange.tower
+  scaffolding/tests/semantic_statements_cfg_inputs/exchange_test.tower
+  scaffolding/tests/semantic_statements_cfg_inputs/exchange.expected
+  DESTINATION scc-suite/share/tower/tests/semantic_statements_cfg_inputs ${scc_install})
