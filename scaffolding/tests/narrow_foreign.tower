@@ -1,10 +1,10 @@
 import tower;
 
-// Browser transport shares its host addition callback. Signed arguments and
-// high unsigned values must survive the actual foreign boundary.
 extern fn i8_add(a: i8, b: i8): i8;
 extern fn i16_add(a: i16, b: i16): i16;
 extern fn u16_add(a: u16, b: u16): u16;
-if i8_add(-120, -7) != -127 { trap("i8 foreign arguments/return", 0); }
-if i16_add(-30000, -2000) != -32000 { trap("i16 foreign arguments/return", 0); }
-if u16_add(60000, 5000) != 65000 { trap("u16 foreign arguments/return", 0); }
+
+// Both the native companion and the browser call these with the same operands.
+fn foreign_i8_sum(): i8 { return i8_add(-120, -7); }
+fn foreign_i16_sum(): i16 { return i16_add(-30000, -2000); }
+fn foreign_u16_sum(): u16 { return u16_add(60000, 5000); }

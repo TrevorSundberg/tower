@@ -66,6 +66,13 @@ keep their existing behavior.
 | `work_graph_scale.tower` | Manual native benchmark. Compile the source to an executable and time that executable. It requests 64,000 subjects, repeats root edges and prints zero only if every task completes. Success requires exit 0 and exactly `0\n`. The guest drains the graph serially. |
 | `work_view_invalid_dispose.tower` | With POSIX driver tests enabled, `tower-work-view-invalid-dispose` invokes the real compiler in library mode. It requires normal exit 1, the exact nominal type diagnostic at 9:27, empty stdout and preservation of the prior output file. The fixture is never run as a guest. |
 
+The later native kit replaces the single narrow executable gate with
+`tower-selected-narrow-foreign-jobs-1` and `tower-selected-narrow-foreign-jobs-4`.
+Each selects three declarations from `narrow_foreign_test.tower` through the
+owner and links the same separate provider object. The Node raw-memory selector
+calls the same Tower functions with JavaScript providers in the interpreter and
+in compiled Wasm. The earlier counts in this table describe the original gate.
+
 The optional `tower-format-repository` manifest lists all five. Its full run
 aborts at `backend/bindings.tower` before reaching any of them. With each path
 first in a short manifest, the same runner aborts on canonical text for the

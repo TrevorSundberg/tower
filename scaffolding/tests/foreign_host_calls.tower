@@ -1,0 +1,16 @@
+import tower;
+import tests.floating_foreign;
+import tests.narrow_foreign;
+extern fn add(a: i32, b: i32): i32;
+extern fn mutate(p: i32*, n: usize): void;
+extern fn wide(x: u64): u64;
+var a: i32* = alloc(i32, 2);
+mutate(a, 2);
+var sum: i32 = add(a[0], a[1]);
+print(sum);
+var large: u64 = wide(18446744073709551614);
+print(large);
+free(a);
+print(foreign_i8_sum());
+print(foreign_i16_sum());
+print(foreign_u16_sum());

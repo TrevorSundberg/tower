@@ -1945,7 +1945,7 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack and queue companions through the
+The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack, queue, gzip and narrow foreign ABI companions through the
 public driver on Linux GNU. In a native build configured with
 `TOWER_DRIVER_TESTS=ON`, build the suite and run the registrations at one and four
 compiler jobs. Set `B` to
@@ -1969,8 +1969,8 @@ TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tow
 The registrations use `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The kit requires
-the driver's final stderr line to report exactly two SCC declarations or seven
-SHA-256 declarations for the selected owner. A compiler or guest failure fails
+the driver's final stderr line to report exactly two SCC, seven SHA-256
+or three narrow foreign declarations for the selected owner. A compiler or guest failure fails
 the registration even if the guest printed the expected summary. The last
 command supplies the alternate suffix to the same driver. It deliberately
 fails on the singleton at `graph_components_wrong.tower:7:5` and returns
@@ -1997,6 +1997,11 @@ installed suite directory, select both owners with
 `stack_test.tower` or `queue_test.tower` takes the same arguments printed by
 CTest. The published bootstrap also runs either owner or companion with
 `--test`, `--jobs` and `--test-details`.
+
+With only `TOWER_EXECUTION_TESTS=ON`, build `tower-narrow-foreign-tests`
+and select `^tower-selected-narrow-foreign-jobs-` in CTest. Both job counts
+link `narrow-foreign-library.o` as a separate native provider. The same
+registrations in the moved kit select `share/tower/tests/narrow_foreign.tower`.
 
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability
