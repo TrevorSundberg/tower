@@ -1,0 +1,8 @@
+import library.testing;
+
+extern fn semantic_world_tests(width: u32): u32;
+
+test() {
+    assert(semantic_world_tests(4) == 0, "Independent compiler worlds at four-byte pointer width");
+    assert(semantic_world_tests(8) == 0, "Independent compiler worlds at eight-byte pointer width");
+}
