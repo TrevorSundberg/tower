@@ -1,12 +1,16 @@
-import {test} from 'node:test';
+import {after, test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {readFileSync} from 'node:fs';
-import {generatedSource} from './compiler-fixtures.mjs';
+import {loadTower as createTower} from '../src/tower-host.mjs';
+import {builtins, files, generatedSource, loadTowerBytes} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 import {compareResults} from '../src/comparison.mjs';
 const read = path => readFile(new URL('../../'+path,import.meta.url));
-const tower = await openTower();
+const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
+const tower = await loadTowerBytes(wasm, undefined, builtins.foundation);
+after(() => tower.close());
 
 function run(source,fast,width=4,budget=100000) {
   const handle=tower.compile(source,{pointerBytes:width});
@@ -100,7 +104,10 @@ test('cancellation slices, cache lifetime, invalid programs and output limits', 
   agree(fixtureSource('.tower/tests/fast_cancellation_invalid.tower'),4,7,'error');
 });
 
-async function checkCfg(name) {
+async function openCfgChecks() {
+  const assertionFiles = files.filter(({path}) => path.startsWith('.tower/compiler/semantic_statements_cfg_') ||
+    ['.tower/backend/text.tower', '.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
+      '.tower/library/vector.tower'].includes(path));
   const inputs = new URL('../../scaffolding/tests/semantic_statements_cfg_inputs/', import.meta.url);
   const handles = new Set();
   const encoder = new TextEncoder();
@@ -123,7 +130,7 @@ async function checkCfg(name) {
     return pointer;
   }
 
-  const checks = await openTower({threads:{capacity:1}, imports:{
+  const imports = {
     cfg_file(context, path, size) {
       const file = guestString(context, path);
       if (!/^[a-z_]+\.(tower|expected)$/.test(file)) throw new Error('Invalid CFG fixture name');
@@ -158,15 +165,28 @@ async function checkCfg(name) {
     cfg_truncated: () => step.outputTruncated,
     cfg_offset: () => step.errorOffset,
     cfg_field: (context, name, size) => copy(context, step[guestString(context, name)], size),
-  }});
-  try {
-    // Run this companion's inline test directly. The subject already contains
-    // the semantic checker. A separate suffix excludes dependency companions.
-    runSelectedTest(checks, '.tower/compiler/semantic_statements_cfg_' + name + '_test.tower',
-      undefined, {suffix:'_browser_test.tower'});
-  } finally {
-    for (const handle of handles) tower.destroyExecution(handle);
+  };
+  const host = await createTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock,
+    {tower:builtins.tower, builtins, imports, project:{files:assertionFiles}, threads:{capacity:1}});
+  function run(name) {
+    try {
+      runSelectedTest(host, '.tower/compiler/semantic_statements_cfg_' + name + '_test.tower',
+        undefined, {suffix:'_browser_test.tower'});
+    } finally {
+      for (const handle of handles) tower.destroyExecution(handle);
+      handles.clear();
+      step = undefined;
+    }
   }
+  return {run, close:host.close};
+}
+
+// Both names share one assertion worker only when a CFG registration runs.
+let cfgChecks;
+after(async () => (await cfgChecks)?.close());
+async function checkCfg(name) {
+  const checks = await (cfgChecks ??= openCfgChecks());
+  checks.run(name);
 }
 
 test('foundation CFG labels, forward edges and parallel-copy loops round trip', () => checkCfg('roundtrip'));
