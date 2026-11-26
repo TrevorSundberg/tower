@@ -2002,6 +2002,30 @@ and its payload accessors for both native selections. The browser selects the
 same test with a different companion suffix to exercise the reactor exports.
 It independently observes both query counts at that boundary.
 
+### Entity-stage reference ownership
+
+The stage's lifecycle callback belongs to the client that registered the
+component. Use the ownership-specific suffix to select this fixture's
+finalizer when testing the library owner. Other clients, including
+`entity_pages.tower`, supply their own export of the same name.
+
+```sh
+for jobs in 1 4; do
+  for entry in entity_stage entity_stage_ownership_test; do
+    "$CC_TOWER" --test "$S/library/${entry}.tower" --test-suffix _ownership_test.tower \
+      --jobs "$jobs" --test-details --bedrock "$S/bedrock.tower" --foundation "$S/foundation.tower" \
+      --test-native-runtime "$P/guest-native-test.o" --link "$P/tower-compiler-bytes.o" \
+      --link "$P/tower-compiler-utf8.o" --link "$P/libtower-compiler-memory.a" || exit 1
+  done
+done
+```
+
+Each entry selects two declarations. One publishes held references after
+closing a pinned view. The other discards staged references and checks
+duplicate names. Each creates its own store and measures its own finalizer
+calls. The `entity_stage_ownership` semantic-port case also runs the two
+worlds in order and checks cumulative counts of two, three and four.
+
 ### Focused LR closure ordering and frontend iteration cost
 
 `tower-frontend-tests RESOURCE_ROOT graph-components` checks the generic SCC

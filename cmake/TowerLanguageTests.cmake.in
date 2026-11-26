@@ -31,6 +31,8 @@ if(narrow_abi_tests)
 endif()
 
 set(driver_tests "@TOWER_DRIVER_TESTS@")
+set(compiler_memory_links --link "@scc_objects@/tower-compiler-bytes.o"
+  --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
 if(driver_tests)
   set(scc_suffix_args)
   # Default owner discovery includes the five tests of its budget dependency.
@@ -41,8 +43,6 @@ if(driver_tests)
       set(scc_count 2)
     endif()
   endif()
-  set(compiler_memory_links --link "@scc_objects@/tower-compiler-bytes.o"
-    --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
   register_language_tests(graph-components library/graph_components ${scc_count}
     ${scc_suffix_args} --link "@scc_objects@/runtime-instrumented.o" ${compiler_memory_links})
   foreach(owner IN ITEMS stack queue)
@@ -56,6 +56,12 @@ if(driver_tests)
   register_language_tests(gzip library/gzip 5 --link "@scc_objects@/tower-compiler-utf8.o"
     --link "@scc_objects@/libtower-compiler-memory.a")
 endif()
+
+# The stage and page fixtures each supply their own payload finalizer.
+register_language_tests(entity-stage-ownership library/entity_stage 2
+  --test-suffix _ownership_test.tower ${compiler_memory_links})
+register_language_tests(entity-stage-ownership-direct library/entity_stage_ownership_test 2
+  --test-suffix _ownership_test.tower ${compiler_memory_links})
 
 # Nested fixture stdout/file access belongs to the interpreter. The other
 # three guests run the real entity implementation with native memory providers.
