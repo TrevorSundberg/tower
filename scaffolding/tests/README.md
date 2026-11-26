@@ -67,31 +67,34 @@ and [expected output](for_loops.expected.txt).
 
 ### Running affected native tests
 
-On the native CLI, create a private state directory and supply the known exact
-guest stdout for an owner or explicit companion selection:
+Use `--test-oracle FILE` to require exact guest stdout from a full or affected
+run. The file may be empty or contain arbitrary bytes. A missing or unreadable
+file, a mismatch, or incomplete guest output fails the command. A mismatch
+reports the owner, oracle, byte lengths and zero-based first divergent offset.
+Compiler and guest failures retain their original diagnostic and exit status.
 
 ```sh
+towerc --test path/to/owner.tower --test-oracle expected.stdout
 mkdir -p .tower-test-state
-towerc --test path/to/owner.tower --test-details --jobs 1 \
-  --test-affected .tower-test-state --test-oracle path/to/expected.stdout
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-details
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-oracle expected.stdout
 ```
 
-Plain `--test` always runs the selection. Affected mode still discovers, parses
-and checks it. A match skips the entire interpreter session, emits no guest
-stdout and reports skipped declaration locations with `--test-details`.
-Declarations in one session share initializers, writes and first-failure order.
-Run separate owner invocations to reuse independent suites.
+Without a state directory, every invocation runs all selected tests. With a
+private state directory and no oracle file, an unchanged suite may skip after
+a complete, silent pass. A suite that prints then runs on each invocation. An
+explicit expectation permits reuse after a byte-for-byte match. Guest foreign
+calls always require execution. Skips emit no guest output and `--test-details`
+identifies skipped declarations. Each owner suite shares initialization, writes
+and first-failure order.
 
-The directory holds one 32-byte SHA-256 receipt per canonical entry path.
-The key includes the running compiler bytes, effective file rule, target and
-workers, grammar/module paths and bytes in completion order, discovery probes,
-selected declaration offsets and the supplied oracle path and bytes. Keep the
-executable, resource installation, sources and oracle frozen during each run.
-Complete writes use a sibling temporary file and rename. A miss retires the old
-receipt before execution. Only a successful full execution with matching stdout
-can publish. A missing or mismatching stdout oracle, truncated output or a
-guest foreign call leaves the suite eligible to run again. The stdout oracle
-controls reuse; assertions and compiler errors retain their normal exit status.
+The directory holds a 32-byte SHA-256 success receipt per canonical entry.
+Its identity includes the running compiler bytes, rule, target and workers,
+grammar/module paths and bytes, probes, selected declaration offsets and the
+stdout policy. An explicit file contributes its path and contents. Keep the
+installation, sources and oracle frozen during each invocation. A miss retires
+the old receipt before execution. A complete new receipt is staged beside it
+and published by rename after a successful verdict.
 Run `ctest -R '^tower-driver-affected$' --output-on-failure` in a native build
 configured with `TOWER_DRIVER_TESTS=ON`.
 

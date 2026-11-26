@@ -1,5 +1,6 @@
 import tower;
 import driver_request;
+import driver_test_oracle;
 import driver_mapped_file;
 import driver_support;
 import driver_platform;
@@ -22,15 +23,12 @@ struct DriverAffectedTest {
     digest: Sha256Digest;
     previous: DriverMappedFile;
     receipt: ByteBuffer;
-    oracle: DriverMappedFile;
-    observed: usize;
     modules: usize;
     complete: bool;
 }
 
 fn driver_affected_close(test: DriverAffectedTest*): void {
     driver_platform_unmap(&test.previous);
-    driver_platform_unmap(&test.oracle);
     bytes_dispose(&test.receipt);
 }
 
@@ -79,10 +77,6 @@ fn driver_affected_open(test: DriverAffectedTest*, request: DriverRequest*): boo
     defer driver_platform_unmap(&compiler);
     test.complete &&= driver_platform_executable(&path) && driver_platform_map(path.data, &compiler);
     driver_affected_field(test, compiler.data, compiler.length);
-    test.complete &&= options.test_oracle[0] != 0 && driver_platform_file_kind(options.test_oracle) == DriverFileKind.Regular
-        && driver_platform_map(options.test_oracle, &test.oracle);
-    driver_affected_text(test, options.test_oracle);
-    driver_affected_field(test, test.oracle.data, test.oracle.length);
     return true;
 }
 
@@ -94,7 +88,14 @@ fn driver_affected_source(context: void*, path: u8*, data: u8*, length: usize): 
     test.modules++;
 }
 
-fn driver_affected_matches(test: DriverAffectedTest*): bool {
+fn driver_affected_matches(test: DriverAffectedTest*, oracle: DriverTestOracle*): bool {
+    if oracle.path == null { driver_affected_text(test, "implicit silence"); }
+    else {
+        test.complete &&= oracle.readable;
+        driver_affected_text(test, "explicit stdout");
+        driver_affected_text(test, oracle.path);
+        driver_affected_field(test, &oracle.digest.bytes[0], Sha256DigestBytes);
+    }
     test.complete &&= test.modules != 0;
     test.digest = sha256_finish(&test.hash);
     return test.complete && test.previous.length == sizeof(Sha256Digest)
@@ -106,13 +107,6 @@ fn driver_affected_invalidate(test: DriverAffectedTest*): bool {
     var kind = driver_platform_file_kind(test.receipt.data);
     if kind != DriverFileKind.Regular { return kind == DriverFileKind.Missing; }
     return remove(test.receipt.data) == 0 || driver_platform_file_kind(test.receipt.data) == DriverFileKind.Missing;
-}
-
-fn driver_affected_output(test: DriverAffectedTest*, bytes: u8*, length: usize): void {
-    if !test.complete || length == 0 { return; }
-    test.complete = length <= test.oracle.length - test.observed
-        && memcmp(bytes, test.oracle.data + test.observed, length) == 0;
-    if test.complete { test.observed += length; }
 }
 
 // Exclusive sibling staging keeps incomplete writes invisible. A terminated

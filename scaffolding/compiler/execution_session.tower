@@ -21,6 +21,9 @@ struct ExecutionSession {
     output: work_vector(u8);
     started: bool;
     used_foreign: bool;
+    // Optional host sink borrowed only for this execution.
+    output_context: void*;
+    write_output: function(bool, void*, i32, u8*, usize);
 }
 
 extern fn compiler_node_world(node: void*): void*;

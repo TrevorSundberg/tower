@@ -105614,3 +105614,56 @@ bytes per owner in all three six-process stress waves. The timing logs also
 report page faults and context switches. Allocation traffic, lock contention
 and peak simultaneous memory across processes were not measured. These samples
 do not establish a general speedup. The attachment is for manager review.
+
+### Host 1 explicit stdout expectations, 39493c81
+
+The verified d9579948 ELF returned 0 twice for six output bytes against an
+eleven-byte wrong oracle and rejected the oracle flag in full mode. The prior
+driver used one flag for both reusable identity and matching output. A direct
+guest platform_write also flushed buffered prints outside its observer. This
+follow-up installs a request-local sink for checked test execution. It sees
+buffered stdout and direct guest writes in order. Comparison uses a fixed 8 KiB
+buffer and one open expected-file handle. The guest runs to its own verdict
+before any stdout expectation is reported. Implicit silence and an explicitly
+named file have separate identity fields. The compiler, discovery and declaration
+keys and the existing receipt publication boundary remain in use.
+
+The registered native driver comparison passed 47 full/affected pairs with
+identical oracle arguments. Affected results were 12 skips, 16 passes, four
+uncached executions and 15 expected failures. Both commands failed twice on
+the original wrong file with 11 expected bytes, six observed and divergence at
+offset zero. The independent binary control found a changed byte at offset
+8194 in 9004 bytes containing NUL. A truncated 65536-byte matching prefix
+failed in both checked modes. Source-located assertions, missing imports and
+an unsupported guest call kept their original failures. An explicit zero-byte
+file, a missing file, a permission-denied file and implicit silence followed
+their distinct paths through failure, repair and reuse.
+
+Cold and warm waves of three processes used one owner's receipt with two
+valid expectation paths and one wrong one. Each previously unexecuted identity
+ran. Both wrong requests failed. A concurrent reader sampled only absence or
+a complete digest from a passing control. A killed guest left no success.
+Two independent driver mutations suppressed the oracle digest or hashed only
+module length. The full reference caught each false skip. The attachment
+retains commands, inputs, declaration locations, byte streams and exits.
+
+Host 1 ran one measured CLI at a time on an Intel Xeon Gold 6244, 32 logical
+CPUs, a 15.36-core quota and a 136709144576-byte memory limit, with LLVM 19.1.7
+on Linux x64. Three measured processes per configuration followed a warm-up.
+Warm implicit silence averaged 0.333 to 0.343 s at one worker and 0.507 to
+0.493 s at four. Cold checks on the 9004-byte fixture averaged 0.270 to
+0.253 s at one worker and 0.343 to 0.357 s at four. The full candidate took
+0.35 s each for one-byte and 16 MiB incorrect expectations, with peak RSS
+below 79 MiB. The packet records CPU, peak RSS and individual samples. These
+end-to-end samples show mixed timing differences. Allocation traffic and
+lock contention were not measured.
+
+The first focused builds identified the required array type for sizeof and
+explicit usize-to-u64 conversions for the diagnostic. Both corrections are in
+the validated binary. The affected and module-path native CTests passed.
+ASan with leak detection and TSan completed 24 checked cells across one and
+four workers. TSan required 149 retries for a host address-layout failure
+before main. The completed cells produced no sanitizer finding. Standalone
+UBSan is unsupported by the Tower build. The measured scope is native Linux
+owner-suite execution with inputs frozen during each command. The handoff
+is tower-evidence/39493c81-bbab-4685-83bf-2f6746d9e0bf.tar.gz.

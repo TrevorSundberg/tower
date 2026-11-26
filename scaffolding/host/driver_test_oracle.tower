@@ -1,0 +1,109 @@
+import tower;
+import driver_support;
+import driver_types;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.sha256;
+
+extern fn driver_platform_file_kind(path: u8*): DriverFileKind;
+extern fn driver_platform_write_result(fd: i32, data: u8*, length: usize): bool;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
+extern fn ferror(file: void*): i32;
+extern fn feof(file: void*): i32;
+extern fn rewind(file: void*): void;
+extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
+
+// The request pins one file handle from lookup to verdict. The caller freezes
+// its inputs during the run. A null path selects the implicit silence policy.
+struct DriverTestOracle {
+    path: u8*;
+    file: void*;
+    digest: Sha256Digest;
+    length: usize;
+    observed: usize;
+    difference: usize;
+    differs: bool;
+    readable: bool;
+    write_failed: bool;
+}
+
+fn driver_oracle_open(oracle: DriverTestOracle*, path: u8*, fingerprint: bool): void {
+    oracle.path = path;
+    if path == null || driver_platform_file_kind(path) != DriverFileKind.Regular { return; }
+    oracle.file = fopen(path, "rb");
+    if oracle.file == null { return; }
+    var hash: Sha256;
+    if fingerprint { sha256_init(&hash); }
+    var chunk: u8[8192];
+    loop {
+        var count = fread(&chunk[0], 1, sizeof(decltype(chunk)), oracle.file);
+        if ferror(oracle.file) != 0 || count > ~convert(usize, 0) - oracle.length
+            || (fingerprint && !sha256_update(&hash, &chunk[0], count)) { return; }
+        oracle.length += count;
+        if feof(oracle.file) != 0 { break; }
+        if count == 0 { return; }
+    }
+    if fingerprint { oracle.digest = sha256_finish(&hash); }
+    rewind(oracle.file);
+    oracle.readable = true;
+}
+
+fn driver_oracle_observe(oracle: DriverTestOracle*, data: u8*, length: usize): void {
+    var start = oracle.observed;
+    if length > ~convert(usize, 0) - start { oracle.write_failed = true; return; }
+    oracle.observed += length;
+    if !oracle.readable || oracle.differs { return; }
+    var chunk: u8[8192];
+    var at: usize = 0;
+    while at < length {
+        var count = length - at;
+        if count > sizeof(decltype(chunk)) { count = sizeof(decltype(chunk)); }
+        var left = oracle.length - (start + at);
+        if count > left { count = left; }
+        if count == 0 {
+            oracle.difference = start + at; oracle.differs = true; return;
+        }
+        if fread(&chunk[0], 1, count, oracle.file) != count || ferror(oracle.file) != 0 {
+            oracle.readable = false; return;
+        }
+        if memcmp(data + at, &chunk[0], count) != 0 {
+            var i: usize = 0;
+            while chunk[i] == data[at + i] { i++; }
+            oracle.difference = start + at + i; oracle.differs = true; return;
+        }
+        at += count;
+    }
+}
+
+// Both interpreter flushes and direct native guest writes cross this boundary.
+// Retain the first difference but continue forwarding bytes and running the guest.
+fn driver_oracle_write(context: void*, fd: i32, data: u8*, length: usize): bool {
+    var oracle = bits(DriverTestOracle*, context);
+    if !driver_platform_write_result(fd, data, length) { oracle.write_failed = true; return false; }
+    if fd == 1 { driver_oracle_observe(oracle, data, length); }
+    return true;
+}
+
+fn driver_oracle_valid(oracle: DriverTestOracle*, owner: u8*, truncated: bool): bool {
+    var incomplete = truncated || oracle.write_failed;
+    if !incomplete && (oracle.path == null
+        || (oracle.readable && !oracle.differs && oracle.observed == oracle.length)) { return true; }
+    var report: ByteBuffer = default;
+    defer bytes_dispose(&report);
+    var reason = incomplete ? "Incomplete guest output for " : !oracle.readable ? "Cannot read stdout oracle for " : "Stdout mismatch for ";
+    var ok = driver_text(&report, reason) && driver_text(&report, owner);
+    if oracle.path != null {
+        ok &&= driver_text(&report, " (oracle '") && driver_text(&report, oracle.path) && driver_text(&report, "')");
+    }
+    if oracle.readable { ok &&= driver_text(&report, ", expected bytes ") && host_json_unsigned(&report, convert(u64, oracle.length)); }
+    ok &&= driver_text(&report, ", observed bytes ") && host_json_unsigned(&report, convert(u64, oracle.observed));
+    if oracle.readable && (oracle.differs || (!incomplete && oracle.observed < oracle.length)) {
+        ok &&= driver_text(&report, ", first divergent byte offset ")
+            && host_json_unsigned(&report, convert(u64, oracle.differs ? oracle.difference : oracle.observed));
+    }
+    if ok && host_text_terminate(&report) { driver_error("", report.data); }
+    else { driver_error(reason, owner); }
+    return false;
+}
