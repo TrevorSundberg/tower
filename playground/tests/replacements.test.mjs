@@ -46,7 +46,7 @@ const observations = {
 async function checkReplacement(entry) {
   checks ??= await createTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock,
     {tower: builtins.tower, builtins, project: {files: assertionFiles}, imports: observations});
-  try { runSelectedTest(checks, cases + entry + '.tower'); }
+  try { runSelectedTest(checks, cases + entry + '_test.tower', undefined, {suffix:'_browser_test.tower'}); }
   finally { parsed = statements = nodes = undefined; }
 }
 

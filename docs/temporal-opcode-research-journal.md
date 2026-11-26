@@ -109427,3 +109427,53 @@ package baseline and migrated test took 0.72/0.92 s wall, 1.12/1.32 s CPU and
 0.69/0.69 s wall, 1.07/1.09 s CPU and 215,816/219,656 KiB peak RSS.
 Host 5 packet `5d41ab00-39ee-42cb-9b4b-c8c82f5abb90` includes raw TAP,
 capability failures, both test-only images and their build and source receipts.
+
+### Independent replacement and package-ownership qualification on template main
+
+Host 4 assignment 57cf50f5 merged replacement commit 73f18ffa and ownership
+commit 64ecd75b, in that order, on public 6f666ed6. Both producer archives
+and all twelve declared members matched their manifests. The pre-edit merge
+tree was dbcfb30792d75ff697212e2bb9014b8980593b05.
+
+The four replacement assertion modules now have ordinary _test.tower names.
+Their contents and the grammar subjects kept their original bytes, including
+the final ASCII space in the 224-byte empty.tower. Selecting a renamed entry
+with the default companion suffix made the published browser driver try to
+open the stripped owner and fail. The runner now uses the same direct-entry
+convention as the template registrations. Its alternate companion suffix lets
+each selected file supply its own test. The real handle reported one test
+and completed for each of the four independently anchored names.
+
+The published dd6651b1 portable reactor reproduced the original 642,907-byte
+response stream for the four entries, including parser node IDs. The ten
+replacement names reproduced all 28 observations. Running the diagnostics
+and replacements files together passed 20 registrations and reproduced the
+34 retained diagnostics records. Moving the invalid-statement expectation
+from byte 95 to 96 failed at session.tower byte 1413. Expecting three copies
+of x failed at scanner_test.tower byte 2315. Both repaired names passed.
+
+The published Linux driver at jobs 1 and 4 reproduced the native subject
+diagnostics and selected the repaired assignment at repaired_statement_test.tower
+line 4 directly and through its owner. Each renamed projection reached the
+missing native diagnostic_read binding when its file was the direct entry.
+The native package companion similarly reached the missing ide_package_tests
+binding. The passing projections used the real Wasm APIs under Node.
+
+The two shipping registrations skipped on their documented capabilities.
+The supplied opt-in providers passed the same named tests. The required
+shipping backend failed on its missing export. Forcing the package assertion
+on the shipping portable image failed on its missing import. Changing Passed
+to Recovery failed the enabled registered assertion at byte 191. Its repair
+passed. Repeating original/failure/repair in the same instances preserved a
+live handle that printed 42 and released all handle and package charges.
+The optional provider's 12 denial/retry/recovery sequences matched the prior
+trace across widths 4 and 8. The 25 ordinary shipped project units reached
+427 paths, excluding the new assertions and subjects. Default native build
+inputs and ordinary depfiles also excluded them.
+
+On the Ryzen 7 5800H, CPUs 0,2,4,6, cgroup quota 15.36 CPUs, Node 24.22.3,
+one matched before/after pair for the ten replacement names used 1.20/1.19 s
+wall, 1.59/1.59 s CPU and 183536/177488 KiB peak RSS. Each sample used a
+fresh process and warm files. Compiler and reactor bytes came from the
+existing products. The final unfiltered suite ledger, image identities and
+resource records for the frozen commit belong to this assignment's packet.
