@@ -1,0 +1,10 @@
+import suite;
+
+test() {
+    var cancelled = completed(start_cancelled(2));
+    assert(text_matches(cancelled, "error", "cancelled|stopped", "i"), "Cancellation rejection");
+    assert(worker_exits(cancelled) == 2, "Both children exited");
+    assert(publication_count(cancelled) == 0, "Cancellation cannot publish partial objects");
+    var recovered = successful(start_recovery());
+    assert(object_size(recovered, "batch-a.o") > 0, "Fresh worker produced the first object");
+}

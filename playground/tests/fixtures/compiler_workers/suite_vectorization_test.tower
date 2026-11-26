@@ -1,0 +1,19 @@
+import suite;
+import backend.text;
+
+fn check_target(target: u8*, vectorized: bool): void {
+    var build = completed(start_target(target));
+    var status = target_status(build);
+    defer free(status);
+    var error = diagnostic(build);
+    defer free(error);
+    assert(backend_equal(status, "compiled"), error);
+    assert(text_matches(build, "after", "<\\d+ x i32>", "") == vectorized, target);
+    assert(target_size(build) > 0, "Target object must contain bytes");
+}
+
+test() {
+    check_target("x86_64-unknown-linux-gnu", true);
+    check_target("aarch64-unknown-linux-gnu", true);
+    check_target("wasm32-unknown-unknown", false);
+}

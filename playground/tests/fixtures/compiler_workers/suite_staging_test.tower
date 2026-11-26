@@ -1,0 +1,11 @@
+import suite;
+
+test() {
+    var source = "known_parallel_unit.tower";
+    var serial = successful(start_batch(source, 1));
+    for (var width: u32 = 2; width <= 4; width *= 2) {
+        var parallel = successful(start_batch(source, width));
+        check_objects(serial, parallel);
+        assert(peak_workers(parallel) == width, "Peak admitted workers");
+    }
+}

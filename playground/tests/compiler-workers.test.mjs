@@ -1,12 +1,12 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
+import {after,test} from 'node:test';
+import {copyText, guestString} from './guest_text.mjs';
+import {selectedTestSteps} from './selected_test.mjs';
+import {loadTower} from '../src/tower-host.mjs';
 import {readFile,writeFile} from 'node:fs/promises';
 import {Worker} from 'node:worker_threads';
 import {loadLLVM} from '../src/llvm-host.mjs';
 import {compileUnits as compileUnitsImpl} from '../src/compiler-build.mjs';
 
-// Worker/message integration only. Functional language and access assertions
-// live in the same Tower fixtures used by the interpreter/backend suite.
 const root = new URL('../../',import.meta.url);
 const read = path => readFile(new URL(path,root));
 const project = JSON.parse(await read('build/compiler-project/project.json'));
@@ -39,136 +39,160 @@ async function compileUnits(options) {
   }
 }
 
-test('real compiler workers preserve Tower fixture objects and publication order',async () => {
-  const serial = await compileUnits({compiler,recipe,files});
-  for (const workers of [2,4]) {
-    const published = [];
-    const parallel = await compileUnits({compiler,recipe,files,workers,createWorker,onObject:unit => published.push(unit.object)});
-    assert.deepEqual(parallel.inputs,serial.inputs);
-    assert.deepEqual(published,recipe.units.map(unit => unit.object));
-    assert.equal(parallel.stats.peak,workers);
-    const times = parallel.stats.timings;
-    assert.ok(times.some((a,i) => times.some((b,j) => i!==j && a.start<b.end && b.start<a.end)));
+const fixtures = new Map([['parallel_unit.tower', kernel]]);
+for (const path of ['inferred_parallel_unit.tower', 'known_parallel_unit.tower', 'iteration_parallel_unit.tower',
+  'semantic_invalid/enum_number.tower', 'semantic_invalid/enum_mix.tower']) {
+  fixtures.set(path, (await read('scaffolding/tests/' + path)).toString());
+}
+function batchFiles(sources) {
+  const replacements = new Map();
+  for (const [index, name] of sources.entries()) {
+    if (!fixtures.has(name)) throw new Error('Missing worker fixture ' + name);
+    replacements.set(recipe.units[index].entry, fixtures.get(name));
   }
-});
+  return files.map(file => replacements.has(file.path) ? {...file, text:replacements.get(file.path)} : file);
+}
 
-test('generic inference is isolated per ECS world and deterministic across compiler workers',async () => {
-  const inferred = structuredClone(files);
-  const source = (await read('scaffolding/tests/inferred_parallel_unit.tower')).toString();
-  for (const unit of recipe.units) inferred.find(file => file.path === unit.entry).text = source;
-  const serial = await compileUnits({compiler,recipe,files:inferred});
-  for (const workers of [2,4]) {
-    const published = [];
-    const parallel = await compileUnits({compiler,recipe,files:inferred,workers,createWorker,
-      onObject:unit => published.push(unit.object)});
-    assert.deepEqual(parallel.inputs,serial.inputs);
-    assert.deepEqual(published,recipe.units.map(unit => unit.object));
-    assert.equal(parallel.stats.peak,workers);
+async function build(workers, {inputs = files, plan = recipe, children = workers > 1,
+  cancelOnDispatch = false, heldUnit = 0} = {}) {
+  const controller = cancelOnDispatch || heldUnit ? new AbortController() : undefined;
+  const exits = [], published = [];
+  let admitted = 0, timer, result, error;
+  function child() {
+    const worker = createWorker();
+    exits.push(new Promise(resolve => worker.once('exit', resolve)));
+    if (!heldUnit) return worker;
+    // Preserve the original lost-receipt control at the real message boundary.
+    return {
+      postMessage:data => worker.postMessage(data),
+      terminate:() => worker.terminate(),
+      on:(event, listener) => worker.on(event, event === 'message' ? data => {
+        if (data.type !== 'result' || data.unit !== heldUnit) listener(data);
+      } : listener),
+    };
   }
-});
-
-test('compiler cancellation terminates children and cannot publish partial artifacts',async () => {
-  const controller = new AbortController(), exits = [], published = [];
-  let dispatched = false;
-  await assert.rejects(compileUnits({compiler,recipe,files,workers:2,signal:controller.signal,
-    createWorker:() => {
-      const worker = createWorker();
-      exits.push(new Promise(resolve => worker.once('exit',resolve)));
-      return worker;
-    },
-    progress:() => { if (!dispatched) { dispatched = true; setTimeout(() => controller.abort(),1); } },
-    onObject:unit => published.push(unit.object)}),/cancelled|stopped/i);
-  await Promise.all(exits);
-  assert.equal(exits.length,2);
-  assert.deepEqual(published,[]);
-  // A fresh build is independent of the cancelled revision.
-  const recovered = await compileUnits({compiler,recipe:{units:recipe.units.slice(0,1)},files,workers:1,createWorker});
-  assert.ok(recovered.inputs[recipe.units[0].object].length);
-});
-
-test('inferred staged dependencies are isolated across compiler worlds',async () => {
-  const staged = structuredClone(files);
-  const source = (await read('scaffolding/tests/known_parallel_unit.tower')).toString();
-  for (const unit of recipe.units) staged.find(file => file.path === unit.entry).text = source;
-  const serial = await compileUnits({compiler,recipe,files:staged});
-  for (const workers of [2,4]) {
-    const parallel = await compileUnits({compiler,recipe,files:staged,workers,createWorker});
-    assert.deepEqual(parallel.inputs,serial.inputs);
-    assert.equal(parallel.stats.peak,workers);
-  }
-});
-
-test('parallel diagnostics select source order and publish no failed build objects',async () => {
-  const broken = structuredClone(files), published = [];
-  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_number.tower')).toString();
-  broken.find(file => file.path===recipe.units[1].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_mix.tower')).toString();
-  let serial;
-  try { await compileUnits({compiler,recipe,files:broken}); }
-  catch (error) { serial = error.message; }
-  assert.ok(serial);
-  const admitted = [];
-  await assert.rejects(compileUnits({compiler,recipe,files:broken,workers:2,createWorker,
-    progress:phase => admitted.push(phase),onObject:unit => published.push(unit.object)}),error => error.message===serial);
-  assert.equal(admitted.length,2,'Failure must prevent admission of later units');
-  assert.deepEqual(published,[]);
-});
-
-test('an earlier Tower failure cancels a worker whose later receipt never arrives',async () => {
-  const broken = structuredClone(files), exits = [];
-  broken.find(file => file.path===recipe.units[0].entry).text = (await read('scaffolding/tests/semantic_invalid/enum_number.tower')).toString();
-  let expected;
-  try { await compileUnits({compiler,recipe,files:broken}); } catch (error) { expected = error.message; }
-  assert.ok(expected);
-  const controller = new AbortController();
-  // This is a deadlock guard, not a compiler latency assertion. Cold expression
-  // grammar startup can exceed five seconds while other test workers are active.
-  const timeout = setTimeout(() => controller.abort(),30000);
+  // The 30s guard also covers retirement after the earlier failure.
+  if (heldUnit) timer = setTimeout(() => controller.abort(), 30000);
   try {
-    await assert.rejects(compileUnits({compiler,recipe,files:broken,workers:2,signal:controller.signal,
-      createWorker:() => {
-        const worker = createWorker();
-        exits.push(new Promise(resolve => worker.once('exit',resolve)));
-        return {
-          postMessage:data => worker.postMessage(data),
-          terminate:() => worker.terminate(),
-          on:(event,listener) => worker.on(event,event==='message' ? data => {
-            // Hold an irrelevant later response to exercise adversarial delivery.
-            if (data.type!=='result' || data.unit!==2) listener(data);
-          } : listener),
-        };
-      }}),error => error.message===expected);
+    try {
+      result = await compileUnits({compiler, recipe:plan, files:inputs, workers,
+        signal:controller?.signal, createWorker:children ? child : undefined,
+        progress:() => {
+          if (++admitted === 1 && cancelOnDispatch) timer = setTimeout(() => controller.abort(), 1);
+        },
+        onObject:unit => published.push(unit.object),
+      });
+    } catch (cause) { error = cause.message; }
     await Promise.all(exits);
-    assert.equal(controller.signal.aborted,false);
-  } finally { clearTimeout(timeout); }
-});
+    return {result, error, admitted, published, exits:exits.length, aborted:controller?.signal.aborted};
+  } finally { clearTimeout(timer); }
+}
 
-test('the dense Tower batch kernel vectorizes on native targets without changing baseline Wasm',async () => {
-  const native = await loadLLVM(await read('build/browser-wasi-llvm/tower-cross.wasm'),undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
-  native.configureModules({entry:recipe.units[0].entry,files,builtins:grammar,library:'.'});
-  for (const target of ['x86_64-unknown-linux-gnu','aarch64-unknown-linux-gnu','wasm32-unknown-unknown']) {
-    const result = native.compile(kernel,{target,library:true,emit:'object'});
-    assert.equal(result.status,'compiled',result.error);
-    if (artifacts) {
-      await writeFile(`${artifacts}/${target}.before.ll`,result.before);
-      await writeFile(`${artifacts}/${target}.after.ll`,result.after);
-      await writeFile(`${artifacts}/${target}.o`,result.object);
+let cross;
+async function compileTarget(target) {
+  if (!cross) {
+    cross = await loadLLVM(await read('build/browser-wasi-llvm/tower-cross.wasm'), undefined,
+      grammar.foundation, undefined, grammar.bedrock, {tower:grammar.tower,builtins:grammar});
+    cross.configureModules({entry:recipe.units[0].entry,files,builtins:grammar,library:'.'});
+  }
+  const result = cross.compile(kernel, {target, library:true, emit:'object'});
+  if (artifacts && result.status === 'compiled') {
+    await writeFile(`${artifacts}/${target}.before.ll`, result.before);
+    await writeFile(`${artifacts}/${target}.after.ll`, result.after);
+    await writeFile(`${artifacts}/${target}.o`, result.object);
+  }
+  return {result, error:result.error};
+}
+
+// Tower starts each operation and checks it before requesting the next. Only
+// one registration owns these observations. Drain its last operation on exit.
+let results, pending, host;
+function start(request) {
+  if (pending) throw new Error('A worker observation is still pending');
+  const index = results.length;
+  results.push(undefined);
+  pending = request().then(value => { results[index] = value; });
+  return index;
+}
+function object(context, id, key) {
+  const name = guestString(context, key);
+  const bytes = results[id].result.inputs[name];
+  if (!(bytes instanceof Uint8Array)) throw new Error('Missing object bytes for ' + name);
+  return bytes;
+}
+const imports = {
+  start_batch(ctx, source, workers) {
+    const name = guestString(ctx, source);
+    return start(() => build(workers, {inputs:batchFiles(recipe.units.map(() => name))}));
+  },
+  start_invalid(ctx, first, second, workers, heldUnit) {
+    const names = [guestString(ctx, first)];
+    if (second) names.push(guestString(ctx, second));
+    return start(() => build(workers, {inputs:batchFiles(names), heldUnit}));
+  },
+  start_cancelled:(_, workers) => start(() => build(workers, {cancelOnDispatch:true})),
+  start_recovery:() => start(() => build(1, {plan:{units:recipe.units.slice(0,1)}, children:true})),
+  start_target:(ctx, target) => start(() => compileTarget(guestString(ctx, target))),
+  finished:(_, id) => results[id] !== undefined,
+  diagnostic:(ctx, id) => copyText(ctx, results[id].error ?? ''),
+  object_count:(_, id) => Object.keys(results[id].result.inputs).length,
+  object_size:(ctx, id, key) => object(ctx, id, key).length,
+  object_copy(ctx, id, key) {
+    const bytes = object(ctx, id, key);
+    const address = ctx.allocate(bytes.length || 1);
+    if (!address) throw new Error('Cannot allocate the observed object');
+    ctx.memory().set(bytes, address);
+    return address;
+  },
+  publication_count:(_, id) => results[id].published.length,
+  publication:(ctx, id, index) => copyText(ctx, results[id].published[index]),
+  peak_workers:(_, id) => results[id].result.stats.peak,
+  timing_count:(_, id) => results[id].result.stats.timings.length,
+  interval_start:(_, id, index) => results[id].result.stats.timings[index].start,
+  interval_end:(_, id, index) => results[id].result.stats.timings[index].end,
+  worker_exits:(_, id) => results[id].exits,
+  admissions:(_, id) => results[id].admitted,
+  aborted:(_, id) => results[id].aborted,
+  text_matches(ctx, id, field, pattern, flags) {
+    const key = guestString(ctx, field);
+    const text = key === 'error' ? results[id].error : results[id].result[key];
+    if (typeof text !== 'string') throw new Error('Missing worker text ' + key);
+    return new RegExp(guestString(ctx, pattern), guestString(ctx, flags)).test(text);
+  },
+  target_status:(ctx, id) => copyText(ctx, results[id].result.status),
+  target_size:(_, id) => results[id].result.object.length,
+};
+
+const folder = 'playground/tests/fixtures/compiler_workers/';
+async function run(name) {
+  if (!host) {
+    const builtins = {...grammar};
+    for (const module of ['library/testing','library/test_data','library/vector','backend/text']) {
+      builtins[module] = (await read('scaffolding/' + module + '.tower')).toString();
     }
-    assert.equal(/<\d+ x i32>/.test(result.after),!target.startsWith('wasm'));
-    assert.ok(result.object.length);
+    const bytes = await readFile(process.env.TOWER_TEST_WASM || new URL('build/browser-wasi/tower.wasm', root));
+    host = await loadTower(bytes, undefined, grammar.foundation, undefined, grammar.bedrock,
+      {tower:grammar.tower, builtins, imports, threads:{capacity:1}});
   }
-});
+  const entry = 'suite.tower', suffix = '_' + name + '_test.tower';
+  const sources = await Promise.all([entry, 'suite' + suffix].map(async path =>
+    ({path, text:(await read(folder + path)).toString()})));
+  results = [];
+  try {
+    for (const _ of selectedTestSteps(host, entry, 1024, {files:sources, suffix}, 2048)) {
+      if (pending) { await pending; pending = undefined; }
+    }
+  } finally {
+    try { await pending; } finally { results = pending = undefined; }
+  }
+}
+after(() => host?.close());
 
-test('borrowed iteration remains deterministic across independently owned compiler worlds',async () => {
-  const iteration = structuredClone(files);
-  const source = (await read('scaffolding/tests/iteration_parallel_unit.tower')).toString();
-  for (const unit of recipe.units) iteration.find(file => file.path === unit.entry).text = source;
-  const serial = await compileUnits({compiler,recipe,files:iteration});
-  for (const workers of [2,4]) {
-    const published = [];
-    const parallel = await compileUnits({compiler,recipe,files:iteration,workers,createWorker,
-      onObject:unit => published.push(unit.object)});
-    assert.deepEqual(parallel.inputs,serial.inputs);
-    assert.deepEqual(published,recipe.units.map(unit => unit.object));
-    assert.equal(parallel.stats.peak,workers);
-  }
-});
+test('real compiler workers preserve Tower fixture objects and publication order', () => run('objects'));
+test('generic inference is isolated per ECS world and deterministic across compiler workers', () => run('inference'));
+test('compiler cancellation terminates children and cannot publish partial artifacts', () => run('cancel'));
+test('inferred staged dependencies are isolated across compiler worlds', () => run('staging'));
+test('parallel diagnostics select source order and publish no failed build objects', () => run('diagnostics'));
+test('an earlier Tower failure cancels a worker whose later receipt never arrives', () => run('missing_receipt'));
+test('the dense Tower batch kernel vectorizes on native targets without changing baseline Wasm', () => run('vectorization'));
+test('borrowed iteration remains deterministic across independently owned compiler worlds', () => run('iteration'));
