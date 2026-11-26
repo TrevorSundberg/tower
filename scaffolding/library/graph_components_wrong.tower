@@ -1,6 +1,6 @@
 import tower;
 import library.testing;
-import .tests.graph_components_checks;
+import .tests.graph_components_checks_test;
 
 test() {
     var totals: ComponentPropertyCounts = default;

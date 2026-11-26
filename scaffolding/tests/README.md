@@ -2277,13 +2277,17 @@ checks the surviving query, both live counts and disposal. For direct selection,
 use the same driver arguments and replace the owner with its `_test.tower`
 sibling.
 
-For graph components the private installation adds two adjacent fixtures and their corpus-count module
-`graph_components_expectations.tower` under `share/tower/library`, the reachability
-and utility helpers under `share/tower/tests`, and five native link inputs
-under `providers`. The normal native and browser compilers take their language
-sources from `scaffolding/builtin_modules.txt`. Add production modules there
-when introducing them. A helper used only by companions belongs to the optional
-installation even if its name matches the ordinary source suffix. The legacy graph-components registration remains active.
+For graph components the private kit installs both library companions and
+their count expectations under `share/tower/library`. It installs the shared
+`graph_components_checks_test.tower` oracle and `utility_checks.tower` under
+`share/tower/tests`, and the five native link inputs under `providers`. The
+wrong companion imports the shared fixed cases. The frontend standalone
+calls both families through the positive companion. The ordinary native and
+browser compilers select their modules from `scaffolding/builtin_modules.txt`.
+Add production modules there when introducing them. A helper used only by
+companions belongs to the optional installation even if its name matches
+the ordinary source suffix.
+The legacy graph-components registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,
