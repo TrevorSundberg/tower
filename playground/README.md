@@ -958,6 +958,12 @@ existing optional skips. `TOWER_TEST_LLVM_WASM` selects an existing LLVM reactor
 and `TOWER_PLAYGROUND_ASSET_PACKAGER` selects an already built packaging tool to
 avoid an implicit tool build. The Tower IDE export gate remains `test:ide`.
 
+The counted-loop checks run their Tower assertions with the selected reactor's
+test entry. When comparing an older reactor that predates this entry, the same
+assertions run through native `towerc --test`. Set `TOWER_NATIVE_BUILD` to the
+compiler's build directory to select it explicitly. Otherwise the check looks
+in `$HOME/.cache/tower/native` and then the repository's `build/native`.
+
 ```powershell
 npm test
 npx playwright install chromium

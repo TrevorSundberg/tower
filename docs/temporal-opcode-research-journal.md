@@ -106211,3 +106211,95 @@ host 2 reconstructed Pages tree 750ca760, verified 111 HTTP response bodies
 on loopback, ran the desktop and mobile checks and checked the installer
 against matching and older prefixes. Receipts 888c72f9 and 5e904379 record
 those results. These measurements precede public network installation.
+## Counted-loop reactor assertions through native Tower tests
+
+On published `3ae475c2`, host 3 ported the five registrations in
+`playground/tests/for-loops.test.mjs`. The [Tower interpreter cases](../scaffolding/compiler/semantic_control_cases/interpreters.tower)
+check the 17-line golden output at four graph/fast and pointer-width combinations,
+the output after each Foundation reparse, and byte-identical re-emission. Six
+invalid programs each require error status, their diagnostic class and empty
+output despite a preceding print. The Foundation-only binding prints 12.
+Formatting the compact loop twice must give identical text, and executing the
+formatted result must print 0, 1 and 2. The [LLVM case](../scaffolding/compiler/semantic_control_cases/llvm.tower)
+checks the same golden for raw and optimized Wasm guests. The original positive
+source and golden file are unchanged.
+
+The native test interpreter can write output but cannot call the reactor or
+spawn a compiler. Node performs those operations, checks terminal statuses
+and passes the returned text as named fields to a real Tower receiver fixture.
+`towerc --test --test-details` locates each of the five cases at its checked-in
+source. All 40 captured data values agreed byte for byte with the original
+runner's assertion operands. Changing the Foundation identifier expectation to
+13 in an isolated copy exited 1 at `interpreters.tower:74:5` at jobs 1 and 4.
+The default native [owner companion](../scaffolding/compiler/semantic_control_test.tower)
+reuses functions from the original counted-loop program. Isolated owner and
+direct selections each ran its two cases at both job counts. The live reactor
+checks enter through the existing Node test glob.
+
+A clean ordinary build used the checked-in public bootstrap. The owner object
+depfile omitted companions, and the linked native guest printed its exact golden.
+The enabled CTest selections passed 3/3 and the existing `control-smoke` passed.
+The first configuration had no enabled CTests. Registering the work tests and
+enabling the backend test target supplied the two focused commands. Passing
+the installed LLVM 19 Clang path repaired the native guest link. ASan/LSan and
+TSan each completed both observation suites at one and four jobs. These checks
+cover the native reader. The original and migrated browser runs both used the
+published Pages reactors from build source `0823b028`.
+
+Three interleaved warm-file process pairs on an AMD EPYC 7542, CPUs 24–27,
+had median old/new wall times of 1.93/2.97 s and median CPU times of 3.90/4.95 s.
+Maximum process RSS was 283424/256404 KiB. The two native assertion invocations
+alone took 0.63 and 0.38 s at one worker. The focused suite now pays for both.
+Packet `d2632ec7-4201-4b97-bea2-9a263abfe38b.tar.gz` records the registration
+and oracle inventory, raw inputs and outputs, timings, failure controls,
+build identities, source commits and sanitizer results.
+
+## Running the counted-loop cases from npm in a clean checkout
+
+Host 3 reproduced two ENOENT failures on `5e5b41da`. In a clean checkout
+the Node shell tried the repository's `build/native/towerc` even when the
+configured native build existed. The same error stopped interpreter-only mode.
+The native build script uses `TOWER_NATIVE_BUILD` or
+`$HOME/.cache/tower/native` and stages a compiler in the checkout that built
+it. A second checkout can use those original build products directly.
+
+The Node transport now passes the receiver and its typed observations to the
+selected reactor's existing `compileTests` request. It executes the handle to
+completion, checks the selected count and reports located Tower assertion
+failures. For a legacy reactor without that request, the original native
+`--test` collector gets the same receiver and observation module. An explicit
+native build directory selects that witness. With no override it checks the
+default cache and then the staged executable. Both routes execute the cases in
+`compiler/semantic_control_cases`. The old and current producers each returned
+all 40 original values byte for byte, including the complete canonical texts,
+six diagnostics, formatting and both raw and optimized LLVM/Wasm outputs.
+
+In a checkout with an empty HOME and no staged native compiler, the counted-loop
+npm selection passed both Node registrations and all five Tower cases. The
+interpreter-only selection passed four Tower cases, with the LLVM registration
+visibly skipped. A checkout with no build directory passed with external
+reactors. Spawn receipts show zero native compiler calls on the current reactor
+and two on each legacy full run using the configured directory, default cache
+and staged directory. Changing the identifier expectation from 12 to 13 failed
+on both paths at `interpreters.tower:74:5`. Changing only the optimized LLVM
+expectation failed at `llvm.tower:15:5`. Both native owner CTests passed, as
+did the four- and one-case observation replays at one and four jobs.
+
+On an EPYC 7542 with affinity 24–27 and a 12.288-CPU cgroup quota, three
+alternating warm samples gave current-reactor medians of 2.94 to 2.61 s wall,
+4.97 to 4.63 s CPU and 240544 to 287912 KiB peak process RSS. The legacy
+medians were 2.96 to 2.95 s wall, 4.93 to 4.93 s CPU and 240748 to 284932
+KiB. The shell keeps its selected Tower reactor available during the LLVM
+selection. At the LLVM report the JS process's external memory rose from
+38 to 111 MB for the current reactor and from 38 to 85 MB for the legacy one.
+These are end-to-end test process measurements including both reactors.
+
+Unfiltered `npm test` ran the IDE gate and 512 Node tests in 560.98 s.
+It passed 504, skipped seven optional checks and failed the unchanged boolean
+template-argument diagnostic at `playground/tests/templates.test.mjs:59`.
+The parent alone reproduced the same mismatch between `require an integer type`
+and `require an integer or floating-point type`. A release reactor lacking
+the IDE export also fails the documented npm IDE prerequisite. Its counted-loop
+selection passes through `npm run test:node`. Packet
+`b6aaeb66-98c8-4dd3-8c8a-0f2c76d9ccfe.tar.gz` contains the matched samples,
+exact inputs, failure controls, complete npm output and runnable source bundle.
