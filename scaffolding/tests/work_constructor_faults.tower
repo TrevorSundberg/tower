@@ -1,5 +1,5 @@
 import tower;
-import work_constructor_faults_test;
+import work_constructor_faults_fixture;
 
 extern fn puts(text: u8*): i32;
 

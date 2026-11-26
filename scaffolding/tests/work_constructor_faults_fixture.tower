@@ -49,6 +49,3 @@ fn constructor_fault_descriptor_growth(): void {
     compiler_work_close(probe);
     constructor_fault_trial(units);
 }
-
-test() { constructor_fault_trial(8); }
-test() { constructor_fault_descriptor_growth(); }

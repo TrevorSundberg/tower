@@ -1,0 +1,4 @@
+import work_constructor_faults_fixture;
+
+test() { constructor_fault_trial(8); }
+test() { constructor_fault_descriptor_growth(); }
