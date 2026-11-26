@@ -1,0 +1,12 @@
+import tower;
+import entity_page_reuse_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    reuse_descriptor_growth();
+    reuse_raw_trial();
+    reuse_index_trial();
+    reuse_trial(0);
+    reuse_trial(4);
+    print(0);
+    return 0;
+}

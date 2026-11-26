@@ -1,0 +1,8 @@
+import tower;
+import entity_page_property;
+import entity_page_property_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    page_trial(PageSeedFirst); page_trial(PageSeedMixed); page_trial(PageSeedHigh);
+    return 0;
+}
