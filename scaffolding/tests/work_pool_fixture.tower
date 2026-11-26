@@ -1,0 +1,19 @@
+import tower;
+import .library.work_pool;
+import .host.memory;
+
+extern fn pthread_self(): usize;
+
+var PoolTestInjectedFailure: i32 = 11;
+var PoolTestInvalidArguments: i32 = 12;
+var PoolTestMissingFailure: i32 = 13;
+var PoolTestIncompleteDrain: i32 = 14;
+
+struct PoolTestJob {
+    entered: void*;
+    release: void*;
+    input: u64;
+    result: u64;
+    thread: usize;
+    bytes: usize;
+}

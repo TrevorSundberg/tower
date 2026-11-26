@@ -119959,3 +119959,85 @@ race-control starts before successful runtime initialization. All attempts
 are retained. The serial allocator suite exercises a single owner under TSan.
 The project provides no Tower UBSan profile. Manager integration and
 publication remain outside this assignment.
+
+### Original worker pool and graph ordering companions on host 3
+
+Assignment `6c2713dc-963a-42c3-8e24-5701372ac8b4` used public
+`10271859ca2aad1c7b7ff9b1ab056ed4204725e0`. The gzip/base64 input
+decoded to SHA-256 `3eaeb63ee734f736848e2f07b93a4b9a9f7ff7891960521e25d379018c62426f`.
+The original CLI, Windows wrapper and shared Wasm reactor still call the
+same Tower checks. CTest links the pool selections to the existing Linux
+pthread provider, dispatch object, native test guest and normal allocator.
+The ordering selection runs 513 producer/consumer pairs, reverse finishes
+and rejection of the stale revision, profile and dispatch tickets.
+
+The owner/direct counts were 8/3 for the pool and 14/1 for ordering.
+All eight registered selections passed under each of two- and four-CPU
+affinity at compiler jobs 1/4. On one CPU the CLI printed its ordering
+line and returned 77. CTest marked it skipped. All four selected pool
+invocations failed their capability assertion. Invalid CLI arguments
+returned 12 with empty stdout. Inverting the drain comparison returned
+14 from the full CLI while `--normal` still succeeded. Accepting the
+stale dispatch receipt failed the selected assertion and aborted even the
+one-lane CLI before skip. Restoring both predicates restored all nine CTests.
+
+An evidence-only Tower observer logged each completed entry wait and
+each joined payload's pthread, byte request, input and checked square.
+A separate Tower reader checked all 16 rounds and the final empty pool.
+At width two/four, the one-admission cleanup returned one distinct
+pthread and one correct result, with one drained. Full cleanup returned
+two/four distinct pthreads, correct results and drains respectively.
+Every normal round returned two/four distinct pthreads. The per-worker
+allocation was 8,388,608 B in round one and 257 times the round number
+in rounds 2–16 (514–4,112 B). These checks matched the original and
+candidate CLI and both selected pool entries at compiler jobs 1/4.
+
+Release measurements used the AMD EPYC 7542, 64 logical CPUs, cgroup v1
+quota 1,228,800/100,000 µs (12.288 CPUs), and process affinity 0–1 or
+0–3. The bootstrap hash was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The measured jobs 1/4 settings apply to compilation. Affinity determines
+the number of pool lanes. One warm-up preceded three alternating paired
+samples under the host timing lock. At jobs 4 and four lanes the full
+CLI, run 12 times per sample, averaged 4.373 s wall for both revisions,
+0.320/0.300 s CPU and a maximum 34,636/34,664 KiB RSS (base/candidate).
+For 16 full-admission early returns per process the corresponding sample
+means were 0.640/0.660 s wall, 0.100/0.100 s CPU and 34,400/34,336 KiB
+peak. One-admission means were 0.667/0.680 s wall, 0.013/0.013 s CPU and
+9,812/9,816 KiB peak. The packet retains all widths, modes and samples.
+These runs establish workload equivalence. Wall-time variation exceeds
+several observed differences.
+
+The separate shared WASI fixture used the cached SDK 34 preview-1 pthread
+libraries. Its installed CMake toolchain requested the old triple and
+failed to find libc. Selecting `wasm32-wasip1-threads` allowed the normal
+`tower-work-tests` target to link. An initial manual baseline link missed
+the allocator wraps and failed instantiation at `__real_malloc`.
+Restoring the project's wrap flags gave three passing Node checks for
+both base and candidate, including 128 complete pool lifecycles, slot
+reuse and the worker trap. Chromium 159 ran two lifecycles per image under
+cross-origin isolation. The harness recorded 24 pthread spawns and four
+child closures per image, with zero remaining worker targets. Both
+memories grew from 8,388,608 to 33,947,648 bytes and retained that size on
+reuse. Linux GNU supports linked native test selection. Wasm coverage
+uses the original shared reactor entry and real workers.
+
+Clang/LLVM 19.1.7 address/leak and thread runs completed the full normal
+CLI at two and four lanes on first launch. The link maps identify the
+normal allocator, Linux pthread provider and dispatch. Instrumented IR
+contains sanitizer calls in the callback, pool run, deferred close and
+graph checker. The repository supplies address and thread passes for
+Tower IR. Source-level UBSan coverage remains unavailable.
+
+The original and candidate x64 Windows wrapper objects linked with the
+pinned Windows guest and MinGW-w64 UCRT/kernel32 imports. The unassisted
+cross link lacked malloc. An initial PE link with only the POSIX entry
+exported reached the ordering line then forwarded the pool-open failure
+as exit 1. Exporting the production `work_windows_entry` allowed both PEs
+to finish at exit 0 under Wine 8, with identical stdout bytes and empty
+stderr. Native Windows execution was unavailable on this Linux host.
+
+A second negative control overcounted only the second cleanup receipt.
+The third direct pool declaration then failed at four lanes. The same
+mutation returned 14 to the shared Wasm host. The stale-dispatch
+mutation trapped in the Wasm ordering check. The restored shared image
+passed the three lifecycle/retirement/failure tests again.

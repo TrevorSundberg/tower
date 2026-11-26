@@ -171,6 +171,13 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set(entity_success --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/entity_result_success.expected")
     tower_work_native_selections(entity-create-result entity_create_result_fixture "1 test" "1 test"
       ${entity_success} ${work_guest_args} --link "${entity-create-provider_OBJECT}" --link "${host_memory_OBJECT}")
+    # The pool guest resolves its default callback through the Linux pthread provider.
+    add_dependencies(tower-work-tests tower-work-native-test-support)
+    tower_native_test_selections(work-pool work_pool_fixture "8 tests" "3 tests"
+      ${work_guest_args} --link "${work_allocator}" --link "${host_work_linux_OBJECT}"
+      --link "${host_work_dispatch_OBJECT}" --link "-Wl,--export-dynamic-symbol=work_thread_entry")
+    tower_native_test_selections(work-order work_order "14 tests" "1 test"
+      ${work_guest_args} --link "${work_allocator}")
     tower_work_native_selections(entity-component-layout entity_component_layout "9 tests" "4 tests" ${work_guest_args})
     # The component-budget owner also selects the five work-budget declarations.
     tower_work_native_selections(entity-component-budget entity_component_budget_fixture "7 tests" "2 tests"

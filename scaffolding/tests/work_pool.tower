@@ -1,111 +1,9 @@
 import tower;
-import .library.work_pool;
-import .host.memory;
-import work_order;
+import work_order_test;
+import work_pool_fixture;
+import work_pool_fixture_test;
 
-extern fn pthread_self(): usize;
 extern fn strcmp(left: u8*, right: u8*): i32;
-
-var PoolTestInjectedFailure: i32 = 11;
-var PoolTestInvalidArguments: i32 = 12;
-var PoolTestMissingFailure: i32 = 13;
-var PoolTestIncompleteDrain: i32 = 14;
-
-struct PoolTestJob {
-    entered: void*;
-    release: void*;
-    input: u64;
-    result: u64;
-    thread: usize;
-    bytes: usize;
-}
-
-export fn work_kernel_execute(payload: void*): void {
-    var job = bits(PoolTestJob*, payload);
-    job.thread = pthread_self();
-    work_signal_post(job.entered);
-    work_signal_wait(job.release);
-    // Concurrent allocation/fill/free must survive shared-memory growth, not
-    // merely scalar jobs which never exercise the compiler's allocator path.
-    var memory = alloc(u8, job.bytes);
-    if memory == null { job.result = ~convert(u64, 0); return; }
-    fill(memory, convert(u8, job.input), job.bytes);
-    job.result = job.input * job.input;
-    if memory[0] != convert(u8, job.input) || memory[job.bytes - 1] != convert(u8, job.input) {
-        job.result = ~convert(u64, 0);
-    }
-    free(memory);
-}
-
-fn pool_test_close(pool: WorkPool*, entered: void*, release: void*, drained: usize*): void {
-    // An early return can leave kernels waiting on release. Unblock and
-    // join them while their stack jobs and both signals are still alive.
-    for (var i: usize = 0; i < pool.running; i++) { work_signal_post(release); }
-    while pool.running != 0 {
-        var job = bits(PoolTestJob*, work_pool_receive(pool, true));
-        if job != null && job.result == job.input * job.input { (*drained)++; }
-    }
-    work_pool_close(pool);
-    work_signal_close(entered);
-    work_signal_close(release);
-}
-
-fn pool_test_run(lanes: usize, fail_after: usize, drained: usize*): i32 {
-    var pool: WorkPool = default;
-    var entered: void* = null;
-    var release: void* = null;
-    var jobs: PoolTestJob[4] = default;
-    defer pool_test_close(&pool, entered, release, drained);
-    if !work_pool_open(&pool, 4) { return 1; }
-    if !pool.threaded || pool.count != lanes { return 2; }
-    entered = work_signal_open();
-    release = work_signal_open();
-    if entered == null || release == null { return 3; }
-    var round: u64 = 1;
-    while round < 17 {
-        var i: usize = 0;
-        while i < pool.count {
-            jobs[i].entered = entered;
-            jobs[i].release = release;
-            jobs[i].input = round + convert(u64, i);
-            jobs[i].bytes = round == 1 ? 8388608 : convert(usize, round * 257);
-            if !work_pool_submit(&pool, bits(void*, &jobs[i])) { return 4; }
-            i++;
-            if i == fail_after {
-                for (var waiting: usize = 0; waiting < i; waiting++) { work_signal_wait(entered); }
-                return PoolTestInjectedFailure;
-            }
-        }
-        if work_pool_submit(&pool, bits(void*, &jobs[0])) { return 5; }
-        // Every admitted worker must reach this barrier simultaneously. The
-        // browser fixture supplies four lanes; smaller native policies use all
-        // their lanes. A synchronous dispatch cannot pass this barrier.
-        i = 0;
-        while i < pool.count { work_signal_wait(entered); i++; }
-        if work_pool_receive(&pool, false) != null { return 6; }
-        i = 0;
-        while i < pool.count { work_signal_post(release); i++; }
-        i = 0;
-        while i < pool.count {
-            var job = bits(PoolTestJob*, work_pool_receive(&pool, true));
-            if job == null { return 7; }
-            if job.result != job.input * job.input { return 8; }
-            i++;
-        }
-        i = 0;
-        while i < pool.count {
-            var j: usize = 0;
-            while j < i {
-                if jobs[i].thread == jobs[j].thread { return 9; }
-                j++;
-            }
-            i++;
-        }
-        round++;
-    }
-    if pool.peak != pool.count || pool.running != 0 { return 10; }
-    return 0;
-}
 
 export fn main(argc: i32, argv: u8**): i32 {
     // Wasm invokes main without arguments. Native profiling can retain exactly
@@ -114,18 +12,15 @@ export fn main(argc: i32, argv: u8**): i32 {
     if argc > 1 && !normal_only { return PoolTestInvalidArguments; }
     work_order_tests();
     // CTest records one-lane hosts as skipped, not as concurrency evidence.
-    var lanes = work_thread_capacity();
+    var lanes = pool_test_lanes();
     if lanes < 2 { return 77; }
-    if lanes > 4 { lanes = 4; }
     var drained: usize = 0;
     var status = pool_test_run(lanes, 0, &drained);
     if status != 0 || normal_only { return status; }
     for (var trial: usize = 0; trial < 2; trial++) {
         var admitted = trial == 0 ? convert(usize, 1) : lanes;
-        drained = 0;
-        status = pool_test_run(lanes, admitted, &drained);
-        if status != PoolTestInjectedFailure { return status == 0 ? PoolTestMissingFailure : status; }
-        if drained != admitted { return PoolTestIncompleteDrain; }
+        status = pool_test_drain_trial(lanes, admitted);
+        if status != 0 { return status; }
     }
     return 0;
 }
