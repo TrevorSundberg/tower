@@ -116317,3 +116317,82 @@ native link needed the documented TowerBackend project include. The first
 draft retired the old template file. Running its original path showed that
 it also selects the nine emission cases, so the delivered source preserves
 that entry and its ABI bindings. The manager owns public integration.
+
+### Six Node hover registrations on the two Pages compiler images
+
+Assignment `503ed5c0-2738-4ce2-bf3d-192a62d40ace`, host 7, base
+`fababa9f9fccf9a848fc3928ec5441055413b4dd`. Each original registration in
+`playground/tests/hover.test.mjs` now selects one companion under
+`playground/src/hover_queries`. The two inspected documents are sibling inputs
+with the original bytes, including their unterminated last lines. The invalid
+document test supplies the text on either side of the embedded NUL so both
+parts reach inspectDocument through its length-bearing JS string API.
+
+Tower supplies the cursor positions, service payloads, replies and assertions.
+Node runs inspectDocument, hoverIndex, hoverAt, hasHoverDetails and DocumentQueries.
+It retains the snapshots, native Promises and returned arrays by identity and
+delivers the original simulated service replies. The existing editorSuite
+yields between interpreter steps for Promise delivery. A separate assertion
+reactor allows the subject's own module configuration to change. The subject
+uses moduleHost to load only its five grammar resources. An earlier version
+using openTower also reproduced the original replies but traversed the entire
+scaffolding fixture collection. Two initial checks failed while parsing foreign
+parameter names reserved by the grammar (`token` and `expected`). The final
+suite uses `spelling` and `wanted`. A trace of effective bias first confirmed
+the returned values. The final transport also exercises the original default
+argument by omitting the bias on every lookup except the explicit left edge.
+
+Pages `8417c9ae4cd9accdf672b22d6676bd465c8a79d6` supplied both compiler
+images. SHA-256 values were `eb6c48780d67876e1c0726f0e3aad12f761db973c3e5f647e79c362805ad6e1a`
+(portable) and `616c0885632d614372a61ea677402df2454fa118357f49c1ce548fca0391d84a`
+(shared), checked against deployment-manifest.json. The release source maps
+contained the checkout's exact tower-host, offsets and language-queries modules.
+On each image the 44 original and ported observation records matched byte for
+byte in order, including both exception strings, complete inspections and
+indexes, selection arguments and replies, details eligibility, cancellations,
+service deliveries and returned object identities. The Unicode cursor at
+UTF-16 position 51 selected [50,53), and position 23 in the comment returned
+null. In the documentation fixture the cursor at 49 selected [48,53) and
+the declaration at UTF-8 byte 30 mapped to UTF-16 position 26. At position 4
+the default bias selected the outer entry and bias -1 selected the inner.
+The superseded Promise delivered null after the service sent the old entry.
+The second Promise delivered the new index, which the next lookup returned
+by identity. Both canceled-snapshot attempts reached the service.
+
+On disposable copies, counting every Unicode code point as one editor unit
+failed the ported boundary assertion. Accepting a reply after its request
+was superseded failed the ported stale-delivery assertion. The originals
+also failed both mutations on each image. Restoring the original service
+blobs brought all eight individual runs back to exit 0. Each of the six
+ported names also passed alone on each image. The full ported suite passed
+with explicit V8 Wasm bounds and stack checks and the trap handler disabled.
+The release images lack native ASan/TSan instrumentation. This assignment
+changed Node test bindings and interpreted tests. Browser projects, native
+compiler builds and publication belong to other work.
+
+Host 7 ran Node 24.22.3 on one AMD EPYC 7502 socket, 32 cores with SMT.
+Affinity and effective cpuset were 0–63, quota 3071999/100000 (30.72 CPUs),
+and the cgroup memory ceiling was 91,586,822,144 bytes. GNU time wrapped
+one fresh Node process tree at a time under the host timing lock. The three
+warm-filesystem rounds alternated original/ported order, with observers off
+and `--test-concurrency=1`. Each process ran the six named registrations.
+The portable image is serial. The shared subject opens the default capacity
+of four workers and the assertion reactor opens one.
+
+| Image and suite | Median wall s | Median user + system s | Maximum peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable original | 0.77 | 1.22 | 118,712 |
+| Portable ported | 1.11 | 1.90 | 115,372 |
+| Shared original | 0.95 | 1.69 | 181,640 |
+| Shared ported | 1.57 | 2.63 | 197,220 |
+
+The port includes a second reactor and compiles and executes six selected
+Tower tests. The timings measure that Node suite cost. In separate counter
+runs the checker retained 28,311,552 linear-memory bytes and 13,483 grammar
+nodes after the last selection on each image. Each destroyed execution
+reported zero guest bytes (maximum sampled before destruction 4,194,720).
+The subject finished with 6,913 nodes. Both exposed zero live allocations
+at close. Per-phase CPU, allocator grant traffic and native race coverage
+are unavailable from these runs. The manager packet holds the source
+bundle, release image bytes, TAP and timing records, ordered comparison
+streams, controls and replay commands.

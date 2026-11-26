@@ -1,0 +1,14 @@
+import suite;
+
+test() {
+    inspect_fixture("inputs/documentation.tower");
+    select_hover(49);
+    assert(hover_offset("declaration") == 30, "UTF-8 declaration byte");
+    assert(hover_offset("declarationFrom") == 26, "UTF-16 declaration offset");
+    check_text(hover_text("documentation"), "雪🚀", "Documentation from the declaration");
+    assert(selected_details("value"), "Show the declaration details");
+    assert(!token_details('{"kind":"syntax","signature":"var"}', "var"), "Hide the keyword");
+    assert(!token_details('{"kind":"syntax","signature":";"}', ";"), "Hide the semicolon");
+    assert(!token_details('{"kind":"syntax","signature":"unknown"}', "unknown"), "Hide the unknown token");
+    assert(token_details('{"kind":"type","signature":"i32","type":"i32"}', "i32"), "Show the type");
+}

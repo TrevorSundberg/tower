@@ -1,0 +1,51 @@
+import library.testing;
+import backend.text;
+
+extern fn editor_fixture(name: u8*): u8*;
+extern fn inspect_exception(source: u8*, after_nul: u8*, options: u8*): u8*;
+extern fn inspect_source(source: u8*): u8*;
+extern fn index_reply(source: u8*, reply: u8*): void;
+extern fn select_hover(position: usize): void;
+extern fn select_hover_side(position: usize, side: i32): void;
+extern fn hover_is_null(): bool;
+extern fn hover_text(field: u8*): u8*;
+extern fn hover_offset(field: u8*): usize;
+extern fn hover_slice(): u8*;
+extern fn selected_details(spelling: u8*): bool;
+extern fn token_details(entry: u8*, spelling: u8*): bool;
+
+fn check_text(actual: u8*, wanted: u8*, label: u8*): void {
+    defer free(actual);
+    assert(backend_equal(actual, wanted), label);
+}
+
+fn inspect_fixture(name: u8*): void {
+    var source = editor_fixture(name);
+    defer free(source);
+    var error = inspect_source(source);
+    defer free(error);
+    assert(error == null, "Document inspection returned an error");
+}
+
+
+// Snapshots, promises and ready results stay in Node. Handles preserve JS
+// identity across requests and deliveries. Handle zero represents JS null.
+var NullReply: i32 = 0;
+extern fn open_cache(immediate_null_reply: bool): void;
+extern fn snapshot(payload: u8*): i32;
+extern fn request_document(input: i32): i32;
+extern fn is_promise(handle: i32): bool;
+extern fn request_count(): usize;
+extern fn canceled(call: usize): bool;
+extern fn resolve_call(call: usize, reply: u8*): void;
+extern fn delivered(handle: i32): bool;
+extern fn delivered_value(handle: i32): i32;
+extern fn reply_signature(handle: i32, index: usize): u8*;
+extern fn clear_cache(): void;
+extern fn promise_turn(): void;
+
+fn await_document(handle: i32): i32 {
+    assert(is_promise(handle), "Pending document request returns a Promise");
+    while !delivered(handle) { promise_turn(); }
+    return delivered_value(handle);
+}

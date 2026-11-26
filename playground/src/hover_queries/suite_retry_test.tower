@@ -1,0 +1,8 @@
+import suite;
+
+test() {
+    open_cache(true);
+    assert(await_document(request_document(snapshot('{"source":"x"}'))) == NullReply, "Canceled document result");
+    assert(await_document(request_document(snapshot('{"source":"x"}'))) == NullReply, "Retried document result");
+    assert(request_count() == 2, "The same snapshot reached the service again");
+}

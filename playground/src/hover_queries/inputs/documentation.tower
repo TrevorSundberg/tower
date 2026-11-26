@@ -1,0 +1,4 @@
+import foundation;
+// 雪🚀
+var value = 42;
+print(value);
