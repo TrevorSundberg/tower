@@ -1,0 +1,8 @@
+import foundation;
+print(99);
+struct A {
+    b: B;
+}
+struct B {
+    a: A;
+}

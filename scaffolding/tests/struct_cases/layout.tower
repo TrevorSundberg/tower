@@ -1,0 +1,13 @@
+import foundation;
+
+struct Inner {
+    flag: bool;
+    value: i32;
+}
+
+struct Outer {
+    lead: bool;
+    nested: Inner;
+    tail: bool;
+    link: Outer*;
+}

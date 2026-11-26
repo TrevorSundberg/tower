@@ -1,0 +1,41 @@
+import library.testing;
+
+extern fn struct_execute_invalid(file: u8*): void;
+extern fn struct_status(engine: u8*, status: u8*): bool;
+extern fn struct_error_contains(message: u8*): bool;
+extern fn struct_steps(): usize;
+extern fn struct_empty_output(): bool;
+
+fn pre_effect(file: u8*, message: u8*): void {
+    struct_execute_invalid(file);
+    assert(struct_status("source", "error"), file);
+    assert(struct_error_contains(message), message);
+    assert(struct_steps() == 0, file);
+    assert(struct_empty_output(), file);
+}
+
+test() {
+    pre_effect("duplicate_primitive", "duplicate type");
+    pre_effect("duplicate_type", "duplicate type");
+    pre_effect("duplicate_field", "duplicate field");
+    pre_effect("unknown_type", "Unknown type");
+    pre_effect("void_field", "void type");
+    pre_effect("self_value", "Recursive by-value");
+    pre_effect("mutual_value", "Recursive by-value");
+    pre_effect("local_type", "top level");
+    pre_effect("unknown_field", "Unknown field");
+    pre_effect("scalar_field", "requires a struct");
+    pre_effect("double_pointer", "single pointer");
+    pre_effect("field_type", "Expected i32");
+    pre_effect("pointer_type", "Expected B*");
+    pre_effect("copy_type", "Expected B, got A");
+    pre_effect("print_struct", "print requires a scalar or pointer value");
+    pre_effect("export_value", "explicit pointer ABI");
+    pre_effect("extern_result", "explicit pointer ABI");
+    pre_effect("struct_capture", "missing capture");
+    pre_effect("location_capture", "missing capture");
+    struct_execute_invalid("storage_limit");
+    assert(struct_error_contains("storage exceeds"));
+    struct_execute_invalid("path_limit");
+    assert(struct_error_contains("field path limit"));
+}

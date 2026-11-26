@@ -1,0 +1,6 @@
+import foundation;
+print(99);
+struct A {
+    x: i32;
+    x: bool;
+}

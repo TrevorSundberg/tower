@@ -1,0 +1,7 @@
+import foundation;
+print(99);
+struct A {
+    x: i32;
+}
+var a: A;
+a.x = true;

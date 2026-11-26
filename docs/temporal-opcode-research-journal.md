@@ -107829,3 +107829,97 @@ declarations with the new LLVM and Ubuntu products in `68deb37d`. Ordinary
 execution printed 8 on Wasm32 and 16 on Linux x64. Its selected-test result
 of 17 came from the native driver. The browser selected-test check requires
 the separate test-capable frontend.
+### Struct field values and the browser reflection and diagnostic checks
+
+Host 1 started the private main checkout at published `4b2685e5` and fast-forwarded
+the first input bundle's advertised main to `8bc867b69cc6084b9da09a51475c7c740efd9419`
+(tree `6952042a`). Both evidence archives and all five declared members matched
+their receipt sizes and SHA-256 hashes. The Ubuntu 24 archive's complete 62-file
+manifest and its internal payload checks passed. The four native selections
+used the supplied compiler `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`.
+The migration changes its test inputs. Its binary was built at `8bc867b6`.
+
+The separate evidence ref `db6c7e5b` contains positional/named initialization,
+staged defaults, nested initialization order, alias-visible stores and
+single destination evaluation. Its companion reuses `array_assertions.tower`
+and `default_struct_values.tower`. Assignment before a redirecting call,
+independent nested values, a borrowed nested field, and pointer identity belong
+beside `sem_location` in `semantic_values_test.tower`. The separate changes
+compose without sharing that companion. The selection log at both jobs 1 and 4
+records its four declaration locations (8, 17, 27 and 39). The owner ran 31
+declarations including those four, up from 27 on the original tree. The
+[registration map](test-inventory.md#struct-values-reflected-fields-and-source-handles)
+covers the 12 Node selectors. All now enter Tower assertions. JS supplies
+compiler handles, actual execution, reflected observations and structural
+comparisons. The milestone continues to execute the original example file.
+
+The immutable Pages commit `890bbf7f` identified portable reactor source
+`863ac216` and LLVM reactor source `0823b028`. Its manifest matched both
+distributed assets before decompression. The old and migrated Node modules ran
+on identical reactors. Across 100 guest executions, status, steps, stdout,
+truncation and error text matched. All nine canonical text digests and complete
+type registries matched across the migration and on round trip. The nine LLVM
+compilations succeeded and their guest output, status, errors and mapped
+offsets matched. Reformatting the rejected programs moved some error offsets.
+The raw traces retain both sets. All 19 pre-effect cases stopped at zero
+steps with empty output, and both generated-depth cases retained their limit
+diagnostics. Their new fixtures spell out the original depths.
+
+Whole-module execution passed all 12 registrations. Both versions had 14,700
+live nodes before and after 60 compile/execute/reflect/destroy operations.
+Selected alone in a fresh instance, the original and migrated release tests
+both failed, rising from 6,503 to 13,374. The assertion instance is independent
+of the observed compiler. The counts establish the ordering dependency.
+They do not distinguish retained compiler setup from a leak.
+
+Changing the expected outer layout, redirect stdout or unknown-field error
+made the corresponding Wasm assertion fail at byte 827, 427 or 396 in its
+Tower test. Changing the native destination expectation from 9 to 10 failed
+at `semantic_values_test.tower:23:5`. Restoring the oracles restored the
+selected results. A malformed companion was rejected at 1:1 under test
+selection. A normal program importing the actual owner still printed
+`9\n2\n2\n`; its object was byte-identical with and without the poison
+(SHA-256 `5012af36ca56c6afac1828d533cf01d10029050249982c356f2d56de583579fd`).
+
+On Debian 12, Node 24.22.3, Intel Xeon Gold 6244 (32 online logical CPUs,
+15.36-CPU quota, 136,709,144,576-byte memory ceiling), serially timed fresh
+Node processes used warm filesystem caches. Three-sample whole-module medians
+were 1.80 to 2.69 s wall, 3.82 to 4.91 s process CPU and 218,888 to 278,780
+KiB maximum RSS. The migrated selector compiles and runs the assertion guest
+on its own reactor for each registration. Single owner samples at jobs 1 and
+4 were 11.00/9.31 s before and 9.61/8.37 s after. The corresponding peaks
+were 715,976/724,032 KiB and 718,532/727,148 KiB. The new direct selection
+took 9.14/7.42 s with 679,692/688,232 KiB. These owner workloads differ by
+four declarations. Per-command CPU, RSS, exit codes, selected locations and
+byte comparisons belong to packet `54b4bc72-514a-4e19-9796-b1eb1b2553e0`.
+
+A separate control changed the zero-step expectation to one. It failed on
+the duplicate-primitive input at `browser/diagnostics.tower:13:5`. After
+restoration, the diagnostic selector passed. Two further four-worker owner
+runs each passed all 31 declarations. Ordinary runs used the archive binary.
+For instrumentation, the same compiler sources were built locally against
+LLVM 19.1.7 with `TOWER_SANITIZER=address` and `thread`. The first configure
+needed the LLVM bin directory on PATH. CTest initially found no tests because
+the work-test profile was off. Enabling `TOWER_WORK_TESTS`, requiring
+`--no-tests=error` and checking all four source locations qualified the actual
+direct registrations at both widths. ASan/LSan passed at jobs 1 and 4; TSan
+passed after 18 and 4 pre-execution denials of its ASLR personality call.
+All failed startup logs are retained. These runs instrument the native
+compiler; the pinned Wasm binaries ran their release code. The project has
+no Tower source-level UBSan configuration.
+
+The default Linux package proposal `15cacf5a` matches all 62 archive files
+and their executable bits. Its canonical clean build reproduced 39 fixed-point
+products. Host 6 ran 248 native and parser/core registrations. Of those, 247
+passed. The optional repository formatter check still stops at four blank
+lines in `backend/bindings.tower` with either pin. Earlier receipt
+`9eeb7230` traced this repository-wide drift beyond that file. The release
+retains the failed result and the existing source text.
+
+With this pin in the checkout, the merged CMake registry has 212 entries.
+The manager ran all 12 new operator registrations and both direct struct-field
+registrations with the default compiler. All 14 passed. Each direct struct
+run selected four declarations. Receipt `54b4bc72` also retains a standalone
+cold struct-disposal failure on the previous and migrated browser modules. In
+the full module both held their live-node counts steady across 60 disposal
+cycles. The focused cold run is under separate investigation.

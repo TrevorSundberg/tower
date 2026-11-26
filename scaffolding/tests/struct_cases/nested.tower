@@ -1,0 +1,22 @@
+import foundation;
+
+struct Outer {
+    flag: bool;
+    pair: Pair;
+}
+
+struct Pair {
+    x: i32;
+    y: u32;
+}
+
+var o: Outer;
+o.flag = true;
+o.pair.x = -3;
+o.pair.y = 8;
+print(o.flag);
+print(o.pair.x);
+print(o.pair.y);
+var p: Pair* = &o.pair;
+p.x = p.x + 4;
+print(o.pair.x);

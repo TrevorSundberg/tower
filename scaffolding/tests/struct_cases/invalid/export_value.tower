@@ -1,0 +1,6 @@
+import foundation;
+print(99);
+struct A {
+}
+export fn f(a: A): void {
+}
