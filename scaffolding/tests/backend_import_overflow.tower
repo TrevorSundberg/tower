@@ -1,74 +1,11 @@
 import tower;
+import backend_import_overflow_test;
 import backend_import_storage;
-import frontend_units;
 import storage_api;
 import utility_checks;
-import .compiler.execution_session;
-import .compiler.syntax_version_types;
-import .library.vector;
 import .library.work_budget;
 
 extern fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, mode: u8*): void*;
-extern fn frontend_world_clear(world: void*): bool;
-extern fn frontend_modules_create(): void*;
-extern fn frontend_modules_bind_world(environment: void*, world: void*): bool;
-extern fn frontend_modules_destroy(environment: void*): void;
-extern fn frontend_modules_configure(environment: void*, entry: u8*, library: u8*): void;
-extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
-extern fn syntax_version_diagnostic_dispose(value: SyntaxVersionDiagnostic*): void;
-extern fn printf(format: u8*, width: u32, integer: u32, mode: u8*, engine: usize): i32;
-
-var OverflowCheckBytes: usize = 2147483648;
-var OverflowCheckSteps: usize = 100000;
-
-fn overflow_fixture_execute(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*): bool {
-    return overflow_fixture_execute_output(resource, text, width, integer, mode, "0\n");
-}
-
-export fn overflow_fixture_execute_output(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*, wanted: u8*): bool {
-    var budget: WorkBudget = default; var world: void* = null;
-    utility_check(work_budget_init(&budget, 1, OverflowCheckBytes, 1)
-        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Overflow recheck world");
-    var environment = frontend_modules_create();
-    utility_check(environment != null && frontend_modules_bind_world(environment, world), "Overflow recheck module owner");
-    frontend_modules_configure(environment, "overflow_reconstruction.tower", resource);
-    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
-    units_read(resource, "/bedrock.tower", &bedrock); units_read(resource, "/foundation.tower", &foundation);
-    var diagnostic: SyntaxVersionDiagnostic = default;
-    var installed = syntax_baseline_install(world, environment, bedrock.data, false, &diagnostic)
-        && syntax_baseline_install(world, environment, foundation.data, true, &diagnostic);
-    syntax_version_diagnostic_dispose(&diagnostic);
-    vector_dispose(&foundation); vector_dispose(&bedrock);
-    utility_check(installed, "Overflow recheck explicit languages");
-    var ok = true;
-    for(var engine: usize = 0; engine < 2; engine++) {
-        printf("Overflow target%u i%u %s engine%zu recheck\n", width * 8, integer, mode, engine); fflush(null);
-        var session: ExecutionSession = default;
-        var compiled = execution_session_compile(&session, text.text.data, text.text.length, width, environment);
-        if !compiled {
-            puts(session.error.data ?? "Missing recheck error");
-            utility_check(!execution_session_start(&session) && !execution_session_fast(&session)
-                && session.machine.steps == 0, "Failed recheck cannot execute Graph or Fast");
-            ok = false;
-        } else {
-            if engine != 0 { utility_check(execution_session_fast(&session), "Overflow Fast admission"); }
-            var steps: usize = 0;
-            while !session.machine.done && !session.machine.failed && steps < OverflowCheckSteps {
-                execution_session_step(&session, 7); steps++;
-            }
-            if session.machine.failed { puts(session.error.data ?? "Missing execution error"); }
-            var matched = session.machine.done && !session.machine.failed && session.output.length == strlen(wanted)
-                && utility_equal(session.output.data, wanted, session.output.length);
-            if !matched { puts("Overflow exact reference mismatch count failed"); ok = false; }
-        }
-        execution_session_close(&session);
-    }
-    frontend_modules_destroy(environment);
-    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Overflow recheck world cleanup");
-    utility_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
-        && work_budget_dispose(&budget), "Overflow recheck zero grants");
-    return ok;
-}
 
 fn overflow_fixture_trial(resource: u8*, width: u32, integer: u32, mode: u8*, prior: bool): bool {
     var buffers = tower_test_buffer_count();
