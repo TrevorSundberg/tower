@@ -1,0 +1,5 @@
+import tower;
+var a: i64 = -9223372036854775808;
+var b: i64 = -1;
+var c = a / b;
+print(c);

@@ -117881,3 +117881,109 @@ The fixture now parses the adapter, companion and testing import. A separate com
 ASan with leak checking completed both standalone modes. TSan completed three runs per mode. The intentional two-worker race control exited 66 with a report on `work_kernel_execute`. The restricted runtime also exited 139 before execution at its ASLR personality check 17 times for try, 27 for wait and 26 for the control. The thread-instrumented IR has hooks for the worker's store of 42 and load for its 84 comparison, and the caller's store of 84. The caller's stack load for its 42 comparison has no TSan read hook. The address build also lacks a per-access check there. The captured ordinary native selections and debugger observations provide functional coverage. The configured sanitizer profiles cover the standalone fixture and runtime. The project has no UBSan profile.
 
 The packet preserves the failed experiments. A first debugger replay omitted the existing empty report file required by the selected guest and exited 2. A wrapper stopped on the correct waiting assertion because its expected string omitted “on”. A link control initially expected flag omission alone to hide the entry. The corrected runs use the normal report-file contract, exact assertion text and a localized ELF symbol respectively. The assignment stays pinned to the requested parent. Integration with subsequent main revisions and publication belong to the manager.
+## Exhaustive population count in the registered Roku emitter test
+
+Host 2, 2026-11-26, assignment `481892c4-5c0a-4e3e-8aa1-23e1320e3da8`.
+The acceptance check is the O2 population registration compiling the unmodified
+sibling program, completing all 256 iterations on the public portable and
+shared frontends, and reproducing the historical simulator row. The earlier
+[migration report](roku_emitter_regressions_ba9e9c44.md) describes an eight-value
+registration and a separate exhaustive replay on host 1.
+
+The received archive was 30,201,333 bytes, SHA-256
+`fffe820c572dfe303157bc17efb7cef8fe0f270e5c62204163fe684dbf72cff5`.
+The manifest's source bundle and both TSVs matched their sizes, digests and
+archived copies. The population row in `old-cases.tsv`, after its two case
+labels, equals the entire `exhaustive.tsv` row. The isolated main merged
+`be1bce9b54a8588e080df13a71861e5dca6799d9` into public
+`2738c50f8242deec1a773226800081e6dbe52f89`. The initial shared-checkout
+pull encountered an unrelated SHA-256 test conflict. Aborting that rebase
+restored its original local commits and clean working tree.
+
+Before the repair the selected compiler received a private copy with
+`i < 8`. Both the eight- and 256-value programs print a zero failure count,
+so stdout alone accepts either. Commit `ab4ca5a9eb53f93a12e2b36f8fe7df56c085fe89`
+removes the import, scan and overwrite. The test passes the buffer returned
+by `roku_input("tests/backend_popcount.tower")` directly to `roku_compile`
+and releases it after use. The adapter, O2 path and sibling retain their bytes.
+
+The exact public Pages tree `8417c9ae4cd9accdf672b22d6676bd465c8a79d6`
+provided an independent Git blob identity for each received product and the
+deployment manifest. All three product SHA-256 values matched the manifest.
+Portable and shared Wasm were 1,722,741 and 1,794,422 bytes respectively.
+The 12,805,369-byte compressed LLVM reactor expanded to the executable digest
+`d16b6e1f3c390ae9e1bea26cf95d010ccc2e373c3fdf6d677a0ce4eb7bbd5d5b`.
+The manifest attributes all three builds to `0da4e513`.
+
+The supplied Node recorder observed the compiler input, both Foundation
+stages, emitter and simulator in fresh processes. On both frontends exactly
+one test matched `_population_test.tower`, both Tower compiles used four-byte
+pointers and the real LLVM reactor compiled for wasm32-unknown-unknown with
+optimization enabled. BrighterScript 0.73.8 validated the result and brs-node
+2.7.1 ran it. All six byte strings compared equal to both the original
+registration's blobs and the prior exhaustive replay's blobs.
+
+| Observed bytes on each frontend | Length | SHA-256 |
+| --- | ---: | --- |
+| Tower compiler input | 2,258 | `8237a722a3c6f088da97ff49e64a775aff719655e7458649f0a046959ae7e94e` |
+| Canonical Foundation | 31,720 | `99706211ad4a638ee9c841aa89a318ee6b710b90fd10513966cd20a0d08e00d2` |
+| Reconstructed Foundation | 11,281 | `829606319392fb9bd42e43c5101a7fb12f1c21e36834303303223db042c21d51` |
+| BrightScript program | 63,416 | `d2836e33bcab2acf59b2e3912f504244b5dc4c89ef6220de330cee80301546c5` |
+| Main | 30 | `6235bc6dd3d61d99ccc5c9e9e9af927196a6e665d61564c0165e904b3122daf5` |
+| Stdout | 2 | `9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa` |
+
+The portable and shared selected populations took 119.427 and 118.109 s
+inside the Node test respectively. Both finished within the existing 180 s
+limit. The source executes five verifications per iteration and six more
+after the loop. The common emitted program initializes the induction value to
+zero, adds one, compares to hex 100 and branches to print the failure count.
+
+Host 2 exposed a Ryzen 5 3600 with six physical cores, twelve hardware threads,
+a cgroup CPU quota of 1,152,000/100,000 (11.52 CPUs), and a 32,222,740,480-byte
+memory ceiling. Runs held the host timing lock, used CPUs 0–3 on distinct
+physical cores and one libuv thread. Linux x64, Node 24.22.3, warm installed
+files, fresh processes, one sample per command. Process wall time includes
+startup. CPU seconds are user plus system. Peak RSS is GNU time's process
+maximum. The cgroup has no memory.peak file. No change to the production
+allocator or compiler was involved and the published Wasm has no source
+sanitizer instrumentation.
+
+| Recorded population registration | Status | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Prior, eight iterations, portable | 0 | 7.61 | 8.53 | 482,364 |
+| Exhaustive, portable | 0 | 121.10 | 122.11 | 495,936 |
+| Exhaustive, shared | 0 | 119.94 | 121.26 | 565,084 |
+
+The elapsed increase includes the 248 restored simulator iterations. The
+two candidate processes ran the same source, lockfile, O2, recorder, simulator
+and default timeout. These samples measure complete test invocations.
+
+The ordinary portable command from playground,
+`node --test --test-concurrency=1 tests/roku/*.test.mjs`, passed all 13 with
+zero skips and cancellations. It took 223.17 s wall, 174.49 s CPU and
+1,118,996 KiB peak RSS. The separate `^runtime traps unwind` selection passed
+in 12.83 s wall, 5.73 s CPU and 521,216 KiB peak RSS. Divide by zero,
+signed division overflow and checked conversion overflow each produced
+`caught\n` through the original Main at O0 and O2. All six rows matched
+the prior migration; their Foundation, emitted program, Main and stdout
+also matched the pre-migration rows. The ordinary run generated the same
+six device-package files as the retained original. Windows and physical
+Roku execution were untested on this Linux host.
+
+For the sensitivity control only the expected two bytes changed from
+`0\n` to `1\n`. The same compiler and simulator returned the exhaustive
+row; Tower's `fixture_equal` assertion failed in `emitter.tower` at byte
+1223 with the label `Population count` and the process exited 1. A recorder
+on the real brs-node GOTO visitor observed exactly 256 transfers to the
+outer loop at `tr_label_302` followed by one to the print-and-return block
+at `tr_label_343`. It forwarded the original calls and left the compiled
+Tower input, emitted program, Main and stdout byte-identical.
+
+Restoring the exact original expectation passed the same selected command
+with exit 0. The restored trace again contained 256 loop entries and one exit.
+The negative and restored process wall/CPU/peak were 120.85 s / 121.85 s /
+495,752 KiB and 123.81 s / 124.90 s / 496,696 KiB. The native bootstrap
+format check passed and its owner/suffix inventory found exactly the changed
+companion. The packet includes the commands, statuses, all six byte blobs
+per image, traces, comparisons, verified public products and source bundle.
+Manager integration and publication follow this local qualification.

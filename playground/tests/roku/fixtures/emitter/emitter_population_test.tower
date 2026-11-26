@@ -1,0 +1,11 @@
+import emitter;
+
+test() {
+    var source = roku_input("tests/backend_popcount.tower");
+    defer free(source);
+    var handle = roku_compile(source, RokuPointerBytes);
+    defer roku_release(handle);
+    var wanted = expected_output("zero.expected");
+    defer free(wanted.data);
+    check_reconstructed(handle, true, null, wanted, "Population count");
+}

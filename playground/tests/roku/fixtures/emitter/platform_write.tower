@@ -1,0 +1,5 @@
+import tower;
+
+extern fn platform_write(): void;
+
+platform_write();

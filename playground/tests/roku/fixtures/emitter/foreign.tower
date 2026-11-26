@@ -1,0 +1,5 @@
+import tower;
+
+extern fn missing(): void;
+
+missing();

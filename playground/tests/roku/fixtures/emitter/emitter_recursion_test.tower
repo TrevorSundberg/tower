@@ -1,0 +1,6 @@
+import emitter;
+
+test() {
+    check_reference("recursion.tower", false);
+    check_reference("recursion.tower", true);
+}

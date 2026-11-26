@@ -1,116 +1,122 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
-import {loadTower,loadLLVM} from '../compiler-fixtures.mjs';
+import {mkdir, readFile, readdir, writeFile} from 'node:fs/promises';
+import {files} from '../compiler-fixtures.mjs';
+import {fixtureSource, openLLVM, openTower, requireStatus} from '../compiler_test_host.mjs';
+import {copyText, guestString} from '../guest_text.mjs';
+import {selectedTestSteps} from '../selected_test.mjs';
 import {runBrightScript} from './harness.mjs';
-const root=new URL('../../../',import.meta.url);
-const bytes=path=>readFile(new URL(path,root));
-const text=async path=>(await bytes(path)).toString();
-const foundation=await text('scaffolding/foundation.tower');
-const tower=await loadTower(await bytes('build/browser-wasi/tower.wasm'),undefined,foundation);
-const llvm=await loadLLVM(await bytes('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
 
-function compile(source,optimize) {
-  const h=tower.compile(source,{pointerBytes:4});
-  try {
-    const checked=tower.execute(h,0);
-    assert.notEqual(checked.status,'error',checked.error);
-    const canonical=tower.foundation(h).source;
-    if(optimize===undefined) return tower.rokuSource(h);
-    const result=llvm.compile(canonical,{emit:'foundation',target:'wasm32-unknown-unknown',optimize});
-    assert.equal(result.status,'compiled',result.error);
-    const optimized=tower.compile(result.foundation,{pointerBytes:4});
-    try { return tower.rokuSource(optimized); } finally { tower.destroyExecution(optimized); }
-  } finally { tower.destroyExecution(h); }
+const root = new URL('./fixtures/emitter/', import.meta.url);
+const fixtures = new Map(await Promise.all((await readdir(root)).map(async name =>
+  [name, await readFile(new URL(name, root), 'utf8')])));
+const idioms = JSON.parse(await readFile(new URL('../../../scaffolding/tests/llvm-scalar-idioms.json', import.meta.url)));
+const tower = await openTower();
+const llvm = await openLLVM();
+
+function foundation(handle) {
+  const checked = tower.execute(handle, 0);
+  if (checked.status === 'error') requireStatus(checked, 'done');
+  return tower.foundation(handle).source;
 }
-function reference(source) {
-  const h=tower.compile(source,{pointerBytes:4});
-  try { const result=tower.execute(h,2000000); assert.equal(result.status,'done',result.error); return result.output; }
-  finally { tower.destroyExecution(h); }
+function optimizedFoundation(source, optimize) {
+  const result = llvm.compile(source, {
+    emit:'foundation', target:'wasm32-unknown-unknown', optimize,
+  });
+  requireStatus(result, 'compiled');
+  return result.foundation;
+}
+function reference(handle) {
+  const result = tower.execute(handle, 2_000_000);
+  requireStatus(result, 'done');
+  return result.output;
+}
+function copyOutput(context, text, size) {
+  const address = copyText(context, text);
+  const memory = context.memory();
+  new DataView(memory.buffer, memory.byteOffset).setUint32(size, Buffer.byteLength(text), true);
+  return address;
 }
 
-for(const optimize of [false,true]) test(`optimized foundation to Roku (${optimize?'O2':'O0'}) executes shared semantics`,{timeout:180000},async()=>{
-  for(const file of ['tests/backend_semantics.tower','examples/functions.tower','examples/structs.tower','examples/memory.tower','examples/collections.tower','examples/match.tower']) {
-    const source=await text('scaffolding/'+file);
-    const emitted=compile(source,optimize);
-    const expected=reference(source);
-    assert.equal(await runBrightScript(emitted),expected,`${file} O${optimize?2:0}`);
-  }
-});
+// Keep subject handles in a separate reactor so the live-node check sees
+// exactly the application state. Release them even when a Tower assertion traps.
+const handles = new Set();
+function own(handle) { handles.add(handle); return handle; }
+function release(handle) { tower.destroyExecution(handle); handles.delete(handle); }
+let request, output;
+const probe = await openTower({threads:{capacity:1}, imports:{
+  roku_read(ctx, path, size) {
+    const name = guestString(ctx, path);
+    const text = fixtures.get(name) ?? fixtureSource('.tower/' + name);
+    return size ? copyOutput(ctx, text, size) : copyText(ctx, text);
+  },
+  roku_compile: (ctx, source, pointerBytes) => own(tower.compile(guestString(ctx, source), {pointerBytes})),
+  roku_release: (_, handle) => release(handle),
+  roku_foundation: (ctx, handle) => copyText(ctx, foundation(handle)),
+  roku_llvm: (ctx, canonical, optimize) => copyText(ctx, optimizedFoundation(guestString(ctx, canonical), Boolean(optimize))),
+  roku_emit: (ctx, handle, comments) => copyText(ctx, tower.rokuSource(handle, {comments:Boolean(comments)})),
+  roku_emit_error(ctx, handle) {
+    try { tower.rokuSource(handle); }
+    catch (error) { return copyText(ctx, error.message); }
+    return 0;
+  },
+  roku_reference: (ctx, handle, size) => copyOutput(ctx, reference(handle), size),
+  roku_live_nodes: () => tower.exports.tw_live_nodes(),
+  roku_idiom_count: () => idioms.length,
+  roku_idiom_name: (ctx, index) => copyText(ctx, idioms[index][0]),
+  roku_idiom_source: (ctx, index) => copyText(ctx, idioms[index][1]),
+  roku_idiom_expected: (ctx, index, size) => copyOutput(ctx, idioms[index][2], size),
+  roku_submit(ctx, program, main) {
+    if (request || output !== undefined) throw new Error('Unconsumed simulator request');
+    request = [guestString(ctx, program), main ? guestString(ctx, main) : undefined];
+  },
+  roku_take_output(ctx, size) {
+    if (output === undefined) return 0;
+    const address = copyOutput(ctx, output, size);
+    output = undefined;
+    return address;
+  },
+}});
 
-test('narrow integer operations and output survive scalar reconstruction', {timeout:180000}, async()=>{
-  for(const file of ['narrow_scalar','narrow_output']) {
-    const source=await text('scaffolding/tests/'+file+'.tower');
-    for(const optimize of [false,true]) assert.equal(await runBrightScript(compile(source,optimize)),reference(source),file);
-  }
-});
+const suite = files.filter(({path}) => ['backend/text', 'library/testing', 'library/test_fixtures', 'library/vector']
+  .some(name => path === '.tower/' + name + '.tower'));
+for (const [path, text] of fixtures) if (path.endsWith('.tower')) suite.push({path, text});
 
-test('Roku source uses selected layout, preserves comments, is deterministic and rejects foreign ABIs',async()=>{
-  const source='import tower;\n// roku comment\nvar p:u8* = null; print(p); print(sizeof(usize)); print(alignof(u64)); print(true);';
-  const h=tower.compile(source,{pointerBytes:4});
-  const before=tower.exports.tw_live_nodes();
+async function check(entry) {
   try {
-    const emitted=tower.rokuSource(h);
-    assert.equal(tower.rokuSource(h),emitted);
-    assert.match(emitted,/roku comment/);
-    assert.doesNotMatch(tower.rokuSource(h,{comments:false}),/roku comment/);
-    assert.equal(await runBrightScript(emitted),reference(source));
-    assert.equal(tower.exports.tw_live_nodes(),before);
-  } finally { tower.destroyExecution(h); }
-  const wide=tower.compile('import tower; print(sizeof(usize));',{pointerBytes:8});
-  try { assert.throws(()=>tower.rokuSource(wide),/32-bit/); } finally { tower.destroyExecution(wide); }
-  assert.throws(()=>compile('import tower; extern fn missing():void; missing();'),/foreign function/);
-  assert.throws(()=>compile('import tower; extern fn platform_write():void; platform_write();'),/platform_write requires/);
-});
-
-test('recursion, simultaneous phi copies, many arguments, unsigned arithmetic and text output',async()=>{
-  const params=Array.from({length:40},(_,i)=>`a${i}:i32`).join(',');
-  const args=Array.from({length:40},(_,i)=>String(i)).join(',');
-  const source=`import tower;
-    import library.platform;
-    fn many(${params}):i32 { return a39; }
-    fn recur(n:i32):i32 { if n == 0 { return 1; } var next=n-1; var sub=recur(next); var result=n*sub; return result; }
-    print(many(${args})); print(recur(7));
-    var a:u64=9223372036854775809; var b:u64=18446744073709551615;
-    var i:i32=0;
-    loop { var stop=i==9; if stop {break;} var temp=a; a=b; b=temp; i=i+1; }
-    print(a); print(b); var mixed=a^b; print(mixed);
-    var message="Roku ✓\\n"; var wrote=platform_write(1,message,9); print(wrote);
-  `.replace('if n == 0','var zero=n==0; if zero');
-  for(const optimize of [false,true]) assert.equal(await runBrightScript(compile(source,optimize)),reference(source));
-});
-
-test('runtime traps unwind instead of continuing with a fabricated result',async()=>{
-  for(const source of [
-    'import tower; var a:i32=1; var b:i32=0; var c=a/b; print(c);',
-    'import tower; var a:i64=-9223372036854775808; var b:i64=-1; var c=a/b; print(c);',
-    'import tower; var a:u64=18446744073709551615; var b=convert(i64,a); print(b);',
-  ]) for(const optimize of [false,true]) {
-    const main='sub Main()\ntry\nTowerRun()\ncatch e\nprint "caught"\nreturn\nend try\nthrow "Expected trap"\nend sub\n';
-    assert.equal(await runBrightScript(compile(source,optimize),main),'caught\n');
+    for (const _ of selectedTestSteps(probe, 'emitter.tower', 10_000,
+      {files:suite, suffix:'_' + entry + '_test.tower'}, 4096)) {
+      if (request) {
+        output = await runBrightScript(...request);
+        request = undefined;
+      }
+    }
+  } finally {
+    request = output = undefined;
+    for (const handle of handles) release(handle);
   }
-});
+}
 
-test('LLVM scalar idioms retain high-bit semantics after reconstruction',{timeout:180000},async()=>{
-  const cases=JSON.parse(await text('scaffolding/tests/llvm-scalar-idioms.json'));
-  for(const [name,source,expected] of cases)
-    assert.equal(await runBrightScript(compile(source,true)),expected,name);
-});
+for (const mode of ['O0', 'O2']) test(`optimized foundation to Roku (${mode}) executes shared semantics`,
+  {timeout:180000}, () => check('shared_' + mode.toLowerCase()));
+test('narrow integer operations and output survive scalar reconstruction', {timeout:180000}, () => check('narrow'));
+test('Roku source uses selected layout, preserves comments, is deterministic and rejects foreign ABIs', () => check('layout'));
+test('recursion, simultaneous phi copies, many arguments, unsigned arithmetic and text output', () => check('recursion'));
+test('runtime traps unwind instead of continuing with a fabricated result', () => check('traps'));
+test('LLVM scalar idioms retain high-bit semantics after reconstruction', {timeout:180000}, () => check('idioms'));
+test('LLVM population count retains bounded full-width patterns after reconstruction', {timeout:180000}, () => check('population'));
 
-test('LLVM population count retains bounded full-width patterns after reconstruction',{timeout:180000},async()=>{
-  // Retain zero, partial patterns, sign bits and full-width masks while keeping
-  // the simulator run bounded; the complete fixture runs in the main LLVM suite.
-  const population=(await text('scaffolding/tests/backend_popcount.tower')).replace('while i < 256','while i < 8');
-  assert.equal(await runBrightScript(compile(population,true)),'0\n');
-});
-
-test('build a sideloadable conformance package for later device validation',async()=>{
-  const source=await text('scaffolding/tests/backend_semantics.tower');
-  const emitted=compile(source,true);
-  const directory=new URL('build/roku-device/source/',root);
-  await mkdir(directory,{recursive:true});
-  await writeFile(new URL('program.brs',directory),emitted);
-  await writeFile(new URL('Main.brs',directory),'sub Main()\nprint "TOWER_ROKU_BEGIN"\nTowerRun()\nprint "TOWER_ROKU_END"\nend sub\n');
-  await writeFile(new URL('../manifest',directory),'title=Tower Roku conformance\nmajor_version=1\nminor_version=0\nbuild_version=0\n');
-  await writeFile(new URL('../expected.txt',directory),'TOWER_ROKU_BEGIN\n'+reference(source)+'TOWER_ROKU_END\n');
+test('build a sideloadable conformance package for later device validation', async () => {
+  const source = fixtureSource('.tower/tests/backend_semantics.tower');
+  const original = tower.compile(source, {pointerBytes:4});
+  try {
+    const round = tower.compile(optimizedFoundation(foundation(original), true), {pointerBytes:4});
+    try {
+      const directory = new URL('../../../build/roku-device/source/', import.meta.url);
+      await mkdir(directory, {recursive:true});
+      await writeFile(new URL('program.brs', directory), tower.rokuSource(round));
+      await writeFile(new URL('Main.brs', directory), fixtures.get('package.brs'));
+      await writeFile(new URL('../manifest', directory), 'title=Tower Roku conformance\nmajor_version=1\nminor_version=0\nbuild_version=0\n');
+      await writeFile(new URL('../expected.txt', directory), 'TOWER_ROKU_BEGIN\n' + reference(original) + 'TOWER_ROKU_END\n');
+    } finally { tower.destroyExecution(round); }
+  } finally { tower.destroyExecution(original); }
 });
