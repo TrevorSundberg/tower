@@ -115251,3 +115251,36 @@ UBSan is unsupported by the Tower LLVM instrumentation. Full-repository
 formatting and browser publication are outside this qualification. Raw
 commands, source bundle, wrong-map diagnostics and restoration hashes are in
 the assignment receipt for manager review.
+
+### Project frontend registrations on the Pages 8417c9ae images
+
+Assignment 3196a70b-41a7-4ab7-ac36-91d6a031449b, host 7. At
+2344ddc374b70c8610f53ccc468b17c285ef412b the unmodified projects.test.mjs
+passed all eight Node registrations on each image. The original five frontend
+registrations issued eight executions. The isolated grammar reported byte 19
+in src/b.tower and the bad declaration byte 32 in bad.tower. Both executions
+of the binding project printed 2, 42, 1 on separate lines. The explicit root
+reported seven dependencies in order. The archive and mounted-drive APIs have
+different inputs, owners and failure paths and qualify in a separate change.
+
+The five selected declarations in playground/tests/project_cases drive the
+same compileFiles, execute, foundation, compile, projectDiagnostic and explicit
+root configureModules calls. The sibling inputs preserve the original bytes
+(including the 180,033-byte source). The replay uses the emitted Foundation.
+Two additional executions locate the grammar error after UTF-8 at byte 29 and
+the specialized return at byte 57 in lib.tower with its invocation at line 1
+column 33. An initial checker compile rejected the reserved name "expected".
+Renaming the parameter fixed the checker. The packet retains that failure.
+
+On the frontend-only tree all eight registrations passed on each profile.
+Nine individual wrong expectations (effect order/output, replay, isolated
+grammar, UTF-8 offset, declaration offset, specialization body, instantiation
+site, source size, and root dependencies) each failed its selected test on
+each image. Restoring each expectation passed that selection on both.
+Commands used Node v24.22.3, TOWER_TEST_WASM set to the manifest-verified
+tower.wasm or tower-threads.wasm and node --test playground/tests/projects.test.mjs.
+The checker uses one lane. GNU time, one process at a time under the host
+timing lock, measured original/changed wall seconds of 1.63/2.39 portable and
+2.57/3.52 shared. CPU seconds were 2.38/3.46 and 4.26/5.55, with peak RSS
+188788/224868 and 339988/390384 KiB. These single process samples include the
+extra assertion VM and test compilation. The production frontend is unchanged.

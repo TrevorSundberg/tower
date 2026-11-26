@@ -1,0 +1,1 @@
+import tower; fn identity(T: type, value: T): T { return value; }

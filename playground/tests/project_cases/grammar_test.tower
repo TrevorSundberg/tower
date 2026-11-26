@@ -1,0 +1,17 @@
+import session;
+
+fn run_import(fixture: u8*): void {
+    project_clear();
+    project_add("a.tower", "grammar/a.tower");
+    project_add("src/b.tower", fixture);
+    project_run();
+}
+
+test() {
+    run_import("grammar/src/b.tower");
+    check_diagnostic("src/b.tower", 19);
+    run_import("grammar/src/valid.tower");
+    check_output("grammar/output.expected");
+    run_import("grammar/src/unicode.tower");
+    check_diagnostic("src/b.tower", 29);
+}

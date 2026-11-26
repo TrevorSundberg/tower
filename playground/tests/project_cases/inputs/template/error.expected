@@ -1,0 +1,2 @@
+Expected i32, got bool; use an explicit conversion
+Instantiated by identity(i32,42) at line 1, column 33.

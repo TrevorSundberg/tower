@@ -1,0 +1,36 @@
+import library.testing;
+import backend.text;
+
+extern fn project_clear(): void;
+extern fn project_add(path: u8*, fixture: u8*): void;
+extern fn project_run(): void;
+extern fn project_replay(): void;
+extern fn project_add_library(): void;
+extern fn project_run_entry(entry: u8*, library: u8*): void;
+extern fn project_field(field: u8*): u8*;
+extern fn project_offset(): usize;
+extern fn project_file_bytes(index: usize): usize;
+extern fn project_expected(fixture: u8*): u8*;
+
+fn check_field(field: u8*, wanted: u8*): void {
+    var actual = project_field(field);
+    defer free(actual);
+    assert(backend_equal(actual, wanted), field);
+}
+
+fn check_fixture(field: u8*, fixture: u8*): void {
+    var wanted = project_expected(fixture);
+    defer free(wanted);
+    check_field(field, wanted);
+}
+
+fn check_output(fixture: u8*): void {
+    check_field("status", "done");
+    check_fixture("output", fixture);
+}
+
+fn check_diagnostic(path: u8*, offset: usize): void {
+    check_field("status", "error");
+    check_field("errorFile", path);
+    assert(project_offset() == offset, "Diagnostic byte offset");
+}

@@ -1,0 +1,1 @@
+import tower; import lib; print(identity(i32,42));

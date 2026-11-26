@@ -1,0 +1,13 @@
+import session;
+
+test() {
+    project_add("main.tower", "binding/main.tower");
+    project_add("lib/answer.tower", "binding/lib/answer.tower");
+    project_run();
+    check_output("binding/output.expected");
+    var direct = project_field("output");
+    defer free(direct);
+    project_replay();
+    check_field("status", "done");
+    check_field("output", direct);
+}

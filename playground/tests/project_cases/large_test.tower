@@ -1,0 +1,8 @@
+import session;
+
+test() {
+    project_add("big.tower", "large/big.tower");
+    assert(project_file_bytes(0) > 128 * 1024, "Source exceeds the old 128 KiB limit");
+    project_run();
+    check_output("answer.expected");
+}
