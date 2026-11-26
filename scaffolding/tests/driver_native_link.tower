@@ -1,0 +1,52 @@
+import tower;
+import driver;
+import .host.driver_support;
+
+fn driver_test_linked_source(compiler: u8*, runtime: u8*, source: u8*, oracle: u8*): i32 {
+    var path: u8* = "native selected.tower";
+    driver_check(driver_write_file(path, source, strlen(source)), "write native test input");
+    var args: DriverArguments = default;
+    driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", compiler);
+    driver_argument(&args, "", "--test");
+    driver_argument(&args, "", path);
+    driver_argument(&args, "", "--test-native-runtime");
+    driver_argument(&args, "", runtime);
+    driver_argument(&args, "", "--test-details");
+    driver_argument(&args, "", "--jobs");
+    driver_argument(&args, "", "1");
+    if oracle != null {
+        driver_argument(&args, "", "--test-oracle");
+        driver_argument(&args, "", oracle);
+        driver_argument(&args, "", "--test-affected");
+        driver_argument(&args, "", ".");
+    }
+    return driver_test_capture(&args);
+}
+
+fn driver_test_native_link(compiler: u8*, runtime: u8*): void {
+    var source: u8* = "import library.testing;\nextern fn getpid(): i32;\ntest() { assert(getpid() > 0); print(27); }\n";
+    driver_check(driver_test_linked_source(compiler, runtime, source, null) == 0, "native dependency execution");
+    driver_test_read("driver stdout.txt", "27\n", true);
+    driver_test_read("driver stderr.txt", "native selected.tower:3:1: test passed", false);
+    driver_test_read("driver stderr.txt", "1 test passed for ", false);
+    var expected: u8* = "native selected.expected";
+    driver_check(driver_write_file(expected, "27\n", 3), "write native stdout expectation");
+    for(var i: usize = 0; i < 2; i++) {
+        driver_check(driver_test_linked_source(compiler, runtime, source, expected) == 0, "linked stdout oracle");
+        driver_test_read("driver stdout.txt", "27\n", true);
+        driver_test_read("driver stderr.txt", "1 test passed for ", false);
+        driver_test_read("driver stderr.txt", "without a reusable success", false);
+    }
+    driver_check(driver_write_file(expected, "28\n", 3), "change native stdout expectation");
+    driver_check(driver_test_linked_source(compiler, runtime, source, expected) == 1, "reject wrong linked stdout");
+    driver_test_read("driver stdout.txt", "27\n", true);
+    driver_test_read("driver stderr.txt", "first divergent byte offset 1", false);
+    source = "import library.testing;\ntest() {\n    assert(false, \"native mismatch\");\n}\n";
+    driver_check(driver_test_linked_source(compiler, runtime, source, null) == 1, "native assertion status");
+    driver_test_read("driver stderr.txt", "native selected.tower:3:5: native mismatch", false);
+    source = "import tower;\nextern fn exit(status: i32): void;\ntest() { exit(0); }\n";
+    driver_check(driver_test_linked_source(compiler, runtime, source, null) == 1, "native premature exit status");
+    driver_test_read("driver stderr.txt", "without a valid completion or trap record", false);
+}

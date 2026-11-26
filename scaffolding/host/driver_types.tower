@@ -46,5 +46,6 @@ struct DriverOptions {
     test_details: bool;
     test_state: u8*;
     test_oracle: u8*;
+    test_runtime: u8*;
     test_rule: TestFileRule;
 }

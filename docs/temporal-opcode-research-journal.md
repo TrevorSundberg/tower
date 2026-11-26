@@ -106396,3 +106396,346 @@ The CLI exposes no per-test allocation counter. The guest calls the graph
 coordinator sequentially. The predecessor's guest sanitizer and backend
 evidence belongs to its own run. This registration changes no compiler,
 scheduler or allocator code. Browser selectors remain active.
+### Host 8 linked SCC companion on e2ebb16a
+
+Assignment 890c278d-b588-49b7-b359-c381ae4fc78b reproduced the b85fc4df
+failure on public e2ebb16a. Default test execution stopped on the first
+`tower_test_buffer_count` read. The old native frontend still returned the
+242-case summary and rejected the one-node reflexive corruption with zero
+live buffers. Both producer source packets and the previous raw matrices
+were available through the verified Host 8 receipt.
+
+Local driver change 2ec292e6 lowers the existing selected semantic program
+through the ordinary native object backend. The Linux GNU hosted object
+linker borrows the named test runtime and the caller's link inputs. The child
+enters the selected `tower_main` through the existing guest program entry.
+The startup records completion only on return. The trap ABI sends the source
+offset and message to the driver's existing location formatter. The request
+owns the temporary files until the process exits. CLI regressions cover a
+native libc call, a located assertion, and an early exit with status zero.
+
+The companion and legacy registration share the original production kernel,
+Floyd–Warshall oracle, generated edges and per-trial ownership checks. Both
+families count completed trials. On owner and direct requests, jobs 1 and 4,
+with and without details, each run reported 8 fixed and 234 seeded cases
+with zero live buffers and two passed declarations. In separate logged runs
+all 242 adjacency matrices and their order matched the b85fc4df native trace
+byte for byte at each width and route. All four logged negative runs matched
+its exact empty and singleton inputs. Inverting the reflexive expectation
+reported `graph_components_test.tower:7:5` and returned 1. The genuine allocator
+probe counted one additional live buffer while allocated and returned to its
+initial count on release. Its missing symbols, as providers were added, were
+tower_test_buffer_count, compiler_buffer_allocate, bytes_reserve and
+tower_utf8_validate. The selected object itself defines graph_components_result.
+
+Ordinary objects were identical across jobs and positive/negative companions.
+Their depfiles omitted both companion and helper. Initial native configuration
+copied the adjacent source into the runtime via its library glob. The native
+resource selection and browser builtin list now exclude default companions.
+The final browser builtin list matched the native source module inventory.
+Browser execution and release packaging were outside this Linux native check.
+
+Linux x86-64 Host 8, Ryzen 9 7900X, affinity 0–23, quota 23.04 cores,
+Clang/LLVM 19.1.7, Release. Three sequential fresh processes per width on
+warm filesystem caches timed the same owner with details. Jobs 1 averaged
+0.317 s wall and 0.310 s combined CPU with 106560 KiB peak RSS. Jobs 4
+averaged 0.393 s wall and 0.443 s combined CPU with 117844 KiB peak RSS.
+The legacy prelinked executable took 0.01 s at this timer's resolution.
+The earlier 0/242 request has no completed SCC workload time. Both the native
+test-link CLI regression and the existing portable module-path suite passed.
+
+Separate instrumented compiler builds reproduced the positive and the located
+negative at both widths under ASan/LSan and TSan. Nine TSan launches failed
+during initialization at the host personality restriction. Only subsequent
+or first-attempt executions with the exact expected streams count. The child
+and provider objects in these runs used the ordinary allocator instrumentation
+for the live-buffer checks. They did not receive compiler sanitizer coverage.
+Tower source-language UBSan is unsupported. The retained packet contains the
+source bundle, executable and provider identities, actual selected object and
+ELF, independent link map, raw streams, case-by-case comparison and replay.
+The source is for manager review. The legacy registration remains active.
+
+A separate child startup check instrumented the actual guest-native-test LLVM
+module in address and thread modes. The hosted Tower linker rejected those
+instrumented ELF objects. Clang linked each to the captured selected object and
+the same native providers. Successful positive and rejecting singleton runs
+reproduced the byte-exact stdout and binary completion/trap records in both
+modes. This covers the startup/report transport. The selected SCC object and
+its providers remained ordinary objects. Four simultaneous ordinary CLI
+requests also preserved all expected outputs and drained their shared temporary
+directory. An independent system link map attributes the kernel to the selected
+object and the live counter to runtime-instrumented.o.
+
+### Relocated registered SCC suite on the public test-file rule, 2026-11-26
+
+Host 8 integrated the preserved native selection and companion commits
+(`2ec292e6`, `4ac43427`) on public `3ae475c2`. The old compiler could run
+the explicitly linked declarations. Its registered link smoke exercised a
+different guest, and the bootstrap packager still required a production copy of
+the tracked companion. Replaying its copy check reproduced the missing
+`scaffolding/library/graph_components_test.tower` diagnostic.
+
+Native CMake, the browser resource copier and the bootstrap packager now
+consume one production module inventory. Flat stale copies are diagnosed in
+reused native outputs. The explicit SCC component adds the two adjacent
+fixtures, their existing relative imports and the native providers to its own
+compiler tree. CTest invokes the same public driver in the build and in the
+installed suite. The original allocator, test declarations, raw graph
+generator, reachability oracle and legacy registration are unchanged in this
+integration. Build and installation commands are in the SCC section of
+[the test guide](../scaffolding/tests/README.md).
+
+With the source and build directories moved out of reach, the installed owner
+and explicit companion each passed 8 fixed and 234 seeded cases at jobs 1
+and 4. Both families reported zero live buffers. Four observation runs matched
+all 242 original input matrices byte for byte. A renamed positive companion
+passed under the configured alternate suffix. The installed wrong singleton
+returned driver status 1, CTest status 8 and the location
+`graph_components_wrong.tower:7:5`. Empty and invalid suffix selections failed
+the registered check. The selected object defines the production SCC function
+and imports the allocator counter. The ordinary distribution and optional kit
+share 58 identical files and produce the same ordinary SCC object.
+
+On the Ryzen 9 7900X, Linux x86-64, LLVM 19.1.7, each process ran alone. Three
+alternating warm owner samples had median elapsed 0.31/0.38 seconds for the
+retained compiler at jobs 1/4 and 0.30/0.39 seconds for this candidate.
+Maximum candidate RSS was 106044/116020 KiB respectively. The production
+package passed its Tower verifier. The verifier also rejected missing, modified
+and unowned flat modules and accepted a nested project module. Its focused
+ASan and TSan runs passed. TSan required retries after host personality
+failures. UBSan instrumentation for Tower source was unavailable. Browser
+validation covered the resource-copy block and its output. Packet
+`87436fc8-0d55-4714-ab90-bc8916ec5e2a` retains the original bundle, real argv,
+both installations, input traces, streams, timings, link evidence and checksums.
+
+### SCC companion with an ordinary-named library helper, host 8, 2026-11-26
+
+The release check now includes a library module imported only by the positive
+SCC companion. `graph_components_expectations.tower` supplies the historical
+8 and 234 case counts. The two declarations check those counts after the
+allocator report. The component installation owns the module alongside the
+fixtures. The production module inventory has no entry for it.
+
+On the same source tree with a local alternate companion, the public all-library
+copier exposed 52 sources. The production copier exposed 48. Cold calls to
+the worker's actual `getCanonicalSources()` over loopback HTTP retrieved the
+ordinary-named helper, default, alternate and wrong fixtures in the first
+case and omitted all four in the second. The app's startup fetch block also
+loaded its 12 ordinary examples. These probes exercised resource loading without
+building a browser or substituting any SHA test sources.
+
+The relocated optional suite ran all 242 original inputs through the owner
+and direct companion at jobs 1 and 4. The positive alternate passed with the
+same helper. Removing only that helper diagnosed its import at 3:38 under
+both suffixes. Changing the seeded expectation to 233 failed at 17:5 after
+234 real cases and zero live buffers. The original wrong singleton still
+failed at 7:5. The normal packager rejected a copy with only the helper added.
+The optional installation now contains 70 files, including the 58 identical
+production files. Three warm samples per profile on the same Ryzen 9 7900X
+gave candidate median wall/user/system times of 0.31/0.27/0.04 seconds with
+one job and 0.39/0.38/0.07 with four. Peak RSS was 106524 and 118832 KiB.
+
+### SHA-256 companion on the public native test runner, host 2
+
+The SHA-256 entry in the native inventory is a direct executable taking an
+isolated directory (scaffolding/tests/README.md). Its first four vectors have
+lengths 0, 3, 56 and 112. The next input is 1,000 updates of 1,000 repeated
+bytes. Its rejection checks cover a nonempty null input, preservation of the
+previous digest and an unrepresentable bit length. The last loop checks whole
+and single-byte updates, snapshots and independent file digests for lengths
+0 through 259. The standalone entry also checks its argument count, writes
+each file and manifest line, and reports when the external oracle can run.
+
+Built the native CLI from a fresh export of published e2ebb16a with its verified
+bootstrap and six Ninja jobs. No existing local build had receipts for that
+source. The unchanged direct fixture built as a library against the build's
+guest-host-library.o, returned 2 for a missing directory argument and ran
+successfully with the directory argument. GNU sha256sum accepted all 260
+manifest entries. Before adding the companion the owner selected zero tests.
+Four adjacent test blocks now check the original published digests, expected
+hex length, whole update, both updates at all 175 splits and exact digest
+including the terminator. The public-source owner selected and passed all four.
+A one-digit corruption of the abc vector in an isolated copy exited 1 at the
+whole-message assertion in sha256_test.tower:25:5. The grammar reserves
+`expected` in parameter position. Renaming that parameter to `wanted` resolved
+the parse diagnostic. Packet 98188150 contains raw commands, streams and times.
+
+The companion's binary corpus uses the original seed 1789 and the same 260
+prefixes. It finalizes a single live byte stream at each length and compares
+all 32 bytes against the digest of a fresh whole update. The legacy executable
+also replays each prefix from the beginning, including 33,670 byte updates
+and intervening finishes across the loop. Those repeated operations remain
+available in the native fixture. The language test compares SHA-256 of the
+260 ordered raw digests with
+`ddda469d69de4d6d0d341bb4b8fcbb953d4bcd24aeb7ac77218a3f27fe042dae`.
+GNU sha256sum read the binary files individually and supplied those 8,320
+digest bytes in numeric filename order. GNU basenc decoded the hex after the
+first transport attempt found xxd unavailable. A checked narrowing conversion
+rejected the first attempt to use an entire xorshift word as a byte. Restoring
+the original low-byte mask preserves the generator and its conversion contract.
+
+The last two blocks reject a one-byte update at the maximum encodable byte
+count and stream one million `a` bytes in the original 1,000 calls. The latter
+checks the published answer, rejects a nonempty null update on that same state
+and compares the pre/post digests. GNU sha256sum independently reproduced the
+million-byte answer and the other four standard answers. Mutating the corpus
+seed with both internal hashing paths still in agreement failed at the pinned
+aggregate digest (line 76).
+
+Host 2 ran the e2ebb16a source CLI (SHA-256
+`a792d2d2e42c167b1f5eb0bdec8cc342853cfaa37e09d6b2554ee397ee6e1d17`)
+on Debian x86-64, Ryzen 5 3600, LLVM 19.1.7. The build used six outer jobs,
+one compiler worker, CPUs 0–11 and a quota of 11.52 CPUs. It took 23.16 s wall,
+79.66 s CPU and 784,180 KiB peak RSS. Single warm-filesystem runs below used
+fresh processes on CPUs 0–3. Owner discovery at one job passed seven in 261.80 s
+wall / 261.78 s CPU / 84,116 KiB. Explicit selection at four jobs passed the
+same seven in 259.08 s / 259.11 s / 98,904 KiB. Guest stdout was empty for
+both. Test interpretation is serial. Each check ran the full million-byte
+stream. The native direct reference took 0.06 s before and after, including
+file creation. Its workload includes repeated prefix replays and uses native
+machine code. These timings describe different execution paths.
+
+Both list modes found the companion once. A missing suffix selected zero.
+An ordinary SHA-256 consumer built with the companion absent, present, and
+with a missing private import produced identical executable and depfile
+bytes each time and printed 186 (the first digest byte of abc). The three
+compiles took 0.61, 0.59 and 0.61 s with peak RSS 97,592, 97,424 and
+97,216 KiB. The owner library object and depfile also remained identical.
+Direct interpreter probes reported missing bindings for strlen, strcmp and
+the file writer's fopen. The first file probe mixed two lexical roots for
+the byte API and failed on bytes_reserve before execution. Selecting the
+local bytes implementation reached fopen. The checked-in bootstrap still
+rejects --test and independently builds the registered direct executable.
+Its original 260 files passed the external oracle as well.
+
+For native memory checks, an evidence-only copy of the suite removed the seven
+`test()` prefixes, leaving ordinary lexical blocks with identical statements.
+The public-source native emitter lowered that guest. Tower's LLVM 19 tool
+instrumented the guest and Linux x64 runtime independently for ASan and TSan.
+Each binary completed with empty streams (0.17 and 0.31 s). The maps and IR
+identify both instrumented inputs and the checks in sha256_test_matches.
+Those runs cover serial guest code. They do not instrument the compiler running
+--test. Tower has no source-level UBSan mode. Packet
+98188150-a7d2-4313-9df4-e4475cb84726 contains the per-assertion mapping, both
+suites, generated files, binaries, measurements, failure diagnostics and
+transfer commits. Distribution of a test-capable bootstrap remains with the
+manager.
+
+### Closing the installed SHA-256 companion's import dependency
+
+The previous SHA-256 runs on e2ebb16a used the source tree. The manager
+reproduced a discovery failure after relocating the candidate at 72ed31f4.
+The leading dot in `import .tests.utility_checks;` requested a sibling
+tests directory outside library. The native resource copy in CMakeLists.txt
+includes library/*.tower and has no such directory. Host 2 reproduced the
+same exit 1 at sha256_test.tower:3:30 for both owner and explicit inventories.
+
+The shared portable implementations now live in library/test_data.tower.
+The SHA-256 companion directly imports its sibling. The legacy facade retains
+utility_equal and utility_random for existing callers and forwards to
+test_bytes_equal and test_xorshift32. Those two definitions import only Tower.
+Native checks keep their original puts, fflush and abort declarations in tests.
+The three SHA-256 migration commits remain in the candidate's ancestry.
+
+The old and repaired layouts used the same e2ebb16a native executable and
+canonical resources. A fresh PRoot root exposed the installed compiler,
+system libraries and an empty work directory. Opening known checkout and
+prior packet sources failed there. The root supplies /proc/self/exe pointing
+to the relocated executable for the Linux resource locator. After a separate
+CMake configuration using the public pin, all 49 configured Tower resources
+matched the tested installation by name and SHA-256. The new discovery depfile
+lists the language resources, SHA-256 owner, testing, test_data and companion.
+
+Both repaired inventories returned just the installed companion. Flipping a
+digit of the abc answer returned 1 at sha256_test.tower:25:5. The restored
+owner selected and passed seven tests with empty guest stdout, including the
+million-byte stream. One run took 255.80 s wall, 255.78 s CPU and 83,880 KiB
+peak RSS. The ordinary abc consumer printed true with both optional files
+present and with both removed; object and depfile matched byte for byte.
+Same host (Ryzen 5 3600, Debian Linux x64, LLVM 19.1.7), CPUs 0–3, cgroup
+quota 11.52 CPUs, one compiler job, serialized fresh processes on warm files.
+Owner inventories took 0.41 s before and 0.37 s after; direct took 0.34 s
+and 0.36 s. These single samples establish failure and repair.
+
+The pinned predecessor compiled the unchanged SHA, gzip and command-word
+fixtures with the original and forwarding helper modules. All three ran at
+both revisions. GNU sha256sum accepted 260/260 files each time. Both complete
+corpora and manifests were byte-identical. SHA took 0.06 s before and after,
+gzip 0.15 s and command words 0.03 s. ASan and TSan each ran the original
+native SHA entry and its external manifest check. Both moved helper bodies
+contain the respective memory instrumentation. The initial inspection filter
+missed TSan's unaligned 32-bit hooks. A corrected filter found them in the
+retained instrumented IR. These checks cover the serial guest; the compiler
+interpreter was the ordinary build. Source-level UBSan is unavailable.
+
+Read-only browser observation: playground/scripts/build.mjs:42–50 enumerates
+every library .tower file. Evaluating its manifest expression on this candidate
+returned 49 module names. In playground/src/app.mjs, start() reads builtins.json
+and fetches every name at lines 1020–1025. An ordinary startup would fetch
+./library/sha256_test.tower and ./library/test_data.tower. The separate
+getCanonicalSources() path in playground/src/compiler-runtime.mjs does the same.
+The published Pages Git manifest at 3d57e291 contained 46 names and neither
+optional file. Browser selection and publication remain with their owners.
+Packet 61a32ef3-7cff-4be2-8edf-7e506b34675e contains the exact manifests,
+commands, statuses, streams, binary outputs, sources and measurements.
+
+### Integrated optional graph and SHA-256 installation, host 8, 2026-11-26
+
+The two worker tips `60950b8e` and `e7083756` are merge parents in the
+integration on public `a5c4b40f`. Both declared archives and all eight named
+members matched their supplied digests. The persistent user-facing target is
+`tower-language-tests`. One CTest registration function invokes the public
+driver. Both owners use the linked test runtime. Only the graph owner needs
+the allocator and its providers. The old SCC target, component, path and test
+names still work. The legacy graph oracle and the GNU SHA fixture remain
+independent controls.
+
+With the private source and native build directories renamed, the moved
+installation (staged under a prefix with spaces) ran owner and direct
+selection independently at jobs 1 and 4. Every graph run compared 8 fixed
+and 234 seeded inputs with all-pairs reachability and reported zero live
+buffers. Traced requests matched the original 242 raw inputs. Every SHA run
+reported seven located declarations. One corrupt abc digest failed at
+`sha256_test.tower:25:5`; the corrupt singleton failed at
+`graph_components_wrong.tower:7:5`. The release packager required
+`library/testing.tower` and verified all ordinary builtin sources. The
+normal and optional layouts produced byte-identical ordinary objects. All
+260 generated SHA input files matched the retained hashes and GNU sha256sum.
+
+The Playground compiler-project generator had a second recursive library
+scan. Its production source list now consumes the same inventory as the
+bootstrap packager and refuses an unowned flat builtin from a real unit's
+depfile. The shipped syntax-live checks already depend on the public
+`tests/utility_checks.tower`. Keeping its original definitions preserves its
+browser dependency closure and keeps the SHA companion's portable data
+helper private. The dedicated Tests example remains part of the Playground.
+
+The real project packager produced 582 source files, 25 units and three
+reactor recipes. The ordinary site build copied all 12 project products
+byte for byte and all 48 declared builtin modules. Both the recipe and the
+45 object depfiles omitted the six suite-private source names. The parser
+reactor was built with the local WASI SDK 34. For the backend recipes, the
+current Tower units were compiled and linked with retained release support
+archives and runtime data. This checks resource generation and distribution;
+it does not qualify a fresh LLVM build or a new deployed browser runtime.
+
+On Linux x86-64 (Ryzen 9 7900X, 23.04 CPU quota, LLVM 19.1.7) three
+alternating, serially measured requests gave combined median wall times of
+0.31/0.38 s for the graph owner at jobs 1/4 and 0.25/0.33 s for SHA.
+Peak RSS was 106628/118952 KiB and 99204/111632 KiB respectively.
+A bootstrap comparison in the backend-test profile rejected
+`work_arena_snapshot` in the instrumented ParserNodes unit. With the
+documented release profile, the full independent gate passed all 29
+object, optimized IR and symbol checks plus the explicit grammar controls
+in 157.46 s. The compiler-project source/depfile check passed ASan and
+TSan; one TSan initialization encountered the host personality restriction.
+Packet `d54e464a-f736-4436-a9da-dd5c0c2e460a` contains the installed
+products, raw streams, link recipes, provenance, pair outputs and timings.
+
+### Optional linked tests, stdout oracles and compiler companion cost
+
+The relocated optional Linux test kit at 1f206fff ran seven SHA-256 declarations and exercised 242 strongly connected component cases through both owner and direct companion selections at jobs 1 and 4. The changed SHA oracle failed at sha256_test.tower:25:5. The wrong singleton case failed at graph_components_wrong.tower:7:5 after reporting its seed. The release-profile bootstrap comparison matched 29 object pairs and 29 optimized IR pairs. The backend-tests configuration stopped at ParserNodes. Its generated parser unit uses a different import. These observations are for the worker's frozen source. The installed WorkGraph owner still needs the transitive host/memory module in the optional kit.
+
+In the integrated driver, a linked guest can use native providers whose inputs the interpreter cannot observe. Such a request invalidates an existing pass receipt, executes and leaves no reusable receipt. An explicit stdout expectation captures the linked child's fd 1, forwards its bytes and compares them with the same exact oracle as interpreted tests. The ordinary compiler resource inventory includes library/test_fixtures.tower so user companions can import the sibling-file API. The optional suite implementations stay outside the ordinary distribution. The merged driver needs its own executable-level replay, including a changed provider, a mismatching oracle and the relocated sibling fixture.
+
+The public 3ae475c2 compiler ran eight CTest registrations for fixed-array iteration, layout, default initialization and generic body copy. Each width selected 1, 1, 6 and 1 declarations. A removed layout declaration made CTest fail, and the two altered assertions pointed at lines 30 and 14 in the appropriate companions. On host 6 with 12 visible CPUs and an 11.52-CPU quota, a single serial fixed-array registration grew from 0.52 s and 81,732 KiB with the standalone interpreter entry to 14.97 s and 670,228 KiB with the owner under test. The four-worker registration measured 12.10 s and 685,768 KiB. The fixture and inputs also changed with the entry point. Receipt 2567c319 retains both command lines, CPU time and peak RSS. Isolate the cost of compiling the owner before changing the test layout.

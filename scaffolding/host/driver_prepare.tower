@@ -3,6 +3,8 @@ import driver_types;
 import .compiler.test_file_rule;
 import driver_support;
 
+extern fn strstr(text: u8*, part: u8*): u8*;
+
 extern fn driver_parse(options: DriverOptions*, argc: usize, argv: u8**, target: u8*): bool;
 
 extern fn driver_help(): u8*;
@@ -52,12 +54,23 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
     if (options.test_state[0] != 0 || options.test_oracle != null) && options.test_mode != DriverTestMode.Run {
         driver_error("--test-affected and --test-oracle require --test", ""); return 1;
     }
+    if options.test_runtime != null {
+        if options.test_mode != DriverTestMode.Run || options.test_runtime[0] == 0 {
+            driver_error("--test-native-runtime requires --test and a native test runtime object", ""); return 1;
+        }
+        if strstr(target, "linux") == null || strstr(target, "gnu") == null {
+            driver_error("Native test linkage requires a Linux GNU host: ", target); return 1;
+        }
+    }
+    if options.test_mode == DriverTestMode.Run && options.link_count != 0 && options.test_runtime == null {
+        driver_error("--link with --test requires --test-native-runtime OBJECT", ""); return 1;
+    }
     if options.test_details && options.test_mode != DriverTestMode.Run {
         driver_error("--test-details requires --test", ""); return 1;
     }
     if options.test_mode != DriverTestMode.None {
         if options.source[0] == 0 || options.interpret || options.link_executable || options.library
-            || options.unit_count != 0 || options.link_count != 0 || !driver_same(options.emit, "exe")
+            || options.unit_count != 0 || (options.link_count != 0 && options.test_runtime == null) || !driver_same(options.emit, "exe")
             || options.check_format || options.raw[0] != 0 || options.optimized[0] != 0
             || !driver_same(options.target, target) || !options.comments || !options.optimize
             || options.sysroot[0] != 0 || options.linker[0] != 0 || !driver_same(options.cc, "clang") {

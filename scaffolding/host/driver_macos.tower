@@ -87,3 +87,8 @@ export fn driver_posix_execute(executable: u8*, argv: u8**): i32 {
     }
     return 1;
 }
+
+export fn driver_platform_test_stdout(argv: u8**, file: void*): i32 {
+    driver_error("Native test linkage requires a Linux GNU host", "");
+    return 1;
+}

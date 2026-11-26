@@ -1,0 +1,70 @@
+import tower;
+import driver_request;
+import driver_types;
+import driver_support;
+import .library.bytes_interface;
+import .library.bytes_types;
+import driver_platform;
+import driver_link_objects;
+import driver_link;
+import native_test_result;
+import driver_test_oracle;
+
+extern fn tmpfile(): void*;
+
+fn driver_native_test_run(args: u8**, oracle: DriverTestOracle*): i32 {
+    if oracle == null || oracle.path == null { return driver_platform_run(args); }
+    var output = tmpfile();
+    if output == null { driver_error("Cannot capture native test stdout", ""); return 1; }
+    defer fclose(output);
+    var status = driver_platform_test_stdout(args, output);
+    rewind(output);
+    var buffer: u8[8192];
+    loop {
+        var size = fread(&buffer[0], 1, sizeof(decltype(buffer)), output);
+        if size != 0 && !driver_oracle_write(bits(void*, oracle), 1, &buffer[0], size) {
+            driver_error("Cannot forward native test stdout", ""); return 1;
+        }
+        if size < sizeof(decltype(buffer)) {
+            if feof(output) == 0 || ferror(output) != 0 { driver_error("Cannot read native test stdout", ""); return 1; }
+            return status;
+        }
+    }
+}
+
+fn driver_native_tests(request: DriverRequest*, data: u8*, length: usize, oracle: DriverTestOracle*): i32 {
+    var object: ByteBuffer = default;
+    var executable: ByteBuffer = default;
+    var report: ByteBuffer = default;
+    defer driver_temporary_dispose(&object);
+    defer driver_temporary_dispose(&executable);
+    defer driver_temporary_dispose(&report);
+    if !driver_platform_temporary(&object) || !driver_platform_temporary(&executable)
+        || !driver_platform_temporary(&report) || !driver_write_file(object.data, data, length) {
+        driver_error("Cannot prepare native test files", ""); return 1;
+    }
+    // Keep the request paths intact while linking the private selected object.
+    var options = *request.options;
+    options.source = object.data;
+    options.output = executable.data;
+    if driver_link_objects(&options) != 0 { return 1; }
+    var args: u8*[3] = default;
+    args[0] = executable.data; args[1] = report.data;
+    var status = driver_native_test_run(&args[0], oracle);
+    var bytes: ByteBuffer = default;
+    defer bytes_dispose(&bytes);
+    if driver_read_file(report.data, &bytes) && bytes.length >= sizeof(NativeTestResult) {
+        var result = bits(NativeTestResult*, bytes.data);
+        if status == 0 && result.outcome == NativeTestOutcome.Completed
+            && result.message_bytes == 0 && bytes.length == sizeof(NativeTestResult) { return 0; }
+        if status != 0 && result.outcome == NativeTestOutcome.Trapped
+            && result.message_bytes == bytes.length - sizeof(NativeTestResult) {
+            var source = &request.text[DriverSourceText];
+            driver_report(bytes.data + sizeof(NativeTestResult), result.offset, source.data, source.length,
+                request.options.source, request.modules);
+            return 1;
+        }
+    }
+    driver_error("Native test process exited without a valid completion or trap record", "");
+    return 1;
+}

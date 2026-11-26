@@ -158,3 +158,8 @@ export fn driver_platform_run(argv: u8**): i32 {
     driver_arguments_dispose(&quoted);
     return result;
 }
+
+export fn driver_platform_test_stdout(argv: u8**, file: void*): i32 {
+    driver_error("Native test linkage requires a Linux GNU host", "");
+    return 1;
+}

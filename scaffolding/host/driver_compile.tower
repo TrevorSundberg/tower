@@ -22,6 +22,7 @@ import driver_format;
 import driver_test_discovery;
 import driver_test_affected;
 import driver_test_oracle;
+import driver_native_tests;
 import .compiler.test_file_rule;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -373,6 +374,8 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
                 driver_affected_field(affected, bits(u8*, &start), sizeof(usize));
             }
         }
+        // Linked guest code can read inputs outside the interpreter's observation.
+        if request.options.test_runtime != null { affected.complete = false; }
         reused = driver_affected_matches(affected, &oracle);
         if !reused && !driver_affected_invalidate(affected) { driver_error("Cannot invalidate ", affected.receipt.data); return 1; }
     }
@@ -387,7 +390,13 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
                 state.execution.write_output = driver_oracle_write;
             }
             defer { state.execution.write_output = null; state.execution.output_context = null; }
-            var result = driver_compile_interpret(state);
+            var result: i32;
+            if request.options.test_runtime != null {
+                var started = driver_clock();
+                if !driver_compile_backend(state, request.options.target, BackendCodegen.Default) { return 1; }
+                state.width = backend_pointer_bytes(state.backend);
+                result = driver_compile_object(state, started, &oracle);
+            } else { result = driver_compile_interpret(state); }
             if result != 0 { return result; }
         }
         if checking && !driver_oracle_valid(&oracle, request.tests.entry, state.execution.machine.output_truncated) { return 1; }
@@ -414,7 +423,7 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
     return 0;
 }
 
-fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
+fn driver_compile_object(state: DriverCompilation*, started: u64, oracle: DriverTestOracle*): i32 {
     if state.execution.program.resource.error != WorkBudgetError.None {
         driver_compile_execution_report(state);
         return 1;
@@ -442,6 +451,9 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
         return 1;
     }
     var emitted = driver_clock();
+    if options.test_runtime != null {
+        return driver_native_tests(state.request, backend_bytes(state.backend), backend_size(state.backend), oracle);
+    }
     var wasm = strstr(options.target, "wasm") == options.target;
     var windows = strstr(options.target, "windows") != null;
     var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;
@@ -540,7 +552,7 @@ fn driver_compile_run(state: DriverCompilation*): i32 {
         var textual = driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
         || driver_same(options.emit, "c") || driver_same(options.emit, "brightscript");
         if !textual && !options.interpret {
-            return driver_compile_object(state, started);
+            return driver_compile_object(state, started, null);
         }
     }
     if driver_same(options.emit, "foundation") || driver_same(options.emit, "bytecode")
