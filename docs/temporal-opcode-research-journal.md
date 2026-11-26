@@ -121061,3 +121061,54 @@ subtraction unsupported by the shipping frontend, and the small step budget
 on the full CRLF fixture. The implementation imports the library directly,
 uses byte offsets, and pumps bounded interpreter chunks between real async
 operations. It checks inherited names in one pass over the lines.
+
+#### Storage observations and cost on host 5
+
+The subject and its four grammar/legacy input files have their original base
+blobs. The portable and shared assertion images are from Pages
+`8417c9ae4cd9accdf672b22d6676bd465c8a79d6`, both built from `0da4e513`.
+Both SHA-256 values matched the Pages manifest. Both frontends selected one
+Tower declaration for each original Node name, in order. Direct entry and
+owner-plus-suffix discovery each passed 4/4 on each image. The 65 field files
+from the 13 calls compared byte for byte with the original on each route.
+The three old-lexer calls returned the 163-byte wrapper. The full CRLF save
+returned 4,838 bytes and its second selection returned identical bytes.
+The two edited-lexer calls returned 270 and 477 bytes. The six bundled
+decisions returned 10, 10, 13, 18, 0 and 10 bytes.
+
+Changing the third legacy expectation, the full module's Number declaration,
+the lexical case's CoreFunction requirement, and the CRLF baseline outcome
+one at a time produced four separate 3/4 runs on each image. Each failure
+came from its assigned guest assertion. A further same-length one-byte
+change in the expected lexical Identifier rejected the returned override
+bytes on both images. The packet retains the diffs, guest traps, sibling
+passes, restored source and passing complete runs.
+
+GNU time measured fresh Node 24.22.3 processes with warm files on a Ryzen 9
+5900XT, Linux x64. A host timing lock serialized all commands. Each replicate
+ran the three routes in a different order. The affinity was one or four
+physical cores of the 32 logical CPUs. The cgroup quota was 3,071,999 µs per
+100,000 µs, with a 129,569,390,592-byte memory ceiling. Each frontend used
+capacity one. The four-CPU mask permits Node and V8 to use additional cores.
+The table gives column medians over three untraced full-module samples.
+
+| CPU affinity | Route | Wall s | User s | Sys s | Peak RSS KiB | TAP stdout bytes |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 0 | Original | 0.08 | 0.06 | 0.02 | 56,468 | 1,057 |
+| 0 | Portable | 0.79 | 0.74 | 0.05 | 111,100 | 1,065 |
+| 0 | Shared | 0.92 | 0.85 | 0.06 | 130,076 | 1,065 |
+| 0–3 | Original | 0.07 | 0.06 | 0.02 | 55,928 | 1,058 |
+| 0–3 | Portable | 0.57 | 0.76 | 0.06 | 109,056 | 1,063 |
+| 0–3 | Shared | 0.69 | 0.88 | 0.06 | 129,600 | 1,063 |
+
+All 18 untraced processes exited zero with empty stderr. Each original and
+selected suite returned 10,973 bytes from the subject in the observed runs.
+The wall-time and RSS increases include loading an assertion VM and compiling
+four companions. Cgroup throttling counts stayed flat. In separate traced
+runs each of the four guest handles was destroyed and each post-destruction
+snapshot had 13,483 live nodes, 28,377,088 bytes of Wasm capacity and zero
+on the legacy allocation counter. The host closed on both images and the
+shared transport's single worker exited after termination. These production
+Wasm images and Node lack native sanitizer instrumentation for the guest
+assertions. The checks cover the storage module at the assigned freeze.
+Manager integration and publication are separate.
