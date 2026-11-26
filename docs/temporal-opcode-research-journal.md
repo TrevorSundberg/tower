@@ -107337,3 +107337,44 @@ generated build registry retained all 192 entries and the original driver
 arguments on all twelve wrapped commands. The manager separately checked the
 twelve installed registrations' paths and counts. The first worker matrix
 executed the SCC and SHA-256 registrations on its relocated installation.
+
+### 2026-11-26 — ordinary browser LLVM reactor and borrowed foreach
+
+Slot 5 reconstructed compiler commit `8bc867b69cc6084b9da09a51475c7c740efd9419`
+(tree `6952042a5b7b8acb56cb0750223d75cf9e397cd3`) from the verified donor
+bundles. An independent receiver imported the same tree and checked all 59
+native bootstrap entries. The release build uses the pinned native compiler,
+LLVM submodule `1e57ee22`, WASI SDK 34 and the project's Release
+`tower-browser-llvm` target. The standard linker is Tower's `link_wasi`.
+The linked semantics unit owns the foreach array/protocol dispatch.
+
+The shipped ordinary reactor rejected the exact 4b2685e5 fixed-array fixture
+at input.tower:9:5, byte 170, at both optimization settings. The candidate
+ran both with empty stdout. Its ordered mutation witness returned 2,
+1102130405, 11, 2 and 2 on LLVM, native jobs 1/4 and portable Graph/Fast
+at both pointer widths. Canonical Foundation ran through LLVM. Five nominal
+cases retained 93 output bytes. Eight invalid inputs retained their
+diagnostics, and skipping a real vector write produced the expected 28-byte
+failure at the Tower companion's line 30, column 5. Chromium's module worker
+passed 16 checks on each packaged reactor, including recovery and disposal.
+All 22 imports and 1,319 existing exports retained their ABI. The source
+adds 14 frontend function exports.
+
+Two clean 24-job builds on an AMD Ryzen 9 5900XT with a 30.72-CPU quota and
+129,569,390,592-byte memory limit produced the same unstripped and stripped
+bytes. Wall times were 367.42/369.12 s and total CPU times were
+7,595.57/7,609.90 s. The second build's peak sampled family RSS was
+5,559,820 KiB. Three alternating warm pairs of the same seven Node selectors
+gave median wall/CPU seconds and maximum-process RSS in KiB of
+2.49/4.70/276444 shipped and 2.46/4.66/270176 candidate. A runtime embed
+depfile names its intermediate object, so Ninja repeats four actions on an
+unchanged tree. Executing them again reproduced the reactor and package.
+
+The raw candidate SHA-256 is
+`15b4f33b34326649616b3361fe94746a75ac06ea9a65abf5c288e128bb2a813c`.
+The project gzip is 12,803,914 bytes with SHA-256
+`9eaa5ef3277996c2e855e291cd4bda2c13d1a6d06f6d9c8a818af1836de3f466`.
+Packet 14dc5b80-789f-4cd1-b2de-f3f591818055 contains the control, candidate,
+source refs, per-call output map, build commands, Chromium receipts and resource
+samples for the manager. Other browser profiles, native generation, unfiltered
+Node tests and site publication have separate owners.
