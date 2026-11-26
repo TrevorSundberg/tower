@@ -92,3 +92,6 @@ export fn driver_platform_test_stdout(argv: u8**, file: void*): i32 {
     driver_error("Native test linkage requires a Linux GNU host", "");
     return 1;
 }
+
+// O_NOFOLLOW | O_NONBLOCK | O_CLOEXEC for read-only fixture data.
+export fn driver_fixture_open_flags(): i32 { return 256 | 4 | 16777216; }

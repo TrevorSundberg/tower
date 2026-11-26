@@ -109494,3 +109494,22 @@ expected byte at compiletime_case.tower:18:5 and passed after restoration at
 both widths. A runtime call still diagnosed missing_body_value. The host 6
 receipt c5a50ceb contains the three cursor comparisons, the rejected
 intermediate, resource measurements and the independent release gates.
+
+### Native rejection fixtures with their original source identity (2026-11-26)
+
+On host 1 the three manager merges reproduced tree
+`acc9619eae9c7cee246069c410ea0190d7451bce`. Its cycle and staged-frame
+proofs compiled duplicate source bytes under an oracle filename. A direct
+test-only import now declares sibling source/oracle pairs using the owner's
+`.fixtures` file. Discovery snapshots the named inputs and supplies them
+to the existing child compiler. The native reader opens regular leaves
+without following a leaf symlink. Registered projects supply exact keys.
+The initial implementation hit the published bootstrap's 65536-node
+generic expansion limit in the parser unit. Sharing its existing ModuleInput
+vector specialization allowed the same bootstrap and limit to build it.
+
+The ordinary aggregate ran both assertions at jobs 1 and 4 with the original
+`decltype_cycle.tower` at byte 14 and `decltype_body_comptime.tower` at byte
+53, including the instantiation frame. The declaration-world test also
+passed both pointer widths. Assignment 10b3f97f holds the build commands,
+native compiler stderr, host quota and measured runs.

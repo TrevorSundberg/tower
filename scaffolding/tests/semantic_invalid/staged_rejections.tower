@@ -1,0 +1,3 @@
+import tower;
+
+// The invalid siblings are child compiler inputs. Ordinary imports stop here.

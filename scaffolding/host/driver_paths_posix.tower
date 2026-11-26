@@ -65,3 +65,20 @@ export fn driver_platform_file_kind(path: u8*): DriverFileKind {
 export fn driver_platform_regular(path: u8*): bool {
     return driver_platform_file_kind(path) == DriverFileKind.Regular;
 }
+
+extern fn open(path: u8*, flags: i32): i32;
+extern fn fdopen(fd: i32, mode: u8*): void*;
+extern fn driver_fixture_open_flags(): i32;
+extern fn driver_fstat(fd: i32, data: void*): i32;
+
+export fn driver_open_fixture_sibling(path: u8*): void* {
+    var fd = open(path, driver_fixture_open_flags());
+    if fd < 0 { return null; }
+    var status: DriverStatStorage;
+    if driver_fstat(fd, bits(void*, &status[0])) == 0 && (driver_stat_mode(bits(u8*, &status[0])) & 61440) == 32768 {
+        var stream = fdopen(fd, "rb");
+        if stream != null { return stream; }
+    }
+    close(fd);
+    return null;
+}

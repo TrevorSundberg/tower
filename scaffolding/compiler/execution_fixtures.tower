@@ -122,19 +122,30 @@ fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize, 
     }
     var source = fixture_leaf_matches(pair.source.data, name, length);
     var run = !diagnostic && args[2] != 0;
-    if !source &&(run || !fixture_leaf_matches(pair.oracle.data, name, length)) {
-        return execution_fixture_fail(session, "Fixture was not granted for this test", null, at);
-    }
-    var path = source ? pair.source.data: pair.oracle.data;
+    var path = source ? pair.source.data : pair.oracle.data;
     var text: vector(u8) = default;
     defer vector_dispose(&text);
     var modules = session.fixtures.modules;
-    var error = frontend_fixture_read(modules, path, &text, source, session.fixtures.selection.registered_fixtures);
-    if error != null {
-        return execution_fixture_fail(session, error, path, at);
+    var frozen: ModuleInput* = null;
+    if !source && pair.inputs.length != 0 {
+        var suffix = diagnostic ? ".tower" : ".expected";
+        var size = strlen(suffix);
+        if !run && length > size && memcmp(name + length - size, suffix, size) == 0 {
+            foreach (var &input in &pair.inputs) {
+                if fixture_leaf_matches(input.name.data, name, length) { frozen = input; break; }
+            }
+        }
+        if frozen == null { return execution_fixture_fail(session, "Fixture was not granted for this test", null, at); }
+        path = frozen.name.data;
+    } else {
+        if !source && (run || !fixture_leaf_matches(pair.oracle.data, name, length)) {
+            return execution_fixture_fail(session, "Fixture was not granted for this test", null, at);
+        }
+        var error = frontend_fixture_read(modules, path, &text, source, session.fixtures.selection.registered_fixtures);
+        if error != null { return execution_fixture_fail(session, error, path, at); }
     }
-    var data = text.data;
-    var size = text.length;
+    var data = frozen != null ? frozen.text.data : text.data;
+    var size = frozen != null ? frozen.text.length : text.length;
     var inputs: void* = null;
     defer { if inputs != null { frontend_modules_destroy(inputs); } }
     var child: ExecutionSession = default;

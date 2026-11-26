@@ -1,3 +1,0 @@
-import tower;
-var first: decltype(second);
-var second: decltype(first);

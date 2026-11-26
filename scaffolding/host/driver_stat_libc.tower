@@ -5,3 +5,6 @@ extern fn stat(path: u8*, data: void*): i32;
 export fn driver_stat(path: u8*, data: void*): i32 {
     return stat(path, data);
 }
+
+extern fn fstat(fd: i32, data: void*): i32;
+export fn driver_fstat(fd: i32, data: void*): i32 { return fstat(fd, data); }

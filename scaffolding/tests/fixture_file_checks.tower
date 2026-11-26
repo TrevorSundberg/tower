@@ -99,26 +99,40 @@ fn fixture_file_checks(modules: void*, root: u8*): void {
 // probe admits only registered companions and data; each child shares the
 // declaration world's budget, whose teardown checks memory and worker leases.
 fn fixture_diagnostic_profiles(modules: void*, root: u8*): void {
-    var files: u8*[7] = {
-        "/tests/fixture_diagnostics/check.tower",
-        "/tests/fixture_diagnostics/decltype_cycle.tower",
-        "/tests/fixture_diagnostics/decltype_cycle_test.tower",
-        "/tests/fixture_diagnostics/decltype_cycle.expected",
-        "/tests/fixture_diagnostics/decltype_body_comptime.tower",
-        "/tests/fixture_diagnostics/decltype_body_comptime_test.tower",
-        "/tests/fixture_diagnostics/decltype_body_comptime.expected"
-    };
-    foreach (var path in &files) {
-        var text: vector(u8) = default;
-        defer vector_dispose(&text);
-        units_read(root, path, &text);
-        fixture_memory_input(modules, path + 1, &text);
+    var directory = "/tests/semantic_invalid/";
+    var files: u8*[3] = {"staged_rejections.tower", "staged_rejections_test.tower", "staged_rejections.fixtures"};
+    var data: vector(u8) = default;
+    defer vector_dispose(&data);
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    foreach (var name in &files) {
+        units_path(directory, name, &path);
+        units_read(root, path.data, &data);
+        fixture_memory_input(modules, path.data + 1, &data);
     }
-    var entry = "tests/fixture_diagnostics.tower";
+    var subjects: usize = 0;
+    var at: usize = 0;
+    var suffixes: u8*[2] = {".tower", ".expected"};
+    while at < data.length {
+        var start = at;
+        while at < data.length && data.data[at] != 10 { ++at; }
+        foreach (var suffix in &suffixes) {
+            path.length = 0;
+            execution_check(test_file_append(&path, directory, strlen(directory))
+                && test_file_append(&path, data.data + start, at - start)
+                && test_file_append(&path, suffix, strlen(suffix) + 1), "declared input key");
+            var text: vector(u8) = default;
+            defer vector_dispose(&text);
+            units_read(root, path.data, &text);
+            fixture_memory_input(modules, path.data + 1, &text);
+        }
+        ++subjects;
+        ++at;
+    }
+    var entry = "tests/semantic_invalid/staged_rejections.tower";
     var source: vector(u8) = default;
     defer vector_dispose(&source);
-    units_read(root, "/tests/fixture_diagnostics.tower", &source);
-    fixture_memory_input(modules, entry, &source);
+    units_read(root, "/tests/semantic_invalid/staged_rejections.tower", &source);
     frontend_modules_configure(modules, entry, root);
     var rule = test_file_default_rule();
     for (var width: u32 = 4; width <= 8; width *= 2) {
@@ -132,7 +146,7 @@ fn fixture_diagnostic_profiles(modules: void*, root: u8*): void {
             var previous = frontend_modules_swap_test_discovery(modules, &discovery);
             defer frontend_modules_swap_test_discovery(modules, previous);
             execution_check(execution_session_compile_tests(&session, source.data, source.length, width, modules)
-                && session.program.test_count == 2, "compile two diagnostic companions");
+                && subjects != 0 && session.program.test_count == subjects, "compile each declared rejection");
         }
         var access: ExecutionFixtureAccess = {selection: &selection, modules: modules};
         session.fixtures = &access;

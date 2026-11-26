@@ -62,13 +62,24 @@ fn test_file_replace_suffix(path: u8*, from: u8*, to: u8*, result: vector(u8)*):
 
 // One direct import of library.test_fixtures in a selected companion grants
 // its actual owner as source and the owner's same-stem .expected as text.
+struct ModuleInput {
+    name: vector(u8);
+    text: vector(u8);
+}
+
 struct TestFixturePair {
+    inputs: vector(ModuleInput);
     companion: vector(u8);
     source: vector(u8);
     oracle: vector(u8);
 }
 
 fn test_fixture_pair_dispose(pair: TestFixturePair*): void {
+    foreach (var &input in &pair.inputs) {
+        vector_dispose(&input.name);
+        vector_dispose(&input.text);
+    }
+    vector_dispose(&pair.inputs);
     vector_dispose(&pair.companion);
     vector_dispose(&pair.source);
     vector_dispose(&pair.oracle);
@@ -79,8 +90,7 @@ fn test_fixture_pairs_dispose(pairs: vector(TestFixturePair)*): void {
     vector_dispose(pairs);
 }
 
-fn test_fixture_library(path: u8*): bool {
-    var module = "library/test_fixtures.tower";
+fn test_fixture_library(path: u8*, module: u8*): bool {
     var size = strlen(path);
     var suffix = strlen(module);
     if size < suffix { return false; }
@@ -113,6 +123,8 @@ struct TestFileSelection {
     owner: vector(u8);
     fixtures: vector(TestFixturePair);
     registered_fixtures: bool;
+    // Only the native driver supplies a no-follow regular-file opener.
+    open_sibling: function(void*, u8*);
 }
 
 fn test_file_selection_dispose(selection: TestFileSelection*): void {

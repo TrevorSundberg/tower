@@ -87,8 +87,12 @@ The child interpreter uses the selected graph's source snapshots and captures
 both `print` and counted writes to stdout.
 
 Use `fixture_diagnostic(name)` to compile either granted file as ordinary source
-without executing its top-level statements. For a negative case, keep the
-owner valid and store the child source in the same-stem `.expected` file.
+without executing its top-level statements. For a suite of negative cases, import
+`library.test_rejections` directly from a valid companion. In the owner's
+same-stem `.fixtures` file, list one sibling stem per line using lowercase
+ASCII letters, digits and underscores. Each stem grants its `.tower` source
+for diagnostic compilation and its raw `.expected` bytes for comparison.
+Discovery freezes both files and tracks them with the declaration.
 The child resolves imports from the selected graph's frozen inputs.
 A successful compile returns an empty `FixtureDiagnostic`. A rejected compile
 returns the source map's file identity, zero-based byte offset, one-based
@@ -97,8 +101,8 @@ instantiation frames. Dispose the result once with
 `fixture_diagnostic_dispose(&result)` after reading it. Its file and message
 share a single guest allocation. Grant, input-read and resource failures
 fail the parent test. Ordinary `fixture_stdout` also fails the parent on a
-child compile or execution error. The [cycle and staged cases](fixture_diagnostics/)
-show both granted inputs and the compile-only success check.
+child compile or execution error. The [staged rejection companion](semantic_invalid/staged_rejections_test.tower)
+checks the original child sources and a clean compile.
 
 After successful discovery, `TestFileSelection.fixtures` owns an ordered
 `TestFixturePair` per opted-in companion. Its `companion`, `source` and

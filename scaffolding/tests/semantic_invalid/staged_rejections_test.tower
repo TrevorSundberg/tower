@@ -1,0 +1,10 @@
+import library.test_rejections;
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_cycle.tower", "decltype_cycle.expected", 14, 2, 1);
+    check_fixture_acceptance("staged_rejections.tower");
+}
+
+test() {
+    check_fixture_rejection("tests/semantic_invalid/decltype_body_comptime.tower", "decltype_body_comptime.expected", 53, 2, 40);
+}

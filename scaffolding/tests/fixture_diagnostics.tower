@@ -1,2 +1,1 @@
-import fixture_diagnostics.decltype_cycle;
-import fixture_diagnostics.decltype_body_comptime;
+import semantic_invalid.staged_rejections;
