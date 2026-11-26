@@ -1,0 +1,236 @@
+import compiler_threads;
+import backend.text;
+import library.test_data;
+
+fn finish_request(): void {
+    while waiting() {}
+}
+
+fn generate(path: u8*): void {
+    request_source(path);
+    finish_request();
+}
+
+fn check_status(wanted: u8*, path: u8*): void {
+    var status = status_text();
+    defer free(status);
+    if !backend_equal(status, wanted) {
+        var message = diagnostic();
+        defer free(message);
+        assert(false, *message != 0 ? message : path);
+    }
+}
+
+fn check_output(wanted: u8*, path: u8*): void {
+    var actual = output_text();
+    defer free(actual);
+    var size = backend_length(wanted);
+    assert(output_size() == size && test_bytes_equal(actual, wanted, size), path);
+}
+
+struct Text {
+    data: u8*;
+    size: usize;
+}
+
+// Both buffers come from the guest allocator. Compare complete words, then
+// only the remaining bytes, so large Foundation outputs fit the step budget.
+fn same_foundation(left: u8*, right: u8*, size: usize): bool {
+    var words = size / sizeof(u64);
+    var a = bits(u64*, left);
+    var b = bits(u64*, right);
+    for (var i: usize = 0; i < words; ++i) {
+        if a[i] != b[i] { return false; }
+    }
+    var tail = words * sizeof(u64);
+    return test_bytes_equal(left + tail, right + tail, size - tail);
+}
+
+struct Program {
+    path: u8*;
+    canonical: Text[2];
+}
+
+fn check_program(program: Program*, width_index: usize, fast: bool, budget: u32, wanted: u8*, forbidden: u8*): void {
+    var width: u32 = width_index == 0 ? 4 : 8;
+    var handle = compile_fixture(program.path, width);
+    defer destroy_fixture(handle);
+    if fast { select_fast(handle); }
+    execute_step(handle, budget);
+    while executing() { execute_step(handle, budget); }
+    check_status("done", program.path);
+    check_output(wanted, program.path);
+    var text = foundation_text(handle);
+    var size = foundation_size();
+    if forbidden != null { assert(!backend_contains(text, forbidden), forbidden); }
+    var baseline = &program.canonical[width_index];
+    if baseline.data == null {
+        *baseline = {data: text, size: size};
+    } else {
+        defer free(text);
+        assert(size == baseline.size && same_foundation(text, baseline.data, size), program.path);
+    }
+}
+
+fn release_program(program: Program*): void {
+    for (var i: usize = 0; i < sizeof(decltype(program.canonical)) / sizeof(Text); ++i) {
+        free(program.canonical[i].data);
+    }
+}
+
+fn graph_and_fast(program: Program*, wanted: u8*, forbidden: u8*): void {
+    for (var width: usize = 0; width < sizeof(decltype(program.canonical)) / sizeof(Text); ++width) {
+        check_program(program, width, false, 10000, wanted, forbidden);
+        check_program(program, width, true, 10000, wanted, forbidden);
+    }
+}
+
+struct Diagnostic {
+    text: u8*;
+    offset: usize;
+}
+
+struct RejectionChecks {
+    forbidden: u8*;
+    baseline: Diagnostic*;
+    compare_offset: bool;
+    empty_output: bool;
+}
+
+// A rejected compile must fail on the first execute call. Keep the original
+// text for cross-capacity comparisons and release every other guest copy here.
+fn reject_fixture(path: u8*, wanted: u8*, checks: RejectionChecks): void {
+    var handle = compile_fixture(path, 4);
+    defer destroy_fixture(handle);
+    execute_step(handle, 10000);
+    check_status("error", path);
+    if checks.empty_output { check_output("", path); }
+    var message = diagnostic();
+    assert(backend_contains(message, wanted), message);
+    if checks.forbidden != null { assert(!backend_contains(message, checks.forbidden), message); }
+    var baseline = checks.baseline;
+    if baseline == null { free(message); return; }
+    if baseline.text == null {
+        baseline.text = message;
+        if checks.compare_offset { baseline.offset = diagnostic_offset(); }
+    } else {
+        defer free(message);
+        assert(backend_equal(message, baseline.text), path);
+        if checks.compare_offset { assert(diagnostic_offset() == baseline.offset, path); }
+    }
+}
+
+fn reject(path: u8*, wanted: u8*, forbidden: u8*): void {
+    reject_fixture(path, wanted, {forbidden: forbidden, ..default});
+}
+
+struct Continuation {
+    path: u8*;
+    contains: u8*;
+    baseline: Diagnostic;
+}
+
+test() {
+    var workers: Program = {path: "stress/workers", ..default};
+    var window: Program = {path: "stress/window", ..default};
+    var iteration: Program = {path: "worker_iteration", ..default};
+    var generic: Program = {path: "stress/generic_workers", ..default};
+    var modules: Program = {path: "worker_modules/main", ..default};
+    var dependencies: Program[17] = {
+        {path: "decltype_layout", ..default},
+        {path: "decltype_generic_headers", ..default},
+        {path: "stress/type_fields", ..default},
+        {path: "decltype_aggregate", ..default},
+        {path: "body_continuation", ..default},
+        {path: "decltype_lazy_body", ..default},
+        {path: "generic_body_lazy", ..default},
+        {path: "decltype_expressions", ..default},
+        {path: "declaration_continuations", ..default},
+        {path: "declaration_inference", ..default},
+        {path: "declaration_operands", ..default},
+        {path: "enum_expressions", ..default},
+        {path: "default_initialization", ..default},
+        {path: "named_initialization", ..default},
+        {path: "struct_values", ..default},
+        {path: "known_bindings", ..default},
+        {path: "computed_type_arguments", ..default},
+    };
+
+    var continuations: Continuation[5] = {
+        {path: "semantic_invalid/comptime_generic_selected", contains: "Division by zero", ..default},
+        {path: "semantic_invalid/worker_generic_mismatch", contains: "Expected i32, got bool", ..default},
+        {path: "semantic_invalid/inference_alias_invalid", contains: "Cannot infer type argument 'T'", ..default},
+        {path: "semantic_invalid/declaration_index_cycle", contains: "initializer dependency cycle first -> second -> first", ..default},
+        {path: "semantic_invalid/worker_index_errors", contains: "An index must be an integer", ..default},
+    };
+    var operator_cycle: Diagnostic = default;
+    var body_budget: Diagnostic = default;
+    var header_cycle: Diagnostic = default;
+
+    for (var capacity: u32 = 1; capacity <= 8; capacity *= 2) {
+        request_open(capacity);
+        finish_request();
+        if capacity == 1 {
+            generate(workers.path);
+            generate(generic.path);
+            generate(window.path);
+            generate("stress/type_fields");
+        }
+        request_lr();
+        finish_request();
+        assert(lr_code() == 0, "LR tables and ECS cleanup");
+        assert(semantic_world(4) == 0, "World budgets and shared kernels at width 4");
+        assert(semantic_world(8) == 0, "World budgets and shared kernels at width 8");
+
+        graph_and_fast(&workers, "504\n7\n42\n42\n0\n136\n-120\n-2147483648\n", null);
+        reject("semantic_invalid/worker_body_errors", "unknownFirst", "unknownSecond");
+        reject("semantic_invalid/worker_suffix_error", "unknownFirst", "unknownSecond");
+        reject("semantic_invalid/worker_prefix_error", "unknownFirst", "unknownSecond");
+        reject("semantic_invalid/worker_later_error", "unknownSecond", null);
+        reject("semantic_invalid/worker_first_error", "unknownFirst", "unknownSecond");
+
+        check_program(&window, 0, false, 100000, "33930\n", null);
+        check_program(&iteration, 0, false, 10000, "46\n46\n7\n", null);
+        graph_and_fast(&generic, "28\n36\n504\n504\n73\n", null);
+        reject("semantic_invalid/worker_generic_errors", "unknownFirst", "unknownSecond");
+        reject("semantic_invalid/worker_type_errors", "Unknown type 'MissingFirst'", "MissingSecond");
+        reject("semantic_invalid/worker_leaf_errors", "Unknown local 'unknownFirst'", "unknownSecond");
+        reject("semantic_invalid/decltype_cycle", "initializer dependency cycle first -> second -> first", null);
+        foreach (var &row in &continuations) {
+            reject_fixture(row.path, row.contains, {baseline: &row.baseline, compare_offset: true, ..default});
+        }
+        reject("semantic_invalid/worker_field_errors", "duplicate field 'first'", "duplicate field 'second'");
+        foreach (var &program in &dependencies) {
+            graph_and_fast(program, "0\n", null);
+        }
+        reject_fixture("semantic_invalid/worker_operator_cycle", "initializer dependency cycle left -> right -> left", {baseline: &operator_cycle, ..default});
+        reject_fixture("semantic_invalid/generic_body_demanded", "Template expansion exceeds 65536 nodes", {baseline: &body_budget, empty_output: true, ..default});
+        reject_fixture("semantic_invalid/decltype_generic_header_cycle", "initializer dependency cycle", {baseline: &header_cycle, ..default});
+        reject("semantic_invalid/decltype_layout_cycle", "Recursive by-value layout: Recursive -> Recursive", null);
+        reject("semantic_invalid/decltype_type_field_cycle", "initializer dependency cycle", null);
+
+        mount_fixture("left.tower", "worker_modules/left");
+        mount_fixture("right.tower", "worker_modules/right");
+        configure_entry("main.tower");
+        graph_and_fast(&modules, "9\n10\n9\n17\n8\n16\n", "missing_import_body");
+        close_compiler();
+        var error = closed_compile_error("print(1);");
+        defer free(error);
+        assert(backend_contains(error, "compiler is closed"), error);
+        destroy_fixture(0);
+    }
+    foreach (var &row in &continuations) {
+        free(row.baseline.text);
+    }
+    release_program(&workers);
+    release_program(&window);
+    release_program(&iteration);
+    release_program(&generic);
+    release_program(&modules);
+    foreach (var &program in &dependencies) {
+        release_program(program);
+    }
+    free(operator_cycle.text);
+    free(body_budget.text);
+    free(header_cycle.text);
+}

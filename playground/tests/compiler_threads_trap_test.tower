@@ -1,0 +1,9 @@
+import compiler_threads;
+import backend.text;
+
+test() {
+    var message = run_until_trap();
+    defer free(message);
+    assert(backend_contains(message, "Injected compiler worker failure"), message);
+    assert(transport_failed(), "The coordinator must observe the shared failure flag");
+}
