@@ -99,7 +99,9 @@ fn execution_inactive_names(modules: void*): void {
 fn execution_test_discovery_reset(modules: void*): void {
     var session: ExecutionSession = default;
     defer execution_session_close(&session);
-    var source = "import tower; print(7); test() { print(11); }";
+    // The pointer specialization becomes known after the early body scan.
+    // Both uses need only the signature, while the selected tests need bodies.
+    var source = "import tower; fn unused(T:type, x:T):T { return missing_body_value; } var scalar:decltype(unused(1)); var pointer:decltype(unused(bits(i32*,convert(usize,0)))); print(7); test() { print(11); }";
     var companion = "import tower; print(42);";
     var rule = test_file_default_rule();
     var selection: TestFileSelection = default;

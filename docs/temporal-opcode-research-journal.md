@@ -109443,6 +109443,68 @@ Each of the ten external names also ran alone against the base and candidate. An
 Raising the early EOF offset from 28 to 29 failed in session.tower at byte 1413. Changing the contextual case's expected keyword failed in contextual.tower at byte 156 with the live missing-then diagnostic citing input.tower:2:56. The single-fault runs passed the other nine names. The double-fault run passed eight, including both names after the contextual failure. All handles closed on these paths. Two further controls made an expected parser error succeed and required a zero length for an omitted length. They failed at session.tower bytes 1365 and 1462. Restoring the inputs and assertions reproduced the entire reference stream.
 
 Native owner and direct selection at one and four jobs returned the same inventory, two byte-identical declaration bodies in order, empty stdout and the original passing summaries. Moving the browser assertions out of the companion moved the native test locations from lines 131/136 to 10/15. Direct Memcheck at one job and DRD at four completed with zero reported errors. The frozen release provides no source-level sanitizer instrumentation. The shared test helper and release assets are unchanged. Assignment 93339038 carries the source bundle and raw evidence; the manager owns publication.
+### Template registration, specialization and instantiation errors in selected tests
+
+Host 3 assignment c622fc0d-1b0d-4e63-bb25-326f63f90c18 used public
+`3ca5e7cc`. Implementation `0b3af9ee` places the native
+[companion](../scaffolding/compiler/generics_test.tower) beside the module
+that registers templates and looks up their instances by definition and
+ordered argument identities. The browser's sixteen original registration
+names select sixteen distinct [Tower declarations](../scaffolding/compiler/generics_cases).
+The JS host transports files, calls the editor, runs the graph, fast and
+LLVM guests, and releases each registration's observations after its test.
+
+The original suite passed first with the installed Pages portable and ordinary
+LLVM products, SHA-256 prefixes 41bb9b11 and 15b4f33b. Its eleven successful
+programs ran in the graph interpreter at both pointer widths. A separate
+reference run switched runnable programs to the fast interpreter. Trying to
+switch an already rejected compile handle failed at the host API, before a
+guest could run. The successful reference kept those compile-time errors on
+their original path. Extracting the original inline inputs preserved all
+source bytes, including the declaration on the first line and the use on the
+second line of the broken function fixture.
+
+On those frozen products the migration reproduced the 88 source/replay
+execution results and canonical texts across the two engines and widths,
+and all 22 emitted Wasm binaries and their stdout. The example formatted
+back to its exact source, with the same formatter spans. All 22 original
+rejections matched in file, byte offset and full message, including the
+instantiation stack. Each executed zero steps with empty stdout. Two new
+controls took the size binding's address or omitted its initializer. Both
+were rejected at byte 106. The ordinary LLVM compiler also reproduced all
+24 diagnostic records in an independent before/after probe.
+
+The installed 7315b86e compiler discovered ten declarations through generics
+and nine directly at jobs 1 and 4, preserving the existing generic-body types
+declaration on the owner. Both new CTests and all sixteen individual Node
+name filters passed. In a disposable checkout, a final trap added to each
+browser declaration identified sixteen distinct original test bodies after
+their preceding assertions ran. Independently, changing a printed value,
+the expected boolean-parameter message and the absent identifier in the
+two-line source each failed its named Tower declaration. All restored
+selections passed. An initial receiver used the reserved word expected as
+a binding, and a later stack receiver omitted its direct backend.text import.
+The packet includes the failures and corrected runs.
+
+Host 3 pinned each timed process to CPUs 0–3 on an AMD EPYC 7542. The cgroup
+quota was 1,228,800 µs per 100,000 µs. Two alternating warm-filesystem pairs
+used the same input tree, 112 portable compile requests and 22 emitted LLVM
+guests in both harnesses. Original/migrated wall times were 5.96/10.65 s
+and 8.53/15.31 s. CPU was 5.15/7.44 s and 5.03/7.39 s. Peak RSS was
+251,116/274,724 KiB and 247,164/281,380 KiB. The migrated suite includes
+compilation and execution of sixteen selected declarations in a second
+interpreter. The unmodified original and production candidate also ran
+separately. The original includes graph execution only for its positive cases.
+
+The selected nine-declaration, 64-bit Foundation guest printed 99 twice,
+from the template parameter shadowing fixture. Its reachable Linux x64 guest
+IR and the public hosted runtime were instrumented separately for ASan/LSan
+and TSan. Both links ran the selected test entry and reproduced the two
+lines, with 24 instrumented guest definitions. This covers the scalar
+selected guest. The public compilers retain their release instrumentation,
+and source-level UBSan for Tower is unavailable. The raw packet contains the
+oracle tables, commands, source inputs, binaries, link maps and original
+compiler provenance for manager review.
 
 ### 2026-11-26. Raw memory assertion cost on the released portable reactor
 
@@ -111478,3 +111540,333 @@ deliberately skipped case. Both decimal CI selectors ran four checks each
 with the documented default native build on Debian 12. Host 4's raw results
 cover this source freeze. After the separate arena migration the manager
 enumerated 50 registrations and confirmed the original 46 kept their order.
+### Ordinary body admission after signature-only specialization
+
+Host 2 reproduced the two default-suffix discovery failures on manager main
+`aed77666`. Input packet `1813f3a3` supplied the 220-byte type-fields
+companion (SHA-256 `4e686811`) and the 305-byte lazy-body companion
+(`05a75e40`). All seven declared members matched their byte counts and
+hashes. The test-only commit `da8a7ed0` provided their observation modules.
+The compiler repair and its regression are commit `f7ef2275815a`, directly
+on the manager revision.
+
+The serial portable reactor from `8bc867b6` (`41bb9b11`) reproduced both
+retained selected Foundation documents byte for byte. With each owner as
+entry, the fast interpreter took five steps and read zero observations, even
+after changing the companion's expected stdout from zero to one. The ELF
+checked in at `8bc867b6` is `02bbc282`. The Ubuntu executable built from
+that source and pinned by `15cacf5a` is `7315b86e`. The earlier commands
+use a checkout-relative path. The declared test bundle's parent `c2d339ea`
+has the latter ELF at that path. Both exact executables exited 139 for both
+owners on this host. In all four debugger runs, the graph interpreter was
+reading address 0x80 in `ix_enter`. The selected function had no body.
+The recorded native call stack runs through the ordinary interpreter and
+test driver.
+
+Test selection retained the declaration and incremented its count.
+During early type evaluation, the semantic body pipeline advanced its
+function cursor past ordinary functions, including the test, while ordinary
+roots were disabled. An additional signature-only specialization then extended
+the function table. At ordinary admission the cursor was still inside the
+table, so the end-of-table rescan did not occur. With only the new undemanded
+tail to scan, the first ordinary pump returned Complete. Its cursor and
+function count were both 19 for type-fields and both 20 for lazy-body.
+Other helper functions also lacked bodies in the old Foundation.
+
+The coordinator now restarts the cursor when it enables ordinary body roots.
+Existing body receipts still prevent rechecking completed work. The lazy
+specialization still needs an actual demand. The source regression adds two
+unevaluated calls to the registered discovery/reset case, one with an integer
+and one with a pointer. Its unused generic body contains an unresolved name.
+The existing session must execute the inline and implicit companion bodies
+in order, then run only the ordinary owner after switching modes. Replacing
+only the semantics object with the old one in the new runner reproduced 139.
+
+Using the published Ubuntu driver to compile the changed semantics unit and
+relink the local compiler entry points gave native ELF `beafd497` and
+diagnostic portable reactor `0666236b`. Default discovery at jobs 1 and 4
+passed both original companions, failed every changed expected stdout at
+`compiletime_case.tower:18:5`, and passed every restoration. A separate
+literal assertion in each companion failed at its own line 3 and recovered
+at both widths. Explicit companion selection also passed. On one retained
+Wasm host instance, each original consumed two width observations, each
+changed value failed in `browser_observations.tower` after the first receipt,
+and each restored version consumed both. Type-fields and lazy-body executed
+1,480,260 and 6,824,684 steps respectively on each passing request. Both
+ordinary owners printed zero, with identical native objects before and
+after at each width. The existing generic-body companion passed.
+
+The native test-declarations and query-smoke selectors passed. The same
+test-declarations selector ran both worker widths under LLVM 19 ASan with
+leak detection and TSan. Both recorded zero exit, sanitizer attributes on
+`sem_bodies`, and link maps containing the production allocation and worker
+transport objects. CMake supports address and thread instrumentation here.
+Undefined-behavior instrumentation and a threaded browser run remain outside
+this evidence.
+
+Three alternating, serial warm-filesystem comparisons ran on Ryzen 5 3600
+CPUs 0–3, with 11.52 CPUs of host quota. Median ordinary wall seconds for
+baseline/candidate were 0.22/0.23 and 0.26/0.24 for lazy-body at jobs 1/4,
+and 0.21/0.21 and 0.26/0.25 for type-fields. For the six-selection Wasm
+probe the median changed from 1.51 to 1.76 s wall and 2.16 to 2.55 s CPU.
+Maximum RSS across the three runs was 191068/167300 KiB. The candidate
+executes the previously omitted assertions. Per-owner CPU/RSS samples,
+source and object identities, commands, receipts, original failures and
+the local bundle are in packet `a2a3d18c-30b8-4d93-bfa2-cc94373013c6`.
+Publication, browser registration changes and release builds remain with
+their respective owners.
+
+### Preserve waiting bodies when recovering skipped ordinary roots
+
+In the Ubuntu 24.04 strict comparison of 3cc57ae4, resetting the body cursor
+when ordinary roots became eligible admitted work_budget_init ahead of
+compiler_world_worker_reserve. This changed the order of generic Entity and
+EntityStage specializations and changed the entities object. Simply recovering
+a pending prefix on every stalled suffix restored the entities object and both
+real decltype tests, but changed the optimized parser-nodes IR on Linux.
+Tracing that compile found two recoveries while earlier work was waiting, at
+node_payload_size and lr_reserve_result(LRActionGrowth). Stock and trial
+admitted the same bodies in a different sequence. The first emitted difference
+was the control temporary in lr_propagation_solve_components_result.
+
+Keep the ordinary cursor through root admission, return progress for completed
+work, and preserve Waiting while an earlier body has outstanding work. Only
+when a pump would otherwise finish after walking an exhausted suffix does it
+look for a still-pending earlier function. It uses the existing signature/body
+demand check and owns no new persistent state. The coordinator performs this
+check after worker publication and error handling.
+
+Using the same Ubuntu LLVM 19.1.1 host, an unchanged bootstrap comparer
+accepted all four entities targets. At one and four workers, the Linux parser
+object and optimized IR matched the public pin byte for byte. Both actual
+decltype owners and their directly selected companions rejected a changed
+expected byte at compiletime_case.tower:18:5 and passed after restoration at
+both widths. A runtime call still diagnosed missing_body_value. The host 6
+receipt c5a50ceb contains the three cursor comparisons, the rejected
+intermediate, resource measurements and the independent release gates.
+
+### Native discovery of the two decltype observation fixtures
+
+On public `6f666ed6` with the Ubuntu pin `7e34072d`, both
+`scaffolding/tests/decltype_lazy_body.tower` and `decltype_type_fields.tower`
+selected zero tests at one and four workers. Their browser declarations use
+the `_browser.tower` suffix. Receipt `c7c77158` kept the two native companions
+as external inputs. Install those companions next to their owners and register
+both owners with the existing CTest helper at each worker width.
+
+Each companion runs its owner's source through the existing fixture grant
+and checks for the exact bytes `0\n`. The native helper reads output, while
+the browser helper also inspects Foundation declarations. The native tests
+now import the actual owner and check its types in Tower. Asking for the
+invalid generic's signature gives `i32` and `i32*`. Inspecting the nested
+field and the generic read result gives `u32` and `u64`. Calling the invalid
+generic in the existing negative fixture still diagnoses `missing_body_value`.
+
+The shipped Ubuntu compiler built from `41de9006` selected one body per
+owner or direct companion at one and four workers. Changing the expected
+output, changing an asserted type, and changing the owner to print a failure
+each reached a located assertion. Access to the other owner's source failed
+at the fixture grant. Restoring the files returned all selections to green.
+Removing both companions failed all four new CTests on zero discovery.
+Syntactically invalid companions left both ordinary objects, executable bytes,
+depfiles and guest output identical to the corresponding ordinary controls.
+
+On host 6 (Xeon E5-2680 v4, affinity 0–11, 11.52 CPUs quota), one warm-file
+sample per owner at jobs 1/4 took 0.44/0.58 s before and 1.01/1.42 s after
+installation for lazy body, and 0.43/0.59 s before and 1.03/1.41 s after for
+field types. The installed owner runs peaked at 87,780–101,560 KiB RSS.
+The fresh default Ninja graph matched all 51 producer commands. All 501
+recorded ordinary inputs and 37 retained products matched their qualified
+hashes. Assignment `29d83b92` records both streams, CPU times, output hashes,
+the published template/parser/inference controls and the bundle ancestry.
+
+The CTest commands supply project resource paths. Running the shipped
+`towerc --test` without those overrides exposed a lookup of
+`tests/compiletime_case` from the installed resource directory. Resolve
+`compiletime_case` beside `compiletime_results` and `backend/text` relative
+to the project helper. All eight bare owner/direct selections passed. Each
+rejected wrong output and wrong type, denied the sibling grant and passed
+after restoration. The browser's real profile and results modules compiled
+to identical objects with identical depfiles before and after the import
+edits. The browser execution results remain those of their original receipt.
+### Install and relocate the Ubuntu compiler built from 41de9006
+
+Host 3 checked both producer receipts and their five named members. Merging
+package commit `7e34072d999e1cc8f7d0f619099f32077b67f697` into published
+`6f666ed6` produced tree `29f13e4dc5268d508a68a6b1c0670b915e3a6bdd`.
+The archive retained the producer's SHA-256
+`6dd19c7f17e029d758e41c4732235a36fdf424726eaf895a09e80db45853ab27`.
+All 62 file contents and modes matched the pin. The checkout's installer
+changed its package revision and checksum-list digest. Its Git blob is
+`84e5332cbfee62843ec79439e7335914e506bd5f`.
+
+The three README examples ran against a loopback HTTPS mirror on Debian 12
+with LLVM/Clang 19.1.7. A fresh install fetched the installer blob, checksum
+list and 60 payloads. A repeat verified the installed copy. With the original
+prefix gone, the depfile named the relocated grammar and Linux runtime.
+The interpreter and the linked sample both printed 42. Linking at each
+prefix produced the same executable. Separate damage to the archive, checksum
+list and grammar payload produced exit 1. Archive verification stopped before
+creating the prefix. Both installer failures cleaned their staging directories,
+and the restored files installed into the same prefix.
+
+On an AMD EPYC 7542 with affinity 0–3 and shared cgroup quota 12.288 CPUs,
+the fresh installer took 0.31 s wall, 0.10 s user, 0.01 s system and
+51,836 KiB peak RSS. Repeat verification took 0.15 s wall, 0.06 s user,
+0.01 s system and 52,284 KiB. These single observations include loopback
+transfer of the installer. The installed package and its compiler build source
+retain their producer identities. Assignment `67d8f652` supplies the exact
+download files and a metadata delta for the manager's atomic Pages publication.
+
+### Production Pages assembly and default companion checks at d49c239f
+
+Host 8 reconstructed the two manager merge records from the five verified
+input archives for assignment 4087c731. The frozen release source is
+d49c239f18195404b97bcaa7b8249711c06f1f1d, tree
+78c9ef8cfe170bcc12ab14142e646eada4e1fc9a. Pages candidate 061f279c
+has parent f2214133 and tree 4eaada7a685e4466a4ee9f07420f932247b27874.
+The four supplied production images come from 41de9006, the installer
+from 23538529 and the Ubuntu package from 7e34072d. A fresh local receiver
+checked every blob and mode. Only the manager publishes.
+
+The ordinary packager produced 794 editable files and 25 units. The
+published predecessor had 776 files. The ordered arguments, unit list, ten
+support packs and imports file matched. The two release-compressed LLVM
+assets matched the producer's complete streams. On the served site the
+generic-call owner and direct tests passed 60 and seven. WorkBudget passed
+five through each path. The first two editor builds compiled 25 units each.
+The third reused all 25 and activated the same three modules. Generation
+four activated an edit to semantic_values, returned its distinguishing null
+diagnostic and ran a guest that printed 42. Four generations and both guest
+runs took 84.91 s wall, 189.89 sampled process-tree CPU seconds and
+3,019,894,784 bytes peak summed RSS. The host had CPUs 0–23, a 23.04 CPU
+quota and a 63,577,260,032-byte memory limit. Desktop, mobile, the Tests
+example and the loopback Ubuntu installation passed.
+
+Importing the two actual default decltype cases into the stock editor
+selected one declaration through every owner and direct path. Both portable
+and shared images reached the unregistered test_fixture_load at guest
+pointer widths four and eight. Deliberately changing the nominal type
+assertions failed at line 6, column 5 in each companion. Restoring the
+source on the same instance restored the provider diagnostic. The installed
+Ubuntu CLI supplied this capability. Its 16 original/restored and eight
+wrong-output checks had the expected outcomes. The producer's separate
+browser observation host provided an explicit fixture adapter.
+
+The additional default compiler/generics companion reached a missing
+tests/compiler_scans import on the frozen project. The complete source
+request opened nine fixture files outside that inventory. Optional source
+commit 470636e6 adds exactly those nine import paths to
+compiler_project_test_sources.txt. The separate 803-file packaging trial
+passed 15 owner and nine direct declarations. A wrong first assertion failed
+at compiler/generics_test.tower line 18, column 5, and restoration passed.
+The 89,500-byte ordinary generics object and the 34 ordered input records
+matched between the 794- and 803-file projects. Two warm, sequential
+ordinary packager samples took 7.86 and 7.74 s wall and peaked at 293408
+and 293544 KiB RSS, respectively. The sealed deployment retains the
+requested 794-file frozen project. The packet supplies both source
+revisions and the separate Pages bundle.
+
+## 2026-11-26 — scoped fixtures on live Playground test handles
+
+The retained 061f279c Pages frontends selected the two default decltype companions, then dispatched `test_fixture_load` to the JavaScript foreign table. All 32 repeated browser decisions and interpreter results matched the previous receipt. Native discovery on the same files grants each directly importing companion its owner source and sibling `.expected`. The browser lost this selection at the end of `tw_exec_create_tests`. Its module environment is also reused on the next project upload.
+
+Implementation b35db281 keeps each selected test's grants and compiled source locations with its `IdeExecution`. The snapshot retains immutable source handles and the bytes of registered, granted oracles. The IDE dispatcher uses the existing Tower fixture provider, which interprets the selected owner's ordinary source at the guest pointer width. Ordinary execution and browser foreign imports retain their existing behavior. A four-live-handle regression interleaves source edits, a missing registered oracle, a mounted file, restoration and out-of-order execution. The original production image fails this check and the corrected image passes.
+
+On host 8, the portable and shared-memory Chromium workers each answered 80 actual Tests requests at pointer widths 4 and 8. Each owner and direct entry ran one test. Wrong local type assertions failed in the respective companion at 6:5. Wrong expected output failed in compiletime_case.tower at 18:5. An ungranted sibling and missing oracle failed at the originating companion's 8:5 and 8:18. Same-worker restores passed. Four fresh native selections passed at the declaration's 5:1. Both ordinary decltype owners still printed 0. The 803-file ordinary package included 470636e6. Generic call inference ran 60/7, generics 15/9 and WorkBudget 5/5. The unchanged 34-input ordinary generics object was 89,500 bytes. The 25-unit editor Build activated successive compilers, reused all 25 objects, produced guest output 42 and reflected an edited compiler diagnostic.
+
+On the 41de9006 release baseline the matching production-source change is 64fcfc1a. The exact 41de bootstrap and the editable bootstrap produced identical IDE and parser-nodes objects. Original portable and shared images were independently reproduced before replacing these two objects. The new frontends retain existing import and export signatures and add one frontend snapshot symbol. The LLVM and cross production link requests also use the changed parser-nodes object. Each exited 1 on the unavailable WASI libLLVMCore.a, whose required SHA-256 starts 8854363d. All 11 editable support/import assets matched the retained package byte for byte. The two frozen standalone backends keep their original release identity. No complete Pages release was sealed.
+
+Evidence packet cdce8b73-5780-4602-97b1-07b0decd7374 records receiver digests, exact recipe arguments, ordered inputs, checked outputs, controls, known failures and process measurements. Host 8 had affinity 0–23, 23.04 CPU quota and a 63,577,260,032-byte memory limit. The 56-case fixture/denial matrix took 22.53 s portable and 28.86 s shared in separate runs. The four-generation editor Build took 85.38 s wall and 190.27 sampled CPU seconds with peak summed RSS 2,960,900,096 bytes. The WASI release targets have no supported native sanitizer profile. The production backend links and their delivery gates remain for the matching cache.
+
+## 2026-11-26 — Browser fixture grants after a project upload, host 8
+
+Assignment fc099860-fff3-460d-beac-1a57e18f48b8 started from cdce8b73's editable
+main c6cf5a32. Its 9,876,045-byte receipt, all six required members and all
+375 internal checksum entries matched. The 803-file editable project digest
+was 15de6e7aa5db6197b96954f69d9d3ac0c9b431bd77aac2a99d22171d50b5faf8.
+The delivered portable and shared reactors were d6a600a1… and afc9562b….
+The original interleaved test passed on each. The workspace pull encountered
+unrelated parser conflicts. Aborting that rebase restored ff4c96f7 and its five
+local commits. This work ran on main in a separate clone of the supplied bundle.
+
+fcfa2b71 moved the count, truncation, output and diagnostic assertions to
+tests/fixture_selection/live_grants_test.tower. Its owner prints the guest word
+size and its sibling oracle contains 8 followed by LF. The Node registration
+performs the real project uploads and execution, keeps observations per Wasm
+instance and serves numeric fields and bounded byte copies back to Tower.
+Every run compiles four original handles before mounting different source and
+oracle bytes. It executes and releases the oldest, selects the new companion
+in that slot, mounts another drive and executes all surviving handles. The
+new companion verifies its own source output and oracle bytes independently.
+
+The original and migrated four terminal results matched in Node 24.22.3 and
+Chromium 159.0.8154.6, including the following file-relative byte offsets.
+All counts were one and every output was complete.
+
+| Handle | Entry and width | Status | Output or diagnostic | Steps |
+| --- | --- | --- | --- | ---: |
+| Older | Owner, 4 | done | 0 and LF | 1005 |
+| Wrong | Companion, 8 | error | Function values stdout differs from function_values.expected, companion byte 243 | 945 |
+| Missing | Companion, 4 | error | Cannot open fixture: .tower/tests/function_values.expected, companion byte 168 | 747 |
+| Restored | Owner, 8 | done | 0 and LF | 1005 |
+
+The new selected test completed in 12,236 steps. Changing only the expected
+word “differs” to “DIFFERS” made handle 5 fail with “Selected fixture diagnostic
+differs” at byte 1479 of the new companion. Releasing 5 and reselecting the
+restored bytes passed as handle 6 in the same instance. Both images passed the
+recovery in Node and Chromium. A second four-live-handle replay selected the
+new owner or companion with a good 4-byte oracle, a wrong 8-byte oracle, an
+absent 4-byte oracle and a repaired 8-byte oracle. The oldest released first.
+The absent and wrong cases reported the new companion at bytes 2323 and 2554.
+
+411c8828 fixes a real shared Chromium transport failure found during this
+migration. The test helper passed a shared view to TextDecoder, which Chromium
+rejected even though Node had completed the same suite. guestString now uses
+the browser host's existing decodeBytes function. The original failure and
+the passing browser reruns are in the packet. An early draft also used a
+reserved identifier. Executing the check before reporting an unexpected count
+exposed the parser diagnostic. An early native inventory could not resolve a
+backend text import from the installed library. The final test needs only
+library.test_fixtures. Complete checkout inventory uses the pinned driver and
+a checkout resource root so existing examples in other compiler tests resolve.
+
+The --list-test-files inventory contains the browser test only for its own
+owner and direct companion. Compiler execution_fixtures reaches three other
+companions, test_file_rule one and semantic_call_inference 23. The existing
+function_values owner selects only its original companion. Ordinary object
+emission for both fixture owners and test_file_rule had no test imports or
+companion depfile entries. Native ordinary execution of live_grants printed 8
+and LF. The frozen 803-file compiler project's seven default selections kept
+their counts of 60/7, 5/5, 2, 2 and 8. The 56 actual UI requests per image
+reproduced both predecessor JSONL streams byte for byte.
+
+The matched Node runs retained all 803 original files in order at every upload.
+Only the test sources and oracle capabilities were appended. One process ran
+at a time on the Ryzen 9 7900X, 12 cores / 24 threads, affinity 0–23, quota
+23.04 CPUs, 63,577,260,032-byte cgroup memory ceiling. Portable used its serial
+transport and shared used its default four worker slots. GNU time measured
+fresh Node processes on warm files, in original/migrated/migrated/original/
+original/migrated order for each image. The medians of three runs follow.
+
+| Image | Wall s, original → migrated | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable | 1.14 → 1.31 | 1.42 → 1.61 | 194344 → 198424 |
+| Shared | 1.67 → 1.90 | 2.39 → 2.69 | 278976 → 282756 |
+
+The extra selection adds one full upload, compile, count, execution and
+destruction, plus one drive mount. The selected assertions read 12 numeric
+and 16 text fields. The separate ABI trace counted 4,068 → 4,882 registered
+sources and 8,160 → 9,791 matched tw_alloc/tw_free calls per image. At close
+each trace had the same 17,340 live nodes and reported zero live allocations.
+Every owned execution handle had a matching destruction. These measurements
+cover test transport costs. The delivered WASI products provide no ASan or
+TSan profile. Worker scheduling and compiler implementation were unchanged.
+The manager owns publication. The standalone backend archive work remains
+with its assigned owner.
+
+## Publishing the scoped Playground fixture provider
+
+On 2026-11-26 the release worker assembled the four production browser compilers from 64fcfc1a with the editor project from 135605ef and the Ubuntu compiler from 41de9006. In Chromium it ran the Tests example on desktop and mobile, exercised the default decltype companions and their failing and restored assertions, and activated four ordinary editable compiler generations. The third generation reused all 25 units. A fresh Linux install ran the interpreted and compiled guest. Job 2390b824 contains the commands, raw responses and process measurements. An independent unfiltered run on the frozen source recorded 510 passes and two skips for optional ownership instrumentation in job 4abd4d6d.
+
+The manager checked all 115 mode, blob, size and SHA-256 records against deployment 9788bd66, including the 114 HTTP assets listed in its manifest. The editable project has 826 files and 25 build units. The changed images keep their actual compiler source in the manifest. Host acceptance used a served copy of the sealed Git tree. Public-domain delivery is a separate check.

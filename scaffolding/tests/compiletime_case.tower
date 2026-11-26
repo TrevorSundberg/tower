@@ -1,6 +1,6 @@
 import tower;
 import library.test_fixtures;
-import backend.text;
+import .backend.text;
 
 struct CompiletimeCase {
     file: u8*;

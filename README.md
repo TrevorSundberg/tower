@@ -35,6 +35,56 @@ targets, limitations, build commands and deployment checks.
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils, GNU tar and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
 
+### Development compiler built from `41de9006`
+
+Download the Ubuntu x64 archive and run these commands from the directory
+containing it. The first check authenticates the entire archive, including
+`development.json`. Extraction uses a new directory so an existing install
+stays usable. [Linux x64 archive](https://tower-lang.org/downloads/41de9006-linux-x64.tar.gz)
+
+```sh
+(
+  set -eu
+  printf '%s  %s\n' 6dd19c7f17e029d758e41c4732235a36fdf424726eaf895a09e80db45853ab27 \
+    41de9006-linux-x64.tar.gz | sha256sum --strict --check
+  prefix="$HOME/.local/Tower Dev 41de9006"
+  mkdir -p "$HOME/.local"
+  mkdir -m 700 "$prefix"
+  tar -xzpf 41de9006-linux-x64.tar.gz -C "$prefix"
+  cd "$prefix/linux-x64"
+  sha256sum --strict --check SHA256SUMS
+  ./towerc --version
+)
+```
+
+Alternatively, this installer fetches the checksum list and all 60 payloads
+from the pinned package commit. It prints the installed compiler path.
+Running it again verifies the files in that prefix.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/84e5332cbfee62843ec79439e7335914e506bd5f) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 41de9006"
+```
+
+Save the sample as `example.tower` and run the commands below. The interpreter
+and the compiled executable each print `42`. To relocate the installation,
+move the whole prefix and update the compiler path. [Sample program](scaffolding/tests/distribution_program.tower)
+
+```sh
+compiler="$HOME/.local/Tower Dev 41de9006/linux-x64/towerc"
+"$compiler" example.tower --interpret
+"$compiler" example.tower --cc clang-19 -o example && ./example
+```
+
+| Package component | Identity |
+| --- | --- |
+| Compiler build source | `41de9006adff910a23d810010576ef66934fa1c8` |
+| Package commit used for every installer request | `7e34072d999e1cc8f7d0f619099f32077b67f697` |
+| SHA-256 of `towerc` (2,279,272 bytes) | `e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07` |
+| SHA-256 of `linux-x64/SHA256SUMS` | `3a3f5f2e915caf95adeb3cf19a1a90021068ee3cd2262b14bb86e99d106aae64` |
+| SHA-256 of the installer | `0d2c775efcc92bf790af6a62ecb019343d9d7601022621e4f51b7042eb4ec024` |
+
 ### Test compiler built from `8bc867b6`
 
 This Linux x64 compiler was built on Ubuntu 24.04.5 with LLVM 19.1.1.
