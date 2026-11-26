@@ -1,0 +1,5 @@
+import observations;
+
+test() {
+    expect_text("LLVM output", SignatureOutput);
+}

@@ -1,71 +1,95 @@
-import {test, after} from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
-import {loadTower, loadLLVM, executeWasm, generatedSource} from './compiler-fixtures.mjs';
+import {executeWasm, generatedSource} from './compiler-fixtures.mjs';
+import {fixtureSource, guestString, llvmOutput, openLLVM, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
-const foundation = await readFile('scaffolding/foundation.tower', 'utf8');
-const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm'), undefined, foundation);
-after(() => tower.close());
-// Capability selections are separate tests, never a skipped LLVM assertion
-// counted as portable acceptance. Ordinary unfiltered runs still require both.
+const project = {entry:'input.tower'};
+let observations;
+const encoder = new TextEncoder();
+const tower = await openTower({project, imports: {
+ generic_body_text(context, name) {
+  const key = guestString(context, name);
+  const value = observations[key];
+  if (typeof value !== 'string' || value.includes('\0')) throw new Error('Invalid text observation: ' + key);
+  const bytes = encoder.encode(value + '\0');
+  const pointer = context.allocate(bytes.length);
+  if (!pointer) throw new Error('Cannot allocate observation: ' + key);
+  context.memory().set(bytes, pointer);
+  return pointer;
+ },
+}});
 let llvm;
 async function llvmHost() {
- return llvm ??= await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined :
-  await readFile('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+ return llvm ??= await openLLVM();
 }
 const stress = {};
 async function stressSource(name) {
  return stress[name] ??= await generatedSource(tower, `scaffolding/tests/stress/${name}.tower`);
 }
 
-function execute(source, pointerBytes, fast) {
+function observeExecution(source, pointerBytes, fast) {
  const handle = tower.compile(source, {pointerBytes});
  try {
   if (fast) tower.useFast(handle);
   let result, output = '';
-  do { result = tower.execute(handle, 100000); output += result.output; }
-  while (result.status === 'executing');
+  do {
+   result = tower.execute(handle, 100000);
+   assert.ok(!result.outputTruncated, 'Truncated guest output');
+   output += result.output;
+  } while (result.status === 'executing');
   assert.equal(result.status, 'done', result.error);
-  assert.equal(output, '0\n');
-  return tower.foundation(handle).source;
+  return {output, canonical:tower.foundation(handle).source};
  } finally { tower.destroyExecution(handle); }
 }
 
-test('signature-only generic queries do not clone unused body descendants (portable)', async () => {
- const source = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
+function execute(source, pointerBytes, fast) {
+ const {output, canonical} = observeExecution(source, pointerBytes, fast);
+ assert.equal(output, '0\n');
+ return canonical;
+}
+
+// Each subject handle is closed before its observations enter the selected Tower test.
+function checkGenericBody(name, values) {
+ try {
+  observations = values;
+  runSelectedTest(tower, `.tower/tests/generic_body_browser/${name}.tower`);
+ } finally {
+  observations = undefined;
+  tower.configureModules(project);
+ }
+}
+
+const lazyBody = fixtureSource('.tower/tests/generic_body_lazy.tower');
+const demandedBody = fixtureSource('.tower/tests/semantic_invalid/generic_body_demanded.tower');
+
+test('signature-only generic queries do not clone unused body descendants (portable)', () => {
  for (const width of [4, 8]) {
-  const canonical = execute(source, width, false);
-  assert.doesNotMatch(canonical, /fn `large\(/);
-  assert.equal(execute(source, width, true), canonical);
-  assert.equal(execute(canonical, width, true), canonical);
+  const graph = observeExecution(lazyBody, width, false);
+  const fast = observeExecution(lazyBody, width, true);
+  const round = observeExecution(graph.canonical, width, true);
+  checkGenericBody('lazy_portable', {
+   'graph output':graph.output, 'fast output':fast.output, 'round-trip output':round.output,
+   'graph Foundation':graph.canonical, 'fast Foundation':fast.canonical, 'round-trip Foundation':round.canonical,
+  });
  }
 });
 test('signature-only generic queries do not clone unused body descendants (LLVM)', async () => {
- const source = await readFile('scaffolding/tests/generic_body_lazy.tower', 'utf8');
- const llvm = await llvmHost();
- const compiled = llvm.compile(source);
- assert.equal(compiled.status, 'compiled', compiled.error);
- assert.equal((await executeWasm(compiled)).output, '0\n');
+ checkGenericBody('lazy_llvm', {'LLVM output':await llvmOutput(await llvmHost(), lazyBody)});
 });
 
-test('demanded generic body copies retain the node budget and reject execution (portable)', async () => {
- const source = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
+test('demanded generic body copies retain the node budget and reject execution (portable)', () => {
  for (const width of [4, 8]) {
-  const handle = tower.compile(source, {pointerBytes:width});
-  try {
-   const result = tower.execute(handle);
-   assert.equal(result.status, 'error');
-   assert.match(result.error, /Template expansion exceeds 65536 nodes/);
-   assert.equal(result.output, '');
-  } finally { tower.destroyExecution(handle); }
+  const handle = tower.compile(demandedBody, {pointerBytes:width});
+  let result;
+  try { result = tower.execute(handle); }
+  finally { tower.destroyExecution(handle); }
+  assert.ok(!result.outputTruncated, 'Truncated guest output');
+  checkGenericBody('demanded_portable', result);
  }
 });
 test('demanded generic body copies retain the node budget and reject execution (LLVM)', async () => {
- const source = await readFile('scaffolding/tests/semantic_invalid/generic_body_demanded.tower', 'utf8');
- const llvm = await llvmHost();
- const compiled = llvm.compile(source);
- assert.equal(compiled.status, 'error');
- assert.match(compiled.error, /Template expansion exceeds 65536 nodes/);
+ checkGenericBody('demanded_llvm', (await llvmHost()).compile(demandedBody));
 });
 
 for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow', 'comptime_capture_values']) {

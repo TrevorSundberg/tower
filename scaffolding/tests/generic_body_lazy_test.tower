@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import backend.text;
+
+test() {
+    var output = fixture_stdout("generic_body_lazy.tower");
+    defer free(output.data);
+    var zero = "0\n";
+    var wanted: FixtureBytes = {data: zero, length: backend_length(zero)};
+    assert(fixture_equal(output, wanted), "Only the signature query result should print");
+}

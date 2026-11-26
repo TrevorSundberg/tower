@@ -1,0 +1,14 @@
+import observations;
+import backend.text;
+
+test() {
+    expect_text("graph output", SignatureOutput);
+    expect_text("fast output", SignatureOutput);
+    expect_text("round-trip output", SignatureOutput);
+
+    var canonical = generic_body_text("graph Foundation");
+    defer free(canonical);
+    assert(!backend_contains(canonical, "fn `large("), "Unused body in Foundation");
+    expect_text("fast Foundation", canonical);
+    expect_text("round-trip Foundation", canonical);
+}
