@@ -1446,6 +1446,7 @@ fn module_validate_cycles(graph: ModuleGraph*): void {
                     // statements still cannot take part in an import cycle.
                     declaration ||= module_equal(label, "CoreDeclare");
                     declaration ||= module_equal(label, "TowerTest");
+                    declaration ||= module_equal(label, "TowerConditionalDeclaration");
                     if !declaration {
                         invalid = true;
                     }

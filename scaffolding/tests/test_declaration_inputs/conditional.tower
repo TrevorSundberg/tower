@@ -1,0 +1,16 @@
+import tower;
+
+comptime if (sizeof(decltype(null)) == 8) {
+    fn selected(): i32 { return 8; }
+    test() { print(doubled() + 1); }
+} else {
+    fn selected(): i32 { return 4; }
+    test() { print(doubled() + 2); }
+}
+
+comptime if false {
+    fn selected(): missing_type { return missing_dependency(); }
+    test() { print(missing_test_dependency()); }
+}
+
+fn doubled(): i32 { return selected() * 2; }

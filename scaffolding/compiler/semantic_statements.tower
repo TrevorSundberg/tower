@@ -17,6 +17,7 @@ import semantic_support;
 import semantic_types;
 import semantic_values;
 import semantic_expressions;
+import semantic_evaluation;
 import semantic_declarations;
 import semantic_body_work;
 import semantic_source_bindings;
@@ -518,6 +519,10 @@ fn sem_declaration_finish(c: SemanticContext*, n: void*): void {
 }
 
 fn sem_statement(c: SemanticContext*, n: void*, depth: u32): u32 {
+    if sem_is(n, "TowerConditionalDeclaration") {
+        sem_fail(c, n, "Conditional declarations require module scope");
+        return FlowNext;
+    }
     if sem_is(n, "TowerTest") {
         sem_fail(c, n, "Test declarations require module scope");
         return FlowNext;
@@ -912,8 +917,62 @@ export fn semantic_is_test_declaration(function_node: void*): bool {
     return sem_is(function_node, "TowerTest");
 }
 
-fn sem_run(c: SemanticContext*): void {
+// Module declarations retain their original parse parents for source offsets
+// and module ownership. Only the selected identities enter the ordered index.
+fn sem_select_module_items(c: SemanticContext*): void {
+    var items = &sem_get(c.program.root).items;
+    var first: usize = 0;
+    while first < items.length && !sem_is(items.data[first], "TowerConditionalDeclaration") { first++; }
+    if first == items.length { sem_select_tests(c); return; }
+
+    // Closed guard expressions have no module bindings. Their private
+    // interpreter temporaries need no names from either declaration group.
+    c.control_names = sem_table(c);
+    if !sem_ok(c) { return; }
+
+    var selected: vector(void*) = default;
+    defer vector_dispose(&selected);
+    for(var i: usize = 0; i < items.length; i++) {
+        var node = items.data[i];
+        if i < first || !sem_is(node, "TowerConditionalDeclaration") {
+            if !sem_push_checked(c, &selected, node) { return; }
+            continue;
+        }
+        var branch = sem_member(node, "selection");
+        if !sem_shape(c, branch, "condition") || !sem_shape(c, branch, "body") { return; }
+        var condition = sem_member(branch, "condition");
+        sem_comptime_operand(c, branch, condition, null);
+        if !sem_ok(c) { return; }
+        var value = sem_get(branch);
+        var boolean = sem_type_value(c, SBool, 0, null);
+        if !semantic_type_equal(&value.type, &boolean) {
+            sem_fail(c, condition, "Declaration condition must produce a known bool");
+            return;
+        }
+        sem_evaluations(c);
+        if !sem_ok(c) { return; }
+        var group = sem_member(branch, value.bits != 0 ? "body" : "otherwise");
+        if group == null { continue; }
+        for(var j: usize = 0; j < sem_child_count(group); j++) {
+            var member = sem_child(group, j);
+            if sem_is(member, "{") || sem_is(member, "}") { continue; }
+            var declaration = sem_unwrap(member);
+            if !sem_declaration_subject(declaration) && !sem_is(declaration, "TowerTest") && !sem_is(declaration, "CoreAttributed") {
+                sem_fail(c, declaration, "Expected a declaration in the selected comptime if block");
+                return;
+            }
+            if !sem_push_checked(c, &selected, declaration) { return; }
+        }
+    }
+    vector_move(items, &selected);
     sem_select_tests(c);
+    if !sem_ok(c) { return; }
+    c.control_names = null;
+    sem_control_names_from(c, items.data, items.length);
+}
+
+fn sem_run(c: SemanticContext*): void {
+    sem_select_module_items(c);
     if !sem_ok(c) { return; }
     sem_source_binding_roots(c);
     if !sem_ok(c) { return; }

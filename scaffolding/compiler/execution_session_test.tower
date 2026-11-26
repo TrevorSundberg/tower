@@ -2,6 +2,8 @@ import tower;
 import execution_session;
 import execution_package;
 import .library.work_budget_types;
+import .library.bytes_types;
+import .library.bytes_interface;
 import .library.work_vector_types;
 import .library.work_vector;
 import .tests.execution_support;
@@ -31,6 +33,9 @@ fn execution_test_declaration_world(request: DriverRequest*, workers: usize): vo
     execution_check(modules != null && frontend_modules_bind_world(modules, world), "bound test request modules");
     execution_world_prepare(world, modules, request);
     execution_test_declarations(modules);
+    execution_conditional_declarations(modules, 4, "8\n", "10\n");
+    execution_conditional_declarations(modules, 8, "16\n", "17\n");
+    execution_inactive_names(modules);
     execution_test_array_assertions(modules, false);
     execution_test_array_assertions(modules, true);
     execution_test_discovery_reset(modules);
@@ -40,6 +45,55 @@ fn execution_test_declaration_world(request: DriverRequest*, workers: usize): vo
     var final: WorkBudgetSnapshot = default;
     execution_check(work_budget_snapshot(&budget, &final) && final.used_bytes == 0 && final.live == 0
         && final.used_lanes == 0 && work_budget_dispose(&budget), "test request releases memory and workers");
+}
+
+fn execution_conditional_declarations(modules: void*, width: u32, ordinary: u8*, selected: u8*): void {
+    var source = "import tests.test_declaration_inputs.conditional as config; print(config.doubled());";
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    execution_compile(&session, source, width, modules);
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && session.program.test_count == 0
+        && execution_text(&session.output, ordinary), "selected module function is visible through its owner");
+
+    execution_check(execution_session_compile_tests(&session, source, strlen(source), width, modules)
+        && session.program.test_count == 1, "only the active block contributes a test");
+    var bytes: work_vector(u8) = default;
+    var error: work_vector(u8) = default;
+    defer work_vector_dispose(&bytes);
+    defer work_vector_dispose(&error);
+    execution_check(execution_package_encode(&session.program, modules, 0, &bytes, &error) == WorkBudgetError.None,
+        "format selected declarations and test calls to compilable Foundation");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, selected),
+        "run the selected test at the explicit target width");
+    execution_check(execution_package_load(&session, bytes.data, bytes.length, modules), "reconstruct the selected program");
+    execution_run(&session, 7, 10000);
+    execution_check(session.machine.done && !session.machine.failed && execution_text(&session.output, selected),
+        "reconstructed Foundation retains the same test and binding");
+}
+
+fn execution_inactive_names(modules: void*): void {
+    var session: ExecutionSession = default;
+    defer execution_session_close(&session);
+    var original: work_vector(u8) = default;
+    var changed: work_vector(u8) = default;
+    var error: work_vector(u8) = default;
+    defer work_vector_dispose(&original);
+    defer work_vector_dispose(&changed);
+    defer work_vector_dispose(&error);
+    var program = "import tower; fn one(): i32 { return 1; } print(one()); ";
+    var suffix = "comptime if false { fn `control value 0.0`(): missing_type {} }";
+    execution_compile(&session, program, 8, modules);
+    execution_check(execution_package_encode(&session.program, modules, 0, &original, &error) == WorkBudgetError.None,
+        "ordinary canonical package");
+    var source: ByteBuffer = default;
+    defer bytes_dispose(&source);
+    execution_check(execution_append_text(&source, program) && execution_append_text(&source, suffix)
+        && host_text_terminate(&source), "append a dormant generated-name collision");
+    execution_compile(&session, source.data, 8, modules);
+    execution_check(execution_package_encode(&session.program, modules, 0, &changed, &error) == WorkBudgetError.None
+        && execution_equal(&original, &changed), "inactive spelling cannot change canonical Foundation or its verified cache");
 }
 
 fn execution_test_discovery_reset(modules: void*): void {
@@ -152,6 +206,11 @@ fn execution_test_declarations(modules: void*): void {
     execution_run(&session, 7, 10000);
     execution_check(!session.program.test_mode && session.program.test_count == 0
         && !session.machine.failed && execution_text(&session.output, "17\n"), "ordinary request excludes unbound test dependency");
+    test_declaration_rejected(&session, "import tower;\ncomptime if 7 { test() {} }", modules, "known bool", 2);
+    test_declaration_rejected(&session, "import tower;\ncomptime if (print(9), true) { test() {} }", modules, "effect capability", 2);
+    test_declaration_rejected(&session, "import tower;\ncomptime if false { fn hidden(): i32 { return 8; } }\nfn reader(): i32 { return hidden(); }",
+        modules, "Unknown function 'hidden'", 3);
+    test_declaration_rejected(&session, "import tower;\ncomptime if true { print(1); }", modules, "Expected a declaration", 2);
     test_declaration_rejected(&session, invalid, modules, "missing_test_dependency", 3);
     test_declaration_rejected(&session, "import tower;\nfn bad(): void { test() {} }", modules, "module scope", 2);
     test_declaration_rejected(&session, "import tower;\nother() {}", modules, "Expected test()", 2);
