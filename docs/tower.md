@@ -33,10 +33,13 @@ Test selection follows the supplied entry's import closure.
 
 The native command `towerc --test module.tower` also discovers adjacent test
 modules using the request's filename rule. Selecting a companion directly runs
-only that file's blocks. Its helpers and imports follow ordinary module rules.
-The command reports the number of passed tests or an empty selection. A
-standalone executable statement in a discovered companion produces a diagnostic
-at that statement until implicit companion bodies are supported.
+only that file's tests. Its helpers, imports and module-level initializers follow
+ordinary module rules. Executable top-level statements in a selected companion
+form one implicit test, ordered at its first statement among the explicit tests.
+The implicit test runs its statements in source order and `return;` ends that
+test. A block can declare lexical locals. A companion containing only helpers
+or declarations adds zero tests. The configured alternate suffix follows the
+same rules. `--test-details` locates an implicit test at its first statement.
 
 From a native source build, run `build/native/towerc --test module.tower
 --test-details` to see each passing block's file, line and column. Guest output

@@ -195,9 +195,15 @@ fn driver_run_companions(files: DriverImportFiles*, compiler: u8*): bool {
     if !driver_import_add(files, "/owner_test.tower", wrong) || driver_test_capture(&args) != 1 { return false; }
     driver_test_read("driver stdout.txt", "11\n", true);
     driver_test_read("driver stderr.txt", "owner_test.tower:3:5: Selected wrong expectation", false);
-    var implicit = "import library.testing;\nassert(false);";
+    var mixed = "import tower;\nfn initial(): i32 { print(5); return 0; }\nvar count = initial();\ntest() { print(count); }\n{ var local = 2; count += local; }\ntest() { print(count); }\ncount++; return; print(99);";
+    if !driver_import_add(files, "/owner_test.tower", mixed) || driver_test_capture(&args) != 0 { return false; }
+    driver_test_read("driver stdout.txt", "5\n11\n0\n3\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:5:1: test passed", false);
+    driver_test_read("driver stderr.txt", "4 tests passed for ", false);
+    var implicit = "import library.testing;\nprint(7);\nassert(false, \"Implicit assertion reached\");";
     if !driver_import_add(files, "/owner_test.tower", implicit) || driver_test_capture(&args) != 1 { return false; }
-    driver_test_read("driver stderr.txt", "owner_test.tower:2:1: Executable companion statements require a test() block", false);
+    driver_test_read("driver stdout.txt", "11\n7\n", true);
+    driver_test_read("driver stderr.txt", "owner_test.tower:3:1: Implicit assertion reached", false);
     return true;
 }
 

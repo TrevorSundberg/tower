@@ -105593,3 +105593,29 @@ overlap on distinct threads in all 20 four-worker waves. Maximum process
 RSS was 73,332 and 73,588 KiB respectively. The parent took 4.141 and
 2.494 ms. Those are live-pool clone timings on the worker's freeze.
 Each interval covers one wave on an already running compiler pool.
+
+### Executable statements in a selected companion
+
+Receipt `82ef29b5-b2d4-4b04-9890-1ab3e6964919` qualified
+`ec6ec43b` against the native test compiler on host 3. The semantic
+coordinator groups executable statements from the selected module after
+parsing and before acquiring body-worker views. The group uses the first
+statement's source span. Module declarations retain their original scopes,
+and ordinary initialization precedes test execution. Both the default and
+alternate filename rules use the same module role.
+
+The manager verified 968 archive entries and compared the raw one- and
+four-worker outputs, locations and status codes. The direct mixed companion
+ran three tests and printed 5, 20, 9 and 34 on separate lines. The owner
+also ran its two imported or inline blocks. An early return still executed
+the deferred update. An empty file and a helper-only file each selected
+zero tests. The negative control stopped at the companion's original line
+8, column 5. The ordinary build with a broken test-only import printed 7.
+The existing positional-initialization and borrowed-iteration script cases
+also ran through test discovery.
+
+The eight preceding commits were patch-equivalent to the published explicit
+test implementation. Integration applies the single additional change to the
+merged compiler and preserves the reviewed history. The implementation and
+two regression sources match the worker blobs. Combined native qualification
+also exercises an ordinary request after failure in the same module environment.
