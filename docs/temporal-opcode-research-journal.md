@@ -118630,3 +118630,89 @@ the instrumentation. These runs cover the single-owner fault allocator.
 The repository instrumenter supports address and thread passes. Standalone
 undefined-behavior instrumentation and parallel formatter execution have no
 coverage here.
+
+### Native flow and staging frontier case selection, 2026-11-26
+
+Host 5 used public `aeb497f5dceee7a8ab1a608fa41c44bbb61dbc29`
+(tree `18a48614e1531325bd3e5ce67b912006f24f3457`). The initial pull in
+the shared checkout stopped at an existing incomplete rebase of three
+unpublished commits. An isolated local main preserved that checkout. The
+Linux x64 bootstrap passed its shipped resource checksum manifest. Its
+executable SHA-256 was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+
+The public aggregate executables passed with empty stdout and stderr. With
+the same native runtime and production service provider, public owner
+selection reported a duplicate ELF main and direct selection reported the
+missing companion, each at compiler jobs 1 and 4. The original entry files
+now retain their aggregate loops as ordinary mains. The two small native
+entry adapters export those mains. Each adjacent companion owns the full
+trial, its expected values and one test declaration per parameter combination.
+A byte comparison of both original fixture bodies up to main matched the
+moved bodies after replacing the language import with `library.testing`.
+Both aggregate loop bodies matched the originals. CMake reuses the existing
+threaded `tower-lr-row-services` shared library and exact count checker.
+
+| Native suite | Original trials and direct declarations | Owner declarations at each compiler jobs setting |
+| --- | ---: | ---: |
+| Flow | 18 modes × 2 worker counts = 36 | 51 |
+| Staging frontier | 4 modes × 2 inference policies × 2 worker counts, plus 4 Ready = 20 | 35 |
+
+Evidence-only Tower observers printed each exercised predicate and retained
+terminal observations. They formatted the constructed functions with
+`format_entity`. The base aggregate built with jobs 1 and 4, migrated
+aggregate, owner and direct runs produced identical bytes per suite, including
+the Foundation text. Guest pointer width was eight bytes throughout, as in
+the original native fixtures. Open pools reported one or four lanes. Cases
+that fail admission before opening a pool recorded zero. Both four-worker
+staging Ready policies completed the original two-kernel signal rendezvous,
+each probe called once, returning 42 and 43.
+
+Flow retained diagnostic offset 17 for the missing return and cycle, resource
+offset 41 for the failed producer and 29 for partial take. Finish dispatched
+its owner once and cancelled downstream consumers before dispatch. Scratch
+and pool denial retained Capacity at 17, view overflow retained Exhausted at
+17. Every flow graph and both pressure budgets released their live grants,
+lanes and bytes. Staging retained lowering failure at 17 and evaluation
+failure at 41. The resumed prefix produced 42, the inferred capture produced
+41, and repeated waits retained the interpreter state. Cancellation drained
+the queries and both suites disposed their worlds.
+
+Changing the expected Ready dispatch from 1 to 2 or the Ready peer's 43 to
+44 failed the corresponding aggregate and both selected entry paths at jobs
+1 and 4. Restoring those literals passed all ten applicable native CTests.
+Each of the 56 declarations also ran alone in a one-case Tower companion at
+both compiler job counts. All 112 isolated runs reported exactly one pass.
+The repository ASan profile with leak detection and TSan profile each passed
+both complete native aggregates. The TSan control exited 66 with a data race.
+The selected guest runs used the ordinary ELF runtime. The repository
+instrumenter supports address and thread passes. Source-level UBSan and a
+32-bit guest were outside this validation.
+
+Host 5 had a Ryzen 9 5900XT with 16 cores, 32 logical CPUs, affinity 0–31,
+a 3071999/100000 CPU quota and a 129569390592-byte memory limit. The 95
+discovered CMake cache paths included older checkouts and evidence copies.
+One task-owned Ninja Release build used Clang/LLVM 19.1.7 and the pinned
+bootstrap. The backend CMake project include and the native, work, backend
+and execution test switches enabled these registrations. The first configure
+needed the LLVM tool directory on PATH. Before adding the backend include,
+the requested native targets were absent. Logs retain both failures. Native
+and sanitizer builds used the same cache successively. Its measured sizes
+were 20,397,281 bytes in the ordinary profile, 399,719,958 after ASan, and
+469,728,300 after TSan.
+
+Three matched warm-filesystem pairs ran sequentially under the host timing
+lock. Each sample launched one complete aggregate 30 times. The middle
+pair reversed the order. CPU is median user plus system time per batch.
+Peak RSS is the largest process peak across the three samples, in KiB.
+
+| Suite | Base / migrated median wall s | Base / migrated median CPU s | Base / migrated max RSS KiB |
+| --- | ---: | ---: | ---: |
+| Flow | 0.36 / 0.36 | 0.36 / 0.36 | 52,848 / 52,868 |
+| Staging frontier | 0.57 / 0.58 | 0.61 / 0.61 | 54,208 / 54,044 |
+
+One fresh compile-link-run per direct companion took 0.72/0.84 s for flow
+and 0.73/0.78 s for staging at jobs 1/4. Each invocation included both guest
+worker settings. These timings do not isolate kernel scaling. The exact
+per-trial observations, source overlays, mismatches, restores, build commands,
+instrumented fixture IR and profile measurements belong to assignment
+`ce2f727c-221b-46c6-b912-424500692ead`. Publication belongs to the manager.

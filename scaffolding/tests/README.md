@@ -2008,10 +2008,32 @@ The late lifecycle scheduling fixtures use the single production semantic provid
 ```sh
 cmake --build build/native --parallel 6 --target tower-semantic-staging-smoke
 ctest --test-dir build/native --output-on-failure \
-  -R '^tower-semantic-(flow|lifecycle-frontier|staging-frontier)-tests$'
+  -R '^tower-semantic-(flow|lifecycle-frontier|staging-frontier)-(tests|(owner|direct)-jobs-[14])$'
 build/native/tower-lr-work-tests scaffolding query-smoke
 build/native/tower-lr-work-tests scaffolding control-smoke
 ```
+
+On native Linux x64, direct selection runs 36 flow trials and 20 staging
+frontier trials. Each worker count, mode and staging inference policy has
+its own `test()` declaration. Owner selection also runs the five budget,
+eight graph and two stack declarations. Compiler jobs 1 and 4 each run the
+same guest trials. The four-worker staging Ready case rendezvous uses the
+production pthread transport in the shared native services library.
+
+To exercise one combination, a direct companion in a subdirectory of
+`scaffolding/tests` can import the suite and call the same trial. For example,
+beside a `selection.tower` containing `import tower;`, use this `selection_test.tower`.
+
+```tower
+import library.testing;
+import .semantic_flow_checks_test;
+
+test() { assert(flow_trial(4, FlowCase.Scratch) == 0); }
+```
+
+Use the compiler and link arguments printed by
+`ctest --test-dir build/native -N -V -R '^tower-semantic-flow-direct-jobs-1$'`
+with that companion as the `--test` input.
 
 `RESOURCE_ROOT` accepts relative and absolute directory spellings. Body fixtures
 anchor their virtual source filenames to that same root through `units_source`;
