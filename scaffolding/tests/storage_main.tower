@@ -25,6 +25,7 @@ import semantic_capture_scan;
 import known_scan_storage;
 import backend_import_storage;
 import backend_import_bytes;
+import backend_import_bytes_test;
 import backend_import_overflow;
 import declaration_call_checks;
 extern fn syntax_reset_resource_checks(): void;
