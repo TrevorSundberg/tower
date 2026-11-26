@@ -1,0 +1,8 @@
+import tower;
+import .library.entity_api;
+import .library.entity_types;
+import .library.work_budget_types;
+
+fn create_check(ok: bool): void {
+    if !ok { trap("Entity creation result regression", 0); }
+}

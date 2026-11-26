@@ -119072,3 +119072,19 @@ stayed between 70 and 74 ms. The new real direct/owner selections took
 were unchanged across the paired series. The packet contains each original
 stream, command, trace, failure, link and measurement, including single-CPU
 and full-allocation batches. Integration and publication belong to the manager.
+
+## Host 4 entity creation and component budget selections, 2026-11-26
+
+Assignment 889c2722 used the public 81b33427 tree and its hash-verified Linux
+bootstrap on x86-64. Both original CMake executables ran first. Each accepted
+the ordinary argc/argv ABI, ignored arguments and printed exactly one zero.
+The creation entry calls the declaration-only entity API with the production
+memory and entities objects. The create-faults companion instead counts and
+refuses physical allocations. The mutation and stage-result fault suites also
+have distinct bodies. None supplies the two scenarios in the creation entry.
+
+The original creation entry now calls its companion's single ordered trial.
+The same error variable survives disposal of the first store and the finite-ID
+trial on the next. The callback still traps on any finalization. The two
+selection paths passed with one declaration at each compiler width (1 and 4),
+including the two-byte output oracle. The original executable also passed.
