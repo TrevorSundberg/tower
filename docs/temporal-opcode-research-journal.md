@@ -109358,7 +109358,7 @@ for the full Foundation and metadata comparison. The candidate allows 40.
 The final phase trace transferred 160,384 bytes through 136 calls in 4.4 ms.
 Its 17 compilations took 781/1,030 ms wall/CPU and stepping took 121/172 ms.
 On the live field-offset repeat, compile wall time fell from 358 ms on first
-use to 69 ms; the second complete row took 113 ms versus the reviewed 135 ms.
+use to 69 ms. The second complete row took 113 ms versus the reviewed 135 ms.
 
 Two instrumented controls used the same source, target and reactor.
 Reintroducing the owner during assertion discovery raised the total time for
@@ -109501,3 +109501,34 @@ selected guest. The public compilers retain their release instrumentation,
 and source-level UBSan for Tower is unavailable. The raw packet contains the
 oracle tables, commands, source inputs, binaries, link maps and original
 compiler provenance for manager review.
+
+### Raw memory release recheck with the published template suite
+
+The final sync for host 7 found published template commit `6f666ed6` after
+the assigned raw memory freeze. Merge `91077c00` preserves the qualified
+`23dbb6d1` tree and incorporates the upstream changes. A fresh full unfiltered
+run on the merged tree started at 11:43:13 and ended at 11:51:45 UTC.
+All 511 TAP rows, 51 module names, seven observed binary hashes, the portable
+self-test and the 12 cross products passed the same oracle comparisons. The
+result was 509 passes and the same two capability skips. Wall time was 511.71 s,
+CPU time 861.84 s and peak RSS 2,737,248 KiB.
+
+Both arms' 187 captured files matched their respective assigned-freeze files,
+including each arm's 17 source texts. In a fresh post-merge group selection
+the original, reviewed and final harnesses took 2.25, 3.91 and 3.27 s wall.
+An initial supplemental run accidentally paired the reviewed JS transport with
+the final Tower reader. All 17 requested a missing formatted-source stream.
+Restoring the reviewed reader in its isolated input tree made both its group
+and single selections pass. The primary six-sample series used the correct
+reader throughout. In the primary individual selections all 17 recorded less
+wall time and CPU, and 15 recorded lower peak RSS than the reviewed harness.
+
+An evidence-only run transported the complete LLVM IR once per case and used
+Tower's existing `backend_contains` for the five searches. It passed all 17
+cases on the released compiler. The 171,448 IR bytes plus one terminator per
+case increased total assertion execution from 6,514,094 to 114,683,564 steps.
+The storage test alone went from 34 slices to 817. Matched full-table runs with
+slice counters took 3.30 and 5.30 s wall, 6.67 and 8.73 s CPU, and 257,452
+and 301,840 KiB peak RSS. The candidate keeps the five Tower-selected lookups
+against the LLVM compiler's host string and compares canonical text, type
+tables and all output bytes using Tower's `fixture_equal`.
