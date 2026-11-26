@@ -54,6 +54,10 @@ if(driver_tests)
   register_language_tests(work-graph-direct library/work_graph_test 8 --link "@scc_objects@/libtower-compiler-memory.a")
   register_language_tests(work-budget library/work_budget 5 ${compiler_memory_links})
   register_language_tests(work-budget-direct library/work_budget_test 5 ${compiler_memory_links})
+  # The serial fault fixture also discovers its budget dependency's five tests.
+  set(arena_fault_links --link "@scc_objects@/runtime-instrumented.o" ${compiler_memory_links})
+  register_language_tests(work-arena-faults tests/work_arena_fault_fixture 7 ${arena_fault_links})
+  register_language_tests(work-arena-faults-direct tests/work_arena_fault_fixture_test 2 ${arena_fault_links})
   register_language_tests(gzip library/gzip 5 --link "@scc_objects@/tower-compiler-utf8.o"
     --link "@scc_objects@/libtower-compiler-memory.a")
 endif()
