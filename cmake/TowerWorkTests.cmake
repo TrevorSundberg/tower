@@ -39,7 +39,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       string(REPLACE "_" "-" target "tower-${unit}-tests")
       set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
       set(fixture_mode)
-      if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout)$")
+      if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout|work_buffer)$")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
       elseif(unit STREQUAL "work_dispatch_result" OR unit STREQUAL "work_linux_affinity_faults" OR unit STREQUAL "entity_attach_leases"
           OR unit MATCHES "^entity_page_(reuse|property)$")
@@ -155,6 +155,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(entity-page-reuse entity_page_reuse "10 tests" "5 tests" ${work_guest_args})
     tower_work_native_selections(entity-page-property entity_page_property "8 tests" "3 tests"
       --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/entity_page_property_x86_64.expected" ${work_guest_args})
+    tower_work_native_selections(work-buffer work_buffer "8 tests" "3 tests" ${work_guest_args})
     # Ready owner discovery includes eight graph and five budget declarations.
     tower_work_native_selections(work-ready work_ready "18 tests" "5 tests" ${work_guest_args})
     tower_work_native_selections(work-schedule-budget work_schedule_budget_fixture "19 tests" "6 tests" ${work_guest_args})
