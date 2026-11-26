@@ -1,11 +1,12 @@
-import {test} from 'node:test';
+import {after, test} from 'node:test';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
-import {mkdtemp, readFile, copyFile, writeFile, rm} from 'node:fs/promises';
-import {tmpdir} from 'node:os';
-import {join} from 'node:path';
+import {access, mkdtemp, readFile, writeFile, rm} from 'node:fs/promises';
+import {homedir, tmpdir} from 'node:os';
+import {join, resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
+import {files, loadTower, loadLLVM, executeWasm} from './compiler-fixtures.mjs';
+import {sourceLocation} from '../src/source-location.mjs';
 
 const root = new URL('../../', import.meta.url);
 const read = (name, encoding) => readFile(new URL(name, root), encoding);
@@ -15,7 +16,10 @@ const source = await fixture('for_loops.tower');
 const golden = (await fixture('for_loops.expected.txt')).replaceAll('\r\n', '\n');
 const foundation = await read('scaffolding/foundation.tower', 'utf8');
 const cases = new URL('scaffolding/compiler/semantic_control_cases/', root);
-const towerc = fileURLToPath(new URL('build/native/towerc', root));
+const receiver = await read('playground/tests/fixtures/for_loops/received.tower', 'utf8');
+const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
+const tower = await loadTower(bytes, undefined, foundation);
+after(() => tower.close());
 
 // Named fields come from the transport. Only quoted leaf values come from guests.
 function literal(value) {
@@ -26,16 +30,53 @@ function literal(value) {
   return JSON.stringify(value);
 }
 
+// Older selected reactors still produce their own observations. Use the native
+// test entry for those versions, respecting the build script's output directory.
+async function nativeCompiler() {
+  const exe = process.platform === 'win32' ? 'towerc.exe' : 'towerc';
+  const cached = join(homedir(), '.cache', 'tower', 'native', exe);
+  const installed = fileURLToPath(new URL('build/native/' + exe, root));
+  const candidates = process.env.TOWER_NATIVE_BUILD ? [resolve(process.env.TOWER_NATIVE_BUILD, exe)] : [cached, installed];
+  for (const path of candidates) {
+    try { await access(path); return path; }
+    catch (error) { if (error.code !== 'ENOENT') throw error; }
+  }
+  throw new Error('Selected reactor has no test entry. Build the native test compiler with ' +
+    'playground/scripts/build-native.sh or set TOWER_NATIVE_BUILD. Looked for ' + candidates.join(', '));
+}
+
 async function checkObservations(name, rows, count) {
+  const data = `import compiler.semantic_control_cases.${name};\nvar actual: Observations = ${literal(rows)};\n`;
+  if (tower.exports.tw_exec_create_tests) {
+    const entry = 'received.tower';
+    const inputs = [...files, {path:entry, text:receiver}, {path:'observations.tower', text:data}];
+    tower.configureModules({entry, files:inputs});
+    const handle = tower.compileTests();
+    try {
+      let result;
+      do { result = tower.execute(handle, 100000); } while (result.status === 'executing');
+      if (result.status !== 'done') {
+        const file = inputs.find(file => file.path === result.errorFile);
+        if (!file) throw new Error(result.error ?? 'Unexpected test status ' + result.status);
+        const lines = Buffer.from(file.text).subarray(0, result.errorOffset).toString('utf8').split('\n');
+        throw new Error(sourceLocation(file.path, lines.length, [...lines.at(-1)].length + 1) + ': ' + result.error);
+      }
+      const selected = tower.testCount(handle);
+      if (selected !== count) throw new Error(`${name}: selected ${selected} Tower tests, expected ${count}`);
+      process.stderr.write(`${name}: ${selected} Tower tests passed\n`);
+    } finally { tower.destroyExecution(handle); }
+    return;
+  }
   const dir = await mkdtemp(join(tmpdir(), 'tower-for-'));
   try {
-    const suite = fileURLToPath(new URL(name + '.tower', cases));
+    const suite = fileURLToPath(new URL(name + '.tower', cases)).replaceAll('\\', '/');
     const entry = join(dir, 'received.tower');
-    await copyFile(new URL('playground/tests/fixtures/for_loops/received.tower', root), entry);
-    await writeFile(join(dir, 'observations.tower'),
-      `import ${literal(suite)};\nvar actual: Observations = ${literal(rows)};\n`);
-    const {stderr} = await promisify(execFile)(towerc, ['--test', entry, '--test-details', '--jobs', '1']);
-    if (stderr.split('\n').filter(line => line.startsWith(suite + ':') && line.endsWith(': test passed')).length !== count)
+    await writeFile(entry, receiver);
+    await writeFile(join(dir, 'observations.tower'), data);
+    const {stderr} = await promisify(execFile)(await nativeCompiler(), ['--test', entry, '--test-details', '--jobs', '1',
+      '--foundation', fileURLToPath(new URL('scaffolding/foundation.tower', root))]);
+    const passed = stderr.replaceAll('\\', '/').split(/\r?\n/).filter(line => line.startsWith(suite + ':') && line.endsWith(': test passed'));
+    if (passed.length !== count)
       throw new Error('Missing Tower test report for ' + entry + '\n' + stderr);
     process.stderr.write(stderr);
   } finally { await rm(dir, {recursive:true, force:true}); }
@@ -47,8 +88,6 @@ function requireStatus(result, status) {
 }
 
 test('counted-loop interpreter, diagnostic, grammar and format cases', async () => {
-  const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
-  const tower = await loadTower(bytes, undefined, foundation);
   const rows = {golden};
   function execute(handle) {
     let output = '', result;
