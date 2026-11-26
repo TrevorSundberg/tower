@@ -121417,3 +121417,72 @@ and TSan. No compiler, runtime, or native worker code changed. The archive
 `bb19c17e-5de7-45a4-9416-acded7d5a1d3.tar.gz` retains the raw TAP, timing
 and observation records, mutations, capacity samples and inputs. The manager
 owns publication.
+
+## Browser cross-compilation registrations on d3170bb1
+
+Host 7 compared the unchanged Node entry with selected Tower tests using
+source d3170bb126647234dc0908f2f2ea8360b0993ae6 and Pages
+8417c9ae4cd9accdf672b22d6676bd465c8a79d6. The first pull encountered
+an unrelated unpublished project-storage commit. The rebase was aborted
+and the assigned public main was checked out in a separate clone. A cached
+Pages directory matched the seven target input hashes but failed both reactor
+hashes. Extraction from the assigned Pages Git tree matched its manifest.
+The decompressed cross compiler was
+`e86d824a6763a31b0acc331f99eae256a108a5e596b3a8b2ecaecf825ad3758d`.
+The test interpreter was
+`eb6c48780d67876e1c0726f0e3aad12f761db973c3e5f647e79c362805ad6e1a`.
+
+The original suite passed seven registrations. Six compiled the unchanged
+`scaffolding/tests/cross_target_program.tower`, linked it twice, compiled a
+library and linked a separate client against its object. The seventh reused
+the same compiler after refusing a Linux executable without its runtime. The
+Tower checker drives those calls through the Node transport, compares actual
+bytes and Wasm stdout, and supplies the original text patterns and flags.
+Early checker runs exposed a reserved parameter name and missing direct
+imports in two test modules. Renaming the parameter and importing the
+declarations where used allowed all seven to run.
+
+The release interpreter requires an owner for direct default-suffix selection
+of these companions. The Node entry selects each physical companion from
+`cross.tower` using its suffix and requires exactly one test. Changing only
+the expected PE signature from `4d 5a` to `4d 5b` failed Windows at
+`checks_test.tower` byte 799 with “Executable magic bytes”. The other six
+registrations passed. Restoring the file reproduced its SHA-256 and seven
+passes with zero skips.
+
+Two separate observation runs captured the original and candidate at the
+LLVM host boundary. Each produced 27 compile calls and two real Wasm runs.
+All 29 ordered records matched, including source and input hashes, requests,
+formats, output bytes, before/after IR, disassembly, diagnostics and stdout.
+All 12 named executables matched. The missing-runtime diagnostic was
+`Link failed: undefined ELF symbol: _start`. The default compile immediately
+returned Wasm, then the object request returned
+`No available targets are compatible with triple "unknown-unknown-unknown"`.
+The main Wasm wrote six lines (5, 84, 42, 4, 41, 42) and the externally
+linked Wasm wrote 42. Both outputs ended in LF. Native checks cover
+emission, linking and disassembly on all five native profiles.
+
+GNU time measured fresh Node 24.22.3 processes on a warm filesystem with
+`node --test playground/tests/cross-compilation.test.mjs`. The EPYC 7502
+had affinity 0–63 and cgroup quota 3,071,999/100,000 µs (30.72 CPUs).
+There was one active registration at a time and one checker lane. The
+three pairs at each affinity ran original/candidate, candidate/original,
+original/candidate, with a fresh output directory per run. Medians follow.
+
+| Affinity | Suite | Wall (s) | User + system (s) | Peak RSS (KiB) |
+| --- | --- | ---: | ---: | ---: |
+| 0–63 | Original | 2.35 | 5.85 | 457708 |
+| 0–63 | Tower tests | 3.53 | 8.24 | 480888 |
+| CPU 4 | Original | 4.93 | 4.92 | 456868 |
+| CPU 4 | Tower tests | 6.48 | 6.48 | 486588 |
+
+A separate host trace measured 123 ms to open the checker, 382 ms for the
+first test compile and 87–101 ms for each subsequent test compile. The
+checker reached 28,770,304 bytes of Wasm linear capacity by the end of the
+first registration and held that capacity through the seventh. The largest
+registration requested 69,451 bytes in seven host-to-guest copies. These
+counts cover transport copies only. The compiler binaries and compiler
+worker policy are unchanged. The suite also passed with V8 explicit Wasm
+bounds checks, stack checks and forced memory moves on growth. The release
+images carry no native ASan/UBSan or TSan test configuration. This change
+exercises the interpreter and Node transport. Manager publication is pending.
