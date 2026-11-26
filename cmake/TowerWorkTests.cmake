@@ -155,7 +155,7 @@ if(TARGET towerc)
       COMMAND $<TARGET_FILE:towerc> "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${fixture}"
         --test --test-details --jobs ${workers}
         --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower" ${ARGN})
     set_tests_properties(${name}-${workers} PROPERTIES FAIL_REGULAR_EXPRESSION "0 tests selected")
   endfunction()
   add_test(NAME tower-semantic-iteration-companions
@@ -195,9 +195,11 @@ if(TARGET towerc)
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_defer.tower")
     set_tests_properties(tower-semantic-defer-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
-    tower_companion_test(tower-fixed-array-iteration compiler/semantic_iteration_test.tower ${workers})
+    # Run these two explicit test blocks with just their own imports.
+    # The owner regression above uses the default _test.tower discovery rule.
+    tower_companion_test(tower-fixed-array-iteration compiler/semantic_iteration_test.tower ${workers} --test-suffix _spec.tower)
     tower_companion_test(tower-generic-body-copy-types compiler/generic_body_types_test.tower ${workers})
-    tower_companion_test(tower-semantic-layout-registry compiler/semantic_layout_test.tower ${workers})
+    tower_companion_test(tower-semantic-layout-registry compiler/semantic_layout_test.tower ${workers} --test-suffix _spec.tower)
     tower_companion_test(tower-default-initialization compiler/semantic_expressions_test.tower ${workers})
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
         module_header_capture_controls named_initialization_test)
