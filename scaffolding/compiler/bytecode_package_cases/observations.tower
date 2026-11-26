@@ -1,0 +1,46 @@
+import library.testing;
+import library.bytes;
+import library.bytes_types;
+import library.test_data;
+import backend.text;
+
+// Each read returns a counted copy from the observed reactor into the test
+// interpreter. Only the caller owns that copy. Text also has a trailing NUL.
+extern fn package_read(group: u8*, field: u8*, length: usize*): u8*;
+extern fn package_number(group: u8*, field: u8*): i64;
+extern fn package_step(handle_name: u8*, budget: u32): void;
+
+fn observed(group: u8*, field: u8*): ByteBuffer {
+    var result: ByteBuffer = default;
+    result.data = package_read(group, field, &result.length);
+    return result;
+}
+
+fn equal_bytes(a: ByteBuffer*, b: ByteBuffer*): bool {
+    return (a.data == null) == (b.data == null) && a.length == b.length
+        && test_bytes_equal(a.data, b.data, a.length);
+}
+
+fn same_field(left: u8*, right: u8*, field: u8*): bool {
+    var a = observed(left, field);
+    defer free(a.data);
+    var b = observed(right, field);
+    defer free(b.data);
+    return equal_bytes(&a, &b);
+}
+
+fn finish_package(name: u8*): ByteBuffer {
+    var output: ByteBuffer = default;
+    loop {
+        package_step(name, 7);
+        var chunk = observed("step", "output");
+        defer free(chunk.data);
+        assert(bytes_append(&output, chunk.data, chunk.length), "Cannot collect execution output");
+        var status = observed("step", "status");
+        defer free(status.data);
+        if !backend_equal(status.data, "executing") {
+            assert(backend_equal(status.data, "done"), "Package execution must finish");
+            return output;
+        }
+    }
+}

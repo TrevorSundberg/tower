@@ -1,0 +1,35 @@
+import observations;
+import library.testing;
+import library.test_data;
+import library.bytes;
+import library.bytes_types;
+
+fn package_u32(bytes: u8*, offset: usize): u32 {
+    var value: u32 = 0;
+    for (var i: usize = 0; i < sizeof(u32); ++i) {
+        value |= convert(u32, bytes[offset + i]) << convert(u32, i * 8);
+    }
+    return value;
+}
+
+test() {
+    var packet = observed("case", "packet");
+    defer free(packet.data);
+    assert(packet.length >= 24, "Missing package header");
+    assert(test_bytes_equal(packet.data, "TOWERBC", 7), "Package magic");
+    assert(package_u32(packet.data, 8) == 1, "Container version");
+    assert(package_u32(packet.data, 12) == 9, "Semantics version");
+    assert(package_u32(packet.data, 16) == 6, "Execution cache version");
+    assert(package_u32(packet.data, 20) == convert(u32, package_number("case", "width")), "Target pointer width");
+    assert(same_field("case", "rebuilt", "packet"), "Foundation reconstruction reproduces the complete package");
+    var loaded = finish_package("loaded");
+    defer bytes_dispose(&loaded);
+    var direct = finish_package("direct");
+    defer bytes_dispose(&direct);
+    assert(equal_bytes(&loaded, &direct), "Loaded and direct execution output");
+    var round = finish_package("round");
+    defer bytes_dispose(&round);
+    var wanted = observed("case", "expected");
+    defer free(wanted.data);
+    assert(equal_bytes(&round, &wanted), "Recompiled Foundation stdout differs from the target's expected file");
+}

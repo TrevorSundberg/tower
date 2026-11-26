@@ -1,0 +1,19 @@
+import tower;
+
+struct Pair {
+    x: i32;
+    y: i32;
+}
+
+fn sum(p: Pair*): i32 {
+    var sum = p.x + p.y;
+    return sum;
+}
+
+var pair: Pair;
+pair.x = 20;
+pair.y = 22;
+print(sum(&pair));
+var text = "snow 雪";
+print(text[5]);
+print(sizeof(usize));

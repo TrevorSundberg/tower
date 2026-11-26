@@ -1,82 +1,130 @@
-import {test, after} from 'node:test';
+import {test} from 'node:test';
 import assert from 'node:assert/strict';
-import {readFile,writeFile} from 'node:fs/promises';
-import {loadTower} from './compiler-fixtures.mjs';
-const read=path=>readFile(new URL('../../'+path,import.meta.url));
-const bytecodeContainerVersion=1, bytecodeSemanticsVersion=9, bytecodeExecutionCacheVersion=6;
-const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,(await read('scaffolding/foundation.tower')).toString());
-after(() => tower.close());
+import {readFile, writeFile} from 'node:fs/promises';
+import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
+
+const cases = '.tower/compiler/bytecode_package_cases/';
+const source = name => fixtureSource(cases + name + '.tower');
+const expected = name => readFile(new URL('../../scaffolding/compiler/bytecode_package_cases/' + name + '.expected', import.meta.url));
+const tower = await openTower();
+const encoder = new TextEncoder();
+let sample, handles;
+
+// The assertion interpreter and the compiler whose packages it opens have
+// separate memories. Only counted buffers and scalar observations cross here.
+function copyBytes(context, bytes) {
+  const address = context.allocate(bytes.length + 1);
+  if (!address) throw new Error('Cannot allocate package observation');
+  const memory = context.memory();
+  memory.set(bytes, address);
+  memory[address + bytes.length] = 0;
+  return address;
+}
+
+const checks = await openTower({imports:{
+  package_read(context, group, field, size) {
+    const value = sample[guestString(context, group)][guestString(context, field)];
+    const bytes = typeof value === 'string' ? encoder.encode(value) : value;
+    if (!(bytes instanceof Uint8Array)) throw new Error('Missing package text or bytes');
+    const address = copyBytes(context, bytes);
+    const memory = context.memory();
+    const view = new DataView(memory.buffer, memory.byteOffset, memory.byteLength);
+    if (context.pointerBytes === 8) view.setBigUint64(Number(size), BigInt(bytes.length), true);
+    else view.setUint32(Number(size), bytes.length, true);
+    return address;
+  },
+  package_collect_source_map(_context, width) {
+    const input = sample.case.source;
+    const original = tower.compile(input, {pointerBytes:width});
+    try { sample.direct = tower.execute(original, 10000); }
+    finally { tower.destroyExecution(original); }
+    const prepared = tower.prepareFoundationPackage(input, {pointerBytes:width});
+    let loaded;
+    try {
+      loaded = tower.loadBytecode(prepared.bytecode);
+      // Replace the environment's current map while both earlier handles are live.
+      const later = tower.compile(source('later'), {pointerBytes:width});
+      tower.destroyExecution(later);
+      sample.prepared = tower.execute(prepared.handle, 10000);
+      sample.loaded = tower.execute(loaded, 10000);
+    } finally {
+      tower.destroyExecution(prepared.handle);
+      if (loaded) tower.destroyExecution(loaded);
+    }
+  },
+  package_number(context, group, field) {
+    const value = sample[guestString(context, group)][guestString(context, field)];
+    if (typeof value !== 'number' && typeof value !== 'boolean') throw new Error('Missing package scalar');
+    return Number(value);
+  },
+  package_step(context, name, budget) {
+    sample.step = tower.execute(handles[guestString(context, name)], budget);
+  },
+  package_load_error(context, data, length) {
+    const bytes = context.memory().slice(Number(data), Number(data) + Number(length));
+    let handle;
+    try { handle = tower.loadBytecode(bytes); }
+    catch (error) { return copyBytes(context, encoder.encode(error.message)); }
+    tower.destroyExecution(handle);
+    return 0;
+  },
+  package_live_nodes: () => tower.exports.tw_live_nodes(),
+  package_live_allocations: () => tower.exports.tw_live_allocations(),
+}});
+
+function check(name, observations, sessions = {}) {
+  sample = observations;
+  handles = sessions;
+  try { runSelectedTest(checks, cases + name + '_checks.tower'); }
+  finally { sample = handles = undefined; }
+}
+
 test('Tower package preparation owns independent verified execution sessions', {
   skip: !tower.exports.ide_package_tests && 'Build with TOWER_IDE_PACKAGE_TESTS=ON to export ide_package_tests',
 }, () => {
-  assert.equal(tower.exports.ide_package_tests(),0);
-});
-test('prepared and loaded package handles retain their own diagnostic source map',async()=>{
-  const source=(await read('playground/tests/fixtures/package_runtime_error.tower')).toString();
-  for(const width of [4,8]){
-    const original=tower.compile(source,{pointerBytes:width});
-    const reference=tower.execute(original,10000);tower.destroyExecution(original);
-    assert.equal(reference.status,'error');assert.equal(reference.error,'Division by zero');
-    assert.equal(reference.errorOffset,source.indexOf('var answer'));
-    const prepared=tower.prepareFoundationPackage(source,{pointerBytes:width});
-    let loaded;
-    try{
-      loaded=tower.loadBytecode(prepared.bytecode);
-      // A later compilation changes the environment's current source-map ledger.
-      // Both earlier handles must keep their own independent map snapshot.
-      const later=tower.compile('import foundation; print(7);',{pointerBytes:width});tower.destroyExecution(later);
-      for(const handle of [prepared.handle,loaded]){
-        const result=tower.execute(handle,10000);
-        for(const key of ['status','error','errorOffset','errorFile','output','outputTruncated'])assert.equal(result[key],reference[key],key);
-      }
-    }finally{tower.destroyExecution(prepared.handle);if(loaded)tower.destroyExecution(loaded);}
-  }
-});
-const source='import tower; struct Pair { x: i32; y: i32; } fn sum(p: Pair*): i32 { var sum = p.x + p.y; return sum; } var pair: Pair; pair.x = 20; pair.y = 22; print(sum(&pair)); var text = "snow 雪"; print(text[5]); print(sizeof(usize));';
-function finish(handle){let result,output='';do{result=tower.execute(handle,7);output+=result.output;}while(result.status==='executing');assert.equal(result.status,'done',result.error);return output;}
-function checksum(bytes){const data=bytes.slice();let hash=14695981039346656037n;for(let i=0;i<data.length;i++){hash^=BigInt(i>=48&&i<56?0:data[i]);hash=BigInt.asUintN(64,hash*1099511628211n);}new DataView(data.buffer).setBigUint64(48,hash,true);return data;}
-for(const width of [4,8])test('.towerbc v1 round trip, target layout and deterministic cache '+width,async()=>{
-  const input=tower.compile(source,{pointerBytes:width});let loaded,round;
-  try{
-    const bytes=tower.bytecode(input), view=new DataView(bytes.buffer);
-    assert.equal(new TextDecoder().decode(bytes.subarray(0,7)),'TOWERBC');
-    assert.equal(view.getUint32(8,true),bytecodeContainerVersion);assert.equal(view.getUint32(12,true),bytecodeSemanticsVersion);assert.equal(view.getUint32(16,true),bytecodeExecutionCacheVersion);
-    assert.equal(view.getUint32(20,true),width);
-    loaded=tower.loadBytecode(bytes);
-    const disassembly=tower.foundation(loaded).source;
-    round=tower.compile(disassembly,{pointerBytes:width});
-    assert.deepEqual(tower.bytecode(round),bytes,'foundation reconstruction reproduces the complete package');
-    assert.equal(finish(loaded),finish(input));
-    assert.equal(finish(round),`42\n233\n${width}\n`);
-    await writeFile(new URL(`../../build/bytecode-cross-${width}.towerbc`,import.meta.url),bytes);
-  }finally{for(const h of [input,loaded,round])if(h)tower.destroyExecution(h);}
-});
-test('untrusted packages validate bounds, versions, checksums and actual code before executing',()=>{
-  const handle=tower.compile('import foundation; print(42);'), bytes=tower.bytecode(handle);tower.destroyExecution(handle);
-  for(const size of [0,7,55,bytes.length-1])assert.throws(()=>tower.loadBytecode(bytes.slice(0,size)),/length/);
-  for(const [offset,value,pattern] of [[0,0,/magic/],[8,2,/container version/],[12,1,/semantics version/],[16,1,/cache version/],[20,16,/target layout/],[24,3,/profile/],[28,0xffffffff,/bounds/],[32,0xffffffff,/bounds/],[36,0xffffffff,/bounds/],[40,1,/bounds/],[44,1,/flags/]]){
-    const bad=bytes.slice();new DataView(bad.buffer).setUint32(offset,value,true);assert.throws(()=>tower.loadBytecode(bad),pattern);
-  }
-  const bad=bytes.slice();bad[bad.length-1]^=1;
-  assert.throws(()=>tower.loadBytecode(bad),/checksum/);
-  assert.throws(()=>tower.loadBytecode(checksum(bad)),/cache disagrees/,'valid checksum cannot authorize incorrect instructions');
-  const nodes=tower.exports.tw_live_nodes(),allocations=tower.exports.tw_live_allocations();
-  for(let i=0;i<20;i++)assert.throws(()=>tower.loadBytecode(checksum(bad)),/cache disagrees/);
-  assert.equal(tower.exports.tw_live_nodes(),nodes);assert.equal(tower.exports.tw_live_allocations(),allocations);
+  assert.equal(tower.exports.ide_package_tests(), 0);
 });
 
-test('canonical packages preserve checked handles across custom grammar installation',async()=>{
-  const foundation=(await read('scaffolding/foundation.tower')).toString();
-  const customized=foundation+'\n[identifier] token Identifier = /[A-Za-z_][A-Za-z0-9_-]*/;';
-  tower.configure(customized);
-  const handle=tower.compile('import foundation; var player-name: i32 = 42; print(player-name);');
-  let loaded;
-  try{
-    tower.useFast(handle);
+test('prepared and loaded package handles retain their own diagnostic source map', async () => {
+  check('source_map', {case:{source:source('runtime_error'), expected:await expected('runtime_error')}});
+});
+
+for (const width of [4, 8]) test('.towerbc v1 round trip, target layout and deterministic cache ' + width, async () => {
+  const direct = tower.compile(source('round_trip'), {pointerBytes:width});
+  let loaded, round;
+  try {
+    const packet = tower.bytecode(direct);
+    loaded = tower.loadBytecode(packet);
+    round = tower.compile(tower.foundation(loaded).source, {pointerBytes:width});
+    check('round_trip', {case:{packet, width, expected:await expected('round_trip_' + width)},
+      rebuilt:{packet:tower.bytecode(round)}}, {direct, loaded, round});
+    await writeFile(new URL('../../build/bytecode-cross-' + width + '.towerbc', import.meta.url), packet);
+  } finally {
+    for (const handle of [direct, loaded, round]) if (handle) tower.destroyExecution(handle);
+  }
+});
+
+test('untrusted packages validate bounds, versions, checksums and actual code before executing', () => {
+  const direct = tower.compile(source('valid'));
+  let packet;
+  try { packet = tower.bytecode(direct); }
+  finally { tower.destroyExecution(direct); }
+  check('rejection', {case:{packet}});
+});
+
+test('canonical packages preserve checked handles across custom grammar installation', async () => {
+  const foundation = fixtureSource('.tower/foundation.tower');
+  let direct, loaded;
+  try {
+    tower.configure(foundation + '\n' + source('identifier_grammar'));
+    direct = tower.compile(source('custom_identifier'));
+    tower.useFast(direct);
     tower.configure(foundation);
-    loaded=tower.loadBytecode(tower.bytecode(handle));
-    assert.match(tower.foundation(loaded).source,/`player-name`/);
-    assert.equal(finish(loaded),'42\n');
-    assert.equal(finish(handle),'42\n');
-  }finally{tower.configure(foundation);for(const h of [handle,loaded])if(h)tower.destroyExecution(h);}
+    loaded = tower.loadBytecode(tower.bytecode(direct));
+    check('grammar', {case:{foundation:tower.foundation(loaded).source, expected:await expected('custom_identifier')}},
+      {direct, loaded});
+  } finally {
+    tower.configure(foundation);
+    for (const handle of [direct, loaded]) if (handle) tower.destroyExecution(handle);
+  }
 });

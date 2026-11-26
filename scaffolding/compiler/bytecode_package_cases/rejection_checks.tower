@@ -1,0 +1,34 @@
+import observations;
+import envelope;
+import library.testing;
+import backend.text;
+
+extern fn package_load_error(data: u8*, length: usize): u8*;
+extern fn package_live_nodes(): usize;
+extern fn package_live_allocations(): usize;
+
+fn refuses(data: u8*, size: usize, diagnostic: u8*): bool {
+    var error = package_load_error(data, size);
+    defer free(error);
+    return error != null && backend_contains(error, diagnostic);
+}
+
+test() {
+    var packet = observed("case", "packet");
+    defer free(packet.data);
+    var data = packet.data;
+    var size = packet.length;
+    assert(size > 56, "Fixture contains a header and payload");
+    check_header_rejections(data, size, refuses);
+    data[size - 1] ^= 1;
+    assert(refuses(data, size, "checksum"), "Corrupt payload checksum");
+    replace_checksum(data, size);
+    assert(refuses(data, size, "cache disagrees"), "Valid checksum cannot authorize a different instruction cache");
+    var nodes = package_live_nodes();
+    var allocations = package_live_allocations();
+    for (var repeat: usize = 0; repeat < 20; ++repeat) {
+        assert(refuses(data, size, "cache disagrees"), "Repeated cache rejection");
+    }
+    assert(package_live_nodes() == nodes, "Rejected packages must release their nodes");
+    assert(package_live_allocations() == allocations, "Rejected packages must release their allocations");
+}

@@ -1,0 +1,38 @@
+import observations;
+import library.testing;
+import backend.text;
+
+extern fn package_collect_source_map(width: u32): void;
+
+fn matches_reference(kind: u8*): void {
+    assert(same_field("direct", kind, "status"), "Execution status");
+    assert(same_field("direct", kind, "error"), "Runtime diagnostic");
+    assert(package_number("direct", "errorOffset") == package_number(kind, "errorOffset"), "Diagnostic byte offset");
+    assert(same_field("direct", kind, "errorFile"), "Diagnostic source file");
+    assert(same_field("direct", kind, "output"), "Execution output");
+    assert(package_number("direct", "outputTruncated") == package_number(kind, "outputTruncated"), "Output truncation");
+}
+
+fn check_retained_maps(width: u32): void {
+    package_collect_source_map(width);
+    var status = observed("direct", "status");
+    defer free(status.data);
+    assert(backend_equal(status.data, "error"), "Reference execution must fail");
+    var message = observed("direct", "error");
+    defer free(message.data);
+    var wanted = observed("case", "expected");
+    defer free(wanted.data);
+    assert(equal_bytes(&message, &wanted), "Reference division diagnostic");
+    var source = observed("case", "source");
+    defer free(source.data);
+    var at: usize = 0;
+    while at < source.length && !backend_prefix(&source.data[at], "var answer") { ++at; }
+    assert(at < source.length && package_number("direct", "errorOffset") == convert(i64, at), "Offset of failing declaration");
+    matches_reference("prepared");
+    matches_reference("loaded");
+}
+
+test() {
+    check_retained_maps(4);
+    check_retained_maps(8);
+}
