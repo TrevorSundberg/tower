@@ -118281,3 +118281,121 @@ The original aggregate and the migrated five registrations passed in those
 builds. Enabling the work and execution suites alongside storage and backend
 also passed all four new registrations. The qualification packet and local
 commits are for manager integration and publication.
+
+### Aggregate interpreter input lifetimes through native test selection, 2026-11-26
+
+Host 1 migrated the four input cases from `interpreter_call_query.tower` on
+`464e4fa9117efb8c96b7bd0585b0d2c407e6af0a`. Implementation `f20f4bfa`
+keeps the function, map and wide-call cases in place. The input companion
+uses the original two scalar projections, two independent invocations, and
+one- and three-step pumps. It now saves the caller's storage descriptor at
+nested depth and checks its frame, producer, address, extent and both field
+bytes after the callee returns. Each of the four declarations runs the
+same check at guest pointer widths 4 and 8. The ordinary aggregate retains
+its original order and passes its current width into those checks.
+
+The original owner selected only five work-budget declarations. Direct
+selection required a companion. The new owner selects nine declarations and
+the direct path selects four. Native selected guests link the existing
+`guest-native-test.o` and `tower-response-services`. The services
+library supplies the serial work transport and instrumented allocator.
+The aggregate's `query-smoke` selector uses the production allocator and
+Linux transport. It iterates pointer widths 4/8 and worker limits 1/4.
+Each input world requests one worker. The CLI's `--jobs` controls the host
+compiler. Interleaving the two consumers exercises lifetimes on one lane.
+
+A temporary companion called the unmodified original case function on both
+guest widths for each selected comparison. Its 1,848-byte stdout matched
+the migrated selections. Observation-only copies sampled both invocations
+after each of 104 pump iterations, with guest offsets, field bytes, frame
+counts, results and physical ownership. All eight traces (original and
+candidate, owner and direct, jobs 1 and 4) matched the same 12,444 bytes.
+Both results reached 15. All eight paired disposals cleared both states.
+The 24 partial disposals, 20 startup-denial cleanups and four budgeted world
+closures passed. Each startup cleanup and world closure returned zero live
+reservations and zero used bytes.
+
+| Value bytes | Peak live extent | Memory and initialization capacity, each | Metadata bytes | Observed growths | Budgeted retained / peak bytes before pressure |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 8 | 32 | 128 | 256 | 5 | 16,256 / 16,352 |
+| 65,536 | 131,072 | 131,136 | 256 | 5 | 540,288 / 605,472 |
+
+The table is identical at both guest widths. Deliberate pressure later
+reaches the full 1,048,576-byte allowance. The five measured startup
+prefixes still check the typed capacity error, admitted buffers, terminal
+retry and receipt retirement. The strict scalar write, self-copy and fill
+still reject modification and preserve both captured fields.
+
+Changing the first consumer's expected result from 15 to 16 made the direct
+and owner selections exit 1 at the companion predicate at both compiler job
+counts. The aggregate compiled each way exited 134 at the same predicate.
+The controls ran in private copies. The restored source matched the tested
+companion by SHA-256. Omitting the native services failed at
+`compiler_buffer_free`. Supplying a link input without the native test
+runtime failed argument validation. The services library has a recorded
+LLVM dependency and search path. Both selected routes passed without a
+separate LLVM link argument.
+
+The address/leak and thread profiles instrumented the three companion check
+functions in the query object. Both ran the complete aggregate, including
+the two interpreter widths and the surrounding parallel query work. Both
+link maps resolve allocation to `runtime-allocate.o` and work transport to
+`tower_work_host.o` (Linux workers and dispatch). ASan/LSan passed in
+66.27 s with 734,136 KiB maximum RSS. TSan passed in 206.43 s with 324,912
+KiB maximum RSS after six startup failures setting the container personality.
+The completed processes had empty stderr. Tower has no source UBSan profile.
+
+The first ordinary configure omitted the required bootstrap compiler path.
+The retry specified the verified checked-in executable. A compiler check
+found missing direct imports after separating shared graph helpers. The
+successful builds include the budget and vector imports at their use sites.
+An initial raw comparison of the full aggregate stdout differed in the
+clone calibration and interval lines (thread IDs, timestamps and calibrated
+work sizes). The final checks compare every input observation and every
+line outside those two clone record types, and retain the complete streams.
+
+At step 10 the small case held 16-byte extents at guest offsets 32 and 64.
+The padded case held 65,536-byte extents at 32 and 65,584. At step 11 the
+original caller extent at 32 remained, with field bytes 7 and 8. Both
+invocations reached 15 at both widths. The aggregate's 16 input records
+equal two copies of the selected suite's eight records, since the aggregate
+also iterates the outer worker limit.
+
+Measurements used a Xeon Gold 6244 host with two eight-core sockets, SMT,
+32 exposed logical CPUs, cgroup quota 1,536,000/100,000 µs and memory.max
+136,709,144,576 bytes. Timed pairs used CPUs 0–7, Release, Linux x64,
+LLVM/Clang 19.1.7 and the verified public bootstrap starting `7430bdb3`.
+Each arm used a fresh process on a warm filesystem. Three pairs per cell
+ran one process tree at a time under the host lock, reversing order on the
+middle pair. None of the 36 measured intervals added a throttled period.
+Cgroup memory.peak was already 60,974,551,040 bytes before the task. The
+table gives median wall seconds / median user + system seconds / maximum
+process RSS in KiB.
+
+| Entry | Compiler jobs | Original | Migrated |
+| --- | ---: | ---: | ---: |
+| direct | 1 | 1.12 / 1.11 / 158,368 | 1.16 / 1.15 / 160,412 |
+| direct | 4 | 1.23 / 1.38 / 168,544 | 1.26 / 1.45 / 169,908 |
+| owner | 1 | 1.23 / 1.22 / 171,056 | 1.24 / 1.24 / 172,912 |
+| owner | 4 | 1.35 / 1.54 / 181,192 | 1.41 / 1.62 / 182,696 |
+| aggregate | 1 | 8.76 / 10.31 / 129,880 | 8.70 / 10.27 / 129,460 |
+| aggregate | 4 | 8.69 / 10.22 / 129,604 | 8.76 / 10.34 / 129,168 |
+
+For aggregate execution the jobs column is the compiler width used to
+build the query unit. All other linked objects came from the same clean
+one-job-per-compiler build. At jobs 1 and 4 the object bytes matched
+within each revision. For selections the time includes discovery, guest
+compilation, linking and execution. The largest selected median increase
+was 0.06 s for the four-job owner. A one-job phase sample on the aggregate
+query unit measured parsing at 843 ms before and 962 ms after including
+the assertion grammar and companion. Emission took 364 ms in both samples.
+These fixture measurements do not establish a compiler scaling gain.
+
+The final CTest commands passed all five Linux registrations. The packet at
+assignment `a483d645-d0ee-4893-89d0-d72cf3d4c639` includes the observation
+sources, 450 checkout and 14 generated Tower build inputs, per-process
+measurements, failure and recovery logs, linker maps and a Git bundle.
+The opening pull conflicted while replaying unrelated browser changes.
+Aborting it restored the shared main at `203f2497`. The commits are on an
+isolated local main at the assigned public parent for manager publication.
+No browser or cross-target qualification was run for this native test change.

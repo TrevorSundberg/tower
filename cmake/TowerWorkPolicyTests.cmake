@@ -139,6 +139,15 @@ function(tower_lr_work_policy_test)
   add_test(NAME tower-editor-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" editor)
   add_test(NAME tower-body-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" bodies)
   add_test(NAME tower-query-continuations COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" query-smoke)
+  # Input queries use one world lane at both guest pointer widths. Reuse the
+  # serial native services for selected guests. The aggregate uses its normal transport.
+  if(TARGET tower-response-services)
+    get_property(query_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    add_dependencies(tower-lr-work-tests tower-response-services tower-guest-native-test tower-selected-test-count)
+    tower_native_test_selections(input-query interpreter_call_query "9 tests" "4 tests"
+      --test-native-runtime "${query_guest}" --link "$<TARGET_FILE:tower-response-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-response-services>")
+  endif()
   add_test(NAME tower-generic-quota-diagnostic COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" generic-quota)
   set_tests_properties(tower-generic-quota-diagnostic PROPERTIES TIMEOUT 120 LABELS "native;focused;generic")
   set_tests_properties(tower-lr-worker-equivalence tower-native-units tower-native-backend-units tower-editor-units tower-body-continuations tower-query-continuations PROPERTIES TIMEOUT 180)

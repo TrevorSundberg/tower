@@ -1,0 +1,54 @@
+import tower;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.interpreter_context_types;
+import .compiler.interpreter_types;
+import .compiler.format_api;
+import .library.vector;
+
+extern fn compiler_world_create_workers(limit: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_release(node: void*): usize;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, finalizer: usize): bool;
+extern fn entity_component_add(node: void*, kind: void*): void*;
+extern fn entity_component_data(component: void*): void*;
+extern fn sem_create(parent: void*): void*;
+extern fn sem_attach(node: void*, kind: u32): FoundationNode*;
+extern fn sem_get(node: void*): FoundationNode*;
+extern fn interpreter_invocation_init(invocation: IMInvocation*, function: void*, width: usize, arguments: u64*, count: usize, strict: bool, fuel: u64): bool;
+extern fn interpreter_invocation_step(invocation: IMInvocation*, budget: usize): void;
+extern fn interpreter_invocation_dispose(invocation: IMInvocation*): void;
+extern fn puts(message: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn abort(): void;
+
+var CallQueryFuel: u64 = 10000;
+
+fn call_query_require(ok: bool): void { if !ok { abort(); } }
+fn call_query_push(items: vector(void*)*, item: void*): void { call_query_require(vector_push(items, item)); }
+
+fn input_query_number(value: usize): void {
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    var formatter: FormatEngine = { result: &text, ..default };
+    format_unsigned(&formatter, convert(u64, value));
+    call_query_require(!text.failed && vector_push(&text.text, 0));
+    puts(text.text.data);
+}
+
+fn call_query_node(root: void*, width: u32, kind: u32): void* {
+    var node = sem_create(root);
+    var value = sem_attach(node, kind);
+    value.type.scalar = SI32;
+    value.type.pointer_bytes = width;
+    return node;
+}
+
+fn call_query_read(root: void*, width: u32, binding: void*): void* {
+    var node = call_query_node(root, width, KOperand);
+    sem_get(node).binding = binding;
+    sem_get(node).type = sem_get(binding).type;
+    return node;
+}
