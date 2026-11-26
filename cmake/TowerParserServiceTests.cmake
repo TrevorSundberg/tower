@@ -14,6 +14,30 @@ set_target_properties(tower-lexer-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(tower-lexer-tests PRIVATE tower-compiler-memory tower-compiler-utilities)
 add_test(NAME tower-lexer-tests COMMAND tower-lexer-tests)
 
+if(NOT CMAKE_CROSSCOMPILING AND service_triple MATCHES "^x86_64-.*linux.*gnu")
+  tower_guest_runtime(native-test "${service_triple}" posix ON UNINSTRUMENTED)
+  tower_guest_runtime(host-library "${service_triple}" posix OFF UNINSTRUMENTED)
+  tower_selected_test_count("${service_triple}")
+  add_dependencies(tower-lexer-tests tower-guest-native-test tower-selected-test-count)
+  get_property(lexer_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  foreach(selection IN ITEMS lexer_table lexer_table_test)
+    set(lexer_count 6)
+    if(selection STREQUAL "lexer_table")
+      # The owner also discovers the five work_budget tests.
+      set(lexer_count 11)
+    endif()
+    set(lexer_path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${selection}.tower")
+    foreach(jobs IN ITEMS 1 4)
+      set(lexer_name "tower-selected-${selection}-jobs-${jobs}")
+      add_test(NAME "${lexer_name}" COMMAND tower-selected-test-count "${lexer_count} tests passed for ${lexer_path}"
+        "${TOWER_BOOTSTRAP_COMPILER}" --test "${lexer_path}" --jobs "${jobs}" --test-details
+        --test-native-runtime "${lexer_runtime}" --link "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-bytes.o"
+        --link "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-utf8.o" --link "$<TARGET_FILE:tower-compiler-memory>")
+      set_tests_properties("${lexer_name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+    endforeach()
+  endforeach()
+endif()
+
 set(entity_input "${CMAKE_CURRENT_BINARY_DIR}/tower_entity_tests.tower")
 file(GENERATE OUTPUT "${entity_input}" CONTENT
   "import tower;\nimport tests.entity_store;\nexport fn ${service_entry}(argc: i32, argv: u8**): i32 { entity_store_tests(); return 0; }\n")
