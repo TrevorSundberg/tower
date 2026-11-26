@@ -115251,3 +115251,93 @@ UBSan is unsupported by the Tower LLVM instrumentation. Full-repository
 formatting and browser publication are outside this qualification. Raw
 commands, source bundle, wrong-map diagnostics and restoration hashes are in
 the assignment receipt for manager review.
+
+### Entity mutation refusals through direct and owner test discovery
+
+Host 6 built the original standalone on published `78c3bd0e` and ran its
+registered CTest before editing. It exited zero and printed exactly
+`Typed entity mutation and allocation rollback passed.` The older local
+formatter history remains reachable at `refs/archive/host6-formatter-pre-mutation`.
+The release already contained its formatter changes.
+
+Seven declarations in `tests/entity_mutation_results_test.tower` exercise
+invalid and ordered attachment, child replacement/take, queue aliases with
+and without growth, and the Attach, NamedStage and Queue allocation sweeps.
+The standalone invokes the same cases in the original order. Each case
+checks portable serial transport before using the fault allocator. The
+companion owns the lifecycle/payload assertion and finalizer releases. Each
+trial still checks live buffers against its starting count after disposal.
+
+A temporary Tower probe recorded the following observations before stage
+discard. Unlimited trials determine the actual refusal loop bounds.
+
+| Operation | Successful allocation calls | Refused ordinals | Observations |
+| --- | ---: | --- | --- |
+| Alias within spare capacity | 0 | Next allocation denied | Length and held count reached 4 |
+| Alias requiring growth | 1 | 0 | Length and held count were 10 on success and 8 on refusal |
+| Attach | 1 | 0 | The child retained its original parent and name on refusal |
+| NamedStage | 3 | 0, 1, 2 | Success left 9 private nodes. Every refusal left 8 |
+| Queue | 1 | 0 | After double hold the target had 3 references on success and 1 on refusal |
+
+All eleven original and migrated trial records and the final standalone
+output matched byte for byte. The four pin selections matched the original
+trial stdout oracle. Direct selection ran seven cases at both widths. An
+initial owner count of seven failed the exact-count guard. The detail log
+identified five transitive work-budget declarations. The corrected owner
+registration requires twelve. Changing the expected length on refused alias
+growth from the original length to length plus one failed the standalone
+and each direct and owner run at jobs 1 and 4. All four selected failures
+identified the changed assertion. Restoring it reproduced the original
+candidate source, object and executable hashes.
+
+The native Release cache uses the public Linux x64 compiler with SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The packaged resources passed their SHA-256 manifest. Address with leak
+detection and thread instrumentation each passed the focused standalone
+CTest on the first launch. The maps locate the fault allocator in
+`work-instrumented-runtime.o` and portable transport in the suite object.
+The instrumented IR covers both alias and allocation trials. Sanitizer cache
+configuration initially lacked the public driver and then the versioned
+Clang tools. The completed builds used explicit public compiler and LLVM 19
+paths. Guest execution here is serial at both compiler widths. The selected
+compiler is uninstrumented. The repository has no source-level Tower UBSan
+profile.
+
+GNU time measured fresh processes with warm files on host 6, a Xeon
+E5-2680 v4 VM with 12 visible CPUs, affinity 0–3 for measured commands,
+1152000/100000 µs CPU quota and 32282509312-byte memory ceiling. One warm-up
+preceded three measured samples per row. Original and migrated compilation
+alternated order across rounds under the host timing lock. Each resulting
+object matched the corresponding one-job object and linked to a guest with
+the original stdout and stderr. Relocating the original source tree changed
+path-qualified local symbols in the ELF string table. The relocated and
+checkout original objects had identical machine text. Direct and owner
+timings include test compilation, guest execution and the count checker.
+
+| Entry | Jobs | Median wall (s) | Median CPU (s) | Maximum RSS (KiB) |
+| --- | ---: | ---: | ---: | ---: |
+| Original standalone compile | 1 | 1.91 | 1.91 | 167872 |
+| Original standalone compile | 4 | 1.93 | 2.14 | 174700 |
+| Migrated standalone compile | 1 | 2.08 | 2.08 | 172640 |
+| Migrated standalone compile | 4 | 2.31 | 2.58 | 183440 |
+| Direct CTest | 1 | 2.17 | 2.17 | 170304 |
+| Direct CTest | 4 | 2.27 | 2.55 | 181204 |
+| Owner CTest | 1 | 2.45 | 2.45 | 183332 |
+| Owner CTest | 4 | 2.52 | 2.83 | 195264 |
+
+The standalone runs themselves were below GNU time's 0.01-second wall-time
+resolution. Compiler worker counts describe compilation only. Host 6 packet
+`9c4bca26-de3a-4ee1-b5f6-a3bd077cf000` contains the original CTest, pin
+manifest, raw timings, detailed selections, both traces, refusal control,
+restoration checks and sanitizer maps. Publication belongs to the manager.
+
+Compared with the original standalone, suite compilation added the assertion
+grammar and two modules to the input closure. The checkout object grew from
+63800 to 69064 bytes. The warm median compile cost increased by 0.17 s at
+one job and 0.38 s at four. The migration changes test code only.
+
+The assigned-base source commit is `36371046`. After rebasing onto published
+`2344ddc3`, none of the suite depfile inputs or pin resources differed
+between the two published bases. All five focused CTests passed again.
+Both sanitizer CTests passed on their first integrated launch, with the
+same object and executable hashes. The final ordinary build was clean.

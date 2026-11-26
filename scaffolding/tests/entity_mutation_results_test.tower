@@ -1,0 +1,315 @@
+import library.testing;
+import entity_mutation_results;
+import .host.work_portable;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget_types;
+
+var MutationUnlimited: usize = ~convert(usize, 0);
+enum MutationOperation: u32 { Attach, NamedStage, Queue }
+
+struct MutationReferences { first: Entity*; second: Entity*; }
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    var value = bits(MutationReferences*, data);
+    assert(lifecycle == 1 && entity_component_data(component) == data, "Finalize the registered reference payload");
+    if value.first != null { entity_release(value.first); }
+    if value.second != null { entity_release(value.second); }
+}
+
+fn invalid_and_ordered(): void {
+    assert(!work_thread_available(), "Mutation fault injection requires serial transport");
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var other = entity_store_create();
+    var root = entity_create(store);
+    var foreign = entity_create(other);
+    var first = entity_create(store);
+    var second = entity_create(store);
+    assert(entity_attach_result(null, root, null) == WorkBudgetError.Invalid
+        && entity_attach_result(root, root, null) == WorkBudgetError.Invalid
+        && entity_attach_result(first, foreign, null) == WorkBudgetError.Invalid);
+    first.references = MutationUnlimited;
+    assert(entity_attach_result(first, root, "first") == WorkBudgetError.Exhausted
+        && first.parent == null && root.child_count == 0 && first.references == MutationUnlimited);
+    first.references = 1;
+    assert(entity_attach_result(first, root, "first") == WorkBudgetError.None
+        && entity_attach_result(second, root, "second") == WorkBudgetError.None);
+    var view = entity_view_open(root);
+    assert(entity_attach_result(first, null, null) == WorkBudgetError.Busy);
+    entity_view_close(view);
+    // Reordering transfers the old parent's reference, with no retain even at max.
+    first.references = MutationUnlimited;
+    assert(entity_attach_result(first, root, "renamed") == WorkBudgetError.None
+        && first.references == MutationUnlimited && root.children[0].entity == second
+        && root.children[1].entity == first && entity_member_index(root, "renamed") == 1);
+    first.references = 2;
+    // Named replacement leaves the externally retained former child detached.
+    assert(entity_attach_result(first, root, "second") == WorkBudgetError.None
+        && first.references == 2 && second.references == 1 && second.parent == null
+        && root.child_count == 1 && root.children[0].entity == first);
+    assert(entity_attach_result(first, null, null) == WorkBudgetError.None
+        && first.references == 1 && root.child_count == 0);
+    var stage = entity_stage_open(root);
+    var error = WorkBudgetError.None;
+    assert(entity_stage_create_result(null, root, &error) == null && error == WorkBudgetError.Invalid);
+    assert(entity_stage_create_result(stage, null, &error) == null && error == WorkBudgetError.Invalid);
+    assert(entity_stage_create_named_result(stage, foreign, "bad", &error) == null
+        && error == WorkBudgetError.Invalid);
+    assert(entity_stage_create_result(stage, root, null) == null && stage.nodes.length == 0);
+    var private = entity_stage_create_result(stage, root, &error);
+    assert(private != null && error == WorkBudgetError.None && private.id == 0
+        && private.references == 1 && private.parent == root && root.child_count == 0);
+    var peer = entity_stage_open(root);
+    assert(entity_stage_create_result(peer, private, &error) == null && error == WorkBudgetError.Busy);
+    var nodes: Entity*[3] = default;
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    assert(entity_stage_references_result(null, null, 0) == WorkBudgetError.Invalid
+        && entity_stage_references_result(stage, null, 1) == WorkBudgetError.Invalid
+        && entity_stage_references_result(stage, null, 0) == WorkBudgetError.None);
+    nodes[0] = first; nodes[1] = foreign;
+    assert(entity_stage_references_result(stage, &nodes[0], count) == WorkBudgetError.Invalid
+        && stage.references.length == 0 && first.references == 1);
+    nodes[1] = private;
+    assert(entity_stage_references_result(stage, &nodes[0], count) == WorkBudgetError.Invalid
+        && stage.references.length == 0);
+    assert(entity_stage_references_result(stage, &nodes[0], MutationUnlimited) == WorkBudgetError.Invalid);
+    var saved = stage.nodes.length;
+    stage.nodes.length = MutationUnlimited;
+    assert(entity_stage_create_result(stage, root, &error) == null && error == WorkBudgetError.Invalid);
+    stage.nodes.length = saved;
+    nodes = default;
+    assert(entity_stage_references_result(stage, &nodes[0], count) == WorkBudgetError.None
+        && stage.references.length == 0 && stage.held == 0);
+    entity_stage_discard(peer);
+    entity_stage_discard(stage);
+    entity_release(first); entity_release(second); entity_release(root);
+    entity_release(foreign);
+    assert(entity_store_dispose(store) && entity_store_dispose(other)
+        && tower_test_buffer_count() == baseline);
+}
+
+fn child_results(): void {
+    assert(!work_thread_available(), "Mutation fault injection requires serial transport");
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var other = entity_store_create();
+    var root = entity_create(store);
+    var foreign = entity_create(other);
+    var child = entity_create(store);
+    var replacement = entity_create(store);
+    var error = WorkBudgetError.Memory;
+    assert(entity_attach(child, root, "member"));
+    assert(entity_replace_child_result(null, 0, replacement) == WorkBudgetError.Invalid
+        && entity_replace_child_result(root, 0, null) == WorkBudgetError.Invalid
+        && entity_replace_child_result(root, root.child_count, replacement) == WorkBudgetError.Invalid
+        && entity_replace_child_result(root, 0, foreign) == WorkBudgetError.Invalid
+        && entity_replace_child_result(root, 0, child) == WorkBudgetError.Invalid
+        && entity_replace_child_result(root, 0, root) == WorkBudgetError.Invalid);
+    assert(entity_take_last_child_result(null, &error) == null && error == WorkBudgetError.Invalid
+        && entity_take_last_child_result(root, null) == null && root.child_count == 1);
+    var view = entity_view_open(root);
+    assert(entity_replace_child_result(root, 0, replacement) == WorkBudgetError.Busy
+        && entity_take_last_child_result(root, &error) == null && error == WorkBudgetError.Busy);
+    entity_view_close(view);
+    var leased: Entity*[3]; leased[0] = root; leased[1] = child; leased[2] = replacement;
+    for(var i: usize = 0; i < sizeof(decltype(leased)) / sizeof(Entity*); i++) {
+        var stage = entity_stage_open(root);
+        assert(entity_stage_lease(stage, leased[i]));
+        assert(entity_replace_child_result(root, 0, replacement) == WorkBudgetError.Busy);
+        if leased[i] != replacement {
+            assert(entity_take_last_child_result(root, &error) == null && error == WorkBudgetError.Busy);
+        }
+        assert(root.child_count == 1 && root.children[0].entity == child && child.parent == root
+            && child.references == 2 && replacement.parent == null && replacement.references == 1);
+        entity_stage_discard(stage);
+    }
+    replacement.references = MutationUnlimited;
+    assert(entity_replace_child_result(root, 0, replacement) == WorkBudgetError.Exhausted
+        && root.children[0].entity == child && child.parent == root && replacement.parent == null);
+    replacement.references = 1;
+    var calls = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(0);
+    var result = entity_replace_child_result(root, 0, replacement);
+    tower_test_buffer_fail_after(MutationUnlimited);
+    assert(result == WorkBudgetError.None && tower_test_buffer_allocations() == calls
+        && entity_member_index(root, "member") == 0 && root.children[0].entity == replacement
+        && child.parent == null && child.references == 1 && replacement.references == 2);
+    replacement.references = MutationUnlimited;
+    tower_test_buffer_fail_after(0);
+    var taken = entity_take_last_child_result(root, &error);
+    tower_test_buffer_fail_after(MutationUnlimited);
+    assert(taken == replacement && error == WorkBudgetError.None && root.child_count == 0
+        && replacement.parent == null && replacement.references == MutationUnlimited
+        && tower_test_buffer_allocations() == calls);
+    replacement.references = 2;
+    entity_release(taken);
+    assert(entity_take_last_child_result(root, &error) == null && error == WorkBudgetError.None);
+    entity_release(child); entity_release(replacement); entity_release(root); entity_release(foreign);
+    assert(entity_store_dispose(store) && entity_store_dispose(other) && tower_test_buffer_count() == baseline);
+}
+
+fn queue_alias_payload(stage: EntityStage*, type: Entity*): MutationReferences* {
+    var owner = entity_stage_create(stage, stage.anchor);
+    assert(owner != null);
+    var component = entity_component_add(owner, type);
+    assert(component != null);
+    var value = bits(MutationReferences*, entity_component_data(component));
+    *value = default;
+    return value;
+}
+
+fn queue_alias_trial(grow: bool, failure: usize): usize {
+    assert(!work_thread_available(), "Mutation fault injection requires serial transport");
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var type = entity_create(store);
+    var nodes: Entity*[2];
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    for(var i: usize = 0; i < count; i++) { nodes[i] = entity_create(store); }
+    assert(entity_register(type, sizeof(MutationReferences), alignof(MutationReferences), 1));
+    var stage = entity_stage_open(root);
+    loop {
+        var value = queue_alias_payload(stage, type);
+        assert(entity_stage_references_result(stage, &nodes[0], count) == WorkBudgetError.None);
+        value.first = nodes[0]; value.second = nodes[1];
+        if !grow || stage.references.length == stage.references.capacity { break; }
+        assert(stage.references.capacity - stage.references.length >= count);
+    }
+    var value = queue_alias_payload(stage, type);
+    var length = stage.references.length;
+    var capacity = stage.references.capacity;
+    var data = stage.references.data;
+    if length < capacity {
+        assert(entity_stage_references_result(stage, &data[length], 1) == WorkBudgetError.Invalid);
+        assert(entity_stage_references_result(stage, &data[length - 1], count) == WorkBudgetError.Invalid);
+        assert(stage.references.length == length && stage.references.data == data);
+    }
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var result = entity_stage_references_result(stage, &data[length - count], count);
+    var calls = tower_test_buffer_allocations() - before;
+    tower_test_buffer_fail_after(MutationUnlimited);
+    if !grow || failure == MutationUnlimited {
+        assert(result == WorkBudgetError.None && stage.references.length == length + count);
+        value.first = nodes[0]; value.second = nodes[1];
+        assert(grow ? calls != 0 : calls == 0);
+    } else {
+        assert(result == WorkBudgetError.Memory && stage.references.length == length
+            && stage.references.capacity == capacity && stage.references.data == data,
+            "Refused growth preserves the original queue storage and length");
+    }
+    for(var i: usize = 0; i < stage.references.length; i++) {
+        assert(stage.references.data[i] == nodes[i % count], "Queued aliases preserve reference order");
+    }
+    assert(stage.held == 0 && nodes[0].references == 1 && nodes[1].references == 1);
+    entity_stage_hold(stage);
+    entity_stage_hold(stage);
+    assert(nodes[0].references == 1 + stage.references.length / count
+        && nodes[1].references == nodes[0].references, "Holding twice retains each queued entry once");
+    entity_stage_discard(stage);
+    for(var i: usize = 0; i < count; i++) {
+        assert(nodes[i].references == 1, "Discard releases every reference held for this payload");
+        entity_release(nodes[i]);
+    }
+    entity_release(type); entity_release(root);
+    assert(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+    return calls;
+}
+
+fn allocation_trial(operation: MutationOperation, failure: usize): usize {
+    assert(!work_thread_available(), "Mutation fault injection requires serial transport");
+    var baseline = tower_test_buffer_count();
+    var store = entity_store_create();
+    var root = entity_create(store);
+    var parent = entity_create(store);
+    var child = entity_create(store);
+    var target = entity_create(store);
+    var type = entity_create(store);
+    assert(entity_register(type, sizeof(MutationReferences), alignof(MutationReferences), 1)
+        && entity_attach(child, parent, "original"));
+    var stage = entity_stage_open(root);
+    var owner = entity_stage_create(stage, root);
+    var value = bits(MutationReferences*, entity_component_data(entity_component_add(owner, type)));
+    assert(value != null);
+    *value = default;
+    var nodes: Entity*[3] = default;
+    nodes[0] = target; nodes[2] = target;
+    var count = sizeof(decltype(nodes)) / sizeof(Entity*);
+    if operation == MutationOperation.NamedStage {
+        while stage.nodes.length < stage.nodes.capacity { assert(entity_stage_create(stage, root) != null); }
+    }
+    var old_length = stage.nodes.length;
+    var before = tower_test_buffer_allocations();
+    tower_test_buffer_fail_after(failure);
+    var result = WorkBudgetError.None;
+    var created: Entity* = null;
+    if operation == MutationOperation.Attach { result = entity_attach_result(child, root, "moved"); }
+    if operation == MutationOperation.NamedStage {
+        created = entity_stage_create_named_result(stage, root, "new", &result);
+    }
+    if operation == MutationOperation.Queue {
+        result = entity_stage_references_result(stage, &nodes[0], count);
+        if result == WorkBudgetError.None { value.first = target; value.second = target; }
+    }
+    var calls = tower_test_buffer_allocations() - before;
+    tower_test_buffer_fail_after(MutationUnlimited);
+    assert(result == WorkBudgetError.None || result == WorkBudgetError.Memory);
+    if failure == MutationUnlimited { assert(result == WorkBudgetError.None && calls != 0); }
+    else { assert(result == WorkBudgetError.Memory); }
+    if operation == MutationOperation.Attach {
+        assert(child.references == 2 && child.parent == (result == WorkBudgetError.None ? root : parent));
+        if result != WorkBudgetError.None {
+            assert(root.child_count == 0 && parent.child_count == 1
+                && parent.children[0].entity == child && entity_member_index(parent, "original") == 0,
+                "Refused attachment preserves the ordered child and its original name");
+        }
+    }
+    if operation == MutationOperation.NamedStage {
+        assert((created != null) == (result == WorkBudgetError.None)
+            && stage.nodes.length == old_length + (created == null ? 0 : 1) && root.child_count == 0,
+            "Only successful creation appends a private node");
+    }
+    if operation == MutationOperation.Queue {
+        assert(stage.references.length == (result == WorkBudgetError.None ? 2 : 0)
+            && stage.held == 0 && target.references == 1);
+        entity_stage_hold(stage);
+        assert(target.references == (result == WorkBudgetError.None ? 3 : 1));
+        entity_stage_hold(stage);
+        assert(target.references == (result == WorkBudgetError.None ? 3 : 1));
+    }
+    entity_stage_discard(stage);
+    assert(target.references == 1, "After discard only the caller owns the target");
+    entity_release(type); entity_release(target); entity_release(child);
+    entity_release(parent); entity_release(root);
+    assert(entity_store_dispose(store) && tower_test_buffer_count() == baseline);
+    return calls;
+}
+
+fn queue_alias_without_growth(): void {
+    assert(queue_alias_trial(false, 0) == 0, "Copying within spare capacity needs no allocation");
+}
+
+fn queue_alias_growth_sweep(): void {
+    var calls = queue_alias_trial(true, MutationUnlimited);
+    for (var failure: usize = 0; failure < calls; failure++) {
+        queue_alias_trial(true, failure);
+    }
+}
+
+fn allocation_sweep(operation: MutationOperation): void {
+    var calls = allocation_trial(operation, MutationUnlimited);
+    for (var failure: usize = 0; failure < calls; failure++) {
+        allocation_trial(operation, failure);
+    }
+}
+
+test() { invalid_and_ordered(); }
+test() { child_results(); }
+test() { queue_alias_without_growth(); }
+test() { queue_alias_growth_sweep(); }
+test() { allocation_sweep(MutationOperation.Attach); }
+test() { allocation_sweep(MutationOperation.NamedStage); }
+test() { allocation_sweep(MutationOperation.Queue); }
