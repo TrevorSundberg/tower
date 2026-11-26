@@ -1,0 +1,4 @@
+import foundation;
+parse Statement = 'say' Number 'done';
+say 42 done
+say 43 done

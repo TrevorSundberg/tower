@@ -1,0 +1,8 @@
+import compiler.semantic_types_test.observations;
+
+test() {
+    expect_roundtrip("graph32");
+    expect_roundtrip("fast32");
+    expect_roundtrip("graph64");
+    expect_roundtrip("fast64");
+}

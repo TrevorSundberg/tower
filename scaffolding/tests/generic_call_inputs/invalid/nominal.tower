@@ -1,0 +1,1 @@
+import tower; fn a(T:type):type{struct R{x:T;}return R;} fn b(T:type):type{struct R{x:T;}return R;} fn get(T:type,p:a(T)*):T{return p.x;} var value:b(i32);get(&value);

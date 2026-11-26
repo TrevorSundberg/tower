@@ -1,0 +1,13 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    reject("ambiguous", 47, NoErrorLength,
+        "Unexpected 'b'. Expected ',' or ':'.\nIn rule Statement (input.tower:1:19).");
+    reject("unsuccessful", 33, NoErrorLength, "Unexpected 'x'. Expected ';'.\nIn rule Statement = 'a' ';' 'b' (input.tower:1:19).");
+    reject("two_delimiters", 28, NoErrorLength, "Unexpected 'var'. Expected ')' or '*'.");
+    var missing = require_error("missing_name", 22, NoErrorLength, false);
+    defer free(missing);
+    assert(backend_contains(missing, "Expected Identifier"), missing);
+}

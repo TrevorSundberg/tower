@@ -1,129 +1,77 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from './compiler-fixtures.mjs';
-const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const foundationSyntax=(await read('scaffolding/foundation_syntax.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,
-  foundation,undefined,(await read('scaffolding/bedrock.tower')).toString());
-// Basic executable syntax and Number belong to Foundation; literal-only custom
-// grammars below intentionally use the Bedrock seed without an ambient language.
-const foundationImport='import foundation;\n';
-function parse(source){const h=tower.create(source);try{return runToEnd(tower,h).end;}finally{tower.destroy(h);}}
-function error(source){const end=parse(source);assert.equal(end.status,'error');assert.doesNotMatch(end.error,/\bat byte\b|\bstate\s*\(|\bstate \d|shift to state|repeat\(\d|capture\(\d/);return end;}
+import {files, runToEnd} from './compiler-fixtures.mjs';
+import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
-test('missing delimiters are inferred from the active grammar and point at the insertion gap',()=>{
- for(const [source,literal,offset] of [
-  ['print(42)\nvar answer: i32;',"';'",9],
-  ['print(42)',"';'",9],
-  ['print(42;',"')'",8],
-  ['print(42) // comment\nvar answer: i32;',"';'",9],
- ]) {const result=error(foundationImport+source);assert.ok(result.error.startsWith('Missing '+literal),result.error);assert.equal(result.errorOffset,foundationImport.length+offset);assert.equal(result.errorLength,0);assert.match(result.error,/foundation_syntax\.tower:\d+:\d+/);}
-});
+const cases = '.tower/compiler/format_diagnostic_cases/';
+const encoder = new TextEncoder();
 
-test('an omitted declaration separator reports both type and initializer alternatives',()=>{
- const result=error(foundationImport+'var answer i32;');
- assert.match(result.error,/Expected '=' or ':'/);
- assert.doesNotMatch(result.error,/Missing/);
- assert.equal(parse(foundationImport+'var answer: i32;').status,'done');
- assert.equal(parse(foundationImport+'var answer = i32;').status,'done','i32 is an ordinary name, not a reserved type keyword');
-});
+function copyText(context, text) {
+  if (typeof text !== 'string') throw new Error('Missing parser text');
+  const bytes = encoder.encode(text);
+  const address = context.allocate(bytes.length + 1);
+  if (!address) throw new Error('Cannot allocate parser observation');
+  const memory = context.memory();
+  memory.set(bytes, address);
+  memory[address + bytes.length] = 0;
+  return address;
+}
 
-test('line breaks suggest a unique construct boundary without claiming other repairs are impossible',()=>{
- const source=foundationImport+'var answer: i32 = 42\nprint(answer);';
- const result=error(source);
- assert.match(result.error,/^Possible missing ';' before 'print'/);
- assert.equal(result.errorOffset,foundationImport.length+20);
- assert.equal(result.errorLength,0);
- assert.match(result.error,/In rule CoreDeclare/);
- // Adding an operator also parses now that calls are operands. Type checking
- // may reject print's void result, but syntactic repair must not assume that.
- assert.equal(parse(source.replace('42\n','42 +\n')).status,'done');
- assert.doesNotMatch(error(source.replace('42\n','42 ')).error,/Missing|Possible missing/);
-});
+function numberField(value) {
+  if (!Number.isSafeInteger(value) || value < 0) throw new Error('Invalid numeric parser observation');
+  return value;
+}
 
-test('user grammar literals, including keywords, participate without compiler annotations',()=>{
- const grammar=foundationImport+"parse Statement = 'say' Number 'done';\n";
- const source=grammar+'say 42\nsay 43 done';
- const result=error(source);
- assert.match(result.error,/Missing 'done' before 'say'/);
- assert.match(result.error,/Statement = 'say' Number 'done' \(input.tower:2:/);
- assert.equal(result.errorOffset,grammar.length+6);
- assert.equal(parse(grammar+'say 42 done\nsay 43 done').status,'done');
- const required="parse Statement = 'if' Identifier 'then' Identifier ';';\nif condition result;";
- assert.match(error(required).error,/Missing 'then' before 'result'/);
-});
+let parser, source, end;
+const compiler = await openTower({imports:{
+  diagnostic_read(context, file, edit) {
+    source = fixtureSource(cases + 'inputs/' + guestString(context, file) + '.tower');
+    // Compilation saved the assertion handle's source map. Give the parser
+    // its own entry path before opening this case's first subject handle.
+    if (!parser) compiler.configureModules({entry:'input.tower'});
+    if (edit) compiler.reset(parser, source);
+    else {
+      if (parser) compiler.destroy(parser);
+      parser = undefined;
+      parser = compiler.create(source);
+    }
+    end = runToEnd(compiler, parser).end;
+    return end.status === 'done';
+  },
+  diagnostic_text: context => copyText(context, end.error),
+  diagnostic_offset: () => numberField(end.errorOffset),
+  diagnostic_length: () => end.errorLength === undefined ? -1 : numberField(end.errorLength),
+  diagnostic_cache_hits: () => numberField(compiler.inspect(parser).grammarCacheHits),
+  diagnostic_source_size: () => encoder.encode(source).length,
+  diagnostic_foundation_syntax: context => copyText(context, fixtureSource('.tower/foundation_syntax.tower')),
+}});
 
-test('ambiguous or unsuccessful repairs report valid alternatives without claiming a fix',()=>{
- const ambiguous=error("parse Statement = 'a' ',' 'b' | 'a' ':' 'b'; a b");
- assert.match(ambiguous.error,/Unexpected 'b'\. Expected ',' or ':'/);
- assert.equal(ambiguous.errorLength,undefined);
- assert.doesNotMatch(error("parse Statement = 'a' ';' 'b'; a x;").error,/Missing/);
- const multiple=error(foundationImport+'print(42\nvar x: i32;');
- assert.doesNotMatch(multiple.error,/Missing/); // Needs both ')' and ';'.
- assert.match(error(foundationImport+'var').error,/Expected Identifier/); // Never invent a name.
-});
+compiler.configureModules({files:files.filter(({path}) => path.startsWith(cases) ||
+  path === '.tower/backend/text.tower' || path.startsWith('.tower/library/'))});
 
-test('conflicts describe both choices, rule definitions and source locations',()=>{
- const shift=error("parse Statement = 'x' | 'x' 'x';");
- assert.match(shift.error,/Grammar conflict \(shift\/reduce\) on 'x'/);
- assert.match(shift.error,/continue Statement = 'x' 'x'/);
- assert.match(shift.error,/finish Statement = 'x'/);
- assert.equal((shift.error.match(/input.tower:1:/g)||[]).length,2);
- const reduce=error(foundationImport+"parse A = Number;\nparse B = Number;\nparse Statement = A ';' | B ';';");
- assert.match(reduce.error,/reduce\/reduce/);
- assert.match(reduce.error,/A = Number \(input.tower:2:/);
- assert.match(reduce.error,/B = Number \(input.tower:3:/);
-});
+function check(name) {
+  try { runSelectedTest(compiler, cases + name + '.tower'); }
+  finally {
+    if (parser) compiler.destroy(parser);
+    parser = source = end = undefined;
+  }
+}
 
-test('cached grammar diagnostics use current source locations after comments move rules',()=>{
- const rule=foundationImport+"parse Statement = 'say' Number ';';\nsay 42";
- const handle=tower.create(rule);
- try{
-  const initial=runToEnd(tower,handle).end;
-  assert.match(initial.error,/input.tower:2:/);
-  assert.equal(initial.errorOffset,rule.length);
-  tower.reset(handle,'// moved\n\n'+rule);
-  const moved=runToEnd(tower,handle).end;
-  assert.match(moved.error,/input.tower:4:/);
-  assert.equal(moved.errorOffset,('// moved\n\n'+rule).length);
-  assert.ok(tower.inspect(handle).grammarCacheHits>0);
- }finally{tower.destroy(handle);}
-});
+test('missing delimiters are inferred from the active grammar and point at the insertion gap', () => check('delimiters'));
 
-test('contextual lexer rules use the speculative parser state without altering the source',()=>{
- const grammar=foundationImport+"token Word = /[a-z]+/ when expected; parse Statement = 'say' Number 'then' Word ';';\n";
- const source=grammar+'say 42 message;';
- assert.match(error(source).error,/Missing 'then'/);
- assert.equal(parse(source.replace('42 message','42 then message')).status,'done');
-});
+test('an omitted declaration separator reports both type and initializer alternatives', () => check('separator'));
 
-test('large expected sets and deep invalid input fall back without a definite repair or parser internals',()=>{
- const alternatives=Array.from({length:80},(_,i)=>`'choice${i}' 'body'`).join(' | ');
- const broad=error('parse Statement = '+alternatives+'; body');
- assert.doesNotMatch(broad.error,/Missing/);
- assert.match(broad.error,/Expected a statement or grammar declaration/);
- const deepSource=foundationImport+"parse Value = '(' Value ')' | Number;parse Statement = Value ';';"+'('.repeat(4200)+'42;';
- const deep=error(deepSource);
- assert.doesNotMatch(deep.error,/Missing/);
- assert.equal(deep.errorOffset,deepSource.lastIndexOf(';'),'deep input reaches its invalid token after grammar activation');
-});
+test('line breaks suggest a unique construct boundary without claiming other repairs are impossible', () => check('line_break'));
 
-test('statement boundaries never cite an unstarted call or other possible next rule',()=>{
- for(const source of [foundationImport+'var alias: i32*;;', foundationImport+';', foundationImport+'print(42);;', foundationImport+'fn f(): void {} ;']) {
-  const result=error(source);
-  assert.equal(result.error,"Unexpected ';'. Expected a statement or grammar declaration.");
-  assert.equal(result.errorOffset,source.lastIndexOf(';'));
- }
- const nested=error(foundationImport+'fn f(): void { var x: i32;; }');
- assert.doesNotMatch(nested.error,/Required by|CoreCall|CoreLocation/);
- const nullable=error("parse Empty = ; parse Future = Empty 'next'; parse Statement = '{' Future '}'; { ;");
- assert.doesNotMatch(nullable.error,/In rule Future/,'empty prefixes do not mean a rule consumed source');
- const partial=error(foundationImport+'print(42)\nvar answer: i32;');
- assert.match(partial.error,/In rule CoreCallStatement/);
- const line=foundationSyntax.split('\n').findIndex(text=>text.startsWith('parse CoreCallStatement ='))+1;
- assert.ok(partial.error.includes('foundation_syntax.tower:'+line+':'),partial.error);
- assert.doesNotMatch(partial.error,/Required by/);
- assert.equal(parse(foundationImport+"parse Statement |= ';'; var x: i32;;").status,'done','a user rule may permit empty statements');
-});
+test('user grammar literals, including keywords, participate without compiler annotations', () => check('literals'));
+
+test('ambiguous or unsuccessful repairs report valid alternatives without claiming a fix', () => check('ambiguous'));
+
+test('conflicts describe both choices, rule definitions and source locations', () => check('conflicts'));
+
+test('cached grammar diagnostics use current source locations after comments move rules', () => check('cache'));
+
+test('contextual lexer rules use the speculative parser state without altering the source', () => check('contextual'));
+
+test('large expected sets and deep invalid input fall back without a definite repair or parser internals', () => check('limits'));
+
+test('statement boundaries never cite an unstarted call or other possible next rule', () => check('boundaries'));

@@ -1,0 +1,8 @@
+import session;
+import library.testing;
+
+test() {
+    reject("broad", 1607, NoErrorLength, "Unexpected 'body'. Expected a statement or grammar declaration.");
+    reject("deep", 4286, NoErrorLength, "Unexpected ';'.");
+    assert(diagnostic_offset() + 1 == diagnostic_source_size(), "Reach the final invalid token");
+}

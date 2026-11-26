@@ -109112,6 +109112,69 @@ The full Jenkins pipeline and publication are pending manager review.
 Host 1 packet `4ade3a78-7004-4d4b-8cb2-701bd0ee41e6` retains the original
 console, build and selection logs, timing samples, packet bytes and replay outputs.
 
+### Parser diagnostic fixtures on the portable release (host 4, 2026-11-26)
+
+Assignment a0d2fc1d began at 3ca5e7cc. The ten Node registrations opened 33 terminal parser results on 32 distinct source texts. The public serial reactor from Pages c9773ec3 has SHA-256 41bb9b1164da536eaabf57957d08e131b3472a1463931c5bc41110d85f130a3f and build source 8bc867b6. Tracing the original suite captured the source, full terminal event and the cache-hit observation before extracting any fixtures. The comment edit reset one live handle. The rule moved from input.tower:2:19 to 4:19, its insertion gap moved from byte 61 to 71, and inspect reported three hits.
+
+The adjacent format_diagnostic companion owns the expectations. Raw source fixtures preserve the missing final newlines, the 80-way choice and all 4,200 opening parentheses. The assertion interpreter and parser use separate Wasm instances. A trial importing the complete formatting implementation into the CLI test encountered incompatible declarations for lr_analysis_destroy across compiler units. Checking the formatter's internal views separately was possible, but repeating that compiler graph in all ten browser selections cost 4.71 seconds. Limiting the companion to the actual case checks and supported repaired bindings eliminated that dependency. The native interpreter has no binding for the live Wasm parser, reset or inspect.
+
+The companion checks the public text, the actual byte offset and the distinction between an omitted length and a zero-length insertion. The CoreCallStatement citation is compared with the declaration line in the loaded Foundation syntax. A selected test in a separate reactor calls the companion against the live parser. Limiting its source registration to the assertion dependencies avoids re-uploading the unrelated fixtures at each selection. The ordinary native entry imports the repaired custom grammars before Tower. An earlier import order replaced Statement before the test helpers were parsed. Deleting `then` from the repaired contextual fixture subsequently made four-job owner discovery fail at that input's line 3, column 7. Restoring the original bytes passed.
+
+At jobs 1 and 4, both native entries selected the same two test coordinates. Separate direct CLI requests on all 32 files at each width matched all 26 distinct malformed inputs' complete diagnostics after mapping the filenames and converting the browser byte positions to native line and column. Five repaired files completed native test compilation with zero declarations. The sixth, the plus repair, passed native source formatting at both widths, then failed type checking at the void operand. These individual file requests open fresh sessions. The real reset and cache hit come from the portable suite.
+
+All ten external names and statuses matched. The original and migrated raw event streams, including grammar metadata, matched byte for byte. Changing the `missing_eof` expectation from 28 to 29 failed the named delimiter case at the Tower offset assertion. Restoring 28 passed. The subject's 32 create/destroy pairs and single reset matched in exposed node and allocation counts at every observed boundary. The migrated subject used one extra 64 KiB Wasm page at some intermediate observations. Final subject memory was 18,153,472 bytes with 6,913 live nodes. The assertion reactor reached 32,702,464 bytes of linear memory, with 14,877 nodes after each test handle was destroyed. The production allocation counter returned zero throughout.
+
+Host 4 ran Debian 12 on a Ryzen 7 5800H, 16 logical CPUs available, quota 15.36 CPUs. GNU time wrapped fresh Node 24.22.3 processes pinned to CPUs 0,2,4,6, using the serial portable release, a warm filesystem and the shared timing lock. Three matched pairs, alternating order, gave median wall / user+system seconds / peak RSS KiB of 0.45 / 0.66 / 117468 before and 1.90 / 2.37 / 159936 after. The added cost includes compiling and executing the ten Tower selections. Native owner/direct wall times were 0.58/0.58 seconds at one job and 0.66/0.65 at four. Memcheck on direct discovery at one job and DRD at four completed with zero reported errors. Memcheck reported 151,054 bytes still reachable and zero lost bytes. Its initial startup failed until the matching glibc debug symbols were available at the loader path. The frozen binaries have no source-level ASan, UBSan or TSan instrumentation. This migration changes the tests and fixtures. The review archive contains the commands, installed input hashes, raw events, mutation results, process measurements and local bundle. Publication belongs to the manager.
+### Generic call deduction in the semantic owner and released engines
+
+Host 3, assignment 0cc1c28a-5893-4b5d-a724-c1efd3efb1cf. The input was
+public main `3ca5e7cc`. The migration is `3e634eb4`. The original suite
+ran first with the installed Pages portable (`41bb9b11`) and ordinary LLVM
+(`15b4f33b`) reactors. Their distributed blobs matched Pages `c9773ec3`.
+The native driver was the checked-in `7315b86e` compiler with checkout grammar
+resources. All three products stayed fixed throughout the comparison.
+
+The seven Node registrations retain their names and order. The semantic
+[companion](../scaffolding/compiler/semantic_call_inference_test.tower) uses
+the existing cast-inference functions, the scalar worker kernel and the new
+ordinary input modules. Browser tests read counted observations through the
+existing inference test ABI. The graph and fast interpreters run the source
+and reparse its full Foundation at both pointer widths. The LLVM reactor
+compiles source and Foundation, then the Wasm host runs both guests.
+The editor request still completes the missing second operand and formats the
+checked source. A Tower test counts one id(i64) definition across inferred and
+explicit calls. The seven invalid inputs preserve the original byte positions.
+
+Both revisions passed 7/7. A transport trace compared 66 portable executions,
+all 59 emitted Foundation texts, 14 emitted Wasm binaries and their stdout,
+the ordered completion options and formatted text. All matched, including
+the source file, byte offset, message and empty output of each rejection.
+The new worker fixture imports inferred_parallel_unit in place of concatenating
+a source string. Its canonical output and both guest binaries matched.
+The native owner selected 41 existing and seven new declarations in total.
+Direct selection ran the seven new tests. Both paths passed at jobs 1 and 4,
+as did the two generated direct CTests. Changing 39 to 40 failed at native
+companion line 67. Changing the raw worker oracle separately failed in the
+browser Tower byte comparison. Both restored selections passed.
+
+A warm-filesystem pair used the captured original source bytes, the same
+module inventory and fresh Node 24.22.3 processes on an EPYC 7542. Affinity
+was CPUs 0–3 and the cgroup quota was 1,228,800 µs per 100,000 µs.
+The original and migrated suites used 20.20/13.61 s wall, 5.67/6.98 s CPU
+and 261,500/296,956 KiB maximum RSS respectively. One sample per endpoint
+includes process startup and compilation of the test declarations. The new
+suite opens a second interpreter for the Tower assertions. This pair measures
+test cost and supports no compiler speedup claim.
+
+The ordinary argument-order, collection and worker guests also produced exact
+stdout with ASan/LSan and TSan using instrumented emitted IR and the public
+host runtime. An initial link driver invocation ran ASan on already instrumented
+IR a second time and crashed in next(). Compiling each instrumented module
+to an object before the sanitizer link corrected the measurement. These are
+scalar guest checks. The portable/LLVM compilers are the released uninstrumented
+products and Tower has no source-level UBSan for these fixtures. The evidence
+packet contains the failed attempt, all run commands, raw observations and
+source ancestry for manager review.
 ### 2026-11-26. Jenkins 61 browser screencast teardown
 
 At `3ca5e7cccfd6a382c56880bbe5ea806eed199dc3` the Jenkins Node suite
@@ -109286,3 +109349,19 @@ the normal candidate. TSan's first runtime start hit the host personality
 restriction; its second completed. Tower source-level UBSan remains
 unavailable. Raw emissions, ordered input hashes, controls and resource
 measurements are in the host 8 evidence archive for this assignment.
+
+### Selecting the parser diagnostic assertions independently (host 4, 2026-11-26)
+
+Assignment 93339038 rechecked the 658-file packet from c6e46d3e. Its portable reactor (41bb9b11) and raw terminal events are the reference for this comparison. Per-call instrumentation on the same Node and CPU set measured 1,306 ms in ten calls to compileTests, 34 ms in assertion module configuration and 110 ms executing the assertions, including nested parser work. The public execution ABI exposes package preparation and loading into fresh handles. It exposes no execution-session restart.
+
+An isolated package trial failed when the canonical formatter spelled the byte load in digit as `*'0'`. Replacing the five byte spellings with equivalent numeric literals in a disposable copy allowed encoding. The reconstructed session reported zero declarations, although the selected input had one. Checking the count at selection and executing ten fresh handles reproduced all 33 terminal events and the hit observation. A late injected failure then reported session_wasm.tower byte 18179. Using the existing Foundation span mapper located session.tower byte 973, while direct execution of the same trial pointed at byte 1403. This ruled out shipping the package approach with this release.
+
+Ten thin wrappers around the monolithic companion still spent 1,243 ms compiling. Moving each assertion body into its own ordinary Tower test reduced that time to 756 ms in the two-reactor trial. It also removed the name-dispatch import. In the first single-reactor experiment the parser cited literals.tower in place of input.tower. Setting the parser's entry on the first read of each case preserved the original citations. The live assertion handle already holds its own source map. The candidate uses ordinary selected test compilation and the public parser operations, with one reactor and fresh execution state for every name.
+
+Five fresh Node processes per side and mode ran on the same Ryzen 7 5800H, CPUs 0,2,4,6, quota 15.36 CPUs, Node 24.22.3, warm filesystem and cold process/compiler state. Each matched pair alternated order under the host lock. Full-suite medians (wall seconds / CPU seconds / peak RSS KiB) were 1.89 / 2.34 / 167896 for c6e46d3e and 1.27 / 1.69 / 137876 for the independent declarations. The cold delimiter selection went from 0.84 / 1.11 / 147160 to 0.68 / 0.93 / 127008. The archived historical JS and first migration full-suite samples were 0.45 / 0.66 / 117468 and 1.90 / 2.37 / 159936. None of the 20 measured cgroup intervals recorded throttling. A separate candidate profile spent 736 ms compiling ten selections. Wall time includes Node startup, file I/O, module installation, test compilation, interpretation and parser calls.
+
+Each of the ten external names also ran alone against the base and candidate. An omitted-separator, cache-edit and statement-boundary subset ran in registration order. Their raw parser events matched exactly their slices of the previous packet. The full run exactly matched its 33 terminal events and three-hit cache observation. Handle tracking counted 10 execution sessions, 32 parser sessions and one reset on the inspected handle. All closed. At reactor close its linear memory was 28,704,768 bytes. The two baseline reactors had 18,153,472 and 32,702,464 bytes. These are Wasm memory sizes; GNU time measured the process peaks separately.
+
+Raising the early EOF offset from 28 to 29 failed in session.tower at byte 1413. Changing the contextual case's expected keyword failed in contextual.tower at byte 156 with the live missing-then diagnostic citing input.tower:2:56. The single-fault runs passed the other nine names. The double-fault run passed eight, including both names after the contextual failure. All handles closed on these paths. Two further controls made an expected parser error succeed and required a zero length for an omitted length. They failed at session.tower bytes 1365 and 1462. Restoring the inputs and assertions reproduced the entire reference stream.
+
+Native owner and direct selection at one and four jobs returned the same inventory, two byte-identical declaration bodies in order, empty stdout and the original passing summaries. Moving the browser assertions out of the companion moved the native test locations from lines 131/136 to 10/15. Direct Memcheck at one job and DRD at four completed with zero reported errors. The frozen release provides no source-level sanitizer instrumentation. The shared test helper and release assets are unchanged. Assignment 93339038 carries the source bundle and raw evidence; the manager owns publication.

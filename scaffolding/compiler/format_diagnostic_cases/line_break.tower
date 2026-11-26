@@ -1,0 +1,13 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var line = require_error("line_break", 39, 0, false);
+    defer free(line);
+    assert(backend_prefix(line, "Possible missing ';' before 'print'") && backend_contains(line, "In rule CoreDeclare"), line);
+    accept("plus_repair");
+    var space = require_error("same_line", 40, NoErrorLength, false);
+    defer free(space);
+    assert(!backend_contains(space, "Missing") && !backend_contains(space, "Possible missing"), space);
+}

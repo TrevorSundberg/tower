@@ -1,0 +1,17 @@
+// Parse the repaired custom statements before installing the test language.
+import format_diagnostic_cases.inputs.keyword_repaired as keyword;
+import format_diagnostic_cases.inputs.contextual_repaired as contextual;
+import tower;
+import format_diagnostic_cases.inputs.typed_declaration as typed;
+import format_diagnostic_cases.inputs.initialized_declaration as initialized;
+import format_diagnostic_cases.inputs.empty_allowed as empty_statement;
+import library.testing;
+
+test() {
+    assert(type_value(decltype(typed.answer)) == type_value(i32), "The colon introduces a type");
+    assert(initialized.answer == type_value(i32), "The equals sign introduces a type-valued initializer");
+}
+
+test() {
+    assert(type_value(decltype(empty_statement.x)) == type_value(i32), "The extended grammar accepts the second semicolon");
+}

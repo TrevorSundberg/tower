@@ -1,0 +1,16 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var initial = require_error("cached", 61, 0, false);
+    defer free(initial);
+    assert(backend_contains(initial, "Statement = 'say' Number ';' (input.tower:2:19)"), initial);
+    assert(diagnostic_offset() == diagnostic_source_size(), "Insertion at original EOF");
+
+    var moved = require_error("cached_moved", 71, 0, true);
+    defer free(moved);
+    assert(backend_contains(moved, "Statement = 'say' Number ';' (input.tower:4:19)"), moved);
+    assert(diagnostic_offset() == diagnostic_source_size(), "Insertion at edited EOF");
+    assert(diagnostic_cache_hits() > 0, "Reuse the cached grammar after moving its declaration");
+}

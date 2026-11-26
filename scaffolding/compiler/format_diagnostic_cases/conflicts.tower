@@ -1,0 +1,22 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var shift = require_error("shift_reduce", 0, NoErrorLength, false);
+    defer free(shift);
+    assert(backend_contains(shift, "Grammar conflict (shift/reduce) on 'x'"), shift);
+    assert(backend_contains(shift, "continue Statement = 'x' 'x' (input.tower:1:25)"), shift);
+    assert(backend_contains(shift, "finish Statement = 'x' (input.tower:1:19)"), shift);
+    var sites: usize = 0;
+    for (var at = shift; *at != 0; at++) {
+        if backend_prefix(at, "input.tower:1:") { sites++; }
+    }
+    assert(sites == 2, shift);
+
+    var reduce = require_error("reduce_reduce", 55, NoErrorLength, false);
+    defer free(reduce);
+    assert(backend_contains(reduce, "reduce/reduce"), reduce);
+    assert(backend_contains(reduce, "A = Number (input.tower:2:11)"), reduce);
+    assert(backend_contains(reduce, "B = Number (input.tower:3:11)"), reduce);
+}

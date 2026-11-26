@@ -1,0 +1,16 @@
+import session;
+import library.testing;
+import backend.text;
+
+fn missing_delimiter(file: u8*, offset: usize, message: u8*): void {
+    var text = require_error(file, offset, 0, false);
+    defer free(text);
+    assert(backend_prefix(text, message) && foundation_line(text) > 0, text);
+}
+
+test() {
+    missing_delimiter("missing_separator", 28, "Missing ';'");
+    missing_delimiter("missing_eof", 28, "Missing ';'");
+    missing_delimiter("missing_paren", 27, "Missing ')'");
+    missing_delimiter("comment_gap", 28, "Missing ';'");
+}

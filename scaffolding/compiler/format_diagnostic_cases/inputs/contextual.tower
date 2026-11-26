@@ -1,0 +1,3 @@
+import foundation;
+token Word = /[a-z]+/ when expected; parse Statement = 'say' Number 'then' Word ';';
+say 42 message;
