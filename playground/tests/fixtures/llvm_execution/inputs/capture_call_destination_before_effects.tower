@@ -1,0 +1,3 @@
+import foundation; fn change(pp: i32**, q: i32*): i32 { *pp = q; return 42; }
+    var a: i32; var b: i32; a = 1; b = 2; var p: i32*; var q: i32*; var pp: i32**; p = &a; q = &b; pp = &p;
+    *p = change(pp, q); print(a); print(b); var equal: bool = p == q; print(equal);

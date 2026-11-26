@@ -1,0 +1,1 @@
+import foundation; fn call(value: i32): i32 { return value; } var call: i32 = call(4); print(call);

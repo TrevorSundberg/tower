@@ -1,0 +1,3 @@
+import foundation; fn even(n: i32): bool { var b: bool; b = n == 0; if b { return true; } var p: i32; p = n - 1; b = odd(p); return b; }
+    fn odd(n: i32): bool { var b: bool; b = n == 0; if b { return false; } var p: i32; p = n - 1; b = even(p); return b; }
+    var a: bool; a = even(8); print(a); a = odd(8); print(a);

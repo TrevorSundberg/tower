@@ -1,0 +1,1 @@
+import foundation; var `back\\tick\`line\n`: i32 = 5; print(`back\\tick\`line\n`);

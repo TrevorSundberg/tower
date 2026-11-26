@@ -1,0 +1,1 @@
+import foundation; var n: i32; var b: bool; n = 0; loop { print(123456789); n = n + 1; b = n == 7000; if b { break; } }

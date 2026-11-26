@@ -1,0 +1,1 @@
+import foundation; loop { print(1); break; loop { print(99); break; } print(2); } print(3);

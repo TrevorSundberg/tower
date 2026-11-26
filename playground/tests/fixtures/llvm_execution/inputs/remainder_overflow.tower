@@ -1,0 +1,1 @@
+import foundation; var a: i32; a = -2147483648 % -1;

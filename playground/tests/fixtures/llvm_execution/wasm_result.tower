@@ -1,0 +1,10 @@
+import observations;
+
+test() {
+    var name = llvm_text("case");
+    defer free(name);
+    check_execution();
+    expect_same_bytes("output", "expected");
+    check_terminal(name);
+    if llvm_number("traced") != 0 { check_external_call(); }
+}
