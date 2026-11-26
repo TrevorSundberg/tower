@@ -1547,6 +1547,17 @@ an allocation-failure sweep bounded by the successful allocation count. Use the
 native address/thread instrumentation profiles for this selector; parser-only
 builds do not support those profiles. The fault sweep is serial, so use the
 separate frontend-unit checks for real worker overlap.
+With `B` set to the Linux x64 parser-only build directory, run
+
+```sh
+cmake --build "$B" --target tower-parser-tests tower-regex-language-tests
+ctest --test-dir "$B" -V -R '^(tower-regex|tower-selected-regex(_test)?-jobs-[14])$'
+```
+
+The owner `tests/regex.tower` selects the seven regex declarations and five
+work-budget tests. The direct companion `tests/regex_test.tower` selects
+only the seven regex declarations. The registrations supply the native test
+runtime, parser services and instrumented allocator.
 
 The `parser` selector also runs `parser_diagnostic_budget.tower`: measured required
 allocation failures, zero-byte and partial-footprint denial, exact result causes,

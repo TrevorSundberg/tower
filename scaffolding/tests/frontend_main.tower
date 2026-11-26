@@ -14,7 +14,7 @@ import parser_trace_failures;
 import frontend_diagnostic_revision;
 import frontend_session_format;
 import frontend_session_scan;
-import regex;
+import regex_test;
 import syntax_lexer;
 import frontend_iteration_profile;
 import parser_structure_reuse;

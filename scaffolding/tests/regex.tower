@@ -1,14 +1,10 @@
 import tower;
-import regex_oracle;
 import mt19937;
 import utility_checks;
 import .library.vector;
 import .library.work_budget_types;
-import .library.work_budget;
 import .compiler.syntax_types;
-import .compiler.parser_types;
 import .compiler.format_types;
-import .compiler.component_kinds;
 
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_dispose(world: void*): bool;
@@ -22,7 +18,6 @@ extern fn compiler_world_create_result(workers: usize, budget: WorkBudget*, worl
 extern fn syntax_pattern_release(pattern: SyntaxPattern*): void;
 extern fn format_dispose(result: FormatResult*): void;
 extern fn format_parser_tree(result: FormatResult*, root: void*, kind: void*): void;
-extern fn regex_compile_tree(root: void*, source: u8*, kind: void*, table: LexerTable*, offset: usize*): u8*;
 extern fn regex_compile_tree_result(root: void*, source: u8*, length: usize, kind: void*, table: LexerTable*, offset: usize*, resource_error: WorkBudgetError*): u8*;
 extern fn entity_component_get(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): void*;
@@ -51,7 +46,7 @@ fn regex_test_pattern(random: TestRandom*, depth: u32, output: vector(u8)*): voi
         atoms[0] = "a"; atoms[1] = "b"; atoms[2] = ".";
         atoms[3] = "[a-c]"; atoms[4] = "[^b]"; atoms[5] = "\\x61";
         atoms[6] = "\\u{e9}"; atoms[7] = "[a\\-c]"; atoms[8] = "[\\]\\\\]";
-        regex_test_text(output, atoms[test_random(random) % 9]);
+        regex_test_text(output, atoms[convert(usize, test_random(random)) % (sizeof(decltype(atoms)) / sizeof(u8*))]);
         return;
     }
     var choice = test_random(random) % 5;
@@ -72,386 +67,34 @@ fn regex_test_pattern(random: TestRandom*, depth: u32, output: vector(u8)*): voi
     if choice == 4 { regex_test_text(output, "?"); }
 }
 
-fn regex_test_inputs(actual: LexerTable*, reference: LexerTable*, random: TestRandom*): void {
-    var fragments: u8*[10];
-    var lengths: usize[10];
-    var scalars: u8[8];
-    scalars[0] = 195; scalars[1] = 169;
-    scalars[2] = 240; scalars[3] = 159; scalars[4] = 143; scalars[5] = 176;
-    scalars[6] = 255; scalars[7] = 0;
-    fragments[0] = "a"; fragments[1] = "b"; fragments[2] = "c";
-    fragments[3] = "]"; fragments[4] = "\\"; fragments[5] = "\n";
-    fragments[6] = &scalars[0]; fragments[7] = &scalars[2];
-    fragments[8] = &scalars[6]; fragments[9] = &scalars[7];
-    for (var index: usize = 0; index < 10; ++index) { lengths[index] = 1; }
-    lengths[6] = 2; lengths[7] = 4;
-    var input: vector(u8);
-    vector_init(u8, &input);
-    defer vector_dispose(u8, &input);
-    for (var sample: usize = 0; sample < 60; ++sample) {
-        input.length = 0;
-        for (var index: usize = 0; index < sample % 20; ++index) {
-            var fragment = test_random(random) % 10;
-            regex_test_append(&input, fragments[fragment], lengths[fragment]);
-        }
-        for (var offset: usize = 0; offset <= input.length; ++offset) {
-            var left = lex_table_match(actual, input.data, input.length, offset);
-            var right = lex_table_match(reference, input.data, input.length, offset);
-            utility_check(left == right, "Regex reference longest-prefix and UTF-8 offset agreement");
-        }
-    }
-}
+var RegexGeneratedPatterns: usize = 300;
+var RegexArbitraryPatterns: usize = 500;
 
-fn regex_test_compare(world: void*, source: u8*, length: usize, random: TestRandom*): void {
-    var error: FormatResult;
-    fill(&error, 0, sizeof(FormatResult));
-    defer format_dispose(&error);
-    var actual = frontend_world_pattern(world, source, length, &error);
-    defer syntax_pattern_release(actual);
-    var reference_error: u8* = null;
-    var reference = oracle_regex_compile(source, length, &reference_error);
-    defer lex_table_destroy(reference);
-    if (actual is null) != (reference is null) {
-        var dump: vector(u8);
-        vector_init(u8, &dump);
-        defer vector_dispose(u8, &dump);
-        regex_test_append(&dump, source, length);
-        utility_check(vector_push(u8, &dump, 0), "Regex diagnostic terminator");
-        puts("Regex acceptance disagreement:");
-        puts(dump.data);
-        utility_check(vector_push(u8, &error.text, 0), "Regex production diagnostic terminator");
-        puts(error.text.data);
-        puts(reference_error ?? "reference accepted");
-        abort();
-    }
-    if actual is null {
-        utility_check(error.text.length != 0 && reference_error is not null, "Both regex rejections include diagnostics");
+fn regex_test_source(cases: u8**, edges: usize, trial: usize, random: TestRandom*, source: vector(u8)*): void {
+    source.length = 0;
+    if trial < RegexGeneratedPatterns {
+        regex_test_pattern(random, 3, source);
         return;
     }
-    utility_check(actual.grammar is not null && error.text.length == 0 && reference_error is null, "Regex success retains grammar and no error");
-    var kind = compiler_world_type(world, CompilerParserMatch);
-    var root = bits(ParserMatchData*, entity_component_data(entity_component_get(actual.grammar, kind)));
-    utility_check(root is not null && root.start == 0 && root.length == length, "Regex shared-entity source span");
-    regex_test_inputs(actual.table, reference, random);
-}
-
-fn regex_test_scratch_failures(world: void*): void {
-    var source = "(a|bc)+[d-f]?\\u{e9}";
-    var error: FormatResult;
-    fill(&error, 0, sizeof(FormatResult));
-    defer format_dispose(&error);
-    var parsed = frontend_world_pattern(world, source, strlen(source), &error);
-    utility_check(parsed is not null, "Regex allocation fixture parses");
-    defer syntax_pattern_release(parsed);
-    var kind = compiler_world_type(world, CompilerParserMatch);
-    var before: FormatResult;
-    fill(&before, 0, sizeof(FormatResult));
-    defer format_dispose(&before);
-    format_parser_tree(&before, parsed.grammar, kind);
-    utility_check(!before.failed, "Regex initial tree formatting");
-    var view = entity_view_open(parsed.grammar);
-    utility_check(view is not null, "Regex lowering pins its shared input graph");
-    defer entity_view_close(view);
-    var baseline = tower_test_buffer_count();
-    var construction: usize = 0;
-    {
-        var table = lex_table_create();
-        utility_check(table is not null, "Regex baseline table allocation");
-        var offset: usize = 0;
-        var resource_error = WorkBudgetError.Memory;
-        var calls = tower_test_buffer_allocations();
-        var message = regex_compile_tree_result(parsed.grammar, source, strlen(source), kind, table, &offset, &resource_error);
-        construction = tower_test_buffer_allocations() - calls;
-        utility_check(message is null && resource_error == WorkBudgetError.None && construction != 0,
-            "Regex measured allocation baseline");
-        lex_table_destroy(table);
+    trial -= RegexGeneratedPatterns;
+    if trial < edges {
+        regex_test_text(source, cases[trial]);
+        return;
     }
-    utility_check(tower_test_buffer_count() == baseline, "Regex successful lowering releases scratch and output");
-    for (var failure: usize = 0; failure < construction; ++failure) {
-        var table = lex_table_create();
-        utility_check(table is not null, "Regex scratch table allocation");
-        var offset: usize = 0;
-        var resource_error = WorkBudgetError.None;
-        tower_test_buffer_fail_after(failure);
-        var message = regex_compile_tree_result(parsed.grammar, source, strlen(source), kind, table, &offset, &resource_error);
-        tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check(message is not null && strstr(message, "allocate") is not null
-            && resource_error == WorkBudgetError.Memory, "Regex actual allocation failure retains its typed cause");
-        lex_table_destroy(table);
-        utility_check(tower_test_buffer_count() == baseline, "Regex scratch failure releases all temporary buffers");
-    }
-    {
-        var table = lex_table_create();
-        utility_check(table is not null, "Regex short-span table allocation");
-        var offset: usize = 0;
-        var resource_error = WorkBudgetError.None;
-        var length = strlen(source) - 1;
-        var message = regex_compile_tree_result(parsed.grammar, source, length, kind, table, &offset, &resource_error);
-        utility_check(message is not null && resource_error == WorkBudgetError.Invalid && offset <= length,
-            "Regex rejects a parse span outside the supplied byte count");
-        lex_table_destroy(table);
-        utility_check(tower_test_buffer_count() == baseline, "Regex invalid span releases lowering storage");
-    }
-    var after: FormatResult;
-    fill(&after, 0, sizeof(FormatResult));
-    defer format_dispose(&after);
-    format_parser_tree(&after, parsed.grammar, kind);
-    utility_check(!after.failed && before.text.length == after.text.length
-        && utility_equal(before.text.data, after.text.data, before.text.length), "Regex failure sweep leaves shared parse entities unchanged");
-}
-
-fn regex_test_result_semantic(world: void*, parsed_source: u8*, source: u8*, detail_text: u8*): void {
-    var error: FormatResult = default;
-    defer format_dispose(&error);
-    var length = strlen(source);
-    utility_check(length == strlen(parsed_source), "Regex semantic fixture keeps parse spans unchanged");
-    var parsed = frontend_world_pattern(world, parsed_source, length, &error);
-    utility_check(parsed is not null, "Regex semantic fixture begins with a valid parse tree");
-    defer syntax_pattern_release(parsed);
-    var table = lex_table_create();
-    utility_check(table is not null, "Regex semantic fixture table");
-    defer lex_table_destroy(table);
-    var offset: usize = 0;
-    var resource_error = WorkBudgetError.Memory;
-    var message = regex_compile_tree_result(parsed.grammar, source, length,
-        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
-    utility_check(message is not null && strstr(message, detail_text) is not null
-        && resource_error == WorkBudgetError.None && offset <= length,
-        "Regex semantic rejection is distinct from infrastructure failure");
-    var reference_error: u8* = null;
-    var reference = oracle_regex_compile(source, length, &reference_error);
-    defer lex_table_destroy(reference);
-    utility_check(reference is null && reference_error is not null, "Independent regex oracle rejects the same semantic input");
-}
-
-fn regex_test_result_counted(world: void*): void {
-    var source: u8[3];
-    source[0] = 97; source[1] = 0; source[2] = 98;
-    var length = sizeof(decltype(source)) / sizeof(u8);
-    var error: FormatResult = default;
-    defer format_dispose(&error);
-    var parsed = frontend_world_pattern(world, &source[0], length, &error);
-    utility_check(parsed is not null, "Regex counted NUL fixture parses");
-    defer syntax_pattern_release(parsed);
-    var table = lex_table_create();
-    utility_check(table is not null, "Regex counted NUL table");
-    defer lex_table_destroy(table);
-    var offset: usize = 0;
-    var resource_error = WorkBudgetError.Memory;
-    var message = regex_compile_tree_result(parsed.grammar, &source[0], length,
-        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
-    utility_check(message is null && resource_error == WorkBudgetError.None
-        && lex_table_match(table, &source[0], length, 0) == length,
-        "Regex counted result retains bytes after NUL");
-    message = regex_compile_tree_result(parsed.grammar, &source[0], length,
-        compiler_world_type(world, CompilerParserMatch), table, &offset, &resource_error);
-    utility_check(message is not null && resource_error == WorkBudgetError.Invalid
-        && lex_table_match(table, &source[0], length, 0) == length,
-        "Regex rejects a populated output table without changing its accepted input");
-}
-
-fn regex_test_case(world: void*, source: u8*, input: u8*, wanted: usize): void {
-    var error: FormatResult;
-    fill(&error, 0, sizeof(FormatResult));
-    defer format_dispose(&error);
-    var actual = frontend_world_pattern(world, source, strlen(source), &error);
-    defer syntax_pattern_release(actual);
-    var diagnostic: u8* = null;
-    var reference = oracle_regex_compile(source, strlen(source), &diagnostic);
-    defer lex_table_destroy(reference);
-    utility_check(actual is not null && reference is not null, "Fixed regex compiles");
-    utility_check(lex_table_match(actual.table, input, strlen(input), 0) == wanted, "Fixed regex production longest prefix");
-    utility_check(lex_table_match(reference, input, strlen(input), 0) == wanted, "Fixed regex independent longest prefix");
-}
-
-fn regex_test_reject(world: void*, source: vector(u8)*): void {
-    var error: FormatResult;
-    fill(&error, 0, sizeof(FormatResult));
-    defer format_dispose(&error);
-    var actual = frontend_world_pattern(world, source.data, source.length, &error);
-    defer syntax_pattern_release(actual);
-    var diagnostic: u8* = null;
-    var reference = oracle_regex_compile(source.data, source.length, &diagnostic);
-    defer lex_table_destroy(reference);
-    utility_check(actual is null && error.text.length != 0, "Production rejects regex complexity limit");
-    utility_check(reference is null && diagnostic is not null, "Reference rejects regex complexity limit");
-}
-
-fn regex_test_limits(world: void*): void {
-    var source: vector(u8);
-    vector_init(u8, &source);
-    defer vector_dispose(u8, &source);
-    utility_check(vector_reserve(u8, &source, OracleRegexBytes + 1), "Regex source limit allocation");
-    fill(source.data, 97, OracleRegexBytes + 1);
-    source.length = OracleRegexBytes + 1;
-    regex_test_reject(world, &source);
-    // The mandatory accepting state also counts against the NFA limit.
-    source.length = OracleRegexStates;
-    regex_test_reject(world, &source);
-    source.length = 0;
-    for (var index: usize = 0; index <= OracleRegexDepth; ++index) { regex_test_text(&source, "("); }
-    regex_test_text(&source, "a");
-    for (var index: usize = 0; index <= OracleRegexDepth; ++index) { regex_test_text(&source, ")"); }
-    regex_test_reject(world, &source);
-    source.length = 0;
-    regex_test_text(&source, "(a|b)*a");
-    // Remembering eleven suffix positions exceeds the 1,024-subset budget.
-    for (var index: usize = 0; index < 11; ++index) { regex_test_text(&source, "(a|b)"); }
-    regex_test_reject(world, &source);
-}
-
-fn regex_test_pattern_resources(): void {
-    var buffers = tower_test_buffer_count();
-    var budget: WorkBudget = default;
-    utility_check(work_budget_init(&budget, 1, ~convert(usize, 0), 1), "Pattern result physical ledger");
-    var world: void* = null;
-    utility_check(compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Pattern result world");
-    var source: u8* = "a+";
-    var error: FormatResult = default;
-    var resource = WorkBudgetError.None;
-    var pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern result warm constructor");
-    syntax_pattern_release(pattern);
-    format_dispose(&error);
-    error = default;
-    utility_check(frontend_world_clear(world), "Pattern result clear warm reader");
-    var nodes = entity_store_count(compiler_world_store(world));
-    var retained = tower_test_buffer_count();
-    var before: WorkBudgetSnapshot = default;
-    utility_check(work_budget_snapshot(&budget, &before), "Pattern result retained ledger");
-    var occupied: WorkReservation = default;
-    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
-        == WorkBudgetError.None, "Occupy pattern constructor bytes");
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern == null && resource == WorkBudgetError.Capacity,
-        "Cold pattern constructor preserves Capacity through grammar and table construction");
-    format_dispose(&error);
-    error = default;
-    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern constructor blocker");
-    var failed: WorkBudgetSnapshot = default;
-    utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
-        && failed.live == before.live && entity_store_count(compiler_world_store(world)) == nodes
-        && tower_test_buffer_count() == retained, "Denied pattern constructor releases partial owners");
-    var view = entity_view_open(compiler_world_type(world, CompilerParserRule));
-    utility_check(view != null, "Pin pattern grammar owner");
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern == null && resource == WorkBudgetError.Busy, "Pattern grammar lease denial preserves Busy");
-    format_dispose(&error);
-    error = default;
-    entity_view_close(view);
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern != null && resource == WorkBudgetError.None, "Pattern constructor retries after ledger and lease release");
-    syntax_pattern_release(pattern);
-    format_dispose(&error);
-    error = default;
-    utility_check(work_budget_snapshot(&budget, &before), "Pattern reader retained ledger");
-    retained = tower_test_buffer_count();
-    nodes = entity_store_count(compiler_world_store(world));
-    utility_check(work_budget_reserve_result(&budget, 0, 0, before.bytes - before.used_bytes, &occupied)
-        == WorkBudgetError.None, "Occupy pattern reader bytes");
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern == null && resource == WorkBudgetError.Capacity,
-        "Cached pattern reader preserves control or forest Capacity");
-    format_dispose(&error);
-    error = default;
-    utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None, "Release pattern reader blocker");
-    var calls = tower_test_buffer_allocations();
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    var allocations = tower_test_buffer_allocations() - calls;
-    utility_check(pattern != null && resource == WorkBudgetError.None && allocations != 0, "Measure complete pattern read allocations");
-    syntax_pattern_release(pattern);
-    format_dispose(&error);
-    error = default;
-    for(var failure: usize = 0; failure < allocations; failure++) {
-        tower_test_buffer_fail_after(failure);
-        pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-        tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check((pattern == null) == (resource == WorkBudgetError.Memory),
-            "Pattern reader allocation failures retain Memory, not ordinary syntax failure");
-        if pattern != null {
-            utility_check(resource == WorkBudgetError.None
-                && lex_table_match(pattern.table, "aaa!", strlen("aaa!"), 0) == strlen("aaa"),
-                "Optional successful pattern work keeps its accepted language");
-        }
-        syntax_pattern_release(pattern);
-        format_dispose(&error);
-    error = default;
-        utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == before.used_bytes
-            && failed.live == before.live && failed.used_lanes == before.used_lanes
-            && entity_store_count(compiler_world_store(world)) == nodes && tower_test_buffer_count() == retained,
-            "Pattern read failure releases every partial owner");
-    }
-    source = "(";
-    pattern = frontend_world_pattern_result(world, source, strlen(source), &error, &resource);
-    utility_check(pattern == null && resource == WorkBudgetError.None && error.text.length != 0,
-        "Invalid pattern syntax remains distinct from resource failure");
-    format_dispose(&error);
-    error = default;
-    utility_check(frontend_world_pattern_result(world, null, 1, &error, &resource) == null
-        && resource == WorkBudgetError.Invalid, "Invalid counted pattern pointer is explicit");
-    utility_check(frontend_world_clear(world) && compiler_world_dispose(world), "Pattern result world cleanup");
-    utility_check(work_budget_snapshot(&budget, &failed) && failed.used_bytes == 0 && failed.live == 0
-        && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers, "Pattern result ledger releases every owner");
-}
-
-export fn regex_tests(): void {
-    regex_test_pattern_resources();
-    test_random_check();
-    var baseline = tower_test_buffer_count();
-    var world = compiler_world_create();
-    utility_check(world is not null, "Regex world allocation");
-    regex_test_scratch_failures(world);
-    regex_test_result_counted(world);
-    regex_test_result_semantic(world, "a+", "a*", "must not match empty input");
-    regex_test_result_semantic(world, "[a-z]", "[z-a]", "Reversed character range");
-    regex_test_result_semantic(world, "\\u{e000}", "\\u{d800}", "Invalid Unicode scalar escape");
-    regex_test_case(world, "a|ab", "ab!", 2);
-    regex_test_case(world, "a(b?)*", "abbb!", 4);
-    regex_test_case(world, "[a-c]+", "abc!", 3);
-    regex_test_case(world, "[^b]+", "aacb", 3);
-    regex_test_case(world, "a.b", "a\nb", 0);
-    regex_test_case(world, "[a\\-c]+", "a-c!", 3);
-    regex_test_limits(world);
-    var nodes = entity_store_count(compiler_world_store(world));
-    var buffers = tower_test_buffer_count();
-    var random: TestRandom;
-    test_random_init(&random, 1380271960);
-    {
-        var source: vector(u8);
-        vector_init(u8, &source);
-        defer vector_dispose(u8, &source);
-        for (var trial: usize = 0; trial < 300; ++trial) {
-            source.length = 0;
-            regex_test_pattern(&random, 3, &source);
-            regex_test_compare(world, source.data, source.length, &random);
-        }
-        var cases: u8*[19];
-        cases[0] = "()a"; cases[1] = "a()"; cases[2] = "a(b?)*"; cases[3] = "(a|)b";
-        cases[4] = "[^^]"; cases[5] = "[a-b-c]"; cases[6] = "[a\\-z]"; cases[7] = "[a-]";
-        cases[8] = "[]"; cases[9] = "[^]"; cases[10] = "a**"; cases[11] = "\\x0";
-        cases[12] = "\\u{}"; cases[13] = "\\u{0000000}"; cases[14] = "\\u{d800}";
-        cases[15] = "[z-a]"; cases[16] = "[a--b]"; cases[17] = "]"; cases[18] = "a|ab";
-        for (var index: usize = 0; index < 19; ++index) { regex_test_compare(world, cases[index], strlen(cases[index]), &random); }
+    trial -= edges;
+    if trial < RegexArbitraryPatterns {
         var characters = "abc[]()|*+?\\nrtxu{}012-F^.$";
         var count = strlen(characters);
-        for (var trial: usize = 0; trial < 500; ++trial) {
-            source.length = 0;
-            for (var index: usize = 0; index < trial % 13; ++index) {
-                var at = convert(usize, test_random(&random)) % count;
-                utility_check(vector_push(u8, &source, characters[at]), "Regex arbitrary source byte");
-            }
-            regex_test_compare(world, source.data, source.length, &random);
+        for (var index: usize = 0; index < trial % 13; ++index) {
+            var at = convert(usize, test_random(random)) % count;
+            utility_check(vector_push(u8, source, characters[at]), "Regex arbitrary source byte");
         }
-        var nul: u8[3];
-        nul[0] = 97; nul[1] = 0; nul[2] = 98;
-        regex_test_compare(world, &nul[0], 3, &random);
-        nul[1] = 255;
-        regex_test_compare(world, &nul[0], 2, &random);
+        return;
     }
-    utility_check(entity_store_count(compiler_world_store(world)) == nodes, "Regex repeated compile releases shared trees");
-    utility_check(tower_test_buffer_count() == buffers, "Regex repeated compile releases scratch buffers");
-    utility_check(frontend_world_clear(world), "Regex reader cache release");
-    utility_check(compiler_world_dispose(world), "Regex explicit world disposal");
-    utility_check(tower_test_buffer_count() == baseline, "Regex world releases all owned buffers");
-    puts("Tower regex: 300 generated patterns, 500 arbitrary byte patterns, edge cases and allocation failures passed.");
+    var bytes: u8[3] = {97, 0, 98};
+    if trial == RegexArbitraryPatterns { regex_test_append(source, &bytes[0], 3); }
+    else {
+        bytes[1] = 255;
+        regex_test_append(source, &bytes[0], 2);
+    }
 }
