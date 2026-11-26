@@ -1,0 +1,47 @@
+import grammar;
+import backend.text;
+import library.test_fixtures;
+import library.vector;
+
+extern fn grammar_pin(file: u8*): void;
+extern fn grammar_finish_pinned(): bool;
+extern fn grammar_reset_pinned(source: u8*): void;
+extern fn grammar_formatted(): u8*;
+extern fn grammar_event_status(event: usize): u8*;
+extern fn grammar_event_number(event: usize, field: u8*): usize;
+extern fn grammar_node_number(event: usize, node: usize, field: u8*): usize;
+
+// Compare every formatter byte, then give the caller the real output to reparse.
+fn checked_format(name: u8*): u8* {
+    var size: usize = 0;
+    var wanted = grammar_expected(name, &size);
+    defer free(wanted);
+    var actual = grammar_formatted();
+    assert(fixture_equal(init(FixtureBytes) { data: actual, length: backend_length(actual) },
+        init(FixtureBytes) { data: wanted, length: size }), name);
+    return actual;
+}
+
+fn with_suffix(formatted: u8*, suffix: u8*): u8* {
+    var source: vector(u8) = default;
+    assert(backend_text(&source, formatted));
+    assert(backend_text(&source, suffix));
+    return source.data;
+}
+
+fn expect_event(index: usize, status: u8*, previous: usize, revision: usize, offset: usize): void {
+    var actual = grammar_event_status(index);
+    defer free(actual);
+    assert(backend_equal(actual, status), actual);
+    assert(grammar_event_number(index, "previousRevision") == previous, "Previous revision");
+    assert(grammar_event_number(index, "revision") == revision, "Published revision");
+    assert(grammar_event_number(index, "offset") == offset, "Construct boundary");
+}
+
+fn expect_node(event: usize, node: usize, label: u8*, start: usize, end: usize): void {
+    var actual = grammar_node_text(GrammarEntry.Source, event, node, "label");
+    defer free(actual);
+    assert(backend_equal(actual, label), actual);
+    assert(grammar_node_number(event, node, "start") == start, label);
+    assert(grammar_node_number(event, node, "end") == end, label);
+}

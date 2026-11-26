@@ -1,0 +1,4 @@
+import foundation;
+skip Whitespace = /[ ~\t\r\n]+/;
+parse `rule name` = Number;
+parse Statement = `rule name` ';';

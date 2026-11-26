@@ -1,0 +1,36 @@
+import local_override;
+import round_trip;
+import grammar;
+import compiler.format_diagnostic_cases.session;
+
+test() {
+    grammar_pin("inherited");
+    accept("local_override");
+    assert(grammar_event_count(GrammarEntry.Source) == 4);
+    override_declarations(78, 112);
+
+    var formatted = checked_format("local_override");
+    defer free(formatted);
+    var use = with_suffix(formatted, "~42;");
+    defer free(use);
+    require_parse(use, GrammarEntry.Source);
+    assert(grammar_event_count(GrammarEntry.Source) == 5);
+    override_declarations(79, 114);
+    expect_event(4, "statement", 4, 4, 119);
+    expect_node(4, 1, "rule name", 116, 118);
+    expect_node(4, 2, "42", 116, 118);
+
+    reject("inherited_refusal", 19, NoErrorLength, "No token rule matches source. Expected a statement or grammar declaration.");
+    assert(grammar_event_count(GrammarEntry.Source) == 1);
+    expect_event(0, "declaration", 0, 1, 18);
+    assert(grammar_symbol_index(GrammarEntry.Source, "rules", "rule name") < 0);
+
+    assert(grammar_finish_pinned(), "Earlier session must still accept Foundation");
+    assert(grammar_symbol_index(GrammarEntry.Source, "rules", "rule name") < 0);
+    assert(grammar_event_count(GrammarEntry.Source) == 3);
+    expect_event(0, "declaration", 0, 1, 18);
+    expect_event(1, "statement", 1, 1, 34);
+    expect_node(1, 1, "CoreDeclare", 19, 34);
+    expect_event(2, "statement", 1, 1, 43);
+    expect_node(2, 1, "CoreCallStatement", 34, 43);
+}

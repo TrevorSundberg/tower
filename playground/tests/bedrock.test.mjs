@@ -1,10 +1,11 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { builtins, files, loadTowerBytes, runToEnd } from './compiler-fixtures.mjs';
 import { loadTower as createTower } from '../src/tower-host.mjs';
 import { fixtureSource, guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
-import { copyText, diagnosticFields } from './parser_observations.mjs';
+import { copyText, diagnosticFields, numberField } from './parser_observations.mjs';
 const {foundation, foundation_syntax:foundationSyntax, bedrock} = builtins;
 const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
   new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
@@ -17,10 +18,10 @@ function inspect(source, kind = '') {
 function restore() { tower.configureModules({builtins:{foundation_syntax:foundationSyntax}}); tower.configureBedrock(bedrock); tower.configure(foundation); }
 
 const caseRoot = '.tower/tests/bedrock_cases/';
-const outputPath = 'tests/bedrock_cases/inputs/shared_lexicon.expected';
-const expectedOutput = await readFile(new URL('../../scaffolding/' + outputPath, import.meta.url), 'utf8');
+const inputs = new URL('../../scaffolding/tests/bedrock_cases/inputs/', import.meta.url);
+const input = name => fixtureSource(caseRoot + 'inputs/' + name + '.tower');
 const entries = ['', 'foundation', 'bedrock'];
-let checks, last, inspections, currentSource;
+let checks, last, inspections, currentSource, pinned;
 after(() => { checks?.close(); tower.close(); });
 
 function parse(source, entry) {
@@ -42,18 +43,31 @@ function countedText(context, text, size) {
 const observations = {
   diagnostic_read(context, file, edit) {
     if (edit) throw new Error('Expected a fresh Bedrock parser session');
-    return parse(fixtureSource(caseRoot + 'inputs/' + guestString(context, file) + '.tower'), 0);
+    return parse(input(guestString(context, file)), 0);
   },
   ...diagnosticFields(() => last.end),
   grammar_file(context, path) {
     return copyText(context, fixtureSource('.tower/' + guestString(context, path)));
   },
   grammar_parse: (context, source, entry) => parse(guestString(context, source), entry),
-  foundation_event_count: () => inspections.foundation.events.length,
-  foundation_node_count: (_context, event) => inspections.foundation.events[event].nodes.length,
-  foundation_node_parent: (_context, event, node) => inspections.foundation.events[event].nodes[node].parent ?? -1,
-  foundation_node_text: (context, event, node, field) =>
-    copyText(context, inspections.foundation.events[event].nodes[node][guestString(context, field)]),
+  grammar_pin(context, file) {
+    if (pinned !== undefined) throw new Error('Bedrock session already pinned');
+    pinned = tower.create(input(guestString(context, file)));
+  },
+  grammar_reset_pinned: (context, source) => tower.reset(pinned, guestString(context, source)),
+  grammar_finish_pinned() {
+    last = inspections[''] = {...runToEnd(tower, pinned), snapshot:tower.inspect(pinned)};
+    return last.end.status === 'done';
+  },
+  grammar_formatted: context => copyText(context, last.formatted.source),
+  grammar_event_count: (_context, entry) => inspections[entries[entry]].events.length,
+  grammar_event_status: (context, event) => copyText(context, last.events[event].status),
+  grammar_event_number: (context, event, field) => numberField(last.events[event][guestString(context, field)]),
+  grammar_node_count: (_context, entry, event) => inspections[entries[entry]].events[event].nodes.length,
+  grammar_node_parent: (_context, entry, event, node) => inspections[entries[entry]].events[event].nodes[node].parent ?? -1,
+  grammar_node_text: (context, entry, event, node, field) =>
+    copyText(context, inspections[entries[entry]].events[event].nodes[node][guestString(context, field)]),
+  grammar_node_number: (context, event, node, field) => numberField(last.events[event].nodes[node][guestString(context, field)]),
   grammar_symbol_index(context, entry, table, key) {
     const name = guestString(context, key);
     return inspections[entries[entry]].snapshot[guestString(context, table)].findIndex(row => row.name === name);
@@ -73,7 +87,11 @@ const observations = {
     const item = last.snapshot.highlights[index], key = guestString(context, field);
     return copyText(context, key === 'text' ? currentSource.slice(item.start, item.end) : item[key]);
   },
-  grammar_expected: (context, size) => countedText(context, expectedOutput, size),
+  grammar_expected(context, file, size) {
+    const name = guestString(context, file);
+    if (!/^[a-z_]+$/.test(name)) throw new Error('Invalid Bedrock oracle name');
+    return countedText(context, readFileSync(new URL(name + '.expected', inputs), 'utf8'), size);
+  },
   grammar_output(context, source, size) {
     const execution = tower.compile(guestString(context, source));
     try {
@@ -94,7 +112,8 @@ async function check(entry) {
   inspections = {};
   try { runSelectedTest(checks, caseRoot + entry + '_test.tower'); }
   finally {
-    last = currentSource = inspections = undefined;
+    if (pinned !== undefined) tower.destroy(pinned);
+    pinned = last = currentSource = inspections = undefined;
   }
 }
 
@@ -106,30 +125,9 @@ test('shared bedrock whitespace, comments and identifiers affect declarations an
 
 test('shared grammar rules can be referenced, extended and replaced without a reserved prefix', () => check('grammar'));
 
-test('local overrides preserve inherited bindings in other sessions and canonical grammar names round trip', () => {
-  const pinned = tower.create('import foundation;\nvar x: i32 = 1;print(x);');
-  try {
-    const source = "import foundation;\nskip Whitespace = /[ ~\\t\\r\\n]+/;parse `rule name` = Number;parse Statement = `rule name` ';';";
-    const result = inspect(source);
-    assert.equal(result.end.status, 'done', result.end.error);
-    assert.equal(inspect(result.formatted.source + '~42;').end.status, 'done');
-    assert.equal(inspect('import foundation;\n~print(1);').end.status, 'error');
-    assert.equal(runToEnd(tower, pinned).end.status, 'done');
-  } finally { tower.destroy(pinned); }
-});
+test('local overrides preserve inherited bindings in other sessions and canonical grammar names round trip', () => check('local_override'));
 
-test('quoted capture names use shared Identifier decoding and survive template formatting', () => {
-  const source = "import foundation;\nparse Value = Number;parse Statement = Value ';';" +
-    "parse Value |= 'keep' '(' $`captured value`:Number ')' => replace { $`captured value` };";
-  const first = inspect(source);
-  assert.equal(first.end.status, 'done', first.end.error);
-  const second = inspect(first.formatted.source);
-  assert.equal(second.end.status, 'done', second.end.error);
-  assert.equal(second.formatted.source, first.formatted.source);
-  const use = inspect(second.formatted.source + 'keep(42);');
-  assert.equal(use.end.status, 'done', use.end.error);
-  assert.ok(use.events.at(-1).nodes.some(node => node.label === '42'));
-});
+test('quoted capture names use shared Identifier decoding and survive template formatting', () => check('quoted_capture'));
 
 test('bedrock extends the immutable native seed and round trips through the common formatter', () => {
   const seed = tower.bedrockSeed();

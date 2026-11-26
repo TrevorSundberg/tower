@@ -12,7 +12,7 @@ test() {
     require_parse(foundation, GrammarEntry.Foundation);
     require_parse(bedrock, GrammarEntry.Bedrock);
 
-    var declarations = foundation_event_count();
+    var declarations = grammar_event_count(GrammarEntry.Foundation);
     for (var i: usize = 0; i < declarations; i++) { check_foundation_declaration(i); }
     var tokens = bedrock_token_count();
     for (var i: usize = 0; i < tokens; i++) {

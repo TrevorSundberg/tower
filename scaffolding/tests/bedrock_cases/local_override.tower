@@ -1,0 +1,10 @@
+import grammar;
+import round_trip;
+
+fn override_declarations(rule_end: usize, statement_end: usize): void {
+    expect_event(0, "declaration", 0, 1, 18);
+    expect_event(1, "declaration", 1, 2, 51);
+    expect_event(2, "declaration", 2, 3, rule_end);
+    expect_event(3, "declaration", 3, 4, statement_end);
+    assert(grammar_symbol_index(GrammarEntry.Source, "rules", "rule name") >= 0);
+}

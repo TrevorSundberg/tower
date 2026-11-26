@@ -7,6 +7,13 @@ enum GrammarEntry: i32 { Source, Foundation, Bedrock }
 extern fn grammar_file(path: u8*): u8*;
 extern fn grammar_parse(source: u8*, entry: GrammarEntry): bool;
 
+extern fn grammar_event_count(entry: GrammarEntry): usize;
+extern fn grammar_node_count(entry: GrammarEntry, event: usize): usize;
+extern fn grammar_node_parent(entry: GrammarEntry, event: usize, node: usize): i32;
+extern fn grammar_node_text(entry: GrammarEntry, event: usize, node: usize, field: u8*): u8*;
+extern fn grammar_symbol_index(entry: GrammarEntry, table: u8*, name: u8*): i32;
+extern fn grammar_expected(file: u8*, size: usize*): u8*;
+
 fn require_parse(source: u8*, entry: GrammarEntry): void {
     if !grammar_parse(source, entry) {
         var message = diagnostic_text();

@@ -1,0 +1,17 @@
+import grammar;
+import round_trip;
+
+fn capture_declarations(statement_end: usize, replacement_end: usize): void {
+    expect_event(0, "declaration", 0, 1, 18);
+    expect_event(1, "declaration", 1, 2, 40);
+    expect_event(2, "declaration", 2, 3, statement_end);
+    expect_event(3, "declaration", 3, 4, replacement_end);
+}
+
+fn check_capture_use(): void {
+    assert(grammar_event_count(GrammarEntry.Source) == 5);
+    capture_declarations(69, 162);
+    expect_event(4, "statement", 4, 4, 172);
+    assert(grammar_event_number(4, "replacementCount") == 1);
+    expect_node(4, 2, "42", 168, 170);
+}
