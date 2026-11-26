@@ -211,12 +211,6 @@ function(tower_lr_work_policy_test)
     set_target_properties(tower-completion-alias-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-completion-alias-tests PRIVATE ${libraries})
     target_link_options(tower-completion-alias-tests PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
-    foreach(workers IN ITEMS 1 4)
-      add_test(NAME tower-completion-alias-${workers}
-        COMMAND tower-completion-alias-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${workers} checks)
-      set_tests_properties(tower-completion-alias-${workers} PROPERTIES TIMEOUT 60)
-    endforeach()
-
     if(TARGET tower-lr-row-services)
       get_property(editor_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
       foreach(suite IN ITEMS completion-alias generic-inspection-types)
@@ -234,6 +228,12 @@ function(tower_lr_work_policy_test)
         endforeach()
       endforeach()
     endif()
+
+    foreach(workers IN ITEMS 1 4)
+      add_test(NAME tower-completion-alias-${workers}
+        COMMAND tower-completion-alias-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${workers} checks)
+      set_tests_properties(tower-completion-alias-${workers} PROPERTIES TIMEOUT 60)
+    endforeach()
 
     tower_runtime_object(semantic-capture-admission-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_capture_admission_checks.tower" "${triple}")

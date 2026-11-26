@@ -118583,3 +118583,72 @@ four standalone modes passed. The sample and full output bytes (including
 the original editor normalization) matched their pre-migration streams at
 both worker counts. The packet preserves the incorrect count and deliberate
 type-control runs alongside the successful runs.
+
+### Comparing native and selected editor observations at a696c864
+
+Host 2 separately instrumented the parent and both migrated fixtures with
+Tower prints at the same query boundaries. The full alias trial sampled
+21 queries, including an empty options array and a denied query at each
+pointer width. The accepted result after denial and its repeat serialized
+to identical bytes. At denial the world had 17,918 entities and 19,525
+components, including after retry. The generic trial's first and repeated
+four-element array documents had 4,766 live grants and 2,475,477 used bytes
+at one worker, and 4,767 grants and 2,471,805 bytes at four. Occupying the
+remainder of the 134,217,728-byte budget rejected the live producer with
+Capacity at byte 0. Releasing pressure and clearing the diagnostic preserved
+that refusal and the 12,774 entities and 14,536 components. An ordinary
+diagnostic retained its text and byte offset 62 across inspection.
+
+For the four trials in declaration order, the original executable, migrated
+executable, direct and owner selectors produced the same 3,412 alias reply
+bytes and 329,210 inspection observation bytes. These totals exclude the
+standalone alias success line. The ledger and offset streams also matched
+exactly, with zero live grants, used bytes and used lanes after every
+trial. Observation used the existing editor snapshot normalization. Both
+selector widths linked the real native provider. The guest loader logs
+show its pthread create and join bindings. The address/leak and thread
+profiles each passed both full executables with one and four workers.
+The maps identify runtime-allocate.o and tower_work_host.o. The changed
+fixture functions contain the corresponding ASan and TSan loads and stores.
+Tower's native IR sanitizer profiles do not include UBSan.
+
+Measurements used the public bootstrap at SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+LLVM 19.1.7 and a Release x86_64-pc-linux-gnu build with one compiler job.
+The Ryzen 5 3600 exposed six cores, twelve logical CPUs, 11.52 CPUs of
+cgroup quota and a 32,222,740,480-byte memory ceiling. Each cell below
+uses three matched warm-file process pairs, with the order reversed in
+the middle. Wall and user plus system time are medians in seconds. RSS
+is the largest process peak in KiB. The unmodified stdout was checked
+at every sample. Raw per-process files include context switches and exit
+status. The timed matrix added no throttled periods.
+
+| Suite | Workers | Mode | Original wall / CPU / RSS | Migrated wall / CPU / RSS |
+| --- | ---: | --- | ---: | ---: |
+| completion-alias | 1 | sample | 0.32 / 0.31 / 74,656 | 0.32 / 0.31 / 74,660 |
+| completion-alias | 1 | checks | 2.11 / 2.09 / 74,528 | 2.09 / 2.08 / 74,560 |
+| completion-alias | 4 | sample | 0.44 / 0.50 / 81,012 | 0.44 / 0.50 / 80,620 |
+| completion-alias | 4 | checks | 2.88 / 3.16 / 80,732 | 3.13 / 3.57 / 80,776 |
+| generic-inspection-types | 1 | sample | 0.07 / 0.07 / 60,596 | 0.09 / 0.09 / 60,460 |
+| generic-inspection-types | 1 | checks | 0.31 / 0.30 / 72,348 | 0.33 / 0.32 / 72,260 |
+| generic-inspection-types | 4 | sample | 0.10 / 0.11 / 61,728 | 0.10 / 0.10 / 61,656 |
+| generic-inspection-types | 4 | checks | 0.44 / 0.50 / 79,424 | 0.44 / 0.51 / 77,832 |
+
+The four-worker completion difference persisted in five additional pairs
+on one hardware thread of each of four cores, with original/migrated
+medians of 2.67/2.84 seconds. The migrated executable's text was 80 bytes
+smaller, shifting the linked LR kernel, completion service, document service
+and worker entry by 80 bytes. An evidence-only link inserted 80 inert bytes
+after the migrated fixture object and restored all four symbol addresses.
+Five pairs on the same cores then measured 2.79/2.81 seconds wall and
+2.99/3.05 seconds CPU. An earlier object-rewrite attempt changed relocation
+sections and failed the address comparison before execution. These results
+show sensitivity to link placement. They do not isolate all sources of
+variation. The delivered executable uses the ordinary unpadded link.
+
+The public tip advanced to `10271859` during the assignment. Its semantic
+admission registrations replaced a block next to the alias registrations.
+A merge preview found one conflicting CMake insertion. The selected editor
+registrations now sit immediately after the alias executable's link options,
+inside the existing native-provider guard. The evidence and implementation
+commits retain the assigned public parent for manager publication.
