@@ -1,0 +1,1 @@
+import tower; print(123); fn f(T: type): type { return f(T); } var x: f(i32);

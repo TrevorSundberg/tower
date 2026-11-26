@@ -1,0 +1,4 @@
+import tower;
+fn id(T: type, value: T): T { var T: i32 = 99; print(T); return value; }
+var calls = 0; fn next(): i32 { calls = calls + 1; return calls; }
+print(id(i32, next())); print(id(i32, next())); print(calls);

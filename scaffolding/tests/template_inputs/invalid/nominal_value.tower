@@ -1,0 +1,1 @@
+import tower; print(123); fn f(T: type, v: T): void {} struct S { x: i32; } struct R { x: i32; } var s: R; f(S,s);

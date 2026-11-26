@@ -1,0 +1,9 @@
+import observations;
+
+test() {
+    assert(program_matches("tests/type_numeric_composition"), "Forward the integer and element type together");
+    var text = sample("Foundation");
+    defer free(text.data);
+    assert(occurrences(text, "struct `buffer(i32, 2)`") == 1);
+    assert(occurrences(text, "struct `buffer(i32, 3)`") == 1);
+}

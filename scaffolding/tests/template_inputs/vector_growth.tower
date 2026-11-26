@@ -1,0 +1,9 @@
+import library.vector;
+
+var values: vector(i32); vector_init(i32, &values);
+var i: i32 = 0; loop { var done = i == 40; if done { break; } var ok = vector_push(i32, &values, i); if ok {} else { print(999); break; } i = i + 1; }
+print(values.length); print(values.data[39]);
+var maximum: usize = 0; maximum = maximum - 1; print(vector_reserve(i32, &values, maximum)); print(values.data[0]);
+var pointers: vector(i32*); vector_init(i32*, &pointers); var value = 42;
+print(vector_push(i32*, &pointers, &value)); var p = pointers.data[0]; print(*p);
+vector_dispose(i32, &values); vector_dispose(i32*, &pointers); print(values.length);

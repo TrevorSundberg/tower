@@ -1,0 +1,6 @@
+import tower;
+var p: list(i32); p.next = null; p.value = factorial(i32, 5); print(p.value);
+fn list(T: type): type { struct Node { value: T; next: list(T)*; self: Node*; } return Node; }
+fn factorial(T: type, n: T): T { var done = n <= 1; if done { return 1; } var previous = n - 1; var rest = factorial(T, previous); var result = n * rest; return result; }
+fn alias(T: type): type { return list(T); }
+var pointer: alias(i32)* = &p; print(pointer.value);
