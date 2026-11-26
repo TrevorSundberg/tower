@@ -9,7 +9,7 @@ if(TOWER_DRIVER_TESTS OR TOWER_EXECUTION_TESTS OR TOWER_BACKEND_TESTS)
   enable_testing()
 endif()
 
-function(tower_driver_formatting_selections)
+function(tower_driver_guest_selections)
   if(NOT TARGET tower-driver-request-services)
     return()
   endif()
@@ -22,11 +22,12 @@ function(tower_driver_formatting_selections)
   add_custom_target(tower-driver-formatting-support DEPENDS "${driver-posix-capture_OBJECT}"
     tower-guest-native-test-libc tower-driver-request-services tower-selected-test-count)
   add_dependencies(tower-driver-tests tower-driver-formatting-support)
-  tower_native_test_selections(driver-formatting driver_formatting "16 tests" "9 tests"
+  set(guest_args
     --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
     --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
     --test-native-runtime "${guest}" --link "${driver-posix-capture_OBJECT}" --link "$<TARGET_FILE:tower-driver-request-services>"
     --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-driver-request-services>")
+  tower_native_test_selections(driver-formatting driver_formatting "16 tests" "9 tests" ${guest_args})
   foreach(selection IN ITEMS owner direct)
     foreach(jobs IN ITEMS 1 4)
       set(name "tower-driver-formatting-${selection}-jobs-${jobs}")
@@ -36,6 +37,26 @@ function(tower_driver_formatting_selections)
         ENVIRONMENT "TMPDIR=${work}/tmp;TOWER_FORMAT_COMPILER=$<TARGET_FILE:towerc>;TOWER_FORMAT_LIBRARY=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     endforeach()
   endforeach()
+  if(TOWER_C_OUTPUT_TESTS)
+    foreach(mode IN ITEMS backend profiles)
+      set(unit driver_c_cases)
+      if(mode STREQUAL "profiles")
+        set(unit driver_c_validation)
+      endif()
+      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_test.tower")
+      set(name "tower-driver-c-${mode}-direct")
+      set(work "${CMAKE_CURRENT_BINARY_DIR}/${name}")
+      file(MAKE_DIRECTORY "${work}/tmp")
+      add_test(NAME "${name}" COMMAND "${CMAKE_COMMAND}" -E env --unset=TOWER_C_FILTER
+        "$<TARGET_FILE:tower-selected-test-count>" "1 test passed for ${entry}"
+        "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${TOWER_COMPILER_JOBS}" --test-details ${guest_args})
+      set_tests_properties("${name}" PROPERTIES TIMEOUT 1200 WORKING_DIRECTORY "${work}")
+      set_property(TEST "${name}" PROPERTY ENVIRONMENT "TMPDIR=${work}/tmp"
+        "TOWER_C_COMPILER=$<TARGET_FILE:towerc>" "TOWER_C_LIBRARY=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+        "TOWER_C_CLANG=${TOWER_C_CLANG}" "TOWER_C_GCC=${TOWER_C_GCC}"
+        "TOWER_C_CLANGXX=${TOWER_C_CLANGXX}" "TOWER_C_GXX=${TOWER_C_GXX}")
+    endforeach()
+  endif()
 endfunction()
 
 function(tower_driver_integrate)
@@ -170,7 +191,7 @@ function(tower_driver_integrate)
     endif()
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerDriverRequestTests.cmake")
     cmake_language(DEFER CALL tower_driver_request_tests)
-    cmake_language(DEFER CALL tower_driver_formatting_selections)
+    cmake_language(DEFER CALL tower_driver_guest_selections)
   endif()
 endfunction()
 cmake_language(DEFER CALL tower_driver_integrate)

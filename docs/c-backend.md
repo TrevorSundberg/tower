@@ -83,9 +83,13 @@ Configure the native build with `-DTOWER_DRIVER_TESTS=ON -DTOWER_C_OUTPUT_TESTS=
 build `tower-driver-tests`, then run `ctest --test-dir <native-build>
 -R '^tower-driver-c-' --output-on-failure`. Clang/GCC, their C++ drivers and
 32-bit hosted libraries are required (`gcc-multilib g++-multilib` on Ubuntu).
-The two tests keep artifacts in `tower-c-backend-checks` and
-`tower-c-profiles-checks`. Profiles generate their own inputs and do not depend
-on a previous backend run.
+The two CLI tests keep artifacts in `tower-c-backend-checks` and
+`tower-c-profiles-checks`. On Linux x64 the optional native guest also runs
+each mode through its direct Tower companion in a separate working directory.
+Profiles generate their own inputs. Each generated fixture runs in the graph
+and both fast interpreter optimization modes before its C executables are
+compared with the reference. The integer fixture has an independent stdout
+expectation for all five operand types.
 
 Direct commands, run in a writable artifact directory, are:
 
@@ -94,6 +98,29 @@ tower-driver-tests --c-backend COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
 tower-driver-tests --c-profiles COMPILER SCAFFOLDING CLANG GCC CLANGXX GXX [CASE]
 tower-driver-tests --c-downloads CLANG GCC CLANGXX GXX [CASE]
 tower-driver-tests.exe --c-msvc CL [CASE]
+```
+
+For direct selection use the following entries under `scaffolding/tests`.
+
+| CLI mode | Direct test source |
+| --- | --- |
+| `--c-backend` | `driver_c_cases_test.tower` |
+| `--c-profiles` | `driver_c_validation_test.tower` |
+| `--c-downloads` | `driver_c_downloads_test.tower` |
+
+Run in a dedicated writable directory outside the source and examples trees.
+Set `TOWER_C_CLANG`, `TOWER_C_GCC`, `TOWER_C_CLANGXX` and `TOWER_C_GXX`
+to absolute tool paths. Backend and profiles also take `TOWER_C_COMPILER`
+and `TOWER_C_LIBRARY` (the original scaffolding tree, including its tests
+and examples). Set `TOWER_C_FILTER` to select one case. For downloads, copy
+the four browser C inputs into the work directory before selection.
+
+```sh
+"$TOWER_C_COMPILER" --test "$TOWER_C_LIBRARY/tests/driver_c_cases_test.tower" \
+  --foundation "$TOWER_C_LIBRARY/foundation.tower" --bedrock "$TOWER_C_LIBRARY/bedrock.tower" \
+  --test-details --test-native-runtime "$build/guest-native-test-libc.o" \
+  --link "$build/driver-posix-capture.o" --link "$build/libtower-driver-request-services.so" \
+  --link "-Wl,-rpath,$build"
 ```
 
 Pass explicit executable and scaffolding paths. Optional case names such as
