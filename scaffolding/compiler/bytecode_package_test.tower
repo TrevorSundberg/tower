@@ -1,0 +1,31 @@
+import library.testing;
+import .backend.text;
+import bytecode_package;
+import bytecode_package_cases.envelope;
+
+fn header_refuses(data: u8*, size: usize, reason: u8*): bool {
+    var code = bytecode_validate(data, size);
+    return code != 0 && backend_contains(bytecode_error(code), reason);
+}
+
+// The structural validator accepts an empty Foundation section and empty execution
+// cache. The browser registration separately rebuilds and verifies real cached code.
+fn check_package_header(width: usize): void {
+    var header: u8[56] = default;
+    var size = sizeof(decltype(header));
+    copy(&header[0], "TOWERBC", 7);
+    bc_write(&header[0], 8, 1, 4);
+    bc_write(&header[0], 12, 9, 4);
+    bc_write(&header[0], 16, 6, 4);
+    bc_write(&header[0], 20, convert(u64, width), 4);
+    bc_write(&header[0], 40, convert(u64, size), 4);
+    replace_checksum(&header[0], size);
+    assert(bytecode_validate(&header[0], size) == 0, "Accept the empty envelope");
+    assert(bytecode_pointer_bytes(&header[0]) == width, "Read the selected target layout");
+    check_header_rejections(&header[0], size, header_refuses);
+}
+
+test() {
+    check_package_header(4);
+    check_package_header(8);
+}

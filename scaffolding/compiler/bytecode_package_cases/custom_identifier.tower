@@ -1,0 +1,3 @@
+import foundation;
+var player-name: i32 = 42;
+print(player-name);

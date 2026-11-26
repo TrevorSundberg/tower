@@ -1,0 +1,18 @@
+import observations;
+import library.testing;
+import library.bytes;
+import backend.text;
+
+test() {
+    var canonical = observed("case", "foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "`player-name`"), "Canonical Foundation quotes the customized identifier");
+    var wanted = observed("case", "expected");
+    defer free(wanted.data);
+    var loaded = finish_package("loaded");
+    defer bytes_dispose(&loaded);
+    assert(equal_bytes(&loaded, &wanted), "Loaded handle after grammar restoration");
+    var original = finish_package("direct");
+    defer bytes_dispose(&original);
+    assert(equal_bytes(&original, &wanted), "Fast original handle after grammar restoration");
+}

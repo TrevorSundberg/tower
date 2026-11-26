@@ -1,0 +1,46 @@
+import library.testing;
+
+// Save and restore each field so every refusal tests a single mutation.
+fn rejects_field(data: u8*, size: usize, offset: usize, value: u32, diagnostic: u8*, refuses: function(bool, u8*, usize, u8*)): bool {
+    var saved: u8[4];
+    copy(&saved[0], &data[offset], sizeof(u32));
+    for (var i: usize = 0; i < sizeof(u32); ++i) {
+        data[offset + i] = convert(u8, (value >> convert(u32, i * 8)) & 255);
+    }
+    var rejected = refuses(data, size, diagnostic);
+    copy(&data[offset], &saved[0], sizeof(u32));
+    return rejected;
+}
+
+fn replace_checksum(data: u8*, length: usize): void {
+    var checksum_offset: usize = 48;
+    var hash: u64 = 14695981039346656037;
+    for (var i: usize = 0; i < length; ++i) {
+        if i < checksum_offset || i >= checksum_offset + sizeof(u64) {
+            hash ^= convert(u64, data[i]);
+        }
+        hash *= 1099511628211;
+    }
+    for (var i: usize = 0; i < sizeof(u64); ++i) {
+        data[checksum_offset + i] = convert(u8, (hash >> convert(u64, i * 8)) & 255);
+    }
+}
+
+fn check_header_rejections(data: u8*, size: usize, refuses: function(bool, u8*, usize, u8*)): void {
+    assert(refuses(data, 0, "length"), "Empty package");
+    assert(refuses(data, 7, "length"), "Magic alone");
+    assert(refuses(data, 55, "length"), "Incomplete header");
+    assert(refuses(data, size - 1, "length"), "Incomplete payload");
+    assert(rejects_field(data, size, 0, 0, "magic", refuses), "Invalid magic");
+    assert(rejects_field(data, size, 8, 2, "container version", refuses), "Invalid container version");
+    assert(rejects_field(data, size, 12, 1, "semantics version", refuses), "Invalid semantics version");
+    assert(rejects_field(data, size, 16, 1, "cache version", refuses), "Invalid cache version");
+    assert(rejects_field(data, size, 20, 16, "target layout", refuses), "Invalid target layout");
+    assert(rejects_field(data, size, 24, 3, "profile", refuses), "Invalid optimization profile");
+    var oversized: u32 = 4294967295;
+    assert(rejects_field(data, size, 28, oversized, "bounds", refuses), "Invalid Foundation size");
+    assert(rejects_field(data, size, 32, oversized, "bounds", refuses), "Invalid instruction count");
+    assert(rejects_field(data, size, 36, oversized, "bounds", refuses), "Invalid constant count");
+    assert(rejects_field(data, size, 40, 1, "bounds", refuses), "Invalid total size");
+    assert(rejects_field(data, size, 44, 1, "flags", refuses), "Invalid flags");
+}
