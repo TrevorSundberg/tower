@@ -112,6 +112,15 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 
 ### Install the Linux x64 development compiler as a normal user
 
+The installer for the compiler built from `8bc867b6` pins package
+`15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6`
+and authenticates `linux-x64/SHA256SUMS` before downloading the 60 named payloads.
+The archive also contains `development.json`, which records build provenance.
+The README gives the archive checksum, extraction steps and immutable
+installer command. [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
+
+### Historical installer for `0823b028`
+
 For the Linux x64 development compiler built from `0823b028`, follow the
 [one-command installer and first program](../README.md#install-the-linux-x64-development-compiler).
 The installer at `7be83baa` verifies the checksum list from package `b9342ba1`

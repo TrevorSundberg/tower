@@ -108023,3 +108023,70 @@ owner/direct and worker-width combinations across interpreter and linked
 execution. After restoring the fixture bindings, the final 19,142-byte
 Foundation matched the original at both pointer widths. All seven final
 graph and LLVM guest output streams matched the 96-byte golden.
+### Local installer qualification for the Ubuntu 8bc867b6 test compiler
+
+Host 1, assignment `d66dff57-7ef4-48b7-a8f2-d7e93ca4eee7`. The two
+producer archives and all seven required members matched their declared sizes,
+SHA-256 digests and archived bytes. The package at `15cacf5a` has the build
+source `8bc867b6` as its sole parent. The complete sealed archive SHA-256 is
+`b6517d0c72adca86ce2255b08efdcf80d2acaa2abfcc5f8622c7ae63d056bbdb`.
+Independent extraction and Git tree comparison reproduced the paths, sizes,
+bytes and regular-file modes of all 62 files. The 60 payloads and their checksum
+list belong under `linux-x64`. The archive also includes `development.json`.
+
+The installer changes the two pins used by the previous release at `9fd1db84`.
+Its Git blob is `eff1c8a75b268d02f5c9168fa72e999a5a1cc2bb` and its SHA-256
+is `0d4b4bfa643818241887d7cac92e0a789f132a0d724d158eb2fde00f88d99fc6`.
+Bash and curl fetched the installer and package from their immutable paths on a
+loopback HTTPS mirror. Separate corruption of the list and a fixture-library
+payload returned 1 and left the fresh prefix empty. Restoring the original bytes
+allowed the same prefix to install. Repeat verification passed. Selecting a
+verified predecessor prefix returned 1 and the predecessor verified again.
+The README archive and installer examples ran from fresh directories. After a
+move, both the interpreter and linked sample again printed 42. The linked ELF
+matched its fresh-install counterpart byte for byte.
+
+The installed function-values owner and direct companion each passed one test
+at jobs 1 and 4. Changing its expected file failed at line 8, column 5 and
+restoring it passed. Its foreign output forced execution on repeat. The separate
+two-test owner skipped on a warm repeat, reran after an imported edit, rejected
+a changed stdout oracle at byte 4 and passed after repair. The observed exits,
+stdout and diagnostics matched the producer after substituting the fixture paths.
+Discovery included the adjacent expected file.
+
+Checks ran one invocation at a time on Debian 12 x86-64, LLVM/Clang 19.1.7,
+Xeon Gold 6244, affinity 0–31, quota 15.36 CPUs. One loopback fresh install took
+0.26 s wall, 0.15 s user, 0.08 s system and 51,992 KiB peak process RSS. Repeat
+verification took 0.11 s wall, 0.08 s user, 0.02 s system and 52,212 KiB. These
+are installer observations with the existing four-transfer limit. The compiler
+and resources came directly from the frozen Ubuntu package. Upstream registered
+247 passes and one failure across 248 tests. The optional repository formatter
+sweep still reports noncanonical spacing in `scaffolding/backend/bindings.tower`.
+Publication and hosted download verification remain with the manager.
+
+### Integrated browser test run and fixture-capable installer
+
+Host 4 ran the unfiltered Node suite using the portable, shared and ordinary
+LLVM reactors from `8bc867b6` and the previously shipped cross reactor. In
+receipt `85f05d4e`, all 511 registration names, outcomes and skip reasons
+matched the preceding run. There were 509 passes and two skips for optional
+backend-world and IDE package exports. Each of 22 invalid operator programs
+failed before executing a step or producing output. Each of three changed
+expectations failed and passed again after restoration. This harness includes
+the operator migration. The struct and byte-buffer migrations and the new
+cross image are being checked together on a later input tree.
+
+Receipt `8887d5d3` covers the opt-in Wasm IDE runner on the same compiler
+source. Its test-enabled build loaded 1,402 fixture texts and passed 20
+completion groups and 40 hover groups. The ordinary release reactor rejected
+the entry at startup. Restoring the enabled image reproduced stdout exactly.
+The worker selected two tests through the owner and one directly, and served
+a fresh request after cancellation.
+
+The installer blob `eff1c8a7` from `598df993` downloads its checksum list
+and 60 payloads from package commit `15cacf5a`. Receipt `d66dff57` covers
+an empty prefix, an occupied prefix, damaged payload and checksum-list
+rejection, successful retry, and relocation. The sample printed 42 in the
+interpreter and in the linked executable at both locations. The verification
+used a mirror of the immutable package paths. The release README links the
+versioned archive and retains the three tested command blocks.
