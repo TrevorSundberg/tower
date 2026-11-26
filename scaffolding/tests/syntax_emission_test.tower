@@ -5,6 +5,311 @@ import library.testing;
 import syntax_emission;
 import syntax_emission_context;
 import syntax_template;
+import .compiler.parser_types;
+import .compiler.syntax_template_types;
+import .library.vector;
+import .library.work_budget_types;
+import utility_checks;
+
+// Production and independent test oracle consume the same shared entities.
+extern fn reference_syntax_emit(input: SyntaxEmissionInput*): void*;
+extern fn reference_syntax_emission_destroy(value: void*): void;
+extern fn reference_syntax_emission_name_count(value: void*): usize;
+extern fn reference_syntax_emission_name(value: void*, index: usize, out: SyntaxEmissionName*): void;
+extern fn reference_syntax_emission_production_count(value: void*): usize;
+extern fn reference_syntax_emission_production(value: void*, index: usize, out: SyntaxEmissionProduction*): void;
+extern fn reference_syntax_emission_helper_count(value: void*): usize;
+extern fn reference_syntax_emission_helper(value: void*, index: usize, out: SyntaxEmissionHelper*): void;
+
+fn emission_test_text(left: vector(u8)*, right: vector(u8)*): bool {
+    var order = emission_compare(left.data, left.length, right.data, right.length);
+    var same = order == 0;
+    return same;
+}
+
+fn emission_test_tree(f: EmissionFixture*, a: void*, b: void*): bool {
+    var count = entity_child_count(a);
+    var same = count == entity_child_count(b);
+    if !same {
+        return false;
+    }
+    var index: usize = 0;
+    loop {
+        var done = index == count;
+        if done {
+            return true;
+        }
+        var left = entity_child_at(a, index);
+        var right = entity_child_at(b, index);
+        var ar = bits(ParserRuleData*, emission_payload(left, f.input.rule_kind));
+        var br = bits(ParserRuleData*, emission_payload(right, f.input.rule_kind));
+        same = emission_test_text(&ar.name, &br.name);
+        same &&= ar.generated == br.generated;
+        var children = entity_child_count(left);
+        same &&= children == entity_child_count(right);
+        if !same {
+            return false;
+        }
+        var child: usize = 0;
+        loop {
+            var done = child == children;
+            if done {
+                break;
+            }
+            var x = entity_child_at(left, child);
+            var y = entity_child_at(right, child);
+            var xr = bits(ParserReferenceData*, emission_payload(x, f.input.reference_kind));
+            var yr = bits(ParserReferenceData*, emission_payload(y, f.input.reference_kind));
+            var xs = bits(ParserStringData*, emission_payload(x, f.input.string_kind));
+            var ys = bits(ParserStringData*, emission_payload(y, f.input.string_kind));
+            var xt = bits(ParserRangeData*, emission_payload(x, f.input.range_kind));
+            var yt = bits(ParserRangeData*, emission_payload(y, f.input.range_kind));
+            var reference = xr != null;
+            var string = xs != null;
+            if reference {
+                same = yr != null;
+                same &&= emission_test_text(&xr.name, &yr.name);
+                same &&= emission_test_text(&xr.capture, &yr.capture);
+            } else {
+                if string {
+                    same = ys != null;
+                    same &&= xs.ids.length == ys.ids.length;
+                    var at: usize = 0;
+                    loop {
+                        if !same {
+                            break;
+                        }
+                        var done = at == xs.ids.length;
+                        if done {
+                            break;
+                        }
+                        same = xs.ids.data[at] == ys.ids.data[at];
+                        at++;
+                    }
+                } else {
+                    same = xt != null;
+                    same &&= yt != null;
+                    same &&= xt.start == yt.start;
+                    same &&= xt.end == yt.end;
+                }
+            }
+            if !same {
+                return false;
+            }
+            child++;
+        }
+        index++;
+    }
+}
+
+fn emission_test_metadata(actual: void*, reference: void*): bool {
+    var count = syntax_emission_name_count(actual);
+    var expected_count = reference_syntax_emission_name_count(reference);
+    var found: usize = 0;
+    var index: usize = 0;
+    for(; index != count; index++) {
+        var a: SyntaxEmissionName;
+        syntax_emission_name(actual, index, &a);
+        var relevant = a.literal != 4294967294;
+        var wrapper = a.wrapper != null;
+        if wrapper {
+            relevant = true;
+        }
+        if a.used {
+            relevant = true;
+        }
+        if a.start {
+            relevant = true;
+        }
+        if a.declaration {
+            relevant = true;
+        }
+        if relevant {
+            var at: usize = 0;
+            loop {
+                var missing = at == expected_count;
+                if missing {
+                    return false;
+                }
+                var b: SyntaxEmissionName;
+                reference_syntax_emission_name(reference, at, &b);
+                var order = emission_compare(a.text, a.length, b.text, b.length);
+                var same = order == 0;
+                if same {
+                    same = a.literal == b.literal;
+                    same &&= a.used == b.used;
+                    same &&= a.start == b.start;
+                    same &&= a.declaration == b.declaration;
+                    var other = b.wrapper != null;
+                    same &&= wrapper == other;
+                    if wrapper {
+                        same &&= emission_name_equal(a.wrapper, b.wrapper);
+                    }
+                    if !same {
+                        return false;
+                    }
+                    found++;
+                    break;
+                }
+                at++;
+            }
+        }
+    }
+    var same = found == expected_count;
+    if !same {
+        return false;
+    }
+    count = syntax_emission_production_count(actual);
+    same = count == reference_syntax_emission_production_count(reference);
+    if !same {
+        return false;
+    }
+    index = 0;
+    for(; index != count; index++) {
+        var a: SyntaxEmissionProduction;
+        var b: SyntaxEmissionProduction;
+        syntax_emission_production(actual, index, &a);
+        reference_syntax_emission_production(reference, index, &b);
+        same = emission_name_equal(a.name, b.name);
+        same &&= a.index == b.index;
+        same &&= a.alternative == b.alternative;
+        if !same {
+            return false;
+        }
+    }
+    count = syntax_emission_helper_count(actual);
+    same = count == reference_syntax_emission_helper_count(reference);
+    if !same {
+        return false;
+    }
+    index = 0;
+    loop {
+        if index == count {
+            return true;
+        }
+        var a: SyntaxEmissionHelper;
+        syntax_emission_helper(actual, index, &a);
+        var at: usize = 0;
+        loop {
+            var missing = at == count;
+            if missing {
+                return false;
+            }
+            var b: SyntaxEmissionHelper;
+            reference_syntax_emission_helper(reference, at, &b);
+            same = emission_name_equal(a.name, b.name);
+            if same {
+                same = a.source == b.source;
+                same &&= a.capture == b.capture;
+                if !same {
+                    return false;
+                }
+                break;
+            }
+            at++;
+        }
+        index++;
+    }
+}
+
+fn emission_test_compare(f: EmissionFixture*, category: u8*): bool {
+    emission_test_input(f);
+    if f.failed {
+        return false;
+    }
+    var a = entity_create_related(f.owner);
+    var b = entity_create_related(f.owner);
+    f.input.root = a;
+    f.input.category = category;
+    var actual = syntax_emit(&f.input);
+    f.input.root = b;
+    var reference = reference_syntax_emit(&f.input);
+    var ok = actual != null;
+    ok &&= reference != null;
+    ok &&= emission_test_tree(f, a, b);
+    ok &&= emission_test_metadata(actual, reference);
+    syntax_emission_destroy(actual);
+    reference_syntax_emission_destroy(reference);
+    entity_release(a);
+    entity_release(b);
+    return ok;
+}
+
+fn emission_test_both(f: EmissionFixture*): bool {
+    var ok = emission_test_compare(f, null);
+    f.input.reachable = true;
+    ok &&= emission_test_compare(f, null);
+    f.input.reachable = false;
+    if !ok {
+        return false;
+    }
+    // Snapshot enclosing-revision IDs and used names for the template parser.
+    f.input.root = entity_create_related(f.owner);
+    f.input.category = null;
+    var ordinary = syntax_emit(&f.input);
+    var count = syntax_emission_name_count(ordinary);
+    var index: usize = 0;
+    for(; index != count; index++) {
+        var entry: SyntaxEmissionName;
+        syntax_emission_name(ordinary, index, &entry);
+        var literal = entry.literal != 4294967294;
+        if literal {
+            var item: SyntaxEmissionLiteral;
+            item.text = entry.text;
+            item.length = entry.length;
+            item.id = entry.literal;
+            ok = emission_push(&f.literals, &item);
+        }
+        if entry.used {
+            emission_test_reserve(f, entry.text);
+        }
+    }
+    var root = f.input.root;
+    ok &&= emission_test_compare(f, "Statement");
+    f.literals.length = 0;
+    f.reserved.length = 0;
+    syntax_emission_destroy(ordinary);
+    entity_release(root);
+    return ok;
+}
+
+fn emission_test_failures(f: EmissionFixture*, category: u8*): bool {
+    if !emission_test_compare(f, category) {
+        return false;
+    }
+    var failure: usize = 0;
+    loop {
+        if failure == 30000 {
+            return false;
+        }
+        var buffers = tower_test_buffer_count();
+        f.input.root = entity_create_related(f.owner);
+        tower_test_buffer_fail_after(failure);
+        var result = syntax_emit(&f.input);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        var success = result != null;
+        syntax_emission_destroy(result);
+        entity_release(f.input.root);
+        if buffers != tower_test_buffer_count() {
+            return false;
+        }
+        if success {
+            return true;
+        }
+        failure++;
+    }
+}
+
+enum EmissionTestRepeat: u8 { Optional = 63, Star = 42, Plus = 43 }
+
+fn emission_test_starts(value: void*, text: u8*): bool {
+    for (var i: usize = 0; i < syntax_emission_name_count(value); ++i) {
+        var name: SyntaxEmissionName;
+        syntax_emission_name(value, i, &name);
+        if emission_name_equal(name.text, text) { return name.start; }
+    }
+    return false;
+}
 
 // Rules are swept in name order. A discovers its nullability through Z only
 // after GrammarDeclaration has visited A. Left receives 'right' from Right
@@ -318,9 +623,140 @@ test() {
     emission_test_check_released(live);
 }
 
+// Typed holes preserve scalar/token distinctions and list cardinality. Exercise
+// every allocator failure while retaining the partial grammar's owning root.
+fn template_test_holes(context: SyntaxEmissionInput*): usize {
+    var baseline = true;
+    var allocations: usize = 0;
+    var budget: usize = 0;
+    loop {
+        if !baseline && budget == allocations { return 0; }
+        var buffers = tower_test_buffer_count();
+        var f: EmissionFixture;
+        emission_test_init(&f, context, false);
+        var rule = emission_test_rule(&f, "Inputs");
+        var sequence = emission_test_sequence(&f, rule);
+        var captures: SyntaxTemplateCapture[4];
+        fill(&captures[0], 0, sizeof(decltype(captures)));
+        captures[0].source = emission_test_term(&f, sequence, "Identifier", false, 0, "name");
+        captures[0].wrapper = "TokenWrapper";
+        captures[1].source = emission_test_term(&f, sequence, "Expression", false, 0, "one");
+        captures[2].source = emission_test_term(&f, sequence, "Expression", false, 43, "many");
+        captures[3].source = emission_test_term(&f, sequence, "Expression", false, 63, "maybe");
+        var helpers: SyntaxEmissionHelper[5];
+        fill(&helpers[0], 0, sizeof(decltype(helpers)));
+        helpers[0].name = "Star";
+        helpers[0].source = emission_test_term(&f, sequence, "Expression", false, 42, "");
+        helpers[1].name = "Plus";
+        helpers[1].source = emission_test_term(&f, sequence, "Expression", false, 43, "");
+        helpers[2].name = "Optional";
+        helpers[2].source = emission_test_term(&f, sequence, "Expression", false, 63, "");
+        helpers[3].name = "Literal";
+        helpers[3].source = emission_test_term(&f, sequence, "Expression", true, 42, "");
+        helpers[4].name = "Other";
+        helpers[4].source = emission_test_term(&f, sequence, "Statement", false, 42, "");
+        var input: SyntaxTemplateGrammar;
+        fill(&input, 0, sizeof(SyntaxTemplateGrammar));
+        copy(&input.emission, context, sizeof(SyntaxEmissionInput));
+        input.emission.root = entity_create_related(context.root);
+        input.captures = &captures[0];
+        input.count = sizeof(decltype(captures)) / sizeof(SyntaxTemplateCapture);
+        input.repetitions = &helpers[0];
+        input.repetition_count = sizeof(decltype(helpers)) / sizeof(SyntaxEmissionHelper);
+        var calls = tower_test_buffer_allocations();
+        var error = WorkBudgetError.None;
+        tower_test_buffer_fail_after(baseline ? ~convert(usize, 0) : budget);
+        var ran = syntax_template_holes_revision_result(&input, null, &error);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        calls = tower_test_buffer_allocations() - calls;
+        var ok = ran ? error == WorkBudgetError.None : error == WorkBudgetError.Memory;
+        if ran {
+            var names: u8*[7];
+            names[0] = "TokenWrapper";
+            names[1] = "Expression";
+            names[2] = "Star";
+            names[3] = "Plus";
+            names[4] = "Plus";
+            names[5] = "Star";
+            names[6] = "Optional";
+            var ids: u32[7];
+            ids[0] = 3145728;
+            ids[1] = 3145729;
+            ids[2] = 3145730;
+            ids[3] = 3145730;
+            ids[4] = 3145730;
+            ids[5] = 3145731;
+            ids[6] = 3145731;
+            var count = sizeof(decltype(names)) / sizeof(u8*);
+            ok &&= entity_child_count(input.emission.root) == count;
+            ok &&= sizeof(decltype(ids)) / sizeof(u32) == count;
+            var index: usize = 0;
+            for(; index != count; index++) {
+                if !ok {
+                    break;
+                }
+                var node = entity_child_at(input.emission.root, index);
+                var data = bits(ParserRuleData*, emission_payload(node, context.rule_kind));
+                ok = emission_name_equal(emission_text(&data.name), names[index]);
+                ok &&= data.generated;
+                var count: usize = 1;
+                var recursive = index == 2;
+                recursive ||= index == 4;
+                recursive ||= index == 5;
+                if recursive {
+                    count = 2;
+                }
+                ok &&= entity_child_count(node) == count;
+                if ok {
+                    var last = count -1;
+                    var terminal = entity_child_at(node, last);
+                    var text = bits(ParserStringData*, emission_payload(terminal, context.string_kind));
+                    ok = text.ids.length == 1;
+                    ok &&= text.ids.data[0] == ids[index];
+                }
+                if ok {
+                    if recursive {
+                        var first = entity_child_at(node, 0);
+                        var ref = bits(ParserReferenceData*, emission_payload(first, context.reference_kind));
+                        ok = emission_name_equal(emission_text(&ref.name), names[index]);
+                    }
+                }
+            }
+        }
+        entity_release(input.emission.root);
+        emission_test_dispose(&f);
+        if tower_test_buffer_count() != buffers {
+            return 502;
+        }
+        if !ok {
+            return 503;
+        }
+        if baseline {
+            if !ran { return 501; }
+            allocations = calls;
+            baseline = false;
+        } else {
+            budget++;
+        }
+    }
+}
+
 test() {
     var context = emission_test_context();
     var live = emission_test_live_counts();
     assert(template_test_holes(&context) == 0, "Typed template hole names, terminal IDs and allocation refusals");
     emission_test_check_released(live);
+}
+
+fn emission_test_suite(context: SyntaxEmissionInput*): usize {
+    utility_check(emission_test_late_first(context), "Late nullable prefix and recursive declaration FIRST set");
+    if !emission_test_empty(context) { return 1; }
+    if !emission_test_bedrock(context) { return 2; }
+    if !emission_test_reserved_names(context) { return 3; }
+    if !emission_test_recursive_refusals(context) { return 4; }
+    if !emission_test_repeated_capture(context) { return 5; }
+    if !emission_test_large_exclusions(context) { return 6; }
+    var failure = emission_test_random_grammars(context);
+    if failure != 0 { return failure; }
+    return template_test_holes(context);
 }

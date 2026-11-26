@@ -115439,3 +115439,89 @@ Assignment a50a7d88-e23f-418d-8afa-e92eb6d80c80 contains the source bundle,
 exact commands, assertion census, function hashes, expected and observed
 traces, wrong/restored diagnostics, link maps, sanitizer launches and timings.
 The manager owns publication.
+
+### Emission oracle comparisons in the selected companion (host 5, 2026-11-26)
+
+At public parent `91415a8e`, both registered selectors already executed nine
+cases. Inspection of the independent reference ABI and its callers showed
+that the test owner still compared the trees and metadata, and the template
+helper still decided statuses 501–503. The existing emission companion now
+owns those checks, the retained FIRST lookup, refusal walks and the ordered
+aggregate result. The fixture owner supplies grammar construction, the
+original RNG and the exported entry. The independent reference emitter is
+still a separate object. Selecting the original template path also discovers
+these nine cases through its emission owner import. That module retains its
+template ABI declarations.
+
+The packet for assignment `cb00eb6d-5803-4778-b70a-4526d38a692f` includes
+the commands, complete streams, dependency hashes, link maps and source bundle.
+The comparison extracted every original fixture function body and all nine
+ordered `test()` blocks. They matched the candidate byte for byte after
+accounting for the aggregate function's new internal name. The cases object
+still exports only `syntax_emission_tests`. The eight-export reference object
+retained SHA-256 `68362b725b529dd17a9f7fc1025bc59c5b6751f84cdac111cc9560990709b4e9`.
+The ordinary native compiler relinked byte-identically with the production
+objects and printed 720 and 721 for `examples/functions.tower`.
+
+The parser aggregate, two-pass emission CLI and direct/owner selections all
+passed on both freezes. Each jobs-1 and jobs-4 parser build reproduced its
+own freeze's complete parser executable. The native stdout and stderr matched
+across revisions. Selected stderr moved its source coordinates with the
+declarations. Both selectors retained nine passes in order at each width.
+The original template path also selected the same nine at both final widths.
+All six final CTest registrations passed.
+
+A temporary Tower observer printed the case allocation counts, retained
+buffer/entity deltas, every refusal prefix, and every trial index and RNG
+end state. Each candidate stdout matched the entire corresponding baseline
+trace. Each selection had exactly 400 successful trials, ending first at
+3972237511 and last at 2811643849. The two-pass CLI reproduced that sequence
+twice. Its allocation totals were 1,320,512 and 1,320,492. All nine cases
+returned with zero net live buffers and entities. On a selected run the six
+emission sweeps first succeeded at budgets 34, 128, 127, 122, 91 and 76.
+The typed-hole builder made 44 calls and refused each budget from 0 to 43.
+The parser aggregate starts emission later in the process and reproduced its
+own budgets and 1,290,575 allocation calls.
+
+Clearing the independent oracle's declaration start bit and separately
+inverting its generated-rule flag each failed the first case. A wrong first
+hole ID produced 503. Denying the first template allocation on the baseline
+attempt produced 501, and perturbing the expected live-buffer count produced
+502. All five controls aborted the aggregate and focused CLI (134) and failed
+both real selectors at both widths (1). The full aggregate printed each
+numeric template code. Restoring the sources reproduced the oracle object
+and passed the same routes. An early control script looked for the FIRST
+message on stderr. The native utility check writes it on stdout.
+
+Host 5 was a Ryzen 9 5900XT, 16 cores/32 logical CPUs, quota
+3071999/100000. Timings used affinity 0–3, Clang/LLVM 19.1.7, the checked-in
+Linux x64 compiler, Release x86_64-pc-linux-gnu and a warm filesystem.
+GNU time measured fresh foreground invocations under the host timing lock,
+three per cell. Each cell gives median wall seconds / median user+system
+seconds / maximum peak RSS in KiB. Selector timings include the compiler,
+link and guest. The guest fault allocator runs serially.
+
+| Entry | Jobs | Parent | Companion |
+| --- | ---: | ---: | ---: |
+| Native parser aggregate | 1 | 1.26 / 1.25 / 50392 | 1.24 / 1.24 / 50424 |
+| Native parser aggregate | 4 | 1.25 / 1.24 / 50144 | 1.24 / 1.23 / 50432 |
+| Native two-pass emission | 4 | 0.39 / 0.38 / 5676 | 0.40 / 0.40 / 5684 |
+| Owner selection | 1 | 0.72 / 0.72 / 117036 | 0.72 / 0.72 / 117180 |
+| Owner selection | 4 | 0.75 / 0.81 / 126468 | 0.75 / 0.80 / 126656 |
+| Direct selection | 1 | 0.72 / 0.71 / 117168 | 0.73 / 0.72 / 116948 |
+| Direct selection | 4 | 0.75 / 0.81 / 126856 | 0.75 / 0.80 / 126888 |
+
+Focused ASan with leak detection passed. TSan passed on launch three after
+two runtime startup failures at `personality(ADDR_NO_RANDOMIZE)`. The link
+maps include the instrumented cases, oracle, serial worker and fault
+allocator. Both runs exercised `tower-frontend-tests scaffolding emission`.
+Tower's IR instrumentation supports address and thread modes. Source-level
+UBSan and concurrent guest race coverage remain open.
+
+The shared main had an existing rebase and three unpublished commits. The
+assignment used a separate local main at the requested parent. Initial CMake
+configuration needed the explicit path to the checked-in pin. The ordinary
+native link needed the documented TowerBackend project include. The first
+draft retired the old template file. Running its original path showed that
+it also selects the nine emission cases, so the delivered source preserves
+that entry and its ABI bindings. The manager owns public integration.
