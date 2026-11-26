@@ -1,5 +1,0 @@
-import rejection_observation;
-
-test() {
-    check_browser_rejection("decltype_aggregate_operator.tower", 95);
-}

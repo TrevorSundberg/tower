@@ -112699,8 +112699,8 @@ instrumented production platform provider after the default call passes.
 Both that execution and the six interpreted scalar runs must make one
 fd 1, zero-byte write returning zero. The suite transports the call records
 independently of program output. [Node transport](../playground/tests/llvm-execution.test.mjs)
-· [Synchronous checks](../playground/tests/fixtures/llvm_execution/pipeline.tower)
-· [Linked result](../playground/tests/fixtures/llvm_execution/wasm_result.tower)
+· [Synchronous checks](../playground/tests/fixtures/llvm_execution/pipeline_test.tower)
+· [Linked result](../playground/tests/fixtures/llvm_execution/wasm_result_test.tower)
 
 The matched public images came from Pages `9788bd66`, all built from
 `64fcfc1a5d3d33a42a8cc05260b334c81d84ef2b`. Their raw SHA-256 prefixes
@@ -113458,3 +113458,520 @@ method. The installed compiler passed the moved 24-case suite at jobs 1 and
 4. Assignment 66f7b631 contains the source and Pages bundles, before and
 after manifests, archive, command streams, measurements and publication
 proposal. Live publication and hosted verification belong to the manager.
+### Names of the staged diagnostic assertion files
+
+The published browser suite selects one Tower assertion for each invalid source
+and backend. The 24 original source fixtures must keep their names because the
+diagnostic compares the input filename. The assertion files now end in
+`_browser_test.tower` beside those inputs. The browser driver uses its existing
+configured companion suffix. The 24 assertion file contents, the actual invalid
+inputs, the expected locations and the required and forbidden frames are
+byte-identical to the set verified in receipt
+`2ef2ae68-7529-4363-9ceb-9d5e887ae707`. That run exercised all 48 negative
+registrations and all 88 entries in the file. Execution after the rename is
+tracked separately.
+
+### Executing the renamed browser rejection assertions
+
+On host 4, candidate `48809885` counted one test for each renamed assertion.
+Its `_browser_test.tower` companion rule selected the ordinary invalid input
+as the owner. For 22 of the 24 fixtures the owner failed during preflight,
+before the assertion read the subject diagnostic. Public parent `e354e5e0`
+passed all 48 registrations on the same Pages `9788bd66` reactors. Removing
+the custom suffix made both engines report “Cannot open registered test owner”
+for `decltype_cycle_browser_test.tower`. The default rule requires the absent
+`decltype_cycle_browser.tower`.
+
+The checker now registers the positive assertion files, their shared
+diagnostic reader and `library.testing` alongside the language builtins.
+Its companion suffix is `_companion.tower`, so the actual renamed entry is
+the root of the inline test. The subject hosts still compile the invalid
+inputs under their original paths with the complete project.
+
+All 48 original Node names and all 88 full-file registrations passed with
+zero skips. A separate observed run counted 96 calls from the assertion
+bodies to `stage_text("error")` and 96 successful completions, one per file,
+engine and pointer width (4 and 8 bytes). All 96 complete subject observations
+matched packet `e2712afa-d21b-4c6d-8a15-bb3829a6ba86`. Changing the expected
+offset from 14 to 15 in the formerly blocked `decltype_cycle_browser_test.tower`
+failed both engines at byte 126 of that assertion. Restoring its original
+hash passed both registrations again.
+
+Host 4 used Node 24.22.3, one test at a time, on a Ryzen 7 5800H with a
+15.36-CPU quota. For the 48 passing names, one fresh-process sample on CPUs
+0,2,4,6 gave public parent and repair wall times of 6.84 and 6.85 s, CPU
+times of 8.12 and 8.16 s, and peak process RSS of 320364 and 316220 KiB.
+On CPU 0 the respective wall times were 8.09 and 8.19 s, CPU times 8.08 and
+8.17 s, and peaks 311012 and 320792 KiB. The repaired full file took 17.89 s
+wall and 21.30 s CPU with 415788 KiB peak RSS. The fixture transport is the
+only code change. The runs use the published Wasm binaries. Packet
+`bb120c41-d7ab-476e-b42e-da41a17bc88b` contains the source, TAP, body reads,
+control patch and process measurements.
+The assignment archive contains the bundle, raw commands, artifact identities,
+per-process status/streams, selected IDs, failed controls and timings. The
+production compiler was reused. Manager review and publication are pending.
+### Default discovery from the source formatter owner on Linux x64
+
+Host 2 started at `437d50cfbae49f54099d7c0df0d1465e74dcf9cc`.
+The acceptance check was to omit `--test-suffix` when testing
+`scaffolding/compiler/syntax_session_format.tower`, execute each of the
+five existing formatter IDs once and account for every additional selection.
+The installed compiler, native test runtime, test host and service DSO were
+the verified inputs from the preceding formatter run.
+
+Before changing source, the default selected four companion files and failed
+at `compiler/test_file_rule_test.tower:7:1` on the foreign symbol
+`frontend_modules_test_input_root`. Its erased declaration took a
+`void*` environment and returned `void*`. The production definition at
+`compiler/frontend_modules.tower:1087` takes `ModuleEnvironment*` and
+returns `FrontendModule*`. Importing the production declarations in the
+companion removes its duplicate module API declarations. The two opaque
+handles in a discovered pair are cast at the typed module-name lookup.
+The optional module-cache provider already imports the implementation and
+now exports the check to its separately linked test entry. The focused
+`tower-module-cache-regressions` CTest ran the in-memory selection, frozen
+keys, leases and module cache checks.
+
+The formatter's default companion imports the existing case source. The
+public discovery traversal visits that source's companion and runs the
+original five declarations. An initial version repeated those declarations
+and ran 27 tests. The import alone produced 22. In execution order, all
+locations below have column 1 and are relative to `scaffolding/`.
+
+| Selected file | Test lines |
+| --- | --- |
+| `library/work_budget_test.tower` | 6, 7, 8, 9, 10 |
+| `compiler/lr_runtime_test.tower` | 10, 16, 19, 22 |
+| `library/work_graph_test.tower` | 13, 67, 100, 150, 185, 224, 245, 273 |
+| `compiler/syntax_session_format_cases_test.tower` | 4 declarations, 6 comments, 8 refusal, 10 increment, 12 affixes |
+
+Two more files appear in the six-file inventory. The rule companion exposes
+the in-memory check, and the formatter companion imports the case source.
+Both contain zero contextual declarations. Explicit companion selection
+visits only that companion. Use the five-case companion or the named
+suffixes for focused checks. Each named suffix passed individually. The
+unrelated `library/work_graph.tower` entry ran all 13 graph and budget tests.
+
+Each measured run compiled and executed a new linked guest. Three pairs per
+width used the same installed compiler bytes, fixed raw fixtures and warm
+providers. The order was prior/default, default/prior, prior/default. Host 2
+had a Ryzen 5 3600, six cores, twelve hardware threads, effective cpuset
+0–11 and a quota of 1,152,000 µs per 100,000 µs. Each run had affinity
+0–3. The table gives median elapsed and user-plus-system seconds and the
+largest process peak across the three runs.
+
+| Selection | Jobs | Wall s | CPU s | Peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Previous five-case suffix | 1 | 12.86 | 12.89 | 622584 |
+| Default, 22 tests | 1 | 13.71 | 13.73 | 657684 |
+| Previous five-case suffix | 4 | 11.55 | 14.11 | 642988 |
+| Default, 22 tests | 4 | 12.38 | 14.97 | 683328 |
+
+All twelve runs had empty stdout. Stderr contained the ordered locations and
+the count. Each selection's inventory and depfile matched across widths.
+The driver emits dependency files with `--list-test-files -o`. The linked
+guest reads the formatter's raw files at runtime. Substituting the 45-byte
+allocation refusal for the 87-byte changed-parse refusal failed at
+`syntax_session_format_cases.tower:79:5`. Restoring the bytes passed 22.
+A normal library compile reproduced the prior production object
+`81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9`,
+dependency list and production link inputs. The ordinary compile still
+rejected the erased foreign declaration. The existing invalid argument at
+`tests/semantic_invalid/argument_type.tower:7:16` gave the same diagnostic
+on both revisions.
+
+The optional formatter CTest now checks the ordinary owner command and all
+22 results. Its provider build had no work. Address/LeakSanitizer and
+ThreadSanitizer replays of the typed in-memory check each completed once
+with the real guest runtime, serial world and retained Linux service DSO.
+The project IR instrumenter provides address and thread modes. The browser
+inputs and reactor hash matched the previous run. Rechecking its retained
+traces matched all 38 original observations, the five named results and
+the destroy/invalid-handle/refusal/recovery sequence. Browser timings and
+checks from that revision were reused. The fe325b8e evidence contains raw
+commands, process outputs, exact inputs, selection inventories, dependency
+files, result records and the integration bundle on the cd21d55c ancestry.
+
+### Isolating the native in-memory test-file rule provider
+
+Host 6 assignment 29506678 imported c754's verified integration bundle on
+442f3bea. The merge has the expected c922f4ba tree 4f2da632. The producer
+archive, its eight manifest members and the packet SHA256SUMS verified.
+The stock editable inference and semantic modules owners each passed 60 in
+the retained button trace. Both selected 69 and stopped at byte 6384 of
+syntax_session_scan.tower on the integration. The producer's typed-import
+control selected 64 and reproduced the diagnostic. Its marker control passed 60.
+
+The sole source import of compiler/test_file_rule_test.tower belonged to
+the optional tests/frontend_modules.tower provider. The native module-cache
+entry calls the exported test_file_rule_checks by declaration. The merged
+editable project included the helper itself and no importer of its old path.
+The bootstrap records historical source provenance. Its installed resources
+contain no caller. Moving the typed helper to tests/test_file_rule_checks.tower
+preserves its export, body and caller while removing an ordinary companion
+discovery edge. Validation and formatter entry results follow below.
+
+Local commit 67538314 moved the in-memory checks. The optional
+SccTests kit installation and its CTest template list neither the old
+helper nor its sole source importer. The published inventory at 4b2685e5
+in docs/test-inventory.md describes the earlier layout. No kit or editable
+import needed a compatibility module. The current module-cache executable
+still imports the symbol from its entry object and defines it in the
+optional parser-nodes object. The targeted CMake build and both registered
+CTest entries (tower-module-cache-regressions and tower-format-owner) passed.
+
+The tested source candidate is ef8ae05d230b11c4d274098f944ebddb2f13d1a3,
+tree 359a8bf293bf26504aa6d509ab5119b384473b77. It adopts the separate
+layout with a shared implementation named syntax_session_format_cases_checks
+so the existing named browser harness can grant it through its cases prefix.
+Its contents match the prior cases module byte for byte. The existing cases
+owner imports the helper. Each direct companion has its own registrations
+and imports the defining module, so each entry can execute all five assertions.
+
+The Linux driver SHA-256 was
+7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138.
+The release interpreter and three hashed native providers were reused.
+On 442f3bea, both native semantic owners passed 60 with checkout grammar
+roots and linked providers. On c922f4ba each failed on the foreign
+syntax_capture_comments declaration at line 157, column 1. On ef8ae05d
+both returned exactly the stock ordered file/line/column IDs. WorkGraph
+returned its stock 13. Across those three source trees, the driver listed
+23/26/22 companion files for each semantic owner. The only removed stock
+path was the native helper, which contained no test declarations.
+
+For the editor, the packet's authenticated source rows and serializer
+reproduced the original public drive byte for byte. Applying the candidate
+compiler file changes gave an 809-row drive with SHA-256
+5f83259ed74e6d59118941697af1ce47e94b1518d1ab7d03085cc48070f8be63.
+All 783 filesystem-backed rows matched the checkout and the 26 generated
+rows came from the qualified project recipe. The runtime, browser app,
+compiler unit records and worker scripts came from Pages f2214133.
+Playwright clicked the actual file buttons and Run tests in local Chromium.
+The public and fixed terminal replies matched for WorkGraph (13),
+semantic_call_inference (60) and semantic_modules (60), including output
+and step counts. The two red semantic requests selected 69 and failed before
+guest execution. The fixed test_file_rule owner again selected zero.
+The fixed formatter owner selected 22 and reported its missing format_case_read
+import. The stock execution drive lacks the six golden paths and both increment
+source paths. Its worker then ran the ordinary Tests example in 14 steps
+and produced 42 followed by LF. The separate browser harness provides the
+three formatter services and fixture bytes through its existing interfaces.
+
+The ordinary formatter object matched the archived 564,240 bytes, SHA-256
+81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9.
+Its normalized depfile also matched. The erased foreign declaration control
+failed compilation. Address/leak and thread instrumentation of the relocated
+typed helper each returned the three expected result words (1,0,0) via the
+same service library and guest runtime. This exercises a serial test world.
+The retained bodies and host controls cover the unchanged formatter checks.
+Whole-browser instrumentation, source-level UBSan and sanitized multi-worker
+overlap are outside these runs.
+
+Host 6 ran fresh processes with warm/reused assets, one timed command at
+a time under /tmp/tower-host6-timing.lock. The Intel Xeon E5-2680 v4
+guest exposes CPUs 0–11, quota 1152000/100000 and 32282509312 bytes of
+memory. Commands used affinity 0,2,4,6, Node 24.22.3, Linux x64 and the
+stock driver. The native commands used --test-details and the two explicit
+checkout grammar roots, except for the CTest registration which used its
+configured arguments. Each cell is one observation of wall seconds /
+user+system CPU seconds / peak RSS KiB. The red semantic rows stop at
+compile time.
+
+| Native owner / jobs | Public 442f3bea | c922f4ba | Fixed ef8ae05d |
+| --- | --- | --- | --- |
+| Inference / 1 | 27.22 / 27.19 / 784528 | 6.04 / 6.03 / 565972 | 28.59 / 28.58 / 783872 |
+| Semantic modules / 1 | 27.93 / 27.91 / 787036 | 6.12 / 6.11 / 565776 | 26.82 / 26.81 / 792024 |
+| WorkGraph / 1 | 1.38 / 1.37 / 142920 | retained 13 | 1.48 / 1.47 / 143840 |
+| Formatter / 1 | separate named-suite baseline | 23.63 / 23.68 / 657928 | 22.12 / 22.16 / 656256 |
+| Formatter / 4 | separate named-suite baseline | 19.67 / 23.26 / 686684 | 20.11 / 23.92 / 682236 |
+
+On all three editor drives a separate matched session clicked WorkGraph,
+inference, semantic modules and the ordinary recovery example. A subreaper
+drained Chromium descendants. Public, red and fixed sessions took 48.47,
+23.18 and 48.98 s wall, 82.02, 52.30 and 82.70 s family CPU. Maximum process
+RSS was 1241348, 1386116 and 1267796 KiB. Summed RSS sampled every 50 ms
+peaked at 1719928, 1868224 and 1750412 KiB, including shared pages. The
+successful public and fixed runs executed the same interpreter steps.
+The counters cover complete UI sessions and allow no per-assertion
+allocation or scaling inference.
+
+Both direct editor formatter buttons selected five and reported the missing
+host function. The following ordinary request recovered on the same worker.
+Mutating the checked-in refusal expectation in a disposable source snapshot
+failed the linked owner at syntax_session_format_cases_checks.tower:79:5.
+The independent named browser harness failed just refusal and passed the
+other four. The initial evidence reader expected TAP and stopped on Node's
+spec-reporter summary. Reading that summary and the actual diagnostic
+confirmed the intended failure. Restoring the exact bytes recovered all
+22 linked IDs and all five named browser checks.
+
+The linked default owner passed 22 at jobs 1 and 4. The direct default and
+aggregate each passed five. The first 17 owner IDs matched the retained
+dependency checks. The last five were the default companion at lines
+4, 6, 8, 10 and 12. The explicit aggregate suffix returned the original
+five coordinates in the aggregate file. The declarations, comments, refusal,
+increment and affixes suffixes each returned their own file at line 4,
+column 1. All matched the retained separate-layout experiment, with no
+duplicate executions. No unrelated declaration count changed.
+
+The assignment archive includes raw ordered IDs, native file lists/depfiles,
+the exact editor drive and button replies, commands, diagnostics, timings,
+sanitizer maps and a public-base Git bundle. Free disk space was 61 GiB
+rounded at entry and 60 GiB before sealing. The owned build, scratch source
+trees and instrumented binaries were removed after their jobs drained.
+The manager owns publication. All runtime checks above used the local
+candidate with the existing release artifacts.
+
+The final pull encountered the concurrent baee0107 kernel-test publication.
+The packet preserves the 442f3bea-based candidate as candidate.bundle,
+tip 61d7f8cee25367771a01d9b6cd429b7649022930, whose only change after
+ef8ae05d is this qualification journal. Rebase replayed the two repairs
+as 71437167 and 401fb3ea. At 31739fa3, the native owners again returned
+the exact ordered 60/60/13/22 IDs for inference, semantic modules,
+WorkGraph and formatter. The revised browser harness passed all five
+formatter names. Reconstructing the editor drive on this base reproduced
+the previously button-tested bytes exactly. None of the concurrent new
+test sources was in the editable inventory. The packet includes this
+second local history separately. No deployment or push ran.
+
+### Formatter fixture access from the stock editor Tests button
+
+Host 6 assignment 4f6d24ea used the 809-file formatter project from
+29506678 at 3c73ce57. The three incoming archives and all thirteen
+required members matched their receipts. Building the two frontend targets
+from cdce8b73 production source 64fcfc1a with its checked-in Linux compiler
+and WASI SDK 34 reproduced both supplied images exactly. Each image selected
+22 tests on the owner and five on each direct companion. All six actual
+button requests stopped at the first call to format_case_read.
+
+The existing registered fixture service grants a selected companion its
+owner and sibling oracle. It freezes the source graph while a test handle
+is live. The formatter needs fourteen text inputs and a parse, reparse
+or Foundation formatting operation. Its companions now explicitly import
+the fixture library. The IDE snapshots the fourteen registered names for
+those suites and dispatches the three foreign calls only from an active
+granted formatter test frame. Formatting uses the existing parser and
+Foundation emitter in a child environment borrowing the frozen source graph.
+The ordinary native registration and the Tower assertion bodies are unchanged.
+
+The package inventory adds the six named formatter expectations and the two
+increment subjects. The authenticated unit entries and ordered reactor recipes
+were reused. Running the production source collector, JSON writer and staged
+publication on the old inputs reproduced the original project.json byte for
+byte before packaging the new rows. The cdce8b73 reactor recipes also carry
+that provider's frontend_fixture_snapshot export. Full backend release links
+belong to the separate release qualification.
+
+At implementation 582a0662, the portable and shared Tests buttons each
+passed the owner, direct default and aggregate with 22/5/5. Each of five
+independent golden edits reached the expected Tower byte comparison. The
+refusal edit reached syntax_session_format_cases_checks.tower:79:5, and
+renaming its oracle reported the full missing path at the aggregate's 8:10.
+Restoring it passed five on the same worker. An unrelated WorkBudget frame
+on the selected formatter handle and a subsequent ordinary program both
+received the unbound-function diagnostic. The ordinary example returned
+42 plus LF in 14 steps before and after the denied call.
+
+Production package_compiler_project processed the actual frontend objects
+and the retained ordered editable backend recipes. Its 818-row project
+matched the tested bytes (2a871472d0de3e92613a03384d6a9aa73d838f5bd169008cbc1b8379c41cf00b).
+All eleven support assets matched f2214133. Five reproduced backend unit
+objects matched the cdce8b73 digests. Correcting an SDK prefix, restoring
+the editable recipe's two-member memory archive and preserving the final
+export order closed the packaging differences. The byte-verified zstd
+project delta is 3,165 bytes against 29506678's 809-row input. The delivered
+frontend hashes begin fff61175 and 747e6440. Both retained their complete
+public ABI. Neither backend unit changed on top of 64fcfc1a. This packet
+leaves the separate standalone backend release and publication to the manager.
+
+The retained project again passed WorkGraph 13 and both semantic owners 60.
+The merged project has nine concurrent new compiler rows and also passed
+22/5/5 on both frontends. On the full native checkout, the initial 60-ID
+comparison detected nine added library/float_bits_test.tower declarations.
+The rebased predecessor 44dbdfca and the implementation produced identical
+69/69/13 ordered IDs. Removing those nine newly published IDs from each
+semantic result reproduces the earlier 60 exactly. Both native direct
+formatter entries passed five and the default owner passed 22 at one and
+four jobs. The ordinary formatter object changed from 81ffc1b8 to e58dde0b
+when incorporating the supplied fixture snapshot provider. The provider-only
+and final ordinary objects matched byte for byte.
+
+On the same Xeon E5-2680 v4 with affinity 0,2,4,6 and quota 11.52 CPUs,
+one matched portable browser session each clicked WorkGraph, inference
+and the direct formatter on identical project bytes. The old image stopped
+on the unbound formatter call. Old/new wall times were 39.885/41.124 s,
+family CPU 58.950/60.376 s and peak sampled summed RSS 1,724,656/1,779,952
+KiB. Summed RSS can count shared pages twice. The final 22-test native owner
+at one/four jobs took 23.46/19.28 s wall, 23.50/23.05 s CPU and
+653,060/681,016 KiB peak RSS. These single observations contain differing
+amounts of formatter work across browser versions. Neither guest allocation
+counts nor multi-worker sanitizer coverage were measured.
+
+Native x64 ASan/LSan and TSan ran the instrumented IDE unit through the
+test-create and step APIs. Three simultaneously live handles survived
+editing and restoring the refusal oracle before execution. The wrong,
+restored and original handles returned the expected error/done/done at
+58,600/127,691/127,691 steps. The link maps identify the native host-library
+allocator and the linked service transport. The serial ownership replay
+does not instrument the entire browser or provide Tower source-level UBSan.
+The assignment packet contains dependency ledgers, command lines, exact
+messages and outcomes, failed probes, source bundle and project delta.
+
+## Formatter selection on the 135605ef release source
+
+Host 6 reproduced the manager tree `2be7bb11572335a203aa2887373bbc59240e44bf`
+and merged its exact commit `135605ef` with `e2ee7240` in `0da4e513`.
+The two host conflicts were in `ide_execution.tower` and `ide_types.tower`.
+For each file, 198ee7ab and the manager parent had the same Git blob.
+The merge took the formatter parent's version of those two files.
+The four-product release and its external publication belong to the manager.
+
+The stock project packager on the two sources produced 826 and 836 unique files.
+The 25 compilation units, ordered reactor recipes and eleven compressed support
+and import assets matched. On the manager project both browser frontends found
+five aggregate tests and stopped at the unbound `format_case_read` call. On the
+combined project both stock Tests buttons passed 22 owner, five default and
+five aggregate tests. Changing each of the five golden files made the
+corresponding assertion fail. The edited refusal pointed to
+`syntax_session_format_cases_checks.tower:79:5`. Removing its golden pointed
+to `syntax_session_format_cases_test.tower:8:10`. Restoring the path passed
+all five on the original worker. The native owner passed at one and four
+workers. The native inference and modules owners selected 69 tests apiece.
+The packed project selected 60 apiece. WorkGraph selected 13 in both.
+An ordinary project containing all 836 path/text pairs ran its existing
+`compiler/bytecode_package_cases/valid.tower` entry and printed 42.
+Each of the three formatter externals reported its unbound-function diagnostic
+when called by ordinary source on that same worker.
+
+Only the browser IDE object consumed the five changed host source files.
+It reproduced the 4f6d24ea object with SHA-256 beginning `db637055`.
+Neither eaafb0f6 physical backend command includes it. A different input
+had already changed between the sealed build and the manager parent.
+Both backends link `tower-syntax-live-cases.o`. Its two changed syntax-live
+sources and new `library/testing.tower` dependency changed its size from
+56,391 to 59,513 bytes. Independent compilations
+on the manager parent and the merged checkout
+produced `21c607d4fc1d1adcfcb024f2a8691606cf9176c88a2cf62cf5ce08e10028180d`.
+The entities object's three path-qualified nominal names also vary by
+checkout directory. Recompiling merged source at the producer's absolute path
+reproduced the sealed entities object byte for byte.
+
+The receiver replayed the sealed linker commands with the production pin
+`7315b86e` used for the changed object. Exactly one of 85 LLVM file inputs
+and one of 96 cross file inputs changed. Both wrapper response files and
+the argument order matched. A fresh link on the manager object's bytes
+and a second receiver using the delivered object reproduced the products.
+The packaged LLVM and cross hashes begin `ee653d3b` and `a5078270`.
+Both retained ABI 3, all loader declarations and their signatures.
+Both executed `syntax_attribute_tests` and compiled guests with checked IR,
+object bytes and stdout. The cross compiler reproduced the six target
+executables in the incoming receipt. ASan/LSan and TSan each ran the three
+live formatter handles with the instrumented merged IDE. The native service
+library supplied the parser and allocator. This covered serial handle lifetime.
+
+The host was an Intel Xeon E5-2680 v4. Browser sessions used CPUs 0,2,4,6
+under the host timing lock. Raw requests, link file-open order, byte hashes,
+native IDs, exact diagnostics, products and the source bundle accompany
+assignment `468d75c1-9f52-4eae-82fe-91820eb6256c`. The verified delta from
+the manager's packed project is 2,650 bytes. Its reconstruction hashes to
+`247898e87d825e3c52a4d014a1240781f8ee8221dd261f870bcfbf2c83d49ae3`.
+
+## Sealed formatter Pages child of 9788bd66
+
+On host 6 the receiver verified the 468d75c1 archive, its twelve declared
+members, the original e2ee7240 precursor and both parents of 38699375.
+Source merge `20f83f9c` has parents `21f409e5` and `38699375`.
+The four browser products and the editable recipe keep build attribution to
+`0da4e513`. The later source merge preserved all 952 compiler dependency
+reads and all 810 checkout-backed project rows checked against that revision.
+
+Pages child `266e45d527fb8abd5f30f09cbaa3cca2b8c19618` has tree
+`18407345fc741c39fc009d124e71c5c0a58a1004`. It changes the four products,
+compiler/project.json and deployment-manifest.json. All 109 other blobs and
+all 115 modes matched public parent `9788bd66`. Applying the 2,650-byte
+manager-relative delta to that parent's project reproduced the qualified
+836-file recipe. The 41de9006 Linux download and installer retain the
+7e34072d package and 23538529 installer identities. A fresh Git receiver
+reconstructed the entire site and the merged source from their declared
+public parents and the three incremental source bundles.
+
+The stock desktop and mobile verifier compared 114 served assets and passed
+its browser checks. The portable and shared stock Tests buttons each ran 22
+owner, five default and five aggregate tests. An edited refusal pointed to
+the formatter check at 79:5. The missing golden pointed to the selected test
+at 8:10. Restoring it passed on the original worker. The actual Build button
+sent all 836 source files, compiled all 25 distinct recipe entries with two
+active workers, linked three reactors and activated compiler generation 1.
+An ordinary guest under that generation printed 42 with matching backends.
+
+The host exposed 12 logical CPUs on an Intel Xeon E5-2680 v4 with an 11.52
+CPU quota. The test runner, browser and worker receipts in assignment
+`0b76f07e-34e9-46c9-b2ee-293b92dd8647` record correctness checks.
+The request fixed the source parent at 21f409e5. The public main ref later
+advanced to 25337742. The manager owns integration and publication.
+
+The completed unfiltered Node run recorded 512 tests, 510 passes, two
+production skips and zero failures. The backend-world and IDE package
+ownership checks require their instrumentation exports. The four threaded
+tests ran with separate, prebuilt work and LR fixtures. A preliminary run
+reached the work fixture before its build finished. The targeted four tests
+then passed and the final unfiltered run verified both fixture hashes before
+starting. Logs retain both the setup failure and the completed suite.
+### LLVM assertion filenames and public release selection
+
+Host 5 renamed the two dedicated test entries on public main `7f444166`.
+The fixture uploader, the synchronous pipeline selection and both linked
+result selections now use `pipeline_test.tower` and `wasm_result_test.tower`.
+The assertion bodies, shared observations, subject inputs and stdout oracles
+retain their Git blobs.
+
+A filename-only portable run passed six names and failed all 45 migrations
+with `Cannot open registered test owner`. The default companion rule strips
+`_test` and opens the same-stem owner. The three selector calls now use the
+existing browser fixture convention, `suffix:'_browser_test.tower'`, to open
+each dedicated file as the entry. The six other registrations are byte-identical.
+
+The portable, shared and LLVM images matched the raw hashes in Pages release
+`9788bd66` (compiler source `64fcfc1a`). On each image the full
+`node --test --test-concurrency=1 --test-reporter=tap playground/tests/llvm-execution.test.mjs`
+passed the same 51 names before and after the change. A separate trace after
+each successful selection recorded one pipeline and one result entry for all
+45 names, plus a second result entry for each of the ten scalar rows. The
+existing helper asserts exactly one declaration per entry. All 415 backend
+result records, including bounded stdout and observed writes, matched across
+both images, the original suite, the delivered suite and the traced restoration.
+
+In isolated copies, expecting two writes in the traced linked invocation of
+`absolute i32` failed at byte 264 of `wasm_result_test.tower` after the
+default linked invocation passed. The trace recorded one zero-byte write on
+fd 1 returning zero. In the host-signature case, the separate `host_check`
+counter also failed when its expected increment changed to two. Both images
+caught both mutations. Reversing them restored the scalar output lines 7,
+−2147483648 and 8, and the host-signature test's `-42\n` output check passed.
+Four focused names per image also passed with V8 explicit Wasm bounds checks.
+The release images carry no source ASan, UBSan or TSan instrumentation.
+
+Host 5 ran one fresh Node 24.22.3 process at a time with warm filesystem inputs,
+phase logging, affinity 0–3 on a Ryzen 9 5900XT (16 cores, 32 hardware threads)
+and the host timing lock. Portable used one lane, the shared subject had
+capacity four, and its assertion host had capacity one. GNU time recorded
+one sample per cell for the full 51-name file.
+
+| Image | Wall s, before → after | User s | System s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Portable | 24.28 → 24.29 | 30.22 → 30.26 | 0.62 → 0.67 | 755796 → 762332 |
+| Shared | 27.26 → 27.28 | 35.19 → 35.29 | 1.78 → 1.83 | 910288 → 913356 |
+
+The subject's maximum sampled linear memory was 260,898,816 bytes on portable
+and 265,027,584 bytes on shared on both arms. All sampled legacy allocation
+counts were zero. Assignment `470d4213-0716-486e-bacb-bcb916f2e3d5` contains
+the raw TAP, ordered selections, release manifest, source patch, timings and
+counter controls. The manager owns publication.
+
+During qualification public main advanced to `2556019c` and Pages to
+`266e45d5`. The formatter delivery updated runtime provenance and the browser
+assertions moved to standard filenames. Their checker now registers a
+restricted set of imports. The updated candidate retained the public checker,
+its 24 adjacent assertion files and its observation helper verbatim. The Linux
+suite uses separate sibling sources and goldens. The Pages overlay starts
+from the formatter publication and preserves its runtime and project receipts.

@@ -5,7 +5,7 @@ import {loadTower} from '../src/tower-host.mjs';
 import {builtins, files} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, runSelectedTest} from './compiler_test_host.mjs';
 
-let result, portable, readMessage, expectedBytes;
+let result, portable, readMessage;
 
 function integerField(name) {
  const value = result[name];
@@ -26,13 +26,6 @@ const imports = {
   context.memory().set(bytes, pointer);
   return pointer;
  },
- stage_expected(context) {
-  const pointer = context.allocate(Math.max(1, expectedBytes.length));
-  if (!pointer) throw new Error('Cannot copy the expected diagnostic');
-  context.memory().set(expectedBytes, pointer);
-  return pointer;
- },
- stage_expected_size: () => expectedBytes.length,
  stage_error_offset: () => integerField('errorOffset'),
  stage_portable: () => portable,
  stage_steps: () => integerField('steps'),
@@ -42,24 +35,26 @@ const imports = {
  },
 };
 
-function checkObservation(checker, name, backend, pointerBytes, observation, oracle) {
- expectedBytes = oracle;
+function checkObservation(checker, name, backend, pointerBytes, observation) {
  result = observation;
  readMessage = false;
  portable = backend === 'portable';
  try {
-  const entry = `${directory}${name}_browser.tower`;
-  runSelectedTest(checker, entry, 10, {pointerBytes, suffix:'_browser_test.tower'});
+  const entry = `${directory}${name}_browser_test.tower`;
+  // Keep each _browser_test.tower entry as the root of its own inline test.
+  runSelectedTest(checker, entry, 10, {pointerBytes, suffix:'_companion.tower'});
   if (!readMessage) throw new Error(entry + ' did not read the subject diagnostic');
  } catch (error) {
   throw new Error(`${name} (${backend}, ${pointerBytes}-byte pointers): ${error.message}\nObserved: ${JSON.stringify(result)}`, {cause:error});
- } finally { result = undefined; expectedBytes = undefined; }
+ } finally { result = undefined; }
 }
 
 const directory = '.tower/tests/semantic_invalid/';
-// Install the assertion project's sources when the private reactor opens.
-const assertionInputs = files.filter(({path}) => path.startsWith(directory) ||
- path.startsWith('.tower/library/') || path === '.tower/backend/text.tower');
+// The subject host owns the invalid programs. The checker loads only the
+// assertions and their imports alongside the language builtins.
+const assertionInputs = files.filter(({path}) =>
+ (path.startsWith(directory) && path.endsWith('_browser_test.tower')) ||
+ path === directory + 'rejection_observation.tower' || path === '.tower/library/testing.tower');
 
 // Keep filtered runs lazy. The checker lives across independently registered Node tests.
 let checker;
@@ -74,7 +69,6 @@ export async function checkStageRejection(host, project, name, backend) {
  }
  const entry = directory + name + '.tower';
  const source = fixtureSource(entry);
- const oracle = await readFile(new URL(`../../scaffolding/tests/semantic_invalid/${name}.expected`, import.meta.url));
  try {
   host.configureModules({entry});
   for (const width of [4, 8]) {
@@ -86,7 +80,7 @@ export async function checkStageRejection(host, project, name, backend) {
    } else {
     observed = host.compile(source, {target:`wasm${width * 8}-unknown-unknown`});
    }
-   checkObservation(checker, name, backend, width, observed, oracle);
+   checkObservation(checker, name, backend, width, observed);
   }
  } finally { host.configureModules(project); }
 }

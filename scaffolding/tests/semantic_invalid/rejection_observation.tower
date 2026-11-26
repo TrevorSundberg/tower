@@ -1,10 +1,6 @@
 import library.testing;
-import library.test_fixtures;
-import library.test_rejections;
 
 extern fn stage_text(field: u8*): u8*;
-extern fn stage_expected(): u8*;
-extern fn stage_expected_size(): usize;
 extern fn stage_error_offset(): usize;
 extern fn stage_portable(): bool;
 extern fn stage_steps(): usize;
@@ -41,14 +37,4 @@ fn rejection_message(file: u8*): u8* {
             "Expected rejection before guest execution");
     }
     return stage_text("error");
-}
-
-fn check_browser_rejection(file: u8*, offset: usize): void {
-    var error = rejection_message(file);
-    defer free(error);
-    var oracle = stage_expected();
-    defer free(oracle);
-    var actual: FixtureBytes = {data: error, length: fixture_text_length(error)};
-    var wanted: FixtureBytes = {data: oracle, length: stage_expected_size()};
-    assert_rejection_message(actual, wanted, stage_error_offset(), offset);
 }

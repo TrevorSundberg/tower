@@ -1,0 +1,8 @@
+import rejection_observation;
+
+test() {
+    var error = rejection_message("decltype_aggregate_operator.tower");
+    defer free(error);
+    assert(stage_error_offset() == 95, "Unexpected source byte offset");
+    assert(rejection_equal(error, "Binary operators require scalar or pointer operands"), error);
+}

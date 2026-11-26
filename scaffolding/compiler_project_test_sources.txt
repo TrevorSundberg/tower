@@ -1,3 +1,10 @@
+compiler/syntax_session_format_inputs/affixes.expected
+compiler/syntax_session_format_inputs/comments.expected
+compiler/syntax_session_format_inputs/declarations.expected
+compiler/syntax_session_format_inputs/declarations_foundation.expected
+compiler/syntax_session_format_inputs/increment.expected
+compiler/syntax_session_format_inputs/refusal.expected
+examples/increment.tower
 examples/inference.tower
 examples/templates.tower
 library/bytes_test.tower
@@ -33,6 +40,7 @@ tests/generic_cast_inference.tower
 tests/increment/address.tower
 tests/increment/composition.tower
 tests/increment/nested.tower
+tests/increment_builtin.tower
 tests/inference_bindings.tower
 tests/inference_inputs/peers.tower
 tests/inference_inputs/width.tower

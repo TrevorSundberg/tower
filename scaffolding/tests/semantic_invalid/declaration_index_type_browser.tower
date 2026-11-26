@@ -1,5 +1,0 @@
-import rejection_observation;
-
-test() {
-    check_browser_rejection("declaration_index_type.tower", 79);
-}
