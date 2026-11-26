@@ -22,6 +22,7 @@ import execution_core;
 import forward_native;
 import execution_semantics;
 import execution_world;
+import retained_sources_test;
 import execution_fast_storage;
 import execution_output_storage;
 import execution_rejection;
@@ -39,7 +40,7 @@ import narrow_checks;
 import function_checks;
 import integer_negation_checks;
 import body_runs;
-import module_body_type_checks;
+import module_body_type_checks_test;
 import editor_observations;
 import backend_pointer_order_checks;
 import backend_signed_pointer_checks;
@@ -119,8 +120,7 @@ export fn main(argc: i32, argv: u8**): i32 {
     }
     if declarations { return 0; }
     if retained {
-        for(var workers: usize = 1; workers <= 2; workers++) { execution_retained_sources(&request, workers); }
-        puts("Retained source edits/repeats/failure repair and suspended execution replacement: exact results and zero owners passed.");
+        execution_retained_checks(&request);
         return 0;
     }
     if all || rejection { execution_rejection_tests(request.modules); }

@@ -120716,3 +120716,133 @@ measure registration cost and give no compiler-worker scaling result. Coverage
 is Node execution of the production Wasm images. No browser UI, native
 sanitizer, or release rebuild ran for these test-only changes. Manager
 integration and publication remain separate.
+
+### Native module body type trials from the original execution selectors
+
+At public 10271859 the two focused modes use the same helper also called by
+the signed and canonical pointer suites. The companion now owns that helper
+and both original inputs and failure oracles. The native selected guest uses
+the execution driver platform, interpreter, host callbacks and worker transport.
+The LR-only service lacked the Fast interpreter. Owner discovery also runs
+five existing budget cases, so its checked count is seven and the direct
+count is two. Both selections at jobs 1 and 4 produced the same 2,988 stdout
+bytes as the standalone query run. The reproducer remained silent.
+
+Host 7, Linux x64 Release, public bootstrap, warmed filesystem, fresh
+processes, inner worker counts 1/4, pointer sizes 4/8. Original and restored
+query runs took 6.36 and 6.43 s wall, 6.54 and 6.51 s CPU, 86,504 and
+88,388 KiB peak RSS. Changing the first 32-bit answer from 42 to 41 reached
+the same output predicate in all paths. The legacy check flushed its message
+and aborted (134). Both native selections reported guest failure (1).
+The restored modes and all four selections exited zero. Raw commands, build
+attempts, stdout, stderr and times are in assignment fb09c3b5.
+
+### Selected retained-source edits and model queries
+
+The retained-sources execution selector owns the model and provider changes.
+Its companion opens the same fixture resources and runs the original sequence
+on one world, module environment and execution session per worker width. It
+checks the changed imported source, failed and repaired shared leaf, inactive
+provider, escaped value versus available type, partial Fast machine replacement
+and alternating 32/64-bit targets. The original serial and two-worker output
+was 216 bytes with observed LR overlap 0 and 2 respectively. The migrated
+standalone produced identical bytes, exit 0, at 3.11 s wall, 3.14 s CPU and
+98,340 KiB RSS against 3.01 s wall, 3.09 s CPU and 99,356 KiB on the base.
+
+Demanding the west provider's nominal type after switching to east failed
+with the original field-identity message in the CLI and both selected native
+guests (all exit 1). The selected owner runs the five reachable budget tests
+as well. Isolating its owner from execution_world avoids adding a retained
+compilation to every unrelated execution-session discovery.
+
+### Original module resolution and live session checks
+
+On 10271859, frontend_modules.tower lines 47–220 and 467–585 cover the
+root imports, actual replacement of shared.tower, cycle, missing dependency,
+invalid bytes, recovery, search order, path handling, component isolation
+and session checks 820–842. Both parser_main and the cache executable still
+call frontend_modules_tests. Its original integer statuses and ordering are
+preserved. The executable entry remains module_cache_checks.tower.
+The standalone returned its original three lines (209 bytes) in 0.08 s
+on each version. The selected owner discovers 22 additional budget, graph,
+LR and formatter tests. Its formatter cases need their native file provider
+and the scaffolding working directory. Both direct and discovered tests use
+the real parser and worker services.
+
+Expecting three modules after editing shared.tower produced legacy exit 35
+(803 modulo 256). Reversing the cached parser identity comparison produced
+70 (838 modulo 256). Each selected path rejected the corresponding case.
+The remaining sections at this boundary are 233–465 (baseline installation,
+startup and clone denials) and 587–845 (seed and first-import reader leases).
+The separate in-memory selection predicate lives in test_file_rule_checks.
+
+### Cache clone denial, checked admission and baseline replacement
+
+Original frontend_modules.tower lines 233–465 now run as four selected
+declarations. The two clone trials keep every original cache entry, check the
+entity and component counts under full byte pressure, retry through the same
+grammar and drain their grants. A separate trial denies bound, unbound and
+private environment admission, then checks the returned idle parser. Another
+retains the old declaration through edits and a failed baseline installation.
+The native object and the selected declarations use the same typed fixture
+interface and the existing parser functions. A first split missed the direct
+import for module_require. The corrected build preserved both access to the
+original private helpers and the identity of their module types.
+
+Three temporary expectations changed the retry graph size, the one-byte
+startup error, and the declaration identity after replacing shared.tower.
+Each failed the original cache executable and the direct selection. The
+restored standalone produced the original 209 bytes. The reference observer
+recorded 134,217,728 bytes and 1,244 live grants at both clone denials, then
+zero bytes, live grants and lanes. At this boundary the remaining predicates
+in frontend_modules.tower are the two lease protocols, original lines 587–844.
+
+### Seed-clear and first-import reader leases
+
+The last two original frontend_modules.tower families occupy lines 587–844
+on the frozen revision. The selected bodies keep the idle-document witness
+through world clear, check exact revision and declaration identities, consume
+the old continuation and verify the surviving sibling root after release.
+The first-import reader keeps its pin through denied admission, eviction,
+alias redirection and a real source edit. The expected document reference
+count was temporarily changed from one to two. A separate control required
+two additional reader pins where exactly one was acquired. The original
+cache registration and selected path failed both modified expectations.
+Both selected cases and the restored standalone completed with the original
+teardown predicates. The in-memory companion selection check in the separate
+test_file_rule_checks file is the remaining entry in the executable.
+
+### Native module-cache reporting and frozen selection
+
+The leading in-memory case now runs the same source insertion, key freezing,
+suffix mutation and refused replacement checks in module_cache_cases/discovery_test.
+Both entry paths emit the original three success lines in order. Requiring
+one selected companion after adding mem_spec.tower failed the legacy and
+selected runs. The restored discovered owner runs 31 tests, nine of which
+belong to the complete module-cache suite. Its stdout matches the reference
+standalone byte for byte. Each selected family retains its original parser
+or budget owner through its final read.
+
+### Host 7 acceptance for native execution and module-cache selections
+
+At code revision bc1da092, all 12 direct and discovered selections at jobs
+1 and 4 matched their original CLI stdout. All 14 focused registrations
+passed. The original execution aggregate, six pointer modes and both
+parser-only consumers matched both streams. The 1,290-line inventory maps
+the frozen predicate bodies to their new files. All ten wrong-expectation
+controls failed the ordinary and selected execution. Observation runs for
+four ordinary modes on both source revisions used the same production
+service objects. Their traces matched, including both full-cache denials
+and zero post-disposal charges. Five additional two-worker retained runs
+saw two concurrent LR workers.
+
+The two supported sanitizer profiles each completed all four standalone
+modes and detected their deliberate sensitivity controls. The TSan runtime
+had 88 failed startups across the positive cases and eight on the control.
+The packet retains each failed attempt and the subsequent completed test.
+An additional parser-only configure with an empty project include failed in
+CMake. Unsetting the optional include restored the ordinary parser-only build.
+The [selection report](native_module_test_selection_10271859.md) gives the
+source inventory, sampling conditions, return codes, timings, memory and
+coverage. The final report affects documentation only. All code measurements
+refer to bc1da092.

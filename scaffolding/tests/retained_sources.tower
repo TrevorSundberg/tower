@@ -1,0 +1,3 @@
+import tower;
+
+struct RetainedWorldProbe { gate: void*; active: usize; peak: usize; }
