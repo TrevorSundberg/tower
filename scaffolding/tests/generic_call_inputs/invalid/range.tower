@@ -1,0 +1,1 @@
+import tower; fn pick(T:type,a:T,b:T):T{return a;} var byte:u8=0; pick(byte,256);

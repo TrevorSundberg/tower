@@ -1,0 +1,1 @@
+import tower; fn make(T:type):T{var v:T=0;return v;} print(make());
