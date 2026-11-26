@@ -1,0 +1,120 @@
+import library.testing;
+import float_text;
+import float_bits;
+
+struct FloatTextResult {
+    failures: u32;
+    first_failure: u8*;
+}
+
+// Only literal case labels survive the call. A formatted buffer is local to its round trip.
+fn decimal_failure(result: FloatTextResult*, label: u8*): void {
+    if result.failures == 0 {
+        result.first_failure = label;
+    }
+    result.failures++;
+}
+
+fn check_decimal_bits(result: FloatTextResult*, text: u8*, width: u32, wanted: u64, label: u8*): void {
+    var status: FloatParseStatus;
+    var actual = float_parse(text, width, &status);
+    if status != FloatParseStatus.Valid || actual != wanted {
+        print(width);
+        print(actual);
+        print(wanted);
+        print(convert(u32, status));
+        decimal_failure(result, label);
+    }
+}
+
+fn decimal_case(result: FloatTextResult*, text: u8*, width: u32, wanted: u64): void {
+    check_decimal_bits(result, text, width, wanted, text);
+}
+
+fn signed_decimal_values(): FloatTextResult {
+    var result: FloatTextResult = default;
+    decimal_case(&result, "0.1", Float32Width, 1036831949);
+    decimal_case(&result, "0.1", Float64Width, 4591870180066957722);
+    decimal_case(&result, "-0.0", Float64Width, Float64Sign);
+    return result;
+}
+
+test() {
+    var result = signed_decimal_values();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn decimal_midpoints(): FloatTextResult {
+    var result: FloatTextResult = default;
+    decimal_case(&result, "1.000000059604644775390625", Float32Width, 1065353216);
+    decimal_case(&result, "1.000000059604644775390626", Float32Width, 1065353217);
+    decimal_case(&result, "1.000000178813934326171875", Float32Width, 1065353218);
+    return result;
+}
+
+test() {
+    var result = decimal_midpoints();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn decimal_range_limits(): FloatTextResult {
+    var result: FloatTextResult = default;
+    decimal_case(&result, "1e-45", Float32Width, 1);
+    decimal_case(&result, "5e-324", Float64Width, 1);
+    decimal_case(&result, "2.4703282292062327e-324", Float64Width, 0);
+    decimal_case(&result, "2.4703282292062328e-324", Float64Width, 1);
+    decimal_case(&result, "1.7976931348623157e308", Float64Width, Float64Infinity -1);
+    decimal_case(&result, "3.4028234663852886e38", Float32Width, Float32Infinity -1);
+    decimal_case(&result, "0e99999999999999999", Float32Width, 0);
+    decimal_case(&result, "-1e-99999999999999999", Float64Width, Float64Sign);
+    return result;
+}
+
+test() {
+    var result = decimal_range_limits();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn check_decimal_status(result: FloatTextResult*, text: u8*, wanted: FloatParseStatus): void {
+    var status: FloatParseStatus;
+    float_parse(text, Float64Width, &status);
+    if status != wanted {
+        print(convert(u32, status));
+        print(convert(u32, wanted));
+        decimal_failure(result, text);
+    }
+}
+
+fn rejected_decimals(): FloatTextResult {
+    var result: FloatTextResult = default;
+    check_decimal_status(&result, "1e309", FloatParseStatus.Overflow);
+    check_decimal_status(&result, "1e", FloatParseStatus.Invalid);
+    check_decimal_status(&result, "1.2.3", FloatParseStatus.Invalid);
+    return result;
+}
+
+test() {
+    var result = rejected_decimals();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn check_decimal_round_trip(result: FloatTextResult*, raw: u64, width: u32, label: u8*): void {
+    var output: float_text_buffer();
+    float_text(raw, width, &output[0]);
+    check_decimal_bits(result, &output[0], width, raw, label);
+}
+
+fn decimal_boundary_round_trips(): FloatTextResult {
+    var result: FloatTextResult = default;
+    check_decimal_round_trip(&result, 0, Float32Width, "f32 positive zero");
+    check_decimal_round_trip(&result, Float64Sign, Float64Width, "f64 negative zero");
+    check_decimal_round_trip(&result, 1, Float64Width, "f64 smallest subnormal");
+    check_decimal_round_trip(&result, Float64Infinity -1, Float64Width, "f64 largest finite");
+    check_decimal_round_trip(&result, 4503599627370496, Float64Width, "f64 smallest normal");
+    return result;
+}
+
+test() {
+    var result = decimal_boundary_round_trips();
+    assert(result.failures == 0, result.first_failure);
+}
