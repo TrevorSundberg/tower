@@ -27,6 +27,7 @@ endforeach()
 get_property(scc_runtimes GLOBAL PROPERTY TOWER_GUEST_NATIVE_RESOURCES)
 install(FILES ${scc_runtimes} DESTINATION scc-suite/share/tower ${scc_install})
 install(FILES scaffolding/library/graph_components_test.tower scaffolding/library/graph_components_wrong.tower
+  scaffolding/library/graph_components_expectations.tower
   DESTINATION scc-suite/share/tower/library ${scc_install})
 install(FILES scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})

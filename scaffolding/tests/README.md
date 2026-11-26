@@ -1866,11 +1866,13 @@ fails on the singleton at `graph_components_wrong.tower:7:5` and returns
 nonzero. Direct selection of the corresponding companion uses the same
 providers shown by `ctest -V`.
 
-The private installation adds two adjacent fixtures under `share/tower/library`,
-their original helpers under `share/tower/tests`, and five native link inputs
+The private installation adds two adjacent fixtures and their corpus-count module
+`graph_components_expectations.tower` under `share/tower/library`, the reachability
+and utility helpers under `share/tower/tests`, and five native link inputs
 under `providers`. The normal native and browser compilers take their language
 sources from `scaffolding/builtin_modules.txt`. Add production modules there
-when introducing them. The legacy graph-components registration remains active.
+when introducing them. A helper used only by companions belongs to the optional
+installation even if its name matches the ordinary source suffix. The legacy graph-components registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,

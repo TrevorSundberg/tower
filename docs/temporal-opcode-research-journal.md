@@ -105855,3 +105855,30 @@ failures. UBSan instrumentation for Tower source was unavailable. Browser
 validation covered the resource-copy block and its output. Packet
 `87436fc8-0d55-4714-ab90-bc8916ec5e2a` retains the original bundle, real argv,
 both installations, input traces, streams, timings, link evidence and checksums.
+
+### SCC companion with an ordinary-named library helper, host 8, 2026-11-26
+
+The release check now includes a library module imported only by the positive
+SCC companion. `graph_components_expectations.tower` supplies the historical
+8 and 234 case counts. The two declarations check those counts after the
+allocator report. The component installation owns the module alongside the
+fixtures. The production module inventory has no entry for it.
+
+On the same source tree with a local alternate companion, the public all-library
+copier exposed 52 sources. The production copier exposed 48. Cold calls to
+the worker's actual `getCanonicalSources()` over loopback HTTP retrieved the
+ordinary-named helper, default, alternate and wrong fixtures in the first
+case and omitted all four in the second. The app's startup fetch block also
+loaded its 12 ordinary examples. These probes exercised resource loading without
+building a browser or substituting any SHA test sources.
+
+The relocated optional suite ran all 242 original inputs through the owner
+and direct companion at jobs 1 and 4. The positive alternate passed with the
+same helper. Removing only that helper diagnosed its import at 3:38 under
+both suffixes. Changing the seeded expectation to 233 failed at 17:5 after
+234 real cases and zero live buffers. The original wrong singleton still
+failed at 7:5. The normal packager rejected a copy with only the helper added.
+The optional installation now contains 70 files, including the 58 identical
+production files. Three warm samples per profile on the same Ryzen 9 7900X
+gave candidate median wall/user/system times of 0.31/0.27/0.04 seconds with
+one job and 0.39/0.38/0.07 with four. Peak RSS was 106524 and 118832 KiB.
