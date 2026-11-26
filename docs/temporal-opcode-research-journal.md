@@ -115361,3 +115361,81 @@ with allocator tests enabled passed all eleven CTests again. Both default
 streams and inline stdout matched the assignment baseline. The rebuilt
 sanitizer executables and their four object inputs matched the tested hashes.
 Publication is reserved for the manager.
+
+### Physical relocation of the component and stage fault predicates
+
+Host 4 started from the qualified `3d813b7a` commit on public `015bb1ef`.
+Before editing, it read the supplied manifest and verified all sizes,
+the archive receipt, the bundle prerequisite and all member hashes.
+The component oracle was 772 lines (SHA-256 prefix `3f3ba894`).
+Each stage oracle was 315 lines (`3cbca446` and `d10a88e2`).
+
+| Suite | Plain assertions before → after | Companion assertions before → after | Direct tests | Owner tests |
+| --- | ---: | ---: | ---: | ---: |
+| Component | 22 → 0 | 19 → 41 | 7 | 12 |
+| Stage result | 21 → 0 | 31 → 52 | 4 | 9 |
+
+Each plain fixture now imports Tower and the native memory provider and
+declares the three serial fault-allocator and two libc functions.
+Each companion defines its own exported finalizer. The stage companion
+checks the lifecycle, counts finalization and releases the target.
+The component companion retains its unexpected-finalizer trap. Hashes
+of every complete named function (six component, eight stage) and the
+ordered test declarations match the qualified source across the move.
+The standalone mains still call the shared cases. Both default outputs
+and the component inline output matched the retained originals byte for byte.
+
+The previous handoff retained raw evidence and removed its build trees.
+This run reconstructed one focused native cache on the checked-in pin
+`7430bdb3` and reused it across the baseline, relocation, mutations and
+restoration. The observed guest runs reused a cached native-test guest,
+serial transport and allocator, each byte-identical to the configured
+object. Observer insertions from the prior packet followed the same
+bodies into a disposable copy. At jobs 1 and 4, each component route
+matched the supplied component trace. Both direct stage runs and the
+one-job owner matched the alternate trace. The four-job owner matched
+the other stage trace. The additional five declarations in each owner
+came from work_budget_test.tower.
+
+All eleven focused CTests passed. Changing the expected layout owner and
+finalizer count caused all eleven to fail at their respective assertions.
+Both selected diagnostics now identify companion files. Restoration
+reproduced both source and executable hashes and passed all eleven.
+ASan with leak detection passed the component default, stage default
+and component inline modes. TSan passed those modes after seven, two
+and four host personality startup failures respectively. The link maps
+and instrumented access sites cover the serial allocator and fixtures.
+Tower's IR tool has no UBSan mode.
+
+A separate direct-stage control inverted the lifecycle predicate inside
+the relocated export. Native execution failed at line 17 of the stage
+companion and returned 1. Restoring it passed all four stage declarations.
+
+Timings used the Ryzen 7 5800H, CPUs 0–15, 15.36-CPU quota, 64,061,702,144-byte
+memory limit, Release Linux x64 and Clang 19.1.7. One warmup and two
+counterbalanced measured rounds ran one arm at a time under the host lock.
+Each native sample launched 120 fresh processes and checked full stdout.
+Each selected sample included the count checker, compiler, linker and guest.
+The table reports mean wall and user + system CPU seconds for the two samples
+and the larger measured process RSS. Compiler width leaves the fault allocator
+serial. Successful instrumented processes peaked at 9,904 KiB with ASan and
+19,948 KiB with TSan.
+
+| Suite | Entry | Jobs | Wall s, prior / moved | CPU s, prior / moved | Peak RSS KiB, prior / moved |
+| --- | --- | ---: | ---: | ---: | ---: |
+| component | native | 1 | 0.105 / 0.105 | 0.110 / 0.105 | 3112 / 3108 |
+| stage-result | native | 1 | 0.100 / 0.100 | 0.090 / 0.095 | 3188 / 3244 |
+| inline | native | 1 | 0.090 / 0.090 | 0.085 / 0.080 | 3268 / 3120 |
+| component | direct | 1 | 1.320 / 1.260 | 1.320 / 1.250 | 172928 / 171716 |
+| component | direct | 4 | 1.285 / 1.275 | 1.450 / 1.450 | 185096 / 182868 |
+| component | owner | 1 | 1.425 / 1.385 | 1.415 / 1.380 | 185696 / 183528 |
+| component | owner | 4 | 1.415 / 1.400 | 1.605 / 1.585 | 197928 / 195948 |
+| stage-result | direct | 1 | 1.300 / 1.295 | 1.300 / 1.290 | 174856 / 173228 |
+| stage-result | direct | 4 | 1.320 / 1.310 | 1.480 / 1.475 | 181956 / 183640 |
+| stage-result | owner | 1 | 1.450 / 1.450 | 1.445 / 1.440 | 186696 / 185696 |
+| stage-result | owner | 4 | 1.465 / 1.430 | 1.655 / 1.615 | 198836 / 193684 |
+
+Assignment a50a7d88-e23f-418d-8afa-e92eb6d80c80 contains the source bundle,
+exact commands, assertion census, function hashes, expected and observed
+traces, wrong/restored diagnostics, link maps, sanitizer launches and timings.
+The manager owns publication.
