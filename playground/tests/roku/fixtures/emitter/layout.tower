@@ -1,0 +1,7 @@
+import tower;
+// roku comment
+var p: u8* = null;
+print(p);
+print(sizeof(usize));
+print(alignof(u64));
+print(true);

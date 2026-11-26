@@ -1,0 +1,10 @@
+import emitter;
+
+fn check_examples(optimize: bool): void {
+    check_reference("tests/backend_semantics.tower", optimize);
+    check_reference("examples/functions.tower", optimize);
+    check_reference("examples/structs.tower", optimize);
+    check_reference("examples/memory.tower", optimize);
+    check_reference("examples/collections.tower", optimize);
+    check_reference("examples/match.tower", optimize);
+}

@@ -1,0 +1,8 @@
+import emitter;
+
+test() {
+    check_reference("tests/narrow_scalar.tower", false);
+    check_reference("tests/narrow_scalar.tower", true);
+    check_reference("tests/narrow_output.tower", false);
+    check_reference("tests/narrow_output.tower", true);
+}

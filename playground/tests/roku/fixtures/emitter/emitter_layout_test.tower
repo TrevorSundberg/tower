@@ -1,0 +1,44 @@
+import emitter;
+import backend.text;
+
+fn expect_refusal(name: u8*, width: u32, reason: u8*): void {
+    var source = roku_input(name);
+    defer free(source);
+    var handle = roku_compile(source, width);
+    defer roku_release(handle);
+    var canonical = roku_foundation(handle);
+    defer free(canonical);
+    var error = roku_emit_error(handle);
+    assert(error != null, name);
+    defer free(error);
+    assert(backend_contains(error, reason), reason);
+}
+
+test() {
+    var source = roku_input("layout.tower");
+    defer free(source);
+    var handle = roku_compile(source, RokuPointerBytes);
+    defer roku_release(handle);
+    var before = roku_live_nodes();
+    var emitted = roku_emit(handle, true);
+    defer free(emitted);
+    var again = roku_emit(handle, true);
+    defer free(again);
+    assert(backend_equal(emitted, again), "Repeated emission");
+    assert(backend_contains(emitted, "roku comment"));
+    var stripped = roku_emit(handle, false);
+    defer free(stripped);
+    assert(!backend_contains(stripped, "roku comment"));
+
+    var reference = roku_compile(source, RokuPointerBytes);
+    var wanted: FixtureBytes = default;
+    wanted.data = roku_reference(reference, &wanted.length);
+    roku_release(reference);
+    defer free(wanted.data);
+    check_simulator(emitted, null, wanted, "Pointer and scalar layout");
+    assert(roku_live_nodes() == before, "Emitter retained live nodes");
+
+    expect_refusal("wide.tower", 8, "32-bit");
+    expect_refusal("foreign.tower", RokuPointerBytes, "foreign function");
+    expect_refusal("platform_write.tower", RokuPointerBytes, "platform_write requires");
+}
