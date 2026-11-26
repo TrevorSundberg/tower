@@ -15,9 +15,9 @@ capture-scan reuse, LR range ordering, raw-owner page savings and LR shift index
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
 The checked-in Linux x64 compiler was built from
-`8bc867b69cc6084b9da09a51475c7c740efd9419`. Package commit
-`15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6` holds the 2,319,768-byte
-executable (SHA-256 `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`)
+`41de9006adff910a23d810010576ef66934fa1c8`. Package commit
+`7e34072d999e1cc8f7d0f619099f32077b67f697` holds the 2,279,272-byte
+executable (SHA-256 `e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`)
 and its adjacent resources. The native test command runs inline and companion
 tests and supports fixture files and affected-test selection. The versioned archive
 contains the same package, including its build metadata. For archive extraction,
