@@ -1,0 +1,2 @@
+import foundation;
+var a: i32; var b: u32; var c: bool; a = 42; b = convert(u32, a); c = convert(bool, b); print(b); print(c);

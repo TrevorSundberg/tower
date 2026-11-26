@@ -1,0 +1,25 @@
+import session;
+
+fn prevents_execution(file: u8*, diagnostic: u8*): void {
+    run_file(file);
+    expect_field("status", "error", file);
+    expect_diagnostic(diagnostic);
+    assert(execution_steps() == 0, file);
+    expect_field("output", "", file);
+}
+
+test() {
+    prevents_execution("mixed_width.tower", "Expected i32, got u32");
+    prevents_execution("bool_assignment.tower", "Expected i32, got bool");
+    prevents_execution("integer_condition.tower", "integer type");
+    prevents_execution("signed_literal.tower", "out of range");
+    prevents_execution("unsigned_literal.tower", "out of range");
+    prevents_execution("long_literal.tower", "out of range");
+    prevents_execution("duplicate.tower", "Duplicate module variable");
+    prevents_execution("unknown_local.tower", "Unknown local");
+    prevents_execution("comparison.tower", "Expected i32, got bool");
+    prevents_execution("break_outside.tower", "enclosing loop");
+    prevents_execution("continue_outside.tower", "enclosing loop");
+    prevents_execution("unreachable.tower", "Expected i32, got bool");
+    prevents_execution("precedence.tower", "Unexpected");
+}

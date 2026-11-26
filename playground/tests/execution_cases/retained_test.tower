@@ -1,0 +1,38 @@
+import session;
+import backend.text;
+
+// Both edits change a single loop-bound digit. Preserve the original no-op
+// when its older example spelling is absent.
+fn edit_bound(source: u8*, original: u8*): bool {
+    for (var i: usize = 0; source[i] != 0; ++i) {
+        if backend_prefix(&source[i], original) {
+            source[i + backend_length(original) - 1] = *"6";
+            return true;
+        }
+    }
+    return false;
+}
+
+fn check_reuse(handle: u32, example: u8*): void {
+    parser_reset(handle, example);
+    parser_finish(handle);
+    expect_field("status", "done", "Reset example");
+    parser_inspect(handle);
+    assert(parser_count("grammarBuilds") == 0, "Reset rebuilt the grammar");
+    assert(parser_count("grammarCacheHits") >= 1, "Reset must reuse the grammar");
+}
+
+test() {
+    var example = execution_example();
+    defer free(example);
+    var handle = parser_create(example);
+    defer parser_destroy(handle);
+    parser_finish(handle);
+    expect_field("status", "done", "Original example");
+    var edited = edit_bound(example, "count == 5");
+    check_reuse(handle, example);
+    if !edited {
+        assert(edit_bound(example, "count < 5"), "Expected editable loop bound");
+        check_reuse(handle, example);
+    }
+}

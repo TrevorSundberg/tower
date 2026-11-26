@@ -1,0 +1,2 @@
+import foundation;
+parse CoreCall = 'broken'; var a: i32 = broken;

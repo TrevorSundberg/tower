@@ -1,0 +1,2 @@
+import foundation;
+parse CoreAddress = 'broken'; var p: i32* = broken;

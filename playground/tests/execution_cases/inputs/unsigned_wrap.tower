@@ -1,0 +1,2 @@
+import foundation;
+var a: u32; a = 4294967295; a = a + 1; print(a);

@@ -1,0 +1,2 @@
+import foundation;
+print(99); if false { var a: i32; a = true; }

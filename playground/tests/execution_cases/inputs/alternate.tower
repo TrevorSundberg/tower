@@ -1,0 +1,3 @@
+
+parse Statement |= 'say' $value:CoreOperand ';' => replace { print($value); };
+say 7;

@@ -1,0 +1,2 @@
+import foundation;
+var a: i32; a = -5; a = a / 2; print(a); a = -5; a = a % 2; print(a);

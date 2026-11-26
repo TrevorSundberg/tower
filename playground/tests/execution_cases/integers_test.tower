@@ -1,0 +1,18 @@
+import session;
+
+test() {
+    finishes("signed_wrap.tower", "signed_wrap.expected");
+    finishes("unsigned_wrap.tower", "unsigned_wrap.expected");
+    finishes("signed_div_rem.tower", "signed_div_rem.expected");
+    finishes("unsigned_div.tower", "unsigned_div.expected");
+    finishes("reinterpret.tower", "reinterpret.expected");
+    finishes("convert_values.tower", "convert_values.expected");
+    finishes("bool_equality.tower", "bool_equality.expected");
+    finishes("unsigned_compare.tower", "unsigned_compare.expected");
+    finishes("bitwise.tower", "bitwise.expected");
+
+    rejects("division_zero.tower", "Division by zero");
+    rejects("division_overflow.tower", "Signed division overflow");
+    rejects("negative_to_unsigned.tower", "conversion out of range");
+    rejects("large_to_signed.tower", "conversion out of range");
+}

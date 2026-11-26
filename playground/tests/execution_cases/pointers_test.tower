@@ -1,0 +1,9 @@
+import session;
+
+test() {
+    finishes("pointer_alias.tower", "pointer_alias.expected");
+    rejects("pointer_types.tower", "Expected u32*, got i32*");
+    rejects("pointer_store.tower", "Expected i32, got bool");
+    rejects("pointer_load.tower", "Expected u32, got i32");
+    rejects("pointer_width.tower", "equal-width");
+}

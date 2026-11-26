@@ -1,0 +1,18 @@
+import session;
+
+test() {
+    var source = with_grammar("bounded_output.tower");
+    defer free(source);
+    var before = execution_live_nodes();
+    var handle = execution_compile(source);
+    execution_step(handle, 100000);
+    expect_field("status", "executing", "Printing loop still running");
+    assert(execution_truncated(), "Output must be truncated");
+    assert(execution_output_length() <= 65536, "Output limit");
+    execution_step(handle, 1000);
+    expect_field("output", "", "Second drain");
+    execution_destroy(handle);
+    assert(execution_live_nodes() == before, "Machine must release its parse tree");
+    execution_resume(handle);
+    expect_field("status", "error", "Destroyed execution handle");
+}

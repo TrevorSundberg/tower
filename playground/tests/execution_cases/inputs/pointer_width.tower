@@ -1,0 +1,2 @@
+import foundation;
+var a: u64 = 0; var p: i32*; p = bits(i32*, a);

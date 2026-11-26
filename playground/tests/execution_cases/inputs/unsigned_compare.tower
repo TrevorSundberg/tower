@@ -1,0 +1,2 @@
+import foundation;
+var a: u32; var b: bool; a = 4294967295; b = a > 2147483648; print(b);

@@ -1,0 +1,2 @@
+import foundation;
+var a: i32; var p: i32*; var q: i32*; var pp: i32**; p = &a; q = p; pp = &p; *q = 41; *p = a + 1; q = *pp; var b: i32; b = *q; print(b); var same: bool; same = p == q; print(same);

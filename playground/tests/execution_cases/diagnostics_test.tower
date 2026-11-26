@@ -1,0 +1,22 @@
+import session;
+import backend.text;
+
+test() {
+    var source = with_grammar("utf8.tower");
+    defer free(source);
+    var invocation = "bad";
+    var offset = backend_length(source) - backend_length(invocation);
+    assert(backend_equal(&source[offset], invocation), "Expected final invocation");
+    {
+        var handle = execution_compile(source);
+        defer execution_destroy(handle);
+        execution_resume(handle);
+        expect_diagnostic("Unknown local 'missing'");
+        assert(execution_offset() == offset, "UTF-8 invocation byte offset");
+    }
+
+    var custom = execution_file("custom.tower");
+    defer free(custom);
+    execution_run(custom, 100);
+    expect_diagnostic("No execution semantics");
+}
