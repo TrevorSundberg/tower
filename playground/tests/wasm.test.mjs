@@ -1,21 +1,24 @@
 import { test } from 'node:test';
 import { readFile } from 'node:fs/promises';
-import { loadTower, runToEnd } from './compiler-fixtures.mjs';
+import { loadTowerBytes, runToEnd } from './compiler-fixtures.mjs';
 import { byteOffsets } from '../src/offsets.mjs';
 import { guestString } from './guest_text.mjs';
 import { moduleText, selectedCases } from './module_case_host.mjs';
 import { numberField } from './parser_observations.mjs';
 const bytes = await readFile(process.env.TOWER_TEST_WASM || new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
 const bootstrap = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
-const tower = await loadTower(bytes, undefined, bootstrap);
+const tower = await loadTowerBytes(bytes, undefined, bootstrap);
 const example = await readFile(new URL('../../scaffolding/examples/foreach.tower', import.meta.url), 'utf8');
 const numeric = await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8');
 const base = numeric + await readFile(new URL('wasm_grammar_cases/base_rules.tower', import.meta.url), 'utf8');
 const loop = await readFile(new URL('wasm_grammar_cases/loop_rules.tower', import.meta.url), 'utf8');
 
+function parseLive(handle) {
+  return {...runToEnd(tower, handle), snapshot:tower.inspect(handle)};
+}
 function analyze(source) {
   const handle = tower.create(source);
-  try { return { ...runToEnd(tower, handle), snapshot: tower.inspect(handle) }; }
+  try { return parseLive(handle); }
   finally { tower.destroy(handle); }
 }
 // The assertion VM reads the same public parser records as the other Wasm
@@ -75,9 +78,10 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
     } finally { tower.exports.tw_free(pointer); }
   },
   grammar_parse_live(_, handle) {
-    parsed = {...runToEnd(tower, handle), snapshot:tower.inspect(handle)};
+    parsed = parseLive(handle);
+    sourceBytes = Buffer.from(sessions.get(handle));
   },
-  grammar_record(c, omitted) {
+  grammar_record(c, omitted, length) {
     const exclude = new Set(guestString(c, omitted).split(' ').filter(Boolean));
     // Object key order is immaterial to deep equality. Preserve array order and all values.
     const json = JSON.stringify(parsed, (key, value) => {
@@ -85,7 +89,13 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
       if (value === null || typeof value !== 'object' || Array.isArray(value)) return value;
       return Object.fromEntries(Object.keys(value).sort().map(k => [k, value[k]]));
     });
-    return moduleText(c, json);
+    const bytes = Buffer.from(json);
+    const pointer = c.allocate(bytes.length);
+    if (!pointer) throw new Error('Cannot allocate serialized parser record');
+    const memory = c.memory();
+    memory.set(bytes, pointer);
+    new DataView(memory.buffer, memory.byteOffset).setUint32(length, bytes.length, true);
+    return pointer;
   },
   grammar_self_test: () => tower.exports.tw_self_test(),
   grammar_open: (c, source) => openSession(guestString(c, source)),
@@ -164,14 +174,9 @@ test('highlight preview never consumes input or commits future declarations', ()
 test('invalid grammar returns an error, preserves revision, and does not poison the next session', () => checkGrammar('invalid_grammar'));
 test('UTF-8 spans, emoji, strings and comments survive the JSON and editor boundaries', () => checkGrammar('editor_offsets'));
 test('new multi-character punctuation and malformed lexical input use the native scanner', () => checkGrammar('scanner'));
-
 test('one foundation module bootstraps itself, installs idempotently and pins existing sessions', () => checkGrammar('foundation_install'));
 test('ABI rejects unsupported input and handles; repeated analysis releases native nodes', () => checkGrammar('abi_disposal'));
-
-test('edits reuse compiled grammars while matching fresh parsing, including changed syntax and recovery', () => checkGrammar('parse_reuse', 448));
-
+test('edits reuse compiled grammars while matching fresh parsing, including changed syntax and recovery', () => checkGrammar('parse_reuse', 160));
 test('Tower token declarations redefine all three default terminals and introduce new tokens and comments', () => checkGrammar('token_declarations'));
-
 test('lexical replacements activate at declaration boundaries; failures preserve the previous token rules', () => checkGrammar('lexical_replacement'));
-
 test('foundation inherits bedrock tokens, adds its own tokens and installs atomically', () => checkGrammar('foundation_tokens'));

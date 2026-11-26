@@ -121369,3 +121369,12 @@ candidate reproduced all 1,382 ordered subject calls and outputs byte for
 byte, including session IDs. The retained-record test executed 44,610,793
 guest steps, close to the original trial ceiling of 448 slices. Raw TAP,
 trace data and images are retained for qualification.
+
+Comparing the complete JSON text one byte at a time dominated guest execution
+in the reuse registration. The host now supplies the exact UTF-8 byte count
+with the serialized record. Tower checks the lengths and compares full words
+with alignment-independent copies, followed by the trailing bytes. Both
+images returned the same parser records and reduced the registration from
+44,610,793 to 9,240,156 guest steps. One shared run allocated the raw two-byte
+test buffer at a different address. The address was used for the matching
+create and free. No other subject call or output differed.

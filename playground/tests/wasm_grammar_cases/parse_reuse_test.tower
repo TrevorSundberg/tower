@@ -2,16 +2,46 @@ import session;
 import backend.text;
 
 extern fn grammar_parse_live(handle: usize): void;
-extern fn grammar_record(omitted_fields: u8*): u8*;
+extern fn grammar_record(omitted_fields: u8*, length: u32*): u8*;
+
+struct ParserRecord {
+    bytes: u8*;
+    length: u32;
+}
+
+fn record(omit: u8*): ParserRecord {
+    var result: ParserRecord = default;
+    result.bytes = grammar_record(omit, &result.length);
+    return result;
+}
+
+fn records_equal(left: ParserRecord, right: ParserRecord): bool {
+    if left.length != right.length { return false; }
+    var length = convert(usize, left.length);
+    var at: usize = 0;
+    while length - at >= sizeof(u64) {
+        var a: u64;
+        var b: u64;
+        copy(&a, left.bytes + at, sizeof(u64));
+        copy(&b, right.bytes + at, sizeof(u64));
+        if a != b { return false; }
+        at += sizeof(u64);
+    }
+    while at < length {
+        if left.bytes[at] != right.bytes[at] { return false; }
+        at++;
+    }
+    return true;
+}
 
 fn compare_fresh(input: u8*): void {
     var omitted = "id grammarBuilds grammarCacheHits cachedGrammars";
-    var retained = grammar_record(omitted);
-    defer free(retained);
+    var retained = record(omitted);
+    defer free(retained.bytes);
     grammar_parse(input);
-    var fresh = grammar_record(omitted);
-    defer free(fresh);
-    assert(backend_equal(retained, fresh), "Retained and fresh parser records differ");
+    var fresh = record(omitted);
+    defer free(fresh.bytes);
+    assert(records_equal(retained, fresh), "Retained and fresh parser records differ");
 }
 
 fn compare_edit(handle: usize, input: u8*): void {
@@ -26,16 +56,16 @@ fn compare_edit(handle: usize, input: u8*): void {
 
 fn check_refused_reset(handle: usize): void {
     grammar_inspect(handle);
-    var before = grammar_record("");
-    defer free(before);
+    var before = record("");
+    defer free(before.bytes);
     var embedded: u8[3] = {97, 0, 98};
     var error = abi_reset_error(handle, &embedded[0], sizeof(decltype(embedded)));
     defer free(error);
     assert(backend_contains(error, "UTF-8"), "Embedded NUL reset diagnostic");
     grammar_inspect(handle);
-    var after = grammar_record("");
-    defer free(after);
-    assert(backend_equal(after, before), "Rejected reset changed the live snapshot");
+    var after = record("");
+    defer free(after.bytes);
+    assert(records_equal(after, before), "Rejected reset changed the live snapshot");
     var invalid = abi_reset_error(0, "", 0);
     defer free(invalid);
     assert(backend_contains(invalid, "Invalid session"), "Invalid reset handle diagnostic");
