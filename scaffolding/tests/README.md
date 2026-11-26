@@ -828,6 +828,11 @@ identity and order, required declaration captures, nullable/productive rules,
 forward references, NUL-containing names, 1,500 captures, 600 seeded dependency
 graphs and allocation-failure cleanup. It uses the same grammar setup and runner
 conventions as the focused reader suite.
+The native Linux x64 GNU CTests use `tower-reader-test-services`. Run
+`ctest -R "^tower-validation($|-)" -V` in the parser build. Selecting
+`syntax_validation_test.tower` directly runs five validation cases. Selecting
+`syntax_validation.tower` also runs five imported work-budget cases. Each
+selection runs at compiler jobs 1 and 4. The guest uses serial fault injection.
 The reference was translated from the frozen native seed with SHA-256
 `094f9e736b6ab469a30630a7effd81ddb9b706f9af6d85df6d870a4168eb8850`.
 Native/Tower-reference/production three-way comparisons passed on both targets
