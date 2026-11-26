@@ -41,7 +41,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       set(fixture_mode)
       if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout|work_buffer|work_signal_observe)$")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
-      elseif(unit STREQUAL "work_dispatch_result" OR unit STREQUAL "work_linux_affinity_faults" OR unit STREQUAL "entity_attach_leases"
+      elseif(unit MATCHES "^work_linux_affinity(_faults)?$" OR unit STREQUAL "work_dispatch_result" OR unit STREQUAL "entity_attach_leases"
           OR unit MATCHES "^entity_page_(reuse|property)$")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
         set(fixture_mode SOURCE)
@@ -167,6 +167,8 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(work-schedule-budget work_schedule_budget_fixture "19 tests" "6 tests" ${work_guest_args})
     # The attachment owner also discovers the five work-budget tests.
     tower_work_native_selections(entity-attach-leases entity_attach_leases "7 tests" "2 tests" ${work_guest_args})
+    tower_work_native_selections(work-linux-affinity work_linux_affinity "6 tests" "1 test"
+      ${work_guest_args} --link "-Wl,--export-dynamic-symbol=work_thread_entry")
     set(affinity_oracle "${CMAKE_CURRENT_BINARY_DIR}/work_linux_affinity_faults.stdout")
     file(GENERATE OUTPUT "${affinity_oracle}" CONTENT "412\n544\n0\n")
     add_custom_target(tower-affinity-test-support DEPENDS tower-work-native-test-support)
