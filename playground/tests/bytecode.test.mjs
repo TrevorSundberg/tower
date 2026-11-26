@@ -1,5 +1,4 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
 import {readFile, writeFile} from 'node:fs/promises';
 import {fixtureSource, guestString, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
@@ -22,6 +21,7 @@ function copyBytes(context, bytes) {
 }
 
 const checks = await openTower({imports:{
+  ide_package_tests: {wasm:tower.exports.ide_package_tests},
   package_read(context, group, field, size) {
     const value = sample[guestString(context, group)][guestString(context, field)];
     const bytes = typeof value === 'string' ? encoder.encode(value) : value;
@@ -83,7 +83,8 @@ function check(name, observations, sessions = {}) {
 test('Tower package preparation owns independent verified execution sessions', {
   skip: !tower.exports.ide_package_tests && 'Build with TOWER_IDE_PACKAGE_TESTS=ON to export ide_package_tests',
 }, () => {
-  assert.equal(tower.exports.ide_package_tests(), 0);
+  runSelectedTest(checks, '.tower/tests/ide_package_check_result.tower', undefined,
+    {suffix:'_ownership_test.tower'});
 });
 
 test('prepared and loaded package handles retain their own diagnostic source map', async () => {

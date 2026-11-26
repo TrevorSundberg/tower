@@ -1,5 +1,6 @@
 import tower;
 import ide_package_profile;
+import ide_package_check_result;
 import .host.ide_api;
 import .host.ide_text;
 import .host.ide_state;
@@ -13,11 +14,6 @@ import .library.work_budget_types;
 extern fn sem_resource_record(program: SemanticProgram*, error: WorkBudgetError, offset: usize): void;
 extern fn sem_resource_message(error: WorkBudgetError): u8*;
 
-enum PackageCheck: u32 {
-    Passed = 0, Prepare = 1, Load = 2, Foundation = 3, Execution = 4,
-    Profile = 5, InvalidProgram = 6, Lifetime = 7, PackageBytes = 8, Input = 9,
-    Resource, Receipt, Recovery
-}
 var BaselinePackageProfile: u32 = 0;
 var PackageExecutionHandleKind: u32 = 1;
 
