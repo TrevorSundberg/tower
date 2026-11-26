@@ -150,6 +150,12 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
 endif()
 if(TARGET towerc)
+  add_test(NAME tower-semantic-iteration-companions
+    COMMAND $<TARGET_FILE:towerc> --test
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration.tower"
+      --test-details --jobs 4)
+  set_tests_properties(tower-semantic-iteration-companions PROPERTIES
+    FAIL_REGULAR_EXPRESSION "0 tests selected")
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)

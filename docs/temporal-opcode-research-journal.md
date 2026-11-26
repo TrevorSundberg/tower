@@ -105662,3 +105662,22 @@ these process measurements compare different amounts of completed work. The
 adjacent `compiler-bytes.test.mjs` passed 3/3 with the same reactors. The patch
 changes only the JS fixture at the Wasm ABI boundary. Native Tower sanitizers
 do not instrument that code. A full Jenkins rerun remains open for integration.
+
+### Native companion discovery through semantic iteration
+
+The native test compiler collected the layout, generic clone and semantic iteration
+companions together through the public semantic_iteration.tower owner. The original
+clone fixture imported both implementation modules. Discovery then reached a second
+entity_create_related declaration at entities.tower:103:1 and failed before executing
+the tests. Importing generic_registry_types and entity_stage_types supplies the same
+nominal descriptors without those implementation declarations. Both imports were
+needed in the four-way comparison in receipt 078a53cd.
+
+At one and four workers the corrected owner ran all three tests, including the clone
+assertion at generic_body_types_test.tower:8:1. The standalone clone companion also
+ran exactly once at each width with the relocated compiler. The CTest registration
+now exercises discovery from semantic_iteration.tower. Receipt 9116289f separately
+qualified the typed clone path under allocation refusal, retry and native sanitizers.
+The import correction changes test inputs only. The worker's full-owner run and the
+manager's direct fixture replay cover different entry points. The published native
+bootstrap and browser assets require separate generation and delivery checks.
