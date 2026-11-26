@@ -123265,3 +123265,83 @@ ran and printed the same bytes. Both original and direct profile CTests
 then passed. Generated profile C hashes and the two complete backend JSON
 outputs matched across original and direct invocations. The initial failures,
 retry and both source bundles are in the evidence packet.
+### Guest allocator declarations on real W32 memory, host 1, 2026-11-26
+
+Assignment `f0a87df7-b1aa-4072-af4c-d8ba9a786b6b` froze
+`47febb5b1341ba91b3138c8bc2b847fc23e713d6`. The initial pull encountered
+unpublished browser commits on the shared main. Aborting that pull restored
+`203f2497`. A separate local main at the freeze holds the review commit.
+The manager owns publication.
+
+The original arena export has 34 numbered exits. The production ABI has eight.
+Growth propagates the shared ABI's result and adds 20–25. Each adjacent
+companion uses the existing allocator ABI assertion grammar to give the same
+checks a callable exit-code path and a selected test path. The growth fixture
+still invokes the shared ABI first. The main companion still prints its result
+and reports `Division by zero` on failure. An initial retained division located
+a backend-generated trap in the recompiled Foundation. An explicit assertion
+with the same diagnostic now carries the original Tower position. The original
+and migrated failing native commands both exited 1, stdout `0\n`, stderr
+`Division by zero\n`, when the main verdict was reversed.
+Changing the shared payload expectation also made the growth export propagate
+6 and made the native command print 6 before the same trap in both trees.
+
+The ordinary CMake modules still use the existing invocation host. Default
+owner/direct selection runs the portable frontend at pointer width four, then
+passes its checked Foundation to the pinned object compiler and the same
+freestanding linker, allocation providers and page limits as the original
+exports. The entry is the generated `tower_main` in a fresh instance.
+Native selection uses the hosted test runtime. See the [guest allocator test
+commands](../scaffolding/tests/README.md#guest-allocator-abi-and-wasm-memory-growth).
+
+| Suite | Original export or command | W32 owner/direct count | Wrong expectation and observed failure in both selections |
+| --- | --- | --- | --- |
+| Explicit arena | `allocator_wasm_tests` | 1/1 | Full W32 page limit 4294967294, export returned 3, `allocator_wasm_test.tower:11:5` |
+| Shared ABI | `guest_runtime_tests` and `allocator_wasm_tests` | 1/1 | Retained byte 174, export returned 6, `guest_runtime_abi_test.tower:27:13` |
+| Growth | `guest_runtime_growth_tests` plus the shared exports | 2/1 | Retained byte 92 after refused 1 MiB realloc, export returned 23, `guest_runtime_growth_test.tower:21:9` |
+| Main | `guest_runtime_main.tower` | 2/1 | Reversed success condition, printed 0 then trapped at `guest_runtime_main_test.tower:8:5` |
+
+The selected Foundation calls identify the test declarations at arena 7:1,
+ABI 5:1, growth 7:1 and main 11:1 in their respective companions. Growth
+and main owner selection also call the ABI declaration. Four ordinary W32
+programs had zero selected declarations. The allocator-off configuration
+registered zero allocator/guest tests and built a byte-identical production
+Wasm runtime object. All 23 focused CTests passed. The original Node transport
+had identical success and controlled-failure output and exit statuses in both
+trees. Every original export name and kind matched. After restoration the
+ordinary modules returned zero, and the selected calls passed. The raw packet
+retains both streams, the Foundation/object/module triples, sections and the
+individual old/new source line mapping for every numbered and delegated exit.
+
+The host used the checked-in Linux x64 compiler `7430bdb3…` with all 61
+manifest members verified, LLVM/Clang 19.1.7, local WASI SDK 34 (Clang 23.1.0)
+and Node 24.22.3. The public portable frontend is `eb6c4878…`, built from
+`0da4e513` according to the Pages manifest at `8417c9ae`. An older cached
+Pages ref at `516deee1` lacked conditional declaration semantics and failed
+the arena compile. It supplied no passing results. Native ASan with leak
+checking and TSan each ran the instrumented guest suite and hosted runtime.
+The guest workloads are single-owner. The repository has no Wasm sanitizer or
+native UBSan profile for these runs.
+
+The Xeon Gold 6244 host exposed 32 logical CPUs, affinity 0–31, CPU quota
+1536000/100000 and memory limit 136709144576 bytes. One process ran at a
+time on warm inputs. Object compilation used CPUs 4–7 with one or four
+requested jobs. Execution used CPU 4. AB/BA pairs checked every generated
+Wasm object through linking and execution. For one-job builds the baseline
+and candidate wall ranges in seconds were 0.30–0.36/0.54–0.55 (arena),
+0.24/0.46 (ABI), and 0.24–0.25/0.53–0.54 (growth). Peak RSS across those
+pairs was 86660–88408/97344–100892 KiB. Four-job candidate builds took
+0.72–0.84 s with 106516–115664 KiB RSS. A trial with ordinary shared functions
+in place of the dual-entry grammar still took 0.60/0.47/0.53 s at one job.
+These small fixture compilations pay for extra imports, parsing and grammar
+activation. The trial gave no reason to introduce a second assertion scheme.
+
+For 128 fresh instances per process, baseline/candidate wall ranges in seconds
+were 0.05/0.05 (arena), 0.04–0.05/0.04 (ABI), and 0.07–0.08/0.07–0.08
+(growth). Every instance started at 131072 bytes and finished at 393216,
+131072 and 262144 bytes respectively. Actual module maxima were eight, two
+and eight 64 KiB pages. The arena includes an independently grown foreign
+page. Each 128-command native batch took 0.07 s with matching stdout.
+The packet includes user/system CPU, peak RSS and checked output by sample.
+These timings include host startup. Guest allocator grant counts and broad
+compiler or parallel execution scaling were outside the measured paths.

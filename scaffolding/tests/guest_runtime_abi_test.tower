@@ -1,0 +1,40 @@
+import allocator_abi.case;
+
+// The production guest ABI, including its raw byte primitives. Functional
+// checks run as the same Tower program on native and Wasm target runtimes.
+abi_entry(check_guest_abi)
+test() {
+    var maximum: usize = 0;
+    --maximum;
+    var too_large = alloc(u64, maximum);
+    abi_assert(too_large == null, 1, "Reject overflowing allocation");
+    var zero = alloc(u8, 0);
+    free(zero);
+    var size: usize = 1;
+    while size < 258 {
+        var data = alloc(u8, size);
+        abi_assert(data != null, 2, "Allocate the requested size");
+        var alignment = bits(usize, data) % 16;
+        abi_assert(alignment == 0, 3, "Return a 16-byte aligned address");
+        fill(data, 173, size);
+        var failed = realloc(u64, bits(u64*, data), maximum);
+        abi_assert(failed == null, 4, "Reject overflowing realloc");
+        var grown = size + 513;
+        var next = realloc(u8, data, grown);
+        abi_assert(next != null, 5, "Grow the original allocation");
+        var i: usize = 0;
+        while i < size {
+            abi_assert(next[i] == 173, 6, "Preserve every payload byte after realloc");
+            ++i;
+        }
+        // Both overlap directions require memmove semantics.
+        next[0] = 42;
+        copy(&next[1], next, size);
+        abi_assert(next[1] == 42, 7, "Copy overlapping bytes forward");
+        copy(next, &next[1], size);
+        abi_assert(next[0] == 42, 8, "Copy overlapping bytes backward");
+        next = realloc(u8, next, 0);
+        free(next);
+        ++size;
+    }
+}
