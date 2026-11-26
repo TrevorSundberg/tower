@@ -1,0 +1,16 @@
+import increment;
+
+fn expect(actual: i32, wanted: i32): void {
+    var different: bool = actual != wanted;
+    if different { trap("Unexpected increment result", 0); }
+}
+
+var place: i32 = 5;
+expect(place++, 5);
+expect(place, 6);
+expect(++place, 7);
+expect(place, 7);
+place++;
+++place;
+expect(place++, 9);
+expect(place, 10);

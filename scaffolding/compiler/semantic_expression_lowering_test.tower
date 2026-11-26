@@ -1,0 +1,42 @@
+import library.testing;
+import .tests.increment.composition as composition;
+import .tests.increment.nested as nested;
+import .tests.increment.address as address;
+
+test() {
+    assert(composition.postfix == 7);
+    assert(composition.prefix == 9);
+    assert(composition.sum == 20);
+    assert(composition.after_sum == 11);
+    assert(composition.nested == 11);
+    assert(composition.returned == 12);
+    assert(composition.after_return == 13);
+    assert(composition.entered);
+    assert(composition.value == 14);
+    assert(composition.element == 20);
+    assert(composition.index == 1);
+    assert(composition.array[0] == 21);
+    assert(composition.field_postfix == 40);
+    assert(composition.field_prefix == 42);
+    assert(composition.pointer_field == 43);
+}
+
+test() {
+    assert(nested.pair == 11);
+    assert(nested.after_digits == 2);
+    assert(!nested.equal);
+    assert(nested.value == 4);
+    assert(nested.after_store == 2);
+    assert(nested.array[0] == 1);
+    assert(nested.array[1] == 20);
+}
+
+test() {
+    address.addresses();
+    assert(address.value == 42);
+    assert(address.s.field == 42);
+    assert(address.array[1] == 42);
+    assert(address.byte == 7);
+    assert(address.copy_to == 42);
+    assert(address.exists);
+}
