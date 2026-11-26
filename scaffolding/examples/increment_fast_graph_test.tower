@@ -1,0 +1,5 @@
+import tests.fast_graph_examples;
+
+test() {
+    fast_graph_example(".tower/examples/increment.tower");
+}
