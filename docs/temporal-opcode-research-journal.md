@@ -115616,3 +115616,42 @@ stderr, instrumented fixture IR, provider hashes and link commands.
 These runs exercise a single-owner allocator. Tower's sanitizer build
 profile supports address and thread instrumentation only. Follow-up
 validation on an integrated tree belongs to the manager.
+
+### Direct formatter import for the optional browser package fixture
+
+On public `f7a0a4c6`, compiling the IDE object with both `TOWER_IDE_TESTS`
+and `TOWER_IDE_PACKAGE_TESTS` enabled stopped at `ide_package_checks.tower`
+line 48, column 5. The same build from the Pages compiler source
+`0da4e513` reported the same unknown function. Each build used its own
+verified Linux x64 bootstrap, WASI SDK 34 and one worker per Tower
+compiler invocation.
+
+The package fixture calls `ide_program_format` directly. The older
+`3cc57ae4` provider defined that function in `host/ide_artifacts.tower`.
+The release defines it in `host/ide_syntax.tower`. Giving the fixture a
+direct import of that module built the optional IDE object on `f7a0a4c6`.
+The existing Node registration for independent package sessions then
+passed on the enabled portable reactor. Its Tower assertion calls the
+provider's exported `ide_package_tests`.
+
+Host 2 packet `67d90232-f653-445a-9cc2-066c06c8a6f5` records the
+failing compiler commands, local repair and named ownership result.
+The shipping profile excludes the optional fixture. The baseline
+compilation stopped before it produced an executable for a runtime
+performance comparison.
+
+With those inputs, the IDE-only gate passed and the unfiltered 51-file
+Node suite used the four release reactors from Pages `8417c9ae`. Its
+512 tests included 510 passes, both documented production skips and zero
+failures, cancellations or todos. All 19 original semantic-port names
+passed. The required backend-world registration passed separately using
+the Pages LLVM recipe and enabled browser checks from `0da4e513`.
+The one-line fixture repair belongs only to the separate package result.
+
+On the host-2 Ryzen 5 3600, affinity 0–3 and 11.52-CPU quota, the Node
+run took 460.87 s wall, 753.90 s user and 22.47 s system, with 2,770,948
+KiB maximum process RSS. A separate one-worker IDE object replay failed
+in 0.93 s on the original input. The repaired compile took 2.97 s and
+reproduced the linked object's bytes. Its IDE suite and ownership selection
+both passed. These Wasm runs used the ordinary Node runtime. The CMake
+native sanitizer configuration requires a Linux x64 target.

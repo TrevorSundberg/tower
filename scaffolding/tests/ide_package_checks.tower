@@ -7,6 +7,7 @@ import .host.ide_state;
 import .host.ide_parser;
 import .host.ide_execution;
 import .host.ide_artifacts;
+import .host.ide_syntax;
 import .compiler.format_types;
 import .compiler.semantic_program_types;
 import .library.work_budget_types;
