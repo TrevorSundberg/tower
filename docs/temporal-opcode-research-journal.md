@@ -110221,3 +110221,47 @@ retains the raw traces, failed attempts, per-process measurements, link
 maps, provider hashes and source bundle. Validation covered these three
 registrations and their dependencies. Release publication belongs to the
 manager.
+
+### 2026-11-26 — Default discovery for the invocation, world and stage fixtures
+
+Host 5, assignment `edaa6b0c-e637-4e2c-9497-81b6e6fd5268`. The acceptance check was to execute the five original public calls through default owner and direct companion selection, preserve the three browser registrations individually and run unrelated tests without a kernel provider. The seven required member sizes and hashes and the archive digest matched the manifest. The independent main checkout merged the bundle tip `6d691c9f` on its published prerequisite `f528f182` with public main `442f3bea` at `be40edc0`. The shared checkout had an existing rebase and three local commits. Implementation `65f3f029` used the pinned Linux driver `7315b86e` and the public portable/shared reactors `41bb9b11` and `72c882ee` verified against Pages `f2214133`.
+
+The invocation export lives in `tests/interpreter_invocation.tower`, imported by the interpreter checks and browser units. Both semantic exports live in `tests/semantic_world.tower`, imported by evaluation_query_checks. The ordinary interpreter unit imports neither fixture. Giving the producer's original three files default names alongside compiler/interpreter, compiler/world and library/entity_stage had selected extern-dependent tests for unrelated clients. The new standard companions sit beside the substantive fixtures. Each calls named Tower assertions through its top-level implicit test. In an import these functions can be reused without executing the companion's top-level calls. The stage fixture still leases nodes, publishes and discards stages, checks canonical indexed nodes through pinned views and checks disposal. The invocation and independent-world fixtures still exercise four- and eight-byte target widths.
+
+In a Wasm guest, opening the substantive file draws its compiler implementation into the guest graph. Direct selection found the right assertions and then failed at `tower_node_create` or `evaluation_query_tests`. A trial with C foreign names reached the linked reactor but native lowering rejected a duplicate symbol. An earlier trial importing both a registration owner and its companion executed the kernel twice during aggregate discovery. The three small owners under `tests/kernel_checks` import only the matching assertion companion and select the intended function. Their standard companions call it once. The embedding supplies the three real exports. The Node registrations use the existing selected-test transport and read five grammar files and nine test inputs. Loading the complete fixture collection previously required reading over 1,800 Tower sources. The shared worker code and its teardown retain their original blobs.
+
+| Native entry, jobs 1 and 4 | Owner | Direct standard companion |
+| --- | ---: | ---: |
+| tests/interpreter_invocation | 6 | 1 |
+| tests/semantic_world | 16 | 1 |
+| tests/kernel_checks/invocation, worlds, stage | 1 each | 1 each |
+
+The semantic fixture's direct implicit test calls the world assertions followed by the stage assertion. Each of five one-line changes to the expected return failed at that assertion on both substantive entry routes. Restoring it reproduced the original output. The bytecode_package, generics and entity_pages owners ran 6, 15 and 5 tests respectively with the plain interpreter, with identical inventories, detailed reports and stdout at jobs 1 and 4. Eleven ordinary object and depfile pairs matched byte for byte at one absolute path with absent, present and deliberately malformed companions. These included the actual owners, their importer units, the earlier candidate locations and the unrelated clients.
+
+The native ABI needs the test runtime and real provider. The following is a positive control from the source root, with PACKET pointing to the extracted evidence. Selecting the corresponding owner uses identical arguments.
+
+```sh
+bootstrap/linux-x64/towerc --test scaffolding/tests/kernel_checks/stage_test.tower \
+  --test-details --foundation scaffolding/foundation.tower --jobs 1 \
+  --test-native-runtime "$PACKET/native-recovery/guest-native-test.o" \
+  --link "$PACKET/native-recovery/current.so"
+```
+
+With just the driver interpreter, the registration owner reported `No native interpreter binding for 'interpreter_invocation_tests'`. An unextended Wasm host selected one test on either entry and reported the same missing external implementation. The controls above and the browser registrations supply that capability explicitly. All 59 repository source dependencies from the producer's evaluation and query depfiles match the integrated source. Its linked support stack qualifies these fixture tests. Native output matched its 3,841-byte labelled reference containing five zeros. Invocation and stage wrote zero bytes and the world checks wrote the same 3,696 bytes.
+
+Both public images matched the retained call traces by name and in the complete group. World fd 1 emitted exactly 3,394 bytes in the original and new group. Invocation, stage and fd 2 were empty. The wrong-return controls ran the real export first, changed just the delivered result, observed the Tower assertion and restored delivery on the same reactor. Each image passed ten wrong/repaired pairs across both selection routes. Replaying that call sequence directly reproduced the 24,933 fd 1 bytes. Chromium 159.0.8154.6 also passed all twenty requests per image using the public host API, with zero remaining worker targets after one portable coordinator and one shared coordinator with four physical workers. This exercised the test embedding in a browser. Opening the sources in an editor with no kernel bindings still needs a provider.
+
+In native recovery controls, each selected 64-bit Foundation caller ran twice against the same loaded provider in one PID. The first invocation changed one real return and caught the caller's exact trap at the test thread boundary. The second reentered the same selected program after the join and reproduced its original stream. The CLI's normal trap behavior was tested independently by the source mutations. Five native recovery pairs passed in each of ordinary, address/leak and thread modes. These instrument the callers and observation host around the receipt's shared provider. A separate fully instrumented link compiled the current evaluation, query and Linux worker transport with the existing instrumented support. The first link identified the older worker archive's missing `work_thread_pool_capacity`. Linking the actual current Linux worker unit supplied it. All three selected programs passed ASan/LSan and TSan with their original outputs. The packet retains 28 and 9 restricted-personality TSan startup failures respectively across the two experiments. Tower source-level UBSan is unavailable.
+
+Host 5 was a Ryzen 9 5900XT, 16 cores/32 threads, Linux 6.8, LLVM/Clang 19.1.7 and Node 24.22.3. Affinity allowed CPUs 0–31, and the quota was 3,071,999 µs per 100,000 µs. Counterbalanced fresh processes ran individually on CPUs 0,2,4,6 with warm files. Each image had four samples per arm, with zero throttled periods across the measured brackets. The following are medians for the original three-name Node group, including startup. CPU is the per-process sum of user and system time. The packet includes the separate samples, streams, order, cgroup counters and process maximum RSS.
+
+| Image | Registration | Wall s | CPU s | Peak KiB |
+| --- | --- | ---: | ---: | ---: |
+| Portable | Public direct exports | 0.400 | 0.620 | 132382 |
+| Portable | Producer | 0.605 | 0.860 | 136338 |
+| Portable | Default companions | 0.490 | 0.710 | 104462 |
+| Shared, capacity 4 | Public direct exports | 0.490 | 0.805 | 190980 |
+| Shared, capacity 4 | Producer | 0.810 | 1.285 | 210122 |
+| Shared, capacity 4 | Default companions | 0.745 | 1.235 | 180208 |
+
+Narrowing source loading reduced the producer's CPU and RSS. Compiling and executing three assertion guests still costs CPU over the original direct calls, especially in the shared image. Allocation totals for Node were unavailable. Native direct CLI samples used two forward/reverse pairs per jobs setting and identical provider outputs. At one job the producer/final wall ranges were 0.24–0.25/0.26 s for invocation, 0.31/0.32 s for worlds and 0.24–0.25/0.26 s for stage. Four jobs took 0.28–0.38 s across those arms. These samples measure the short registrations. Publication and release-wide qualification remain with the manager.
