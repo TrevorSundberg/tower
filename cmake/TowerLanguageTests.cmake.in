@@ -48,6 +48,7 @@ if(driver_tests)
   foreach(owner IN ITEMS stack queue)
     register_language_tests(${owner} library/${owner} 2 ${compiler_memory_links})
   endforeach()
+  register_language_tests(compiler-buffer-contract tests/compiler_buffer_contract 3 ${compiler_memory_links})
   register_language_tests(sha256 library/sha256 7)
   register_language_tests(float-bits library/float_bits 9)
   # Default discovery also reaches the nine float_bits declarations.

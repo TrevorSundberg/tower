@@ -112924,3 +112924,64 @@ supports address and thread modes only. No full-compiler sanitizer or
 browser release matrix ran for this test migration. Packet
 `78993b7d-22e0-4d00-8869-94f1b99df22c` carries commands, outputs, source
 bundle, assertion map and checksums for manager integration.
+### Original native compiler buffer contract in three Tower tests
+
+The original frontend harness invokes a Boolean ABI during its allocator
+checks. Its companion now owns the size and overflow expectations, the loop
+over all 130 payload sizes, and the integer and floating-point record
+round trip. The existing entry calls those same predicates in the original
+order. A zero alignment fails the independently selected payload check before
+a remainder operation. The optional test kit registers the owner at one and
+four jobs against the compiler memory provider and installs both source files.
+The allocation bounds and data values come from the original suite.
+
+#### Host 5 qualification and frontend import repair
+
+On public `e354e5e0`, the verified bundle at SHA-256
+`679269482bdeffcc17c31e568c5578ea99d60a0f87e561bd4c03b8d2734d6b55`
+named `1ed8e8a7` on main. That candidate passed the three native declarations
+and both CTest registrations. Ordinary compilation of the original
+`compiler_buffer_owner.tower` failed at 35:19 with `Unknown function
+'compiler_buffer_allocation_size'`. The caller imports the contract owner
+and uses its size and alignment queries directly. Tower imports expose
+declarations from the directly imported module. Restoring both extern
+declarations there preserves the caller, the Boolean entry and the three
+test bodies. The memory implementation and its ABI are unchanged.
+
+The Linux x64 driver was the installed bootstrap (`e2d03c1e` SHA-256 prefix).
+Host 5 configured a fresh Release build with `TOWER_DRIVER_TESTS=ON`, built
+the count checker and narrow provider, and reused the native guest, memory
+archive and supporting objects. At one and four requested jobs, owner and
+direct companion each reported three tests at lines 53, 54 and 55. This
+was 8/8 CLI invocations across the build and moved SccTests kit, plus 2/2
+owner CTests in each location. These counts apply separately to the submitted
+and repaired inputs. The size test checks alignment and six allocation-size
+queries. The other two cover payload sizes 0 through 129 and a typed u64/f64
+record. The standalone frontend caller used the instrumented allocator and
+real memory archive. Its original fault, recovery and balance checks returned.
+An initial link added a second allocator from the host guest and failed with
+duplicate `tower_allocate`. Removing that redundant link input matched the
+frontend allocator composition.
+
+Increasing the expected f64 bits by one made the owner and direct selections
+exit 1 at 55:10. The Boolean entry returned false and the unchanged frontend
+client aborted at its contract check (exit 134). Restoring the companion's
+Git blob gave true and a successful frontend return. The same focused client
+passed ASan with leak detection and TSan, using instrumented Tower client IR
+and existing instrumented provider builds. The client is serial. The full
+frontend, browser/WASI, allocator_glue, runtime_abi, parallel sanitizer stress,
+source-level UBSan and self-host matrices are outside this receipt.
+
+Three warm-filesystem, separate-process samples per cell ran sequentially
+on the Ryzen 9 5900XT (16 cores, 32 threads). Mean wall/CPU seconds for
+native owner selection on submitted/repaired at one job were 0.260/0.253
+and 0.263/0.253 (maximum RSS 95,976/96,480 KiB). At four jobs they were
+0.367/0.417 and 0.363/0.417 (107,116/106,248 KiB). Against the public
+pre-migration fixture, compiling the original frontend client cost more:
+0.187/0.177 to 0.273/0.267 at one job (90,936 to 97,196 KiB), and
+0.230/0.240 to 0.393/0.447 at four (95,768 to 107,412 KiB). Its depfile
+grew from nine to eleven Tower sources with the companion and testing import.
+Every timed object linked and passed the same caller. These measurements
+cover small test paths, with no compiler-wide scaling or allocation profile.
+The host packet for assignment 551872f4-00bf-4893-8c60-5cbbe17499e3 contains
+the commands, diagnostics, raw samples, relocated kit and repair bundle.
