@@ -1,0 +1,39 @@
+import tower;
+import .library.vector;
+import .compiler.lr_types;
+import lr_analysis_oracle_types;
+
+fn lr_failure_rule(rule: LRProduction*, owner: usize, begin: usize, count: usize): void {
+    fill(rule, 0, sizeof(LRProduction)); rule.owner = owner; rule.begin = begin; rule.count = count;
+}
+fn lr_failure_symbol(symbol: LRSymbol*, name: usize, first: u32, last: u32): void {
+    symbol.nonterminal = name; symbol.first = first; symbol.last = last;
+}
+
+fn lr_fixture_rule(rules: vector(LRProduction)*, owner: usize, begin: usize, count: usize): void {
+    var rule: LRProduction; fill(&rule, 0, sizeof(LRProduction)); rule.owner = owner; rule.begin = begin; rule.count = count;
+    oracle_append(rules, &rule);
+}
+fn lr_fixture_symbol(symbols: vector(LRSymbol)*, owner: usize, first: u32, last: u32): void {
+    var symbol: LRSymbol; symbol.nonterminal = owner; symbol.first = first; symbol.last = last; oracle_append(symbols, &symbol);
+}
+// Nullable suffixes, left recursion and distinct overlapping terminal ranges.
+// The root and recursive A production repeatedly request the same suffix with
+// different incoming lookaheads, including the propagation and end markers.
+fn lr_suffix_fixture(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, nullable: bool): usize {
+    lr_fixture_rule(rules, 0, symbols.length, 3);
+    lr_fixture_symbol(symbols, 1, 0, 0); lr_fixture_symbol(symbols, 2, 0, 0); lr_fixture_symbol(symbols, 3, 0, 0);
+    lr_fixture_rule(rules, 1, symbols.length, 2);
+    lr_fixture_symbol(symbols, 1, 0, 0); lr_fixture_symbol(symbols, 2, 0, 0);
+    lr_fixture_rule(rules, 1, symbols.length, 0);
+    lr_fixture_rule(rules, 2, symbols.length, 1); lr_fixture_symbol(symbols, oracle_none(), 10, 20);
+    lr_fixture_rule(rules, 2, symbols.length, nullable ? 0 : 1);
+    lr_fixture_rule(rules, 3, symbols.length, 1); lr_fixture_symbol(symbols, oracle_none(), 15, 25);
+    lr_fixture_rule(rules, 3, symbols.length, 1); lr_fixture_symbol(symbols, 2, 0, 0);
+    // A second production can borrow the same symbol span with a shorter end.
+    // A suffix index must use production identity, not just the symbol offset.
+    lr_fixture_rule(rules, 0, 0, 2);
+    var names: usize = 0;
+    foreach(var &rule in rules) { if rule.owner >= names { names = rule.owner + 1; } }
+    return names;
+}
