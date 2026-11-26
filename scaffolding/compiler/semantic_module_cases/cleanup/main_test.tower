@@ -1,0 +1,8 @@
+import library.testing;
+import left;
+import shared;
+
+test() {
+    change();
+    assert(value == 9, "Mutation reaches the dependency used by deferred cleanup");
+}

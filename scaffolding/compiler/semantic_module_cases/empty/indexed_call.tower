@@ -1,0 +1,4 @@
+import tower;
+fn `values[0]`(): i32 { return 1; }
+var values: i32[1];
+print(values[0]());

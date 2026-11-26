@@ -1,0 +1,8 @@
+import library.testing;
+import left;
+import right;
+import "left.tower" as again;
+
+test() {
+    assert(answer() == 40 && again.answer() == 40 && other() == 42, "Both imports of left see the shared initializer");
+}

@@ -1,0 +1,13 @@
+import scopes;
+
+test() {
+    scope_reset();
+    scope_file("a.tower", "callable/a.tower");
+    scope_file("b.tower", "callable/b.tower");
+    assert(scope_rejects("callable/ambiguous.tower", "Ambiguous imported name 'helper'; use an import alias",
+        "main.tower", "helper(1)"), "An ordinary callable and a template can be ambiguous");
+    assert(both_outputs("callable/local_override.tower", "callable/local_override.expected"), "Local callable shadows template");
+    scope_reset();
+    assert(scope_rejects("empty/duplicate_template.tower", "Duplicate template 'Same'",
+        "main.tower", "fn Same(T: type, value: T)"), "A second template cannot reuse the spelling");
+}

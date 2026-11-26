@@ -107337,3 +107337,46 @@ generated build registry retained all 192 entries and the original driver
 arguments on all twelve wrapped commands. The manager separately checked the
 twelve installed registrations' paths and counts. The first worker matrix
 executed the SCC and SHA-256 registrations on its relocated installation.
+
+### 2026-11-26 — Seven module-scope registrations in Tower
+
+The first seven registrations in `playground/tests/module-scopes.test.mjs`
+now select Tower tests beside `compiler/semantic_modules.tower`. They configure
+17 independent programs using the original lexical filenames. In particular,
+`left.tower` is rebound between the missing and declared dependency cases.
+The assertion interpreter compares counted output bytes against sibling
+`.expected` files and checks each refusal's message, file and token. The
+browser supplies the module files, compiler handles, engine selection, and
+Foundation recompile. The twelve following registrations retain their bodies.
+
+Host 5 reused portable 41bb9b11, ordinary LLVM 15b4f33b and the published
+native bootstrap 02bbc282 on source 8bc867b6. The full Node module passed
+19/19 before and after. Running the new registrations with the original
+fixture bytes reproduced the entire 499-event trace. The readable fixtures
+preserved every diagnostic byte offset and the canonical cleanup Foundation.
+The seven groups exercised seven successes on Graph and Fast, ten refusals
+and one Foundation execution. The independent LLVM registration emitted the
+same 2,021-byte raw and 1,627-byte optimized programs and both printed
+`1\n2\n9\n`. Swapping the last two expected cleanup lines failed in
+`semantic_module_cases/browser/cleanup.tower` at 8:5, byte 210. Restoring
+the file passed.
+
+At jobs 1 and 4, `towerc --test scaffolding/compiler/semantic_modules.tower
+--test-details` selected 34 passing declarations, including seven new sibling
+companions. All seven also passed separately. Independent on-disk projects
+exercised the same 17 programs with ordinary CLI execution and a cleanup
+Foundation round trip. The bootstrap test interpreter lacks
+`test_fixture_load`, and test mode omits evaluation of six invalid top-level
+expressions even with a selected companion. Their native Graph executions
+and portable API calls supplied the refusal evidence. The native results
+include both worker widths.
+
+Node 24.22.3 ran on a Ryzen 9 5900XT with affinity 0,2,4,6, a 30.72-CPU
+quota and a 129,569,390,592-byte cgroup memory limit. Three sequentially
+paired fresh Node runs with identical guest inputs had median wall/CPU/RSS
+of 3.50 s / 4.19 s / 245,520 KiB before and 4.16 s / 4.91 s / 264,564 KiB
+after. Each new registration compiles and runs a separate Tower assertion
+entry. Restricting the files reuploaded to that interpreter reduced its
+three-run median from 4.28 s and 291,912 KiB. Receipt
+`11eef555-2661-4f05-80de-31ca23eb5d54` contains the per-case paths, raw
+outputs, source locations, controls, native timings and the source bundle.

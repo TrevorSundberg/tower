@@ -1,0 +1,66 @@
+import library.testing;
+import library.test_fixtures;
+import backend.text;
+
+// Each request compiles an independent main.tower. The test supplies both the
+// lexical import path and its backing fixture, including deliberate replacements.
+extern fn scope_reset(): void;
+extern fn scope_file(path: u8*, fixture: u8*): void;
+extern fn scope_execute(program: u8*, fast: bool): void;
+extern fn scope_roundtrip(program: u8*): void;
+extern fn scope_field(name: u8*, size: u32*): u8*;
+extern fn scope_expected(path: u8*, size: u32*): u8*;
+extern fn scope_error_source(): u8*;
+extern fn scope_error_offset(): usize;
+
+fn use_twins(): void {
+    scope_reset();
+    scope_file("left/tools.tower", "twins/left/tools.tower");
+    scope_file("right/tools.tower", "twins/right/tools.tower");
+}
+
+fn field_matches(name: u8*, wanted: FixtureBytes): bool {
+    var size: u32 = 0;
+    var value = scope_field(name, &size);
+    defer free(value);
+    return fixture_equal(init(FixtureBytes) { data: value, length: convert(usize, size) }, wanted);
+}
+
+fn field_is(name: u8*, text: u8*): bool {
+    return field_matches(name, init(FixtureBytes) { data: text, length: backend_length(text) });
+}
+
+fn output_matches(wanted: FixtureBytes): bool {
+    return field_is("status", "done") && field_matches("output", wanted);
+}
+
+fn expected_bytes(oracle: u8*): FixtureBytes {
+    var size: u32 = 0;
+    var data = scope_expected(oracle, &size);
+    return init(FixtureBytes) { data: data, length: convert(usize, size) };
+}
+
+fn both_outputs(program: u8*, oracle: u8*): bool {
+    var wanted = expected_bytes(oracle);
+    defer free(wanted.data);
+    scope_execute(program, false);
+    if !output_matches(wanted) { return false; }
+    scope_execute(program, true);
+    return output_matches(wanted);
+}
+
+fn foundation_output(program: u8*, oracle: u8*): bool {
+    var wanted = expected_bytes(oracle);
+    defer free(wanted.data);
+    scope_roundtrip(program);
+    return output_matches(wanted);
+}
+
+fn scope_rejects(program: u8*, message: u8*, path: u8*, spelling: u8*): bool {
+    scope_execute(program, false);
+    if !field_is("status", "error") || !field_is("error", message) || !field_is("errorFile", path) { return false; }
+    var source = scope_error_source();
+    defer free(source);
+    var offset = scope_error_offset();
+    return offset < backend_length(source) && backend_prefix(source + offset, spelling);
+}

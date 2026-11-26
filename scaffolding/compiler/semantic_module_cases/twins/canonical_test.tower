@@ -1,0 +1,15 @@
+import library.testing;
+import left.tools as left;
+import "right/tools.tower" as right;
+
+test() {
+    assert(left.helper() == 1 && right.helper() == 2, "Each helper resolves its own hidden function");
+    var a: left.Item;
+    var b: right.Item;
+    a.value = 30;
+    b.value = 40;
+    assert(a.value == 30 && b.value == 40, "Same-basename record declarations");
+    left.count = 5;
+    right.count = 6;
+    assert(left.count == 5 && right.count == 6, "Distinct globals");
+}

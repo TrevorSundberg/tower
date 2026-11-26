@@ -1,0 +1,5 @@
+import tower;
+import shared as common;
+print(20);
+defer print(2);
+fn change(): void { common.value = 9; }

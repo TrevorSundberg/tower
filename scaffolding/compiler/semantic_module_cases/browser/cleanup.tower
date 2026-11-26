@@ -1,0 +1,10 @@
+import scopes;
+
+test() {
+    scope_reset();
+    scope_file("shared.tower", "cleanup/shared.tower");
+    scope_file("left.tower", "cleanup/left.tower");
+    scope_file("right.tower", "cleanup/right.tower");
+    assert(both_outputs("cleanup/main.tower", "cleanup/main.expected"), "Program and module defers retain reverse order and bindings");
+    assert(foundation_output("cleanup/main.tower", "cleanup/main.expected"), "Canonical Foundation preserves module cleanup");
+}

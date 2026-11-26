@@ -1,0 +1,4 @@
+import tower;
+import shared as common;
+print(2);
+fn answer(): i32 { return common.value; }
