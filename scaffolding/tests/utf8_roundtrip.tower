@@ -1,0 +1,20 @@
+import compiler.utf8;
+import tests.utf8_cases;
+
+fn print_utf8_input(bytes: u8*, length: usize): void {
+    var scalar: u32 = 3735928559;
+    print(tower_utf8_decode(bytes, length, &scalar));
+    print(scalar);
+    print(tower_utf8_validate(bytes, length, 0));
+    print(tower_utf8_validate(bytes, length, 1));
+}
+
+fn print_utf8_scalar(scalar: u32): void {
+    var bytes: u8[8];
+    fill(&bytes[0], 165, sizeof(decltype(bytes)));
+    print(tower_utf8_encode(scalar, &bytes[0], 4));
+    print(tower_utf8_encode(scalar, null, 0));
+    for (var i: usize = 0; i < 4; i++) { print(bytes[i]); }
+}
+
+utf8_visit_cases(print_utf8_input, print_utf8_scalar, 0, 0);

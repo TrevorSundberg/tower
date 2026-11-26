@@ -1,0 +1,61 @@
+import tower;
+import utf8_oracle;
+import utility_checks;
+
+// The browser's original xorshift32 stream continues across both exported codecs.
+var Utf8CaseSeed: u32 = 463939971;
+var Utf8RandomTrials: usize = 10000;
+
+fn utf8_short_case(visit: function(void, u8*, usize), length: usize, a: u8, b: u8, c: u8, d: u8): void {
+    var bytes: u8[4];
+    bytes[0] = a; bytes[1] = b; bytes[2] = c; bytes[3] = d;
+    visit(&bytes[0], length);
+}
+
+fn utf8_random_bytes(state: u32*, trials: usize, visit: function(void, u8*, usize)): void {
+    var bytes: u8[8];
+    for (var i: usize = 0; i < trials; i++) {
+        var length = convert(usize, utility_random(state)) % (sizeof(decltype(bytes)) + 1);
+        for (var j: usize = 0; j < length; j++) { bytes[j] = convert(u8, utility_random(state) & 255); }
+        visit(&bytes[0], length);
+    }
+}
+
+// A zero continuation starts the first wave after the 32 seeded byte samples.
+// A later wave replays those same samples before resuming its large random stream.
+fn utf8_visit_cases(input: function(void, u8*, usize), scalar: function(void, u32), trials: usize, continuation: u32): u32 {
+    utf8_short_case(input, 0, 0, 0, 0, 0);
+    utf8_short_case(input, 1, 0, 0, 0, 0);
+    utf8_short_case(input, 1, 65, 0, 0, 0);
+    utf8_short_case(input, 1, 194, 0, 0, 0);
+    utf8_short_case(input, 2, 194, 32, 0, 0);
+    utf8_short_case(input, 2, 192, 128, 0, 0);
+    utf8_short_case(input, 2, 193, 191, 0, 0);
+    utf8_short_case(input, 3, 224, 128, 128, 0);
+    utf8_short_case(input, 3, 237, 160, 128, 0);
+    utf8_short_case(input, 4, 244, 144, 128, 128);
+    utf8_short_case(input, 4, 245, 128, 128, 128);
+    utf8_short_case(input, 1, 255, 0, 0, 0);
+
+    var edges: u32[17];
+    edges[0] = 0; edges[1] = 1; edges[2] = 127; edges[3] = 128;
+    edges[4] = 2047; edges[5] = 2048; edges[6] = 55295; edges[7] = 55296;
+    edges[8] = 56319; edges[9] = 56320; edges[10] = 57343; edges[11] = 57344;
+    edges[12] = 65535; edges[13] = 65536; edges[14] = 1114111;
+    edges[15] = 1114112; edges[16] = 4294967295;
+    var count = sizeof(decltype(edges)) / sizeof(u32);
+    var bytes: u8[4];
+    for (var i: usize = 0; i < count; i++) {
+        var length = reference_utf8_encode(edges[i], &bytes[0], sizeof(decltype(bytes)));
+        if length != 0 {
+            for (var prefix: usize = 0; prefix <= length; prefix++) { input(&bytes[0], prefix); }
+        }
+    }
+    var state = Utf8CaseSeed;
+    utf8_random_bytes(&state, 32, input);
+    if continuation != 0 { state = continuation; }
+    utf8_random_bytes(&state, trials, input);
+    for (var i: usize = 0; i < count; i++) { scalar(edges[i]); }
+    for (var i: usize = 0; i < trials; i++) { scalar(utility_random(&state) % 1114113); }
+    return state;
+}

@@ -105991,3 +105991,70 @@ before main. The completed cells produced no sanitizer finding. Standalone
 UBSan is unsupported by the Tower build. The measured scope is native Linux
 owner-suite execution with inputs frozen during each command. The handoff
 is tower-evidence/39493c81-bbab-4685-83bf-2f6746d9e0bf.tar.gz.
+## Moving the browser UTF-8 corpus into the native companion
+
+Host 5 used `3ae475c2edaca11573bcb74c47a287508ee48981`, which includes the
+Jenkins 51 memory-view repair and native companion discovery. The three old
+registrations, their original lines, and their remaining host responsibilities
+are listed in the [test inventory](test-inventory.md#utf-8-codec-and-the-public-wasm-boundary).
+The new companion calls the original public codec and the existing independent
+Tower reference. A shared visitor supplies the actual inputs to native assertions,
+the host's live TextDecoder/TextEncoder differential, and a checked-in Tower
+program for Foundation/LLVM equivalence. A small test-only Wasm module sends
+borrowed spans to synchronous JS callbacks. The public reactors compiled the
+shared fixtures with ordinary functions and array stores.
+
+A read-only observer captured 20,164 decode inputs, 20,034 encode scalars and
+the bounded transcript from the original runner. Their 40,199 ordered JSON
+lines (912,263 bytes) matched the migrated runner byte for byte, SHA-256
+`1fc24dc757afc3c53899b73270bc0c26ad0afc641123aa1c0eecbfb64f07273d`.
+The golden transcript was taken from the original host oracle. It has 430 lines,
+1,038 bytes, SHA-256 `fb09454d66fb7a5ee1dda7d4c965ad0662ab8e4548e3d06ef029356410c3953b`.
+All four public execution paths returned those bytes without truncation.
+The loop-based source and reparsed Foundation each took 80,720 interpreter steps,
+up from 25,105 with the unrolled source, within the existing 1,000,000-step call.
+
+The ordinary native CLI was built with the verified public bootstrap using
+`playground/scripts/build-native.sh`, four outer jobs and one worker per compiler
+invocation. At jobs 1 and 4, both `--test --test-details compiler/utf8.tower`
+and direct selection of its companion reported one test and empty stdout.
+Wall seconds and peak RSS KiB were 6.65/79,060 and 6.62/88,528 for the owner,
+6.57/79,112 and 6.65/87,676 for the companion. The baseline owner selected zero.
+Both CTest entries passed. Substituting 66 for the expected scalar 65 failed
+at `utf8_test.tower:12:5` with exit 1 in all four selections. A separate wrong
+JS oracle failed on the staged public reactor. Ordinary owner compilation at
+both widths reproduced the baseline 1,416-byte object and its depfile. In an
+isolated copy, changing the companion from a wrong assertion to an unresolved
+import likewise preserved both outputs. The object exports the original three
+codec functions.
+
+Both the staged public portable/LLVM pair from Pages `3d57e291` and the prior
+#51 portable reactor with that LLVM companion passed all three Node suites.
+With current module snapshots the diagnostic fit in existing memory. Mounting
+the exact `32316524` inputs in the #51 portable instance reproduced the first
+NUL rejection growing memory from 13,762,560 to 13,828,096 bytes. The old view
+reported zero bytes. The fresh view read the terminated diagnostic at 6,153,648;
+substituting the cached view reproduced the detached-buffer TypeError.
+
+Three warm-filesystem pairs used one fresh Node v24.22.3 invocation at a time
+on the same frozen public reactors, resource files and affinity, with order
+before/after, after/before, before/after. Median complete-file wall/CPU seconds
+were 3.00/5.90 before and 1.84/3.78 after, with median peak RSS 332,408 and
+311,740 KiB. The compiled canonical text shrank from 103,641 to 57,792 bytes.
+These figures include compilation, host crossings and execution. The host was
+a Ryzen 9 5900XT with 16 cores/32 threads, cpuset 0–31, affinity 0,2,4,6,
+30.72 CPU quota, and a 129,569,390,592-byte memory limit. Native worker widths
+apply to compilation; the test visitor executes serially.
+
+The first native draft used a reserved identifier, then relied on transitive
+visibility for a helper. Renaming the local and directly importing the oracle
+and utility module resolved both diagnostics. ASan/LSan ran the actual companion
+helpers over both streams in a compiled guest with the expected final states.
+The first sanitizer harness link selected the freestanding runtime and conflicted
+with the CRT entry; the hosted runtime supplied main. A separately TSan-instrumented
+native CLI passed the four-worker owner through normal test discovery (164.57 s,
+271,852 KiB). Its link map identifies the production allocator and Linux worker
+transport. The Tower instrumentation tool supports address and thread modes;
+source-level UBSan and the complete Jenkins pipeline remain outside these checks.
+Receipt `bbfcfa63-9861-40bd-a323-a3bee3368950` carries the original and migrated
+streams, source locations, reactors, normal CLI, commands and sanitizer records.
