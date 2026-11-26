@@ -5,6 +5,7 @@ import .library.work_budget_types;
 import foundation_types;
 import type_object_index_types;
 
+var InterpreterOutputLimit: usize = 65536;
 var InterpreterInlineArgumentStorage: type = array_type(u64, 16);
 
 // Execution storage only; entity keys refer to the existing foundation nodes.
