@@ -1,0 +1,32 @@
+import library.test_fixtures;
+
+// A direct companion import declares the owner's .fixtures list. Each listed
+// stem grants a child source and the literal bytes of its expected diagnostic.
+fn assert_rejection_message(actual: FixtureBytes, wanted: FixtureBytes, offset: usize, wanted_offset: usize): void {
+    assert(offset == wanted_offset, "wrong diagnostic byte offset");
+    assert(fixture_equal(actual, wanted), "wrong diagnostic message or instantiation frame");
+}
+
+fn check_fixture_rejection(path: u8*, expected_name: u8*, offset: usize, line: usize, column: usize): void {
+    var source = path;
+    for (var i: usize = 0; path[i] != 0; ++i) {
+        if path[i] == *"/" { source = path + i + 1; }
+    }
+    var result = fixture_diagnostic(source);
+    defer fixture_diagnostic_dispose(&result);
+    var name: FixtureBytes = {data: path, length: fixture_text_length(path)};
+    assert(result.file.length >= name.length, "missing diagnostic source");
+    var start = result.file.length - name.length;
+    var file: FixtureBytes = {data: result.file.data + start, length: name.length};
+    assert((start == 0 || result.file.data[start - 1] == *"/") && fixture_equal(file, name), "wrong diagnostic source");
+    assert(result.line == line && result.column == column, "wrong diagnostic line or column");
+    var wanted = fixture_text(expected_name);
+    defer free(wanted.data);
+    assert_rejection_message(result.message, wanted, result.offset, offset);
+}
+
+fn check_fixture_acceptance(source: u8*): void {
+    var clean = fixture_diagnostic(source);
+    defer fixture_diagnostic_dispose(&clean);
+    assert(clean.file.data == null && clean.message.data == null, "valid owner rejected");
+}

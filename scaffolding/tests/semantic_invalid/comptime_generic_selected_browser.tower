@@ -1,0 +1,5 @@
+import rejection_observation;
+
+test() {
+    check_browser_rejection("comptime_generic_selected.tower", 97);
+}

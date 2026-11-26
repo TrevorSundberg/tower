@@ -8,6 +8,10 @@ import .library.vector;
 
 extern fn frontend_modules_location(modules: void*, offset: usize, line: usize*, column: usize*): u8*;
 
+extern fn frontend_modules_source_location(modules: void*, offset: usize, local: usize*, line: usize*, column: usize*): u8*;
+
+extern fn frontend_fixture_input_failed(modules: void*): bool;
+
 extern fn frontend_fixture_child(modules: void*, entry: u8*): void*;
 
 extern fn frontend_fixture_read(modules: void*, path: u8*, text: vector(u8)*, source: bool, registered_only: bool): u8*;
@@ -73,10 +77,42 @@ fn execution_fixture_fail(session: ExecutionSession*, reason: u8*, path: u8*, at
     return 0;
 }
 
-fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize): u64 {
+// The guest receives counted bytes, never a pointer into the child's world or
+// source map. Only a mapped language rejection is a successful observation.
+fn execution_fixture_diagnostic(session: ExecutionSession*, child: ExecutionSession*, inputs: void*, path: u8*,
+    args: u64*, at: usize): u64 {
+    var resource = child.program.resource.error;
+    if resource == WorkBudgetError.None { resource = child.machine.storage_error; }
+    if resource != WorkBudgetError.None { return execution_fixture_fail(session, sem_resource_message(resource), path, at); }
+    if child.error.length == 0 { return execution_fixture_fail(session, "Fixture compilation failed without a diagnostic", path, at); }
+    if frontend_fixture_input_failed(inputs) { return execution_fixture_fail(session, child.error.data, path, at); }
+    var local: usize = 0;
+    var line: usize = 0;
+    var column: usize = 0;
+    var file = frontend_modules_source_location(inputs, child.machine.error_offset, &local, &line, &column);
+    var length = strlen(file);
+    if length == 0 || child.error.length > ~convert(usize, 0) - length {
+        return execution_fixture_fail(session, "Cannot locate fixture diagnostic", path, at);
+    }
+    var size = length + child.error.length;
+    var address = interpreter_allocate(&session.machine, size);
+    if address == 0 { return execution_fixture_fail(session, "Cannot allocate fixture diagnostic", path, at); }
+    var target = interpreter_bytes(&session.machine, address, size, at);
+    if target == null { return 0; }
+    copy(target, file, length);
+    copy(target + length, child.error.data, child.error.length);
+    var fields: usize[5] = {length, child.error.length, local, line, column};
+    var word: FoundationType = {scalar: SUSize, pointer_bytes: session.program.pointer_bytes, ..default};
+    for (var i: usize = 0; i < sizeof(decltype(fields)) / sizeof(usize); i++) {
+        interpreter_write(&session.machine, args[2 + i], convert(u64, fields[i]), &word, at);
+    }
+    return address;
+}
+
+fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize, diagnostic: bool): u64 {
     var at: usize = 0;
     var pair = execution_fixture_grant(session, &at);
-    if pair == null || count != 4 {
+    if pair == null || count != (diagnostic ? 7 : 4) {
         return execution_fixture_fail(session, "No fixture grant for this test", null, at);
     }
     var length = convert(usize, args[1]);
@@ -85,29 +121,46 @@ fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize):
         return 0;
     }
     var source = fixture_leaf_matches(pair.source.data, name, length);
-    var run = args[2] != 0;
-    if !source &&(run || !fixture_leaf_matches(pair.oracle.data, name, length)) {
-        return execution_fixture_fail(session, "Fixture was not granted for this test", null, at);
-    }
-    var path = source ? pair.source.data: pair.oracle.data;
+    var run = !diagnostic && args[2] != 0;
+    var path = source ? pair.source.data : pair.oracle.data;
     var text: vector(u8) = default;
     defer vector_dispose(&text);
     var modules = session.fixtures.modules;
-    var error = frontend_fixture_read(modules, path, &text, source, session.fixtures.selection.registered_fixtures);
-    if error != null {
-        return execution_fixture_fail(session, error, path, at);
+    var frozen: ModuleInput* = null;
+    if !source && pair.inputs.length != 0 {
+        var suffix = diagnostic ? ".tower" : ".expected";
+        var size = strlen(suffix);
+        if !run && length > size && memcmp(name + length - size, suffix, size) == 0 {
+            foreach (var &input in &pair.inputs) {
+                if fixture_leaf_matches(input.name.data, name, length) { frozen = input; break; }
+            }
+        }
+        if frozen == null { return execution_fixture_fail(session, "Fixture was not granted for this test", null, at); }
+        path = frozen.name.data;
+    } else {
+        if !source && (run || !fixture_leaf_matches(pair.oracle.data, name, length)) {
+            return execution_fixture_fail(session, "Fixture was not granted for this test", null, at);
+        }
+        var error = frontend_fixture_read(modules, path, &text, source, session.fixtures.selection.registered_fixtures);
+        if error != null { return execution_fixture_fail(session, error, path, at); }
     }
-    var data = text.data;
-    var size = text.length;
+    var data = frozen != null ? frozen.text.data : text.data;
+    var size = frozen != null ? frozen.text.length : text.length;
+    var inputs: void* = null;
+    defer { if inputs != null { frontend_modules_destroy(inputs); } }
     var child: ExecutionSession = default;
     defer execution_session_close(&child);
-    if run {
-        var inputs = frontend_fixture_child(modules, path);
+    if run || diagnostic {
+        inputs = frontend_fixture_child(modules, path);
         if inputs == null {
             return execution_fixture_fail(session, "Cannot open fixture environment", path, at);
         }
-        defer frontend_modules_destroy(inputs);
-        if execution_session_compile(&child, data, size, session.program.pointer_bytes, inputs) {
+        var compiled = execution_session_compile(&child, data, size, session.program.pointer_bytes, inputs);
+        if diagnostic {
+            if compiled { return 0; }
+            return execution_fixture_diagnostic(session, &child, inputs, path, args, at);
+        }
+        if compiled {
             child.fixtures = session.fixtures;
             execution_session_step(&child, FixtureStepLimit);
         }
@@ -140,7 +193,11 @@ fn execution_fixture_load(session: ExecutionSession*, args: u64*, count: usize):
 fn execution_fixture_foreign(session: ExecutionSession*, node: void*, args: u64*, count: usize, capture_stdout: bool, result: u64*): bool {
     var name = sem_get(node).name.data;
     if session.program.test_mode && strcmp(name, "test_fixture_load") == 0 {
-        *result = execution_fixture_load(session, args, count);
+        *result = execution_fixture_load(session, args, count, false);
+        return true;
+    }
+    if session.program.test_mode && strcmp(name, "test_fixture_compile") == 0 {
+        *result = execution_fixture_load(session, args, count, true);
         return true;
     }
     if(capture_stdout || !session.program.test_mode) && strcmp(name, "platform_write") == 0 {

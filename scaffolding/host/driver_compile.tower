@@ -351,6 +351,7 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
     var modules = driver_request_modules(request);
     var affected = state.affected;
     var probe: DriverTestProbe = { options: request.options, affected: affected, ..default };
+    request.tests.open_sibling = driver_open_fixture_sibling;
     var discovery: TestFileDiscovery = { selection: &request.tests, context: bits(void*, &probe), probe: driver_test_probe };
     {
         var previous = frontend_modules_swap_test_discovery(modules, &discovery);

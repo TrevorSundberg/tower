@@ -6,3 +6,11 @@ export fn driver_stat_mode(data: u8*): u32 {
     var mode_offset: usize = 24;
     return *bits(u32*, data + mode_offset);
 }
+
+// O_NOFOLLOW is architecture-specific in the Linux userspace ABI.
+export fn driver_fixture_open_flags(): i32 {
+    var no_follow: i32 = 131072;
+    var non_block: i32 = 2048;
+    var close_on_exec: i32 = 524288;
+    return no_follow | non_block | close_on_exec;
+}

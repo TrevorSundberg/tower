@@ -1,0 +1,54 @@
+import library.testing;
+import library.test_fixtures;
+import library.test_rejections;
+
+extern fn stage_text(field: u8*): u8*;
+extern fn stage_expected(): u8*;
+extern fn stage_expected_size(): usize;
+extern fn stage_error_offset(): usize;
+extern fn stage_portable(): bool;
+extern fn stage_steps(): usize;
+extern fn stage_output_truncated(): bool;
+
+fn rejection_after_prefix(text: u8*, prefix: u8*): u8* {
+    while *prefix != 0 {
+        if *text != *prefix { return null; }
+        ++text;
+        ++prefix;
+    }
+    return text;
+}
+
+fn rejection_equal(text: u8*, wanted: u8*): bool {
+    var end = rejection_after_prefix(text, wanted);
+    return end != null && *end == 0;
+}
+
+fn rejection_message(file: u8*): u8* {
+    var status = stage_text("status");
+    defer free(status);
+    assert(rejection_equal(status, "error"), status);
+
+    var path = stage_text("errorFile");
+    defer free(path);
+    var basename = rejection_after_prefix(path, ".tower/tests/semantic_invalid/");
+    assert(basename != null && rejection_equal(basename, file), path);
+
+    if stage_portable() {
+        var output = stage_text("output");
+        defer free(output);
+        assert(!stage_output_truncated() && output[0] == 0 && stage_steps() == 0,
+            "Expected rejection before guest execution");
+    }
+    return stage_text("error");
+}
+
+fn check_browser_rejection(file: u8*, offset: usize): void {
+    var error = rejection_message(file);
+    defer free(error);
+    var oracle = stage_expected();
+    defer free(oracle);
+    var actual: FixtureBytes = {data: error, length: fixture_text_length(error)};
+    var wanted: FixtureBytes = {data: oracle, length: stage_expected_size()};
+    assert_rejection_message(actual, wanted, stage_error_offset(), offset);
+}

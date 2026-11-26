@@ -40,6 +40,7 @@ fn execution_test_declaration_world(request: DriverRequest*, workers: usize): vo
     execution_test_array_assertions(modules, true);
     execution_test_discovery_reset(modules);
     fixture_file_checks(modules, request.root);
+    fixture_diagnostic_profiles(modules, request.root);
     frontend_modules_destroy(modules);
     execution_check(frontend_world_clear(world) && compiler_world_dispose(world), "test request world drains");
     var final: WorkBudgetSnapshot = default;

@@ -1,0 +1,5 @@
+import rejection_observation;
+
+test() {
+    check_browser_rejection("comptime_return.tower", 14);
+}

@@ -38,3 +38,35 @@ export fn driver_platform_file_kind(path: u8*): DriverFileKind {
 export fn driver_platform_regular(path: u8*): bool {
     return driver_platform_file_kind(path) == DriverFileKind.Regular;
 }
+
+extern fn CreateFileA(path: u8*, access: u32, sharing: u32, security: void*, disposition: u32, flags: u32, template_file: void*): void*;
+extern fn GetFileType(handle: void*): u32;
+extern fn GetFileInformationByHandleEx(handle: void*, kind: u32, data: void*, bytes: u32): i32;
+extern fn CloseHandle(handle: void*): i32;
+extern fn _open_osfhandle(handle: i64, flags: i32): i32;
+extern fn _fdopen(fd: i32, mode: u8*): void*;
+extern fn _close(fd: i32): i32;
+
+export fn driver_open_fixture_sibling(path: u8*): void* {
+    var generic_read: u32 = 2147483648;
+    var open_existing: u32 = 3;
+    var open_reparse_point: u32 = 2097152;
+    var handle = CreateFileA(path, generic_read, 1, null, open_existing, open_reparse_point, null);
+    if bits(i64, handle) == -1 { return null; }
+    var attribute_tag_info: u32 = 9;
+    var info: u32[2];
+    var disk: u32 = 1;
+    var directory_or_reparse: u32 = 16 | 1024;
+    if GetFileType(handle) == disk && GetFileInformationByHandleEx(handle, attribute_tag_info, bits(void*, &info[0]), convert(u32, sizeof(decltype(info)))) != 0
+        && (info[0] & directory_or_reparse) == 0 {
+        var binary: i32 = 32768;
+        var fd = _open_osfhandle(bits(i64, handle), binary);
+        if fd >= 0 {
+            var stream = _fdopen(fd, "rb");
+            if stream == null { _close(fd); }
+            return stream;
+        }
+    }
+    CloseHandle(handle);
+    return null;
+}
