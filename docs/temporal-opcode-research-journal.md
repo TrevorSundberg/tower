@@ -112539,8 +112539,8 @@ instrumented production platform provider after the default call passes.
 Both that execution and the six interpreted scalar runs must make one
 fd 1, zero-byte write returning zero. The suite transports the call records
 independently of program output. [Node transport](../playground/tests/llvm-execution.test.mjs)
-· [Synchronous checks](../playground/tests/fixtures/llvm_execution/pipeline.tower)
-· [Linked result](../playground/tests/fixtures/llvm_execution/wasm_result.tower)
+· [Synchronous checks](../playground/tests/fixtures/llvm_execution/pipeline_test.tower)
+· [Linked result](../playground/tests/fixtures/llvm_execution/wasm_result_test.tower)
 
 The matched public images came from Pages `9788bd66`, all built from
 `64fcfc1a5d3d33a42a8cc05260b334c81d84ef2b`. Their raw SHA-256 prefixes
@@ -113198,3 +113198,53 @@ fixed. Assignment `703dd03e-8dc5-4ff6-912a-e02c8ffe9e44` contains the exact
 commands, fresh and live-process costs per individual name, traces, original
 failures, restored runs and source bundle. Allocation counters and multicore
 scaling were outside the single-slot test interface.
+### LLVM assertion filenames and public release selection
+
+Host 5 renamed the two dedicated test entries on public main `7f444166`.
+The fixture uploader, the synchronous pipeline selection and both linked
+result selections now use `pipeline_test.tower` and `wasm_result_test.tower`.
+The assertion bodies, shared observations, subject inputs and stdout oracles
+retain their Git blobs.
+
+A filename-only portable run passed six names and failed all 45 migrations
+with `Cannot open registered test owner`. The default companion rule strips
+`_test` and opens the same-stem owner. The three selector calls now use the
+existing browser fixture convention, `suffix:'_browser_test.tower'`, to open
+each dedicated file as the entry. The six other registrations are byte-identical.
+
+The portable, shared and LLVM images matched the raw hashes in Pages release
+`9788bd66` (compiler source `64fcfc1a`). On each image the full
+`node --test --test-concurrency=1 --test-reporter=tap playground/tests/llvm-execution.test.mjs`
+passed the same 51 names before and after the change. A separate trace after
+each successful selection recorded one pipeline and one result entry for all
+45 names, plus a second result entry for each of the ten scalar rows. The
+existing helper asserts exactly one declaration per entry. All 415 backend
+result records, including bounded stdout and observed writes, matched across
+both images, the original suite, the delivered suite and the traced restoration.
+
+In isolated copies, expecting two writes in the traced linked invocation of
+`absolute i32` failed at byte 264 of `wasm_result_test.tower` after the
+default linked invocation passed. The trace recorded one zero-byte write on
+fd 1 returning zero. In the host-signature case, the separate `host_check`
+counter also failed when its expected increment changed to two. Both images
+caught both mutations. Reversing them restored the scalar output lines 7,
+−2147483648 and 8, and the host-signature test's `-42\n` output check passed.
+Four focused names per image also passed with V8 explicit Wasm bounds checks.
+The release images carry no source ASan, UBSan or TSan instrumentation.
+
+Host 5 ran one fresh Node 24.22.3 process at a time with warm filesystem inputs,
+phase logging, affinity 0–3 on a Ryzen 9 5900XT (16 cores, 32 hardware threads)
+and the host timing lock. Portable used one lane, the shared subject had
+capacity four, and its assertion host had capacity one. GNU time recorded
+one sample per cell for the full 51-name file.
+
+| Image | Wall s, before → after | User s | System s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Portable | 24.28 → 24.29 | 30.22 → 30.26 | 0.62 → 0.67 | 755796 → 762332 |
+| Shared | 27.26 → 27.28 | 35.19 → 35.29 | 1.78 → 1.83 | 910288 → 913356 |
+
+The subject's maximum sampled linear memory was 260,898,816 bytes on portable
+and 265,027,584 bytes on shared on both arms. All sampled legacy allocation
+counts were zero. Assignment `470d4213-0716-486e-bacb-bcb916f2e3d5` contains
+the raw TAP, ordered selections, release manifest, source patch, timings and
+counter controls. The manager owns publication.

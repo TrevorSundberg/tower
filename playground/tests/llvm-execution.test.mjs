@@ -15,6 +15,8 @@ const grammar = (await read('scaffolding/foundation.tower')).toString();
 const towerBytes = await readFile(process.env.TOWER_TEST_WASM || new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
 const llvmBytes = process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm');
 const fixtures = 'playground/tests/fixtures/llvm_execution/';
+// Select the two assertion files as entries. Neither has a same-stem owner.
+const assertionOptions = {suffix:'_browser_test.tower'};
 const idioms = JSON.parse(await read('scaffolding/tests/llvm-scalar-idioms.json'));
 
 // Forward the real ABI operation and retain its arguments and return separately
@@ -163,7 +165,7 @@ let sample, assertionHost;
 async function openAssertions() {
   const inputs = files.filter(({path}) => ['.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
     '.tower/backend/text.tower', '.tower/library/vector.tower'].includes(path));
-  for (const path of ['observations.tower', 'pipeline.tower', 'wasm_result.tower'])
+  for (const path of ['observations.tower', 'pipeline_test.tower', 'wasm_result_test.tower'])
     inputs.push({path, text:(await read(fixtures + path)).toString()});
 
   function field(context, key) {
@@ -233,14 +235,14 @@ for (const row of cases) test(`LLVM matches interpreter: ${row.name}`, async () 
   sample = {row, expected:row.expected ?? await read(fixtures + 'expected/' + row.golden + '.expected')};
   sample.steps = pipeline(row, source, sample, phase, save);
   try {
-    runSelectedTest(assertionHost, 'pipeline.tower', 300);
+    runSelectedTest(assertionHost, 'pipeline_test.tower', 300, assertionOptions);
     phase('LLVM Wasm execute');
     const actual = await executeWasm(sample.compiled);
     if (sample.graph.status === 'error')
       phase(`LLVM Wasm diagnostic: reference ${sample.graph.errorOffset}, returned ${actual.errorOffset}`);
     sample.current = originalDiagnostic(actual, sample.formatted.spans, sample.formatted.sourceMap);
     phase('LLVM Wasm result', {result:sample.current});
-    runSelectedTest(assertionHost, 'wasm_result.tower', 300);
+    runSelectedTest(assertionHost, 'wasm_result_test.tower', 300, assertionOptions);
     if (row.scalar) {
       // Keep the default linked execution above. Observe an independent call
       // through the real platform implementation with a separate byte sink.
@@ -249,7 +251,7 @@ for (const row of cases) test(`LLVM matches interpreter: ${row.name}`, async () 
         const probe = await executeWasm(sample.compiled, undefined, {imports:traceWrites(() => {})});
         sample.current = {...originalDiagnostic(probe, sample.formatted.spans, sample.formatted.sourceMap), writes};
         phase('LLVM Wasm platform calls', {result:sample.current});
-        runSelectedTest(assertionHost, 'wasm_result.tower', 300);
+        runSelectedTest(assertionHost, 'wasm_result_test.tower', 300, assertionOptions);
       } finally { writes = undefined; }
     }
     assert.ok(sample.steps.next().done, 'Unconsumed host operation');
