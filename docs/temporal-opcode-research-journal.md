@@ -121026,3 +121026,27 @@ the public manifest and verified hashes, raw process/worker traces, all
 binary comparisons, injected failures, restored results and local Git
 bundles. The implementation at the requested freeze is `12f30be7`.
 Publication belongs to the manager.
+
+### Reporting the seven malformed semantic rules in the browser execution suite
+
+The original execution module on `1a58cbf3` reports nine top-level registrations
+and seven nested cases. The first Tower migration at `9242be31` ran all seven
+malformed programs in one declaration. It preserved the subject operations
+but stopped reporting individual subtests. The original TAP had 16 results
+and the first migration had nine. The raw receipt is `030ccf2a`.
+
+The portable and shared traces each preserve 215 original subject calls,
+including 47 compilations and 51 execution results. The one added real edit
+changes the example's loop bound after the original identical-input reset.
+Each reset completed with zero grammar builds and three cache hits. A wrong
+expected value in each of the nine groups failed on both images. Four paired
+single-CPU runs on the same host averaged 1.19 to 2.26 seconds for the portable
+suite and 1.78 to 3.09 seconds for the shared suite. These measurements cover
+the first migration.
+
+The revised registration takes each original subtest title from the guest
+program after its import line. Each subtest selects its own Tower declaration
+and calls a shared Tower helper to check the diagnostic, status and zero-step
+count. The raw programs remain separate files. Independent execution of the
+revised registration, individual failure reporting and its resource cost
+are pending at this revision.

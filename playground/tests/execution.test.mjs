@@ -80,4 +80,11 @@ test('nested structured control flow, scope, and resumable loops', () => check('
 test('output is bounded, drained once, and machines release their parse trees', () => check('bounded_output'));
 test('replacement diagnostics retain invocation coordinates, including UTF-8', () => check('diagnostics'));
 test('editing the executable example reuses every compiled grammar revision', () => check('retained'));
-test('edited semantic rules fail with diagnostics instead of invalid node access', () => check('semantic_rules'));
+test('edited semantic rules fail with diagnostics instead of invalid node access', async t => {
+  const cases = ['core_if', 'core_assign', 'core_call_statement', 'core_address', 'core_load', 'core_call', 'core_function'];
+  for (const name of cases) {
+    const source = readFileSync(new URL(name + '.tower', inputs), 'utf8');
+    const title = source.slice(source.indexOf('\n') + 1);
+    await t.test(title, () => check(name));
+  }
+});

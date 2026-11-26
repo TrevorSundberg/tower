@@ -74,3 +74,12 @@ fn rejects(name: u8*, fragment: u8*): void {
     run_file(name);
     expect_diagnostic(fragment);
 }
+
+fn malformed(file: u8*): void {
+    run_file(file);
+    expect_field("status", "error", file);
+    assert(execution_steps() == 0, file);
+    var error = execution_text("error");
+    defer free(error);
+    assert(backend_contains(error, "Missing foundation tree") || backend_contains(error, "missing capture"), file);
+}
