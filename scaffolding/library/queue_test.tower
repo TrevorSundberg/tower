@@ -1,0 +1,61 @@
+import library.testing;
+import queue;
+
+// Wrap the ring, grow it, then replace a populated queue and drain it.
+test() {
+    var fifo: queue(i32);
+    var destination: queue(i32);
+    queue_init(i32, &fifo);
+    queue_init(i32, &destination);
+    defer queue_dispose(i32, &fifo);
+    defer queue_dispose(i32, &destination);
+
+    var next = 0;
+    for (; next < 8; next++) {
+        assert(queue_push(i32, &fifo, next));
+    }
+    var output: i32 = 0;
+    var expected_value = 0;
+    for (; expected_value < 5; expected_value++) {
+        assert(queue_pop(i32, &fifo, &output));
+        assert(output == expected_value);
+    }
+    var count = 100;
+    for (; next < count; next++) {
+        assert(queue_push(i32, &fifo, next));
+    }
+
+    var length = fifo.length;
+    assert(!queue_pop(i32, &fifo, null));
+    assert(fifo.length == length);
+    var maximum: usize = 0;
+    maximum--;
+    var data = fifo.data;
+    assert(!queue_reserve(i32, &fifo, maximum));
+    assert(fifo.data == data);
+
+    queue_move(i32, &fifo, &fifo);
+    assert(queue_push(i32, &destination, 999));
+    queue_move(i32, &destination, &fifo);
+    assert(fifo.data == null);
+    while queue_pop(i32, &destination, &output) {
+        assert(output == expected_value, "Moved queue must pop in FIFO order");
+        expected_value++;
+    }
+    assert(expected_value == count);
+    output = 123;
+    assert(!queue_pop(i32, &destination, &output));
+    assert(output == 123);
+}
+
+// Read a borrowed pointee through the pointer popped from the queue.
+test() {
+    var pointers: queue(i32*);
+    queue_init(i32*, &pointers);
+    defer queue_dispose(i32*, &pointers);
+    var value = 123;
+    assert(queue_push(i32*, &pointers, &value));
+    var pointer: i32* = null;
+    assert(queue_pop(i32*, &pointers, &pointer));
+    assert(*pointer == 123);
+}

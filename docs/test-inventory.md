@@ -93,3 +93,14 @@ companion writes empty guest stdout and reports its eight locations on stderr.
 The original `work_resume` browser registration still exercises its backend
 matrix. Run the CLI commands against the source checkout so the companion can
 import `scaffolding/host/memory.tower`.
+
+### Stack and queue cases
+
+`scaffolding/library/stack_test.tower` checks empty-pop output and LIFO order
+after growth, self-move and replacement of a populated destination.
+`scaffolding/library/queue_test.tower` checks FIFO order across wraparound,
+growth and moves, rejected pops and reserve, and borrowed pointer elements.
+The [case map](evidence/language_collections_checks.tsv) pairs all 25 failure
+codes in `language_collections.tower` with their adjacent assertions.
+The browser suite continues to run the original script, which prints zero
+across its interpreter, Foundation round-trip and LLVM comparisons.

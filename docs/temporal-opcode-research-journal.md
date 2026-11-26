@@ -106269,3 +106269,48 @@ suite and allocator are unchanged. The new packaging requires no compiler
 or bootstrap generation. Assignment `5f514e37-fdf7-4f2f-a3e4-df4c5d65442e`
 retains the CMake inputs, exact commands, diagnostics, case traces,
 per-file manifests and review bundles.
+
+### 2026-11-26 — Adjacent stack and queue tests
+
+On host 8 the public collections corpus and its browser caller had the same
+Git blobs at the reviewed public main `4b2685e5` and kit parent `397ddd53`.
+The fixture has 25 numbered failure results. Its only checked-in execution
+caller, `playground/tests/semantic-port.test.mjs`, requires exactly zero and
+a newline across 32/64-bit graph and fast execution, canonical Foundation
+reparse, LLVM Foundation at two optimization settings, and wasm32 execution
+from source and canonical text. Its targeted Node test passed on the retained
+reactors. Both the caller and the fixture retain their original blobs.
+
+Two declarations per owner now exercise the eight stack checks and seventeen
+queue checks. The source-line mapping is in
+`docs/evidence/language_collections_checks.tsv`. The public development
+compiler pinned at `e3872c21` passed both owners and both companions via
+ordinary `--test` at jobs 1 and 4. The same inputs passed in the existing
+relocated native language-test kit. The production memory archive supplied
+`tower_deallocate`; its host object needed the kit's bytes and UTF-8 objects.
+The shared CTest registration supplies those three inputs with the existing
+native test runtime. The install adds only the two companion files and
+updates the private CTest registration.
+
+With source and build paths unavailable, each owner selected just its own
+companion. Reversing the expected drain order gave driver exit 1 at
+`stack_test.tower:36:9` and `queue_test.tower:42:9` through both compilers,
+on both routes and at both widths. The other owner still passed. Applying
+the corresponding changes to the legacy script printed 8 and 19. A normal
+two-owner consumer printed 42 and produced identical objects at jobs 1 and 4
+in the ordinary and optional kits. Adding/removing the companions in place
+gave byte-identical depfiles containing the two production owners. The
+common kit passed all twelve registered commands. Fully instrumenting the
+legacy fixture and its runtime passed ASan with leak detection and TSan.
+Four TSan launches hit the host personality restriction before the successful
+launch. Tower source-level UBSan remains unavailable.
+
+Three sequential warm-file samples per width on a Ryzen 9 7900X, affinity
+0–23 and CPU quota 23.04, measured the complete published CLI commands.
+At jobs 1/4 the original combined fixture took median 0.15/0.19 s wall and
+0.14/0.19 s CPU with peak RSS 89936/94612 KiB. Invoking the two owners as
+separate processes took 0.40/0.52 s wall and 0.38/0.58 s CPU with peak RSS
+85220/97060 KiB. The linked kit's individual owners took 0.21–0.22 s at
+jobs 1 and 0.29 s at jobs 4. Assignment
+`28574c86-5e3e-47c6-9c56-b8bbd88937a5` retains the command streams, case
+map, resource manifests and bundle for review.
