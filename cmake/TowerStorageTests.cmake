@@ -92,7 +92,7 @@ function(tower_storage_tests)
     # Graph and Fast both use the native driver's execution-session callbacks.
     # Keep this ABI and its single-owner allocator in the same provider for both entries.
     set(overflow_host "${CMAKE_CURRENT_BINARY_DIR}/tower_overflow_host.tower")
-    file(GENERATE OUTPUT "${overflow_host}" CONTENT "${source}import host.driver_execution;\nimport tests.backend_import_overflow;\n")
+    file(GENERATE OUTPUT "${overflow_host}" CONTENT "${source}import host.driver_execution;\nimport tests.backend_import_overflow_execution_test;\n")
     tower_runtime_object(tower-overflow-host "${overflow_host}" "${triple}")
     add_library(tower-overflow-native-services SHARED ${sources} "${tower-overflow-host_OBJECT}" "${runtime_instrumented}")
     set_target_properties(tower-overflow-native-services PROPERTIES LINKER_LANGUAGE CXX TOWER_SERIAL_WORK_TRANSPORT TRUE)
@@ -124,6 +124,19 @@ function(tower_storage_tests)
     endforeach()
     set_tests_properties(tower-overflow-native-wrong PROPERTIES WILL_FAIL TRUE)
     if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+      add_dependencies(tower-storage-tests tower-overflow-native-services)
+      tower_native_test_selections(backend-import-overflow backend_import_overflow "9 tests" "2 tests"
+        --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-overflow-native-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-overflow-native-services>")
+      foreach(selection IN ITEMS owner direct)
+        foreach(jobs IN ITEMS 1 4)
+          set(dir "${CMAKE_CURRENT_BINARY_DIR}/backend-import-overflow-${selection}-${jobs}")
+          file(MAKE_DIRECTORY "${dir}")
+          file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${dir}/.tower" SYMBOLIC)
+          set_tests_properties(tower-backend-import-overflow-${selection}-jobs-${jobs} PROPERTIES
+            WORKING_DIRECTORY "${dir}" LABELS "native;backend;focused;storage" TIMEOUT 120)
+        endforeach()
+      endforeach()
       add_dependencies(tower-overflow-native-tests tower-selected-test-count tower-guest-native-test)
       # Owner discovery includes the budget, clone and body-copy declarations.
       tower_native_test_selections(overflow-native backend_overflow_native "9 tests" "2 tests"

@@ -27,6 +27,8 @@ import backend_import_storage;
 import backend_import_bytes;
 import backend_import_bytes_test;
 import backend_import_overflow;
+import backend_import_overflow_test;
+import backend_import_overflow_execution_test;
 import declaration_call_checks;
 extern fn syntax_reset_resource_checks(): void;
 extern fn syntax_expansion_resource_checks(): void;
@@ -45,8 +47,8 @@ export fn main(argc: i32, argv: u8**): i32 {
         if strcmp(argv[2], "syntax-expansion-resources") == 0 { syntax_expansion_resource_checks(); return 0; }
         if strcmp(argv[2], "syntax-expansion-success") == 0 { syntax_expansion_success_checks(); return 0; }
         if strcmp(argv[2], "generic-quota") == 0 { generic_clone_quota_tests(); return 0; }
-        if strcmp(argv[2], "backend-import-overflow-i1") == 0 { return backend_import_overflow_tests(argv[1], "i1"); }
-        if strcmp(argv[2], "backend-import-overflow-wide") == 0 { return backend_import_overflow_tests(argv[1], "wide"); }
+        if strcmp(argv[2], "backend-import-overflow-i1") == 0 { return backend_import_overflow_tests(argv[1], OverflowImportSelection.I1); }
+        if strcmp(argv[2], "backend-import-overflow-wide") == 0 { return backend_import_overflow_tests(argv[1], OverflowImportSelection.Wide); }
         if strcmp(argv[2], "backend-import-bytes") == 0 { return backend_import_bytes_tests(argv[1], BackendByteOracle.Correct); }
         if strcmp(argv[2], "backend-import-bytes-wrong-byte") == 0 { return backend_import_bytes_tests(argv[1], BackendByteOracle.WrongByte); }
         if strcmp(argv[2], "backend-import-bytes-wrong-guard") == 0 { return backend_import_bytes_tests(argv[1], BackendByteOracle.WrongGuard); }
@@ -58,7 +60,7 @@ export fn main(argc: i32, argv: u8**): i32 {
             return 0;
         }
         if strcmp(argv[2], "known-scan") == 0 { known_scan_storage_tests(); return 0; }
-        if strcmp(argv[2], "backend-import") == 0 { backend_import_storage_tests(); return backend_import_overflow_tests(argv[1], "all"); }
+        if strcmp(argv[2], "backend-import") == 0 { backend_import_storage_tests(); return backend_import_overflow_tests(argv[1], OverflowImportSelection.All); }
         if strcmp(argv[2], "diagnostic-faults") == 0 {
             semantic_diagnostic_storage_tests();
             return 0;

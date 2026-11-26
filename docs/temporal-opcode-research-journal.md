@@ -122290,3 +122290,15 @@ receipt. The assignment packet includes the audit, file/line crosswalk,
 scoped Git bundle, raw outputs, emitted native files, timings, hook-bearing
 IR and link maps. The scoped build was clean on its final Ninja invocation.
 Manager review and publication follow this local result.
+
+### Selected LLVM overflow import cases, host 5, 2026-11-26
+
+Assignment `d5b6e6bb-4f83-4694-8e69-dc8d0c7da20f` starts at
+`be7c84f9`. The six original-audit members and their archive matched the
+manifest. M007:S010 and S011 still lived in the storage selector module.
+The selected companion now owns the trial and matrix for successful and
+rejected imports. The execution companion keeps the shared S009 comparison
+behind its existing exported ABI so native guest discovery can use the
+production interpreter without importing the independent execution-session
+test host. The legacy entry interleaves successes and rejections in its
+original pointer-width order.
