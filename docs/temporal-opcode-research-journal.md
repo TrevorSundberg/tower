@@ -111129,3 +111129,22 @@ the destroy/invalid-handle/refusal/recovery sequence. Browser timings and
 checks from that revision were reused. The fe325b8e evidence contains raw
 commands, process outputs, exact inputs, selection inventories, dependency
 files, result records and the integration bundle on the cd21d55c ancestry.
+
+### Isolating the native in-memory test-file rule provider
+
+Host 6 assignment 29506678 imported c754's verified integration bundle on
+442f3bea. The merge has the expected c922f4ba tree 4f2da632. The producer
+archive, its eight manifest members and the packet SHA256SUMS verified.
+The stock editable inference and semantic modules owners each passed 60 in
+the retained button trace. Both selected 69 and stopped at byte 6384 of
+syntax_session_scan.tower on the integration. The producer's typed-import
+control selected 64 and reproduced the diagnostic. Its marker control passed 60.
+
+The sole source import of compiler/test_file_rule_test.tower belonged to
+the optional tests/frontend_modules.tower provider. The native module-cache
+entry calls the exported test_file_rule_checks by declaration. The merged
+editable project included the helper itself and no importer of its old path.
+The bootstrap records historical source provenance. Its installed resources
+contain no caller. Moving the typed helper to tests/test_file_rule_checks.tower
+preserves its export, body and caller while removing an ordinary companion
+discovery edge. Validation and formatter entry results follow below.

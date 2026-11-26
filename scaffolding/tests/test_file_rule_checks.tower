@@ -1,6 +1,6 @@
 import tower;
-import test_file_rule;
-import frontend_modules;
+import .compiler.test_file_rule;
+import .compiler.frontend_modules;
 import .library.vector;
 import .library.work_budget_types;
 

@@ -3,7 +3,7 @@ import .compiler.component_kinds;
 import .compiler.frontend_cache;
 import .compiler.lr_tree;
 import .compiler.frontend_modules;
-import .compiler.test_file_rule_test;
+import test_file_rule_checks;
 import .compiler.frontend_revision_types;
 import .compiler.parser_types;
 import .compiler.syntax_reader;
