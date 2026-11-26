@@ -35,7 +35,7 @@ async function sources(folder = '') {
   for (const entry of await readdir(new URL(folder, root), {withFileTypes:true})) {
     const path = folder + entry.name;
     if (entry.isDirectory()) files.push(...await sources(path + '/'));
-    else if (path.endsWith('.tower')) files.push({path, text:await readFile(new URL(path, root), 'utf8')});
+    else if (path.endsWith('.tower') || (folder === 'tests/format_inputs/' && /\.(expected|spans)$/.test(path))) files.push({path, text:await readFile(new URL(path, root), 'utf8')});
   }
   return files;
 }

@@ -1,0 +1,11 @@
+import foundation;
+// before
+var x: i32 = 1;
+
+// inline
+
+/* block */
+fn f(a: i32*): i32 {
+    return *a;
+}
+// after

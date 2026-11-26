@@ -13,3 +13,26 @@ if(format_triple MATCHES "^wasm32-")
   target_link_libraries(tower-format-tests PRIVATE tower-compiler-parser-nodes tower-compiler-semantics
     tower-compiler-entities tower-compiler-utilities tower-compiler-memory)
 endif()
+
+if(NOT CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND format_triple MATCHES "^x86_64-.*linux.*gnu")
+  tower_guest_runtime(native-test "${format_triple}" posix ON UNINSTRUMENTED)
+  get_property(format_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  foreach(selection IN ITEMS owner direct)
+    set(format_file format_suite_test)
+    set(format_count 17)
+    if(selection STREQUAL "owner")
+      # Import discovery also reaches the five work_budget tests.
+      set(format_file format_suite)
+      set(format_count 22)
+    endif()
+    set(format_entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${format_file}.tower")
+    foreach(jobs IN ITEMS 1 4)
+      set(name "tower-parser-format-${selection}-jobs-${jobs}")
+      add_test(NAME "${name}" COMMAND tower-selected-test-count
+        "${format_count} tests passed for ${format_entry}" "${TOWER_BOOTSTRAP_COMPILER}"
+        --test "${format_entry}" --jobs "${jobs}" --test-details --test-native-runtime "${format_runtime}"
+        --link "$<TARGET_FILE:tower-reader-test-services>" --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-reader-test-services>")
+      set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" LABELS "native;focused" TIMEOUT 60)
+    endforeach()
+  endforeach()
+endif()

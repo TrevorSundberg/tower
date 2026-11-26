@@ -1,0 +1,5 @@
+*.expected text eol=lf
+*.spans text eol=lf
+generated_names.expected -text
+# Canonical declarations end with a blank line before the case-specific body.
+foundation_prelude.expected whitespace=-blank-at-eof

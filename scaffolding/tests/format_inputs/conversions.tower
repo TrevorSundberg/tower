@@ -1,0 +1,2 @@
+import foundation;
+var x:u32=convert(u32,1); var y:i32=bits(i32,x); loop { if true { break; } else { continue; } } print(y);

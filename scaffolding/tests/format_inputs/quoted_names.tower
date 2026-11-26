@@ -1,0 +1,2 @@
+import foundation;
+var `if`:i32=1; var `with space`:i32=`if`; print(`with space`);

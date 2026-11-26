@@ -1,0 +1,325 @@
+import library.testing;
+import format_fixture;
+import parser_fixture_setup;
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.semantic_program_types;
+import .host.driver_api;
+import .library.bytes_interface;
+import .library.vector;
+import storage_api;
+import format_abi;
+import utility_checks;
+
+fn format_test_generated(fixture: FormatterFixture*): void {
+    var entity = tower_node_create();
+    defer tower_node_release_ref(entity);
+    var value = tower_node_create();
+    defer tower_node_release_ref(value);
+    var declaration = semantic_component_attach(entity, core_component_type(), KDeclare);
+    var literal = semantic_component_attach(value, core_component_type(), KString);
+    // Identifier bytes include an embedded NUL, controls, quoting and UTF-8 é.
+    var name: u8[9];
+    name[0] = 97;
+    name[1] = 0;
+    name[2] = 10;
+    name[3] = 13;
+    name[4] = 9;
+    name[5] = 96;
+    name[6] = 92;
+    name[7] = 195;
+    name[8] = 169;
+    assert(storage_assign(&declaration.name, &name[0], sizeof(decltype(name))), "Generated name including NUL/backtick/UTF-8");
+    var text: u8[11];
+    copy(&text[0], "quote'\\\n\r\t", 10);
+    text[10] = 0;
+    assert(storage_assign(&literal.name, &text[0], sizeof(decltype(text))), "Generated literal including NUL/quote/backslash");
+    declaration.type.scalar = SU8;
+    declaration.type.pointers = 1;
+    declaration.value = value;
+    var actual: FormatResult = default;
+    defer format_dispose(&actual);
+    format_test_entity(&actual, entity);
+    assert(!actual.failed && actual.spans.length == 1, "Generated entities need no fabricated provenance");
+    format_check_source(fixture, "generated_names", &actual);
+}
+
+struct FormatConstructorCase {
+    op: u32;
+    left: void*;
+    right: void*;
+    second_bits: u64;
+    wanted: u8*;
+}
+
+fn format_test_type_constructors(): void {
+    var entity = tower_node_create();
+    defer tower_node_release_ref(entity);
+    var left = tower_node_create();
+    defer tower_node_release_ref(left);
+    var right = tower_node_create();
+    defer tower_node_release_ref(right);
+    var reference = tower_node_create();
+    defer tower_node_release_ref(reference);
+    var operation = semantic_component_attach(entity, core_component_type(), KTypeConstruct);
+    var width = semantic_component_attach(left, core_component_type(), KOperand);
+    var second = semantic_component_attach(right, core_component_type(), KOperand);
+    var type = semantic_component_attach(reference, core_component_type(), KTypeReference);
+    operation.type.scalar = SType;
+    width.type.scalar = SU64;
+    width.constant = true;
+    width.bits = 32;
+    second.type.scalar = SU64;
+    second.constant = true;
+    type.type.scalar = SType;
+    type.element.scalar = SI32;
+    var cases: FormatConstructorCase[8];
+    cases[0] = {
+        op: convert(u32, TypeConstructionKind.Integer), left: left, right: right, second_bits: 0, wanted: "integer_type(convert(integer_type(64, 0), 32), convert(integer_type(64, 0), 0));\n"
+    };
+    cases[1] = {
+        op: convert(u32, TypeConstructionKind.Floating), left: left, right: null, second_bits: 0, wanted: "float_type(convert(integer_type(64, 0), 32));\n"
+    };
+    cases[2] = {
+        op: convert(u32, TypeConstructionKind.Pointer), left: reference, right: null, second_bits: 0, wanted: "pointer_type(type_value(integer_type(32, 1)));\n"
+    };
+    cases[3] = {
+        op: convert(u32, TypeConstructionKind.Array), left: reference, right: right, second_bits: 8, wanted: "array_type(type_value(integer_type(32, 1)), convert(integer_type(64, 0), 8));\n"
+    };
+    cases[4] = {
+        op: ~convert(u32, 0), left: left, right: right, second_bits: 0, wanted: null
+    };
+    cases[5] = {
+        op: convert(u32, TypeConstructionKind.Integer), left: null, right: right, second_bits: 0, wanted: null
+    };
+    cases[6] = {
+        op: convert(u32, TypeConstructionKind.Integer), left: left, right: null, second_bits: 0, wanted: null
+    };
+    cases[7] = {
+        op: convert(u32, TypeConstructionKind.Floating), left: left, right: right, second_bits: 0, wanted: null
+    };
+    for(var index: usize = 0; index < sizeof(decltype(cases)) / sizeof(FormatConstructorCase); index++) {
+        var test = &cases[index];
+        operation.op = test.op;
+        operation.left = test.left;
+        operation.right = test.right;
+        second.bits = test.second_bits;
+        var actual: FormatResult = default;
+        defer format_dispose(&actual);
+        format_test_entity(&actual, entity);
+        if test.wanted != null {
+            assert(!actual.failed && actual.spans.length == 1 && actual.text.length == strlen(test.wanted)
+            && utility_equal(actual.text.data, test.wanted, actual.text.length), "Type constructor canonical text");
+        } else {
+            assert(actual.failed, "Malformed type constructor formatting fails");
+        }
+    }
+}
+
+fn format_test_comments(fixture: FormatterFixture*): void {
+    var source = format_read(fixture, "comment_ranges", ".tower");
+    defer bytes_dispose(&source);
+    var input = source.data;
+    var session = syntax_create(input, null);
+    defer syntax_destroy(session);
+    var roots: vector(void*) = default;
+    defer {
+        for(var index: usize = 0; index < roots.length; ++index) {
+            tower_node_release_ref(roots.data[index]);
+        }
+        vector_dispose(void*, &roots);
+    }
+    loop {
+        var root = syntax_next(session);
+        if root is null {
+            break;
+        }
+        assert(vector_push(void*, &roots, root), "Comment roots retained");
+    }
+    assert(syntax_get_error(session)[0] == 0, "Comment fixture parsed");
+    // Exact lexer-derived ranges from the original fixture, also checked by the
+    // syntax_format route which obtains its own lexer comments independently.
+    var comments: FormatComment[4];
+    var comment_count = sizeof(decltype(comments)) / sizeof(FormatComment);
+    comments[0] = {
+        start: 19, end: 28
+    };
+    comments[1] = {
+        start: 43, end: 53
+    };
+    comments[2] = {
+        start: 64, end: 75
+    };
+    comments[3] = {
+        start: 78, end: 85
+    };
+    var oracle: FormatResult = default;
+    defer format_dispose(&oracle);
+    format_test_source(input, &oracle);
+    format_check_source(fixture, "comment_ranges", &oracle);
+    for(var order: usize = 0; order < 2; ++order) {
+        var actual: FormatResult = default;
+        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], comment_count, syntax_component_type(), null, parser_match_get_type());
+        format_test_equal(&actual, &oracle, true);
+        format_dispose(&actual);
+        if order == 0 {
+            // The second comparison and the fault sweep both use the unsorted ranges.
+            for(var index: usize = 0; index < comment_count / 2; ++index) {
+                var back = comment_count -1 -index;
+                var saved = comments[index];
+                comments[index] = comments[back];
+                comments[back] = saved;
+            }
+        }
+    }
+    var buffers = tower_test_buffer_count();
+    for(var failure: usize = 0; failure < 32; ++failure) {
+        var actual: FormatResult = default;
+        tower_test_buffer_fail_after(failure);
+        format_source(&actual, roots.data, roots.length, input, strlen(input), &comments[0], comment_count, syntax_component_type(), null, parser_match_get_type());
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        if !actual.failed {
+            format_test_equal(&actual, &oracle, true);
+        }
+        format_dispose(&actual);
+        assert(actual.text.length == 0 && actual.spans.length == 0 && tower_test_buffer_count() == buffers, "Source failure cleanup releases all partial text/spans");
+    }
+}
+
+fn format_test_failures(fixture: FormatterFixture*): void {
+    var input = format_read(fixture, "entity_cleanup", ".tower");
+    defer bytes_dispose(&input);
+    var program: SemanticProgram;
+    format_test_compile_bytes(input.data, input.length, &program, fixture.modules);
+    defer format_test_program_dispose(&program);
+    var oracle: FormatResult = default;
+    defer format_dispose(&oracle);
+    format_test_entity(&oracle, program.root);
+    format_check_foundation(fixture, "entity_cleanup", &oracle, 3);
+    var buffers = tower_test_buffer_count();
+    for(var failure: usize = 0; failure < 32; ++failure) {
+        var actual: FormatResult = default;
+        tower_test_buffer_fail_after(failure);
+        syntax_format_node(program.root, &actual);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        if actual.failed {
+            assert(actual.text.length == 0 && actual.spans.length == 0, "Formatter failure publishes empty source and spans");
+        } else {
+            format_test_equal(&actual, &oracle, true);
+        }
+        format_dispose(&actual);
+        assert(tower_test_buffer_count() == buffers, "Foundation failure cleanup releases all partial text/spans");
+    }
+}
+
+fn format_test_declaration_comments(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "declaration_comments");
+}
+
+fn format_test_replacement(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "replacement");
+}
+
+fn format_test_prefix(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "prefix");
+}
+
+fn format_test_postfix(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "postfix");
+}
+
+fn format_test_contextual_token(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "contextual_token");
+}
+
+fn format_test_quoted_names(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "quoted_names");
+}
+
+fn format_test_structure(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "structure");
+}
+
+fn format_test_pointers(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "pointers");
+}
+
+fn format_test_comments_only(fixture: FormatterFixture*): void {
+    format_source_case(fixture, "comments_only");
+}
+
+fn format_test_scalar_limits(fixture: FormatterFixture*): void {
+    format_foundation_case(fixture, "scalar_limits", 4);
+}
+
+fn format_test_linkage(fixture: FormatterFixture*): void {
+    format_foundation_case(fixture, "linkage", 5);
+}
+
+fn format_test_memory_operations(fixture: FormatterFixture*): void {
+    format_foundation_case(fixture, "memory_operations", 7);
+}
+
+fn format_test_conversions(fixture: FormatterFixture*): void {
+    format_foundation_case(fixture, "conversions", 7);
+}
+
+fn format_selected_case(check: function(void, FormatterFixture*)): void {
+    parser_fixture_setup();
+    var fixture = format_fixture_open(".");
+    defer format_fixture_close(&fixture);
+    check(&fixture);
+}
+
+test() {
+    format_selected_case(format_test_declaration_comments);
+}
+test() {
+    format_selected_case(format_test_replacement);
+}
+test() {
+    format_selected_case(format_test_prefix);
+}
+test() {
+    format_selected_case(format_test_postfix);
+}
+test() {
+    format_selected_case(format_test_contextual_token);
+}
+test() {
+    format_selected_case(format_test_quoted_names);
+}
+test() {
+    format_selected_case(format_test_structure);
+}
+test() {
+    format_selected_case(format_test_pointers);
+}
+test() {
+    format_selected_case(format_test_comments_only);
+}
+test() {
+    format_selected_case(format_test_scalar_limits);
+}
+test() {
+    format_selected_case(format_test_linkage);
+}
+test() {
+    format_selected_case(format_test_memory_operations);
+}
+test() {
+    format_selected_case(format_test_conversions);
+}
+test() {
+    format_selected_case(format_test_generated);
+}
+test() {
+    format_test_type_constructors();
+}
+test() {
+    format_selected_case(format_test_comments);
+}
+test() {
+    format_selected_case(format_test_failures);
+}

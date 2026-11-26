@@ -60,6 +60,8 @@ function(tower_format_tests)
     list(FILTER format_files EXCLUDE REGEX "/semantic_statements_cfg_inputs/(exchange|duplicate|missing_target|nested|fallthrough|missing_return|identifier|trap)[.]tower$")
     # These raw parser subjects are compared at their original byte offsets.
     list(FILTER format_files EXCLUDE REGEX "/bedrock_cases/inputs/(assignment|atom|inherited|inherited_refusal|local_override|quoted|quoted_capture|redefine|repeat|shared_lexicon|suffix|wrong_capture)[.]tower$")
+    # Original source-format fixtures retain their exact source bytes and offsets.
+    list(FILTER format_files EXCLUDE REGEX "/tests/format_inputs/")
     list(SORT format_files)
     string(REPLACE ";" "\n" format_listing "${format_files}")
     set(format_manifest "${CMAKE_CURRENT_BINARY_DIR}/tower_format_files.txt")

@@ -1,0 +1,3 @@
+import foundation;
+// header
+fn f():void { /* body */ print(1); /* after */ } // tail

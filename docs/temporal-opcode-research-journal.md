@@ -115181,3 +115181,73 @@ commit bundle, raw observations, controls, commands and predicate map.
 The work used a separate local main at the assigned base to preserve
 the shared checkout's unpublished component/stage commit. Publication
 and integration onto subsequent main revisions belong to the manager.
+### Original native formatter suite in Tower test discovery
+
+Host 5 migrated the suite at `c36353913d878c96f7223baae819931c045b45ad`
+for assignment `071dc07c-3b5d-4591-b4bc-b4d871a68502`. The old owner
+selected only five imported work-budget tests. Its actual formatter callers
+were the native executable in TowerFormatTests.cmake, the separately linked
+parser aggregate in TowerParserFormatTests.cmake, and the WASI command's
+`__main_argc_argv`. The optional repository sweep also imported the
+round-trip comparison. The new owner calls the same case functions as its
+17 test declarations and retains the original exported signature and summary.
+The browser formatter port checks editor spacing, boundaries and mappings.
+The IDE source-format owner has five service cases covering declarations,
+comments, refusal, increment and affixes. Their inputs and providers differ
+from the native suite and were left with their owners.
+
+The source and expected files were transcribed from format_suite and
+format_expected at the assignment revision. The original body-relative
+triples now include the 19-byte Foundation import in source coordinates.
+Structure and comment-range outputs have a second LF after that import.
+Eleven maps contain 168 triples in total, including an empty map for
+comments alone. Five Foundation cases compare the shared declaration prelude
+and body bytes and retain the original span counts. The generated-entity
+file preserves both NULs and UTF-8 é. All eight type-constructor rows, the
+idempotence/recompile paths, both comment orders and both sweeps of 32
+allocation cutoffs run through the original formatter APIs. Each sweep
+checks the live buffer count after disposal.
+
+With the pinned Linux x64 compiler (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`),
+the parser-only CTests reported 22 owner and 17 direct at each of one and
+four compiler jobs. The five extra owner cases are work-budget declarations.
+Both width-four selections passed five consecutive executions. The native
+standalone and full parser aggregate matched the original stdout. The
+optional repository-list call passed three canonical formatter modules and
+one syntax-invalid file. Changing just the first source offset of prefix from
+0 to 1 failed the four selection CTests, both native callers and both WASI
+callers at the prefix check. Restoring the map restored the formatter passes.
+
+The default 64 KiB WASI stack passed the focused formatter. The full parser
+aggregate trapped later, after the formatter, in both the base and changed
+builds. Relinking the same objects at 4 MiB completed both aggregates with
+identical stdout and stderr. The changed CMake WASI SDK 34 profile with
+`-DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,stack-size=4194304` reproduced the tested
+aggregate byte for byte. This qualification used Node 24.22.3 and the
+repository's WASI host. The stack setting is a validation input.
+
+Host 5 ran four warm-filesystem pairs, alternating order and timing one
+invocation at a time on a Ryzen 9 5900XT, 16 cores / 32 threads, CPUs 0–31,
+quota 3071999/100000 (30.72 CPUs). Both binaries in each pair used the
+same grammar and source tree. The WASI pair used the same mounting host.
+Builds used Clang/LLVM 19.1.7, Release, four compiler jobs and at most four
+concurrent build commands. These are whole process measurements with GNU time.
+
+| Caller | Median wall s, original / migrated | Median user + system s | Max peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Native standalone | 0.130 / 0.130 | 0.125 / 0.130 | 64,952 / 64,612 |
+| Native parser aggregate | 1.290 / 1.285 | 1.280 / 1.280 | 50,392 / 50,156 |
+| WASI standalone including Node | 0.420 / 0.415 | 0.670 / 0.660 | 127,956 / 128,620 |
+
+A measured owner invocation at jobs 1/4 used 1.20/1.32 s wall,
+1.19/1.44 s CPU and 137,232/145,596 KiB peak RSS. Direct selection used
+1.09/1.20 s wall, 1.08/1.32 s CPU and 125,144/133,684 KiB. The widths
+pertain to the compiler. The guest runs fault injection on the single-owner
+allocator. The instrumented native standalone passed ASan with leak detection
+and TSan. The final TSan launch succeeded on retry 14 after the container
+denied the runtime's attempt to disable ASLR on 14 launches. Source-level
+UBSan is unsupported by the Tower LLVM instrumentation. Full-repository
+formatting and browser publication are outside this qualification. Raw
+commands, source bundle, wrong-map diagnostics and restoration hashes are in
+the assignment receipt for manager review.
