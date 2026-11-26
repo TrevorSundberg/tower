@@ -751,6 +751,12 @@ and protected-page checks on Linux/macOS. Their native reference oracle seeds
 remain test-only. For WASI builds, run each executable with `host-wasi.mjs`;
 WASI exercises the byte guards but has no POSIX protected-page test.
 
+Also run the original utility owners and their companions on native Linux x64
+with `ctest --test-dir <build> -R "^tower-utility-" --output-on-failure`.
+Both compiler widths (1 and 4) use the same serial guest trials. The boundary
+owner discovers the portable and protected-page cases once each. Selecting
+`tests/utf8_boundary_test.tower` directly runs only the protected-page case.
+
 `tower-lexer-tests` and `tower-entity-tests` are separate Tower entries in the
 parser configuration, also executable through `host-wasi.mjs`. Lexer coverage
 preserves 150 seeded NFAs against direct simulation, 500 seeded lexer tables

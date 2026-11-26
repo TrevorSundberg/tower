@@ -1,0 +1,211 @@
+import library.testing;
+import bytes;
+import .library.bytes_types;
+import utility_checks;
+import bytes_oracle;
+
+extern fn malloc(size: usize): void*;
+
+extern fn `c_name(void free(void*))`(pointer: void*): void;
+
+var ByteTestLimit: usize = 262144;
+var ByteTestGuard: usize = 16;
+var ByteTestSlots: usize = 8;
+var ByteTestReserve: u32 = 0;
+var ByteTestAppend: u32 = 1;
+var ByteTestPush: u32 = 2;
+var ByteTestAssign: u32 = 3;
+var ByteTestAppendAlias: u32 = 4;
+var ByteTestAssignAlias: u32 = 5;
+var ByteTestDispose: u32 = 6;
+var ByteTestOperations: u32 = 7;
+
+struct ByteTestAllocation {
+    data: u8*;
+    size: usize;
+}
+
+// One test process owns this state. The case resets the slots before either
+// implementation can allocate; the retained reference ABI has no context slot.
+var byte_test_allocations: ByteTestAllocation[8];
+var byte_test_fail: bool;
+var byte_test_calls: usize;
+
+fn byte_test_guard(data: u8*, size: usize): void {
+    var before = data -ByteTestGuard;
+    for(var index: usize = 0; index < ByteTestGuard; ++index) {
+        assert(before[index] == 165 && data[size + index] == 165, "Byte buffer allocation guards");
+    }
+}
+
+fn byte_test_slot(data: u8*): usize {
+    for(var index: usize = 0; index < ByteTestSlots; ++index) {
+        if byte_test_allocations[index].data == data {
+            return index;
+        }
+    }
+    assert(false, "Byte buffer allocation ownership");
+    return ByteTestSlots;
+}
+
+export fn byte_test_deallocate(pointer: void*): void {
+    if pointer is null {
+        return;
+    }
+    var data = bits(u8*, pointer);
+    var slot = byte_test_slot(data);
+    byte_test_guard(data, byte_test_allocations[slot].size);
+    byte_test_allocations[slot].data = null;
+    `c_name(void free(void*))`(bits(void*, data -ByteTestGuard));
+}
+
+export fn byte_test_reallocate(pointer: void*, count: usize, size: usize): void* {
+    ++byte_test_calls;
+    if byte_test_fail {
+        byte_test_fail = false;
+        return null;
+    }
+    if size != 0 && count > ~convert(usize, 0) / size {
+        return null;
+    }
+    var bytes = count *size;
+    if bytes > ByteTestLimit {
+        return null;
+    }
+    if bytes == 0 {
+        byte_test_deallocate(pointer);
+        return null;
+    }
+    var raw = bits(u8*, malloc(bytes + ByteTestGuard *2));
+    assert(raw is not null, "Byte buffer test allocation");
+    fill(raw, 165, bytes + ByteTestGuard *2);
+    var result = raw + ByteTestGuard;
+    if pointer is not null {
+        var old = bits(u8*, pointer);
+        var previous = byte_test_allocations[byte_test_slot(old)].size;
+        copy(result, old, bytes < previous ? bytes: previous);
+        byte_test_deallocate(pointer);
+    }
+    var slot = byte_test_slot(null);
+    byte_test_allocations[slot].data = result;
+    byte_test_allocations[slot].size = bytes;
+    return bits(void*, result);
+}
+
+fn byte_test_equal(actual: ByteBuffer*, oracle: ByteBuffer*): void {
+    assert(actual.length == oracle.length && actual.capacity == oracle.capacity, "Byte buffer reference dimensions");
+    assert(utility_equal(actual.data, oracle.data, actual.capacity), "Byte buffer reference capacity bytes");
+    for(var index: usize = 0; index < ByteTestSlots; ++index) {
+        var allocation = &byte_test_allocations[index];
+        if allocation.data is not null {
+            byte_test_guard(allocation.data, allocation.size);
+        }
+    }
+}
+
+fn byte_test_apply(buffer: ByteBuffer*, reference: bool, op: u32, input: u8*, count: usize, offset: usize, fail: bool): bool {
+    byte_test_fail = fail;
+    var result = true;
+    if op == ByteTestReserve {
+        result = reference ? reference_bytes_reserve(buffer, count *30): bytes_reserve(buffer, count *30);
+    }
+    if op == ByteTestAppend {
+        result = reference ? reference_bytes_append(buffer, input, count): bytes_append(buffer, input, count);
+    }
+    if op == ByteTestPush {
+        result = reference ? reference_bytes_push(buffer, convert(u8, count)): bytes_push(buffer, convert(u8, count));
+    }
+    if op == ByteTestAssign {
+        result = reference ? reference_bytes_assign_text(buffer, input, count): bytes_assign_text(buffer, input, count);
+    }
+    if op == ByteTestAppendAlias && buffer.data is not null {
+        result = reference ? reference_bytes_append(buffer, buffer.data + offset, buffer.length -offset): bytes_append(buffer, buffer.data + offset, buffer.length -offset);
+    }
+    if op == ByteTestAssignAlias && buffer.data is not null {
+        result = reference ? reference_bytes_assign_text(buffer, buffer.data + offset, buffer.length -offset): bytes_assign_text(buffer, buffer.data + offset, buffer.length -offset);
+    }
+    if op == ByteTestDispose {
+        if reference {
+            reference_bytes_dispose(buffer);
+        } else {
+            bytes_dispose(buffer);
+        }
+    }
+    byte_test_fail = false;
+    return result;
+}
+
+test() { byte_buffer_tests(); }
+
+fn byte_buffer_tests(): void {
+    for(var slot: usize = 0; slot < ByteTestSlots; ++slot) {
+        byte_test_allocations[slot].data = null;
+    }
+    byte_test_fail = false;
+    byte_test_calls = 0;
+    var actual: ByteBuffer;
+    var oracle: ByteBuffer;
+    assert(sizeof(ByteBuffer) == sizeof(void*) + sizeof(usize) *2, "Byte buffer ABI size");
+    assert(bits(usize, &actual.length) -bits(usize, &actual) == sizeof(void*), "Byte buffer length offset");
+    assert(bits(usize, &actual.capacity) -bits(usize, &actual) == sizeof(void*) + sizeof(usize), "Byte buffer capacity offset");
+    bytes_init(&actual);
+    reference_bytes_init(&oracle);
+    assert(bytes_append(&actual, null, 0), "Byte buffer empty append");
+    assert(bytes_assign_text(&actual, null, 0) && reference_bytes_assign_text(&oracle, null, 0), "Byte buffer empty text");
+    assert(actual.data[0] == 0 && actual.length == 0, "Byte buffer empty terminator");
+    byte_test_equal(&actual, &oracle);
+    var state: u32 = 1900587981;
+    var input: u8[100];
+    var snapshot = bits(u8*, malloc(ByteTestLimit));
+    assert(snapshot is not null, "Byte buffer snapshot allocation");
+    for(var step: usize = 0; step < 20000; ++step) {
+        var op = utility_random(&state) % ByteTestOperations;
+        var count = convert(usize, utility_random(&state) % 100);
+        var offset: usize = actual.length != 0 ? convert(usize, utility_random(&state)) %(actual.length + 1): 0;
+        for(var index: usize = 0; index < count; ++index) {
+            input[index] = convert(u8, utility_random(&state) &255);
+        }
+        var fail = utility_random(&state) % 5 == 0;
+        var old_data = actual.data;
+        var old_length = actual.length;
+        var old_capacity = actual.capacity;
+        copy(snapshot, actual.data, actual.capacity);
+        var result = byte_test_apply(&actual, false, op, &input[0], count, offset, fail);
+        assert(result == byte_test_apply(&oracle, true, op, &input[0], count, offset, fail), "Byte buffer reference result");
+        byte_test_equal(&actual, &oracle);
+        if !result {
+            assert(actual.data == old_data && actual.length == old_length && actual.capacity == old_capacity, "Byte buffer failure dimensions");
+            assert(utility_equal(actual.data, snapshot, actual.capacity), "Byte buffer failure bytes");
+        }
+    }
+    `c_name(void free(void*))`(bits(void*, snapshot));
+    bytes_dispose(&actual);
+    reference_bytes_dispose(&oracle);
+    var full: u8[16];
+    for(var index: usize = 0; index < 16; ++index) {
+        full[index] = convert(u8, index);
+    }
+    assert(bytes_append(&actual, &full[0], 16) && actual.capacity == 16, "Byte buffer full capacity");
+    var old_pointer = actual.data;
+    assert(bytes_assign_text(&actual, actual.data, 16), "Byte buffer terminator growth");
+    assert(actual.data != old_pointer && actual.length == 16 && actual.data[16] == 0, "Byte buffer moving self-assign");
+    assert(utility_equal(actual.data, &full[0], 16), "Byte buffer self-assign bytes");
+    bytes_dispose(&actual);
+    assert(bytes_append(&actual, "abc", 3), "Byte buffer overflow fixture");
+    var before = byte_test_calls;
+    assert(!bytes_append(&actual, actual.data + actual.length, 1), "Byte buffer invalid append alias");
+    assert(!bytes_assign_text(&actual, actual.data + actual.length + 1, 1), "Byte buffer invalid text alias");
+    assert(!bytes_assign_text(&actual, null, ~convert(usize, 0)), "Byte buffer terminator overflow");
+    assert(byte_test_calls == before && actual.length == 3, "Byte buffer preallocation validation");
+    var artificial: ByteBuffer;
+    artificial.data = actual.data;
+    artificial.length = ~convert(usize, 0) - 2;
+    artificial.capacity = artificial.length;
+    assert(!bytes_append(&artificial, null, 3), "Byte buffer append overflow");
+    assert(artificial.data == actual.data && byte_test_calls == before, "Byte buffer overflow atomicity");
+    bytes_dispose(&actual);
+    bytes_dispose(&actual);
+    for(var slot: usize = 0; slot < ByteTestSlots; ++slot) {
+        assert(byte_test_allocations[slot].data is null, "Byte buffer leaked allocation");
+    }
+}

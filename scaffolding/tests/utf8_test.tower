@@ -1,0 +1,68 @@
+import library.testing;
+import utf8;
+import utility_checks;
+import utf8_oracle;
+
+// Captured at the end of the original seeded trials. Direct boundary selection
+// starts here without repeating the portable corpus.
+var Utf8BoundarySeed: u32 = 1774967352;
+
+test() { assert(utf8_tests() == Utf8BoundarySeed, "UTF-8 boundary seed"); }
+
+fn utf8_check(data: u8*, size: usize): void {
+    var actual: u32 = 3735928559;
+    var oracle = actual;
+    var count = tower_utf8_decode(data, size, &actual);
+    assert(count == reference_utf8_decode(data, size, &oracle), "UTF-8 decode count");
+    assert(actual == oracle, "UTF-8 decode value");
+    if count == 0 {
+        assert(actual == 0, "UTF-8 invalid decode clears output");
+    }
+    assert(tower_utf8_validate(data, size, 0) == reference_utf8_validate(data, size, 0), "UTF-8 permissive validation");
+    assert(tower_utf8_validate(data, size, 1) == reference_utf8_validate(data, size, 1), "UTF-8 NUL validation");
+    assert(tower_utf8_validate(data, size, 42) == reference_utf8_validate(data, size, 42), "UTF-8 nonzero policy");
+}
+
+fn utf8_tests(): u32 {
+    utf8_check(null, 0);
+    for(var scalar: u32 = 0; scalar <= 1114112; ++scalar) {
+        var actual: u8[6];
+        var oracle: u8[6];
+        fill(&actual[0], 165, 6);
+        fill(&oracle[0], 165, 6);
+        var count = tower_utf8_encode(scalar, &actual[1], 4);
+        assert(count == reference_utf8_encode(scalar, &oracle[1], 4), "UTF-8 exhaustive encode count");
+        assert(utility_equal(&actual[0], &oracle[0], 6), "UTF-8 exhaustive encode bytes and guards");
+        assert(tower_utf8_encode(scalar, null, 0) == count, "UTF-8 encode size query");
+        if count != 0 {
+            var decoded: u32 = 0;
+            assert(tower_utf8_decode(&actual[1], count, &decoded) == count && decoded == scalar, "UTF-8 scalar roundtrip");
+            assert(tower_utf8_validate(&actual[1], count, 0) == 1, "UTF-8 scalar validation");
+            assert(tower_utf8_validate(&actual[1], count, 1) ==(scalar != 0 ? convert(u32, 1): convert(u32, 0)), "UTF-8 scalar NUL policy");
+            for(var capacity: usize = 0; capacity < count; ++capacity) {
+                assert(tower_utf8_encode(scalar, &actual[1], capacity) == 0, "UTF-8 short destination");
+                assert(utility_equal(&actual[0], &oracle[0], 6), "UTF-8 failed encode atomicity");
+                utf8_check(&actual[1], capacity);
+            }
+        }
+    }
+    assert(tower_utf8_encode(~convert(u32, 0), null, 0) == 0, "UTF-8 maximum invalid scalar");
+    var pair: u8[2];
+    for(var first: u32 = 0; first < 256; ++first) {
+        pair[0] = convert(u8, first);
+        utf8_check(&pair[0], 1);
+        for(var second: u32 = 0; second < 256; ++second) {
+            pair[1] = convert(u8, second);
+            utf8_check(&pair[0], 2);
+        }
+    }
+    var state: u32 = 1922576811;
+    var bytes: u8[32];
+    for(var trial: usize = 0; trial < 100000; ++trial) {
+        for(var index: usize = 0; index < 32; ++index) {
+            bytes[index] = convert(u8, utility_random(&state) &255);
+        }
+        utf8_check(&bytes[0], convert(usize, utility_random(&state) % 33));
+    }
+    return state;
+}

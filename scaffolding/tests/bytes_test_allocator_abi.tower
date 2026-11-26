@@ -1,0 +1,14 @@
+import tower;
+
+// Native --test links this object after the selected program has been emitted.
+// The bound runtime symbols forward to the allocator owned by that test guest.
+extern fn byte_test_reallocate(pointer: void*, count: usize, size: usize): void*;
+extern fn byte_test_deallocate(pointer: void*): void;
+
+export fn byte_abi_reallocate(pointer: void*, count: usize, size: usize): void* {
+    return byte_test_reallocate(pointer, count, size);
+}
+
+export fn byte_abi_deallocate(pointer: void*): void {
+    byte_test_deallocate(pointer);
+}

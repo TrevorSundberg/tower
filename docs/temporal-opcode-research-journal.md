@@ -118161,3 +118161,92 @@ case and stayed there through the other two. Request/value counts were
 3/8, 2/5 and 2/5 in both arms. Raw process peak RSS and linear-memory
 capacity measure different resources. The manager owns integration and
 publication of the focused source commit.
+
+### Original utility CTests in selected Tower companions
+
+At public `7ef7ab34de6e506f46cdefca5056e9a4481c33a4`, the parser-only
+manifest compiled the UTF-8 decoder/encoder/validator and byte-buffer exports
+as separate objects. The entries in `tests/utf8`, `tests/utf8_boundary` and
+`tests/bytes` compared them against independent reference functions. Neither
+the compiler/library companions nor the browser registrations exercised these
+original loops. Host 3 first built both original executable targets and ran
+their CTests with the checkout's installer-verified Linux x64 compiler.
+
+The three adjacent test files now own the original decisions. The standalone
+UTF-8 entry passes its actual final random state into the POSIX trials. The
+portable test also checks that state against the observed 1774967352, so the
+boundary declaration can start there when selected alone. Linux and Darwin
+supply the original mmap flags through a target-built object. The Linux GNU
+native test driver links the production utility object for each suite. Two
+bound allocator symbols in a test-only forwarding object let the linked
+byte implementation and independent oracle use the selected guest's guarded
+allocator. The standalone entry uses its original direct symbol bindings.
+
+All 47 original assertion messages matched in source order (15 portable, five
+boundary, 27 byte-buffer). Separate observation copies wrote the size and raw
+bytes of each six-byte scalar encoding with guards, decode input, boundary
+trial/encoding, generated buffer input and complete resulting buffer capacity.
+At compiler jobs 1 and 4 the original and migrated standalone streams compared
+byte-for-byte. The selected POSIX owner produced exactly the same UTF-8 stream.
+Concatenating the portable and boundary direct selections also reproduced it.
+
+| Observation | Both revisions |
+| --- | --- |
+| Scalars including invalids, short capacities, portable decode checks | 1,114,113 / 4,382,592 / 4,548,385 |
+| One-byte inputs, pairs, seeded malformed trials | 256 / 65,536 / 100,000 |
+| Protected-page trials and encode comparisons | 50,000 / 50, final PRNG state 1756251790 |
+| 20,000 byte-buffer operations | Final PRNG state 142434009, 11,279 allocator calls, 8,985 grants and frees each, all eight slots empty |
+| UTF-8 stream | 61,202,654 bytes, SHA-256 `9d325ce957c823e1a7045f76c1a3745f35ba0d287f35cdb8f78bcbf0d71a83c2` |
+| Byte-buffer stream | 18,306,764 bytes, SHA-256 `65834d7a7131995250dc0d986433664c29a8690c1d6d87e17106a03392f28b19` |
+
+Changing one output bit in the production encoder and one in the actual byte
+passed by `bytes_push` made all 14 Linux registrations fail. The two original
+fixtures relinked against those objects failed at both widths too. A refused
+mapping reached the mmap assertion in both boundary selections. Restoring
+the production files recovered the two utility object and two executable
+hashes. All 14 registrations passed again and Ninja reported no work.
+Both WASI SDK 34 standalones on each revision passed with jobs 1 and 4
+through the project WASI host, with identical summary bytes. The full Darwin
+parser configuration stops at the pre-existing formatter ABI guard. An
+isolated build of the unchanged utility manifest generated both standalone
+registrations, compiled x86-64 Mach-O objects, and selected 4096 for the
+anonymous mapping. Darwin execution remains open.
+
+Host 3 used Debian 12, Clang/LLVM 19.1.7 and the checked-in installer with
+its already-populated prefix. The verified executable SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The EPYC 7542 exposed 64 logical CPUs with a 12.288 CPU cgroup quota and
+57,954,795,520-byte memory limit. The paired samples held the host timing
+lock and used CPUs 0–3. One warm-up preceded three warm-filesystem pairs with
+order reversed for the middle sample. Each build compiled the fixture and
+linked the same frozen x86_64-pc-linux-gnu Release providers, including the
+new map object build in the migrated UTF-8 measurement. Each run sample
+started ten fresh prelinked processes and compared all stdout. Cells give
+median wall seconds / median user + system seconds / maximum RSS in KiB.
+
+| Path | Compiler jobs | Original | Migrated |
+| --- | ---: | ---: | ---: |
+| UTF-8 build | 1 | 0.43 / 0.37 / 91,884 | 0.85 / 0.76 / 96,284 |
+| UTF-8 build | 4 | 1.73 / 0.45 / 99,944 | 3.84 / 1.01 / 107,748 |
+| UTF-8 run ×10 | 1 | 2.10 / 1.88 / 3,252 | 1.84 / 1.62 / 3,176 |
+| UTF-8 run ×10 | 4 | 2.16 / 1.87 / 3,176 | 1.82 / 1.61 / 3,152 |
+| Bytes build | 1 | 0.58 / 0.50 / 94,256 | 0.73 / 0.64 / 98,944 |
+| Bytes build | 4 | 1.84 / 0.57 / 96,344 | 2.81 / 0.87 / 105,796 |
+| Bytes run ×10 | 1 | 0.16 / 0.10 / 3,132 | 0.15 / 0.09 / 3,200 |
+| Bytes run ×10 | 4 | 0.15 / 0.09 / 3,160 | 0.16 / 0.09 / 3,132 |
+
+The extra mapping translation unit, companion imports and assertion expansion
+increase clean fixture compilation work. The normal incremental build reuses
+the mapping object. Four-job builds took longer on these small inputs under
+the four-CPU affinity. Both widths emitted identical suite objects within
+each revision. Production compiler sources and objects did not change.
+
+Both restored standalone executables passed the Tower LLVM address and thread
+passes on their first launches, with leak detection enabled in the address
+runs. Link maps and per-function IR call counts cover the checks, reference
+implementations, production objects and byte-test allocator. The UTF-8 native
+sanitizer link also included the compiler memory archive. These corpus loops
+run serially. Tower's instrumenter supports address and thread modes only.
+The evidence includes the initial failed library-mode mutable observation,
+WASI configuration attempts, Darwin formatter refusal and subsequent focused
+cross-object check. Deployment and public integration belong to the manager.
