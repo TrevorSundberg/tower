@@ -1,0 +1,4 @@
+import tower;
+
+print(123);
+var a: i32 = -2147483649;

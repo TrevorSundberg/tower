@@ -107337,3 +107337,67 @@ generated build registry retained all 192 entries and the original driver
 arguments on all twelve wrapped commands. The manager separately checked the
 twelve installed registrations' paths and counts. The first worker matrix
 executed the SCC and SHA-256 registrations on its relocated installation.
+
+## 2026-11-26 — Operator fixture selection on host 8
+
+At manager commit `8bc867b6`, all six selectors in
+`playground/tests/operators.test.mjs` passed on the retained interpreter and
+LLVM reactors. The two trace fixtures cover 81 and 39 output lines. The
+module also generated fourteen binary/compound comparisons and compiled
+22 invalid programs with a print before the error. The increment suite
+already supplies the literal-place input. Its bool case uses prefix
+increment, so the postfix rejection here has its own source.
+
+The new companions run the original trace sources with `fixture_stdout` and
+compare the counted bytes with `fixture_text`. The original golden blobs moved
+from `.expected.txt` to the discovery rule's `.expected` suffix. An initial
+experiment used `--test-oracle` on the original filenames. Its fixture depfile
+also named a missing same-stem oracle. The rename gives both hosts the same
+physical input and makes a direct selection self-checking. The browser keeps
+its independent expected-output comparisons across pointer widths, graph/fast
+execution, Foundation replay and LLVM/Wasm.
+
+The compound companion selects fourteen declarations. Each saves the ordinary
+binary result, applies the compound assignment, checks the stored value and
+checks the evaluation trace for the destination and right operand. A separate
+selected Tower declaration asks the browser to compile each invalid file and
+checks its exact diagnostic, error status, zero steps and empty output.
+Running a malformed top-level script under native test selection can select
+zero tests. Ordinary native interpretation exercises the rejection itself.
+
+The compiler from the hash-verified 5d7ca557 kit ran all twelve generated
+CTest registrations. Both selections of each trace reported one declaration
+and both compound selections reported fourteen at jobs 1 and 4. Changing
+the first subtraction's third operand from minus one to plus one changed
+the first output line from 4 to 6. Both entries rejected the scratch copy
+at `operators_test.tower:8:5` at both widths. Replacing the compound
+addition with subtraction failed at `compound_operators_test.tower:10:5`.
+All eight restored commands passed. Native interpretation of the malformed
+files at both widths returned 1, the original diagnostic and empty stdout.
+
+The six browser selectors passed together and individually. An early filtered
+run exposed a closed reactor when Node drained its hooks between asynchronous
+registrations. Loading both goldens before registering the tests fixed that
+path. Eight browser Foundation texts matched the parent byte for byte.
+Native wasm32 and Linux x64 Foundation, re-emission and replay also matched.
+The ordinary syntax-live Wasm unit and both ordinary fixture objects and
+normalized depfiles matched across revisions. The changed paths intersect
+none of the 49 builtin sources or 412 source dependencies in the retained
+browser depfiles. Those reactor binaries carry their prior build identity.
+
+Host 8 used a Ryzen 9 7900X with a 23.04-CPU quota and a 63,577,260,032-byte
+memory limit. Three alternating, fresh Node 24.22.3 runs per revision on CPUs
+0–3 with warm files and one test process took median 1.46 s before and 1.79 s
+after. Median user plus system CPU was 2.58 and 3.01 s. Maximum RSS was
+294,852 and 295,920 KiB. A second browser interpreter executes the rejection
+assertions. Supplying only the guest file and its increment helper cut a
+trial of that selector from 630 to 304 ms. The new native compound owner
+took 0.19 s at one worker and 0.25 s at four. These runs measure test cost.
+
+ASan with leak detection and TSan each executed the selected compound
+program re-emitted from its canonical Foundation with an instrumented
+Linux x64 guest runtime. Six TSan startups failed the host personality
+check before a non-PIE run completed. This covers serial guest execution.
+Packet `60c4e616-2ec6-4bb5-9385-af13fa993187` includes both located
+failures, the successful restorations, normalized comparisons, actual
+commands, separate streams, statuses and process resource measurements.

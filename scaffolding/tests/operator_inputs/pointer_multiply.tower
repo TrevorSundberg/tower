@@ -1,0 +1,6 @@
+import tower;
+
+print(123);
+var a = 1;
+var p = &a;
+p *= 2;

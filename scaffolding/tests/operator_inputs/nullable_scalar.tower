@@ -1,0 +1,10 @@
+import tower;
+
+print(123);
+
+struct S {
+    x: i32;
+}
+
+var p: S* = null;
+var x = p ?. x;
