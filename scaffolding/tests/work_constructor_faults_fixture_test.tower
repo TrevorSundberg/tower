@@ -44,3 +44,7 @@ fn constructor_fault_descriptor_growth(): void {
 
 test() { constructor_fault_trial(8); }
 test() { constructor_fault_descriptor_growth(); }
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected constructor fault lifecycle", 0);
+}

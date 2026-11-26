@@ -196,3 +196,27 @@ test() {
     var result = source_proof_cases(source_proof_finish_refused);
     assert(result.failures == 0, result.first_failure);
 }
+
+fn source_proof_reserve_remaining(trial: SourceProofTrial*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&trial.budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+    sem_require(work_budget_reserve_result(&trial.budget, 0, 0, snapshot.bytes - snapshot.used_bytes, &trial.pressure) == WorkBudgetError.None);
+}
+
+// Retire a real task so the scan can reuse the access, ready and dispatch
+// buffers even with all remaining graph bytes reserved.
+fn source_proof_warm_graph(context: SemanticContext*): void {
+    var graph = &context.queries;
+    var warm = work_request(graph, context.program.root, convert(u32, SemanticQuery.BodyInputs), 0);
+    sem_require(warm != 0);
+    var domain = convert(u64, SemanticWorkDomain.Compiler);
+    sem_require(work_access(graph, warm, domain, convert(u64, SemanticAccess.KnownAnalysis), 0, 1, WorkAccessMode.Read)
+        && work_access(graph, warm, domain, convert(u64, SemanticAccess.Body), 0, 1, WorkAccessMode.Read)
+        && work_access(graph, warm, domain, convert(u64, SemanticAccess.KnownBinding), 0, 1, WorkAccessMode.Read)
+        && work_access(graph, warm, domain, convert(u64, SemanticAccess.Expression), 0, 1, WorkAccessMode.Read)
+        && work_access(graph, warm, domain, convert(u64, SemanticAccess.Evaluation), 0, 1, WorkAccessMode.Read));
+    sem_require(work_seal(graph, warm) && work_demand(graph, warm));
+    var ticket: WorkTicket = default;
+    sem_require(work_take(graph, &ticket) && work_finish(graph, &ticket, true));
+    sem_require(work_reset(graph, 2, graph.profile));
+}

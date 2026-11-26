@@ -4,23 +4,3 @@ import .library.work_budget;
 import .library.work_budget_types;
 
 enum SemanticDispatchCase: u32 { Publish, SignalDenied, TerminalDenied, AdmissionDenied, SourceDenied }
-
-// This entry owns the coordinator fault. The linked Linux transport supplies the real open.
-// Workers and allocation remain real; no worker reads or writes this flag.
-extern fn __real_work_signal_open(): void*;
-var SemanticDispatchFailSignal: bool = false;
-var SemanticDispatchBudget: WorkBudget* = null;
-var SemanticDispatchOccupied: WorkReservation* = null;
-export fn work_signal_open(): void* {
-    if SemanticDispatchFailSignal {
-        SemanticDispatchFailSignal = false;
-        if SemanticDispatchBudget != null {
-            var snapshot: WorkBudgetSnapshot = default;
-            sem_require(work_budget_snapshot(SemanticDispatchBudget, &snapshot));
-            sem_require(work_budget_reserve_result(SemanticDispatchBudget, 0, 0,
-                SemanticDispatchBudget.bytes - snapshot.used_bytes, SemanticDispatchOccupied) == WorkBudgetError.None);
-        }
-        return null;
-    }
-    return __real_work_signal_open();
-}

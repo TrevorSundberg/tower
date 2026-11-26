@@ -9,7 +9,3 @@ import .host.memory;
 
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_after(count: usize): void;
-
-export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
-    trap("Unexpected constructor fault lifecycle", 0);
-}
