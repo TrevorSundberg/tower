@@ -8,7 +8,7 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import storage_api;
 import format_abi;
-import format_fixture;
+import format_fixture_test;
 import utility_checks;
 
 extern fn syntax_create_bedrock(source: u8*): void*;

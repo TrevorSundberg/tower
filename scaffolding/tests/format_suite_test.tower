@@ -1,5 +1,5 @@
 import library.testing;
-import format_fixture;
+import format_fixture_test;
 import parser_fixture_setup;
 import .compiler.format_types;
 import .compiler.foundation_types;
