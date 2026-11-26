@@ -1,0 +1,14 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var say = require_error("keyword", 64, 0, false);
+    defer free(say);
+    assert(backend_contains(say, "Missing 'done' before 'say'"), say);
+    assert(backend_contains(say, "Statement = 'say' Number 'done' (input.tower:2:"), say);
+    accept("keyword_repaired");
+    var required = require_error("then_required", 69, 0, false);
+    defer free(required);
+    assert(backend_contains(required, "Missing 'then' before 'result'"), required);
+}

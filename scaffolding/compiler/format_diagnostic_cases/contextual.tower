@@ -1,0 +1,10 @@
+import session;
+import library.testing;
+import backend.text;
+
+test() {
+    var text = require_error("contextual", 110, 0, false);
+    defer free(text);
+    assert(backend_contains(text, "Missing 'then'"), text);
+    accept("contextual_repaired");
+}
