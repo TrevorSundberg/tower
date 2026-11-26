@@ -1,0 +1,3 @@
+token Identifier = /@[a-z]+/ as identifier;
+token Number = /[0-9]+(\.[0-9]+)?/ as number;
+// custom lexer

@@ -1,0 +1,11 @@
+import session;
+
+test() {
+    var bundled = "new module";
+    check_selection(bundled, null, null, null, bundled);
+    check_selection(bundled, "old module", "old module", null, bundled);
+    check_selection(bundled, "custom module", "old module", null, "custom module");
+    check_selection(bundled, "unknown old module", null, null, "unknown old module");
+    check_selection(bundled, "", null, null, "");
+    check_selection(bundled, "old\r\nmodule", "old\nmodule", null, bundled);
+}

@@ -1,0 +1,9 @@
+// The ordinary language's lexer is data. The native bootstrap reader only
+// knows how to read declarations, names, quoted literals and /patterns/.
+skip Whitespace = /[ \t\r\n]+/;
+skip LineComment = /\/\/[^\r\n]*/ as comment;
+skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\// as comment;
+token Identifier = /@[a-z]+/ as identifier;
+token Number = /[0-9]+(\.[0-9]+)?/ as number;
+token String = /"([^"\\\r\n]|\\[nrt\\'"])*"|'([^'\\\r\n]|\\[nrt\\'"])*'/ as string;
+// custom lexer

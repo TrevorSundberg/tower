@@ -121026,3 +121026,38 @@ the public manifest and verified hashes, raw process/worker traces, all
 binary comparisons, injected failures, restored results and local Git
 bundles. The implementation at the requested freeze is `12f30be7`.
 Publication belongs to the manager.
+
+### Foundation storage selections in Tower companions
+
+Host 5, assignment `db2d6416-89a8-4764-bf32-3d1cdc60b3ef`, based on
+`1a58cbf3d784f93ef2f926e3cea6b88c590f960b`. The shared checkout already
+had an unrelated rebase. The worker materialized the assigned tree on a local
+main in an isolated clone. The source checkout's partial clone supplied
+missing blobs on demand. The manager owns publication.
+
+The original four Node registrations passed in order. An ESM observation hook
+around the shipped `selectFoundation` recorded its three positional strings,
+optional Bedrock and return value for each of 13 calls. Separate files preserve
+missing, null and zero-length values. No localStorage object participates in
+the original. The legacy lexer, preamble, user overrides and lexer-only save
+are readable Tower source fixtures. The full-save case uses the real syntax
+from its first `parse CoreType`, applies the original first-occurrence edit,
+assembles a CRLF document and changes the actual Bedrock identifier class.
+The frozen syntax contains no quoted `print` token, so the original JavaScript
+replacement leaves that part of the grammar intact. Requiring the token in
+an early guest trial failed. The companion preserves the original behavior.
+
+Four selected `test()` bodies drive and check the original call sequence.
+Each is directly selectable and paired with `session.tower` by its named
+test suffix. The Node entry retains the four public test names. Only fixture
+and async call transport, execution and teardown run on the host. The guest
+compares complete strings, checks the absence of inherited declarations and
+passes the first full-grammar result back through the upgrader. It frees its
+owned string copies. The selected-test runner destroys each execution in its
+finally block and the module host closes the frontend after the suite.
+
+Early trials identified missing direct imports of `backend.text`, pointer
+subtraction unsupported by the shipping frontend, and the small step budget
+on the full CRLF fixture. The implementation imports the library directly,
+uses byte offsets, and pumps bounded interpreter chunks between real async
+operations. It checks inherited names in one pass over the lines.

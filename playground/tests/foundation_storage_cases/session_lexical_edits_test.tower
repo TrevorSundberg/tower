@@ -1,0 +1,27 @@
+import session;
+import backend.text;
+
+test() {
+    var foundation = storage_source("foundation");
+    defer free(foundation);
+    var syntax = storage_source("foundation_syntax");
+    defer free(syntax);
+    var bedrock = storage_source("bedrock");
+    defer free(bedrock);
+    var saved = storage_source("edited_lexer");
+    defer free(saved);
+
+    var upgraded = select_foundation(foundation, saved, foundation, bedrock);
+    defer free(upgraded);
+    var overrides = storage_source("lexical_overrides");
+    defer free(overrides);
+
+    // Only the two edited tokens and the comment follow the current imports.
+    assert(backend_prefix(upgraded, foundation), "Keep the bundled Foundation");
+    assert(backend_prefix(upgraded + backend_length(foundation), "\n"));
+    assert(backend_equal(upgraded + backend_length(foundation) + 1, overrides), "Exact lexical overrides");
+    assert(backend_contains(upgraded, "import foundation_syntax;"));
+    assert(backend_contains(syntax, "parse CoreFunction"));
+    reject_inherited_declarations(upgraded, false);
+    check_selection("unrecognized bundled module", saved, foundation, bedrock, saved);
+}

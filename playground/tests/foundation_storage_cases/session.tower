@@ -1,0 +1,45 @@
+import library.testing;
+import backend.text;
+
+// Sources and results are owned UTF-8 copies. Null represents a missing
+// storage key. An empty string is a saved document with zero bytes.
+extern fn storage_source(name: u8*): u8*;
+extern fn storage_start(bundled: u8*, saved: u8*, baseline: u8*, bedrock: u8*): void;
+extern fn storage_pending(): bool;
+extern fn storage_result(): u8*;
+
+fn select_foundation(bundled: u8*, saved: u8*, baseline: u8*, bedrock: u8*): u8* {
+    storage_start(bundled, saved, baseline, bedrock);
+    while storage_pending() {}
+    return storage_result();
+}
+
+fn check_selection(bundled: u8*, saved: u8*, baseline: u8*, bedrock: u8*, wanted: u8*): void {
+    var selected = select_foundation(bundled, saved, baseline, bedrock);
+    defer free(selected);
+    assert(backend_equal(selected, wanted), "Selected Foundation bytes");
+}
+
+// The legacy declarations start at column one and end their name at a word
+// boundary. A longer user-defined name with the same prefix is allowed.
+fn reject_prefix(line: u8*, declaration: u8*): void {
+    if !backend_prefix(line, declaration) { return; }
+    var next = line[backend_length(declaration)];
+    var longer_name = (next >= *"a" && next <= *"z") || (next >= *"A" && next <= *"Z")
+        || (next >= *"0" && next <= *"9") || next == *"_";
+    assert(longer_name, declaration);
+}
+
+fn reject_inherited_declarations(text: u8*, check_tokens: bool): void {
+    while *text != 0 {
+        reject_prefix(text, "skip Whitespace");
+        reject_prefix(text, "skip LineComment");
+        reject_prefix(text, "skip BlockComment");
+        if check_tokens {
+            reject_prefix(text, "token Identifier");
+            reject_prefix(text, "token String");
+        }
+        while *text != 0 && *text != *"\r" && *text != *"\n" { ++text; }
+        if *text != 0 { ++text; }
+    }
+}
