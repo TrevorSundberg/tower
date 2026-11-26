@@ -1,0 +1,24 @@
+import tower;
+
+struct Inner { small: u8; wide: u64; }
+struct Outer { items: Inner[3]; pointer: i32*; }
+var value: Outer = default;
+var bytes = bits(u8*, &value);
+var total: u64 = 0;
+for (var i: usize = 0; i < sizeof(Outer); i++) { total += convert(u64, bytes[i]); }
+print(total);
+
+fill(&value, 255, sizeof(Outer));
+value = default;
+total = 0;
+for (var i: usize = 0; i < sizeof(Outer); i++) { total += convert(u64, bytes[i]); }
+print(total);
+print(value.pointer == null);
+
+var inferred = default(Inner);
+print(inferred.wide);
+var array: i32[3] = default;
+print(array[2]);
+value.items[1].wide = 42;
+value.items[1] = default;
+print(value.items[1].wide);

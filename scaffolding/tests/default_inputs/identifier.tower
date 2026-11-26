@@ -1,0 +1,1 @@
+import foundation;var default:i32=42;print(default);
