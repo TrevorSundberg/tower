@@ -1,4 +1,9 @@
 import tower;
+import ide_api;
+import .compiler.execution_session;
+import .compiler.format_storage;
+import .compiler.component_kinds;
+import .library.work_budget_types;
 import .compiler.syntax_session_types;
 import .compiler.syntax_types;
 import .compiler.syntax_view;
@@ -19,3 +24,17 @@ extern fn syntax_format_into(session: void*, out: FormatResult*, error: u8**): b
 extern fn format_dispose(out: FormatResult*): void;
 
 fn ide_syntax_session(opaque: void*): SyntaxSession* { return bits(SyntaxSession*, opaque); }
+
+extern fn compiler_node_type(node: void*, kind: u32): void*;
+
+fn ide_program_format(session: ExecutionSession*, formatted: FormatResult*): void {
+    *formatted = default;
+    var present = session != null;
+    present &&= session.program.error.length == 0;
+    present &&= session.program.resource.error == WorkBudgetError.None;
+    if present {
+        format_storage_begin(formatted, session.machine.budget);
+        format_entity(formatted, session.program.root, compiler_node_type(session.program.root, CompilerSyntax),
+            null, compiler_node_type(session.program.root, CompilerParserMatch));
+    }
+}

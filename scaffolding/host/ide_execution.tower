@@ -1,5 +1,6 @@
 import tower;
 import ide_types;
+import ide_format_cases;
 import .compiler.execution_session;
 import .compiler.execution_fixtures;
 import ide_api;
@@ -28,6 +29,7 @@ extern fn sem_resource_message(error: WorkBudgetError): u8*;
 fn ide_execution_close(session: ExecutionSession*): void {
     var owner = bits(IdeExecution*, session);
     execution_session_close(session);
+    if owner.format_inputs != null { frontend_modules_destroy(owner.format_inputs); }
     if owner.access.modules != null { frontend_modules_destroy(owner.access.modules); }
     test_file_selection_dispose(&owner.tests);
     free(owner);
@@ -163,6 +165,15 @@ export fn tw_exec_create_tests(modules: void*, entry: u8*, suffix: u8*, width: u
                 selection = default;
                 owner.access = { selection: &owner.tests, modules: snapshot };
                 session.fixtures = &owner.access;
+                foreach (var &pair in &owner.tests.fixtures) {
+                    if !ide_formatter_suite(pair.companion.data) { continue; }
+                    if !ide_formatter_snapshot(owner, modules) {
+                        ide_execution_close(session);
+                        ide_error("Cannot retain formatter fixtures");
+                        return 0;
+                    }
+                    break;
+                }
             }
             if session.program.test_count != 0 { execution_session_start(session); }
             else { session.machine.done = true; }
@@ -472,6 +483,10 @@ export fn im_append(machine: IMState*, text: u8*, count: usize): void {
 export fn im_foreign(machine: IMState*, node: void*, args: u64*, count: usize): u64 {
     var session = bits(ExecutionSession*, machine);
     var fixture_result: u64 = 0;
+    var owner = bits(IdeExecution*, session);
+    if session.program.test_mode && owner.format_inputs != null && ide_formatter_foreign(owner, node, args, count, &fixture_result) {
+        return fixture_result;
+    }
     if session.fixtures != null && execution_fixture_foreign(session, node, args, count, false, &fixture_result) {
         return fixture_result;
     }

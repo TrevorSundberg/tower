@@ -111271,3 +111271,31 @@ formatter names. Reconstructing the editor drive on this base reproduced
 the previously button-tested bytes exactly. None of the concurrent new
 test sources was in the editable inventory. The packet includes this
 second local history separately. No deployment or push ran.
+
+### Formatter fixture access from the stock editor Tests button
+
+Host 6 assignment 4f6d24ea used the 809-file formatter project from
+29506678 at 3c73ce57. The three incoming archives and all thirteen
+required members matched their receipts. Building the two frontend targets
+from cdce8b73 production source 64fcfc1a with its checked-in Linux compiler
+and WASI SDK 34 reproduced both supplied images exactly. Each image selected
+22 tests on the owner and five on each direct companion. All six actual
+button requests stopped at the first call to format_case_read.
+
+The existing registered fixture service grants a selected companion its
+owner and sibling oracle. It freezes the source graph while a test handle
+is live. The formatter needs fourteen text inputs and a parse, reparse
+or Foundation formatting operation. Its companions now explicitly import
+the fixture library. The IDE snapshots the fourteen registered names for
+those suites and dispatches the three foreign calls only from an active
+granted formatter test frame. Formatting uses the existing parser and
+Foundation emitter in a child environment borrowing the frozen source graph.
+The ordinary native registration and the Tower assertion bodies are unchanged.
+
+The package inventory adds the six named formatter expectations and the two
+increment subjects. The authenticated unit entries and ordered reactor recipes
+were reused. Running the production source collector, JSON writer and staged
+publication on the old inputs reproduced the original project.json byte for
+byte before packaging the new rows. The cdce8b73 reactor recipes also carry
+that provider's frontend_fixture_snapshot export. Full backend release links
+belong to the separate release qualification.
