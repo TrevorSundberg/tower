@@ -1,0 +1,39 @@
+import library.testing;
+import backend.text;
+
+// Edits are JSON objects replacing fields of a fresh copy of payload.json.
+// Handles come from the language service. Request indices follow admission order.
+extern fn editor_fixture(file: u8*): u8*;
+extern fn open_queries(payload: u8*): void;
+extern fn predict(edits: u8*): void;
+extern fn retain_prediction(edits: u8*): void;
+extern fn query(edits: u8*): i32;
+extern fn request_count(): i32;
+extern fn request_id(index: i32): i32;
+extern fn request_key(id: i32): u8*;
+extern fn canceled(id: i32): bool;
+extern fn delivered(id: i32): bool;
+extern fn promise_turn(): void;
+extern fn received_null(id: i32): bool;
+extern fn reply(id: i32, json: u8*): void;
+extern fn received_reply(id: i32, sender: i32): bool;
+extern fn start_request(key: u8*, payload: u8*): i32;
+extern fn posted_id(): i32;
+
+fn key_is(id: i32, wanted: u8*): bool {
+    var key = request_key(id);
+    defer free(key);
+    return backend_equal(key, wanted);
+}
+
+fn await_delivery(id: i32): void {
+    while !delivered(id) {
+        promise_turn();
+    }
+}
+
+fn fresh_queries(): void {
+    var base = editor_fixture("payload.json");
+    defer free(base);
+    open_queries(base);
+}

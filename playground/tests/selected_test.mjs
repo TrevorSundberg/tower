@@ -5,7 +5,7 @@ export function requireStatus(result, status) {
   assert.ok(!result.outputTruncated, 'Truncated guest output');
 }
 
-export function runSelectedTest(tower, entry, chunks = 10, {files, ...testOptions} = {}) {
+export function* selectedTestSteps(tower, entry, chunks = 10, {files, ...testOptions} = {}, budget = 100_000) {
   tower.configureModules(files ? {entry, files} : {entry});
   const handle = tower.compileTests(testOptions);
   try {
@@ -14,9 +14,14 @@ export function runSelectedTest(tower, entry, chunks = 10, {files, ...testOption
     assert.equal(tower.testCount(handle), 1, entry);
     tower.useFast(handle);
     for (let i = 0; i < chunks; i++) {
-      const result = tower.execute(handle, 100_000);
+      const result = tower.execute(handle, budget);
       if (result.status !== 'executing') return requireStatus(result, 'done');
+      yield;
     }
     assert.fail(entry + ' exceeded its execution budget');
   } finally { tower.destroyExecution(handle); }
+}
+
+export function runSelectedTest(...args) {
+  for (const _ of selectedTestSteps(...args)) { /* Run synchronously to completion. */ }
 }

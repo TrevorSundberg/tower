@@ -1,0 +1,32 @@
+import transport;
+import library.testing;
+
+fn check_priority(warming: bool): void {
+    fresh_queries();
+    var startup: i32 = 0;
+    if warming {
+        startup = start_request("warm", '{"method":"warm"}');
+    }
+    var prior = request_count();
+    var foreground = query('{"source":"point","cursor":5}');
+    predict("{}");
+    assert(request_count() == prior + 2, "Admit both requests");
+    var prediction = request_id(prior + 1);
+    assert(foreground == request_id(prior), "Admit foreground completion first");
+    assert(key_is(foreground, "complete") && key_is(prediction, "prediction"), "Keep distinct consumers");
+    assert(!canceled(foreground), "Speculation leaves foreground completion live");
+    if warming {
+        assert(posted_id() == startup, "Startup still occupies the worker");
+        reply(startup, "null");
+    }
+    assert(posted_id() == foreground, "Post the foreground request first");
+    reply(foreground, '{"options":[]}');
+    assert(posted_id() == prediction, "Then post the prediction");
+    await_delivery(foreground);
+    assert(received_reply(foreground, foreground), "Deliver the foreground answer");
+}
+
+test() {
+    check_priority(false);
+    check_priority(true);
+}

@@ -1,0 +1,34 @@
+import transport;
+import library.testing;
+
+enum ReplyTiming: u8 { InFlight, SameTurn, AfterDelivery }
+
+fn check_prediction(timing: ReplyTiming): void {
+    fresh_queries();
+    predict("{}");
+    var prediction = request_id(0);
+    var answer = '{"options":[{"label":"x"}]}';
+    if timing != ReplyTiming.InFlight {
+        reply(prediction, answer);
+    }
+    if timing == ReplyTiming.AfterDelivery {
+        await_delivery(prediction);
+    }
+
+    retain_prediction("{}");
+    var result = query("{}");
+    assert(result == prediction, "Query returns the predicted request object");
+    assert(request_count() == 1, "Exact inputs share one request");
+    assert(delivered(result) == (timing == ReplyTiming.AfterDelivery), "Delivery state when the query returns");
+    if timing == ReplyTiming.InFlight {
+        reply(prediction, answer);
+    }
+    await_delivery(result);
+    assert(received_reply(result, prediction), "The promise delivers the same answer object");
+}
+
+test() {
+    check_prediction(ReplyTiming.InFlight);
+    check_prediction(ReplyTiming.SameTurn);
+    check_prediction(ReplyTiming.AfterDelivery);
+}

@@ -1,0 +1,13 @@
+import transport;
+import library.testing;
+
+test() {
+    edit(1);
+    update("editor", "old file", 1);
+    reset(2);
+    update("editor", "late old file", 1);
+    advance(10000);
+    assert(timers_fired() == 0 && published_is("[]"), "Discard old errors and cancel the old document timer");
+    update("editor", "new file", 2);
+    assert(published_is('[["editor","new file"]]'), "Publish in the new document immediately");
+}

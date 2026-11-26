@@ -112270,3 +112270,29 @@ no concurrent guest work. The public Wasm reactors have no supported sanitizer
 build in this comparison, and the Tower IR tool has no UBSan mode. The
 assignment packet retains the source bundle, hashes, raw traces, negative
 controls and reproduction commands for manager review.
+
+### Completion request identity and diagnostic deadlines in selected Tower tests
+
+Assignment f75f7ab0 on host 3 started at public main `8fdfe15a`. All eight
+original names passed independently. The first bounded compilation of each
+suite rejected the reserved name `expected`. Using `wanted` allowed the first
+prediction and deadline cases to run. The production callers are
+`completion.mjs` and `app.mjs`. The two ES modules still provide their
+ordinary synchronous editor APIs.
+
+The `playground/src/completion_queries` and `diagnostic_delay` directories
+hold eight directly selected tests. The Node registrations reuse one reactor
+per suite. Tower supplies the edits, caller order, replies, elapsed intervals
+and expectations. The shared page fixture runs the production LanguageService
+up to its Worker boundary. Each query is identified by the service task ID
+found by reference equality with its returned request handle. Tests inspect
+the canceled task and the delivered null or answer object. A bounded guest
+can request a JavaScript microtask turn to observe a promise reaction. This
+also allows reply and reuse to occur within one turn. DiagnosticDelay uses its
+ordinary timeout handles under the Node test clock. Its publication stream is
+sampled before and after deadlines, reveal, successful clears and reset.
+
+The local Wasm build has SHA-256 `73660e4a…` and predates the test entry
+point. The cached published portable `41bb9b11…` and shared `72c882ee…`
+reactors from compiler source `8bc867b6` match the retained Pages manifest.
+The bounded selections used those public resources without a compiler build.

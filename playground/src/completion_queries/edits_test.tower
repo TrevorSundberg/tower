@@ -1,0 +1,26 @@
+import transport;
+import library.testing;
+
+fn invalidates(edit: u8*): void {
+    fresh_queries();
+    predict("{}");
+    var previous = request_id(0);
+    var next = query(edit);
+    assert(request_count() == 2, edit);
+    assert(next == request_id(1) && next != previous, edit);
+    assert(canceled(previous) && !canceled(next), edit);
+    await_delivery(previous);
+    assert(received_null(previous), edit);
+}
+
+test() {
+    invalidates('{"source":"point. "}');
+    invalidates('{"cursor":5}');
+    invalidates('{"activePath":"other.tower"}');
+    invalidates('{"foundation":"foundation "}');
+    invalidates('{"bedrock":"bedrock "}');
+    invalidates('{"builtins":{"tower":"tower "}}');
+    invalidates('{"files":[{"path":"lib.tower","text":"struct Point { x:i32; } "}]}');
+    invalidates('{"compilerRevision":1}');
+    invalidates('{"library":"."}');
+}

@@ -1,0 +1,16 @@
+import transport;
+import library.testing;
+
+test() {
+    fresh_queries();
+    predict("{}");
+    var first = request_id(0);
+    predict("{}");
+    assert(request_count() == 1 && !canceled(first), "Repeated prediction keeps the request");
+    predict('{"cursor":0}');
+    var second = request_id(1);
+    assert(first != second && canceled(first), "A new prediction cancels the old request");
+    assert(!canceled(second), "The replacement is live");
+    retain_prediction("{}");
+    assert(canceled(second), "An intervening edit cancels the replacement");
+}
