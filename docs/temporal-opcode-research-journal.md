@@ -110824,3 +110824,84 @@ Packet `ed3edeb1-3fd8-4611-80cb-fd224e6304c1.tar.gz` includes frozen inputs,
 raw observations, selection count, injected failures, build inventories,
 timing samples and a source bundle from the assigned parent. Allocator
 grants were unmeasured. Manager review and publication are pending.
+
+### Serial arena allocation refusals in an optional native fixture, 2026-11-26
+
+Host 1 started assignment `9470d08a-d6cf-40da-a3dc-2af5d4847444` from
+published `dc3bcdc72368b5967226c49d44254ecd4913ffa1`. The named CTest
+in `cmake/TowerWorkPolicyTests.cmake` builds the serial executable from
+`tests/work_arena_faults.tower`, the instrumented allocator, runtime trap and
+serial work transport. The shared arena executable has its own worker entry
+and production allocator. The library arena also enters the compiler entities
+unit. Its default test discovery already includes the budget companion.
+
+The [test fixture](../scaffolding/tests/work_arena_fault_fixture.tower) owns
+its budget and arena and scopes the fault counter to one allocation.
+Its [companion](../scaffolding/tests/work_arena_fault_fixture_test.tower)
+covers immediate disposal after the first refusal and the original sequence
+of both refusals and retries in one arena. It checks the exact Memory result,
+null or preserved output, head and tail, all 64 bytes of the original slice,
+live allocation count, outstanding receipt and byte charge. Both scenarios
+drain the budget and restore the original allocator count. The existing
+executable calls the same scenario functions. The optional SccTests component
+installs the two files under share/tower/tests. The four new selections use
+its existing native test runtime and object providers.
+
+The published 7315b86e Linux x64 driver selected the fault companion's
+6:1 and 7:1 IDs and work_budget_test.tower's 6:1 through 10:1 IDs from the
+fixture owner. Direct selection ran the two fault IDs. All four registrations
+passed in the build and in a moved installation. Using Capacity as the expected
+second refusal in the installed companion exited 1 at line 39, column 5,
+at jobs 1 and 4. The same edit in the compiled executable aborted at offset
+56233 (exit 134, CTest 8). Restoring the source reproduced the passing
+object bytes, exact stdout `0\n`, empty stderr and exit 0. Omitting the
+instrumented provider from the fault guest failed to link tower_test_buffer_count.
+
+The ordinary arena object and depfile were byte-identical across the change at
+jobs 1 and 4 (object SHA-256 be615750af2fad8ba6dc2ce1c1975bc2b4847a6de5414f5446de2320631e3444).
+Its five budget IDs matched without instrumentation. An independent Tower
+consumer wrote and read a slice using the ordinary allocator and passed the
+same six IDs before and after at both widths. The real shared client object
+matched 32ddfce7e2d104c9c678e8f970a5fade44d636a264df4f9abc6417cae2116e64
+and its depfile matched after normalizing the output filename. Its ten repeated
+CTest runs passed. The compiler entities unit and shared client retained their
+parent discovery lists. The ordinary standalone arena entry passed its own CTest.
+Trying to select that executable's source as a native guest on the parent
+diagnosed duplicate main. An initial ordinary guest link with only the memory
+archive lacked bytes_reserve. The registered byte, UTF-8 and memory providers
+satisfied the budget companion. The first configure needed the checked-in
+bootstrap's explicit path. The cached narrow ABI object for the install came
+from a previous verified kit.
+
+For the fixture object comparison the host used two Intel Xeon Gold 6244
+sockets (16 cores, 32 logical CPUs), cpuset 0–31, cgroup CPU quota
+1536000/100000, timed affinity 0–3, the public driver, --library and target
+x86_64-pc-linux-gnu. Runs held the host timing lock, warmed both trees once
+per width, alternated order and started a fresh compiler for each sample.
+The table gives median wall seconds, median user + system seconds and maximum
+peak RSS in KiB over three measurements per cell.
+
+| Fixture object | Jobs | Wall s | CPU s | RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Parent | 1 | 0.45 | 0.45 | 100104 |
+| Companion-backed executable | 1 | 0.65 | 0.63 | 104152 |
+| Parent | 4 | 0.52 | 0.56 | 105004 |
+| Companion-backed executable | 4 | 0.80 | 0.91 | 119452 |
+
+Compilation now includes the fixture, assertion grammar, two scenarios and
+located diagnostics. The object grew from 9352 to 11848 bytes. Each arm
+produced the same object across samples and widths. Both linked against
+the same serial runtime and printed zero. The fault stream is single-owner
+at either width. These measurements cover the test executable's compilation.
+
+The focused address and thread sanitizer builds instrumented the compiled
+fixture, allocator, trap and transport. Both executables passed ASan with
+leak detection. The serial fault executable passed TSan. The separate shared
+executable's first TSan launch failed at the runtime's ADDR_NO_RANDOMIZE
+personality request (139). A fresh launch of the unchanged binary passed.
+The repository supplies address and thread modes for Tower IR. There is no
+UBSan run or source instrumentation of the native test driver in this receipt.
+
+The assignment archive contains the bundle, raw commands, artifact identities,
+per-process status/streams, selected IDs, failed controls and timings. The
+production compiler was reused. Manager review and publication are pending.

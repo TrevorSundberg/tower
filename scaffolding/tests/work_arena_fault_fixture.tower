@@ -1,0 +1,35 @@
+import library.testing;
+import .host.memory;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget;
+import .library.work_budget_types;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+struct ArenaFaultFixture {
+    budget: WorkBudget;
+    arena: WorkArena;
+    baseline: usize;
+}
+
+fn arena_fault_init(fixture: ArenaFaultFixture*): void {
+    fixture.baseline = tower_test_buffer_count();
+    assert(work_budget_init(&fixture.budget, 1, 16384, 1), "Initialize the arena byte budget");
+    assert(work_arena_init(&fixture.arena, &fixture.budget, 4096), "Initialize the chunk arena");
+}
+
+// Only the attempted allocation runs with this process's serial fault counter armed.
+fn arena_fault_allocate(arena: WorkArena*, bytes: usize, output: u8**): WorkBudgetError {
+    tower_test_buffer_fail_after(0);
+    defer tower_test_buffer_fail_after(~convert(usize, 0));
+    return work_arena_allocate_result(arena, bytes, 8, output);
+}
+
+fn arena_fault_dispose(fixture: ArenaFaultFixture*): void {
+    work_arena_dispose(&fixture.arena);
+    assert(fixture.budget.live == 0 && fixture.budget.used_bytes == 0, "Arena disposal releases every charge");
+    assert(work_budget_dispose(&fixture.budget), "Dispose the drained budget");
+    assert(tower_test_buffer_count() == fixture.baseline, "Disposal restores the allocator baseline");
+}
