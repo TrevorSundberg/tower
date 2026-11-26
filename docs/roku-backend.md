@@ -94,8 +94,8 @@ control-flow merges, conversions, diagnostics, comments and deterministic output
 LLVM scalar idiom and population-count fixtures also check the optimized
 foundation reconstruction path with high-bit and full-width integer values.
 The pinned `i32.wast`/`i64.wast` numerical assertions used by wasm2brs cover 758
-return/trap cases. Another 384 seeded BigInt differential cases cover full-width
-integer arithmetic. This is numerical corpus coverage, not the complete Wasm
+return/trap cases. The integer test companions generate 384 additional differential cases with
+seeded Tower u64 arithmetic at the two operand widths. This is numerical corpus coverage, not the complete Wasm
 validation suite or evidence of physical-device compatibility/performance.
 
 The test run writes `build/roku-device/source/`, a manifest, `expected.txt`, and

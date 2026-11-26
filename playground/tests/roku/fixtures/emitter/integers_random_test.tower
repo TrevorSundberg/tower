@@ -1,0 +1,51 @@
+import numeric_cases_test;
+import library.testing;
+import library.vector;
+
+fn next_random(seed: u64*): u64 {
+    *seed = *seed * 6364136223846793005 + 1442695040888963407;
+    return *seed;
+}
+
+fn random_case(suite: NumericSuite*, width: u32, a: u64, b: u64, name: u8*, value: u64): void {
+    var op = &NumericOps[operation_index(name)];
+    var row: NumericCase = {
+        width: width, op: op, a: {
+            value: a, .. default
+        },
+        b: {
+            value: b, .. default
+        }, binary: true, wanted: value &width_mask(width), .. default
+    };
+    emit_case(suite, &row);
+}
+
+fn random_pair(suite: NumericSuite*, width: u32, seed: u64*): void {
+    var mask = width_mask(width);
+    var a = next_random(seed) &mask;
+    var b = next_random(seed) &mask;
+    if b == 0 {
+        b = 1;
+    }
+    random_case(suite, width, a, b, "add", a + b);
+    random_case(suite, width, a, b, "sub", a -b);
+    random_case(suite, width, a, b, "mul", a *b);
+    random_case(suite, width, a, b, "and", a &b);
+    random_case(suite, width, a, b, "or", a | b);
+    random_case(suite, width, a, b, "xor", a ^ b);
+    random_case(suite, width, a, b, "div_u", a / b);
+    random_case(suite, width, a, b, "rem_u", a % b);
+}
+
+test() {
+    var suite: NumericSuite = default;
+    defer vector_dispose(&suite.body);
+    var seed: u64 = 7114658917775485901;
+    for (var width: u32 = 32; width <= 64; width *= 2) {
+        for (var i: usize = 0; i < 24; i++) {
+            random_pair(&suite, width, &seed);
+        }
+    }
+    assert(suite.count == 384, "Seeded case count");
+    run_numeric_suite(&suite);
+}

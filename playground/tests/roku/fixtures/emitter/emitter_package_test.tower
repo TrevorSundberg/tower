@@ -1,0 +1,26 @@
+import emitter;
+import roku_package_test;
+
+test() {
+    var source = roku_input("tests/backend_semantics.tower");
+    defer free(source);
+    var original = roku_compile(source, RokuPointerBytes);
+    defer roku_release(original);
+    var canonical = roku_foundation(original);
+    defer free(canonical);
+    var optimized = roku_llvm(canonical, true);
+    defer free(optimized);
+    var round = roku_compile(optimized, RokuPointerBytes);
+    defer roku_release(round);
+    var program = roku_emit(round, true);
+    defer free(program);
+    write_package_text("source/program.brs", program);
+    var main = roku_input("package.brs");
+    defer free(main);
+    write_package_text("source/Main.brs", main);
+    write_package_text("manifest", "title=Tower Roku conformance\nmajor_version=1\nminor_version=0\nbuild_version=0\n");
+    var output: FixtureBytes = default;
+    output.data = roku_reference(original, &output.length);
+    defer free(output.data);
+    write_package_expected("expected.txt", output);
+}

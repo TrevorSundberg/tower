@@ -1,0 +1,5 @@
+import numeric_wast_test;
+
+test() {
+    run_pinned(32);
+}

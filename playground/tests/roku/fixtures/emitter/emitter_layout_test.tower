@@ -1,3 +1,4 @@
+import roku_simulator_test;
 import emitter;
 import backend.text;
 

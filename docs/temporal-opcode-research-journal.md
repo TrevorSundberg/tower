@@ -117987,3 +117987,36 @@ format check passed and its owner/suffix inventory found exactly the changed
 companion. The packet includes the commands, statuses, all six byte blobs
 per image, traces, comparisons, verified public products and source bundle.
 Manager integration and publication follow this local qualification.
+
+## Roku integer corpus and device package registrations on host 8
+
+Assignment `a881ba07-f7bb-4eec-ad8e-58120190d87d` starts at published
+`1cc5e97cd9c2d282673c4e7cb490e0e72b213483`. The initial pull encountered
+unrelated unpublished parser-row commits. Aborting restored the shared
+checkout to `ff4c96f7`. The implementation uses a separate local main at
+the assigned parent. Pages `8417c9ae4cd9accdf672b22d6676bd465c8a79d6`
+supplies the two frontend images and the compressed LLVM reactor. The installed
+BrighterScript 0.73.8 and brs-node 2.7.1 provide syntax validation and execution.
+
+The four original integer registrations and the conformance writer now select
+Tower test bodies by filename suffix. The numeric companions read the pinned
+WAST, check the population for each operation and render each original
+BrightScript assertion, including its chunk number, operands, trap or expected
+bits. The seeded differential uses wrapping Tower u64 arithmetic, a continuous
+seed across widths, and unsigned quotient and remainder. The Node boundary
+decodes the existing runtime text literals, validates and runs the submitted
+program, and transfers stdout. Tower checks its counted bytes in the shared
+simulator companion. For both package writers the adapter writes and reads
+actual filesystem bytes, which Tower compares to the generation buffer.
+
+The first native format check reported noncanonical source. The new and
+modified companions were formatted with the public bootstrap. Early Wasm
+trials exposed a missing direct import, reserved identifiers and an
+unconstrained i32 literal. The four individual integer selections subsequently
+compiled. The combined 758-case writer produced the original 154,216 bytes
+but exhausted the step allowance during byte-by-byte readback. Its larger
+per-step budget completes the same full comparison. The other twelve
+registrations keep their step size. A first attempt to wrap an immutable
+simulator export produced no trace files. The raw proof uses a load-time tap
+on the existing harness to retain its actual program, Main and normalized
+stdout around real simulator execution.
