@@ -1,36 +1,58 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {loadTower} from '../src/tower-host.mjs';
+import {browserTargetImports} from './browser_target_host.mjs';
+import {runSelectedTest} from './selected_test.mjs';
 import assert from 'node:assert/strict';
-import { inferBrowserTarget, detectBrowserTarget, defaultTargetSelection } from '../src/browser-target.mjs';
+import { inferBrowserTarget, detectBrowserTarget } from '../src/browser-target.mjs';
 import { targets, targetChoices, savedTargetSelection, targetSelectionKey, targetInputs, linkInputsForTarget } from '../src/targets.mjs';
 
-const cases = [
-  ['unknown', {}, {}, 'windows'],
-  ['Windows fallback', {platform:'Win32'}, {}, 'windows'],
-  ['Windows x64', {userAgent:'Windows NT 10.0; Win64; x64'}, {}, 'windows'],
-  ['Linux x64', {platform:'Linux x86_64'}, {}, 'linux'],
-  ['Linux fallback', {platform:'Linux'}, {}, 'linux'],
-  ['Linux ARM64', {platform:'Linux aarch64'}, {}, 'linux-arm'],
-  ['Mac ambiguous Intel UA', {platform:'MacIntel',userAgent:'Macintosh; Intel Mac OS X 10_15_7'}, {}, 'mac-arm'],
-  ['Mac x64 hints', {platform:'MacIntel'}, {architecture:'x86',bitness:'64'}, 'mac'],
-  ['Mac ARM64 hints beat UA', {platform:'MacIntel',userAgent:'Macintosh; Intel Mac OS X'}, {architecture:'arm',bitness:'64'}, 'mac-arm'],
-  ['Mac hints beat touch heuristic', {platform:'MacIntel',maxTouchPoints:10}, {platform:'macOS',architecture:'arm',bitness:'64'}, 'mac-arm'],
-  ['hints supply OS separately', {userAgent:'Windows NT 10.0'}, {platform:'Linux',architecture:'arm',bitness:'64'}, 'linux-arm'],
-  ['Android is not desktop Linux', {platform:'Linux aarch64',userAgent:'Linux; Android 14'}, {}, 'wasm'],
-  ['iOS', {platform:'iPhone'}, {}, 'wasm'],
-  ['iPad desktop mode', {platform:'MacIntel',maxTouchPoints:5}, {}, 'wasm'],
-  ['Chrome OS', {userAgent:'X11; CrOS x86_64'}, {}, 'wasm'],
-  ['32-bit Linux is not x64', {platform:'Linux i686'}, {}, 'wasm'],
-  ['32-bit ARM is not ARM64', {platform:'Linux armv7l'}, {}, 'wasm'],
-  ['32-bit hints', {platform:'Win32'}, {architecture:'x86',bitness:'32'}, 'wasm'],
-  ['WoW64 supports x64', {platform:'Win32'}, {architecture:'x86',bitness:'32',wow64:true}, 'windows'],
-  ['Windows ARM unavailable', {platform:'Win32'}, {architecture:'arm',bitness:'64'}, 'wasm'],
+const caseNames = [
+  'unknown',
+  'Windows fallback',
+  'Windows x64',
+  'Linux x64',
+  'Linux fallback',
+  'Linux ARM64',
+  'Mac ambiguous Intel UA',
+  'Mac x64 hints',
+  'Mac ARM64 hints beat UA',
+  'Mac hints beat touch heuristic',
+  'hints supply OS separately',
+  'Android is not desktop Linux',
+  'iOS',
+  'iPad desktop mode',
+  'Chrome OS',
+  '32-bit Linux is not x64',
+  '32-bit ARM is not ARM64',
+  '32-bit hints',
+  'WoW64 supports x64',
+  'Windows ARM unavailable',
 ];
-for (const [name,nav,hints,key] of cases) test('browser target: '+name, () => {
-  const result=inferBrowserTarget(nav,hints);
-  assert.equal(result.key,key);
-  assert.equal(Object.values(defaultTargetSelection(result)).filter(Boolean).length,key === 'wasm' ? 3 : 4);
-  assert.equal(defaultTargetSelection(result).wasm,true);
-  assert.equal(defaultTargetSelection(result)[key],true);
+const directory = 'playground/src/browser_target_cases/';
+const read = path => readFile(new URL('../../' + path, import.meta.url), 'utf8');
+const file = async path => ({path, text:await read(path)});
+
+let host;
+async function openTargetTests() {
+  const modules = ['bedrock', 'foundation_syntax', 'types', 'foundation', 'tower',
+    'library/testing', 'backend/text', 'library/vector'];
+  const builtins = Object.fromEntries(await Promise.all(modules.map(async name =>
+    [name, await read('scaffolding/' + name + '.tower')])));
+  const bytes = await readFile(process.env.TOWER_TEST_WASM ||
+    new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
+  return loadTower(bytes, undefined, builtins.foundation, undefined, builtins.bedrock, {
+    builtins, tower:builtins.tower, threads:{capacity:1}, imports:browserTargetImports(),
+  });
+}
+after(() => host?.close());
+
+for (const name of caseNames) test('browser target: '+name, async () => {
+  host ??= await openTargetTests();
+  const entry = directory + name.toLowerCase().replaceAll(/[^a-z0-9]+/g, '_') + '_test.tower';
+  // Each explicit entry owns one test. The browser target itself is an ES module.
+  const files = await Promise.all([file(entry), file(directory + 'check.tower')]);
+  runSelectedTest(host, entry, 1, {files, suffix:'_browser_test.tower'});
 });
 test('denied, absent and stalled client hints fall back promptly', async () => {
   for (const getHighEntropyValues of [undefined,()=>Promise.reject(Error('denied')),()=>new Promise(()=>{})]) {

@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"userAgent":"X11; CrOS x86_64"}', '{}', "wasm");
+}

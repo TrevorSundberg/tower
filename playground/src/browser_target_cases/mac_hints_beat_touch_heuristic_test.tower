@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"MacIntel","maxTouchPoints":10}', '{"platform":"macOS","architecture":"arm","bitness":"64"}', "mac-arm");
+}

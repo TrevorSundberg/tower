@@ -111478,3 +111478,83 @@ deliberately skipped case. Both decimal CI selectors ran four checks each
 with the documented default native build on Debian 12. Host 4's raw results
 cover this source freeze. After the separate arena migration the manager
 enumerated 50 registrations and confirmed the original 46 kept their order.
+### Browser target defaults under the original Node names
+
+Host 7 started assignment `60a702d3-48e9-4b8d-95f6-7031e74621f3`
+at public `b197e64bc2361f57e8a3a176623dee0d2f5fb35b`. The first twenty
+registrations in `playground/tests/targets.test.mjs` called
+`inferBrowserTarget(nav, hints)` once and `defaultTargetSelection(result)`
+three times each. The old WoW64 name filter ran just that case. The last five
+registrations exercise asynchronous detection (including a never-settling
+promise), saved choices, strong matches and scoped link inputs.
+
+Each of the twenty names now selects a small module in
+`playground/src/browser_target_cases`. Its two JSON literals preserve
+absent properties and its last argument names the expected target. The
+common Tower function checks the key, counts truthy values, and checks
+strictly enabled Wasm and expected-key members. The foreign bindings
+transport the two public ES exports' actual arguments and results. A
+filtered run opens the reactor on the first selected case. Each subsequent
+case compiles its own entry and shared imports on that live reactor.
+The public test host selects by module and reports the declaration count.
+Each entry must select one. An early compile rejected the reserved
+parameter name `expected`. The qualified parameter is `expected_key`.
+
+Chromium 159.0.8154.6 ran the actual registration callbacks in a module
+worker with browser adapters for Node registration, assertions and file IO.
+The portable image passed. The first shared probe installed its worker
+ownership listener too late and timed out. With the listener installed at
+module load, Chromium reported a shared `TextDecoder` view on the first
+case. Node had accepted the same view. The test string reader now uses the
+public host's `decodeBytes`, which copies the selected bytes when the
+underlying buffer is shared. Both browser images then ran all twenty.
+The production target detector, selection export and browser host are
+unchanged. The test boundary serializes the returned named member so Tower
+can distinguish boolean true from another truthy value.
+
+The Pages manifest at `f2214133fc9552343dfd40d509c4ea3dae571bb9`
+verified both frontend images (portable SHA-256 `41bb9b11…`, shared
+`72c882ee…`). Each ran all 25 Node names. Each exact name filter ran one
+case. The full group's 80 public calls, including ordered arguments and
+returned objects, matched the public parent byte for byte on both images.
+The five other names passed together with the reactor path deliberately
+absent. A preliminary negative-lookahead selector also matched the Node
+file suite and ran all names. Explicit positive name prefixes selected
+the intended five.
+
+Removing the WoW64 exception failed the inferred-key assertion.
+Substituting Linux x64 for the selected ARM64 profile kept the count and
+Wasm flag correct and failed the expected-key assertion. Adding Roku
+failed the count. Exchanging Wasm for C failed the Wasm assertion, as did
+returning numeric one for the Wasm flag. The restored registrations passed
+on each image. Ordinary compilation of each entry on each image completed
+with zero selected tests and empty output, without any detector bindings.
+The ordinary full-backend Playground build produced identical 109-file
+inventories including bytes and paths. It reused the published reactors,
+target inputs and compiler project, with the packager built from the
+assigned parent using the public native bootstrap.
+
+Three alternating full-file Node pairs ran on an AMD EPYC 7502, CPUs
+4–5, container quota 30.72 CPUs, Node 24.22.3, warm filesystem and fresh
+processes. The original tests made no compiler requests. Median wall
+seconds, median user plus system CPU seconds and maximum process RSS in
+KiB were as follows.
+
+| Image selected | Parent wall | Candidate wall | Parent CPU | Candidate CPU | Parent peak | Candidate peak |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Portable | 0.12 | 1.97 | 0.15 | 2.50 | 57,416 | 111,176 |
+| Shared, one worker slot | 0.12 | 2.41 | 0.14 | 2.98 | 57,428 | 127,432 |
+
+Calling the same unknown-browser registration twice in one process took
+539 then 84 ms on portable and 698 then 93 ms on shared. Each second call
+compiled its selected entry again on the live reactor. These costs apply
+to the test runner. Allocation grants were unmeasured. The published Wasm
+images, Chromium and Node ran without sanitizer instrumentation.
+
+The eight registered desktop/mobile target-default UI checks passed before
+and after against the ordinary loopback build, including saved selections,
+reloads and the Linux download. An earlier Playwright launch lacked
+`libnspr4.so`. The successful runs used host 7's existing browser
+library directory. The evidence packet contains the setup, both build
+inventories, per-name inputs, traces, failures, restoration and timing
+streams. Publication belongs to the manager.
