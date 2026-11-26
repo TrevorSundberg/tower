@@ -116337,3 +116337,90 @@ main still runs those same bodies in their original order before checking
 target sizes, payload back-pointers and receipt retirement. The native CTest
 registrations select all three directly and all three plus five imported
 budget tests through the owner, at compiler jobs 1 and 4.
+
+At implementation `d1b86b86`, each case body matches its parent byte for
+byte after substituting Tower assertions for the legacy check calls. The
+finalizer body matches verbatim. The Linux fixture object includes the real
+entity, stage, work-budget, work-buffer and production memory implementations.
+The standalone links that object with `guest-work-tests.o`. The selectors use
+`--test-native-runtime guest-native-test.o --link runtime-allocate.o`. The packet
+records the compiler and provider hashes, depfiles, link invocations and
+symbol inventories. Its Linux depfiles contain 20 parent and 23 candidate
+Tower files. Windows has 21 and 23 respectively.
+
+Both jobs-1 and jobs-4 builds reproduced their own freeze's object and ELF.
+The parent and restored legacy executables printed the same eight lines,
+`8 72 184 112 3815 37015 40 0`. The owner and direct selections reported
+eight and three passes, with empty guest stdout. All five focused CTests
+passed in each build directory. A temporary Tower observer captured 66
+ordered values from the three groups. Both migrated standalone traces matched
+their original counterparts in full. The four selected traces matched the
+original observations through the last group.
+
+Child counts/capacities progressed through 1/1, 4/4 and 5/8, with two
+references on the attached child. The denied second and fifth component
+insertions preserved payload 7654 and used-byte/grant pairs 1048576/8 and
+1048544/12. Lease discard restored one component with payload 4321. With
+the first four staged payloads live, denial left the fifth owner empty and
+the kind's published count at zero. After retry and publication the pages
+held four and one, the first page belonged to store storage, the dense kind
+index counted five and the fourth stable payload still held 3. The original
+checks also require the budget and receipt counts to return to zero.
+
+Changing the stored lease payload to 4320 while retaining the expected 4321
+failed both parent standalones, both migrated standalones and all four
+selections. The selectors located the discard assertion at companion line
+220. Changing only the inline-index kind's registered lifecycle from zero
+to one caused the same eight routes to exit 1 with the original unexpected-
+finalizer message. The first harness expected an abort signal; the real
+standalone trap writes its diagnostic and exits 1. The corrected harness
+checks that exact status and message. Restoration reproduced the candidate
+objects/executables and passed the routes again.
+
+Host 8 used a Ryzen 9 7900X (12 cores, 24 logical CPUs), process affinity
+0–3 for measurement, enclosing quota 2304000/100000 and memory limit
+63577260032 bytes. Release Linux x64, Clang/LLVM 19.1.7, checked-in compiler
+SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The host timing lock serialized fresh GNU-time processes on warm files.
+Each table cell gives median wall seconds, median user plus system seconds,
+and maximum process RSS in KiB over three samples after warmup.
+
+| Entry | Compiler jobs | Parent | Companion |
+| --- | ---: | ---: | ---: |
+| Legacy object compilation | 1 | 0.73 / 0.72 / 169696 | 0.81 / 0.81 / 174488 |
+| Legacy object compilation | 4 | 0.70 / 0.78 / 176704 | 0.81 / 0.91 / 185832 |
+| Direct compile, link, run | 1 | Missing companion | 0.81 / 0.81 / 172432 |
+| Direct compile, link, run | 4 | Missing companion | 0.82 / 0.91 / 184968 |
+| Owner compile, link, run | 1 | Duplicate main | 0.90 / 0.90 / 186408 |
+| Owner compile, link, run | 4 | Duplicate main | 0.89 / 1.00 / 198360 |
+
+The candidate compiles a larger import closure including the testing grammar.
+Its median object build cost increased by 0.08 s and 0.11 s at the two widths.
+Single guest executions were below GNU time's 0.01 s resolution. Alternating
+256-launch batches reproduced all 2048 output lines and measured median
+0.13 s wall and 0.13 s CPU in all four cells, including shell/process startup.
+The guest's ownership cases run serially at both compiler widths.
+
+The project address and thread instrumentation passes reached all three case
+functions and the CMake fixture entry. Each link-map replay reproduced the
+instrumented executable. ASan with leak detection passed, and the existing
+overflow control produced its expected report. TSan passed on attempt six
+after five host startup failures in `personality(ADDR_NO_RANDOMIZE)`. Its
+separate race control produced the expected data-race report on attempt
+seven. Coverage is the ordinary Linux fixture and its production allocator
+on this serial guest path. Tower's IR tool supports address and thread modes.
+Source-level UBSan, concurrent guest execution and Windows instrumentation
+remain outside these measurements.
+
+The explicit Windows module-level call remains byte-identical to the parent.
+Both freezes cross-compiled with the pinned compiler at jobs 1/4 for
+`x86_64-pc-windows-msvc` and linked with Clang/lld 19 and the pinned runtime
+IR. This Linux host used archive-verified Debian mingw-w64 x64 10.0.0-3
+import libraries for KERNEL32.dll and ucrtbase.dll. The restored PE had
+SHA-256 `d6bc5851bbbbb1837afb8ae3e9fe36d31ae44c703d50c4b044c95326afc2d269`
+at both widths. Giving the fixture main a temporary return of 37 emitted a
+call to that main, a move of 37 into ECX and a jump relocated to ExitProcess.
+Restoring zero reproduced the object and PE. Host execve returned ENOEXEC
+and no Windows executor was installed. Native Windows runtime verification
+remains open. The manager owns integration and publication from the
+assignment's frozen parent.
