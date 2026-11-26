@@ -141,6 +141,16 @@ function(tower_lr_work_policy_test)
     tower_native_test_selections(lr-action-rows lr_action_rows "20 tests" "3 tests"
       --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+    # The permutation guest uses the same threaded frontend and production allocator.
+    tower_native_test_selections(dependency-permutations compiler_dependency_permutations "6 tests" "1 test"
+      --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+    foreach(selection IN ITEMS owner direct)
+      foreach(jobs IN ITEMS 1 4)
+        set_tests_properties("tower-dependency-permutations-${selection}-jobs-${jobs}" PROPERTIES
+          WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 180)
+      endforeach()
+    endforeach()
   endif()
   add_test(NAME tower-native-units COMMAND tower-lr-work-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" units)
   foreach(mode IN ITEMS dependency-stress dependency-stress-wrong-result)

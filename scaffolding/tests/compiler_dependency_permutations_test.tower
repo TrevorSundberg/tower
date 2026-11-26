@@ -1,0 +1,155 @@
+import library.testing;
+import compiler_dependency_permutations;
+import compiler_dependency_observations;
+import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import .library.vector;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_gate;
+import .compiler.format_api;
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .compiler.grammar_types;
+
+extern fn frontend_modules_source(environment: void*, path: u8*, source: u8*, length: usize): bool;
+
+fn permutation_trial(root: u8*, bedrock: u8*, foundation: u8*, seed: u32,
+    imported: bool, cycle: bool, workers: usize, wrong: bool, receipt: SeedReceipt*): bool {
+    printf("Permutation seed=%u workers=%zu mode=%s revision=%llu\n", seed, workers,
+        imported ? "imported" : "local", convert(u64, seed)); fflush(null);
+    var inputs: FormatResult[PermutationUnits] = default;
+    defer { for(var i: usize = 0; i < PermutationUnits; i++) { format_dispose(&inputs[i]); } }
+    var count: usize = imported ? PermutationUnits : 1;
+    var spans: DependencyUnitSpan[PermutationUnits] = default;
+    var observer: DependencyUnitObserver = {spans: &spans[0], count: count};
+    var semantic: StagingExtentObserver = default;
+    if !imported {
+        semantic.gate = work_gate_open(); units_check(semantic.gate != null, "Permutation semantic observer gate");
+    }
+    defer { if semantic.gate != null { work_gate_close(semantic.gate); } }
+    var batch = frontend_units_create_bounded(count, workers, DependencyUnitByteLimit,
+        8, convert(u64, seed), DependencyUnitProfile, bedrock, foundation, root);
+    units_check(batch != null && frontend_units_observer(batch, bits(void*, &observer), dependency_unit_event),
+        "Permutation bounded worlds and native observer");
+    for(var i: usize = 0; i < count; i++) {
+        var out: FormatEngine = {result: &inputs[i], ..default};
+        permutation_source(&out, seed, i, cycle && i == 0);
+        units_check(!inputs[i].failed && vector_push(&inputs[i].text, 0), "Permutation source snapshot");
+        var source = inputs[i].text.data;
+        if imported {
+            var environment = frontend_units_environment(batch, i + 1);
+            units_check(environment != null && frontend_modules_source(environment, "permutation_module.tower",
+                source, inputs[i].text.length - 1), "Permutation imported source snapshot");
+            source = "import tower;import permutation_module as dep;fn first():i32{return dep.first();}fn second():i32{return dep.second();}";
+        }
+        units_check(frontend_units_source(batch, i + 1, "permutation_unit.tower", source, strlen(source)), "Permutation root snapshot");
+    }
+    var world: void* = null;
+    if !imported {
+        world = frontend_modules_world(frontend_units_environment(batch, 1));
+        compiler_world_grammar(world).observer = {context: bits(void*, &semantic), event: staging_extent_event};
+    }
+    while !frontend_units_step(batch, true) {}
+    var ok = !frontend_units_cancelled(batch);
+    if cycle {
+        var error = frontend_units_error(batch);
+        ok &&= frontend_units_failed(batch) == 1 && strstr(error, "cycle") != null;
+        dependency_unit_append(&receipt.diagnostic, error); receipt.offset = frontend_units_error_offset(batch);
+        puts(error);
+        for(var i: usize = 1; i <= count; i++) { ok &&= frontend_units_program(batch, i) == null; }
+    } else {
+        ok &&= frontend_units_failed(batch) == 0;
+        for(var i: usize = 0; ok && i < count; i++) {
+            var program = frontend_units_program(batch, i + 1);
+            var wanted = 3 * (convert(u64, seed % 7) + convert(u64, i) + 1) + 2;
+            // Import collisions qualify both names; select the root declaration,
+            // not the same-spelled helper in another module.
+            ok = program != null && seed_answer(program, imported ? "first@permutation_unit.tower" : "first", wanted * 100 + 12 + (wrong ? 1 : 0), i + 1)
+                && seed_answer(program, imported ? "second@permutation_unit.tower" : "second", wanted + 12, i + 1);
+            if !ok && program != null {
+                foreach(var function in &program.functions) {
+                    var name = sem_get(function).name.data;
+                    puts(name == null ? "<unnamed>" : name); fflush(null);
+                }
+            }
+            if ok {
+                var formatted: FormatResult = default;
+                format_entity(&formatted, program.root, null, null, null);
+                ok = !formatted.failed;
+                foreach(var byte in &formatted.text) { units_check(vector_push(&receipt.canonical, byte), "Permutation canonical snapshot"); }
+                units_check(vector_push(&receipt.canonical, 0), "Permutation unit separator");
+                format_dispose(&formatted);
+            }
+        }
+        for(var i: usize = 0; i < count; i++) {
+            ok &&= spans[i].thread != 0 && spans[i].end > spans[i].start;
+        }
+        if imported {
+            ok &&= workers == 1 ? spans[0].thread == spans[1].thread && spans[0].end <= spans[1].start
+                : spans[0].thread != spans[1].thread && spans[0].start < spans[1].end && spans[1].start < spans[0].end;
+        } else {
+            ok &&= semantic.active == 0 && semantic.calls != 0 && semantic.count == workers && semantic.peak == workers;
+        }
+    }
+    var budget: WorkBudgetSnapshot = default;
+    var measured = work_budget_snapshot(frontend_units_work_budget(batch), &budget);
+    ok &&= measured && budget.used_lanes == 0 && budget.peak_lanes <= workers && budget.peak_bytes <= DependencyUnitByteLimit;
+    // Already-complete pumping must neither replay effects nor acquire owners.
+    var after: WorkBudgetSnapshot = default;
+    ok &&= frontend_units_step(batch, true) && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+        && after.used_lanes == 0 && after.used_bytes == budget.used_bytes && after.live == budget.live;
+    var report: FormatResult = default; defer format_dispose(&report);
+    var out: FormatEngine = {result: &report, ..default};
+    format_text(&out, cycle ? "cycle" : "success");
+    format_text(&out, " peak_bytes="); format_unsigned(&out, convert(u64, budget.peak_bytes));
+    format_text(&out, " lanes="); format_unsigned(&out, convert(u64, budget.used_lanes));
+    format_text(&out, " semantic_threads="); format_unsigned(&out, convert(u64, semantic.count));
+    format_text(&out, " semantic_peak="); format_unsigned(&out, convert(u64, semantic.peak));
+    for(var i: usize = 0; i < count; i++) {
+        format_text(&out, " thread="); format_unsigned(&out, convert(u64, spans[i].thread));
+    }
+    units_check(!report.failed && vector_push(&report.text, 0), "Permutation progress report"); puts(report.text.data);
+    if !ok {
+        puts(frontend_units_error(batch));
+        for(var i: usize = 0; i < count; i++) { puts(inputs[i].text.data); }
+    }
+    if world != null { compiler_world_grammar(world).observer = default; }
+    // Close drains first, destroys each world, then requires zero live grants,
+    // bytes and lanes in work_budget_dispose. Never inspect the freed ledger.
+    frontend_units_close(batch);
+    puts(ok ? "Permutation passed; checked world/budget close." : "Permutation FAILED; checked world/budget close."); fflush(null);
+    return ok;
+}
+
+fn compiler_dependency_permutation_tests(root: u8*, wrong: bool): i32 {
+    units_check(work_thread_available() && work_thread_capacity() >= 2, "Permutation needs two real native lanes");
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    var seeds: u32[3]; seeds[0] = 2; seeds[1] = 17; seeds[2] = 101;
+    for(var index: usize = 0; index < sizeof(decltype(seeds)) / sizeof(u32); index++) {
+        for(var placement: usize = 0; placement < 2; placement++) {
+            // Two cycle pairs at the final permutation; all other cases have
+            // the identical cyclic read behind an untaken branch.
+            var modes: usize = index + 1 == sizeof(decltype(seeds)) / sizeof(u32) ? 2 : 1;
+            for(var mode: usize = 0; mode < modes; mode++) {
+                var serial: SeedReceipt = default; var parallel: SeedReceipt = default;
+                defer seed_receipt_dispose(&serial); defer seed_receipt_dispose(&parallel);
+                if !permutation_trial(root, bedrock.data, foundation.data, seeds[index], placement != 0, mode != 0, 1, wrong, &serial)
+                    || !permutation_trial(root, bedrock.data, foundation.data, seeds[index], placement != 0, mode != 0, 2, false, &parallel) { return 1; }
+                if seed_receipts_differ(&serial, &parallel) {
+                    puts("Permutation serial/parallel canonical/error mismatch after checked close"); return 1;
+                }
+            }
+        }
+    }
+    puts("Dependency permutations: 16 batches, 24 unit inputs; literal, canonical, cycle and inner/outer overlap checks passed.");
+    return 0;
+}
+
+test() {
+    assert(compiler_dependency_permutation_tests("scaffolding", false) == 0,
+        "Declaration permutation differential");
+}

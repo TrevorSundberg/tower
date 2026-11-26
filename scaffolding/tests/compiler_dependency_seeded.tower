@@ -1,5 +1,6 @@
 import tower;
 import compiler_dependency_units;
+import compiler_dependency_observations;
 import frontend_units;
 import utility_checks;
 import .library.vector;
@@ -13,15 +14,10 @@ import .compiler.semantic_program_types;
 import .compiler.foundation_types;
 import .compiler.interpreter_context_types;
 
-extern fn printf(format: u8*, seed: u32, workers: usize, mode: u8*, revision: u64): i32;
-extern fn frontend_units_observer(batch: void*, context: void*,
-    callback: function(void, void*, CompilerQuery, usize, bool)): bool;
-
 var SeedUnitCount: usize = 3;
 var SeedBodyCount: usize = 2;
 struct SeedInput { source: FormatResult; shared: FormatResult; answers: u64[SeedBodyCount]; }
 struct SeedObservation { units: DependencyUnitObserver; entered: void*; release: void*; }
-struct SeedReceipt { canonical: vector(u8); diagnostic: vector(u8); offset: usize; }
 
 fn seed_event(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
     var observation = bits(SeedObservation*, payload);
@@ -59,30 +55,6 @@ fn seed_input(input: SeedInput*, seed: u32, ordinal: usize, failure: bool): void
     format_text(&out, ";}fn mark(trace:i32*,tag:i32):i32{*trace=*trace*10+tag;return tag;}");
     units_check(!input.source.failed && !input.shared.failed && vector_push(&input.source.text, 0)
         && vector_push(&input.shared.text, 0), "Seeded source snapshots");
-}
-
-fn seed_answer(program: SemanticProgram*, name: u8*, wanted: u64, ordinal: usize): bool {
-    var target: void* = null;
-    foreach(var function in &program.functions) {
-        var node = sem_get(function);
-        if node.name.length == strlen(name) && strcmp(node.name.data, name) == 0 { target = function; }
-    }
-    var invocation: IMInvocation = default;
-    defer interpreter_invocation_dispose(&invocation);
-    if target == null || !interpreter_invocation_init(&invocation, target,
-        convert(usize, program.pointer_bytes), null, 0, true, 10000) { return false; }
-    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
-    if invocation.state.failed { puts(invocation.context.error.data); }
-    var ok = invocation.state.done && !invocation.state.failed && invocation.context.result == wanted;
-    if !ok {
-        var report: FormatResult = default; defer format_dispose(&report);
-        var out: FormatEngine = {result: &report, ..default};
-        format_text(&out, "request unit="); format_unsigned(&out, convert(u64, ordinal));
-        format_text(&out, " "); format_text(&out, name); format_text(&out, " actual="); format_unsigned(&out, invocation.context.result);
-        format_text(&out, " wanted="); format_unsigned(&out, wanted);
-        units_check(!report.failed && vector_push(&report.text, 0), "Seeded mismatch diagnostic"); puts(report.text.data);
-    }
-    return ok;
 }
 
 fn seed_trial(root: u8*, bedrock: u8*, foundation: u8*, seed: u32, workers: usize,
@@ -174,17 +146,6 @@ fn seed_trial(root: u8*, bedrock: u8*, foundation: u8*, seed: u32, workers: usiz
     puts(ok ? "Seeded batch passed; lanes drained and checked world/budget close completed." : "Seeded batch FAILED; lanes checked and world/budget close completed.");
     fflush(null);
     return ok;
-}
-
-fn seed_receipts_differ(serial: SeedReceipt*, parallel: SeedReceipt*): bool {
-    return serial.offset != parallel.offset || serial.canonical.length != parallel.canonical.length
-        || serial.diagnostic.length != parallel.diagnostic.length
-        || !utility_equal(serial.canonical.data, parallel.canonical.data, serial.canonical.length)
-        || !utility_equal(serial.diagnostic.data, parallel.diagnostic.data, serial.diagnostic.length);
-}
-
-fn seed_receipt_dispose(receipt: SeedReceipt*): void {
-    vector_dispose(&receipt.canonical); vector_dispose(&receipt.diagnostic);
 }
 
 fn compiler_dependency_seeded_tests(root: u8*, selection: u8*): i32 {

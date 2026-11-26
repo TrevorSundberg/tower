@@ -1,0 +1,21 @@
+import tower;
+import utility_checks;
+
+struct UnitStreamTime { seconds: i64; nanoseconds: i64; }
+extern fn clock_gettime(clock: i32, value: UnitStreamTime*): i32;
+var UnitStreamMonotonicClock: i32 = 1;
+var UnitStreamNanosecondsPerSecond: u64 = 1000000000;
+
+fn unit_stream_clock(): u64 {
+    var now: UnitStreamTime;
+    utility_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0, "stream monotonic clock");
+    utility_check(now.seconds >= 0 && now.nanoseconds >= 0
+        && convert(u64, now.nanoseconds) < UnitStreamNanosecondsPerSecond, "stream valid monotonic timestamp");
+    var seconds = convert(u64, now.seconds);
+    var nanos = convert(u64, now.nanoseconds);
+    var maximum = ~convert(u64, 0);
+    utility_check(seconds <= maximum / UnitStreamNanosecondsPerSecond, "stream monotonic seconds fit nanoseconds");
+    var whole = seconds * UnitStreamNanosecondsPerSecond;
+    utility_check(nanos <= maximum - whole, "stream monotonic timestamp does not overflow");
+    return whole + nanos;
+}

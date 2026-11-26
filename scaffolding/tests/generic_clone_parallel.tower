@@ -11,7 +11,7 @@ import .library.work_budget;
 import .library.work_budget_types;
 import generic_clone_fixture;
 import generic_pump_publication;
-import backend_units;
+import unit_stream_clock;
 import utility_checks;
 
 extern fn compiler_generic_body_kernel(payload: void*): void;

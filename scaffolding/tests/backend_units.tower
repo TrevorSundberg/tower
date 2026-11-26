@@ -1,4 +1,5 @@
 import tower;
+import unit_stream_clock;
 import frontend_units;
 import frontend_units_memory;
 import work_named;
@@ -176,10 +177,6 @@ export fn backend_units_admission_tests(root: u8*): void {
     puts("Nested lane release refills outer work, preserves canonical output and drains cancellation.");
 }
 
-struct UnitStreamTime { seconds: i64; nanoseconds: i64; }
-extern fn clock_gettime(clock: i32, value: UnitStreamTime*): i32;
-var UnitStreamMonotonicClock: i32 = 1;
-var UnitStreamNanosecondsPerSecond: u64 = 1000000000;
 var UnitStreamTimeoutNanoseconds: u64 = 30000000000;
 var UnitStreamHeldFrontend: usize = 2;
 var UnitStreamFirstBackend: usize = 1;
@@ -189,20 +186,6 @@ struct UnitStreamOverlap {
     frontend_thread: usize;
     backend_thread: usize;
     frontend_wait_ns: u64;
-}
-
-fn unit_stream_clock(): u64 {
-    var now: UnitStreamTime;
-    units_check(clock_gettime(UnitStreamMonotonicClock, &now) == 0, "stream monotonic clock");
-    units_check(now.seconds >= 0 && now.nanoseconds >= 0
-        && convert(u64, now.nanoseconds) < UnitStreamNanosecondsPerSecond, "stream valid monotonic timestamp");
-    var seconds = convert(u64, now.seconds);
-    var nanos = convert(u64, now.nanoseconds);
-    var maximum = ~convert(u64, 0);
-    units_check(seconds <= maximum / UnitStreamNanosecondsPerSecond, "stream monotonic seconds fit nanoseconds");
-    var whole = seconds * UnitStreamNanosecondsPerSecond;
-    units_check(nanos <= maximum - whole, "stream monotonic timestamp does not overflow");
-    return whole + nanos;
 }
 
 fn unit_stream_elapsed(started: u64): u64 {

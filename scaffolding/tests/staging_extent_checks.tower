@@ -3,6 +3,7 @@ import frontend_units;
 import body_runs;
 import integer_argument_checks;
 import compiler_dependency_units;
+import compiler_dependency_observations;
 import world_budget;
 import .library.vector;
 import .library.work_budget;
@@ -20,7 +21,6 @@ extern fn entity_component_add(node: void*, kind: void*): void*;
 extern fn entity_component_data(component: void*): void*;
 extern fn entity_component_remove(node: void*, kind: void*): bool;
 
-var StagingExtentWorkers: usize = 4;
 var StagingExtentFuel: u64 = 10000;
 var StagingExtentWaitRepetitions: usize = 3;
 
@@ -66,30 +66,6 @@ fn staging_extent_resume(program: SemanticProgram*): void {
     *pending = {function: combine, ready: true, failed: false};
     while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
     units_check(!invocation.state.failed && invocation.context.result == 12, "Compiled helper resumes with exactly two ordered increments");
-}
-
-struct StagingExtentObserver {
-    gate: void*;
-    active: usize;
-    peak: usize;
-    threads: usize[StagingExtentWorkers];
-    count: usize;
-    calls: usize;
-}
-
-fn staging_extent_event(context: void*, phase: GrammarPhase, entering: bool, ordinal: usize, kind: usize): void {
-    if phase != GrammarPhase.SemanticKernel { return; }
-    var observer = bits(StagingExtentObserver*, context);
-    work_gate_enter(observer.gate);
-    defer work_gate_leave(observer.gate);
-    if !entering { observer.active--; return; }
-    observer.calls++;
-    observer.active++;
-    if observer.active > observer.peak { observer.peak = observer.active; }
-    var thread = pthread_self();
-    for(var i: usize = 0; i < observer.count; i++) { if observer.threads[i] == thread { return; } }
-    units_check(observer.count < sizeof(decltype(observer.threads)) / sizeof(usize), "Staging kernel thread ceiling");
-    observer.threads[observer.count++] = thread;
 }
 
 fn staging_extent_observe(root: u8*, bedrock: u8*, foundation: u8*, width: u32, workers: usize): void {
