@@ -1,0 +1,282 @@
+import library.testing;
+import work_budget;
+import work_budget_types;
+
+// The compiled work-budget fixture calls the same scenarios from its main.
+test() { budget_receipts(); }
+test() { budget_reference(); }
+test() { budget_limits(); }
+test() { budget_optional(); }
+test() { budget_validate(); }
+
+fn budget_receipts(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    assert(work_budget_init(&budget, 8, 4096, 1), "Could not initialize the reservation budget");
+    assert(work_budget_init(&other, 8, 4096, 1), "Could not initialize the foreign budget");
+    defer work_budget_dispose(&budget);
+    defer work_budget_dispose(&other);
+    var first: WorkReservation = default;
+    var second: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 1, 3, 1024, &first) && first.lanes == 3,
+        "First receipt must grant three lanes");
+    var stale = first;
+    assert(!work_budget_dispose(&budget) && budget.error == WorkBudgetError.Busy,
+        "Disposal with live receipts must report Busy");
+    assert(!work_budget_reserve(&budget, 1, 1, 0, &first) && budget.error == WorkBudgetError.Busy,
+        "Reserving into an active receipt must report Busy");
+    assert(work_budget_reserve(&budget, 2, 8, 3072, &second) && second.lanes == 5,
+        "Second receipt must grant the five remaining lanes");
+    var spare: WorkReservation = default;
+    assert(!work_budget_reserve(&budget, 1, 1, 0, &spare) && budget.error == WorkBudgetError.Capacity,
+        "Full budget must reject another lane with Capacity");
+    assert(budget.used_lanes == 8 && budget.used_bytes == 4096 && budget.live == 2,
+        "Two receipts must hold eight lanes and 4096 bytes");
+    assert(!work_budget_release(&other, &first) && other.error == WorkBudgetError.Stale,
+        "Foreign budget must reject this receipt as stale");
+    assert(work_budget_release(&budget, &first), "Could not release the first receipt");
+    assert(!work_budget_release(&budget, &stale) && budget.error == WorkBudgetError.Stale,
+        "Released receipt copy must be stale");
+    assert(!work_budget_release(&budget, &first) && budget.error == WorkBudgetError.Stale,
+        "Releasing the same receipt twice must report Stale");
+    assert(work_budget_reserve(&budget, 1, 3, 1024, &first), "Could not reserve the released lanes again");
+    assert(first.slot == stale.slot && first.generation != stale.generation,
+        "Reused slot must have a fresh generation");
+    assert(!work_budget_release(&budget, &stale) && budget.used_lanes == 8,
+        "Rejecting the old generation must preserve eight used lanes");
+    var altered = first;
+    altered.bytes++;
+    assert(!work_budget_release(&budget, &altered) && budget.used_bytes == 4096,
+        "Rejecting altered receipt bytes must preserve the 4096-byte charge");
+    assert(!work_budget_init(&budget, 1, 0, 2) && budget.used_lanes == 8,
+        "Reinitialization with live receipts must fail and preserve all eight lanes");
+    assert(work_budget_release(&budget, &first) && work_budget_release(&budget, &second),
+        "Could not release both current receipts");
+    assert(budget.peak_lanes == 8 && budget.peak_bytes == 4096 && budget.live == 0,
+        "Drained budget must retain its eight-lane and 4096-byte peaks");
+    stale = first;
+    stale.active = true;
+    assert(work_budget_dispose(&budget), "Could not dispose the drained budget");
+    assert(!work_budget_init(&budget, 8, 4096, 1), "Disposed revision must reject reuse");
+    assert(work_budget_init(&budget, 8, 4096, 2), "Could not initialize the next budget revision");
+    assert(work_budget_reserve(&budget, 1, 3, 1024, &first),
+        "Could not reserve three lanes in the new revision");
+    assert(!work_budget_release(&budget, &stale) && budget.used_lanes == 3,
+        "Rejecting the previous revision must preserve three used lanes");
+    assert(work_budget_release(&budget, &first), "Could not release the new revision's receipt");
+}
+
+fn budget_reference(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 12, 3072, 7), "Could not initialize the reference budget");
+    defer work_budget_dispose(&budget);
+    var receipts: WorkReservation[17] = default;
+    var count = sizeof(decltype(receipts)) / sizeof(WorkReservation);
+    var lanes: usize = 0;
+    var bytes: usize = 0;
+    var live: usize = 0;
+    var seed: u32 = 314159;
+    for(var round: usize = 0; round < 8192; round++) {
+        seed = seed * 1664525 + 1013904223;
+        var index = convert(usize, seed) % count;
+        var receipt = &receipts[index];
+        if receipt.active {
+            lanes -= receipt.lanes;
+            bytes -= receipt.bytes;
+            live--;
+            assert(work_budget_release(&budget, receipt), "Could not release a live model receipt");
+        } else {
+            var minimum = 1 + convert(usize, (seed >> 16) % 3);
+            var preferred = minimum + convert(usize, (seed >> 20) % 9);
+            var requested = convert(usize, (seed >> 6) % 1024);
+            var fits = minimum <= budget.lanes - lanes && requested <= budget.bytes - bytes;
+            var granted = preferred < budget.lanes - lanes ? preferred : budget.lanes - lanes;
+            assert(work_budget_reserve(&budget, minimum, preferred, requested, receipt) == fits,
+                "Reservation outcome disagrees with the reference capacity calculation");
+            if fits {
+                assert(receipt.active && receipt.lanes == granted && receipt.bytes == requested,
+                    "Receipt disagrees with the reference lane grant or byte request");
+                lanes += granted;
+                bytes += requested;
+                live++;
+            } else {
+                assert(!receipt.active && budget.error == WorkBudgetError.Capacity,
+                    "Rejected request must leave an inactive receipt and report Capacity");
+            }
+        }
+        assert(budget.used_lanes == lanes && budget.used_bytes == bytes && budget.live == live,
+            "Ledger totals disagree with the reference model");
+        assert(budget.entries.length <= budget.lanes, "Entry count exceeds the lane limit");
+    }
+    for(var i: usize = 0; i < count; i++) {
+        if receipts[i].active {
+            assert(work_budget_release(&budget, &receipts[i]),
+                "Could not release a remaining model receipt");
+        }
+    }
+    assert(budget.used_lanes == 0 && budget.used_bytes == 0 && budget.live == 0,
+        "Reference budget must finish with zero lanes, bytes and live receipts");
+}
+
+fn budget_limits(): void {
+    var budget: WorkBudget = default;
+    assert(!work_budget_init(&budget, 0, 0, 1), "Zero-lane budget must be rejected");
+    assert(!work_budget_init(&budget, 1, 0, 0), "Zero initial revision must be rejected");
+    var maximum = ~convert(usize, 0);
+    assert(work_budget_init(&budget, maximum, maximum, 1), "Maximum-size budget must initialize");
+    defer work_budget_dispose(&budget);
+    var receipt: WorkReservation = default;
+    assert(!work_budget_reserve(&budget, 2, 1, 0, &receipt), "Minimum above preferred must be rejected");
+    assert(!work_budget_reserve(&budget, 1, 1, 0, null), "Null receipt destination must be rejected");
+    assert(work_budget_reserve(&budget, 1, maximum, maximum, &receipt),
+        "Maximum lane and byte request must fit");
+    assert(budget.used_lanes == maximum && budget.used_bytes == maximum,
+        "Maximum grant must preserve both full-width counters");
+    var spare: WorkReservation = default;
+    assert(!work_budget_reserve(&budget, 1, 1, 0, &spare), "Full-width grant must leave no spare capacity");
+    assert(work_budget_release(&budget, &receipt), "Could not release the maximum grant");
+    budget.generation = ~convert(u64, 0);
+    assert(!work_budget_reserve(&budget, 1, 1, 0, &receipt) && budget.error == WorkBudgetError.Exhausted,
+        "Generation exhaustion must reject a new grant with Exhausted");
+    assert(budget.live == 0 && budget.used_lanes == 0 && budget.used_bytes == 0,
+        "Exhausted generation must leave all counters at zero");
+}
+
+fn budget_optional(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 4096, 1), "Could not initialize the optional reservation budget");
+    defer work_budget_dispose(&budget);
+    var outer: WorkReservation = default;
+    var extra: WorkReservation = default;
+    var retained: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 1, 1, 0, &outer), "Could not reserve the outer lane");
+    assert(work_budget_reserve(&budget, 0, 8, 0, &extra), "Optional request with no free lane must succeed");
+    assert(!extra.active && extra.lanes == 0 && budget.live == 1,
+        "Empty optional grant must leave only the outer receipt live");
+    assert(work_budget_reserve(&budget, 0, 0, 4096, &retained),
+        "Could not reserve retained bytes without a lane");
+    assert(retained.active && retained.lanes == 0 && budget.live == 2,
+        "Byte-only receipt must be active without a lane");
+    assert(work_budget_release(&budget, &outer) && budget.used_bytes == 4096,
+        "Releasing the outer lane must preserve the retained bytes");
+    assert(work_budget_reserve_result(&budget, 0, 0, 1, &extra) == WorkBudgetError.Capacity,
+        "Extra retained byte must exceed capacity");
+    assert(!extra.active && budget.used_lanes == 0,
+        "Rejected byte request must leave no receipt or lane charge");
+    var snapshot: WorkBudgetSnapshot = default;
+    assert(work_budget_snapshot(&budget, &snapshot), "Could not snapshot the byte-only grant");
+    assert(snapshot.used_lanes == 0 && snapshot.used_bytes == 4096 && snapshot.live == 1,
+        "Snapshot must contain only the live 4096-byte grant");
+    assert(work_budget_release(&budget, &retained) && budget.used_bytes == 0,
+        "Releasing the byte-only grant must clear its charge");
+    assert(work_budget_reserve(&budget, 0, 8, 0, &extra) && extra.active && extra.lanes == 1,
+        "Optional request must acquire the available lane");
+    assert(work_budget_release(&budget, &extra), "Could not release the optional lane");
+    assert(work_budget_reserve(&budget, 0, 0, 0, &extra) && !extra.active,
+        "Empty request must succeed without an active receipt");
+    assert(work_budget_release_result(&budget, &extra) == WorkBudgetError.Stale,
+        "Empty receipt must be stale on release");
+}
+
+fn budget_validate_unchanged(budget: WorkBudget*, receipt: WorkReservation*, wanted: WorkBudgetError, message: u8*): void {
+    var before = *budget;
+    var borrowed: WorkReservation = default;
+    if receipt != null { borrowed = *receipt; }
+    assert(work_budget_validate_result(budget, receipt) == wanted, message);
+    assert(budget.entries.data == before.entries.data && budget.entries.length == before.entries.length
+        && budget.entries.capacity == before.entries.capacity && budget.lanes == before.lanes
+        && budget.bytes == before.bytes && budget.used_lanes == before.used_lanes
+        && budget.used_bytes == before.used_bytes && budget.peak_lanes == before.peak_lanes
+        && budget.peak_bytes == before.peak_bytes && budget.live == before.live
+        && budget.free_slot == before.free_slot && budget.revision == before.revision
+        && budget.generation == before.generation && budget.initialized == before.initialized
+        && budget.error == before.error, "Validation changed the budget");
+    if receipt != null {
+        assert(receipt.owner == borrowed.owner && receipt.revision == borrowed.revision
+            && receipt.slot == borrowed.slot && receipt.generation == borrowed.generation
+            && receipt.lanes == borrowed.lanes && receipt.bytes == borrowed.bytes && receipt.active == borrowed.active,
+                "Validation changed its borrowed receipt");
+    }
+}
+
+fn budget_validate(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    var parent: WorkReservation = default;
+    assert(work_budget_validate_result(null, &parent) == WorkBudgetError.Invalid,
+        "Null budget must report Invalid");
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.Stale,
+        "Uninitialized budget must reject the receipt");
+    assert(work_budget_init(&budget, 2, 128, 1) && work_budget_init(&other, 2, 128, 1),
+        "Could not initialize both validation budgets");
+    defer work_budget_dispose(&budget);
+    defer work_budget_dispose(&other);
+    assert(work_budget_reserve(&budget, 1, 1, 64, &parent), "Could not reserve the parent lane");
+    // Preserve a prior diagnostic; validation's private result must not replace it.
+    assert(!work_budget_reserve(&budget, 1, 1, 0, &parent) && budget.error == WorkBudgetError.Busy,
+        "Busy setup must leave a prior diagnostic for validation");
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None,
+        "Parent receipt must validate despite the prior Busy diagnostic");
+    budget_validate_unchanged(&budget, null, WorkBudgetError.Stale,
+        "Null receipt must be stale");
+    budget_validate_unchanged(&other, &parent, WorkBudgetError.Stale,
+        "Foreign budget must reject the parent");
+    var changed = parent;
+    changed.owner = &other;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Altered owner must be stale");
+    changed = parent; changed.revision++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Altered revision must be stale");
+    changed = parent; changed.slot = 0;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Slot zero must be stale");
+    changed = parent; changed.slot = budget.entries.length + 1;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Slot beyond the entry array must be stale");
+    changed = parent; changed.generation++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Altered generation must be stale");
+    changed = parent; changed.lanes++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Altered lane count must be stale");
+    changed = parent; changed.bytes++;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Altered byte count must be stale");
+    changed = parent; changed.active = false;
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Inactive copy must be stale");
+    changed = parent;
+    assert(work_budget_release(&budget, &parent), "Could not release the parent receipt");
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Released parent copy must be stale");
+    assert(work_budget_reserve(&budget, 1, 1, 64, &parent) && parent.slot == changed.slot,
+        "New parent must reuse the released slot");
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Slot reuse must reject the old generation");
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None,
+        "Replacement parent must validate");
+    // Validation does not manufacture an executing lane from bytes or an empty grant.
+    var retained: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, 64, &retained) && retained.lanes == 0,
+        "Byte-only receipt must have zero lanes");
+    budget_validate_unchanged(&budget, &retained, WorkBudgetError.None,
+        "Byte-only receipt must validate");
+    var empty: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, 0, &empty), "Could not obtain an empty optional grant");
+    budget_validate_unchanged(&budget, &empty, WorkBudgetError.Stale,
+        "Empty grant must be stale");
+    changed = parent;
+    assert(work_budget_release(&budget, &retained) && work_budget_release(&budget, &parent)
+        && work_budget_dispose(&budget), "Could not drain and dispose the validation budget");
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "Disposed budget must reject the old parent");
+    assert(work_budget_init(&budget, 2, 128, 2) && work_budget_reserve(&budget, 1, 1, 64, &parent),
+        "Could not initialize and reserve in the next revision");
+    budget_validate_unchanged(&budget, &changed, WorkBudgetError.Stale,
+        "New revision must reject the old parent");
+    budget_validate_unchanged(&budget, &parent, WorkBudgetError.None,
+        "New revision must accept its current parent");
+    assert(work_budget_release(&budget, &parent) && budget.live == 0,
+        "Final parent release must leave no live receipts");
+}
