@@ -18,7 +18,7 @@ add_test(NAME tower-frontend-emission COMMAND tower-frontend-tests "${CMAKE_CURR
 set_tests_properties(tower-frontend-emission PROPERTIES TIMEOUT 180 LABELS "native;focused")
 # Match focused producer checks; the full frontend suite keeps its own policy.
 set_tests_properties(tower-frontend-structure-reuse PROPERTIES TIMEOUT 60 LABELS "native;focused")
-foreach(selector IN ITEMS graph-components lr-components lr-scratch-budget)
+foreach(selector IN ITEMS graph-components lr-components lr-scratch-budget compiler-buffer-owner compiler-work-owner)
   add_test(NAME tower-frontend-${selector} COMMAND tower-frontend-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${selector})
   set_tests_properties(tower-frontend-${selector} PROPERTIES TIMEOUT 60 LABELS "native;focused")
 endforeach()

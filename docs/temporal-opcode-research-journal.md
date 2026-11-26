@@ -122456,3 +122456,63 @@ and TSan builds therefore ran both standalone defaults and benchmarks. All
 eight successful runs matched the original streams. The TSan log also retains
 39 startup failures in the container's personality call. The repository
 supports no UBSan build mode. The manager owns publication.
+### F10 frontend buffer and work owners on a06327e4
+
+Host 5 verified the producer archive and all six manifest members for assignment
+`469f2296-1f86-4824-a991-fa77b75a2a7a`. S078/M019 and S102/M024 refer to
+the two ordinary calls from `tests/frontend_main.tower`. On the reviewed parent,
+selecting the buffer owner reached three imported buffer contract declarations.
+Selecting the work owner reached zero. Both original ownership suites ran in the
+standalone frontend. The evidence packet includes the original files and a
+range-by-range crosswalk.
+
+The adjacent test files now hold the comparisons for allocator ownership across
+both free APIs, overflow admission and one-shot refusal, unit ordinal bounds,
+cancellation, every observed constructor allocation prefix, retry and release.
+The original frontend exports and two new named selectors call those same case
+functions. A refused replacement also checks the retained pointer, bytes, receipt,
+live counts and peak charge. A one-byte budget refuses the seven-unit work owner
+and a 1 MiB retry exercises its live ledger and complete teardown. The selected
+guest links the existing serial work transport and instrumented allocator.
+Its work provider imports the production constructor and traps on unexpected
+lifecycle dispatch. The frontend keeps its original lifecycle provider.
+
+The clean Linux x64 no-test build and optional SccTests kit produced the same
+driver, SHA-256 `d367555aa7afada2bc5553bb62bedabc1a3a1458bdb9baf1453e57021ece34d7`.
+Ordinary library compilation at jobs 1 and 4 preserved both exported entry points.
+Eight exact-count registrations passed in the build and eight passed after moving
+the installation. Buffer discovery/direct selected 11/3 and work selected 7/2 at
+each width. Changing the original expected buffer delta from one to two failed at
+`compiler_buffer_owner_test.tower:25:9`. Changing the first ordinal from one to
+two failed at `compiler_work_owner_test.tower:27:5`. Each failed in both
+selection modes at both widths. Restoring the single value recovered the exact
+case counts. The frontend named selectors also trapped with the corresponding
+assertion and returned zero with the original expectations.
+
+A separate observation build recorded the real allocator after each allocation
+and the final count at exit. The original buffer case used 199 calls with peak
+one live buffer. Including refused growth brought these to 203 and three.
+Refusal left one grant for 49 bytes after a peak of 115, and disposal drained it.
+The original work case used 251 calls with a peak of 18 buffers. The bounded
+work check brought the total to 274, with the same peak. Its 17 live grants
+charged 19,899 bytes. Closing returned live grants, charged bytes and used
+lanes to zero. All four final allocator counts were zero.
+
+The checked-in Linux x64 bootstrap was `7430bdb3` (SHA-256 prefix), Clang/LLVM
+19.1.7, Release. Processes on the Ryzen 9 5900XT used CPUs 0–7 of 0–31, with
+a cgroup quota of 3071999/100000. Serial paired runs of the original workload
+at 10,000 repetitions matched stdout, allocation calls and zero final live
+counts. Buffer samples took 0.04 s wall and work samples 0.16–0.17 s. The
+full parent/candidate frontend pair with one-job objects matched both streams,
+44.73/44.37 s wall, 44.71/44.35 s CPU and 190876/190576 KiB peak RSS.
+With four-job frontend objects and the same providers, the corresponding values
+were 43.96/44.70 s wall, 43.96/44.69 s CPU and 190552/190212 KiB. These
+widths control compilation. The fault-injection workloads remain serial.
+
+Both focused standalone selectors passed the supported address and thread
+profiles. Before TSan ran the cases, the host denied its ASLR personality call
+on one buffer start and seventeen work starts. The packet retains all failures,
+successful retries, instrumented object manifests, raw commands, output,
+exit statuses and measurements. The repository offers no UBSan profile.
+The original shared checkout had an unfinished rebase. An isolated local
+`main` at the assigned parent holds the implementation for manager review.

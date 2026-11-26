@@ -18,6 +18,16 @@ if(narrow_abi_tests)
   add_dependencies(tower-language-tests tower-narrow-foreign-tests)
   list(APPEND scc_providers "${narrow-foreign-library_OBJECT}")
 endif()
+set(frontend_owner_tests OFF)
+if(TOWER_DRIVER_TESTS AND NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+  set(frontend_owner_tests ON)
+  tower_runtime_object(compiler-work-owner-provider
+    "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/compiler_work_owner_provider.tower" "${triple}")
+  get_target_property(owner_transport tower-compiler-work-serial INTERFACE_SOURCES)
+  add_custom_target(tower-frontend-owner-providers ALL DEPENDS "${compiler-work-owner-provider_OBJECT}" "${owner_transport}")
+  add_dependencies(tower-language-tests tower-frontend-owner-providers)
+  list(APPEND scc_providers "${compiler-work-owner-provider_OBJECT}" "${owner_transport}")
+endif()
 add_custom_target(tower-scc-suite DEPENDS tower-language-tests)
 # Retain the original component and prefix for consumers of the SCC installation.
 # CTest reads the same registrations in the build and after relocation.
@@ -67,6 +77,11 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/graph_components_checks_test.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})
+if(frontend_owner_tests)
+  install(FILES scaffolding/tests/compiler_buffer_owner.tower scaffolding/tests/compiler_buffer_owner_test.tower
+    scaffolding/tests/compiler_work_owner.tower scaffolding/tests/compiler_work_owner_test.tower
+    DESTINATION scc-suite/share/tower/tests ${scc_install})
+endif()
 install(FILES scaffolding/compiler/semantic_statements_cfg_output.tower
   DESTINATION scc-suite/share/tower/compiler ${scc_install})
 install(FILES scaffolding/tests/semantic_statements_cfg_inputs/exchange.tower
