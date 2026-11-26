@@ -122516,3 +122516,21 @@ successful retries, instrumented object manifests, raw commands, output,
 exit statuses and measurements. The repository offers no UBSan profile.
 The original shared checkout had an unfinished rebase. An isolated local
 `main` at the assigned parent holds the implementation for manager review.
+
+### F10 optional compiler-work-owner lifecycle guard on 47febb5b
+
+Host 4, assignment ced33c47. Verified the supplied native audit archive and
+all six member SHA-256 values before editing. The optional provider now imports
+the unit constructor and a dedicated provider companion containing the typed
+finalizer. This keeps the allocation sweeps and their test declarations out of
+the provider object. The ordinary frontend continues to link its own lifecycle.
+
+A temporary Tower executable called the published frontend work-owner entry
+with the actual optional object, instrumented allocator and serial transport.
+It exited zero. A second process ran the same entry and then invoked the typed
+callback. Both before and after the move it aborted (134) with exactly
+`Tower compiler internal trap at 0: Unexpected unit owner lifecycle` and LF
+on stderr, empty stdout. The global defined and undefined symbol names matched.
+Build-tree work-owner discovery and direct selections passed at jobs 1 and 4
+with the original counts of 7 and 2. Commands, streams and original artifacts'
+hashes are in the assignment packet.

@@ -1,0 +1,7 @@
+import tower;
+import library.entity_types;
+
+// Unit owners register a zero lifecycle. A callback here is a fixture failure.
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected unit owner lifecycle", 0);
+}
