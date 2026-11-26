@@ -75,7 +75,8 @@ const checks = await openTower({imports:{
 function check(name, observations, sessions = {}) {
   sample = observations;
   handles = sessions;
-  try { runSelectedTest(checks, cases + name + '_checks.tower'); }
+  // Run the entry's inline test. Default discovery also selects library/bytes_test.tower.
+  try { runSelectedTest(checks, cases + name + '_checks.tower', undefined, {suffix:'_browser_test.tower'}); }
   finally { sample = handles = undefined; }
 }
 

@@ -108645,3 +108645,48 @@ was replaced by reading the captured ELF type field. The browser and bootstrap
 were not rebuilt. The manager owns integration and publication.
 
 On integration the combined native configuration retained all 216 existing CTest commands and properties and added eight exact-count registrations. The manager compared the member bytes of both optional install archives with their inventories and the 15 additional installed sources and oracles with the checkout. The twelve ordinary output runs matched the three checked-in expected files. The captured native store completion and its replay were identical. These comparisons cover the registered entity suites; unrelated CTest outcomes have separate receipts.
+
+### 2026-11-26. Jenkins 59 selected two byte-buffer tests in each browser package case
+
+At `aed77666dac10947122886c06e05accafaeb5b52`, Jenkins ran 511 Node tests.
+Five failed at the one-test assertion in `runSelectedTest`, 504 passed and
+two were skipped. The source-map, round-trip (both pointer widths), rejection
+and grammar checks all selected three declarations. Each entry has one inline
+test and imports `observations.tower`, which imports `library.bytes`.
+Default companion discovery traverses those imports. The package migration
+at `bb5cf7c6` had been tested on a tree without `library/bytes_test.tower`.
+Merge `ae2ddd6d` brought the migration together with that companion's two tests.
+
+A clean portable build from the assigned revision used the checked-in Linux
+compiler (SHA-256 prefix `7315b86e`) and WASI SDK 34. CMake's first configure
+could not find host clang. Adding the LLVM 19 bin directory to PATH completed
+the build. The resulting portable and package-test-enabled reactors matched
+the prior receipt hashes `41bb9b11` and `7e35ef99`. On the portable reactor,
+`node --test --test-concurrency=1 playground/tests/bytecode.test.mjs`
+reproduced all five count failures. With only the byte-buffer companion taken
+out of the registered inputs, the original harness passed all five. For each
+of the four entries, `towerc --list-test-files` listed just that companion
+under the default suffix and none under the browser suffix.
+
+The bytecode harness now passes `_browser_test.tower` to the existing test
+selection API. With the complete fixture tree, the same command passed all
+five package registrations, with the optional ownership export skipped.
+Enabling that export passed six of six. Replacing the 8-byte stdout oracle
+with the 4-byte oracle failed the Tower assertion at byte 1389 of
+`round_trip_checks.tower`. Restoring it passed. The 2,572- and 2,580-byte
+packets matched the original harness's successful control byte for byte.
+Both packets produced their respective checked-in stdout in the native graph
+and fast interpreters. At jobs 1 and 4, normal native owner discovery still
+ran both byte-buffer tests and the single bytecode-package test.
+
+Host 1 used Node 24.22.3 on a dual Xeon Gold 6244, with 15.36 CPUs of cgroup
+quota. Three fresh processes per arm ran serially under the host timing lock
+on CPUs 0,2,4,6 with warm filesystem inputs. With the companion absent in both
+arms so each ran the same five checks, median wall / CPU / peak RSS changed
+from 2.41 s / 3.33 s / 204,084 KiB to 2.09 s / 3.27 s / 208,756 KiB.
+With the full fixture tree, the repaired run measured 2.15 s / 3.35 s /
+203,112 KiB. These are Node process measurements. The change selects tests
+in the JS harness and introduces no compiler, worker or allocator code.
+The full Jenkins pipeline and publication are pending manager review.
+Host 1 packet `4ade3a78-7004-4d4b-8cb2-701bd0ee41e6` retains the original
+console, build and selection logs, timing samples, packet bytes and replay outputs.
