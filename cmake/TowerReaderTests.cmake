@@ -18,6 +18,9 @@ if(NOT CMAKE_CROSSCOMPILING AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND reader_tr
     tower-compiler-entities tower-compiler-utilities tower-compiler-memory tower-compiler-evaluation)
   target_link_options(tower-reader-test-services PRIVATE "LINKER:-z,defs")
   add_dependencies(tower-reader-test-services tower-guest-native-test tower-selected-test-count)
+  tower_native_test_selections(structure-reuse parser_structure_reuse "11 tests" "6 tests"
+    --test-native-runtime "${reader_runtime}" --link "$<TARGET_FILE:tower-reader-test-services>"
+    --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-reader-test-services>")
   foreach(selection IN ITEMS owner direct)
     set(reader_file syntax_reader_test)
     set(reader_count 7)
