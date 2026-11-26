@@ -161,7 +161,9 @@ if(TARGET towerc)
   add_test(NAME tower-semantic-iteration-companions
     COMMAND $<TARGET_FILE:towerc> --test
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration.tower"
-      --test-details --jobs 4)
+      --test-details --jobs 4
+      --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+      --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
   set_tests_properties(tower-semantic-iteration-companions PROPERTIES
     FAIL_REGULAR_EXPRESSION "0 tests selected")
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
@@ -205,7 +207,9 @@ if(TARGET towerc)
     tower_companion_test(tower-forward-bindings tests/forward.tower ${workers})
     add_test(NAME tower-semantic-defer-companion-${workers}
       COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_defer.tower")
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_defer.tower"
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
     set_tests_properties(tower-semantic-defer-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
     # Run these two explicit test blocks with just their own imports.

@@ -105873,3 +105873,31 @@ These are single validation samples for a test expectation edit. The full
 Jenkins pipeline rerun remains open. Assignment
 `8da5f5b9-1c06-42db-8b3c-d507a73c7f6e` carries the console, raw runs,
 commands, host details and checksums for manager review.
+
+### Checkout resources for inference reached from semantic iteration and defer
+
+Host 4, assignment 23c41e64-19f9-4502-87ca-57cb4a3cc201. On the b7
+baseline, the iteration owner at four jobs and defer owner at one and four
+each passed 37 declarations. With the corrected 6307aaaf struct harness
+and the ef113db9 inference companion, the same three CTests failed with
+“Cannot read imported module: examples/inference” at inference_bindings.tower
+line 2. These registrations passed no checkout grammar paths. The new
+transitive companion imports the inference_bindings fixture, which resolves
+examples.inference against a resource root containing the checkout examples.
+
+The correction passes the checkout Bedrock and Foundation paths, as the
+registered direct inference suite already does. All three generated CTests
+then passed 41 declarations with the installed 8bc867b6 compiler. Their
+reports retain all 37 previous source coordinates in order and add the four
+inference assertions. Only these three commands changed. The full Node suite
+on the original reconstruction matched all 511 b7 outcomes, including the
+two existing opt-in skips. This correction changes native CTest arguments.
+
+The pre-correction CMake and playground/tests trees match the requested
+02e60a50 identities. The tested scaffolding tree is 3186853e, while the
+manager specified a29c22e3. Qualifying the manager revision requires the
+missing scaffolding delta. The host-4 packet contains both exact IDs, the
+source readback, failures, corrected CTest output, comparator and timing
+logs. The three corrected commands used four pinned physical cores on a
+Ryzen 7 5800H with a 15.36 CPU cgroup quota. Each ran in a fresh process
+under the host timing lock. No compiler or runtime code was changed.
