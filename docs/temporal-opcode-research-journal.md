@@ -105556,3 +105556,28 @@ records and all 57 relocated compiler/resource digests. This is native source
 qualification. The public bootstrap and the browser compiler have their own
 release checks. Whole-file implicit tests and affected-test selection are
 separate open cases.
+
+### SHA-256 companion on the public native test runner, host 2
+
+The SHA-256 entry in the native inventory is a direct executable taking an
+isolated directory (scaffolding/tests/README.md). Its first four vectors have
+lengths 0, 3, 56 and 112. The next input is 1,000 updates of 1,000 repeated
+bytes. Its rejection checks cover a nonempty null input, preservation of the
+previous digest and an unrepresentable bit length. The last loop checks whole
+and single-byte updates, snapshots and independent file digests for lengths
+0 through 259. The standalone entry also checks its argument count, writes
+each file and manifest line, and reports when the external oracle can run.
+
+Built the native CLI from a fresh export of published e2ebb16a with its verified
+bootstrap and six Ninja jobs. No existing local build had receipts for that
+source. The unchanged direct fixture built as a library against the build's
+guest-host-library.o, returned 2 for a missing directory argument and ran
+successfully with the directory argument. GNU sha256sum accepted all 260
+manifest entries. Before adding the companion the owner selected zero tests.
+Four adjacent test blocks now check the original published digests, expected
+hex length, whole update, both updates at all 175 splits and exact digest
+including the terminator. The public-source owner selected and passed all four.
+A one-digit corruption of the abc vector in an isolated copy exited 1 at the
+whole-message assertion in sha256_test.tower:25:5. The grammar reserves
+`expected` in parameter position. Renaming that parameter to `wanted` resolved
+the parse diagnostic. Packet 98188150 contains raw commands, streams and times.

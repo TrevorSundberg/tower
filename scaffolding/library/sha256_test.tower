@@ -1,0 +1,54 @@
+import library.testing;
+import sha256;
+import .tests.utility_checks;
+
+fn sha256_test_length(text: u8*): usize {
+    var count: usize = 0;
+    while text[count] != 0 { count++; }
+    return count;
+}
+
+fn sha256_test_matches(state: Sha256*, wanted: u8*): bool {
+    var digest = sha256_finish(state);
+    var hex: u8[65];
+    sha256_hex(&digest, &hex[0]);
+    var size = sizeof(decltype(hex));
+    assert(sha256_test_length(wanted) == size - 1);
+    return utility_equal(&hex[0], wanted, size);
+}
+
+fn sha256_test_vector(message: u8*, wanted: u8*): void {
+    var size = sha256_test_length(message);
+    var state: Sha256;
+    sha256_init(&state);
+    assert(sha256_update(&state, message, size));
+    assert(sha256_test_matches(&state, wanted), "Whole message digest");
+    for (var split: usize = 0; split <= size; split++) {
+        sha256_init(&state);
+        assert(sha256_update(&state, message, split));
+        assert(sha256_update(&state, message + split, size - split));
+        assert(sha256_test_matches(&state, wanted), "Split message digest");
+    }
+}
+
+// Empty message, including two empty updates.
+test() {
+    sha256_test_vector("", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855");
+}
+
+// Three-byte message, split before and after each byte.
+test() {
+    sha256_test_vector("abc", "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+}
+
+// The 56-byte vector needs a second padding block.
+test() {
+    sha256_test_vector("abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq",
+        "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1");
+}
+
+// The 112-byte vector spans two message blocks.
+test() {
+    sha256_test_vector("abcdefghbcdefghicdefghijdefghijkefghijklfghijklmghijklmnhijklmnoijklmnopjklmnopqklmnopqrlmnopqrsmnopqrstnopqrstu",
+        "cf5b16a778af8380036ce59e7b0492370b249b11e8f07a51afac45037afee9d1");
+}
