@@ -1,0 +1,14 @@
+import library.testing;
+import mt19937;
+
+fn test_random_check(): void {
+    var state: TestRandom;
+    test_random_init(&state, 5489);
+    assert(test_random(&state) == 3499211612, "MT19937 first reference output");
+    assert(test_random(&state) == 581869302, "MT19937 second reference output");
+    assert(test_random(&state) == 3890346734, "MT19937 third reference output");
+    // Standard mt19937 validation value after 10,000 draws from its default seed.
+    var value: u32 = 0;
+    for (var index: usize = 3; index < 10000; ++index) { value = test_random(&state); }
+    assert(value == 4123659995, "MT19937 ten-thousandth reference output");
+}

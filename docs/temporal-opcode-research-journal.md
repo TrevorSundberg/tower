@@ -116317,3 +116317,102 @@ native link needed the documented TowerBackend project include. The first
 draft retired the old template file. Running its original path showed that
 it also selects the nine emission cases, so the delivered source preserves
 that entry and its ABI bindings. The manager owns public integration.
+### MT19937 known-answer checks in the four native parser fixtures
+
+Host 1 started assignment c59d7c0e-f254-47f4-aec8-242b4fa8140d on
+public `91415a8e`. The shared checkout's startup rebase conflicted with
+unpublished UI work. Aborting restored its original head. An isolated
+local main checkout supplied the published inputs. The previous host 1
+parser-only receipt (251b7043) retained inventories and outputs, but its
+build had been removed. The two remaining parser executables used different
+compiler hashes. Two private parser-only Release caches, built successively
+at compiler widths 1 and 4, used the verified checked-in Linux x64 pin.
+
+The four comparisons share one source-located assertion helper in
+`mt19937_reference_test.tower`. Its name keeps owner discovery on
+`mt19937.tower` independent of the oracle. The generator retains the original
+state, initialization and draw implementation. Each original invocation
+still runs in its original standalone or selected case. The helper imports
+the generator directly and declares no additional test. CTest registrations,
+test body positions and randomized trial loops stay at their published inputs.
+
+At each width, the parser-only standalone entries were `tower-lexer-tests`
+and `tower-parser-tests --suite lexicon|lr-grammar|regex`. The same build's
+registered `--test --test-details` commands ran each direct and owner entry
+through its native-test runtime and linked providers. Direct/owner counts
+were 6/11 for lexer tables, 4/4 for syntax lexing, 4/9 for LR grammar and
+7/12 for regex. Each positive stdout and stderr matched the original bytes,
+including test locations, order and summary. The original combined streams
+also matched the prior parser receipt with its checkout prefix relocated.
+
+The compiler depfiles contain exactly one generator and one reference module
+in each of the four suites. Reader, validation and LR analysis import only the
+generator in their native suites. Their owner selections matched the original
+12, 10 and 26 tests, respectively, at both widths. Selecting the generator
+itself reported zero tests before and after. A reader discovery control first
+ran from the build directory and could not read Bedrock. Replaying it in its
+registered scaffolding working directory passed.
+
+Seed 5489 still yields 3499211612, 581869302 and 3890346734 on the first
+three draws and 4123659995 on draw 10000. The draw functions match the
+original bytes and the reference function matches after replacing
+`utility_check` with `assert`. Substituting 4123659994 for the last expected
+value failed all eight standalone runs with exit 134 and the expected trap
+message. All 16 direct and owner compiler requests failed with exit 1 at
+`mt19937_reference_test.tower:13:5`. The negative compiler commands used
+the registered arguments directly to retain stderr. Restoring the source
+reproduced both widths' executable and provider hashes and all 24 outputs.
+
+Host 1 used a dual-socket Intel Xeon Gold 6244, eight cores per socket and
+SMT2, Linux x64, Clang/LLVM 19.1.7, target x86_64-pc-linux-gnu, pin SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The host cpuset was 0–31 with quota 1536000/100000 µs (15.36 CPUs) and
+136709144576 bytes of cgroup memory. Measured commands ran under the host
+timing lock with affinity 0–3. Jobs 1/4 control compilation. The parser
+fixtures use serial guest transport. The fixed-size generator state remains
+624 u32 words and a native index on the stack. The move adds no allocator
+calls. The existing fixture ownership checks ran with their normal providers.
+
+Cells give mean wall seconds / mean user+system CPU seconds / largest GNU
+time process RSS in KiB. Each selected sample includes count validation,
+compilation, linking and guest execution, with three fresh processes per
+entry and width on a warm filesystem. Each standalone sample times a batch
+of 40 fresh processes including the launch shell; both full streams were
+checked. Two batches per width and source ran in moved/original/original/moved
+order. Reinstating each source reproduced its recorded binaries. The short
+single-process samples are also in the packet.
+
+| Root | Route | 1 original | 1 moved | 4 original | 4 moved |
+| --- | --- | ---: | ---: | ---: | ---: |
+| lexer_table | standalone | 0.680 / 0.680 / 3112 | 0.665 / 0.660 / 3092 | 0.665 / 0.665 / 3364 | 0.670 / 0.670 / 3092 |
+| lexer_table | direct | 0.913 / 0.910 / 127820 | 0.937 / 0.933 / 127564 | 1.077 / 1.240 / 137584 | 1.110 / 1.280 / 137344 |
+| lexer_table | owner | 1.063 / 1.057 / 140156 | 1.080 / 1.073 / 139784 | 1.183 / 1.363 / 149728 | 1.237 / 1.420 / 149224 |
+| syntax_lexer | standalone | 0.225 / 0.220 / 3356 | 0.225 / 0.225 / 3368 | 0.240 / 0.230 / 3108 | 0.230 / 0.225 / 3376 |
+| syntax_lexer | direct | 0.630 / 0.620 / 111936 | 0.657 / 0.647 / 112280 | 0.763 / 0.877 / 122704 | 0.850 / 0.977 / 123136 |
+| syntax_lexer | owner | 0.653 / 0.647 / 111444 | 0.657 / 0.650 / 111972 | 0.807 / 0.923 / 122328 | 0.803 / 0.927 / 123316 |
+| lr_grammar | standalone | 0.495 / 0.495 / 3116 | 0.485 / 0.480 / 3104 | 0.495 / 0.485 / 3104 | 0.490 / 0.485 / 3116 |
+| lr_grammar | direct | 0.850 / 0.843 / 148956 | 0.870 / 0.870 / 149308 | 1.027 / 1.220 / 157492 | 1.073 / 1.287 / 158524 |
+| lr_grammar | owner | 1.017 / 1.007 / 158784 | 1.040 / 1.033 / 159288 | 1.190 / 1.420 / 169168 | 1.227 / 1.457 / 169172 |
+| regex | standalone | 1.255 / 1.250 / 4448 | 1.255 / 1.250 / 4456 | 1.240 / 1.240 / 4456 | 1.245 / 1.245 / 4444 |
+| regex | direct | 1.153 / 1.143 / 167476 | 1.147 / 1.137 / 167388 | 1.270 / 1.477 / 177192 | 1.320 / 1.537 / 177004 |
+| regex | owner | 1.287 / 1.287 / 177788 | 1.303 / 1.300 / 178068 | 1.440 / 1.653 / 189256 | 1.483 / 1.717 / 189096 |
+
+Four additional counterbalanced pairs on the largest relative increase,
+the four-job direct syntax lexer, gave mean elapsed 0.810 s original and
+0.878 s moved. They used the same count checker, runtime, service hashes
+and case outputs. The 40-process syntax lexer standalone batches had
+similar costs in both arms. The additional cost is visible on the route
+that compiles and links a fresh guest, which now imports one extra module.
+The samples do not isolate import, assertion lowering or scheduling costs.
+
+The Tower LLVM 19 instrumenter covered the four suite translation units,
+the serial transport, trap and fault-allocator objects. The suite IR contains
+address and thread checks in the initialized state, draw and reference
+functions. ASan with leak detection passed all four native standalones on
+the first launch. TSan passed with exact output after 6, 2, 23 and 0
+container personality startup failures for lexer tables, syntax lexer, LR
+grammar and regex respectively. Other parser providers and the public
+compiler were uninstrumented. These runs cover the serial native fixtures.
+The Tower instrumenter has no UBSan mode. Raw command lines, exit codes,
+separate output streams, depfiles, timings, link maps and a base-relative
+source bundle are in the assignment packet. The manager owns publication.

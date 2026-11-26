@@ -8,7 +8,7 @@ import .compiler.lr_types;
 import .compiler.component_kinds;
 import .compiler.grammar_types;
 import .compiler.parser_types;
-
+import mt19937_reference_test;
 fn lr_grammar_test_string(world: void*, node: void*, text: u8*): void {
     var data = bits(ParserStringData*, compiler_world_component(world, node, CompilerParserString));
     assert(data is not null && node_string_append(data, text, strlen(text)), "LR grammar fixture UTF8 string");

@@ -10,7 +10,7 @@ import .compiler.syntax_types;
 import .compiler.parser_types;
 import .compiler.format_types;
 import .compiler.component_kinds;
-
+import mt19937_reference_test;
 struct RegexTestWorld {
     world: void*;
     buffers: usize;
