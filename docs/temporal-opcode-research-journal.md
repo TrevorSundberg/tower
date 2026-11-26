@@ -116815,3 +116815,33 @@ Raw evidence for assignment `44dfd99c-cc3b-4470-9b2e-08d8cf5c8e98`
 includes the commands, status, streams, times, frozen inputs, positive and
 negative controls, native and Wasm symbol inventories, sanitizer maps and
 source bundle. Source and journal are local for manager publication.
+
+### Native backend constant-address cases in Tower discovery
+
+Host 3 used published parent `27babf100cd4667560df832e786edc96c145e900` for assignment `d8912676-4b0f-4be8-9a13-59f8f63497cb`. The original four reconstruction commands take the same 779-byte guest program, two baseline files, a Wasm runtime object, an output path, a target pointer width and a worker count. The two comparisons depend on the corresponding output files. The separate execution registrations consume those same files. The [original investigation](backend_constant_address_e330a2c9.md) explains the LLVM constant expression and the verifier-valid rejection fixture.
+
+Six cases in `backend_constant_address_test.tower` exercise those four combinations and compare both pairs of outputs. The selected guest passes typed callbacks to the native reconstruction entry. The operand callback reads the diagnostic and publication counts before the native fixture releases the LLVM context and output root. It checks both the first unsupported operand and the preserved earlier error at offset 23. The compiled callback reads session-owned LLVM and Foundation before teardown. It checks the compiled Foundation response, both frontend parses, the target-width store to `storage + 4 - 1`, and the last byte displacement and value. Neither callback retains its borrows. The original CTest commands use the same predicates. The equality selector reads both saved files and compares their lengths and bytes. The selected entries have independent working directories and each writes both files for a target width before comparing them.
+
+The reference and migrated clients produced these raw bytes at both worker counts. Direct and owner discovery also reproduced each reference file. Each reconstructed program printed the two bytes `30 0a` in both Graph and Fast execution.
+
+| Guest | Foundation bytes / SHA-256 | Optimized LLVM bytes / SHA-256 |
+| --- | --- | --- |
+| wasm32 | 3,968 / `7a200d2b4d973a1bb33a07dc1386b332e2eeb8a8e3516a780fcf116b292ab07f` | 1,555 / `aad5ce696c769e3adf171836f81111083aede6d2505972d70dc99e838f2656ec` |
+| wasm64 | 3,968 / `4810972de4199aa0aa9033b69793678928355aa8da919b2739b2ae8887849aa8` | 1,555 / `f2a95cb863df989fd5863fae1a6b3ae4a0f510751be368962df9d0f57daee9cf` |
+
+With the native provider frozen, changing the companion's wasm32 Foundation displacement from 3 to 2 failed both selected entries at line 29, column 5. CTest exited 8 for each. Restoring the recorded source SHA-256 restored both six-case summaries. Comparing the equal-length wasm32 and wasm64 Foundation files also failed, with status 134. The matching wasm32 files returned 0. An initial two-path comparison interface was replaced with the explicit `--constant-address-equal` selector. Omitting the runtime from the original command still produces the usage diagnostic and a nonzero exit.
+
+The frozen public bootstrap and its resource manifest passed verification. The compiler hash was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`. Host 3 ran Linux x64 on an AMD EPYC 7542, with 64 logical CPUs, a 12.288-CPU quota, and a 57,954,795,520-byte memory limit. The native Release build used Clang/LLVM 19.1.7, Ninja, and one bootstrap worker per compilation. The original and migrated clients reused one native object cache. Timed processes held the host timing lock and ran on CPUs 16–19, one at a time. After one warm-up per configuration, three paired samples alternated client order. Each run checked its raw output against the baseline. The table gives median wall and user-plus-system seconds and maximum RSS in KiB.
+
+| Guest / workers | Original wall / CPU / RSS | Migrated wall / CPU / RSS |
+| --- | --- | --- |
+| wasm32 / 1 | 0.27 / 0.27 / 84,216 | 0.27 / 0.27 / 83,972 |
+| wasm32 / 4 | 0.32 / 0.35 / 90,848 | 0.33 / 0.36 / 90,624 |
+| wasm64 / 1 | 0.27 / 0.26 / 83,968 | 0.27 / 0.26 / 83,844 |
+| wasm64 / 4 | 0.33 / 0.36 / 90,564 | 0.33 / 0.36 / 90,960 |
+
+The world ledger peaked at 19,146,105 bytes with one worker and 23,129,518 with four on both clients and targets. Every completed import returned all bytes, grants and lanes. These samples cover the original small fixture. The six original CTests, the two selections, and the six source/reconstructed execution registrations passed together in 6.23 s wall, 6.56 s CPU and 95,732 KiB peak RSS. Each public direct and owner selection also reported six passes with four discovery workers.
+
+The same six predicates passed in the instrumented standalone through their ordinary file/argv registrations. ASan with leak detection took 8.71 s wall and peaked at 543,048 KiB. TSan took 26.62 s and peaked at 233,164 KiB. The link maps place allocation in `runtime-allocate.o` and pthread transport in `tower_work_host.o` from `libtower-compiler-memory.a`. The packet includes the instrumented callback IR, function attributes, link maps and exact command lines. All eight instrumented reconstructions matched the reference Foundation and LLVM. The first ASan configuration, with execution tests disabled, generated no top-level CTest registry on this parent. CTest exited 8. Enabling the execution-test profile produced the registrations and the run passed. Tower source-level UBSan is unavailable.
+
+With backend and execution tests disabled, the ordinary compiler linked and ran the guest at both widths. Its link command, dynamic dependencies and symbol table excluded the new provider and case functions. Both Wasm object depfiles excluded the companion and test API. Touching the companion left Ninja clean and preserved the compiler SHA-256 `4499ebcd67b6459d8455712aed39696b8266692967d254660d8707f57627a1c9`. That compiler also passed direct and owner discovery with the explicit test provider. Validation covers the Linux x64 backend test transport. The packet includes raw stdout, stderr, statuses, GNU time reports, source and tool identities, reference and migrated outputs, and a bundle relative to the published parent. Publication belongs to the manager.

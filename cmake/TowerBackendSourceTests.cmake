@@ -67,13 +67,38 @@ foreach(width IN ITEMS 4 8)
     set_tests_properties("${constant_test}" PROPERTIES WORKING_DIRECTORY "${constant_workdir}"
       FIXTURES_SETUP "${constant_test}" TIMEOUT 90 LABELS "native;backend;focused")
   endforeach()
-  add_test(NAME "tower-backend-constant-address-equal-${width}" COMMAND "${CMAKE_COMMAND}" -E compare_files
+  add_test(NAME "tower-backend-constant-address-equal-${width}" COMMAND tower-backend-source-tests --constant-address-equal
     "${source_workdir}/constant_address_${width}_1/constant_address_${width}_1.tower"
     "${source_workdir}/constant_address_${width}_4/constant_address_${width}_4.tower")
   set_tests_properties("tower-backend-constant-address-equal-${width}" PROPERTIES
     FIXTURES_REQUIRED "tower-backend-constant-address-${width}-1;tower-backend-constant-address-${width}-4"
     TIMEOUT 90 LABELS "native;backend;focused")
 endforeach()
+
+# Use the same native world, LLVM and worker transport for selected Tower cases.
+if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+  tower_guest_runtime(native-test "${triple}" posix ON UNINSTRUMENTED)
+  tower_selected_test_count("${triple}")
+  get_property(constant_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  add_library(tower-backend-source-services SHARED ${test_sources} ${source_backend_objects} "${tower-backend-source_OBJECT}")
+  set_target_properties(tower-backend-source-services PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(tower-backend-source-services PRIVATE ${source_libraries} ${source_backend_libraries})
+  target_link_options(tower-backend-source-services PRIVATE "LINKER:-z,defs")
+  add_dependencies(tower-backend-source-tests tower-backend-source-services tower-selected-test-count tower-guest-native-test)
+  foreach(entry IN ITEMS backend_constant_address backend_constant_address_test)
+    set(path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower")
+    set(dir "${source_workdir}/${entry}")
+    file(MAKE_DIRECTORY "${dir}")
+    file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${dir}/.tower" SYMBOLIC)
+    set(name "tower-selected-${entry}")
+    add_test(NAME "${name}" COMMAND tower-selected-test-count "6 tests passed for ${path}"
+      "${TOWER_BOOTSTRAP_COMPILER}" --test "${path}" --jobs 1 --test-details
+      --test-native-runtime "${constant_guest}" --link "$<TARGET_FILE:tower-backend-source-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-backend-source-services>")
+    set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${dir}" TIMEOUT 90 LABELS "native;backend;focused"
+      ENVIRONMENT "TOWER_CONSTANT_ADDRESS_RUNTIME=${source_runtime}")
+  endforeach()
+endif()
 
 # Same session provider with the existing single-owner allocation-denial seam.
 get_property(response_runtime GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)

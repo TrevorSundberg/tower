@@ -1,5 +1,6 @@
 import tower;
 import utility_checks;
+import backend_constant_address_api;
 import .backend.bindings;
 import .backend.context;
 import .backend.target;
@@ -14,11 +15,10 @@ extern fn compiler_world_store(world: void*): void*;
 extern fn entity_store_count(store: EntityStore*): usize;
 extern fn entity_store_component_count(store: EntityStore*): usize;
 extern fn entity_child_count(entity: Entity*): usize;
-extern fn strcmp(left: u8*, right: u8*): i32;
 
 // A verifier-valid block address is outside Foundation's supported control-flow
 // contract. Accepting ConstantExpr add must not admit every constant operand.
-fn backend_constant_operand_rejection(world: void*, width: u32): void {
+fn backend_constant_operand_rejection(world: void*, width: u32, checks: ConstantAddressChecks*): void {
     var store = bits(EntityStore*, compiler_world_store(world));
     for(var prior: usize = 0; prior < 2; prior++) {
         var error: WorkBudgetError;
@@ -46,12 +46,10 @@ fn backend_constant_operand_rejection(world: void*, width: u32): void {
         var prior_offset: usize = 23;
         if prior != 0 { b.source_offset = prior_offset; backend_fail(b, "Earlier constant operand error"); }
         var accepted = backend_import_foundation(b, bits(void*, output));
-        var wanted = prior == 0 ? "Unsupported LLVM value in foundation return path" : "Earlier constant operand error";
-        utility_check(!accepted && strcmp(backend_error(b), wanted) == 0
-            && b.resource_error == WorkBudgetError.None && b.error_offset == (prior == 0 ? 0 : prior_offset),
-            "Constant operand exact unsupported diagnostic and first cause");
-        utility_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components
-            && entity_child_count(output) == 0 && sem_get(bits(void*, output)) == null,
-            "Constant operand failure publishes no partial stage");
+        var result: ConstantOperandResult = {accepted: accepted, diagnostic: backend_error(b),
+            resource: b.resource_error, offset: b.error_offset, nodes_before: nodes, nodes_after: entity_store_count(store),
+            components_before: components, components_after: entity_store_component_count(store),
+            children: entity_child_count(output), has_semantic: sem_get(bits(void*, output)) != null};
+        checks.operand(&result, prior != 0);
     }
 }
