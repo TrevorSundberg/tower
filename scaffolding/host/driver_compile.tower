@@ -20,6 +20,7 @@ import driver_support;
 import driver_platform;
 import driver_format;
 import driver_test_discovery;
+import driver_native_tests;
 import .compiler.test_file_rule;
 import .library.bytes_types;
 import .library.bytes_interface;
@@ -356,7 +357,13 @@ fn driver_compile_tests(state: DriverCompilation*): i32 {
     }
     var count = state.execution.program.test_count;
     if count != 0 {
-        var result = driver_compile_interpret(state);
+        var result: i32;
+        if request.options.test_runtime != null {
+            var started = driver_clock();
+            if !driver_compile_backend(state, request.options.target, BackendCodegen.Default) { return 1; }
+            state.width = backend_pointer_bytes(state.backend);
+            result = driver_compile_object(state, started);
+        } else { result = driver_compile_interpret(state); }
         if result != 0 { return result; }
         if request.options.test_details {
             foreach (var node in &state.execution.program.functions) {
@@ -402,6 +409,9 @@ fn driver_compile_object(state: DriverCompilation*, started: u64): i32 {
         return 1;
     }
     var emitted = driver_clock();
+    if options.test_runtime != null {
+        return driver_native_tests(state.request, backend_bytes(state.backend), backend_size(state.backend));
+    }
     var wasm = strstr(options.target, "wasm") == options.target;
     var windows = strstr(options.target, "windows") != null;
     var output = options.output[0] == 0 ? driver_output_name(options.emit, wasm, windows): options.output;

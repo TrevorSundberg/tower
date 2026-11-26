@@ -43,6 +43,17 @@ test. The first such statement determines the test's position among explicit
 `test() {}` blocks. Module-level declarations and initializers keep their usual
 scope. A helper-only file adds zero tests.
 
+
+On a Linux GNU host, `--test-native-runtime OBJECT` selects native execution
+for the same declarations. Build the optional `tower-guest-native-test` target
+and pass its `guest-native-test.o`. Supply native dependencies with the usual
+`--link` arguments, including an allocator when the program requires one.
+Only pass trusted native inputs. The driver lowers the selected program once
+and runs the linked executable as a child. Guest stdout and stderr remain
+available. The test runtime reserves descriptor 3 in that child for its private
+same-host result. On a trap the driver maps the original offset through the
+request's source table. An early process exit fails the request.
+
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
 two exact NUL-terminated suffixes and the normalized requested path, in that
@@ -1826,6 +1837,42 @@ controls without the broader grammar/failure campaigns. CTest registers these as
 existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
+
+The adjacent SCC suite runs the two declarations through the public driver on
+Linux GNU. In a native build configured with `TOWER_DRIVER_TESTS=ON`, build the
+suite and run its registered checks at one and four compiler jobs. Set `B` to
+the native build directory.
+
+```sh
+cmake --build "$B" --target tower-scc-suite
+ctest --test-dir "$B" -R '^tower-selected-graph-components-jobs-' -V
+```
+
+For a checkout-independent installation, set `PREFIX` to a writable staging
+directory. Move the resulting `scc-suite` directory as a unit. The host needs
+CTest and the shared libraries required by its native compiler.
+
+```sh
+cmake --install "$B" --component SccTests --prefix "$PREFIX"
+ctest --test-dir "$PREFIX/scc-suite" -V
+TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R 'jobs-1$' -V
+```
+
+Each registration selects the owner with `towerc --test`. With the default
+file rule it executes 8 fixed and 234 seeded cases, reports both declaration
+locations and checks zero live buffers in the linked allocator. The last
+command supplies the alternate suffix to the same driver. It deliberately
+fails on the singleton at `graph_components_wrong.tower:7:5` and returns
+nonzero. Direct selection of the corresponding companion uses the same
+providers shown by `ctest -V`.
+
+The private installation adds two adjacent fixtures and their corpus-count module
+`graph_components_expectations.tower` under `share/tower/library`, the reachability
+and utility helpers under `share/tower/tests`, and five native link inputs
+under `providers`. The normal native and browser compilers take their language
+sources from `scaffolding/builtin_modules.txt`. Add production modules there
+when introducing them. A helper used only by companions belongs to the optional
+installation even if its name matches the ordinary source suffix. The legacy graph-components registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,

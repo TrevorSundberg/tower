@@ -105801,3 +105801,141 @@ Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
 Jenkins console, commands, inputs, comparison products, sanitizer attempts
 and local commit for review. The full Jenkins rerun and publication remain
 with the manager.
+### Host 8 linked SCC companion on e2ebb16a
+
+Assignment 890c278d-b588-49b7-b359-c381ae4fc78b reproduced the b85fc4df
+failure on public e2ebb16a. Default test execution stopped on the first
+`tower_test_buffer_count` read. The old native frontend still returned the
+242-case summary and rejected the one-node reflexive corruption with zero
+live buffers. Both producer source packets and the previous raw matrices
+were available through the verified Host 8 receipt.
+
+Local driver change 2ec292e6 lowers the existing selected semantic program
+through the ordinary native object backend. The Linux GNU hosted object
+linker borrows the named test runtime and the caller's link inputs. The child
+enters the selected `tower_main` through the existing guest program entry.
+The startup records completion only on return. The trap ABI sends the source
+offset and message to the driver's existing location formatter. The request
+owns the temporary files until the process exits. CLI regressions cover a
+native libc call, a located assertion, and an early exit with status zero.
+
+The companion and legacy registration share the original production kernel,
+Floyd–Warshall oracle, generated edges and per-trial ownership checks. Both
+families count completed trials. On owner and direct requests, jobs 1 and 4,
+with and without details, each run reported 8 fixed and 234 seeded cases
+with zero live buffers and two passed declarations. In separate logged runs
+all 242 adjacency matrices and their order matched the b85fc4df native trace
+byte for byte at each width and route. All four logged negative runs matched
+its exact empty and singleton inputs. Inverting the reflexive expectation
+reported `graph_components_test.tower:7:5` and returned 1. The genuine allocator
+probe counted one additional live buffer while allocated and returned to its
+initial count on release. Its missing symbols, as providers were added, were
+tower_test_buffer_count, compiler_buffer_allocate, bytes_reserve and
+tower_utf8_validate. The selected object itself defines graph_components_result.
+
+Ordinary objects were identical across jobs and positive/negative companions.
+Their depfiles omitted both companion and helper. Initial native configuration
+copied the adjacent source into the runtime via its library glob. The native
+resource selection and browser builtin list now exclude default companions.
+The final browser builtin list matched the native source module inventory.
+Browser execution and release packaging were outside this Linux native check.
+
+Linux x86-64 Host 8, Ryzen 9 7900X, affinity 0–23, quota 23.04 cores,
+Clang/LLVM 19.1.7, Release. Three sequential fresh processes per width on
+warm filesystem caches timed the same owner with details. Jobs 1 averaged
+0.317 s wall and 0.310 s combined CPU with 106560 KiB peak RSS. Jobs 4
+averaged 0.393 s wall and 0.443 s combined CPU with 117844 KiB peak RSS.
+The legacy prelinked executable took 0.01 s at this timer's resolution.
+The earlier 0/242 request has no completed SCC workload time. Both the native
+test-link CLI regression and the existing portable module-path suite passed.
+
+Separate instrumented compiler builds reproduced the positive and the located
+negative at both widths under ASan/LSan and TSan. Nine TSan launches failed
+during initialization at the host personality restriction. Only subsequent
+or first-attempt executions with the exact expected streams count. The child
+and provider objects in these runs used the ordinary allocator instrumentation
+for the live-buffer checks. They did not receive compiler sanitizer coverage.
+Tower source-language UBSan is unsupported. The retained packet contains the
+source bundle, executable and provider identities, actual selected object and
+ELF, independent link map, raw streams, case-by-case comparison and replay.
+The source is for manager review. The legacy registration remains active.
+
+A separate child startup check instrumented the actual guest-native-test LLVM
+module in address and thread modes. The hosted Tower linker rejected those
+instrumented ELF objects. Clang linked each to the captured selected object and
+the same native providers. Successful positive and rejecting singleton runs
+reproduced the byte-exact stdout and binary completion/trap records in both
+modes. This covers the startup/report transport. The selected SCC object and
+its providers remained ordinary objects. Four simultaneous ordinary CLI
+requests also preserved all expected outputs and drained their shared temporary
+directory. An independent system link map attributes the kernel to the selected
+object and the live counter to runtime-instrumented.o.
+
+### Relocated registered SCC suite on the public test-file rule, 2026-11-26
+
+Host 8 integrated the preserved native selection and companion commits
+(`2ec292e6`, `4ac43427`) on public `3ae475c2`. The old compiler could run
+the explicitly linked declarations. Its registered link smoke exercised a
+different guest, and the bootstrap packager still required a production copy of
+the tracked companion. Replaying its copy check reproduced the missing
+`scaffolding/library/graph_components_test.tower` diagnostic.
+
+Native CMake, the browser resource copier and the bootstrap packager now
+consume one production module inventory. Flat stale copies are diagnosed in
+reused native outputs. The explicit SCC component adds the two adjacent
+fixtures, their existing relative imports and the native providers to its own
+compiler tree. CTest invokes the same public driver in the build and in the
+installed suite. The original allocator, test declarations, raw graph
+generator, reachability oracle and legacy registration are unchanged in this
+integration. Build and installation commands are in the SCC section of
+[the test guide](../scaffolding/tests/README.md).
+
+With the source and build directories moved out of reach, the installed owner
+and explicit companion each passed 8 fixed and 234 seeded cases at jobs 1
+and 4. Both families reported zero live buffers. Four observation runs matched
+all 242 original input matrices byte for byte. A renamed positive companion
+passed under the configured alternate suffix. The installed wrong singleton
+returned driver status 1, CTest status 8 and the location
+`graph_components_wrong.tower:7:5`. Empty and invalid suffix selections failed
+the registered check. The selected object defines the production SCC function
+and imports the allocator counter. The ordinary distribution and optional kit
+share 58 identical files and produce the same ordinary SCC object.
+
+On the Ryzen 9 7900X, Linux x86-64, LLVM 19.1.7, each process ran alone. Three
+alternating warm owner samples had median elapsed 0.31/0.38 seconds for the
+retained compiler at jobs 1/4 and 0.30/0.39 seconds for this candidate.
+Maximum candidate RSS was 106044/116020 KiB respectively. The production
+package passed its Tower verifier. The verifier also rejected missing, modified
+and unowned flat modules and accepted a nested project module. Its focused
+ASan and TSan runs passed. TSan required retries after host personality
+failures. UBSan instrumentation for Tower source was unavailable. Browser
+validation covered the resource-copy block and its output. Packet
+`87436fc8-0d55-4714-ab90-bc8916ec5e2a` retains the original bundle, real argv,
+both installations, input traces, streams, timings, link evidence and checksums.
+
+### SCC companion with an ordinary-named library helper, host 8, 2026-11-26
+
+The release check now includes a library module imported only by the positive
+SCC companion. `graph_components_expectations.tower` supplies the historical
+8 and 234 case counts. The two declarations check those counts after the
+allocator report. The component installation owns the module alongside the
+fixtures. The production module inventory has no entry for it.
+
+On the same source tree with a local alternate companion, the public all-library
+copier exposed 52 sources. The production copier exposed 48. Cold calls to
+the worker's actual `getCanonicalSources()` over loopback HTTP retrieved the
+ordinary-named helper, default, alternate and wrong fixtures in the first
+case and omitted all four in the second. The app's startup fetch block also
+loaded its 12 ordinary examples. These probes exercised resource loading without
+building a browser or substituting any SHA test sources.
+
+The relocated optional suite ran all 242 original inputs through the owner
+and direct companion at jobs 1 and 4. The positive alternate passed with the
+same helper. Removing only that helper diagnosed its import at 3:38 under
+both suffixes. Changing the seeded expectation to 233 failed at 17:5 after
+234 real cases and zero live buffers. The original wrong singleton still
+failed at 7:5. The normal packager rejected a copy with only the helper added.
+The optional installation now contains 70 files, including the 58 identical
+production files. Three warm samples per profile on the same Ryzen 9 7900X
+gave candidate median wall/user/system times of 0.31/0.27/0.04 seconds with
+one job and 0.39/0.38/0.07 with four. Peak RSS was 106524 and 118832 KiB.

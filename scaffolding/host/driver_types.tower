@@ -44,5 +44,6 @@ struct DriverOptions {
     link_executable: bool;
     test_mode: DriverTestMode;
     test_details: bool;
+    test_runtime: u8*;
     test_rule: TestFileRule;
 }
