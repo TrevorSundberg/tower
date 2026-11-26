@@ -1,5 +1,4 @@
 import tower;
-import .library.test_data;
 
 extern fn puts(text: u8*): i32;
 
@@ -16,9 +15,17 @@ fn utility_check(ok: bool, message: u8*): void {
 }
 
 fn utility_equal(left: u8*, right: u8*, count: usize): bool {
-    return test_bytes_equal(left, right, count);
+    for(var index: usize = 0; index < count; ++index) {
+        if left[index] != right[index] {
+            return false;
+        }
+    }
+    return true;
 }
 
 fn utility_random(state: u32*): u32 {
-    return test_xorshift32(state);
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    return *state;
 }

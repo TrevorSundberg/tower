@@ -1,5 +1,6 @@
 import tower;
 import compiler_project_inputs;
+import builtin_module_inventory;
 import tool_files_posix;
 import tool_files_linux;
 import tool_streams_posix;
@@ -88,14 +89,16 @@ fn compiler_project_tree(project: CompilerProjectFiles*, directory: u8*): bool {
 }
 fn compiler_project_sources(project: CompilerProjectFiles*, repository: u8*): bool {
     if !tool_join(&project.source, repository, "scaffolding") || !compiler_project_tree(project, "compiler")
-        || !compiler_project_tree(project, "host") || !compiler_project_tree(project, "backend")
-        || !compiler_project_tree(project, "library") { return false; }
-    var path: ByteBuffer = default; defer bytes_dispose(&path);
-    return tool_join(&path, project.source.data, "bedrock.tower") && compiler_project_read_source(project, "bedrock.tower", path.data)
-        && tool_join(&path, project.source.data, "foundation.tower") && compiler_project_read_source(project, "foundation.tower", path.data)
-        && tool_join(&path, project.source.data, "foundation_syntax.tower") && compiler_project_read_source(project, "foundation_syntax.tower", path.data)
-        && tool_join(&path, project.source.data, "types.tower") && compiler_project_read_source(project, "types.tower", path.data)
-        && tool_join(&path, project.source.data, "tower.tower") && compiler_project_read_source(project, "tower.tower", path.data);
+        || !compiler_project_tree(project, "host") || !compiler_project_tree(project, "backend") { return false; }
+    var inventory: ByteBuffer = default; var modules: vector(u8*) = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&inventory); defer vector_dispose(&modules);
+    if !builtin_modules_read(repository, "scaffolding/builtin_modules.txt", &inventory, &modules) {
+        puts("Invalid builtin module inventory"); return false;
+    }
+    foreach(var name in &modules) {
+        if !tool_join(&path, project.source.data, name) || !compiler_project_read_source(project, name, path.data) { return false; }
+    }
+    return true;
 }
 
 fn compiler_project_unit_source(name: u8*): u8* {

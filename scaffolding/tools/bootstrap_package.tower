@@ -1,4 +1,5 @@
 import tower;
+import builtin_module_inventory;
 import tool_files_posix;
 import tool_files_linux;
 import tool_process_linux;
@@ -38,7 +39,6 @@ struct BootstrapInputs {
 extern fn chmod(path: u8*, mode: u32): i32;
 extern fn getenv(name: u8*): u8*;
 extern fn puts(text: u8*): i32;
-extern fn strchr(text: u8*, character: i32): u8*;
 extern fn memcmp(left: u8*, right: u8*, length: usize): i32;
 
 fn bootstrap_text(out: ByteBuffer*, text: u8*): bool { return bytes_append(out, text, strlen(text)); }
@@ -53,17 +53,6 @@ fn bootstrap_hash(out: ByteBuffer*, data: u8*, length: usize): bool {
     return host_json_quote(out, &hex[0], BootstrapHexBytes);
 }
 
-// Plain sha256sum records cannot encode newlines/backslashes unambiguously.
-// Resource names also retain the existing portable relative-path policy.
-fn bootstrap_member_name(name: u8*, length: usize): bool {
-    if !zip_name_valid(name, length) || tower_utf8_validate(name, length, 1) == 0 { return false; }
-    var first_printable: u8 = 32; var delete_character: u8 = 127;
-    for (var at: usize = 0; at < length; at++) {
-        if name[at] < first_printable || name[at] == delete_character { return false; }
-    }
-    return true;
-}
-
 fn bootstrap_files_dispose(files: vector(BootstrapFile*)*): void {
     foreach (var file in files) { bytes_dispose(&file.name); bytes_dispose(&file.data); free(file); }
     vector_dispose(files);
@@ -76,11 +65,11 @@ fn bootstrap_file_add(files: vector(BootstrapFile*)*, name: u8*, path: u8*, tota
     var retained = false;
     defer { if !retained { bytes_dispose(&file.name); bytes_dispose(&file.data); free(file); } }
     if tool_file_kind(path, true) != ToolFileKind.Regular || !bytes_assign_text(&file.name, name, strlen(name))
-        || !bootstrap_member_name(file.name.data, file.name.length)
+        || !package_member_name(file.name.data, file.name.length)
         || !tool_read_file(path, BootstrapInputLimit - *total, &file.data) { return false; }
     var prefix = "share/tower/";
     var length = strlen(prefix);
-    if strncmp(file.name.data, prefix, length) == 0 && bootstrap_copied_module(file.name.data + length) {
+    if strncmp(file.name.data, prefix, length) == 0 && builtin_module_namespace(file.name.data + length) {
         file.pending_copy = file.name.data + length;
     }
     if !vector_push(files, file) { return false; }
@@ -170,42 +159,6 @@ fn bootstrap_dependencies(input: BootstrapInputs*, out: ByteBuffer*): bool {
     return bootstrap_text(out, "]");
 }
 
-// The flat compiler module namespaces reject stale copies as well as missing
-// inventory members. Nested project libraries remain separate package resources.
-fn bootstrap_copied_module(path: u8*): bool {
-    var library = "library/";
-    if strncmp(path, library, strlen(library)) == 0 {
-        var name = path + strlen(library);
-        var suffix = ".tower";
-        var length = strlen(name);
-        return length >= strlen(suffix) && strcmp(name + length - strlen(suffix), suffix) == 0
-            && strchr(name, convert(i32, ToolPathByte.Slash)) == null;
-    }
-    return strcmp(path, "bedrock.tower") == 0 || strcmp(path, "foundation.tower") == 0
-        || strcmp(path, "foundation_syntax.tower") == 0 || strcmp(path, "types.tower") == 0
-        || strcmp(path, "tower.tower") == 0 || strcmp(path, "backend/foreign_grammar.tower") == 0;
-}
-
-// Views borrow the inventory buffer through source verification. A matched
-// slot is cleared so missing, duplicate and untracked entries remain visible.
-fn bootstrap_builtin_inventory(input: BootstrapInputs*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*): bool {
-    var path: ByteBuffer = default; defer bytes_dispose(&path);
-    if !tool_join(&path, input.repository, inventory_name)
-        || !tool_read_file(path.data, BootstrapCaptureLimit, text) || !host_text_terminate(text) { return false; }
-    var at: usize = 0;
-    while at < text.length {
-        var start = at;
-        while at < text.length && text.data[at] != *"\n" { at++; }
-        var end = at;
-        if end > start && text.data[end - 1] == *"\r" { end--; }
-        var name = text.data + start;
-        text.data[end] = 0;
-        if !bootstrap_member_name(name, end - start)
-            || !bootstrap_copied_module(name) || !vector_push(modules, name) { return false; }
-        at++;
-    }
-    return modules.length != 0;
-}
 fn bootstrap_verify_copy(modules: vector(u8*)*, files: vector(BootstrapFile*)*, source_path: u8*, source: ByteBuffer*): bool {
     var root = "scaffolding/";
     if strncmp(source_path, root, strlen(root)) != 0 { return true; }
@@ -231,7 +184,7 @@ fn bootstrap_source_hashes(input: BootstrapInputs*, files: vector(BootstrapFile*
     var inventory: ByteBuffer = default; var modules: vector(u8*) = default;
     defer bytes_dispose(&inventory); defer vector_dispose(&modules);
     var inventory_name = "scaffolding/builtin_modules.txt";
-    if !bootstrap_builtin_inventory(input, inventory_name, &inventory, &modules) { puts("Invalid builtin module inventory"); return false; }
+    if !builtin_modules_read(input.repository, inventory_name, &inventory, &modules) { puts("Invalid builtin module inventory"); return false; }
     var names: ByteBuffer = default; var path: ByteBuffer = default; var source: ByteBuffer = default;
     defer bytes_dispose(&names); defer bytes_dispose(&path); defer bytes_dispose(&source);
     if !bootstrap_git(input, "inputs", &names) || names.length == 0 || names.data[names.length - 1] != 0
