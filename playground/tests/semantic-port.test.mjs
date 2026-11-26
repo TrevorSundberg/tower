@@ -59,8 +59,8 @@ const imports = {
   },
 };
 
-const assertionFiles = files.filter(({path}) => path.startsWith(cases) ||
-  ['.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
+const assertionFiles = files.filter(({path}) => (path.startsWith(cases) && path.endsWith('_test.tower')) ||
+  [cases + 'results.tower', '.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
    '.tower/backend/text.tower', '.tower/library/vector.tower'].includes(path));
 const checks = await createTower(await readFile(process.env.TOWER_TEST_WASM ||
   new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined, builtins.foundation,
@@ -69,7 +69,7 @@ after(() => checks.close());
 
 function check(program, runs) {
   records = runs;
-  try { runSelectedTest(checks, cases + program + '.tower', 4096); }
+  try { runSelectedTest(checks, cases + program + '_test.tower', 4096, {suffix:'_browser_test.tower'}); }
   finally { records = undefined; }
 }
 
