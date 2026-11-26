@@ -112031,6 +112031,97 @@ On 2026-11-26 the release worker assembled the four production browser compilers
 
 The manager checked all 115 mode, blob, size and SHA-256 records against deployment 9788bd66, including the 114 HTTP assets listed in its manifest. The editable project has 826 files and 25 build units. The changed images keep their actual compiler source in the manifest. Host acceptance used a served copy of the sealed Git tree. Public-domain delivery is a separate check.
 
+### Graph scheduling storage and terminal denial in Tower test discovery
+
+Host 6 ran the original Linux standalone and its registered CTest at
+`2344ddc374b70c8610f53ccc468b17c285ef412b` before moving the cases.
+The standalone wrote exactly two bytes (`30 0a`) with empty stderr.
+The same entry still runs the original six invocations in order. The
+adjacent companion owns all 72 predicates, including the kernel's checks.
+The fixture declares the job and imports the Linux transport, dispatch and
+production memory provider. Direct selection runs six declarations. Owner
+discovery also runs eight from work_graph and five from work_budget. All
+four selections passed with the published pin at compiler jobs 1 and 4.
+
+Observations added temporarily to the original and migrated Tower bodies
+gave identical output in both standalones. Each of the four discovery runs
+matched the original trace with its standalone-only final zero removed.
+
+| Original path | Observed result on x86-64 |
+| --- | --- |
+| Length | Zero advanced to one. Maximum minus one advanced to maximum. Overflow returned zero and latched Invalid. An earlier Capacity survived overflow. |
+| Partial request and pool refusal | The 16-entry index charged 160 bytes. With the external hold, 736 bytes and two receipts were live. The task count stayed zero. The denied pool had zero slots, with only the one-byte hold live. Both disposals and hold releases ended at zero. |
+| Reset | Eight task slots reused 1,088 bytes and four receipts across reset. The old ticket failed. Eight requests fit under the remaining-byte hold. The ninth retained both array addresses and all eight arguments. |
+| Terminal success then denial | Two running tickets, nine consumers, eleven tasks. The first terminal call refused further storage and left one running ticket. The peer could no longer finish. Cancellation cleared the queues and running count. One producer remained succeeded and ten tasks were cancelled. |
+| Terminal failure then denial | The same fanout and running counts. Cancellation left all eleven tasks cancelled. Each terminal order returned its hold and ended at zero live receipts, bytes and lanes. |
+| Shared graphs | Four distinct pthreads arrived together. The pool started with 256 bytes and one receipt. At the barrier the ledger held 21,632 bytes and 21 receipts. After draining close, 21,760 bytes in 24 private graph receipts remained. Completion counts were 32, 32, 0 and 32. Disposing the graphs returned every byte and receipt. |
+
+Requiring one completion from the cancelled worker made the standalone and
+both discovery routes fail at both widths. Each discovery diagnostic located
+the same comparison in the companion. Restoring zero reproduced the candidate
+source, object and executable hashes. All five registrations passed again
+and the subsequent standalone build had no work.
+
+A second observation sampled the first running ticket and executing access
+claim inside each worker, then read them after join. All four moved from
+(1, 1) to (0, 0), including the cancelled job. After disposing the partially
+allocated graph the external hold alone accounted for 576 bytes. After
+terminal graph disposal each order left one 1,045,824-byte hold. The original
+and migrated traces matched, including through all four discovery routes.
+
+The standalone links the fixture object with guest-work-tests. The selected
+guest uses guest-native-test and runtime-allocate. Both paths import
+host.memory, work_linux and work_dispatch. Link maps for the instrumented
+standalone locate compiler_buffer_allocate and work_thread_open_named in the
+suite object and tower_allocate in the guest object. The worker kernel had
+19 ASan access-report sites and 15 TSan read/write sites. The shared
+coordinator had 33 and 34 respectively. Three ASan launches with leak
+detection and three TSan launches each produced the original stdout. Peak
+RSS in these launches reached 7,912 and 20,620 KiB respectively. The public
+discovery compiler is uninstrumented. The Tower LLVM pass supports address
+and thread modes. Source-level UBSan is unavailable.
+
+Timing used the public Linux x64 pin `7430bdb3` with verified resources,
+Release, LLVM/Clang 19.1.7, on a Xeon E5-2680 v4 KVM guest. The effective
+cpuset was 0–11, quota 1152000/100000 µs and memory limit 32,282,509,312
+bytes. The timing lock admitted one command at a time on CPUs 0–3. Each
+command used fresh processes with warm files. One warm-up and three
+alternating old/new rounds used equivalent unobserved inputs. Every object
+matched its arm's one-job object and the linked guest produced the original
+two-byte output on all 120 launches per sample. The archive records each
+command's user/system CPU, wall and maximum RSS. The table gives median wall
+and CPU seconds and the largest RSS in KiB. Guest rows include 120 launches.
+Direct and owner rows include CTest, the count checker, compilation and guest.
+
+| Entry | Compile jobs | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| old-compile | 1 | 1.09 | 1.09 | 128288 |
+| new-compile | 1 | 1.28 | 1.28 | 132952 |
+| old-guest | 1 | 0.17 | 0.2 | 3244 |
+| new-guest | 1 | 0.18 | 0.21 | 3204 |
+| direct | 1 | 1.33 | 1.33 | 131644 |
+| owner | 1 | 1.98 | 1.97 | 162128 |
+| old-compile | 4 | 1.11 | 1.22 | 134068 |
+| new-compile | 4 | 1.42 | 1.58 | 143572 |
+| old-guest | 4 | 0.18 | 0.21 | 3212 |
+| new-guest | 4 | 0.17 | 0.21 | 3244 |
+| direct | 4 | 1.42 | 1.58 | 141452 |
+| owner | 4 | 2.05 | 2.28 | 174336 |
+
+The new standalone imports the assertion grammar and two fixture files.
+Its object grew from 33,136 to 38,264 bytes. Median compilation cost
+increased by 0.19 s at one job and 0.31 s at four. The largest whole-cgroup
+memory.current reading at 100 ms intervals was 13,702,356,992 bytes. The host
+exposes no memory.peak file. The throttled-period counter stayed at 234.
+The guest always used four real worker threads in the shared case.
+
+The first ordinary link rejected the optional GNU link-map argument in the
+public Tower linker. Removing that diagnostic flag completed the original
+build. The Clang-linked sanitizer configurations emitted their maps. Host 6
+packet `f8548ed6-f97b-4ae3-94a7-5fcf5e8f93dd` holds the sources, exact
+commands, counts, traces, identity and timing receipts. The manager owns
+publication.
+
 ### Shared arena ownership through the native pthread companion, 2026-11-26
 
 Host 1 verified staged packet 16418f6e and all five requested members for

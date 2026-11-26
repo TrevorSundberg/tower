@@ -1,0 +1,231 @@
+import .library.testing;
+import work_schedule_budget_fixture;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+import .host.work_linux;
+
+extern fn pthread_self(): usize;
+
+fn schedule_length_boundary(): void {
+    // Exercise only the shared arithmetic boundary: no invented payload
+    // address, huge allocation, or out-of-range element access is necessary.
+    var graph: WorkGraph;
+    work_init(&graph, 1, 7);
+    var maximum = ~convert(usize, 0);
+    assert(work_next_length(&graph, 0) == 1
+        && work_next_length(&graph, maximum - 1) == maximum
+        && graph.resource_error == WorkBudgetError.None);
+    assert(work_next_length(&graph, maximum) == 0
+        && graph.error == WorkError.Memory && graph.resource_error == WorkBudgetError.Invalid);
+    work_dispose(&graph);
+    work_init(&graph, 2, 7);
+    assert(!work_resource(&graph, WorkBudgetError.Capacity));
+    assert(work_next_length(&graph, maximum) == 0
+        && graph.resource_error == WorkBudgetError.Capacity);
+    work_dispose(&graph);
+}
+
+fn schedule_denial(): void {
+    var budget: WorkBudget = default;
+    var probe: WorkGraph;
+    work_init(&probe, 1, 7);
+    assert(work_request(&probe, null, 1, 0) != 0);
+    var index_length = probe.task_index.length;
+    var index_bytes = compiler_buffer_allocation_size(probe.storage.task_index.capacity);
+    var task_bytes = compiler_buffer_allocation_size(probe.storage.tasks.capacity);
+    work_dispose(&probe);
+    assert(work_budget_init(&budget, 1, task_bytes, 1));
+    var hold: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, task_bytes - index_bytes, &hold));
+    var graph: WorkGraph;
+    assert(work_init_budget(&graph, 1, 7, &budget));
+    assert(work_request(&graph, null, 1, 0) == 0);
+    assert(graph.resource_error == WorkBudgetError.Capacity
+        && graph.tasks.length == 0 && graph.task_index.length == index_length);
+    var snapshot: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &snapshot)
+        && snapshot.used_bytes == task_bytes && snapshot.live == 2 && snapshot.used_lanes == 0);
+    assert(work_request(&graph, null, 1, 0) == 0
+        && graph.resource_error == WorkBudgetError.Capacity);
+    work_dispose(&graph);
+    assert(work_budget_release(&budget, &hold));
+    assert(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0);
+    assert(work_budget_dispose(&budget));
+
+    // Denial happens before a slot buffer or host thread can be created. Close
+    // preserves the fixed receipt even though all partially owned state is gone.
+    assert(work_budget_init(&budget, 4, compiler_buffer_allocation_size(4 * sizeof(WorkSlot)), 2));
+    assert(work_budget_reserve(&budget, 0, 0, 1, &hold));
+    var pool: WorkPool = default;
+    assert(!work_pool_open_budget(&pool, 4, &budget)
+        && pool.resource_error == WorkBudgetError.Capacity && pool.slots == null && pool.count == 0);
+    work_pool_close(&pool);
+    assert(pool.resource_error == WorkBudgetError.Capacity);
+    assert(work_budget_release(&budget, &hold));
+    assert(work_budget_snapshot(&budget, &snapshot) && snapshot.used_bytes == 0 && snapshot.live == 0);
+    assert(work_budget_dispose(&budget));
+}
+
+fn schedule_reset(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 1048576, 1));
+    var graph: WorkGraph;
+    assert(work_init_budget(&graph, 1, 9, &budget));
+    var first = work_request(&graph, null, 1, 0);
+    assert(first == 1 && work_seal(&graph, first) && work_demand(&graph, first));
+    var capacity = graph.tasks.capacity;
+    for(var i: usize = 1; i < capacity; i++) {
+        var id = work_request(&graph, null, 1, convert(u64, i));
+        assert(id == i + 1 && work_seal(&graph, id) && work_demand(&graph, id));
+    }
+    var ticket: WorkTicket;
+    while work_take(&graph, &ticket) { assert(work_finish(&graph, &ticket, true)); }
+    var before: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &before) && before.used_bytes != 0);
+    assert(work_reset(&graph, 2, 9) && graph.budget == &budget);
+    var after: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &after)
+        && before.used_bytes == after.used_bytes && before.live == after.live);
+    assert(!work_finish(&graph, &ticket, true));
+    var hold: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, budget.bytes - after.used_bytes, &hold));
+    for(var i: usize = 0; i < capacity; i++) {
+        assert(work_request(&graph, null, 1, convert(u64, i)) == i + 1);
+    }
+    var tasks = graph.tasks.data;
+    var index = graph.task_index.data;
+    assert(work_request(&graph, null, 1, convert(u64, capacity)) == 0
+        && graph.resource_error == WorkBudgetError.Capacity
+        && graph.tasks.length == capacity && graph.tasks.data == tasks && graph.task_index.data == index);
+    for(var i: usize = 0; i < capacity; i++) { assert(graph.tasks.data[i].argument == convert(u64, i)); }
+    assert(work_budget_release(&budget, &hold));
+    work_dispose(&graph);
+    assert(work_budget_snapshot(&budget, &after) && after.used_bytes == 0 && after.live == 0);
+    assert(work_budget_dispose(&budget));
+}
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(ScheduleBudgetJob*, payload);
+    job.thread = pthread_self();
+    for(var i: usize = 0; i < 32; i++) {
+        var id = work_request(&job.graph, null, 1, convert(u64, i));
+        assert(id == i + 1);
+        assert(work_access(&job.graph, id, 1, 1, i, 1, WorkAccessMode.Write));
+        assert(work_seal(&job.graph, id) && work_demand(&job.graph, id));
+    }
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    var ticket: WorkTicket;
+    assert(work_take(&job.graph, &ticket));
+    if job.cancelled {
+        work_cancel(&job.graph);
+        assert(!work_finish(&job.graph, &ticket, true));
+        return;
+    }
+    assert(work_finish(&job.graph, &ticket, true));
+    job.completed++;
+    while work_take(&job.graph, &ticket) {
+        assert(work_finish(&job.graph, &ticket, true));
+        job.completed++;
+    }
+}
+
+fn schedule_shared(): void {
+    var jobs: ScheduleBudgetJob[4] = default;
+    var count = sizeof(decltype(jobs)) / sizeof(ScheduleBudgetJob);
+    var gate = work_gate_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    assert(gate != null && entered != null && release != null);
+    defer work_gate_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, count, 1048576, 1));
+    assert(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
+    var pool: WorkPool = default;
+    assert(work_pool_open_budget(&pool, count, &budget) && pool.threaded && pool.count == count);
+    var slot_bytes = compiler_buffer_allocation_size(count * sizeof(WorkSlot));
+    var before: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &before) && before.used_bytes == slot_bytes
+        && before.live == 1 && before.used_lanes == 0);
+    for(var i: usize = 0; i < count; i++) {
+        assert(work_init_budget(&jobs[i].graph, 1, 7, &budget));
+        jobs[i].entered = entered;
+        jobs[i].release = release;
+        assert(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    for(var i: usize = 0; i < count; i++) { work_signal_wait(entered); }
+    assert(work_budget_snapshot(&budget, &before) && before.used_bytes > slot_bytes && before.live > 1);
+    jobs[2].cancelled = true;
+    for(var i: usize = 0; i < count; i++) { work_signal_post(release); }
+    // No explicit receive: close must drain all admitted jobs before retiring
+    // slots. Their private graph buffers deliberately remain owned after join.
+    work_pool_close(&pool);
+    var after: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &after) && after.used_bytes != 0 && after.used_lanes == 0);
+    for(var i: usize = 0; i < count; i++) {
+        assert(jobs[i].completed == (i == 2 ? 0 : 32)
+            && jobs[i].graph.resource_error == WorkBudgetError.None);
+        for(var j: usize = 0; j < i; j++) { assert(jobs[i].thread != jobs[j].thread); }
+        work_dispose(&jobs[i].graph);
+    }
+    assert(work_budget_snapshot(&budget, &after) && after.used_bytes == 0 && after.live == 0);
+    assert(work_budget_dispose(&budget));
+}
+
+// Model terminal processing after the transport has joined both jobs. The
+// graph's Running receipts are still unsettled; this is not a thread-kill test.
+// Both success publication and failure propagation can need additional storage.
+fn schedule_terminal_denial(success: bool): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 2, 1048576, 17));
+    var graph: WorkGraph;
+    assert(work_init_budget(&graph, 17, 3, &budget));
+    var producer = work_request(&graph, null, 1, 0);
+    var peer = work_request(&graph, null, 2, 0);
+    assert(producer != 0 && peer != 0 && work_seal(&graph, producer)
+        && work_seal(&graph, peer) && work_demand(&graph, producer) && work_demand(&graph, peer));
+    var fanout = graph.ready.capacity + 1;
+    for(var i: usize = 0; i < fanout; i++) {
+        var consumer = work_request(&graph, null, 3, convert(u64, i));
+        assert(consumer != 0 && work_depend(&graph, consumer, producer)
+            && work_seal(&graph, consumer) && work_demand(&graph, consumer));
+    }
+    assert(fanout > graph.scratch.capacity);
+    var ticket: WorkTicket;
+    var other: WorkTicket;
+    assert(work_take(&graph, &ticket) && ticket.task == producer
+        && work_take(&graph, &other) && other.task == peer && graph.running == 2);
+    var snapshot: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &snapshot));
+    var hold: WorkReservation = default;
+    assert(work_budget_reserve(&budget, 0, 0, budget.bytes - snapshot.used_bytes, &hold));
+    assert(!work_finish(&graph, &ticket, success)
+        && graph.resource_error == WorkBudgetError.Capacity && graph.running == 1);
+    // The first receipt has already been released and some coordinator state
+    // changed. The latched error prevents settling the peer through normal APIs.
+    assert(!work_ticket_valid(&graph, &other) && !work_finish(&graph, &other, true));
+    work_cancel(&graph);
+    assert(graph.running == 0 && graph.executing.length == 0 && graph.ready.length == 0
+        && graph.resource_error == WorkBudgetError.Capacity && !work_ticket_valid(&graph, &ticket));
+    for(var i: usize = 0; i < graph.tasks.length; i++) {
+        var task = &graph.tasks.data[i];
+        assert(task.state == WorkState.Cancelled || (success && i + 1 == producer
+            && task.state == WorkState.Succeeded));
+    }
+    work_dispose(&graph);
+    assert(work_budget_release(&budget, &hold)
+        && work_budget_snapshot(&budget, &snapshot) && snapshot.live == 0 && snapshot.used_bytes == 0);
+    assert(work_budget_dispose(&budget));
+}
+
+test() { schedule_length_boundary(); }
+test() { schedule_denial(); }
+test() { schedule_reset(); }
+test() { schedule_terminal_denial(true); }
+test() { schedule_terminal_denial(false); }
+test() { schedule_shared(); }

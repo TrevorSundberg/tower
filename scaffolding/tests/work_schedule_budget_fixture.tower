@@ -1,0 +1,14 @@
+import tower;
+import .library.work_graph;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+struct ScheduleBudgetJob {
+    graph: WorkGraph;
+    entered: void*;
+    release: void*;
+    thread: usize;
+    cancelled: bool;
+    completed: usize;
+}
