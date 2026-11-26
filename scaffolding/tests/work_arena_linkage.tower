@@ -1,39 +1,8 @@
 import tower;
-import .library.work_arena_api;
-import .library.work_arena_types;
-import .library.work_budget;
-import .library.work_budget_types;
-import .host.memory;
+import work_arena_linkage_test;
 
-fn arena_link_check(ok: bool): void {
-    if !ok { trap("Separately linked arena ownership regression", 0); }
-}
-
-// This object contains declarations only; link the one work_arena provider.
-// Exercise all six symbols against the same nominal layout/physical ledger.
-export fn main(argc: i32, argv: u8**): i32 {
-    var budget: WorkBudget = default;
-    arena_link_check(work_budget_init(&budget, 1, 8192 + 8 * sizeof(usize), 1));
-    var left: WorkArena = default;
-    var right: WorkArena = default;
-    arena_link_check(work_arena_init(&left, &budget, 4096) && work_arena_init(&right, &budget, 4096));
-    var first: u8* = null;
-    arena_link_check(work_arena_allocate_result(&left, 1024, 256, &first) == WorkBudgetError.None
-        && first != null && (bits(usize, first) & 255) == 0);
-    fill(first, 73, 1024);
-    var second = work_arena_allocate(&right, 1024, 64);
-    arena_link_check(second != null);
-    fill(second, 91, 1024);
-    var denied = first;
-    arena_link_check(work_arena_allocate_result(&right, 4096, 64, &denied) == WorkBudgetError.Capacity && denied == first);
-    arena_link_check(work_arena_append(&left, &right) && right.first == null);
-    work_arena_dispose(&right);
-    var snapshot: WorkArenaSnapshot;
-    arena_link_check(work_arena_snapshot(&left, &snapshot) && snapshot.chunks == 2
-        && snapshot.payload == 2048 && snapshot.retained == budget.used_bytes);
-    for(var i: usize = 0; i < 1024; i++) { arena_link_check(first[i] == 73 && second[i] == 91); }
-    work_arena_dispose(&left);
-    arena_link_check(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+fn main(argc: i32, argv: u8**): i32 {
+    arena_linked_ownership();
     print(0);
     return 0;
 }

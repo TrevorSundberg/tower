@@ -1,0 +1,38 @@
+import library.testing;
+import .library.work_arena_api;
+import .library.work_arena_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+test() { arena_linked_ownership(); }
+
+// All six arena calls cross the object boundary to the production provider.
+fn arena_linked_ownership(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 8192 + 8 * sizeof(usize), 1));
+    var left: WorkArena = default;
+    var right: WorkArena = default;
+    assert(work_arena_init(&left, &budget, 4096) && work_arena_init(&right, &budget, 4096));
+    var size: usize = 1024;
+    var first: u8* = null;
+    assert(work_arena_allocate_result(&left, size, 256, &first) == WorkBudgetError.None
+        && first != null && (bits(usize, first) & 255) == 0);
+    fill(first, 73, size);
+    var second = work_arena_allocate(&right, size, 64);
+    assert(second != null);
+    fill(second, 91, size);
+
+    var denied = first;
+    assert(work_arena_allocate_result(&right, 4096, 64, &denied) == WorkBudgetError.Capacity && denied == first);
+    assert(work_arena_append(&left, &right) && right.first == null);
+    work_arena_dispose(&right);
+    var snapshot: WorkArenaSnapshot;
+    assert(work_arena_snapshot(&left, &snapshot) && snapshot.chunks == 2
+        && snapshot.payload == size * 2 && snapshot.retained == budget.used_bytes);
+    for (var i: usize = 0; i < size; i++) {
+        assert(first[i] == 73 && second[i] == 91, "Retain both linked payloads after disposing the source");
+    }
+    work_arena_dispose(&left);
+    assert(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+}
