@@ -1,37 +1,77 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
+import {after, test} from 'node:test';
+import {readFileSync} from 'node:fs';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from './compiler-fixtures.mjs';
-const read=p=>readFile(new URL('../../'+p,import.meta.url));
-const bedrock=(await read('scaffolding/bedrock.tower')).toString(), foundation=(await read('scaffolding/foundation.tower')).toString();
-const tower=await loadTower(await read('build/browser-wasi/tower.wasm'),undefined,foundation,undefined,bedrock);
-function parse(source,kind='') {
- const h=kind==='bedrock'?tower.createBedrock(source):tower.create(source);
- try{return {...runToEnd(tower,h),formatted:tower.format(h),snapshot:tower.inspect(h)};}finally{tower.destroy(h);}
+import {loadTower, runToEnd} from '../src/tower-host.mjs';
+import {copyText, guestString} from './guest_text.mjs';
+import {requireStatus, runSelectedTest} from './selected_test.mjs';
+
+const fixtures = new URL('fixtures/scanners/', import.meta.url);
+const modules = ['bedrock', 'foundation_syntax', 'types', 'foundation', 'tower',
+  'library/testing', 'library/test_fixtures', 'library/vector', 'backend/text'];
+const builtins = Object.fromEntries(await Promise.all(modules.map(async name =>
+  [name, await readFile(new URL('../../scaffolding/' + name + '.tower', import.meta.url), 'utf8')])));
+const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
+const open = options => loadTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock,
+  {tower:builtins.tower, builtins, ...options});
+
+// Assertion compilation must leave the subject's parser and its node IDs independent.
+const subject = await open();
+let checks, parsed, formatted;
+after(() => { checks?.close(); subject.close(); });
+
+function storeWord(context, address, value) {
+  if (context.pointerBytes !== 4) throw new Error('Expected wasm32 scanner guest');
+  const memory = context.memory();
+  new DataView(memory.buffer, memory.byteOffset, memory.byteLength).setUint32(address, value, true);
 }
-test('pattern syntax is an overridable contextual token, including within Bedrock itself',()=>{
- const override='token GrammarPattern = /#[^#]+#/ when expected as pattern;';
- const source='import foundation;\n'+override+'token Number = #[0-9]+#;print(42);';
- assert.equal(parse(source).end.status,'done');
- const h=tower.compile(source);try{assert.equal(tower.execute(h).output,'42\n');}finally{tower.destroyExecution(h);}
- assert.equal(parse(override+'token Extra = #x+#;','bedrock').end.status,'done');
- assert.equal(parse(override+'token Extra = /x+/;','bedrock').end.status,'error');
- assert.equal(parse('token Extra = /x+/;','bedrock').end.status,'done','override did not mutate seed');
-});
-test('recursive templates use ordinary rules and token sets, preserving strings and trivia',()=>{
- const source="import foundation;\nparse GrammarTemplateItem = GrammarTemplate | [^'{' '}' '(' ')'] | GrammarCharacter;"+
- "parse GrammarTemplate = '(' GrammarTemplateItems ')';"+
- "parse Statement |= 'show' $v:CoreOperand ';' => replace ( /* braces } { */ print($v); );show 42;";
- const result=parse(source);assert.equal(result.end.status,'done',result.end.error);
- const h=tower.compile(source);try{assert.equal(tower.execute(h).output,'42\n');}finally{tower.destroyExecution(h);}
- assert.ok(result.events.some(e=>e.nodes.some(n=>n.label==='GrammarTemplateItems')));
-});
-test('generic contextual tokens stay inactive elsewhere and survive formatting',()=>{
- const declarations="import foundation;\ntoken Digit = /[0-9]+/ when expected as number;parse Special = 'special' Digit ';';parse Statement |= Special;";
- assert.equal(parse(declarations+'special 12;print(42);').end.status,'done');
- const first=parse(declarations);assert.equal(first.end.status,'done',first.end.error);
- assert.match(first.formatted.source,/when expected/);
- assert.equal(parse(first.formatted.source+'special 12;').end.status,'done');
- assert.equal(parse('import foundation;\nvar a: i32 = 8; var b: i32 = a / 2; var c: i32 = b / 2; print(c);').end.status,'done');
- assert.equal(parse('import foundation;\n@').end.status,'error','template fallback token must not leak into ordinary source');
-});
+
+function countedText(context, text, size) {
+  const pointer = copyText(context, text);
+  if (size) storeWord(context, size, Buffer.byteLength(text));
+  return pointer;
+}
+
+const imports = {
+  scanner_file(context, name, size) {
+    const file = guestString(context, name);
+    if (!/^[a-z_]+\.(tower|expected)$/.test(file)) throw new Error('Invalid scanner fixture ' + file);
+    return countedText(context, readFileSync(new URL(file, fixtures), 'utf8'), size);
+  },
+  scanner_seed: context => copyText(context, subject.bedrockSeed()),
+  scanner_parse(context, input, entry) {
+    const source = guestString(context, input);
+    const handle = entry ? subject.createBedrock(source) : subject.create(source);
+    try {
+      parsed = runToEnd(subject, handle);
+      // Formatting allocates parser node IDs visible in subsequent sessions.
+      formatted = subject.format(handle).source;
+      return parsed.end.status === 'done';
+    } finally { subject.destroy(handle); }
+  },
+  scanner_formatted: context => copyText(context, formatted),
+  scanner_error: context => copyText(context, parsed.end.error),
+  scanner_node_count: (_context, event) => parsed.events[event].nodes.length,
+  scanner_node_label: (context, event, node) => copyText(context, parsed.events[event].nodes[node].label),
+  scanner_output(context, input, size) {
+    const handle = subject.compile(guestString(context, input));
+    try {
+      const result = subject.execute(handle);
+      requireStatus(result, 'done');
+      return countedText(context, result.output, size);
+    } finally { subject.destroyExecution(handle); }
+  },
+};
+
+async function check(name) {
+  checks ??= await open({imports, threads:{capacity:1}});
+  const entry = name + '_test.tower';
+  const files = await Promise.all([entry, 'observations.tower'].map(async path =>
+    ({path, text:await readFile(new URL(path, fixtures), 'utf8')})));
+  try { runSelectedTest(checks, entry, undefined, {files, suffix:'_browser_test.tower'}); }
+  finally { parsed = formatted = undefined; }
+}
+
+test('pattern syntax is an overridable contextual token, including within Bedrock itself', () => check('hash_pattern'));
+test('recursive templates use ordinary rules and token sets, preserving strings and trivia', () => check('nested_template'));
+test('generic contextual tokens stay inactive elsewhere and survive formatting', () => check('contextual_digits'));

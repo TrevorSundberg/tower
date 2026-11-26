@@ -1,0 +1,2 @@
+import foundation;
+var a: i32 = 8; var b: i32 = a / 2; var c: i32 = b / 2; print(c);

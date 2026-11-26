@@ -2,6 +2,7 @@
 *.tower text eol=lf
 scaffolding/tests/*.expected text eol=lf
 scaffolding/tests/bedrock_cases/inputs/*.expected text eol=lf
+playground/tests/fixtures/scanners/*.expected text eol=lf
 scaffolding/tests/struct_cases/*.expected text eol=lf
 scaffolding/tests/inference_inputs/*.expected text eol=lf
 scaffolding/tests/raw_memory_cases/*.expected text eol=lf

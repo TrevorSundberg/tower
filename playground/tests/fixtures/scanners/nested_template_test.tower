@@ -1,0 +1,24 @@
+import observations;
+import backend.text;
+
+extern fn scanner_node_count(event: usize): usize;
+extern fn scanner_node_label(event: usize, node: usize): u8*;
+
+test() {
+    var program = source_file("nested_template.tower");
+    defer free(program);
+    accept(program, ScannerEntry.Source);
+    check_output(program, "nested_template.expected");
+
+    // The fourth declaration parses the replacement body. The preceding rule
+    // definition also mentions GrammarTemplateItems as an ordinary identifier.
+    var replacement: usize = 3;
+    var count = scanner_node_count(replacement);
+    var found = false;
+    for (var i: usize = 0; i < count; i++) {
+        var label = scanner_node_label(replacement, i);
+        defer free(label);
+        if backend_equal(label, "GrammarTemplateItems") { found = true; break; }
+    }
+    assert(found, "Expected GrammarTemplateItems in the replacement body");
+}
