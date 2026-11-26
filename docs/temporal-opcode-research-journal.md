@@ -118779,3 +118779,106 @@ The observer and fault diffs apply only to the identified source revision.
 The saved CTest logs include the registered commands and working directories.
 Manager publication and hosted/browser validation remain outside this local
 source handoff.
+
+### Native semantic admission and continuation cases in Tower test discovery
+
+Host 2 migrated the aggregate admission, capture admission and capture
+continuation selectors from published `a7ce48f546aceda7b0a48897488cf3b19b1ab08e`.
+Implementation `c931faf56562f5b0721f0189649a98b90728db6a` uses the public
+Linux x64 pin `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All 61 package hashes passed. A separate main checkout kept two local journal
+commits out of the comparison. The packet for assignment
+`f3c2f7e9-2133-4c21-a911-b38c94f53235` contains the source bundle, raw streams,
+mode-by-mode source locations, observer patches, link commands and measurements.
+
+The original owners exported a C main, which collided with the native test
+entry, and all three direct companions were absent. The original standalone
+targets now build small main modules. Each owner still parses its mode, and
+the companion runs every original setup, predicate, retry and disposal in the
+original order. The shared result prints each failed comparison, counts failures
+and retains the first message for the Tower assertion after teardown. Two typed
+fixture exports give aggregate setup and preparation access to the private
+production functions. The selected executable calls the actual semantic
+provider through a shared library with the production allocator, worker entry
+and Linux pthread transport. [Selector and case sources](../scaffolding/tests/README.md)
+
+| Family | Selectors | Width × worker trials | Live comparison calls | Direct / owner declarations |
+| --- | --- | ---: | ---: | ---: |
+| Aggregate admission | healthy, failed, cancelled, lowering | 16 | 84 | 4 / 19 |
+| Capture admission | healthy, cancelled, capacity, failed | 16 | 144 | 4 / 19 |
+| Capture continuation | healthy, take, suspend, observe, finish | 20 | 156 | 5 / 20 |
+
+Every mode ran with 4- and 8-byte pointers and 1 and 4 semantic workers. Owner
+discovery includes 15 budget, graph and stack declarations. The parent and
+candidate CLI streams and exit codes matched for all 13 modes, three defaults,
+three unknown selectors and three extra-argument calls. Capture admission
+printed its original 73-byte line once per successful CLI call and four times
+in each selected run. The other successful modes had empty stdout. Unknown
+selectors still printed the family error and returned 1.
+
+Temporary Tower observations at the same source points produced 824 output
+lines across the 13 original modes. Each original stream matched its migrated
+CLI run. Concatenating each family's streams in declaration order reproduced
+the direct and owner stdout byte for byte at compiler jobs 1 and 4. The
+healthy aggregate callback acquired its second parameter and void result and
+the source parameter acquired one pointer. All three reentries preserved the
+post-phase type identities and drained worker/query counts. The capacity
+capture returned no ticket at offset 83 with eight tasks, four nodes and
+three components. Reentry preserved those counts. Continuation take retained
+Invalid at 83. The three allocation-denial continuations retained Capacity at
+7. Finish cancelled all nine dependent consumers per trial. Both capture
+families released every budget byte, lane and live reservation.
+
+Linux syscall traces counted successful thread creation inside each original
+selector and each selected guest, with compiler threads identified separately
+by exec/PID. Aggregate lowering launched eight threads across its four trials.
+The other aggregate modes and all capture admission modes launched zero.
+Each continuation mode launched eight. The direct and owner guests reproduced
+the family totals of 8, 0 and 40 at both compiler widths. The trace runs reused
+the installed native guest runtime from the earlier host-2 cache after a byte
+comparison with this build's runtime. These counts measure thread creation.
+The traces do not time concurrent useful work.
+
+Three single-predicate controls required two added aggregate parameters,
+capacity offset 84 and take offset 84. In each family the parent and
+candidate standalone returned 1 and printed the same four messages. Both
+selected routes at both job counts returned 1 with the corresponding original
+message. After restoring the inputs, the 25 registered cases passed. All 282
+prior CTest definitions retained their commands and properties, with 12 added
+selections. The adjacent source-proof and executable admissions passed 23/23.
+The native compiler built and reported its development version.
+
+The Release build used Clang/LLVM 19.1.7, Ninja, the checked-in bootstrap,
+one compiler job per object and five outer build jobs. Native CMake requires
+the `TowerBackend.cmake` project include for these targets. The first configure
+omitted it and the build reported an unknown target. The corrected parent
+build supplied the warm object cache for the migration. An initial parent
+owner probe also needed the source resource paths to resolve the aggregate
+implementation's transitive test imports. The complete parent probes with
+explicit Bedrock and Foundation reached the duplicate main for all owners.
+
+Host 2 had a Ryzen 5 3600, 12 logical CPUs, affinity 0–11, a quota of 11.52
+CPUs and a 32,222,740,480-byte memory ceiling. Timed pairs held the host lock,
+ran one at a time on CPUs 0–5, warmed each variant once and alternated order.
+Wall and user-plus-system values below are medians in seconds. RSS is the
+highest process RSS in KiB among the measured samples.
+
+| Work per sample | Samples | Parent wall / CPU / RSS | Migrated wall / CPU / RSS |
+| --- | ---: | ---: | ---: |
+| Five matrices, 65 standalone process starts | 3 | 1.52 / 1.52 / 53,316 | 1.65 / 1.65 / 53,352 |
+| Fifty matrices, 13 process starts | 5 | 0.46 / 0.47 / 52,928 | 0.46 / 0.47 / 53,356 |
+
+In the second experiment the same Tower measurement entry called each original
+or migrated selector 50 times in process. Every trial still created and disposed
+its own world. All samples matched the reference output. The 65-start wall
+ranges were 1.00–1.75 and 1.38–1.70 seconds. On the restored sources, direct
+jobs 1 took 0.64–0.83 seconds per family and jobs 4 took 0.80–0.97. Owner jobs
+1 took 1.18–1.24 seconds and jobs 4 took 1.26–1.34. The highest of these
+compiler-plus-guest RSS measurements was 176,328 KiB.
+
+Each of the 13 standalone modes passed its first ASan/leak and TSan launch with
+the original stdout and empty stderr. The maps identify `runtime-allocate.o`
+and `tower_work_host.o` in the production memory archive. All three trial IR
+extracts show instrumentation in each profile. The repository's native Tower
+instrumentation supports address and thread profiles. Source-level UBSan,
+cross-target execution and hosted publication were outside this local result.

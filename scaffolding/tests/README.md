@@ -1954,9 +1954,33 @@ Source-proof selectors `healthy`, `failed`, `cancelled`, `query`, `edge` and
 `finish` cover query/edge admission and failure while waking dependent consumers.
 Aggregate selectors `healthy`, `failed`, `cancelled` and `lowering` preserve
 callback ABI identity after failure and cancellation. Each selector covers both
-target widths and worker budgets1/4. The aggregate fixture supplies the semantic
-implementation itself; the target retains the other production service objects
-without linking that implementation twice. Budget width alone is not overlap.
+target widths and worker budgets 1/4. Aggregate setup and preparation call two
+typed exports in the [fixture's production semantic unit](semantic_aggregate_admission_services.tower).
+
+The standalone selectors and the Tower test runner share the following cases.
+Each row gives the number of modes, followed by the number of trials after
+running each mode at both target widths and both worker counts.
+
+| Selector owner | Case bodies | Modes | Trials |
+| --- | --- | ---: | ---: |
+| [Aggregate admission](semantic_aggregate_admission_checks.tower) | [Callback signatures, failed lowering and joined retries](semantic_aggregate_admission_checks_test.tower) | 4 | 16 |
+| [Capture admission](semantic_capture_admission_checks.tower) | [Capture identity, capacity, failure offsets and budget release](semantic_capture_admission_checks_test.tower) | 4 | 16 |
+| [Capture continuation](semantic_capture_continuation_checks.tower) | [Source proof, take, suspend, observe and finish](semantic_capture_continuation_checks_test.tower) | 5 | 20 |
+
+Build the three standalone targets in the Linux native work/backend test
+configuration. The same build supplies their selected-test services and pthread
+transport. This command runs all 13 CLI modes and all 12 direct and owner
+selections at compiler jobs 1 and 4.
+
+```sh
+ctest --test-dir build/native --output-on-failure \
+  -R '^tower-semantic-(aggregate-admission|capture-admission|capture-continuation)-'
+```
+
+Direct selections run one test declaration per mode. Owner discovery also runs
+the five work-budget, eight work-graph and two stack tests imported through the
+semantic context. Each standalone still defaults to `healthy` and returns 1 on
+an unknown selector or failed comparison.
 
 Containment leases and actual Linux thread-affinity checks use:
 

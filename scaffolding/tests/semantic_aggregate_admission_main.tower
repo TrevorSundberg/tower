@@ -1,0 +1,9 @@
+import semantic_aggregate_admission_checks;
+import semantic_aggregate_admission_checks_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var mode: AggregateAdmissionMode;
+    if !aggregate_admission_select(argc, argv, &mode) { return 1; }
+    var result = aggregate_admission_cases(mode);
+    return result.failures == 0 ? 0 : 1;
+}

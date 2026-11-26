@@ -1,114 +1,16 @@
 import tower;
-import .compiler.services;
-import .compiler.compiler_kernels;
-import .compiler.semantic_aggregates;
-import .compiler.semantic_context;
-import .compiler.semantic_context_types;
-import .compiler.semantic_program_types;
-import .compiler.semantic_lifecycle;
-import .compiler.semantic_support;
-import .compiler.foundation_tags;
-import .library.work_graph;
-import .library.work_budget_types;
 
-extern fn compiler_world_create_workers(workers: usize): void*;
-extern fn compiler_world_store(world: void*): void*;
-extern fn compiler_world_dispose(world: void*): bool;
-extern fn entity_create(store: void*): void*;
-extern fn puts(text: u8*): i32;
 extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn puts(text: u8*): i32;
 
 enum AggregateAdmissionMode: u32 { Healthy, Failed, Cancelled, Lowering }
 
-fn aggregate_admission_check(ok: bool, text: u8*, failures: u32*): void {
-    if !ok { puts(text); (*failures)++; }
-}
-
-fn aggregate_admission_trial(width: u32, workers: usize, mode: AggregateAdmissionMode): u32 {
-    var failures: u32 = 0;
-    var world = compiler_world_create_workers(workers);
-    sem_require(world != null);
-    var root = entity_create(compiler_world_store(world));
-    sem_require(root != null);
-    var program: SemanticProgram = default;
-    semantic_initialize(&program, root, width);
-    var context: SemanticContext = default;
-    sem_context_init(&context, &program);
-    context.generics = generic_begin(root);
-    context.source = "";
-    var record = sem_create(root);
-    sem_attach(record, KType).type = *sem_type_new(&context, SStruct, 0, record);
-    var signature = sem_create(root);
-    var callback = sem_attach(signature, KType);
-    callback.type = *sem_type_new(&context, SFunction, 0, signature);
-    callback.element = sem_get(record).type;
-    var parameter = sem_create(signature);
-    sem_attach(parameter, KParameter).type = sem_get(record).type;
-    sem_push(&callback.parameters, parameter);
-    sem_push(&context.type_arguments, signature);
-    var count = callback.parameters.length;
-    var result_type = callback.element;
-    var input_type = sem_get(parameter).type;
-    if mode == AggregateAdmissionMode.Failed { sem_resource_record(&program, WorkBudgetError.Memory, 37); }
-    if mode == AggregateAdmissionMode.Cancelled { work_cancel(&context.queries); }
-    if mode == AggregateAdmissionMode.Lowering {
-        var function = sem_create(root);
-        var value = sem_attach(function, KFunction);
-        value.type = sem_get(record).type;
-        value.body = sem_create(function);
-        sem_attach(value.body, KBlock);
-        sem_push(&program.functions, function);
-        context.node_limit = 0;
-    }
-    sem_aggregate_prepare(&context);
-    if mode == AggregateAdmissionMode.Healthy {
-        aggregate_admission_check(callback.parameters.length == count + 1
-            && callback.element.scalar == SVoid && sem_get(parameter).type.pointers == 1,
-            "Healthy callback signature publishes aggregate arguments and result", &failures);
-        count = callback.parameters.length;
-        result_type = callback.element;
-        input_type = sem_get(parameter).type;
-    } else {
-        aggregate_admission_check(callback.parameters.length == count
-            && semantic_type_equal(&callback.element, &result_type)
-            && semantic_type_equal(&sem_get(parameter).type, &input_type),
-            "Failed signature phase must not publish callback ABI mutation", &failures);
-        if mode == AggregateAdmissionMode.Lowering {
-            aggregate_admission_check(program.error.length != 0, "Lowering case must fail in its actual worker", &failures);
-        }
-    }
-    for(var repeat: usize = 0; repeat < 3; repeat++) {
-        sem_aggregate_prepare(&context);
-        aggregate_admission_check(callback.parameters.length == count
-            && semantic_type_equal(&callback.element, &result_type)
-            && semantic_type_equal(&sem_get(parameter).type, &input_type)
-            && context.workers.running == 0 && context.queries.running == 0,
-            "Repeated phase entry preserves callback identity after joins", &failures);
-    }
-    sem_context_dispose(&context);
-    semantic_program_dispose(&program);
-    entity_release(root);
-    aggregate_admission_check(compiler_world_dispose(world), "Aggregate phase releases its world", &failures);
-    return failures;
-}
-
-export fn main(argc: i32, argv: u8**): i32 {
-    var mode = AggregateAdmissionMode.Healthy;
-    if argc > 1 {
-        if strcmp(argv[1], "failed") == 0 { mode = AggregateAdmissionMode.Failed; }
-        else {
-            if strcmp(argv[1], "cancelled") == 0 { mode = AggregateAdmissionMode.Cancelled; }
-            else {
-                if strcmp(argv[1], "lowering") == 0 { mode = AggregateAdmissionMode.Lowering; }
-                else { if strcmp(argv[1], "healthy") != 0 { puts("Unknown aggregate admission selector"); return 1; } }
-            }
-        }
-    }
-    var failures: u32 = 0;
-    for(var width: u32 = 4; width <= 8; width += 4) {
-        for(var workers: usize = 1; workers <= 4; workers += 3) {
-            failures += aggregate_admission_trial(width, workers, mode);
-        }
-    }
-    return failures == 0 ? 0 : 1;
+fn aggregate_admission_select(argc: i32, argv: u8**, mode: AggregateAdmissionMode*): bool {
+    *mode = AggregateAdmissionMode.Healthy;
+    if argc <= 1 || strcmp(argv[1], "healthy") == 0 { return true; }
+    if strcmp(argv[1], "failed") == 0 { *mode = AggregateAdmissionMode.Failed; return true; }
+    if strcmp(argv[1], "cancelled") == 0 { *mode = AggregateAdmissionMode.Cancelled; return true; }
+    if strcmp(argv[1], "lowering") == 0 { *mode = AggregateAdmissionMode.Lowering; return true; }
+    puts("Unknown aggregate admission selector");
+    return false;
 }

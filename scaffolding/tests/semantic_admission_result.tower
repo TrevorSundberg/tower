@@ -1,0 +1,15 @@
+import tower;
+
+struct SemanticAdmissionResult {
+    failures: u32;
+    first_failure: u8*;
+}
+
+extern fn puts(text: u8*): i32;
+
+fn semantic_admission_check(ok: bool, message: u8*, result: SemanticAdmissionResult*): void {
+    if ok { return; }
+    puts(message);
+    if result.failures == 0 { result.first_failure = message; }
+    result.failures++;
+}

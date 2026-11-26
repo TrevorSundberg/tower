@@ -1,0 +1,14 @@
+import .compiler.units.semantics_checks;
+import .compiler.semantic_aggregates;
+import .compiler.semantic_support;
+import .compiler.semantic_context_types;
+import .compiler.foundation_types;
+
+// These two non-exported operations belong to the production semantic unit.
+export fn admission_aggregate_prepare(c: SemanticContext*): void {
+    sem_aggregate_prepare(c);
+}
+
+export fn admission_type_new(c: SemanticContext*, scalar: u32, pointers: u32, record: void*): FoundationType* {
+    return sem_type_new(c, scalar, pointers, record);
+}
