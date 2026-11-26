@@ -120185,3 +120185,94 @@ checked in the worker's measurement.
 Integration preserved the preceding registered commands. The manager's
 configure-only CTest inventories grew from 499 to 511 in the combined
 native configuration and from 73 to 82 in the separate parser configuration.
+
+### Driver formatter selections from a clean optional build
+
+Host 2, assignment `356528ab-5212-4aa5-b5ac-37f67073d11a`. Acceptance required
+the existing `tower-driver-tests` target to supply everything needed to run the
+legacy formatter, the 16-test owner and the nine-test companion. The oracle
+was host 5's original 20 formatting subprocesses. The input archive and its
+four declared members matched their manifest sizes and SHA-256 values.
+The formatter bundle has tip `571771a7781b335b01b507fba542022dd7d6f1c5`
+and parent `d3fe7c0b1a2b0293da29d343b042f9916b04a9d3`. Local merge
+`9d2156631ed3c85c077f2676fe8b84b766decf68` retained this parentage on
+public `ba1a5ba28a091e81daa92e45a32df0aace778e35`. The other suite in the
+producer packet was outside this assignment.
+
+Product source `6d15f0b671981aa74f8c64b6563e098f74953447` keeps both formatter
+files byte-identical to the producer commit. Directly linking the aggregate
+objects gave a duplicate `driver_message`. Linking the existing driver-request
+service alone left `driver_test_directory` undefined. Including the whole
+aggregate in that service also pulled in an unrelated `tower_print` dependency.
+The formatter now uses the existing service, the ordinary native-test-libc
+guest and one object containing the five POSIX directory and descriptor calls
+shared with the legacy harness. Keeping the aggregate's CLI export in its own
+entry lets the selected guest drop the uncalled CLI dispatcher. Before that
+split it also required unrelated symlink and platform checks. The Windows
+aggregate manifest imports the same entry. A Windows x64 object check verified
+the defined and consumed `driver_tests` symbol on either side.
+
+The optional CMake entry registers both widths through
+`tower_native_test_selections`. It sets the real built compiler and the
+scaffolding resource root on each selected CTest. All five registrations have
+distinct work areas and compiler temporary directories. An empty Release
+Ninja build of just `tower-driver-tests` supplied the providers with
+`TOWER_NATIVE=ON`, `TOWER_DRIVER_TESTS=ON`, the normal TowerBackend include,
+Clang/LLVM 19.1.7 and the verified in-tree Linux x64 bootstrap. The shipping
+bootstrap selected the guest. The guest's 20 child calls used the built
+compiler, SHA-256 `1092d7bfcada1ed6acbbf801a45d0660460250b348f882f0bfde37f71936488c`,
+identical to the public-base build on this host.
+
+All five CTests passed. The legacy run was also rebuilt at four compiler jobs.
+At both widths each of the three routes reproduced all 20 captured argument
+lists, statuses, stdout, stderr, and before/after source and destination bytes,
+including absent files. For these comparisons alone the replay used the
+producer's absolute work and library paths because two grammar arguments and
+the missing-import diagnostic contain them. The 16 and nine declaration
+locations matched the original inventory at each width, including the seven
+SHA-256 declarations in the owner. Two four-job selections overlapped in
+CTest, each reproduced its final files including paths with spaces. Changing
+only the expected canonical integer to 43 failed all five registrations. Every
+source and actual formatted output still matched the successful second
+compiler call. All five compiler temporary directories were empty after failure.
+Restoring the companion blob restored all passes. The six adjacent driver and
+driver-request CTests also passed.
+
+Host 2 was a Ryzen 5 3600 with six cores, 12 logical CPUs (affinity 0–11),
+11.52 CPU quota and a 32,222,740,480-byte memory ceiling. The build used eight
+outer Ninja jobs. The following warm-filesystem, fresh-process samples ran
+one at a time under the host timing lock with the observer disabled.
+CPU is user plus system seconds and RSS is maximum process-family KiB as
+reported by GNU time. Jobs control harness or selected guest compilation.
+The real formatting commands retained their original arguments.
+
+| Route | Compiler jobs | Wall s | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Public legacy | 1 | 2.35 | 2.47 | 79,656 |
+| Integrated legacy | 1 | 2.43 | 2.55 | 78,276 |
+| Public legacy | 4 | 2.44 | 2.56 | 78,552 |
+| Integrated legacy | 4 | 2.41 | 2.51 | 78,628 |
+| Owner including guest compilation | 1 | 3.96 | 4.04 | 206,308 |
+| Owner including guest compilation | 4 | 3.86 | 4.35 | 215,644 |
+| Direct including guest compilation | 1 | 3.80 | 3.87 | 202,948 |
+| Direct including guest compilation | 4 | 3.65 | 4.17 | 213,160 |
+
+These single samples qualify this setup. Allocation counts and worker
+utilization were not measured. The packet carries the compiler invocations,
+raw work areas, per-call captures, fixture mutation and timing logs.
+
+The restored legacy formatter passed on the first launch under both the
+LLVM address pass with leak checking and the thread pass. Both harnesses
+launched the ordinary compiler and reproduced the base streams and files.
+Link maps identify the allocator in `guest-driver-tests.o`, and the IR receipts
+identify instrumented formatter functions in `tower-driver-tests.o`. These
+runs cover the harness. The selected guests, their provider and child
+compiler ran in the ordinary Linux x64 configuration. The Tower build offers
+no separate UBSan pass. Windows received a cross-object check only.
+The manager owns publication.
+
+A final plain rebase reproduced the file tree but flattened the producer
+merge. The independent receiver rejected that bundle during its ancestry
+check. The worker restored the pre-rebase local main, fetched the assigned
+base again and checked it with a fast-forward-only merge. Bundle acceptance
+requires both the exact formatter commit and the product commit as ancestors.
