@@ -1,0 +1,89 @@
+import tower;
+import .host.memory_types;
+import .library.testing;
+import compiler_buffer_contract;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_buffer;
+import .library.work_buffer_types;
+
+extern fn compiler_node_allocate(state: CompilerNodeMemoryState*, bytes: usize, diagnostic: bool): void*;
+extern fn compiler_node_free(state: CompilerNodeMemoryState*, pointer: void*, diagnostic: bool): void;
+extern fn compiler_buffer_allocate(bytes: usize): void*;
+extern fn compiler_buffer_free(pointer: void*): void;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+fn buffer_owner_transfers(): void {
+    var baseline = tower_test_buffer_count();
+    assert(compiler_buffer_contract_tests(), "compiler buffer size and typed alignment contract");
+    assert(tower_test_buffer_count() == baseline, "compiler buffer contract cleanup");
+    var owner: CompilerNodeMemoryState = default;
+    for(var size: usize = 0; size <= 65; size++) {
+        var owned = compiler_buffer_allocate(size);
+        assert(owned is not null && bits(usize, owned) % (sizeof(usize) * 2) == 0, "compiler buffer alignment");
+        assert(owner.live_allocations == 0 && tower_test_buffer_count() == baseline + 1, "compiler buffer explicit allocator");
+        fill(owned, 42, size);
+        // Legacy caller settings do not reinterpret an untracked owned buffer.
+        compiler_node_free(&owner, owned, true);
+        assert(owner.live_allocations == 0 && tower_test_buffer_count() == baseline, "legacy frees owned compiler buffer");
+        var legacy = compiler_node_allocate(&owner, size, true);
+        assert(legacy is not null && owner.live_allocations == 1, "explicit legacy diagnostic owner");
+        fill(legacy, 43, size);
+        compiler_buffer_free(legacy);
+        assert(owner.live_allocations == 0 && tower_test_buffer_count() == baseline, "owned free honors captured legacy policy");
+    }
+}
+
+fn buffer_owner_fault_ticket(): void {
+    var baseline = tower_test_buffer_count();
+    compiler_buffer_free(null);
+    tower_test_buffer_fail_after(0);
+    var maximum = ~convert(usize, 0);
+    assert(compiler_buffer_allocation_size(17) == 4 * sizeof(usize) + 17 &&
+        compiler_buffer_alignment() == 2 * sizeof(usize), "compiler buffer queries do not allocate");
+    assert(compiler_buffer_allocate(maximum - 5 * sizeof(usize) + 1) is null,
+        "compiler buffer admission preserves overflow margin");
+    assert(compiler_buffer_allocate(17) is null, "compiler buffer failure propagation");
+    var recovered = compiler_buffer_allocate(17);
+    assert(recovered is not null, "compiler buffer rejection preserves fault ticket");
+    compiler_buffer_free(recovered);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(compiler_buffer_allocate(~convert(usize, 0)) is null, "compiler buffer size overflow");
+    assert(tower_test_buffer_count() == baseline, "compiler buffer failure cleanup");
+}
+
+fn buffer_owner_refused_growth(): void {
+    var baseline = tower_test_buffer_count();
+    var size: usize = 17;
+    var replacement = 2 * size;
+    var charge = compiler_buffer_allocation_size(size);
+    var peak = charge + compiler_buffer_allocation_size(replacement);
+    var budget: WorkBudget = default;
+    var buffer: WorkBuffer = default;
+    assert(work_budget_init(&budget, 1, peak, 1), "Initialize the old and replacement byte budget");
+    assert(work_buffer_resize(&buffer, &budget, size, 0) == WorkBudgetError.None, "Allocate the original buffer");
+    fill(buffer.data, 42, size);
+    var original = buffer;
+    var live = tower_test_buffer_count();
+    tower_test_buffer_fail_after(0);
+    var result = work_buffer_resize(&buffer, &budget, replacement, size);
+    tower_test_buffer_fail_after(~convert(usize, 0));
+    assert(result == WorkBudgetError.Memory, "Refused replacement reports allocation failure");
+    assert(buffer.data == original.data && buffer.capacity == size &&
+        buffer.reservation.owner == &budget && buffer.reservation.slot == original.reservation.slot &&
+        buffer.reservation.generation == original.reservation.generation, "Refusal preserves the original owner and receipt");
+    for (var i: usize = 0; i < size; i++) {
+        assert(buffer.data[i] == 42, "Refusal preserves the original payload");
+    }
+    assert(budget.live == 1 && budget.used_bytes == charge && budget.peak_bytes == peak &&
+        tower_test_buffer_count() == live, "Refusal returns only the replacement charge");
+    assert(work_buffer_resize(&buffer, &budget, replacement, size) == WorkBudgetError.None, "Growth can be retried");
+    work_buffer_dispose(&buffer);
+    assert(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0, "Release drains the buffer budget");
+    assert(work_budget_dispose(&budget) && tower_test_buffer_count() == baseline, "Release drains the buffer allocator");
+}
+
+test() { buffer_owner_transfers(); }
+test() { buffer_owner_fault_ticket(); }
+test() { buffer_owner_refused_growth(); }

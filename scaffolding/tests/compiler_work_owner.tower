@@ -1,43 +1,7 @@
 import tower;
-import utility_checks;
-
-extern fn compiler_work_create(count: usize, workers: usize, revision: u64, profile: u64): void*;
-extern fn compiler_work_close(work: void*): void;
-extern fn compiler_work_subject(work: void*, ordinal: usize): void*;
-extern fn compiler_work_next(work: void*): usize;
-extern fn compiler_work_accept(work: void*, ordinal: usize, revision: u64, profile: u64, success: bool): bool;
-extern fn compiler_work_cancel(work: void*): void;
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_test_buffer_allocations(): usize;
-extern fn tower_test_buffer_fail_after(count: usize): void;
+import compiler_work_owner_test;
 
 export fn compiler_work_owner_tests(): void {
-    var baseline = tower_test_buffer_count();
-    var calls = tower_test_buffer_allocations();
-    var work = compiler_work_create(7, 3, 123, 456);
-    utility_check(work is not null, "unit owner allocation");
-    calls = tower_test_buffer_allocations() - calls;
-    utility_check(compiler_work_subject(work, 0) is null && compiler_work_subject(work, 8) is null, "unit owner ordinal bounds");
-    var first = compiler_work_subject(work, 1);
-    utility_check(first is not null && compiler_work_subject(work, 2) != first, "unit owner distinct subjects");
-    var task = compiler_work_next(work);
-    utility_check(task == 1, "unit owner admission");
-    compiler_work_cancel(work);
-    utility_check(!compiler_work_accept(work, task, 123, 456, true), "cancelled unit receipt rejected");
-    compiler_work_close(work);
-    utility_check(tower_test_buffer_count() == baseline, "unit owner exact cleanup");
-    // Fail every allocation in the constructor, including partial entity trees,
-    // component pages, graph indexes, dependency edges and access claims.
-    for(var budget: usize = 0; budget < calls; budget++) {
-        tower_test_buffer_fail_after(budget);
-        work = compiler_work_create(7, 3, 123, 456);
-        tower_test_buffer_fail_after(~convert(usize, 0));
-        utility_check(work is null, "unit allocation failure propagated");
-        compiler_work_close(work);
-        utility_check(tower_test_buffer_count() == baseline, "partial unit owner cleanup");
-    }
-    work = compiler_work_create(7, 3, 124, 456);
-    utility_check(work is not null, "unit owner retry after failure sweep");
-    compiler_work_close(work);
-    utility_check(tower_test_buffer_count() == baseline, "retried unit owner cleanup");
+    work_owner_allocation_sweep();
+    work_owner_byte_budget();
 }
