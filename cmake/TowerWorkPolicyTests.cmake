@@ -59,6 +59,10 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^
   tower_selected_test_count("${policy_triple}")
   get_property(policy_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
   get_target_property(policy_transport tower-compiler-work-serial INTERFACE_SOURCES)
+  add_dependencies(tower-work-instrumented-tests tower-guest-native-test tower-selected-test-count)
+  tower_native_test_selections(work-instrumented work_instrumented_fixture "6 tests" "1 test"
+    --test-native-runtime "${policy_guest}" --link "${policy_runtime}"
+    --link "${policy_transport}" --link "${host_memory_OBJECT}")
   function(tower_work_fault_selections unit owner_summary direct_summary)
     string(REPLACE "_" "-" suite "${unit}")
     add_dependencies(tower-${suite}-tests tower-guest-native-test tower-selected-test-count)
