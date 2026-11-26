@@ -111148,3 +111148,114 @@ The bootstrap records historical source provenance. Its installed resources
 contain no caller. Moving the typed helper to tests/test_file_rule_checks.tower
 preserves its export, body and caller while removing an ordinary companion
 discovery edge. Validation and formatter entry results follow below.
+
+Local commit 67538314 moved the in-memory checks. The optional
+SccTests kit installation and its CTest template list neither the old
+helper nor its sole source importer. The published inventory at 4b2685e5
+in docs/test-inventory.md describes the earlier layout. No kit or editable
+import needed a compatibility module. The current module-cache executable
+still imports the symbol from its entry object and defines it in the
+optional parser-nodes object. The targeted CMake build and both registered
+CTest entries (tower-module-cache-regressions and tower-format-owner) passed.
+
+The tested source candidate is ef8ae05d230b11c4d274098f944ebddb2f13d1a3,
+tree 359a8bf293bf26504aa6d509ab5119b384473b77. It adopts the separate
+layout with a shared implementation named syntax_session_format_cases_checks
+so the existing named browser harness can grant it through its cases prefix.
+Its contents match the prior cases module byte for byte. The existing cases
+owner imports the helper. Each direct companion has its own registrations
+and imports the defining module, so each entry can execute all five assertions.
+
+The Linux driver SHA-256 was
+7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138.
+The release interpreter and three hashed native providers were reused.
+On 442f3bea, both native semantic owners passed 60 with checkout grammar
+roots and linked providers. On c922f4ba each failed on the foreign
+syntax_capture_comments declaration at line 157, column 1. On ef8ae05d
+both returned exactly the stock ordered file/line/column IDs. WorkGraph
+returned its stock 13. Across those three source trees, the driver listed
+23/26/22 companion files for each semantic owner. The only removed stock
+path was the native helper, which contained no test declarations.
+
+For the editor, the packet's authenticated source rows and serializer
+reproduced the original public drive byte for byte. Applying the candidate
+compiler file changes gave an 809-row drive with SHA-256
+5f83259ed74e6d59118941697af1ce47e94b1518d1ab7d03085cc48070f8be63.
+All 783 filesystem-backed rows matched the checkout and the 26 generated
+rows came from the qualified project recipe. The runtime, browser app,
+compiler unit records and worker scripts came from Pages f2214133.
+Playwright clicked the actual file buttons and Run tests in local Chromium.
+The public and fixed terminal replies matched for WorkGraph (13),
+semantic_call_inference (60) and semantic_modules (60), including output
+and step counts. The two red semantic requests selected 69 and failed before
+guest execution. The fixed test_file_rule owner again selected zero.
+The fixed formatter owner selected 22 and reported its missing format_case_read
+import. The stock execution drive lacks the six golden paths and both increment
+source paths. Its worker then ran the ordinary Tests example in 14 steps
+and produced 42 followed by LF. The separate browser harness provides the
+three formatter services and fixture bytes through its existing interfaces.
+
+The ordinary formatter object matched the archived 564,240 bytes, SHA-256
+81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9.
+Its normalized depfile also matched. The erased foreign declaration control
+failed compilation. Address/leak and thread instrumentation of the relocated
+typed helper each returned the three expected result words (1,0,0) via the
+same service library and guest runtime. This exercises a serial test world.
+The retained bodies and host controls cover the unchanged formatter checks.
+Whole-browser instrumentation, source-level UBSan and sanitized multi-worker
+overlap are outside these runs.
+
+Host 6 ran fresh processes with warm/reused assets, one timed command at
+a time under /tmp/tower-host6-timing.lock. The Intel Xeon E5-2680 v4
+guest exposes CPUs 0–11, quota 1152000/100000 and 32282509312 bytes of
+memory. Commands used affinity 0,2,4,6, Node 24.22.3, Linux x64 and the
+stock driver. The native commands used --test-details and the two explicit
+checkout grammar roots, except for the CTest registration which used its
+configured arguments. Each cell is one observation of wall seconds /
+user+system CPU seconds / peak RSS KiB. The red semantic rows stop at
+compile time.
+
+| Native owner / jobs | Public 442f3bea | c922f4ba | Fixed ef8ae05d |
+| --- | --- | --- | --- |
+| Inference / 1 | 27.22 / 27.19 / 784528 | 6.04 / 6.03 / 565972 | 28.59 / 28.58 / 783872 |
+| Semantic modules / 1 | 27.93 / 27.91 / 787036 | 6.12 / 6.11 / 565776 | 26.82 / 26.81 / 792024 |
+| WorkGraph / 1 | 1.38 / 1.37 / 142920 | retained 13 | 1.48 / 1.47 / 143840 |
+| Formatter / 1 | separate named-suite baseline | 23.63 / 23.68 / 657928 | 22.12 / 22.16 / 656256 |
+| Formatter / 4 | separate named-suite baseline | 19.67 / 23.26 / 686684 | 20.11 / 23.92 / 682236 |
+
+On all three editor drives a separate matched session clicked WorkGraph,
+inference, semantic modules and the ordinary recovery example. A subreaper
+drained Chromium descendants. Public, red and fixed sessions took 48.47,
+23.18 and 48.98 s wall, 82.02, 52.30 and 82.70 s family CPU. Maximum process
+RSS was 1241348, 1386116 and 1267796 KiB. Summed RSS sampled every 50 ms
+peaked at 1719928, 1868224 and 1750412 KiB, including shared pages. The
+successful public and fixed runs executed the same interpreter steps.
+The counters cover complete UI sessions and allow no per-assertion
+allocation or scaling inference.
+
+Both direct editor formatter buttons selected five and reported the missing
+host function. The following ordinary request recovered on the same worker.
+Mutating the checked-in refusal expectation in a disposable source snapshot
+failed the linked owner at syntax_session_format_cases_checks.tower:79:5.
+The independent named browser harness failed just refusal and passed the
+other four. The initial evidence reader expected TAP and stopped on Node's
+spec-reporter summary. Reading that summary and the actual diagnostic
+confirmed the intended failure. Restoring the exact bytes recovered all
+22 linked IDs and all five named browser checks.
+
+The linked default owner passed 22 at jobs 1 and 4. The direct default and
+aggregate each passed five. The first 17 owner IDs matched the retained
+dependency checks. The last five were the default companion at lines
+4, 6, 8, 10 and 12. The explicit aggregate suffix returned the original
+five coordinates in the aggregate file. The declarations, comments, refusal,
+increment and affixes suffixes each returned their own file at line 4,
+column 1. All matched the retained separate-layout experiment, with no
+duplicate executions. No unrelated declaration count changed.
+
+The assignment archive includes raw ordered IDs, native file lists/depfiles,
+the exact editor drive and button replies, commands, diagnostics, timings,
+sanitizer maps and a public-base Git bundle. Free disk space was 61 GiB
+rounded at entry and 60 GiB before sealing. The owned build, scratch source
+trees and instrumented binaries were removed after their jobs drained.
+The manager owns publication. All runtime checks above used the local
+candidate with the existing release artifacts.
