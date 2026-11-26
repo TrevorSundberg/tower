@@ -119805,3 +119805,63 @@ buffers per executable. All 56 files matched across builds. The observed
 cycle offsets were 20671 in both placements at both widths. The packet keeps
 the input bytes, pre-disposal receipts, expected literal calls, original
 stdout/stderr, process resource measurements and probe commands.
+
+Implementation `d3e05d7e5f561ed4e1c1d0398d6ec4d72f42c935` passed all six
+permutation CTests. The direct and owner guest binaries were each identical
+across compiler jobs 1 and 4. Debugger reads from both captured guests also
+matched the original 56 input/receipt files, all 36 literal requests and all
+16 accepted returns. Each serial receipt matched its two-worker partner.
+The wrong control retained the entire ordered name list, source and checked
+close. Temporarily changing the first expected suffix from 12 to 13 in a
+separate checkout produced that same stdout and an assertion at the companion
+in all four selections (exit 1). Restoring the source recovered four passes.
+The full aggregate passed before and after. The adjacent seeded normal,
+serial-only, parallel-only and wrong-result modes preserved stdout and status,
+including the separate 1215 versus 1216 control.
+
+Host 8 exposed 24 AMD Ryzen 9 7900X CPUs. The cgroup quota was 2304000 µs
+per 100000 µs and the memory limit was 63577260032 bytes. The measurements
+used CPU affinity 0–3 and the host timing lock, with one process tree at a
+time. Release builds used Clang/LLVM 19.1.7 and the checked-in Linux x64
+compiler, target `x86_64-pc-linux-gnu`. The following entries give median
+wall seconds / median user plus system seconds / maximum RSS in KiB for
+three warm fresh-process samples. Object hashes repeated across all samples
+and job counts within each source and entry. The LR runtime samples alternate
+the original and migrated executables using the same resource-root spelling.
+
+| Measured entry | Compiler jobs | Original | Migrated |
+| --- | ---: | ---: | ---: |
+| Ordinary fixture owner object | 1 | 0.91 / 0.90 / 216208 | 0.15 / 0.14 / 85752 |
+| Ordinary fixture owner object | 4 | 0.82 / 0.98 / 223680 | 0.17 / 0.17 / 91892 |
+| LR aggregate entry object | 1 | 2.02 / 2.01 / 298296 | 2.08 / 2.07 / 301200 |
+| LR aggregate entry object | 4 | 1.82 / 2.12 / 309572 | 1.90 / 2.20 / 316496 |
+| Full permutation selector, runtime workers 1 and 2 | | 2.25 / 2.77 / 121204 | 2.26 / 2.78 / 119380 |
+
+Ordinary owner depfiles fell from 47 inputs to 12. Among built Release
+products only the LR entry's depfile includes the permutation companion.
+The aggregate gained four inputs including the assertion grammar. In a
+separate phase sample its parse time rose from 931 to 1007 ms at one job
+and 750 to 835 ms at four, while emission was 369–371 ms. Those phase runs
+reproduced the measured object bytes. With runtime workers 1 and 2, the
+largest batch charge in the three timed permutation runs was 37565815 bytes
+before and 38237175 after. Every batch reported zero joined lanes.
+
+ASan with leak detection passed the migrated LR selector (16.27 s wall,
+19.95 s CPU, 699196 KiB RSS) and its wrong-result control (exact exit 1).
+TSan passed the same positive (51.02 s wall, 63.36 s CPU, 333440 KiB RSS).
+For the TSan wrong-result control, 22 launches exited 139 before fixture
+output when the sanitizer runtime's ASLR personality request was denied.
+The next unchanged launch completed checked close and returned 1 with the
+exact 1112/1113 diagnostic, in 2.42 s wall, 2.41 s CPU and 193376 KiB RSS.
+The packet preserves all attempts. Instrumentation here covers the native
+LR runner. The selected guests used the ordinary threaded services. No
+separate Tower UBSan profile is available.
+
+The initial shared-checkout pull conflicted while replaying prior local
+commits. Aborting that pull restored its original main tip. This freeze used
+a separate local main at the assigned public base. Host configuration first
+failed to locate the bootstrap or unversioned Clang, then discarded options
+when PATH changed the cached compiler identity. A fresh configure using the
+absolute public compiler and LLVM 19 paths succeeded. Host logs, checked raw
+buffers, binaries and an incremental public-base bundle are in the manager
+packet for the assignment. Publication belongs to the manager.
