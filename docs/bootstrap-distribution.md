@@ -112,6 +112,14 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 
 ### Install the Linux x64 development compiler as a normal user
 
+The compiler built from `841e48e5e4ec1ff6ebf47d52a07efc0cf9a34415` is available in
+`841e48e5-linux-x64.tar.gz`. The archive includes the producer's development
+manifest, checksum list and 61 payloads. The installer pins package commit
+`fb0f85deaeac4123c2f3d191312d30837c33766a`. The archive digest and the
+installer's immutable Git blob appear with the commands. [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
+
+### Historical installer for `41de9006`
+
 For the compiler built from `41de9006adff910a23d810010576ef66934fa1c8`,
 the installer pins package `7e34072d999e1cc8f7d0f619099f32077b67f697`.
 It authenticates the checksum list before fetching the 60 files named in it.

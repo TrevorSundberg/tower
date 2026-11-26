@@ -113422,3 +113422,39 @@ registered harness ran all 24 in each of those four combinations. TSan's
 successful final runs were attempts 20, 3 and 6 respectively. The 26 earlier
 starts stopped before main when the host denied its ASLR personality
 request. The receipt includes these statuses and the successful traces.
+
+### Default Linux pin and immutable installer for the native diagnostic suite
+
+Host 4 merged the certified source `841e48e5e4ec1ff6ebf47d52a07efc0cf9a34415`
+with public suite `eb1bdbe4eebf5ea8dc9a4ddc958766e0de78ab90` at
+`6a188b29062d72f47e2b3f06ef333b01dc5a5b0d`. The merge retained the
+semantic-invalid golden and grant-list rules and the LLVM fixture rule.
+Package commit `fb0f85deaeac4123c2f3d191312d30837c33766a` adopts the exact
+61 payloads from d1768169. Its original manifest, SHA-256
+`904c24a79acf8ffc55ad73151b9c09469b401c851aeb5568dd73b5a7f522a274`,
+matched all 2,122 input hashes against the historical build source. The
+peer installation in 0aeb0392 independently verified the same payloads
+and 48 real child diagnostics. The public compiler at eb1bdbe4 could not
+select these rejection tests because it lacked the rejection library.
+
+All 435 previously recorded native source dependencies matched across the
+merge. Four CMake test registration files changed. One empty-cache documented
+build used the new checkout pin, with the private override absent, on Ubuntu
+24.04.5 x86-64, LLVM 19.1.1, through the retained PRoot environment. The
+37 recorded native products and all adjacent resources matched the certified
+production generation. The build took 27.22 s wall, 81.15 s CPU and 792,124
+KiB peak RSS. Native CLI runs from the moved kit selected 24 at jobs 1 and
+4 in 4.24 and 5.19 s respectively. Each command used CPUs 0,2,4,6 on the
+Ryzen 7 5800H, cgroup quota 15.36 CPUs, with one timed process family at a time.
+
+Installer commit `8a7713ebbbd71930c2512bc375d4c51b7721d0ac` pins the
+package commit and SHA256SUMS digest. The versioned archive is 2,169,179
+bytes, SHA-256 `383ff14925771d85624979935c8ac3d2a1543194174580f2eca7f41f2f86f556`.
+The README commands ran on a private HTTPS mirror of immutable Git and
+Pages bytes. The installer fetched its blob, the checksum list and 61
+payloads, verified a repeated installation and refused the occupied previous
+prefix. The interpreter and linked sample printed 42 through each install
+method. The installed compiler passed the moved 24-case suite at jobs 1 and
+4. Assignment 66f7b631 contains the source and Pages bundles, before and
+after manifests, archive, command streams, measurements and publication
+proposal. Live publication and hosted verification belong to the manager.

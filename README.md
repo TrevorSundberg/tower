@@ -35,6 +35,47 @@ targets, limitations, build commands and deployment checks.
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils, GNU tar and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
 
+### Development compiler built from `841e48e5`
+
+This Ubuntu x64 build adds native tests that can check a child compiler's diagnostic against a sibling source and expected message. Download the versioned archive and run these commands from its directory. They verify the archive and all 61 compiler payloads. [Linux x64 archive](https://tower-lang.org/downloads/841e48e5-linux-x64.tar.gz)
+
+```sh
+(
+  set -eu
+  printf '%s  %s\n' 383ff14925771d85624979935c8ac3d2a1543194174580f2eca7f41f2f86f556 \
+    841e48e5-linux-x64.tar.gz | sha256sum --strict --check
+  prefix="$HOME/.local/Tower Dev 841e48e5"
+  mkdir -p "$HOME/.local"
+  mkdir -m 700 "$prefix"
+  tar -xzpf 841e48e5-linux-x64.tar.gz -C "$prefix"
+  cd "$prefix/linux-x64"
+  sha256sum --strict --check SHA256SUMS
+  ./towerc --version
+)
+```
+
+To install the same compiler from Git, run the installer at its immutable blob address. It fetches the payloads from package commit `fb0f85deaeac4123c2f3d191312d30837c33766a`. Repeating the command verifies the existing installation.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/1e4d4da4d3ea8e0c18b3319c18a720bbb1788abc) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 841e48e5"
+```
+
+Save the distribution sample as `example.tower`. The interpreter and the compiled executable each print `42`. [Sample program](scaffolding/tests/distribution_program.tower)
+
+```sh
+compiler="$HOME/.local/Tower Dev 841e48e5/linux-x64/towerc"
+"$compiler" example.tower --interpret
+"$compiler" example.tower --cc clang-19 -o example && ./example
+```
+
+| Component | SHA-256 |
+| --- | --- |
+| Compiler (2,288,512 bytes) | `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896` |
+| Checksum list | `eeafe1a2b4305839fdc305f6d59f22ad6bf415925bc8afc28d622913b8aa03f8` |
+| Installer | `18c41af8838eeafe2abaf8310fd3f98d296b063124a0cdc5fc2bdae9edd4fd88` |
+
 ### Development compiler built from `41de9006`
 
 Download the Ubuntu x64 archive and run these commands from the directory
