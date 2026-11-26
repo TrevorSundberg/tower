@@ -4,6 +4,7 @@ import syntax_emission_api;
 import library.testing;
 import syntax_emission;
 import syntax_emission_context;
+import syntax_emission_context_test;
 import syntax_template;
 import .compiler.parser_types;
 import .compiler.syntax_template_types;

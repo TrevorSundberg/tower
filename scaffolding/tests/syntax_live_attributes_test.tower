@@ -1,6 +1,7 @@
 import tower;
 import library.testing;
 import syntax_live_support;
+import syntax_live_support_test;
 import .compiler.syntax_types;
 import .compiler.format_types;
 import .library.bytes_types;

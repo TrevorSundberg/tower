@@ -1,0 +1,45 @@
+import tower;
+import library.testing;
+import .compiler.syntax_session_types;
+import .compiler.parser_types;
+import .library.vector;
+import storage_api;
+import utility_checks;
+
+fn live_next(session: SyntaxSession*): void* {
+    var node = syntax_next(bits(void*, session));
+    if node is null { puts(syntax_get_error(bits(void*, session))); }
+    assert(node is not null && *syntax_get_error(bits(void*, session)) == 0, "Next live syntax construct");
+    return node;
+}
+
+fn live_end(session: SyntaxSession*): void {
+    var node = syntax_next(bits(void*, session));
+    assert(node is null && *syntax_get_error(bits(void*, session)) == 0, "Live syntax clean end");
+}
+
+fn live_failure(session: SyntaxSession*): void {
+    assert(syntax_next(bits(void*, session)) is null && *syntax_get_error(bits(void*, session)) != 0, "Live syntax invalid construct rejected");
+}
+
+fn live_match(node: void*): ParserMatchData* {
+    assert(node is not null, "Live syntax expected tree");
+    var result = bits(ParserMatchData*, tower_node_get_component_userdata(node, parser_match_get_type()));
+    assert(result is not null, "Live syntax retains parser provenance");
+    return result;
+}
+
+fn live_span(source: u8*, start: usize, length: usize, text: u8*): bool {
+    var size = strlen(source);
+    assert(start <= size && length <= size - start, "Live syntax provenance range");
+    return length == strlen(text) && utility_equal(source + start, text, length);
+}
+
+fn live_source_matches(node: void*, source: u8*, text: u8*): bool {
+    var span = live_match(node);
+    return live_span(source, span.start, span.length, text);
+}
+
+fn live_text(value: vector(u8)*, text: u8*): bool {
+    return value.length == strlen(text) && utility_equal(value.data, text, value.length);
+}

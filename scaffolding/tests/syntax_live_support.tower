@@ -1,4 +1,5 @@
 import tower;
+import syntax_live_support_test;
 import .compiler.syntax_session_types;
 import .compiler.syntax_types;
 import .compiler.format_types;
@@ -40,35 +41,12 @@ fn live_join(out: ByteBuffer*, a: u8*, b: u8*, c: u8*): void {
     utility_check(bytes_assign_text(out, a, strlen(a)) && bytes_append(out, b, strlen(b)) && bytes_append(out, c, strlen(c)) && bytes_push(out, 0), "Live syntax fixture text allocation"); --out.length;
 }
 fn live_open(source: u8*): SyntaxSession* { var session = bits(SyntaxSession*, syntax_create(source, null)); utility_check(session is not null, "Create live syntax session"); return session; }
-fn live_next(session: SyntaxSession*): void* {
-    var node = syntax_next(bits(void*, session)); if node is null { puts(syntax_get_error(bits(void*, session))); }
-    utility_check(node is not null && *syntax_get_error(bits(void*, session)) == 0, "Next live syntax construct"); return node;
-}
 fn live_declarations(session: SyntaxSession*, count: usize): void {
     for (var index: usize = 0; index < count; ++index) { tower_node_release_ref(live_next(session)); }
 }
 fn live_consume(session: SyntaxSession*): usize {
     var count: usize = 0;
     loop { var node = syntax_next(bits(void*, session)); if node is null { return count; } tower_node_release_ref(node); ++count; }
-}
-fn live_end(session: SyntaxSession*): void {
-    var node = syntax_next(bits(void*, session)); utility_check(node is null && *syntax_get_error(bits(void*, session)) == 0, "Live syntax clean end");
-}
-fn live_failure(session: SyntaxSession*): void {
-    utility_check(syntax_next(bits(void*, session)) is null && *syntax_get_error(bits(void*, session)) != 0, "Live syntax invalid construct rejected");
-}
-fn live_match(node: void*): ParserMatchData* {
-    utility_check(node is not null, "Live syntax expected tree");
-    var result = bits(ParserMatchData*, tower_node_get_component_userdata(node, parser_match_get_type()));
-    utility_check(result is not null, "Live syntax retains parser provenance"); return result;
-}
-fn live_span(source: u8*, start: usize, length: usize, text: u8*): bool {
-    utility_check(start <= strlen(source) && length <= strlen(source) - start, "Live syntax provenance range");
-    return length == strlen(text) && utility_equal(source + start, text, length);
-}
-fn live_source_matches(node: void*, source: u8*, text: u8*): bool {
-    var span = live_match(node);
-    return live_span(source, span.start, span.length, text);
 }
 fn live_source(node: void*, source: u8*, text: u8*): void {
     utility_check(live_source_matches(node, source, text), "Live syntax exact original source span");
@@ -84,7 +62,6 @@ fn live_find(root: void*, label: u8*): void* {
     }
     return null;
 }
-fn live_text(value: vector(u8)*, text: u8*): bool { return value.length == strlen(text) && utility_equal(value.data, text, value.length); }
 fn live_format(out: FormatResult*, root: void*): void {
     format_entity(out, root, syntax_component_type(), null, parser_match_get_type()); utility_check(!out.failed, "Live shared syntax formatting");
     // FormatResult is length-delimited; legacy source/string APIs need an
