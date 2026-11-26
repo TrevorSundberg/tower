@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"MacIntel","userAgent":"Macintosh; Intel Mac OS X"}', '{"architecture":"arm","bitness":"64"}', "mac-arm");
+}

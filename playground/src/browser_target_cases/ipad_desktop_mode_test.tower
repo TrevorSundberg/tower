@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"MacIntel","maxTouchPoints":5}', '{}', "wasm");
+}

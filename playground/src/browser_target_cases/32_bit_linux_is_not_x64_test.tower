@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"Linux i686"}', '{}', "wasm");
+}

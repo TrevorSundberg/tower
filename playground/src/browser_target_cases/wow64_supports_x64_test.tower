@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"Win32"}', '{"architecture":"x86","bitness":"32","wow64":true}', "windows");
+}

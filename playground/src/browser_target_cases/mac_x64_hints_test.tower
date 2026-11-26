@@ -1,0 +1,5 @@
+import check;
+
+test() {
+    check_browser_target('{"platform":"MacIntel"}', '{"architecture":"x86","bitness":"64"}', "mac");
+}

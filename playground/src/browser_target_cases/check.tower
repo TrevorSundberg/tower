@@ -1,0 +1,34 @@
+import library.testing;
+import backend.text;
+
+extern fn infer_browser_target(navigator: u8*, hints: u8*): u8*;
+
+extern fn default_selection_values(): usize;
+
+extern fn selection_value(index: usize): bool;
+
+extern fn default_selection_member(key: u8*): u8*;
+
+fn default_target_enabled(key: u8*): bool {
+    var member = default_selection_member(key);
+    defer free(member);
+    return backend_equal(member, "true");
+}
+
+fn check_browser_target(navigator: u8*, hints: u8*, expected_key: u8*): void {
+    var key = infer_browser_target(navigator, hints);
+    defer free(key);
+    assert(backend_equal(key, expected_key), "Inferred browser target");
+
+    var length = default_selection_values();
+    var enabled: usize = 0;
+    for(var index: usize = 0; index < length; index++) {
+        if selection_value(index) {
+            enabled++;
+        }
+    }
+    var expected_count: usize = backend_equal(expected_key, "wasm") ? 3: 4;
+    assert(enabled == expected_count, "Number of enabled default targets");
+    assert(default_target_enabled("wasm"), "Wasm enabled by default");
+    assert(default_target_enabled(expected_key), "Expected target enabled by default");
+}
