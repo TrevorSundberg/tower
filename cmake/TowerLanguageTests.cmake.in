@@ -33,3 +33,5 @@ endforeach()
 register_language_tests(sha256 sha256 7)
 register_language_tests(work-graph work_graph 8 --link "@scc_objects@/libtower-compiler-memory.a")
 register_language_tests(work-graph-direct work_graph_test 8 --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(gzip gzip 3 --link "@scc_objects@/tower-compiler-utf8.o"
+  --link "@scc_objects@/libtower-compiler-memory.a")

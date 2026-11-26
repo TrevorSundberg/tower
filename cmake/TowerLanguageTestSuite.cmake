@@ -36,6 +36,7 @@ install(FILES scaffolding/library/graph_components_test.tower scaffolding/librar
   scaffolding/library/graph_components_expectations.tower scaffolding/library/sha256_test.tower
   scaffolding/library/test_data.tower scaffolding/library/work_graph_test.tower
   scaffolding/library/stack_test.tower scaffolding/library/queue_test.tower
+  scaffolding/library/gzip_test.tower scaffolding/library/gzip_test_data.tower
   DESTINATION scc-suite/share/tower/library ${scc_install})
 install(FILES scaffolding/host/memory.tower scaffolding/host/memory_libc.tower scaffolding/host/memory_types.tower
   DESTINATION scc-suite/share/tower/host ${scc_install})

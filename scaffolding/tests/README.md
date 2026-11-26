@@ -574,6 +574,21 @@ comparisons, seeded mixed inputs, truncation/corruption rejection and recovery.
 file (10,000 tiny, 100 small or one large compression), prints input/output bytes,
 retained output capacity and repetition count, then checks buffer disposal.
 
+The gzip companion runs three declarations through `towerc --test`. The first
+two check repeated encoding, rejection without changing the output, and input
+that aliases the output. They use the same six fixed inputs and 32 seeded
+inputs as the standalone fixture. The third checks the little-endian CRC-32
+trailer against the independent `123456789` vector. In the optional language
+suite, run `ctest -R '^tower-selected-gzip-jobs-' -V` from the installed
+`scc-suite` directory. To select the companion directly, use the arguments
+shown by CTest with `share/tower/library/gzip_test.tower` as the entry.
+
+The standalone `gzip_checks.tower` entry also runs the shared publication
+checks on an optional real support file. It retains the paired file writes,
+bounded GNU gzip capture, all prefix truncations, reserved-block and CRC
+corruptions, and recovery using the original member. Its process boundary
+checks both the decoder status and the caller's retained output after failure.
+
 `tool_process_checks.tower` validates the Linux tool runner with exact child
 arguments, empty strings, ordinary exits, signals, exec/redirection failures,
 large binary stdout capture and unchanged output on failure. Build it as
