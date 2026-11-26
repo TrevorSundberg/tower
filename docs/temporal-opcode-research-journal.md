@@ -109151,3 +109151,42 @@ controls and local failure traces are in host 1 packet
 `7f020327-2a90-4250-83e8-798ead7e1e5a`. These measure the browser test
 harness. The patch changes no Tower runtime, allocator or native thread code.
 The full Jenkins rerun and publication remain with the manager.
+
+### 2026-11-26. Raw memory positive cases on the released compiler
+
+Host 7 used published main `46e22072` for assignment
+`7788262f-97ff-4594-bfa7-ad4696766e1e`. The original 17 named selections
+all ran the four-byte Graph and Fast interpreters, reparsed the Graph
+Foundation and compared its source and reflected types, then compiled that
+Foundation with the default optimized LLVM target `wasm32-unknown-unknown`.
+Every row checked its Graph, Fast and LLVM guest output against the table.
+There was no per-row LLVM skip or unoptimized LLVM run. The preexisting memory
+example also has independent interpreter width/budget, native linking and Roku
+O0/O2 readers. The storage program has a native linking reader. They still
+use their original files.
+
+In `0d068dbe`, the fifteen inline Foundation programs keep their operations,
+types and literal data. The storage wrapper resolves the same three imports
+from its own directory. The growable buffer uses the existing Tower example.
+Each owner now has an adjacent test and a raw LF-delimited oracle. The
+browser assertion interpreter binds the local results module to a Tower
+reader of the three counted outputs. It also checks the reparsed host
+objects and the five forbidden LLVM substrings. Native discovery uses the
+ordinary sibling source and oracle grants. The x64 layout check expects
+4/16/8 where the wasm32 fixture expects 4/12/4.
+
+A first native probe diagnosed a reserved identifier, a wrong relative import,
+and a helper outside the installed resource tree. The corrected files resolved
+against the public package. The first browser probe reached an unbound
+`test_fixture_load` callback. Opening its assertion interpreter inside the
+first Node test also closed it at the end of that selection. The final reader
+copies the requested raw file bytes into the assertion interpreter, opened at
+module scope. A first passing trial cost 4.90 seconds for all 17 names.
+Registering and restoring the full module collection twice per small fixture
+was redundant. Only the storage wrapper needs a temporary lexical entry.
+
+The initial implementation opened the extra VM for unrelated Node name filters
+as well. Follow-up `eeadec59` opens it on the first selected table assertion
+and registers cleanup on the module's hook. It retains one VM across selected
+names. The ordinary source compiler and all registrations below the table keep
+their existing calls.
