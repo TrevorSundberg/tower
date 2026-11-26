@@ -1,0 +1,12 @@
+import foundation;
+
+var p: u8* = null;
+p = realloc(u8, p, 8);
+p[0] = 7;
+p = realloc(u8, p, 0);
+var b: bool = p == null;
+print(b);
+p = alloc(u8, 4294967295);
+b = p == null;
+print(b);
+free(p);

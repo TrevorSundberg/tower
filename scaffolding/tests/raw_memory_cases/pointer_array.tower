@@ -1,0 +1,8 @@
+import foundation;
+
+var x: i32 = 42;
+var p: i32*[2];
+p[0] = &x;
+var ref: i32* = p[0];
+*ref = 7;
+print(x);

@@ -1,0 +1,11 @@
+import library.test_fixtures;
+
+fn raw_expected(name: u8*): FixtureBytes {
+    return fixture_text(name);
+}
+
+fn raw_output_matches(source: u8*, wanted: FixtureBytes): bool {
+    var actual = fixture_stdout(source);
+    defer free(actual.data);
+    return fixture_equal(actual, wanted);
+}

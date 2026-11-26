@@ -1,0 +1,10 @@
+import foundation;
+
+var x: i64 = -9223372036854775808;
+print(x);
+x = x - 1;
+print(x);
+var y: u64 = 18446744073709551615;
+print(y);
+y = y + 1;
+print(y);

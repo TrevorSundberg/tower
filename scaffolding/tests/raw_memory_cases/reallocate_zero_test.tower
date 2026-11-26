@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("reallocate_zero.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("reallocate_zero.tower", wanted), "reallocate_zero stdout");
+}

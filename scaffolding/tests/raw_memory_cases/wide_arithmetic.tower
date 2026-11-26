@@ -1,0 +1,13 @@
+import foundation;
+
+var a: i64 = -5000000000;
+var b: i64 = a / 3;
+print(b);
+var yes: bool = a < b;
+print(yes);
+var c: u8 = 255;
+var d: u64 = convert(u64, c);
+print(d);
+var e: i64 = -2;
+var f: i32 = convert(i32, e);
+print(f);

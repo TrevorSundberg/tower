@@ -1,0 +1,33 @@
+import library.test_fixtures;
+
+// The browser provides counted copies of the raw oracle and each completed output.
+extern fn raw_bytes(file: u8*, stream: u8*, length: usize*): u8*;
+extern fn raw_round_trip_equal(property: u8*): bool;
+extern fn raw_ir_contains(text: u8*): bool;
+
+fn raw_observation(file: u8*, stream: u8*): FixtureBytes {
+    var result: FixtureBytes = default;
+    result.data = raw_bytes(file, stream, &result.length);
+    return result;
+}
+
+fn raw_expected(name: u8*): FixtureBytes {
+    return raw_observation(name, "file");
+}
+
+fn raw_matches_engine(source: u8*, engine: u8*, wanted: FixtureBytes): bool {
+    var actual = raw_observation(source, engine);
+    defer free(actual.data);
+    return fixture_equal(actual, wanted);
+}
+
+fn raw_output_matches(source: u8*, wanted: FixtureBytes): bool {
+    assert(raw_round_trip_equal("source"), "Foundation round trip changed the source");
+    assert(raw_round_trip_equal("types"), "Foundation round trip changed the types");
+    assert(!raw_ir_contains("tower.pointer") && !raw_ir_contains("tower.cell")
+        && !raw_ir_contains(".initialized") && !raw_ir_contains(".generation")
+        && !raw_ir_contains(".active"), "Unexpected storage metadata in LLVM IR");
+    assert(raw_matches_engine(source, "Graph", wanted), "Graph stdout");
+    assert(raw_matches_engine(source, "Fast", wanted), "Fast stdout");
+    return raw_matches_engine(source, "LLVM", wanted);
+}

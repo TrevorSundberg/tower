@@ -1,0 +1,15 @@
+import library.test_fixtures;
+import results;
+import ..backend.text;
+
+test() {
+    if sizeof(usize) == 8 {
+        var native_layout = "4\n16\n8\n";
+        var wide: FixtureBytes = {data: native_layout, length: backend_length(native_layout)};
+        assert(raw_output_matches("field_offsets.tower", wide), "64-bit field layout");
+        return;
+    }
+    var wanted = raw_expected("field_offsets.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("field_offsets.tower", wanted), "32-bit field layout");
+}

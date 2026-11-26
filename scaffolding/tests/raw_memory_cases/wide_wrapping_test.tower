@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("wide_wrapping.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("wide_wrapping.tower", wanted), "wide_wrapping stdout");
+}

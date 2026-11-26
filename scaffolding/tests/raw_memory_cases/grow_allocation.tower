@@ -1,0 +1,9 @@
+import foundation;
+
+var p: i32* = alloc(i32, 2);
+p[0] = 20;
+p[1] = 22;
+p = realloc(i32, p, 100);
+var x: i32 = p[0] + p[1];
+print(x);
+free(p);

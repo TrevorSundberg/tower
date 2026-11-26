@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("array_field.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("array_field.tower", wanted), "array_field stdout");
+}

@@ -1,0 +1,19 @@
+import foundation;
+
+struct S {
+    tag: u8;
+    value: i32;
+    link: S*;
+}
+
+var s: S;
+var p: S* = &s;
+var f: i32* = &s.value;
+var base: usize = bits(usize, p);
+var field: usize = bits(usize, f);
+var offset: usize = field - base;
+print(offset);
+var size: usize = sizeof(S);
+print(size);
+var alignment: usize = alignof(S);
+print(alignment);

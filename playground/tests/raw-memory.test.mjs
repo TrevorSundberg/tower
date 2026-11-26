@@ -1,8 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower } from './compiler-fixtures.mjs';
-import { loadLLVM, executeWasm } from './compiler-fixtures.mjs';
+import { isDeepStrictEqual } from 'node:util';
+import { files, loadTower, loadLLVM, executeWasm } from './compiler-fixtures.mjs';
+import { fixtureSource, guestString, openTower, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = p => readFile(new URL('../../' + p, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
@@ -12,53 +13,111 @@ const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'
 const linkedOutput = '33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n42\n';
 let nativeWasm;
 try { nativeWasm = await read('build/linking/native-compiled.wasm'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+const directory = 'tests/raw_memory_cases/';
 const cases = [
-  ['Tower storage library: byte strings, arenas and rehashing maps',  'import library.bytes; import library.storage; import tests.storage;' , 'true\ntrue\n10\n84\ntrue\n0\ntrue\n16\ntrue\ntrue\n42\n200\ntrue\n597\n42\nfalse\n200\n'],
-  ['growable buffer example', (await read('scaffolding/examples/memory.tower')).toString(), '5\n84\n42\n'],
-  ['raw pointer integer round trip', 'import foundation; var x: i32 = 42; var p: i32* = &x; var address: usize = bits(usize, p); var q: i32* = bits(i32*, address); *q = 7; print(x); var same: bool = p == q; print(same);', '7\ntrue\n'],
-  ['null and void pointers', 'import foundation; var p: void* = null; var x: i32 = 42; var q: i32* = &x; p = bits(void*, q); q = bits(i32*, p); var result: i32 = *q; print(result);', '42\n'],
-  ['bytes alias integer storage', 'import foundation; var x: u32 = 16909060; var p: u32* = &x; var b: u8* = bits(u8*, p); print(b[0]); print(b[3]); b[1] = 0; print(x);', '4\n1\n16908292\n'],
-  ['pointer offsets and subviews', 'import foundation; var a: i32[4]; a[0] = 1; a[1] = 2; a[2] = 3; a[3] = 4; var p: i32* = &a[0]; p = p + 2; print(p[0]); p = p - 1; print(p[0]); var negative: i32 = -1; print(p[negative]);', '3\n2\n1\n'],
-  ['nested fixed arrays', 'import foundation; var grid: i32[2][3]; grid[2][1] = 42; print(grid[2][1]); var size: usize = sizeof(i32[2][3]); print(size);', '42\n24\n'],
-  ['arrays of pointers', 'import foundation; var x: i32 = 42; var p: i32*[2]; p[0] = &x; var ref: i32* = p[0]; *ref = 7; print(x);', '7\n'],
-  ['array struct fields', 'import foundation; struct S { tag: u8; values: i32[3]; } var s: S; s.values[2] = 42; var p: S* = &s; print(p.values[2]); var size: usize = sizeof(S); print(size);', '42\n16\n'],
-  ['allocate grow preserve free', 'import foundation; var p: i32* = alloc(i32, 2); p[0] = 20; p[1] = 22; p = realloc(i32, p, 100); var x: i32 = p[0] + p[1]; print(x); free(p);', '42\n'],
-  ['reallocation zero and allocation failure', 'import foundation; var p: u8* = null; p = realloc(u8, p, 8); p[0] = 7; p = realloc(u8, p, 0); var b: bool = p == null; print(b); p = alloc(u8, 4294967295); b = p == null; print(b); free(p);', 'true\ntrue\n'],
-  ['allocation size overflow returns null', 'import foundation; var p: u64* = alloc(u64, 4294967295); var b: bool = p == null; print(b);', 'true\n'],
-  ['copy permits overlap', 'import foundation; var a: u8[6]; var p: u8* = &a[0]; fill(p, 1, 6); p[0] = 7; p[1] = 8; var q: u8* = p + 1; copy(q, p, 5); print(p[0]); print(p[1]); print(p[2]); print(p[5]);', '7\n7\n8\n1\n'],
-  ['strings, escapes, terminator and UTF-8', 'import foundation; var p: u8* = "A\\n雪"; print(p[0]); print(p[1]); print(p[2]); print(p[5]);', '65\n10\n233\n0\n'],
-  ['wide literals and wrapping', 'import foundation; var x: i64 = -9223372036854775808; print(x); x = x - 1; print(x); var y: u64 = 18446744073709551615; print(y); y = y + 1; print(y);', '-9223372036854775808\n9223372036854775807\n18446744073709551615\n0\n'],
-  ['wide arithmetic comparison and conversion', 'import foundation; var a: i64 = -5000000000; var b: i64 = a / 3; print(b); var yes: bool = a < b; print(yes); var c: u8 = 255; var d: u64 = convert(u64, c); print(d); var e: i64 = -2; var f: i32 = convert(i32, e); print(f);', '-1666666666\ntrue\n255\n-2\n'],
-  ['raw field offsets', 'import foundation; struct S { tag: u8; value: i32; link: S*; } var s: S; var p: S* = &s; var f: i32* = &s.value; var base: usize = bits(usize, p); var field: usize = bits(usize, f); var offset: usize = field - base; print(offset); var size: usize = sizeof(S); print(size); var alignment: usize = alignof(S); print(alignment);', '4\n12\n4\n'],
+  ['Tower storage library: byte strings, arenas and rehashing maps', 'storage_imports'],
+  ['growable buffer example', 'memory', 'examples/'],
+  ['raw pointer integer round trip', 'pointer_round_trip'],
+  ['null and void pointers', 'void_pointers'],
+  ['bytes alias integer storage', 'byte_alias'],
+  ['pointer offsets and subviews', 'pointer_offsets'],
+  ['nested fixed arrays', 'nested_arrays'],
+  ['arrays of pointers', 'pointer_array'],
+  ['array struct fields', 'array_field'],
+  ['allocate grow preserve free', 'grow_allocation'],
+  ['reallocation zero and allocation failure', 'reallocate_zero'],
+  ['allocation size overflow returns null', 'allocation_overflow'],
+  ['copy permits overlap', 'overlapping_copy'],
+  ['strings, escapes, terminator and UTF-8', 'utf8_string'],
+  ['wide literals and wrapping', 'wide_wrapping'],
+  ['wide arithmetic comparison and conversion', 'wide_arithmetic'],
+  ['raw field offsets', 'field_offsets'],
 ];
+
+// The assertion interpreter sees counted guest outputs and the host objects
+// returned by the real formatter and LLVM compiler. The companion owns the oracle.
+let sample;
+const encoder = new TextEncoder();
+const assertionHost = await openTower({imports:{
+  raw_bytes(context, file, stream, length) {
+    const key = guestString(context, file) + '/' + guestString(context, stream);
+    const bytes = sample.streams.get(key);
+    if (!bytes) throw new Error('Missing raw memory observation ' + key);
+    const address = context.allocate(bytes.length || 1);
+    if (!address) throw new Error('Cannot allocate raw memory observation ' + key);
+    const memory = context.memory();
+    memory.set(bytes, address);
+    assert.equal(context.pointerBytes, 4);
+    new DataView(memory.buffer, memory.byteOffset, memory.byteLength).setUint32(Number(length), bytes.length, true);
+    sample.streams.delete(key);
+    return address;
+  },
+  raw_round_trip_equal(context, name) {
+    const key = guestString(context, name);
+    return Object.hasOwn(sample.formatted, key) && Object.hasOwn(sample.round, key)
+      && isDeepStrictEqual(sample.formatted[key], sample.round[key]);
+  },
+  raw_ir_contains: (context, text) => sample.ir.includes(guestString(context, text)),
+}});
+async function checkOutputs(stem, path, outputs, formatted, round, ir) {
+  const entry = '.tower/' + path + stem;
+  const streams = new Map(Object.entries(outputs).map(([engine, output]) =>
+    [stem + '.tower/' + engine, encoder.encode(output)]));
+  streams.set(stem + '.expected/file', await read('scaffolding/' + path + stem + '.expected'));
+  sample = {formatted, round, ir, streams};
+  try {
+    runSelectedTest(assertionHost, entry + '_test.tower', undefined, {files:assertionFiles});
+    assert.equal(streams.size, 0, 'The selected Tower test must consume the oracle and all three outputs');
+  } finally { sample = undefined; }
+}
+const reader = '.tower/' + directory + 'results.tower';
+const browserReader = fixtureSource('.tower/' + directory + 'browser_results.tower');
+const assertionFiles = files.filter(({path}) => path.startsWith('.tower/' + directory)
+  || path.startsWith('.tower/library/') || path.startsWith('.tower/examples/memory')
+  || path === '.tower/tests/storage.tower' || path === '.tower/backend/text.tower')
+  .map(file => file.path === reader ? {...file, text:browserReader} : file);
+
 function executeFixture(handle) {
   let result, output = '';
   // Expression normalization can exceed one bounded worker slice. Continue
   // through the existing execution API, preserving output from every slice.
   for (let slice = 0; slice < 20; ++slice) {
     result = tower.execute(handle, 100000); output += result.output;
+    assert.ok(!result.outputTruncated, 'Truncated guest output');
     if (result.status !== 'executing') break;
   }
   return {...result, output};
 }
-for (const [name, source, expected] of cases) test('raw memory: ' + name, async () => {
+for (const [name, stem, path = directory] of cases) test('raw memory: ' + name, async t => {
+  const entry = '.tower/' + path + stem + '.tower';
+  const source = fixtureSource(entry);
+  // The storage wrapper has imports relative to its own directory.
+  if (stem === 'storage_imports') {
+    tower.configureModules({entry});
+    t.after(() => tower.configureModules({entry:'input.tower'}));
+  }
   const handle = tower.compile(source);
   try {
-    const reference = executeFixture(handle);
-    assert.equal(reference.status, 'done', reference.error); assert.equal(reference.output, expected);
+    const graph = executeFixture(handle);
+    requireStatus(graph, 'done');
     const fastHandle = tower.compile(source);
+    let fast;
     try {
       tower.useFast(fastHandle);
-      const fast = executeFixture(fastHandle);
-      assert.equal(fast.status,'done',fast.error); assert.equal(fast.output,expected);
+      fast = executeFixture(fastHandle);
+      requireStatus(fast, 'done');
     } finally { tower.destroyExecution(fastHandle); }
-    const formatted = tower.foundation(handle), round = tower.compileFoundation(formatted.source);
-    try { assert.equal(tower.foundation(round).source, formatted.source); assert.deepEqual(tower.foundation(round).types, formatted.types); }
-    finally { tower.destroyExecution(round); }
-    const compiled = llvm.compile(formatted.source); assert.equal(compiled.status, 'compiled', compiled.error);
-    assert.doesNotMatch(compiled.before, /tower\.pointer|tower\.cell|\.initialized|\.generation|\.active/);
-    const actual = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
-    assert.equal(actual.status, 'done', actual.error); assert.equal(actual.output, expected);
+    const formatted = tower.foundation(handle);
+    const rebuilt = tower.compileFoundation(formatted.source);
+    let round;
+    try { round = tower.foundation(rebuilt); }
+    finally { tower.destroyExecution(rebuilt); }
+    const compiled = llvm.compile(formatted.source);
+    requireStatus(compiled, 'compiled');
+    const wasm = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
+    requireStatus(wasm, 'done');
+    await checkOutputs(stem, path, {Graph:graph.output, Fast:fast.output, LLVM:wasm.output},
+      formatted, round, compiled.before);
   } finally { tower.destroyExecution(handle); }
 });
 

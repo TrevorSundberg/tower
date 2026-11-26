@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("storage_imports.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("storage_imports.tower", wanted), "storage_imports stdout");
+}

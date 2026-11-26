@@ -1,0 +1,13 @@
+import foundation;
+
+var a: u8[6];
+var p: u8* = &a[0];
+fill(p, 1, 6);
+p[0] = 7;
+p[1] = 8;
+var q: u8* = p + 1;
+copy(q, p, 5);
+print(p[0]);
+print(p[1]);
+print(p[2]);
+print(p[5]);

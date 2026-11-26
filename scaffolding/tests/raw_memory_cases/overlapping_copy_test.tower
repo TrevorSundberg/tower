@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("overlapping_copy.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("overlapping_copy.tower", wanted), "overlapping_copy stdout");
+}

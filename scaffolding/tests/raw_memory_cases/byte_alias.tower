@@ -1,0 +1,9 @@
+import foundation;
+
+var x: u32 = 16909060;
+var p: u32* = &x;
+var b: u8* = bits(u8*, p);
+print(b[0]);
+print(b[3]);
+b[1] = 0;
+print(x);

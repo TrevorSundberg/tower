@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("nested_arrays.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("nested_arrays.tower", wanted), "nested_arrays stdout");
+}

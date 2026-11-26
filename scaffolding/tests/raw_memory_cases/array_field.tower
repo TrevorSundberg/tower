@@ -1,0 +1,13 @@
+import foundation;
+
+struct S {
+    tag: u8;
+    values: i32[3];
+}
+
+var s: S;
+s.values[2] = 42;
+var p: S* = &s;
+print(p.values[2]);
+var size: usize = sizeof(S);
+print(size);

@@ -1,0 +1,5 @@
+import foundation;
+
+var p: u64* = alloc(u64, 4294967295);
+var b: bool = p == null;
+print(b);

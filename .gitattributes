@@ -3,6 +3,8 @@
 scaffolding/tests/*.expected text eol=lf
 scaffolding/tests/struct_cases/*.expected text eol=lf
 scaffolding/tests/inference_inputs/*.expected text eol=lf
+scaffolding/tests/raw_memory_cases/*.expected text eol=lf
+scaffolding/examples/memory.expected text eol=lf
 scaffolding/compiler/bytecode_package_cases/*.expected text eol=lf
 CNAME text eol=lf
 

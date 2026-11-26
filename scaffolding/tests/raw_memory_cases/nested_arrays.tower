@@ -1,0 +1,7 @@
+import foundation;
+
+var grid: i32[2][3];
+grid[2][1] = 42;
+print(grid[2][1]);
+var size: usize = sizeof(i32[2][3]);
+print(size);

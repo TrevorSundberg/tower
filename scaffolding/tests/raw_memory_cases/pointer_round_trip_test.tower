@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("pointer_round_trip.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("pointer_round_trip.tower", wanted), "pointer_round_trip stdout");
+}

@@ -1,0 +1,14 @@
+import foundation;
+
+var a: i32[4];
+a[0] = 1;
+a[1] = 2;
+a[2] = 3;
+a[3] = 4;
+var p: i32* = &a[0];
+p = p + 2;
+print(p[0]);
+p = p - 1;
+print(p[0]);
+var negative: i32 = -1;
+print(p[negative]);

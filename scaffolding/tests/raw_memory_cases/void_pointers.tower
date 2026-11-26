@@ -1,0 +1,9 @@
+import foundation;
+
+var p: void* = null;
+var x: i32 = 42;
+var q: i32* = &x;
+p = bits(void*, q);
+q = bits(i32*, p);
+var result: i32 = *q;
+print(result);

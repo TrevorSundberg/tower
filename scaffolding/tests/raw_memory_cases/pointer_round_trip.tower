@@ -1,0 +1,10 @@
+import foundation;
+
+var x: i32 = 42;
+var p: i32* = &x;
+var address: usize = bits(usize, p);
+var q: i32* = bits(i32*, address);
+*q = 7;
+print(x);
+var same: bool = p == q;
+print(same);

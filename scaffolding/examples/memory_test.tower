@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import .tests.raw_memory_cases.results;
+
+test() {
+    var wanted = raw_expected("memory.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("memory.tower", wanted), "memory stdout");
+}

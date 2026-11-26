@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("byte_alias.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("byte_alias.tower", wanted), "byte_alias stdout");
+}

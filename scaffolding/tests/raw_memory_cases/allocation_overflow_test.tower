@@ -1,0 +1,8 @@
+import library.test_fixtures;
+import results;
+
+test() {
+    var wanted = raw_expected("allocation_overflow.expected");
+    defer free(wanted.data);
+    assert(raw_output_matches("allocation_overflow.tower", wanted), "allocation_overflow stdout");
+}
