@@ -1,0 +1,366 @@
+import library.testing;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.interpreter_context_types;
+import .compiler.interpreter_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_vector;
+import interpreter_call_query_support;
+
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn im_memory_resize(state: IMState*, count: usize): bool;
+extern fn ix_write(execution: IMExecution*, address: u64, value: u64, type: FoundationType*, offset: usize): void;
+
+var InputQuerySmallBytes: usize = 8;
+var InputQueryLargeBytes: usize = 65536;
+var InputQueryCapacityFactor: usize = 4;
+var InputQueryFrameAllowance: usize = 128;
+var InputQueryBudgetBytes: usize = 1048576;
+
+struct InputQueryStartup {
+    allowed: usize;
+    cached: bool;
+    memory: bool;
+    frames: bool;
+    initialized: bool;
+}
+
+test() { check_input_widths(InputQuerySmallBytes, false); }
+test() { check_input_widths(InputQueryLargeBytes, false); }
+test() { check_input_widths(InputQuerySmallBytes, true); }
+test() { check_input_widths(InputQueryLargeBytes, true); }
+
+fn check_input_widths(input_bytes: usize, budgeted: bool): void {
+    check_input_query(4, input_bytes, budgeted);
+    check_input_query(8, input_bytes, budgeted);
+}
+
+fn input_query_owned_bytes(invocation: IMInvocation*): usize {
+    var frames = &invocation.state.frames;
+    var bytes = invocation.state.memory.reservation.bytes + invocation.context.initialized.reservation.bytes
+        + invocation.context.input_storage.reservation.bytes + frames.reservation.bytes
+        + invocation.state.type_values.values.reservation.bytes + invocation.state.node_cache.reservation.bytes
+        + invocation.state.function_values.reservation.bytes + invocation.state.allocations.reservation.bytes
+        + invocation.state.free_blocks.reservation.bytes + invocation.state.strings.reservation.bytes
+        + invocation.state.sequenced.reservation.bytes + invocation.context.error.reservation.bytes
+        + invocation.context.output.reservation.bytes + invocation.context.type_construction.error.reservation.bytes;
+    for(var i: usize = 0; i < frames.capacity; i++) {
+        bytes += frames.data[i].tasks.reservation.bytes + frames.data[i].values.reservation.bytes
+            + frames.data[i].addresses.reservation.bytes;
+    }
+    return bytes;
+}
+
+// Published aggregate projections are values, not a producer frame. Two
+// interleaved consumers must own independent copies with lexical frame lifetime.
+fn check_input_query(width: u32, input_bytes: usize, budgeted: bool): void {
+    var budget: WorkBudget = default;
+    var world = compiler_world_create_workers(1);
+    if budgeted {
+        assert(work_budget_init(&budget, 1, InputQueryBudgetBytes, 1)
+            && compiler_world_bind_budget(world, &budget));
+    }
+    var root = entity_create(compiler_world_store(world));
+    sem_attach(root, KProgram);
+    var inputs = sem_create(root);
+    assert(entity_register(inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+    var record = call_query_node(root, width, KType);
+    sem_get(record).size = input_bytes;
+    sem_get(record).alignment = 4;
+    var aggregate: FoundationType = { scalar: SStruct, record: record, pointer_bytes: width, ..default };
+    var first = call_query_node(root, width, KOperand);
+    sem_get(first).constant = true;
+    sem_get(first).bits = 7;
+    var second = call_query_node(root, width, KOperand);
+    sem_get(second).constant = true;
+    sem_get(second).bits = 8;
+    var projections: IMValueProjection[2];
+    projections[0] = { subject: first, type: sem_get(first).type, ..default };
+    projections[1] = { subject: second, type: sem_get(second).type, byte_offset: input_bytes - sizeof(i32), ..default };
+    var bindings: void*[2];
+    for(var i: usize = 0; i < sizeof(decltype(bindings)) / sizeof(void*); i++) {
+        bindings[i] = call_query_node(root, width, KDeclare);
+        sem_get(bindings[i]).type = aggregate;
+        sem_get(bindings[i]).global = true;
+        var producer = call_query_node(root, width, KOperand);
+        sem_get(producer).type = aggregate;
+        sem_get(producer).constant = true;
+        var input = bits(IMValueInput*, entity_component_data(entity_component_add(bindings[i], inputs)));
+        *input = { producer: producer, projections: &projections[0],
+            projection_count: sizeof(decltype(projections)) / sizeof(IMValueProjection), aggregate: true, ..default };
+    }
+    var entry = call_query_node(root, width, KFunction);
+    var body = call_query_node(root, width, KBlock);
+    sem_get(entry).body = body;
+    sem_get(entry).frame_size = 16;
+    var local = call_query_node(root, width, KDeclare);
+    var field = call_query_node(root, width, KField);
+    sem_get(field).left = call_query_read(root, width, bindings[0]);
+    sem_get(local).value = field;
+    call_query_push(&sem_get(entry).locals, local);
+    call_query_push(&sem_get(body).items, local);
+    var nested = call_query_node(root, width, KFunction);
+    var nested_body = call_query_node(root, width, KBlock);
+    sem_get(nested).body = nested_body;
+    sem_get(nested).frame_size = 16;
+    var nested_field = call_query_node(root, width, KField);
+    sem_get(nested_field).left = call_query_read(root, width, bindings[1]);
+    sem_get(nested_field).byte_offset = input_bytes - sizeof(i32);
+    var nested_local = call_query_node(root, width, KDeclare);
+    sem_get(nested_local).value = nested_field;
+    call_query_push(&sem_get(nested).locals, nested_local);
+    call_query_push(&sem_get(nested_body).items, nested_local);
+    var nested_return = call_query_node(root, width, KReturn);
+    sem_get(nested_return).value = call_query_read(root, width, nested_local);
+    call_query_push(&sem_get(nested_body).items, nested_return);
+    var call = call_query_node(root, width, KCall);
+    sem_get(call).binding = nested;
+    var sum = call_query_node(root, width, KBinary);
+    sem_get(sum).op = OAdd;
+    sem_get(sum).left = call_query_read(root, width, local);
+    sem_get(sum).right = call;
+    var returned = call_query_node(root, width, KReturn);
+    sem_get(returned).value = sum;
+    call_query_push(&sem_get(body).items, returned);
+    var a: IMInvocation = default;
+    var b: IMInvocation = default;
+    assert(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    assert(interpreter_invocation_init(&b, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+    var startup: InputQueryStartup[5] = default;
+    startup[1] = {allowed: a.state.node_cache.reservation.bytes,
+        cached: true, ..default};
+    startup[2] = {allowed: startup[1].allowed + a.state.memory.reservation.bytes,
+        cached: true, memory: true, ..default};
+    startup[3] = {allowed: startup[2].allowed + a.state.frames.reservation.bytes,
+        cached: true, memory: true, frames: true, ..default};
+    startup[4] = {allowed: startup[3].allowed + a.context.initialized.reservation.bytes,
+        cached: true, memory: true, frames: true, initialized: true};
+    check_interleaved_inputs(&a, &b, inputs, width, input_bytes, budgeted ? &budget : null);
+
+    // Stopping a live invocation releases its private copy without publishing
+    // effects or retaining the borrowed graph. Reuse the same frame depth next.
+    for(var attempt: usize = 0; attempt < 3; attempt++) {
+        assert(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+        a.context.value_inputs = inputs;
+        a.context.type_arguments = true;
+        while a.context.input_storage.length == 0 && !a.state.done && !a.state.failed {
+            interpreter_invocation_step(&a, 1);
+        }
+        assert(!a.state.failed && a.context.input_storage.length == 1,
+            "A reached input owns a snapshot before suspension or disposal");
+        if budgeted && attempt == 0 {
+            var charged: WorkBudgetSnapshot = default;
+            assert(work_budget_snapshot(&budget, &charged));
+            var occupied: WorkReservation = default;
+            assert(work_budget_reserve_result(&budget, 0, 0,
+                charged.bytes - charged.used_bytes, &occupied) == WorkBudgetError.None);
+            var data = a.state.memory.data;
+            var length = a.state.memory.length;
+            var capacity = a.state.memory.capacity;
+            var receipt = a.state.memory.reservation;
+            var at = a.context.input_storage.data[0].address;
+            assert(!im_memory_resize(&a.state, capacity + 1)
+                && a.state.memory.data == data && a.state.memory.length == length
+                && a.state.memory.capacity == capacity
+                && a.state.memory.reservation.slot == receipt.slot
+                && a.state.memory.reservation.generation == receipt.generation
+                && a.state.memory.reservation.bytes == receipt.bytes
+                && a.state.storage_error == WorkBudgetError.Capacity
+                && data[at] == 7 && data[at + input_bytes - sizeof(i32)] == 8,
+                "Denied private memory growth preserves the live allocation, receipt and values");
+            assert(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None);
+        }
+        if attempt == 1 && a.context.input_storage.length == 1 {
+            var execution: IMExecution = { state: &a.state, context: &a.context };
+            var address = convert(u64, a.context.input_storage.data[0].address);
+            ix_write(&execution, address, 99, &sem_get(first).type, 0);
+            assert(a.state.failed && a.context.error.length != 0
+                && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0
+                && a.state.memory.data[convert(usize, address)] == 7,
+                "A strict store diagnoses immutable input without changing its bytes");
+        }
+        interpreter_invocation_dispose(&a);
+        assert(a.context.input_storage.data == null && a.context.initialized.data == null
+            && a.state.memory.data == null, "Disposal releases all input snapshot storage");
+    }
+    // The ordinary byte-copy and fill instructions use the same immutable
+    // storage contract as scalar stores, including a copy back onto itself.
+    var address = call_query_node(root, width, KAddress);
+    sem_get(address).value = call_query_read(root, width, bindings[0]);
+    sem_get(address).type = aggregate;
+    sem_get(address).type.pointers = 1;
+    var count = call_query_node(root, width, KOperand);
+    sem_get(count).constant = true;
+    sem_get(count).bits = 8;
+    var memory = call_query_node(root, width, KFill);
+    sem_get(memory).left = address;
+    sem_get(memory).value = count;
+    sem_get(body).items.length = 1;
+    call_query_push(&sem_get(body).items, memory);
+    for(var mode: usize = 0; mode < 2; mode++) {
+        sem_get(memory).kind = mode == 0 ? KFill : KCopy;
+        sem_get(memory).right = mode == 0 ? first : address;
+        assert(interpreter_invocation_init(&a, entry, convert(usize, width), null, 0, true, CallQueryFuel));
+        a.context.value_inputs = inputs;
+        a.context.type_arguments = true;
+        interpreter_invocation_step(&a, convert(usize, CallQueryFuel));
+        assert(a.state.failed && a.context.input_storage.length == 1
+            && a.context.error.length != 0
+            && strcmp(a.context.error.data, "Compile-time evaluation cannot modify an immutable captured value") == 0,
+            "Copy and fill reject writes to immutable input storage");
+        if a.context.input_storage.length == 1 {
+            var at = a.context.input_storage.data[0].address;
+            assert(a.state.memory.data[at] == 7 && a.state.memory.data[at + input_bytes - sizeof(i32)] == 8,
+                "Rejected memory operations preserve every captured field");
+        }
+        interpreter_invocation_dispose(&a);
+    }
+    if budgeted {
+        for(var i: usize = 0; i < sizeof(decltype(startup)) / sizeof(InputQueryStartup); i++) {
+            check_input_startup_denial(&a, entry, width, &budget, &startup[i]);
+        }
+    }
+    entity_release(root);
+    assert(compiler_world_dispose(world), "Aggregate input consumers release their world");
+    if budgeted {
+        var released: WorkBudgetSnapshot = default;
+        assert(work_budget_snapshot(&budget, &released));
+        assert(released.used_bytes == 0 && released.live == 0 && work_budget_dispose(&budget),
+            "The world budget outlives cancelled and retained interpreter buffers");
+    }
+}
+
+fn check_interleaved_inputs(a: IMInvocation*, b: IMInvocation*, inputs: void*, width: u32,
+    input_bytes: usize, budget: WorkBudget*): void {
+    a.context.value_inputs = inputs;
+    b.context.value_inputs = inputs;
+    a.context.type_arguments = true;
+    b.context.type_arguments = true;
+    b.context.retain_result_storage = true;
+    var caller: IMValueStorage = default;
+    var nested_copies = false;
+    var caller_survives = false;
+    var peak_inputs: usize = 0;
+    var peak_bytes: usize = 0;
+    var peak_memory: usize = 0;
+    var peak_initialized: usize = 0;
+    var peak_metadata: usize = 0;
+    var capacity_changes: usize = 0;
+    var baseline: WorkBudgetSnapshot = default;
+    if budget != null {
+        assert(work_budget_snapshot(budget, &baseline));
+        baseline.used_bytes -= input_query_owned_bytes(a) + input_query_owned_bytes(b);
+    }
+    while !a.state.done || !b.state.done {
+        if !a.state.done { interpreter_invocation_step(a, 1); }
+        if !b.state.done { interpreter_invocation_step(b, 3); }
+        if a.context.input_storage.length > peak_inputs { peak_inputs = a.context.input_storage.length; }
+        var live_bytes: usize = 0;
+        foreach(var &input in &a.context.input_storage) { live_bytes += input.bytes; }
+        if live_bytes > peak_bytes { peak_bytes = live_bytes; }
+        if a.state.memory.capacity > peak_memory { peak_memory = a.state.memory.capacity; capacity_changes++; }
+        if a.context.initialized.capacity > peak_initialized {
+            peak_initialized = a.context.initialized.capacity;
+            capacity_changes++;
+        }
+        if a.context.input_storage.capacity > peak_metadata {
+            peak_metadata = a.context.input_storage.capacity;
+            capacity_changes++;
+        }
+        if budget != null {
+            var charged: WorkBudgetSnapshot = default;
+            assert(work_budget_snapshot(budget, &charged));
+            assert(charged.used_bytes == baseline.used_bytes
+                + input_query_owned_bytes(a) + input_query_owned_bytes(b)
+                && charged.used_lanes == 0 && charged.peak_bytes <= charged.bytes,
+                "Interleaved invocations retain exactly their physical buffer receipts");
+        }
+        if !nested_copies && a.state.frame_count == 2 && a.context.input_storage.length == 2 {
+            caller = a.context.input_storage.data[0];
+            var callee = a.context.input_storage.data[1];
+            assert(caller.frame == 1 && callee.frame == 2 && caller.producer != callee.producer
+                && caller.address + caller.bytes <= callee.address, "Nested frames own distinct input copies");
+            nested_copies = true;
+        }
+        if nested_copies && a.state.frame_count == 1 && a.context.input_storage.length == 1 {
+            var live = a.context.input_storage.data[0];
+            assert(live.frame == caller.frame && live.producer == caller.producer && live.address == caller.address
+                && live.bytes == caller.bytes && a.state.memory.data[live.address] == 7
+                && a.state.memory.data[live.address + input_bytes - sizeof(i32)] == 8,
+                "The caller's original copy survives nested return");
+            caller_survives = true;
+        }
+    }
+    assert(!a.state.failed && !b.state.failed && a.context.result == 15 && b.context.result == 15,
+        "Interleaved aggregate inputs use published scalar projections");
+    assert(nested_copies && caller_survives && a.context.input_storage.length == 0
+        && b.context.input_storage.length == 1 && a.state.memory.data != b.state.memory.data,
+        "Nested return drops only callee snapshots and retained root keeps private storage");
+    // Snapshot extents include stack alignment, in addition to value bytes.
+    assert(peak_inputs == 2 && peak_bytes >= 2 * input_bytes && peak_bytes <= peak_memory
+        && peak_memory <= InputQueryCapacityFactor * input_bytes + InputQueryFrameAllowance
+        && peak_initialized <= InputQueryCapacityFactor * input_bytes + InputQueryFrameAllowance,
+        "Private input storage stays bounded by live frames, including large padded layouts");
+    // These are observed vector capacities, not total allocator bytes or RSS.
+    // Single-step samples count observed growth, not hidden allocation calls.
+    puts("Aggregate input storage: target width, value bytes, peak live bytes, memory capacity, initialization capacity, metadata bytes, observed capacity changes");
+    input_query_number(convert(usize, width)); input_query_number(input_bytes);
+    input_query_number(peak_bytes); input_query_number(peak_memory);
+    input_query_number(peak_initialized); input_query_number(peak_metadata * sizeof(IMValueStorage));
+    input_query_number(capacity_changes);
+    if budget != null {
+        var charged: WorkBudgetSnapshot = default;
+        assert(work_budget_snapshot(budget, &charged));
+        puts("Bound-world physical buffers: retained bytes, peak bytes including replacement overlap");
+        input_query_number(charged.used_bytes - baseline.used_bytes);
+        input_query_number(charged.peak_bytes);
+    }
+    interpreter_invocation_dispose(a);
+    interpreter_invocation_dispose(b);
+    assert(a.state.memory.data == null && b.state.memory.data == null
+        && a.context.input_storage.data == null && b.context.input_storage.data == null
+        && a.context.initialized.data == null && b.context.initialized.data == null,
+        "Completed and retained aggregate invocations release their private vectors");
+    if budget != null {
+        var released: WorkBudgetSnapshot = default;
+        assert(work_budget_snapshot(budget, &released));
+        assert(released.used_bytes == baseline.used_bytes,
+            "Completed and retained results release their byte grants only at disposal");
+    }
+}
+
+fn check_input_startup_denial(a: IMInvocation*, entry: void*, width: u32, budget: WorkBudget*, startup: InputQueryStartup*): void {
+    var charged: WorkBudgetSnapshot = default;
+    assert(work_budget_snapshot(budget, &charged));
+    var allowed = startup.allowed;
+    var occupied: WorkReservation = default;
+    assert(work_budget_reserve_result(budget, 0, 0,
+        charged.bytes - charged.used_bytes - allowed, &occupied) == WorkBudgetError.None);
+    assert(!interpreter_invocation_init(a, entry, convert(usize, width), null, 0, true, CallQueryFuel)
+        && a.state.failed && a.state.storage_error == WorkBudgetError.Capacity
+        && (a.state.node_cache.data != null) == startup.cached
+        && (a.state.memory.data != null) == startup.memory
+        && (a.state.frames.data != null) == startup.frames
+        && (a.context.initialized.data != null) == startup.initialized && a.context.input_storage.data == null
+        && a.context.output.length == 0 && !a.context.returned
+        && input_query_owned_bytes(a) == allowed,
+        "Denied startup retains its typed error and exactly the permitted private owners");
+    assert(a.context.error.data == null && a.context.error.length == 0,
+        "Exhausted startup retains typed failure without uncharged diagnostic storage");
+    if allowed == 0 {
+        assert(a.state.node_cache.data == null, "Exhausted startup budget cannot retain a hidden node cache");
+    }
+    assert(work_budget_release_result(budget, &occupied) == WorkBudgetError.None);
+    var steps = a.state.steps;
+    interpreter_invocation_step(a, convert(usize, CallQueryFuel));
+    assert(a.state.done && a.state.failed && a.state.steps == steps
+        && a.state.storage_error == WorkBudgetError.Capacity && a.context.output.length == 0
+        && input_query_owned_bytes(a) == allowed,
+        "Returning startup allowance cannot replay a failed invocation");
+    interpreter_invocation_dispose(a);
+    var released: WorkBudgetSnapshot = default;
+    assert(work_budget_snapshot(budget, &released));
+    assert(released.used_bytes == charged.used_bytes && released.live == charged.live,
+        "Failed startup releases every partial receipt before its world");
+}
