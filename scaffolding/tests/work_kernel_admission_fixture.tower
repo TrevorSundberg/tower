@@ -1,0 +1,29 @@
+import tower;
+import .compiler.compiler_kernel;
+
+extern fn pthread_self(): usize;
+var AdmissionScratchBytes: usize = 262144;
+
+struct AdmissionCheck {
+    gate: void*;
+    barrier: void*;
+    target: usize;
+    waiting: usize;
+    active: usize;
+    peak: usize;
+    caller: usize;
+    coordinator: usize;
+    released: bool;
+}
+struct AdmissionJob {
+    // Deliberately not the first field: typed dispatch must project the member.
+    prefix: usize;
+    kernel: CompilerKernel;
+    context: AdmissionCheck*;
+    ordinal: usize;
+    thread: usize;
+    result: usize;
+    calls: usize;
+    bytes: usize;
+    success: bool;
+}
