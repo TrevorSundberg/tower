@@ -108509,3 +108509,49 @@ run. None of the twelve adjacent companions appeared among the sources read by
 the 25 ordinary units. The isolated UI experiment enabled selection, showed a
 failing assertion at its real source location and recovered after restoration.
 Receipts `55164741`, `eb3d16df`, `73439df5` and `41ccd8f5` retain the raw runs.
+
+### Checkout resources for inference reached from semantic iteration and defer
+
+Host 4, assignment 23c41e64-19f9-4502-87ca-57cb4a3cc201. On the b7
+baseline, the iteration owner at four jobs and defer owner at one and four
+each passed 37 declarations. With the corrected 6307aaaf struct harness
+and the ef113db9 inference companion, the same three CTests failed with
+“Cannot read imported module: examples/inference” at inference_bindings.tower
+line 2. These registrations passed no checkout grammar paths. The new
+transitive companion imports the inference_bindings fixture, which resolves
+examples.inference against a resource root containing the checkout examples.
+
+The correction passes the checkout Bedrock and Foundation paths, as the
+registered direct inference suite already does. All three generated CTests
+then passed 41 declarations with the installed 8bc867b6 compiler. Their
+reports retain all 37 previous source coordinates in order and add the four
+inference assertions. Only these three commands changed. The full Node suite
+on the original reconstruction matched all 511 b7 outcomes, including the
+two existing opt-in skips. This correction changes native CTest arguments.
+
+The pre-correction CMake and playground/tests trees match the requested
+02e60a50 identities. The tested scaffolding tree is 3186853e, while the
+manager specified a29c22e3. Qualifying the manager revision requires the
+missing scaffolding delta. The host-4 packet contains both exact IDs, the
+source readback, failures, corrected CTest output, comparator and timing
+logs. The three corrected commands used four pinned physical cores on a
+Ryzen 7 5800H with a 15.36 CPU cgroup quota. Each ran in a fresh process
+under the host timing lock. No compiler or runtime code was changed.
+
+The manager fetched both host-4 trees from receipt `23c41e64` and compared
+them with `02e60a50`. The only difference under the three requested paths
+was the affected-test prose in `scaffolding/tests/README.md`. Every Tower
+source, fixture, CTest registration and browser test in those directories
+matched before the correction. The installed compiler was the pinned
+`7315b86e` binary. These results establish the inference and resource-path
+behavior on that compiler. The whole-worktree comparison also found an older
+bootstrap installer script and documentation outside the three paths.
+
+The manager compared all 511 unfiltered browser outcomes and skip reasons,
+in order, with the previous release run and checked the four instantiated
+compiler hashes. There were 509 passes and the same two opt-in skips. The
+six native owner comparisons retained all 37 earlier assertion locations in
+order and added the same four inference checks. The corrected iteration and
+defer commands now pass the checkout Bedrock and Foundation paths. Applying
+those arguments to the combined native CTest configuration changes three
+commands. The later entity and generic-body migrations have their own evidence.
