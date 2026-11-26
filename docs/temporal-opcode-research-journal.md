@@ -106165,3 +106165,69 @@ mapping, frozen inputs, reactors, source-built compiler, raw streams, commands,
 times, link maps, controls and Git bundle. Space before the build was
 56,440,700,928 bytes available. The native compiler build peaked at 785,072
 KiB process RSS. No release-cache build or publication was performed.
+
+### Declaration type reads during the full semantic expression owner
+
+Host 2 followed the four-job TSan finding from receipt d3f9a5d7 on integrated
+commit 3fa3348a. The original compiler has build ID
+79e5708db2a80b9a4b82dede571a69a6e85c83f9. It exited 66 before reporting a
+completed test. The Linux worker created by `sem_workers_open` and the main
+thread were executing different declaration kernels from the same batch.
+
+The semantic pass enriches the existing declaration entity with a CompilerFoundation
+component. The recorded allocation stack goes through `sem_node_result`,
+`compiler_world_component_result`, the entity storage pool and
+`compiler_buffer_allocate`. The recorded access was four bytes at
+`0x72a0000610f0` in a 16,303-byte block. On this binary both instructions use
+offset 8 in the FoundationNode, the scalar tag of its embedded FoundationType.
+The writer calls `sem_type` on the declaration's annotation and
+`sem_set_type(&value.type, ...)`. The last reader on the reported path called
+`sem_value_binding` while scanning a type-position syntax node and tested its
+scalar against SType. The diagnostic identifies the storage and both accesses.
+It does not contain the binding's spelling.
+
+Each declaration producer reserves a write on its own declaration query.
+The dispatch coordinator freezes the graph for the batch and waits for the
+kernels before finishing tickets. Discovery and readiness needed the registered
+child constructor or array query for a specific syntax node. Looking up a
+same-named value to infer the kind touched data being written under a different
+reservation. Commit 056ab5ae reads the registered query ID and kind directly.
+The scans keep their existing dependency and suspension rules. At the remaining
+sites that classify type syntax, a registered value's type becomes readable
+after its producer succeeds. The worker window, leases and dispatch are unchanged.
+
+An earlier experiment added an ordering edge for every matching value binding.
+It introduced a false cycle between globals A and B whose annotations referred
+to the separate types B and A. The retained ordinary compiler prints 8 and 1
+for that input. The final implementation preserves both lines. It also preserves
+the predecessor's diagnostic on an ordinary global declared with
+`type_type()` used as a type before that binding was available.
+
+On host 2, the retained predecessor stopped before the first assertion in
+28.21 s with TSan exit 66. Three runs of the repaired instrumented compiler
+on the identical full owner with four jobs passed all nine assertions in
+92.97, 93.07 and 96.03 s. Maximum RSS across those runs was 2,586,528 KiB.
+The repaired checkout's full owner passed again in 92.61 s. The one-job TSan
+owner passed nine in 158.19 s. Direct selection passed six at one and four
+jobs. Ordinary and address-sanitized owner and direct selections passed the
+same nine and six at both widths. The detailed assertion output matched the
+predecessor's ordinary run, with the checkout prefix normalized only for the
+two additional runs against the repaired source tree.
+
+The semantic LLVM and linked executable contain the TSan access hooks.
+The pthread worker transport, allocator object and compiler-memory archive
+match the originals byte for byte. Three worker threads were active on
+different CPUs during a successful run. The existing worker-race sensitivity
+control reported its expected diagnostic and exited 66 on its first run.
+All candidate invocations started successfully. The existing type and query
+smoke suites passed. Five valid default fixtures produced their expected
+output and eight invalid fixtures kept the predecessor's diagnostic, source
+location and exit status at each width.
+
+The host had a Ryzen 5 3600, a cgroup quota of 11.52 CPUs and test affinity
+on logical CPUs 0 through 3. Ordinary full-owner time at one and four jobs
+was 8.50 and 6.27 s before the repair, and 8.73 and 6.18 s after it.
+The ordinary four-job peak RSS changed from 711,328 to 702,312 KiB.
+GNU time measurements, input hashes, original and candidate raw logs, link
+maps, bundle prerequisites and the separate sensitivity result are in host 2
+evidence packet 3a444fc2-7c5f-4fb1-a8ae-d996743901aa.
