@@ -88,7 +88,7 @@ use the ordinary playground reactor alone.
 | Forward rule and token dependencies | `forward_graph` consumes the direct, transitive, token, recursive and replaced-rule programs and checks Foundation's actual CoreCallArgument declaration. |
 | Incomplete grammar activation and EOF | `forward_activation` steps the first declaration, inspects pending A, and checks the failed activation and retained revision. EOF, declaration-reader and optional-reference errors have separate inputs, dependency paths and byte offsets. |
 | Declaration grammar changes and pinned sessions | `forward_pinned` holds a Foundation session after its import, parses the changed declaration reader and the conflict in separate sessions, then resumes the original statement. |
-| Forward module references and initialization | `forward_reference_tests` executes `module.tower` and its canonical round trip. `browser_registration` checks the interpreter and both independent LLVM/Wasm runs against the six-line output. Both hosts reject the duplicate module variable and the early local read at their original offsets. |
+| Forward module references and initialization | `forward_reference_tests` executes `module.tower` and its canonical round trip. `forward_browser/module.tower` checks the interpreter and both independent LLVM/Wasm runs against the six-line output. Both hosts reject the duplicate module variable and the early local read at their original offsets. |
 
 ## Generic body demand fixtures
 

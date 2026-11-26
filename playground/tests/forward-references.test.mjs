@@ -1,24 +1,7 @@
-import {after, test} from 'node:test';
-import {readFile} from 'node:fs/promises';
-import {executeWasm, files, loadLLVM, loadTower} from './compiler-fixtures.mjs';
+import {test} from 'node:test';
+import {fixtureSource, guestString, llvmOutput, openLLVM, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
-const read = path => readFile(new URL('../../' + path, import.meta.url));
-const foundation = (await read('scaffolding/foundation.tower')).toString();
-const sources = new Map(files.map(({path, text}) => [path, text]));
-function input(file) {
-  const source = sources.get('.tower/tests/forward_inputs/' + file);
-  if (source === undefined) throw new Error('Missing forward reference fixture ' + file);
-  return source;
-}
-
-const decoder = new TextDecoder('utf-8', {fatal:true});
-function string(context, pointer) {
-  const memory = context.memory();
-  const end = memory.indexOf(0, pointer);
-  if (!pointer || end < 0) throw new Error('Invalid fixture string');
-  return decoder.decode(memory.subarray(pointer, end));
-}
-
+const input = file => fixtureSource('.tower/tests/forward_inputs/' + file);
 const encoder = new TextEncoder();
 function copyText(context, value) {
   if (typeof value !== 'string') throw new Error('Missing text observation');
@@ -31,16 +14,12 @@ function copyText(context, value) {
   return pointer;
 }
 
-const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
-const tower = await loadTower(bytes, undefined, foundation);
-after(() => tower.close());
+const tower = await openTower();
 const sessions = new Set();
-const outputs = new Map([['foundation_syntax.tower', sources.get('.tower/foundation_syntax.tower')]]);
-let selection, event;
+let outputs, event;
 const observations = {
-  selected: (context, name) => selection === string(context, name),
   parser_open(context, _root, name) {
-    const handle = tower.create(input(string(context, name)));
+    const handle = tower.create(input(guestString(context, name)));
     sessions.add(handle);
     return handle;
   },
@@ -50,41 +29,34 @@ const observations = {
   },
   parser_step(_context, handle) { event = tower.step(handle); },
   parser_pending(context, handle, rule) {
-    const name = string(context, rule);
+    const name = guestString(context, rule);
     const found = tower.inspect(handle).rules.find(item => item.name === name);
     if (!found) throw new Error("Missing grammar rule " + name);
     return found.pending;
   },
   parser_revision: (_context, handle) => tower.inspect(handle).revision,
-  event_text: (context, field) => copyText(context, event[string(context, field)]),
+  event_text: (context, field) => copyText(context, event[guestString(context, field)]),
   event_offset: () => event.errorOffset,
-  observed_text: (context, name) => copyText(context, outputs.get(string(context, name))),
+  observed_text: (context, name) => copyText(context, outputs.get(guestString(context, name))),
   execute_fixture(context, file) {
-    const handle = tower.compile(input(string(context, file)));
+    const handle = tower.compile(input(guestString(context, file)));
     try { event = tower.execute(handle); }
     finally { tower.destroyExecution(handle); }
   },
 };
 
 // Keep the assertion interpreter independent of the parser handles it observes.
-const checks = await loadTower(bytes, undefined, foundation, undefined, undefined, {imports:observations});
-after(() => checks.close());
-const entry = '.tower/tests/forward_browser.tower';
-function check(name) {
-  selection = name;
-  const handle = checks.compile(sources.get(entry));
+const checks = await openTower({imports:observations});
+function check(name, observed = new Map()) {
   try {
-    checks.useFast(handle);
-    for (let chunk = 0; chunk < 10; chunk++) {
-      const result = checks.execute(handle, 100_000);
-      if (result.status === "done") return;
-      if (result.status !== "executing") throw new Error(result.error || result.status);
-    }
-    throw new Error("Forward-reference assertions exceeded one million steps");
+    outputs = observed;
+    outputs.set('foundation_syntax.tower', fixtureSource('.tower/foundation_syntax.tower'));
+    runSelectedTest(checks, `.tower/tests/forward_browser/${name}.tower`);
   } finally {
-    checks.destroyExecution(handle);
     for (const open of sessions) tower.destroy(open);
     sessions.clear();
+    outputs = undefined;
+    event = undefined;
   }
 }
 
@@ -99,18 +71,16 @@ test('forward rules follow declaration grammar changes without prescanning or ch
 });
 test('module functions, types and variables resolve forward, preserving initialization order and local scopes', async () => {
   const source = input('module.tower');
-  const llvm = await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+  const llvm = await openLLVM();
   const handle = tower.compile(source);
   try {
     const result = tower.execute(handle);
     if (result.status !== 'done') throw new Error(result.error);
-    outputs.set('interpreter', result.output);
+    const observed = new Map([['interpreter', result.output]]);
     const canonical = tower.foundation(handle);
     for (const [engine, text] of [['LLVM source', source], ['LLVM Foundation', canonical.source]]) {
-      const compiled = llvm.compile(text);
-      if (compiled.status !== 'compiled') throw new Error(compiled.error);
-      outputs.set(engine, (await executeWasm(compiled)).output);
+      observed.set(engine, await llvmOutput(llvm, text));
     }
-    check('module');
+    check('module', observed);
   } finally { tower.destroyExecution(handle); }
 });
