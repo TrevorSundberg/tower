@@ -1,0 +1,40 @@
+import library.testing;
+import backend.text;
+
+// The subject parses one source at a time. Text fields are guest-owned copies.
+extern fn grammar_fixture(name: u8*): u8*;
+extern fn grammar_parse(source: u8*): void;
+extern fn grammar_end_text(field: u8*): u8*;
+extern fn grammar_end_revision(): usize;
+extern fn grammar_events(): usize;
+extern fn grammar_event_revision(event: usize): usize;
+extern fn grammar_event_status(event: usize): u8*;
+extern fn grammar_nodes(event: usize): usize;
+extern fn grammar_node_text(event: usize, node: usize, field: u8*): u8*;
+extern fn grammar_node_offset(event: usize, node: usize, field: u8*): usize;
+extern fn grammar_keywords(): usize;
+extern fn grammar_keyword(index: usize): u8*;
+extern fn grammar_highlights(): usize;
+extern fn grammar_highlight_kind(index: usize): u8*;
+extern fn grammar_highlight_offset(index: usize, field: u8*): usize;
+
+fn check_status(wanted: u8*): void {
+    var actual = grammar_end_text("status");
+    defer free(actual);
+    if !backend_equal(actual, wanted) {
+        var diagnostic = grammar_end_text("error");
+        defer free(diagnostic);
+        assert(false, *diagnostic != 0 ? diagnostic : actual);
+    }
+}
+
+fn matching_nodes(event: usize, field: u8*, wanted: u8*): usize {
+    var count: usize = 0;
+    var nodes = grammar_nodes(event);
+    for (var i: usize = 0; i < nodes; i++) {
+        var text = grammar_node_text(event, i, field);
+        defer free(text);
+        if backend_equal(text, wanted) { count++; }
+    }
+    return count;
+}

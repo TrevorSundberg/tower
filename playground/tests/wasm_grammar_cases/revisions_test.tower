@@ -1,0 +1,70 @@
+import session;
+import backend.text;
+
+struct Keyword {
+    word: u8*;
+    required: bool;
+}
+
+// Grammar keywords in this fixture use ASCII identifier spelling.
+fn before(left: u8*, right: u8*): bool {
+    while *left != 0 && *left == *right { left++; right++; }
+    return *left < *right;
+}
+
+fn require_keyword(words: Keyword*, count: usize, wanted: u8*): void {
+    for (var i: usize = 0; i < count; i++) {
+        if backend_equal(words[i].word, wanted) { words[i].required = true; return; }
+    }
+    assert(false, wanted);
+}
+
+fn check_keywords(): void {
+    var count = grammar_keywords();
+    var words = alloc(Keyword, count);
+    assert(words != null && count > 0, "Missing final keywords");
+    defer free(words);
+    for (var i: usize = 0; i < count; i++) {
+        words[i] = { word: grammar_keyword(i), required: false };
+        if i > 0 { assert(before(words[i - 1].word, words[i].word), "Keywords must be strictly sorted"); }
+    }
+    defer { for (var i: usize = 0; i < count; i++) { free(words[i].word); } }
+
+    grammar_parse("");
+    var seed_count = grammar_keywords();
+    for (var i: usize = 0; i < seed_count; i++) {
+        var word = grammar_keyword(i);
+        defer free(word);
+        require_keyword(words, count, word);
+    }
+    require_keyword(words, count, "foreach");
+    require_keyword(words, count, "in");
+    for (var i: usize = 0; i < count; i++) { assert(words[i].required, words[i].word); }
+}
+
+test() {
+    var example = grammar_fixture("example");
+    defer free(example);
+    grammar_parse(example);
+    check_status("done");
+    assert(grammar_end_revision() == 8, "Final grammar revision");
+
+    var revisions: usize[10] = {1, 2, 3, 4, 5, 6, 7, 7, 8, 8};
+    var count = sizeof(decltype(revisions)) / sizeof(usize);
+    assert(grammar_events() == count, "Construct count");
+    for (var i: usize = 0; i < count; i++) {
+        assert(grammar_event_revision(i) == revisions[i], "Construct revision");
+    }
+    assert(matching_nodes(7, "role", "Variable") == 2, "Nested Variable captures");
+    assert(matching_nodes(7, "role", "Statement") == 2, "Nested Statement captures");
+
+    var capture = false;
+    var highlights = grammar_highlights();
+    for (var i: usize = 0; i < highlights; i++) {
+        var kind = grammar_highlight_kind(i);
+        defer free(kind);
+        if backend_equal(kind, "capture") { capture = true; break; }
+    }
+    assert(capture, "Capture highlighting");
+    check_keywords();
+}

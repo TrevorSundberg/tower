@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { loadTower, runToEnd } from './compiler-fixtures.mjs';
 import { byteOffsets } from '../src/offsets.mjs';
+import { guestString } from './guest_text.mjs';
+import { moduleText, selectedCases } from './module_case_host.mjs';
+import { numberField } from './parser_observations.mjs';
 const bytes = await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url));
 const bootstrap = await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8');
 const tower = await loadTower(bytes, undefined, bootstrap);
@@ -19,44 +22,33 @@ function analyze(source) {
 test('all native node, parser and syntax tests also pass in WASM without exceptions', () => {
   assert.equal(tower.exports.tw_self_test(), 0);
 });
-test('real example crosses eight grammar revisions and retains named nested captures', () => {
-  const { events, end, snapshot } = analyze(example);
-  assert.equal(end.status, 'done'); assert.equal(end.revision, 8);
-  assert.deepEqual(events.map(e => e.revision), [1,2,3,4,5,6,7,7,8,8]);
-  const first = events[7].nodes;
-  assert.equal(first.filter(n => n.role === 'Variable').length, 2);
-  assert.equal(first.filter(n => n.role === 'Statement').length, 2);
-  assert.deepEqual(snapshot.keywords, [...new Set([...analyze('').snapshot.keywords, 'foreach', 'in'])].sort());
-  assert.ok(snapshot.highlights.some(t => t.kind === 'capture'));
+// The assertion VM reads the same public parser records as the other Wasm
+// tests in this file. Parsing another input replaces the current record.
+let parsed;
+const fixtures = new Map(Object.entries({example, base, loop}));
+const grammarCase = selectedCases('wasm_grammar_cases', {
+  grammar_fixture: (c, name) => moduleText(c, fixtures.get(guestString(c, name))),
+  grammar_parse(c, input) { parsed = analyze(guestString(c, input)); },
+  grammar_end_text: (c, field) => moduleText(c, parsed.end[guestString(c, field)]),
+  grammar_end_revision: () => numberField(parsed.end.revision),
+  grammar_events: () => parsed.events.length,
+  grammar_event_revision: (_, i) => numberField(parsed.events[i].revision),
+  grammar_event_status: (c, i) => moduleText(c, parsed.events[i].status),
+  grammar_nodes: (_, i) => parsed.events[i].nodes.length,
+  grammar_node_text: (c, i, j, field) => moduleText(c, parsed.events[i].nodes[j][guestString(c, field)]),
+  grammar_node_offset: (c, i, j, field) => numberField(parsed.events[i].nodes[j][guestString(c, field)]),
+  grammar_keywords: () => parsed.snapshot.keywords.length,
+  grammar_keyword: (c, i) => moduleText(c, parsed.snapshot.keywords[i]),
+  grammar_highlights: () => parsed.snapshot.highlights.length,
+  grammar_highlight_kind: (c, i) => moduleText(c, parsed.snapshot.highlights[i].kind),
+  grammar_highlight_offset: (c, i, field) => numberField(parsed.snapshot.highlights[i][guestString(c, field)]),
 });
-
-test('construct lookahead continues shared prefixes, preserves boundaries and reports real conflicts', () => {
-  for (const alternatives of ["ForEach | 'for'", "'for' | ForEach"]) {
-    const source = example.replace('parse Statement |= ForEach;', `parse Statement |= ${alternatives};`);
-    const { events, end } = analyze(source);
-    assert.equal(end.status, 'done', end.error);
-    assert.equal(events.length, 10);
-    assert.equal(events[7].nodes.filter(node => node.label === 'ForEach').length, 2);
-  }
-  const prefix = base + loop + "parse Statement |= 'for';";
-  const source = prefix + 'for /* boundary */ item;for\n' +
-    'token Identifier = /@[a-z]+/ as identifier;@item;for';
-  const { events, end, snapshot } = analyze(source);
-  assert.equal(end.status, 'done', end.error);
-  assert.deepEqual(events.filter(e => e.status === 'statement').map(e => source.slice(e.nodes[0].start, e.nodes[0].end)),
-    ['for', 'item;', 'for', '@item;', 'for']);
-  assert.equal(snapshot.highlights.filter(t => source.slice(t.start, t.end) === '/* boundary */').length, 1);
-  for (let i = 1; i < snapshot.highlights.length; i++)
-    assert.ok(snapshot.highlights[i - 1].end <= snapshot.highlights[i].start);
-  const missing = analyze(prefix + 'for(');
-  assert.equal(missing.end.status, 'error');
-  assert.equal(missing.events.filter(e => e.status === 'statement').length, 0);
-  const conflicting = analyze("parse Statement = 'x';parse Statement |= 'x' 'x';");
-  assert.match(conflicting.end.error, /shift\/reduce/);
-  assert.equal(conflicting.end.revision, 1);
-  const reduce = analyze(base + "parse Statement |= Expression ';';");
-  assert.match(reduce.end.error, /reduce\/reduce/);
-});
+async function checkGrammar(name) {
+  try { await grammarCase(name); }
+  finally { parsed = undefined; }
+}
+test('real example crosses eight grammar revisions and retains named nested captures', () => checkGrammar('revisions'));
+test('construct lookahead continues shared prefixes, preserves boundaries and reports real conflicts', () => checkGrammar('lookahead'));
 test('keyword classification follows declaration boundaries, including removal and whole words', () => {
   const source = base + 'for;' + loop + 'for(x in xs){}' +
     "parse ForEach = 'walk' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';" +
