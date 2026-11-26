@@ -1,2 +1,12 @@
-// Owner discovery follows this import to the existing five formatter tests.
-import syntax_session_format_cases;
+import library.testing;
+import syntax_session_format_cases_checks;
+
+test() { check_format_declarations(); }
+
+test() { check_format_comments(); }
+
+test() { check_format_refusal(); }
+
+test() { check_format_increment(); }
+
+test() { check_format_affixes(); }
