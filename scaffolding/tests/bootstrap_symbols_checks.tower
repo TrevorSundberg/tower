@@ -76,6 +76,10 @@ export fn main(): i32 {
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result\n", null);
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_resul\n", "node_match_set_label_resul");
     symbol_case(BootstrapUnit.Entities, false, " U node_match_set_label_result_extra\n U node_match_set_label_result\n", "node_match_set_label_result_extra");
+    symbol_case(BootstrapUnit.Semantics, false, " U node_match_set_label_result\n", null);
+    symbol_case(BootstrapUnit.Semantics, false, " U node_match_set_label_resul\n", "node_match_set_label_resul");
+    symbol_case(BootstrapUnit.Semantics, false, " U node_match_set_label_result_extra\n", "node_match_set_label_result_extra");
+    symbol_case(BootstrapUnit.ParserNodes, false, " U node_match_set_label_result\n", "node_match_set_label_result");
     symbol_case(BootstrapUnit.Interpreter, false, " U node_match_set_label_result\n", "node_match_set_label_result");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "compiler_world_grammar", "compiler_world_grammar_extra");
     symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.Interpreter, "entity_component_owner", "entity_component_owner_extra");
