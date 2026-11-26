@@ -1,0 +1,1 @@
+import foundation; var lo:i64=-9223372036854775808;var hi:u64=18446744073709551615;var a:i32[2];var p:i32*=&a[0];*p=1;var x:usize=sizeof(i32);x=alignof(i32);p=alloc(i32,2);p=realloc(i32,p,3);fill(p,0,12);copy(p,p,12);free(p);

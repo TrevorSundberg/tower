@@ -1,0 +1,23 @@
+import formatter;
+import backend.text;
+import library.testing;
+
+test() {
+    var input = formatter_file("boundaries.tower");
+    defer free(input);
+    var canonical = canonical_foundation(input);
+    defer free(canonical);
+    var first = formatter_response();
+    defer free(first);
+    var fixed = canonical_foundation(canonical);
+    defer free(fixed);
+    assert(backend_equal(fixed, canonical), "Boundary Foundation fixed point");
+    assert(backend_contains(canonical, "-9223372036854775808"), "Signed i64 minimum");
+    assert(backend_contains(canonical, "18446744073709551615"), "Unsigned u64 maximum");
+
+    var repeated = canonical_foundation(input);
+    defer free(repeated);
+    var second = formatter_response();
+    defer free(second);
+    assert(backend_equal(first, second), "Repeated Foundation response");
+}

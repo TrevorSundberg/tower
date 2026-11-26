@@ -1,0 +1,5 @@
+import foundation;
+// π
+ var `é space`:i32=42;
+
+print(`é space`); // final

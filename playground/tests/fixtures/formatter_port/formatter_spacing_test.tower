@@ -1,0 +1,47 @@
+import formatter;
+import backend.text;
+import library.testing;
+import library.vector;
+
+fn spacing_input(state: u32*): u8* {
+    var tokens: u8*[19];
+    tokens[0] = "var"; tokens[1] = "x"; tokens[2] = ":"; tokens[3] = "i32";
+    tokens[4] = "="; tokens[5] = "41"; tokens[6] = ";"; tokens[7] = "// retained\n";
+    tokens[8] = "x"; tokens[9] = "="; tokens[10] = "x"; tokens[11] = "+";
+    tokens[12] = "1"; tokens[13] = ";"; tokens[14] = "print"; tokens[15] = "(";
+    tokens[16] = "x"; tokens[17] = ")"; tokens[18] = ";";
+    var gaps: u8*[5];
+    gaps[0] = " "; gaps[1] = "  "; gaps[2] = "\t"; gaps[3] = "\n"; gaps[4] = "\n\n";
+
+    var input: vector(u8) = default;
+    assert(backend_text(&input, "import foundation;\n"));
+    for (var i: usize = 0; i < sizeof(decltype(tokens)) / sizeof(u8*); i++) {
+        *state = *state * 1664525 + 1013904223;
+        var gap = *state % convert(u32, sizeof(decltype(gaps)) / sizeof(u8*));
+        assert(backend_text(&input, tokens[i]));
+        assert(backend_text(&input, gaps[gap]));
+    }
+    return input.data;
+}
+
+fn check_spacing(input: u8*): void {
+    var formatted = formatted_source(input);
+    defer free(formatted);
+    var fixed = formatted_source(formatted);
+    defer free(fixed);
+    assert(backend_equal(fixed, formatted), input);
+    var after_format = canonical_foundation(formatted);
+    defer free(after_format);
+    var original = canonical_foundation(input);
+    defer free(original);
+    assert(original[0] != 0 && backend_equal(after_format, original), input);
+}
+
+test() {
+    var state: u32 = 1179472929; // 0x464d5421
+    for (var trial: usize = 0; trial < 100; trial++) {
+        var input = spacing_input(&state);
+        defer free(input);
+        check_spacing(input);
+    }
+}
