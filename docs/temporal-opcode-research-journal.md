@@ -112358,3 +112358,49 @@ Pages to `9788bd66`. With the assigned source freeze unchanged, both
 original and migrated registrations passed all six on that publication's
 portable and shared frontends with its ordinary LLVM. Integration and
 publication of the migration belong to the manager.
+
+## 2026-11-26 — direct selection of six C emitter tests on Pages 9788bd66
+
+Host 5 merged the advertised main from receipt e7cb0386 (`070e59f6`) into
+public `21f409e5` on a separate local main. The shared checkout had an
+unfinished rebase. In the first renamed run the default companion rule
+looked for six same-stem owners and failed before executing any test.
+The runner now uses the browser target suite's explicit-entry convention.
+It registers the selected `*_test.tower`, observations.tower and three
+library modules on the assertion reactor. The six test bodies are byte-for-byte
+renames. The subject still receives the original program inputs.
+
+Git objects from Pages `9788bd66` supplied the portable, shared and LLVM
+reactors built from `64fcfc1a`. All three installed hashes matched the release
+manifest. The expanded LLVM image also matched the retained digest. Each
+frontend passed the six original Node registrations together. Twelve anchored
+name selections each requested the corresponding renamed entry, reported
+Tower test count 1 and finished. Across those runs all 1,470 recorded
+compiler inputs, emitted texts, diagnostics and execution records matched
+the corresponding files from the reviewed migration. The release test began
+and ended with 7,804 live nodes and zero counted allocations on both frontends.
+
+Changing the ABI expectation to an unsigned 32-bit parameter failed at
+abi_test.tower byte 141 on both reactors. Each isolated run passed after
+restoring the original bytes. Clang 19.1.7 linked each freshly emitted C
+implementation with the retained signed declarations, original Tower caller
+IR and x86-64 Linux runtime. Both plain and ASan/UBSan C builds printed
+`-2147483648` and `-4294967297` on separate lines and exited zero.
+
+The shared module imports env.memory, wasi.thread-spawn, the work_host
+functions and WASI file operations including path_open and fd_read. The
+live-grants registration ran on both frontends. Existing handles retained
+the selected source and oracle across later mounts. The absent oracle
+failed at byte 168 and the changed owner output failed at byte 243. A
+separate run requested an out-of-grant oracle present in the project and
+failed in live_grants_test.tower at byte 2323 on both.
+
+One serial before/after full-suite pair per frontend used the same release
+bytes, Node 24.22.3, CPUs 0–3 on a Ryzen 9 5900XT, test concurrency one,
+one libuv thread and fresh processes on warm files. The shared subject used
+four slots and its assertion reactor one. Portable wall time was 1.86/1.88 s,
+CPU 2.47/2.49 s and peak RSS 270568/250564 KiB. Shared wall time was
+2.21/2.18 s, CPU 3.00/2.97 s and peak RSS 363428/327840 KiB. One pair
+does not establish a speedup. The release reactors were uninstrumented.
+Packet `1ecd1d86-3a3e-4885-9b59-2ad4cd7e070f` contains raw outputs,
+controls, identities and the source bundle for manager publication.

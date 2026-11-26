@@ -57,16 +57,17 @@ const probe = await openTower({threads:{capacity:1}, imports:{
 
 const suite = files.filter(({path}) => ['.tower/backend/text.tower', '.tower/library/testing.tower',
   '.tower/library/vector.tower'].includes(path));
-for (const name of await readdir(root)) {
-  if (name.endsWith('.tower')) suite.push({path:name, text:await read(name)});
-}
-function check(name) {
-  try { runSelectedTest(probe, name + '.tower', 500, {files:suite}); }
+suite.push({path:'observations.tower', text:await read('observations.tower')});
+async function check(name) {
+  const entry = name + '_test.tower';
+  const files = [...suite, {path:entry, text:await read(entry)}];
+  // Each explicit entry is standalone under the browser companion rule.
+  try { runSelectedTest(probe, entry, 500, {files, suffix:'_browser_test.tower'}); }
   finally { for (const handle of handles) release(handle); }
 }
 async function checkLLVM(name) {
   llvm ??= await openLLVM();
-  check(name);
+  return check(name);
 }
 
 test('C consumes the same entities, preserves comments, strips on request and releases storage', () => check('release'));
@@ -77,5 +78,5 @@ test('C ABI signatures retain signed parameters and return types', () => check('
 test('bulk comment indexing keeps declaration associations and canonical order', async () => {
   inputs.set('generated.tower', await generatedSource(tower,
     new URL('../../scaffolding/tests/stress/comment_functions.tower', import.meta.url)));
-  check('bulk');
+  return check('bulk');
 });
