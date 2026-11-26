@@ -1,0 +1,15 @@
+# CTest host transport. An unset suffix exercises towerc's default TestFileRule.
+set(scc_suffix_args)
+if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
+  list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
+endif()
+foreach(jobs IN ITEMS 1 4)
+  set(test "tower-selected-graph-components-jobs-${jobs}")
+  add_test("${test}" "@scc_bin@/towerc" --test "@scc_library@/graph_components.tower"
+    --jobs "${jobs}" --test-details ${scc_suffix_args}
+    --test-native-runtime "@scc_objects@/guest-native-test.o" --link "@scc_objects@/runtime-instrumented.o"
+    --link "@scc_objects@/tower-compiler-bytes.o" --link "@scc_objects@/tower-compiler-utf8.o"
+    --link "@scc_objects@/libtower-compiler-memory.a")
+  set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused"
+    FAIL_REGULAR_EXPRESSION "0 tests selected for;1 test passed for")
+endforeach()

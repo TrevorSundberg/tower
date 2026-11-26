@@ -87,18 +87,20 @@ if(TOWER_NATIVE)
   endif()
   # Relocatable resources include the generated Tower runtime target artifacts.
   file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/share/tower")
-  foreach(resource IN ITEMS bedrock.tower foundation.tower foundation_syntax.tower types.tower tower.tower)
+  # Production resource ownership is independent of the caller's test file rule.
+  set(builtin_inventory "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/builtin_modules.txt")
+  set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${builtin_inventory}")
+  file(STRINGS "${builtin_inventory}" builtin_modules)
+  foreach(resource IN LISTS builtin_modules)
     configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
-  file(GLOB builtin_modules CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
-    "scaffolding/library/*.tower" "scaffolding/backend/foreign_grammar.tower")
-  foreach(resource IN LISTS builtin_modules)
-    if(resource MATCHES "_test[.]tower$")
-      # A reconfigured build may still contain the old, copied module.
-      file(REMOVE "${CMAKE_CURRENT_BINARY_DIR}/share/tower/${resource}")
-      continue()
+  # A reused build must not silently ship a retired or test-only module.
+  file(GLOB installed_modules RELATIVE "${CMAKE_CURRENT_BINARY_DIR}/share/tower"
+    "${CMAKE_CURRENT_BINARY_DIR}/share/tower/library/*.tower")
+  foreach(resource IN LISTS installed_modules)
+    if(NOT resource IN_LIST builtin_modules)
+      message(FATAL_ERROR "Unowned resource in the native build: share/tower/${resource}. Remove the stale copy or configure a fresh build directory.")
     endif()
-    configure_file("scaffolding/${resource}" "share/tower/${resource}" COPYONLY)
   endforeach()
   tower_compiler_utilities()
   tower_compiler_parser_nodes()

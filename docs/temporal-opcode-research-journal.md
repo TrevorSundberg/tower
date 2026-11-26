@@ -105813,3 +105813,45 @@ its providers remained ordinary objects. Four simultaneous ordinary CLI
 requests also preserved all expected outputs and drained their shared temporary
 directory. An independent system link map attributes the kernel to the selected
 object and the live counter to runtime-instrumented.o.
+
+### Relocated registered SCC suite on the public test-file rule, 2026-11-26
+
+Host 8 integrated the preserved native selection and companion commits
+(`2ec292e6`, `4ac43427`) on public `3ae475c2`. The old compiler could run
+the explicitly linked declarations. Its registered link smoke exercised a
+different guest, and the bootstrap packager still required a production copy of
+the tracked companion. Replaying its copy check reproduced the missing
+`scaffolding/library/graph_components_test.tower` diagnostic.
+
+Native CMake, the browser resource copier and the bootstrap packager now
+consume one production module inventory. Flat stale copies are diagnosed in
+reused native outputs. The explicit SCC component adds the two adjacent
+fixtures, their existing relative imports and the native providers to its own
+compiler tree. CTest invokes the same public driver in the build and in the
+installed suite. The original allocator, test declarations, raw graph
+generator, reachability oracle and legacy registration are unchanged in this
+integration. Build and installation commands are in the SCC section of
+[the test guide](../scaffolding/tests/README.md).
+
+With the source and build directories moved out of reach, the installed owner
+and explicit companion each passed 8 fixed and 234 seeded cases at jobs 1
+and 4. Both families reported zero live buffers. Four observation runs matched
+all 242 original input matrices byte for byte. A renamed positive companion
+passed under the configured alternate suffix. The installed wrong singleton
+returned driver status 1, CTest status 8 and the location
+`graph_components_wrong.tower:7:5`. Empty and invalid suffix selections failed
+the registered check. The selected object defines the production SCC function
+and imports the allocator counter. The ordinary distribution and optional kit
+share 58 identical files and produce the same ordinary SCC object.
+
+On the Ryzen 9 7900X, Linux x86-64, LLVM 19.1.7, each process ran alone. Three
+alternating warm owner samples had median elapsed 0.31/0.38 seconds for the
+retained compiler at jobs 1/4 and 0.30/0.39 seconds for this candidate.
+Maximum candidate RSS was 106044/116020 KiB respectively. The production
+package passed its Tower verifier. The verifier also rejected missing, modified
+and unowned flat modules and accepted a nested project module. Its focused
+ASan and TSan runs passed. TSan required retries after host personality
+failures. UBSan instrumentation for Tower source was unavailable. Browser
+validation covered the resource-copy block and its output. Packet
+`87436fc8-0d55-4714-ab90-bc8916ec5e2a` retains the original bundle, real argv,
+both installations, input traces, streams, timings, link evidence and checksums.

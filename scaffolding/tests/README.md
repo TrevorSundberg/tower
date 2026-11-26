@@ -1838,24 +1838,39 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The adjacent SCC companion runs both families against these providers in a
-Linux GNU native build configured with `TOWER_DRIVER_TESTS=ON` and
-`TOWER_BACKEND_TESTS=ON`. From the
-repository root, set `B` to the absolute native build directory and run
+The adjacent SCC suite runs the two declarations through the public driver on
+Linux GNU. In a native build configured with `TOWER_DRIVER_TESTS=ON`, build the
+suite and run its registered checks at one and four compiler jobs. Set `B` to
+the native build directory.
 
 ```sh
-cmake --build "$B" --target towerc tower-guest-native-test runtime-instrumented.o
-"$B/towerc" --test scaffolding/library/graph_components.tower --test-details --jobs 1 \
-  --test-native-runtime "$B/guest-native-test.o" --link "$B/runtime-instrumented.o" \
-  --link "$B/tower-compiler-bytes.o" --link "$B/tower-compiler-utf8.o" \
-  --link "$B/libtower-compiler-memory.a"
+cmake --build "$B" --target tower-scc-suite
+ctest --test-dir "$B" -R '^tower-selected-graph-components-jobs-' -V
 ```
 
-Selecting `scaffolding/library/graph_components_test.tower` directly runs
-the same two declarations. The selected object defines the production graph
-kernel. The instrumented object supplies the allocator and its live-buffer
-ledger. The two stdout summaries report 8 fixed and 234 seeded trials, each
-with zero live buffers. The existing legacy registration remains active.
+For a checkout-independent installation, set `PREFIX` to a writable staging
+directory. Move the resulting `scc-suite` directory as a unit. The host needs
+CTest and the shared libraries required by its native compiler.
+
+```sh
+cmake --install "$B" --component SccTests --prefix "$PREFIX"
+ctest --test-dir "$PREFIX/scc-suite" -V
+TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R 'jobs-1$' -V
+```
+
+Each registration selects the owner with `towerc --test`. With the default
+file rule it executes 8 fixed and 234 seeded cases, reports both declaration
+locations and checks zero live buffers in the linked allocator. The last
+command supplies the alternate suffix to the same driver. It deliberately
+fails on the singleton at `graph_components_wrong.tower:7:5` and returns
+nonzero. Direct selection of the corresponding companion uses the same
+providers shown by `ctest -V`.
+
+The private installation adds two adjacent fixtures under `share/tower/library`,
+their original helpers under `share/tower/tests`, and five native link inputs
+under `providers`. The normal native and browser compilers take their language
+sources from `scaffolding/builtin_modules.txt`. Add production modules there
+when introducing them. The legacy graph-components registration remains active.
 
 The native cache's existing `tower-frontend-tests` entry accepts `lr-order` for
 exact closure ordering against the independent insertion-based oracle: empty,

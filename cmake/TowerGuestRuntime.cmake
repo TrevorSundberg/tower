@@ -126,6 +126,7 @@ function(tower_guest_native_resources triple)
     tower_guest_runtime("${name}" "${target}" "${platform}" "${entry}" UNINSTRUMENTED)
     get_property(ir GLOBAL PROPERTY TOWER_GUEST_${name}_IR)
     set(resource "${CMAKE_CURRENT_BINARY_DIR}/share/tower/runtime-${name}.ll")
+    set_property(GLOBAL APPEND PROPERTY TOWER_GUEST_NATIVE_RESOURCES "${resource}")
     add_custom_command(OUTPUT "${resource}"
       COMMAND "${CMAKE_COMMAND}" -E copy_if_different "${ir}" "${resource}"
       DEPENDS "${ir}" VERBATIM)

@@ -170,8 +170,8 @@ fn bootstrap_dependencies(input: BootstrapInputs*, out: ByteBuffer*): bool {
     return bootstrap_text(out, "]");
 }
 
-// These modules are installed with configure_file(COPYONLY) by TOWER_NATIVE.
-// Compare the collected payload with the same bytes used for source provenance.
+// The flat compiler module namespaces reject stale copies as well as missing
+// inventory members. Nested project libraries remain separate package resources.
 fn bootstrap_copied_module(path: u8*): bool {
     var library = "library/";
     if strncmp(path, library, strlen(library)) == 0 {
@@ -186,11 +186,35 @@ fn bootstrap_copied_module(path: u8*): bool {
         || strcmp(path, "tower.tower") == 0 || strcmp(path, "backend/foreign_grammar.tower") == 0;
 }
 
-fn bootstrap_verify_copy(files: vector(BootstrapFile*)*, source_path: u8*, source: ByteBuffer*): bool {
+// Views borrow the inventory buffer through source verification. A matched
+// slot is cleared so missing, duplicate and untracked entries remain visible.
+fn bootstrap_builtin_inventory(input: BootstrapInputs*, inventory_name: u8*, text: ByteBuffer*, modules: vector(u8*)*): bool {
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    if !tool_join(&path, input.repository, inventory_name)
+        || !tool_read_file(path.data, BootstrapCaptureLimit, text) || !host_text_terminate(text) { return false; }
+    var at: usize = 0;
+    while at < text.length {
+        var start = at;
+        while at < text.length && text.data[at] != *"\n" { at++; }
+        var end = at;
+        if end > start && text.data[end - 1] == *"\r" { end--; }
+        var name = text.data + start;
+        text.data[end] = 0;
+        if !bootstrap_member_name(name, end - start)
+            || !bootstrap_copied_module(name) || !vector_push(modules, name) { return false; }
+        at++;
+    }
+    return modules.length != 0;
+}
+fn bootstrap_verify_copy(modules: vector(u8*)*, files: vector(BootstrapFile*)*, source_path: u8*, source: ByteBuffer*): bool {
     var root = "scaffolding/";
     if strncmp(source_path, root, strlen(root)) != 0 { return true; }
     var relative = source_path + strlen(root);
-    if !bootstrap_copied_module(relative) { return true; }
+    var declared = false;
+    foreach (var & name in modules) {
+        if *name != null && strcmp(relative, *name) == 0 { *name = null; declared = true; break; }
+    }
+    if !declared { return true; }
     foreach (var file in files) {
         if file.pending_copy == null || strcmp(file.pending_copy, relative) != 0 { continue; }
         if file.data.length == source.length
@@ -204,26 +228,36 @@ fn bootstrap_verify_copy(files: vector(BootstrapFile*)*, source_path: u8*, sourc
 }
 
 fn bootstrap_source_hashes(input: BootstrapInputs*, files: vector(BootstrapFile*)*, out: ByteBuffer*): bool {
+    var inventory: ByteBuffer = default; var modules: vector(u8*) = default;
+    defer bytes_dispose(&inventory); defer vector_dispose(&modules);
+    var inventory_name = "scaffolding/builtin_modules.txt";
+    if !bootstrap_builtin_inventory(input, inventory_name, &inventory, &modules) { puts("Invalid builtin module inventory"); return false; }
     var names: ByteBuffer = default; var path: ByteBuffer = default; var source: ByteBuffer = default;
     defer bytes_dispose(&names); defer bytes_dispose(&path); defer bytes_dispose(&source);
     if !bootstrap_git(input, "inputs", &names) || names.length == 0 || names.data[names.length - 1] != 0
         || !bootstrap_text(out, "{") { return false; }
+    var tracked_inventory = false;
     var start: usize = 0;
     while start < names.length {
         var end = start;
         while names.data[end] != 0 { end++; }
         if end == start || !tool_join(&path, input.repository, names.data + start)
             || !tool_read_file(path.data, BootstrapInputLimit, &source)
-            || !bootstrap_verify_copy(files, names.data + start, &source) { return false; }
+            || !bootstrap_verify_copy(&modules, files, names.data + start, &source) { return false; }
+        if strcmp(names.data + start, inventory_name) == 0 { tracked_inventory = true; }
         if start != 0 && !bootstrap_text(out, ",") { return false; }
         if !bootstrap_string(out, names.data + start, end - start) || !bootstrap_text(out, ":")
             || !bootstrap_hash(out, source.data, source.length) { return false; }
         start = end + 1;
     }
+    if !tracked_inventory { puts("Builtin module inventory is untracked"); return false; }
+    foreach (var missing in &modules) {
+        if missing != null { puts("Missing or duplicate tracked builtin module:"); puts(missing); return false; }
+    }
     // A reused install can retain a COPYONLY module absent from the Git input list.
     foreach (var file in files) {
         if file.pending_copy != null {
-            puts("Bootstrap copy has no tracked source:"); puts(file.name.data); return false;
+            puts("Bootstrap copy is outside the builtin inventory:"); puts(file.name.data); return false;
         }
     }
     return bootstrap_text(out, "}");
