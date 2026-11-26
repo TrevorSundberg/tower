@@ -114268,3 +114268,31 @@ including shell overhead. Peak RSS was 3,316 and 3,308 KiB respectively.
 Address/leak and thread instrumentation covered the fixture and parser-nodes
 object on the serial allocator. The rebased TSan run passed after 13 startup
 failures. UBSan coverage remains open.
+
+### Selecting the remaining native LR analysis cases
+
+Host 2 started from public `1f1d25130855f3dd18cf374049f3914ef134ace8`.
+The parser's LR analysis selector calls LR grammar once, then tree, failures,
+precedence and comparisons. The default parser also enters through that same
+function. The frontend's `lr-order` selector calls only the storage-failure
+subset and comparisons. Its suffix profiler needs the shared suffix fixture.
+
+Four adjacent companions share case functions with those callers. The reader
+service target supplies the existing parser and serial fault allocator. Direct
+selection finds 3 tree, 9 failure, 3 precedence and 6 comparison declarations.
+The owner also finds five work-budget declarations. Its first link failed on
+the aggregate's external grammar entry. Passing the existing LR grammar object
+to the owner link resolved that symbol. Discovery includes zero grammar cases.
+The first suite compilation rejected a single-statement deferred assertion.
+A block around the deferred world-disposal assertion retained its exit timing.
+
+The independent reference algorithms and the MT19937 generator retain their
+original sources. The comparison case consumes one seed (1280463937) across
+all 150 interleaved grammar and propagation trials. The tree cases check nodes
+and buffers after each ordinary, specialized or failed post-transfer path.
+The precedence regression checks state 2 and both interval endpoints for the
+reduce-2/reduce-6 pair. The failure cases retain the 512-symbol chain, every
+transition, EOF reduction, refused grants, retries and retirement assertions.
+Both native output streams match the base. The suffix index charged 408 bytes.
+The item graph reported 12,664 live bytes and a 1,048,576-byte peak at its
+checkpoint, then returned the budget to zero on disposal.

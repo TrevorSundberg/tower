@@ -6,7 +6,7 @@ import .compiler.frontend_revision_types;
 import .compiler.format_types;
 import .library.vector;
 import .library.work_budget;
-import lr_analysis_comparisons;
+import lr_analysis_fixtures;
 import lr_analysis_api;
 import lr_analysis_oracle;
 import lr_analysis_oracle_types;
