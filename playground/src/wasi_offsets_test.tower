@@ -1,0 +1,30 @@
+import wasi_test_abi;
+
+test() {
+    var fd = open_fd("object.o", 1);
+    assert(write_text(fd, "abcdef") == Success, "Write the initial bytes");
+    assert(fd_seek(fd, 2, 0, 16) == Success, "Seek to the overwrite");
+    assert(write_text(fd, "XY") == Success, "Overwrite two bytes");
+
+    set_iovec(200, 6);
+    assert(fd_pread(fd, 0, 1, 0, 16) == Success, "Read from the beginning");
+    var prefix = memory_bytes(200, 6, true);
+    defer free(prefix.data);
+    assert(text_is(prefix, "abXYef"), "pread sees the overwritten bytes");
+    assert(fd_seek(fd, 0, 1, 16) == Success, "Query the descriptor offset");
+    assert(get_u64(16) == 4, "pread preserves the descriptor offset");
+
+    assert(fd_filestat_set_size(fd, 3) == Success, "Truncate to three bytes");
+    assert(fd_seek(fd, 5, 0, 16) == Success, "Seek past the truncated end");
+    assert(write_text(fd, "Z") == Success, "Write beyond the hole");
+    var contents = file_contents("object.o", false);
+    defer free(contents.data);
+    var bytes: u8[6] = {97, 98, 88, 0, 0, 90};
+    assert(bytes_are(contents, &bytes[0], sizeof(decltype(bytes))), "Truncation and zero-filled hole preserve exact file bytes");
+
+    grow_memory(1);
+    assert(fd_filestat_get(fd, 140000) == Success, "Write filestat into the new page");
+    assert(get_u64(140032) == 6, "Read the file size from the grown memory");
+    assert(fd_close(fd) == Success, "Close the descriptor");
+    assert(fd_close(fd) == BadDescriptor, "Closing the same descriptor twice reports BADF");
+}

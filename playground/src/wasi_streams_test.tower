@@ -1,0 +1,36 @@
+import wasi_test_abi;
+
+fn contains_nonzero(bytes: FixtureBytes): bool {
+    for (var i: usize = 0; i < bytes.length; i++) {
+        if bytes.data[i] != 0 { return true; }
+    }
+    return false;
+}
+
+test() {
+    assert(fd_filestat_get(1, 131050) == MemoryFault, "Reject filestat that crosses the memory boundary");
+    assert(clock_time_get(0, 0, 16) == Success, "Read the realtime clock");
+    assert(get_u64(16) > 0, "Realtime clock returns a positive timestamp");
+    assert(clock_time_get(99, 0, 16) == InvalidArgument, "Reject the unknown clock");
+
+    var length: u32 = 70000;
+    assert(random_get(100, length) == Success, "Fill the entropy request across the chunk boundary");
+    var random = memory_bytes(100, length, false);
+    defer free(random.data);
+    assert(contains_nonzero(random), "The requested entropy contains a nonzero byte");
+
+    put_stream_fixture(100);
+    set_iovec(100, 2);
+    assert(fd_write(1, 0, 1, 16) == Success, "Write the first two UTF-8 bytes");
+    put_u32(0, 102);
+    assert(fd_write(1, 0, 1, 16) == Success, "Write the end of the character and newline");
+    assert(log_count() == 1, "Stdout emits a single line");
+    var line: FixtureBytes = default;
+    line.data = log_bytes(0, &line.length);
+    defer free(line.data);
+    assert(text_is(line, "€"), "Decode the split UTF-8 character exactly once");
+
+    call_proc_exit(7);
+    assert(caught_wasi_exit(), "proc_exit throws a WASIExit");
+    assert(caught_exit_code() == 7.0, "WASIExit carries the numeric exit code");
+}

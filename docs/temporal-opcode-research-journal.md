@@ -121328,3 +121328,92 @@ original JS and the supplied Tower test. The final presence assertion caught
 it at byte 2141. Removing the adapter restored all 15 registrations on each
 image. The local packet contains the 138 source-located failures, injected
 records, original and restored controls, raw traces and paired measurements.
+### WASI Preview 1 import-object registrations on host 3
+
+At published main `28c32aa3`, the four Node registrations in
+`playground/tests/wasi-host.test.mjs` passed against the shipped ES module.
+Each built a fresh two-page memory and a fresh virtual filesystem. The migration
+keeps those as separate subjects from the assertion compiler. Tower selects
+one declaration per original registration and drives the import calls in order.
+The host boundary supplies the actual import object, memory views, file data,
+stream logs and caught process-exit exception.
+
+The first portable trial diagnosed a direct call to a helper outside the
+companion's scope. Routing counted bytes through the imported ABI module
+recovered all four cases. Six language inputs at the assignment revision
+match the public Pages manifest. The seventh, `library/test_fixtures.tower`,
+has since gained a string-length helper and compilation-diagnostic support.
+The text comparison now walks the observed byte count, rejects an early
+terminator, and checks the expected terminator at that count. This lets the
+same tests use either fixture library and preserves embedded-NUL sensitivity.
+
+#### Host observations and failure controls
+
+Host 3 compared the source at `28c32aa3` with the implementation at
+`44084246`. Pages `8417c9ae` identifies `0da4e513` as the build source
+of both assertion reactors. Their 1,722,741 and 1,794,422 bytes matched the
+manifest SHA-256 entries. Both images selected exactly one declaration per
+registration, returned done with empty guest output, and passed 4/4. Separate
+runs supplied all seven language/library files from Pages and passed 4/4.
+
+A Node import probe captured the original and both candidate runs at the
+subject's real import object. All 50 ordered records agreed on operation,
+arguments, errno or exception, observed output fields, subject capacity,
+stream lines, file contents and descriptor state. The successful clock and
+entropy records include their raw timestamp and 70,000 bytes. Comparison used
+the original positive-timestamp and any-nonzero-byte predicates for those
+two fields. All three normalized traces have SHA-256
+`6fa5b89d23b953ff6c74ffd56598d91d3b3f883579bd519d7b1a088465f6daba`.
+
+| Companion | Calls | Observations |
+| --- | ---: | --- |
+| wasi_offsets_test | 12 | Independent pread returned abXYef and left offset 4. Truncation and the later write produced hex 61625800005a. Memory grew from 131,072 to 196,608 bytes, filestat at 140000 reported size 6 and the second close returned 8. |
+| wasi_directory_test | 22 | Preopen name was a dot. The renamed file had type 4 and size 4. NONBLOCK read back as 4, unsupported synchronization returned 58 twice, readdir returned cookie 1 and the six bytes of output, nonempty removal returned 55, open-file stat survived unlink and all three path escapes returned 76. |
+| wasi_streams_test | 7 | Out-of-range filestat returned 21 and the unknown clock returned 28. Real stdout writes of e282 and ac0a produced one euro line. proc_exit threw a WASIExit with numeric code 7. |
+| wasi_hard_links_test | 9 | The duplicate link returned 20. After unlink, the original descriptor reported one link and the surviving alias contained other. Linking outside the preopen returned 76. |
+
+Changing only the expected offset, file type, UTF-8 output or link count
+failed the associated declaration at byte 615, 859, 1271 or 691 respectively.
+Both images reported all four failures with checkout resources and with exact
+Pages resources. Restoring the source bytes recovered 4/4 on each. Separately,
+forcing a zero timestamp or all-zero entropy after the real call failed the
+original and both selected stream cases. Leaving only byte 70,000 nonzero
+passed all three.
+
+#### Same-host cost and capacity
+
+Linux x86-64, AMD EPYC 7542, Node 24.22.3, affinity 0–3 on four distinct
+cores, 12.288 CPUs of cgroup quota and 57,954,795,520 bytes of memory limit.
+The ordinary command was `node --test --test-concurrency=1 playground/tests/wasi-host.test.mjs`.
+Each fresh process ran all four cases serially with warm files. The assertion
+reactor was reused between cases. Each subject still started with its own
+filesystem and two-page memory. Shared assertion-worker capacity was one.
+Six triplets covered all orders, with one command running at a time on the
+frozen checkout. None of the 18 processes incurred cgroup CPU throttling.
+
+| Mean of six full-file processes | Wall seconds | User + system seconds | GNU time maximum RSS, KiB |
+| --- | ---: | ---: | ---: |
+| Original Node assertions | 0.218 | 0.112 | 56,187 |
+| Tower, portable reactor | 1.360 | 1.225 | 108,700 |
+| Tower, shared reactor | 1.657 | 1.468 | 123,538 |
+
+The Tower runs include frontend startup and four guest compilations.
+An initial implementation reopened the reactor for each case. Reusing it cut
+the time for each subsequent portable registration from about 0.5 s to
+0.11–0.14 s in the exploratory run. Both final images grew from 8,388,608
+to 28,442,624 bytes of assertion-reactor capacity in the first selection.
+The post-handle capacity and live-node count (13,483) were stable across
+all four closes. The legacy allocation counter read zero at each sample.
+The streams guest used 4,264,336 bytes of execution memory, including its
+copy of the entropy. Subject stream output and errno observations remained
+identical. These measurements cover the named Node suite.
+
+Portable passed with explicit Wasm bounds checks and V8 GC compaction stress.
+Shared worker startup rejected the stress flag in the test runner's propagated
+execArgv. The retry enabled explicit bounds checks on the process and requested
+compaction stress with a V8 preload in threads 0 and 1. It passed 4/4. The
+production Wasm images and Node transport were uninstrumented for ASan, UBSan
+and TSan. No compiler, runtime, or native worker code changed. The archive
+`bb19c17e-5de7-45a4-9416-acded7d5a1d3.tar.gz` retains the raw TAP, timing
+and observation records, mutations, capacity samples and inputs. The manager
+owns publication.

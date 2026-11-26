@@ -1,0 +1,22 @@
+import wasi_test_abi;
+
+test() {
+    var fd = open_fd("a", 1);
+    write_text(fd, "value");
+    var source_length = put_text(100, "a");
+    var dest_length = put_text(200, "b");
+    assert(path_link(RootDirectory, 0, 100, source_length, RootDirectory, 200, dest_length) == Success, "Create the hard link");
+    assert(path_link(RootDirectory, 0, 100, source_length, RootDirectory, 200, dest_length) == AlreadyExists, "Reject duplicate link");
+
+    var alias = open_fd("b", 0);
+    write_text(alias, "other");
+    assert(path_unlink_file(RootDirectory, 100, put_text(100, "a")) == Success, "Unlink the original");
+    assert(fd_filestat_get(fd, 300) == Success, "Stat the open original");
+    assert(get_u64(324) == 1, "One hard link survives");
+    var contents = file_contents("b", true);
+    defer free(contents.data);
+    assert(text_is(contents, "other"), "Read the surviving alias contents");
+    source_length = put_text(100, "b");
+    dest_length = put_text(200, "../escape");
+    assert(path_link(RootDirectory, 0, 100, source_length, RootDirectory, 200, dest_length) == NotCapable, "Confine the link destination");
+}
