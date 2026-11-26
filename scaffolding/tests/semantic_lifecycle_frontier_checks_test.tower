@@ -1,0 +1,680 @@
+import library.testing;
+import semantic_body_admission_checks;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_lowering_types;
+import .compiler.semantic_work_ids;
+import .compiler.compiler_kernel;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .compiler.syntax_types;
+import .library.entity_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget_types;
+import .library.work_budget;
+
+extern fn sem_lifecycle_lowering_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn semantic_lowering_kernel(result: SemanticLowering*): void;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_component_count(store: void*): usize;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, flags: u32): bool;
+extern fn sem_member(node: void*, name: u8*): void*;
+extern fn puts(message: u8*): i32;
+extern fn entity_retain(node: void*): usize;
+extern fn entity_stage_create(stage: void*, parent: void*): void*;
+extern fn compiler_node_copy_metadata_staged_result(source: void*, destination: void*, stage: void*): WorkBudgetError;
+extern fn sem_lower_pump(c: SemanticContext*, signature: bool): SemanticPumpResult;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn entity_view_open(anchor: void*): void*;
+extern fn entity_view_close(view: void*): void;
+extern fn entity_stage_open(anchor: void*): void*;
+extern fn entity_stage_lease(stage: void*, node: void*): bool;
+extern fn entity_stage_discard(stage: void*): void;
+
+enum LifecycleCase: u32 { Ready, Waiting, Failure, Cancelled, PartialTake, HoldFailure, Count }
+var LifecycleExpressionStatements: usize = 32;
+var LifecycleMalformedDepth: u32 = 130;
+var LifecycleInvalidParameters: usize = 64;
+var LifecycleLateWaitRepetitions: usize = 2;
+// Each function owns its probe. The callback uses the real worker's function
+// lease; signal handles are frozen before admission and closed after final join.
+struct LifecycleProbe { signature: bool; arrived: void*; peer: void*; calls: usize; source: void*; }
+
+fn lifecycle_kernel(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    sem_require(kernel.kind == CompilerKernelKind.Lower);
+    var result = bits(SemanticLowering*, kernel.payload);
+    var kind = sem_member(result.context.program.root, "lifecycle_probe");
+    var probe = bits(LifecycleProbe*, entity_component_data(entity_component_get(result.subject, kind)));
+    if probe != null && probe.signature == result.signature {
+        probe.calls++;
+        if probe.arrived != null {
+            work_signal_post(probe.arrived);
+            work_signal_wait(probe.peer);
+        }
+    }
+    semantic_lowering_kernel(result);
+    if probe != null && probe.signature == result.signature && probe.source != null {
+        var node = entity_stage_create(result.stage, result.subject);
+        sem_require(node != null && compiler_node_copy_metadata_staged_result(probe.source, node, result.stage) == WorkBudgetError.None);
+    }
+}
+
+fn lifecycle_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn lifecycle_node(owner: void*, kind: u32, offset: usize): void* {
+    var node = sem_create(owner);
+    sem_attach(node, kind).start = offset;
+    var syntax = bits(ParserMatchData*, compiler_world_component(compiler_node_world(node), node, CompilerParserMatch));
+    sem_require(syntax != null);
+    syntax.start = offset;
+    return node;
+}
+
+fn lifecycle_function(c: SemanticContext*, offset: usize): void* {
+    var subject = lifecycle_node(c.program.root, KFunction, offset);
+    var function = sem_get(subject);
+    function.type.scalar = SVoid;
+    function.index = c.program.functions.length;
+    function.body = lifecycle_node(subject, KBlock, offset);
+    sem_require(entity_attach(function.body, subject, "body"));
+    sem_push(&c.program.functions, subject);
+    return subject;
+}
+
+fn lifecycle_complete(c: SemanticContext*, id: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, id) && work_finish(&c.queries, &ticket, true));
+}
+
+fn lifecycle_trial(workers: usize, mode: LifecycleCase): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    var first = lifecycle_function(&c, 17);
+    var aggregate = lifecycle_function(&c, 29);
+    var scalar = lifecycle_function(&c, 41);
+    var record = lifecycle_node(root, KType, 0);
+    sem_get(record).type = { scalar: SStruct, pointers: 0, record: record, pointer_bytes: program.pointer_bytes };
+    sem_get(aggregate).type = sem_get(record).type;
+    var original_body = sem_get(aggregate).body;
+    for(var i: usize = 0; i < LifecycleExpressionStatements; i++) {
+        var statement = lifecycle_node(scalar, KPrint, 41);
+        var expression = lifecycle_node(statement, KBinary, 41);
+        var value = sem_get(expression);
+        value.type.scalar = SI32;
+        value.op = OAdd;
+        value.left = lifecycle_node(expression, KOperand, 41);
+        value.right = lifecycle_node(expression, KOperand, 41);
+        sem_get(value.left).type.scalar = SI32;
+        sem_get(value.right).type.scalar = SI32;
+        sem_get(value.left).constant = true;
+        sem_get(value.right).constant = true;
+        sem_get(statement).value = expression;
+        sem_push(&sem_get(sem_get(scalar).body).items, statement);
+    }
+    // Shared callback ABI is an ordered publication, not worker scratch.
+    var callback_node = lifecycle_node(root, KType, 0);
+    var callback = sem_get(callback_node);
+    callback.type = { scalar: SFunction, pointers: 0, record: callback_node, pointer_bytes: program.pointer_bytes };
+    callback.element = sem_get(record).type;
+    sem_push(&c.type_arguments, callback_node);
+    var body_gate: usize = 0;
+    if mode == LifecycleCase.Waiting {
+        body_gate = work_request(&c.queries, first, convert(u32, SemanticQuery.Body), 0);
+        sem_require(body_gate != 0 && work_seal(&c.queries, body_gate));
+    }
+    var snapshot: usize = 0;
+    if mode == LifecycleCase.PartialTake {
+        snapshot = work_request(&c.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        sem_require(snapshot != 0 && work_seal(&c.queries, snapshot));
+    }
+    if mode == LifecycleCase.Failure {
+        // The earlier expression fails too; aggregate diagnostics retain their
+        // existing phase priority even when both kernels share one dispatch.
+        c.has_defer = true;
+        var parent = sem_get(first).body;
+        for(var depth: u32 = 0; depth < LifecycleMalformedDepth; depth++) {
+            var child = lifecycle_node(parent, KBlock, 17);
+            sem_push(&sem_get(parent).items, child);
+            parent = child;
+        }
+        for(var p: usize = 0; p < LifecycleInvalidParameters; p++) {
+            var parameter = lifecycle_node(aggregate, KParameter, 29);
+            sem_get(parameter).type.scalar = SI32;
+            sem_push(&sem_get(aggregate).parameters, parameter);
+        }
+    }
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    var signature_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(aggregate, probe_kind)));
+    var expression_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(scalar, probe_kind)));
+    sem_require(signature_probe != null && expression_probe != null);
+    *signature_probe = default;
+    *expression_probe = default;
+    signature_probe.signature = true;
+    var history: Entity* = null;
+    var history_references: usize = 0;
+    if mode == LifecycleCase.HoldFailure {
+        var source = sem_create(root);
+        var owner = sem_create(root);
+        var trace = bits(SyntaxExpansion*, compiler_world_component(world, owner, CompilerSyntaxExpansion));
+        var origin = bits(SyntaxOrigin*, compiler_world_component(world, source, CompilerSyntaxOrigin));
+        sem_require(trace != null && origin != null);
+        origin.expansion = trace;
+        entity_retain(owner);
+        history = bits(Entity*, owner);
+        history_references = history.references;
+        history.references = ~convert(usize, 0);
+        signature_probe.source = source;
+        expression_probe.source = source;
+    }
+    var overlap = workers > 1 && (mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting);
+    if overlap {
+        signature_probe.arrived = work_signal_open();
+        expression_probe.arrived = work_signal_open();
+        signature_probe.peer = expression_probe.arrived;
+        expression_probe.peer = signature_probe.arrived;
+        sem_require(signature_probe.arrived != null && expression_probe.arrived != null);
+    }
+    sem_require(work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    if overlap { sem_require(c.workers.threaded && c.workers.count > 1); }
+    if mode == LifecycleCase.Cancelled { work_cancel(&c.queries); }
+    var state = sem_lifecycle_lowering_pump(&c);
+    if mode == LifecycleCase.HoldFailure {
+        lifecycle_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Exhausted
+            && c.queries.cancelled && c.workers.running == 0 && c.queries.running == 0
+            && signature_probe.calls == 1 && expression_probe.calls == 1
+            && history.references == ~convert(usize, 0) && history.store.views == 0
+            && callback.element.scalar == SStruct && callback.parameters.length == 0,
+            "Checked mixed-lowering holds discard every peer before readiness or ABI publication", &failures);
+        foreach(var &task in &c.queries.tasks) {
+            if task.query == convert(u32, SemanticQuery.Lowering) || task.query == convert(u32, SemanticQuery.AggregatePrepare) {
+                lifecycle_check(task.state != WorkState.Succeeded, "Failed ownership publishes no ready transform", &failures);
+            }
+        }
+        history.references = history_references;
+    }
+    if mode == LifecycleCase.PartialTake {
+        lifecycle_check(state == SemanticPumpResult.Waiting && signature_probe.calls == 0 && expression_probe.calls == 0,
+            "Known snapshot blocks all transformation admission", &failures);
+        var query = work_find(&c.queries, scalar, convert(u32, SemanticQuery.Lowering), 0);
+        work_task(&c.queries, query).dispatch = ~convert(u64, 0);
+        lifecycle_complete(&c, snapshot);
+        state = sem_lifecycle_lowering_pump(&c);
+        lifecycle_check(state == SemanticPumpResult.Failed && c.queries.cancelled
+            && c.queries.running == 0 && signature_probe.calls == 0 && expression_probe.calls == 0,
+            "Partial admission discards undispatched stages and cancels tickets", &failures);
+    }
+    if mode == LifecycleCase.Ready || mode == LifecycleCase.Waiting {
+        lifecycle_check(state == SemanticPumpResult.Progress && signature_probe.calls == 1 && expression_probe.calls == 1
+            && sem_get(aggregate).body != original_body && callback.element.scalar == SStruct,
+            "One frontier runs signature and independent expression work before shared ABI publication", &failures);
+        var aggregate_query = work_find(&c.queries, aggregate, convert(u32, SemanticQuery.Lowering), 0);
+        lifecycle_check(work_task(&c.queries, aggregate_query).dispatch == 0,
+            "Aggregate lowering waits for its own published signature", &failures);
+        while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+        if mode == LifecycleCase.Waiting {
+            lifecycle_check(state == SemanticPumpResult.Waiting && callback.element.scalar == SStruct,
+                "Independent transforms complete while an earlier owner waits", &failures);
+            lifecycle_check(sem_lifecycle_lowering_pump(&c) == SemanticPumpResult.Waiting
+                && signature_probe.calls == 1 && expression_probe.calls == 1,
+                "Repeated suspension replays no kernel or shared ABI mutation", &failures);
+            lifecycle_complete(&c, body_gate);
+            state = sem_lifecycle_lowering_pump(&c);
+            while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+        }
+        var result = bits(SemanticLowering*, entity_component_data(entity_component_get(aggregate, c.lowering_results)));
+        lifecycle_check(state == SemanticPumpResult.Complete && result.block == sem_get(aggregate).body
+            && result.block != original_body && callback.element.scalar == SVoid && callback.parameters.length == 1,
+            "Dependent lowering consumes the new prelude and successful join publishes callback ABI once", &failures);
+    } else { if mode == LifecycleCase.Failure {
+        lifecycle_check(state == SemanticPumpResult.Failed && program.error_offset == 29
+            && sem_equal(program.error.data, "A struct return requires one internal result parameter; at most 63 source parameters are supported")
+            && callback.element.scalar == SStruct && callback.parameters.length == 0,
+            "Mixed frontier preserves signature error priority and suppresses shared ABI publication", &failures);
+    } else { if mode == LifecycleCase.Cancelled {
+        lifecycle_check(state == SemanticPumpResult.Failed && callback.element.scalar == SStruct
+            && program.resource.error == WorkBudgetError.Invalid, "Cancelled entry is terminal before ABI publication", &failures);
+    } } }
+    var components = entity_store_component_count(store);
+    var task_count = c.queries.tasks.length;
+    var saved = state;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        lifecycle_check(sem_lifecycle_lowering_pump(&c) == saved && c.queries.tasks.length == task_count
+            && entity_store_component_count(store) == components && c.workers.running == 0 && c.queries.running == 0,
+            "Repeated terminal lifecycle pumps preserve metadata and drain all work", &failures);
+    }
+    sem_context_dispose(&c);
+    if signature_probe.arrived != null { work_signal_close(signature_probe.arrived); }
+    if expression_probe.arrived != null { work_signal_close(expression_probe.arrived); }
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Lifecycle frontier releases its world", &failures);
+    return failures;
+}
+
+enum LowerDenial: u32 { Query, Edge, Access, KindPin, ComponentPin, Lease, Scratch, Finish, Anchor, Count }
+var LowerDenialBytes: usize = 1048576;
+var LowerDenialRevision: u64 = 139;
+
+fn lifecycle_pressure(budget: WorkBudget*, reservation: WorkReservation*): void {
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(budget, &snapshot) && snapshot.used_bytes < snapshot.bytes);
+    sem_require(work_budget_reserve_result(budget, 0, 0, snapshot.bytes - snapshot.used_bytes, reservation) == WorkBudgetError.None);
+}
+
+fn lifecycle_denial(workers: usize, mode: LowerDenial): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var scratch: WorkBudget = default;
+    var pressure: WorkReservation = default;
+    sem_require(work_budget_init(&budget, workers, LowerDenialBytes, LowerDenialRevision));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var scratch_gate: void* = null;
+    defer { if scratch_gate != null { work_signal_close(scratch_gate); } }
+    if mode == LowerDenial.Scratch {
+        scratch_gate = work_signal_open();
+        sem_require(scratch_gate != null);
+        work_signal_post(scratch_gate);
+        sem_require(work_budget_init(&scratch, workers, LowerDenialBytes, LowerDenialRevision)
+            && work_budget_synchronize(&scratch, scratch_gate, work_signal_wait, work_signal_post)
+            && compiler_world_bind_budget(world, &scratch));
+    }
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    sem_get(root).start = 3;
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    work_dispose(&c.queries);
+    sem_require(work_init_budget(&c.queries, 1, convert(u64, program.pointer_bytes), &budget));
+    var first = lifecycle_function(&c, 17);
+    var second = lifecycle_function(&c, 29);
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    var first_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(first, probe_kind)));
+    var second_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(second, probe_kind)));
+    *first_probe = default;
+    *second_probe = default;
+    sem_require(work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    var delayed = mode == LowerDenial.Lease || mode == LowerDenial.Scratch || mode == LowerDenial.Finish || mode == LowerDenial.Anchor;
+    var gate: usize = 0;
+    if delayed || mode == LowerDenial.Edge {
+        gate = work_request(&c.queries, root, convert(u32, SemanticQuery.KnownSnapshot), 0);
+        sem_require(gate != 0 && work_seal(&c.queries, gate));
+    }
+    if mode == LowerDenial.Query {
+        var argument: u64 = 0;
+        // Give the graph real retained storage, then exhaust its actual bound.
+        sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+        while c.queries.tasks.length < c.queries.tasks.capacity {
+            sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+        }
+    }
+    if mode == LowerDenial.Query || mode == LowerDenial.Edge || mode == LowerDenial.Access {
+        if mode == LowerDenial.Access {
+            sem_require(work_request(&c.queries, first, convert(u32, SemanticQuery.BodyInputs), 0) != 0);
+        }
+        lifecycle_pressure(&budget, &pressure);
+    }
+    if mode == LowerDenial.ComponentPin {
+        c.lowering_results = sem_create(root);
+        sem_require(entity_register(c.lowering_results, sizeof(SemanticLowering), alignof(SemanticLowering), 0));
+    }
+    var pin: void* = null;
+    if mode == LowerDenial.KindPin || mode == LowerDenial.ComponentPin {
+        pin = entity_view_open(root);
+        sem_require(pin != null);
+    }
+    var state = sem_lower_pump(&c, false);
+    if pin != null { entity_view_close(pin); }
+    var foreign_stage: void* = null;
+    var anchor: Entity* = null;
+    var references: usize = 0;
+    if delayed {
+        lifecycle_check(state == SemanticPumpResult.Waiting && first_probe.calls == 0 && second_probe.calls == 0,
+            "Registered lowering waits without executing source effects", &failures);
+        lifecycle_complete(&c, gate);
+        if mode == LowerDenial.Lease {
+            foreign_stage = entity_stage_open(probe_kind);
+            sem_require(foreign_stage != null && entity_stage_lease(foreign_stage, first));
+        }
+        if mode == LowerDenial.Anchor {
+            anchor = bits(Entity*, c.lowering_results);
+            references = anchor.references;
+            anchor.references = ~convert(usize, 0);
+        }
+        if mode == LowerDenial.Scratch { lifecycle_pressure(&scratch, &pressure); }
+        if mode == LowerDenial.Finish {
+            var query = work_find(&c.queries, first, convert(u32, SemanticQuery.Lowering), 0);
+            var consumers = c.queries.ready.capacity + 1;
+            for(var i: usize = 0; i < consumers; i++) {
+                var consumer = work_request(&c.queries, second, convert(u32, SemanticQuery.BodyInputs), convert(u64, i + 1));
+                sem_require(consumer != 0 && work_depend(&c.queries, consumer, query)
+                    && work_seal(&c.queries, consumer) && work_demand(&c.queries, consumer));
+            }
+            sem_require(work_index_reserve(&c.queries, &c.queries.executing, &c.queries.storage.executing, c.program.functions.length));
+            lifecycle_pressure(&budget, &pressure);
+        }
+        state = sem_lower_pump(&c, false);
+    }
+    var cause = mode == LowerDenial.Lease || mode == LowerDenial.KindPin || mode == LowerDenial.ComponentPin
+        ? WorkBudgetError.Busy : mode == LowerDenial.Anchor ? WorkBudgetError.Exhausted : WorkBudgetError.Capacity;
+    var offset: usize = mode == LowerDenial.Lease || mode == LowerDenial.Finish ? 17 : 3;
+    lifecycle_check(state == SemanticPumpResult.Failed && program.resource.error == cause && program.resource.offset == offset
+        && c.queries.cancelled && c.queries.running == 0 && c.workers.running == 0,
+        "Lowering admission/completion preserves the exact typed failure and canonical owner", &failures);
+    lifecycle_check(first_probe.calls == (mode == LowerDenial.Finish ? 1 : 0)
+        && second_probe.calls == first_probe.calls && bits(EntityStore*, store).views == 0,
+        "Partial lowering admission dispatches nothing; denied completion joins each effect once", &failures);
+    foreach(var &task in &c.queries.tasks) {
+        if task.query == convert(u32, SemanticQuery.Lowering) {
+            lifecycle_check(task.state != WorkState.Succeeded, "Denied lowering publishes no successful prefix", &failures);
+        }
+    }
+    if c.lowering_results != null {
+        foreach(var subject in &program.functions) {
+            var result = bits(SemanticLowering*, entity_component_data(entity_component_get(subject, c.lowering_results)));
+            lifecycle_check(result == null || result.stage == null && result.context == null,
+                "Failure retires every private stage and borrowed context", &failures);
+        }
+    }
+    if foreign_stage != null {
+        lifecycle_check(bits(Entity*, first).stage == foreign_stage, "Denied lowering preserves another owner's lease", &failures);
+        entity_stage_discard(foreign_stage);
+    }
+    if anchor != null { anchor.references = references; }
+    if pressure.active { sem_require(work_budget_release_result(mode == LowerDenial.Scratch ? &scratch : &budget, &pressure) == WorkBudgetError.None); }
+    var tasks = c.queries.tasks.length;
+    var components = entity_store_component_count(store);
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        lifecycle_check(sem_lower_pump(&c, false) == SemanticPumpResult.Failed && c.queries.tasks.length == tasks
+            && entity_store_component_count(store) == components && program.resource.error == cause && program.resource.offset == offset
+            && first_probe.calls == (mode == LowerDenial.Finish ? 1 : 0) && second_probe.calls == first_probe.calls,
+            "Terminal lowering retries retain the first receipt without replay or metadata growth", &failures);
+    }
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Denied lowering releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&budget),
+        "Denied lowering releases graph reservations", &failures);
+    if mode == LowerDenial.Scratch {
+        sem_require(work_budget_snapshot(&scratch, &released));
+        lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0 && work_budget_dispose(&scratch),
+            "Denied lowering releases world scratch reservations", &failures);
+    }
+    return failures;
+}
+
+// Registration must rediscover an old hole and appended work without replaying
+// completed peers. The same component receipts also survive graph identity
+// changes here; they must never hide newly requested tasks with reused IDs.
+enum LifecycleIdentity: u32 { Revision, Profile, Count }
+
+fn lifecycle_late_registration(workers: usize, width: u32): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open();
+    sem_require(gate != null);
+    work_signal_post(gate);
+    sem_require(work_budget_init(&budget, workers, LowerDenialBytes, LowerDenialRevision)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    work_dispose(&c.queries);
+    sem_require(work_init_budget(&c.queries, 1, convert(u64, width), &budget));
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    var early = lifecycle_function(&c, 17);
+    var delayed = lifecycle_function(&c, 29);
+    lifecycle_function(&c, 41);
+    var body = sem_get(early).body;
+    sem_get(early).body = null;
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    foreach(var subject in &program.functions) {
+        var probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(subject, probe_kind)));
+        sem_require(probe != null);
+        *probe = default;
+    }
+    var dependency = work_request(&c.queries, delayed, convert(u32, SemanticQuery.Body), 0);
+    sem_require(dependency != 0 && work_seal(&c.queries, dependency)
+        && work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    var state = sem_lifecycle_lowering_pump(&c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+    lifecycle_check(state == SemanticPumpResult.Waiting
+        && work_find(&c.queries, early, convert(u32, SemanticQuery.Lowering), 0) == 0,
+        "Absent early body stays unregistered while independent peers complete", &failures);
+    sem_get(early).body = body;
+    var appended = lifecycle_function(&c, 53);
+    var appended_probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(appended, probe_kind)));
+    sem_require(appended_probe != null);
+    *appended_probe = default;
+    state = sem_lower_pump(&c, false);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+    lifecycle_check(state == SemanticPumpResult.Waiting && appended_probe.calls == 1,
+        "Late old-ordinal body and append join despite an intervening waiting producer", &failures);
+    var early_index = sem_get(early).index;
+    var delayed_index = sem_get(delayed).index;
+    program.functions.data[early_index] = delayed;
+    program.functions.data[delayed_index] = early;
+    sem_get(early).index = delayed_index;
+    sem_get(delayed).index = early_index;
+    lifecycle_check(sem_lifecycle_lowering_pump(&c) == SemanticPumpResult.Waiting,
+        "Reordered unfinished producer below the completed prefix stays visible", &failures);
+    lifecycle_complete(&c, dependency);
+    state = sem_lifecycle_lowering_pump(&c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+    lifecycle_check(state == SemanticPumpResult.Complete, "Late lowering drains after dependency completion", &failures);
+    foreach(var subject in &program.functions) {
+        var probe = bits(LifecycleProbe*, entity_component_data(entity_component_get(subject, probe_kind)));
+        var id = work_find(&c.queries, subject, convert(u32, SemanticQuery.Lowering), 0);
+        lifecycle_check(probe.calls == 1 && id != 0 && work_task(&c.queries, id).state == WorkState.Succeeded
+            && work_task(&c.queries, id).dispatch == 1, "Late frontier executes each producer exactly once", &failures);
+    }
+    // Reuse only the joined graph through its real reset API, not semantic
+    // incremental recompilation. Empty checked bodies make the replay explicit.
+    var expected_calls: usize = 1;
+    for(var identity: u32 = 0; identity < convert(u32, LifecycleIdentity.Count); identity++) {
+        var revision_changed = identity == convert(u32, LifecycleIdentity.Revision);
+        var revision = c.queries.revision + (revision_changed ? 1 : 0);
+        var profile = c.queries.profile + (revision_changed ? 0 : 1);
+        sem_require(work_reset(&c.queries, revision, profile));
+        foreach(var subject in &program.functions) {
+            var id = work_request(&c.queries, subject, convert(u32, SemanticQuery.Lowering), 0);
+            sem_require(id != 0 && work_seal(&c.queries, id) && work_demand(&c.queries, id));
+        }
+        expected_calls++;
+        state = sem_lifecycle_lowering_pump(&c);
+        while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+        lifecycle_check(state == SemanticPumpResult.Complete, "Old result receipts cannot skip a new graph identity", &failures);
+        foreach(var subject in &program.functions) {
+            var probe = bits(LifecycleProbe*, entity_component_data(entity_component_get(subject, probe_kind)));
+            var id = work_find(&c.queries, subject, convert(u32, SemanticQuery.Lowering), 0);
+            lifecycle_check(probe.calls == expected_calls && work_task(&c.queries, id).state == WorkState.Succeeded
+                && work_task(&c.queries, id).dispatch == 1, "Revision and profile independently invalidate skip receipts", &failures);
+        }
+    }
+    lifecycle_check(c.workers.running == 0 && c.queries.running == 0, "Late frontier joins every worker", &failures);
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Late frontier releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Late frontier releases every budget owner", &failures);
+    work_signal_close(gate);
+    return failures;
+}
+
+// A scalar-only completed frontier does not prove that the signature phase is
+// permanently empty. Admit the first aggregate body later at an existing slot;
+// its checked body gate and signature publication must still precede lowering.
+fn lifecycle_first_signature(workers: usize, width: u32): u32 {
+    var failures: u32 = 0;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open();
+    sem_require(gate != null);
+    work_signal_post(gate);
+    sem_require(work_budget_init(&budget, workers, LowerDenialBytes, LowerDenialRevision)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    lifecycle_function(&c, 17);
+    var aggregate = lifecycle_function(&c, 29);
+    var body = sem_get(aggregate).body;
+    sem_get(aggregate).body = null;
+    var record = lifecycle_node(root, KType, 0);
+    sem_get(record).type = { scalar: SStruct, pointers: 0, record: record, pointer_bytes: width };
+    sem_get(aggregate).type = sem_get(record).type;
+    var probe_kind = sem_create(root);
+    sem_require(entity_register(probe_kind, sizeof(LifecycleProbe), alignof(LifecycleProbe), 0)
+        && entity_attach(probe_kind, root, "lifecycle_probe"));
+    foreach(var subject in &program.functions) {
+        var probe = bits(LifecycleProbe*, entity_component_data(entity_component_add(subject, probe_kind)));
+        sem_require(probe != null);
+        *probe = default;
+        probe.signature = subject == aggregate;
+    }
+    sem_require(work_pool_open_kernel(&c.workers, workers, lifecycle_kernel));
+    var state = sem_lifecycle_lowering_pump(&c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+    lifecycle_check(state == SemanticPumpResult.Complete
+        && work_find(&c.queries, aggregate, convert(u32, SemanticQuery.AggregatePrepare), 0) == 0,
+        "Scalar completion has no speculative aggregate producer", &failures);
+    sem_get(aggregate).body = body;
+    var dependency = work_request(&c.queries, aggregate, convert(u32, SemanticQuery.Body), 0);
+    sem_require(dependency != 0 && work_seal(&c.queries, dependency));
+    for(var repeat: usize = 0; repeat < LifecycleLateWaitRepetitions; repeat++) {
+        lifecycle_check(sem_lifecycle_lowering_pump(&c) == SemanticPumpResult.Waiting
+            && sem_get(aggregate).body == body && sem_get(aggregate).parameters.length == 0,
+            "First late signature waits without publishing its prelude", &failures);
+    }
+    lifecycle_complete(&c, dependency);
+    lifecycle_check(sem_lifecycle_lowering_pump(&c) == SemanticPumpResult.Progress,
+        "First late signature becomes eligible after its body receipt", &failures);
+    var signature = work_find(&c.queries, aggregate, convert(u32, SemanticQuery.AggregatePrepare), 0);
+    var expression = work_find(&c.queries, aggregate, convert(u32, SemanticQuery.Lowering), 0);
+    sem_require(signature != 0 && expression != 0);
+    lifecycle_check(work_task(&c.queries, signature).state == WorkState.Succeeded
+        && work_task(&c.queries, expression).dispatch == 0 && sem_get(aggregate).body != body
+        && sem_get(aggregate).type.scalar == SVoid && sem_get(aggregate).parameters.length == 1,
+        "Late signature publishes before its expression can consume the new body", &failures);
+    state = sem_lifecycle_lowering_pump(&c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_lowering_pump(&c); }
+    var result = bits(SemanticLowering*, entity_component_data(entity_component_get(aggregate, c.lowering_results)));
+    sem_require(result != null && sem_get(aggregate).parameters.length == 1);
+    var parameter = sem_get(sem_get(aggregate).parameters.data[0]);
+    lifecycle_check(state == SemanticPumpResult.Complete && result.block == sem_get(aggregate).body
+        && parameter.type.record == record && parameter.type.pointers == 1 && parameter.type.pointer_bytes == width
+        && work_task(&c.queries, signature).dispatch == 1 && work_task(&c.queries, expression).dispatch == 1,
+        "Late aggregate retains nominal/target identity and consumes its published prelude once", &failures);
+    foreach(var subject in &program.functions) {
+        var probe = bits(LifecycleProbe*, entity_component_data(entity_component_get(subject, probe_kind)));
+        lifecycle_check(probe.calls == 1, "Late signature never replays completed scalar peers", &failures);
+    }
+    lifecycle_check(c.workers.running == 0 && c.queries.running == 0, "Late signature joins before disposal", &failures);
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    lifecycle_check(compiler_world_dispose(world), "Late signature releases its world", &failures);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &released));
+    lifecycle_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&budget), "Late signature releases all budget owners", &failures);
+    work_signal_close(gate);
+    return failures;
+}
+
+fn lifecycle_admission_cases(): u32 {
+    sem_require(work_thread_available());
+    return semantic_body_admission_tests();
+}
+
+fn lifecycle_late_registration_cases(): u32 {
+    var failures: u32 = 0;
+    failures += lifecycle_late_registration(1, 4);
+    failures += lifecycle_late_registration(4, 4);
+    failures += lifecycle_late_registration(1, 8);
+    failures += lifecycle_late_registration(4, 8);
+    return failures;
+}
+
+fn lifecycle_first_signature_cases(): u32 {
+    var failures: u32 = 0;
+    failures += lifecycle_first_signature(1, 4);
+    failures += lifecycle_first_signature(4, 4);
+    failures += lifecycle_first_signature(1, 8);
+    failures += lifecycle_first_signature(4, 8);
+    return failures;
+}
+
+fn lifecycle_frontier_cases(): u32 {
+    var failures: u32 = 0;
+    for(var mode: u32 = 0; mode < convert(u32, LifecycleCase.Count); mode++) {
+        failures += lifecycle_trial(1, convert(LifecycleCase, mode));
+        failures += lifecycle_trial(4, convert(LifecycleCase, mode));
+    }
+    return failures;
+}
+
+fn lifecycle_denial_cases(): u32 {
+    var failures: u32 = 0;
+    for(var mode: u32 = 0; mode < convert(u32, LowerDenial.Count); mode++) {
+        failures += lifecycle_denial(1, convert(LowerDenial, mode));
+        failures += lifecycle_denial(4, convert(LowerDenial, mode));
+    }
+    return failures;
+}
+
+test() { assert(lifecycle_admission_cases() == 0, "Body and declaration admission"); }
+test() { assert(lifecycle_late_registration_cases() == 0, "Lifecycle late registration"); }
+test() { assert(lifecycle_first_signature_cases() == 0, "Lifecycle first signature"); }
+test() { assert(lifecycle_frontier_cases() == 0, "Lifecycle frontier"); }
+test() { assert(lifecycle_denial_cases() == 0, "Lifecycle denial"); }
