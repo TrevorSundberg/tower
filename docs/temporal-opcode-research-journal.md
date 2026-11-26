@@ -108721,3 +108721,32 @@ source and object identities, commands, receipts, original failures and
 the local bundle are in packet `a2a3d18c-30b8-4d93-bfa2-cc94373013c6`.
 Publication, browser registration changes and release builds remain with
 their respective owners.
+
+### Preserve waiting bodies when recovering skipped ordinary roots
+
+In the Ubuntu 24.04 strict comparison of 3cc57ae4, resetting the body cursor
+when ordinary roots became eligible admitted work_budget_init ahead of
+compiler_world_worker_reserve. This changed the order of generic Entity and
+EntityStage specializations and changed the entities object. Simply recovering
+a pending prefix on every stalled suffix restored the entities object and both
+real decltype tests, but changed the optimized parser-nodes IR on Linux.
+Tracing that compile found two recoveries while earlier work was waiting, at
+node_payload_size and lr_reserve_result(LRActionGrowth). Stock and trial
+admitted the same bodies in a different sequence. The first emitted difference
+was the control temporary in lr_propagation_solve_components_result.
+
+Keep the ordinary cursor through root admission, return progress for completed
+work, and preserve Waiting while an earlier body has outstanding work. Only
+when a pump would otherwise finish after walking an exhausted suffix does it
+look for a still-pending earlier function. It uses the existing signature/body
+demand check and owns no new persistent state. The coordinator performs this
+check after worker publication and error handling.
+
+Using the same Ubuntu LLVM 19.1.1 host, an unchanged bootstrap comparer
+accepted all four entities targets. At one and four workers, the Linux parser
+object and optimized IR matched the public pin byte for byte. Both actual
+decltype owners and their directly selected companions rejected a changed
+expected byte at compiletime_case.tower:18:5 and passed after restoration at
+both widths. A runtime call still diagnosed missing_body_value. The host 6
+receipt c5a50ceb contains the three cursor comparisons, the rejected
+intermediate, resource measurements and the independent release gates.

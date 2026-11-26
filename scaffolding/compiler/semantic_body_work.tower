@@ -2069,9 +2069,6 @@ fn sem_bodies(c: SemanticContext*): void {
     var saved_isolated = c.declaration_isolated;
     var state = sem_bodies_begin(c);
     if state == null { work_cancel(&c.queries); return; }
-    // Early type evaluation can advance past ordinary functions before they
-    // become roots. A later signature-only specialization can extend that tail.
-    state.next = 1;
     c.declaration_subjects = &state.declarations;
     c.declaration_isolated = true;
     defer {
@@ -2128,6 +2125,8 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     while state.evaluation < c.evaluation_jobs.length && sem_ok(c) {
         sem_body_calls(c, bits(SemanticEvaluation*, c.evaluation_jobs.data[state.evaluation++]).expression);
     }
+    var suffix_start = state.next;
+    var inside_suffix = suffix_start > 1 && suffix_start < c.program.functions.length;
     if state.next >= c.program.functions.length {
         state.next = 1;
         while state.next < c.program.functions.length && !sem_body_pending(c, c.program.functions.data[state.next]) {
@@ -2250,6 +2249,17 @@ export fn sem_bodies_pump(c: SemanticContext*): SemanticPumpResult {
     if !sem_ok(c) { return SemanticPumpResult.Failed; }
     if progress { return SemanticPumpResult.Progress; }
     if first_pending != ~convert(usize, 0) { return SemanticPumpResult.Waiting; }
+    // Early type queries can skip ordinary roots and then append an undemanded
+    // specialization. Finish the suffix in its established order. Only a
+    // exhausted suffix about to complete can need a skipped root.
+    if c.body_roots && inside_suffix && state.next >= c.program.functions.length {
+        for (var i: usize = 1; i < suffix_start; i++) {
+            if sem_body_pending(c, c.program.functions.data[i]) {
+                state.next = i;
+                return SemanticPumpResult.Progress;
+            }
+        }
+    }
     state.complete = true;
     return SemanticPumpResult.Complete;
 }
