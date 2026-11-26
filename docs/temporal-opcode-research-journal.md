@@ -121630,3 +121630,71 @@ TAP, exit codes, memory and timing samples. Source commit `803ccbb1`
 applies directly to the assigned pin. The released JS/Wasm path ran ordinary
 concurrency stress. Native sanitizer coverage does not extend to this path.
 The manager owns publication.
+
+### Constructor finalization, dispatch pressure and source-proof setup in selected tests
+
+November 26, 2026, host 1, assignment `74c5a5f9-6e43-40a8-aa4c-0fb421e9fe8d`.
+At published `9760a3c5` the verified `5d481bf0` audit still described the four
+sites from `d45d8b10`. The archive and six named input members matched the
+recipient manifest. The startup pull of the shared checkout encountered a
+playground conflict while replaying unrelated commits. Aborting preserved its
+local main. The implementation started on an isolated main at the assigned base.
+
+| Audit | Selected file in scaffolding/tests | Physical predicate and callers |
+| --- | --- | --- |
+| F07 S663 | work_constructor_faults_fixture_test.tower | Line 48 exports the original three-argument finalizer. Any call traps at offset zero. Lines 45 and 46 run the eight-unit and actual descriptor-page sweeps. |
+| F61 S578 | semantic_dispatch_checks_test.tower | Line 201 exports the coordinator's signal-open wrapper with the original real-open fallback. Lines 206–208 require its real snapshot and reservation before terminal denial. Declarations at 170, 175, 180, 185 and 190 cover five cases. |
+| F67 S601/S602 | semantic_source_proof_admission_checks_test.tower | Line 200 snapshots and occupies the remaining graph budget. Line 208 warms the real graph through request, five accesses, seal, demand, take, finish and reset. Six declarations at 170, 175, 180, 185, 190 and 195 cover four width/worker combinations each. |
+
+The moved bodies follow the existing declarations. This preserved the selected
+driver's source locations as well as the original standalone output. The ELF
+callbacks, allocator tickets, threaded transport, selectors and link recipes
+run through the same entry points. The original and restored runs matched exit,
+stdout and stderr on all 22 registrations. The two invalid-selector diagnostics
+also matched. At compiler jobs 1 and 4 direct discovery returned 2, 5 and 6
+tests respectively. Owner discovery returned 15, 20 and 21.
+
+An evidence-only Tower overlay recorded 72 constructor rows, 214 dispatch rows
+and 292 proof rows. Both discovery routes at both job counts reproduced the
+original streams before and after the move. The comparison grouped whole
+dispatch trials by case and width to account for the original default route's
+interleaving. The constructor first admitted at ticket 26 for eight units and
+44 for 19 units. No live allocator buffers survived any trial. The observed
+dispatch budget had 10,464 bytes used, ten live grants and 640 retained entry
+bytes. Proof warmup left 1,600 bytes used for query and edge. Finish had
+3,264 bytes used. The before/after observations agreed on every reached setup
+predicate and recorded budget field.
+
+Five temporary faults exercised both sides of the move. Registering a nonzero
+lifecycle on the real constructor unit kind invoked the foreign finalizer
+during cleanup. The standalone reported the original trap at zero. A null
+snapshot output rejected the armed dispatch setup. Taking one extra byte
+after the snapshot denied the exact remaining-byte reservation in dispatch
+and, separately, in source proof. Sealing the warm graph task early denied
+the first real access. For each fault the standalone aborted with status 134
+and direct selection exited 1 at jobs 1 and 4. All 15 before/after controls
+matched exit and both streams including the failing predicate observations.
+Removing the overlays reproduced the candidate executables and all 22 passes.
+
+Release used Clang/LLVM 19.1.7 and checked-in Linux x64 compiler `7430bdb3`.
+The Xeon Gold 6244 host exposed CPUs 0–31 with quota 15.36 CPUs. Timed runs
+used CPUs 0–7, one launch at a time under the host timing lock, warm filesystem
+and fresh processes. Three 200-launch constructor batches had median wall/CPU
+0.23/0.23 s before and 0.24/0.24 s after, peak RSS 3,128/3,124 KiB.
+Twenty-launch default dispatch batches measured 0.37/0.37 to 0.36/0.37 s
+and 53,096/53,052 KiB. Proof query measured 0.35/0.35 s on both and
+52,896/52,812 KiB. Across three direct compiler selections at one/four jobs,
+median wall seconds were 1.22/1.31 to 1.25/1.34 for constructor,
+0.92/1.02 to 0.94/1.00 for dispatch and 0.92/1.04 to 0.88/1.03 for proof.
+The packet includes wall, process CPU and peak RSS for each pair. The four-job
+selection includes the compiler frontend. Constructor fault injection is serial.
+
+AddressSanitizer with leak detection and ThreadSanitizer each completed all
+ten standalone routes. The TSan runtime encountered 81 pre-main ASLR
+personality denials, recorded individually before retries. The Tower IR
+instrumenter supports address and thread modes. UBSan and an instrumented
+selected-test guest are outside this evidence. The release cache was private
+to the assignment and reused across build steps. The first configure lacked
+an unversioned clang on PATH. Retrying with a changed compiler identity in
+that incomplete cache lost configure options. A fresh cache with the LLVM 19
+path and explicit public pin built successfully. The manager owns publication.
