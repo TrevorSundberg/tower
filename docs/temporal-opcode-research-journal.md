@@ -119351,3 +119351,102 @@ into the linked two-width loop called by main. Sanitizer coverage is for
 the storage executable. Selected CLI runs used the ordinary native guest.
 The packet contains the commands, mutation, JUnit, observer, raw streams,
 hashes, host limits, timings, maps and disassembly for manager review.
+
+### Semantic dispatch and executable admission as selectable tests on host 2
+
+At public base `d3fe7c0b`, the two ordinary binaries passed their three and
+seventeen Linux registrations. Selecting either owner with the checked-in
+compiler failed at the duplicate ELF main. Neither direct companion existed.
+Host 2 used an isolated main so its packet excludes two unpublished local
+commits in the shared checkout. The two suites are ordinary native LLVM
+tests. The guest pointer widths in the fixtures are 4 and 8 bytes.
+
+Implementation `e6835f1d` moves the 18 dispatch and 46 executable-admission
+comparison sites and their trial setup into adjacent companions. The original
+predicates and messages pair one-to-one. A named mode selects each case.
+The checked alias offset now comes independently from the two fixture positions,
+17 and 29. Each ordinary main still aggregates failures through world and
+budget disposal. The selected declaration reports the first failure after
+cleanup. Dispatch's default CLI interleaves the three publication trials per
+width as before. Its selected declarations group both widths by case. The
+executable main still accepts the first argument as its selector. Dispatch
+still rejects an extra argument. The native selections link the existing LR
+services. Dispatch also links the original Linux signal and thread-entry
+objects, with the coordinator supplying the replacement signal open. The
+standalone executable-admission target still compiles the production semantic
+implementation in its entry unit.
+
+The host used the published x64 bootstrap `7430bdb3`, Linux 5.15, Clang/LLVM
+19.1.7 Release and a Ryzen 5 3600 with effective CPUs 0–11, quota 11.52
+CPUs and a 32,222,740,480-byte memory limit. Timed launches used CPUs 0–5,
+fresh processes and warm files under the host timing lock. The ordinary
+builds shared their unchanged providers. Recompiling and linking the entry
+at jobs 4 reproduced each jobs-1 ELF, independently for parent and candidate.
+The CMake command needs an explicit path to the public bootstrap. The first
+candidate compile diagnosed a missing direct import and an unbraced else-if.
+The recorded passes use the repaired source.
+
+At compiler jobs 1 and 4 dispatch selected 20 tests from its owner and five
+directly, and executable admission selected 91 and 17. The other 15 and 74
+declarations come from their import closures. The kernel traces counted
+24 successful thread creations for the ordinary default dispatch and eight
+for each admission/source command. Across the seventeen executable commands
+startup created zero, each batch variant created sixteen, alias created 24
+and each other selector created eight. Counts matched per selector before
+and after. Creation counts do not measure concurrent useful CPU time.
+
+The baseline and candidate observer overlays call the real predicates once.
+They record each comparison message plus actual receipt fields and trial
+coordinates. Standalone raw streams match per mode. After grouping only
+the default dispatch trials into selected declaration order and removing
+the standalone success line, the 258 dispatch lines match each selection.
+The 936 executable lines match in declaration order. Tracing the selected
+test image separately from the compiler gave 40 successful thread creations
+for dispatch and 168 for executable admission at each compiler width.
+Startup storage denial retained Busy at root offset 83, pinned subject
+storage retained Busy at 17, and take/partial-take retained Invalid at 83.
+Dispatch signal denial retained Memory at 11. Admission retained Capacity
+at 11. Alias denial retained Invalid at 17 then 29 with zero then one
+preceding alias. Worker and query running counts were zero before disposal.
+The zero-grant, publication, readiness, no-replay and world disposal
+predicates remain part of the comparisons.
+
+All twenty registered ordinary modes completed on their first launches under
+ASan with leak detection and under TSan. The archive has each mode's separate
+exit and streams, instrumented trial excerpts, maps and linked binaries.
+The maps identify runtime-allocate.o, the renamed Linux dispatch transport
+and host_work_dispatch.o in dispatch, and the native tower_work_host.o in
+executable admission. This compiler supports address and thread IR profiles.
+There is no Tower UBSan profile. The selected drivers and guests used the
+ordinary native configuration.
+
+A temporary extra exclamation mark in the expected terminal graph diagnostic
+failed both default dispatch widths. Requiring offset 30 for the second alias
+at 29 failed the immediate and repeated alias receipt checks for each of the
+four width/worker settings. The parent and migrated executables produced
+identical failure streams at compiler jobs 1 and 4. Both selected routes at
+each job count failed the appropriate case with the original diagnostic.
+Restoration reproduced the candidate ELFs and passed all 28 focused CTests,
+including the eight exact-count native selections.
+
+Ten complete repetitions of each standalone family per timing sample produced
+30 dispatch or 170 executable processes. Three paired samples with the middle
+order reversed gave median elapsed / CPU seconds of 0.64 / 0.64 original and
+0.49 / 0.49 migrated for dispatch, or 2.85 / 2.86 and 3.72 / 3.74 for
+executable admission. Maximum process RSS was 53,304 / 53,424 KiB for dispatch
+and 53,616 / 53,760 KiB for executable admission. The executable family was
+slower in all three fresh-process pairs. To examine launch cost separately,
+the existing Tower repeat driver called each original main fifty times in one
+process per mode, using copies of the same measured objects and the same link
+inputs. Four alternating pairs for the 850 calls took median 0.77 / 0.85 s
+original and 0.67 / 0.75 s migrated. The fresh-process slowdown did not
+persist in this measurement. The timings include the Linux loader, scheduler
+and worker startup; they do not isolate the cost of an individual predicate.
+
+Final owner compile/link/run at jobs 1 / 4 took 1.28 / 1.33 s for dispatch,
+and 22.00 / 18.54 s for executable admission. The corresponding direct
+companion runs took 0.81 / 0.96 and 20.18 / 17.04 s. Executable owner peak
+RSS was 885,480 / 907,864 KiB. The original selections failed before running
+these cases. Assignment `113f922c-7d48-4de3-a64f-abbce6a05b3b` includes the
+full output, case mappings, trial overlays, thread traces, link recipes, maps,
+timings, wrong expectations and verified public-base bundle for the manager.
