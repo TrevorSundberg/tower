@@ -111520,3 +111520,44 @@ the zero oracle for `language_control` then failed the Graph output assertion.
 Changing `enum_index`'s expected offset from 77 to 76 failed the named
 rejection in the shared frontend. Restoring each change passed on the same
 profile. The packet retains the changes, locations, exit codes and streams.
+
+The frozen implementation is `3f28b7514`. All 19 named filters passed on
+each side and each public frontend, with no skips. For each of the 15 table
+registrations the original and migrated phase sequences matched all 42
+events on each frontend. On the shared frontend the ordered subject records
+matched across 227 ordinary compilations, 124 canonical formats and 33
+executable Wasm runs. Each ordinary compile reported zero selected tests.
+Each migrated filter selected one. Handle creation and destruction counts
+balanced. Separate transport captures matched all 61 first diagnostic
+replies byte-for-byte before and after on each frontend. Substituting an
+absent intrinsic spelling failed the optimized LLVM check and restoration
+passed. The packet includes a per-name mapping and both public frontend pairs.
+
+The ordinary native `--emit foundation --target wasm32-unknown-unknown`
+outputs for language_control, semantics and layout_depth_source were byte
+identical. Both revisions passed the pinned Linux package checksums. The
+ordinary depfiles excluded the assertion inputs. In a separate six-filter
+portable process the subject hosts both finished with 13,381 live nodes.
+The migrated assertion host finished with 13,483 live nodes. All three
+reported zero exposed live allocations. The compiler, allocator and worker
+implementation were unchanged. No instrumented compiler was built or run.
+
+GNU time measured fresh Node v24.22.3 processes on one Ryzen 5 3600 host,
+affinity 0–11, CPU quota 11.52, memory ceiling 32,222,740,480 bytes. Runs
+were sequential with warm filesystem caches. The shared subject transport
+used the default four child slots and its separate assertion host used one.
+Each cell below summarizes 19 single samples, one per name. CPU is user plus
+system time. RSS is the largest process peak in KiB. Both shared runs include
+the same passive transport tap.
+
+| Frontend | Wall seconds before / after | CPU seconds before / after | Peak RSS before / after |
+| --- | ---: | ---: | ---: |
+| Portable | 385.73 / 414.68 | 626.06 / 664.09 | 2,691,760 / 2,746,128 |
+| Shared | 417.75 / 450.09 | 711.46 / 751.21 | 2,812,232 / 2,883,308 |
+
+The four entity_tables Foundation comparisons covered 4,334,568 bytes per
+side. That selected test took 346,787,013 interpreter steps within its
+409,600,000-step limit. The portable interval from the final executable
+run through completion grew from 2.7 to 4,164.3 ms. That interval includes
+the selected test's setup, transfers and exact comparisons. Per-process
+wall and CPU include compiler and host startup. This handoff is local.
