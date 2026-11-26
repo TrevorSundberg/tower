@@ -1,58 +1,11 @@
 import tower;
-import .library.compiler_work;
-import .library.entities;
-import .library.entity_types;
-import .library.work_budget;
-import .library.work_budget_types;
-import .host.memory;
+import work_constructor_faults_test;
 
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
-
-fn constructor_fault_check(ok: bool): void {
-    if !ok { trap("Constructor allocation failure cleanup regression", 0); }
-}
-
-export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
-    trap("Unexpected constructor fault lifecycle", 0);
-}
-
-// Serial allocator instrumentation only. Real shared allocator/transport checks
-// belong to work_schedule_budget and its address/thread instrumented execution.
-fn constructor_fault_trial(units: usize): void {
-    var baseline = tower_test_buffer_count();
-    var succeeded = false;
-    for(var failure: usize = 0; failure < 512; failure++) {
-        var budget: WorkBudget = default;
-        constructor_fault_check(work_budget_init(&budget, 4, 1048576, 1));
-        var work: CompilerWork* = null;
-        tower_test_buffer_fail_after(failure);
-        var result = compiler_work_create_result(units, 4, 1, 9, &budget, &work);
-        tower_test_buffer_fail_after(~convert(usize, 0));
-        if result == WorkBudgetError.None {
-            constructor_fault_check(work != null);
-            compiler_work_close(work);
-            succeeded = true;
-        } else { constructor_fault_check(result == WorkBudgetError.Memory && work == null); }
-        constructor_fault_check(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
-            && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
-        if succeeded { break; }
-    }
-    constructor_fault_check(succeeded);
-}
 
 export fn main(argc: i32, argv: u8**): i32 {
     constructor_fault_trial(8);
-    // Include a new descriptor page during unit creation, beyond the owner
-    // and kind. Derive the count from this real owned allocation's geometry.
-    var probe = compiler_work_create(1, 1, 1, 9);
-    constructor_fault_check(probe != null);
-    var page = entity_owned_page(bits(u8*, probe.owner));
-    constructor_fault_check(page != null);
-    var units = page.capacity;
-    compiler_work_close(probe);
-    constructor_fault_trial(units);
+    constructor_fault_descriptor_growth();
     puts("0");
     return 0;
 }

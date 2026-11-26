@@ -113707,3 +113707,16 @@ and 265,027,584 bytes on shared on both arms. All sampled legacy allocation
 counts were zero. Assignment `470d4213-0716-486e-bacb-bcb916f2e3d5` contains
 the raw TAP, ordered selections, release manifest, source patch, timings and
 counter controls. The manager owns publication.
+
+### Original constructor allocation-failure suite as Tower tests
+
+The original native work-constructor fixture exercises two allocation sweeps.
+One uses eight units. The other derives its unit count from a real entity
+descriptor page so that construction crosses the growth boundary. Both now
+have declarations in `tests/work_constructor_faults_test.tower`. The original
+native executable calls the same assertion bodies and still prints zero on
+success. Each iteration disables its failure ticket immediately after the
+constructor, checks the result and output pointer, then verifies lane, byte
+and allocation cleanup before the next trial. A successful construction ends
+the sweep. The existing 512-trial bound still fails if success is never
+observed. These cases use single-owner allocation instrumentation.
