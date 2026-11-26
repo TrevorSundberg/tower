@@ -20,6 +20,7 @@ struct CompilerProjectFile { name: ByteBuffer; text: ByteBuffer; }
 struct CompilerProjectUnit { key: ByteBuffer; entry: ByteBuffer; object: ByteBuffer; }
 struct CompilerProjectFiles {
     source: ByteBuffer; files: vector(CompilerProjectFile*); names: WasmNameMap;
+    builtin_count: u32;
     units: vector(CompilerProjectUnit*); unit_names: WasmNameMap;
 }
 
@@ -88,7 +89,9 @@ fn compiler_project_tree(project: CompilerProjectFiles*, directory: u8*): bool {
     return true;
 }
 fn compiler_project_test_source(path: u8*): bool {
-    return compiler_project_prefix(path, "tests/") && compiler_project_suffix(path, ".tower");
+    if compiler_project_prefix(path, "library/") { return builtin_module_namespace(path); }
+    return (compiler_project_prefix(path, "tests/") || compiler_project_prefix(path, "examples/"))
+        && compiler_project_suffix(path, ".tower");
 }
 
 fn compiler_project_inventory(project: CompilerProjectFiles*, repository: u8*, inventory_name: u8*,
@@ -107,9 +110,12 @@ fn compiler_project_inventory(project: CompilerProjectFiles*, repository: u8*, i
 }
 
 fn compiler_project_sources(project: CompilerProjectFiles*, repository: u8*): bool {
-    if !tool_join(&project.source, repository, "scaffolding") || !compiler_project_tree(project, "compiler")
-        || !compiler_project_tree(project, "host") || !compiler_project_tree(project, "backend") { return false; }
-    return compiler_project_inventory(project, repository, "scaffolding/builtin_modules.txt", builtin_module_namespace)
+    if !tool_join(&project.source, repository, "scaffolding")
+        || !compiler_project_inventory(project, repository, "scaffolding/builtin_modules.txt", builtin_module_namespace) { return false; }
+    // Only this prefix of the append-only file table can satisfy a builtin dependency.
+    project.builtin_count = convert(u32, project.files.length);
+    return compiler_project_tree(project, "compiler") && compiler_project_tree(project, "host")
+        && compiler_project_tree(project, "backend")
         && compiler_project_inventory(project, repository, "scaffolding/compiler_project_test_sources.txt", compiler_project_test_source);
 }
 
@@ -155,7 +161,8 @@ fn compiler_project_dependencies(project: CompilerProjectFiles*, build: u8*, obj
             puts("Cannot resolve required compiler project dependency:"); puts(path.data); puts(strerror(*__errno_location())); return false;
         }
         if tool_path_relative(&name, path.data, source_root.data) {
-            if builtin_module_namespace(name.data) && wasm_names_get(&project.names, wasm_text_bytes(name.data)) == WasmNoIndex {
+            if builtin_module_namespace(name.data)
+                && wasm_names_get(&project.names, wasm_text_bytes(name.data)) >= project.builtin_count {
                 puts("Compiler unit depends on a module outside the builtin inventory:"); puts(name.data); return false;
             }
             if !compiler_project_read_source(project, name.data, path.data) { return false; }
