@@ -1,0 +1,30 @@
+import library.testing;
+import observations;
+
+extern fn reflected_size(width: usize): usize;
+extern fn reflected_alignment(width: usize): usize;
+extern fn reflected_field_count(width: usize): usize;
+extern fn reflected_offset(width: usize, field: usize): usize;
+
+test() {
+    for (var width: usize = 4; width <= 8; width *= 2) {
+        assert(reflected_size(width) == 3 * width, "ByteBuffer target size");
+        assert(reflected_alignment(width) == width, "ByteBuffer target alignment");
+        assert(reflected_field_count(width) == 3);
+        for (var field: usize = 0; field < 3; field++) {
+            assert(reflected_offset(width, field) == field * width, "ByteBuffer field offset");
+        }
+    }
+    var length = read_observation("expected", null, 0);
+    assert(length != 0);
+    var wanted = alloc(u8, length);
+    defer free(wanted);
+    assert(read_observation("expected", wanted, length) == length);
+    assert(output_matches("graph source 4", wanted, length), "32-bit graph source");
+    assert(output_matches("graph source 8", wanted, length), "64-bit graph source");
+    assert(output_matches("graph Foundation 4", wanted, length), "32-bit graph round trip");
+    assert(output_matches("graph Foundation 8", wanted, length), "64-bit graph round trip");
+    assert(output_matches("LLVM source", wanted, length), "LLVM source");
+    assert(output_matches("LLVM Foundation 4", wanted, length), "LLVM from 32-bit Foundation");
+    assert(output_matches("LLVM Foundation 8", wanted, length), "LLVM from 64-bit Foundation");
+}

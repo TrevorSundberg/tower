@@ -107965,3 +107965,61 @@ compressed release image, editable project transfer, per-member checksums,
 link recipes, measured registrations, target execution and ABI records.
 Edited two-generation worker builds, shared and IDE profiles, unfiltered Node
 and assembled-site registration remain release-level gates for their owners.
+### 2026-11-26 — Compiler byte buffers in the Tower test framework
+
+The compiler utility target compiles `library/bytes.tower`. Its default
+companion now exercises aliasing through growth, interior text assignment,
+empty input, range and overflow refusal, the terminator and double disposal.
+Select either `scaffolding/library/bytes.tower` or `bytes_test.tower` with
+`towerc --test`. Both selected two declarations at one and four workers.
+For a Linux native guest, add `--test-native-runtime guest-native-test.o`,
+`--link tower-compiler-utf8.o` and `--link libtower-compiler-memory.a`.
+The runtime alone lacked `tower_reallocate`. Adding only the allocator archive
+left `tower_utf8_validate` unresolved. The production byte implementation is
+present through the source import.
+
+The separate `tower-bytes-tests` CTest still binds the production implementation
+and independent `bytes_oracle.tower` to the same moving, guarded allocator.
+Its 20,000 differential operations, allocation refusal and leak checks passed.
+Putting the new companion on the implementation left imports of `bytes_types`
+and `bytes_interface` free of those tests. Of 16 installed CTest registrations,
+only the two gzip owner runs gained declarations, from three to five. Their
+provider arguments stayed the same. The direct gzip companion still ran three.
+
+The three original Node selectors in `compiler-bytes.test.mjs` enter Tower
+assertions. The host supplies actual pointer-width reflection and execution
+output, reads the reactor's exported memory, and drives the parser handle.
+The assertion interpreter is a separate Wasm instance. The real source and
+expected fixture in `library/bytes_cases` preserve the 25-line, 96-byte stream.
+The formatted Foundation was byte-identical to the original at both widths.
+Both graph layouts ran source and canonical Foundation. LLVM/Wasm ran source
+and canonical text from both layouts. The reset test checked the emoji and
+the generated statement's invocation and template byte ranges across 100 resets.
+
+On host 2, the Ubuntu development compiler and ordinary LLVM reactor came from
+source `8bc867b6`. The portable reactor came from Pages `890bbf7f`. With CPU
+affinity 0–3, the original and migrated Node suites took 2.05 and 2.60 seconds
+wall and peaked at 305,172 and 317,312 KiB RSS. These single samples include
+the additional canonical executions and the assertion interpreter. Changing
+the copied byte's expected value from 84 to 85 failed at `bytes_test.tower:17:5`
+for both selections, both job widths and both graph and native execution.
+Restoring it passed all eight controls. Packet
+`1167fd69-040e-436a-85ae-c5693f44f0bb` retains the comparison, raw measurements,
+provider and package identities and source bundle.
+
+Receiver `c2431be0` exercised the previously open conditional test request
+on both production browser frontends. Across 31 requests per profile, the
+four-byte guest printed 8 normally and 10 with one selected test. Introducing
+a missing import failed before output. Repair on the same worker selected
+two tests and printed 10 and 991. Removing the companion restored one test.
+
+The byte-buffer migration in `0a6e7f5c` adds two declarations under
+`library/bytes_test.tower`. Both passed directly on the integrated Linux pin
+at one and four workers. Of 212 pre-existing CTest registrations, only the
+two gzip owner commands changed their exact count, from three to five. The
+direct gzip companion still selects three. The worker's sixteen relocated
+registrations passed. A one-byte expectation change failed in all eight
+owner/direct and worker-width combinations across interpreter and linked
+execution. After restoring the fixture bindings, the final 19,142-byte
+Foundation matched the original at both pointer widths. All seven final
+graph and LLVM guest output streams matched the 96-byte golden.

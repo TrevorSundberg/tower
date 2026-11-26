@@ -1,0 +1,4 @@
+import foundation;
+// 🏰 source owns UTF-8 bytes
+parse Statement |= 'hello' ';' => replace { print(42); };
+hello;

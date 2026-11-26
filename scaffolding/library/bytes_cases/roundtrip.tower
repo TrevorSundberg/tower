@@ -1,0 +1,43 @@
+import library.bytes;
+import library.bytes_types;
+
+var b: ByteBuffer;
+bytes_init(&b);
+print(bytes_append(&b, null, 0));
+print(bytes_assign_text(&b, "Tower", 5));
+print(b.length);
+print(b.data[5]);
+print(bytes_append(&b, b.data, b.length));
+print(bytes_append(&b, b.data, b.length));
+print(b.length);
+print(b.data[15]);
+
+var middle = b.data + 3;
+print(bytes_assign_text(&b, middle, 7));
+print(b.length);
+print(b.data[0]);
+print(b.data[7]);
+
+var before = b.data;
+var capacity = b.capacity;
+var maximum: usize = 0;
+maximum = maximum - 1;
+print(bytes_assign_text(&b, null, maximum));
+print(bytes_reserve(&b, maximum));
+var same = b.data == before;
+print(same);
+same = b.capacity == capacity;
+print(same);
+print(b.length);
+var past = b.data + b.length;
+print(bytes_append(&b, past, 1));
+print(bytes_push(&b, 0));
+print(b.length);
+print(b.data[7]);
+print(bytes_assign_text(&b, null, 0));
+print(b.length);
+print(b.data[0]);
+bytes_dispose(&b);
+bytes_dispose(&b);
+same = b.data == null;
+print(same);
