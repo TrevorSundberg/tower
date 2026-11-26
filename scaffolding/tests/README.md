@@ -2662,6 +2662,16 @@ returns1 after cleanup. Existing scalar capability rejections and target32/64
 verifier-only Graph/Fast selectors remain separate and unchanged. These are
 single-owner validation costs, not throughput or multi-worker evidence.
 
+Run `ctest --test-dir BUILD -R '^tower-dependency-permutations($|-)' -V`
+in a native Linux GNU work/backend test build for the permutation suite.
+The LR runner accepts `dependency-permutations` and
+`dependency-permutations-wrong-result`. Its `all` mode includes the positive
+case. The four selected commands run the fixture owner or its direct companion
+at compiler jobs 1 and 4. From the repository root, their shared trial loads
+`scaffolding` and compares workers 1 and 2 at seeds 2, 17 and 101, including
+both local and imported cycles at seed 101. The wrong-result selector
+requires exit 1 after printing `actual=1112 wanted=1113` and the checked close.
+
 `tower-lr-work-tests RESOURCE_ROOT dependency-stress` runs three fixed seeds
 through three independent units with two bodies each. It combines imported
 forward `decltype`/`comptime`, nominal aliases, owning-frame/shadow captures,

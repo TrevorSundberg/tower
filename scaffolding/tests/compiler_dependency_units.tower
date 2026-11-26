@@ -2,8 +2,10 @@ import tower;
 import frontend_units;
 import frontend_units_memory;
 import .library.work_pool;
+import compiler_dependency_observations;
 import compiler_dependency_source;
 import backend_units;
+import unit_stream_clock;
 import .library.vector;
 import .library.work_budget;
 import .library.work_budget_types;
@@ -20,30 +22,8 @@ extern fn frontend_units_create_bounded(count: usize, workers: usize, retained_b
 extern fn frontend_units_error_offset(batch: void*): usize;
 extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
 
-// Native observation only: each callback writes its own ordinal's slot. The
-// coordinator reads slots after joining; no observer delays or compiler writes.
-struct DependencyUnitSpan { start: u64; end: u64; thread: usize; }
-struct DependencyUnitObserver { spans: DependencyUnitSpan*; count: usize; }
 var DependencyUnitWorkers: usize = 4;
-var DependencyUnitByteLimit: usize = 2147483648;
 var DependencyUnitRevision: u64 = 1;
-var DependencyUnitProfile: u64 = 1;
-
-fn dependency_unit_event(payload: void*, phase: CompilerQuery, ordinal: usize, entering: bool): void {
-    var observer = bits(DependencyUnitObserver*, payload);
-    units_check(phase == CompilerQuery.Unit && ordinal != 0 && ordinal <= observer.count,
-        "Dependency unit observer has a valid private slot");
-    var span = &observer.spans[ordinal - 1];
-    if entering { span.start = unit_stream_clock(); span.thread = pthread_self(); }
-    else { span.end = unit_stream_clock(); }
-}
-
-fn dependency_unit_append(out: vector(u8)*, text: u8*): void {
-    var length = strlen(text);
-    for(var i: usize = 0; i < length; i++) {
-        units_check(vector_push(out, text[i]), "Dependency fixture source snapshot");
-    }
-}
 
 fn dependency_unit_answer(program: SemanticProgram*, wanted: u64): void {
     var answer: void* = null;

@@ -119776,3 +119776,32 @@ The raw host packet includes the command lines, exit statuses, physical
 reference and syscall observations, captured guest executables, failure
 controls, timing samples, instrumentation maps and source-based Git bundle.
 The manager owns integration and publication.
+
+### Dependency permutation companion on public 480d45c4, host 8
+
+Assignment `37f3773a-ab8f-47f8-a964-00d0a859e579` follows the
+[original trial](dependency_permutations_4e7ef17b.md) and its
+[independent literal oracle](dependency_permutations_peer_de664a95.md).
+The public bootstrap (SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`)
+built the unchanged LR runner first. Its normal and restored runs passed
+16 batches. Its wrong-result mode printed `first actual=1112 wanted=1113`,
+closed the batch and returned 1. Its full `all` selector returned 0.
+
+The private fixture owner in `scaffolding/tests` provides the original source
+generator. Its companion owns the trials, expected-value calls and pairwise
+receipt comparisons. Both dedicated LR selectors and the `all` call still
+use the same function with their original root and wrong-result flag.
+An initial selected guest pulled in the unrelated backend fixture via the
+unit observer's clock and failed to link `backend_units_close`. Factoring
+out the native clock and the shared observation/receipt helpers lets the
+companion use the existing threaded frontend service library. The four
+selected CTests use repository-root cwd and the original 180-second guard.
+Direct selection runs one declaration. The owner also discovers five budget
+declarations. Runtime widths remain one and two at both compiler job counts.
+
+On the unmodified baseline and migrated LR executables, a debugger captured
+24 root inputs, 16 module inputs, 12 canonical buffers and four diagnostic
+buffers per executable. All 56 files matched across builds. The observed
+cycle offsets were 20671 in both placements at both widths. The packet keeps
+the input bytes, pre-disposal receipts, expected literal calls, original
+stdout/stderr, process resource measurements and probe commands.
