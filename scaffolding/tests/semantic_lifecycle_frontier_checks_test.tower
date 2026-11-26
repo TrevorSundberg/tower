@@ -1,5 +1,5 @@
 import library.testing;
-import semantic_body_admission_checks;
+import semantic_body_admission_checks_test;
 import .compiler.semantic_query_api;
 import .compiler.semantic_context_types;
 import .compiler.semantic_program_types;

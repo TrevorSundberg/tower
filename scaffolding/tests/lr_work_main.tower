@@ -23,6 +23,7 @@ import generic_inspection_budget_test;
 import semantic_publish_checks;
 import utility_checks;
 import semantic_lifecycle_checks;
+import semantic_lifecycle_checks_test;
 import .library.vector;
 import .compiler.format_api;
 import .compiler.format_types;
