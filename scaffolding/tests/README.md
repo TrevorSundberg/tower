@@ -43,6 +43,16 @@ test. The first such statement determines the test's position among explicit
 `test() {}` blocks. Module-level declarations and initializers keep their usual
 scope. A helper-only file adds zero tests.
 
+
+On a Linux GNU host, `--test-native-runtime OBJECT` selects native execution
+for the same declarations. Build the optional `tower-guest-native-test` target
+and pass its `guest-native-test.o`. Supply native dependencies with the usual
+`--link` arguments, including an allocator when the program requires one.
+Only pass trusted native inputs. The driver lowers the selected program once
+and runs the linked executable as a child. Guest stdout and stderr remain
+available. The test runtime reserves descriptor 3 in that child for its private
+same-host result. On a trap the driver maps the original offset through the
+request's source table. An early process exit fails the request.
 Native and in-memory callers pass the same typed rule to
 `frontend_test_selection_open`. The selection owns a byte key containing the
 two exact NUL-terminated suffixes and the normalized requested path, in that

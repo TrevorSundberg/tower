@@ -45,6 +45,7 @@ fn driver_link_objects(options: DriverOptions*): i32 {
         || !driver_linux_library(options.target, options.sysroot, "crti.o", &path)
         || !driver_object_link_input(&backend, &arguments, path.data, &views) { return 1; }
     if options.source[0] != 0 && (!driver_output_safe(options.source, options.output) || !driver_object_link_input(&backend, &arguments, options.source, &views)) { return 1; }
+    if options.test_runtime != null && !driver_object_link_input(&backend, &arguments, options.test_runtime, &views) { return 1; }
     var runpath: ByteBuffer = default; defer bytes_dispose(&runpath);
     for (var index: usize = 0; index < options.link_count; index++) {
         var input = options.links[index];

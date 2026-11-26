@@ -1,0 +1,6 @@
+import tower;
+
+// Private same-host ABI used by the native test startup and its parent.
+// A trap appends the original NUL-free message bytes after this header.
+enum NativeTestOutcome: usize { Completed = 1, Trapped = 2 }
+struct NativeTestResult { outcome: NativeTestOutcome; offset: usize; message_bytes: usize; }
