@@ -1,0 +1,2 @@
+import foundation;
+var value = 41; var flag = value == 41; var p = &value; var pp = &p; var bp = &flag; *p = 42; *bp = false; var address = bits(usize, p); var copy = bits(i32*, address); print(*copy); print(flag); var width = sizeof(i32*); print(width);

@@ -1,0 +1,13 @@
+import observations;
+import backend.text;
+
+test() {
+    expect_roundtrip("peers");
+    var canonical = observation("Foundation");
+    defer free(canonical.data);
+    assert(backend_contains(canonical.data, "var sum: u64 ="));
+    assert(backend_contains(canonical.data, "var reverse: u64 ="));
+    assert(backend_contains(canonical.data, "var comparison: bool ="));
+    assert(backend_contains(canonical.data, "var byte: u8 ="));
+    assert(backend_contains(canonical.data, "var converted: u32 ="));
+}

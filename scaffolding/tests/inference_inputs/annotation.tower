@@ -1,0 +1,2 @@
+import foundation;
+b = 8; var a = b; var b: i32 = a; print(a); print(b);

@@ -108220,3 +108220,90 @@ nine source and package commits in the manifest and asset-origin table are
 ancestors of integrated main, including the installer at `598df993`.
 These checks exercised local Git and the loopback deployment. Public-host
 verification must use the manifest actually served following the atomic push.
+### Browser initializer inference at 8bc867b6
+
+The seven registrations in `playground/tests/inference.test.mjs` exercise
+declaration typing in `semantic_types.tower` (`sem_declaration_type`).
+Generic call argument inference has a separate owner. The standalone programs
+and raw expected streams are in `tests/inference_inputs`, with the original
+`inference_bindings` and nominal mismatch fixtures reused. Each Node selector
+runs one Tower `test()` from `compiler/semantic_types_test/`. The extra host
+instance keeps the assertion guest independent of the product it observes.
+It transports counted bytes to the existing `FixtureBytes` comparisons. On
+this freeze the IDE test entry disposes its selection before publishing the
+session. The native driver's sibling-file grant does not extend to these IDE
+calls. No compiler or runtime build was needed.
+
+The native companion checks inferred declaration identities and values in the
+same imported modules. During development a forward-storage assertion failed
+because importing declarations did not run the program's standalone assignment
+before its initializers. The order-sensitive scripts run as ordinary entries in
+the browser test, including their standalone effects. The first browser run
+exposed missing direct imports of the text helpers. A later parse diagnosed
+the reserved word `expected` used as a local. Both failures are retained in
+host 6 packet `04117bf7-ff6a-4e75-ac99-6d7d24436020`.
+
+The seven programs used for cross-backend comparison kept their original
+source bytes. Each ran on the graph interpreter and again from its canonical
+Foundation, and on separately compiled LLVM/Wasm guests from both inputs.
+The width fixture selected four- and eight-byte pointers. Seventeen invalid
+programs kept their individual diagnostics, zero steps and empty output,
+including the leading `print(99)`. LLVM independently rejected the unmarked
+inputs. The 150 forward reads were compiled only. The selected Tower tests
+also compared the user formatter's comment and inferred syntax, the typed
+Foundation and both executions. For each reactor all 100 comparable events
+matched before/after, including 31 LLVM compiles and 14 guest executions.
+The seven selectors also passed in separate processes on each reactor. The
+evidence includes each actual byte stream requested by the Tower tests.
+
+The native full owner went from 27 to 31 passing declarations at one and
+four jobs. Direct selection went from a missing-file diagnostic to four
+passes at both widths. An intermediate native companion imported the local
+shadowing fixture, whose function prints during its module initializer.
+Selecting the existing inferred call result for the native check restored
+empty stdout for the full owner and direct routes. Shadowing remains tested
+on its ordinary execution and both backend replays. Every prior passing
+coordinate survived. Changing `convert(u32, 7)` to `convert(i32, 7)` kept
+ordinary stdout but failed the native type assertion at line 21 and the
+browser canonical spelling check. Changing the expected native value and
+raw browser stdout failed independently. The repaired inputs passed. Other
+controls independently failed on the formatter comment, 64-bit width, last
+chain row, early effect, replay Foundation and LLVM replay output.
+
+At both native widths, compiling the owner with `--library --emit object`
+produced identical before/after object and depfile bytes. The object SHA-256
+was `3d6827db1cc9a60c7433f35ad92e7088e7d8d2b436df9f29bc9d5f75b79c3e4e`.
+The wrong test expectation also left these production outputs identical.
+
+The input manifest's three archives and twelve extracted members passed
+size and SHA-256 checks on receipt. Host 6 ran the declared Ubuntu package
+on Debian 12 and used the supplied portable, shared and ordinary LLVM
+reactors. The CPU was a Xeon E5-2680 v4 with 12 visible logical CPUs and
+an 11.52-CPU cgroup quota. GNU time measured one command at a time on CPUs
+0–3 with warm files and a fresh Node 24.22.3 process. Three alternating
+pairs ran the original and migrated registrations using the final fixture
+tree. Median wall / CPU seconds and maximum peak RSS in KiB were
+2.39 / 3.76 / 238972 before and 3.89 / 5.50 / 285112 after on portable,
+and 2.97 / 4.93 / 330904 before and 4.69 / 6.91 / 368804 after on shared.
+The additional assertion reactor compiles and executes seven Tower tests.
+Restricting its registered project to the assertion imports avoids
+re-uploading the entire compiler project on each selection.
+
+One full-owner sample at jobs 1/4 took 14.10/11.02 seconds before and
+13.68/9.60 after. Direct selection took 13.54/8.98 seconds. The packet
+contains the per-process CPU and RSS samples. On a reduced import graph
+(`--test-suffix _spec.tower` with the four inline assertions), Memcheck
+reported zero errors or lost bytes, with 151054 bytes reachable at exit.
+DRD at four jobs reported zero errors. Both tools warned about the compiler's
+debug section mapping. The private debug-symbol installation initially failed
+to resolve the loader until its build-ID file was linked at its lexical path.
+These checks cover the ordinary native binary. The supplied Wasm products
+have no sanitizer instrumentation and Tower IR has no UBSan pass.
+
+The final four-job affected direct selection issued a 32-byte pass receipt.
+The first publication attempt lacked its output directory and exited 1.
+With the directory present the next identical request reported four skips.
+The same-output signed-type mutation failed at line 21 and removed the
+receipt. Restoring the source executed four passes and reproduced the receipt
+bytes. The unconditionally executed owner/direct comparisons above use
+fresh processes without affected selection.
