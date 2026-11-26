@@ -160,6 +160,8 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     # Ready owner discovery includes eight graph and five budget declarations.
     tower_work_native_selections(work-ready work_ready "18 tests" "5 tests" ${work_guest_args})
     tower_work_native_selections(work-schedule-budget work_schedule_budget_fixture "19 tests" "6 tests" ${work_guest_args})
+    # The attachment owner also discovers the five work-budget tests.
+    tower_work_native_selections(entity-attach-leases entity_attach_leases "7 tests" "2 tests" ${work_guest_args})
     set(affinity_oracle "${CMAKE_CURRENT_BINARY_DIR}/work_linux_affinity_faults.stdout")
     file(GENERATE OUTPUT "${affinity_oracle}" CONTENT "412\n544\n0\n")
     add_custom_target(tower-affinity-test-support DEPENDS tower-work-native-test-support)
