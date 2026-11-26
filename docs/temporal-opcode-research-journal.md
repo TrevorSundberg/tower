@@ -112628,3 +112628,86 @@ Assignment `8370a516-9090-4ef2-ba9e-bd90f5cd686f` contains the source
 bundle, selector and cost tables, raw stdout/stderr, source and emitted
 artifacts, release receipts and failure/restoration runs. Local handoff
 leaves integration and publication with the manager.
+
+### Semantic-port browser registrations select Tower assertions
+
+Host 2 based this local change on public `8fdfe15a`. The original 19 Node
+filters use 15 existing script subjects, a layout/binding script, two groups
+of invalid sources and a Tower generator. The published portable and shared
+frontend reactors and LLVM reactor are built from `8bc867b6`. The release
+manifest and cached payload hashes are in packet
+`42ac440a-37a5-4d95-9537-e451b7b9f31f`. The shared checkout had unrelated
+unpublished commits and its initial pull conflicted in the SHA-256 companion.
+The host aborted that rebase and used an isolated local main at the requested
+pin. A history fetch from the shallow checkout failed on a missing promisor
+object. The isolated checkout used the existing object store for the pin.
+
+Each table registration selects `tests/semantic_port_cases/matrix.tower`.
+At each pointer width the subject runs on Graph and Fast. Both formatted
+programs reparse and execute on Graph. The Fast canonical source also goes
+through optimized and unoptimized LLVM Foundation output and both results run
+on Fast. The source and four-byte Fast canonical source build executable Wasm.
+Tower compares all 14 counted outputs to raw bytes, the four complete pairs of
+Foundation texts, and the optimized population-count intrinsic at both widths
+for `backend_popcount`. The three distinct table outputs use the zero,
+language_control and work_observe expected files.
+
+The layouts and deep filters select `layouts.tower` and `deep.tower`.
+The former uses separate raw results for four- and eight-byte layouts. The
+latter runs the ordinary layout generator on Fast before compiling its output.
+The semantic and parser rejection filters select `diagnostics.tower` and
+`syntax.tower`. A passive log of the original isolated selectors recorded
+61 replies from 21 invalid subjects. The selected programs request each
+subject by name and check the full first diagnostic, original input file,
+byte offset and empty interpreter output. The two parser cases retain the
+original default width and LLVM compile. The transport destroys each portable
+handle even on failure. Only the separate assertion reactor receives the
+observation callbacks. The original subjects and generator are unchanged.
+
+The first mixed selection failed at the call to `backend_equal` because
+`matrix.tower` lacked a direct import. Adding the import passed. Choosing
+the zero oracle for `language_control` then failed the Graph output assertion.
+Changing `enum_index`'s expected offset from 77 to 76 failed the named
+rejection in the shared frontend. Restoring each change passed on the same
+profile. The packet retains the changes, locations, exit codes and streams.
+
+The frozen implementation is `3f28b7514`. All 19 named filters passed on
+each side and each public frontend, with no skips. For each of the 15 table
+registrations the original and migrated phase sequences matched all 42
+events on each frontend. On the shared frontend the ordered subject records
+matched across 227 ordinary compilations, 124 canonical formats and 33
+executable Wasm runs. Each ordinary compile reported zero selected tests.
+Each migrated filter selected one. Handle creation and destruction counts
+balanced. Separate transport captures matched all 61 first diagnostic
+replies byte-for-byte before and after on each frontend. Substituting an
+absent intrinsic spelling failed the optimized LLVM check and restoration
+passed. The packet includes a per-name mapping and both public frontend pairs.
+
+The ordinary native `--emit foundation --target wasm32-unknown-unknown`
+outputs for language_control, semantics and layout_depth_source were byte
+identical. Both revisions passed the pinned Linux package checksums. The
+ordinary depfiles excluded the assertion inputs. In a separate six-filter
+portable process the subject hosts both finished with 13,381 live nodes.
+The migrated assertion host finished with 13,483 live nodes. All three
+reported zero exposed live allocations. The compiler, allocator and worker
+implementation were unchanged. No instrumented compiler was built or run.
+
+GNU time measured fresh Node v24.22.3 processes on one Ryzen 5 3600 host,
+affinity 0–11, CPU quota 11.52, memory ceiling 32,222,740,480 bytes. Runs
+were sequential with warm filesystem caches. The shared subject transport
+used the default four child slots and its separate assertion host used one.
+Each cell below summarizes 19 single samples, one per name. CPU is user plus
+system time. RSS is the largest process peak in KiB. Both shared runs include
+the same passive transport tap.
+
+| Frontend | Wall seconds before / after | CPU seconds before / after | Peak RSS before / after |
+| --- | ---: | ---: | ---: |
+| Portable | 385.73 / 414.68 | 626.06 / 664.09 | 2,691,760 / 2,746,128 |
+| Shared | 417.75 / 450.09 | 711.46 / 751.21 | 2,812,232 / 2,883,308 |
+
+The four entity_tables Foundation comparisons covered 4,334,568 bytes per
+side. That selected test took 346,787,013 interpreter steps within its
+409,600,000-step limit. The portable interval from the final executable
+run through completion grew from 2.7 to 4,164.3 ms. That interval includes
+the selected test's setup, transfers and exact comparisons. Per-process
+wall and CPU include compiler and host startup. This handoff is local.

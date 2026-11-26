@@ -1,0 +1,9 @@
+import results;
+
+test() {
+    var wanted = observation(0, "expected", "zero");
+    defer free(wanted.data);
+    expect_output(4, "graph", wanted);
+    expect_output(8, "graph", wanted);
+    expect_output(4, "source wasm", wanted);
+}

@@ -1,176 +1,198 @@
-import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile,writeFile,mkdir} from 'node:fs/promises';
-import {loadTower} from './compiler-fixtures.mjs';
-import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
-const read=name=>readFile(new URL('../../'+name,import.meta.url));
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const towerBytes=process.env.TOWER_TEST_WASM?undefined:await read('build/browser-wasi/tower.wasm');
-const llvmBytes=process.env.TOWER_TEST_LLVM_WASM?undefined:await read('build/browser-wasi-llvm/tower-llvm.wasm');
-const tower=await loadTower(towerBytes,undefined,foundation);
-const llvm=await loadLLVM(llvmBytes,undefined,foundation);
-const artifacts=process.env.TOWER_TEST_ARTIFACTS;
-if(artifacts)await mkdir(artifacts,{recursive:true});
-const source=(await read('scaffolding/tests/semantics.tower')).toString();
-const expected=width=>`0\n42\n7\n42\n${width===4?20:32}\n${width}\n42\n3\n-2147483648\n`;
+import {after, test} from 'node:test';
+import {readFileSync} from 'node:fs';
+import {readFile, writeFile, mkdir} from 'node:fs/promises';
+import {loadTower as createTower} from '../src/tower-host.mjs';
+import {builtins, executeWasm, files, generatedSource} from './compiler-fixtures.mjs';
+import {fixtureSource, guestString, openLLVM, openTower, requireStatus, runSelectedTest} from './compiler_test_host.mjs';
 
-test('Tower semantic compiler preserves layouts, bindings, templates, and Foundation round trips',async()=>{
- let canonical, canonical32;
- for(const pointerBytes of [4,8]){
-  const h=tower.compile(source,{pointerBytes});
-  try{
-   const r=tower.execute(h,100000);assert.equal(r.status,'done',r.error);assert.equal(r.output,expected(pointerBytes));
-   canonical=tower.foundation(h).source;
-   if(pointerBytes===4)canonical32=canonical;
-  }finally{tower.destroyExecution(h);}
-  const h2=tower.compile(canonical,{pointerBytes});
-  try{
-   assert.equal(tower.execute(h2,100000).output,expected(pointerBytes));
-   assert.equal(tower.foundation(h2).source,canonical);
-  }finally{tower.destroyExecution(h2);}
- }
- for(const input of [source,canonical32]){
-  const compiled=llvm.compile(input);assert.equal(compiled.status,'compiled',compiled.error);
-  assert.equal((await executeWasm(compiled)).output,expected(4));
- }
-});
+const root = '.tower/tests/';
+const cases = root + 'semantic_port_cases/';
+const expectedFiles = new URL('../../scaffolding/tests/semantic_port_cases/', import.meta.url);
+const tower = await openTower();
+const llvm = await openLLVM();
+const artifacts = process.env.TOWER_TEST_ARTIFACTS;
+if (artifacts) await mkdir(artifacts, {recursive:true});
 
-// Behavioral checks live in Tower; this adapter runs the same fixtures through
-// the browser transports and checks their failure-code output and round trips.
-for(const [name,output] of [['language_control','42\n0\n'],['language_collections','0\n'],['language_enums','0\n'],['entity_pages','0\n'],['entity_tables','0\n'],['entity_stage_ownership','0\n'],['work_graph','0\n'],['work_access','0\n'],['work_resume','0\n'],['work_observe','8192\n256\n0\n'],['compiler_work','0\n'],['compiler_batch','0\n'],['backend_popcount','0\n'],['backend_stack','0\n'],['backend_import_constants','0\n']]) {
- test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`,async context=>{
-  const phase=label=>console.error(process.env.TOWER_TEST_PHASES
-   ?JSON.stringify({case:name,phase:label,pid:process.pid,milliseconds:performance.now(),
-    cpu:process.cpuUsage(),rss:process.memoryUsage().rss,maxRssKiB:process.resourceUsage().maxRSS,
-    portableCapacityBytes:tower.exports.memory.buffer.byteLength,llvmCapacityBytes:llvm.memoryCapacityBytes()})
-   :`${name}: ${label}`);
-  if(process.env.TOWER_TEST_PHASES)context.after(()=>phase('released'));
-  const save=async(suffix,text)=>{if(artifacts)await writeFile(`${artifacts}/${name}_${suffix}`,text);};
-  const source=(await read(`scaffolding/tests/${name}.tower`)).toString();
-  await save('source.tower',source);
-  tower.configureModules({entry:`.tower/tests/${name}.tower`});
-  llvm.configureModules({entry:`.tower/tests/${name}.tower`});
-  let canonical, canonical32;
-  for(const pointerBytes of [4,8]) for(const fast of [false,true]) {
-   phase(`compile ${pointerBytes * 8}-bit ${fast ? 'fast' : 'graph'}`);
-   const h=tower.compile(source,{pointerBytes});
-   try {
-    if(fast)tower.useFast(h);
-    phase(`execute ${pointerBytes * 8}-bit ${fast ? 'fast' : 'graph'}`);
+let records;
+const imports = {
+  semantic_reject(context, file, width) {
+    const name = guestString(context, file);
+    if (!/^[a-z0-9_]+$/.test(name)) throw new Error('Invalid diagnostic fixture ' + name);
+    const path = records.directory + '/' + name;
+    const source = fixtureSource(root + path + '.tower');
     let result;
-    do { result=tower.execute(h,100000); } while(result.status==='executing');
-    assert.equal(result.status,'done',result.error);
-    assert.equal(result.output,output);
-    phase(`format ${pointerBytes * 8}-bit ${fast ? 'fast' : 'graph'}`);
-    canonical=tower.foundation(h).source;
-    if(pointerBytes===4)canonical32=canonical;
-    if(fast)await save(`${pointerBytes * 8}_canonical.tower`,canonical);
-   } finally { tower.destroyExecution(h); }
-   phase(`canonical reparse ${pointerBytes * 8}-bit`);
-   const h2=tower.compile(canonical,{pointerBytes});
-   try {
-    phase(`canonical execute ${pointerBytes * 8}-bit`);
-    let result;
-    do { result=tower.execute(h2,100000); } while(result.status==='executing');
-    assert.equal(result.status,'done',result.error);
-    assert.equal(result.output,output);
-    assert.equal(tower.foundation(h2).source,canonical);
-   } finally { tower.destroyExecution(h2); }
-   if(fast) for(const optimize of [false,true]) {
-    const profile=`${pointerBytes * 8}_${optimize?'optimized':'unoptimized'}`;
-    phase(`LLVM Foundation ${pointerBytes * 8}-bit optimize=${optimize}`);
-    const rebuilt=llvm.compile(canonical,{emit:'foundation',optimize,
-     target:pointerBytes===8?'wasm64-unknown-unknown':'wasm32-unknown-unknown'});
-    if(rebuilt.status!=='compiled')await save(`${profile}_error.json`,JSON.stringify(rebuilt,null,2));
-    assert.equal(rebuilt.status,'compiled',rebuilt.error);
-    await save(`${profile}_before.ll`,rebuilt.before);
-    await save(`${profile}_after.ll`,rebuilt.after);
-    await save(`${profile}_rebuilt.tower`,rebuilt.foundation);
-    if(name==='backend_popcount' && optimize)assert.match(rebuilt.after,/llvm\.ctpop\.i(?:8|32|64)/);
-    phase(`LLVM Foundation reparse ${pointerBytes * 8}-bit optimize=${optimize}`);
-    const optimized=tower.compile(rebuilt.foundation,{pointerBytes});
-    try {
-     phase(`LLVM Foundation Fast select ${pointerBytes * 8}-bit optimize=${optimize}`);
-     tower.useFast(optimized);
-     phase(`LLVM Foundation execute ${pointerBytes * 8}-bit optimize=${optimize}`);
-     let result, text='';
-     do { result=tower.execute(optimized,100000);text+=result.output; } while(result.status==='executing');
-     assert.equal(result.status,'done',result.error);
-     assert.equal(text,output);
-    } finally { tower.destroyExecution(optimized); }
-   }
-  }
-  // Executable Wasm is wasm32. A wasm64 Foundation result can contain explicit
-  // target-sized constants/layouts; retain its separate same-profile checks above.
-  for(const text of [source,canonical32]) {
-   phase(`LLVM executable ${text === source ? 'source' : 'canonical'}`);
-   const compiled=llvm.compile(text);
-   if(compiled.status!=='compiled')await save(`executable_${text===source?'source':'canonical'}_error.json`,JSON.stringify(compiled,null,2));
-   assert.equal(compiled.status,'compiled',compiled.error);
-   await save(`executable_${text===source?'source':'canonical'}.wasm`,compiled.wasm);
-   phase(`LLVM executable run ${text === source ? 'source' : 'canonical'}`);
-   assert.equal((await executeWasm(compiled)).output,output);
-  }
-  phase('complete');
- });
+    if (width) {
+      const handle = tower.compile(source, {pointerBytes:width});
+      try { result = tower.execute(handle); }
+      finally { tower.destroyExecution(handle); }
+      if (result.outputTruncated) throw new Error('Truncated diagnostic output');
+    } else {
+      result = llvm.compile(source);
+    }
+    records[width] = {rejected:result};
+    records.diagnostic = new URL('../' + path + '.expected', expectedFiles);
+    if (!Number.isSafeInteger(result.errorOffset)) throw new Error('Missing diagnostic offset');
+    return result.errorOffset;
+  },
+  semantic_bytes(context, width, route, field, size) {
+    route = guestString(context, route);
+    field = guestString(context, field);
+    let bytes;
+    if (route === 'diagnostic') {
+      bytes = readFileSync(records.diagnostic);
+    } else if (route === 'expected') {
+      if (!/^[a-z0-9_]+$/.test(field)) throw new Error('Invalid expected file ' + field);
+      bytes = readFileSync(new URL(field + '.expected', expectedFiles));
+    } else {
+      const value = records[width]?.[route]?.[field];
+      if (typeof value !== 'string') throw new Error(`Missing ${width}/${route}/${field}`);
+      bytes = Buffer.from(value);
+    }
+    if (context.pointerBytes !== 4) throw new Error('Expected a wasm32 assertion program');
+    const address = context.allocate(bytes.length + 1);
+    if (!address) throw new Error('Cannot allocate ' + field);
+    const memory = context.memory();
+    memory.set(bytes, address);
+    memory[address + bytes.length] = 0;
+    new DataView(memory.buffer, memory.byteOffset).setUint32(size, bytes.length, true);
+    return address;
+  },
+};
+
+const assertionFiles = files.filter(({path}) => path.startsWith(cases) ||
+  ['.tower/library/testing.tower', '.tower/library/test_fixtures.tower',
+   '.tower/backend/text.tower', '.tower/library/vector.tower'].includes(path));
+const checks = await createTower(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined, builtins.foundation,
+  undefined, builtins.bedrock, {tower:builtins.tower, builtins, imports, threads:{capacity:1}, project:{files:assertionFiles}});
+after(() => checks.close());
+
+function check(program, runs) {
+  records = runs;
+  try { runSelectedTest(checks, cases + program + '.tower', 4096); }
+  finally { records = undefined; }
 }
 
-test('Tower semantic diagnostics agree between interpreter and LLVM entry points',async()=>{
- for(const [name,message] of [
-  ['inference_cycle',/initializer dependency cycle/],['layout_cycle',/Recursive by-value layout/],
-  ['argument_type',/Expected i32, got bool/],['literal_range',/Integer literal out of range for u8/],
-  ['template_origin',/Instantiated by wrong\(i32\)/],['missing_return',/without returning a value/],
-  ['match_duplicate',/Duplicate match pattern/],['match_range',/Integer literal out of range for u8/],
-  ['match_type',/An integer literal needs an integer type/],['match_scope',/Unknown local 'local'/],
-  ['match_break',/CoreBreak requires an enclosing loop/],['while_type',/Expected bool, got i32/],
-  ['enum_mix',/Expected Left, got Right/],['enum_number',/Enum values require a named member/],
-  ['enum_overflow',/Enum discriminant overflow/],['enum_duplicate',/Duplicate enum discriminant/],
-  ['enum_operation',/Enum operations require equality/],
-  ['enum_address',/not an addressable location/],['enum_index',/index must be an integer/],
- ]){
-  const text=(await read(`scaffolding/tests/semantic_invalid/${name}.tower`)).toString();
-  let error,offset;
-  for(const pointerBytes of [4,8]){
-   const h=tower.compile(text,{pointerBytes});
-   try{const r=tower.execute(h);assert.equal(r.status,'error',name);assert.match(r.error,message);error=r.error;offset=r.errorOffset;}
-   finally{tower.destroyExecution(h);}
-  }
-  const result=llvm.compile(text);assert.equal(result.status,'error',name);
-  assert.equal(result.error,error);assert.equal(result.errorOffset,offset);
- }
-});
+function subject(path) {
+  const entry = root + path + '.tower';
+  tower.configureModules({entry});
+  llvm.configureModules({entry});
+  return fixtureSource(entry);
+}
 
-test('Tower-generated deep layout dependencies compile without recursive traversal',async()=>{
- const generator=(await read('scaffolding/tests/layout_depth_source.tower')).toString();
- tower.configureModules({entry:'.tower/tests/layout_depth_source.tower'});
- const generated=tower.compile(generator);
- let source;
- try {
-  tower.useFast(generated);
-  let result;
-  do { result=tower.execute(generated,100000); } while(result.status==='executing');
-  assert.equal(result.status,'done',result.error);
-  source=result.output;
- } finally { tower.destroyExecution(generated); }
- for(const pointerBytes of [4,8]) {
-  const h=tower.compile(source,{pointerBytes});
+function portable(source, pointerBytes, fast, format, executePhase, formatPhase, selectPhase) {
+  const handle = tower.compile(source, {pointerBytes});
   try {
-   const result=tower.execute(h,100000);
-   assert.equal(result.status,'done',result.error);
-   assert.equal(result.output,'0\n');
-  } finally { tower.destroyExecution(h); }
- }
- const result=llvm.compile(source);
- assert.equal(result.status,'compiled',result.error);
- assert.equal((await executeWasm(result)).output,'0\n');
+    if (fast) {
+      selectPhase?.();
+      tower.useFast(handle);
+    }
+    executePhase?.();
+    let result, output = '';
+    do {
+      result = tower.execute(handle, 100000);
+      if (result.outputTruncated) throw new Error('Truncated guest output');
+      output += result.output;
+    } while (result.status === 'executing');
+    requireStatus(result, 'done');
+    if (!format) return {output};
+    formatPhase?.();
+    const foundation = tower.foundation(handle);
+    if (foundation.error) throw new Error(foundation.error);
+    return {output, foundation:foundation.source};
+  } finally { tower.destroyExecution(handle); }
+}
+
+async function executable(source, save, label, phase) {
+  phase?.('LLVM executable ' + label);
+  const compiled = llvm.compile(source);
+  if (compiled.status !== 'compiled') await save?.('executable_' + label + '_error.json', JSON.stringify(compiled, null, 2));
+  requireStatus(compiled, 'compiled');
+  await save?.('executable_' + label + '.wasm', compiled.wasm);
+  phase?.('LLVM executable run ' + label);
+  const result = await executeWasm(compiled);
+  requireStatus(result, 'done');
+  return {output:result.output};
+}
+
+test('Tower semantic compiler preserves layouts, bindings, templates, and Foundation round trips', async () => {
+  const source = subject('semantics'), runs = {};
+  for (const width of [4, 8]) {
+    const graph = portable(source, width, false, true);
+    runs[width] = {graph, 'graph replay':portable(graph.foundation, width, false, true)};
+  }
+  runs[4]['source wasm'] = await executable(source);
+  runs[4]['canonical wasm'] = await executable(runs[4].graph.foundation);
+  check('layouts', runs);
 });
 
-test('Tower control-flow parser rejects incomplete and unbraced bodies',async()=>{
- for(const name of ['match_default','while_braces']) {
-  const text=(await read(`scaffolding/tests/syntax_invalid/${name}.tower`)).toString();
-  const h=tower.compile(text);
-  try { assert.equal(tower.execute(h).status,'error',name); }
-  finally { tower.destroyExecution(h); }
-  assert.equal(llvm.compile(text).status,'error',name);
- }
+const subjects = ['language_control', 'language_collections', 'language_enums', 'entity_pages', 'entity_tables',
+  'entity_stage_ownership', 'work_graph', 'work_access', 'work_resume', 'work_observe', 'compiler_work',
+  'compiler_batch', 'backend_popcount', 'backend_stack', 'backend_import_constants'];
+for (const name of subjects) {
+  test(`Tower ${name} agrees across graph, fast, LLVM and Foundation text`, async context => {
+    const phase = label => console.error(process.env.TOWER_TEST_PHASES
+      ? JSON.stringify({case:name, phase:label, pid:process.pid, milliseconds:performance.now(),
+        cpu:process.cpuUsage(), rss:process.memoryUsage().rss, maxRssKiB:process.resourceUsage().maxRSS,
+        portableCapacityBytes:tower.exports.memory.buffer.byteLength, llvmCapacityBytes:llvm.memoryCapacityBytes()})
+      : `${name}: ${label}`);
+    if (process.env.TOWER_TEST_PHASES) context.after(() => phase('released'));
+    const save = async (suffix, data) => { if (artifacts) await writeFile(`${artifacts}/${name}_${suffix}`, data); };
+    const source = subject(name), runs = {0:{case:{subject:name}}};
+    await save('source.tower', source);
+    for (const width of [4, 8]) {
+      const bits = width * 8, row = runs[width] = {};
+      for (const mode of ['graph', 'fast']) {
+        phase(`compile ${bits}-bit ${mode}`);
+        row[mode] = portable(source, width, mode === 'fast', true,
+          () => phase(`execute ${bits}-bit ${mode}`), () => phase(`format ${bits}-bit ${mode}`));
+        const canonical = row[mode].foundation;
+        if (mode === 'fast') await save(bits + '_canonical.tower', canonical);
+        phase(`canonical reparse ${bits}-bit`);
+        row[mode + ' replay'] = portable(canonical, width, false, true, () => phase(`canonical execute ${bits}-bit`));
+      }
+      for (const optimize of [false, true]) {
+        const mode = optimize ? 'optimized' : 'unoptimized', profile = bits + '_' + mode;
+        phase(`LLVM Foundation ${bits}-bit optimize=${optimize}`);
+        const rebuilt = llvm.compile(row.fast.foundation, {emit:'foundation', optimize, target:`wasm${bits}-unknown-unknown`});
+        if (rebuilt.status !== 'compiled') await save(profile + '_error.json', JSON.stringify(rebuilt, null, 2));
+        requireStatus(rebuilt, 'compiled');
+        await save(profile + '_before.ll', rebuilt.before);
+        await save(profile + '_after.ll', rebuilt.after);
+        await save(profile + '_rebuilt.tower', rebuilt.foundation);
+        phase(`LLVM Foundation reparse ${bits}-bit optimize=${optimize}`);
+        row[mode] = portable(rebuilt.foundation, width, true, false,
+          () => phase(`LLVM Foundation execute ${bits}-bit optimize=${optimize}`), undefined,
+          () => phase(`LLVM Foundation Fast select ${bits}-bit optimize=${optimize}`));
+        if (optimize) row[mode].ir = rebuilt.after;
+      }
+    }
+    runs[4]['source wasm'] = await executable(source, save, 'source', phase);
+    runs[4]['canonical wasm'] = await executable(runs[4].fast.foundation, save, 'canonical', phase);
+    check('matrix', runs);
+    phase('complete');
+  });
+}
+
+function checkInvalid(program, directory) {
+  // The original isolated selectors compile the fixture as input.tower.
+  tower.configureModules({entry:'input.tower'});
+  llvm.configureModules({entry:'input.tower'});
+  check(program, {directory});
+}
+
+test('Tower semantic diagnostics agree between interpreter and LLVM entry points',
+  () => checkInvalid('diagnostics', 'semantic_invalid'));
+
+test('Tower-generated deep layout dependencies compile without recursive traversal', async () => {
+  const entry = 'layout_depth_source';
+  subject(entry);
+  const source = await generatedSource(tower, new URL('../../scaffolding/tests/' + entry + '.tower', import.meta.url));
+  const runs = {};
+  for (const width of [4, 8]) runs[width] = {graph:portable(source, width, false, false)};
+  runs[4]['source wasm'] = await executable(source);
+  check('deep', runs);
 });
+
+test('Tower control-flow parser rejects incomplete and unbraced bodies',
+  () => checkInvalid('syntax', 'syntax_invalid'));
