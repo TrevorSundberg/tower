@@ -110639,3 +110639,146 @@ also passed explicit V8 bounds checks. These public binaries supply no
 source-level sanitizer or per-allocation evidence for this run. The packet
 includes the focused build commands, failing controls, raw records, sample
 logs and source bundle. Publication belongs to the manager.
+### Float bit boundaries in adjacent Tower tests
+
+At `442f3beaa87649a800070056555fcb5a4a0378d6`, the standalone
+`tests/float_bits.tower` ran 44 checks and printed one zero followed by a
+newline. The graph interpreter and the linked Linux executable agreed. Both
+the library and the standalone script selected zero declarations with
+`--test`. The archived native selector is the ordinary script invocation.
+The formatter's generated file list and the Node module-path sweep also
+include it. It has no separate expected file. The LLVM reference generator
+in `tests/float_reference.tower` remains an independent arithmetic check.
+[Original path inventory](evidence/native_test_paths_91b3e1f8.tsv)
+
+The [companion](../scaffolding/library/float_bits_test.tower) calls the
+production Tower integer arithmetic with the original raw bit patterns. Each
+group returns a failure count and the first failed case label. Its selected
+declaration asserts on the label. The standalone entry calls the same groups
+in their original order and prints the total. This preserves its output even
+when several cases fail. The interpreter prints a pointer for the standalone
+helper's `print(message)`. The selected diagnostic includes the string and
+the assertion location.
+
+| Original standalone lines | Adjacent group | Checks |
+| --- | --- | ---: |
+| 13–22 | Binary32 sums, halfway ties, signed zeros, subnormal crossings and overflow | 10 |
+| 23–28 | Binary32 multiplication, division and underflow | 6 |
+| 29–32 | Binary32 invalid operations and canonical NaN | 4 |
+| 33–36 | Binary32 signed and unordered comparisons | 4 |
+| 38–42 | Binary64 arithmetic and halfway ties | 5 |
+| 43–46 | Binary64 subnormal results and canonical NaN | 4 |
+| 48–50 | Integer to float rounding and limits | 3 |
+| 51–53 | Float narrowing and widening, including negative zero | 3 |
+| 54–62 | Float to integer results and conversion status | 5 |
+
+On Ubuntu 24.04.5 with LLVM 19.1.1, the qualified `41de9006` compiler
+selected nine declarations from both the ordinary owner and the direct
+companion at jobs 1 and 4. Both interpreted and linked execution passed.
+The native count-checked CTests also passed from a relocated test kit. A
+one-bit change to the even lower midpoint reported actual 1065353216 and
+expected 1065353217 at the assertion on line 56, with exit 1 on both paths
+and at both widths. Both registrations failed when the companion was absent.
+Restoration passed. Each of the 44 original labels was independently
+observed by changing its expectation. A separate all-wrong run reproduced
+all 111 lines of the standalone diagnostic stream and its final count of 44.
+
+The normal library object and depfile matched the baseline at each width.
+The linked `tests/float_text.tower` consumer had identical executable bytes
+and a depfile containing the float library without the optional companion.
+Five existing owner registrations reached the new declarations transitively.
+The bytecode package at jobs 1 and 4 went from 6 to 15. Semantic defer at
+both widths and semantic iteration at jobs 4 went from 60 to 69. All passed.
+The portable graph and fast interpreters in the retained `8bc867b6` Wasm
+image also ran the owner and direct selections at 4- and 8-byte pointer
+widths. They reproduced the failure and recovery. An exploratory fast-mode
+request on the stock zero-test selection trapped inside the retained image.
+The ordinary stock corpus and all nonempty selections ran in both modes.
+
+The Xeon E5-2680 v4 had affinity 0–11, an 11.52-CPU quota and a
+32,282,509,312-byte memory limit. With a warm filesystem and three sequential
+paired samples per width, median wall time for the ordinary 44-check script
+went from 0.62 to 0.76 s at one worker and 0.77 to 1.07 s at four. Maximum
+RSS for those samples went from 94,452 to 98,944 KiB and from 99,240 to
+112,828 KiB respectively. The standalone now imports the companion and its
+assertion grammar. The new linked owner check took 1.08 s wall, 0.85 s user,
+0.16 s system and 104,796 KiB peak at one worker. At four it took 1.33 s,
+1.11 s, 0.28 s and 114,668 KiB. These samples include the compiler process.
+
+The ordinary shared case functions and guest runtime passed separate
+ASan/LSan and TSan replays. Running the instrumented ELF files under PRoot
+initially exited 255. Using the Ubuntu dynamic loader directly with the same
+objects produced zero failures and empty stderr in both modes. This exercises
+the case helpers in a serial guest. The Tower instrumentation tool supports
+address and thread modes. Assignment `64b14835-6875-4781-8b93-2424eb9ada6e`
+retains the case-to-line map, input identities, link maps and raw runs.
+
+### Public float-bits discovery and source-format qualification
+
+Host 3 checked assignment `640db66c-0829-4b2f-b572-138aee31c9ae` on
+`bddf13315bf8f484b8d8e9fdb0b801f426450401`, directly above `442f3bea`.
+The source bundle and five named evidence files matched the producer's archive
+and manifest. The public Pages tree at `f2214133` supplied the versioned
+8bc867b6 Linux x64 package and the portable and LLVM reactors. All 60 Linux
+package hashes matched the default checkout package. The installed compiler's
+SHA-256 was `7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`.
+The earlier 41de9006 timings and sanitizer results belong to that earlier build.
+
+The public standalone interpreter and linked guest printed `0\n` at one
+and four jobs. Default discovery from the owner and direct companion selected
+the same nine declaration locations. The two new count-checked CTests passed.
+The two bytecode-package registrations went from 6 to 15, the two defer
+registrations and four-job iteration from 60 to 69. The original sites retained
+their order and guest bytes. Both new registrations also passed from a moved,
+float-only test kit using the installed compiler. Withholding the companion
+failed both count checks. An intentionally wrong even-lower midpoint expected
+1065353217, reported actual 1065353216 and failed both at line 56, column 5.
+Restoring the exact companion restored both passes.
+
+The formatter file list gained the companion. The installed public compiler
+rejected its source with `--check-format`. The repair applies its indentation
+and block layout, with two line joins above the corpus to preserve the assertion
+locations. The 44 original arguments and labels and the ordered table of 48
+statements, including conversion status reads, still reproduce both retained
+tables byte for byte. The published CLI accepted the repaired source. A
+supplemental retained native formatter runner from `249a7484` contains the
+same repository-sweep check and formatter owner source. Given the reviewed
+checkout resources, the new companion failed its canonical-source assertion
+before the repair. The repaired companion, standalone and invalid grammar
+control passed together. This is a focused projection of the opt-in sweep.
+The public base already has unrelated formatting drift.
+
+The checkout-backed for-loops, foreach, operators, compiletime, bytecode and
+module-path-names Node modules exercised the released reactors. The for-loop
+observation tests selected 4 and 1, foreach selected 9 and the compound
+operator check selected 14. The operator rejection, compiletime and enabled
+bytecode assertion calls each selected one. The release reactor lacks the
+optional bytecode ownership export. The packet records the individual Node
+names, anonymous Tower declaration sites, counts, guest output, canonical
+hashes and filtered file inventories. The production float owner and consumer
+objects and depfiles remained byte-identical at both native widths. The
+published editable project includes the production owner. Its 776 paths
+exclude both the standalone and its companion. All 113 Pages asset hashes
+verified. Ship the companion with the requested tests and retain the existing
+binary, project and manifest provenance.
+
+All timings in the packet used fresh processes and warm source files on one
+AMD EPYC 7542 host, affinity 0–3, with a shared 12.288-CPU quota and a
+57,954,795,520-byte memory limit. The public stock and submitted six-module
+runs each passed 111 Node names with one capability skip. The three
+transitive native owners run at five registrations. The stock five took
+63.13 s wall, 43.21 s user, 1.71 s system and 760,712 KiB peak RSS. The
+repaired seven, including the two new registrations, took 65.49 s wall,
+43.91 s user, 1.71 s system and 768,216 KiB peak RSS. The packet provides
+individual commands and process peaks. These differently sized groups
+measure qualification cost. Compiler and Pages publication remain with the
+manager.
+
+Over three alternating standalone pairs, median wall seconds at jobs 1 and 4
+were 0.37 and 1.57 on stock, and 0.51 and 2.73 after repair. Maximum RSS
+was 95,076 and 99,908 KiB on stock and 99,580 and 107,348 KiB after repair.
+Each run returned the same two output bytes. The full optional sweep still
+stopped on `backend/bindings.tower` first on all three trees. The supplemental
+sweep runner's implementation identity and its resource-root preflights are
+in the packet. The six repaired Node modules also passed 111 names with the
+same capability skip.
