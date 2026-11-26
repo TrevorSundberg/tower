@@ -117470,3 +117470,141 @@ provider. Tower's supported IR profiles are address and thread. No project
 UBSan profile exists. Assignment `ad7bb590-2de3-48f1-a3f8-30b49f1a3479`
 carries the source bundle, raw inputs, commands, streams and costs for
 manager publication.
+
+### Ordered LR row admission and action scratch ownership in selected tests
+
+Host 3 worked from public `464e4fa9117efb8c96b7bd0585b0d2c407e6af0a`.
+The complete original `tests/lr_work.tower` is blob
+`b6008dfc49f82cd625193410638663ef2701313b` at both that commit and
+`91b3e1f853923b9d9a8718e9c0c553e488075e1f`. At the reference,
+`lr_action_owner_trial` starts at 1148 and `lr_ordered_row_budget_trial`
+at 1213. CTest selects `tower-lr-work-tests RESOURCE_ROOT lr`.
+`lr_work_main.tower:206` checks the failure count from `lr_work_tests(): u32`
+after checking caller overlap and shared lane budgets. The same call runs
+in the default `all` entry. The original messages, failure count and
+short-circuit order for the two action modes still come from the aggregate.
+
+The row case and both action modes now live in
+[lr_action_rows_test.tower](../scaffolding/tests/lr_action_rows_test.tower).
+[Its owner](../scaffolding/tests/lr_action_rows.tower) groups the original
+aggregate calls. The four existing work-enabled parser unit entries still
+import `tests.lr_work`. Selecting the whole suite as the owner in an early
+trial also discovered the editor formatting cases and required their
+`format_case_read` host. Placing a companion beside the production
+`compiler/lr_work.tower` also changed the existing formatter owner's
+discovery. The focused test owner leaves those entry points intact.
+The ordinary `compiler.units.parser` object matched the parent byte for
+byte (SHA-256 `f6f9111a8a6011f8a6fc1a6ca7ddede96a131d1559af53d34a6a5005fe017b89`).
+Its depfile excluded the aggregate and the new case files. All four
+ordinary LR test-main objects also matched.
+
+On native Linux the selected test guest links the regular compiler services
+and production allocator. Linking just the memory archive failed at
+`work_kernel_execute`. The shared service link resolves its symbols at
+build time, including the arena provider in the entity unit and the kernel
+dispatcher in the semantics unit. Its linker map identifies the normal
+`runtime-allocate.o`, `tower-compiler-host.o` and `tower_work_host.o`
+in the memory archive. The guest supplies its own result/trap entry.
+
+| Observation on Linux x64 | Original and migrated cases |
+| --- | --- |
+| Ordered row refusal and release | The one-byte grant left 439 of 440 bytes available. Collection returned Capacity with an empty output and one live grant. Releasing the grant restored zero live and zero bytes. |
+| Successful row | The private row had length and capacity 17, one 440-byte grant, and all terminal ranges 0 through 16 in order, each with the no-rule sentinel and destination state 1. Extending its first range to 16 left the borrowed input at 0 and length 17. |
+| Private action refusal | An uninitialized arena returned Invalid. The bounded graph used 13,232 bytes in eight grants. A competing 1,035,344-byte grant left the first private chunk unavailable. Capacity left scratch empty and the published row unchanged. |
+| Recovery and transfer | Releasing the hold admitted the private shift 65–67 to state 1. The destination row was still empty. The incompatible arena refused transfer in bounded mode. The matching arena acquired the same chunk and the donor emptied. Serial reuse kept the action address and the row's borrowed ownership flag. The bounded owner carried 24,176 bytes after transfer. |
+| Final ownership | Both action modes and the ordered row ended with zero bytes, lanes and live grants. |
+
+The migrated row additionally tries a second fresh row while the first is
+still charged. It checks the second refusal and reads every action in the
+accepted row before mutation. The action case checks both ends of the
+transferred chunk chain. The two trials themselves use a single owner.
+Other cases in the original aggregate still cover state admission, FIRST
+and propagation work, action rebuild and refusal across jobs, worker leases,
+overlap, budgets, conflicts, nullable cycles and world cleanup. They retain
+their existing sources and selectors.
+
+Implementation `5f864f916af7a0c8e472962e2587104569fa0893` adds four
+count-checked CTest registrations. All 268 pre-existing normalized commands
+and properties matched. Direct selection ran three declarations at
+`lr_action_rows_test.tower:14:1`, `:15:1` and `:16:1`. Default owner
+selection ran those three plus five budget, eight graph and four precedence
+cases. Compiling the focused owner in ordinary library mode included only
+the owner and its companion from the tests directory. Dynamic loader bindings
+showed the guest resolving its buffer, arena and allocation calls to
+`libtower-lr-row-services.so`.
+
+In a temporary overlay, requiring the transferred head to **differ** from
+the original chunk made the original aggregate exit 134 with its action-owner
+message and the existing real-threaded-LR diagnostic. Owner and direct
+selection exited 1 at `lr_action_rows_test.tower:15:10`. This happened at
+both compiler widths. The restored executables and selected entries passed.
+Separate Tower observation overlays captured the same 36 ordered state
+lines through the parent aggregate, migrated aggregate, direct and owner
+entries at both widths. Their shared SHA-256 is
+`9d7b793642195269d41ac1f7f654d68a2a20a5ac1c92066050f428c17c4466fc`.
+The first observation build needed explicit u32-to-usize conversions in the
+printer. Observer-off measurements use the unchanged public bootstrap,
+SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+
+Release ASan with leak detection and TSan each passed the ordinary
+`tower-lr-work-tests RESOURCE_ROOT lr` on its first launch, with empty
+stderr. ASan took 24.82 s wall, 23.10 s CPU and 903,940 KiB peak RSS.
+TSan took 72.60 s wall, 104.91 s CPU and 697,788 KiB peak RSS. Both executable
+maps identify the production allocator, compiler buffer and native worker
+archive members. Both instrumented parser IRs contain read/write checks in
+the two case functions and the real action kernel. The surrounding LR suite
+exercised its existing worker overlap controls. The selected guests ran on
+the normal native test runtime. Tower provides address and thread IR
+profiles. Source-level UBSan, browser and full-suite sanitizer runs remain
+outside this evidence.
+
+Host 3 used an AMD EPYC 7542 (32 cores, SMT2), Linux x86_64 and Debian
+Clang/LLVM 19.1.7. The process cpuset was 0–63 and cgroup v1 CPU quota was
+1,228,800 µs per 100,000 µs (12.288 CPUs). Measured processes inherited
+affinity 0–7. The cgroup memory limit was 57,954,795,520 bytes. Its shared
+lifetime peak was 32,458,391,552 bytes. Separate process peaks below come
+from GNU time. A four-job compile snapshot showed nine OS threads, eight
+sleeping at the observation. The compiler job setting controls object
+generation and test selection. The native LR entry retains its own worker
+policy.
+
+The comparison used the host timing lock, fresh processes, warm files, the
+same target and flags, and one workload at a time. The parser object is the
+work-enabled `compiler.units.parser_work` input. Each timed object matched
+its CMake product. The two compiler widths yielded identical executables
+within each source version. One warmed aggregate pair at each width used
+reversed order. Compilation and selected entries used three measured runs
+per cell. Values are median wall seconds / median user + system seconds /
+maximum process RSS in KiB.
+
+| Entry | Compiler jobs | Public parent | Migrated |
+| --- | ---: | ---: | ---: |
+| Work-enabled parser object | 1 | 22.11 / 20.57 / 740,764 | 21.91 / 20.45 / 743,024 |
+| Work-enabled parser object | 4 | 28.58 / 21.50 / 755,956 | 30.26 / 21.94 / 764,116 |
+| Original aggregate | 1 | 18.97 / 2.01 / 205,644 | 15.20 / 2.01 / 210,700 |
+| Original aggregate | 4 | 17.65 / 2.03 / 207,816 | 14.54 / 2.03 / 202,816 |
+| Direct selection, three cases | 1 | No such companion | 3.91 / 3.64 / 255,400 |
+| Direct selection, three cases | 4 | No such companion | 9.89 / 3.97 / 265,928 |
+| Owner selection, twenty cases | 1 | No such owner | 4.78 / 4.42 / 287,332 |
+| Owner selection, twenty cases | 4 | No such owner | 11.20 / 4.95 / 297,688 |
+| 32,768 repetitions of the row and both action modes | 1 | 0.10 / 0.09 / 1,848 | 0.10 / 0.09 / 1,800 |
+
+The repetition microbenchmark linked the same normal allocator and arena
+provider for each version. The selected measurements include discovery,
+compilation, linking and execution. The aggregate spends substantial time
+waiting in other fixtures. Its single observations per width support comparison
+of output and CPU use, with limited wall-time precision. The four-job parser
+build increased by 1.68 s wall, 0.44 s CPU and 8,160 KiB peak RSS.
+A separate four-job `--timings` pair located 1.86 s of the 1.94 s total
+increase in parsing (17.63 → 19.49 s). Emission moved from 3.58 to 3.62 s.
+This work-enabled input now parses the focused owner, companion and assertion
+grammar. The profile does not resolve the parser time by file.
+
+The extended observation saw Capacity while a second row was empty and all
+17 prior actions and the one live grant remained available. It also recorded
+both ends of the foreign arena empty and both ends of the donor still
+identifying the same chunk. The native CTest command passed on both parent
+builds and all five affected registrations passed in both migrated builds.
+Host 3 assignment `50b5af7a-c560-426d-ba72-b02ba0a22897` carries the
+source bundle, commands, trace overlays, raw streams, rejection controls,
+ELF maps, binaries, timings and checksums for manager review and publication.
