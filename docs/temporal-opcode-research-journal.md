@@ -112431,3 +112431,40 @@ byte-identical to the set verified in receipt
 `2ef2ae68-7529-4363-9ceb-9d5e887ae707`. That run exercised all 48 negative
 registrations and all 88 entries in the file. Execution after the rename is
 tracked separately.
+
+### Executing the renamed browser rejection assertions
+
+On host 4, candidate `48809885` counted one test for each renamed assertion.
+Its `_browser_test.tower` companion rule selected the ordinary invalid input
+as the owner. For 22 of the 24 fixtures the owner failed during preflight,
+before the assertion read the subject diagnostic. Public parent `e354e5e0`
+passed all 48 registrations on the same Pages `9788bd66` reactors. Removing
+the custom suffix made both engines report “Cannot open registered test owner”
+for `decltype_cycle_browser_test.tower`. The default rule requires the absent
+`decltype_cycle_browser.tower`.
+
+The checker now registers the positive assertion files, their shared
+diagnostic reader and `library.testing` alongside the language builtins.
+Its companion suffix is `_companion.tower`, so the actual renamed entry is
+the root of the inline test. The subject hosts still compile the invalid
+inputs under their original paths with the complete project.
+
+All 48 original Node names and all 88 full-file registrations passed with
+zero skips. A separate observed run counted 96 calls from the assertion
+bodies to `stage_text("error")` and 96 successful completions, one per file,
+engine and pointer width (4 and 8 bytes). All 96 complete subject observations
+matched packet `e2712afa-d21b-4c6d-8a15-bb3829a6ba86`. Changing the expected
+offset from 14 to 15 in the formerly blocked `decltype_cycle_browser_test.tower`
+failed both engines at byte 126 of that assertion. Restoring its original
+hash passed both registrations again.
+
+Host 4 used Node 24.22.3, one test at a time, on a Ryzen 7 5800H with a
+15.36-CPU quota. For the 48 passing names, one fresh-process sample on CPUs
+0,2,4,6 gave public parent and repair wall times of 6.84 and 6.85 s, CPU
+times of 8.12 and 8.16 s, and peak process RSS of 320364 and 316220 KiB.
+On CPU 0 the respective wall times were 8.09 and 8.19 s, CPU times 8.08 and
+8.17 s, and peaks 311012 and 320792 KiB. The repaired full file took 17.89 s
+wall and 21.30 s CPU with 415788 KiB peak RSS. The fixture transport is the
+only code change. The runs use the published Wasm binaries. Packet
+`bb120c41-d7ab-476e-b42e-da41a17bc88b` contains the source, TAP, body reads,
+control patch and process measurements.

@@ -41,7 +41,8 @@ function checkObservation(checker, name, backend, pointerBytes, observation) {
  portable = backend === 'portable';
  try {
   const entry = `${directory}${name}_browser_test.tower`;
-  runSelectedTest(checker, entry, 10, {pointerBytes, suffix:'_browser_test.tower'});
+  // Keep each _browser_test.tower entry as the root of its own inline test.
+  runSelectedTest(checker, entry, 10, {pointerBytes, suffix:'_companion.tower'});
   if (!readMessage) throw new Error(entry + ' did not read the subject diagnostic');
  } catch (error) {
   throw new Error(`${name} (${backend}, ${pointerBytes}-byte pointers): ${error.message}\nObserved: ${JSON.stringify(result)}`, {cause:error});
@@ -49,9 +50,11 @@ function checkObservation(checker, name, backend, pointerBytes, observation) {
 }
 
 const directory = '.tower/tests/semantic_invalid/';
-// Install the assertion project's sources when the private reactor opens.
-const assertionInputs = files.filter(({path}) => path.startsWith(directory) ||
- path.startsWith('.tower/library/') || path === '.tower/backend/text.tower');
+// The subject host owns the invalid programs. The checker loads only the
+// assertions and their imports alongside the language builtins.
+const assertionInputs = files.filter(({path}) =>
+ (path.startsWith(directory) && path.endsWith('_browser_test.tower')) ||
+ path === directory + 'rejection_observation.tower' || path === '.tower/library/testing.tower');
 
 // Keep filtered runs lazy. The checker lives across independently registered Node tests.
 let checker;
