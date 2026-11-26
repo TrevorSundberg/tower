@@ -1,0 +1,19 @@
+import tower;
+import .library.work_buffer_types;
+import .library.work_budget_types;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+
+struct BufferJob {
+    budget: WorkBudget*;
+    entered: void*;
+    release: void*;
+    retained: WorkBuffer;
+    thread: usize;
+    cancelled: bool;
+    denied: bool;
+    success: bool;
+}

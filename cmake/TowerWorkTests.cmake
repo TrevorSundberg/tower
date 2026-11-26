@@ -158,6 +158,10 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(work-buffer work_buffer "8 tests" "3 tests" ${work_guest_args})
     # Ready owner discovery includes eight graph and five budget declarations.
     tower_work_native_selections(work-ready work_ready "18 tests" "5 tests" ${work_guest_args})
+    # Separate native guests each export their own default pool callback.
+    tower_work_native_selections(work-budget-shared work_budget_shared_fixture "8 tests" "3 tests"
+      ${work_guest_args} --link "${host_work_linux_OBJECT}")
+    tower_work_native_selections(work-buffer-shared work_buffer_shared_fixture "8 tests" "3 tests" ${work_guest_args})
     tower_work_native_selections(work-schedule-budget work_schedule_budget_fixture "19 tests" "6 tests" ${work_guest_args})
     # The attachment owner also discovers the five work-budget tests.
     tower_work_native_selections(entity-attach-leases entity_attach_leases "7 tests" "2 tests" ${work_guest_args})

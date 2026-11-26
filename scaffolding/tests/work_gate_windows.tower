@@ -1,5 +1,6 @@
 import tower;
 import work_budget_shared;
+import work_budget_shared_fixture_test;
 import work_thread_windows;
 import .library.work_pool;
 import .library.work_gate;

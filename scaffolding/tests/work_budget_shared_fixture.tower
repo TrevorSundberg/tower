@@ -1,0 +1,16 @@
+import tower;
+import .host.memory;
+import .library.work_budget_types;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+
+struct BudgetJob {
+    budget: WorkBudget*;
+    parent: WorkReservation;
+    entered: void*;
+    release: void*;
+    thread: usize;
+    completed: usize;
+    success: bool;
+}

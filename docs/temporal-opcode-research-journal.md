@@ -117740,3 +117740,112 @@ grew from 8,388,608 to 28,311,552 bytes in the first case and held that size
 through the next two. Node retained 3/2/2 request handles and 8/5/5 value
 handles through the respective cases and dropped the tables on exit. These
 measurements cover the tests. The manager owns publication and hosted checks.
+### Linux shared budget and buffer fixture declarations on 2738c50f
+
+Host 4, assignment e7a8c1ec-938e-4d0f-8c30-8497125c343d. The two original
+standalone CTests passed on public 2738c50f8242deec1a773226800081e6dbe52f89.
+Their default pool callbacks have the same exported name and different
+payload types. Each companion therefore runs in its own native guest.
+The shared budget links the existing host_work_linux object. Its Windows
+caller imports the same budget cases and supplies the Windows provider.
+The shared buffer continues to compile the Linux provider into the guest.
+Both use production allocation. Compiler jobs and guest pthread counts are
+independent. The experiment below uses the original standalone as the oracle.
+
+Each direct selection ran its three declarations at jobs 1 and 4. Each owner
+ran those three and the five work-budget declarations. Both original main
+functions still issue the three calls in order and print bytes 30 0a.
+All ten ordinary CTest commands passed. The standalone tests each passed ten
+consecutive runs. On affinities of one, two, three and four CPUs the original
+and migrated budget exited 1/0/0/0, and the buffer exited 1/1/1/0.
+
+The observer packet has 139 ordered records per budget run and 91 per buffer
+run. It covers both original standalone widths and both migrated standalone,
+owner and direct widths. The first selected observer used descriptor 3 and
+invalidated the guest's completion record. Using inherited descriptor 7 kept
+both the native result protocol and guest stdout intact. At each rendezvous
+four different pthread IDs, all distinct from the coordinator, were live
+before the nonblocking receive returned null. Each release was followed by
+four successful receives. Comparison retained coordinator order, mapped
+IDs to job ordinals, and compared concurrent worker samples without imposing
+a cross-worker order. Scheduler-dependent extra-lane grants and peak charges
+were checked against their bounds and retained in the raw files.
+
+* Each budget job completed 2048 rounds with its parent lane intact. Sampled
+  extra grants were 8192 bytes and either zero or eight extra lanes. Each
+  full-byte request returned Capacity with an inactive unowned output.
+  Copied receipts returned Stale on validation and release. First/last scratch
+  bytes were 0/0 and 255/255 on rounds 0 and 2047. After join and parent
+  release the ledger had zero live receipts, bytes and lanes. Peak lanes
+  reached 12 and peak bytes were at most 32768. Disposal cleared capacity.
+* Lane and byte refusal in the reuse case left the worker signal unconsumed.
+  Slot 2 advanced from generation 2 to 3. The old release was stale. Signal
+  tries returned 0, 0, 1, 0, 0 with one wake during the armed lane release.
+  Revision 2 rejected the revision 1 receipt. Gate contention completed
+  512/1024/1536/2048 iterations in cycle zero and 0/1024/1536/2048 after
+  cancellation in cycle one. The totals were 5120 and 9728, their inverses
+  matched and the pool was drained each time.
+* All buffer modes held four lanes, eight receipts and 16512 bytes at entry.
+  Normal jobs completed 512 resizes, retaining byte 71 at both endpoints.
+  Cancelled jobs kept the initial 4096-byte payload. Denial returned Capacity
+  and preserved the pointer and byte 4095. After join and lane release all
+  modes held four receipts, zero lanes and 16512 bytes. Budget disposal
+  returned Busy. Disposing all four buffers returned live, bytes and lanes to
+  zero, and successful budget disposal cleared capacity. The traced normal
+  peak ranged from 41184 to 49408 bytes under the 65536-byte limit.
+
+In separate source copies, expecting two coordinator wake calls and expecting
+worker byte 70 after denied growth made each affected standalone, owner and
+direct route exit 1 at both compiler widths. Restoring the original values
+reproduced the candidate objects, executables, detailed passes and zero line.
+The address and thread CMake profiles linked the real allocator, Linux gate
+and pthread transport. Each executable passed three times per profile,
+with leak checks enabled for ASan. The budget/buffer worker kernels contained
+91/36 ASan access hooks and 52/25 TSan hooks. All three coordinator groups
+and both additional budget callbacks had instrumented access. TSan completed
+on attempts 4, 10, 29 for budget and 6, 10, 15 for buffer. The packet retains
+38 intervening host startup failures at ADDR_NO_RANDOMIZE. The existing heap
+overflow and race controls produced their expected reports. Tower has no
+source-level UBSan mode.
+
+The Windows caller needed a direct import of the companion for ordinary
+function lookup. The original and migrated caller each cross-compiled and
+linked PE x64 at jobs 1 and 4 with the public Windows runtime and Debian
+mingw-w64-x86-64-dev 10.0.0-3 import libraries. Each width reproduced its
+freeze's PE when linked with the same export image name and timestamp zero.
+The first comparison used different output names. Native Windows execution
+was outside this Linux assignment.
+
+Host 4 used a Ryzen 7 5800H, eight cores and 16 logical CPUs. Affinity was
+0–3 for timings, with cpu.max 1536000/100000 and memory.max 64061702144.
+Release Linux x64, Clang/LLVM 19.1.7, checked-in compiler SHA-256
+7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896.
+Each cell gives median wall seconds / median user plus system seconds /
+maximum RSS KiB over three fresh processes after warmup under the host
+timing lock. The batch rows include 64 standalone launches and shell startup.
+For paired selected measurements only, a temporary baseline companion called
+the original bodies with their exported main omitted from the selection.
+
+| Entry | Original | Migrated |
+| --- | ---: | ---: |
+| budget-1.compile | 0.47 / 0.46 / 111092 | 0.56 / 0.55 / 114272 |
+| budget-1.direct | 0.57 / 0.57 / 113584 | 0.58 / 0.59 / 113860 |
+| budget-1.owner | 0.70 / 0.70 / 125988 | 0.72 / 0.73 / 127180 |
+| budget-4.compile | 0.47 / 0.52 / 116588 | 0.63 / 0.71 / 126652 |
+| budget-4.direct | 0.63 / 0.72 / 127576 | 0.64 / 0.73 / 123492 |
+| budget-4.owner | 0.74 / 0.84 / 135756 | 0.74 / 0.85 / 138208 |
+| budget.batch | 0.32 / 0.89 / 2948 | 0.32 / 0.93 / 3060 |
+| buffer-1.compile | 0.42 / 0.42 / 108292 | 0.53 / 0.53 / 111256 |
+| buffer-1.direct | 0.52 / 0.52 / 111232 | 0.52 / 0.52 / 111172 |
+| buffer-1.owner | 0.63 / 0.63 / 123480 | 0.64 / 0.64 / 124564 |
+| buffer-4.compile | 0.45 / 0.50 / 113840 | 0.60 / 0.67 / 124904 |
+| buffer-4.direct | 0.58 / 0.64 / 125484 | 0.58 / 0.66 / 125564 |
+| buffer-4.owner | 0.71 / 0.80 / 133596 | 0.70 / 0.79 / 133924 |
+| buffer.batch | 0.10 / 0.16 / 2968 | 0.10 / 0.16 / 3020 |
+
+The standalone now imports the testing grammar and compiles the new
+declarations. Its object build took 0.09–0.16 seconds longer across the four
+cells. The paired guest launch batches had identical median wall times.
+For direct/owner compilation, link and execution, median differences were
+within 0.02 seconds. These figures cover four-way fixture stress and compiler
+startup on this host. The manager owns integration and publication.

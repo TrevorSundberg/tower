@@ -1,0 +1,84 @@
+import .library.testing;
+import work_buffer_shared_fixture;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.work_linux;
+
+export fn work_kernel_execute(payload: void*): void {
+    var job = bits(BufferJob*, payload);
+    job.thread = pthread_self();
+    assert(work_buffer_resize(&job.retained, job.budget, 4096, 0) == WorkBudgetError.None);
+    fill(job.retained.data, 71, 4096);
+    work_signal_post(job.entered);
+    work_signal_wait(job.release);
+    // The coordinator publishes cancellation before releasing this worker.
+    // Even cancelled/failed results remain physically owned until the join.
+    if job.cancelled { job.success = true; return; }
+    if job.denied {
+        var previous = job.retained.data;
+        job.success = work_buffer_resize(&job.retained, job.budget, 8192, 4096) == WorkBudgetError.Capacity
+            && job.retained.data == previous && job.retained.data[4095] == 71;
+        return;
+    }
+    for(var round: usize = 0; round < 512; round++) {
+        var bytes: usize = round % 2 == 0 ? 8192 : 4096;
+        if work_buffer_resize(&job.retained, job.budget, bytes, 4096) != WorkBudgetError.None
+            || job.retained.data[0] != 71 || job.retained.data[4095] != 71 { return; }
+    }
+    job.success = true;
+}
+
+fn shared_buffers(cancelled: bool, denied: bool): void {
+    var gate = work_gate_open();
+    var entered = work_signal_open();
+    var release = work_signal_open();
+    assert(gate != null && entered != null && release != null);
+    defer work_gate_close(gate);
+    defer work_signal_close(entered);
+    defer work_signal_close(release);
+    var jobs: BufferJob[4] = default;
+    var count = sizeof(decltype(jobs)) / sizeof(BufferJob);
+    var bytes = count * (4096 + 4 * sizeof(usize));
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, count, denied ? bytes : 65536, 1));
+    assert(work_budget_synchronize(&budget, gate, work_gate_enter, work_gate_leave));
+    var lanes: WorkReservation[4] = default;
+    var pool: WorkPool = default;
+    assert(work_pool_open(&pool, count) && pool.threaded && pool.count == count, "Shared buffer requires four native workers");
+    for(var i: usize = 0; i < count; i++) {
+        jobs[i].budget = &budget;
+        jobs[i].entered = entered;
+        jobs[i].release = release;
+        jobs[i].denied = denied;
+        assert(work_budget_reserve(&budget, 1, 1, 0, &lanes[i]));
+        assert(work_pool_submit(&pool, bits(void*, &jobs[i])));
+    }
+    for(var i: usize = 0; i < count; i++) { work_signal_wait(entered); }
+    var snapshot: WorkBudgetSnapshot;
+    assert(work_budget_snapshot(&budget, &snapshot));
+    assert(snapshot.used_bytes == bytes && snapshot.used_lanes == count);
+    assert(work_pool_receive(&pool, false) == null);
+    for(var i: usize = 0; i < count; i++) { jobs[i].cancelled = cancelled; }
+    for(var i: usize = 0; i < count; i++) { work_signal_post(release); }
+    while pool.running != 0 { work_pool_receive(&pool, true); }
+    work_pool_close(&pool);
+    for(var i: usize = 0; i < count; i++) {
+        assert(jobs[i].success && jobs[i].thread != pthread_self(), "Joined buffer worker must complete its case on a pthread");
+        for(var j: usize = 0; j < i; j++) { assert(jobs[i].thread != jobs[j].thread); }
+        assert(work_budget_release(&budget, &lanes[i]));
+    }
+    assert(work_budget_snapshot(&budget, &snapshot));
+    assert(snapshot.used_lanes == 0 && snapshot.used_bytes == bytes && snapshot.live == count);
+    assert(!work_budget_dispose(&budget));
+    for(var i: usize = 0; i < count; i++) { work_buffer_dispose(&jobs[i].retained); }
+    assert(work_budget_snapshot(&budget, &snapshot));
+    assert(snapshot.used_bytes == 0 && snapshot.live == 0 && snapshot.peak_bytes <= snapshot.bytes);
+    assert(work_budget_dispose(&budget));
+}
+
+test() { shared_buffers(false, false); }
+test() { shared_buffers(true, false); }
+test() { shared_buffers(false, true); }

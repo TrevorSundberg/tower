@@ -1253,6 +1253,13 @@ the five ready tests through the native guest at compiler jobs 1 and 4.
 Selecting the owner adds eight graph and five budget tests. The address and
 thread sanitizer builds exercise the ready checks through the standalone.
 
+For both shared pthread fixtures, build `tower-work-budget-shared-tests` and
+`tower-work-buffer-shared-tests` and run `ctest -R '^tower-work-(budget|buffer)-shared-'`.
+Each standalone prints one zero line. Each Linux x64 GNU direct selection runs
+three cases at compiler jobs 1 and 4. Owner selection adds the five budget
+tests. Each native guest links its own `work_kernel_execute`. The budget
+pool uses two to four available workers and the buffer pool requires four.
+
 For the single-owner buffer refusal sequence, build `tower-work-buffer-faults-tests`
 and run `ctest -R '^tower-work-buffer-faults-'` in the native build directory.
 The standalone prints one zero line. On native Linux x64 GNU, the ordinary
