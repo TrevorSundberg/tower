@@ -113144,3 +113144,57 @@ used four-byte target pointers and the fast interpreter. All timing processes
 returned zero. The assignment packet contains the source bundle, full
 name-to-companion mapping, commands, raw streams, paired timings, published
 reactor hashes and negative controls. The manager handles publication.
+
+## 2026-11-26 — Eight CodeMirror output lexer assertions in Tower
+
+Host 3 reconstructed manager candidate `9f2afbeb705db691084ad27b069020b019c3df22`
+on `21f409e5` with `git apply --index`. The corrected patch has SHA-256
+`3af26b7d443ba7e3de55a38d7419414dddebbb6345bad8aa060cb33d21fa6319` and
+tree `d17d4947218f5caec4e147cf0b47f842d2bb2471`. The first payload had
+reconstructed the parent. Selecting the prepared literal case failed before
+execution with “Cannot open registered test owner”. A default `_test.tower`
+entry selected a missing owner. Revision `17b9b88b` opens `tokens.tower` with
+the selected companion's exact suffix. After that fix the literal reached
+checking and reported unknown `backend_length`. The two bodies that use
+testing and backend text functions now import them directly. The CodeMirror
+adapter passes an unstyled token's null tag as a guest null pointer.
+
+Pages `9788bd66ff4d90b174bbe73c33aa6f68c4e9b5af` supplied both images
+(build source `64fcfc1a`), verified against its manifest. At one slot each
+image passed all eight exact Node name filters separately and the full file
+with the ordinary `node --test` runner. Each selection checked a count of one
+Tower test. Native inventory also returned exactly its companion at jobs 1.
+The original JS and both candidate runs recorded the same rejection and
+seven ordered streams of input, lexeme and raw tag pairs, including nulls.
+All three 82,594-byte JSONL files had SHA-256
+`49709cafe099c94062849f35ba74be87e3af37f61253c0373f2f3923a97f7af4`.
+The 20,000-byte repeated suffix plus its 29-byte prefix produced 17 advancing
+tokens. Separate edits to the production lexer removed the x86 `rep` prefix,
+stopped the fallback token from advancing, and lost the C block comment at
+line start. All three suites failed each corresponding case and passed it
+after restoration. Tower reported `stosq`, `Lexer stopped advancing` and
+`second` respectively. Both images passed all eight with V8 explicit Wasm
+bounds checks. Native ASan/TSan coverage is unavailable for these
+CodeMirror-hosted assertions on the published Wasm binaries.
+
+Same host and inputs, Linux x86-64 EPYC 7542 (32 cores/64 threads), Node
+24.22.3, CodeMirror language 6.13.1. Affinity 0–63 pinned to CPU 24, quota
+1228800/100000 µs. One process at a time under the host timing lock, Node
+test concurrency one. Three rotated fresh-process runs per arm on warmed
+files gave the following componentwise medians. Same-process test-hook
+intervals sum the eight bodies in two rounds on one live reactor for Tower,
+one Node module environment for JS. Those intervals exclude top-level startup.
+
+| Suite | Fresh elapsed/user/sys (s) | Fresh max RSS (KiB) | First / repeat body elapsed (s) | First / repeat body user (s) | First / repeat body sys (s) | First / repeat process high-water RSS (KiB) |
+| --- | --- | ---: | --- | --- | --- | --- |
+| Original JS | 0.16 / 0.13 / 0.02 | 60,560 | 0.00771 / 0.00195 | 0.00744 / 0.00196 | 0.00040 / 0.00002 | 59,204 / 61,536 |
+| Portable | 1.54 / 1.48 / 0.05 | 111,084 | 1.155 / 0.640 | 1.119 / 0.629 | 0.020 / 0.004 | 111,152 / 113,552 |
+| Shared | 1.82 / 1.75 / 0.06 | 128,284 | 1.345 / 0.769 | 1.314 / 0.758 | 0.016 / 0.003 | 125,808 / 125,808 |
+
+The Tower path compiles each selected test and passes observed token text
+through the guest boundary. The warm full suite added 0.638 s portable and
+0.767 s shared over JS in this sample. The payload and assertions were held
+fixed. Assignment `703dd03e-8dc5-4ff6-912a-e02c8ffe9e44` contains the exact
+commands, fresh and live-process costs per individual name, traces, original
+failures, restored runs and source bundle. Allocation counters and multicore
+scaling were outside the single-slot test interface.

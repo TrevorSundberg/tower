@@ -1,51 +1,63 @@
-import { test } from 'node:test';
-import assert from 'node:assert/strict';
-import { StringStream } from '@codemirror/language';
-import { outputParser } from '../src/output-syntax.mjs';
+import {after, test} from 'node:test';
+import {readFile} from 'node:fs/promises';
+import {StringStream} from '@codemirror/language';
+import {outputParser} from '../src/output-syntax.mjs';
+import {loadTower} from '../src/tower-host.mjs';
+import {copyText, guestString} from './guest_text.mjs';
+import {runSelectedTest} from './selected_test.mjs';
 
-function tokens(syntax,text) {
-  const parser=outputParser(syntax), state=parser.startState(), result=[];
-  for(const line of text.split('\n')) {
-    const stream=new StringStream(line,4,2);
-    while(!stream.eol()) {
-      stream.start=stream.pos;
-      const tag=parser.token(stream,state);
-      assert.ok(stream.pos>stream.start,'lexer must always advance');
-      result.push([stream.current(),tag]);
-    }
-  }
-  return result;
+const root = new URL('../../', import.meta.url);
+const directory = 'playground/src/output_syntax_cases/';
+const source = path => readFile(new URL(path, root), 'utf8');
+const modules = ['bedrock', 'foundation_syntax', 'types', 'foundation', 'tower',
+  'library/testing', 'backend/text', 'library/vector'];
+const builtins = Object.fromEntries(await Promise.all(modules.map(async name =>
+  [name, await source('scaffolding/' + name + '.tower')])));
+let tokens = [];
+const tower = await loadTower(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('build/browser-wasi/tower.wasm', root)), undefined, builtins.foundation, undefined,
+  builtins.bedrock, {builtins, tower:builtins.tower, threads:{capacity:1}, imports:{
+    output_tokenize(context, syntax, input) {
+      tokens = [];
+      let parser;
+      try { parser = outputParser(guestString(context, syntax)); }
+      catch (error) { return copyText(context, error.message); }
+      const state = parser.startState();
+      for (const line of guestString(context, input).split('\n')) {
+        const stream = new StringStream(line, 4, 2);
+        while (!stream.eol()) {
+          stream.start = stream.pos;
+          const tag = parser.token(stream, state);
+          if (stream.pos <= stream.start) return copyText(context, 'Lexer stopped advancing');
+          tokens.push([stream.current(), tag]);
+        }
+      }
+      return copyText(context, '');
+    },
+    output_token_count: () => tokens.length,
+    output_token_text: (context, index) => copyText(context, tokens[index][0]),
+    output_token_tag: (context, index) => {
+      const tag = tokens[index][1];
+      return tag === null ? 0 : copyText(context, tag);
+    },
+    output_token_join: context => copyText(context, tokens.map(([text]) => text).join('')),
+  }});
+after(() => tower.close());
+
+const helper = {path:directory + 'tokens.tower', text:await source(directory + 'tokens.tower')};
+for (const [name, title] of [
+  ['tower', 'Tower output cannot fall back to an independent JavaScript keyword list'],
+  ['llvm', 'LLVM raw and optimized syntax includes SSA, metadata, labels and opcodes'],
+  ['x86', 'x86 disassembly highlights decoded instructions'],
+  ['arm', 'arm disassembly highlights decoded instructions'],
+  ['wasm', 'wasm disassembly highlights decoded instructions'],
+  ['literal', 'long and hostile display text remains literal and lexer always advances'],
+  ['c', 'C highlights types, preprocessing, comments and statements after semicolons'],
+  ['prefix', 'prefixed x86 instructions are highlighted'],
+]) {
+  test(title, async () => {
+    const suffix = '_' + name + '_test.tower';
+    const path = directory + 'tokens' + suffix;
+    runSelectedTest(tower, helper.path, 100, {suffix, files:[helper, {path, text:await source(path)}]});
+  });
 }
-test('Tower output cannot fall back to an independent JavaScript keyword list',()=>{
-  assert.throws(()=>outputParser('tower'), /shared compiler lexer/);
-});
-test('LLVM raw and optimized syntax includes SSA, metadata, labels and opcodes',()=>{
-  const result=tokens('llvm','define i32 @main() {\nentry:\n %value = load i32, ptr @global, align 4 ; read\n ret i32 %value\n}');
-  for(const item of [['define','keyword'],['@main','variableName'],['entry','labelName'],['load','keyword'],['ptr','typeName'],['ret','keyword']])
-    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
-});
-for(const [syntax,text,opcode,register] of [
-  ['x86','0x00001000  mov rax, qword ptr [rsp + 0x10]','mov','rax'],
-  ['arm','0x00001000  ldr x0, [sp, #16]','ldr','x0'],
-  ['wasm','0x00000100  i32.const 42','i32.const',null],
-]) test(syntax+' disassembly highlights decoded instructions',()=>{
-  const result=tokens(syntax,text);
-  assert.equal(result.map(([text])=>text).join(''),text);
-  assert.ok(result.some(([word,tag])=>word===opcode&&tag==='keyword'));
-  if(register) assert.ok(result.some(([word,tag])=>word===register&&tag==='variableName.special'));
-});
-test('long and hostile display text remains literal and lexer always advances',()=>{
-  const input='<img src=x onerror=alert(1)> '+ '"\\'.repeat(10000);
-  assert.equal(tokens('llvm',input).map(([text])=>text).join(''),input);
-});
-
-test('C highlights types, preprocessing, comments and statements after semicolons',()=>{
-  const result=tokens('c','#include <stdint.h>\n/* first\nsecond */ uint32_t value = 42; return value;');
-  for(const item of [['#include','meta'],['uint32_t','typeName'],['return','keyword'],['42','number']])
-    assert.ok(result.some(token=>token[0]===item[0]&&token[1]===item[1]),item.join(':'));
-  assert.ok(result.some(([text,tag])=>text.includes('second')&&tag==='comment'));
-});
-test('prefixed x86 instructions are highlighted',()=>{
-  const result=tokens('x86','0x00001000  rep stosq');
-  for(const instruction of ['rep','stosq']) assert.ok(result.some(([word,tag])=>word===instruction&&tag==='keyword'));
-});

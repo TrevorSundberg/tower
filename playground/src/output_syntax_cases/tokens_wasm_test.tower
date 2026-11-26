@@ -1,0 +1,5 @@
+import tokens;
+
+test() {
+    check_disassembly("wasm", "0x00000100  i32.const 42", "i32.const", null);
+}

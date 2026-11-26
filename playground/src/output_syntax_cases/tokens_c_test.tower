@@ -1,0 +1,10 @@
+import tokens;
+
+test() {
+    tokenize("c", "#include <stdint.h>\n/* first\nsecond */ uint32_t value = 42; return value;");
+    expect_token("#include", "meta", false);
+    expect_token("uint32_t", "typeName", false);
+    expect_token("return", "keyword", false);
+    expect_token("42", "number", false);
+    expect_token("second", "comment", true);
+}

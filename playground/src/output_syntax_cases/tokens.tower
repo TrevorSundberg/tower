@@ -1,0 +1,41 @@
+import library.testing;
+import backend.text;
+
+extern fn output_tokenize(syntax: u8*, source: u8*): u8*;
+extern fn output_token_count(): usize;
+extern fn output_token_text(index: usize): u8*;
+extern fn output_token_tag(index: usize): u8*;
+extern fn output_token_join(): u8*;
+
+fn tokenize(syntax: u8*, source: u8*): void {
+    var error = output_tokenize(syntax, source);
+    defer free(error);
+    assert(error[0] == 0, error);
+}
+
+fn expect_token(spelling: u8*, tag: u8*, substring: bool): void {
+    var count = output_token_count();
+    for (var i: usize = 0; i < count; i++) {
+        var text = output_token_text(i);
+        defer free(text);
+        if substring ? backend_contains(text, spelling) : backend_equal(text, spelling) {
+            var actual = output_token_tag(i);
+            defer free(actual);
+            if actual != null && backend_equal(actual, tag) { return; }
+        }
+    }
+    assert(false, spelling);
+}
+
+fn expect_lossless(source: u8*): void {
+    var joined = output_token_join();
+    defer free(joined);
+    assert(backend_equal(source, joined), "Token slices changed the source bytes");
+}
+
+fn check_disassembly(syntax: u8*, source: u8*, opcode: u8*, reg: u8*): void {
+    tokenize(syntax, source);
+    expect_lossless(source);
+    expect_token(opcode, "keyword", false);
+    if reg != null { expect_token(reg, "variableName.special", false); }
+}

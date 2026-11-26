@@ -1,0 +1,21 @@
+import tokens;
+import library.testing;
+import backend.text;
+
+test() {
+    var prefix = "<img src=x onerror=alert(1)> ";
+    var start = backend_length(prefix);
+    var count: usize = 10000;
+    var length = start + 2 * count;
+    var source = alloc(u8, length + 1);
+    assert(source != null);
+    defer free(source);
+    for (var i: usize = 0; i < start; i++) { source[i] = prefix[i]; }
+    for (var i: usize = 0; i < count; i++) {
+        source[start + 2 * i] = 34;
+        source[start + 2 * i + 1] = 92;
+    }
+    source[length] = 0;
+    tokenize("llvm", source);
+    expect_lossless(source);
+}

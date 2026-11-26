@@ -1,0 +1,5 @@
+import tokens;
+
+test() {
+    check_disassembly("x86", "0x00001000  mov rax, qword ptr [rsp + 0x10]", "mov", "rax");
+}

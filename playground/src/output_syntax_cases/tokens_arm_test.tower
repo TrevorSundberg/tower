@@ -1,0 +1,5 @@
+import tokens;
+
+test() {
+    check_disassembly("arm", "0x00001000  ldr x0, [sp, #16]", "ldr", "x0");
+}
