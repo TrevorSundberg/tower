@@ -1,0 +1,7 @@
+import tower;
+import .host.memory;
+
+extern fn work_thread_available(): bool;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_allocations(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;

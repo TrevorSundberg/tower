@@ -1,82 +1,10 @@
 import tower;
-import utility_checks;
-import .library.work_budget;
-import .library.work_budget_types;
+import work_budget_allocation_fixture_test;
 
-extern fn work_thread_available(): bool;
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_test_buffer_allocations(): usize;
-extern fn tower_test_buffer_fail_after(count: usize): void;
-
-// The existing serial fault injector owns these counters. Concurrent ledger
-// stress uses work_budget_shared with the production allocator instead.
-fn budget_allocation_trial(): void {
-    var baseline = tower_test_buffer_count();
-    var budget: WorkBudget = default;
-    utility_check(work_budget_init(&budget, 32, 4096, 1), "Initialize failure-test ledger");
-    var empty: WorkReservation = default;
-    tower_test_buffer_fail_after(0);
-    utility_check(work_budget_reserve_result(&budget, 0, 0, 0, &empty) == WorkBudgetError.None
-        && !empty.active && budget.live == 0, "Empty grant needs no allocation");
-    utility_check(work_budget_reserve_result(&budget, 0, 0, 1, &empty) == WorkBudgetError.Memory
-        && !empty.active && budget.generation == 0 && budget.entries.length == 0
-        && budget.used_bytes == 0 && budget.used_lanes == 0 && budget.live == 0,
-        "First entry allocation failure preserves the empty ledger");
-    tower_test_buffer_fail_after(~convert(usize, 0));
-
-    var receipts: WorkReservation[32] = default;
-    utility_check(work_budget_reserve(&budget, 1, 1, 1, &receipts[0]), "First ledger entry");
-    var capacity = budget.entries.capacity;
-    utility_check(capacity > 1 && capacity < 32, "Bounded fixture can exercise ledger growth");
-    for(var i: usize = 1; i < capacity; i++) {
-        utility_check(work_budget_reserve(&budget, 1, 1, 1, &receipts[i]), "Fill existing ledger capacity");
-    }
-    var before: WorkBudgetSnapshot = default;
-    utility_check(work_budget_snapshot(&budget, &before), "Snapshot full ledger");
-    var entries = budget.entries.data;
-    var generation = budget.generation;
-    var buffers = tower_test_buffer_count();
-    var validation_calls = tower_test_buffer_allocations();
-    var rejected = init(WorkReservation) {revision: 7, slot: 3, generation: 9, lanes: 77, bytes: 99, ..default};
-    tower_test_buffer_fail_after(0);
-    utility_check(work_budget_validate_result(&budget, &receipts[0]) == WorkBudgetError.None
-        && tower_test_buffer_allocations() == validation_calls,
-        "Borrowed receipt validation allocates nothing even when allocation is denied");
-    utility_check(work_budget_reserve_result(&budget, 1, 1, 1, &rejected) == WorkBudgetError.Memory,
-        "Growing a full ledger reports allocation failure");
-    utility_check(rejected.owner == null && !rejected.active && rejected.revision == 7
-        && rejected.slot == 3 && rejected.generation == 9 && rejected.lanes == 77 && rejected.bytes == 99,
-        "Failed reservation preserves the caller's inactive output");
-    var after: WorkBudgetSnapshot = default;
-    utility_check(work_budget_snapshot(&budget, &after)
-        && after.used_lanes == before.used_lanes && after.used_bytes == before.used_bytes
-        && after.peak_lanes == before.peak_lanes && after.peak_bytes == before.peak_bytes
-        && after.live == before.live && after.retained == before.retained
-        && budget.entries.data == entries && budget.entries.length == capacity
-        && budget.generation == generation && tower_test_buffer_count() == buffers,
-        "Growth failure preserves live receipts, storage and accounting");
-
-    var stale = receipts[0];
-    utility_check(work_budget_release(&budget, &receipts[0]), "Live receipt releases after allocation failure");
-    var calls = tower_test_buffer_allocations();
-    var reused: WorkReservation = default;
-    utility_check(work_budget_reserve(&budget, 1, 1, 1, &reused)
-        && reused.slot == stale.slot && reused.generation != stale.generation
-        && tower_test_buffer_allocations() == calls, "Freed slot reuse needs no allocation");
-    utility_check(work_budget_release_result(&budget, &stale) == WorkBudgetError.Stale
-        && work_budget_release(&budget, &reused), "Stale copied receipt cannot release the replacement grant");
-    tower_test_buffer_fail_after(~convert(usize, 0));
-    for(var i: usize = 1; i < capacity; i++) {
-        utility_check(work_budget_release(&budget, &receipts[i]), "Original receipt remains releasable");
-    }
-    utility_check(budget.live == 0 && budget.used_lanes == 0 && budget.used_bytes == 0
-        && work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
-        "Ledger failure paths release all owned buffers and reservations");
-}
+extern fn puts(text: u8*): i32;
 
 export fn main(argc: i32, argv: u8**): i32 {
-    utility_check(!work_thread_available(), "Allocation-failure fixture requires the serial test transport");
-    for(var round: usize = 0; round < 16; round++) { budget_allocation_trial(); }
+    budget_allocation_sweep();
     puts("Work budget allocation rollback and receipt ownership passed.");
     return 0;
 }

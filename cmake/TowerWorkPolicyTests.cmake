@@ -25,18 +25,15 @@ if(policy_triple MATCHES "^x86_64-.*linux")
   # executable selects its existing normal or single-owner fault allocator.
   tower_runtime_object(entity-create-provider
     "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/entities.tower" "${policy_triple}")
-  # Buffer/arena fixtures import host.memory; the ledger fixture links the
-  # existing memory object. All use the single-owner fault allocator/transport.
+  # These fixtures share the single-owner allocator. The declaration-only
+  # entity creation client also links the existing memory object.
   foreach(unit IN ITEMS work_buffer_faults work_arena_faults work_budget_allocation entity_create_faults work_constructor_faults entity_component_faults entity_stage_result_faults)
     string(REPLACE "_" "-" name "${unit}")
     tower_runtime_object(${name}
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${policy_triple}")
     set(fault_memory)
-    if(unit STREQUAL "work_budget_allocation" OR unit STREQUAL "entity_create_faults")
-      list(APPEND fault_memory "${host_memory_OBJECT}")
-    endif()
     if(unit STREQUAL "entity_create_faults")
-      list(APPEND fault_memory "${entity-create-provider_OBJECT}")
+      list(APPEND fault_memory "${host_memory_OBJECT}" "${entity-create-provider_OBJECT}")
     endif()
     add_executable(tower-${name}-tests
       "${${name}_OBJECT}" ${fault_memory} "${policy_runtime}" "${policy_trap}")
@@ -80,6 +77,7 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND policy_triple MATCHES "^
   # Both owners discover five budget tests. The constructor also discovers eight graph tests.
   tower_work_fault_selections(work_constructor_faults "15 tests" "2 tests")
   tower_work_fault_selections(work_buffer_faults "6 tests" "1 test")
+  tower_work_fault_selections(work_budget_allocation "6 tests" "1 test")
   # Separate guests bind the lifecycle callback to their own fixture.
   tower_work_fault_selections(entity_component_faults "12 tests" "7 tests")
   tower_work_fault_selections(entity_stage_result_faults "9 tests" "4 tests")
