@@ -115836,3 +115836,143 @@ On an AMD Ryzen 7 5800H, Linux x64, clang/LLVM 19.1.7 Release, the cgroup had 16
 The supported ASan with leak detection and TSan builds each passed the ordinary standalone registration on their first test launch. Their link maps identify `runtime-allocate.o` and `tower_work_host.o` (Linux transport). Instrumented IR and final executable disassembly show checked reads in both the root router and the companion's `tower.fn.capture_inspect`. The initial TSan evidence extractor expected aligned read symbols. The router uses `__tsan_unaligned_read8`. Correcting the extractor recovered the linked probes before launching the test. Address/leak used 6.38 s wall, 6.65 s CPU and 631,580 KiB RSS. Thread used 18.95 s wall, 19.75 s CPU and 245,508 KiB RSS. The selected shared-service runs used their ordinary test runtime. Source-level UBSan is unavailable in this instrumentation path.
 
 The raw packet contains the manifest checks, configure and Ninja commands, registration and failure logs, exact controls, bounded streams, sample ledger, sanitizer artifacts and a source bundle. The manager owns integration and publication.
+
+### Entity creation under single-owner physical allocation refusal
+
+Assignment 7adbffb5-fff0-4a80-9edd-809523333347 starts at public
+`78c3bd0e301887973bf5216fa2fc0d5609619b53`. The original fixture
+(blob `476e984b679199443e9c46bf4789d64b896b391a`) had one CTest
+with a 30-second timeout. Its standalone wrote exactly `0\n` with empty
+stderr at compile widths 1 and 4. Default owner discovery found zero tests
+and direct selection failed to open the missing companion at both widths.
+
+An observation-only copy of the original body recorded these states at both
+widths. After creating the root and allocating the peer vector there were
+three calls and three live buffers. Reuse under a zero ticket took no call.
+The 19th occupied slot removed the page from the available pool. The direct
+and related refusals took calls 4 and 5 respectively, with Memory, 19 live
+entities, next ID 20 and three live buffers. The root retained one reference
+and zero children. The retry took call 6, returned None, published ID 20
+and raised the live-buffer count to four. Disposal restored baseline zero.
+The literal geometry and counts describe this build. The assertions continue
+to derive capacity, allocation deltas, baseline and identity from the store.
+
+The adjacent `tests/entity_create_faults_test.tower` owns the ordered case
+and all predicates. The original path supplies the serial test ABI and
+unexpected-finalizer trap. The standalone main and the selected declaration
+call the same case, including its output. The separate CMake registration
+checks one declaration and the two output bytes for both owner and direct
+selection. Both entries link the declaration-only client to the existing
+entities implementation, host memory, fault allocator and serial transport.
+
+All eleven normalized original predicates matched the migrated predicates in
+order. At each object-build width the original standalone and four new
+registrations passed. Each selected entry reported the same sole declaration
+at line 9, printed the same two bytes and matched the original state trace
+in a separate observed run. Corrupting only `related.id == prior` to expect
+`prior + 1` failed all five registrations in both builds. All four selected
+diagnostics pointed to line 61 of the companion. Exact restoration passed
+5/5 per build. Independent wrong-count and wrong-stdout controls also failed.
+Enabling the existing allocator tests selected the shared runtime-instrumented
+object and passed 5/5. Its bytes matched the work-only fault runtime. The
+work-buffer, entity-component and entity-mutation fault registrations and
+their full Ninja command lists compared equal before and after.
+
+On host 1 (Xeon Gold 6244, CPUs 0–31, quota 1536000/100000 µs, LLVM/Clang
+19.1.7, Release Linux x86-64), the public compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Each timed command held the host timing lock. The table gives median wall
+and user+system seconds and maximum process RSS in KiB over three warm
+samples following a warm-up. Every timed standalone was rebuilt, linked,
+byte-compared to its corresponding executable and checked for 200 exact
+zero lines in the execution batch. The batch RSS includes its shell.
+
+| Route | Jobs | Original wall / CPU / KiB | Migrated wall / CPU / KiB |
+| --- | ---: | ---: | ---: |
+| Compile fixture | 1 | 0.32 / 0.30 / 91904 | 0.44 / 0.43 / 96240 |
+| Compile fixture | 4 | 0.41 / 0.42 / 97108 | 0.63 / 0.73 / 109424 |
+| Standalone ×200 | 1 | 0.17 / 0.18 / 3100 | 0.16 / 0.16 / 3364 |
+| Standalone ×200 | 4 | 0.16 / 0.16 / 3116 | 0.16 / 0.16 / 3112 |
+| Selected owner | 1 | zero selected | 0.42 / 0.42 / 97168 |
+| Selected owner | 4 | zero selected | 0.62 / 0.71 / 109000 |
+| Selected direct | 1 | companion absent | 0.42 / 0.42 / 97220 |
+| Selected direct | 4 | companion absent | 0.56 / 0.66 / 108712 |
+
+Separate compiler phase samples showed parsing rose from 208 to 310 ms at
+one job and 264 to 522 ms at four jobs for the larger test import graph.
+Object emission measured 6.5–6.9 ms. The cgroup throttle counter stayed
+at 3060 during the matched samples. Execution used serial fault injection
+at both compile widths. ASan with leak detection passed the standalone.
+TSan passed on launch 30. The first 29 launches failed the host personality
+check during TSan startup. All six linked Tower objects went through each
+requested IR pass. UBSan is unavailable in the Tower IR instrumenter.
+
+The initial pull in the shared checkout conflicted with unpublished playground
+work. Aborting it restored that checkout. This qualification used a private
+main at the assignment base. The evidence packet contains the ownership
+map, original and migrated observations, commands, receipts, sensitivity
+controls and local source bundle. Manager integration and publication remain
+outside this host's assignment.
+
+### Unexpected entity creation finalizer in the test companion
+
+Host 4 qualified assignment 268546bd-13f1-47a5-b8c1-7bc57fa893bc on the
+producer's commit `8b6bfae686686e519a346ece14c8308b101a215b`. The input
+archive SHA-256 was `9154d7a36f0d38325c62f20cd101476629d15caea7d5784af2781e998df98e3b`.
+Both the supplied files and bytes extracted from the archive matched the
+manifest. The trace hash was `45188d457263990da40c074022cba8d38a694a593d2483d3afd447e93c9065dc`
+and the incremental bundle hash was `6a416d482048c2b454864d20773f755120dcd50044b429bdd90089e6bad30621`.
+The initial pull on shared main was current at `91415a8e`. A shared-clone
+attempt failed while packing a missing promisor object. A fresh local main
+with the checkout's objects as an alternate fetched the verified bundle.
+
+The supplied patch moved the three-line callback verbatim and removed its
+import from the owner. The companion's original 71 lines, including the 11
+assertions, compared byte-for-byte to the fetched commit. The entity provider
+still references the external finalizer. The fixture object defines it and
+the old main, and both symbols resolve in the linked ELF.
+
+Release Ninja builds at compiler jobs 1 and 4 used the pinned Linux x64
+compiler (`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`),
+LLVM/Clang 19.1.7 and CMake/CTest 3.25.1. In each build the old standalone
+and the four owner/direct registrations passed before the move, after it
+and after restoration. Standalone stdout was exactly two bytes (30 0a hex)
+with empty stderr. The selected processes wrote those same bytes and each
+reported one passing declaration at companion line 9. In an observation-only
+build, the producer's insertions reproduced all 626 retained bytes on both
+standalones and all four selections, including the two Memory refusals,
+retry ID 20 and zero buffers after disposal.
+
+The sensitivity edit registered the live retry entity as a type with
+lifecycle 1, attached one component to the root and removed it through
+`entity_component_remove_result`. The library reached the companion callback
+during disposal. The standalone exited 134 with
+`Tower compiler internal trap at 0: Unexpected entity creation fault finalizer`.
+CTest exited 8 with all five registrations failing on that diagnostic.
+Each selected guest reported the offset-zero location at bedrock.tower:1:1.
+Restoring the candidate recovered both original candidate ELF hashes
+(`65975a2c62565924e2a79bc9c7dc1f1667e7f0242500acfde2c66be3446f9457`).
+
+On the Ryzen 7 5800H (8 cores/16 threads, affinity 0–15, quota 15.36 CPUs),
+each matched owner/direct selection compiled and executed in a fresh process
+under the host timing lock. One warm-up preceded three serial samples per
+width and route with warm files. Figures are median wall and user+system
+seconds and maximum process RSS in KiB. The guest allocator is single-owner.
+
+| Selection | Jobs | Producer wall / CPU / RSS | Moved callback wall / CPU / RSS |
+| --- | ---: | ---: | ---: |
+| Owner | 1 | 0.34 / 0.33 / 98,736 | 0.33 / 0.33 / 97,404 |
+| Direct | 1 | 0.34 / 0.33 / 98,556 | 0.34 / 0.33 / 96,928 |
+| Owner | 4 | 0.43 / 0.46 / 108,156 | 0.42 / 0.45 / 106,720 |
+| Direct | 4 | 0.43 / 0.46 / 111,596 | 0.43 / 0.46 / 106,812 |
+
+On the restored source, the standalone passed ASan with leak detection on its
+first launch and TSan on its sixth. Five TSan launches failed the runtime's
+personality check before guest execution. The link maps identify the six
+Tower objects, including the fault allocator and serial transport. The
+callback's emitted IR carries the ASan attribute and TSan function hooks.
+These sanitized runs covered normal disposal. The ordinary native sensitivity
+runs covered the forced callback. Selected guests have no sanitizer CTest
+registration, and the Tower IR tool supports address and thread modes only.
+The evidence packet holds the original commands, timings, raw outputs, link
+maps, checksums and source bundle. The manager owns publication.
