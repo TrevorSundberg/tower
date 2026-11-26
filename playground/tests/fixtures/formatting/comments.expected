@@ -1,0 +1,12 @@
+import foundation;
+// first
+parse Statement |= 'show' $x:CoreOperand ';'
+    => replace { print($x); };
+show 42;
+
+// inline
+fn f(): void {
+    /* body */
+    print(1);
+}
+// after

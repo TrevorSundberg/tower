@@ -109230,3 +109230,100 @@ Each of the ten external names also ran alone against the base and candidate. An
 Raising the early EOF offset from 28 to 29 failed in session.tower at byte 1413. Changing the contextual case's expected keyword failed in contextual.tower at byte 156 with the live missing-then diagnostic citing input.tower:2:56. The single-fault runs passed the other nine names. The double-fault run passed eight, including both names after the contextual failure. All handles closed on these paths. Two further controls made an expected parser error succeed and required a zero length for an omitted length. They failed at session.tower bytes 1365 and 1462. Restoring the inputs and assertions reproduced the entire reference stream.
 
 Native owner and direct selection at one and four jobs returned the same inventory, two byte-identical declaration bodies in order, empty stdout and the original passing summaries. Moving the browser assertions out of the companion moved the native test locations from lines 131/136 to 10/15. Direct Memcheck at one job and DRD at four completed with zero reported errors. The frozen release provides no source-level sanitizer instrumentation. The shared test helper and release assets are unchanged. Assignment 93339038 carries the source bundle and raw evidence; the manager owns publication.
+
+### Host 8 — five source-formatting registrations on 46e22072
+
+The predecessor `playground/tests/formatting.test.mjs` has Git blob
+`9b994c05e5aa8335cf93a3e3417305cb5b91860b`. The native `tower-format`
+suite in `cmake/TowerFormatTests.cmake` already checks canonical text and
+ordered source spans, comments, a show replacement, individual affixes,
+Foundation and allocation failures. Its inputs differ from these five.
+The driver and frontend-session fixtures use exactly the same 55-byte lexical
+input. The latter also supplies the complete refusal without a trailing LF.
+The increment definitions and teaching example still come from their original
+files. The suffix starts with LF and ends at its semicolon. The separate
+formatter-port registrations retain their UTF-8 mapping, numeric and seeded
+spacing coverage.
+
+The five original Node names still filter separately. Each `test()` at line
+4 under `playground/tests/fixtures/formatting/checks/` receives a measured
+owner module for the selected case. Source parsing, formatting and canonical
+Foundation emission use the public reactor. Its assertion session compares
+counted bytes against raw sibling files and the live second pass. The
+complete comment and affix oracles also pin the surrounding layout. The
+literal and example serve as their own byte oracles. The lexical case parses
+successfully, checks the exact format refusal and formats the valid literal
+on the same reactor afterward.
+
+| Original registration | Selected companion and observations |
+| --- | --- |
+| source and foundation formatting share declaration spacing and indentation | `declarations_test.tower`, exact source layout, second format and source-format identity of emitted Foundation |
+| comments, strings and replacement invocations retain their original meaning | `comments_test.tower`, exact show invocation with four comments, second format and the quoted literal |
+| formatting refuses a layout that changes custom lexical meaning | `refusal_test.tower`, exact changed-parse diagnostic and successful literal formatting afterward |
+| custom prefix and postfix operators attach to their operand, including increment | `increment_test.tower`, exact builtin-plus-suffix layout including both comments, second format and unchanged standalone teaching example |
+| affix spacing follows rule shape, keeps infix spacing and separates adjacent operators | `affixes_test.tower`, exact nested-prefix, postfix and infix layout and second format |
+
+On Node 24.22.3, the public Pages reactor at `dd6651b1` (SHA-256
+`41bb9b1164da536eaabf57957d08e131b3472a1463931c5bc41110d85f130a3f`)
+passed the five names together and separately before and after. Across both
+runs all 38 original parser inputs, terminal events, format results (with
+spans), compilation input and Foundation result matched byte for byte at
+the JS API boundary. The extra three records are the valid literal's input,
+parse completion and formatted output after refusal. The five selected Tower
+tests finished with empty guest stdout and no diagnostic. Changing the raw
+infix oracle from `x %% y` to `x%%y` failed only the fifth test. Substituting
+an allocation refusal failed only the third. Both failures pointed to byte
+60 in their respective Tower companions, and each restore passed all five.
+
+The installed Linux x64 compiler (SHA-256
+`7315b86e2b2751a9434281125884fc9ed7d223b64603e96b930bc59d274d4138`)
+independently formatted the on-disk inputs at jobs 1 and 4, including the
+joined increment program, and reproduced the browser bytes on both passes.
+It emitted the same 1,087-byte Foundation, rejected the lexical input with
+exit 1 and the 87-byte diagnosis plus the CLI's terminating LF, then formatted
+the valid literal. The native observation projects matched the materialized
+browser projects. Installed `towerc --test --test-details` ran each project
+by owner and direct companion at both widths, one declaration at line 4 per
+selection. These owners carry live formatter results and oracles supplied by
+the test transport. The packet includes them for direct native replay.
+Both wrong oracles failed at line 5 column 5 and passed after restoration
+in both native selection modes at both widths. The existing static increment
+example and its companion also passed normally at both widths.
+
+Ordinary `--library --emit object` compilation of
+`scaffolding/compiler/syntax_session_format.tower` in the pristine and
+candidate trees produced the same object (SHA-256
+`81ffc1b8a4a4b5a392be8d024f9521daad0eb5bab06035e05247ce1d17ab59c9`)
+and depfile after replacing checkout prefixes. All test declarations and
+inputs were absent from its dependencies. ASan/LSan and initialized TSan
+executed the five assertion bodies as ordinary Tower guest functions.
+The public host runtime passed both, with 14 TSan startups denied at the
+host ASLR personality check before initialization succeeded. The separate
+guest-test-runtime runs passed on their first launches. These are serial
+guest checks. The project LLVM tool exposes address and thread modes.
+
+Three serial pairs of fresh Node processes ran on an AMD Ryzen 9 7900X
+under Linux x64 with warm files, affinity CPUs 0–3, effective cpuset 0–23,
+quota 2304000/100000 and a 63,577,260,032-byte limit. The command was
+`node --test --test-concurrency=1 playground/tests/formatting.test.mjs`.
+Median wall / user+system CPU / peak RSS changed from
+0.40 s / 0.55 s / 133,344 KiB to 0.56 s / 0.76 s / 132,372 KiB. The cost
+includes compiling and executing the five extra Tower assertion sessions.
+An initial two-reactor trial took 0.77 s and 162,520 KiB. Reusing the subject
+reactor after releasing each formatter handle retained the exact observations.
+The browser API results carry no per-case allocation or worker-overlap
+counters. The native job counts qualify selection and identical results.
+Host-8 packet `97b92e94-be33-404e-8e6e-d3afd8811a02` retains the individual
+named runs, native projects, raw bytes, commands, diagnostics and controls.
+Manager review and publication remain open.
+
+A second three-pair series on CPU 0 alone measured medians of
+0.57 s / 0.56 s / 132,780 KiB before and 0.78 s / 0.77 s / 132,012 KiB
+after on the assigned base. During handoff public main advanced to
+`cd21d55c`. The local rebase retained the concurrent generic-input LF rule
+alongside the formatting rule. All five tests passed again, every captured
+result and selected project matched the assigned-base run, and the production
+object and normalized dependencies matched. Replacing the real refusal at the
+observation boundary with a different error, then separately with a success,
+failed only the lexical test at the same Tower assertion. Restoring the public
+response passed all five. Both focused bundles are in the packet.

@@ -1,0 +1,8 @@
+import comments;
+import library.test_fixtures;
+
+test() {
+    assert(fixture_equal(formatted, wanted), "Replacement invocation and four comments");
+    assert(fixture_equal(second, formatted), "Comments changed on second format");
+    assert(fixture_equal(literal_format, literal), "String literal changed");
+}

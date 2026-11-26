@@ -1,0 +1,14 @@
+import foundation;
+parse Prefix = '~~' Identifier;
+parse NestedPrefix = '~~' Prefix;
+parse Statement |= 'prefix' NestedPrefix ';' | 'postfix' Identifier '!!' ';';
+parse CoreCall |= $target:CoreLocation '!!'
+    => replace { post(&$target) };
+parse CoreCall |= '~~' $target:CoreLocation
+    => replace { pre(&$target) };
+parse CoreCall |= $a:CoreLocation '%%' $b:CoreLocation
+    => replace { combine($a, $b) };
+prefix ~~ ~~x;
+var a: i32 = ~~x;
+var b: i32 = x!!;
+var c: i32 = x %% y;
