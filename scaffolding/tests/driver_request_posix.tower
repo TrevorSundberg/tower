@@ -1,0 +1,16 @@
+import tower;
+
+extern fn mkdtemp(pattern: u8*): u8*;
+extern fn chdir(directory: u8*): i32;
+extern fn rmdir(directory: u8*): i32;
+
+export fn request_test_enter(name: u8*, capacity: usize): bool {
+    if mkdtemp(name) is null { return false; }
+    if chdir(name) == 0 { return true; }
+    rmdir(name);
+    return false;
+}
+
+export fn request_test_leave(name: u8*): bool {
+    return chdir("..") == 0 && rmdir(name) == 0;
+}

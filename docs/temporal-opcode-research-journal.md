@@ -114268,3 +114268,76 @@ including shell overhead. Peak RSS was 3,316 and 3,308 KiB respectively.
 Address/leak and thread instrumentation covered the fixture and parser-nodes
 object on the serial allocator. The rebased TSan run passed after 13 startup
 failures. UBSan coverage remains open.
+
+### Native driver request ownership through the original executable and five Tower declarations
+
+Host 3, assignment `19a94e86-f5d9-4308-8bd2-1f00ec06a44f`, public input
+`c36353913d878c96f7223baae819931c045b45ad`. The original registered
+`tower-driver-request-tests` takes the build's `share/tower` argument in
+`tower-driver-checks`. CMake composes its entry from the production driver
+source, replaces the interpreter with evaluation and links the instrumented
+allocator object directly. The selected Linux GNU guest uses the same stage
+of 50 resource files, platform services and allocator. The standalone still
+calls the checks in their original order on one request, options and source.
+The separate main keeps the guest's own test entry available.
+
+| Original operations in tests/driver_request.tower | Declaration in tests/driver_request_test.tower |
+| --- | --- |
+| Lines 42–61, bind and stage a legacy slot, pin bytes across a disk edit, restore the slot and close twice | request_bound_snapshot |
+| Lines 63–78, open two private worlds, stage one and inspect its peer across first-owner teardown | request_private_worlds |
+| Lines 80–98, refuse each real snapshot allocation through first success and close on every path | request_open_failures |
+| Lines 99–106, reject a missing source, compare the full diagnostic and close | request_missing_source |
+| Lines 107–114, reopen with a valid source and missing grammar, compare the full diagnostic and close | request_missing_grammar |
+
+Each run opens an exclusive private directory inside the original working
+directory. Relative source and missing-grammar names retain their exact spelling.
+A relative resource argument also passed. From a parent containing sentinels
+under both original names, five simultaneous CTests and eight simultaneous
+standalones passed. Both sentinels kept their hashes. The selected cases
+recreate the source bytes their section saw after the original edit.
+
+Owner and direct discovery each listed the companion. Both ran exactly five
+declarations at jobs 1 and 4. The original and migrated native outputs were
+byte-identical, including the success newline. An evidence-only observer
+recorded 38 matching rows on all six routes (old and new standalone plus four
+selections). Tickets 0–15 refused and 16 succeeded. All 21 post-close
+live-buffer counts and baselines were zero. Changing just the expected grammar
+diagnostic failed all five registrations, with the selected guests reporting
+`driver_request_test.tower:146:5`. Restoring it recovered the candidate
+source, object and executable hashes and all five passed again.
+
+The host exposed one AMD EPYC 7542, 32 cores, CPUs 0–63, CPU quota
+1,228,800/100,000 µs and a 57,954,795,520-byte memory limit. A fresh isolated
+Ninja Release cache used public bootstrap SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896` and
+Clang/LLVM 19.1.7. The prior request cache bound an older source and compiler.
+The first configure required putting the installed LLVM bin directory on PATH.
+The baseline build took 26.71 s wall, 86.16 s CPU, peak RSS 792,732 KiB.
+The explicit one/four-job rebuilds reproduced the corresponding original or
+migrated native object and executable byte for byte.
+
+One host timing lock, affinity 0–3, warm filesystem, three measured rounds
+after warmup, alternating native order. Native rows are 30 fresh launches,
+selected rows one compile, link, guest and exact-summary check. Values are
+median wall/CPU seconds and the maximum process peak RSS in KiB.
+
+| Route | Jobs 1 wall / CPU / RSS | Jobs 4 wall / CPU / RSS |
+| --- | --- | --- |
+| Original executable | 0.74 / 0.51 / 52,776 | 0.68 / 0.49 / 52,788 |
+| Migrated executable | 0.72 / 0.51 / 52,872 | 0.72 / 0.53 / 52,876 |
+| Owner selection | 0.69 / 0.62 / 108,280 | 3.69 / 0.86 / 118,048 |
+| Direct selection | 0.72 / 0.62 / 108,180 | 4.14 / 0.87 / 120,868 |
+
+Four-job selection was sensitive to affinity. Repeating the same owner
+command on CPUs 0–63 gave median wall 0.61/0.92 s at one/four jobs. The
+cgroup throttled-period counter stayed at 833 throughout that control. The
+job widths apply to compilation. The single-owner fault stream stays serial.
+
+The address/leak and thread instrumented standalone CTests passed. Their
+link maps identify runtime-instrumented.o and the platform pthread transport
+from tower_work_host.o. The packet includes instrumented IR from the changed
+functions. Windows and macOS directory adapters compiled as x64 objects.
+Execution coverage is Linux x64. Tower's IR instrumenter has no UBSan mode.
+The evidence packet includes the source bundle, assertion mapping, commands,
+both output streams, failed prototype builds, observer and negative patches,
+link maps, timings and restoration receipts for manager publication.

@@ -1,0 +1,155 @@
+import library.testing;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .host.driver_paths;
+import .host.driver_request;
+import .host.driver_support;
+import .host.driver_types;
+import .host.driver_platform;
+
+extern fn frontend_modules_world(modules: void*): void*;
+
+extern fn tower_test_buffer_count(): usize;
+
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+fn request_counts(wanted: usize): void {
+    assert(tower_test_buffer_count() == wanted, "all request buffers and module environments released");
+}
+
+struct RequestFixture {
+    initial: u8*;
+    root: u8*;
+    baseline: usize;
+    options: DriverOptions;
+    request: DriverRequest;
+}
+
+extern fn request_test_enter(name: u8*, capacity: usize): bool;
+extern fn request_test_leave(name: u8*): bool;
+
+fn request_run(root: u8*, edited: bool, run: function(void, RequestFixture*)): void {
+    assert(root is not null, "driver request staged resource root");
+    var before = tower_test_buffer_count();
+    {
+        // Preserve a relative resource argument across the private cwd change.
+        var path: ByteBuffer = default;
+        defer bytes_dispose(&path);
+        assert(driver_platform_absolute(root, &path), "resolve resource root argument");
+        if driver_same(root, path.data) { bytes_dispose(&path); } else { root = path.data; }
+        var name: u8[32];
+        var pattern = "driver-request-XXXXXX";
+        var length = strlen(pattern) + 1;
+        assert(length <= sizeof(decltype(name)), "driver request directory template fits");
+        copy(&name[0], pattern, length);
+        assert(request_test_enter(&name[0], sizeof(decltype(name))), "enter private driver request directory");
+        var fixture: RequestFixture = default;
+        fixture.root = root;
+        fixture.initial = edited ? "changed" : "import tower; print(42);\n";
+        fixture.baseline = tower_test_buffer_count();
+        fixture.options.source = "driver request source.tower";
+        fixture.options.bedrock = "";
+        fixture.options.foundation = "";
+        assert(driver_write_file(fixture.options.source, fixture.initial, strlen(fixture.initial)), "source snapshot fixture");
+        run(&fixture);
+        driver_platform_remove(fixture.options.source);
+        assert(request_test_leave(&name[0]), "remove private driver request directory");
+    }
+    assert(tower_test_buffer_count() == before, "request fixture storage released");
+}
+
+fn request_bound_snapshot(fixture: RequestFixture*): void {
+    var request = &fixture.request;
+    var options = &fixture.options;
+    assert(driver_request_open(request, options, fixture.root), "open input snapshots");
+    var old = frontend_modules_create();
+    var slot = old;
+    driver_request_bind(request, &slot);
+    var original = slot;
+    var fresh = original != old;
+    assert(fresh, "request owns a distinct module environment");
+    assert(driver_request_canonical(request), "canonical grammar snapshot");
+    var edit = "changed";
+    assert(driver_write_file(options.source, edit, strlen(edit)), "edit source after pinning");
+    var snapshot = driver_request_text(request, DriverSourceText);
+    assert(driver_same(snapshot.data, fixture.initial), "pinned source remains stable");
+    driver_request_stage(request);
+    fresh = slot != original;
+    assert(fresh, "generated stage has independent module ownership");
+    driver_request_close(request);
+    var restored = slot == old;
+    assert(restored, "borrowed legacy slot restored before teardown");
+    frontend_modules_destroy(old);
+    driver_request_close(request);
+    request_counts(fixture.baseline);
+}
+
+fn request_private_worlds(fixture: RequestFixture*): void {
+    var request = &fixture.request;
+    var options = &fixture.options;
+    // Native preparation never borrows the legacy process slot. Independent
+    // requests keep distinct worlds through stage selection and destruction.
+    assert(driver_request_open(request, options, fixture.root), "open private world request");
+    var second: DriverRequest;
+    assert(driver_request_open(&second, options, fixture.root), "open second private world request");
+    assert(driver_request_prepare(request) && driver_request_prepare(&second), "prepare independent worlds");
+    assert(request.world != second.world && request.slot is null && second.slot is null, "no shared world or syntax slot");
+    assert(frontend_modules_world(request.modules) == request.world && frontend_modules_world(second.modules) == second.world, "request environments own their worlds");
+    var original = driver_request_modules(&second);
+    driver_request_stage(request);
+    assert(driver_request_modules(request) == request.generated && frontend_modules_world(request.generated) == request.world, "canonical stage remains in request world");
+    assert(driver_request_modules(&second) == original, "other request stage unchanged");
+    driver_request_close(request);
+    assert(frontend_modules_world(second.modules) == second.world, "second request survives first cleanup");
+    driver_request_close(&second);
+    request_counts(fixture.baseline);
+}
+
+fn request_open_failures(fixture: RequestFixture*): void {
+    var request = &fixture.request;
+    var options = &fixture.options;
+    // Failed open must still be safely closable. Exercise every fallible
+    // snapshot allocation until the first successful trial, with real buffers.
+    var fail: usize = 0;
+    var success = false;
+    var unlimited = ~convert(usize, 0);
+    while fail < 64 {
+        tower_test_buffer_fail_after(fail);
+        success = driver_request_open(request, options, fixture.root);
+        tower_test_buffer_fail_after(unlimited);
+        if !success { assert(driver_request_error(request)[0] != 0, "failed request has an actionable diagnostic"); }
+        driver_request_close(request);
+        request_counts(fixture.baseline);
+        if success { break; }
+        ++fail;
+    }
+    assert(success, "allocation-failure sweep reached success");
+}
+
+fn request_missing_source(fixture: RequestFixture*): void {
+    var request = &fixture.request;
+    var options = &fixture.options;
+    var source = options.source;
+    options.source = "driver request missing.tower";
+    assert(!driver_request_open(request, options, fixture.root), "missing source rejected");
+    assert(driver_same(driver_request_error(request), "Supply a Tower source file; use --help for options"), "missing-source diagnostic");
+    driver_request_close(request);
+    request_counts(fixture.baseline);
+    options.source = source;
+}
+
+fn request_missing_grammar(fixture: RequestFixture*): void {
+    var request = &fixture.request;
+    var options = &fixture.options;
+    options.foundation = "driver request missing.tower";
+    assert(!driver_request_open(request, options, fixture.root), "missing grammar rejected");
+    assert(driver_same(driver_request_error(request), "Cannot read grammar module: driver request missing.tower"), "missing-grammar diagnostic");
+    driver_request_close(request);
+    request_counts(fixture.baseline);
+}
+
+test() { request_run(getenv("TOWER_DRIVER_REQUEST_ROOT"), false, request_bound_snapshot); }
+test() { request_run(getenv("TOWER_DRIVER_REQUEST_ROOT"), true, request_private_worlds); }
+test() { request_run(getenv("TOWER_DRIVER_REQUEST_ROOT"), true, request_open_failures); }
+test() { request_run(getenv("TOWER_DRIVER_REQUEST_ROOT"), true, request_missing_source); }
+test() { request_run(getenv("TOWER_DRIVER_REQUEST_ROOT"), true, request_missing_grammar); }
