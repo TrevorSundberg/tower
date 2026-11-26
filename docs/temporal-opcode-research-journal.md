@@ -108566,3 +108566,82 @@ Three serial matched samples per arm on CPUs 0,2,4,6 (Ryzen 9 5900XT, 30.72 CPU 
 The native CTest entries tower-bytecode-package-1 and tower-bytecode-package-4 discover the adjacent test from its serialization owner. The manager compared the generated CTest commands and properties against the preceding configuration. All 214 existing entries matched. The worker's received clone selected and passed one owner test at each width in workers. The 4-byte and 8-byte packet goldens have explicit LF checkout rules.
 
 A separate browser self-host check in receipt 29cf6bc4 used editable project e983b8c5. Node and Chromium produced the same edited frontend, LLVM generator and cross compiler twice. The first pass used two workers and the second used four. Both pools drained. Each browser generation printed 42, selected two tests through the owner and one through the companion, and recovered after the assertion at score_test.tower line 10. The selected release project has digest 747b999f and different support inputs. Its own two-generation check is assigned separately.
+
+### Entity fixture registration and optional native kit on host 8
+
+Assignment 2e377bfe-31a0-4e9b-9055-59b26528970d reproduced the requested
+non-documentation projection on 27fb85f3. The filtered NUL-terminated tree
+records hashed to 029748b2e0c9df798b303827d96eed9546e466f3546cb3982b905b83dcfd0ce6.
+The local projection commit e0fc54a2 uses the requested installer, inference,
+entity and generic-body inputs and the manager's literal patch. Its history
+and documentation differ from manager e8147b89. The five packet archives,
+loose declarations and separately extracted bundle members matched their
+receipt hashes. Each bundle's main was fetched into its own local input ref.
+
+Before editing, the checked-in 7315b86e compiler and host 8's retained native
+providers ran exactly one declaration at jobs 1 and 4 on each of the four
+owners and their direct companions. The original sixteen driver-kit entries
+also passed on the combined source. The entities companion needs the nested
+fixture interpreter to check the thirteen-line byte oracle. Views and registry
+use the native test runtime and allocator archive. The exported store guest
+additionally needs runtime-instrumented.o for the owner's buffer-count ABI.
+
+The same CTest template now registers four additional owners in the build
+tree and the moved SccTests kit. The count runner receives the original CLI
+and compares its final stderr line. Only a leading INTERPRETED registration
+argument selects the nested-fixture path. An initial general options parser
+also consumed a literal INTERPRETED following --test-suffix. Restricting the
+marker to the first argument preserved the old commands with that suffix.
+The focused tower-entity-tests target declares the native providers. Enabling
+execution tests alone on Linux x64 now produces the diagnostic allocator
+required by the store guest. Fifteen private files were added to the kit:
+three compiler imports and twelve test sources/oracles. All 86 old installed
+files remained present, and only the CTest registry among those changed bytes.
+The ordinary compiler resource tree matched the existing builtin inventory
+and nine target runtime files. Normal CMake install with and without the test
+options installed no private files.
+
+The original 95 driver/format build entries and 82 execution-only entries
+retained every command and property. Each configuration gained eight entries.
+All selected language registrations passed in the build and after relocation:
+24/24 in the driver configuration and 10/10 in the execution-only configuration
+at each location. Both original build directories and the source checkout were
+hidden during the moved runs. Each of 64 owner/direct invocations (four
+fixtures, jobs 1/4, both configurations and locations) selected the same single
+fixture coordinate as its counterpart and emitted empty guest stdout. Separate
+ordinary executions in both moved kits matched the three installed stdout
+oracles at each width of the job budget. A further copy retained the new kit
+sources and runner but used the qualified Ubuntu 7315b86e driver and the five
+previously qualified provider objects. All 24 registered selections passed.
+
+Changing only the installed store expectation from odd to even left guest
+stdout empty and failed at entity_store_test.tower:52:9 on the registered entry
+at jobs 1 and 4. Driver, wrapper and CTest returned 1, 1 and 8. The repaired
+entries passed. Adding a second empty declaration kept the driver exit at 0
+and made CTest reject the two-test summary. The selected native ELF and object
+were retained from the actual four-job CTest. The object defines store creation,
+payload reads/writes, reverse lookup, removal, query and both count exports and
+imports tower_test_buffer_count from the instrumented allocator. Replaying its
+ELF produced the identical 24-byte completed report.
+
+On the host 8 Ryzen 9 7900X, CPUs 0–3, 23.04-CPU quota and 63,577,260,032-byte
+memory limit, the final driver-suite build/moved CTests took 10.16/10.15 s
+wall, 10.77/10.64 s CPU and peaked at 194012/195268 KiB process RSS. The
+execution-suite runs took 5.27/5.34 s wall, 5.62/5.65 s CPU, 193296/194944
+KiB. Three serial warm-file pairs of the bare CLI and its registered count
+command used the same moved compiler, providers, arguments and stdout/stderr.
+Median wall seconds bare/registered were 0.57/0.56 and 0.57/0.57 for entities
+at jobs 1/4, and 0.59/0.59 and 0.60/0.61 for the linked store. Raw measurements
+record argv, separate streams, exit, CPU time, maximum process RSS, and shared
+cgroup limits and lifetime peak. These are fixture launch costs.
+
+The earlier ASan/LSan and TSan store guests were checked against their packet
+hashes and replayed with valid completion records. Fourteen TSan launches
+failed the container's ASLR personality call before initialization. These are
+replays of the qualified guests. The combined-source builds and kit checks
+used ordinary Linux products. The first configure needed the LLVM 19 binary
+directory on PATH as in the documented build. An unavailable file-type tool
+was replaced by reading the captured ELF type field. The browser and bootstrap
+were not rebuilt. The manager owns integration and publication.
+
+On integration the combined native configuration retained all 216 existing CTest commands and properties and added eight exact-count registrations. The manager compared the member bytes of both optional install archives with their inventories and the 15 additional installed sources and oracles with the checkout. The twelve ordinary output runs matched the three checked-in expected files. The captured native store completion and its replay were identical. These comparisons cover the registered entity suites; unrelated CTest outcomes have separate receipts.

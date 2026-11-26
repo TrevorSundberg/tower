@@ -188,7 +188,8 @@ function(tower_target_registry_runtime triple)
 endfunction()
 
 function(tower_compiler_runtime triple)
-  if(TOWER_PARSER_ONLY OR TOWER_ALLOCATOR_TESTS OR TOWER_BACKEND_TESTS OR TOWER_DRIVER_TESTS)
+  if(TOWER_PARSER_ONLY OR TOWER_ALLOCATOR_TESTS OR TOWER_BACKEND_TESTS OR TOWER_DRIVER_TESTS
+      OR (TOWER_NATIVE AND TOWER_EXECUTION_TESTS AND triple MATCHES "^x86_64-.*linux.*gnu"))
     tower_runtime_object(runtime-instrumented "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/memory_instrumented.tower" "${triple}"
       compiler_runtime_allocate tower_allocate compiler_runtime_reallocate tower_reallocate
       compiler_runtime_deallocate tower_deallocate --state compiler-tests)
