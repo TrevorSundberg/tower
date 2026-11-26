@@ -114737,3 +114737,74 @@ The object-build measurements include each revision's normal recipe. The origina
 The supported CMake address and thread profiles instrumented the standalone cases, production allocator in `guest-work-tests.o`, Linux transport and dispatch entry. Map-producing relinks reproduced both executables byte for byte. Each completed on the first launch with the original stdout and empty stderr, including ASan leak detection. The selected-test driver ran ordinarily. Tower source-level UBSan has no supported profile here.
 
 Assignment `8656fd20-c1fa-4cd3-8af6-1b5953962ab1` contains the base-relative source bundle, recorder sources, observations, compiler inputs, measurements, negative and restored runs and sanitizer receipts. The opening rebase conflicted with an unpublished editor commit and was aborted. Work proceeded on a separate local main at the assigned public revision. The manager owns integration and publication.
+
+### Linux dispatch worker scratch assertions in the test companion
+
+Host 2 replayed assignment `6a0b28e2-2493-4428-ad71-629d575bf815` from the
+producer's local commit `84f2bc4721a3de9a42c18ccd5ce7e6d60518feb1`.
+The input archive and all three declared members matched their recorded SHA-256
+digests, including the extracted trace oracles and source bundle. The change
+moves the entire callback, including its allocation and both-end assertions,
+verbatim into the companion. The owner still defines the job and signal fault.
+
+The Linux x64 aggregate built from tested merge `78c3bd0e` printed `0\n`
+at compiler widths 1 and 4. Its observed replay reproduced the producer's
+6,211-byte trace at each width. The relocated aggregate matched all 2,062
+lines. The direct three-test and default eight-test routes matched the
+6,209-byte, 2,061-line selected oracle and produced empty stdout with recording
+disabled. Each trace retained 98 successful pthread creations, 98 joins,
+64 observed batch entries and 64 joined batches, including job results and
+the before/after Busy receipts. The five locally rebuilt ordinary provider
+objects matched the producer's bytes. The original worker commit and the
+restored relocation each passed the eight focused CTests.
+
+A negative control changed only the companion's last-byte comparison. Reversing
+it for every job failed the aggregate and both tested selections at width one.
+One direct run returned an invalid trap record when multiple jobs could trap
+together. A second control kept the original comparison except for the single
+Busy job that waits on its release signal. That worker filled the buffer with
+19 and the check expected zero at its last byte. Each aggregate and selection
+exited 1 at both widths. All four selections identified the companion at
+line 203, column 5. Restoring the comparison reproduced the source, aggregate
+object and executable SHA-256 digests and passed all eight CTests.
+
+The aggregate and the four actual selected ELF executables each contained
+exactly one global text definition of `work_kernel_execute` and zero undefined
+references to it. The owner object had no such symbol. A separate owner-only
+consumer linked its own callback, ran a job on a real worker and observed one
+call after close. Its depfile omitted the companion, testing and host memory
+modules. Its real transport still required a separately linked memory provider.
+Configuring with work tests disabled omitted the fixture targets and selections.
+
+Host 2 used a Ryzen 5 3600 (six cores, SMT), Linux x64, LLVM/Clang 19.1.7,
+the verified public compiler `7430bdb3`, Release, and the explicit work-test
+CMake configuration. A host timing lock serialized measurements on CPUs 0–3
+(four physical cores), with an 11.52-CPU quota and no additional throttling.
+One warm-up and three alternating-order parent/relocation pairs used the same
+paths, compiler, providers and checked outputs. Cells give median wall/CPU
+seconds and maximum process RSS in KiB. Native selections include compilation.
+
+| Route | Jobs | Parent wall / CPU / KiB | Relocated wall / CPU / KiB |
+| --- | ---: | ---: | ---: |
+| Aggregate object | 1 | 0.57 / 0.55 / 111744 | 0.56 / 0.54 / 111480 |
+| Aggregate object | 4 | 0.64 / 0.72 / 123688 | 0.61 / 0.69 / 124104 |
+| Prelinked aggregate ×32 | 1 | 0.14 / 0.17 / 3364 | 0.15 / 0.17 / 3424 |
+| Prelinked aggregate ×32 | 4 | 0.15 / 0.17 / 3348 | 0.14 / 0.17 / 3372 |
+| Direct | 1 | 0.58 / 0.57 / 111276 | 0.57 / 0.56 / 112028 |
+| Direct | 4 | 0.63 / 0.72 / 122344 | 0.64 / 0.72 / 121676 |
+| Owner | 1 | 0.70 / 0.69 / 123692 | 0.69 / 0.69 / 124528 |
+| Owner | 4 | 0.77 / 0.88 / 135268 | 0.76 / 0.87 / 135540 |
+
+The object stayed at 17,024 bytes and the executable at 46,392 bytes in the
+matched runs. The 146 executed callbacks imply 146 allocations and frees of
+262,144 bytes, or 38,273,024 requested scratch bytes per aggregate. This count
+comes from the checked job results and callback source. The memory cgroup
+exposed its 32,222,740,480-byte limit and current usage, without a peak file.
+
+Both supported sanitizer builds ran the restored aggregate and returned its
+two expected bytes with empty stderr on their first launches. Link maps,
+manifests and generated IR identify the callback's instrumented endpoint loads,
+the production scratch allocator in `guest-work-tests.o`, Linux pthread
+transport and dispatch entry. ASan included leak detection. The selected guests
+ran ordinarily. This Tower IR pipeline supports address and thread modes and
+has no source-level UBSan profile. The manager owns integration and publication.

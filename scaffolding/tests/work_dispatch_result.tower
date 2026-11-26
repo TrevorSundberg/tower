@@ -1,7 +1,6 @@
-import library.testing;
+import tower;
 import .compiler.compiler_kernel;
 import .library.work_pool;
-import .host.memory;
 
 // The coordinator alone arms and consumes the one-shot signal fault. The
 // separately linked Linux transport exports its ordinary open under this name.
@@ -22,24 +21,4 @@ struct DispatchResultJob {
     input: usize;
     result: usize;
     observed: usize;
-}
-
-// Each worker borrows one kernel and its enclosing job through the join.
-// The scratch allocation belongs to this invocation of the host callback.
-export fn work_kernel_execute(payload: void*): void {
-    var kernel = bits(CompilerKernel*, payload);
-    var job = bits(DispatchResultJob*, kernel.payload);
-    if job.entered != null {
-        work_signal_post(job.entered);
-        work_signal_wait(job.release);
-    }
-    var memory = alloc(u8, DispatchScratchBytes);
-    assert(memory != null, "Allocate private worker scratch");
-    var value = convert(u8, job.input);
-    fill(memory, value, DispatchScratchBytes);
-    assert(memory[0] == value && memory[DispatchScratchBytes - 1] == value,
-        "Both ends of the worker scratch retain its input byte");
-    free(memory);
-    job.calls++;
-    job.result = job.input * job.input + 7;
 }

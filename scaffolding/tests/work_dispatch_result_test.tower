@@ -3,6 +3,7 @@ import work_dispatch_result;
 import .compiler.compiler_kernel;
 import .library.work_pool;
 import .library.work_budget_types;
+import .host.memory;
 
 test() { dispatch_invalid(); }
 test() { dispatch_rounds(); }
@@ -184,4 +185,24 @@ fn dispatch_rounds(): void {
         dispatch_failure(round);
         dispatch_busy();
     }
+}
+
+// Each worker borrows one kernel and its enclosing job through the join.
+// The scratch allocation belongs to this invocation of the host callback.
+export fn work_kernel_execute(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    var job = bits(DispatchResultJob*, kernel.payload);
+    if job.entered != null {
+        work_signal_post(job.entered);
+        work_signal_wait(job.release);
+    }
+    var memory = alloc(u8, DispatchScratchBytes);
+    assert(memory != null, "Allocate private worker scratch");
+    var value = convert(u8, job.input);
+    fill(memory, value, DispatchScratchBytes);
+    assert(memory[0] == value && memory[DispatchScratchBytes - 1] == value,
+        "Both ends of the worker scratch retain its input byte");
+    free(memory);
+    job.calls++;
+    job.result = job.input * job.input + 7;
 }
