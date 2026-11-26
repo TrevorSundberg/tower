@@ -103,6 +103,16 @@ fn sem_declaration_query(c: SemanticContext*, node: void*): usize {
     return bits(SemanticDeclaration*, data).query;
 }
 
+// Dependency scans consume the child query registered for this syntax node.
+// Query kinds are frozen through dispatch, including while a sibling declaration
+// is publishing the type of a same-named value.
+fn sem_registered_type_query(c: SemanticContext*, node: void*): usize {
+    var id = sem_declaration_query(c, node);
+    if id == 0 { return 0; }
+    var kind = work_task(&c.queries, id).query;
+    return kind == ArrayTypeQuery || kind == TypeConstructionQuery ? id : 0;
+}
+
 fn sem_array_type_prepared(c: SemanticContext*, node: void*): FoundationType* {
     node = sem_surface_unwrap(node);
     while (sem_is(node, "CoreTypeArgument") || sem_is(node, "CoreCallArgument") || sem_is(node, "CoreOperand"))
@@ -459,8 +469,8 @@ fn sem_declaration_waiting(c: SemanticContext*, result: SemanticDeclaration*, la
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
-        if type && sem_type_query_syntax(c, node) {
-            var query = sem_declaration_query(c, node);
+        if type {
+            var query = sem_registered_type_query(c, node);
             if query != 0 && query != result.query {
                 // The call continuation consumes these receipts in source
                 // order. This reverse dependency scan must not choose a later
@@ -599,8 +609,8 @@ fn sem_declaration_dependencies(c: SemanticContext*, subject: void*, result: Sem
         scan.length--;
         var node = scan.data[scan.length].node;
         var type = scan.data[scan.length].type;
-        if type && sem_type_query_syntax(c, node) {
-            var query = sem_declaration_query(c, node);
+        if type {
+            var query = sem_registered_type_query(c, node);
             if query != 0 && query != result.query {
                 sem_declaration_input(c, result, query);
                 continue;
