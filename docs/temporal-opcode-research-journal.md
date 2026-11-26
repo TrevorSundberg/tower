@@ -114701,3 +114701,29 @@ one-job direct selection took median 0.57 s wall and 0.56 s CPU, maximum
 107,640 KiB RSS. Four jobs took 0.71 s wall and 0.84 s CPU, maximum 121,036
 KiB. These measurements include compiling the selected guest. Raw commands,
 effective limits, timings and sanitizer startup logs are in the receipt.
+
+### Discovering the original staged capture identity fixture
+
+Host 2 started from public `d2336509ef829fa8a926f605b5f122c0d9e53b0f`.
+The original execution CTest imported the POSIX driver resources, rebound
+the interpreter unit's publication implementation to `capture_publish_original`
+and linked the remaining compiler units. Its executable took an absolute
+scaffolding root and exited silently. Selecting the original owner also
+selected an exported main and failed to link. The direct companion was absent.
+
+The adjacent test now runs the original four fresh batches through the same
+function as the executable. It loads Bedrock, Foundation and the real
+`retained_target_width/main.tower` and `profile_seed.tower`. Both entries link
+the fixture's host and rebound interpreter objects. The selected guest uses
+a private shared library for that link closure. The joined root callback
+reads the live declarations and query graph before calling the original
+kernel. Only the paths and scalar observations cross the guest/host boundary.
+The failed branch drains the batch and checks that publication never occurred.
+
+The original frozen probe found selected task 71 reading salt capture 197
+at both worker budgets. Task 197 depended on required evaluation 198.
+The producer's parent was provider.salt, its bits were 23, its frame owner
+was null and its declaration ordinal was 15. The distinct optional
+`known_producer` had the same parent and an inferred evaluation. Task 197
+had no direct edge to that inferred evaluation. The test follows the
+required producer and compares its ordering metadata with the capture.

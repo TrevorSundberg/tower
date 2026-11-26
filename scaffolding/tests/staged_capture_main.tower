@@ -1,0 +1,9 @@
+import tower;
+import frontend_units;
+import staged_capture_identity_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    units_check(argc == 2, "Usage: tower-staged-capture-test RESOURCE_ROOT");
+    staged_capture_identity(argv[1]);
+    return 0;
+}

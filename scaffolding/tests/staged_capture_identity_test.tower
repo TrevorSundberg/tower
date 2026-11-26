@@ -1,0 +1,82 @@
+import library.testing;
+import staged_capture_identity;
+import frontend_units;
+import frontend_units_memory;
+import semantic_lifecycle_checks;
+import .compiler.format_types;
+import .library.bytes_types;
+import .library.bytes_interface;
+import .library.vector;
+
+extern fn frontend_modules_location(environment: void*, offset: usize, line: usize*, column: usize*): u8*;
+extern fn frontend_modules_source(environment: void*, name: u8*, source: u8*, length: usize): bool;
+
+fn staged_capture_identity(root: u8*): void {
+    var bedrock: vector(u8) = default; var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock); units_read(root, "/foundation.tower", &foundation);
+    var entry: vector(u8) = default; var provider: vector(u8) = default; var source: vector(u8) = default;
+    defer vector_dispose(&entry); defer vector_dispose(&provider); defer vector_dispose(&source);
+    var path = "/tests/retained_target_width/main.tower";
+    units_path(root, path, &entry);
+    units_path(root, "/tests/retained_target_width/profile_seed.tower", &provider);
+    units_read(root, path, &source);
+    var canonical: vector(u8) = default;
+    defer vector_dispose(&canonical);
+    var changed: vector(u8) = default;
+    defer vector_dispose(&changed);
+    units_read(root, "/tests/retained_target_width/profile_seed.tower", &changed);
+    var flag = strstr(changed.data, "var take = false;");
+    assert(flag != null, "Original provider flag");
+    copy(flag + strlen("var take = "), "true ", strlen("false"));
+    for(var workers: usize = 1; workers <= 4; workers *= 4) {
+        capture_trial(root, workers, bedrock.data, foundation.data, entry.data, provider.data, source.data, null, &canonical);
+        capture_trial(root, workers, bedrock.data, foundation.data, entry.data, provider.data, source.data, changed.data, &canonical);
+    }
+}
+
+fn capture_trial(root: u8*, workers: usize, bedrock: u8*, foundation: u8*, entry: u8*, provider: u8*,
+    source: u8*, changed: u8*, canonical: vector(u8)*): void {
+    var batch = frontend_units_create(1, workers, 8, 1, 1, bedrock, foundation, root);
+    assert(batch != null, "Fresh capture unit");
+    defer frontend_units_close(batch);
+    assert(frontend_units_source(batch, 1, entry, source, strlen(source)), "Capture entry");
+    var environment = frontend_units_environment(batch, 1);
+    if changed != null {
+        assert(frontend_modules_source(environment, provider, changed, strlen(changed)), "Install reached-model control");
+    }
+    var world = frontend_modules_world(environment);
+    var check: CaptureCheck = {entry: entry, provider: provider, ..default};
+    capture_observe(world, &check);
+    while !frontend_units_step(batch, true) {}
+    capture_observe(world, null);
+    var program = frontend_units_program(batch, 1);
+    if changed != null {
+        var line: usize = 0; var column: usize = 0;
+        var file = frontend_modules_location(environment, frontend_units_error_offset(batch), &line, &column);
+        assert(frontend_units_failed(batch) == 1 && program == null && !check.observed && file != null
+            && strcmp(file, provider) == 0 && line == 3 && column == 1
+            && strcmp(frontend_units_error(batch), "Compile-time expression cannot capture runtime storage: binding is mutable, escaped or lacks an initializer") == 0,
+            "Reached model fails at its escaped declaration before publication");
+        return;
+    }
+    if frontend_units_failed(batch) != 0 { puts(frontend_units_error(batch)); }
+    assert(program != null, "Successful ordinary staged compile");
+    lifecycle_output(program, "8\n24\n147\n8\n");
+    var text: FormatResult = default;
+    defer format_dispose(&text);
+    format_entity(&text, program.root, null, null, null);
+    assert(!text.failed, "Format ordinary capture result");
+    lifecycle_compare(canonical, text.text.data, text.text.length);
+    assert(check.observed && check.salt, "selected must read the required value produced by provider.salt");
+    assert(!check.model_demanded, "Untaken provider.model must have no demanded capture");
+}
+
+extern fn driver_platform_absolute(path: u8*, out: ByteBuffer*): bool;
+
+test() {
+    var root: ByteBuffer = default;
+    defer bytes_dispose(&root);
+    assert(driver_platform_absolute("scaffolding", &root), "Resolve compiler resources from the checkout root");
+    staged_capture_identity(root.data);
+}
