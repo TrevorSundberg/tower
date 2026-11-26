@@ -109397,3 +109397,38 @@ expected byte at compiletime_case.tower:18:5 and passed after restoration at
 both widths. A runtime call still diagnosed missing_body_value. The host 6
 receipt c5a50ceb contains the three cursor comparisons, the rejected
 intermediate, resource measurements and the independent release gates.
+
+### Native discovery of the two decltype observation fixtures
+
+On public `6f666ed6` with the Ubuntu pin `7e34072d`, both
+`scaffolding/tests/decltype_lazy_body.tower` and `decltype_type_fields.tower`
+selected zero tests at one and four workers. Their browser declarations use
+the `_browser.tower` suffix. Receipt `c7c77158` kept the two native companions
+as external inputs. Install those companions next to their owners and register
+both owners with the existing CTest helper at each worker width.
+
+Each companion runs its owner's source through the existing fixture grant
+and checks for the exact bytes `0\n`. The native helper reads output, while
+the browser helper also inspects Foundation declarations. The native tests
+now import the actual owner and check its types in Tower. Asking for the
+invalid generic's signature gives `i32` and `i32*`. Inspecting the nested
+field and the generic read result gives `u32` and `u64`. Calling the invalid
+generic in the existing negative fixture still diagnoses `missing_body_value`.
+
+The shipped Ubuntu compiler built from `41de9006` selected one body per
+owner or direct companion at one and four workers. Changing the expected
+output, changing an asserted type, and changing the owner to print a failure
+each reached a located assertion. Access to the other owner's source failed
+at the fixture grant. Restoring the files returned all selections to green.
+Removing both companions failed all four new CTests on zero discovery.
+Syntactically invalid companions left both ordinary objects, executable bytes,
+depfiles and guest output identical to the corresponding ordinary controls.
+
+On host 6 (Xeon E5-2680 v4, affinity 0–11, 11.52 CPUs quota), one warm-file
+sample per owner at jobs 1/4 took 0.44/0.58 s before and 1.01/1.42 s after
+installation for lazy body, and 0.43/0.59 s before and 1.03/1.41 s after for
+field types. The installed owner runs peaked at 87,780–101,560 KiB RSS.
+The fresh default Ninja graph matched all 51 producer commands. All 501
+recorded ordinary inputs and 37 retained products matched their qualified
+hashes. Assignment `29d83b92` records both streams, CPU times, output hashes,
+the published template/parser/inference controls and the bundle ancestry.

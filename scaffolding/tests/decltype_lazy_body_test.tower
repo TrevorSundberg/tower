@@ -1,0 +1,14 @@
+import library.test_fixtures;
+import compiletime_results;
+import decltype_lazy_body as owner;
+
+test() {
+    assert(type_value(decltype(owner.inspected_pointer)) == type_value(i32*), "Inspecting unused preserves the pointer type");
+    assert(type_value(decltype(owner.inspected)) == type_value(i32), "Inspecting unused preserves the integer type");
+    check_compiletime({
+        file: "decltype_lazy_body.tower", output: "0\n",
+        declaration: "var inspected_pointer: i32*;",
+        absent_body: "missing_body_value", absent_function: "fn `unused(",
+        ..default
+    });
+}
