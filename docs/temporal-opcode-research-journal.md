@@ -111048,3 +111048,103 @@ UBSan run or source instrumentation of the native test driver in this receipt.
 The assignment archive contains the bundle, raw commands, artifact identities,
 per-process status/streams, selected IDs, failed controls and timings. The
 production compiler was reused. Manager review and publication are pending.
+
+### Three formatter-port registrations on 6b6d4029 (host 3)
+
+The supplied census for assignment 8de91b9a identifies lines 28, 40 and 50
+in `playground/tests/formatter-port.test.mjs`. The archived JS matches the
+public base byte for byte. Its census listing skipped all three bodies. The
+behavioral baseline here comes from running those original bodies against
+the portable and shared release reactors. The retained release manifest
+identifies compiler source 8bc867b6. The existing 4f6d24ea UI provider
+repair is independent of these Node registrations.
+
+The three selected companions in `playground/tests/fixtures/formatter_port`
+use a separate assertion reactor so its test collection cannot change the
+subject's module entry or Foundation source map. Each selection supplies
+only its companion, the formatter observations and three library modules
+in addition to the language builtins. The two static source fixtures retain
+their original final byte. The UTF-8 golden comes from the original output.
+The Tower checks compare 14 bounded byte slices, the complete repeat response
+and the actual formatted text on reparse. The numeric case checks both
+decimal limits, Foundation's fixed point and every field on repeat. The
+spacing case advances one wrapping 32-bit LCG through all 1,900 gaps and
+passes actual compiler outputs to the subsequent calls.
+
+Early portable runs exposed a grammar keyword used as a local name, missing
+direct imports, unsupported hexadecimal source syntax and a type requirement
+for `sizeof`. The corrected tests use the decimal spelling of 0x464d5421,
+explicit imports and array sizes obtained through `decltype`. The portable
+spacing run then reproduced all 400 original observations byte for byte.
+
+Implementation commit `4cfbb5ad6e095075b2c5651e18ddd81436f87c18` is a
+direct child of the assignment base. At portable, shared capacity one and
+shared capacity four, each original name selected 1/1 and the unfiltered
+file passed 3/3 on both arms with zero skips. The 406 ordered subject
+input/result records match across all six runs (830,251 bytes, SHA-256
+`f1280f3fa1a3889f241fb3db5c493f1c58ecd12eb64f685a1adad93477aa3e07`).
+The comparisons include spans, type data and Foundation source maps. The
+100 independently indexed original trial inputs have distinct hashes. The
+graph interpreter reproduced the complete fast-interpreter observation
+stream on the portable and four-worker images.
+
+Six portable mutations independently rejected an altered UTF-8 golden, a
+shift of the last span by one source byte, a field added only to the repeated
+formatter response, each one-digit integer limit change, and a change solely
+to the repeated Foundation source map. For zero-based trial 73 the expected
+Foundation was changed from an initial lowercase i to uppercase I. Both the
+full sequence and the isolated replay entered the comparison with the same
+four subject records. Its generator state started at 854584166 and ended at
+3629127511. The 83-byte input is identified by SHA-256
+`e6492a73201f9e6b12b7bd631726b15605fe52b4e356f9c0527fdb0e854656a8`.
+
+The release images match the asset hashes in the independently fetched
+Pages manifest at `f2214133fc9552343dfd40d509c4ea3dae571bb9`. Both the
+portable and shared images also passed 3/3 with V8 explicit Wasm bounds
+checks. The shared run initially failed before registration when Node 24's
+isolated test process forwarded invalid worker flags. Invoking the same
+registration file directly with the same V8 flag passed. The shipped images
+lack ASan, UBSan and TSan instrumentation. These runs exercise guest
+assertions and the existing Node worker transport. The on-disk sources and
+the UTF-8 golden also kept their exact bytes under a Git autocrlf checkout.
+
+On the host 3 AMD EPYC 7542 (32 cores, 64 logical CPUs), affinity was
+0–63, CFS quota 1228800/100000 or 12.288 CPUs, and memory limit
+57,954,795,520 bytes. Each sample locked the host timing lane and pinned
+Node 24.22.3 to CPUs 0–3 (four physical cores). Each arm starts in a fresh
+process, uses the same Wasm32 release image and four-byte guest ABI, and
+retains OS file caches. The measured command was `node --test
+--test-concurrency=1 playground/tests/formatter-port.test.mjs` with matching
+preloads for arm selection and shared pool capacity. Output tracing,
+bounds checks and allocator accounting ran separately. The table gives
+component-wise medians of three full-file processes per arm.
+
+| Release reactor | Wall s before / after | User + system CPU s before / after | Peak RSS KiB before / after |
+| --- | ---: | ---: | ---: |
+| Portable | 15.06 / 3.02 | 2.53 / 2.92 | 133676 / 119400 |
+| Shared, capacity 1 | 12.08 / 4.04 | 3.21 / 3.86 | 147660 / 158032 |
+| Shared, capacity 4 | 53.40 / 40.27 | 4.24 / 5.59 | 215884 / 252792 |
+
+Wall time fell in all three configurations. CPU rose for all three and
+peak RSS rose for the shared images. The candidate drops the cold walk of
+the 1,863-file scaffolding corpus and adds a second reactor that compiles
+and executes one Tower assertion per registration. Both arms spend around
+32 seconds in the 100 spacing trials at shared capacity four. These short
+sequential requests ran faster on the portable image. Timing includes
+filesystem service on this host and describes the test file as a whole.
+
+The portable host probe recorded 1,868 rows (8,899,558 text bytes) for the
+original project upload. Each candidate assertion used exactly ten dependency
+paths and one collected test. Its three uploads had 27,482, 26,766 and
+27,688 text bytes including the builtins. At the last handle release the
+portable subject retained 7,804 nodes in both arms. Its linear memory was
+19,988,480 bytes before and 11,075,584 after. The added assertion reactor
+ended with 13,380 nodes and 28,377,088 linear bytes. All three readings
+reported zero exposed live allocations.
+
+The evidence archive for assignment 8de91b9a contains the verified census,
+both release images, the exact traces, every per-filter report, before/after
+measurements, negative controls, isolated replays and a source bundle. Local
+main starts from the declared public base and preserves the shared checkout's
+unpublished Bedrock work. Publication and integration on newer main belong
+to the manager.
