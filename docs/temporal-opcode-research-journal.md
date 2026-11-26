@@ -118537,3 +118537,25 @@ builds and all five affected registrations passed in both migrated builds.
 Host 3 assignment `50b5af7a-c560-426d-ba72-b02ba0a22897` carries the
 source bundle, commands, trace overlays, raw streams, rejection controls,
 ELF maps, binaries, timings and checksums for manager review and publication.
+
+### Selecting the original native module alias completion cases
+
+On Linux x64 at public `a696c864`, the completion executable passed sample
+and full checks at one and four world workers. The companion now owns the
+real parser sessions, module setup, suggestion strings and counts, failed
+analysis retry, repeated-query entity/component counts and retirement checks.
+The executable still accepts the resource root, worker choice and sample or
+checks argument. Its four stdout streams matched the corresponding original
+runs. The selected cases use the existing LR row shared library, whose
+dynamic symbols include the native completion service and work thread entry.
+With the checkout as the working directory, direct selection ran four cases
+and the owner ran nineteen at compiler jobs 1 and 4. The additional fifteen
+are the budget, graph and stack cases reached by the completion query types.
+
+Changing the sample expectation from `helpers` to `helpers_wrong` in the
+companion made all four executable modes exit 1 and all four selected
+registrations exit 8 through CTest. The diagnostic printed the actual
+namespace suggestion and located the failed selected assertion in the
+companion. Restoring the bytes restored the original results. Host 2
+assignment `6c0626c5-d402-48c0-9376-03b3d19b3355` contains the commands,
+original observations, exit codes and resource measurements.

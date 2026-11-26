@@ -206,7 +206,7 @@ function(tower_lr_work_policy_test)
     endforeach()
 
     tower_runtime_object(completion-alias-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/completion_alias_checks.tower" "${triple}")
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/completion_alias_main.tower" "${triple}")
     add_executable(tower-completion-alias-tests ${sources} "${completion-alias-checks_OBJECT}")
     set_target_properties(tower-completion-alias-tests PROPERTIES LINKER_LANGUAGE CXX)
     target_link_libraries(tower-completion-alias-tests PRIVATE ${libraries})
@@ -216,6 +216,20 @@ function(tower_lr_work_policy_test)
         COMMAND tower-completion-alias-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${workers} checks)
       set_tests_properties(tower-completion-alias-${workers} PROPERTIES TIMEOUT 60)
     endforeach()
+
+    if(TARGET tower-lr-row-services)
+      get_property(editor_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+      add_dependencies(tower-completion-alias-tests tower-lr-row-services tower-selected-test-count tower-guest-native-test)
+      tower_native_test_selections(completion-alias completion_alias_checks "19 tests" "4 tests"
+        --test-native-runtime "${editor_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+      foreach(selection IN ITEMS owner direct)
+        foreach(jobs IN ITEMS 1 4)
+          set_tests_properties("tower-completion-alias-${selection}-jobs-${jobs}" PROPERTIES
+            WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+        endforeach()
+      endforeach()
+    endif()
 
     tower_runtime_object(semantic-capture-admission-checks
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_capture_admission_checks.tower" "${triple}")
