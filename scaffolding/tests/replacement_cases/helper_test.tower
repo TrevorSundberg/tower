@@ -1,0 +1,6 @@
+import diagnostic;
+
+test() {
+    rejected("incompatible_helper", 6, 286,
+        "Replacement for Alias requires a Expression destination");
+}

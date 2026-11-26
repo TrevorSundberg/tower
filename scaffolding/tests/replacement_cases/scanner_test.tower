@@ -1,0 +1,73 @@
+import diagnostic;
+import compiler.format_diagnostic_cases.session;
+import library.testing;
+import backend.text;
+
+extern fn statement_count(): usize;
+extern fn select_statement(index: usize): void;
+extern fn expanded_code(): u8*;
+extern fn node_count(): usize;
+extern fn node_label(index: usize): u8*;
+extern fn node_start(index: usize): usize;
+extern fn node_end(index: usize): usize;
+extern fn template_start(index: usize): usize;
+extern fn template_end(index: usize): usize;
+extern fn node_generated(index: usize): bool;
+
+fn label_count(label: u8*): usize {
+    var matches: usize = 0;
+    var count = node_count();
+    for (var i: usize = 0; i < count; i++) {
+        var actual = node_label(i);
+        defer free(actual);
+        if backend_equal(actual, label) { matches++; }
+    }
+    return matches;
+}
+
+fn expect_code(wanted: u8*): void {
+    var actual = expanded_code();
+    defer free(actual);
+    assert(backend_equal(actual, wanted), actual);
+}
+
+fn origin(index: usize, label: u8*, start: usize, end: usize, body_start: usize, body_end: usize, generated: bool): void {
+    var actual = node_label(index);
+    defer free(actual);
+    assert(backend_equal(actual, label), actual);
+    assert(node_start(index) == start && node_end(index) == end, label);
+    assert(template_start(index) == body_start && template_end(index) == body_end, label);
+    assert(node_generated(index) == generated, label);
+}
+
+test() {
+    accept("scanner");
+    assert(statement_count() == 2);
+    select_statement(0);
+    expect_code("{\n  x;\n  \"}\";\n}");
+    origin(4, "Statement", 364, 366, 342, 347, false);
+    select_statement(1);
+    expect_code("{\n  \"}\";\n}");
+    origin(6, "\"}\"", 368, 375, 348, 351, true);
+
+    rejected("required_optional", 3, 245,
+        "Replacement for Statement must produce a valid Statement. \"$value;\" is not a valid Statement.\nUnexpected end of input. Expected Identifier, Number or 'maybe'.");
+
+    accept("optional");
+    assert(statement_count() == 2);
+    select_statement(0);
+    expect_code("show;");
+    assert(label_count("show") == 1);
+    select_statement(1);
+    expect_code("show x;");
+    assert(label_count("x") == 1);
+    origin(2, "Expression", 314, 315, 292, 298, false);
+
+    accept("repeated");
+    assert(statement_count() == 1);
+    select_statement(0);
+    assert(label_count("x") == 2, "Expected two copies of x");
+    expect_code("{\n  x;\n  x;\n}");
+    origin(4, "Statement", 330, 332, 307, 312, false);
+    origin(8, "Statement", 330, 332, 313, 318, false);
+}

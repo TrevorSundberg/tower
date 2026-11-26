@@ -1,0 +1,14 @@
+import diagnostic;
+import compiler.format_diagnostic_cases.session;
+
+test() {
+    rejected("invalid_statement", 1, 95,
+        "Replacement for Statement must produce a valid Statement. \"$name - $name;\" is not a valid Statement.\nUnexpected end of input. Expected '[', '=', '(' or '.'.");
+    accept("repaired_statement");
+    reject_expression_semicolon();
+    rejected("empty", 3, 221,
+        "Replacement for Expression must produce a valid Expression. <empty> is not a valid Expression.\nUnexpected end of input. Expected Identifier, Number or 'bad'.");
+    reject_unknown_capture();
+    rejected("helper_categories", 4, 215,
+        "Replacement for Alias must produce one of these syntax categories: Alias, Expression. \"1;\" is not valid in any of these categories.\nUnexpected end of input. Expected 'bad'.");
+}

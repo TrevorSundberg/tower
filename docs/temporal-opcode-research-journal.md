@@ -109532,3 +109532,187 @@ slice counters took 3.30 and 5.30 s wall, 6.67 and 8.73 s CPU, and 257,452
 and 301,840 KiB peak RSS. The candidate keeps the five Tower-selected lookups
 against the LLVM compiler's host string and compares canonical text, type
 tables and all output bytes using Tower's `fixture_equal`.
+### Four replacement grammar selections on the published parser (host 3, 2026-11-26)
+
+Assignment e8080cb3 started at public main `cd21d55c`. The parser was
+`tower.wasm` from Pages `dd6651b1` (SHA-256 `41bb9b11`, build source
+`8bc867b6`). The native driver matched the executable inside that same
+deployment's Linux kit byte for byte (`7315b86e`). The existing host
+checkout had two counted-loop commits whose rebase conflicted. Aborting
+that rebase preserved both. A separate checkout of main carried the work.
+
+Before extracting the inputs, the four original names ran against the
+release reactor. Their 16 parser sessions yielded 12 errors and four
+successes on 14 distinct source texts. The input fixtures preserve the
+original bytes, including the lambda comment, missing final newlines and
+the trailing space in one empty template case. The two empty templates
+fail at different bytes, 221 and 222. The browser tests reuse the public
+parser diagnostic assertions. Each name selects its own Tower declaration.
+The scanner checks both wrapped blocks, the absent and present optional
+expression, the two copies of the repeated statement, and the invocation
+and template spans on the generated and captured nodes.
+
+A single-reactor trial preserved the input, terminal responses, inspections
+and all tree fields except 1,294 node IDs. Compiling a Tower test first
+changed the parser's allocation sequence. The final harness compiles the
+released Wasm module once and opens one separate assertion instance on the
+first selected replacement case. All four declarations reuse that instance.
+Across the four names the original and final streams, including all node
+IDs and every grammar snapshot, matched at 642,907 bytes (SHA-256
+`c105acae67e4a1205634d0f64be057ef0cc8be9d199fc82c0402db412c7a34a6`).
+
+Changing the UTF-8 Statement diagnostic offset from 95 to 96 failed in
+`format_diagnostic_cases/session.tower` at byte 1413. Expecting three
+copies of `x` failed in `replacement_cases/scanner.tower` at byte 2315.
+Both individual filters passed after restoring the original expectation.
+An initial scanner declaration used the reserved word `expected` for a
+parameter. Its compilation failure preceded assertion execution.
+
+With the release CLI at jobs 1 and 4, every distinct malformed input
+reported the browser's complete diagnostic at the matching line and
+column. The three scanner successes parsed with zero test declarations.
+The repaired Foundation input discovered its adjacent companion; selecting
+the companion directly also executed the subtraction assignment and
+checked that the captured variable became zero. Importing the test
+language after the repaired grammar initially replaced its Statement
+rule. Installing the repaired grammar last made the assignment available.
+The four event-based test entries each reached the native interpreter's
+missing binding for `diagnostic_read`. The CLI can diagnose the files
+directly. Its test interpreter has no provider for the browser event
+stream, node origins or expanded-code renderer.
+
+Memcheck ran the native owner at one job and reported zero errors and zero
+lost bytes, with 151,054 bytes still reachable. Its first launch failed to
+find the loader symbols. Supplying the matching glibc debug file at the
+loader's relative path allowed the run to complete. DRD at four jobs
+reported zero errors (10 suppressed). Both tools warned about reading the
+release executable's debug section mapping. The released compilers provide
+no source-level ASan, UBSan or TSan instrumentation.
+
+All four filters passed individually. The complete replacements suite and
+the diagnostics suite that shares the text transport passed 10/10 each.
+Across the complete replacements file, the 28 calls to `analyze` yielded
+2,464,549 identical bytes before and after. The separately filtered runs
+also matched their corresponding original processes, including the first
+IDs in each fresh parser. The six other registrations retained their
+original bodies.
+
+Host 3 ran Node 24.22.3 on an AMD EPYC 7542 with 64 available logical CPUs
+and a cgroup quota of 12.288 CPUs. All measured processes held the host
+timing lock and were pinned to CPUs 0–3. Each process started with fresh
+Wasm and parser state on a previously read filesystem. Both arms used the
+same fixture inventory. GNU time measured user plus system CPU and process
+peak RSS. Each filter has one paired sample. The full-file row reports
+component-wise medians of three pairs with alternating arm order.
+
+| Node selection | Original wall s / CPU s / peak KiB | Migrated wall s / CPU s / peak KiB |
+| --- | ---: | ---: |
+| invalid captures | 5.28 / 0.64 / 109,500 | 2.84 / 1.24 / 144,432 |
+| invalid replacement diagnostics | 8.40 / 0.67 / 115,000 | 6.32 / 1.26 / 144,760 |
+| template scanner respects | 14.00 / 0.70 / 111,696 | 7.76 / 1.30 / 146,664 |
+| named helper inference never | 10.95 / 0.68 / 113,636 | 19.80 / 1.30 / 145,260 |
+| all | 15.38 / 1.02 / 149,656 | 11.90 / 2.05 / 182,956 |
+
+Full-file wall times ranged from 5.46 to 22.01 s on this shared host.
+The Tower assertions added about one CPU-second to the full file. In a
+separate four-name profile, the assertion reactor opened once in 105 ms.
+Compiling the first declaration took 471 ms. Subsequent declarations
+compiled in 130, 140 and 111 ms. For context, the published ten-name parser
+diagnostic suite on this host spent 463 ms on its first compilation and
+77–94 ms on each subsequent one. The replacement selections include the
+additional revision and tree observations. These measurements include
+the real compiler cost of running the tests.
+
+The subject's exposed allocation count, live nodes and linear memory size
+matched the original at all 32 observed create/destroy boundaries. It
+finished with 6,913 live nodes and 17,235,968 bytes of linear memory. The
+separate assertion instance retained 13,483 nodes and 28,770,304 bytes
+after each selection. The production allocation counters read zero.
+Host 3 packet `e8080cb3-60bd-4765-952a-a7afb1608af3` includes pinned
+product hashes, raw events, mutation logs, command lines, native output,
+timings and disk measurements. The manager owns integration and publication.
+
+Free space on the host overlay measured 49.94 GiB before qualification
+and 49.90 GiB after validation. These readings include concurrent host use.
+### 2026-11-26 — Optional package ownership and backend world tests
+
+Host 5 ran the two ownership registrations from public test source `46e22072`
+against the repaired compiler `3cc57ae4` (production code `f7ef2275`). The
+production images skipped both registrations. The ordinary LLVM build with
+`TOWER_BACKEND_TESTS=ON` called both source-world exports and returned zero
+from each. Requiring that capability on the production LLVM image failed.
+
+The optional portable kit shares its existing `PackageCheck` enum with an
+adjacent Tower test. The browser selects the result module and its
+`_ownership_test.tower` companion and binds the guest's zero-argument call
+to the real `ide_package_tests` export of the provider instance. Selecting
+the implementation module itself also initialized its IDE state inside the
+guest and failed on `core_component_type`. The result module lets the provider
+keep its own handles and allocator. Moving the enum produced a byte-identical
+Wasm IDE object. The native CLI discovers the companion with the optional
+suffix and reports a missing native interpreter binding if asked to execute it.
+
+Each enabled registration passed once with zero skips. A debugger trace of
+the package test recorded all twelve width cases, 24 typed resource records,
+two denied retries per case and twelve Foundation recovery calls. With a live
+provider handle, expecting `PackageCheck.Recovery` failed at the Tower
+assertion on line 8, column 5. Restoring `Passed` on the same two instances
+succeeded, the handle still printed `42`, and both handle tables drained.
+
+Node 24.22.3 ran the same selectors sequentially on the Ryzen 9 5900XT,
+on CPUs 0,2,4,6 with a 30.72-CPU cgroup quota. In one sample per case the
+package baseline and migrated test took 0.72/0.92 s wall, 1.12/1.32 s CPU and
+170,292/188,124 KiB peak RSS. The backend baseline and final run took
+0.69/0.69 s wall, 1.07/1.09 s CPU and 215,816/219,656 KiB peak RSS.
+Host 5 packet `5d41ab00-39ee-42cb-9b4b-c8c82f5abb90` includes raw TAP,
+capability failures, both test-only images and their build and source receipts.
+
+### Independent replacement and package-ownership qualification on template main
+
+Host 4 assignment 57cf50f5 merged replacement commit 73f18ffa and ownership
+commit 64ecd75b, in that order, on public 6f666ed6. Both producer archives
+and all twelve declared members matched their manifests. The pre-edit merge
+tree was dbcfb30792d75ff697212e2bb9014b8980593b05.
+
+The four replacement assertion modules now have ordinary _test.tower names.
+Their contents and the grammar subjects kept their original bytes, including
+the final ASCII space in the 224-byte empty.tower. Selecting a renamed entry
+with the default companion suffix made the published browser driver try to
+open the stripped owner and fail. The runner now uses the same direct-entry
+convention as the template registrations. Its alternate companion suffix lets
+each selected file supply its own test. The real handle reported one test
+and completed for each of the four independently anchored names.
+
+The published dd6651b1 portable reactor reproduced the original 642,907-byte
+response stream for the four entries, including parser node IDs. The ten
+replacement names reproduced all 28 observations. Running the diagnostics
+and replacements files together passed 20 registrations and reproduced the
+34 retained diagnostics records. Moving the invalid-statement expectation
+from byte 95 to 96 failed at session.tower byte 1413. Expecting three copies
+of x failed at scanner_test.tower byte 2315. Both repaired names passed.
+
+The published Linux driver at jobs 1 and 4 reproduced the native subject
+diagnostics and selected the repaired assignment at repaired_statement_test.tower
+line 4 directly and through its owner. Each renamed projection reached the
+missing native diagnostic_read binding when its file was the direct entry.
+The native package companion similarly reached the missing ide_package_tests
+binding. The passing projections used the real Wasm APIs under Node.
+
+The two shipping registrations skipped on their documented capabilities.
+The supplied opt-in providers passed the same named tests. The required
+shipping backend failed on its missing export. Forcing the package assertion
+on the shipping portable image failed on its missing import. Changing Passed
+to Recovery failed the enabled registered assertion at byte 191. Its repair
+passed. Repeating original/failure/repair in the same instances preserved a
+live handle that printed 42 and released all handle and package charges.
+The optional provider's 12 denial/retry/recovery sequences matched the prior
+trace across widths 4 and 8. The 25 ordinary shipped project units reached
+427 paths, excluding the new assertions and subjects. Default native build
+inputs and ordinary depfiles also excluded them.
+
+On the Ryzen 7 5800H, CPUs 0,2,4,6, cgroup quota 15.36 CPUs, Node 24.22.3,
+one matched before/after pair for the ten replacement names used 1.20/1.19 s
+wall, 1.59/1.59 s CPU and 183536/177488 KiB peak RSS. Each sample used a
+fresh process and warm files. Compiler and reactor bytes came from the
+existing products. The final unfiltered suite ledger, image identities and
+resource records for the frozen commit belong to this assignment's packet.
