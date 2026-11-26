@@ -1,0 +1,55 @@
+import cross;
+import backend.text;
+import library.test_data;
+import library.testing;
+
+fn compiled(id: u32): u32 {
+    var status = result_text(id, "status");
+    defer free(status);
+    if !backend_equal(status, "compiled") {
+        var diagnostic = result_text(id, "error");
+        defer free(diagnostic);
+        assert(false, diagnostic);
+    }
+    return id;
+}
+
+fn check_output(id: u32, wanted: u8*): void {
+    execute_wasm(id);
+    while !execution_ready() {}
+    var output = result_text(id, "output");
+    defer free(output);
+    assert(backend_equal(output, wanted), "Wasm stdout");
+}
+
+fn check_target(magic: u8*, count: usize, wasm: bool): void {
+    var first = compiled(emit_program());
+    var size = binary_size(first);
+    var bytes = binary_copy(first);
+    defer free(bytes);
+    assert(size >= count && test_bytes_equal(bytes, magic, count), "Executable magic bytes");
+    if wasm {
+        check_output(first, "5\n84\n42\n4\n41\n42\n");
+    } else {
+        assert(result_matches(first, "before", "@tower_allocate\\(i64", ""), "64-bit allocator IR");
+        assert(result_matches(first, "disassembly", "\\bret\\b", ""), "Native return instruction");
+    }
+    save_binary(first, false);
+
+    var repeat = compiled(emit_program());
+    var again = binary_copy(repeat);
+    defer free(again);
+    assert(binary_size(repeat) == size && test_bytes_equal(bytes, again, size),
+        "same-input repeat emission/linking must be reproducible");
+
+    var object = compiled(emit_library("import foundation; export fn answer(): i32 { return 42; }"));
+    var format = result_text(object, "format");
+    defer free(format);
+    assert(backend_equal(format, "object"), "Library object format");
+    assert(!result_matches(object, "before", "define .*@tower_main", ""), "Library must omit the entry definition");
+
+    var program = compiled(link_external("import foundation; extern fn answer(): i32; var x: i32 = answer(); print(x);",
+        "answer.o", object));
+    if wasm { check_output(program, "42\n"); }
+    save_binary(program, true);
+}

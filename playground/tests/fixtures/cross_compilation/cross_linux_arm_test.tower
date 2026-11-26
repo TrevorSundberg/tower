@@ -1,0 +1,6 @@
+import checks_test;
+
+test() {
+    var magic: u8[4] = {127, 69, 76, 70};
+    check_target(&magic[0], sizeof(decltype(magic)), false);
+}

@@ -1,0 +1,20 @@
+import cross;
+import backend.text;
+import library.testing;
+import checks_test;
+
+fn rejected(id: u32, message: u8*, flags: u8*): void {
+    var status = result_text(id, "status");
+    defer free(status);
+    assert(backend_equal(status, "error"), "Expected compiler error");
+    assert(result_matches(id, "error", message, flags), message);
+}
+
+test() {
+    var source = "import foundation; print(42);";
+    var linux = target_triple("linux");
+    defer free(linux);
+    rejected(compile_without_inputs(source, linux, "executable"), "Link failed", "");
+    compiled(compile_default(source));
+    rejected(compile_without_inputs(source, "unknown-unknown-unknown", "object"), "target", "i");
+}

@@ -1,0 +1,17 @@
+import tower;
+
+// Handles refer to actual compile results retained by this Node registration.
+// Copies of bytes and text belong to the selected test's world.
+extern fn emit_program(): u32;
+extern fn emit_library(source: u8*): u32;
+extern fn link_external(source: u8*, name: u8*, object: u32): u32;
+extern fn target_triple(key: u8*): u8*;
+extern fn compile_without_inputs(source: u8*, target: u8*, emit: u8*): u32;
+extern fn compile_default(source: u8*): u32;
+extern fn result_text(id: u32, field: u8*): u8*;
+extern fn result_matches(id: u32, field: u8*, pattern: u8*, flags: u8*): bool;
+extern fn binary_size(id: u32): usize;
+extern fn binary_copy(id: u32): u8*;
+extern fn execute_wasm(id: u32): void;
+extern fn execution_ready(): bool;
+extern fn save_binary(id: u32, library: bool): void;
