@@ -114192,3 +114192,59 @@ uninstrumented. Source-level UBSan is unavailable. Native execution was
 validated on Linux x64. Packet `7c61b756-cf3c-47ee-aa9d-3c415227303d`
 contains the focused Git bundle, native input hashes, commands, traces,
 raw outputs and controls for manager publication.
+### Original constructor allocation-failure suite as Tower tests
+
+The original native work-constructor fixture exercises two allocation sweeps.
+One uses eight units. The other derives its unit count from a real entity
+descriptor page so that construction crosses the growth boundary. Both now
+have declarations in `tests/work_constructor_faults_test.tower`. The original
+native executable calls the same assertion bodies and still prints zero on
+success. Each iteration disables its failure ticket immediately after the
+constructor, checks the result and output pointer, then verifies lane, byte
+and allocation cleanup before the next trial. A successful construction ends
+the sweep. The existing 512-trial bound still fails if success is never
+observed. These cases use single-owner allocation instrumentation.
+
+### Constructor fault sweep registration and qualification on 2556019c
+
+Assignment `80b3e1f8-89fb-4314-8ccb-449724bdcd0b`, host 1. The input bundle
+SHA-256 was `7984adcacad2debb49805c757935c606ca9f17034a17d3ec2fdcceacd677ccea`.
+At `eb8d8bac` the standalone passed, but default owner and direct discovery
+both failed to link with `duplicate ELF symbol: main`. The selectable owner is
+now `tests/work_constructor_faults_fixture.tower`. Its companion declares the
+two tests. The legacy source keeps its name, entry and stdout and directly
+calls the same bodies. The native work-policy CTests use the existing selected
+count checker, native test guest, configured policy allocator and serial
+transport. No compiler or guest ABI changes were required.
+
+On the pinned Linux x64 compiler `e2d03c1e`, the original CTest passed and
+the old executable wrote exactly `0\n` before and after. The two owner runs
+at jobs 1 and 4 each selected 15 declarations (two constructor, eight graph,
+five budget). Direct runs each selected just the two constructor declarations.
+Both the work-only configuration and the one with an existing instrumented
+runtime passed all five CTests. Their allocator objects had identical hashes.
+An evidence-only observer recorded the allocation ticket, success, live grants,
+bytes, lanes, live buffers and baseline after the cleanup checks. For eight
+units, tickets 0–25 refused and 26 succeeded. With the probed 19-unit page,
+tickets 0–43 refused and 44 succeeded. All 72 baseline rows matched byte for
+byte through the standalone and all four selected entries. Every refusal had
+already passed the Memory/null checks and all trials returned to zero. A
+temporary expectation of one leaked buffer failed all four selections at
+the actual leak assertion, including CTest exit 8 for direct/jobs 1. The
+restored fixture passed.
+
+The host exposed CPUs 0–31 on a Xeon Gold 6244 with a 15.36-CPU quota.
+Clang 19.1.7, Release, one compiler job per object. Three alternating warm
+batches of 200 standalone executions each had median wall/CPU 0.23/0.23 s
+before and 0.24/0.24 s after. Peak RSS including the batch shell was 3,124
+and 3,112 KiB respectively. Each batch checked 200 zero output lines.
+Individual ordinary selected CTests on warm files took 1.80/2.02 s for the
+owner and 1.28/1.38 s direct at jobs 1/4. Highest sampled selected-test
+RSS was 201,764 KiB. The compiler job count does not parallelize the serial
+fault allocator. ASan with leak detection passed the standalone. TSan passed
+the same sweeps on launch 36 after 35 host personality/ASLR startup failures.
+Tower's IR instrumenter has no UBSan mode. The packet retains commands,
+outputs, exit statuses, observer patches and per-run timing. Qualification
+uses the requested 2556019c resources. Public main advanced to 401c402e with
+a new bootstrap during the run. Integration and publication belong to the
+manager.

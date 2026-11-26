@@ -1,0 +1,51 @@
+import tower;
+import .library.testing;
+import .library.compiler_work;
+import .library.entities;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    trap("Unexpected constructor fault lifecycle", 0);
+}
+
+// Only the serial test allocator owns these failure tickets.
+fn constructor_fault_trial(units: usize): void {
+    var baseline = tower_test_buffer_count();
+    for (var failure: usize = 0; failure < 512; failure++) {
+        var budget: WorkBudget = default;
+        assert(work_budget_init(&budget, 4, 1048576, 1), "Initialize the constructor budget");
+        var work: CompilerWork* = null;
+        tower_test_buffer_fail_after(failure);
+        var result = compiler_work_create_result(units, 4, 1, 9, &budget, &work);
+        tower_test_buffer_fail_after(~convert(usize, 0));
+        if result == WorkBudgetError.None {
+            assert(work != null, "A successful constructor returns the owner");
+            compiler_work_close(work);
+        } else {
+            assert(result == WorkBudgetError.Memory && work == null,
+                "Allocation refusal reports Memory and leaves the owner null");
+        }
+        assert(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0,
+            "Closing or refusing a constructor returns every budget reservation");
+        assert(work_budget_dispose(&budget), "The constructor budget can be disposed");
+        assert(tower_test_buffer_count() == baseline, "No constructor allocation survives the trial");
+        if result == WorkBudgetError.None { return; }
+    }
+    assert(false, "The allocation sweep must reach a successful constructor");
+}
+
+fn constructor_fault_descriptor_growth(): void {
+    var probe = compiler_work_create(1, 1, 1, 9);
+    assert(probe != null, "Create a probe owner to read its actual page capacity");
+    var page = entity_owned_page(bits(u8*, probe.owner));
+    assert(page != null, "The probe owner belongs to a descriptor page");
+    var units = page.capacity;
+    compiler_work_close(probe);
+    constructor_fault_trial(units);
+}
