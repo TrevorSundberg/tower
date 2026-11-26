@@ -114248,3 +114248,23 @@ outputs, exit statuses, observer patches and per-run timing. Qualification
 uses the requested 2556019c resources. Public main advanced to 401c402e with
 a new bootstrap during the run. Integration and publication belong to the
 manager.
+
+### Original native syntax-node checks in the Tower test runner
+
+The original parser selector and the four declarations in
+`scaffolding/tests/syntax_nodes_test.tower` exercise the same layout, field,
+child and allocation-failure checks. The companion maps all 55 original
+assertion sites. On Linux x64, owner and direct selection each ran four
+cases at one and four compiler jobs. The original and migrated traces matched
+at all 417 observations. Reversing the expected template location failed the
+five focused CTests. Restoring the fixture passed those five and the parser
+aggregate. The raw commands, maps and results are in receipt
+`dc2aca45-6ebc-474b-87fd-ce85af8c7392`, qualified on `401c402e`.
+
+Host 4 ran four alternating warm-filesystem samples on a Ryzen 7 5800H,
+affinity CPUs 0–15 and quota 15.36 CPUs. The original and migrated native
+selectors both took a median 0.140 s wall and 0.140 s CPU per 100 launches
+including shell overhead. Peak RSS was 3,316 and 3,308 KiB respectively.
+Address/leak and thread instrumentation covered the fixture and parser-nodes
+object on the serial allocator. The rebased TSan run passed after 13 startup
+failures. UBSan coverage remains open.
