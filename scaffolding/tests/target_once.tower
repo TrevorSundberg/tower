@@ -1,36 +1,10 @@
 import tower;
-import utility_checks;
 import .backend.target_api;
 import .library.work_pool;
-import .host.memory;
 
-var InitializerLanes: usize = 4;
 var InitializerRepeats: usize = 64;
-var UnsupportedOverlap: i32 = 77;
-var StandardInput: i32 = 0;
-var StandardOutput: i32 = 1;
-var InitializerEntered: u8 = 17;
-var InitializerRelease: u8 = 23;
-var InitializerPublished: u8 = 29;
-
-extern fn pipe(descriptors: i32*): i32;
-extern fn dup(descriptor: i32): i32;
-extern fn dup2(source: i32, destination: i32): i32;
-extern fn close(descriptor: i32): i32;
-extern fn read(descriptor: i32, bytes: u8*, count: usize): i64;
-extern fn write(descriptor: i32, bytes: u8*, count: usize): i64;
 
 struct TargetOnceJob { entered: void*; begin: void*; completed: bool; }
-
-// The fixture owns redirected stdin/stdout pipes. They let the no-argument
-// platform callback report and block without relying on uninitialized globals.
-export fn backend_register_targets(): void {
-    var marker = InitializerEntered;
-    utility_check(write(StandardOutput, &marker, 1) == 1, "Initializer entry");
-    utility_check(read(StandardInput, &marker, 1) == 1 && marker == InitializerRelease, "Initializer release");
-    marker = InitializerPublished;
-    utility_check(write(StandardOutput, &marker, 1) == 1, "Initializer publication");
-}
 
 export fn work_kernel_execute(payload: void*): void {
     var job = bits(TargetOnceJob*, payload);
@@ -38,56 +12,4 @@ export fn work_kernel_execute(payload: void*): void {
     work_signal_wait(job.begin);
     for(var repeat: usize = 0; repeat < InitializerRepeats; repeat++) { backend_initialize_targets(); }
     job.completed = true;
-}
-
-export fn main(): i32 {
-    if work_thread_capacity() < 2 { return UnsupportedOverlap; }
-    var pool: WorkPool = default;
-    utility_check(work_pool_open(&pool, InitializerLanes), "Target initializer pool");
-    defer work_pool_close(&pool);
-    utility_check(pool.threaded, "Target initializer needs actual threads");
-    var entered = work_signal_open();
-    var begin = work_signal_open();
-    utility_check(entered != null && begin != null, "Target initializer synchronization");
-    var notices: i32[2];
-    var release: i32[2];
-    var saved_input = dup(StandardInput);
-    var saved_output = dup(StandardOutput);
-    utility_check(saved_input >= 0 && saved_output >= 0 && pipe(&notices[0]) == 0 && pipe(&release[0]) == 0,
-        "Target initializer channels");
-    utility_check(dup2(notices[1], StandardOutput) == StandardOutput && dup2(release[0], StandardInput) == StandardInput,
-        "Target initializer callback channels");
-    close(notices[1]);
-    close(release[0]);
-    var jobs = alloc(TargetOnceJob, InitializerLanes);
-    utility_check(jobs != null, "Target initializer fixture storage");
-    defer free(jobs);
-    for(var index: usize = 0; index < pool.count; index++) {
-        jobs[index] = { entered: entered, begin: begin, completed: false };
-        utility_check(work_pool_submit(&pool, bits(void*, &jobs[index])), "Target initializer admission");
-    }
-    for(var index: usize = 0; index < pool.count; index++) { work_signal_wait(entered); }
-    for(var index: usize = 0; index < pool.count; index++) { work_signal_post(begin); }
-    var marker: u8 = 0;
-    utility_check(read(notices[0], &marker, 1) == 1 && marker == InitializerEntered, "Initializer starts");
-    utility_check(work_pool_receive(&pool, false) == null, "No caller returns before registry publication");
-    marker = InitializerRelease;
-    utility_check(write(release[1], &marker, 1) == 1, "Publish registry");
-    for(var index: usize = 0; index < pool.count; index++) {
-        var job = bits(TargetOnceJob*, work_pool_receive(&pool, true));
-        utility_check(job != null && job.completed, "Every initializer caller completes");
-    }
-    utility_check(dup2(saved_input, StandardInput) == StandardInput && dup2(saved_output, StandardOutput) == StandardOutput,
-        "Restore fixture channels");
-    close(saved_input);
-    close(saved_output);
-    close(release[1]);
-    utility_check(read(notices[0], &marker, 1) == 1 && marker == InitializerPublished,
-        "Registry initializer completed");
-    utility_check(read(notices[0], &marker, 1) == 0, "Registry initialized exactly once across concurrent and repeated calls");
-    close(notices[0]);
-    work_signal_close(entered);
-    work_signal_close(begin);
-    puts("Target registry: concurrent initialization, publication and repeated callers pass.");
-    return 0;
 }

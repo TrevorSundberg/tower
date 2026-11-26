@@ -118630,3 +118630,21 @@ the instrumentation. These runs cover the single-owner fault allocator.
 The repository instrumenter supports address and thread passes. Standalone
 undefined-behavior instrumentation and parallel formatter execution have no
 coverage here.
+
+### Native target registry and file identity fixtures at aeb497f5
+
+Host 6, assignment `9657ebef-10dc-44c2-b6be-75314c7e35ef`. On the public
+parent the two focused CTests pass. Both owner selections fail linking two
+definitions of main and both direct companions are absent. The Linux registry
+entry links the pthread-once adapter, bound zero-initialized control, pthread
+transport and dispatch object. The file fixture creates a fresh mkstemp file,
+a hard link, a symlink and an absent sibling. Its opt-in measure argument
+reports the observed hard-link admission even if the ordinary mode would fail.
+Both fixtures use the work guest's libc allocator.
+
+The new standalone mains and native selections call the same companion trials.
+The registry guest keeps the original process-local control word and exported
+callback. The file trial retains the timed 10,000 rounds and five output lines.
+The selected guest uses the existing native result protocol with the standalone
+guest allocator bindings. Initial discovery found two bytes tests besides the
+file trial, and five work-budget tests besides the registry trial.
