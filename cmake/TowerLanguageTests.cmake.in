@@ -1,0 +1,20 @@
+# Both registrations execute the public driver with their declared host inputs.
+function(register_language_tests name owner incomplete)
+  foreach(jobs IN ITEMS 1 4)
+    set(test "tower-selected-${name}-jobs-${jobs}")
+    add_test("${test}" "@scc_bin@/towerc" --test "@scc_library@/${owner}.tower"
+      --jobs "${jobs}" --test-details ${ARGN})
+    set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused"
+      FAIL_REGULAR_EXPRESSION "0 tests selected for;${incomplete}")
+  endforeach()
+endfunction()
+
+set(scc_suffix_args)
+if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
+  list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
+endif()
+register_language_tests(graph-components graph_components "1 test passed for"
+  ${scc_suffix_args} --test-native-runtime "@scc_objects@/guest-native-test.o"
+  --link "@scc_objects@/runtime-instrumented.o" --link "@scc_objects@/tower-compiler-bytes.o"
+  --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(sha256 sha256 "1 test passed for;[2-6] tests passed for")

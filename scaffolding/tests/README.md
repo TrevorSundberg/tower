@@ -1850,7 +1850,7 @@ suite and run its registered checks at one and four compiler jobs. Set `B` to
 the native build directory.
 
 ```sh
-cmake --build "$B" --target tower-scc-suite
+cmake --build "$B" --target tower-language-tests
 ctest --test-dir "$B" -R '^tower-selected-graph-components-jobs-' -V
 ```
 
@@ -1872,7 +1872,13 @@ fails on the singleton at `graph_components_wrong.tower:7:5` and returns
 nonzero. Direct selection of the corresponding companion uses the same
 providers shown by `ctest -V`.
 
-The private installation adds two adjacent fixtures and their corpus-count module
+The same installation registers `tower-selected-sha256-jobs-1` and
+`tower-selected-sha256-jobs-4` through the portable interpreter. Its SHA-256
+companion and ordinary-named `library/test_data.tower` are private test inputs.
+`tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
+and the SCC registration names remain supported.
+
+For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability
 and utility helpers under `share/tower/tests`, and five native link inputs
 under `providers`. The normal native and browser compilers take their language
