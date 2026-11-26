@@ -117740,3 +117740,96 @@ grew from 8,388,608 to 28,311,552 bytes in the first case and held that size
 through the next two. Node retained 3/2/2 request handles and 8/5/5 value
 handles through the respective cases and dropped the tables on exit. These
 measurements cover the tests. The manager owns publication and hosted checks.
+
+### Shared formatter assertions and the optional repository list
+
+Host 4 worked from public `a7ce48f546aceda7b0a48897488cf3b19b1ab08e`
+for assignment `818acca7-fd36-4d79-82eb-7b396d00c234`. The shared
+checkout contained an unpublished commit. A separate local main at the
+assigned parent preserved that work. The supplied rename applied with
+`git apply`. The fixture companion contains helpers and zero test
+declarations. The 17 selected declarations, legacy suite and repository
+sweep still call the same formatter predicates.
+
+On the parent, the native standalone and parser aggregate passed. Direct
+and owner selection reported 17 and 22 passes at each of one and four
+compiler jobs. Changing the initial `i` in `prefix.expected` to `I` or
+the first source offset in `prefix.spans` from 0 to 1 independently
+failed all six routes. Restoring the files recovered all six passes.
+The full opt-in CTest stopped at the canonical-byte check for
+`backend/bindings.tower`, the first of 1,962 CMake-listed inputs.
+
+The legacy list entry delegates to the same traversal and predicates as
+the one declaration in `format_repository_test.tower`. It still configures
+relative imports per input, chooses a parser from the filename, formats
+one file at a time and disposes both results inside that iteration. The
+CTest command, manifest generation and exclusions are unchanged. The
+selected case takes the list through `TOWER_FORMAT_FILE_LIST` and uses
+the serial parser services. An early version used the legacy abort reporter
+on both routes. It printed the failed condition, then the selected driver
+reported an invalid guest completion. Passing the reporter as a typed
+callback preserves the legacy diagnostic and gives the selected case a
+source-located assertion. A missing list fails explicitly.
+
+The moved 8,722-byte helper has SHA-256
+`ae1d8c3298a782f7cc1d02a1f08b45f49485e4cbc472630e274c7673330fad2b`
+in both locations. Standalone selection with an unmatched companion suffix
+reported zero tests for it. The shared golden directory contains 15 Tower
+inputs, 17 expected text files and 11 maps containing 168 ordered triples.
+The unchanged constructor and cleanup cases include eight constructor rows
+and two sweeps of 32 allocation cutoffs. All 17 direct IDs and all 22 owner
+IDs matched the parent at jobs 1 and 4. The standalone and aggregate
+outputs matched too. Before and after migration, both one-byte controls
+failed each of those six routes at the intended text or span check. SHA-256
+verification after restoration covered the whole golden directory.
+
+The final CMake manifest contains 1,963 entries. The only path changes are
+the supplied rename and the new sweep companion. The original and migrated
+standalone hosts both stopped on the first file with byte-identical stdout
+and stderr, exit 134. Both CTests exited 8. Selected jobs 1 and 4 exited 1
+on the same file and condition. Independent source emission inserted four
+blank lines between LLVM externs in `backend/bindings.tower` (8,922 to
+8,926 bytes). The full list is red. Files after that first check are
+unverified by that execution. The three formatter modules and one genuine
+invalid file passed on the host and as one directly selected declaration at
+both widths. A separate Foundation list passed with all four invalid files.
+Bedrock as the first entry separately reproduced its own canonical-byte
+failure on both revisions. A valid program placed under `syntax_invalid/`
+failed the invalid-file predicate. Omitting all invalid entries failed the
+coverage predicate.
+
+Host 4 used an AMD Ryzen 7 5800H, 8 cores / 16 logical CPUs, affinity 0–15,
+CPU quota 1536000/100000 (15.36 CPUs) and memory limit 64,061,702,144 bytes.
+Native Release used Clang/LLVM 19, Ninja -j6 and one job per bootstrap
+invocation. The published compiler hash was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Three warm filesystem pairs ran one process at a time under the host
+timing lock, reversing arm order for the middle pair. The legacy and
+selected runs used the same frozen base grammar and golden files. The
+four-file comparison used the same absolute file list on both arms.
+GNU time measured the entire invocation, including guest compilation
+and linking for selected tests.
+
+| Route | Median wall s, base / final | Median user + system s | Maximum peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Standalone | 0.15 / 0.15 | 0.14 / 0.14 | 67,944 / 68,092 |
+| Parser aggregate | 1.43 / 1.43 | 1.43 / 1.43 | 50,400 / 50,532 |
+| Standalone with four files | 2.81 / 2.84 | 2.81 / 2.84 | 124,684 / 123,792 |
+| Direct jobs 1 | 1.25 / 1.26 | 1.24 / 1.25 | 127,416 / 126,792 |
+| Direct jobs 4 | 1.36 / 1.36 | 1.45 / 1.46 | 135,640 / 136,164 |
+| Owner jobs 1 | 1.40 / 1.40 | 1.39 / 1.40 | 138,700 / 138,608 |
+| Owner jobs 4 | 1.50 / 1.48 | 1.60 / 1.58 | 148,312 / 149,028 |
+
+The unchanged WASI entry points passed on both arms using SDK 34, a 4 MiB
+stack and Node 24.22.3. Their stdout and stderr matched, each detected
+the two independent golden changes, and restoration recovered both routes.
+The native instrumented standalone exercised the 17 cases plus the focused
+four-file list. ASan with leak detection passed. TSan passed on the third
+final launch after two runtime startup failures at the denied Linux
+personality call. The link maps identify `format-instrumented.o` and
+`tower_work_serial.o`. The TSan optimizer inlined the list loop into main.
+Its original instrumented IR, linked main and per-source routine show
+the instrumentation. These runs cover the single-owner fault allocator.
+The repository instrumenter supports address and thread passes. Standalone
+undefined-behavior instrumentation and parallel formatter execution have no
+coverage here.
