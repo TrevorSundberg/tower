@@ -60,9 +60,10 @@ const checks = await openTower({imports: {
   struct_empty_output: () => observations.source.output === '',
   struct_live_nodes: () => tower.exports.tw_live_nodes(),
   struct_compile_execute_inspect_release(context, path) {
-    withSource(guestString(context, path), handle => {
-      tower.execute(handle);
+    return withSource(guestString(context, path), handle => {
+      observations.source = tower.execute(handle);
       tower.foundation(handle);
+      return tower.exports.tw_live_nodes();
     });
   },
 }});

@@ -108112,3 +108112,86 @@ older parser integration fixture and live syntax fixture. The browser
 `tw_self_test` entry calls both, as do dedicated test runners. Follow-up
 `caab3b2a` is tracing their native linkage separately. This review changed
 documentation only and made no runtime performance claim.
+### Cold struct disposal on the retained portable reactor
+
+Host 1 reproduced the standalone `struct/type nodes` failure on private
+`05af2394`. The whole struct module passed 12/12. Both used the assets from
+Pages `890bbf7f`, with portable compiler source `863ac216` and LLVM source
+`0823b028`. Their deployment hashes and the preceding evidence packet matched.
+The initial comparison spanned two stages of the same compiler world.
+
+| Idle state in a fresh process | Live nodes | Components | Import snapshots | Populated parser version slots |
+| --- | ---: | ---: | ---: | ---: |
+| Configured host | 6,503 | 7,367 | 2 | 0 |
+| After an import-only Tower entry | 12,706 | 14,283 | 4 | 2 |
+| After a separate import-only Foundation entry | 13,374 | 14,950 | 4 | 3 |
+
+The two new import snapshots are Foundation and Tower. The module environment
+owns their cloned module graphs and the returned compilation parser. Importing
+both languages in one entry left two populated version slots. A separate
+Foundation entry exercised the third grammar. The parser kept the same address
+and all four snapshot identities across that transition. Returning to the
+Tower grammar left the Foundation version with one reference in the parser's
+version cache. A diagnostic run took an extra reference to that version,
+retired the environment's caches, then released the extra reference. This
+last release freed exactly 668 nodes (6,051 to 5,383). Cache retirement on a
+fresh configured host, after just the Tower import and after the complete
+workload all reached 5,383 nodes and 6,139 components. Two rebuild/reset cycles
+after retiring the initial snapshots alternated exactly between 16,214 and
+5,383 nodes. Resets occur only in the evidence probe.
+
+The IDE owns a separate execution-handle table on the world's Foundation
+component type. With both grammars initialized, the milestone's handle held a
+program root with one reference and 76 children. A second rejected handle
+raised the handle count to two. Destroying it returned the count to one with
+the first root still live. In another diagnostic step the observer retained
+both that root and a cached module entity. Retiring the environment released
+its cache reference, and the held milestone still printed `42\n22\n7\n`.
+Taking and destroying its handle removed the table entry and left the
+observer's single reference to the root. Both final entity releases returned
+zero. The probes used the real exports and field offsets emitted from the
+portable reactor's source for wasm32. No native pointer layout was assumed.
+
+The Tower assertion now compiles the two import-only entries before measuring
+idle. The first struct program and both rejected programs remain inside the
+measured loop. Each of the 60 checks requires the expected execution status,
+a strictly higher count during reflection on the live handle, and exact idle
+equality after its destruction. The standalone idle was 13,374 and the
+whole-module idle was 14,700. Suppressing the first actual destruction for each
+input in separate processes left 14,206 (milestone), 13,920 (recursive field)
+or 13,919 (missing field). Each selector exited 1 at `release.tower:13:5`.
+The observer executed and inspected the retained handle, destroyed it, and
+reran the full 60-cycle assertion on the same instance successfully. Only
+test fixtures, test transport and their documentation changed.
+
+On Debian 12, Node 24.22.3, dual Xeon Gold 6244, affinity 0–31, CPU quota
+15.36 and memory limit 136,709,144,576 bytes, the paired runs used three fresh
+processes per arm with a warm filesystem cache and one active timed process.
+Median wall seconds / process CPU seconds / peak RSS KiB were
+2.15 / 3.60 / 235,132 before and 1.96 / 3.52 / 264,844 after on the cold selector.
+For the full module the medians were 2.86 / 5.16 / 280,364 before and
+2.80 / 5.53 / 269,036 after. These figures include Node, both reactors and the
+assertion guest. Allocation and ownership conclusions use live store counts
+and reference transitions. Packet `6b6624a5-92e1-4beb-bde7-bc4732d4ece8`
+contains the commands, raw phases, outputs, negative runs and replay checks.
+
+### Browser suite on the four release compilers
+
+Vast 4 ran the unfiltered Node suite against the portable, shared, ordinary LLVM
+and cross-target reactors from compiler source `8bc867b6`. The test tree matched
+the non-documentation inputs at `1c24ef72`, before the isolated struct-disposal
+correction above. All 511 registration names, outcomes and skip reasons matched
+the previous run. There were 509 passes and two opt-in skips for backend ownership
+and IDE package ownership. The runtime and harness receipt is
+`b7bae64f-c727-431b-b7af-be85460c9729`.
+
+The cross compiler from the normal installation slot produced the same 12
+binaries across six targets. Both Wasm guests executed. Nine struct programs
+matched their external expected files through source, Foundation and LLVM/Wasm.
+All seven byte-buffer paths produced the expected 96 bytes. Substituting ordinary
+LLVM for the cross compiler failed the Linux x64 case. Independent one-byte
+changes to the struct and byte-buffer goldens each failed. All three passed
+again after restoring the inputs. The unfiltered run took 371.99 s wall,
+624.77 s user and 19.95 s system with a peak RSS of 2,737,480 KiB on four
+physical cores under a 15.36-CPU quota. This measures the test run, including
+its subprocesses' work, and supplies no compiler scaling comparison.
