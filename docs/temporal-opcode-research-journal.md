@@ -121355,3 +121355,17 @@ Pointer subtraction in the edit helper failed checking, so it uses byte
 indices. A proposed filename ending in the selector's reserved
 `_module_test.tower` suffix triggered owner discovery. Using
 `foundation_install_test.tower` selected the explicit body successfully.
+
+The last two registrations exercise guarded and direct Wasm inputs, native
+counts after every one of 30 alternating parses (11), and cached parsing
+against independent fresh sessions (12). The host serializes JSON records
+with sorted object keys and ordered arrays. The Tower caller supplies the
+four cache/identity field exclusions for fresh comparisons and excludes
+nothing across a rejected reset. All 32 eviction edits inspect the actual
+cache size. Decimal bytes 192 and 128 are the original malformed input (the
+published grammar rejected hexadecimal integer spelling in the first trial).
+The full portable and shared registrations passed. On each image the initial
+candidate reproduced all 1,382 ordered subject calls and outputs byte for
+byte, including session IDs. The retained-record test executed 44,610,793
+guest steps, close to the original trial ceiling of 448 slices. Raw TAP,
+trace data and images are retained for qualification.

@@ -1,0 +1,36 @@
+import session;
+import backend.text;
+
+extern fn abi_create_error(bytes: u8*, length: usize): u8*;
+extern fn abi_repeated_source_error(text: u8*, repetitions: usize): u8*;
+extern fn abi_create_bytes(bytes: u8*, length: usize): usize;
+
+test() {
+    var embedded: u8[3] = {97, 0, 98};
+    var error = abi_create_error(&embedded[0], sizeof(decltype(embedded)));
+    defer free(error);
+    assert(backend_contains(error, "UTF-8"), "Embedded NUL create diagnostic");
+    var limit: usize = 8 * 1024 * 1024;
+    var oversized = abi_repeated_source_error("a", limit + 1);
+    defer free(oversized);
+    assert(backend_contains(oversized, "8 MiB"), "Oversize create diagnostic");
+    var malformed: u8[2] = {192, 128};
+    assert(abi_create_bytes(&malformed[0], sizeof(decltype(malformed))) == 0, "Raw invalid UTF-8 handle");
+    grammar_step(0);
+    check_status("error");
+
+    var example = grammar_fixture("example");
+    defer free(example);
+    var base = grammar_fixture("base");
+    defer free(base);
+    var conflict = joined(base, "parse Statement |= Expression ';';", "");
+    defer free(conflict);
+    grammar_parse(example);
+    var nodes = live_nodes();
+    var allocations = live_allocations();
+    for (var i: usize = 0; i < 30; i++) {
+        grammar_parse(i % 2 == 1 ? example : conflict);
+        assert(live_nodes() == nodes, "Live nodes after subject disposal");
+        assert(live_allocations() == allocations, "Live allocations after subject disposal");
+    }
+}

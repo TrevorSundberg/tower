@@ -113,3 +113,7 @@ fn replace_spelling(source: u8*, before: u8*, after: u8*, all: bool): u8* {
     assert(backend_text(&text, source + start));
     return text.data;
 }
+
+extern fn live_nodes(): usize;
+extern fn live_allocations(): usize;
+extern fn abi_reset_error(handle: usize, bytes: u8*, length: usize): u8*;
