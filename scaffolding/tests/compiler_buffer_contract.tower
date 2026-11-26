@@ -1,6 +1,10 @@
 import tower;
 import compiler_buffer_contract_test;
 
+// The frontend owner also imports these two queries from this module.
+extern fn compiler_buffer_allocation_size(size: usize): usize;
+extern fn compiler_buffer_alignment(): usize;
+
 // The frontend's existing native harness consumes this Boolean ABI.
 export fn compiler_buffer_contract_tests(): bool {
     return buffer_size_contract() && buffer_payload_alignment_contract() && buffer_record_contract();
