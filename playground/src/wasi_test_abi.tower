@@ -1,0 +1,92 @@
+import library.test_fixtures;
+
+// Offsets are WASI addresses in the subject's WebAssembly.Memory.
+// Tower pointers below refer to the assertion guest's separate memory.
+extern fn path_open(dir: u32, lookup: u32, path: u32, length: u32, flags: u32,
+    rights: u64, inherit: u64, fdflags: u32, result: u32): u32;
+extern fn fd_write(fd: u32, iov: u32, count: u32, result: u32): u32;
+extern fn fd_pread(fd: u32, iov: u32, count: u32, offset: u64, result: u32): u32;
+extern fn fd_seek(fd: u32, offset: i64, whence: u32, result: u32): u32;
+extern fn fd_filestat_set_size(fd: u32, size: u64): u32;
+extern fn fd_filestat_get(fd: u32, result: u32): u32;
+extern fn fd_close(fd: u32): u32;
+extern fn fd_prestat_get(fd: u32, result: u32): u32;
+extern fn fd_prestat_dir_name(fd: u32, result: u32, size: u32): u32;
+extern fn path_create_directory(dir: u32, path: u32, length: u32): u32;
+extern fn path_rename(dir: u32, path: u32, length: u32, to_dir: u32, dest: u32, dest_length: u32): u32;
+extern fn path_filestat_get(dir: u32, flags: u32, path: u32, length: u32, result: u32): u32;
+extern fn fd_fdstat_get(fd: u32, result: u32): u32;
+extern fn fd_fdstat_set_flags(fd: u32, flags: u32): u32;
+extern fn fd_readdir(fd: u32, buffer: u32, size: u32, cookie: u64, result: u32): u32;
+extern fn path_remove_directory(dir: u32, path: u32, length: u32): u32;
+extern fn path_unlink_file(dir: u32, path: u32, length: u32): u32;
+extern fn path_link(dir: u32, flags: u32, path: u32, length: u32, to_dir: u32, dest: u32, dest_length: u32): u32;
+extern fn clock_time_get(id: u32, precision: u64, result: u32): u32;
+extern fn random_get(buffer: u32, size: u32): u32;
+
+extern fn grow_memory(pages: u32): void;
+extern fn put_text(offset: u32, text: u8*): u32;
+extern fn put_u32(offset: u32, value: u32): void;
+extern fn get_u8(offset: u32): u8;
+extern fn get_u16(offset: u32): u16;
+extern fn get_u32(offset: u32): u32;
+extern fn get_u64(offset: u32): u64;
+extern fn read_bytes(offset: u32, length: u32, decode: bool, size: usize*): u8*;
+extern fn file_bytes(path: u8*, decode: bool, size: usize*): u8*;
+extern fn put_stream_fixture(offset: u32): void;
+extern fn log_count(): usize;
+extern fn log_bytes(index: usize, size: usize*): u8*;
+extern fn call_proc_exit(code: u32): void;
+extern fn caught_wasi_exit(): bool;
+extern fn caught_exit_code(): f64;
+
+var RootDirectory: u32 = 3;
+var Success: u32 = 0;
+var AlreadyExists: u32 = 20;
+var BadDescriptor: u32 = 8;
+var MemoryFault: u32 = 21;
+var InvalidArgument: u32 = 28;
+var DirectoryNotEmpty: u32 = 55;
+var Unsupported: u32 = 58;
+var NotCapable: u32 = 76;
+
+fn open_path(name: u8*, lookup: u32, flags: u32, fdflags: u32): u32 {
+    var length = put_text(100, name);
+    return path_open(RootDirectory, lookup, 100, length, flags, 0, 0, fdflags, 16);
+}
+
+fn open_fd(name: u8*, flags: u32): u32 {
+    assert(open_path(name, 0, flags, 0) == Success, "Open the requested descriptor");
+    return get_u32(16);
+}
+
+fn set_iovec(offset: u32, length: u32): void {
+    put_u32(0, offset);
+    put_u32(4, length);
+}
+
+fn write_text(fd: u32, text: u8*): u32 {
+    set_iovec(100, put_text(100, text));
+    return fd_write(fd, 0, 1, 16);
+}
+
+fn memory_bytes(offset: u32, length: u32, decode: bool): FixtureBytes {
+    var value: FixtureBytes = default;
+    value.data = read_bytes(offset, length, decode, &value.length);
+    return value;
+}
+
+fn file_contents(path: u8*, decode: bool): FixtureBytes {
+    var value: FixtureBytes = default;
+    value.data = file_bytes(path, decode, &value.length);
+    return value;
+}
+
+fn bytes_are(value: FixtureBytes, data: u8*, length: usize): bool {
+    var wanted: FixtureBytes = {data: data, length: length};
+    return fixture_equal(value, wanted);
+}
+
+fn text_is(value: FixtureBytes, text: u8*): bool {
+    return bytes_are(value, text, fixture_text_length(text));
+}

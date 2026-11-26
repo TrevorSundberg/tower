@@ -121117,3 +121117,12 @@ completed the correct mode on its second launch. All 64 final wrong-mode
 launches exited 139 before guest execution with the same denied personality
 request. The earlier instrumented link completed that mode on attempt 4.
 The final wrong-mode TSan result is therefore limited to startup evidence.
+### WASI Preview 1 import-object registrations on host 3
+
+At published main `28c32aa3`, the four Node registrations in
+`playground/tests/wasi-host.test.mjs` passed against the shipped ES module.
+Each built a fresh two-page memory and a fresh virtual filesystem. The migration
+keeps those as separate subjects from the assertion compiler. Tower selects
+one declaration per original registration and drives the import calls in order.
+The host boundary supplies the actual import object, memory views, file data,
+stream logs and caught process-exit exception.

@@ -1,0 +1,44 @@
+import wasi_test_abi;
+
+test() {
+    assert(fd_prestat_get(RootDirectory, 0) == Success, "Read the preopen stat");
+    assert(get_u32(4) == 1, "Preopen name length");
+    assert(fd_prestat_dir_name(RootDirectory, 8, 1) == Success, "Read the preopen directory name");
+    assert(get_u8(8) == 46, "Preopen name is a dot");
+
+    assert(path_create_directory(RootDirectory, 100, put_text(100, "work")) == Success, "Create work directory");
+    var fd = open_fd("work/input", 1);
+    write_text(fd, "data");
+    var source_length = put_text(100, "work/input");
+    var dest_length = put_text(200, "work/output");
+    assert(path_rename(RootDirectory, 100, source_length, RootDirectory, 200, dest_length) == Success, "Rename the file");
+    assert(path_filestat_get(RootDirectory, 0, 100, put_text(100, "work/output"), 300) == Success, "Stat the renamed path");
+    assert(get_u8(316) == 4, "Directory entry is a regular file");
+    assert(get_u64(332) == 4, "Renamed file size");
+
+    var dir = open_fd("work", 2);
+    assert(open_path("work", 1, 2, 4) == Success, "wasi-libc opendir uses NONBLOCK");
+    var nonblocking = get_u32(16);
+    assert(fd_fdstat_get(nonblocking, 300) == Success, "Read descriptor flags");
+    assert(get_u16(302) == 4, "NONBLOCK survives opening");
+    assert(fd_fdstat_set_flags(nonblocking, 5) == Success, "Set APPEND and NONBLOCK");
+    assert(fd_fdstat_set_flags(nonblocking, 2) == Unsupported, "Unsupported synchronization flag");
+    assert(open_path("work", 0, 2, 2) == Unsupported, "Reject synchronization flag at open");
+    assert(fd_close(nonblocking) == Success, "Close the nonblocking descriptor");
+
+    assert(fd_readdir(dir, 300, 100, 0, 16) == Success, "Enumerate work");
+    assert(get_u64(300) == 1, "Next directory cookie");
+    assert(get_u32(316) == 6, "Directory entry name length");
+    var name = memory_bytes(324, 6, true);
+    defer free(name.data);
+    assert(text_is(name, "output"), "Enumerate the renamed entry");
+    assert(path_remove_directory(RootDirectory, 100, put_text(100, "work")) == DirectoryNotEmpty, "Reject removal of a nonempty directory");
+    assert(path_unlink_file(RootDirectory, 100, put_text(100, "work/output")) == Success, "Unlink the renamed entry");
+    assert(fd_filestat_get(fd, 300) == Success, "Unlinked open file stays alive");
+    assert(path_remove_directory(RootDirectory, 100, put_text(100, "work")) == Success, "Remove the empty directory");
+
+    var escapes: u8*[3] = {"../escape", "/absolute", "work/../../escape"};
+    for (var i: usize = 0; i < sizeof(decltype(escapes)) / sizeof(u8*); i++) {
+        assert(open_path(escapes[i], 0, 1, 0) == NotCapable, "Reject paths outside the preopen");
+    }
+}
