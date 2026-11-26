@@ -1,6 +1,6 @@
 import tower;
 import syntax_lexer_test;
-import mt19937;
+import mt19937_reference_test;
 import utility_checks;
 
 export fn syntax_lexer_tests(): void {

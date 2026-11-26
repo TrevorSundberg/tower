@@ -1,5 +1,4 @@
 import tower;
-import utility_checks;
 
 // Reproduce the retired std::mt19937 fixtures exactly, including draw order.
 // This is test input generation, independent of the lexer/automaton services.
@@ -29,16 +28,4 @@ fn test_random(state: TestRandom*): u32 {
     value ^= (value << 15) & 4022730752;
     value ^= value >> 18;
     return value;
-}
-
-fn test_random_check(): void {
-    var state: TestRandom;
-    test_random_init(&state, 5489);
-    utility_check(test_random(&state) == 3499211612, "MT19937 first reference output");
-    utility_check(test_random(&state) == 581869302, "MT19937 second reference output");
-    utility_check(test_random(&state) == 3890346734, "MT19937 third reference output");
-    // Standard mt19937 validation value after 10,000 draws from its default seed.
-    var value: u32 = 0;
-    for (var index: usize = 3; index < 10000; ++index) { value = test_random(&state); }
-    utility_check(value == 4123659995, "MT19937 ten-thousandth reference output");
 }

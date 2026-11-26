@@ -6,7 +6,7 @@ import .library.work_budget;
 import .library.work_budget_types;
 import lexer_table_oracle;
 import mt19937;
-
+import mt19937_reference_test;
 extern fn tower_test_buffer_count(): usize;
 extern fn tower_test_buffer_fail_next(): void;
 extern fn tower_test_buffer_fail_after(count: usize): void;

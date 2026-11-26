@@ -5,7 +5,7 @@ import .compiler.format_types;
 import .compiler.syntax_types;
 import .compiler.lr_types;
 import .compiler.lr_api;
-
+import mt19937_reference_test;
 extern fn compiler_world_create(): void*;
 extern fn compiler_world_dispose(world: void*): bool;
 extern fn compiler_world_store(world: void*): void*;

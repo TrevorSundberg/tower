@@ -1,6 +1,6 @@
 import tower;
 import lexer_table_test;
-import mt19937;
+import mt19937_reference_test;
 import utility_checks;
 
 export fn lexer_table_tests(): void {
