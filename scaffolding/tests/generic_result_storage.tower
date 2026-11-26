@@ -95,100 +95,7 @@ fn generic_result_call(operation: GenericResultOperation, fixture: GenericCloneF
     return generic_instantiate_deferred_result(fixture.context, fixture.definition, fixture.definition, &argument, 1, error);
 }
 
-// Each trial owns its allocator injection and world. A successful first trial
-// derives the complete fault sweep from the operation's actual allocation count.
-fn generic_result_storage_trial(operation: GenericResultOperation, allowed: usize, pressure: bool): usize {
-    var buffers = tower_test_buffer_count();
-    var unlimited = ~convert(usize, 0);
-    var budget: WorkBudget = default;
-    var world: void* = null;
-    utility_check(work_budget_init(&budget, 1, GenericResultBudgetBytes, 1)
-        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None,
-        "Generic result fixture constructs its physically bounded world");
-    var fixture: GenericCloneFixture = default;
-    generic_clone_fixture_world(&fixture, 2, 2, world);
-    var argument = generic_clone_child(fixture.store, fixture.root, "Argument", null, 0);
-    if operation == GenericResultOperation.Instantiate || operation == GenericResultOperation.Deferred {
-        var result_type = generic_clone_child(fixture.store, fixture.definition, "type", "type", 0);
-        parser_match_create(result_type).rule = ~convert(usize, 0);
-        var statement = generic_clone_child(fixture.store, fixture.body, "Statement", null, 0);
-        var returned = generic_clone_child(fixture.store, statement, "CoreReturn", null, 0);
-        var value = generic_clone_child(fixture.store, returned, "T", "value", 0);
-        parser_match_create(value).rule = ~convert(usize, 0);
-        generic_register(fixture.context, fixture.definition);
-    }
-    if operation == GenericResultOperation.Register {
-        // A fresh registry has no template page; the definition and parser
-        // metadata are the same actual nodes used by the ordinary fixture.
-        fixture.context = generic_begin(fixture.root);
-    }
-    var nodes = entity_store_count(fixture.store);
-    var components = entity_store_component_count(fixture.store);
-    var children = entity_child_count(fixture.root);
-    var occupied: WorkReservation = default;
-    if pressure {
-        var snapshot: WorkBudgetSnapshot = default;
-        var frames = operation == GenericResultOperation.Begin || operation == GenericResultOperation.Register
-            ? 0 : compiler_buffer_allocation_size(CloneInitialFrames * sizeof(CloneFrame));
-        utility_check(work_budget_snapshot(&budget, &snapshot) && snapshot.bytes - snapshot.used_bytes >= frames
-            && work_budget_reserve_result(&budget, 0, 0, snapshot.bytes - snapshot.used_bytes - frames, &occupied)
-                == WorkBudgetError.None, "Generic result fixture occupies the exact remaining page allowance");
-    }
-    var calls = tower_test_buffer_allocations();
-    var error = WorkBudgetError.Invalid;
-    tower_test_buffer_fail_after(allowed);
-    var result = generic_result_call(operation, &fixture, argument, &error);
-    tower_test_buffer_fail_after(unlimited);
-    calls = tower_test_buffer_allocations() - calls;
-    var wanted = pressure ? WorkBudgetError.Capacity : allowed == unlimited ? WorkBudgetError.None : WorkBudgetError.Memory;
-    if error != wanted || (result != null) != (wanted == WorkBudgetError.None) {
-        puts("Generic result receipt: operation, allowed allocations, actual error, wanted error");
-        generic_clone_number(convert(usize, operation)); generic_clone_number(allowed);
-        generic_clone_number(convert(usize, error)); generic_clone_number(convert(usize, wanted));
-    }
-    utility_check(error == wanted && (result != null) == (wanted == WorkBudgetError.None),
-        "Generic operation preserves exact allocator or physical page denial");
-    if wanted != WorkBudgetError.None {
-        utility_check(entity_store_count(fixture.store) == nodes
-            && entity_store_component_count(fixture.store) == components
-            && entity_child_count(fixture.root) == children,
-            "Generic failure publishes no partial registry, template or specialization");
-        if occupied.active {
-            utility_check(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None,
-                "Release generic result page pressure");
-        }
-        generic_error_clear(fixture.context);
-        result = generic_result_call(operation, &fixture, argument, &error);
-        utility_check(result != null && error == WorkBudgetError.None,
-            "Generic result retries successfully after failure drains");
-    }
-    if operation == GenericResultOperation.Register {
-        utility_check(generic_parameter_count(fixture.context, fixture.definition) == 1
-            && generic_type_parameter(fixture.context, fixture.definition, 0),
-            "Typed registration preserves actual parameter identity");
-    }
-    if operation == GenericResultOperation.Instantiate || operation == GenericResultOperation.Deferred {
-        var deferred = operation == GenericResultOperation.Deferred;
-        utility_check(generic_body_pending(fixture.context, result) == deferred
-            && entity_child_count(generic_clone_fixture_body(result))
-                == (deferred ? 0 : entity_child_count(fixture.body)),
-            "Eager and deferred type constructors preserve their distinct body contracts");
-        var before = tower_test_buffer_allocations();
-        error = WorkBudgetError.Memory;
-        utility_check(generic_result_call(operation, &fixture, argument, &error) == result
-            && error == WorkBudgetError.None && tower_test_buffer_allocations() == before
-            && entity_child_count(fixture.root) == children + 1,
-            "A completed generic specialization reuses its exact identity without allocating");
-    }
-    generic_clone_fixture_close(&fixture);
-    var final: WorkBudgetSnapshot = default;
-    utility_check(work_budget_snapshot(&budget, &final) && final.live == 0 && final.used_bytes == 0
-        && final.used_lanes == 0 && work_budget_dispose(&budget) && tower_test_buffer_count() == buffers,
-        "Generic result trials release all physical storage and grants");
-    return calls;
-}
-
-fn generic_result_storage_tests(): void {
+fn generic_result_storage_tests(result_sweep: function(void)): void {
     var unlimited = ~convert(usize, 0);
     for(var tag = convert(u32, NodeAdmissionOperation.Source); tag < convert(u32, NodeAdmissionOperation.Count); tag++) {
         var operation = convert(NodeAdmissionOperation, tag);
@@ -217,14 +124,7 @@ fn generic_result_storage_tests(): void {
     for(var allowed: usize = 0; allowed < layout_calls; allowed++) {
         semantic_layout_storage_trial(allowed);
     }
-    for(var tag = convert(u32, GenericResultOperation.Begin); tag < convert(u32, GenericResultOperation.Count); tag++) {
-        var operation = convert(GenericResultOperation, tag);
-        var calls = generic_result_storage_trial(operation, unlimited, false);
-        for(var allowed: usize = 0; allowed < calls; allowed++) {
-            generic_result_storage_trial(operation, allowed, false);
-        }
-        generic_result_storage_trial(operation, unlimited, true);
-    }
+    result_sweep();
     generic_result_admission_tests();
     for(var width: u32 = 4; width <= 8; width *= 2) {
         semantic_known_admission_trial(width, KnownAdmissionOperation.Dispatch, 0, WorkBudgetError.Memory);
