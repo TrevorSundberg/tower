@@ -6,6 +6,7 @@ import .library.vector;
 import library.testing;
 import module_cache_api;
 import module_cache_cases.admission_test;
+import module_cache_cases.leases_test;
 
 fn module_test_parse(environment: ModuleEnvironment*, source: u8*, count: usize, succeeds: bool): bool {
     var module = frontend_module_root(source, environment);
@@ -291,6 +292,8 @@ fn module_session_tests(): usize {
     return result;
 }
 
+test() { module_cache_empty_seed_leases(); }
+test() { module_first_import_leases(); }
 test() { assert(module_resolution_checks() == 0, "Module resolution, edits and cache isolation"); }
 test() { assert(module_session_tests() == 0, "Module session reuse and retirement"); }
 test() { module_clone_budget_test(false); }

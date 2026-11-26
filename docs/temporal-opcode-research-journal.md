@@ -119282,3 +119282,18 @@ restored standalone produced the original 209 bytes. The reference observer
 recorded 134,217,728 bytes and 1,244 live grants at both clone denials, then
 zero bytes, live grants and lanes. At this boundary the remaining predicates
 in frontend_modules.tower are the two lease protocols, original lines 587–844.
+
+### Seed-clear and first-import reader leases
+
+The last two original frontend_modules.tower families occupy lines 587–844
+on the frozen revision. The selected bodies keep the idle-document witness
+through world clear, check exact revision and declaration identities, consume
+the old continuation and verify the surviving sibling root after release.
+The first-import reader keeps its pin through denied admission, eviction,
+alias redirection and a real source edit. The expected document reference
+count was temporarily changed from one to two. A separate control required
+two additional reader pins where exactly one was acquired. The original
+cache registration and selected path failed both modified expectations.
+Both selected cases and the restored standalone completed with the original
+teardown predicates. The in-memory companion selection check in the separate
+test_file_rule_checks file is the remaining entry in the executable.
