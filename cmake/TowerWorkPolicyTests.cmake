@@ -334,8 +334,12 @@ function(tower_lr_work_policy_test)
 
     foreach(suite IN ITEMS source_proof executable)
       string(REPLACE "_" "-" name "semantic-${suite}-admission")
+      set(entry "semantic_${suite}_admission_checks")
+      if(suite STREQUAL "source_proof")
+        set(entry "semantic_source_proof_admission_main")
+      endif()
       tower_runtime_object(${name}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_admission_checks.tower" "${triple}")
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower" "${triple}")
       set(admission_sources ${sources})
       set(admission_libraries ${libraries})
       set(modes healthy failed cancelled query edge finish)
@@ -356,6 +360,12 @@ function(tower_lr_work_policy_test)
         add_test(NAME tower-${name}-${mode} COMMAND tower-${name}-tests ${mode})
         set_tests_properties(tower-${name}-${mode} PROPERTIES TIMEOUT 60)
       endforeach()
+      if(suite STREQUAL "source_proof" AND TARGET tower-semantic-admission-services)
+        add_dependencies(tower-${name}-tests tower-semantic-admission-services tower-selected-test-count tower-guest-native-test)
+        tower_native_test_selections(${name} semantic_source_proof_admission_checks "21 tests" "6 tests"
+          --test-native-runtime "${admission_guest}" --link "$<TARGET_FILE:tower-semantic-admission-services>"
+          --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-semantic-admission-services>")
+      endif()
     endforeach()
 
     tower_runtime_object(semantic-pool-budget-checks

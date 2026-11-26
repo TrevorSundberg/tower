@@ -1,0 +1,198 @@
+import library.testing;
+import semantic_source_proof_admission_checks;
+import semantic_admission_result;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+
+fn source_proof_healthy(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    var graph = &context.queries;
+    var query = sem_source_binding_request(context, trial.subject);
+    sem_require(query != 0 && work_demand(graph, query));
+    var state = sem_source_bindings_pump(context);
+    while state == SemanticPumpResult.Progress { state = sem_source_bindings_pump(context); }
+    semantic_admission_check(state == SemanticPumpResult.Complete && work_task(graph, query).state == WorkState.Succeeded
+        && work_find(graph, context.program.root, convert(u32, SemanticQuery.SourceBindingProof), 0) == query,
+        "Healthy source proof publishes after its scan joins", result);
+    return query;
+}
+
+fn source_proof_check_denial(context: SemanticContext*, proof_matches: bool,
+        cause: WorkBudgetError, offset: usize, result: SemanticAdmissionResult*): void {
+    semantic_admission_check(proof_matches
+        && context.program.resource.error == cause && context.program.resource.offset == offset
+        && context.queries.running == 0 && context.workers.running == 0,
+        "Source proof denial retains exact owning receipt and publishes no ready proof", result);
+}
+
+fn source_proof_check_boundary(context: SemanticContext*, proof_created: bool, result: SemanticAdmissionResult*): void {
+    var graph = &context.queries;
+    var root = context.program.root;
+    var scan = work_find(graph, root, convert(u32, SemanticQuery.SourceBindings), 0);
+    var proof = work_find(graph, root, convert(u32, SemanticQuery.SourceBindingProof), 0);
+    semantic_admission_check(scan != 0 && work_task(graph, scan).state == WorkState.Cancelled
+        && (proof_created ? proof != 0 : proof == 0),
+        "Denial occurs after scan admission at the selected proof query or edge boundary", result);
+}
+
+fn source_proof_query_refused(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    var graph = &context.queries;
+    var root = context.program.root;
+    source_proof_warm_graph(context);
+    var argument: u64 = 1;
+    while graph.tasks.length + context.program.functions.length < graph.tasks.capacity {
+        sem_require(work_request(graph, root, convert(u32, SemanticQuery.BodyInputs), argument++) != 0);
+    }
+    sem_require(work_request(graph, root, convert(u32, SemanticQuery.BodyInputs), argument - 1) != 0);
+    source_proof_reserve_remaining(trial);
+    var query = sem_source_binding_request(context, trial.subject);
+    source_proof_check_denial(context, query == 0 && context.source_binding_proof == 0, WorkBudgetError.Capacity, 83, result);
+    source_proof_check_boundary(context, false, result);
+    return query;
+}
+
+fn source_proof_edge_refused(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    source_proof_warm_graph(context);
+    source_proof_reserve_remaining(trial);
+    var query = sem_source_binding_request(context, trial.subject);
+    source_proof_check_denial(context, query == 0 && context.source_binding_proof == 0, WorkBudgetError.Capacity, 83, result);
+    source_proof_check_boundary(context, true, result);
+    return query;
+}
+
+fn source_proof_cancelled(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    work_cancel(&context.queries);
+    var query = sem_source_binding_request(context, trial.subject);
+    source_proof_check_denial(context, query == 0 && context.source_binding_proof == 0, WorkBudgetError.None, 0, result);
+    return query;
+}
+
+fn source_proof_prior_failure(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    sem_resource_record(context.program, WorkBudgetError.Memory, 37);
+    var query = sem_source_binding_request(context, trial.subject);
+    source_proof_check_denial(context, query == 0 && context.source_binding_proof == 0, WorkBudgetError.Memory, 37, result);
+    return query;
+}
+
+fn source_proof_finish_refused(trial: SourceProofTrial*, result: SemanticAdmissionResult*): usize {
+    var context = &trial.context;
+    var graph = &context.queries;
+    var query = sem_source_binding_request(context, trial.subject);
+    sem_require(query != 0);
+    var consumers = graph.ready.capacity + 1;
+    for(var index: usize = 0; index < consumers; index++) {
+        var consumer = work_request(graph, trial.subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+        sem_require(consumer != 0 && work_depend(graph, consumer, query)
+            && work_seal(graph, consumer) && work_demand(graph, consumer));
+    }
+    var state = sem_source_bindings_pump(context);
+    sem_require(state == SemanticPumpResult.Progress && work_task(graph, query).state == WorkState.Ready);
+    source_proof_reserve_remaining(trial);
+    state = sem_source_bindings_pump(context);
+    semantic_admission_check(state == SemanticPumpResult.Failed && context.program.resource.error == WorkBudgetError.Capacity
+        && context.program.resource.offset == 83 && graph.cancelled && context.workers.running == 0,
+        "Joined source proof retains capacity failure while waking consumers", result);
+    for(var index: usize = 0; index < consumers; index++) {
+        var consumer = work_find(graph, trial.subject, convert(u32, SemanticQuery.BodyInputs), convert(u64, index));
+        semantic_admission_check(consumer != 0 && work_task(graph, consumer).state == WorkState.Cancelled,
+            "Partial ready publication never executes or succeeds a dependent consumer", result);
+    }
+    // Publication failed after admission. Keep the original proof identity and
+    // expect all three requests after pressure release to return zero.
+    source_proof_check_denial(context, context.source_binding_proof == query, WorkBudgetError.Capacity, 83, result);
+    return 0;
+}
+
+var SourceProofCase: type = function(usize, SourceProofTrial*, SemanticAdmissionResult*);
+
+fn source_proof_trial(width: u32, workers: usize, exercise: SourceProofCase, result: SemanticAdmissionResult*): void {
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var store = compiler_world_store(world);
+    var root = entity_create(store);
+    sem_require(root != null);
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    sem_get(root).start = 83;
+    var trial: SourceProofTrial = default;
+    var context = &trial.context;
+    sem_context_init(context, &program);
+    context.generics = generic_begin(root);
+    context.source = "";
+    trial.subject = sem_create(root);
+    sem_attach(trial.subject, KDeclare).start = 7;
+    sem_require(work_budget_init(&trial.budget, workers, SourceProofAdmissionBytes, SourceProofAdmissionRevision));
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &trial.budget));
+    var query = exercise(&trial, result);
+    if trial.pressure.active { sem_require(work_budget_release_result(&trial.budget, &trial.pressure) == WorkBudgetError.None); }
+    var nodes = entity_store_count(store);
+    var components = entity_store_component_count(store);
+    var tasks = context.queries.tasks.length;
+    var retained = program.resource;
+    for(var repeat: usize = 0; repeat < 3; repeat++) {
+        semantic_admission_check(sem_source_binding_request(context, trial.subject) == query
+            && entity_store_count(store) == nodes && entity_store_component_count(store) == components
+            && context.queries.tasks.length == tasks && program.resource.error == retained.error
+            && program.resource.offset == retained.offset,
+            "Repeated source proof request does not replay jobs or replace a terminal receipt", result);
+    }
+    sem_context_dispose(context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    semantic_admission_check(compiler_world_dispose(world), "Source proof releases its world", result);
+    var released: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&trial.budget, &released));
+    semantic_admission_check(released.used_bytes == 0 && released.used_lanes == 0 && released.live == 0
+        && work_budget_dispose(&trial.budget), "Source proof releases graph reservations", result);
+}
+
+fn source_proof_cases(exercise: SourceProofCase): SemanticAdmissionResult {
+    var result: SemanticAdmissionResult = default;
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        for(var workers: usize = 1; workers <= 4; workers += 3) {
+            source_proof_trial(width, workers, exercise, &result);
+        }
+    }
+    return result;
+}
+
+test() {
+    var result = source_proof_cases(source_proof_healthy);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = source_proof_cases(source_proof_query_refused);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = source_proof_cases(source_proof_edge_refused);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = source_proof_cases(source_proof_cancelled);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = source_proof_cases(source_proof_prior_failure);
+    assert(result.failures == 0, result.first_failure);
+}
+
+test() {
+    var result = source_proof_cases(source_proof_finish_refused);
+    assert(result.failures == 0, result.first_failure);
+}

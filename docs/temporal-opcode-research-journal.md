@@ -120151,3 +120151,37 @@ are preserved. Build-cache reuse was limited to the frozen project, Release
 and individual instrumentation profiles. Both source patches apply separately
 to the public base. The handoff packet carries the Git bundle and raw receipts;
 deployment and hosted checks are reserved for manager acceptance.
+
+### Native source-proof admission through selected tests
+
+The six original CLI selectors and the declarations in
+`scaffolding/tests/semantic_source_proof_admission_checks_test.tower` share
+the same trial functions. Each trial owns its semantic world and bounded
+graph. It observes the scan, proof ticket, waiting consumers and terminal
+receipts, then disposes its leases and checks the returned budget. The finish
+case checks the identity of the already admitted ticket after refusal.
+
+Host 6 froze public `d3fe7c0b`. Receipt `f95d728e-b422-4914-9962-65d852682a47`
+contains its Git bundle, command lines, mode counts, timing samples and
+original and candidate observation streams. At compiler jobs 1 and 4 the
+direct companion ran six declarations and its owner ran 21. The six modes
+made 192 original comparisons over 24 trials at guest pointer widths 4 and 8
+and execution widths 1 and 4. Joining the six original streams, in mode
+order, reproduced every byte of the 18,844-byte selected stream on both
+routes. Changing the expected finish offset from 83 to 84 rejected the
+original CLI, the migrated CLI and both selections at both job counts.
+Restoration passed all ten registrations. ASan and TSan each passed the six
+standalone modes. These instrumented runs exercised the native standalone
+executables.
+
+The Linux x64 host admitted CPUs 0–11 with a quota of 11.52 CPUs. The
+fixture-object warm median at one compiler job rose from 1.11 to 1.29 s
+wall and from 1.11 to 1.28 s CPU. Maximum process RSS across three samples
+rose from 132,136 to 132,488 KiB. At four jobs the corresponding times were
+1.16 to 1.44 s wall and 1.28 to 1.62 s CPU, with maximum RSS rising from
+137,648 to 142,880 KiB. Expected fixture output and object bytes were
+checked in the worker's measurement.
+
+Integration preserved the preceding registered commands. The manager's
+configure-only CTest inventories grew from 499 to 511 in the combined
+native configuration and from 73 to 82 in the separate parser configuration.
