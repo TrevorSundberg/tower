@@ -1,0 +1,6 @@
+import tower;
+import work_ready as ready;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    return ready.main(argc, argv);
+}

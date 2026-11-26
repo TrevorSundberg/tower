@@ -115439,3 +115439,108 @@ Assignment a50a7d88-e23f-418d-8afa-e92eb6d80c80 contains the source bundle,
 exact commands, assertion census, function hashes, expected and observed
 traces, wrong/restored diagnostics, link maps, sanitizer launches and timings.
 The manager owns publication.
+
+### Native ready-index selection on 91415a8e
+
+Host 3 reproduced the supplied two-file proposal as tree
+`63b8270b48e8a8996d21cee1598c70e08d3cdc05`. The published bootstrap
+rejected `expected` as the borrowed loop binding. Renaming it to
+`expected_task` exposed a duplicate ELF `main` when the selected-test guest
+linked either selector. A private main allowed both selectors to run but left
+the original standalone target without an entry. The first standalone repair bound
+`work_ready_main` to `main` with the existing runtime object rule. Both
+paths compile the same adjacent five declarations and their original graph
+operations. The native guest links the production allocation adapter.
+Detailed discovery counted five ready, five budget and eight graph tests
+for the owner and five ready tests for the direct companion.
+
+This binding required optimized LLVM emission, symbol rewriting and another
+Clang invocation for every changed standalone. The first two one-job builds
+used 1.04 and 1.06 CPU seconds with the binding, against 0.68 and 0.68 seconds
+for the original. The second arrangement keeps the ordinary `main(argc, argv)`
+in `work_ready.tower` and forwards the native ABI to it from
+`work_ready_main.tower`. The standalone can use direct object emission and the
+selected-test runtime can supply its own entry.
+
+A temporary Tower observer recorded each real take, yield and finish result,
+the ticket's task/revision/profile/dispatch, the targeted slot, the ready
+length and the running count. After every successful order operation it
+checked every compacted element's increasing ID and one-based reverse slot.
+The original and final standalones and the four selected runs produced
+identical 4,447-row files, SHA-256
+`4b4ee74239906c49b8e4c4dea530eef79d6e985239ff34223d6d5d597c657e0e`.
+
+The yielded ticket was task 2, revision 3, profile 8, dispatch 1. FIFO
+returned 1, 3, 4, 2 with dispatches 1, 1, 1, 2. All four attempts to finish
+the yielded receipt failed. Reset to revision 4 rejected the old receipt
+while task 1 ran. Cancellation cleared the running count and ready length,
+rejected that current receipt and refused the subsequent targeted take.
+
+| Pairs | Allocated ticket bytes | Ready slots before / after first ordering | First / last selected consumer | Rejected yielded receipts |
+| ---: | ---: | ---: | ---: | ---: |
+| 2 | 64 | 4 / 2 | 4 / 2 | 2 |
+| 3 | 96 | 6 / 3 | 6 / 2 | 3 |
+| 33 | 1,056 | 66 / 33 | 66 / 2 | 33 |
+| 513 | 16,416 | 1,026 / 513 | 1,026 / 2 | 513 |
+
+Each case completed the odd producers in reverse order. Each even consumer
+was selected twice, in descending ID order, with dispatches 1 and 2. The
+second ticket finished successfully. Each case ended with a failed FIFO
+take, zero ready slots, zero running tasks and a healthy graph. All five
+declarations remain in `work_ready_test.tower`. The allocator and graph
+implementation are the original ones.
+
+The original and migrated standalones wrote exactly `0\n` with empty stderr.
+The original native owner selector hit the duplicate entry and its direct
+selector reported a missing companion at both compiler widths. Both final
+selectors had empty stdout. Changing the expected order to 1, 4, 3, 2 made
+all four final selections exit 1 at `work_ready_test.tower:19:9`. The same
+wrong order failed the original and migrated standalones at both widths.
+Restoration reproduced the source and binary and passed all five ready
+CTests. The four-job clean build reproduced the one-job executable. Touching
+only the entry object and then only the runtime caused one link each with
+no object rebuild. Each following build was clean. Normalizing build roots
+and CMake backtrace locations preserved all 141 existing registrations and
+added the four selections. All 15 tests in the documented native scheduler
+command passed, including the four new selections. The five affinity checks
+also passed through the shared CMake registration helper and standalone.
+
+The serial coordinator standalone passed the address profile with leak
+detection and the thread profile on the first launch. The linker maps identify
+the fixture's host buffer allocator and the guest runtime's raw allocation
+entry. Both ready functions contain ASan memory checks and TSan unaligned
+memory hooks. The first IR inspection looked only for aligned TSan hook
+names. Inspecting the emitted functions confirmed the unaligned hooks.
+The fixture starts no workers. Jobs 1 and 4 control the compiler. Tower's
+native instrumentation supports address and thread passes. Source-level
+UBSan and browser execution were outside these measurements.
+
+Host 3 used an AMD EPYC 7542 (32 cores, 64 threads), Linux x64,
+Clang/LLVM 19.1.7, Release, and the published bootstrap with SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The affinity mask was CPUs 0–63, the CFS quota 1,228,800 µs per 100,000 µs
+(12.288 CPUs) and the memory ceiling 57,954,795,520 bytes. A sample on
+CPUs 8–11 recorded zero idle ticks on all four cores. The packet includes
+those measurements separately. The table uses CPUs 16–19 and the host
+timing lock, with one process tree at a time, warm files, one warm-up and
+four alternating samples. The cgroup recorded zero additional throttles.
+RSS is the largest GNU time peak across samples, including the shell.
+
+| Operation | Compiler jobs | Original / final median wall s | Original / final median CPU s | Original / final peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Build, link and run standalone | 1 | 0.660 / 0.800 | 0.660 / 0.795 | 115,396 / 118,556 |
+| Build, link and run standalone | 4 | 0.680 / 0.920 | 0.765 / 1.065 | 121,052 / 130,256 |
+| 250 fresh standalone launches | 1 | 0.400 / 0.400 | 0.400 / 0.400 | 3,268 / 3,228 |
+
+| Final selection | Compiler jobs | Median wall s at jobs 1 / 4 | Median CPU s at jobs 1 / 4 | Peak KiB at jobs 1 / 4 |
+| --- | ---: | ---: | ---: | ---: |
+| Owner | 1 / 4 | 1.220 / 1.265 | 1.220 / 1.465 | 149,192 / 158,392 |
+| Direct | 1 / 4 | 0.775 / 0.885 | 0.770 / 1.020 | 119,064 / 129,840 |
+
+In one matched one-job compiler phase sample, parsing took 291 ms on the
+original input and 429 ms with the entry wrapper, test declarations and
+assertion grammar. Emission took 75 and 76 ms. The timing packet records
+the exact inputs, phase outputs, stdout, CPU times and RSS. Assignment
+`61f74f9f-aff5-4c7a-982c-ed2ef96675a7` carries the local source bundle,
+registrations, input hashes, traces, negative controls and sanitizer maps
+for manager integration on the assigned `91415a8e` base.
