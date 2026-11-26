@@ -86,12 +86,24 @@ function(tower_storage_tests)
     PROPERTIES WILL_FAIL TRUE)
   set_tests_properties(tower-storage PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
   if(TOWER_BACKEND_TESTS AND triple MATCHES "^x86_64-.*linux")
-    set(reference_input "${CMAKE_CURRENT_BINARY_DIR}/tower_overflow_native.tower")
-    file(GENERATE OUTPUT "${reference_input}" CONTENT "${source}import tests.backend_overflow_native;\n")
-    tower_runtime_object(tower-overflow-native "${reference_input}" "${triple}")
-    add_executable(tower-overflow-native-tests ${sources} "${tower-overflow-native_OBJECT}" "${runtime_instrumented}")
+    # Graph and Fast both use the native driver's execution-session callbacks.
+    # Keep this ABI and its single-owner allocator in the same provider for both entries.
+    set(overflow_host "${CMAKE_CURRENT_BINARY_DIR}/tower_overflow_host.tower")
+    file(GENERATE OUTPUT "${overflow_host}" CONTENT "${source}import host.driver_execution;\nimport tests.backend_import_overflow;\n")
+    tower_runtime_object(tower-overflow-host "${overflow_host}" "${triple}")
+    add_library(tower-overflow-native-services SHARED ${sources} "${tower-overflow-host_OBJECT}" "${runtime_instrumented}")
+    set_target_properties(tower-overflow-native-services PROPERTIES LINKER_LANGUAGE CXX TOWER_SERIAL_WORK_TRANSPORT TRUE)
+    target_link_libraries(tower-overflow-native-services PRIVATE tower-compiler-work-serial ${libraries})
+    if(NOT TOWER_SANITIZER)
+      target_link_options(tower-overflow-native-services PRIVATE "LINKER:-z,defs")
+    endif()
+    tower_runtime_object(tower-overflow-native "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_overflow_native_main.tower" "${triple}")
+    add_executable(tower-overflow-native-tests "${tower-overflow-native_OBJECT}")
     set_target_properties(tower-overflow-native-tests PROPERTIES LINKER_LANGUAGE CXX)
-    target_link_libraries(tower-overflow-native-tests PRIVATE ${libraries})
+    # The direct ELF linker accepts the provider path and its runpath. Passing
+    # the target transitively would add the system linker's -rpath-link option.
+    add_dependencies(tower-overflow-native-tests tower-overflow-native-services tower-runtime-resource-linux-x64)
+    target_link_libraries(tower-overflow-native-tests PRIVATE "$<TARGET_FILE:tower-overflow-native-services>")
     foreach(mode IN ITEMS correct wrong)
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${mode}")
       add_test(NAME tower-overflow-native-${mode} COMMAND tower-overflow-native-tests
@@ -101,6 +113,22 @@ function(tower_storage_tests)
         WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${mode}")
     endforeach()
     set_tests_properties(tower-overflow-native-wrong PROPERTIES WILL_FAIL TRUE)
+    if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+      add_dependencies(tower-overflow-native-tests tower-selected-test-count tower-guest-native-test)
+      # Owner discovery includes the five work_budget declarations.
+      tower_native_test_selections(overflow-native backend_overflow_native "7 tests" "2 tests"
+        --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-overflow-native-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-overflow-native-services>")
+      foreach(selection IN ITEMS owner direct)
+        foreach(jobs IN ITEMS 1 4)
+          set(dir "${CMAKE_CURRENT_BINARY_DIR}/overflow-native-${selection}-${jobs}")
+          file(MAKE_DIRECTORY "${dir}")
+          set_tests_properties(tower-overflow-native-${selection}-jobs-${jobs} PROPERTIES
+            WORKING_DIRECTORY "${dir}" LABELS "native;backend;focused" TIMEOUT 120
+            ENVIRONMENT "TOWER_OVERFLOW_CLANG=${TOWER_BACKEND_HOST_CC};TOWER_OVERFLOW_RUNTIME=${CMAKE_CURRENT_BINARY_DIR}/share/tower")
+        endforeach()
+      endforeach()
+    endif()
   endif()
 endfunction()
 cmake_language(DEFER CALL tower_storage_tests)

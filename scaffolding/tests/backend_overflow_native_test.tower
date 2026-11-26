@@ -1,0 +1,145 @@
+import library.testing;
+import backend_overflow_native;
+import backend_import_storage;
+import generic_clone_fixture;
+import storage_api;
+import utility_checks;
+import .compiler.format_types;
+import .host.driver_link;
+import .host.driver_support;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .tools.tool_process_linux;
+
+extern fn overflow_fixture_execute_output(resource: u8*, text: FormatResult*, width: u32, integer: u32, mode: u8*, wanted: u8*): bool;
+extern fn backend_import_fixture_overflow(root: void*, target: u8*, width: u32, mode: u8*): void*;
+extern fn backend_import_fixture_overflow_wrong(root: void*, target: u8*, width: u32, mode: u8*): void*;
+extern fn backend_import_fixture_overflow_optimize(backend: void*): bool;
+extern fn backend_import_fixture_overflow_calls(backend: void*): usize;
+extern fn backend_optimized(backend: void*): u8*;
+extern fn backend_emit(backend: void*): bool;
+extern fn backend_bytes(backend: void*): u8*;
+extern fn backend_size(backend: void*): usize;
+extern fn backend_pointer_bytes(backend: void*): u32;
+extern fn work_thread_available(): bool;
+extern fn work_thread_capacity(): usize;
+extern fn fileno(file: void*): i32;
+extern fn fopen(path: u8*, mode: u8*): void*;
+extern fn fclose(file: void*): i32;
+
+fn overflow_native_path(stem: u8*, suffix: u8*): ByteBuffer {
+    var path: ByteBuffer = default;
+    assert(driver_text(&path, stem) && driver_text(&path, suffix)
+        && host_text_terminate(&path), "Overflow native artifact path");
+    return path;
+}
+
+fn overflow_native_trial(run: OverflowNativeRun*, runtime: ByteBuffer*, target: u8*, integer: u32, mode: u8*, optimize: bool): bool {
+    var stem: ByteBuffer = default; defer bytes_dispose(&stem);
+    assert(driver_text(&stem, run.artifact_prefix) && driver_text(&stem, "i") && host_json_unsigned(&stem, convert(u64, integer))
+        && driver_text(&stem, "_") && driver_text(&stem, mode)
+        && driver_text(&stem, optimize ? "_O2" : "_raw") && host_text_terminate(&stem), "Overflow native case identity");
+    puts(stem.data + strlen(run.artifact_prefix)); fflush(null);
+    var ir = overflow_native_path(stem.data, ".ll"); defer bytes_dispose(&ir);
+    var object = overflow_native_path(stem.data, ".o"); defer bytes_dispose(&object);
+    var executable = overflow_native_path(stem.data, ".exe"); defer bytes_dispose(&executable);
+    var canonical = overflow_native_path(stem.data, ".tower"); defer bytes_dispose(&canonical);
+    var stdout_path = overflow_native_path(stem.data, ".stdout"); defer bytes_dispose(&stdout_path);
+    var budget: WorkBudget = default; var world: void* = null;
+    assert(work_budget_init(&budget, 1, BackendAdmissionBytes, 1)
+        && compiler_world_create_result(1, &budget, &world) == WorkBudgetError.None, "Overflow native world");
+    var store = compiler_world_store(world); var root = entity_create(store); var output = entity_create(store);
+    var backend = run.wrong ? backend_import_fixture_overflow_wrong(root, target, integer, mode)
+        : backend_import_fixture_overflow(root, target, integer, mode);
+    assert(backend != null && backend_import_fixture_overflow_calls(backend) == 1, "Verified fixture retains intrinsic call before optimization");
+    var pointer_bytes = backend_pointer_bytes(backend);
+    if optimize {
+        var before = overflow_native_path(stem.data, "_before.ll"); defer bytes_dispose(&before);
+        assert(driver_write_file(before.data, backend_optimized(backend), strlen(backend_optimized(backend))), "Preserve pre-O2 intrinsic IR");
+    }
+    if optimize { assert(backend_import_fixture_overflow_optimize(backend), "Overflow O2 verification"); }
+    puts("Remaining unsigned-overflow calls:"); generic_clone_number(backend_import_fixture_overflow_calls(backend));
+    assert(driver_write_file(ir.data, backend_optimized(backend), strlen(backend_optimized(backend)))
+        && backend_emit(backend) && driver_write_file(object.data, backend_bytes(backend), backend_size(backend)), "Overflow exact IR and native object emission");
+    var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+    // Existing hosted target/runtime linker recipe; runtime is compiled once.
+    var link: DriverLink = {target: target, cc: run.clang, linker: run.clang, sysroot: "", output: executable.data,
+        program: object, runtime: *runtime, ..default};
+    driver_link_arguments(&link, &args);
+    assert(driver_command(&args) == 0, "Overflow native link");
+    var launch = overflow_native_path("./", executable.data); defer bytes_dispose(&launch);
+    var argv: u8*[2]; argv[0] = launch.data; argv[1] = null;
+    var actual: ByteBuffer = default; defer bytes_dispose(&actual);
+    var capture = fopen(stdout_path.data, "wb");
+    assert(capture != null, "Native stdout artifact");
+    var result = tool_process_output(launch.data, &argv[0], fileno(capture));
+    assert(fclose(capture) == 0 && driver_read_file(stdout_path.data, &actual)
+        && actual.length <= OverflowNativeOutputLimit, "Preserve native result");
+    var expected_text = run.wrong ? "1\n" : "0\n";
+    assert(result.kind == ToolProcessKind.Exited && result.exit_code == 0 && actual.length == strlen(expected_text)
+        && utility_equal(actual.data, expected_text, actual.length), "Exact native oracle output and successful exit");
+    var zero = actual.length == strlen("0\n") && utility_equal(actual.data, "0\n", actual.length);
+    assert(host_text_terminate(&actual), "Native reference terminator");
+    var accepted = backend_import_foundation(backend, output);
+    if !accepted { puts(backend_error(backend)); }
+    assert(accepted && backend_resource_error(backend) == WorkBudgetError.None, "Native fixture reconstruction");
+    var text: FormatResult = {checked: true, budget: &budget, ..default};
+    format_entity(&text, output, null, null, null);
+    assert(!text.failed && driver_write_file(canonical.data, text.text.data, text.text.length), "Preserve checked reconstructed Foundation");
+    backend_close(backend); entity_release(output); entity_release(root);
+    assert(compiler_world_dispose(world), "Native LLVM world closes before recheck");
+    var matched = overflow_fixture_execute_output(run.resource, &text, pointer_bytes, integer, mode, actual.data);
+    format_dispose(&text);
+    assert(budget.live == 0 && budget.used_bytes == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget), "Native reconstruction zero owners");
+    if !zero { puts("Native reference rejected incorrect expected argument: mismatch count 1"); }
+    return matched && zero;
+}
+
+fn overflow_native_cases(run: OverflowNativeRun*): i32 {
+    assert(!work_thread_available() && work_thread_capacity() == 1, "Overflow reference uses single-owner allocation host");
+    var baseline = tower_test_buffer_count();
+    var passed: bool;
+    {
+        var target = "x86_64-unknown-linux-gnu";
+        var runtime = overflow_native_path(run.artifact_prefix, "overflow_runtime.o"); defer bytes_dispose(&runtime);
+        var link: DriverLink = {target: target, cc: run.clang, sysroot: "", root: run.runtime_root, runtime: runtime, ..default};
+        var args: DriverArguments = default; driver_arguments_init(&args); defer driver_arguments_dispose(&args);
+        driver_link_compile_arguments(&link, &args);
+        assert(driver_command(&args) == 0, "Existing hosted runtime compilation");
+        var widths: u32[5]; widths[0] = 1; widths[1] = 8; widths[2] = 16; widths[3] = 32; widths[4] = 64;
+        var modes: u8*[3]; modes[0] = "both"; modes[1] = "product"; modes[2] = "flag";
+        var optimizations: bool[2] = default; optimizations[1] = true;
+        passed = true;
+        for(var at: usize = 0; at < sizeof(decltype(widths)) / sizeof(u32); at++) {
+            if run.wrong && at != 0 { break; }
+            for(var mode: usize = 0; mode < sizeof(decltype(modes)) / sizeof(u8*); mode++) {
+                if run.wrong && mode != 0 { break; }
+                for(var option: usize = 0; option < sizeof(decltype(optimizations)) / sizeof(bool); option++) {
+                    var buffers = tower_test_buffer_count();
+                    if !overflow_native_trial(run, &runtime, target, widths[at], modes[mode], optimizations[option]) { passed = false; }
+                    assert(tower_test_buffer_count() == buffers, "Native trial returns compiler buffers to baseline");
+                }
+            }
+        }
+    }
+    assert(tower_test_buffer_count() == baseline, "Native reference final zero buffer delta");
+    puts(passed ? "Native raw/O2 and reconstructed Graph/Fast exact zero passed; owners drained."
+        : "Native reference comparison failed; owners drained.");
+    return passed ? 0 : 1;
+}
+
+fn overflow_selected_cases(wrong: bool): i32 {
+    var clang = getenv("TOWER_OVERFLOW_CLANG");
+    var runtime = getenv("TOWER_OVERFLOW_RUNTIME");
+    assert(clang != null && runtime != null, "Supply the native Clang and Tower runtime resource directory");
+    // Both declarations run in one guest. Retain the two negative artifacts as well.
+    var run: OverflowNativeRun = {resource: runtime, clang: clang, runtime_root: runtime,
+        wrong: wrong, artifact_prefix: wrong ? "wrong_" : ""};
+    return overflow_native_cases(&run);
+}
+
+test() { assert(overflow_selected_cases(true) == 1, "Raw and optimized i1 reject the incorrect expected argument"); }
+test() { assert(overflow_selected_cases(false) == 0, "Raw and optimized native results match Graph and Fast at all widths"); }
