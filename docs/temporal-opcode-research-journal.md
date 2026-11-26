@@ -118652,3 +118652,88 @@ Both joined the independent peer with value 42. The declaration reported
 offset 0 with no evaluation probes. Each lifecycle denial kept its original
 owner offset, and each closing budget snapshot had zero bytes, lanes and
 grants. These observations precede the test migration.
+
+The three original owner paths now discover their adjacent companions. Small
+native main adapters preserve the original command lines, messages and return
+codes. The query-smoke aggregate calls the lifecycle owner directly. The
+selected guests link the existing native LR row service, which supplies the
+production semantic implementation, allocator and Linux worker transport.
+The native registrations check the exact summary from each source at both
+compiler widths. Direct/owner counts are 4/19 for pool budgets, 5/20 for
+lifecycle and 3/18 for query refusals. Each owner also discovers the same
+five budget, eight graph and two stack tests.
+
+The pool trace covers 16 trials, including the healthy direct entry, its
+retained reservation and the fully pressured empty declaration fast path.
+The query trace covers 24 trials, with separate setup measurement and
+admission denial for each mode, target width and worker count. The lifecycle
+trace covers 50 existing body/declaration admission trials, four late
+registrations, four first signatures, 12 frontier trials and 18 lowering
+denials, in the original order. The late registration and first signature
+tests use both four- and eight-byte targets. The other lifecycle trials keep
+their native pointer width. Inner workers are 1 and 4 on both routes.
+
+| Lowering denial | Typed error | Canonical byte offset |
+| --- | --- | ---: |
+| Query, edge, access, scratch | Capacity | 3 |
+| Kind pin, component pin | Busy | 3 |
+| Foreign lease | Busy | 17 |
+| Joined finish | Capacity | 17 |
+| Anchor | Exhausted | 3 |
+
+The compiler-jobs 1 and 4 runs matched the original standalone observer streams
+byte for byte on both selected sources. Pool, lifecycle and combined query
+observers wrote 156, 1,074 and 260 lines respectively. Each included every
+original check result in execution order. The lifecycle trace retained the
+earlier mixed-signature diagnostic at offset 29, joined call counts, terminal
+pump repeats and the closing ledgers. The first 18-test migrated CTest run
+passed, including query-smoke. An exact reconstruction using the original
+bound lifecycle LLVM also passed query-smoke on retry.
+
+Five independent changes to expected values failed on the standalone, direct
+and owner routes at both compiler widths. They changed the pool declaration
+offset 83 to 84, the lowering lease/finish offset 17 to 18, the constructor
+offset 83 to 82, the declaration-query offset 0 to 1, and the body query's
+peer value 42 to 43. Each query control reached its own test declaration.
+Restoration reproduced all six ordinary standalone binaries byte for byte.
+All twelve selection routes and the 17 focused CTests passed again. Missing,
+extra and unknown query arguments kept their original messages and status 1.
+
+Host 7 used an AMD EPYC 7502 with 32 physical cores and SMT2. The cpuset
+was 0–63, measured processes used CPUs 0–7, CPU quota was 3,071,999 µs per
+100,000 µs, and the cgroup memory limit was 91,586,822,144 bytes. The Release
+build used Clang/LLVM 19.1.7 and bootstrap SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Three warm-file, fresh-process pairs at each compiler width followed a warm-up,
+alternated arm order and used the host timing lock. Standalone medians were
+0.02 s wall for pool and all query modes on both revisions, and 0.04 / 0.03 s
+for base / migrated lifecycle. Median user plus system CPU was 0.01–0.03 s.
+Maximum RSS was 52,968 / 53,428 KiB across the original / migrated paired
+runs. These short measurements have 0.01 s timer resolution. Across the twelve
+selected routes, three observer-off processes per route measured 1.29–2.61 s
+median wall, 1.26–2.87 s median CPU and at most 202,476 KiB RSS, including
+discovery, compilation and linking. Object times and individual process
+measurements are in the assignment packet.
+
+A separate jobs 1/4 compiler timing pair per fixture reproduced all twelve
+observer-off object hashes. The migrated source adds two import boundaries
+and the assertion grammar to each standalone compilation. Parsing accounted
+for most of the measured increase. For the four-job lifecycle object it
+went from 802 to 1,143 ms, while emission went from 227 to 232 ms. The other
+five parse comparisons increased by 111–340 ms. These are single paired
+phase observations. Each fixture's workers still run at its original budget.
+
+With the same build directory reconfigured for each sanitizer, the ordinary
+pool, lifecycle and three query entries all passed address instrumentation
+with leak detection and thread instrumentation. All five address runs started
+on the first try. The thread runtime had 35 startup failures at the restricted
+Linux personality call across the five entries. Each eventual run exited 0
+with empty stderr. The address and thread maps identify runtime-allocate.o,
+tower-compiler-host.o and tower_work_host.o from the native memory archive.
+The changed trial functions and provider IR contain the corresponding
+instrumentation. Maximum case RSS was 88,476 KiB under ASan and 89,456 KiB
+under TSan. Twenty further ordinary runs of each of the five modes matched
+the original exit status and output. The selected guests ran with their
+normal native runtime. Tower source-level UBSan is unavailable. A later
+upstream main advanced beyond this assignment; the bundle retains the exact
+requested public prerequisite for manager integration.
