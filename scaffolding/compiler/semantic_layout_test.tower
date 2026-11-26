@@ -1,4 +1,4 @@
-import tower;
+import library.testing;
 import semantic_layout_kernel as layout;
 import semantic_context_types as semantic;
 import .library.vector;
@@ -10,4 +10,6 @@ fn layout_registry_test(): bool {
     return vector_push(&context.layout_jobs, &result) && context.layout_jobs.data[0] == &result;
 }
 
-if !layout_registry_test() { trap("Layout registry lost its result", 0); }
+test() {
+    assert(layout_registry_test(), "Layout registry lost its result");
+}

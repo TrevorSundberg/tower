@@ -106165,3 +106165,20 @@ mapping, frozen inputs, reactors, source-built compiler, raw streams, commands,
 times, link maps, controls and Git bundle. Space before the build was
 56,440,700,928 bytes available. The native compiler build peaked at 785,072
 KiB process RSS. No release-cache build or publication was performed.
+
+### Register compiler companions through native test mode
+
+The native work suite still invoked the fixed-array iteration and layout
+registry companions with `--interpret`. Those entries would stop exercising
+their checks after moving the checks inside `test()`. Both now run through
+`--test --test-details`. The array test checks source evaluation, borrowed
+writes, copies, early return and deferred cleanup separately. The layout helper
+releases its vector before the assertion reports a failure. Each companion
+still declares one test. The same CTest helper registers the six existing
+default-initialization blocks at one and four workers.
+
+With LLVM 19 on PATH, CMake configuration and `ctest --show-only=json-v1`
+confirmed the paths, flags, widths and zero-selection rejection for eight
+entries, including the existing generic copy checks. This was a registration
+check. Execution, failure locations, normal-build exclusion and paired timings
+on the installed compiler have their own worker assignment.

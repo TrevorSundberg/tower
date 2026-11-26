@@ -150,6 +150,14 @@ if(TOWER_WORK_TESTS AND TOWER_BROWSER_THREADS)
     "-Wl,--allow-undefined-file=${CMAKE_CURRENT_SOURCE_DIR}/cmake/WorkImports.txt")
 endif()
 if(TARGET towerc)
+  function(tower_compiler_companion_test name fixture workers)
+    add_test(NAME ${name}-${workers}
+      COMMAND $<TARGET_FILE:towerc> "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/${fixture}"
+        --test --test-details --jobs ${workers}
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    set_tests_properties(${name}-${workers} PROPERTIES FAIL_REGULAR_EXPRESSION "0 tests selected")
+  endfunction()
   add_test(NAME tower-semantic-iteration-companions
     COMMAND $<TARGET_FILE:towerc> --test
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration.tower"
@@ -164,26 +172,10 @@ if(TARGET towerc)
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
     set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
-    add_test(NAME tower-fixed-array-iteration-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration_test.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    add_test(NAME tower-generic-body-copy-types-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/generic_body_types_test.tower"
-        --test --test-details --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
-    set_tests_properties(tower-generic-body-copy-types-${workers} PROPERTIES
-      FAIL_REGULAR_EXPRESSION "0 tests selected")
-    add_test(NAME tower-semantic-layout-registry-${workers}
-      COMMAND $<TARGET_FILE:towerc>
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_layout_test.tower"
-        --interpret --jobs ${workers}
-        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower")
+    tower_compiler_companion_test(tower-fixed-array-iteration semantic_iteration_test.tower ${workers})
+    tower_compiler_companion_test(tower-generic-body-copy-types generic_body_types_test.tower ${workers})
+    tower_compiler_companion_test(tower-semantic-layout-registry semantic_layout_test.tower ${workers})
+    tower_compiler_companion_test(tower-default-initialization semantic_expressions_test.tower ${workers})
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
         module_header_capture_controls named_initialization_test)
       string(REPLACE "-" "_" fixture "${name}")
