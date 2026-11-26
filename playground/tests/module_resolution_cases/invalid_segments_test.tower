@@ -1,0 +1,18 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("foo/bar.tower", "broken.tower");
+    module_configure("units/main.tower");
+    execute_file("empty_segment.tower");
+    field_is("status", "error");
+    module_configure("units/main.tower");
+    execute_file("middle_empty.tower");
+    field_is("status", "error");
+    module_configure("units/main.tower");
+    execute_file("trailing_dot.tower");
+    field_is("status", "error");
+    module_configure("units/main.tower");
+    execute_file("broken_entry.tower");
+    check_error("foo/bar.tower", "Expected i32");
+}

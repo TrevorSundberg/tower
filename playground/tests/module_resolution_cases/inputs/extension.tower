@@ -1,0 +1,1 @@
+import foundation_syntax; parse Statement |= 'answer' ';' => replace { print(17); };

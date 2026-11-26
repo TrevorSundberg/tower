@@ -1,0 +1,9 @@
+{
+  "active": "old-name.tower",
+  "sourceBaseline": {"old-name.tower": "original", "edited-name.tower": "original"},
+  "files": [
+    {"path": "old-name.tower", "text": "original"},
+    {"path": "edited-name.tower", "text": "my edit"},
+    {"path": "custom.tower", "text": "my source"}
+  ]
+}

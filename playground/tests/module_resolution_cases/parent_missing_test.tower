@@ -1,0 +1,9 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("../helper.tower", "import_tower.tower");
+    module_configure("units/main.tower");
+    execute_file("single_parent.tower");
+    check_error("units/main.tower", "Cannot read imported module: ../helper");
+}

@@ -1,238 +1,97 @@
 import {test} from 'node:test';
-import assert from 'node:assert/strict';
-import {readFile} from 'node:fs/promises';
-// Use the real host directly: test fixtures intentionally install extra modules.
-import {loadTower, runToEnd} from '../src/tower-host.mjs';
+import {readFileSync} from 'node:fs';
+import {runToEnd} from '../src/tower-host.mjs';
 import {builtins as grammar} from './compiler-fixtures.mjs';
+import {moduleHost, selectedCases, moduleText as copyText} from './module_case_host.mjs';
+import {guestString} from './guest_text.mjs';
 
-const read = path => readFile(new URL(path,new URL('../../',import.meta.url)));
-const wasm = await read(process.env.TOWER_TEST_WASM || 'build/browser-wasi/tower.wasm');
-const host = () => loadTower(wasm,undefined,grammar.foundation,undefined,grammar.bedrock,{tower:grammar.tower,builtins:grammar});
-const file = (path,text) => ({path,text});
-const sources = () => Object.entries(grammar).map(([name,text]) => file(name+'.tower',text));
-function run(compiler, source, files, entry = 'units/main.tower') {
-  compiler.configureModules({entry,library:'.',files});
-  const handle = compiler.compile(source);
-  try { return {...compiler.execute(handle,10000),dependencies:compiler.dependencies()}; }
-  finally { compiler.destroyExecution(handle); }
+const inputs = new URL('./module_resolution_cases/inputs/', import.meta.url);
+function fixture(name) {
+  if (name === 'examples/functions.tower')
+    return readFileSync(new URL('../../scaffolding/' + name, import.meta.url), 'utf8');
+  if (!/^[a-z_]+\.(tower|expected)$/.test(name)) throw new Error('Invalid module fixture ' + name);
+  return readFileSync(new URL(name, inputs), 'utf8');
 }
-
-test('reused host replaces a complete project library without retaining removed capabilities',async () => {
-  const compiler = await host();
-  const source = (await read('scaffolding/examples/functions.tower')).toString();
-  const execute = builtins => {
-    compiler.configureModules({entry:'main.tower',files:[],builtins,replaceBuiltins:true});
-    const handle = compiler.compile(source);
-    try {return compiler.execute(handle,10000);}
-    finally {compiler.destroyExecution(handle);}
-  };
-  try {
-    assert.equal(execute(grammar).output,'720\n721\n');
-    const missing = execute(Object.fromEntries(Object.entries(grammar).filter(([name])=>name!=='tower')));
-    assert.equal(missing.status,'error');
-    assert.match(missing.error,/Cannot read imported module: tower/);
-    assert.equal(execute(grammar).output,'720\n721\n');
-  } finally {compiler.close();}
-});
-
-test('cold wrapper imports use the project files and restore the active entry after a failed install',async () => {
-  const wrapper = grammar.foundation + '\nimport extension;';
-  const files = [
-    file('.tower/extension.tower', "import foundation_syntax; parse Statement |= 'answer' ';' => replace { print(17); };"),
-    file('nested/extension.tower', 'import absent;'),
-    file('nested/sibling.tower', 'import foundation; answer;'),
-  ];
-  const compiler = await loadTower(wasm,undefined,wrapper,undefined,grammar.bedrock,{
-    builtins:grammar, tower:grammar.tower, project:{entry:'nested/main.tower', library:'.tower', files},
-  });
-  function executeSibling() {
-    const handle = compiler.compile('import sibling;');
-    try { return compiler.execute(handle); }
-    finally { compiler.destroyExecution(handle); }
-  }
-  try {
-    assert.equal(executeSibling().output,'17\n');
-    assert.throws(() => compiler.configure(wrapper + '\nimport absent;'), /Cannot read imported module: absent/);
-    assert.equal(executeSibling().output,'17\n');
-  } finally { compiler.close(); }
-});
-
-test('Tower, Foundation and Bedrock work under ordinary renamed paths',async () => {
-  const compiler = await host();
-  const files = [
-    file('syntax/declarations.tower',grammar.bedrock),
-    file('syntax/operations.tower',grammar.foundation_syntax.replace('import bedrock;','import "declarations.tower";')),
-    file('syntax/core.tower',grammar.foundation.replace('import foundation_syntax;','import "operations.tower";')),
-    file('syntax/language.tower',grammar.tower.replace('import foundation;','import "core.tower";')),
-    ...sources().filter(f=>f.path!=='tower.tower'&&f.path!=='foundation.tower'&&f.path!=='bedrock.tower'),
-    file('bedrock.tower',grammar.bedrock),
-  ];
-  const result = run(compiler,'import "syntax/language.tower"; var Answer: i32 = 42; print(Answer);',files);
-  assert.equal(result.status,'done',result.error);
-  assert.equal(result.output,'42\n');
-  assert.ok(result.dependencies.includes('syntax/declarations.tower'));
-  assert.ok(result.dependencies.includes('syntax/operations.tower'));
-  assert.ok(!result.dependencies.includes('tower.tower'));
-});
-
-test('tower uses ordinary nearest-file lookup and invalidates cached resolutions after edits',async () => {
-  const compiler = await host(), files = sources();
-  const root = files.find(f=>f.path==='tower.tower');
-  // Keep these modules declaration-only so they qualify for grammar caching.
-  root.text += "\nparse Statement |= 'marker' ';' => replace { print(1); };";
-  const source = 'import tower; var Answer: i32 = 42; print(Answer); marker;';
-  assert.equal(run(compiler,source,files).output,'42\n1\n');
-  const local = file('units/tower.tower',grammar.tower+"\nparse Statement |= 'marker' ';' => replace { print(2); };");
-  files.push(local);
-  const nearer = run(compiler,source,files);
-  assert.equal(nearer.output,'42\n2\n',nearer.error);
-  assert.ok(nearer.dependencies.includes(local.path));
-  assert.ok(!nearer.dependencies.includes(root.path));
-  local.text = local.text.replace('print(2);','print(3);');
-  assert.equal(run(compiler,source,files).output,'42\n3\n');
-  // A broken nearer module must diagnose its own dependency, not fall back.
-  local.text = 'import missing_grammar;';
-  const broken = run(compiler,source,files);
-  assert.equal(broken.status,'error');
-  assert.equal(broken.errorFile,local.path);
-  assert.match(broken.error,/Cannot read imported module: missing_grammar/);
-  files.pop();
-  assert.equal(run(compiler,source.replace('import tower;','import "tower.tower";'),files).output,'42\n1\n');
-});
-
-test('tower has no privileged fallback or exemption from import cycles',async () => {
-  const compiler = await host();
-  // The host has a bundled .tower/tower.tower, but this project's library is '.'.
-  const files = sources().filter(f=>f.path!=='tower.tower');
-  const missing = run(compiler,'import tower; print(42);',files);
-  assert.equal(missing.status,'error');
-  assert.match(missing.error,/Cannot read imported module: tower/);
-  files.push(file('tower.tower','import tower;'));
-  const cycle = run(compiler,'import tower;',files);
-  assert.equal(cycle.status,'error');
-  assert.match(cycle.error,/cycl/i);
-});
-
-test('dotted and quoted paths share module identity, effects and imported bindings',async () => {
-  const compiler = await host(), files = sources();
-  files.push(file('foo/bar/baz.tower','import tower; print(1); fn answer(): i32 { return 42; }'));
-  const source = String.raw`import tower; import foo.bar.baz; import "foo/bar/baz.tower"; import "foo\\bar\\baz.tower"; print(answer());`;
-  const result = run(compiler,source,files);
-  assert.equal(result.status,'done',result.error);
-  assert.equal(result.output,'1\n42\n');
-  assert.equal(result.dependencies.filter(path=>path==='foo/bar/baz.tower').length,1);
-});
-
-test('relative strings are anchored to their importer and normalize either separator',async () => {
-  const compiler = await host(), files = sources();
-  files.push(file('shared/helpers.tower','import tower; fn answer(): i32 { return 42; }'));
-  const source = String.raw`import tower; import "..\\shared\\helpers.tower"; print(answer());`;
-  assert.equal(run(compiler,source,files).output,'42\n');
-  // This file would be found by searching the library root for ../shared/helpers.
-  // It must not mask the missing dependency relative to units/main.tower.
-  files[files.length-1].path = '../shared/helpers.tower';
-  const result = run(compiler,source,files);
-  assert.equal(result.status,'error');
-  assert.match(result.error,/Cannot read imported module: ..\/shared\/helpers/);
-});
-
-test('import formatting preserves dotted segments and literal dots, with canonical slash paths',async () => {
-  const compiler = await host(), files = sources();
-  files.push(file('foo/bar/baz.tower','import tower;'),file('foo.bar.tower','import tower;'),file('foo/bar.baz.tower','import tower;'));
-  const source = String.raw`import tower; import foo /* path comment */ . bar . baz; import "foo\\bar\\baz.tower";` + ' import `foo.bar`; import foo.`bar.baz`;';
-  compiler.configureModules({entry:'main.tower',library:'.',files});
-  let formatted;
-  for (let i=0;i<2;++i) {
-    const handle = compiler.create(i ? formatted : source);
+const file = (path, text) => ({path, text});
+let host, wrapper, files, result;
+const check = selectedCases('module_resolution_cases', {
+  module_fixture: (ctx, name) => copyText(ctx, fixture(guestString(ctx, name))),
+  module_builtin: (ctx, name) => copyText(ctx, grammar[guestString(ctx, name)]),
+  module_root_files() {
+    // Reinstalling the root library also restores its original upload order.
+    for (const name of Object.keys(grammar)) files.delete(name + '.tower');
+    for (const [name, source] of Object.entries(grammar)) files.set(name + '.tower', source);
+  },
+  module_put: (ctx, path, text) => { files.set(guestString(ctx, path), guestString(ctx, text)); },
+  module_remove: (ctx, path) => { files.delete(guestString(ctx, path)); },
+  module_configure(ctx, entry) {
+    host.configureModules({entry:guestString(ctx, entry), library:'.',
+      files:Array.from(files, ([path, text]) => file(path, text))});
+  },
+  module_replace_library(ctx, entry) {
+    const builtins = Object.fromEntries(Array.from(files, ([path, text]) => [path.slice(0, -'.tower'.length), text]));
+    host.configureModules({entry:guestString(ctx, entry), files:[], builtins, replaceBuiltins:true});
+  },
+  module_install_with_suffix(ctx, suffix) {
+    const source = wrapper + guestString(ctx, suffix);
+    try { host.configure(source); }
+    catch (error) { return copyText(ctx, error.message); }
+    return copyText(ctx, '');
+  },
+  module_execute(ctx, source, dependencies) {
+    const handle = host.compile(guestString(ctx, source));
     try {
-      const {end} = runToEnd(compiler,handle);
-      assert.equal(end.status,'done',end.error);
-      const result = compiler.format(handle);
-      assert.equal(result.error,undefined);
-      if (i) assert.equal(result.source,formatted);
-      else formatted = result.source;
-    } finally { compiler.destroy(handle); }
-  }
-  assert.match(formatted,/import foo\.bar\.baz;/);
-  assert.match(formatted,/import 'foo\/bar\/baz.tower';/);
-  assert.ok(formatted.includes('import `foo.bar`;'));
-  assert.ok(formatted.includes('import foo.`bar.baz`;'));
-  assert.ok(formatted.includes('/* path comment */'));
-});
-
-test('dotted imports reject empty segments and report errors from the selected file',async () => {
-  const compiler = await host(), files = sources();
-  files.push(file('foo/bar.tower','import tower; var broken: i32 = true;'));
-  for (const source of ['import .;','import foo..bar;','import foo.;'])
-    assert.equal(run(compiler,source,files).status,'error',source);
-  const result = run(compiler,'import tower; import foo.bar;',files);
-  assert.equal(result.status,'error');
-  assert.equal(result.errorFile,'foo/bar.tower');
-  assert.match(result.error,/Expected i32/);
-});
-
-test('saved Bedrock grammars with direct identifier imports remain usable',async () => {
-  const compiler = await host();
-  const legacy = grammar.bedrock.replace(/^parse Import(?:Path|Name) = .*\n/gm,'').replaceAll('$name:ImportName','$name:Identifier');
-  compiler.configureModules({entry:'main.tower',library:'.',files:[
-    file('legacy.tower',legacy),file('helper.tower',"parse Statement = 'hello';")
-  ]});
-  const handle=compiler.create('import legacy; import helper; hello');
-  try { const {end}=runToEnd(compiler,handle); assert.equal(end.status,'done',end.error); }
-  finally { compiler.destroy(handle); compiler.close(); }
-});
-
-test('each leading dot moves up one directory, including aliases and cached grammars',async () => {
-  const compiler = await host(), files = sources();
-  files.push(file('a/b/helper.tower','import tower; fn one(): i32 { return 1; }'),
-    file('a/helper.tower','import tower; fn two(): i32 { return 2; }'),
-    file('helper.tower','import tower; fn three(): i32 { return 3; }'));
-  const source = 'import tower; import .helper as near; import ..helper; import ...helper; print(near.one()); print(two()); print(three());';
-  for(let i=0;i<2;i++) {
-    const result = run(compiler,source,files,'a/b/c/main.tower');
-    assert.equal(result.status,'done',result.error);
-    assert.equal(result.output,'1\n2\n3\n');
-  }
-});
-
-test('leading-dot imports never fall back to library paths',async () => {
-  const compiler=await host(),files=sources();
-  files.push(file('../helper.tower','import tower;'));
-  const result=run(compiler,'import .helper;',files);
-  assert.equal(result.status,'error');
-  assert.match(result.error,/Cannot read imported module: ..\/helper/);
-});
-
-test('quoted imports use the exact complete filename and case, including arbitrary user names',async () => {
-  const compiler=await host(),files=sources();
-  files.push(file('custom folder/a-b.tower','import tower; fn answer(): i32 { return 42; }'),
-    file('no_extension','import tower;'),file('Other.Tower','import tower;'));
-  const result=run(compiler,'import "custom folder/a-b.tower"; import "no_extension"; import "Other.Tower"; print(answer());',files);
-  assert.equal(result.status,'done',result.error);
-  assert.equal(result.output,'42\n');
-  for(const name of ['tower','Tower.tower','custom folder/a-b','Custom folder/a-b.tower','custom folder/A-b.tower','Other.tower']) {
-    const result=run(compiler,`import "${name}";`,files);
-    assert.equal(result.status,'error',name);
-    assert.match(result.error,/Cannot read imported module/);
-  }
-});
-
-test('parent import terms, comments and aliases survive repeated formatting',async () => {
-  const compiler=await host(),files=sources();
-  files.push(file('helpers.tower','import tower;'));
-  compiler.configureModules({entry:'a/b/main.tower',library:'.',files});
-  let source='import tower; import . /* parent */ . helpers as tools;';
-  for(let i=0;i<2;i++) {
-    const handle=compiler.create(source);
+      result = host.execute(handle, 10000);
+      if (dependencies) result.dependencies = host.dependencies();
+      if (result.outputTruncated) throw new Error('Truncated module execution output');
+    } finally { host.destroyExecution(handle); }
+  },
+  module_parse(ctx, source, format) {
+    const handle = host.create(guestString(ctx, source));
     try {
-      const {end}=runToEnd(compiler,handle);
-      assert.equal(end.status,'done',end.error);
-      const result=compiler.format(handle);
-      assert.equal(result.error,undefined);
-      assert.match(result.source,/import \.\.helpers as tools;/);
-      assert.ok(result.source.includes('/* parent */'));
-      if(i)assert.equal(result.source,source);
-      source=result.source;
-    } finally {compiler.destroy(handle);}
+      result = runToEnd(host, handle).end;
+      if (format && result.status === 'done') {
+        const formatted = host.format(handle);
+        result.formatError = formatted.error;
+        result.formatted = formatted.source;
+      }
+    } finally { host.destroy(handle); }
+  },
+  module_has_format_error: () => result.formatError !== undefined,
+  module_field: (ctx, name) => copyText(ctx, result[guestString(ctx, name)]),
+  module_dependency_count: () => result.dependencies.length,
+  module_dependency: (ctx, index) => copyText(ctx, result.dependencies[index]),
+});
+
+const cases = [
+  ['replace_library', 'reused host replaces a complete project library without retaining removed capabilities'],
+  ['cold_wrapper', 'cold wrapper imports use the project files and restore the active entry after a failed install'],
+  ['renamed_language', 'Tower, Foundation and Bedrock work under ordinary renamed paths'],
+  ['nearest_edit', 'tower uses ordinary nearest-file lookup and invalidates cached resolutions after edits'],
+  ['missing_cycle', 'tower has no privileged fallback or exemption from import cycles'],
+  ['shared_identity', 'dotted and quoted paths share module identity, effects and imported bindings'],
+  ['relative_string', 'relative strings are anchored to their importer and normalize either separator'],
+  ['format_segments', 'import formatting preserves dotted segments and literal dots, with canonical slash paths'],
+  ['invalid_segments', 'dotted imports reject empty segments and report errors from the selected file'],
+  ['legacy_grammar', 'saved Bedrock grammars with direct identifier imports remain usable'],
+  ['parent_aliases', 'each leading dot moves up one directory, including aliases and cached grammars'],
+  ['parent_missing', 'leading-dot imports never fall back to library paths'],
+  ['exact_filename', 'quoted imports use the exact complete filename and case, including arbitrary user names'],
+  ['format_parents', 'parent import terms, comments and aliases survive repeated formatting'],
+];
+for (const [entry, name] of cases) test(name, async () => {
+  files = new Map();
+  wrapper = grammar.foundation;
+  let project;
+  if (entry === 'cold_wrapper') {
+    wrapper += fixture('import_extension.tower');
+    project = {entry:'nested/main.tower', library:'.tower', files:[
+      file('.tower/extension.tower', fixture('extension.tower')),
+      file('nested/extension.tower', fixture('absent.tower')),
+      file('nested/sibling.tower', fixture('sibling.tower')),
+    ]};
   }
+  host = await moduleHost({project, builtins:grammar}, wrapper);
+  try { await check(entry, 30); }
+  finally { host.close(); host = files = result = undefined; }
 });

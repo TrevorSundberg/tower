@@ -1,0 +1,103 @@
+import library.testing;
+import backend.text;
+
+// Text returned by the project host is an owned copy in the assertion VM.
+extern fn module_fixture(name: u8*): u8*;
+
+extern fn module_builtin(name: u8*): u8*;
+
+extern fn module_put(path: u8*, text: u8*): void;
+
+extern fn module_remove(path: u8*): void;
+
+extern fn module_root_files(): void;
+
+extern fn module_configure(entry: u8*): void;
+
+extern fn module_replace_library(entry: u8*): void;
+
+extern fn module_install_with_suffix(suffix: u8*): u8*;
+
+extern fn module_execute(source: u8*, dependencies: bool): void;
+
+extern fn module_parse(source: u8*, format: bool): void;
+
+extern fn module_has_format_error(): bool;
+
+extern fn module_field(name: u8*): u8*;
+
+extern fn module_dependency_count(): usize;
+
+extern fn module_dependency(index: usize): u8*;
+
+fn install_file(path: u8*, name: u8*): void {
+    var text = module_fixture(name);
+    defer free(text);
+    module_put(path, text);
+}
+
+fn run_fixture(name: u8*, dependencies: bool): void {
+    var source = module_fixture(name);
+    defer free(source);
+    module_execute(source, dependencies);
+}
+
+fn execute_file(name: u8*): void {
+    run_fixture(name, true);
+}
+
+fn field_is(name: u8*, wanted: u8*): void {
+    var actual = module_field(name);
+    defer free(actual);
+    assert(backend_equal(actual, wanted), name);
+}
+
+fn check_output(name: u8*): void {
+    field_is("status", "done");
+    var wanted = module_fixture(name);
+    defer free(wanted);
+    field_is("output", wanted);
+}
+
+fn check_error(path: u8*, message: u8*): void {
+    field_is("status", "error");
+    field_is("errorFile", path);
+    var actual = module_field("error");
+    defer free(actual);
+    assert(backend_contains(actual, message), actual);
+}
+
+fn check_dependencies(name: u8*): void {
+    var lines = module_fixture(name);
+    defer free(lines);
+    var next = lines;
+    var count = module_dependency_count();
+    for(var i: usize = 0; i < count; i++) {
+        var start = next;
+        while *next != *"\n" {
+            assert(*next != 0, name);
+            next++;
+        }
+        *next = 0;
+        var actual = module_dependency(i);
+        defer free(actual);
+        assert(backend_equal(actual, start), start);
+        next++;
+    }
+    assert(*next == 0, name);
+}
+
+fn round_trip(name: u8*, oracle: u8*): void {
+    var source = module_fixture(name);
+    var wanted = module_fixture(oracle);
+    defer free(wanted);
+    for(var pass: usize = 0; pass < 2; pass++) {
+        module_parse(source, true);
+        free(source);
+        field_is("status", "done");
+        assert(!module_has_format_error(), name);
+        source = module_field("formatted");
+        assert(backend_equal(source, wanted), oracle);
+    }
+    free(source);
+}

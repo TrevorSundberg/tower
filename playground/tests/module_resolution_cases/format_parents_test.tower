@@ -1,0 +1,8 @@
+import session;
+
+test() {
+    module_root_files();
+    install_file("helpers.tower", "import_tower.tower");
+    module_configure("a/b/main.tower");
+    round_trip("format_parents.tower", "format_parents.expected");
+}

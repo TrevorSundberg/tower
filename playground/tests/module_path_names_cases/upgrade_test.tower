@@ -1,0 +1,28 @@
+import session;
+import library.testing;
+import backend.text;
+
+fn check_file(index: usize, path: u8*, text: u8*): void {
+    assert(upgrade_keys(index) == 2, path);
+    var actual_path = upgrade_field(index, "path");
+    defer free(actual_path);
+    assert(backend_equal(actual_path, path), path);
+    var actual_text = upgrade_field(index, "text");
+    defer free(actual_text);
+    assert(backend_equal(actual_text, text), path);
+}
+
+test() {
+    upgrade_open("project.json", "recipe.json");
+    upgrade_refresh();
+    assert(upgrade_count() == 3);
+    check_file(0, "edited-name.tower", "my edit");
+    check_file(1, "custom.tower", "my source");
+    check_file(2, "new_name.tower", "updated");
+    var active = upgrade_active();
+    defer free(active);
+    assert(backend_equal(active, "new_name.tower"), active);
+
+    upgrade_refresh();
+    assert(upgrade_count() == 3);
+}

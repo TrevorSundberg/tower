@@ -1,0 +1,44 @@
+// Every file starts with these seed declaration rules.
+// GrammarPattern keeps a /regex/ literal together; Tower's regex parser reads its contents.
+// GrammarTemplate is a recursive rule for {replacement bodies}, including nested braces.
+skip Whitespace = /[ \t\r\n]+/;
+[comment] skip LineComment = /\/\/[^\r\n]*/;
+[comment] skip BlockComment = /\/\*([^*]|\*+[^*/])*\*+\//;
+[identifier] token Identifier = /[A-Za-z_][A-Za-z0-9_]*|`([^`\\\r\n]|\\[nrt\\`])*`/;
+[string] token String = /"([^"\\\r\n]|\\[nrt\\'"])*"|'([^'\\\r\n]|\\[nrt\\'"])*'/;
+[contextual][pattern] token GrammarPattern = /\/([^/\\\[\r\n]|\\[^\r\n]|\[([^\\\]\r\n]|\\[^\r\n])*\])*\//;
+[contextual][operator] token GrammarCharacter = /[^{}\r\n]/;
+[contextual][number] token AttributeInteger = /[0-9]+/;
+parse Attributes = $list:AttributeList | ;
+parse AttributeList = $previous:AttributeList $attribute:Attribute | $attribute:Attribute;
+parse Attribute = '[' $name:Identifier ']' | '[' $name:Identifier '(' $args:AttributeArguments ')' ']';
+parse AttributeArguments = $previous:AttributeArguments ',' $argument:AttributeArgument | $argument:AttributeArgument;
+parse AttributeArgument = $name:Identifier | $string:String | $integer:AttributeInteger;
+parse GrammarDeclaration = $attributes:Attributes 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement ';';
+parse GrammarTemplate = '{' GrammarTemplateItems '}';
+parse GrammarTemplateItems = GrammarTemplateItems GrammarTemplateItem | ;
+parse GrammarTemplateItem = GrammarTemplate | [^'{' '}'] | GrammarCharacter;
+parse GrammarTokenDeclaration = $attributes:Attributes 'token' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
+parse GrammarSkipDeclaration = $attributes:Attributes 'skip' $name:Identifier '=' $pattern:GrammarPattern $mode:GrammarTokenMode $style:GrammarStyle ';';
+parse GrammarTokenMode = | 'when' 'expected';
+parse GrammarAssignment = '=' | '|=';
+parse GrammarReplacement = | '=>' 'replace' $body:GrammarTemplate;
+parse GrammarAlternatives = $previous:GrammarAlternatives '|' $sequence:GrammarSequence
+                           | $sequence:GrammarSequence;
+parse GrammarSequence = $previous:GrammarSequence $term:GrammarTerm | ;
+parse GrammarTerm = $atom:GrammarAtom $suffix:GrammarSuffix;
+parse GrammarSuffix = '*' | '+' | '?' | ;
+parse GrammarAtom = $literal:String | $reference:Identifier | '$' $capture:Identifier
+                   | '$' $capture:Identifier ':' $reference:Identifier | '[^' $set:GrammarTokenSet ']';
+parse GrammarTokenSet = $previous:GrammarTokenSet $literal:String | ;
+parse GrammarStyle = | 'as' $kind:Identifier;
+parse ImportDeclaration = 'import' $name:Identifier ';' | 'import' $name:String ';'
+                         | 'import' $name:Identifier 'as' $alias:Identifier ';'
+                         | 'import' $name:String 'as' $alias:Identifier ';';
+
+// Optional production binding power. Larger numbers bind more tightly.
+// Ordinary recursive/chained grammars need no annotation.
+[contextual][number] token GrammarPrecedenceNumber = /[0-9]+/;
+[contextual][keyword] token GrammarAssociativity = /left|right|nonassoc|L>R|R<L/;
+parse GrammarPrecedence = | '@' $level:GrammarPrecedenceNumber $direction:GrammarAssociativity;
+parse GrammarDeclaration = $attributes:Attributes 'parse' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $precedence:GrammarPrecedence $replacement:GrammarReplacement ';';

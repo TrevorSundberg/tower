@@ -1,0 +1,56 @@
+import session;
+import library.vector;
+import backend.text;
+import library.testing;
+
+fn extend_grammar(grammar: u8*, suffix: u8*): u8* {
+    var source = module_builtin(grammar);
+    defer free(source);
+    var addition = module_fixture(suffix);
+    defer free(addition);
+    var out: vector(u8) = default;
+    assert(backend_text(&out, source));
+    assert(backend_text(&out, addition));
+    return out.data;
+}
+
+fn marker(path: u8*, suffix: u8*): void {
+    var source = extend_grammar("tower", suffix);
+    defer free(source);
+    module_put(path, source);
+}
+
+test() {
+    var entry = "units/main.tower";
+    var local = "units/tower.tower";
+    module_root_files();
+    marker("tower.tower", "marker_one.tower");
+    module_configure(entry);
+    execute_file("marker_entry.tower");
+    check_output("root_marker.expected");
+    check_dependencies("root_deps.expected");
+
+    marker(local, "marker_two.tower");
+    module_configure(entry);
+    execute_file("marker_entry.tower");
+    check_output("near_marker.expected");
+    check_dependencies("near_deps.expected");
+
+    marker(local, "marker_three.tower");
+    module_configure(entry);
+    execute_file("marker_entry.tower");
+    check_output("edited_marker.expected");
+    check_dependencies("near_deps.expected");
+
+    install_file(local, "missing_grammar.tower");
+    module_configure(entry);
+    execute_file("marker_entry.tower");
+    check_error(local, "Cannot read imported module: missing_grammar");
+    check_dependencies("broken_near_deps.expected");
+
+    module_remove(local);
+    module_configure(entry);
+    execute_file("quoted_marker_entry.tower");
+    check_output("root_marker.expected");
+    check_dependencies("root_deps.expected");
+}

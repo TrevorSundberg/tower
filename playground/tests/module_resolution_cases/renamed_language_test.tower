@@ -1,0 +1,39 @@
+import session;
+import library.vector;
+import backend.text;
+import library.testing;
+
+// Substitute one import in the current public grammar without copying a grammar snapshot.
+fn rename_import(path: u8*, grammar: u8*, old_import: u8*, new_import: u8*): void {
+    var source = module_builtin(grammar);
+    defer free(source);
+    var offset: usize = 0;
+    while !backend_prefix(source + offset, old_import) {
+        assert(source[offset] != 0, old_import);
+        offset++;
+    }
+    var out: vector(u8) = default;
+    defer vector_dispose(&out);
+    assert(backend_text_append(&out, source, offset));
+    assert(backend_text(&out, new_import));
+    assert(backend_text(&out, source + offset + backend_length(old_import)));
+    module_put(path, out.data);
+}
+
+test() {
+    var declarations = module_builtin("bedrock");
+    defer free(declarations);
+    module_put("syntax/declarations.tower", declarations);
+    rename_import("syntax/operations.tower", "foundation_syntax", "import bedrock;", "import \"declarations.tower\";");
+    rename_import("syntax/core.tower", "foundation", "import foundation_syntax;", "import \"operations.tower\";");
+    rename_import("syntax/language.tower", "tower", "import foundation;", "import \"core.tower\";");
+    module_root_files();
+    module_remove("tower.tower");
+    module_remove("foundation.tower");
+    module_remove("bedrock.tower");
+    module_put("bedrock.tower", declarations);
+    module_configure("units/main.tower");
+    execute_file("renamed_entry.tower");
+    check_output("answer.expected");
+    check_dependencies("renamed_deps.expected");
+}

@@ -1,0 +1,14 @@
+import session;
+
+test() {
+    module_root_files();
+    module_remove("tower.tower");
+    module_configure("units/main.tower");
+    execute_file("print_answer.tower");
+    check_error("units/main.tower", "Cannot read imported module: tower");
+
+    install_file("tower.tower", "import_tower.tower");
+    module_configure("units/main.tower");
+    execute_file("import_tower.tower");
+    check_error("tower.tower", "Import cycle");
+}
