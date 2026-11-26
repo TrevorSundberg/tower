@@ -1,0 +1,84 @@
+import library.testing;
+import library.test_data;
+import backend.text;
+
+// Handles refer to results in this registration. Node retains the real worker
+// messages and objects until the selected test finishes. Text and bytes copied
+// into this world belong to the caller.
+extern fn start_batch(source: u8*, workers: u32): u32;
+extern fn start_invalid(first: u8*, second: u8*, workers: u32, held_unit: u32): u32;
+extern fn start_cancelled(workers: u32): u32;
+extern fn start_recovery(): u32;
+extern fn start_target(target: u8*): u32;
+extern fn finished(build: u32): bool;
+extern fn diagnostic(build: u32): u8*;
+extern fn object_count(build: u32): usize;
+extern fn object_size(build: u32, name: u8*): usize;
+extern fn object_copy(build: u32, name: u8*): u8*;
+extern fn publication_count(build: u32): usize;
+extern fn publication(build: u32, index: usize): u8*;
+extern fn peak_workers(build: u32): u32;
+extern fn timing_count(build: u32): usize;
+extern fn interval_start(build: u32, index: usize): f64;
+extern fn interval_end(build: u32, index: usize): f64;
+extern fn worker_exits(build: u32): usize;
+extern fn admissions(build: u32): usize;
+extern fn aborted(build: u32): bool;
+extern fn text_matches(build: u32, field: u8*, pattern: u8*, flags: u8*): bool;
+extern fn target_status(build: u32): u8*;
+extern fn target_size(build: u32): usize;
+
+fn completed(build: u32): u32 {
+    // The host awaits this operation between interpreter steps.
+    while !finished(build) {}
+    return build;
+}
+
+fn successful(build: u32): u32 {
+    completed(build);
+    var error = diagnostic(build);
+    defer free(error);
+    assert(*error == 0, error);
+    return build;
+}
+
+fn check_object(serial: u32, parallel: u32, name: u8*): void {
+    var size = object_size(serial, name);
+    assert(object_size(parallel, name) == size, name);
+    var reference = object_copy(serial, name);
+    defer free(reference);
+    var actual = object_copy(parallel, name);
+    defer free(actual);
+    assert(test_bytes_equal(reference, actual, size), name);
+}
+
+fn check_objects(serial: u32, parallel: u32): void {
+    assert(object_count(serial) == 4 && object_count(parallel) == 4, "Four named objects");
+    check_object(serial, parallel, "batch-a.o");
+    check_object(serial, parallel, "batch-b.o");
+    check_object(serial, parallel, "batch-c.o");
+    check_object(serial, parallel, "batch-d.o");
+}
+
+fn check_publication(build: u32, index: usize, wanted: u8*): void {
+    var name = publication(build, index);
+    defer free(name);
+    assert(backend_equal(name, wanted), wanted);
+}
+
+fn check_order(build: u32): void {
+    assert(publication_count(build) == 4, "Four object callbacks");
+    check_publication(build, 0, "batch-a.o");
+    check_publication(build, 1, "batch-b.o");
+    check_publication(build, 2, "batch-c.o");
+    check_publication(build, 3, "batch-d.o");
+}
+
+fn check_failure(serial: u32, parallel: u32): void {
+    var wanted = diagnostic(serial);
+    defer free(wanted);
+    assert(*wanted != 0, "Serial compiler must reject the first unit");
+    var actual = diagnostic(parallel);
+    defer free(actual);
+    assert(backend_equal(actual, wanted), "Earliest source diagnostic must match serial");
+}

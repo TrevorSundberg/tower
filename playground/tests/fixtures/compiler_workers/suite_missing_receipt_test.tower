@@ -1,0 +1,9 @@
+import suite;
+
+test() {
+    var first = "semantic_invalid/enum_number.tower";
+    var serial = completed(start_invalid(first, null, 1, 0));
+    var parallel = completed(start_invalid(first, null, 2, 2));
+    check_failure(serial, parallel);
+    assert(!aborted(parallel), "Earlier failure must close the pool before the deadlock guard");
+}

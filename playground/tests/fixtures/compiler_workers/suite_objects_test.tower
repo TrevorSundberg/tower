@@ -1,0 +1,23 @@
+import suite;
+
+fn has_overlap(build: u32): bool {
+    var count = timing_count(build);
+    for (var i: usize = 0; i < count; ++i) {
+        for (var j: usize = 0; j < i; ++j) {
+            if interval_start(build, i) < interval_end(build, j)
+                && interval_start(build, j) < interval_end(build, i) { return true; }
+        }
+    }
+    return false;
+}
+
+test() {
+    var serial = successful(start_batch("parallel_unit.tower", 1));
+    for (var width: u32 = 2; width <= 4; width *= 2) {
+        var parallel = successful(start_batch("parallel_unit.tower", width));
+        check_objects(serial, parallel);
+        check_order(parallel);
+        assert(peak_workers(parallel) == width, "Peak admitted workers");
+        assert(has_overlap(parallel), "Two real unit compilation intervals must overlap");
+    }
+}

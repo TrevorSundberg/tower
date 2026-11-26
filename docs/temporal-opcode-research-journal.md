@@ -120716,3 +120716,33 @@ measure registration cost and give no compiler-worker scaling result. Coverage
 is Node execution of the production Wasm images. No browser UI, native
 sanitizer, or release rebuild ran for these test-only changes. Manager
 integration and publication remain separate.
+### Real compiler-worker registrations in selected Tower tests
+
+Host 3, assignment `bedf33c8-b72f-47c7-ab56-72c9e8e5d929`. The source
+freeze is `d45d8b105dd3a754974c6e500bae88850254ec20`. The eight original
+registrations are in `playground/tests/compiler-workers.test.mjs`. The four
+parallel-unit fixtures and two invalid enum fixtures supply their original
+source bytes. The shipped project and all four Wasm images come from Pages
+`8417c9ae4cd9accdf672b22d6676bd465c8a79d6`, compiler source `0da4e513`.
+The unchanged registrations passed 8/8 on these inputs before migration.
+
+Each original name selects one companion of
+`playground/tests/fixtures/compiler_workers/suite.tower` through
+`selectedTestSteps`. Tower requests the fixture, worker width or target and
+checks the returned observation before advancing. The host runs the original
+LLVM compiler, work coordinator and Node worker script. A registration retains
+its host result handles through its final comparison. The guest takes owned
+copies of object bytes and strings and frees each after use. Native start/end
+timestamps cross the observation boundary as f64. Cancellation still fires
+from first dispatch. The separate missing-receipt transport still withholds
+only unit 2's result and joins the real children under the 30-second guard.
+The original has no injected stale-revision message. Its code-generation
+oracle examines optimized LLVM text for a decimal-width i32 vector and
+requires a nonempty object for each target.
+
+The first selected run stopped during parsing because `expected` was used as
+a parameter name. Renaming it to `wanted` allowed the focused object/order
+selection to pass. Both complete portable and shared-frontend selections then
+passed 8/8 with the original worker and code-generation paths. The shared
+image runs the assertion frontend at capacity one. The subject compiler in
+both runs is the same shipped LLVM image.
