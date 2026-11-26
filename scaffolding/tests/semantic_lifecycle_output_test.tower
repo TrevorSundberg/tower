@@ -1,0 +1,40 @@
+import library.testing;
+import frontend_units;
+import frontend_units_memory;
+import .library.vector;
+import .compiler.semantic_program_types;
+import .compiler.interpreter_context_types;
+
+extern fn ix_init(execution: IMExecution*): void;
+
+fn lifecycle_output(program: SemanticProgram*, wanted: u8*): void {
+    var invocation: IMInvocation = default;
+    defer interpreter_invocation_dispose(&invocation);
+    invocation.state.stack = 16;
+    invocation.state.heap = 4194304;
+    invocation.context.root = program.root;
+    invocation.context.pointer_bytes = convert(usize, program.pointer_bytes);
+    var execution = init(IMExecution) { state: &invocation.state, context: &invocation.context };
+    ix_init(&execution);
+    while !invocation.state.done && !invocation.state.failed { interpreter_invocation_step(&invocation, 7); }
+    if invocation.state.failed { puts(invocation.context.error.data); }
+    assert(!invocation.state.failed && invocation.context.output.length == strlen(wanted),
+        "Lifecycle execution and exactly-once output length");
+    for(var i: usize = 0; i < invocation.context.output.length; i++) {
+        assert(invocation.context.output.data[i] == wanted[i], "Lifecycle independent wanted output");
+    }
+}
+
+fn lifecycle_compare(baseline: vector(u8)*, text: u8*, length: usize): void {
+    if baseline.length == 0 {
+        assert(vector_reserve(baseline, length + 1), "Lifecycle comparison allocation");
+        copy(baseline.data, text, length);
+        baseline.data[length] = 0;
+        baseline.length = length;
+    } else {
+        assert(baseline.length == length, "Lifecycle deterministic receipt length");
+        for(var i: usize = 0; i < length; i++) {
+            assert(baseline.data[i] == text[i], "Lifecycle serial/worker receipt bytes");
+        }
+    }
+}

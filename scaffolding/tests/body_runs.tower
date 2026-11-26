@@ -1,5 +1,5 @@
 import tower;
-import semantic_lifecycle_checks;
+import semantic_lifecycle_checks_test;
 import frontend_units;
 import .library.vector;
 import .compiler.semantic_program_types;

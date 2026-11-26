@@ -1,0 +1,320 @@
+import library.testing;
+import frontend_units;
+import frontend_units_memory;
+import world_budget;
+import .compiler.component_kinds;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.vector;
+import .compiler.semantic_program_types;
+import .compiler.format_types;
+import semantic_lifecycle_output_test;
+import .compiler.grammar_types;
+import .library.entity_types;
+import semantic_lifecycle_checks;
+
+fn lifecycle_pin_evaluation(payload: void*, phase: GrammarPhase, entering: bool, count: usize, lanes: usize): void {
+    if phase != GrammarPhase.FrontendParse && phase != GrammarPhase.SemanticStages { return; }
+    var pin = bits(LifecycleEvaluationPin*, payload);
+    if phase == GrammarPhase.FrontendParse {
+        if entering { return; }
+        for(var i: usize = 0; i < entity_query_count(pin.matches); i++) {
+            var node = entity_component_owner(entity_query_at(pin.matches, i));
+            if compiler_node_label(node, "TowerComptime") && sem_member(node, "value") != null {
+                assert(pin.subject == null, "Aggregate fixture has one staged expression");
+                pin.subject = bits(Entity*, node);
+            }
+        }
+        return;
+    }
+    // SemanticStages brackets the coordinator's publication after dispatch has
+    // joined. Wait until the checker has actually constructed the Pair fields.
+    if entering && !pin.refused && pin.subject != null && pin.subject.stage != null {
+        var value = sem_get(bits(void*, pin.subject));
+        if value != null && value.items.length != 0 {
+            assert(value.type.record != null && value.items.length == sem_get(value.type.record).items.length,
+                "Joined expression contains every projection of its declared aggregate");
+            pin.view = entity_view_open(pin.matches);
+            assert(pin.view != null, "Independent store view before aggregate publication");
+        }
+    }
+    if !entering && pin.view != null {
+        assert(pin.subject.stage == null, "Refused evaluation releases the expression lease before the other view");
+        entity_view_close(pin.view);
+        pin.view = null;
+        pin.refused = true;
+    }
+}
+
+fn lifecycle_trial(mode: SemanticLifecycleCase, budget: usize, width: u32, root: u8*,
+    bedrock: u8*, foundation: u8*, baseline: vector(u8)*, denied_offset: usize*): void {
+    var source: u8* = "import tower;fn word(n:usize):type{var bits=n;return integer_type(bits,1);}var Word:type=word(32);fn id(T:type,x:T):T{return x;}print(id(convert(Word,42)));";
+    var wanted: u8* = "42\n";
+    if mode == SemanticLifecycleCase.RootFailure {
+        source = "import tower;fn word(n:usize):type{var bits=n;return integer_type(bits,1);}var Word:type=word(32);fn bad(T:type):T{return true;}print(bad(Word));";
+        wanted = "Expected i32, got bool";
+    }
+    if mode == SemanticLifecycleCase.SignatureOnly {
+        source = "import tower;fn word(n:usize):type{var bits=n;return integer_type(bits,1);}var Word:type=word(32);fn bad(T:type):T{return true;}var value:decltype(bad(Word))=42;print(value);";
+    }
+    if mode == SemanticLifecycleCase.Initializer {
+        source = "import tower;struct Inner{first:i32;second:i32;}struct Outer{inner:Inner;tail:i32;}var calls:i32=0;fn next():i32{calls++;return calls;}fn id(T:type,x:T):T{return x;}var result=id(init(Outer){inner:{first:next(),..default},tail:next()});print(result.inner.first);print(result.inner.second);print(result.tail);print(calls);";
+        wanted = "1\n0\n2\n2\n";
+    }
+    if mode == SemanticLifecycleCase.Mismatch {
+        source = "import tower;struct A{value:i32;}struct B{value:i32;}fn use(value:A):i32{return value.value;}print(use(init(B){value:1}));";
+        wanted = "Expected A, got B";
+    }
+    if mode == SemanticLifecycleCase.Nominal {
+        source = "import tower;fn box(T:type):type{struct Box{value:T;}return Box;}fn alias(T:type):type{return box(T);}var Box:type=alias(i32);fn size():usize{return sizeof(alias(i32));}var value:Box;value.value=7;print(value.value);print(sizeof(Box));print(size());";
+        wanted = "7\n4\n4\n";
+    }
+    if mode == SemanticLifecycleCase.TypeOperand {
+        source = "import tower;fn word(n:usize):type{var bits=n;return integer_type(bits,1);}print(sizeof(word(16)));fn size():usize{return sizeof(word(32));}print(size());";
+        wanted = "2\n4\n";
+    }
+    if mode == SemanticLifecycleCase.Untaken {
+        source = "import tower;fn bad():type{return integer_type(24,1);}fn middle():type{return bad();}fn chosen():type{if false{return middle();}return integer_type(32,1);}var Selected:type=chosen();var value:Selected=7;print(value);";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.RecursiveNominal {
+        source = "import tower;fn alias(T:type):type{return record(T);}fn record(T:type):type{struct Record{next:alias(T)*;value:T;}return Record;}var value:alias(u32);print(sizeof(decltype(value)));";
+        wanted = width == 4 ? "8\n" : "16\n";
+    }
+    if mode == SemanticLifecycleCase.NominalDefault {
+        source = "import tower;fn alias(T:type):type{return record(T);}fn record(T:type):type{struct Record{next:alias(T)*;value:T;}return Record;}var Identity:type=alias(u32);var value=default(Identity);print(value.value);print(value.next==null);print(sizeof(Identity));";
+        wanted = width == 4 ? "0\ntrue\n8\n" : "0\ntrue\n16\n";
+    }
+    if mode == SemanticLifecycleCase.NominalCycle {
+        source = "import tower;fn alias(T:type):type{return record(T);}fn record(T:type):type{struct Record{next:alias(T);value:T;}return Record;}var Identity:type=alias(u32);print(sizeof(Identity));";
+        wanted = "Recursive by-value layout";
+    }
+    if mode == SemanticLifecycleCase.CapturedAlias {
+        source = "import tower;fn f():type{var result:type=u8;return result;}var Alias:type=f();print(sizeof(Alias));";
+        wanted = "1\n";
+    }
+    if mode == SemanticLifecycleCase.ShadowedAlias {
+        source = "import tower;fn f():type{var u8:type=i16;return u8;}var Alias:type=f();print(sizeof(Alias));";
+        wanted = "2\n";
+    }
+    if mode == SemanticLifecycleCase.LocalStageType {
+        source = "import tower;fn word():type{return integer_type(32,1);}fn run():i32{var selected=comptime(word());var value:selected=7;return value;}print(run());";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.NestedStage {
+        source = "import tower;fn run():i32{var first=comptime(4+3);return comptime(comptime(first*2)+1);}print(run());";
+        wanted = "15\n";
+    }
+    if mode == SemanticLifecycleCase.UntakenForward {
+        source = "import tower;fn read():i32{if false{return Later;}return 3;}var Earlier:i32=read();var Later:i32=9;print(comptime(Later));print(Earlier);";
+        wanted = "9\n3\n";
+    }
+    if mode == SemanticLifecycleCase.EarlyRead {
+        source = "import tower;fn read():i32{return Later;}var Earlier:i32=read();var Later:i32=9;print(Earlier);print(comptime(Later));";
+        wanted = "0\n9\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureReuse {
+        source = "import tower;fn read():i32{return convert(i32,Later);}var Force:type=array_type(u8,Later);var Earlier:i32=read();var Later:usize=9;print(Earlier);print(sizeof(Force));";
+        wanted = "0\n9\n";
+    }
+    if mode == SemanticLifecycleCase.EarlyCapture {
+        source = "import tower;fn read():i32{return Later;}var Earlier:i32=read();var Later:i32=9;print(comptime(Earlier));";
+        wanted = "before its initialization";
+    }
+    if mode == SemanticLifecycleCase.MutableCapture {
+        source = "import tower;fn run():i32{var value=7;var result=comptime(value);value++;return result;}print(run());";
+        wanted = "binding is mutable, escaped or lacks an initializer";
+    }
+    if mode == SemanticLifecycleCase.EscapedCapture {
+        source = "import tower;fn run():i32{var value=7;var alias=&value;return comptime(value);}print(run());";
+        wanted = "binding is mutable, escaped or lacks an initializer";
+    }
+    if mode == SemanticLifecycleCase.ParameterCapture {
+        source = "import tower;fn first():i32{var value=7;return comptime(value);}fn second(value:i32):i32{return comptime(value);}print(first());print(second(9));";
+        wanted = "binding is mutable, escaped or lacks an initializer";
+    }
+    if mode == SemanticLifecycleCase.UntakenMutable {
+        source = "import tower;var Mutable=0;Mutable=1;fn choose():i32{if false{return Mutable;}return 7;}print(comptime(choose()));";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.StagedArray {
+        source = "import tower;fn identity(T:type,value:T):T{return value;}fn nested():i32{var total:i32=0;{var values:i32[2];values[0]=identity(3);values[1]=identity(4);total+=values[0]+values[1];}return total;}print(comptime(nested()));";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.ModuleCapture {
+        source = "import tower;import tests.semantic_capture_module as first;import tests.semantic_capture_module as second;print(comptime(first.read()+second.Captured));";
+        wanted = "14\n";
+    }
+    if mode == SemanticLifecycleCase.ModuleWrite {
+        source = "import tower;import tests.semantic_capture_module as first;import tests.semantic_capture_module as second;first.Captured=9;print(comptime(second.Captured));";
+        wanted = "binding is mutable, escaped or lacks an initializer";
+    }
+    if mode == SemanticLifecycleCase.ModuleEscape {
+        source = "import tower;import tests.semantic_capture_module as first;import tests.semantic_capture_module as second;var pointer=&first.Captured;print(comptime(second.Captured));";
+        wanted = "binding is mutable, escaped or lacks an initializer";
+    }
+    if mode == SemanticLifecycleCase.ComplexCapture {
+        source = "import tower;var Earlier:i32=Later+1;var Later:i32=9;print(comptime(Earlier));";
+        wanted = "Compile-time initializer reads a module binding before its initialization";
+    }
+    if mode == SemanticLifecycleCase.CaptureAddress {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}var fixed=address();print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.CaptureComparison {
+        source = "import tower;fn equal():bool{var a=1;var b=2;return &a==&b;}var fixed=equal();print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.LocalCaptureAddress {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}fn run():usize{var fixed=address();return comptime(fixed);}print(run());";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureAddress {
+        source = "import tower;fn value(take:bool):usize{var x=1;if take{return bits(usize,&x);}return 42;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "42\n";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureComparison {
+        source = "import tower;fn value(take:bool):bool{var a=1;var b=2;if take{return &a==&b;}return true;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "true\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureFunction {
+        source = "import tower;fn answer():i32{return 42;}fn selected():function(i32){return answer;}var chosen=selected();var fixed=comptime(chosen);print(fixed());";
+        wanted = "42\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureType {
+        source = "import tower;fn word():type{return integer_type(16,0);}var chosen:type=word();var fixed=comptime(chosen);print(sizeof(fixed));";
+        wanted = "2\n";
+    }
+    if mode == SemanticLifecycleCase.ExplicitAddresses {
+        source = "import tower;fn address():usize{var x=1;return bits(usize,&x);}fn equal():bool{var a=1;var b=2;return &a==&b;}print(comptime(address())!=0);print(comptime(equal()));";
+        wanted = "true\nfalse\n";
+    }
+    if mode == SemanticLifecycleCase.CaptureEffect {
+        source = "import tower;var count=0;fn value():i32{count++;return 7;}var fixed=value();print(comptime(fixed));";
+        wanted = "cannot capture runtime storage";
+    }
+    if mode == SemanticLifecycleCase.ExecutedCaptureAddress {
+        source = "import tower;fn value(take:bool):usize{var x=1;if take{return bits(usize,&x);}return 42;}var fixed=value(true);print(comptime(fixed));";
+        wanted = "Automatic compile-time value depends on an address representation";
+    }
+    if mode == SemanticLifecycleCase.UntakenCaptureEffect {
+        source = "import tower;fn value(take:bool):i32{if take{print(9);}return 7;}var fixed=value(false);print(comptime(fixed));";
+        wanted = "7\n";
+    }
+    if mode == SemanticLifecycleCase.ExecutedCaptureEffect {
+        source = "import tower;fn value(take:bool):i32{if take{print(9);}return 7;}var fixed=value(true);print(comptime(fixed));";
+        wanted = "Compile-time output requires an explicit effect capability";
+    }
+    if mode == SemanticLifecycleCase.AggregateCapture {
+        source = "import tower;struct Pair{first:i32;second:i32;}fn value():Pair{return {first:7,second:8};}var Value:Pair=value();var staged=comptime(Value);print(staged.first);print(staged.second);";
+        wanted = "7\n8\n";
+    }
+    if mode == SemanticLifecycleCase.LocalAggregateCapture {
+        source = "import tower;struct Pair{first:i32;second:i32;}fn value():Pair{return {first:7,second:8};}fn run():i32{var local:Pair=value();var staged=comptime(local);return staged.first+staged.second;}print(run());";
+        wanted = "15\n";
+    }
+    var batch = frontend_units_create(1, budget, width, 83, 27, bedrock, foundation, root);
+    assert(batch != null, "Lifecycle unit create");
+    defer frontend_units_close(batch);
+    assert(frontend_units_source(batch, 1, "semantic_lifecycle.tower", source, strlen(source)), "Lifecycle source snapshot");
+    if denied_offset != null {
+        var world = frontend_modules_world(frontend_units_environment(batch, 1));
+        var pin: LifecycleEvaluationPin = {matches: compiler_world_type(world, CompilerParserMatch), ..default};
+        var grammar = compiler_world_grammar(world);
+        grammar.observer = {context: bits(void*, &pin), event: lifecycle_pin_evaluation};
+        while !frontend_units_step(batch, true) {}
+        grammar.observer = default;
+        assert(pin.refused && frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+            && frontend_units_failure_resource(batch) == WorkBudgetError.Busy, "Joined aggregate publication preserves Busy");
+        var offset = frontend_units_error_offset(batch);
+        if budget == 1 { *denied_offset = offset; }
+        var before: WorkBudgetSnapshot = default;
+        var after: WorkBudgetSnapshot = default;
+        assert(work_budget_snapshot(frontend_units_work_budget(batch), &before) && before.used_lanes == 0
+            && frontend_units_step(batch, false) && frontend_units_step(batch, true)
+            && frontend_units_failure_resource(batch) == WorkBudgetError.Busy && frontend_units_error_offset(batch) == offset
+            && offset == *denied_offset && work_budget_snapshot(frontend_units_work_budget(batch), &after)
+            && after.used_lanes == 0 && after.live == before.live && after.used_bytes == before.used_bytes,
+            "Terminal aggregate refusal preserves the first owner and drained budget across retries");
+        return;
+    }
+    while !frontend_units_step(batch, true) {}
+    assert(!frontend_units_cancelled(batch), "Lifecycle unit completes");
+    var error = frontend_units_error(batch);
+    var invalid = mode == SemanticLifecycleCase.RootFailure || mode == SemanticLifecycleCase.Mismatch
+        || mode == SemanticLifecycleCase.NominalCycle || mode == SemanticLifecycleCase.EarlyCapture
+        || mode == SemanticLifecycleCase.MutableCapture || mode == SemanticLifecycleCase.EscapedCapture
+        || mode == SemanticLifecycleCase.ParameterCapture || mode == SemanticLifecycleCase.ModuleWrite
+        || mode == SemanticLifecycleCase.ModuleEscape || mode == SemanticLifecycleCase.ComplexCapture
+        || mode == SemanticLifecycleCase.CaptureAddress || mode == SemanticLifecycleCase.CaptureComparison
+        || mode == SemanticLifecycleCase.LocalCaptureAddress || mode == SemanticLifecycleCase.CaptureEffect
+        || mode == SemanticLifecycleCase.ExecutedCaptureAddress || mode == SemanticLifecycleCase.ExecutedCaptureEffect;
+    if invalid {
+        if frontend_units_failed(batch) != 1 || strstr(error, wanted) == null { puts(error); }
+        assert(frontend_units_failed(batch) == 1 && strstr(error, wanted) != null
+            && frontend_units_program(batch, 1) == null, "Lifecycle failure prevents incomplete graph publication");
+        if mode == SemanticLifecycleCase.RootFailure {
+            var trace = strstr(error, "Instantiated by bad(");
+            assert(trace != null && strstr(trace + 1, "Instantiated by bad(") == null,
+                "Complete diagnostic receipt carries one instantiation trace");
+        }
+        lifecycle_compare(baseline, error, strlen(error));
+        return;
+    }
+    if frontend_units_failed(batch) != 0 { puts(error); }
+    assert(frontend_units_failed(batch) == 0, "Lifecycle valid source compilation");
+    var program = frontend_units_program(batch, 1);
+    assert(program != null, "Lifecycle complete graph publication");
+    lifecycle_output(program, wanted);
+    var formatted: FormatResult = default;
+    defer format_dispose(&formatted);
+    format_entity(&formatted, program.root, null, null, null);
+    assert(!formatted.failed, "Lifecycle Foundation formatting");
+    lifecycle_compare(baseline, formatted.text.data, formatted.text.length);
+    if budget != 1 { return; }
+    var reconstructed = frontend_units_create(1, budget, width, 84, 27, bedrock, foundation, root);
+    assert(reconstructed != null, "Lifecycle round-trip unit");
+    defer frontend_units_close(reconstructed);
+    assert(frontend_units_source(reconstructed, 1, "semantic_lifecycle_foundation.tower",
+        formatted.text.data, formatted.text.length), "Lifecycle Foundation snapshot");
+    while !frontend_units_step(reconstructed, true) {}
+    if frontend_units_failed(reconstructed) != 0 { puts(frontend_units_error(reconstructed)); }
+    assert(!frontend_units_cancelled(reconstructed) && frontend_units_failed(reconstructed) == 0,
+        "Lifecycle Foundation reconstruction");
+    lifecycle_output(frontend_units_program(reconstructed, 1), wanted);
+}
+
+fn semantic_lifecycle_range(root: u8*, bedrock: u8*, foundation: u8*, first: SemanticLifecycleCase, last: SemanticLifecycleCase): void {
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var mode = convert(u32, first); mode <= convert(u32, last); mode++) {
+            var baseline: vector(u8) = default;
+            defer vector_dispose(&baseline);
+            var which = convert(SemanticLifecycleCase, mode);
+            lifecycle_trial(which, 1, width, root, bedrock, foundation, &baseline, null);
+            lifecycle_trial(which, 4, width, root, bedrock, foundation, &baseline, null);
+            if which == SemanticLifecycleCase.AggregateCapture || which == SemanticLifecycleCase.LocalAggregateCapture {
+                var offset: usize = 0;
+                lifecycle_trial(which, 1, width, root, bedrock, foundation, &baseline, &offset);
+                lifecycle_trial(which, 4, width, root, bedrock, foundation, &baseline, &offset);
+            }
+        }
+    }
+}
+
+fn semantic_lifecycle_checks(root: u8*, bedrock: u8*, foundation: u8*): void {
+    semantic_lifecycle_range(root, bedrock, foundation, SemanticLifecycleCase.RootCall, SemanticLifecycleCase.LocalAggregateCapture);
+}
+
+fn semantic_capture_policy_checks(root: u8*, bedrock: u8*, foundation: u8*): void {
+    semantic_lifecycle_range(root, bedrock, foundation, SemanticLifecycleCase.CaptureAddress, SemanticLifecycleCase.ExecutedCaptureEffect);
+}
+
+test() {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(".", "/bedrock.tower", &bedrock);
+    units_read(".", "/foundation.tower", &foundation);
+    semantic_lifecycle_checks(".", bedrock.data, foundation.data);
+}

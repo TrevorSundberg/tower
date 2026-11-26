@@ -2,7 +2,7 @@ import library.testing;
 import staged_capture_identity;
 import frontend_units;
 import frontend_units_memory;
-import semantic_lifecycle_checks;
+import semantic_lifecycle_output_test;
 import .compiler.format_types;
 import .library.bytes_types;
 import .library.bytes_interface;

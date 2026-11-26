@@ -34,8 +34,12 @@ function(tower_execution_tests)
       --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-execution-services>")
     tower_native_test_selections(module-body-type module_body_type_checks "7 tests" "2 tests" ${execution_services})
     tower_native_test_selections(retained-sources retained_sources "6 tests" "1 test" ${execution_services})
+    tower_native_test_selections(semantic-lifecycle semantic_lifecycle_checks "6 tests" "1 test" ${execution_services})
     foreach(jobs IN ITEMS 1 4)
-      set_tests_properties(tower-module-body-type-owner-jobs-${jobs} tower-module-body-type-direct-jobs-${jobs}
+      set_tests_properties(tower-semantic-lifecycle-owner-jobs-${jobs} tower-semantic-lifecycle-direct-jobs-${jobs}
+        PROPERTIES TIMEOUT 180)
+      set_tests_properties(tower-semantic-lifecycle-owner-jobs-${jobs} tower-semantic-lifecycle-direct-jobs-${jobs}
+        tower-module-body-type-owner-jobs-${jobs} tower-module-body-type-direct-jobs-${jobs}
         tower-retained-sources-owner-jobs-${jobs} tower-retained-sources-direct-jobs-${jobs}
         PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     endforeach()
