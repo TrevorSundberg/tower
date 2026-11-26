@@ -1,0 +1,4 @@
+import foundation;
+
+fn forever(): i32 { loop {} }
+print(forever());

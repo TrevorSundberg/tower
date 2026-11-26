@@ -1,0 +1,60 @@
+import tower;
+
+fn standalone(): i32 {
+    var n: i32 = 5;
+    n++;
+    ++n;
+    return n;
+}
+
+var value = standalone();
+var postfix = value++;
+print(postfix);
+var prefix = ++value;
+print(prefix);
+
+var sum = value++ + ++value;
+print(sum);
+var after_sum = value;
+print(after_sum);
+
+fn identity(n: i32): i32 { return n; }
+var nested = identity(identity(value++));
+print(nested);
+fn next(): i32 { return value++; }
+var returned = next();
+print(returned);
+var after_return = value;
+print(after_return);
+
+fn condition(n: i32): bool { return true; }
+fn branch(): bool {
+    var entered = false;
+    if false { value++; }
+    if condition(value++) { entered = true; }
+    return entered;
+}
+var entered = branch();
+print(entered);
+print(value);
+
+var array: i32[2] = {20, 30};
+var index: i32 = 0;
+var element = array[index++]++;
+print(element);
+print(index);
+print(array[0]);
+
+struct S { field: i32; }
+var s: S = { field: 40 };
+var field_postfix = s.field++;
+print(field_postfix);
+var field_prefix = ++s.field;
+print(field_prefix);
+var pointer = &s;
+fn advance_field(): i32 {
+    pointer.field++;
+    return pointer.field;
+}
+var pointer_field = advance_field();
+print(pointer_field);
