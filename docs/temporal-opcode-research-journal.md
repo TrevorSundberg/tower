@@ -109397,3 +109397,32 @@ expected byte at compiletime_case.tower:18:5 and passed after restoration at
 both widths. A runtime call still diagnosed missing_body_value. The host 6
 receipt c5a50ceb contains the three cursor comparisons, the rejected
 intermediate, resource measurements and the independent release gates.
+
+### Install and relocate the Ubuntu compiler built from 41de9006
+
+Host 3 checked both producer receipts and their five named members. Merging
+package commit `7e34072d999e1cc8f7d0f619099f32077b67f697` into published
+`6f666ed6` produced tree `29f13e4dc5268d508a68a6b1c0670b915e3a6bdd`.
+The archive retained the producer's SHA-256
+`6dd19c7f17e029d758e41c4732235a36fdf424726eaf895a09e80db45853ab27`.
+All 62 file contents and modes matched the pin. The checkout's installer
+changed its package revision and checksum-list digest. Its Git blob is
+`84e5332cbfee62843ec79439e7335914e506bd5f`.
+
+The three README examples ran against a loopback HTTPS mirror on Debian 12
+with LLVM/Clang 19.1.7. A fresh install fetched the installer blob, checksum
+list and 60 payloads. A repeat verified the installed copy. With the original
+prefix gone, the depfile named the relocated grammar and Linux runtime.
+The interpreter and the linked sample both printed 42. Linking at each
+prefix produced the same executable. Separate damage to the archive, checksum
+list and grammar payload produced exit 1. Archive verification stopped before
+creating the prefix. Both installer failures cleaned their staging directories,
+and the restored files installed into the same prefix.
+
+On an AMD EPYC 7542 with affinity 0–3 and shared cgroup quota 12.288 CPUs,
+the fresh installer took 0.31 s wall, 0.10 s user, 0.01 s system and
+51,836 KiB peak RSS. Repeat verification took 0.15 s wall, 0.06 s user,
+0.01 s system and 52,284 KiB. These single observations include loopback
+transfer of the installer. The installed package and its compiler build source
+retain their producer identities. Assignment `67d8f652` supplies the exact
+download files and a metadata delta for the manager's atomic Pages publication.

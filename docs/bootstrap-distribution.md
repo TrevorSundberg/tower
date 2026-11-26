@@ -112,6 +112,17 @@ Keep explicit prerequisites for generated inputs that must exist before compilat
 
 ### Install the Linux x64 development compiler as a normal user
 
+For the compiler built from `41de9006adff910a23d810010576ef66934fa1c8`,
+the installer pins package `7e34072d999e1cc8f7d0f619099f32077b67f697`.
+It authenticates the checksum list before fetching the 60 files named in it.
+The versioned archive `41de9006-linux-x64.tar.gz` contains those files,
+the checksum list and the build manifest. Its SHA-256 is
+`6dd19c7f17e029d758e41c4732235a36fdf424726eaf895a09e80db45853ab27`.
+The README gives both install methods and a sample to run after moving the
+prefix. [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
+
+### Historical installer for `8bc867b6`
+
 The installer for the compiler built from `8bc867b6` pins package
 `15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6`
 and authenticates `linux-x64/SHA256SUMS` before downloading the 60 named payloads.
