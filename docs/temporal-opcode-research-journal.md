@@ -120746,3 +120746,62 @@ selection to pass. Both complete portable and shared-frontend selections then
 passed 8/8 with the original worker and code-generation paths. The shared
 image runs the assertion frontend at capacity one. The subject compiler in
 both runs is the same shipped LLVM image.
+
+#### Worker output, failure controls and cost
+
+The original and migrated transport observations agree across 18 calls,
+including unit entry/source hashes, admission, ordered publication, delivered
+unit numbers and object hashes, errors, peak grants, aborts and child exits.
+The retained traces include the actual lane, start/end and thread ID. Each
+complete run created and retired 31 real unit workers. The shared assertion
+frontend used one additional Wasm pthread worker.
+
+| Selected case | Observed original and migrated result |
+| --- | --- |
+| Fixture objects | Serial and widths 2 and 4 returned the same four named byte arrays. Both worker builds published a/b/c/d, reached their requested peak and had intersecting unit intervals. |
+| Generic inference | The four independent inferred units matched serial exactly at both widths, in order, with peaks 2 and 4. |
+| Cancellation | The first dispatch triggered the abort. Two workers exited, publication was empty and the fresh one-worker build returned a 672-byte batch-a.o. |
+| Staged dependencies | The known-value fixture returned four serial-identical objects at both widths and reached peaks 2 and 4. |
+| Diagnostic order | Both invalid sources were admitted. Serial and two-worker builds selected the same batch-a enum diagnostic and published zero objects. |
+| Missing receipt | The unit-2 result filter stayed in the transport. The observed delivery contained only unit 1, both workers exited and the 30-second fallback did not fire. |
+| Vectorization | Each optimized native IR contained 17 occurrences of `<4 x i32>`. Baseline Wasm contained none. The x86-64, AArch64 and Wasm objects were 1,040, 840 and 672 bytes. The test allows any decimal vector width. |
+| Borrowed iteration | All four independently compiled objects matched serial at widths 2 and 4, with ordered callbacks and matching peaks. |
+
+All 52 object artifacts and six before/after LLVM texts compared byte for byte
+between the original and both assertion frontends. In a disposable copy,
+changing one Tower expectation per registration failed 8/8 on each frontend.
+A separate same-length, one-bit corruption of the guest's reference copy
+failed the full byte comparison for batch-a.o. Restoring the original Tower
+source bytes returned both complete suites to 8/8. Compiler-build failures at
+calls 6 and 11–14 are expected subject outcomes. The independent original
+Node registration and the selected Tower declaration both required them.
+
+AMD EPYC 7542, Node 24.22.3, Linux x64, warm files, fresh processes, one
+command at a time, affinity 0–3 on distinct cores. The effective cpuset was
+0–63, cgroup quota 1,228,800/100,000 µs (12.288 CPUs), memory limit
+57,954,795,520 bytes. Cgroup throttling did not increment in any timed cell.
+Two untraced full-file pairs ran in opposite order. Figures are wall seconds,
+user+system CPU seconds and GNU time maximum resident KiB.
+
+| Pair | Original | Selected portable |
+| --- | --- | --- |
+| Original first | 14.05 / 20.73 / 741280 | 14.87 / 22.32 / 725672 |
+| Selected first | 12.96 / 20.77 / 733656 | 15.88 / 22.37 / 713468 |
+
+The added assertion reactor and its eight guest compilations cost 1.87 s
+mean wall and 1.60 s mean CPU in these pairs. The raw packet also contains
+one fresh original/selected process pair per registration. A separate
+portable memory observation measured 28,246,016 bytes of Wasm capacity
+after the first selected handle closed and the same capacity after the
+eighth. The public live-node count went from 6,503 before the first selection
+to 13,483 after each handle closed. The legacy allocation counter was zero
+throughout the recorded snapshots. These counters describe the assertion
+reactor. The shipped reactors and V8/Node worker transport were exercised
+without ASan, UBSan or TSan instrumentation. No native compiler, browser UI
+or runtime rebuild was involved.
+
+Assignment archive `bedf33c8-b72f-47c7-ab56-72c9e8e5d929.tar.gz` contains
+the public manifest and verified hashes, raw process/worker traces, all
+binary comparisons, injected failures, restored results and local Git
+bundles. The implementation at the requested freeze is `12f30be7`.
+Publication belongs to the manager.
