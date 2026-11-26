@@ -1,0 +1,7 @@
+import library.testing;
+import decimal_round_trips;
+
+test() {
+    var result = generated_decimal_round_trips();
+    assert(result.failures == 0, result.first_failure);
+}

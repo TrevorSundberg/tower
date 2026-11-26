@@ -2139,6 +2139,15 @@ support direct portable interpretation. The companion and ordinary-named `librar
 `tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
 and the SCC registration names remain supported.
 
+The float-text library companion covers signed decimals, binary32 midpoints,
+range limits, rejected input and five format/parse boundaries. The separate
+`tests/decimal_round_trips_test.tower` companion runs the 512-step finite-value
+stream. Select `^tower-selected-float-text-` in CTest to run both owners and
+both direct companions at one and four jobs. The library and stream owners
+select 14 and 15 declarations respectively, including nine arithmetic tests.
+The direct companions select five and one. The standalone `tests/float_text.tower`
+runs all six decimal groups and prints the total failure count.
+
 For WorkGraph, `tower-selected-work-graph-jobs-{1,4}` selects the owner and
 `tower-selected-work-graph-direct-jobs-{1,4}` selects the companion. Both run
 the eight suspension declarations. The owner also selects the five budget
