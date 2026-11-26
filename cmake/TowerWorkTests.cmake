@@ -207,8 +207,15 @@ if(TARGET towerc)
     tower_companion_test(tower-generic-body-copy-types compiler/generic_body_types_test.tower ${workers})
     tower_companion_test(tower-semantic-layout-registry compiler/semantic_layout_test.tower ${workers} --test-suffix _spec.tower)
     tower_companion_test(tower-default-initialization compiler/semantic_expressions_test.tower ${workers})
+    set(aggregate_suite "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_aggregates_test.tower")
+    add_test(NAME tower-named_initialization_test-${workers}
+      COMMAND "${CMAKE_COMMAND}" "-DTOWER_COMPILER=$<TARGET_FILE:towerc>"
+        "-DTOWER_INPUT=${aggregate_suite}" "-DTOWER_WORKERS=${workers}"
+        "-DTOWER_RESOURCES=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding"
+        "-DTOWER_TEST_SUFFIX=_spec.tower" "-DTOWER_FINAL_LINE=6 tests passed for ${aggregate_suite}"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/TowerTestOutput.cmake")
     foreach(name IN ITEMS ${output_cases} decltype_type_fields alias_type_query_controls module_loop_queries
-        module_header_capture_controls named_initialization_test)
+        module_header_capture_controls)
       string(REPLACE "-" "_" fixture "${name}")
       set(input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${fixture}")
       set(expected)

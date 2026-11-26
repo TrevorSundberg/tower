@@ -153,3 +153,18 @@ The [case map](evidence/language_collections_checks.tsv) pairs all 25 failure
 codes in `language_collections.tower` with their adjacent assertions.
 The browser suite continues to run the original script, which prints zero
 across its interpreter, Foundation round-trip and LLVM comparisons.
+
+### Aggregate initialization
+
+Run `towerc --test scaffolding/compiler/semantic_aggregates.tower --test-details`
+to exercise aggregate initialization through its compiler owner. The two
+`tower-named_initialization_test` CTest entries run the adjacent suite as a
+focused root at one and four workers. Its five blocks cover positional array
+order, nested initializers with side effects, compile-time initialization,
+mixed-width struct fields, and assignment through an aliased destination.
+The focused run also selects the imported array assertion fixture.
+[Aggregate tests](../scaffolding/compiler/semantic_aggregates_test.tower)
+
+The ordinary named-initialization and struct-value programs remain inputs to
+compiler-API and browser tests. Those callers check invalid-source diagnostics,
+Foundation rereads and execution through independent backends.
