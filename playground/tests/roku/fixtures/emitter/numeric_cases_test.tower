@@ -273,13 +273,18 @@ fn finish_suite(suite: NumericSuite*, main: u8*, passed: vector(u8)*): void {
     append(passed, "\n");
 }
 
+fn numeric_runtime(): u8* {
+    var runtime = roku_read("runtime.brs", null);
+    assert(backend_contains(runtime, "function tr_udiv("), "Shipped integer runtime");
+    return runtime;
+}
+
 fn run_numeric_suite(suite: NumericSuite*): void {
     var passed: vector(u8) = default;
     defer vector_dispose(&passed);
     finish_suite(suite, "Main", &passed);
-    var runtime = roku_read("runtime.brs", null);
+    var runtime = numeric_runtime();
     defer free(runtime);
-    assert(backend_contains(runtime, "function tr_udiv("), "Shipped integer runtime");
     var wanted: FixtureBytes = {
         data: passed.data, length: passed.length
     };

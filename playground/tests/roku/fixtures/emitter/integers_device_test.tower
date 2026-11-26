@@ -1,6 +1,5 @@
 import numeric_wast_test;
 import numeric_cases_test;
-import roku_simulator_test;
 import roku_package_test;
 import library.vector;
 import library.test_fixtures;
@@ -8,7 +7,7 @@ import library.test_fixtures;
 test() {
     var suite: NumericSuite = default;
     defer vector_dispose(&suite.body);
-    var runtime = roku_read("runtime.brs", null);
+    var runtime = numeric_runtime();
     defer free(runtime);
     append(&suite.body, runtime);
     append(&suite.body, "\n");
