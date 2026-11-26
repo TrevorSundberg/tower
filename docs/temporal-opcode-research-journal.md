@@ -117098,3 +117098,77 @@ handler disabled. These were Node runs of public Wasm images. Native
 sanitizers, browser UI and new compiler builds were outside this
 test-boundary change. Only the manager publishes. The handoff bundle carries
 the supplied tree, the follow-up and this journal entry.
+
+### Stable arena slices and the separately linked arena client, 2026-11-26
+
+Host 8 migrated the original retention, address and linkage cases on public
+`799e36554ee2d7f46e1956223bc3cd3cbd7760f3`. The opening pull conflicted
+with unpublished parser commits. Aborting that rebase restored the shared
+checkout at `ff4c96f7`. Implementation `244173d9e3495ec42c828073647170b7f80d267c`
+uses an isolated local main. The two original CTest executables each still
+write exactly `0\n` and exit 0. Their native entry adapters forward to the
+ordinary mains, which call the same case functions as the selected tests.
+All case predicates live in the [arena companion](../scaffolding/tests/work_arena_test.tower)
+and the [linkage companion](../scaffolding/tests/work_arena_linkage_test.tower).
+
+At compiler jobs 1 and 4, arena owner/direct selection passed 7/2 and linkage
+passed 6/1. Each owner added the five budget declarations at lines 6–10.
+Before migration both original owner selections failed on duplicate main
+and both direct selections reported their missing companions. The ten final
+CTest registrations passed in both build directories. The raw selected
+matrix reused the earlier host 8 guest runtime, allocator and count checker.
+All three matched the products built against the assigned sources byte for
+byte. The bootstrap and resources passed their published SHA-256 manifest.
+
+| Case | Observations on the original and migrated fixtures |
+| --- | --- |
+| Retention | Two physical grants retained 8,256 bytes for 3,500 and 2,000 payload bytes. Refusal preserved the output pointer and both slices. The foreign budget rejected the transfer. Same-budget append emptied the worker, self-append succeeded, and both saved pointers remained readable. Parent disposal returned used bytes and live grants to zero. The moved worker could allocate again. |
+| Addresses | All 128 saved pointers retained their requested alignment and byte pattern after growth. The 8,193-byte allocation was 256-byte aligned. The two zero-byte requests returned distinct addresses. In the observed runs three chunks accounted for 14,198 payload and 16,832 retained bytes. The companion reads every byte of the small allocations and the large allocation. |
+| Linkage | The client imported the declaration-only arena API. Two chunks retained 8,256 bytes for two 1,024-byte payloads. Both patterns survived refusal, append and source disposal. Final used bytes and live grants were zero. |
+
+Evidence-only Tower observers read the saved pointers and recorded payload
+hashes, snapshots and teardown counters. Both widths matched the original
+standalones across all three entry paths. Removing the provider from either
+linked selection failed at `work_arena_init`. At each width the standalone,
+owner guest and direct guest each imported precisely the six arena symbols
+defined by the same provider object (SHA-256 `be615750af2fad8ba6dc2ce1c1975bc2b4847a6de5414f5446de2320631e3444`).
+Relinking the captured native inputs reproduced all twelve normal executable
+images. The packet includes the actual ELF symbol maps, GNU cross-reference
+maps from separately relinking those inputs, and the sanitizer linker maps.
+
+Expecting the small-slice byte to equal its ordinal plus two, or the second
+linked slice to contain 90, made each affected standalone and both selections
+exit 1 at both widths. The selected diagnostics identified the respective
+companions at 91:13 and 34:9. Restoring the source reproduced both standalone
+objects, executables and detailed passing streams.
+
+Measurements used a Ryzen 9 7900X, Linux x64, Clang/LLVM 19.1.7 and the
+published compiler `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The parent could use CPUs 0–23. Timed commands used CPUs 0–7 and shared the
+2,304,000 µs per 100,000 µs cgroup quota. Runs held the host timing lock,
+one process tree at a time, with one warm-up and three measured samples.
+Each timed object matched its CMake product. Columns show median wall and
+user + system seconds and maximum process RSS in KiB for object compilation.
+
+| Fixture | Compiler jobs | Original wall / CPU / KiB | Migrated wall / CPU / KiB |
+| --- | ---: | ---: | ---: |
+| Arena | 1 | 0.24 / 0.23 / 103,016 | 0.32 / 0.31 / 107,068 |
+| Arena | 4 | 0.25 / 0.27 / 107,988 | 0.36 / 0.40 / 121,404 |
+| Linkage | 1 | 0.17 / 0.17 / 93,860 | 0.24 / 0.24 / 99,360 |
+| Linkage | 4 | 0.19 / 0.20 / 101,668 | 0.29 / 0.32 / 115,076 |
+
+The one-job phase samples put most of the additional time in parsing
+(121 to 191 ms for arena and 109 to 178 ms for linkage). Each fixture now
+includes a companion with assertion grammar and a native entry adapter.
+The median elapsed time for 256 consecutive checked standalone launches
+was 0.11 s in every comparison. Width controls the compiler. Both guests
+exercise single-owner allocation and transfer on one thread.
+
+ASan with leak detection passed both production standalones. TSan passed
+linkage on its first launch and arena on launch 23 after 22 container
+personality failures during runtime startup. Both instrumented builds cover
+the companion bodies, work-tests runtime and, for linkage, the separate
+provider. Tower's supported IR profiles are address and thread. No project
+UBSan profile exists. Assignment `ad7bb590-2de3-48f1-a3f8-30b49f1a3479`
+carries the source bundle, raw inputs, commands, streams and costs for
+manager publication.
