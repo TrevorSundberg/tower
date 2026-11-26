@@ -1,0 +1,9 @@
+import tower;
+
+// Template-created tokens carry the assertion's invocation span.
+parse TowerSourceOffset = 'source_offset' '(' ')';
+parse TowerExpression |= TowerSourceOffset;
+parse Statement |= 'assert' '(' $condition:TowerExpression ')' ';'
+    => replace { if !($condition) { trap("Assertion failed", source_offset()); } };
+parse Statement |= 'assert' '(' $condition:TowerExpression ',' $message:TowerExpression ')' ';'
+    => replace { if !($condition) { trap($message, source_offset()); } };

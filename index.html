@@ -37,6 +37,7 @@
         <div class="panel-heading"><label for="project-kind">Project</label><select id="project-kind" aria-label="Project"></select></div>
         <nav id="file-tree" aria-label="Files"></nav>
         <div class="project-actions"><button id="new-file" class="quiet">New file</button><button id="rename-file" class="quiet" disabled>Rename</button><button id="delete-file" class="quiet" disabled>Delete</button><button id="move-file-up" class="quiet" title="Compile this file earlier" disabled>Earlier</button></div>
+        <details><summary>Test settings</summary><label>Companion suffix <input id="test-suffix" disabled placeholder="Compiler default"></label></details>
         <span id="project-storage" role="status">Loading projects...</span>
       </aside>
       <section class="source-panel panel" aria-label="Source editor">
@@ -53,8 +54,8 @@
     </div>
     <section id="execution-panel" class="execution-panel panel" aria-label="Program execution">
       <div class="panel-heading execution-heading">
-        <div class="execution-title"><strong>Instructions &amp; results</strong><span id="execution-status" role="status" aria-live="polite">Ready</span></div>
-        <div class="execution-controls"><details id="build-targets" class="target-picker"><summary>Targets</summary><div class="target-menu"><div id="target-options"></div><label title="LLVM O2 optimization for C, native, WebAssembly and the fast interpreter. Unchecked emits unoptimized C and uses the fast interpreter's debug lowering profile."><input id="optimize" type="checkbox" checked> Optimize with LLVM (O2)</label><label title="Carry source comments into Tower instructions, C and reconstructed bytecode. Optimized output retains comments at module scope."><input id="preserve-comments" type="checkbox" checked> Preserve source comments</label></div></details><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="cancel-execution" disabled>Cancel</button></div>
+        <div class="execution-title"><strong>Instructions &amp; results</strong><span id="execution-status" role="status" aria-live="polite">Ready</span><button id="test-location" class="quiet" hidden></button></div>
+        <div class="execution-controls"><details id="build-targets" class="target-picker"><summary>Targets</summary><div class="target-menu"><div id="target-options"></div><label title="LLVM O2 optimization for C, native, WebAssembly and the fast interpreter. Unchecked emits unoptimized C and uses the fast interpreter's debug lowering profile."><input id="optimize" type="checkbox" checked> Optimize with LLVM (O2)</label><label title="Carry source comments into Tower instructions, C and reconstructed bytecode. Optimized output retains comments at module scope."><input id="preserve-comments" type="checkbox" checked> Preserve source comments</label></div></details><label class="auto-execute"><input id="auto-execute" type="checkbox" checked> Auto execute</label><button id="execute" disabled>Execute</button><button id="run-tests" title="Run tests for the selected file" disabled>Run tests</button><button id="cancel-execution" disabled>Cancel</button></div>
       </div>
       <div class="execution-body"></div>
     </section>
