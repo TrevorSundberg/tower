@@ -105801,3 +105801,32 @@ Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
 Jenkins console, commands, inputs, comparison products, sanitizer attempts
 and local commit for review. The full Jenkins rerun and publication remain
 with the manager.
+
+### First module declaration condition on a5c4b40f
+
+Host 5 inspected the module-test and staging contracts, the test migration
+entry above, and source binding, test selection and staged execution on public
+`a5c4b40f379d6b65ea7986c05a371d5ae61abcef`. The ordinary test filter already
+excluded test bodies before proof and body jobs. The frozen native compiler
+rejected `comptime if` at line 2 column 10, expecting the expression form's
+opening parenthesis. Ordinary conditional control flow checks both bodies.
+
+The candidate grammar prefixes the existing conditional with `comptime`.
+Selection uses the same checked operand, evaluation query and Foundation
+interpreter as explicit staged expressions. Selected declaration identities
+enter the existing ordered module index before test selection. Parse parents
+remain available for module and source lookup. Selection is early enough that
+conditions currently require closed expressions. General named guard inputs
+would need declaration-availability dependencies and cycle handling.
+
+An initial implementation admitted only declarations in a separate block
+grammar. The focused runs exposed two costs. First, an unused quoted name
+matching a generated temporary changed canonical Foundation although guest
+output was identical. Guard evaluation now uses private scratch names and the
+ordinary hygiene pass seeds its table from the selected items. The two raw
+Foundation outputs then matched. Second, the extra grammar introduced separate
+parser states for familiar blocks. The implementation reuses CoreIf and
+validates declaration membership in the selected CoreBlock. The CLI returned
+42 for the ordinary guest and selected the requested test at its original line.
+The development pin and its resources have their original hashes. This
+candidate uses the new spelling in guest inputs only.

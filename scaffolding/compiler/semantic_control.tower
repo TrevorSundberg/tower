@@ -41,13 +41,19 @@ fn sem_control_expression(c: SemanticContext*, source: void*, expected_type: Fou
 // Capture every spelling, including quoted/free uses, before generating names.
 // Bind operands directly; unique serialized names also preserve reparse hygiene.
 export fn sem_control_names(c: SemanticContext*): void {
+    sem_control_names_from(c, &c.program.root, 1);
+}
+
+fn sem_control_names_from(c: SemanticContext*, roots: void**, count: usize): void {
     var missing = c.control_names == null;
     if missing {
         c.control_names = sem_table(c);
         if !sem_ok(c) { return; }
         var pending = sem_list(c);
         if !sem_ok(c) { return; }
-        if !sem_push_checked(c, pending, c.program.root) { return; }
+        for(var i: usize = 0; i < count; i++) {
+            if !sem_push_checked(c, pending, roots[i]) { return; }
+        }
         loop {
             var done = pending.length == 0;
             if done {
