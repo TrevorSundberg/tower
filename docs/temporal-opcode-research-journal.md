@@ -108690,3 +108690,54 @@ in the JS harness and introduces no compiler, worker or allocator code.
 The full Jenkins pipeline and publication are pending manager review.
 Host 1 packet `4ade3a78-7004-4d4b-8cb2-701bd0ee41e6` retains the original
 console, build and selection logs, timing samples, packet bytes and replay outputs.
+
+### Generic call deduction in the semantic owner and released engines
+
+Host 3, assignment 0cc1c28a-5893-4b5d-a724-c1efd3efb1cf. The input was
+public main `3ca5e7cc`. The migration is `3e634eb4`. The original suite
+ran first with the installed Pages portable (`41bb9b11`) and ordinary LLVM
+(`15b4f33b`) reactors. Their distributed blobs matched Pages `c9773ec3`.
+The native driver was the checked-in `7315b86e` compiler with checkout grammar
+resources. All three products stayed fixed throughout the comparison.
+
+The seven Node registrations retain their names and order. The semantic
+[companion](../scaffolding/compiler/semantic_call_inference_test.tower) uses
+the existing cast-inference functions, the scalar worker kernel and the new
+ordinary input modules. Browser tests read counted observations through the
+existing inference test ABI. The graph and fast interpreters run the source
+and reparse its full Foundation at both pointer widths. The LLVM reactor
+compiles source and Foundation, then the Wasm host runs both guests.
+The editor request still completes the missing second operand and formats the
+checked source. A Tower test counts one id(i64) definition across inferred and
+explicit calls. The seven invalid inputs preserve the original byte positions.
+
+Both revisions passed 7/7. A transport trace compared 66 portable executions,
+all 59 emitted Foundation texts, 14 emitted Wasm binaries and their stdout,
+the ordered completion options and formatted text. All matched, including
+the source file, byte offset, message and empty output of each rejection.
+The new worker fixture imports inferred_parallel_unit in place of concatenating
+a source string. Its canonical output and both guest binaries matched.
+The native owner selected 41 existing and seven new declarations in total.
+Direct selection ran the seven new tests. Both paths passed at jobs 1 and 4,
+as did the two generated direct CTests. Changing 39 to 40 failed at native
+companion line 67. Changing the raw worker oracle separately failed in the
+browser Tower byte comparison. Both restored selections passed.
+
+A warm-filesystem pair used the captured original source bytes, the same
+module inventory and fresh Node 24.22.3 processes on an EPYC 7542. Affinity
+was CPUs 0–3 and the cgroup quota was 1,228,800 µs per 100,000 µs.
+The original and migrated suites used 20.20/13.61 s wall, 5.67/6.98 s CPU
+and 261,500/296,956 KiB maximum RSS respectively. One sample per endpoint
+includes process startup and compilation of the test declarations. The new
+suite opens a second interpreter for the Tower assertions. This pair measures
+test cost and supports no compiler speedup claim.
+
+The ordinary argument-order, collection and worker guests also produced exact
+stdout with ASan/LSan and TSan using instrumented emitted IR and the public
+host runtime. An initial link driver invocation ran ASan on already instrumented
+IR a second time and crashed in next(). Compiling each instrumented module
+to an object before the sanitizer link corrected the measurement. These are
+scalar guest checks. The portable/LLVM compilers are the released uninstrumented
+products and Tower has no source-level UBSan for these fixtures. The evidence
+packet contains the failed attempt, all run commands, raw observations and
+source ancestry for manager review.
