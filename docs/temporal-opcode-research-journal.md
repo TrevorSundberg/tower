@@ -108758,3 +108758,84 @@ and registers its assertion inputs separately from the subject. The selected
 production Wasm binaries are uninstrumented. This change adds test code and
 host transport and changes no compiler or worker code. Source bundle and raw
 packet `e3f9a80d-e11a-49de-ae9d-c0263fa498be` are for manager publication.
+
+### Cost of selecting the compile-time rejection assertions
+
+Host 2 remeasured `487e4f62` and its unmigrated public baseline `3ca5e7cc`
+with the same published portable and LLVM reactors. On instrumented copies
+the original compiletime.test.mjs registrations drove the ordinary host APIs.
+A probe timed compile, test selection, execution and disposal. The module
+transport counted each source length at the real registration call. Timings
+of these overlapping API layers are reported separately from the interleaved
+unmodified timing runs. The 48-name run on 487e4f62 issued 96 subject compile
+requests and 96 selected test compilations. It spent 4.96 s in compileTests,
+0.83 s in subject compilation and 2.38 s in module setup. Setup registered
+901,518,833 source bytes across 199 calls. Execution calls took 0.07 s.
+
+Each adjacent Tower entry now imports its assertion module and calls its
+NUL-terminated text comparison. The same prefix walk checks the directory,
+then exact equality checks the complete basename. Removing the backend.text
+import also removes library.vector from the assertion parse. The
+decltype_body_runtime selected source map went from ten files to eight
+at both widths and on both backends. The checker opens with its assertion
+project. This also avoids a startup upload of the entire fixture collection.
+The suites and their test handles still compile and execute separately
+at widths 4 and 8. A first trial used the reserved parameter name `expected`
+and failed to parse. The corrected comparison uses `wanted`.
+
+On the 48 negative names, selected compilation took 2.83 s after the change.
+The module transport made 197 setups and registered 892,690,715 source bytes.
+Most setup time still belongs to the subject host's full source uploads
+when changing and restoring the entry. Across all 88 names, direct debugger
+breakpoints on the published Wasm functions counted 154 portable and 83 LLVM
+subject root parsing sessions on all three arms. Selected root sessions,
+selection opens and discovery calls each counted 6 on the old arm and 102
+on both migrated arms. A cold individual negative LLVM name compiled two
+subjects and two assertions on both migrated arms. Each of its two selected
+handles was preflighted, counted, executed and destroyed. Each guest starts
+with fresh execution state. The breakpoint runs were separate from timing.
+
+Three interleaved samples per arm ran on host 2's Ryzen 5 3600, CPUs 0,2,4,6,
+11.52-CPU quota, Node 24.22.3, one Node test at a time. The table gives
+medians of wall seconds / CPU seconds / peak process RSS in KiB.
+
+| Selection | Unmigrated 3ca5e7cc | Migrated 487e4f62 | Trimmed assertion project |
+| --- | --- | --- | --- |
+| 48 negative names | 1.62 / 2.85 / 243220 | 9.02 / 11.33 / 316080 | 6.98 / 9.04 / 312644 |
+| All 88 names | 7.42 / 11.81 / 343776 | 14.93 / 19.91 / 412576 | 12.70 / 17.78 / 416160 |
+| Cold decltype_body_runtime (LLVM) | 0.89 / 1.56 / 231152 | 1.43 / 2.29 / 234552 | 1.35 / 2.17 / 223636 |
+
+On CPU 0 alone the negative selection took 2.17 / 10.11 / 7.82 s wall and
+241032 / 310832 / 307104 KiB. Full-file peak RSS rose 3584 KiB in the
+four-CPU median. Each process started cold with warm files. GNU time measures
+the process, including V8. Its RSS does not isolate guest allocations.
+
+All 96 subject terminal records matched the mapped 487e4f62 records in full,
+in the focused group and across 48 independent cold filters. The six-entry
+subject maps and input identities belong to the earlier receipt. On the new
+tree every negative subcase selected one entry, completed, and produced zero
+output bytes. Other full-file execution records and the observed Foundation
+and Wasm digests matched 487e4f62. The pre-existing post-table inference
+stress case reported `input.tower` on both migrated versions. That one case
+used the preceding positive filename on 3ca5e7cc.
+
+Altering the first case's expected offset and shortening the last case's
+message each failed the corresponding two backends among all 88 names.
+The traps were at bytes 126 and 207 in the corresponding assertion files.
+Longer message, missing wrapper, forbidden inner trace, unexpected compile
+success, empty or absent error, zero offset, incorrect directory and incorrect
+basename each failed. Restoring the actual fixtures passed the pair and
+the complete file. Raw streams, mapping comparisons, breakpoint hits,
+commands and trial orders are in host 2 packet
+`b4cb2d90-cb9f-4b95-a9e5-64beab7c6d1a`.
+
+At native jobs 1, all 120 original-owner, paired, standalone and ordinary
+interpretation probes reproduced the prior outcomes and diagnostics after
+normalizing the checkout prefix. For 22 owners the source fails before a
+paired test runs. The two generic-body owners select zero by default.
+Their paired tests and all standalone browser entries require the missing
+`stage_text` native interpreter binding. Native ordinary interpretation
+rejected all 24 inputs. Expected-diagnostic support remains a separate task.
+The production compiler and Wasm reactors were reused. The evidence measures
+the public test path. Sanitizer compiler builds, CI and publication are
+outside this focused run. The manager owns publication.
