@@ -1,0 +1,5 @@
+import foundation;
+print(99);
+struct A {
+}
+extern fn f(): A;

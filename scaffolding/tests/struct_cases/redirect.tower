@@ -1,0 +1,27 @@
+import foundation;
+
+struct Pair {
+    x: i32;
+}
+
+struct Ref {
+    p: Pair*;
+}
+
+fn redirect(r: Ref*, next: Pair*): i32 {
+    r.p = next;
+    return 9;
+}
+
+var a: Pair;
+var b: Pair;
+a.x = 1;
+b.x = 2;
+var r: Ref;
+r.p = &a;
+var rp: Ref* = &r;
+var bp: Pair* = &b;
+r.p.x = redirect(rp, bp);
+print(a.x);
+print(b.x);
+print(r.p.x);

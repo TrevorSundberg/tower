@@ -1,0 +1,19 @@
+import library.testing;
+
+extern fn struct_live_nodes(): usize;
+extern fn struct_compile_execute_inspect_release(path: u8*): void;
+
+test() {
+    var before = struct_live_nodes();
+    for (var i = 0; i < 20; i++) {
+        struct_compile_execute_inspect_release(".tower/examples/structs.tower");
+        struct_compile_execute_inspect_release(".tower/tests/struct_cases/invalid/release_self.tower");
+        struct_compile_execute_inspect_release(".tower/tests/struct_cases/invalid/release_missing.tower");
+    }
+    var after = struct_live_nodes();
+    if before != after {
+        print(before);
+        print(after);
+    }
+    assert(after == before, "Live-node count changed after destroying the source handles");
+}

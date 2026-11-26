@@ -1,0 +1,4 @@
+import foundation;
+print(99);
+parse CoreLocation = 'broken';
+var a: i32 = broken;

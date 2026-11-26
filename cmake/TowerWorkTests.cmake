@@ -168,6 +168,10 @@ if(TARGET towerc)
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
     tower_companion_test(tower-borrowed-foreach tests/iteration_parallel_unit.tower ${workers})
+    foreach(fixture IN ITEMS operators null_operators compound_operators)
+      tower_companion_test(tower-${fixture}-owner tests/${fixture}.tower ${workers})
+      tower_companion_test(tower-${fixture}-direct tests/${fixture}_test.tower ${workers})
+    endforeach()
     add_test(NAME tower-parser-precedence-${workers}
       COMMAND $<TARGET_FILE:towerc> --test
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr_runtime.tower"
@@ -196,6 +200,7 @@ if(TARGET towerc)
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/utf8.tower")
     set_tests_properties(tower-utf8-companion-${workers} PROPERTIES
       FAIL_REGULAR_EXPRESSION "0 tests selected")
+    tower_companion_test(tower-struct-field-values compiler/semantic_values_test.tower ${workers})
     tower_companion_test(tower-forward-bindings tests/forward.tower ${workers})
     add_test(NAME tower-semantic-defer-companion-${workers}
       COMMAND $<TARGET_FILE:towerc> --test --test-details --jobs ${workers}

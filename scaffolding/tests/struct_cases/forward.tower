@@ -1,0 +1,21 @@
+import foundation;
+
+var p: Pair;
+p.x = 40;
+var ref: Pair* = &p;
+ref = identity(ref);
+ref.x = add(p.x, 2);
+print(p.x);
+
+fn identity(p: Pair*): Pair* {
+    return p;
+}
+
+fn add(a: i32, b: i32): i32 {
+    var r: i32 = a + b;
+    return r;
+}
+
+struct Pair {
+    x: i32;
+}
