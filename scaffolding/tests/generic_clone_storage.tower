@@ -6,6 +6,7 @@ import .library.work_budget_types;
 import .library.entity_types;
 import generic_clone_fixture;
 import generic_result_storage;
+import generic_result_storage_test;
 import storage_api;
 import utility_checks;
 
@@ -322,5 +323,5 @@ fn generic_clone_storage_tests(): void {
     for(var failure: usize = 0; failure <= 4; failure++) {
         generic_clone_storage_trial(16, 2, failure, false, true, false);
     }
-    generic_result_storage_tests();
+    generic_result_storage_tests(generic_result_storage_sweep);
 }

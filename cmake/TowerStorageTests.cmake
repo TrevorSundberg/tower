@@ -1,6 +1,9 @@
 # Focused storage/lifetime coverage using production compiler services. Functional
 # assertions and the entry are Tower; native files are existing service adapters.
 option(TOWER_STORAGE_TESTS "Build Tower compiler storage tests" OFF)
+if(TOWER_STORAGE_TESTS)
+  enable_testing()
+endif()
 function(tower_storage_tests)
   if(NOT TOWER_STORAGE_TESTS OR NOT TARGET towerc)
     return()
@@ -26,7 +29,24 @@ function(tower_storage_tests)
   set_target_properties(tower-storage-tests PROPERTIES LINKER_LANGUAGE CXX)
   target_compile_options(tower-storage-tests PRIVATE -fno-exceptions)
   target_link_libraries(tower-storage-tests PRIVATE ${libraries})
-  enable_testing()
+  if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+    # The native guest provides its own entry. The single-owner allocator must
+    # resolve against the portable work transport, as it does in tower-storage.
+    tower_guest_runtime(native-test "${triple}" posix ON UNINSTRUMENTED)
+    tower_guest_runtime(host-library "${triple}" posix OFF UNINSTRUMENTED)
+    tower_selected_test_count("${triple}")
+    tower_compiler_evaluation()
+    get_property(guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    add_library(tower-storage-services SHARED "${runtime_instrumented}")
+    set_target_properties(tower-storage-services PROPERTIES LINKER_LANGUAGE CXX TOWER_SERIAL_WORK_TRANSPORT TRUE)
+    target_link_libraries(tower-storage-services PRIVATE tower-compiler-work-serial tower-compiler-parser-nodes
+      tower-compiler-semantics tower-compiler-entities tower-compiler-utilities tower-compiler-evaluation tower-compiler-memory)
+    target_link_options(tower-storage-services PRIVATE "LINKER:-z,defs")
+    add_dependencies(tower-storage-tests tower-storage-services tower-selected-test-count tower-guest-native-test)
+    tower_native_test_selections(generic-result-storage generic_result_storage "17 tests" "1 test"
+      --test-native-runtime "${guest}" --link "$<TARGET_FILE:tower-storage-services>"
+      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-storage-services>")
+  endif()
   foreach(mode IN ITEMS syntax-reset-resources syntax-expansion-resources syntax-expansion-success syntax-session-old)
     add_test(NAME tower-${mode} COMMAND tower-storage-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" ${mode})
     set_tests_properties(tower-${mode} PROPERTIES TIMEOUT 30 LABELS "native;focused;storage")
