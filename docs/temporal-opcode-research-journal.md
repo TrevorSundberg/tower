@@ -110322,3 +110322,108 @@ The emitted snapshot bytes were `2f2f2068656164696e670a22f09f9a80c3a9223b3f`. Th
 Chromium sent 36 requests to the actual published execution worker on loopback, using the 108-module formatter production closure without the budget companion. Each three-request sequence started on a fresh worker, alternated the literal's presence, and repeated the initial request. The worker reported a cold load then two cached loads. At widths 1 and 4 the public and repaired requests all finished with zero tests. The delivered complete selection ran one test and the incomplete selection reported the missing literal. With the budget companion included, the separate Wasm host probes restored five on both images, matching the native projected IDs. The two images came from Pages `f2214133`. Their SHA-256 values are `41bb9b1164da536eaabf57957d08e131b3472a1463931c5bc41110d85f130a3f` and `72c882ee85dc8f364cb0d911268dcc02f7f80a473056e7236a7ceb782b4133f5`.
 
 **Limits and retries.** An early browser probe selected fast execution on an already failed handle and masked its import diagnostic. Reading the zero-step status first preserved the error. The producer's empty `merged-wrong.err` agrees with the Node reporter placing its assertion failure on stdout. CMake initially lacked the public compiler argument, then the unversioned LLVM tool path. Changing compiler paths in that cache caused CMake to reset options. A fresh configure with absolute Clang paths, the LLVM 19 bin directory on PATH and the checked-in compiler supplied all registrations. No compiler was built. ASan and TSan each ran a serial replay of the actual snapshot body and the public Linux runtime with instrumented Tower IR. The link maps and disassembly identify the instrumented lookup. The project IR tool has no UBSan pass. The shipping browser binaries were exercised without instrumentation. GNU time RSS is a process metric. This host exposes no cgroup memory.peak counter. Publication remains with the manager.
+### Porting three Bedrock registrations on 442f3bea (host 7)
+
+Assignment 7793483e began with the first three named registrations in
+`playground/tests/bedrock.test.mjs`. The released serial Wasm (41bb9b11)
+passed the original three. An additional observation run saved all ten inputs,
+events, terminal replies, formatting products, inspections and the guest
+execution. Foundation currently emits just two import events. The non-import
+name-capture and collision checks are conditional on future declarations.
+Neither token object equality nor the six successful shared-rule parses assert
+node ID equality. None of these tests checks a formatter oracle or expects a
+parser diagnostic. The next registration owns the separate override/round-trip
+and rejection checks.
+
+The three Node filters now select ordinary adjacent companions in
+`scaffolding/tests/bedrock_cases/`. One assertion reactor runs the selected
+Tower declarations on the fast interpreter. A separate instance of the same
+compiled Wasm module runs the original parser and the edited guest. Compiling
+assertions in that instance would also allocate subject node IDs. The browser
+bridge copies named fields, source slices and counted output. Tower owns the
+edits, name checks, token comparisons and expectations.
+
+| Original Node registration | Tower companion and observed products |
+| --- | --- |
+| foundation inherits bedrock without redeclaring any of its definitions | `inheritance_test.tower` checks the Bedrock source for a word boundary followed by two underscores, requires both parser entry points to finish, and checks the direct name capture on each non-import Foundation event against both Bedrock symbol tables. It looks up each of the ten inherited tokens by name and compares its complete inspector record, then looks up the GrammarAssignment rule. |
+| shared bedrock whitespace, comments and identifiers affect declarations and ordinary code | `lexicon_test.tower` edits the current Bedrock source in order. The 109-byte fixture parsed in four events. The comment highlight covered bytes [46, 62) containing `# shared comment`. The guest produced the three bytes in `inputs/shared_lexicon.expected` (`42` and LF). Parsing the edited Bedrock declaration with its first `parse~GrammarDeclaration` also completed. |
+| shared grammar rules can be referenced, extended and replaced without a reserved prefix | `grammar_test.tower` uses the existing diagnostic session's `accept` on six exact original sources. In order they exercise both assignment spellings, extension of GrammarSuffix, replacement of GrammarAssignment, a user rule named __repeat0, a quoted document(0) rule and a GrammarAtom reference consuming a literal and a named capture. Each requires parser completion. |
+
+A fresh Foundation declaration appended in the observation host passed the
+normally dormant name check. Appending a GrammarAssignment redeclaration or
+a Whitespace redeclaration failed the corresponding rule or token assertion.
+A trial appending a print statement stopped at the Foundation-only declaration
+diagnostic, before a name capture could be inspected. The output control
+changed `42\n` to `41\n` in the expected file. The browser failed in
+`lexicon.tower` at byte 1373, and the installed native driver failed in
+`inputs/shared_lexicon_test.tower` at line 8, column 5 at both job counts.
+All three names and both native selections passed after restoration.
+
+Pages `f2214133fc9552343dfd40d509c4ea3dae571bb9` supplies the serial
+and shared reactors (SHA-256 prefixes `41bb9b11` and `72c882ee`). Its
+Linux kit contains the same `7315b86e` driver as the checkout. The kit's
+installed resource checks passed. All three products identify compiler
+source `8bc867b6`. Each original and migrated filter passed individually.
+Each complete 14-registration local Bedrock run passed. The eleven later
+test bodies match the base byte for byte. The separate trace captures all
+ten original source texts, events, terminal responses, snapshots, formatter
+results and the execution response. Original and migrated bytes match on
+the serial reactor and on the shared reactor at capacities one and four.
+The serial and width-one streams hash to `46125b80` (1,122,480 bytes).
+The width-four streams hash to `72e931e9`. Comparing widths identified
+2,938 event node ID changes and no other field differences.
+
+The ordinary Linux driver emitted source for all ten parser subjects at
+`--jobs 1` and `--jobs 4`. All twenty files match the corresponding
+original browser formatter output. With the edited grammar supplied through
+`--bedrock`, the ordinary interpreter printed the expected bytes at both
+widths. Selecting the lexical input as owner or selecting its adjacent
+companion directly ran one test in all four runs. The scoped fixture service
+reads the same source/expected pair and compares counted stdout. The raw
+packet includes the edited Bedrock from the original capture and the depfile.
+The three browser companions themselves need the browser observation host.
+Direct native selection reaches an unbound `diagnostic_read` (shared rules)
+or `grammar_file` (inheritance and lexicon). The CLI's source-emission path
+covers parsing, but does not expose the inspector token records, declaration
+nodes, highlight spans or in-session Bedrock installation. An initial CLI
+inventory launch from the repository root could not resolve the checkout's
+diagnostic helper. Running from `scaffolding/` with `--foundation
+foundation.tower` resolved the project modules.
+
+Host 7 used an EPYC 7502, 32 physical cores, 64 logical CPUs, affinity
+0–63 and cgroup quota 3071999/100000 (30.72 CPUs). GNU time measured one
+process family at a time under the host timing lock on CPUs 0–3. Both arms
+used the same fixture inventory, installed products and warm filesystem.
+Each Node 24.22.3 process opened fresh reactor state. No compiler was
+rebuilt. The three-name serial row gives component-wise medians of three
+pairs, reversing the order of the middle pair. Other rows have one pair.
+Each cell gives wall, user and system seconds, then peak RSS in KiB.
+
+| Local Node run | Original | Migrated |
+| --- | ---: | ---: |
+| Three names, serial Wasm | 0.96 / 1.16 / 0.31 / 132680 | 1.70 / 2.23 / 0.34 / 170324 |
+| Three names, shared Wasm, capacity 1 | 1.23 / 1.44 / 0.32 / 166568 | 2.19 / 2.76 / 0.35 / 211964 |
+| Three names, shared Wasm, capacity 4 | 1.23 / 1.55 / 0.37 / 212048 | 2.56 / 3.52 / 0.63 / 318820 |
+| Full Bedrock file, serial Wasm | 1.94 / 2.27 / 0.35 / 171292 | 2.69 / 3.32 / 0.39 / 213232 |
+
+The extra CPU and RSS include the second reactor, its workers on shared
+Wasm, and compilation/execution of the Tower assertions. Width denotes the
+host capacity. These microtests do not measure useful parallel speedup.
+The serial subject's node count, exposed allocations and linear-memory size
+matched at every common create/retire boundary. It finished with 6,913
+nodes and 20,512,768 linear bytes. The assertion instance finished with
+14,668 nodes and 29,556,736 linear bytes. Both exposed allocation counters
+read zero. Native direct selection used 0.45 / 0.38 / 0.07 / 86036 at one
+job and 0.56 / 0.53 / 0.09 / 90460 at four. All individual measurements
+and the complete output streams are in the assignment packet.
+
+Memcheck at one job and DRD at four executed the published native driver
+and direct lexical companion. Memcheck reported zero errors and zero lost
+bytes, with 151,054 bytes still reachable. DRD reported zero errors (ten
+suppressed). The initial Memcheck startup lacked the loader's debuglink
+filename. The retry used the matching build-ID file at that relative path.
+Both tools warned about the executable's debug section mapping. These
+runs cover native fixture discovery and execution. The release Wasm and
+native compiler have no source-level ASan, UBSan or TSan instrumentation.
+The test-only files live outside the compiler's source trees and explicit
+test-source packaging inventory. The manager owns integration and publication.

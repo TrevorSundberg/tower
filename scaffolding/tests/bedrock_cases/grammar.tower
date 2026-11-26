@@ -1,0 +1,16 @@
+import compiler.format_diagnostic_cases.session;
+import library.testing;
+
+// The parser host retains the last inspection for each of its three entry points.
+// Text returned across the host boundary belongs to the caller.
+enum GrammarEntry: i32 { Source, Foundation, Bedrock }
+extern fn grammar_file(path: u8*): u8*;
+extern fn grammar_parse(source: u8*, entry: GrammarEntry): bool;
+
+fn require_parse(source: u8*, entry: GrammarEntry): void {
+    if !grammar_parse(source, entry) {
+        var message = diagnostic_text();
+        defer free(message);
+        assert(false, message);
+    }
+}

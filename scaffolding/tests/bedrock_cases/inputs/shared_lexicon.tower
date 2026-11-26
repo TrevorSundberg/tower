@@ -1,0 +1,4 @@
+import foundation;
+parse~extra-rule~=~Number;
+# shared comment
+var~player-name:~i32~=~42;print(~player-name);

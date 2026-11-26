@@ -1,0 +1,2 @@
+import foundation;
+parse `document(0)` = Number;parse Statement = `document(0)` ';';42;
