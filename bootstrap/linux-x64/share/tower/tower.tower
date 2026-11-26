@@ -128,7 +128,10 @@ parse TowerFor = 'for' '(' $initial:TowerForInitial $condition:TowerForCondition
 // The semantic header requires precisely test(). Existing bindings named test
 // still use ordinary identifier and call syntax.
 parse TowerTest = $head:CoreCall $body:CoreBlock;
+// Reuse the ordinary conditional and block grammar. At module scope the
+// selected block contributes declarations to its enclosing module.
+parse TowerConditionalDeclaration = 'comptime' $selection:CoreIf;
 parse Statement = CoreDeclare | CoreBlock | CoreIf | CoreLoop | CoreBreak | CoreContinue | CoreFunction
                  | CoreReturn | CoreStruct | CoreEnum | CoreExternal | CoreExport
                  | TowerMatch | TowerWhile | TowerFor | TowerForeach | TowerDefer
-                 | TowerExpressionStatement | CoreAttributed | TowerTest;
+                 | TowerExpressionStatement | CoreAttributed | TowerTest | TowerConditionalDeclaration;
