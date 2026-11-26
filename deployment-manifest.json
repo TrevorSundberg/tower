@@ -3,8 +3,8 @@
     ".nojekyll": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "CNAME": "98b2dc87ce088779cec3fd8c72bab57b6a45b4c1df747ded3a55d4205fecc34c",
     "THIRD-PARTY-NOTICES.txt": "0dc16637a51b681795fbde8494596c256b352a933dc1565f735cc58538f2d5b3",
-    "app.js": "aa7e8735891cbbcdd770d9d923bbbc4570ee750e6e21d176671cc972464a6b07",
-    "app.js.map": "4ca990ae287f00d7a16c4ae6c6cad02e8efaabed0648e026f211a3270385873d",
+    "app.js": "c8aadc9d164243a057ed2171c54668a2b6b6fb4c90e4f9de509fc5c1eba96594",
+    "app.js.map": "ea55adc9a0061cb710c800c1308da6178a64e1b7ff06b0ddb3ffefa816282c24",
     "backend/foreign_grammar.tower": "a976b1ed9c0f92b0d29c9fd266001f2bfc3ec647e17eb69aaa769796e5eb3dd1",
     "bedrock.tower": "3a64e4027c45ffe7742a7ff58abab617b5399de5101664b030c0e075d038d259",
     "builtins.json": "3dcc67efc614b082f37a8a7d35007d7c1a42c6692cd6533efdf1f1d5f4793225",
@@ -17,7 +17,7 @@
     "compiler-thread-worker.js": "e76ca6bdb4d9b346a635a83cbf447a84452cb29e5b65c2b0c3eaf7b5cc26dea3",
     "compiler-thread-worker.js.map": "664e771493d76690b3c107173047794a0a13af8c37f5afc0527315937bdd508d",
     "compiler/imports-tower-13.txt.gz": "b18ec98ce40c786ff2c58916789929f975351b339b2bb5fe222597587be658aa",
-    "compiler/project.json": "747b999f27425cd11a196ba145f524d5c84dab8b1cac711b10f7a7773c987c78",
+    "compiler/project.json": "e79e8ec2171d66bcbe9f6f064da8b552981156992ead60bee2bd59d469fcfcec",
     "compiler/support-cross-0.a.gz": "05b324ccd6e9ef34d7941c2871f8072f6667246a7739df76041e456b170259e9",
     "compiler/support-cross-1.a.gz": "5f09ec4b754a96f8d90d562148524342c436dc1902279e7fee499f277f5b8b93",
     "compiler/support-cross-2.a.gz": "f48a64a003231d68feb9e622d88ebee05379e3c6f5d7b740099078915cc14ec0",
@@ -124,11 +124,11 @@
     "llvmCompilerSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
     "crossCompilerSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
     "projectSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
-    "uiSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
-    "uiBuildSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+    "uiSourceCommit": "29930ddd4791c22e8108d0d81c5d75ca2c951f0b",
+    "uiBuildSourceCommit": "29930ddd4791c22e8108d0d81c5d75ca2c951f0b",
     "resourceSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
-    "projectPackagerSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
-    "projectPackagerSha256": "3287e30699b15f858543ac7b6c239a5f5c07b794f754b8510e1dbe7a08d06a5d",
+    "projectPackagerSourceCommit": "9307da87aa67bf3bb70f03d5d287ea2174aca7de",
+    "projectPackagerSha256": "34720b32979d50c711764493e85f992fc65c4b912f7bbbec22b87bfd0f25019c",
     "targetPackSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
     "targetPackBuildSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
     "targetPackagerSha256": "5cc9d62334ee7e258366f2141301c147b41c7b9584a51b41661dc541ca0728bb",
@@ -137,7 +137,7 @@
     "bootstrapSha256": "02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7",
     "packagerBootstrapSha256": "02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7",
     "inputManifestSha256": "13d448d1cde37c8119e1923516ce91950b1b0f18c7a67807d638509a729d1ace",
-    "uiInputManifestSha256": "47213dcf379d376f1a5a375b2d13726d565c65c1410bebbc3a4999ac955b6a2d",
+    "uiInputManifestSha256": "e6c21d01afeac7939007348bf74061ea151f5eda1dfb86227eb432a9d08a5dea",
     "uiBuildScriptSha256": "3b36a31779c0f6ac36bc476299ab8671367dc3b4853b5e961ca6e9bb8779aec7",
     "downloads": {
       "downloads/be41c755-linux-x64.tar.gz": {
@@ -159,6 +159,35 @@
       "downloads/install.sh": {
         "sourceCommit": "598df9931eb4f1c4514c0b44eb1ae1c656ebdde6",
         "packageCommit": "15cacf5ae9a46bbf7d1e5f348a5c9c737331a8b6"
+      }
+    },
+    "editableTestDelivery": {
+      "baselineDeployment": "c9773ec34989ef2b733409286d243ef6dd2a23a0",
+      "baselineManifestSha256": "64c557af29815f72a2fa6644d42ed59cbc000dbdc3f48579d61aae7212f4d645",
+      "ui": {
+        "assets": [
+          "app.js",
+          "app.js.map"
+        ],
+        "sourceCommit": "29930ddd4791c22e8108d0d81c5d75ca2c951f0b",
+        "bundleDriverSha256": "0301892f33062413e1e5f67a51f80b902ebadf0feb5bada2f240d729689ed23c",
+        "retainedUiSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+        "retainedUiBuildSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+        "retainedUiInputManifestSha256": "47213dcf379d376f1a5a375b2d13726d565c65c1410bebbc3a4999ac955b6a2d"
+      },
+      "project": {
+        "asset": "compiler/project.json",
+        "frozenProjectSha256": "747b999f27425cd11a196ba145f524d5c84dab8b1cac711b10f7a7773c987c78",
+        "frozenProjectSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+        "frozenPackagerSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+        "frozenPackagerSha256": "3287e30699b15f858543ac7b6c239a5f5c07b794f754b8510e1dbe7a08d06a5d",
+        "inventorySourceCommit": "9307da87aa67bf3bb70f03d5d287ea2174aca7de",
+        "inventorySha256": "8771b8f5d4a38ee8c3a02b3ed3c5d43a044481d672fd43ecb83c60ecb6888311",
+        "addedFileSourceCommit": "8bc867b69cc6084b9da09a51475c7c740efd9419",
+        "resourceHashesTsvSha256": "3f55ab9889bdabbb8e1d66c70c0121a9a2cdf3b71f0969b350f27d1965742f06",
+        "addedFilesJsonSha256": "a62af4e04ea48734b84f7e4876db584e32dac3429d96e830c72edf7ed9643e5d",
+        "frozenRecipeDriverSha256": "e33beab74b08d8b1e815da0e4071e0aba9713dcd7977a0f396699727bd616d2d",
+        "frozenRecipeExecutableSha256": "34720b32979d50c711764493e85f992fc65c4b912f7bbbec22b87bfd0f25019c"
       }
     }
   }
