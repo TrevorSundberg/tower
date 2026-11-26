@@ -1,0 +1,57 @@
+import library.test_fixtures;
+import backend.text;
+
+// Each field is a counted copy from one real compiler run or a raw expected file.
+extern fn semantic_bytes(width: usize, route: u8*, field: u8*, size: usize*): u8*;
+
+fn observation(width: usize, route: u8*, field: u8*): FixtureBytes {
+    var bytes: FixtureBytes = default;
+    bytes.data = semantic_bytes(width, route, field, &bytes.length);
+    return bytes;
+}
+
+fn expect_field(width: usize, route: u8*, field: u8*, wanted: FixtureBytes): void {
+    var actual = observation(width, route, field);
+    defer free(actual.data);
+    assert(fixture_equal(actual, wanted), route);
+}
+
+fn expect_output(width: usize, route: u8*, wanted: FixtureBytes): void {
+    expect_field(width, route, "output", wanted);
+}
+
+fn expect_replay(width: usize, original: u8*, replay: u8*, wanted: FixtureBytes): void {
+    expect_output(width, original, wanted);
+    expect_output(width, replay, wanted);
+    var canonical = observation(width, original, "foundation");
+    defer free(canonical.data);
+    expect_field(width, replay, "foundation", canonical);
+}
+
+var LlvmDiagnostic: usize = 0;
+
+extern fn semantic_reject(file: u8*, width: usize): usize;
+
+fn expect_rejection(file: u8*, offset: usize, width: usize): void {
+    assert(semantic_reject(file, width) == offset, file);
+    var wanted = observation(width, "diagnostic", "error");
+    defer free(wanted.data);
+    expect_field(width, "rejected", "error", wanted);
+    var status = observation(width, "rejected", "status");
+    defer free(status.data);
+    assert(backend_equal(status.data, "error"), file);
+    var location = observation(width, "rejected", "errorFile");
+    defer free(location.data);
+    assert(backend_equal(location.data, "input.tower"), file);
+    if width != LlvmDiagnostic {
+        var output = observation(width, "rejected", "output");
+        defer free(output.data);
+        assert(output.length == 0, file);
+    }
+}
+
+fn expect_invalid(file: u8*, offset: usize, wide: bool): void {
+    expect_rejection(file, offset, 4);
+    if wide { expect_rejection(file, offset, 8); }
+    expect_rejection(file, offset, LlvmDiagnostic);
+}

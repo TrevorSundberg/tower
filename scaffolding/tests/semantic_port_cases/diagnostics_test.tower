@@ -1,0 +1,23 @@
+import results;
+
+test() {
+    expect_invalid("inference_cycle", 20, true);
+    expect_invalid("layout_cycle", 20, true);
+    expect_invalid("argument_type", 87, true);
+    expect_invalid("literal_range", 36, true);
+    expect_invalid("template_origin", 54, true);
+    expect_invalid("missing_return", 20, true);
+    expect_invalid("match_duplicate", 81, true);
+    expect_invalid("match_range", 100, true);
+    expect_invalid("match_type", 110, true);
+    expect_invalid("match_scope", 125, true);
+    expect_invalid("match_break", 93, true);
+    expect_invalid("while_type", 71, true);
+    expect_invalid("enum_mix", 91, true);
+    expect_invalid("enum_number", 62, true);
+    expect_invalid("enum_overflow", 47, true);
+    expect_invalid("enum_duplicate", 46, true);
+    expect_invalid("enum_operation", 61, true);
+    expect_invalid("enum_address", 53, true);
+    expect_invalid("enum_index", 77, true);
+}

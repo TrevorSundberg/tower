@@ -1,0 +1,13 @@
+import results;
+
+test() {
+    for (var width: usize = 4; width <= 8; width *= 2) {
+        var wanted = observation(0, "expected", width == 4 ? "layouts32" : "layouts64");
+        defer free(wanted.data);
+        expect_replay(width, "graph", "graph replay", wanted);
+        if width == 4 {
+            expect_output(width, "source wasm", wanted);
+            expect_output(width, "canonical wasm", wanted);
+        }
+    }
+}
