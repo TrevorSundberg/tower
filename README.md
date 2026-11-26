@@ -55,12 +55,20 @@ Each prints `42`.
 "$HOME/.local/Tower Dev 3ae475c2/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
 
-The delivery receipt records the Ubuntu 24.04.5 x86-64 installation checks
-against a local HTTPS mirror of the immutable Git bytes. The installer
-verifies the 57 payloads listed in the package.
+The installer checks all 59 files in the checksum list before running the
+compiler. On Ubuntu 24.04.5, the matching installation passed verification.
+An installation of the previous version in the requested prefix produced an
+error and preserved its files.
 
-The preceding `be41c755` compiler remains available through its original
-installer and prefix.
+To use the previous `0823b028` compiler, run its original installer.
+
+```sh
+installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/b7e14bf007857d108c90834230bedae240edb3ba) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 0823b028"
+```
+
+The earlier `be41c755` compiler also has its original installer and prefix.
 
 ```sh
 installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \

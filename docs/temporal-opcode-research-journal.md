@@ -105821,3 +105821,13 @@ cover the 3ae475c2 build. The public browser application has separate provenance
 The producer, receiver and native suite receipts are c398f856, 5b1b928c and
 2c9e5bc9. The archive SHA-256 is
 `ddec8a02b149f80932b2120476422f502b97b3ee587b8de418d221609fc5cc74`.
+
+Host 6 built 9fd1db84 from an empty native cache in canonical Ubuntu using
+the checked-in compiler at e3872c21. All 53 build actions finished. The
+production comparison matched each of the 29 objects and its optimized IR
+across compilers. Four selected driver CTests passed after enabling driver
+tests. The default configuration registered zero CTests. Independently,
+host 2 reconstructed Pages tree 750ca760, verified 111 HTTP response bodies
+on loopback, ran the desktop and mobile checks and checked the installer
+against matching and older prefixes. Receipts 888c72f9 and 5e904379 record
+those results. These measurements precede public network installation.
