@@ -105681,3 +105681,65 @@ qualified the typed clone path under allocation refusal, retry and native saniti
 The import correction changes test inputs only. The worker's full-owner run and the
 manager's direct fixture replay cover different entry points. The published native
 bootstrap and browser assets require separate generation and delivery checks.
+## Jenkins 53 bootstrap comparison for companion-file discovery
+
+Jenkins stopped at the first Linux x64 ParserNodes object at
+`a3b73faa6b7f83e0931820e8d5458348b13b0f3a`. The verifier reported
+`Unexpected runtime dependency: strcmp`. The console SHA-256 is
+`eb1b2a6998c334cf4875cebd295b0dee4ff1080f5796a1a7f6e2facae4d8a241`.
+With a fresh Release native build and the two Jenkins flags
+`-DTOWER_DRIVER_TESTS=ON -DTOWER_FORMAT_TESTS=ON`, the original
+`verify_bootstrap_symbols --compare` with selector `parser-nodes` exited 1
+at that same object, before running the successor.
+
+The configured parser imports `compiler.units.parser`. Through
+`frontend_modules` it includes the filename rule introduced in `670e5963`.
+The predecessor's optimized Linux IR has two calls to the C ABI `strcmp`
+in `test_file_kind` and one in `frontend_test_selection_open` for the inlined
+suffix validation. Checking the native Semantics object independently with
+the original verifier also rejected exactly `frontend_module_collect_tests`
+and `frontend_module_test_role`. Both are global definitions in ParserNodes.
+In `ab7e03ab`, frontend compilation began collecting the selected tests and
+semantic module binding began reading each module's role. The Jenkins log
+ends before that comparison.
+
+The verifier now admits each full name in its consuming unit. The existing
+Tower policy fixture exercises each addition on four targets and checks a
+one-byte truncation, a suffixed name and wrong-unit use.
+
+Host 2 used the verified Linux x64 bootstrap `0100aa61`, LLVM/Clang 19.1.7,
+four Ninja jobs and one compiler worker per native build invocation. Both
+verifiers used the same freshly built successor (SHA-256 `a792d2d2e42c167b1f5eb0bdec8cc342853cfaa37e09d6b2554ee397ee6e1d17`).
+Rebuilding just the tool with `build-bootstrap.sh --tools verify_bootstrap_symbols`
+and running the default `--compare` command from `internal.sh` passed all
+29 unit/target combinations and the explicit and missing Foundation controls.
+Independent `cmp` checks matched all 29 object pairs and all 29 optimized IR
+pairs. Replaying the original verifier on the same undefined-symbol reports
+rejected precisely the parser and semantics reports on each of Linux x64,
+Wasm32, Windows x64 and macOS Arm64. It accepted the other 21 reports.
+Appending a near miss to each of the two repaired Linux reports still gave
+exit 1 and the exact rejected spelling.
+
+The full comparison took 276.63 s wall and 418.98 s CPU with peak process
+RSS 946,920 KiB. For a matched timing of the verifier alone, host 2
+(Ryzen 5 3600, 6 cores/12 threads) ran one fresh process at a time on CPU 2
+with a warm filesystem. The controls excluded the three disputed imports to
+give both versions the same accepted rows. Each ordinary 125-row parser and
+168-row semantics list completed below the timer's 0.01 s resolution in all
+three samples per version. Repeating each list 512 times gave median wall
+times of 0.08/0.08 s (original/repaired) for ParserNodes and 0.12/0.13 s for
+Semantics. Median CPU times were 0.07/0.07 and 0.12/0.12 s respectively.
+Peak RSS across the repeated-list samples was 3,728/3,728 KiB and
+4,780/4,684 KiB. The added names live in static strings scanned by the
+existing serial lookup.
+
+The native Tower policy fixture passed in ordinary, ASan/LSan and TSan builds.
+The ASan verifier also read both actual Linux lists through its CLI. These
+checks exercise the serial verifier. The Tower instrumenter supports address
+and thread modes only. The native successor also ran the existing
+`test_declaration_inputs/owner.tower` at one and four workers. Both reported
+three tests with output 41, 42, 43. Selecting its companion explicitly reported
+one test with output 42 at both widths. Packet
+`7c1cce52-e4c5-4d2d-8069-55ea09f00681.tar.gz` carries the console, commands,
+logs, checked outputs and local review bundle. A full Jenkins rerun and
+publication remain with the manager.

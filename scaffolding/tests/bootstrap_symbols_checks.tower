@@ -54,6 +54,9 @@ export fn main(): i32 {
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "fflush", "fflush_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "puts", "puts_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.GraphComponents, "strlen", "strlen_extra");
+    symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.Semantics, "strcmp", "strcmp_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "frontend_module_collect_tests", "frontend_module_collect_tests_extra");
+    symbol_admission_cases(BootstrapUnit.Semantics, BootstrapUnit.ParserNodes, "frontend_module_test_role", "frontend_module_test_role_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "entity_register_stage_result", "entity_register_stage_result_extra");
     symbol_admission_cases(BootstrapUnit.ParserNodes, BootstrapUnit.ParserFormat, "compiler_world_component_result", "compiler_world_component_result_extra");
     symbol_case(BootstrapUnit.ParserNodes, false, " U syntax_replacement_attempt\n", null);
