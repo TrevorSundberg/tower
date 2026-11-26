@@ -1,0 +1,364 @@
+import library.testing;
+import entity_page_reuse;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+fn reuse_check(ok: bool): void { if !ok { trap("Stable stage page reuse regression", 0); } }
+export fn tower_entity_finalize(lifecycle: usize, component: EntityComponent*, data: u8*): void {
+    var state = bits(ReuseState*, entity_context(component.owner));
+    var value = bits(ReuseValue*, data);
+    reuse_check(lifecycle == ReuseLifecycle && value.target != null && value.value == component.owner.id);
+    state.finalized++;
+    entity_release(value.target);
+}
+fn reuse_add(owner: Entity*, kind: Entity*, target: Entity*, stage: EntityStage*): EntityComponent* {
+    var component = entity_component_add(owner, kind);
+    reuse_check(component != null && component.page != null);
+    *bits(ReuseValue*, component.data) = init(ReuseValue) {target: target, value: owner.id};
+    if stage == null { entity_retain(target); }
+    else { reuse_check(entity_stage_references(stage, &target, 1)); }
+    return component;
+}
+fn reuse_trial(stage_rows: u8): void {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var store: EntityStore* = null;
+    reuse_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var state: ReuseState = default;
+    reuse_check(entity_store_set_context(store, bits(void*, &state)));
+    var root = entity_create(store);
+    var kind = entity_create(store);
+    var extra = entity_create(store);
+    var target = entity_create(store);
+    var stable = entity_create(store);
+    reuse_check(root != null && kind != null && extra != null && target != null && stable != null
+        && entity_register_stage_result(kind, sizeof(ReuseValue), alignof(ReuseValue),
+            ReuseLifecycle, stage_rows) == WorkBudgetError.None
+        && entity_register(extra, sizeof(usize), alignof(usize), 0)
+        && entity_attach(stable, root, null));
+    entity_release(stable);
+    var original = reuse_add(stable, kind, target, null);
+    reuse_check(entity_register(kind, sizeof(ReuseValue), alignof(ReuseValue), ReuseLifecycle)
+        && kind.stage_page_rows == stage_rows
+        && entity_register_stage_result(kind, sizeof(ReuseValue), alignof(ReuseValue),
+            ReuseLifecycle, stage_rows == 0 ? convert(u8, 4) : convert(u8, 0)) == WorkBudgetError.Busy);
+    var original_data = original.data;
+    var first = entity_stage_open(root);
+    var second = entity_stage_open(root);
+    reuse_check(first != null && second != null && entity_stage_lease(first, stable));
+    var attached = entity_component_add(stable, extra);
+    reuse_check(attached != null);
+    *bits(usize*, attached.data) = 456;
+    var a = reuse_add(entity_stage_create(first, root), kind, target, first);
+    var b = reuse_add(entity_stage_create(second, root), kind, target, second);
+    var count = a.page.capacity + 1;
+    reuse_check(b.page.capacity == a.page.capacity);
+    if stage_rows != 0 { reuse_check(a.page.capacity == convert(usize, stage_rows) && original.page.capacity > a.page.capacity); }
+    var nodes = alloc(Entity*, count);
+    var components = alloc(EntityComponent*, count);
+    reuse_check(nodes != null && components != null);
+    defer free(nodes); defer free(components);
+    nodes[0] = a.owner;
+    components[0] = a;
+    var last_b = b;
+    for(var i: usize = 1; i < count; i++) {
+        nodes[i] = entity_stage_create(first, root);
+        components[i] = reuse_add(nodes[i], kind, target, first);
+        last_b = reuse_add(entity_stage_create(second, root), kind, target, second);
+    }
+    var private_bytes = compiler_buffer_allocation_size(b.page.allocation.capacity)
+        + compiler_buffer_allocation_size(last_b.page.allocation.capacity);
+    var view = entity_view_open(root);
+    reuse_check(view != null && kind.instance_count == 1);
+    entity_stage_hold(first);
+    entity_stage_hold(second);
+    entity_view_close(view);
+    reuse_check(entity_stage_publish(first) && stable.stage == null && stable.storage == null
+        && entity_component_get(stable, kind) == original && original.data == original_data
+        && *bits(usize*, entity_component_get(stable, extra).data) == 456
+        && a.page.pool == null && components[count - 1].page.pool == &store.storage
+        && b.page.pool == null && last_b.page.pool == &second.storage);
+    // Publication assigns identities; payloads remain at their original addresses.
+    for(var i: usize = 0; i < count; i++) {
+        reuse_check(entity_component_get(nodes[i], kind) == components[i]);
+        bits(ReuseValue*, components[i].data).value = nodes[i].id;
+    }
+    var probe = entity_create(store);
+    reuse_check(probe != null);
+    // Admit independently owned indexes first; the following check isolates
+    // payload-slot reuse and must still acquire no new physical page/grant.
+    reuse_check(entity_reserve_components(store.budget, &probe.components, &probe.component_capacity, 0) == WorkBudgetError.None
+        && entity_reserve_components(store.budget, &kind.instances, &kind.instance_capacity, kind.instance_count) == WorkBudgetError.None
+        && entity_table_reserve(nodes[count - 1].table, nodes[count - 1].table.length + 1) == WorkBudgetError.None);
+    var generation = budget.generation;
+    var live_bytes = budget.used_bytes;
+    var reused = reuse_add(probe, kind, target, null);
+    reuse_check(reused.page == components[count - 1].page && budget.generation == generation
+        && budget.used_bytes == live_bytes && last_b.page.pool == &second.storage);
+    var address = a.data;
+    reuse_check(entity_component_remove(nodes[0], kind));
+    var replacement = reuse_add(nodes[0], kind, target, null);
+    reuse_check(replacement == a && replacement.data == address && budget.generation == generation
+        && budget.used_bytes == live_bytes && components[1].owner == nodes[1]);
+    // The other stage still owns its own full and partial pages. Discard must
+    // release those grants without touching published survivors or pool links.
+    entity_stage_discard(second);
+    // Descriptor/index/vector owners now retire too, beyond these two payload pages.
+    reuse_check(budget.used_bytes <= live_bytes - private_bytes && state.finalized == count + 1
+        && kind.instance_count == count + 2 && original.data == original_data
+        && components[count - 1].page.pool == &store.storage);
+    entity_release(probe);
+    entity_release(root);
+    reuse_check(state.finalized == count * 2 + 3 && target.references == 1);
+    entity_release(target);
+    entity_release(kind);
+    entity_release(extra);
+    reuse_check(store.entity_count == 0 && store.component_count == 0 && entity_store_dispose(store)
+        && budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+}
+// Tiny private allocation classes exercise collisions independently of entity
+// indexes. The ordinary stage trials below cover their world-owned consumers.
+var ReuseIndexRows: usize = 4;
+fn reuse_index_allocate(pool: EntityComponentPool*, budget: WorkBudget*, id: usize): EntityComponent* {
+    var error: WorkBudgetError;
+    var result = entity_storage_allocate(pool, budget, id, sizeof(u64), alignof(u64),
+        ReuseIndexRows, EntityComponentPageBytes, &error);
+    reuse_check(result != null && error == WorkBudgetError.None && result.page != null);
+    *bits(u64*, result.data) = convert(u64, id);
+    return result;
+}
+fn reuse_index_links(pool: EntityComponentPool*): void {
+    var partial: usize = 0;
+    var previous: EntityComponentPage* = null;
+    var page = pool.owned;
+    while page != null {
+        reuse_check(page.owner == pool && page.owned_previous == previous && page.live != 0);
+        if page.live == page.capacity { reuse_check(page.pool == null && page.next == null && page.previous == null); }
+        else { reuse_check(page.pool == pool); partial++; }
+        previous = page; page = page.owned_next;
+    }
+    var indexed: usize = 0;
+    for(var bucket: usize = 0; bucket < sizeof(decltype(pool.available)) / sizeof(EntityComponentPage*); bucket++) {
+        previous = null; page = pool.available[bucket];
+        while page != null {
+            reuse_check(page.pool == pool && page.owner == pool && page.previous == previous
+                && page.live < page.capacity && entity_component_pool_bucket(pool, page.type_id, page.stride) == bucket);
+            indexed++; reuse_check(indexed <= partial);
+            previous = page; page = page.next;
+        }
+    }
+    reuse_check(indexed == partial);
+}
+fn reuse_index_trial(): void {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var source: EntityComponentPool = default;
+    var target: EntityComponentPool = default;
+    var first: EntityComponent*[ReuseIndexRows];
+    var class_id: usize = 1;
+    for(var i: usize = 0; i < sizeof(decltype(first)) / sizeof(EntityComponent*); i++) {
+        first[i] = reuse_index_allocate(&source, &budget, class_id);
+    }
+    var full = first[0].page;
+    reuse_check(full.pool == null && full.live == full.capacity);
+    var second = reuse_index_allocate(&source, &budget, class_id);
+    var bucket = entity_component_pool_bucket(&source, class_id, full.stride);
+    var collision = class_id + 1;
+    while entity_component_pool_bucket(&source, collision, full.stride) != bucket { collision++; }
+    var other = reuse_index_allocate(&source, &budget, collision);
+    var missing = collision + 1;
+    while entity_component_pool_bucket(&source, missing, full.stride) != bucket { missing++; }
+    var independent = class_id + 1;
+    while entity_component_pool_bucket(&source, independent, full.stride) == bucket { independent++; }
+    var separate = reuse_index_allocate(&source, &budget, independent);
+    var owned = source.owned;
+    entity_component_free(first[0]);
+    reuse_index_links(&source);
+    var pressure: WorkReservation = default;
+    reuse_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &pressure));
+    var generation = budget.generation;
+    var bytes = budget.used_bytes;
+    var reused = reuse_index_allocate(&source, &budget, class_id);
+    reuse_check(reused == first[0] && full.pool == null && source.owned == owned
+        && budget.generation == generation && budget.used_bytes == bytes);
+    var error: WorkBudgetError;
+    reuse_check(entity_storage_allocate(&source, &budget, missing, sizeof(u64), alignof(u64),
+        ReuseIndexRows, EntityComponentPageBytes, &error) == null && error == WorkBudgetError.Capacity
+        && source.owned == owned && budget.used_bytes == bytes);
+    reuse_index_links(&source);
+    reuse_check(work_budget_release(&budget, &pressure));
+    var admitted = reuse_index_allocate(&source, &budget, missing);
+    reuse_check(admitted.page != other.page && admitted.page.type_id == missing && other.page.type_id == collision);
+    var older = reuse_index_allocate(&target, &budget, class_id);
+    entity_component_free(first[0]);
+    entity_component_pool_transfer(&source, &target);
+    reuse_check(source.owned == null && full.owner == &target && second.page.owner == &target);
+    reuse_index_links(&source); reuse_index_links(&target);
+    first[0] = reuse_index_allocate(&target, &budget, class_id);
+    reuse_check(first[0] == reused && full.pool == null);
+    var next = reuse_index_allocate(&target, &budget, class_id);
+    reuse_check(next.page == second.page && next.page != older.page);
+    reuse_index_links(&target);
+    for(var i: usize = 0; i < sizeof(decltype(first)) / sizeof(EntityComponent*); i++) {
+        reuse_check(*bits(u64*, first[i].data) == convert(u64, class_id));
+        entity_component_free(first[i]);
+    }
+    reuse_check(*bits(u64*, other.data) == convert(u64, collision)
+        && *bits(u64*, separate.data) == convert(u64, independent));
+    entity_component_free(next); entity_component_free(second); entity_component_free(older);
+    entity_component_free(other); entity_component_free(separate); entity_component_free(admitted);
+    reuse_index_links(&target);
+    // More distinct id0 strides than buckets force a collision. Every live
+    // buffer must still select its own exact class and preserve its back-pointer.
+    var raw: u64*[EntityComponentPoolBuckets + 1];
+    var collided = false;
+    for(var i: usize = 0; i < sizeof(decltype(raw)) / sizeof(u64*); i++) {
+        raw[i] = entity_owned_allocate_result(u64, &target, &budget, i * 2 + 1, &error);
+        reuse_check(raw[i] != null && error == WorkBudgetError.None);
+        *raw[i] = convert(u64, i);
+        var block = entity_owned_page(bits(u8*, raw[i]));
+        for(var j: usize = 0; j < i; j++) {
+            var earlier = entity_owned_page(bits(u8*, raw[j]));
+            reuse_check(block != earlier && block.stride != earlier.stride && *raw[j] == convert(u64, j));
+            collided ||= entity_component_pool_bucket(&target, 0, block.stride)
+                == entity_component_pool_bucket(&target, 0, earlier.stride);
+        }
+    }
+    reuse_check(collided);
+    reuse_index_links(&target);
+    for(var i: usize = 0; i < sizeof(decltype(raw)) / sizeof(u64*); i++) { entity_owned_free(u64, raw[i]); }
+    reuse_index_links(&target);
+    reuse_check(target.owned == null && budget.used_bytes == 0 && budget.live == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget));
+}
+fn reuse_raw_trial(): void {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var pool: EntityComponentPool = default;
+    var target: EntityComponentPool = default;
+    var error: WorkBudgetError;
+    var raw = entity_owned_allocate_result(u64, &pool, &budget, 1, &error);
+    reuse_check(raw != null && error == WorkBudgetError.None);
+    *raw = 123;
+    var page = entity_owned_page(bits(u8*, raw));
+    reuse_check(page != null && page.components == null && page.capacity > 1
+        && entity_owned_buffer(bits(u8*, raw)) == &page.allocation
+        && bits(usize, raw) % compiler_buffer_alignment() == 0);
+    // Same id/stride in one pool must not confuse raw pages with components.
+    var component = reuse_index_allocate(&pool, &budget, 0);
+    reuse_check(component.page != page && component.page.stride == page.stride
+        && entity_component_from_data(component.data) == component);
+    var blocks = alloc(u64*, page.capacity);
+    defer free(blocks);
+    reuse_check(blocks != null);
+    blocks[0] = raw;
+    for(var i: usize = 1; i < page.capacity; i++) {
+        blocks[i] = entity_owned_allocate_result(u64, &pool, &budget, 1, &error);
+        reuse_check(blocks[i] != null && entity_owned_page(bits(u8*, blocks[i])) == page);
+        *blocks[i] = convert(u64, i);
+    }
+    reuse_check(page.pool == null);
+    entity_owned_free(u64, blocks[1]);
+    var pressure: WorkReservation = default;
+    reuse_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &pressure));
+    var generation = budget.generation;
+    var replacement = entity_owned_allocate_result(u64, &pool, &budget, 1, &error);
+    reuse_check(replacement == blocks[1] && error == WorkBudgetError.None
+        && budget.generation == generation && *raw == 123);
+    *replacement = 1;
+    reuse_check(entity_owned_allocate_result(u64, &pool, &budget, 1, &error) == null
+        && error == WorkBudgetError.Capacity && page.live == page.capacity);
+    reuse_check(work_budget_release(&budget, &pressure));
+    entity_component_pool_transfer(&pool, &target);
+    reuse_check(pool.owned == null && page.owner == &target);
+    var count = page.capacity;
+    for(var i: usize = 0; i < count; i++) {
+        reuse_check(*blocks[i] == (i == 0 ? convert(u64, 123) : convert(u64, i)));
+        entity_owned_free(u64, blocks[i]);
+    }
+    entity_component_free(component);
+    // Empty/tiny owners still have a safe dead-slot link. Large owners keep
+    // their complete standalone grant and both endpoint bytes until disposal.
+    var empty = entity_owned_allocate_result(u8, &target, &budget, 0, &error);
+    var tiny = entity_owned_allocate_result(u8, &target, &budget, 1, &error);
+    reuse_check(empty != null && tiny != null);
+    *tiny = 255;
+    entity_owned_free(u8, empty);
+    empty = entity_owned_allocate_result(u8, &target, &budget, 0, &error);
+    reuse_check(empty != null && *tiny == 255);
+    entity_owned_free(u8, empty); entity_owned_free(u8, tiny);
+    var large = entity_owned_allocate_result(u8, &target, &budget, EntityOwnedPageBytes, &error);
+    reuse_check(large != null && entity_owned_page(large) == null
+        && entity_owned_buffer(large).reservation.owner == &budget);
+    large[0] = 65; large[EntityOwnedPageBytes - 1] = 255;
+    reuse_check(large[0] == 65 && large[EntityOwnedPageBytes - 1] == 255);
+    entity_owned_free(u8, large);
+    reuse_check(entity_owned_allocate_result(u64, &target, &budget, ~convert(usize, 0), &error) == null
+        && error == WorkBudgetError.Invalid && target.owned == null
+        && budget.used_bytes == 0 && budget.live == 0 && budget.used_lanes == 0
+        && work_budget_dispose(&budget));
+}
+fn reuse_descriptor_growth(): void {
+    var budget: WorkBudget = default;
+    reuse_check(work_budget_init(&budget, 1, ReuseBudgetBytes, 1));
+    var store: EntityStore* = null;
+    reuse_check(entity_store_create_result(&budget, &store) == WorkBudgetError.None);
+    var root = entity_create(store);
+    reuse_check(root != null);
+    var stage = entity_stage_open(root);
+    reuse_check(stage != null);
+    var first = entity_stage_create(stage, root);
+    reuse_check(first != null);
+    var first_page = entity_owned_page(bits(u8*, first));
+    for(var i: usize = 1; i < first_page.capacity; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+    var second = entity_stage_create(stage, root);
+    reuse_check(second != null);
+    var second_page = entity_owned_page(bits(u8*, second));
+    var limit = entity_owned_page(bits(u8*, root)).capacity;
+    var expected_rows = first_page.capacity * 2;
+    if expected_rows > limit { expected_rows = limit; }
+    if second_page.capacity != expected_rows { trap("Dense stage descriptor page did not grow", 0); }
+    for(var i: usize = 1; i < second_page.capacity; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+
+    // The node index already has a spare entry. Exhaust the byte budget at
+    // the third descriptor page, then retry against the same private owners.
+    var count = stage.nodes.length;
+    reuse_check(count < stage.nodes.capacity);
+    var block: WorkReservation = default;
+    reuse_check(work_budget_reserve(&budget, 0, 0, budget.bytes - budget.used_bytes, &block));
+    var live = budget.live;
+    var error = WorkBudgetError.None;
+    reuse_check(entity_stage_create_result(stage, root, &error) == null && error == WorkBudgetError.Capacity
+        && stage.nodes.length == count && root.child_count == 0 && budget.live == live);
+    reuse_check(work_budget_release(&budget, &block));
+    var third = entity_stage_create_result(stage, root, &error);
+    reuse_check(third != null && error == WorkBudgetError.None
+        && entity_owned_page(bits(u8*, third)).capacity == expected_rows);
+    for(var i: usize = 1; i < expected_rows; i++) { reuse_check(entity_stage_create(stage, root) != null); }
+    var tight_index = stage.nodes.length;
+    var headroom = compiler_buffer_allocation_size(first_page.allocation.capacity);
+    reuse_check(tight_index < stage.nodes.capacity && work_budget_reserve(&budget, 0, 0,
+        budget.bytes - budget.used_bytes - headroom, &block));
+    var tight = entity_stage_create_result(stage, root, &error);
+    if tight == null { trap("Initial descriptor page still fits the remaining budget", 0); }
+    reuse_check(error == WorkBudgetError.None && budget.used_bytes == budget.bytes
+        && entity_owned_page(bits(u8*, tight)).capacity == first_page.capacity
+        && work_budget_release(&budget, &block));
+    reuse_check(entity_stage_publish(stage) && root.child_count == tight_index + 1
+        && entity_child_at(root, 0) == first && entity_child_at(root, first_page.capacity) == second
+        && entity_child_at(root, count) == third && entity_child_at(root, tight_index) == tight);
+    entity_release(root);
+    reuse_check(entity_store_dispose(store) && budget.live == 0 && budget.used_bytes == 0
+        && budget.used_lanes == 0 && work_budget_dispose(&budget));
+}
+
+
+test() { reuse_descriptor_growth(); }
+test() { reuse_raw_trial(); }
+test() { reuse_index_trial(); }
+test() { reuse_trial(0); }
+test() { reuse_trial(4); }
