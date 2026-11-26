@@ -107379,3 +107379,52 @@ for both selections, both job widths and both graph and native execution.
 Restoring it passed all eight controls. Packet
 `1167fd69-040e-436a-85ae-c5693f44f0bb` retains the comparison, raw measurements,
 provider and package identities and source bundle.
+
+### Discovering live grammar attributes in the linked Tower test runner
+
+Source commit `44627c5b3e719b7dc90f80d666bc3476f1172a69` follows
+`27fb85f30a39a416752905e15038a4a6635e82a5`. The owner previously selected
+zero declarations. Its adjacent companion now selects six at lines 10, 12, 14,
+16, 18 and 20. The four editor labels, five independent format/reparse cases,
+thirteen rejected declarations and the precedence/associativity program still
+exercise the same syntax sessions. Each parsed attribute shares its declaration's
+source, lies inside its span and survives structural comparison against a
+freshly parsed canonical declaration. The three successful expressions check
+the exact original operand spans. The final chained comparison must be rejected.
+The callable suite retains its own input for hosts that expose only builtin
+modules. The linked test checks that input byte-for-byte against the raw sibling
+before passing the file to the parser.
+
+The existing interpreter has no foreign binding for `syntax_kind_name`. The
+Linux linked test runtime provides its own entry and trap record. Linking the
+parser memory archive whole pulled in a conflicting `runtime_format_value`.
+The invocation in scaffolding/tests/README.md uses the genuine parser build's
+allocator, serial transport, evaluation and file-service objects with the guest
+test runtime. The one/four setting controls the compiler preparing the test.
+The execution aggregate retained its original host transport.
+
+On host 2 the linked owner and companion each passed six at one and four jobs.
+Changing the expected diagnostic for the unknown attribute produced the actual
+parser diagnostic and a located trap at syntax_live_attributes.tower:29:5.
+Changing both copies of the first expression to `n+n+n` failed the right
+operand assertion at line 140. The first implementation allowed the legacy
+span helper to abort the child. Sharing its span predicate lets the Tower
+assertion report that location. Changing just the raw input failed at
+syntax_live_attributes_test.tower:27:5. All restored runs passed.
+The parser aggregate, frontend grammar-equivalence, execution attributes
+selector and Wasm self-test passed. The Wasm export also returned zero when
+only builtin grammar/type modules were mounted. The address/leak and thread
+instrumented execution selectors both completed with their original stdout.
+
+Serial measurements used taskset CPUs 0–3 on a Ryzen 5 3600 with effective
+cpuset 0–11, quota 1,152,000 µs per 100,000 µs and memory limit 32,222,740,480
+bytes. The original execution selector took 2.27 s wall, 2.38 s user, 0.14 s
+system and 111,396 KiB peak RSS. The migrated selector took 1.97 s wall,
+1.96 s user, 0.14 s system and 110,292 KiB. Both wrote the same 215 bytes.
+These are individual observations. The default native link retained all 23
+object/archive operands and excluded the two parser/live fixture objects.
+The relocated compiler's machine code matched the retained binary. Absolute
+checkout paths in three local entity symbol names account for the object
+string-table difference. Raw commands, output, resource logs, input identities,
+recovery runs and bundle receipts are in host 2 evidence
+`7e77a0b9-b59d-48ea-aef3-21f104acb0a9`.
