@@ -10,6 +10,7 @@ import .library.work_graph;
 import .library.work_budget;
 import .library.work_budget_types;
 import generic_clone_fixture;
+import generic_clone_fixture_test;
 import generic_pump_publication;
 import unit_stream_clock;
 import utility_checks;

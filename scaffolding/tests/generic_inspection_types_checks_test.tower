@@ -1,6 +1,7 @@
 import library.testing;
 import generic_inspection_types_checks;
 import generic_inspection_budget;
+import generic_inspection_budget_test;
 import frontend_units;
 import editor_units;
 import .compiler.completion_types;

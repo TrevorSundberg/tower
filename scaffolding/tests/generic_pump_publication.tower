@@ -14,6 +14,7 @@ import .library.work_budget_types;
 import .library.entity_types;
 import .library.vector;
 import generic_clone_fixture;
+import generic_clone_fixture_test;
 import utility_checks;
 
 // Share the actual work declaration; never infer a private component offset.

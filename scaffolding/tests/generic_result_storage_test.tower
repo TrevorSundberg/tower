@@ -4,6 +4,7 @@ import .library.work_budget_types;
 import .compiler.generic_body_types;
 import generic_result_storage;
 import generic_clone_fixture;
+import generic_clone_fixture_test;
 import storage_api;
 import utility_checks;
 

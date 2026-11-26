@@ -121417,3 +121417,15 @@ and TSan. No compiler, runtime, or native worker code changed. The archive
 `bb19c17e-5de7-45a4-9416-acded7d5a1d3.tar.gz` retains the raw TAP, timing
 and observation records, mutations, capacity samples and inputs. The manager
 owns publication.
+
+### Host 5 shared generic clone and inspection fixtures at 9760a3c5
+
+Assignment 44ea1ba0 verified the SHA-256 of the audit archive and all six
+named members on the recipient. The two fixture blobs still match the
+d45d8b10 audit freeze. S381–384 and S393–395 therefore still apply.
+At the published base the pool budget, three query failure modes, both
+inspection worker selections (each includes both pointer widths), serial
+storage, storage quota and diagnostics, LR editor and query smoke passed.
+Sixteen existing owner/direct registrations also passed. The migration keeps
+their real registry, deferred instance, stage, world and budget operations
+and original diagnostic functions. The manager owns publication.
