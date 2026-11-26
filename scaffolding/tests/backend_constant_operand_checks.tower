@@ -18,7 +18,7 @@ extern fn entity_child_count(entity: Entity*): usize;
 
 // A verifier-valid block address is outside Foundation's supported control-flow
 // contract. Accepting ConstantExpr add must not admit every constant operand.
-fn backend_constant_operand_rejection(world: void*, width: u32, checks: ConstantAddressChecks*): void {
+export fn backend_constant_operand_rejection(world: void*, width: u32, checks: ConstantAddressChecks*): void {
     var store = bits(EntityStore*, compiler_world_store(world));
     for(var prior: usize = 0; prior < 2; prior++) {
         var error: WorkBudgetError;
@@ -40,7 +40,7 @@ fn backend_constant_operand_rejection(world: void*, width: u32, checks: Constant
         LLVMPositionBuilderAtEnd(b.builder, entry); LLVMBuildBr(b.builder, exit);
         LLVMPositionBuilderAtEnd(b.builder, exit);
         LLVMBuildRet(b.builder, LLVMBlockAddress(function, exit));
-        utility_check(backend_verify(b), "Unsupported constant remains valid LLVM");
+        checks.verified(backend_verify(b));
         var nodes = entity_store_count(store);
         var components = entity_store_component_count(store);
         var prior_offset: usize = 23;

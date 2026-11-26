@@ -7,7 +7,7 @@ tower_guest_runtime(wasm32 wasm32-unknown-unknown wasm OFF UNINSTRUMENTED)
 get_property(source_runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
 set(source_input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_source_tests.tower")
 file(GENERATE OUTPUT "${source_input}" CONTENT
-  "import tower;\nimport compiler.units.backend_core;\nimport backend.file_posix;\nimport tower_backend_native_targets;\nimport backend.target_once_linux;\nimport backend.linker_wasi_wasm;\nimport tests.backend_source_native;\n")
+  "import tower;\nimport compiler.units.backend_core;\nimport backend.file_posix;\nimport tower_backend_native_targets;\nimport backend.target_once_linux;\nimport backend.linker_wasi_wasm;\nimport tests.backend_source_native_main;\n")
 tower_runtime_object(tower-backend-source "${source_input}" "${triple}")
 add_custom_command(OUTPUT "${tower-backend-source_OBJECT}" APPEND
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_native_targets.tower")
@@ -85,16 +85,22 @@ if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-
   target_link_libraries(tower-backend-source-services PRIVATE ${source_libraries} ${source_backend_libraries})
   target_link_options(tower-backend-source-services PRIVATE "LINKER:-z,defs")
   add_dependencies(tower-backend-source-tests tower-backend-source-services tower-selected-test-count tower-guest-native-test)
-  foreach(entry IN ITEMS backend_constant_address backend_constant_address_test)
+  foreach(entry IN ITEMS backend_constant_address backend_constant_address_test backend_source_native_test)
     set(path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower")
     set(dir "${source_workdir}/${entry}")
     file(MAKE_DIRECTORY "${dir}")
     file(CREATE_LINK "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" "${dir}/.tower" SYMBOLIC)
     set(name "tower-selected-${entry}")
-    add_test(NAME "${name}" COMMAND tower-selected-test-count "6 tests passed for ${path}"
+    set(count 6)
+    set(llvm_link)
+    if(entry STREQUAL "backend_source_native_test")
+      set(count 8)
+      set(llvm_link --link "$<TARGET_FILE:LLVM>")
+    endif()
+    add_test(NAME "${name}" COMMAND tower-selected-test-count "${count} tests passed for ${path}"
       "${TOWER_BOOTSTRAP_COMPILER}" --test "${path}" --jobs 1 --test-details
       --test-native-runtime "${constant_guest}" --link "$<TARGET_FILE:tower-backend-source-services>"
-      --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-backend-source-services>")
+      ${llvm_link} --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-backend-source-services>")
     set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${dir}" TIMEOUT 90 LABELS "native;backend;focused"
       ENVIRONMENT "TOWER_CONSTANT_ADDRESS_RUNTIME=${source_runtime}")
   endforeach()
