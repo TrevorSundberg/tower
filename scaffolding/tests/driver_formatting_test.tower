@@ -1,0 +1,142 @@
+import library.testing;
+import driver_formatting;
+import driver;
+import driver_platform_api;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+extern fn memcmp(left: u8*, right: u8*, count: usize): i32;
+
+struct FormatFixture {
+    compiler: u8*;
+    source: u8*;
+    canonical: u8*;
+}
+
+fn format_fixture(compiler: u8*): FormatFixture {
+    return init(FormatFixture) {compiler: compiler, source: "driver format with spaces.tower",
+        canonical: "import foundation;\n// café λ\nvar value: i32 = 42;\nprint(value);\n"};
+}
+
+fn format_expect_bytes(path: u8*, wanted: u8*, count: usize): void {
+    var actual: ByteBuffer = default;
+    defer bytes_dispose(&actual);
+    assert(driver_read_file(path, &actual), path);
+    assert(actual.length == count && memcmp(actual.data, wanted, count) == 0, path);
+}
+
+fn driver_format_rejected(fixture: FormatFixture, input: u8*, count: usize, diagnostic: u8*): void {
+    var output = "driver formatted.tower";
+    var sentinel = "preserve existing output\n";
+    assert(driver_write_file(output, sentinel, strlen(sentinel)), "formatter output sentinel");
+    assert(driver_format_command(fixture.compiler, fixture.source, output, false) == 1, "formatter rejects invalid source");
+    format_expect_bytes(fixture.source, input, count);
+    format_expect_bytes(output, sentinel, strlen(sentinel));
+    driver_test_read("driver stderr.txt", diagnostic, false);
+}
+
+fn format_canonical_and_overwrite(fixture: FormatFixture): void {
+    var input = "import foundation;\n// café λ\nvar value:i32=42;print(value);";
+    assert(driver_write_file(fixture.source, input, strlen(input)), "write formatter fixture");
+    assert(driver_format_command(fixture.compiler, fixture.source, null, true) == 1, "noncanonical check fails");
+    driver_test_read("driver stderr.txt", "Source needs formatting:", false);
+    format_expect_bytes(fixture.source, input, strlen(input));
+    assert(driver_format_command(fixture.compiler, fixture.source, "driver formatted.tower", false) == 0, "format source");
+    format_expect_bytes("driver formatted.tower", fixture.canonical, strlen(fixture.canonical));
+    assert(driver_format_command(fixture.compiler, "driver formatted.tower", null, true) == 0, "canonical check and idempotence");
+    assert(driver_format_command(fixture.compiler, fixture.source, "./driver format with spaces.tower", false) == 1, "formatter rejects source overwrite");
+    format_expect_bytes(fixture.source, input, strlen(input));
+    assert(driver_format_command(fixture.compiler, fixture.source, "driver formatted.tower", true) == 1, "check rejects output option");
+    format_expect_bytes("driver formatted.tower", fixture.canonical, strlen(fixture.canonical));
+}
+
+fn format_imports_and_unchecked_names(fixture: FormatFixture): void {
+    var helper = "import tower; fn answer():i32{return 42;}";
+    assert(driver_write_file("format helper.tower", helper, strlen(helper)), "formatter imported module");
+    var imported = "import tower;import \"format helper.tower\";print(answer());";
+    assert(driver_write_file(fixture.source, imported, strlen(imported)), "formatter importing source");
+    assert(driver_format_command(fixture.compiler, fixture.source, null, false) == 0, "default formatted.tower output and imports");
+    assert(driver_format_command(fixture.compiler, "formatted.tower", null, true) == 0, "importing source canonical");
+    driver_test_read("formatted.tower", "import 'format helper.tower';", false);
+    var unchecked = "import tower;print(undefined_name);";
+    assert(driver_write_file(fixture.source, unchecked, strlen(unchecked)), "syntactic formatting fixture");
+    assert(driver_format_command(fixture.compiler, fixture.source, null, false) == 0, "formatter does not require semantic compilation");
+}
+
+fn format_reject_syntax(fixture: FormatFixture): void {
+    var invalid = "import foundation; var value:i32=;";
+    assert(driver_write_file(fixture.source, invalid, strlen(invalid)), "invalid syntax fixture");
+    driver_format_rejected(fixture, invalid, strlen(invalid), fixture.source);
+    driver_test_read("driver stderr.txt", ":1:34: Unexpected ';'.", false);
+}
+
+fn format_reject_missing_module(fixture: FormatFixture): void {
+    var invalid = "import tower; import missing_formatter_module;";
+    assert(driver_write_file(fixture.source, invalid, strlen(invalid)), "missing module fixture");
+    driver_format_rejected(fixture, invalid, strlen(invalid), "missing_formatter_module");
+}
+
+fn format_reject_changed_grammar(fixture: FormatFixture): void {
+    var invalid = "skip Whitespace = /~+/;parse~Statement~=~'x''y'';';x~y;";
+    assert(driver_write_file(fixture.source, invalid, strlen(invalid)), "grammar-sensitive source fixture");
+    driver_format_rejected(fixture, invalid, strlen(invalid), "Formatting would change the parsed source");
+}
+
+fn format_reject_invalid_utf8(fixture: FormatFixture): void {
+    var bad_utf8: u8 = 255;
+    assert(driver_write_file(fixture.source, &bad_utf8, sizeof(u8)), "invalid UTF-8 fixture");
+    driver_format_rejected(fixture, &bad_utf8, sizeof(u8), "valid UTF-8 without NUL");
+}
+
+fn format_reject_embedded_nul(fixture: FormatFixture): void {
+    var nul: u8 = 0;
+    assert(driver_write_file(fixture.source, &nul, sizeof(u8)), "embedded NUL fixture");
+    driver_format_rejected(fixture, &nul, sizeof(u8), "valid UTF-8 without NUL");
+}
+
+fn format_output_errors_and_empty_source(fixture: FormatFixture): void {
+    assert(driver_write_file(fixture.source, fixture.canonical, strlen(fixture.canonical)), "restore canonical fixture");
+    assert(driver_test_compile(fixture.compiler, fixture.source, "source", "driver formatted.tower", "--strip-comments", null) == 1,
+        "source formatter rejects comment stripping");
+    assert(driver_format_command(fixture.compiler, fixture.source, "missing formatter directory/output.tower", false) == 1,
+        "formatter write failure is not success");
+    driver_test_read("driver stderr.txt", "Cannot write formatted source", false);
+    assert(driver_write_file(fixture.source, "", 0), "empty source fixture");
+    assert(driver_format_command(fixture.compiler, fixture.source, "driver formatted.tower", false) == 0, "empty source formats");
+    format_expect_bytes("driver formatted.tower", "", 0);
+}
+
+fn format_bedrock_and_foundation(compiler: u8*, library: u8*): void {
+    var directory = "format grammar";
+    if !driver_platform_exists(directory) { assert(driver_test_directory(directory), "formatter grammar directory"); }
+    var path: ByteBuffer = default; defer bytes_dispose(&path);
+    assert(driver_text(&path, library) && driver_text(&path, "/bedrock.tower") && host_text_terminate(&path), "bedrock source path");
+    assert(driver_format_command(compiler, path.data, "format grammar/bedrock.tower", false) == 0, "format Bedrock with declaration seed");
+    assert(driver_format_command(compiler, "format grammar/bedrock.tower", null, true) == 0, "Bedrock canonical check");
+    path.length = 0;
+    assert(driver_text(&path, library) && driver_text(&path, "/foundation.tower") && host_text_terminate(&path), "foundation source path");
+    assert(driver_format_command(compiler, path.data, "format grammar/foundation.tower", false) == 0, "format Foundation baseline");
+    assert(driver_format_command(compiler, "format grammar/foundation.tower", null, true) == 0, "Foundation canonical check");
+}
+
+fn format_test_input(name: u8*): u8* {
+    var value = getenv(name);
+    assert(value != null, name);
+    return value;
+}
+
+fn format_selected_fixture(): FormatFixture {
+    return format_fixture(format_test_input("TOWER_FORMAT_COMPILER"));
+}
+
+test() { format_canonical_and_overwrite(format_selected_fixture()); }
+test() { format_imports_and_unchecked_names(format_selected_fixture()); }
+test() { format_reject_syntax(format_selected_fixture()); }
+test() { format_reject_missing_module(format_selected_fixture()); }
+test() { format_reject_changed_grammar(format_selected_fixture()); }
+test() { format_reject_invalid_utf8(format_selected_fixture()); }
+test() { format_reject_embedded_nul(format_selected_fixture()); }
+test() { format_output_errors_and_empty_source(format_selected_fixture()); }
+test() { format_bedrock_and_foundation(format_test_input("TOWER_FORMAT_COMPILER"), format_test_input("TOWER_FORMAT_LIBRARY")); }

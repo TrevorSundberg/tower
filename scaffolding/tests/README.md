@@ -963,6 +963,12 @@ argument boundaries and temporary cleanup after tool failure. Fixtures stay out
 of the production driver object. The standalone runner uses the Tower guest
 runtime artifact for allocation, output and traps.
 
+On native Linux x64, building `tower-driver-tests` supplies the compiler,
+guests and providers for `ctest --test-dir <build> -R "^tower-driver-formatting"`.
+CTest runs the legacy formatter and the owner and direct selections at one and
+four compiler jobs. Each registration gets a separate working directory for
+its source files, captured streams and temporary compiler outputs.
+
 For browser backend service ownership checks, configure the LLVM browser build
 with `-DTOWER_BACKEND_TESTS=ON`, rebuild it, then run
 `TOWER_REQUIRE_BACKEND_TESTS=1 node --test playground/tests/backend-worlds.test.mjs`.
@@ -972,7 +978,7 @@ independent world cleanup. JavaScript only supplies baseline bytes and invokes i
 
 Windows process/quoting checks can run independently of a Windows compiler build:
 cross-compile a manifest importing the driver support, timing, windows_arguments,
-windows, link and prepare modules plus `tests.driver_windows` and `tests.driver`.
+windows, link and prepare modules plus `tests.driver_windows` and `tests.driver_test_entry`.
 Separately compile `tests/driver_standalone.tower` and `library/bytes.tower`; link
 the three objects with a Tower guest runtime built without its entry point, the
 Windows CRT and kernel32. Run without a compiler argument for platform checks.

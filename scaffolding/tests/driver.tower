@@ -503,7 +503,7 @@ fn driver_test_cli(compiler: u8*): void {
     driver_test_cli_platform(compiler);
 }
 
-export fn driver_tests(argc: i32, argv: u8**): i32 {
+fn driver_test_run(argc: i32, argv: u8**): i32 {
     if argc > 1 {
         if driver_same(argv[1], "--native-test-link") {
             if argc != 4 { return 2; }

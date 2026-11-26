@@ -8,6 +8,36 @@ include("${CMAKE_CURRENT_LIST_DIR}/TowerExecutionTests.cmake")
 if(TOWER_DRIVER_TESTS OR TOWER_EXECUTION_TESTS OR TOWER_BACKEND_TESTS)
   enable_testing()
 endif()
+
+function(tower_driver_formatting_selections)
+  if(NOT TARGET tower-driver-request-services)
+    return()
+  endif()
+  get_property(triple GLOBAL PROPERTY TOWER_COMPILER_TRIPLE)
+  tower_guest_runtime(native-test-libc "${triple}" posix ON UNINSTRUMENTED)
+  get_property(guest GLOBAL PROPERTY TOWER_GUEST_native-test-libc_OBJECT)
+  # The request services provide driver I/O. The guest owns its allocator and
+  # links the same descriptor and directory calls as the standalone driver tests.
+  tower_runtime_object(driver-posix-capture "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/driver_posix_capture.tower" "${triple}")
+  add_custom_target(tower-driver-formatting-support DEPENDS "${driver-posix-capture_OBJECT}"
+    tower-guest-native-test-libc tower-driver-request-services tower-selected-test-count)
+  add_dependencies(tower-driver-tests tower-driver-formatting-support)
+  tower_native_test_selections(driver-formatting driver_formatting "16 tests" "9 tests"
+    --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+    --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+    --test-native-runtime "${guest}" --link "${driver-posix-capture_OBJECT}" --link "$<TARGET_FILE:tower-driver-request-services>"
+    --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-driver-request-services>")
+  foreach(selection IN ITEMS owner direct)
+    foreach(jobs IN ITEMS 1 4)
+      set(name "tower-driver-formatting-${selection}-jobs-${jobs}")
+      set(work "${CMAKE_CURRENT_BINARY_DIR}/${name}")
+      file(MAKE_DIRECTORY "${work}/tmp")
+      set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${work}"
+        ENVIRONMENT "TMPDIR=${work}/tmp;TOWER_FORMAT_COMPILER=$<TARGET_FILE:towerc>;TOWER_FORMAT_LIBRARY=${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
+    endforeach()
+  endforeach()
+endfunction()
+
 function(tower_driver_integrate)
   if(NOT TARGET towerc)
     return()
@@ -58,7 +88,7 @@ function(tower_driver_integrate)
     # Keep fixtures out of the production object and use the Tower guest runtime.
     set(source "${production_source}")
     string(APPEND source "import tests.driver_${platform};\n")
-    string(APPEND source "import tests.driver;\n")
+    string(APPEND source "import tests.driver_test_entry;\n")
     set(test_input "${CMAKE_CURRENT_BINARY_DIR}/tower_driver_tests.tower")
     file(GENERATE OUTPUT "${test_input}" CONTENT "${source}")
     set(test_objects "")
@@ -79,6 +109,7 @@ function(tower_driver_integrate)
     add_executable(tower-driver-tests "${guest_runtime}" ${test_objects}
       "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-bytes.o")
     set_target_properties(tower-driver-tests PROPERTIES LINKER_LANGUAGE C)
+    add_dependencies(tower-driver-tests towerc)
     file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-driver-checks")
     get_property(runtime_bind GLOBAL PROPERTY TOWER_RUNTIME_BIND)
     set(runtime_test "")
@@ -103,11 +134,12 @@ function(tower_driver_integrate)
       "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-driver-module-paths PROPERTIES
       WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-module-path-checks")
-    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
+    set(format_work "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
+    file(MAKE_DIRECTORY "${format_work}/tmp")
     add_test(NAME tower-driver-formatting COMMAND tower-driver-tests --formatting
       "$<TARGET_FILE:towerc>" "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-driver-formatting PROPERTIES
-      WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-format-driver-checks")
+      WORKING_DIRECTORY "${format_work}" ENVIRONMENT "TMPDIR=${format_work}/tmp")
     if(platform STREQUAL "posix")
       file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tower-work-view-checks")
       add_test(NAME tower-work-view-invalid-dispose COMMAND tower-driver-tests --work-view-invalid-dispose
@@ -138,6 +170,7 @@ function(tower_driver_integrate)
     endif()
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/TowerDriverRequestTests.cmake")
     cmake_language(DEFER CALL tower_driver_request_tests)
+    cmake_language(DEFER CALL tower_driver_formatting_selections)
   endif()
 endfunction()
 cmake_language(DEFER CALL tower_driver_integrate)
