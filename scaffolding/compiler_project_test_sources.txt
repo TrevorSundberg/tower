@@ -6,6 +6,7 @@ library/queue_test.tower
 library/sha256_test.tower
 library/stack_test.tower
 library/test_data.tower
+library/work_budget_test.tower
 library/work_graph_test.tower
 tests/default_inputs/aggregate.tower
 tests/default_inputs/format.tower

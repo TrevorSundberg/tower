@@ -109384,3 +109384,23 @@ declarations, actual source paths and the ordinary builtin module list.
 The earlier 41-test Playground result applies to the semantic-types owner
 on the prior package. The integrated generic-call companion needs its own
 seven-test run and a failed assertion followed by recovery on the real worker.
+
+### Editable work-budget discovery on the combined generic-call release
+
+Host 8 reconstructed 2da9f988 and its tree 7cf6fb6b from the five supplied
+source bundles. The 674-file predecessor lacked all seven generic-call test
+imports. On the manager tree the standard packager supplies them. Its
+editable Chromium test button runs the seven direct cases but selects 55 on
+the owner. The complete checkout on the same four-byte interpreter selects
+60. The native location oracle identifies the difference at
+library/work_budget_test.tower lines 6 through 10. Mounting that single file
+runs the five real reservation tests. Its imports already exist on the drive.
+
+Add this exact companion to the optional project inventory. The builtin
+inventory and ordinary compilation inputs retain their original roles.
+With their full fixtures the isolated graph, entity-stage ownership and
+syntax attribute runs encounter unregistered tower_test_buffer_count,
+compiler_buffer_allocation_size and syntax_kind_name respectively. The
+alternate ownership fixture defines its own native finalizer. The release
+evidence for assignment 053eeb38-345e-4fc9-94ec-7f57c51618ee records the
+repacked selections, ordinary object comparison and staged-site checks.
