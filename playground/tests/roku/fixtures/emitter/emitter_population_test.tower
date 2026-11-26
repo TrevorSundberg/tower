@@ -1,19 +1,8 @@
 import emitter;
-import backend.text;
 
 test() {
-    // Keep the shared exhaustive program and all six full-width checks.
-    // Reduce only the trip count on the simulator's private source copy.
     var source = roku_input("tests/backend_popcount.tower");
     defer free(source);
-    var cursor = source;
-    while *cursor != 0 && !backend_prefix(cursor, "for (; i < 256; i++)") {
-        cursor++;
-    }
-    assert(*cursor != 0, "Missing population loop bound");
-    var bound = cursor + backend_length("for (; i < ");
-    var limit = "8  ";
-    copy(bound, limit, backend_length(limit));
     var handle = roku_compile(source, RokuPointerBytes);
     defer roku_release(handle);
     var wanted = expected_output("zero.expected");
