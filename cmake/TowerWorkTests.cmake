@@ -134,11 +134,29 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   endif()
   if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND work_triple MATCHES "^x86_64-.*linux.*gnu")
     # Work-policy registration supplies the public native-test guest and count checker.
-    get_property(affinity_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
-    set(affinity_allocator "${CMAKE_CURRENT_BINARY_DIR}/runtime-allocate.o")
-    add_custom_target(tower-affinity-test-support DEPENDS "${affinity_allocator}"
+    get_property(work_test_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    set(work_test_allocator "${CMAKE_CURRENT_BINARY_DIR}/runtime-allocate.o")
+    add_custom_target(tower-work-native-test-support DEPENDS "${work_test_allocator}"
       tower-guest-native-test tower-selected-test-count)
+    add_custom_target(tower-affinity-test-support DEPENDS tower-work-native-test-support)
     add_dependencies(tower-work-linux-affinity-faults-tests tower-affinity-test-support)
+    add_dependencies(tower-work-schedule-budget-tests tower-work-native-test-support)
+    foreach(selection IN ITEMS owner direct)
+      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_schedule_budget_fixture.tower")
+      # Owner discovery includes eight work_graph and five work_budget declarations.
+      set(count 19)
+      if(selection STREQUAL "direct")
+        set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_schedule_budget_fixture_test.tower")
+        set(count 6)
+      endif()
+      foreach(jobs IN ITEMS 1 4)
+        set(name "tower-work-schedule-budget-${selection}-jobs-${jobs}")
+        add_test(NAME "${name}" COMMAND tower-selected-test-count "${count} tests passed for ${entry}"
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
+          --test-native-runtime "${work_test_guest}" --link "${work_test_allocator}")
+        set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+      endforeach()
+    endforeach()
     set(affinity_oracle "${CMAKE_CURRENT_BINARY_DIR}/work_linux_affinity_faults.stdout")
     file(GENERATE OUTPUT "${affinity_oracle}" CONTENT "412\n544\n0\n")
     foreach(selection IN ITEMS owner direct)
@@ -153,8 +171,8 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         set(name "tower-work-linux-affinity-faults-${selection}-jobs-${jobs}")
         add_test(NAME "${name}" COMMAND tower-selected-test-count "${summary} for ${entry}"
           "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
-          --test-oracle "${affinity_oracle}" --test-native-runtime "${affinity_guest}"
-          --link "${affinity_transport}" --link "${affinity_allocator}")
+          --test-oracle "${affinity_oracle}" --test-native-runtime "${work_test_guest}"
+          --link "${affinity_transport}" --link "${work_test_allocator}")
         set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
       endforeach()
     endforeach()
