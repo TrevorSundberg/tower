@@ -30,8 +30,3 @@ struct EmissionLiveCounts { buffers: usize; entities: usize; }
 fn emission_test_live_counts(): EmissionLiveCounts {
     return { buffers: tower_test_buffer_count(), entities: tower_node_get_allocated_count() };
 }
-
-fn emission_test_check_released(before: EmissionLiveCounts): void {
-    utility_check(before.buffers == tower_test_buffer_count(), "Emission fixtures release their buffers");
-    utility_check(before.entities == tower_node_get_allocated_count(), "Emission fixtures release their entities");
-}

@@ -1,5 +1,6 @@
 import tower;
 import syntax_live_support;
+import syntax_live_support_test;
 import .compiler.syntax_session_types;
 import .compiler.syntax_types;
 import .compiler.format_types;

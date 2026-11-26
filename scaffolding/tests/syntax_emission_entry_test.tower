@@ -1,0 +1,22 @@
+import tower;
+import .compiler.syntax_emission_types;
+import library.testing;
+import syntax_emission_context;
+import syntax_emission_context_test;
+
+extern fn syntax_emission_tests(input: SyntaxEmissionInput*): usize;
+
+fn emission_test_two_pass(): void {
+    var context = emission_test_context();
+    for (var pass: usize = 0; pass < 2; ++pass) {
+        var live = emission_test_live_counts();
+        assert(syntax_emission_tests(&context) == 0, "Emission fixed/generated/template/failure fixtures");
+        // The first pass initializes ordinary shared compiler caches. Repeating
+        // the complete suite must retain neither result buffers nor input nodes.
+        if pass != 0 {
+            emission_test_check_released(live);
+        }
+    }
+}
+
+test() { emission_test_two_pass(); }

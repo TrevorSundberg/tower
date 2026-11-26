@@ -1,0 +1,8 @@
+import tower;
+import library.testing;
+import syntax_emission_context;
+
+fn emission_test_check_released(before: EmissionLiveCounts): void {
+    assert(before.buffers == tower_test_buffer_count(), "Emission fixtures release their buffers");
+    assert(before.entities == tower_node_get_allocated_count(), "Emission fixtures release their entities");
+}
