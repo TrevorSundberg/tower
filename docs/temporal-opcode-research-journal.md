@@ -107444,3 +107444,79 @@ expose no per-case allocation measurements or sanitizer instrumentation.
 The review packet retains the single-commit bundle, exact selector and
 assertion maps, raw baseline and migrated observations, commands, mutation
 diffs, restored runs and timings. Publication belongs to the manager.
+
+### Adjacent positive compiletime cases on the retained release reactors
+
+Host 1, assignment `1813f3a3-c7b5-484a-a739-a54210b7fa80`, parent
+`c2d339ea`. Sixteen unchanged source fixtures have sixteen adjacent Tower
+test declarations. Each supplies its filename, exact stdout and a representative
+typed declaration from its canonical Foundation. The lazy-body case also
+excludes both the unresolved value and the unused specialization. The original
+source-level type and value checks still execute. The two backend names per
+owner give 32 browser registrations. A completed test execution must consume
+both portable observations or the one LLVM observation. The shared text
+observation and selection helpers also serve the four generic-body registrations.
+
+Fourteen companions use the native fixture grant to check actual stdout. In
+the browser the assertion session binds the checked-in browser profile at the
+test-only results module path. Its reader checks the observed source name and
+pointer width. The portable observations contain graph output, fast canonical
+replay output and both full Foundation texts for each width. For LLVM, the
+original source and four-byte graph canonical both compile for
+`wasm32-unknown-unknown`. The test checks the graph output, both Wasm guest
+outputs and both error strings. Compilation, completion and truncation are
+checked at the host boundary. The source and LLVM sessions retain their normal
+resources. The existing optional phase and artifact captures remain available.
+
+On this release, paired discovery for `decltype_type_fields` and
+`decltype_lazy_body` returned a count of one but executed five steps and read
+zero observations. The selected Foundation contained an empty test function.
+The native test command exited 139 for each owner, including with a companion
+consisting only of a failing assertion. Named and direct-call trials and their
+canonical outputs are in the evidence packet. Each of these two cases therefore
+uses an adjacent inline `_browser.tower` test importing the browser observer
+directly. Both consume the expected observations, and both original sources
+also run through native ordinary interpretation. The native release compiler's
+paired-discovery failure is open. The portable body-continuation comparison
+exhausted an initial 200 chunks. The complete two-width comparison took 217
+chunks of 100,000 interpreter steps and runs under a bounded 300-chunk limit.
+
+Both release reactor hashes match the prior receipts, portable `41bb9b11`
+and raw LLVM `15b4f33b` from compiler source `8bc867b6`. All 16 original
+input hashes match. Original and migrated replays produced byte-identical
+inputs, output, final execution records and complete Foundation text for all
+80 portable executions, including LLVM's graph setup. All 128 LLVM artifacts
+matched, including 32 Wasm binaries and 32 guest execution records. The full
+file passed all 88 registrations in identical order with zero skips. The
+negative and generated stress registration bodies compare byte for byte.
+
+Each of the 14 native owners selected one test at jobs 1 and 4. Independently
+changing the output to one in every direct companion returned exit 1. Each
+passed after restoration. Both exceptional originals printed zero under
+`--interpret`. Substituting `comptime_flow.tower` for `decltype.tower`
+preserved zero stdout and failed both browser canonical type assertions.
+Changing only the Tower output oracle failed both registrations. Replaying
+a different zero-printing producer on fast failed the Foundation equality
+check. Each lazy-body exclusion failed independently against a present name.
+Sending the real eight-byte body-continuation canonical to wasm32 produced
+zero from source and one from the canonical guest. All controls were restored.
+
+Debian 12, two Xeon Gold 6244 sockets, affinity 0–31, cgroup quota 15.36
+CPUs, Node 24.22.3. The matched release reactors are serial. Three warm-file,
+fresh-process pairs per workload ran under one host timing lock, alternating
+pair order. Median wall and combined CPU seconds, with maximum process RSS
+in KiB across the three runs, were as follows.
+
+| Selection | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | --- | --- |
+| One decltype portable registration | 0.89 / 1.58 / 143172 | 1.15 / 2.15 / 150940 |
+| 32 positive registrations | 5.60 / 12.63 / 324932 | 11.64 / 19.65 / 365344 |
+
+A separate trace attributed 6.33 seconds to the 32 observed-test selections,
+including input configuration, compilation, interpreted assertions and entry
+restoration. The one decltype portable selection took 0.316 seconds in this
+trace. The code changed the cost of the test harness. Per-case allocation
+counters and new sanitizer instrumentation were unavailable on the retained
+release reactors. No build was required. The packet includes the selector map,
+input and result bytes, commands, timings, failed trials and focused bundle.
+The manager owns integration and publication.

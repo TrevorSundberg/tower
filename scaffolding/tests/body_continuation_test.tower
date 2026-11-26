@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import compiletime_results;
+
+test() {
+    check_compiletime({
+        file: "body_continuation.tower", output: "0\n",
+        declaration: "struct `query_type_record(i32)` {",
+        ..default
+    });
+}

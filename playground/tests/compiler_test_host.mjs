@@ -45,8 +45,8 @@ export function guestString(context, pointer) {
   return decoder.decode(memory.subarray(start, end));
 }
 
-export function runSelectedTest(tower, entry, chunks = 10) {
-  tower.configureModules({entry});
+export function runSelectedTest(tower, entry, chunks = 10, files) {
+  tower.configureModules(files ? {entry, files} : {entry});
   const handle = tower.compileTests();
   try {
     const checked = tower.execute(handle, 0);

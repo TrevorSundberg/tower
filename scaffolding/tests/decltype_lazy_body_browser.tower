@@ -1,0 +1,10 @@
+import tests.compiletime_browser.results;
+
+test() {
+    check_browser_compiletime({
+        file: "decltype_lazy_body.tower", output: "0\n",
+        declaration: "var inspected_pointer: i32*;",
+        absent_body: "missing_body_value", absent_function: "fn `unused(",
+        ..default
+    });
+}

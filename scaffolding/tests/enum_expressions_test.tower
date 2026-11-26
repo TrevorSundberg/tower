@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import compiletime_results;
+
+test() {
+    check_compiletime({
+        file: "enum_expressions.tower", output: "0\n",
+        declaration: "var selected: Choice =",
+        ..default
+    });
+}
