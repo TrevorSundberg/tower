@@ -119959,3 +119959,18 @@ race-control starts before successful runtime initialization. All attempts
 are retained. The serial allocator suite exercises a single owner under TSan.
 The project provides no Tower UBSan profile. Manager integration and
 publication remain outside this assignment.
+
+### Direct Wasm imports through an exported function and table
+
+The original Playground platform test compiles a Foundation provider and a
+consumer, binds the export directly, then binds the same function through
+slot zero of a real WebAssembly table. This change places the four existing
+expectations in `playground/src/platform_wasm_imports_test.tower`. The two
+Foundation programs are readable sibling fixtures. The browser test still
+instantiates the actual modules through the shipping LLVM host and supplies
+the compile results and both executions to the selected language test.
+
+The manager compared the fixture tokens with both original inline programs
+and checked the transport with `node --check playground/tests/platform.test.mjs`.
+Execution on the two shipping compiler images and negative controls require
+the assigned worker's evidence before publication.
