@@ -105595,3 +105595,50 @@ digest bytes in numeric filename order. GNU basenc decoded the hex after the
 first transport attempt found xxd unavailable. A checked narrowing conversion
 rejected the first attempt to use an entire xorshift word as a byte. Restoring
 the original low-byte mask preserves the generator and its conversion contract.
+
+The last two blocks reject a one-byte update at the maximum encodable byte
+count and stream one million `a` bytes in the original 1,000 calls. The latter
+checks the published answer, rejects a nonempty null update on that same state
+and compares the pre/post digests. GNU sha256sum independently reproduced the
+million-byte answer and the other four standard answers. Mutating the corpus
+seed with both internal hashing paths still in agreement failed at the pinned
+aggregate digest (line 76).
+
+Host 2 ran the e2ebb16a source CLI (SHA-256
+`a792d2d2e42c167b1f5eb0bdec8cc342853cfaa37e09d6b2554ee397ee6e1d17`)
+on Debian x86-64, Ryzen 5 3600, LLVM 19.1.7. The build used six outer jobs,
+one compiler worker, CPUs 0–11 and a quota of 11.52 CPUs. It took 23.16 s wall,
+79.66 s CPU and 784,180 KiB peak RSS. Single warm-filesystem runs below used
+fresh processes on CPUs 0–3. Owner discovery at one job passed seven in 261.80 s
+wall / 261.78 s CPU / 84,116 KiB. Explicit selection at four jobs passed the
+same seven in 259.08 s / 259.11 s / 98,904 KiB. Guest stdout was empty for
+both. Test interpretation is serial. Each check ran the full million-byte
+stream. The native direct reference took 0.06 s before and after, including
+file creation. Its workload includes repeated prefix replays and uses native
+machine code. These timings describe different execution paths.
+
+Both list modes found the companion once. A missing suffix selected zero.
+An ordinary SHA-256 consumer built with the companion absent, present, and
+with a missing private import produced identical executable and depfile
+bytes each time and printed 186 (the first digest byte of abc). The three
+compiles took 0.61, 0.59 and 0.61 s with peak RSS 97,592, 97,424 and
+97,216 KiB. The owner library object and depfile also remained identical.
+Direct interpreter probes reported missing bindings for strlen, strcmp and
+the file writer's fopen. The first file probe mixed two lexical roots for
+the byte API and failed on bytes_reserve before execution. Selecting the
+local bytes implementation reached fopen. The checked-in bootstrap still
+rejects --test and independently builds the registered direct executable.
+Its original 260 files passed the external oracle as well.
+
+For native memory checks, an evidence-only copy of the suite removed the seven
+`test()` prefixes, leaving ordinary lexical blocks with identical statements.
+The public-source native emitter lowered that guest. Tower's LLVM 19 tool
+instrumented the guest and Linux x64 runtime independently for ASan and TSan.
+Each binary completed with empty streams (0.17 and 0.31 s). The maps and IR
+identify both instrumented inputs and the checks in sha256_test_matches.
+Those runs cover serial guest code. They do not instrument the compiler running
+--test. Tower has no source-level UBSan mode. Packet
+98188150-a7d2-4313-9df4-e4475cb84726 contains the per-assertion mapping, both
+suites, generated files, binaries, measurements, failure diagnostics and
+transfer commits. Distribution of a test-capable bootstrap remains with the
+manager.

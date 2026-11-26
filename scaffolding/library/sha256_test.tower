@@ -75,3 +75,29 @@ test() {
     // SHA-256 of the 260 raw sha256sum digests in numeric prefix-length order.
     assert(sha256_test_matches(&corpus, "ddda469d69de4d6d0d341bb4b8fcbb953d4bcd24aeb7ac77218a3f27fe042dae"));
 }
+
+// One more byte at the maximum encodable bit length must be rejected.
+test() {
+    var state: Sha256;
+    sha256_init(&state);
+    state.bytes = (~convert(u64, 0)) / convert(u64, Sha256ByteBits);
+    assert(!sha256_update(&state, "a", 1));
+}
+
+// One million 'a' bytes, followed by a rejected update on the same state.
+test() {
+    var chunk: u8[1000];
+    var size = sizeof(decltype(chunk));
+    var chunks: usize = 1000;
+    fill(&chunk[0], *"a", size);
+    var state: Sha256;
+    sha256_init(&state);
+    for (var at: usize = 0; at < chunks; at++) {
+        assert(sha256_update(&state, &chunk[0], size));
+    }
+    assert(sha256_test_matches(&state, "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0"));
+    var before = sha256_finish(&state);
+    assert(!sha256_update(&state, null, 1));
+    var after = sha256_finish(&state);
+    assert(utility_equal(&before.bytes[0], &after.bytes[0], Sha256DigestBytes));
+}

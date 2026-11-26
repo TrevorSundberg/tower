@@ -481,9 +481,15 @@ a library object, link `guest-host-library.o`, then run it by absolute path.
 The argument helper avoids the published bootstrap's duplicate-literal issue
 when string literals are passed directly to inferred generic calls.
 
-`sha256_checks.tower` checks standard SHA-256 vectors, all chunk splits, a million
-`a` bytes, non-consuming finalization and rejected input. Pass a writable fixture
-directory, then independently verify its 260 binary fixtures with
+`build/native/towerc --test scaffolding/library/sha256.tower --test-details`
+discovers the adjacent SHA-256 suite. To select it explicitly, pass
+`scaffolding/library/sha256_test.tower` to the same command. It checks four
+standard vectors at every split, a million streamed `a` bytes, rejected
+updates, and whole versus incremental digests at all 260 binary prefix lengths.
+
+The direct native fixture `sha256_checks.tower` also exercises file creation
+and replays every prefix from an empty stream. Pass a writable fixture
+directory to its executable, then independently verify the 260 files with
 `sha256sum --quiet -c <directory>/checksums.txt`.
 `tool_files_checks.tower` takes a new fixture directory and checks bounded reads,
 resource traversal, file/directory symlink policy and atomic publication refusing
