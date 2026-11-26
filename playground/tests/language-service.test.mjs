@@ -43,7 +43,7 @@ const run = editorSuite('language_service', [], {
   },
   string_length: (_, id) => typeof values[id] === 'string' ? values[id].length : -1,
   code_unit: (_, id, index) => values[id].charCodeAt(index),
-}, () => pending);
+}, () => pending, ['reply_test.tower']);
 
 async function check(t, name) {
   try {

@@ -1,5 +1,4 @@
 import library.testing;
-import backend.text;
 
 // Request handles refer to the page service's promises. Value handles refer
 // to their JS results and fields, including null and undefined.
@@ -27,27 +26,4 @@ extern fn code_unit(value: i32, index: usize): u32;
 fn await_result(call: i32): i32 {
     while !delivered(call) { promise_turn(); }
     return result(call);
-}
-
-// Each expected spelling is ASCII. Read native JS code units so embedded
-// NULs and non-string values remain distinguishable.
-fn text_is(value: i32, spelling: u8*): bool {
-    var length = backend_length(spelling);
-    if string_length(value) != convert(i32, length) { return false; }
-    for (var i: usize = 0; i < length; i++) {
-        if code_unit(value, i) != convert(u32, spelling[i]) { return false; }
-    }
-    return true;
-}
-
-// Each deep-equal reply has one own enumerable field and an ordinary dense
-// array. Check its entire enumerable shape, including extra symbol keys.
-fn reply_array(value: i32, key: u8*, length: usize): i32 {
-    assert(plain_record(value), "Service reply is a plain object");
-    assert(field_count(value) == 1, "Service reply has exactly one field");
-    var items = field(value, key);
-    assert(plain_array(items), "Expected reply field holds a plain array");
-    assert(array_length(items) == length, "Reply array length");
-    assert(field_count(items) == length, "Reply array enumerable fields");
-    return items;
 }
