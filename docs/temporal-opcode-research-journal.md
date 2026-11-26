@@ -119096,3 +119096,81 @@ rounds of publish, cancel and denial at two and four pthreads. The owner
 selects seven declarations including five from work_budget. Direct selection
 runs the two page trials. All five native registrations passed with the
 production allocator, including the original stdout on both widths.
+
+### Verification against the two original executables
+
+Host 4 used one Ninja Release cache, LLVM/Clang 19.1.7 and the checked-in
+Linux x64 compiler (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+All 61 bootstrap manifest entries verified before and after. The actual
+standalone entry objects and linked executables matched the originals byte
+for byte at both compiler widths. Both programs also accepted extra argv
+entries and kept their one-line output. The selected-file inventories name
+the new companions and, for the component-budget owner, work_budget_test.
+The separate mutation fault cases in this tree live in entity_mutation_results_test.
+Its attach, named stage and queue allocation sweeps remain there.
+
+Evidence-only print inserts recorded state after original predicates ran and
+before their live owners were destroyed. Across the original executable, the
+migrated executable and four selected guests per fixture, all six copies of
+each trace matched. Creation produced 32 lines covering ID zero, the pinned
+Busy result, the independent receipt after named attachment, the last
+assignable ID, Exhausted and disposal. Component budget produced 1,414
+lines. The serial payload grants were 6,943 bytes for the 64-slot page and
+37,015 for the oversized allocation. Both physical pressure paths returned
+Capacity. The pooled sentinel remained 12,345 and the oversized tail was 73.
+
+| Per worker after join | Rows | Queued holds | Result | Oversized component |
+| --- | ---: | ---: | --- | --- |
+| Publish | 5 | 6 | None | Present |
+| Cancel | 1 | 1 | None | Absent |
+| Deny | 4 | 4 | Capacity | Absent |
+
+All 48 trials retained their original checks on private pages, distinct
+pthread IDs, coordinator finalization and teardown. These row counts describe
+the measured Linux layout. The fixture continues to derive growth from the
+actual page capacity. Every finalizer count equaled its trial's hold count.
+After store disposal every byte and live grant returned to zero.
+
+Changing 14 expectations independently exercised creation errors and ordered
+attachment, page reuse, pooled and oversized allocation, the payload sentinel,
+thread identity, publish/cancel/deny state, finalizer affinity and cleanup.
+Three more controls removed serial or parallel allocation pressure or invoked
+the creation finalizer. All 17 variants failed the executable and each of the
+four selections. All 85 restored runs passed. A separate one-byte change to
+the stdout oracle failed all eight selections at offset zero. All eight
+passed after restoration. The final native CTest filter passed ten of ten.
+
+The AMD Ryzen 7 5800H had 8 cores, 16 logical CPUs, a quota of 15.36 CPUs
+and a 64,061,702,144-byte memory limit. Warm-file profile commands held the
+host timing lock, used CPUs 0,2,4,6 and ran one at a time. Each cell is the
+median elapsed seconds / median user plus system seconds / maximum RSS KiB
+from three invocations. Batch timings include the shell and 32 fresh
+standalones. Each batch produced exactly 32 zero lines.
+
+| Work | Compiler jobs | Original | Migrated |
+| --- | ---: | ---: | ---: |
+| Creation object | 1 | 0.24 / 0.24 / 92568 | 0.26 / 0.26 / 94140 |
+| Creation object | 4 | 0.29 / 0.30 / 99608 | 0.30 / 0.32 / 100564 |
+| Budget object | 1 | 1.32 / 1.32 / 177616 | 1.35 / 1.34 / 176304 |
+| Budget object | 4 | 1.31 / 1.46 / 184068 | 1.33 / 1.47 / 184132 |
+| Creation batch | 1 | 0.02 / 0.01 / 3016 | 0.02 / 0.02 / 2932 |
+| Creation batch | 4 | 0.02 / 0.02 / 2984 | 0.02 / 0.02 / 3008 |
+| Budget batch | 1 | 0.20 / 0.26 / 2896 | 0.20 / 0.26 / 3036 |
+| Budget batch | 4 | 0.20 / 0.26 / 2956 | 0.20 / 0.26 / 3004 |
+
+The creation and budget object depfiles grew from 11 to 13 and 23 to 25
+inputs respectively with the added source files. Both measured standalone
+binaries remained identical. The batch figures have 0.01 s resolution.
+
+ASan with leak detection and TSan passed each restored standalone both by
+direct invocation and through its ordinary CTest. The maps and instrumented
+IR identify the production allocator, the separately linked creation provider,
+and the component fixture's Linux pool, worker and finalizer. The component
+worker had 25 read and 10 write instrumentation calls in TSan IR. On this
+host four direct launches and five CTest launches of the threaded component
+test failed during TSan startup on the personality request. The successful
+launches ran all dispositions. The native selections used the public compiler
+and its ordinary guest. Source-level UBSan is unavailable in the repository's
+emitted-IR modes. Host-specific results and raw receipts accompany assignment
+889c2722. Cross-target validation and publication belong to other milestones.
