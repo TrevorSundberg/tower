@@ -115837,6 +115837,110 @@ The supported ASan with leak detection and TSan builds each passed the ordinary 
 
 The raw packet contains the manifest checks, configure and Ninja commands, registration and failure logs, exact controls, bounded streams, sample ledger, sanitizer artifacts and a source bundle. The manager owns integration and publication.
 
+### Staged capture publication observer on public 105b927e
+
+Host 6, assignment a5232617-962a-4864-b33b-a7ccd93f4a86. The two earlier
+receipts above identified the required producer and the lifetime of the
+typed guest callback. At this freeze the original five registrations pass.
+At root publication the provider reads the world's opaque observer context,
+checks that the receipt exists, invokes its typed inspection function, then
+calls the rebound interpreter's publisher. A missing receipt must reach the
+existing flushed diagnostic and abort before any callback field is loaded.
+
+The publication test companion now owns that check and invocation. Both
+links use the same provider. The selected identity companion already owns the
+producer graph walk, and the trial compares its receipt after execution and
+canonical output. The ABI, graph walk and trial sequence are the public ones.
+
+Exact fixture build source is `583213c71df68eb1645d1298d5d770638fcb0ee7`
+(tree `0a4fc950844299266ec8a656d7f906037fb03479`). The host-6 checkout
+started one unpublished commit ahead after its required rebase. An isolated
+local main retained the specified public parent and its own cache.
+The first direct CMake invocation required the path to the public compiler.
+The checked-in package passed its SHA256SUMS. The retried configuration used
+Release, native and execution tests, the backend project hook and LLVM 19.
+
+Both commits passed the five ordinary registrations. The ordinary standalone
+is silent. Real native owner and direct selection reported 16 and 1 tests
+respectively at outer jobs 1 and 4. The shared export sets matched, as did
+the standalone guest entry objects. The evidence-only observer recorded
+selected 71, demanded salt capture 197, required producer 198, literal bits
+23, parent salt and matching ordinal 15. Optional producer 172 was distinct,
+inferred and outside the direct edge. Both successful inner widths returned
+the original 11 interpreter bytes and 3,065 Foundation bytes with SHA-256
+`15402b44a52a2cbf7714e93a625a2d9b55d1caff7a723f7361e4bb9f0e2e76a4`.
+Peak lane reservations were 1 and 4, with none held. Peak charged bytes
+were 21,173,235 and 25,165,680. Both edited batches failed at
+`profile_seed.tower:3:1` with the escaped-storage diagnostic, no program and
+no root observation. These probes used the ordinary allocator and native
+worker transport. The archive retains the full streams for both links.
+
+Replacing only the guest installation argument with null produced the
+original flushed stdout message and SIGABRT (shell status 134) in the CLI.
+The selected driver returned 1 with its missing completion/trap record on
+stderr. The same comparison passed with the inner loop starting at four.
+An initial wrong-producer control imported a sibling without binding its
+namespace and failed earlier with “Unknown local 'other'”.
+
+With an explicit sibling alias, substituting only the referenced salt
+retained the literal 23, all guest output and the exact canonical hash at
+both CLI widths. The identity assertion failed at line 132, column 5 in
+both selections and offset 207126 in the standalone. Starting the inner
+loop at four independently reached the same assertion. Restoring the
+provider read passed. Looking up the inferred known_producer in place of
+the required producer also failed the identity assertion. The original and
+candidate raw stdout, stderr and statuses matched for each control. Two
+native direct-selector syscall traces recorded an executed guest ELF and
+26 successful thread creations by its main thread over the four batches.
+
+The original-family audit found only world/context transport, root-event
+selection, publication and CLI argument validation in the non-companion
+modules. Both the observer precondition and typed call are in the publication
+companion. The declaration lookup, graph and value/ordering predicates,
+edited diagnostic, expected output, canonical comparison and receipt checks
+are in the identity companion. Its general output helpers compare caller-
+supplied data. The source audit and full call sequence are in the packet.
+
+Host 6 used a KVM Xeon E5-2680 v4, twelve visible vCPUs, 11.52-CPU quota
+and measurement affinity 0–3. Clang/LLVM 19.1.7, the checked-in Tower
+compiler and x86_64-pc-linux-gnu Release were fixed throughout. Each cell
+gives median wall seconds / median CPU seconds / maximum process RSS in KiB
+over three warm-file-cache launches. Original/candidate order alternated.
+All comparisons held the host timing lock. The process cgroup's throttle
+count stayed at 234 across the standalone and selection measurements.
+
+| Work | Original jobs 1 | Candidate jobs 1 | Original jobs 4 | Candidate jobs 4 |
+| --- | --- | --- | --- | --- |
+| Provider compile | 1.92 / 1.92 / 186304 | 1.96 / 1.95 / 186308 | 1.93 / 2.22 / 190572 | 1.98 / 2.28 / 191832 |
+| Four batches, standalone | 1.65 / 1.75 / 83968 | 1.71 / 1.82 / 83816 | 1.67 / 1.77 / 83508 | 1.65 / 1.75 / 83936 |
+| Owner compile and run | 4.17 / 4.27 / 193896 | 4.34 / 4.44 / 194000 | 4.21 / 4.70 / 205276 | 4.32 / 4.80 / 205548 |
+| Direct compile and run | 3.33 / 3.44 / 162192 | 3.24 / 3.35 / 162532 | 3.43 / 3.85 / 172488 | 3.38 / 3.79 / 172140 |
+
+Provider compiles reproduced the matching CMake objects. Adding the small
+import cost 0.04–0.05 s in these median samples. The optimized 24,900-byte
+provider text sections differed only at two bytes of the null-function
+trap source offset. The successful dispatch instructions were identical.
+Standalone and selected times cover fresh processes, including native
+compilation for selections. They do not establish a change in worker
+scaling or callback runtime.
+
+Both supported instrumented standalone CTests passed on their first launch.
+ASan with leak detection took 12.64 s wall and 623,880 KiB peak RSS.
+TSan took 37.65 s and 241,740 KiB. In each link map compiler_buffer_allocate
+resolves to libtower-compiler-memory.a(tower-compiler-host.o) and the Linux
+thread entry to its tower_work_host.o. Function-level instrumented IR covers
+the root router, the moved null check and indirect call, and the selected
+capture inspector. ASan also ran the null-installation and equal-value
+sibling controls. They matched the ordinary stderr, stdout and status 134.
+The selected native driver uses the ordinary shared service. The Tower IR
+instrumentation path provides no UBSan profile.
+
+The raw archive and public-base bundle use assignment ID
+`a5232617-962a-4864-b33b-a7ccd93f4a86`. They include the original and
+candidate source, complete commands, positive and negative streams, build
+identities, typed instrumentation, maps, control inputs and measurements.
+Publication belongs to the manager.
+
 ### Entity creation under single-owner physical allocation refusal
 
 Assignment 7adbffb5-fff0-4a80-9edd-809523333347 starts at public
