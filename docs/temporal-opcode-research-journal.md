@@ -108645,3 +108645,62 @@ was replaced by reading the captured ELF type field. The browser and bootstrap
 were not rebuilt. The manager owns integration and publication.
 
 On integration the combined native configuration retained all 216 existing CTest commands and properties and added eight exact-count registrations. The manager compared the member bytes of both optional install archives with their inventories and the 15 additional installed sources and oracles with the checkout. The twelve ordinary output runs matched the three checked-in expected files. The captured native store completion and its replay were identical. These comparisons cover the registered entity suites; unrelated CTest outcomes have separate receipts.
+
+### Work-budget reservations in adjacent tests, 2026-11-26
+
+Host 1 compared the serial native fixture blob `f7655ed1` and ledger
+`748f6703` on public `4b2685e5` and again on `aed77666`. Before the port,
+the native entry printed `0\n` and the owner selected zero tests. The companion
+now has five declarations, in order, for receipts, the seeded model, limits,
+optional reservations and validation. The compiled fixture imports the same
+scenario functions so its sanitizer target still compiles the entire workload.
+Both native mains have identical statements. The 75 predicate sites map
+one-to-one (25, 9, 11, 16 and 14). Validation also calls the unchanged-state
+helper in 20 distinct cases. Removing only diagnostic arguments, assertion
+spelling and whitespace from the scenario bodies produced identical bytes,
+including the 8,192 rounds, 17 slots, arithmetic, rejection checks and cleanup.
+The raw line mapping is in assignment efdd09ee-f741-4070-98ee-806d15d40c2c.
+
+The two declared installation members matched their manifest and their copies
+extracted from the producer archive. All 101 installed file hashes matched.
+The assigned Linux compiler was `a4f6f566`, count runner `bcc761f5`.
+The new driver-suite registrations use that existing runner on the owner and
+the companion. The native guest needs the production memory archive plus the
+bytes and UTF-8 objects. A runtime-only probe failed on `tower_deallocate`,
+and the archive without its providers failed on `bytes_reserve`. The original
+native entry requires the CMake library-object and entryless-runtime link
+because a standalone guest link defines a second main.
+
+On the updated base, configured build and relocated SccTests registrations
+each passed 4/4 at jobs 1 and 4 with the verified binaries. Interpreted and
+native selections reported exactly lines 6 through 10 at column 1 with empty
+guest stdout. Changing only the old-generation lane expectation from eight to
+seven (and its message) failed at the assertion, `work_budget_test.tower:45:5`.
+The CLI exited 1, the installed CTests exited 8 and restoring the hashed source
+passed at both widths. The checked-in compiler separately passed both direct
+selections at both widths. Ordinary owner objects matched the baseline at
+both widths and the depfiles contained the same eight production sources.
+The private kit gained the companion and updated registry. Its other 100
+installed members matched the producer receipt.
+
+The unchanged native CTest target passed normally and with ASan/LSan. TSan
+instrumented the same fixture and completed on its third launch on the final
+base. The first two launches failed before main at the container's denied
+ASLR personality call. The repo supports address and thread instrumentation
+for these Tower objects. The independent shared-gate and injected-allocation
+CTests passed under their original production-thread and serial-fault
+configurations. Reconfiguring the earlier build directory on the newer base
+correctly rejected a stale private module in its ordinary resource tree;
+fresh build directories passed.
+
+Host 1 was a dual-socket Xeon Gold 6244 with affinity 0–31 and a 15.36-CPU
+quota. Three serially run, warm-filesystem pairs per width on CPUs 4–7 used
+identical resource inputs and the same guest runtime. In old/new order,
+median object compilation at jobs 1 took 0.44/0.57 s wall, 0.44/0.55 s CPU,
+101576/106236 KiB maximum RSS. Jobs 4 took 0.52/0.71 s wall, 0.56/0.80 s
+CPU, 106544/119824 KiB. The fixture now compiles library.testing and individual
+source-located diagnostics. Its object grew from 11480 to 19864 bytes.
+Batches of 200 fresh serial fixture processes, including launch costs, took
+0.15/0.16 s wall for the jobs-1 objects and 0.16/0.15 s for jobs-4. Every
+process printed exactly `0\n`. These measurements cover fixture compilation
+and execution. The scheduler implementation did not change.
