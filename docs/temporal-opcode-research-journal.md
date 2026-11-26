@@ -115836,3 +115836,100 @@ On an AMD Ryzen 7 5800H, Linux x64, clang/LLVM 19.1.7 Release, the cgroup had 16
 The supported ASan with leak detection and TSan builds each passed the ordinary standalone registration on their first test launch. Their link maps identify `runtime-allocate.o` and `tower_work_host.o` (Linux transport). Instrumented IR and final executable disassembly show checked reads in both the root router and the companion's `tower.fn.capture_inspect`. The initial TSan evidence extractor expected aligned read symbols. The router uses `__tsan_unaligned_read8`. Correcting the extractor recovered the linked probes before launching the test. Address/leak used 6.38 s wall, 6.65 s CPU and 631,580 KiB RSS. Thread used 18.95 s wall, 19.75 s CPU and 245,508 KiB RSS. The selected shared-service runs used their ordinary test runtime. Source-level UBSan is unavailable in this instrumentation path.
 
 The raw packet contains the manifest checks, configure and Ninja commands, registration and failure logs, exact controls, bounded streams, sample ledger, sanitizer artifacts and a source bundle. The manager owns integration and publication.
+
+### Physical migration of the native syntax validation comparisons
+
+Host 4 started e7ea0aac from public `79972b2f123a937811a66764cbbf608d1a7f8192`.
+The five group declarations and the legacy export already called the same test
+bodies. The fixture still decided whether the validator agreed with the
+independent reference, matched fixed diagnostics and offsets, preserved pending
+term identity, and survived allocation failures without leaking. These checks
+now use source-located assertions in the existing companion. Both views still
+borrow the same live fixture with distinct pending arrays. Error buffers are
+disposed before sampling live counts, and the allocation sweep disables fault
+injection before checking any result.
+
+The Release parser-only build used the verified public Linux x64 compiler
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+one compiler job and four Ninja slots. The first configure needed the explicit
+public compiler path. The first link rejected a Clang map option passed to the
+Tower linker. Clearing that option reused the existing object cache. The
+original aggregate, focused CLI and all four selected CTests passed.
+
+On both trees the direct selector ran the five groups in original order.
+The owner also ran the five work-budget tests at lines 6–10. Compiler jobs
+1 and 4 returned identical selections. The validation declarations moved
+from lines 142–146 to 220–224. Mapping those five source locations accounted
+for the entire difference in ordinary selected output. Focused and aggregate
+stdout and stderr matched byte for byte. All other named parser suites,
+`--trace`, `--host-only`, the foreach parse, an unknown suite and malformed
+suite usage also matched in output and exit status. The trace aggregate
+produced 79,820,139 matching stdout bytes.
+
+Evidence-only Tower probes recorded each result and reference boolean, exact
+diagnostic bytes, offset, non-null pending identities by rule/alternative/term
+index, sweep outcome, capture count and graph trial. The first observer
+build needed an in-scope print declaration. The corrected probes produced
+identical 4,129 rows on each of the six entry paths in each version, SHA-256
+`9b417754524aa875173f80a4a0cff291b62c4a8334750344de2260329ffd846d`.
+The original 1,500 distinct captures were accepted, then the last capture
+renamed to `capture0` produced the expected duplicate diagnostic. MT19937
+seed 1447119945 produced 600 trials with the original activation order.
+
+| Group | Accepted / rejected comparisons | Non-null pending terms | Allocation sweeps / attempts |
+| --- | ---: | ---: | ---: |
+| Dependencies | 9 / 7 | 14 | 3 / 83 |
+| Captures | 4 / 12 | 0 | 6 / 29 |
+| Declarations | 2 / 23 | 0 | 1 / 8 |
+| Large capture set | 1 / 1 | 0 | 0 / 0 |
+| Seeded graphs | 243 / 357 | 2,730 | 0 / 0 |
+
+In a separate probe all 120 attempts returned to the sampled buffer/node
+counts. In the focused process the ten sweep baselines spanned 12,452–12,471
+live buffers and 5,380–5,386 live nodes. Group allocation-call deltas were
+3,034, 1,720, 2,631, 3,286 and 167,039. Running after the other aggregate
+suites gave 3,285 for the large capture group. Every route matched its own
+baseline, including group cleanup.
+
+Flipping only the independent oracle's final returned boolean made the
+focused and aggregate executables exit 134 and all four selected drivers
+exit 1 on both trees. The migrated guests located the comparison at
+`syntax_validation_test.tower:34:5` and printed its exact diagnostic.
+Restoring the oracle and removing the probes reproduced the suite object,
+executable, runtime and service hashes. All six restored CTests passed.
+
+Host 4 used a Ryzen 7 5800H (8 cores, 16 threads), Linux x64 and LLVM
+19.1.7. The cgroup had CPUs 0–15, quota 1536000/100000 (15.36 CPUs) and
+a 64,061,702,144-byte memory ceiling. GNU time measured three warm-filesystem,
+fresh-process samples per route and arm, with affinity 0–3 and the host's
+exclusive timing lock. Arm order was A B B A A B. The table gives median
+wall seconds, median user + system seconds, maximum process RSS (KiB) and
+median effective cores (CPU time / elapsed). The selected routes include
+guest compilation. The prelinked routes execute the serial parser transport.
+
+| Route | Original wall / CPU / RSS / cores | Migrated wall / CPU / RSS / cores |
+| --- | --- | --- |
+| Focused | 0.13 / 0.12 / 10,656 / 0.92 | 0.13 / 0.12 / 10,476 / 0.92 |
+| Aggregate | 1.48 / 1.47 / 50,416 / 0.99 | 1.47 / 1.47 / 50,532 / 1.00 |
+| Owner, jobs 1 | 1.22 / 1.21 / 155,332 / 0.99 | 1.21 / 1.21 / 155,752 / 1.00 |
+| Owner, jobs 4 | 1.26 / 1.42 / 165,464 / 1.14 | 1.24 / 1.41 / 165,224 / 1.13 |
+| Direct, jobs 1 | 1.08 / 1.07 / 142,008 / 0.99 | 1.05 / 1.05 / 142,156 / 0.99 |
+| Direct, jobs 4 | 1.12 / 1.27 / 153,000 / 1.13 | 1.09 / 1.24 / 152,592 / 1.14 |
+
+The Tower LLVM instrumenter covered 67 functions in the suite/fixture/oracle
+object and 1,626 in the production parser object. Both final executable
+maps selected the fault allocator `runtime-instrumented.o` and
+`tower_work_serial.o`. The remaining parser objects and selected guest runs
+used ordinary builds. Both instrumented IR and linked disassembly show checked
+reads in the migrated comparison. The focused ASan run with leak detection
+passed first time (0.60 s wall, 0.60 s CPU, 151,844 KiB). TSan hit its Linux
+address-layout startup check on 19 launches, with the container denying
+`personality(ADDR_NO_RANDOMIZE)`. Launch 20 of the identical executable ran
+the suite and matched its output (1.72 s wall, 1.71 s CPU, 62,912 KiB).
+The fault stream is single-owner at both selected compiler widths. Tower's
+instrumenter supports address and thread checks here. Source-level UBSan
+and parallel guest sanitizer coverage remain outside this native run.
+
+Assignment `e7ea0aac-e595-4134-ab50-a1c7fef6739c` carries the source,
+comparison streams, failing and restored runs, commands, toolchain
+identities, linker maps and timing ledger. The manager owns publication.
