@@ -111299,3 +111299,58 @@ publication on the old inputs reproduced the original project.json byte for
 byte before packaging the new rows. The cdce8b73 reactor recipes also carry
 that provider's frontend_fixture_snapshot export. Full backend release links
 belong to the separate release qualification.
+
+At implementation 582a0662, the portable and shared Tests buttons each
+passed the owner, direct default and aggregate with 22/5/5. Each of five
+independent golden edits reached the expected Tower byte comparison. The
+refusal edit reached syntax_session_format_cases_checks.tower:79:5, and
+renaming its oracle reported the full missing path at the aggregate's 8:10.
+Restoring it passed five on the same worker. An unrelated WorkBudget frame
+on the selected formatter handle and a subsequent ordinary program both
+received the unbound-function diagnostic. The ordinary example returned
+42 plus LF in 14 steps before and after the denied call.
+
+Production package_compiler_project processed the actual frontend objects
+and the retained ordered editable backend recipes. Its 818-row project
+matched the tested bytes (2a871472d0de3e92613a03384d6a9aa73d838f5bd169008cbc1b8379c41cf00b).
+All eleven support assets matched f2214133. Five reproduced backend unit
+objects matched the cdce8b73 digests. Correcting an SDK prefix, restoring
+the editable recipe's two-member memory archive and preserving the final
+export order closed the packaging differences. The byte-verified zstd
+project delta is 3,165 bytes against 29506678's 809-row input. The delivered
+frontend hashes begin fff61175 and 747e6440. Both retained their complete
+public ABI. Neither backend unit changed on top of 64fcfc1a. This packet
+leaves the separate standalone backend release and publication to the manager.
+
+The retained project again passed WorkGraph 13 and both semantic owners 60.
+The merged project has nine concurrent new compiler rows and also passed
+22/5/5 on both frontends. On the full native checkout, the initial 60-ID
+comparison detected nine added library/float_bits_test.tower declarations.
+The rebased predecessor 44dbdfca and the implementation produced identical
+69/69/13 ordered IDs. Removing those nine newly published IDs from each
+semantic result reproduces the earlier 60 exactly. Both native direct
+formatter entries passed five and the default owner passed 22 at one and
+four jobs. The ordinary formatter object changed from 81ffc1b8 to e58dde0b
+when incorporating the supplied fixture snapshot provider. The provider-only
+and final ordinary objects matched byte for byte.
+
+On the same Xeon E5-2680 v4 with affinity 0,2,4,6 and quota 11.52 CPUs,
+one matched portable browser session each clicked WorkGraph, inference
+and the direct formatter on identical project bytes. The old image stopped
+on the unbound formatter call. Old/new wall times were 39.885/41.124 s,
+family CPU 58.950/60.376 s and peak sampled summed RSS 1,724,656/1,779,952
+KiB. Summed RSS can count shared pages twice. The final 22-test native owner
+at one/four jobs took 23.46/19.28 s wall, 23.50/23.05 s CPU and
+653,060/681,016 KiB peak RSS. These single observations contain differing
+amounts of formatter work across browser versions. Neither guest allocation
+counts nor multi-worker sanitizer coverage were measured.
+
+Native x64 ASan/LSan and TSan ran the instrumented IDE unit through the
+test-create and step APIs. Three simultaneously live handles survived
+editing and restoring the refusal oracle before execution. The wrong,
+restored and original handles returned the expected error/done/done at
+58,600/127,691/127,691 steps. The link maps identify the native host-library
+allocator and the linked service transport. The serial ownership replay
+does not instrument the entire browser or provide Tower source-level UBSan.
+The assignment packet contains dependency ledgers, command lines, exact
+messages and outcomes, failed probes, source bundle and project delta.
