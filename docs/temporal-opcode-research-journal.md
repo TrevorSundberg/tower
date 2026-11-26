@@ -112270,3 +112270,96 @@ no concurrent guest work. The public Wasm reactors have no supported sanitizer
 build in this comparison, and the Tower IR tool has no UBSan mode. The
 assignment packet retains the source bundle, hashes, raw traces, negative
 controls and reproduction commands for manager review.
+
+### Selecting the seven Graph and Fast examples in Tower
+
+Host 6 tested local commit `83d5065e2172d13855d19224aecb0943ef03f415` from
+public `21f409e56b3f540a1360822207960a99e7b9ddd7`. Each original Node name
+selects one adjacent `_fast_graph_test.tower` file. Each Tower test supplies the
+path of its unmodified example. The shared Tower test runs Graph then Fast at
+pointer widths 4 and 8 and slice budgets 1, 7 and 100000. It checks both
+zero-budget step counts, the turn limit and both terminal statuses. It uses
+the same Tower assertion and public editor comparator as the comparison suite.
+That comparator checks status, accumulated output, diagnostic, byte offset
+and truncation with the editor's defaults. Terminal step totals and Fast cache
+statistics are present in the observations. The two engines can take
+different numbers of steps.
+
+The assertion reactor opens on first selection and serves all seven tests.
+The subject still compiles and destroys a fresh handle for each execution.
+The first version called back into the subject for every slice. A forced
+late terminal response exhausted the assertion guest after 19,606 slices.
+The final host collects up to the number of real slices requested by Tower
+in one call. With the same injected responses the first Graph execution
+could finish on slice 99,999 and pass. Finishing on slice 100,000 failed
+Tower's termination assertion. Two separate changes to a zero-budget
+response failed before the first positive-budget call. Appending a byte to
+the actual Fast terminal output failed the public comparison. The ordinary
+responses passed again after removing the observer modification.
+
+The Pages manifest at `9788bd66ff4d90b174bbe73c33aa6f68c4e9b5af` hashes to
+`10d884873c1d8511b4e2d8232d961a922c095f1cf002e20260df712d2eb407da`.
+The four delivered reactor asset hashes matched it. The portable and threaded
+images used in this test both name compiler source `64fcfc1a`.
+To reproduce the seven registrations with an existing image, run from the
+checkout root with Node 24.
+
+```sh
+pages=9788bd66ff4d90b174bbe73c33aa6f68c4e9b5af
+images=$(mktemp -d)
+git show "$pages:deployment-manifest.json" > "$images/manifest.json"
+for asset in tower.wasm tower-threads.wasm; do
+    git show "$pages:$asset" > "$images/$asset" || exit 1
+    (cd "$images" && jq -r --arg a "$asset" '.assets[$a] + "  " + $a' manifest.json | sha256sum -c -) || exit 1
+    TOWER_TEST_WASM="$images/$asset" node --test --test-concurrency=1 \
+        --test-name-pattern='^fast and graph: ' playground/tests/fast-interpreter.test.mjs || exit 1
+done
+```
+
+Each of the seven exact names selected one test on each image. The registered
+group passed 7/7 and the full file passed 13/13 on each. Both CFG names,
+cancellation and the separate public comparator test also passed individually.
+With the ordinary registration instrumented at the subject API, each image
+produced byte-identical baseline and candidate traces for all 42 pairs.
+The 6,936 records include 84 source compiles, 6,684 execute responses,
+42 Fast selections, 42 Fast statistics reads and 84 handle destructions.
+All four traces hash to
+`792ab214b4b86ac6d6bfbba25fb89708a175cf2e1aaf593969ad2afcdbe82526`.
+For each image the restored exact-name trace also matched its baseline prefix.
+
+The checkout's Linux x64 compiler listed each adjacent companion using its
+example as the owner and `--test-suffix _fast_graph_test.tower`. For all seven
+owners, ordinary objects and depfiles matched byte for byte at fixed paths
+across the original tree, the new companions and deliberately broken test-only
+imports. The seven example sources, the LLVM differential suite and its
+opt-in controls retain their original blobs.
+
+Host 6 exposed 12 Xeon E5-2680 v4 vCPUs, cpuset 0–11, quota 1,152,000 µs
+per 100,000 µs and a 32,282,509,312-byte memory limit. Each timed process used
+affinity 0–3, Node 24.22.3 and test concurrency one. The subject used the
+image's ordinary transport (threaded capacity four). The assertion host used
+capacity one for foreign calls. The following are separate GNU time samples
+for all seven names in baseline/candidate/candidate/baseline order. Each
+started a new Node process against warm filesystem inputs with tracing off.
+
+| Image and arm | Wall seconds | User + system CPU seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| Portable baseline | 1.71, 1.72 | 2.39, 2.40 | 143564, 138548 |
+| Portable candidate | 2.84, 2.89 | 3.61, 3.66 | 165572, 170044 |
+| Threaded baseline | 2.63, 2.66 | 4.17, 4.23 | 223464, 225888 |
+| Threaded candidate | 4.12, 4.20 | 5.80, 5.97 | 269480, 273936 |
+
+The candidate adds an assertion reactor and compiles and executes seven
+selected tests. In a separate counter run that reactor reached 28,377,088
+linear-memory bytes on either image. The portable subject reached 35,258,368
+bytes on both arms. The threaded subject reached 45,350,912 and 45,678,592
+bytes. The subject closed all 84 handles and the assertion reactor closed
+all seven. Both reported zero live legacy allocations at close. The seven
+names also passed with V8's explicit Wasm bounds checks on each image.
+The retained images provide no source-level ASan, UBSan or TSan coverage.
+These are test-harness measurements. The compiler images were reused.
+
+Assignment packet `2650a230-e8ca-45c3-a816-3446fc35c342.tar.gz` carries the
+incremental Git bundle, manifest, both used images, input sources, individual
+responses, negative controls, commands and timing records. The manager owns
+review and publication.
