@@ -1,86 +1,13 @@
 import library.testing;
-import lr_graph_checks;
+import lr_control_checks_test;
+import lr_graph_checks_test;
 import lr_analysis_fixtures;
-import lr_analysis_api;
-import lr_analysis_oracle;
-import lr_states_oracle;
 import lr_analysis_oracle_types;
 import .library.vector;
 import .compiler.lr_types;
 import mt19937;
 
 extern fn tower_test_buffer_count(): usize;
-
-// Exercise odd/even heap boundaries and differently ordered private closures.
-// The independent oracle uses sorted insertion, not the production heap repair.
-fn lr_closure_order_cases(): void {
-    var rules: LRProduction[3] = default;
-    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
-    for(var i: usize = 0; i < rule_count; i++) { rules[i].count = 1; }
-    var terminal: LRSymbol = {nonterminal: oracle_none(), first: 42, last: 42};
-    var analysis = lr_analysis_create(&rules[0], rule_count, &terminal, 1, 1);
-    assert(analysis != null && lr_analysis_compute(analysis), "Closure order analysis");
-    defer lr_analysis_destroy(analysis);
-    var sizes: usize[11];
-    sizes[0] = 0; sizes[1] = 1; sizes[2] = 2; sizes[3] = 3; sizes[4] = 4;
-    sizes[5] = 15; sizes[6] = 16; sizes[7] = 17;
-    sizes[8] = 63; sizes[9] = 64; sizes[10] = 65;
-    var random: TestRandom; test_random_init(&random, 2817449);
-    for(var size: usize = 0; size < sizeof(decltype(sizes)) / sizeof(usize); size++) {
-        var count = sizes[size];
-        for(var order: usize = 0; order < 3; order++) {
-            var actual = lr_items_create();
-            var reference = oracle_items_create();
-            assert(actual != null, "Closure order storage");
-            defer lr_items_destroy(actual); defer oracle_items_destroy(reference);
-            for(var i: usize = 0; i < count; i++) {
-                var first = convert(u32, i / rule_count / 2);
-                var item: LRItem = {rule: i % rule_count, position: (i / rule_count) % 2,
-                    first: first, last: first + 1};
-                assert(lr_items_insert(actual, &item), "Closure order seed");
-                oracle_item_insert(&reference.values, &item);
-            }
-            var values = lr_items_data(actual);
-            if order == 1 {
-                for(var i: usize = 0; i < count / 2; i++) {
-                    var saved = values[i]; values[i] = values[count - i - 1]; values[count - i - 1] = saved;
-                }
-            }
-            if order == 2 {
-                for(var i = count; i > 1; i--) {
-                    var other = convert(usize, test_random(&random)) % i;
-                    var saved = values[i - 1]; values[i - 1] = values[other]; values[other] = saved;
-                }
-            }
-            // Every dot faces a terminal or completion, so closure adds nothing.
-            assert(lr_items_close(analysis, actual, true), "Closure restores exact item order");
-            lr_check_items(actual, reference);
-        }
-    }
-}
-fn lr_shift_equal_order_case(): void {
-    var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
-    var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
-    var branches: usize = 8;
-    lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
-    for(var i: usize = 0; i < branches; i++) {
-        lr_fixture_rule(&rules, 1, symbols.length, 1); lr_fixture_symbol(&symbols, i + 2, 0, 0);
-        lr_fixture_rule(&rules, i + 2, symbols.length, 1);
-        lr_fixture_symbol(&symbols, oracle_none(), convert(u32, i + 32), convert(u32, i + 32));
-    }
-    var analysis = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
-    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
-    assert(analysis != null && oracle != null && lr_analysis_compute(analysis) && oracle_analysis_compute(oracle),
-        "Equal ordering keys keep distinct nonterminal identities");
-    defer lr_analysis_destroy(analysis); defer oracle_analysis_destroy(oracle);
-    for(var i: usize = 2; i < branches + 2; i++) { lr_analysis_order(analysis, i, 2); oracle.names.data[i].order = 2; }
-    var actual = lr_states_create(analysis); var reference = oracle_states_create(oracle);
-    assert(actual != null && lr_states_count(actual) == reference.states.length, "Equal-order state count");
-    defer lr_states_destroy(actual); defer oracle_states_destroy(reference);
-    for(var i: usize = 0; i < reference.states.length; i++) {
-        lr_check_items(lr_states_items(actual, i), &reference.states.data[i].items);
-    }
-}
 
 fn lr_prediction_and_shift_order(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
@@ -189,47 +116,6 @@ fn lr_repeated_cores(current_contract: bool): void {
     assert(tower_test_buffer_count() == baseline, "Repeated nullable core cleanup");
 }
 
-fn lr_fixed_graphs_and_control(current_contract: bool): void {
-    var baseline = tower_test_buffer_count();
-    {
-        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
-        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
-        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 0); lr_fixture_symbol(&symbols, 1, 0, 0);
-        lr_check_graph(&rules, &symbols, 2, current_contract);
-    }
-    {
-        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
-        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
-        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 1); lr_fixture_rule(&rules, 1, 2, 1);
-        lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 4294967280, ~convert(u32, 0));
-        lr_fixture_symbol(&symbols, oracle_none(), LRTokenEnd, LRTokenEnd);
-        lr_check_graph(&rules, &symbols, 2, current_contract);
-    }
-    {
-        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
-        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
-        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
-        for (var index: usize = 0; index < 128; ++index) {
-            lr_fixture_rule(&rules, 1, symbols.length, 2);
-            var id = 2097152 + convert(u32, index) * 1024;
-            lr_fixture_symbol(&symbols, oracle_none(), id, id); lr_fixture_symbol(&symbols, 2, 0, 0);
-        }
-        lr_fixture_rule(&rules, 2, symbols.length, 1); lr_fixture_symbol(&symbols, oracle_none(), 1, 4);
-        lr_check_graph(&rules, &symbols, 3, current_contract);
-    }
-    // Guarantee a finite-sequence control comparison, including exact frames,
-    // work counts, prefix/error paths and clone/reset probes in both modes.
-    {
-        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
-        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
-        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
-        lr_fixture_rule(&rules, 1, 1, 16);
-        for (var index: u32 = 0; index < 16; ++index) { lr_fixture_symbol(&symbols, oracle_none(), 32 + index, 32 + index); }
-        lr_check_graph(&rules, &symbols, 2, current_contract);
-    }
-    assert(tower_test_buffer_count() == baseline, "Fixed LR graphs and control release every buffer");
-}
-
 fn lr_random_graphs_and_propagation(current_contract: bool): void {
     var baseline = tower_test_buffer_count();
     var random: TestRandom; test_random_init(&random, 1280463937);
@@ -258,5 +144,5 @@ test() { lr_prediction_and_shift_order(true); }
 test() { lr_shift_grouping(true); }
 test() { lr_lookahead_and_suffixes(true); }
 test() { lr_repeated_cores(true); }
-test() { lr_fixed_graphs_and_control(true); }
+test() { lr_compare_fixed_graphs(true); }
 test() { lr_random_graphs_and_propagation(true); }

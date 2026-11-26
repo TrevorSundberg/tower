@@ -1,5 +1,6 @@
 import tower;
 import lr_analysis_comparisons_test;
+import lr_control_checks;
 import utility_checks;
 
 fn lr_analysis_comparison_tests(current_contract: bool): void {

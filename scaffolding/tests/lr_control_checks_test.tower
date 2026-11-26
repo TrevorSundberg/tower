@@ -1,0 +1,201 @@
+import library.testing;
+import lr_analysis_api;
+import lr_analysis_oracle_types;
+import lr_control_types;
+import lr_runtime_oracle;
+import lr_parser_oracle;
+import .library.vector;
+import .compiler.lr_types;
+import lr_graph_checks_test;
+import lr_analysis_oracle;
+import lr_states_oracle;
+import lr_analysis_fixtures;
+
+extern fn tower_test_buffer_count(): usize;
+
+fn lr_check_frame(a: LRFrame*, b: LRFrame*): void {
+    assert(a.state == b.state && a.first == b.first && a.last == b.last && a.start == b.start && a.length == b.length, "LR exact parser frame");
+}
+fn lr_check_probes(actual: void*, oracle: OracleParser*): void {
+    var allowances: usize[4]; allowances[0] = 0; allowances[1] = 1; allowances[2] = 128; allowances[3] = 8192;
+    var ids: u32[5]; ids[0] = 0; ids[1] = 32; ids[2] = 2097152; ids[3] = LRTokenEnd; ids[4] = ~convert(u32, 0);
+    for (var index: usize = 0; index < sizeof(decltype(allowances)) / sizeof(usize); ++index) {
+        var left_budget: LRProbeBudget = default; left_budget.remaining = allowances[index]; left_budget.complete = true;
+        var right_budget: LRProbeBudget; copy(&right_budget, &left_budget, sizeof(LRProbeBudget));
+        var left = lr_probe_create(actual, &left_budget); assert(left is not null, "LR probe creation"); defer lr_probe_destroy(left);
+        var right = oracle_probe_create(oracle, &right_budget); defer oracle_probe_destroy(right);
+        for (var token_index: usize = 0; token_index < sizeof(decltype(ids)) / sizeof(u32); ++token_index) {
+            var x = lr_probe_clone(left); assert(x is not null, "LR probe clone"); defer lr_probe_destroy(x);
+            var y = oracle_probe_clone(right); defer oracle_probe_destroy(y);
+            for (var reset: usize = 0; reset < 2; ++reset) {
+                if reset != 0 { lr_probe_reset(x); oracle_probe_reset(y); }
+                assert(lr_probe_accepts(x, ids[token_index]) == oracle_probe_accepts(y, ids[token_index]), "LR probe acceptance");
+                var before_left: usize; var before_right: usize;
+                assert(lr_probe_step(x, ids[token_index], &before_left) == oracle_probe_step(y, ids[token_index], &before_right), "LR probe step kind");
+                assert(before_left == before_right && left_budget.remaining == right_budget.remaining
+                    && left_budget.complete == right_budget.complete
+                    && left_budget.resource_error == right_budget.resource_error, "LR probe exact shared budget and predecessor");
+                assert(lr_probe_count(x) == y.frames.length, "LR probe stack count");
+                var frames = lr_probe_frames(x);
+                for (var frame: usize = 0; frame < y.frames.length; ++frame) {
+                    assert(frames[frame].state == y.frames.data[frame].state && frames[frame].consumed == y.frames.data[frame].consumed,
+                        "LR probe state and consumed evidence");
+                }
+            }
+        }
+    }
+}
+fn lr_check_control(actual: void*, oracle: OracleRuntime*, tokens: vector(u32)*, prefix: bool, specialize: bool, error_at: usize): void {
+    var left = lr_parser_create(actual, prefix, specialize); assert(left is not null, "LR parser creation"); defer lr_parser_destroy(left);
+    var right = oracle_parser_create(oracle, prefix, specialize); defer oracle_parser_destroy(right);
+    var position: usize = 0; var ready = false;
+    for (var iteration: usize = 0; iteration < 512; ++iteration) {
+        var id = position < tokens.length ? tokens.data[position] : LRTokenEnd;
+        var length = position < tokens.length && position % 3 != 0 ? convert(usize, 2) : convert(usize, 0);
+        var x: LRStep; var y: LRStep;
+        var kind = lr_parser_step(left, ready, id, position == error_at, 10 + position * 3, length, &x);
+        assert(kind == oracle_parser_step(right, ready, id, position == error_at, 10 + position * 3, length, &y), "LR exact parser step kind");
+        assert(x.rule == y.rule && x.next == y.next && x.pop == y.pop && x.start == y.start && x.end == y.end
+            && x.id == y.id && x.kind == y.kind, "LR exact parser step payload");
+        assert(lr_parser_consumed(left) == right.consumed && lr_parser_shifted(left) == right.shifted, "LR parser consumed and shifted state");
+        var work: LRWork; lr_parser_work(left, &work);
+        assert(work.actions == right.work.actions && work.shifts == right.work.shifts && work.reductions == right.work.reductions
+            && work.popped == right.work.popped, "LR exact parser work counts");
+        var count = lr_parser_frame_count(left);
+        assert(count == oracle_parser_frame_count(right), "LR parser frame count");
+        for (var index: usize = 0; index < count; ++index) {
+            var a: LRFrame; var b: LRFrame; lr_parser_frame(left, index, &a); oracle_parser_frame(right, index, &b); lr_check_frame(&a, &b);
+        }
+        var forest: LRFrame; lr_parser_sequence_forest(left, &forest);
+        assert(forest.first == right.forest.first && forest.last == right.forest.last
+            && forest.start == right.forest.start && forest.length == right.forest.length, "LR sequence forest evidence");
+        if kind == LRNeedInput { assert(!ready, "LR input request happens only without a ready token"); ready = true; continue; }
+        if kind == LRShift || kind == LRSequenceShift || kind == LRReduce || kind == LRSequenceReduce {
+            assert(lr_parser_commit(left, &x, iteration, iteration), "LR parser commit");
+            oracle_parser_commit(right, &y, iteration, iteration);
+            if kind == LRSequenceReduce { break; }
+            if kind == LRShift || kind == LRSequenceShift { ++position; ready = false; }
+        } else { assert(kind != LRInvalid, "LR parser control stays valid"); break; }
+    }
+    lr_check_probes(left, right);
+}
+fn lr_check_runtime(actual: void*, oracle: OracleStates*, nonterminals: usize, current_contract: bool): void {
+    var left = lr_runtime_create(actual); assert(left is not null, "LR runtime creation"); defer lr_runtime_destroy(left);
+    var right = oracle_runtime_create(oracle, current_contract); defer oracle_runtime_destroy(right);
+    var conflict: LRConflict;
+    assert(lr_runtime_conflict(left, &conflict) == (right.conflict.state != oracle_none()) && conflict.state == right.conflict.state,
+        "LR exact first conflicting state");
+    if conflict.state != oracle_none() {
+        lr_check_action(&conflict.left, &right.conflict.left); lr_check_action(&conflict.right, &right.conflict.right); return;
+    }
+    lr_runtime_specialize(left, actual); oracle_runtime_specialize(right, oracle);
+    assert(lr_runtime_sequence(left) == right.sequence_rule && lr_runtime_row_count(left) == right.rows, "LR sequence eligibility and shared row count");
+    for (var state: usize = 0; state < lr_states_count(actual); ++state) {
+        var row = right.states.data[state];
+        assert(lr_runtime_default(left, state) == row.reduction, "LR default reduction");
+        var count = lr_runtime_action_count(left, state); var actions = lr_runtime_actions(left, state);
+        assert(count == row.actions.length, "LR normalized action count");
+        var probes: vector(u32); vector_init(&probes); defer vector_dispose(&probes);
+        assert(vector_push(&probes, 0) && vector_push(&probes, LRTokenPropagation) && vector_push(&probes, LRTokenEnd)
+            && vector_push(&probes, ~convert(u32, 0)) && vector_push(&probes, 2097152) && vector_push(&probes, 32), "LR runtime probe inputs");
+        for (var index: usize = 0; index < count; ++index) {
+            lr_check_action(&actions[index], &row.actions.data[index]);
+            for (var bound: usize = 0; bound < 2; ++bound) {
+                var id = bound == 0 ? actions[index].first : actions[index].last;
+                assert(vector_push(&probes, id) && vector_push(&probes, id - 1) && vector_push(&probes, id + 1), "LR wrapping boundary probe inputs");
+            }
+        }
+        foreach (var id in &probes) {
+            var x: LRAction; var y: LRAction; var found = lr_runtime_action(left, state, id, &x);
+            assert(found == oracle_runtime_action(right, state, id, &y), "LR range and direct lookup agreement");
+            if found { lr_check_action(&x, &y); }
+        }
+        for (var name: usize = 0; name <= nonterminals; ++name) {
+            assert(lr_runtime_goto(left, state, name) == oracle_runtime_goto(right, state, name), "LR nonterminal lookup including missing name");
+        }
+        assert(lr_runtime_goto_count(left, state) == row.gotos.length, "LR goto count");
+        var gotos = lr_runtime_goto_data(left, state);
+        for (var index: usize = 0; index < row.gotos.length; ++index) {
+            assert(gotos[index].nonterminal == row.gotos.data[index].nonterminal && gotos[index].state == row.gotos.data[index].state,
+                "LR exact ordered goto records");
+        }
+    }
+    var walk: vector(u32); vector_init(&walk); defer vector_dispose(&walk); var state: usize = 0;
+    for (var index: usize = 0; index < 20; ++index) {
+        var count = lr_runtime_action_count(left, state); var actions = lr_runtime_actions(left, state); var shift: usize = 0;
+        while shift < count && actions[shift].state == oracle_none() { ++shift; }
+        if shift == count { break; }
+        assert(vector_push(&walk, actions[shift].first), "LR deterministic control walk"); state = actions[shift].state;
+    }
+    for (var prefix: usize = 0; prefix < 2; ++prefix) {
+        for (var specialize: usize = 0; specialize < 2; ++specialize) {
+            var empty: vector(u32); vector_init(&empty); defer vector_dispose(&empty);
+            var incomplete: vector(u32); vector_init(&incomplete); defer vector_dispose(&incomplete); oracle_copy(&incomplete, &walk);
+            if incomplete.length != 0 { --incomplete.length; }
+            var trailing: vector(u32); vector_init(&trailing); defer vector_dispose(&trailing); oracle_copy(&trailing, &walk);
+            assert(vector_push(&trailing, 4294967292), "LR trailing invalid token");
+            lr_check_control(left, right, &empty, prefix != 0, specialize != 0, oracle_none());
+            lr_check_control(left, right, &walk, prefix != 0, specialize != 0, oracle_none());
+            lr_check_control(left, right, &incomplete, prefix != 0, specialize != 0, oracle_none());
+            lr_check_control(left, right, &trailing, prefix != 0, specialize != 0, oracle_none());
+            lr_check_control(left, right, &walk, prefix != 0, specialize != 0, walk.length / 2);
+        }
+    }
+}
+
+fn lr_check_graph(rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, names: usize, current_contract: bool): void {
+    var actual = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, names);
+    assert(actual is not null && oracle is not null, "LR analysis creation");
+    defer lr_analysis_destroy(actual); defer oracle_analysis_destroy(oracle);
+    lr_check_closures(actual, oracle, rules, symbols, names);
+    var states = lr_states_create(actual); assert(states is not null, "LR states creation"); defer lr_states_destroy(states);
+    var reference = oracle_states_create(oracle); defer oracle_states_destroy(reference);
+    lr_check_states(states, reference);
+    lr_check_runtime(states, reference, names, current_contract);
+    assert(lr_states_lalr(states, true) && oracle_states_lalr(reference, true), "LR construct-prefix LALR propagation");
+    lr_check_runtime(states, reference, names, current_contract);
+}
+
+fn lr_compare_fixed_graphs(current_contract: bool): void {
+    var baseline = tower_test_buffer_count();
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 0); lr_fixture_symbol(&symbols, 1, 0, 0);
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_rule(&rules, 1, 1, 1); lr_fixture_rule(&rules, 1, 2, 1);
+        lr_fixture_symbol(&symbols, 1, 0, 0); lr_fixture_symbol(&symbols, oracle_none(), 4294967280, ~convert(u32, 0));
+        lr_fixture_symbol(&symbols, oracle_none(), LRTokenEnd, LRTokenEnd);
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        for (var index: usize = 0; index < 128; ++index) {
+            lr_fixture_rule(&rules, 1, symbols.length, 2);
+            var id = 2097152 + convert(u32, index) * 1024;
+            lr_fixture_symbol(&symbols, oracle_none(), id, id); lr_fixture_symbol(&symbols, 2, 0, 0);
+        }
+        lr_fixture_rule(&rules, 2, symbols.length, 1); lr_fixture_symbol(&symbols, oracle_none(), 1, 4);
+        lr_check_graph(&rules, &symbols, 3, current_contract);
+    }
+    // Guarantee a finite-sequence control comparison, including exact frames,
+    // work counts, prefix/error paths and clone/reset probes in both modes.
+    {
+        var rules: vector(LRProduction); vector_init(&rules); defer vector_dispose(&rules);
+        var symbols: vector(LRSymbol); vector_init(&symbols); defer vector_dispose(&symbols);
+        lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+        lr_fixture_rule(&rules, 1, 1, 16);
+        for (var index: u32 = 0; index < 16; ++index) { lr_fixture_symbol(&symbols, oracle_none(), 32 + index, 32 + index); }
+        lr_check_graph(&rules, &symbols, 2, current_contract);
+    }
+    assert(tower_test_buffer_count() == baseline, "Fixed LR graphs and control release every buffer");
+}
+
+test() { lr_compare_fixed_graphs(true); }

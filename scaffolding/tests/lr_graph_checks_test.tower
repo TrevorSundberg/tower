@@ -1,0 +1,190 @@
+import library.testing;
+import lr_analysis_api;
+import lr_analysis_oracle_types;
+import lr_analysis_oracle;
+import lr_states_oracle;
+import .library.vector;
+import .compiler.lr_types;
+import mt19937;
+import lr_analysis_fixtures;
+
+fn lr_check_action(a: LRAction*, b: LRAction*): void {
+    assert(a.first == b.first && a.last == b.last && a.rule == b.rule && a.state == b.state, "LR exact runtime action");
+}
+fn lr_compare_items(actual: void*, oracle: OracleItems*): void {
+    assert(lr_items_count(actual) == oracle.values.length, "LR exact item count");
+    var items = lr_items_data(actual);
+    for (var index: usize = 0; index < oracle.values.length; ++index) {
+        var a = &items[index]; var b = &oracle.values.data[index];
+        assert(a.rule == b.rule && a.position == b.position && a.first == b.first && a.last == b.last, "LR exact sorted closure items");
+    }
+}
+fn lr_check_closures(actual: void*, oracle: OracleAnalysis*, rules: vector(LRProduction)*, symbols: vector(LRSymbol)*, names: usize): void {
+    assert(lr_analysis_compute(actual) && oracle_analysis_compute(oracle), "LR analysis fixed point");
+    for (var name: usize = 0; name < names; ++name) {
+        lr_analysis_order(actual, name, names - name - 1); oracle.names.data[name].order = names - name - 1;
+    }
+    for (var name: usize = 0; name < names; ++name) {
+        var reference = oracle.names.data[name];
+        assert(lr_analysis_nullable(actual, name) == reference.nullable && lr_analysis_first_count(actual, name) == reference.first.length,
+            "LR nullable and FIRST fixed point");
+        var ranges = lr_analysis_first_data(actual, name);
+        for (var index: usize = 0; index < reference.first.length; ++index) {
+            assert(ranges[index].first == reference.first.data[index].first && ranges[index].last == reference.first.data[index].last,
+                "LR exact FIRST ranges");
+        }
+    }
+    for (var mode: usize = 0; mode < 2; ++mode) {
+        var left = lr_items_create(); assert(left is not null, "LR closure creation"); defer lr_items_destroy(left);
+        var right = oracle_items_create(); defer oracle_items_destroy(right);
+        for (var rule: usize = 0; rule < rules.length; ++rule) {
+            for (var position: usize = 0; position <= rules.data[rule].count; position += 2) {
+                var item: LRItem; item.rule = rule; item.position = position;
+                item.first = mode != 0 ? LRTokenPropagation - convert(u32, rule) : convert(u32, 0); item.last = item.first;
+                assert(lr_items_insert(left, &item), "LR closure seed insertion"); oracle_item_insert(&right.values, &item);
+            }
+        }
+        assert(lr_items_close(actual, left, mode != 0), "LR closure fixed point"); oracle_items_close(oracle, right, mode != 0); lr_compare_items(left, right);
+        assert(lr_items_close(actual, left, mode != 0), "LR closure idempotence"); lr_compare_items(left, right);
+        // Reopen a published closure with a new lookahead. Private hash indexes
+        // must not survive sorting, and duplicate insertion must remain harmless.
+        var additional: LRItem = { rule: 0, position: 0, first: LRTokenEnd, last: LRTokenEnd };
+        assert(lr_items_insert(left, &additional) && lr_items_insert(left, &additional), "LR published closure accepts a new seed once");
+        oracle_item_insert(&right.values, &additional);
+        assert(lr_items_close(actual, left, mode != 0), "LR reopened closure fixed point");
+        oracle_items_close(oracle, right, mode != 0); lr_compare_items(left, right);
+        foreach (var &symbol in symbols) {
+            var next = lr_items_create(); assert(next is not null, "LR goto item set"); defer lr_items_destroy(next);
+            var reference = oracle_items_create(); defer oracle_items_destroy(reference);
+            assert(lr_items_goto(actual, left, symbol, next, mode != 0), "LR goto closure");
+            oracle_items_goto(oracle, right, symbol, reference, mode != 0); lr_compare_items(next, reference);
+        }
+    }
+}
+fn lr_check_states(states: void*, reference: OracleStates*): void {
+    assert(lr_states_lalr(states, false) && oracle_states_lalr(reference, false), "LR LALR propagation");
+    assert(lr_states_count(states) == reference.states.length, "LR exact state count");
+    for (var index: usize = 0; index < reference.states.length; ++index) {
+        var state = reference.states.data[index]; lr_compare_items(lr_states_items(states, index), &state.items);
+        assert(lr_states_origin(states, index) == state.origin && lr_states_edge_count(states, index) == state.edges.length,
+            "LR state origin and transition count");
+        var edges = lr_states_edges(states, index);
+        for (var edge: usize = 0; edge < state.edges.length; ++edge) {
+            assert(edges[edge].symbol == state.edges.data[edge].symbol && edges[edge].state == state.edges.data[edge].state,
+                "LR exact ordered transitions");
+        }
+        assert(lr_states_action_count(states, index) == state.actions.length, "LR propagated action count");
+        var actions = lr_states_actions(states, index);
+        for (var action: usize = 0; action < state.actions.length; ++action) { lr_check_action(&actions[action], &state.actions.data[action]); }
+    }
+}
+fn lr_check_propagation(random: TestRandom*): void {
+    var count = 1 + convert(usize, test_random(random) % 80);
+    var actual = lr_propagation_create(count); assert(actual is not null, "LR propagation creation"); defer lr_propagation_destroy(actual);
+    var condensed = lr_propagation_create(count); assert(condensed != null, "Condensation graph owner"); defer lr_propagation_destroy(condensed);
+    var oracle = oracle_propagation_create(count); defer oracle_propagation_destroy(oracle);
+    for (var round: usize = 0; round < 3; ++round) {
+        for (var index: usize = 0; index < count * 3; ++index) {
+            var source = convert(usize, test_random(random)) % count; var destination = convert(usize, test_random(random)) % count;
+            assert(lr_propagation_edge(actual, source, destination), "LR propagation edge append"); oracle_propagation_edge(oracle, source, destination);
+            assert(lr_propagation_edge(condensed, source, destination), "Condensation late edge");
+        }
+        for (var index: usize = 0; index < count; ++index) {
+            var first = test_random(random) % 12 + 2097152; var last = first + test_random(random) % 4;
+            var target = convert(usize, test_random(random)) % count;
+            assert(lr_propagation_seed(actual, target, first, last), "LR propagation seed append"); oracle_propagation_seed(oracle, target, first, last);
+            assert(lr_propagation_seed(condensed, target, first, last), "Condensation late seed");
+        }
+        assert(lr_propagation_solve(actual), "LR propagation fixed point after mutation"); oracle_propagation_solve(oracle);
+        assert(lr_propagation_solve(actual), "LR propagation idempotence");
+        assert(lr_propagation_solve_components_result(condensed, null) == WorkBudgetError.None
+            && lr_propagation_solve_components_result(condensed, null) == WorkBudgetError.None, "Condensation fixed point and idempotence");
+        for (var index: usize = 0; index < count; ++index) {
+            var ranges = &oracle.nodes.data[index].ranges;
+            assert(lr_propagation_count(actual, index) == ranges.length, "LR propagation range count");
+            var data = lr_propagation_data(actual, index);
+            var components = lr_propagation_data(condensed, index);
+            assert(lr_propagation_count(condensed, index) == ranges.length, "Condensation exact range count");
+            for (var range: usize = 0; range < ranges.length; ++range) {
+                assert(data[range].first == ranges.data[range].first && data[range].last == ranges.data[range].last,
+                    "LR propagation exact ranges across duplicate, self and cyclic edges");
+                assert(components[range].first == ranges.data[range].first && components[range].last == ranges.data[range].last,
+                    "Condensation exact ranges across duplicate, self, cycles and late edges");
+            }
+        }
+    }
+}
+
+// Exercise odd/even heap boundaries and differently ordered private closures.
+// The independent oracle uses sorted insertion, not the production heap repair.
+fn lr_closure_order_cases(): void {
+    var rules: LRProduction[3] = default;
+    var rule_count = sizeof(decltype(rules)) / sizeof(LRProduction);
+    for(var i: usize = 0; i < rule_count; i++) { rules[i].count = 1; }
+    var terminal: LRSymbol = {nonterminal: oracle_none(), first: 42, last: 42};
+    var analysis = lr_analysis_create(&rules[0], rule_count, &terminal, 1, 1);
+    assert(analysis != null && lr_analysis_compute(analysis), "Closure order analysis");
+    defer lr_analysis_destroy(analysis);
+    var sizes: usize[11];
+    sizes[0] = 0; sizes[1] = 1; sizes[2] = 2; sizes[3] = 3; sizes[4] = 4;
+    sizes[5] = 15; sizes[6] = 16; sizes[7] = 17;
+    sizes[8] = 63; sizes[9] = 64; sizes[10] = 65;
+    var random: TestRandom; test_random_init(&random, 2817449);
+    for(var size: usize = 0; size < sizeof(decltype(sizes)) / sizeof(usize); size++) {
+        var count = sizes[size];
+        for(var order: usize = 0; order < 3; order++) {
+            var actual = lr_items_create();
+            var reference = oracle_items_create();
+            assert(actual != null, "Closure order storage");
+            defer lr_items_destroy(actual); defer oracle_items_destroy(reference);
+            for(var i: usize = 0; i < count; i++) {
+                var first = convert(u32, i / rule_count / 2);
+                var item: LRItem = {rule: i % rule_count, position: (i / rule_count) % 2,
+                    first: first, last: first + 1};
+                assert(lr_items_insert(actual, &item), "Closure order seed");
+                oracle_item_insert(&reference.values, &item);
+            }
+            var values = lr_items_data(actual);
+            if order == 1 {
+                for(var i: usize = 0; i < count / 2; i++) {
+                    var saved = values[i]; values[i] = values[count - i - 1]; values[count - i - 1] = saved;
+                }
+            }
+            if order == 2 {
+                for(var i = count; i > 1; i--) {
+                    var other = convert(usize, test_random(&random)) % i;
+                    var saved = values[i - 1]; values[i - 1] = values[other]; values[other] = saved;
+                }
+            }
+            // Every dot faces a terminal or completion, so closure adds nothing.
+            assert(lr_items_close(analysis, actual, true), "Closure restores exact item order");
+            lr_compare_items(actual, reference);
+        }
+    }
+}
+fn lr_shift_equal_order_case(): void {
+    var rules: vector(LRProduction) = default; defer vector_dispose(&rules);
+    var symbols: vector(LRSymbol) = default; defer vector_dispose(&symbols);
+    var branches: usize = 8;
+    lr_fixture_rule(&rules, 0, 0, 1); lr_fixture_symbol(&symbols, 1, 0, 0);
+    for(var i: usize = 0; i < branches; i++) {
+        lr_fixture_rule(&rules, 1, symbols.length, 1); lr_fixture_symbol(&symbols, i + 2, 0, 0);
+        lr_fixture_rule(&rules, i + 2, symbols.length, 1);
+        lr_fixture_symbol(&symbols, oracle_none(), convert(u32, i + 32), convert(u32, i + 32));
+    }
+    var analysis = lr_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
+    var oracle = oracle_analysis_create(rules.data, rules.length, symbols.data, symbols.length, branches + 2);
+    assert(analysis != null && oracle != null && lr_analysis_compute(analysis) && oracle_analysis_compute(oracle),
+        "Equal ordering keys keep distinct nonterminal identities");
+    defer lr_analysis_destroy(analysis); defer oracle_analysis_destroy(oracle);
+    for(var i: usize = 2; i < branches + 2; i++) { lr_analysis_order(analysis, i, 2); oracle.names.data[i].order = 2; }
+    var actual = lr_states_create(analysis); var reference = oracle_states_create(oracle);
+    assert(actual != null && lr_states_count(actual) == reference.states.length, "Equal-order state count");
+    defer lr_states_destroy(actual); defer oracle_states_destroy(reference);
+    for(var i: usize = 0; i < reference.states.length; i++) {
+        lr_compare_items(lr_states_items(actual, i), &reference.states.data[i].items);
+    }
+}
+
+test() { lr_closure_order_cases(); }
+test() { lr_shift_equal_order_case(); }
