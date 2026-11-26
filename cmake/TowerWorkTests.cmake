@@ -159,6 +159,17 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
+    add_test(NAME tower-work-resume-owner-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph.tower" --test-details --jobs ${workers})
+    add_test(NAME tower-work-resume-direct-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph_test.tower" --test-details --jobs ${workers})
+    # Reject successful partial or duplicate selections. A FAIL expression
+    # preserves CTest's normal handling of a nonzero compiler exit.
+    set_tests_properties(tower-work-resume-owner-${workers} tower-work-resume-direct-${workers}
+      PROPERTIES FAIL_REGULAR_EXPRESSION "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
+
     add_test(NAME tower-fixed-array-iteration-${workers}
       COMMAND $<TARGET_FILE:towerc>
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/semantic_iteration_test.tower"

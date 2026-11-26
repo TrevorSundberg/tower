@@ -1,0 +1,185 @@
+legacy_case	legacy_line	legacy_oracle	companion_case	companion_line	companion_assertion
+request	16	id != 0	request	8	id != 0
+resume_tests	26	work_access(&g, query, 1, 1, 0, 8, WorkAccessMode.Write)	test #1	19	work_access(&g, query, 1, 1, 0, 8, WorkAccessMode.Write)
+resume_tests	27	work_access(&g, input, 1, 1, 0, 8, WorkAccessMode.Write)	test #1	20	work_access(&g, input, 1, 1, 0, 8, WorkAccessMode.Write)
+resume_tests	28	work_seal(&g, query)	test #1	21	work_seal(&g, query)
+resume_tests	29	work_seal(&g, input)	test #1	22	work_seal(&g, input)
+resume_tests	30	work_seal(&g, unused)	test #1	23	work_seal(&g, unused)
+resume_tests	31	work_demand(&g, query)	test #1	24	work_demand(&g, query)
+resume_tests	35	work_take(&g, &ticket)	test #1	28	work_take(&g, &ticket)
+resume_tests	36	ticket.task == query	test #1	29	ticket.task == query
+resume_tests	38	!work_suspend(&g, &ticket, 0)	test #1	31	!work_suspend(&g, &ticket, 0)
+resume_tests	39	work_ticket_valid(&g, &ticket)	test #1	32	work_ticket_valid(&g, &ticket)
+resume_tests	40	work_suspend(&g, &ticket, input)	test #1	33	work_suspend(&g, &ticket, input)
+resume_tests	41	g.running == 0	test #1	34	g.running == 0
+resume_tests	42	g.executing.length == 0	test #1	35	g.executing.length == 0
+resume_tests	43	!work_finish(&g, &old, true)	test #1	36	!work_finish(&g, &old, true)
+resume_tests	44	work_take(&g, &ticket)	test #1	37	work_take(&g, &ticket)
+resume_tests	45	ticket.task == input	test #1	38	ticket.task == input
+resume_tests	46	!work_take(&g, &spare)	test #1	39	!work_take(&g, &spare)
+resume_tests	47	work_finish(&g, &ticket, true)	test #1	40	work_finish(&g, &ticket, true)
+resume_tests	48	work_take(&g, &ticket)	test #1	41	work_take(&g, &ticket)
+resume_tests	49	ticket.task == query	test #1	42	ticket.task == query
+resume_tests	50	ticket.dispatch != old.dispatch	test #1	43	ticket.dispatch != old.dispatch
+resume_tests	51	!work_finish(&g, &old, true)	test #1	44	!work_finish(&g, &old, true)
+resume_tests	52	!work_suspend(&g, &old, unused)	test #1	45	!work_suspend(&g, &old, unused)
+resume_tests	53	g.running == 1	test #1	46	g.running == 1
+resume_tests	54	g.executing.length == 1	test #1	47	g.executing.length == 1
+resume_tests	56	work_suspend(&g, &ticket, input)	test #1	49	work_suspend(&g, &ticket, input)
+resume_tests	57	g.edges.length == 1	test #1	50	g.edges.length == 1
+resume_tests	58	work_take(&g, &ticket)	test #1	51	work_take(&g, &ticket)
+resume_tests	59	ticket.task == query	test #1	52	ticket.task == query
+resume_tests	60	work_task(&g, input).dispatch == 1	test #1	53	work_task(&g, input).dispatch == 1
+resume_tests	62	work_yield(&g, &ticket)	test #1	55	work_yield(&g, &ticket)
+resume_tests	63	!work_ticket_valid(&g, &old)	test #1	56	!work_ticket_valid(&g, &old)
+resume_tests	64	work_take(&g, &ticket)	test #1	57	work_take(&g, &ticket)
+resume_tests	65	ticket.task == query && ticket.dispatch != old.dispatch	test #1	58	ticket.task == query && ticket.dispatch != old.dispatch
+resume_tests	66	work_finish(&g, &ticket, true)	test #1	59	work_finish(&g, &ticket, true)
+resume_tests	67	!work_take(&g, &spare)	test #1	60	!work_take(&g, &spare)
+resume_tests	68	!work_task(&g, unused).demanded	test #1	61	!work_task(&g, unused).demanded
+resume_tests	69	g.running == 0	test #1	62	g.running == 0
+diamond_tests	79	work_seal(&g, left)	test #2	73	work_seal(&g, left)
+diamond_tests	80	work_seal(&g, right)	test #2	74	work_seal(&g, right)
+diamond_tests	81	work_seal(&g, shared)	test #2	75	work_seal(&g, shared)
+diamond_tests	82	work_demand(&g, left)	test #2	76	work_demand(&g, left)
+diamond_tests	83	work_demand(&g, right)	test #2	77	work_demand(&g, right)
+diamond_tests	87	work_take(&g, &a)	test #2	81	work_take(&g, &a)
+diamond_tests	88	work_take(&g, &b)	test #2	82	work_take(&g, &b)
+diamond_tests	89	work_suspend(&g, &a, shared)	test #2	83	work_suspend(&g, &a, shared)
+diamond_tests	90	work_suspend(&g, &b, shared)	test #2	84	work_suspend(&g, &b, shared)
+diamond_tests	91	work_take(&g, &c)	test #2	85	work_take(&g, &c)
+diamond_tests	92	c.task == shared	test #2	86	c.task == shared
+diamond_tests	93	!work_take(&g, &a)	test #2	87	!work_take(&g, &a)
+diamond_tests	94	work_finish(&g, &c, true)	test #2	88	work_finish(&g, &c, true)
+diamond_tests	95	work_take(&g, &a)	test #2	89	work_take(&g, &a)
+diamond_tests	96	work_take(&g, &b)	test #2	90	work_take(&g, &b)
+diamond_tests	97	a.task != b.task	test #2	91	a.task != b.task
+diamond_tests	98	work_finish(&g, &b, true)	test #2	92	work_finish(&g, &b, true)
+diamond_tests	99	work_finish(&g, &a, true)	test #2	93	work_finish(&g, &a, true)
+diamond_tests	100	work_task(&g, shared).dispatch == 1	test #2	94	work_task(&g, shared).dispatch == 1
+diamond_tests	101	!work_take(&g, &c)	test #2	95	!work_take(&g, &c)
+discovered_access_tests	114	work_access(&g, input, 1, 1, 20, 4, WorkAccessMode.Write)	test #3	109	work_access(&g, input, 1, 1, 20, 4, WorkAccessMode.Write)
+discovered_access_tests	115	work_access(&g, writer, 1, 1, 20, 4, WorkAccessMode.Write)	test #3	110	work_access(&g, writer, 1, 1, 20, 4, WorkAccessMode.Write)
+discovered_access_tests	116	work_access(&g, reader, 1, 1, 20, 4, WorkAccessMode.Read)	test #3	111	work_access(&g, reader, 1, 1, 20, 4, WorkAccessMode.Read)
+discovered_access_tests	117	work_access(&g, unrelated, 1, 1, 24, 1, WorkAccessMode.Write)	test #3	112	work_access(&g, unrelated, 1, 1, 24, 1, WorkAccessMode.Write)
+discovered_access_tests	118	work_seal(&g, query)	test #3	113	work_seal(&g, query)
+discovered_access_tests	119	work_seal(&g, input)	test #3	114	work_seal(&g, input)
+discovered_access_tests	120	work_seal(&g, writer)	test #3	115	work_seal(&g, writer)
+discovered_access_tests	121	work_seal(&g, reader)	test #3	116	work_seal(&g, reader)
+discovered_access_tests	122	work_seal(&g, unrelated)	test #3	117	work_seal(&g, unrelated)
+discovered_access_tests	123	work_demand(&g, query)	test #3	118	work_demand(&g, query)
+discovered_access_tests	128	work_take(&g, &old)	test #3	123	work_take(&g, &old)
+discovered_access_tests	129	work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Read)	test #3	124	work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Read)
+discovered_access_tests	130	g.running == 0	test #3	125	g.running == 0
+discovered_access_tests	132	work_take(&g, &current)	test #3	127	work_take(&g, &current)
+discovered_access_tests	133	current.task == input	test #3	128	current.task == input
+discovered_access_tests	134	work_finish(&g, &current, true)	test #3	129	work_finish(&g, &current, true)
+discovered_access_tests	135	work_demand(&g, writer)	test #3	130	work_demand(&g, writer)
+discovered_access_tests	136	work_demand(&g, reader)	test #3	131	work_demand(&g, reader)
+discovered_access_tests	137	work_demand(&g, unrelated)	test #3	132	work_demand(&g, unrelated)
+discovered_access_tests	138	work_take_query(&g, &current, 1)	test #3	133	work_take_query(&g, &current, 1)
+discovered_access_tests	140	!work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Write)	test #3	135	!work_suspend_access(&g, &old, input, 1, 1, 20, 4, WorkAccessMode.Write)
+discovered_access_tests	141	g.accesses.length == claims	test #3	136	g.accesses.length == claims
+discovered_access_tests	142	work_take_query(&g, &peer, 4)	test #3	137	work_take_query(&g, &peer, 4)
+discovered_access_tests	143	work_take_query(&g, &spare, 5)	test #3	138	work_take_query(&g, &spare, 5)
+discovered_access_tests	144	work_finish(&g, &spare, true)	test #3	139	work_finish(&g, &spare, true)
+discovered_access_tests	145	!work_take_query(&g, &spare, 3)	test #3	140	!work_take_query(&g, &spare, 3)
+discovered_access_tests	146	work_finish(&g, &current, true)	test #3	141	work_finish(&g, &current, true)
+discovered_access_tests	147	!work_take_query(&g, &spare, 3)	test #3	142	!work_take_query(&g, &spare, 3)
+discovered_access_tests	148	work_finish(&g, &peer, true)	test #3	143	work_finish(&g, &peer, true)
+discovered_access_tests	149	work_take_query(&g, &spare, 3)	test #3	144	work_take_query(&g, &spare, 3)
+discovered_access_tests	150	work_finish(&g, &spare, true)	test #3	145	work_finish(&g, &spare, true)
+discovered_access_tests	151	g.running == 0 && work_ok(&g)	test #3	146	g.running == 0 && work_ok(&g)
+failure_tests	159	work_seal(&g, query)	test #4	155	work_seal(&g, query)
+failure_tests	160	work_seal(&g, input)	test #4	156	work_seal(&g, input)
+failure_tests	161	work_demand(&g, query)	test #4	157	work_demand(&g, query)
+failure_tests	163	work_take(&g, &ticket)	test #4	159	work_take(&g, &ticket)
+failure_tests	164	work_suspend(&g, &ticket, input)	test #4	160	work_suspend(&g, &ticket, input)
+failure_tests	165	work_take(&g, &ticket)	test #4	161	work_take(&g, &ticket)
+failure_tests	166	work_finish(&g, &ticket, false)	test #4	162	work_finish(&g, &ticket, false)
+failure_tests	167	work_task(&g, query).state == WorkState.Failed	test #4	163	work_task(&g, query).state == WorkState.Failed
+failure_tests	168	!work_take(&g, &ticket)	test #4	164	!work_take(&g, &ticket)
+failure_tests	169	g.running == 0	test #4	165	g.running == 0
+failure_tests	175	work_seal(&g, query)	test #4	171	work_seal(&g, query)
+failure_tests	176	work_seal(&g, input)	test #4	172	work_seal(&g, input)
+failure_tests	177	work_demand(&g, query)	test #4	173	work_demand(&g, query)
+failure_tests	178	work_take(&g, &ticket)	test #4	174	work_take(&g, &ticket)
+failure_tests	179	work_suspend(&g, &ticket, input)	test #4	175	work_suspend(&g, &ticket, input)
+failure_tests	180	work_take(&g, &ticket)	test #4	176	work_take(&g, &ticket)
+failure_tests	182	!work_finish(&g, &ticket, true)	test #4	178	!work_finish(&g, &ticket, true)
+failure_tests	183	!work_suspend(&g, &ticket, query)	test #4	179	!work_suspend(&g, &ticket, query)
+failure_tests	184	g.running == 0	test #4	180	g.running == 0
+cycle_tests	193	work_seal(&g, first)	test #5	190	work_seal(&g, first)
+cycle_tests	194	work_seal(&g, second)	test #5	191	work_seal(&g, second)
+cycle_tests	195	work_demand(&g, first)	test #5	192	work_demand(&g, first)
+cycle_tests	197	work_take(&g, &ticket)	test #5	194	work_take(&g, &ticket)
+cycle_tests	198	work_suspend(&g, &ticket, second)	test #5	195	work_suspend(&g, &ticket, second)
+cycle_tests	199	work_take(&g, &ticket)	test #5	196	work_take(&g, &ticket)
+cycle_tests	200	work_suspend(&g, &ticket, first)	test #5	197	work_suspend(&g, &ticket, first)
+cycle_tests	201	!work_take(&g, &ticket)	test #5	198	!work_take(&g, &ticket)
+cycle_tests	202	g.running == 0	test #5	199	g.running == 0
+cycle_tests	205	work_cycle(&g, first, &cycle)	test #5	202	work_cycle(&g, first, &cycle)
+cycle_tests	206	cycle.length == 3	test #5	203	cycle.length == 3
+cycle_tests	207	cycle.data[0] == first	test #5	204	cycle.data[0] == first
+cycle_tests	208	cycle.data[1] == second	test #5	205	cycle.data[1] == second
+cycle_tests	209	cycle.data[2] == first	test #5	206	cycle.data[2] == first
+cycle_tests	215	work_seal(&g, first)	test #5	212	work_seal(&g, first)
+cycle_tests	216	work_demand(&g, first)	test #5	213	work_demand(&g, first)
+cycle_tests	217	work_take(&g, &ticket)	test #5	214	work_take(&g, &ticket)
+cycle_tests	218	work_suspend(&g, &ticket, first)	test #5	215	work_suspend(&g, &ticket, first)
+cycle_tests	220	work_cycle(&g, first, &cycle)	test #5	217	work_cycle(&g, first, &cycle)
+cycle_tests	221	cycle.length == 2	test #5	218	cycle.length == 2
+filtered_tests	231	work_seal(&graph, zero)	test #6	229	work_seal(&graph, zero)
+filtered_tests	232	work_seal(&graph, other)	test #6	230	work_seal(&graph, other)
+filtered_tests	233	work_demand(&graph, other)	test #6	231	work_demand(&graph, other)
+filtered_tests	234	work_demand(&graph, zero)	test #6	232	work_demand(&graph, zero)
+filtered_tests	236	work_take_query(&graph, &ticket, 0)	test #6	234	work_take_query(&graph, &ticket, 0)
+filtered_tests	237	ticket.task == zero	test #6	235	ticket.task == zero
+filtered_tests	238	work_finish(&graph, &ticket, true)	test #6	236	work_finish(&graph, &ticket, true)
+filtered_tests	239	!work_take_query(&graph, &ticket, 0)	test #6	237	!work_take_query(&graph, &ticket, 0)
+filtered_tests	240	work_take(&graph, &ticket)	test #6	238	work_take(&graph, &ticket)
+filtered_tests	241	ticket.task == other	test #6	239	ticket.task == other
+filtered_tests	242	work_finish(&graph, &ticket, true)	test #6	240	work_finish(&graph, &ticket, true)
+reset_tests	249	work_find(&graph, null, 1, 1) == 0	test #7	248	work_find(&graph, null, 1, 1) == 0
+reset_tests	251	work_find(&graph, null, 1, 1) == first	test #7	250	work_find(&graph, null, 1, 1) == first
+reset_tests	252	!work_reset(&graph, 32, 29)	test #7	251	!work_reset(&graph, 32, 29)
+reset_tests	253	work_seal(&graph, first)	test #7	252	work_seal(&graph, first)
+reset_tests	254	work_demand(&graph, first)	test #7	253	work_demand(&graph, first)
+reset_tests	256	work_take(&graph, &old)	test #7	255	work_take(&graph, &old)
+reset_tests	257	!work_reset(&graph, 32, 29)	test #7	256	!work_reset(&graph, 32, 29)
+reset_tests	258	work_finish(&graph, &old, true)	test #7	257	work_finish(&graph, &old, true)
+reset_tests	259	!work_reset(&graph, 31, 29)	test #7	258	!work_reset(&graph, 31, 29)
+reset_tests	260	work_reset(&graph, 32, 29)	test #7	259	work_reset(&graph, 32, 29)
+reset_tests	261	work_find(&graph, null, 1, 1) == 0	test #7	260	work_find(&graph, null, 1, 1) == 0
+reset_tests	263	work_seal(&graph, first)	test #7	262	work_seal(&graph, first)
+reset_tests	264	work_demand(&graph, first)	test #7	263	work_demand(&graph, first)
+reset_tests	266	work_take(&graph, &current)	test #7	265	work_take(&graph, &current)
+reset_tests	267	current.task == old.task	test #7	266	current.task == old.task
+reset_tests	268	!work_finish(&graph, &old, true)	test #7	267	!work_finish(&graph, &old, true)
+reset_tests	269	work_finish(&graph, &current, true)	test #7	268	work_finish(&graph, &current, true)
+selected_tests	280	work_access(&graph, first, 1, 1, 0, 1, WorkAccessMode.Write)	test #8	280	work_access(&graph, first, 1, 1, 0, 1, WorkAccessMode.Write)
+selected_tests	281	work_access(&graph, second, 1, 1, 0, 1, WorkAccessMode.Read)	test #8	281	work_access(&graph, second, 1, 1, 0, 1, WorkAccessMode.Read)
+selected_tests	282	work_depend(&graph, blocked, first)	test #8	282	work_depend(&graph, blocked, first)
+selected_tests	283	work_seal(&graph, first)	test #8	283	work_seal(&graph, first)
+selected_tests	284	work_seal(&graph, second)	test #8	284	work_seal(&graph, second)
+selected_tests	285	work_seal(&graph, blocked)	test #8	285	work_seal(&graph, blocked)
+selected_tests	286	work_demand(&graph, first)	test #8	286	work_demand(&graph, first)
+selected_tests	287	work_demand(&graph, second)	test #8	287	work_demand(&graph, second)
+selected_tests	288	work_demand(&graph, blocked)	test #8	288	work_demand(&graph, blocked)
+selected_tests	292	!work_take_task(&graph, &spare, 0)	test #8	291	!work_take_task(&graph, &spare, 0)
+selected_tests	293	!work_take_task(&graph, &spare, 999)	test #8	292	!work_take_task(&graph, &spare, 999)
+selected_tests	294	!work_take_task(&graph, &spare, blocked)	test #8	293	!work_take_task(&graph, &spare, blocked)
+selected_tests	295	spare.task==0	test #8	294	spare.task == 0
+selected_tests	296	work_take_task(&graph, &selected, second)	test #8	295	work_take_task(&graph, &selected, second)
+selected_tests	297	selected.task==second	test #8	296	selected.task == second
+selected_tests	298	!work_take_task(&graph, &spare, first)	test #8	297	!work_take_task(&graph, &spare, first)
+selected_tests	299	spare.task==0	test #8	298	spare.task == 0
+selected_tests	300	work_finish(&graph, &selected, true)	test #8	299	work_finish(&graph, &selected, true)
+selected_tests	301	!work_take_task(&graph, &spare, second)	test #8	300	!work_take_task(&graph, &spare, second)
+selected_tests	302	work_take(&graph, &spare)	test #8	301	work_take(&graph, &spare)
+selected_tests	303	spare.task==first	test #8	302	spare.task == first
+selected_tests	304	work_finish(&graph, &spare, true)	test #8	303	work_finish(&graph, &spare, true)
+selected_tests	305	work_take_task(&graph, &spare, blocked)	test #8	304	work_take_task(&graph, &spare, blocked)
+selected_tests	306	work_finish(&graph, &spare, true)	test #8	305	work_finish(&graph, &spare, true)
+selected_tests	307	!work_take(&graph, &spare)	test #8	306	!work_take(&graph, &spare)
+selected_tests	308	graph.running==0 && work_ok(&graph)	test #8	307	graph.running == 0 && work_ok(&graph)
