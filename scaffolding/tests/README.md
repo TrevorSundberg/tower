@@ -84,18 +84,23 @@ cmake --build "$B" --target tower-format-owner-tests
 ctest --test-dir "$B" -R '^tower-format-owner$' -V
 ```
 
-The registration runs these five Tower tests in one native guest. With `B`
-set to the absolute build directory, the equivalent installed command runs from
-`scaffolding/`.
+The default suffix runs 22 tests from this owner in one native guest. Five
+exercise the formatter, five cover work budgets, four cover the LR runtime and
+eight cover the work graph. With `B` set to the absolute build directory, run
+the installed compiler from `scaffolding/`.
 
 ```sh
 ../bootstrap/linux-x64/towerc --test compiler/syntax_session_format.tower \
-  --test-suffix _cases_test.tower --test-details --jobs 1 \
+  --test-details --jobs 1 \
   --test-native-runtime "$B/guest-native-test.o" --link "$B/format-test-host.o" \
   --link "$B/libtower-format-test-services.so" --link "-Wl,-rpath,$B"
 ```
 
-To run one case, use `_cases_declarations_test.tower`, `_cases_comments_test.tower`,
+The default companion and the aggregate companion each register five tests.
+They call the same assertions in `syntax_session_format_cases_checks.tower`.
+The ordinary owner selects the default registrations once.
+Use `--test-suffix _cases_test.tower` on the production owner to run just those
+five. To run one case, use `_cases_declarations_test.tower`, `_cases_comments_test.tower`,
 `_cases_refusal_test.tower`, `_cases_increment_test.tower` or
 `_cases_affixes_test.tower` as the suffix. The same arguments also accept the
 corresponding companion as the entry. The suffix selects the formatter's
@@ -110,6 +115,9 @@ parser and evaluation symbols from the test-only shared library. The browser
 runs each named assertion against the public reactor through
 `playground/tests/formatting.test.mjs`. Both hosts compare the same counted
 bytes, including final line endings.
+The stock editor execution worker lacks these formatter host functions, the
+six expected files and the two increment sources at their fixture paths.
+The named browser harness supplies them explicitly.
 
 ### Reading a selected companion's fixtures
 
@@ -1304,6 +1312,13 @@ instrumentation rules: `tower-work-arena-tests`,
 cancelled and denied work, stable slice addresses, retained grants after joins,
 and complete chunk transfer before disposal. These checks cover explicit arena
 ownership, not fallible allocation propagation throughout the compiler.
+
+The serial executable and the adjacent `tests/work_arena_fault_fixture_test.tower`
+companion share the first-allocation and chunk-growth refusal checks. In the
+optional native language kit, run `ctest -R '^tower-selected-work-arena-faults'`
+from the kit directory. At jobs 1 and 4 the fixture owner selects its two checks
+and five budget checks. Direct companion selection runs the two arena checks.
+Both link the kit's instrumented allocator. The job count controls compilation.
 
 The opt-in `tower-measure-work-arena-profile` target runs `arena16 1 large`.
 Its executable accepts `baseline|arena4|arena16|arena64`, worker count `1|2|4|8`,
