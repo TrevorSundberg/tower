@@ -95,6 +95,39 @@ or bodies, a Foundation identifier, and formatting idempotence. The positive
 output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
 and [expected output](for_loops.expected.txt).
 
+### Running affected native tests
+
+Use `--test-oracle FILE` to require exact guest stdout from a full or affected
+run. The file may be empty or contain arbitrary bytes. A missing or unreadable
+file, a mismatch, or incomplete guest output fails the command. A mismatch
+reports the owner, oracle, byte lengths and zero-based first divergent offset.
+Compiler and guest failures retain their original diagnostic and exit status.
+
+```sh
+towerc --test path/to/owner.tower --test-oracle expected.stdout
+mkdir -p .tower-test-state
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-details
+towerc --test path/to/owner.tower --test-affected .tower-test-state --test-oracle expected.stdout
+```
+
+Without a state directory, every invocation runs all selected tests. With a
+private state directory and no oracle file, an unchanged suite may skip after
+a complete, silent pass. A suite that prints then runs on each invocation. An
+explicit expectation permits reuse after a byte-for-byte match. Guest foreign
+calls always require execution. Skips emit no guest output and `--test-details`
+identifies skipped declarations. Each owner suite shares initialization, writes
+and first-failure order.
+
+The directory holds a 32-byte SHA-256 success receipt per canonical entry.
+Its identity includes the running compiler bytes, rule, target and workers,
+grammar/module paths and bytes, probes, selected declaration offsets and the
+stdout policy. An explicit file contributes its path and contents. Keep the
+installation, sources and oracle frozen during each invocation. A miss retires
+the old receipt before execution. A complete new receipt is staged beside it
+and published by rename after a successful verdict.
+Run `ctest -R '^tower-driver-affected$' --output-on-failure` in a native build
+configured with `TOWER_DRIVER_TESTS=ON`.
+
 ## Generic body demand fixtures
 
 `generic_body_cases.tower` supplies the shared syntax for `generic_body_lazy.tower`

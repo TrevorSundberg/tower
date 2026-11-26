@@ -105880,3 +105880,114 @@ A filesystem trace showed one open of the exact oracle during the selected
 test and no test-only file accesses during ordinary object compilation.
 The raw-source API also returned the original 3,367 bytes through the
 native test interpreter.
+
+### Host 1 native affected-test selection, 0299fcc3
+
+The 40a73fc8 production CLI bundle on 3847106b merged cleanly onto 32316524.
+The native ELF from the producer repeated 1342, 42 and the two expected
+declaration locations. Both archive receipts, their declared members and both
+internal SHA-256 lists verified. The 95939286 prototype counted isolated
+launches using a caller-provided discovery snapshot. This trial moves its
+length-framed success-key decision to the real checked session. Discovery and
+checking run each time. One owner invocation shares initializers, effects and
+one failure exit across declarations. The unit of reuse is the complete suite.
+
+The driver now observes module completion during grammar installation and source
+checking, the existing discovery callback and the selected session offsets. It
+checks the supplied stdout oracle at interpreter flushes. Executed foreign calls
+and truncated output preclude reuse. A length-only mutant on a companion edit
+returned 0 and skipped both declarations while the full runner returned 1 at
+a_test.tower:3:5. The fixed driver returned 1 twice and executed after repair.
+The release matrix had 30 full/affected pairs, including a newly appearing
+silent test, changed suffix, workers and oracle, missing helper and foreign I/O.
+A killed guest left no receipt. Two concurrent owner suites across 18 processes
+left two complete records. Address/leak and thread instrumentation passed cold,
+warm, wrong and recovered inputs at one and four workers. TSan had 32 pre-main
+personality failures. The native instrumenter has no UBSan mode.
+
+Public e2ebb16a incorporated the supplied CLI during the trial. The focused
+change rebased onto it without conflicts. The ordinary documented native build
+was repeated from empty Release caches for that public base and the local
+successor. The rebased pair again agreed in all 30 comparisons. Nine affected
+requests skipped, seventeen ran successfully and four returned the reference
+error. A new silent companion added a second located declaration while stdout
+stayed 20. Changing only the compiler ELF trailer or worker setting forced
+execution. A stderr-only foreign write ran twice with an exact empty stdout
+oracle. Both registered native checks and the ordinary native link/run passed.
+The two sanitizer profiles repeated the eight cells each on the updated sources.
+TSan required 32 pre-main retries again. Packet 0299fcc3 retains the two
+freezes, compiler bytes and source bundles, time samples, failed build attempts,
+mutant, raw process records and reproduction commands. The first focused build
+diagnosed reserved field/local spellings and a missing direct platform import.
+
+Matched fresh processes on the Xeon Gold 6244 (32 logical CPUs, 15.36-core
+quota), LLVM 19.1.7 Linux x64 Release, warm filesystem caches, three rotated
+samples per cell, ran one at a time. Mean wall / combined CPU seconds and
+maximum process RSS in KiB for the integrated candidate:
+
+| Suite | Jobs | Full | Warm affected |
+| --- | ---: | ---: | ---: |
+| Owner and companion | 1 | 0.330 / 0.330 / 78328 | 0.350 / 0.340 / 77408 |
+| Owner and companion | 4 | 0.470 / 0.557 / 86692 | 0.503 / 0.587 / 87488 |
+| ZIP/SHA imports and 12000 loop iterations | 1 | 0.303 / 0.297 / 78104 | 0.277 / 0.270 / 75976 |
+| ZIP/SHA imports and 12000 loop iterations | 4 | 0.363 / 0.403 / 84816 | 0.360 / 0.400 / 83072 |
+
+The small suite paid more to validate reuse than to execute its two tests.
+The larger serial suite saved 26 ms on average. The persistent payload was 32
+bytes per owner in all three six-process stress waves. The timing logs also
+report page faults and context switches. Allocation traffic, lock contention
+and peak simultaneous memory across processes were not measured. These samples
+do not establish a general speedup. The attachment is for manager review.
+
+### Host 1 explicit stdout expectations, 39493c81
+
+The verified d9579948 ELF returned 0 twice for six output bytes against an
+eleven-byte wrong oracle and rejected the oracle flag in full mode. The prior
+driver used one flag for both reusable identity and matching output. A direct
+guest platform_write also flushed buffered prints outside its observer. This
+follow-up installs a request-local sink for checked test execution. It sees
+buffered stdout and direct guest writes in order. Comparison uses a fixed 8 KiB
+buffer and one open expected-file handle. The guest runs to its own verdict
+before any stdout expectation is reported. Implicit silence and an explicitly
+named file have separate identity fields. The compiler, discovery and declaration
+keys and the existing receipt publication boundary remain in use.
+
+The registered native driver comparison passed 47 full/affected pairs with
+identical oracle arguments. Affected results were 12 skips, 16 passes, four
+uncached executions and 15 expected failures. Both commands failed twice on
+the original wrong file with 11 expected bytes, six observed and divergence at
+offset zero. The independent binary control found a changed byte at offset
+8194 in 9004 bytes containing NUL. A truncated 65536-byte matching prefix
+failed in both checked modes. Source-located assertions, missing imports and
+an unsupported guest call kept their original failures. An explicit zero-byte
+file, a missing file, a permission-denied file and implicit silence followed
+their distinct paths through failure, repair and reuse.
+
+Cold and warm waves of three processes used one owner's receipt with two
+valid expectation paths and one wrong one. Each previously unexecuted identity
+ran. Both wrong requests failed. A concurrent reader sampled only absence or
+a complete digest from a passing control. A killed guest left no success.
+Two independent driver mutations suppressed the oracle digest or hashed only
+module length. The full reference caught each false skip. The attachment
+retains commands, inputs, declaration locations, byte streams and exits.
+
+Host 1 ran one measured CLI at a time on an Intel Xeon Gold 6244, 32 logical
+CPUs, a 15.36-core quota and a 136709144576-byte memory limit, with LLVM 19.1.7
+on Linux x64. Three measured processes per configuration followed a warm-up.
+Warm implicit silence averaged 0.333 to 0.343 s at one worker and 0.507 to
+0.493 s at four. Cold checks on the 9004-byte fixture averaged 0.270 to
+0.253 s at one worker and 0.343 to 0.357 s at four. The full candidate took
+0.35 s each for one-byte and 16 MiB incorrect expectations, with peak RSS
+below 79 MiB. The packet records CPU, peak RSS and individual samples. These
+end-to-end samples show mixed timing differences. Allocation traffic and
+lock contention were not measured.
+
+The first focused builds identified the required array type for sizeof and
+explicit usize-to-u64 conversions for the diagnostic. Both corrections are in
+the validated binary. The affected and module-path native CTests passed.
+ASan with leak detection and TSan completed 24 checked cells across one and
+four workers. TSan required 149 retries for a host address-layout failure
+before main. The completed cells produced no sanitizer finding. Standalone
+UBSan is unsupported by the Tower build. The measured scope is native Linux
+owner-suite execution with inputs frozen during each command. The handoff
+is tower-evidence/39493c81-bbab-4685-83bf-2f6746d9e0bf.tar.gz.

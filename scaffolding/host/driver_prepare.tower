@@ -49,6 +49,9 @@ export fn driver_prepare(options: DriverOptions*, argc: usize, argv: u8**, targe
     if !test_file_rule_valid(&options.test_rule) {
         driver_error("Invalid companion suffix: ", options.test_rule.companion_suffix); return 1;
     }
+    if (options.test_state[0] != 0 || options.test_oracle != null) && options.test_mode != DriverTestMode.Run {
+        driver_error("--test-affected and --test-oracle require --test", ""); return 1;
+    }
     if options.test_details && options.test_mode != DriverTestMode.Run {
         driver_error("--test-details requires --test", ""); return 1;
     }
