@@ -2,9 +2,22 @@ import library.testing;
 import work_arena_fault_fixture;
 import .library.work_arena;
 import .library.work_budget_types;
-
+import .library.work_budget;
 test() { arena_first_chunk_refusal(); }
 test() { arena_growth_refusal(); }
+
+fn arena_fault_init(fixture: ArenaFaultFixture*): void {
+    fixture.baseline = tower_test_buffer_count();
+    assert(work_budget_init(&fixture.budget, 1, 16384, 1), "Initialize the arena byte budget");
+    assert(work_arena_init(&fixture.arena, &fixture.budget, 4096), "Initialize the chunk arena");
+}
+
+fn arena_fault_dispose(fixture: ArenaFaultFixture*): void {
+    work_arena_dispose(&fixture.arena);
+    assert(fixture.budget.live == 0 && fixture.budget.used_bytes == 0, "Arena disposal releases every charge");
+    assert(work_budget_dispose(&fixture.budget), "Dispose the drained budget");
+    assert(tower_test_buffer_count() == fixture.baseline, "Disposal restores the allocator baseline");
+}
 
 fn check_first_refusal(fixture: ArenaFaultFixture*, output: u8**): void {
     assert(arena_fault_allocate(&fixture.arena, 64, output) == WorkBudgetError.Memory,

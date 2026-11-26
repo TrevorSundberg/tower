@@ -8,11 +8,11 @@ import .host.work_dispatch;
 extern fn pthread_self(): usize;
 
 enum SharedArenaCase: u32 { Grow, Cancel, Deny }
-var ArenaValuesPerJob: usize = 2048;
 var ArenaChunkBytes: usize = 4096;
 
 struct ArenaValue { index: usize; owner: usize; first: u64; last: u64; }
 struct ArenaJob {
+    grow: function(bool, ArenaJob*);
     arena: WorkArena;
     entered: void*;
     release: void*;
@@ -44,14 +44,6 @@ export fn work_kernel_execute(payload: void*): void {
         job.completed = true;
         return;
     }
-    if !job.cancelled {
-        for (var i: usize = 1; i < ArenaValuesPerJob; i++) {
-            var value = bits(ArenaValue*, work_arena_allocate(&job.arena, sizeof(ArenaValue), alignof(ArenaValue)));
-            if value == null { return; }
-            *value = init(ArenaValue) {index: i, owner: job.ordinal, first: 17, last: 29};
-            job.last = value;
-            if job.first.index != 0 || job.first.owner != job.ordinal || job.first.last != 29 { return; }
-        }
-    }
+    if !job.cancelled && !job.grow(job) { return; }
     job.completed = true;
 }
