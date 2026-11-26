@@ -121050,3 +121050,79 @@ and calls a shared Tower helper to check the diagnostic, status and zero-step
 count. The raw programs remain separate files. Independent execution of the
 revised registration, individual failure reporting and its resource cost
 are pending at this revision.
+
+### Independent qualification of the seven execution subtests on host 1
+
+The supplied bundle SHA-256 was
+`e61408215423a26d09831237bbd5c8e09739c0ef71399179bdf52a04663af8bd`.
+After decoding it, `git bundle verify` and an explicit fetch of
+`refs/heads/main` reproduced `8b04d40a` on `9242be31` on public
+`1a58cbf3`. Receipt `e1ebb158-8763-4e8a-848f-0cc0ebf8e086`
+contains the original, grouped and corrected runs, verified input
+hashes from receipt `030ccf2a`, full TAP, ordered trace comparisons,
+per-case locations and timed commands. Checks used the same two Pages
+`8417c9ae` Wasm images under the original Node package on host 1.
+
+On each frontend the complete default TAP tree, excluding only durations,
+matched the original, including all seven nested titles and their order.
+The original and corrected runs both passed 16/16 with no skips. The grouped
+version passed 9/9. In the correction, eight other declarations and the
+seven distinct semantic-rule declarations each selected exactly one body.
+The parent registration accounts for the sixteenth TAP result. Each of the
+seven compiled the byte-identical original input and returned the same
+diagnostic at the same guest byte offset, with zero steps and empty output.
+
+The observer from `030ccf2a` reproduced every archived original and grouped
+record. Corrected and grouped subject traces were byte-identical, including
+the 47 compile inputs, 51 execute results and both resets. Removing the
+twelve calls for the genuine second edit yielded the original 215 records.
+The first reset retained the original bytes. The second changed the actual
+loop bound to 6 on the same handle. Each returned done, zero builds and
+three grammar cache hits.
+
+Node 24.22.3 executes the body of the parent test to register these children.
+A child-only pattern and an anchored full-path pattern both produced a
+file-level pass with zero declarations. Two inclusive name patterns admitted
+all seven through their parent. This ordinary Node invocation selected one
+parent and only the CoreLoad child on both original and corrected modules.
+The correction selected `core_load_test.tower` once. Both versions compiled
+exactly the CoreLoad input and reported its missing-name diagnostic at byte 59.
+
+```sh
+node --test --test-concurrency=1 --test-reporter=tap \
+  --test-name-pattern='^edited semantic rules fail with diagnostics instead of invalid node access$' \
+  --test-skip-pattern='^parse (?!CoreLoad )' playground/tests/execution.test.mjs
+```
+
+Whole-module costs below are means over six fresh processes per cell, using
+all six orders of original, grouped and corrected in adjacent same-host
+triplets. Each cell reports elapsed/user/system seconds and peak RSS in KiB.
+Node 24.22.3 ran one module at a time on the Xeon Gold 6244 with cpuset 0–31
+and quota 1536000/100000 (15.36 CPUs). CPUs 2–5 are four distinct physical
+cores. Shared subject transport capacity was four and assertion host capacity
+one. Files were warm, with zero timed major faults, filesystem input blocks
+and cgroup throttling increments. The earlier job did not save a kernel cache
+snapshot. These results include assertion compilation and nested TAP reporting.
+
+| CPUs | Pages frontend | Original | Grouped | Corrected |
+| --- | --- | --- | --- | --- |
+| 2 | Portable | 1.183 / 1.027 / 0.147 / 140067 | 2.225 / 2.043 / 0.175 / 162815 | 2.640 / 2.450 / 0.187 / 167546 |
+| 2 | Shared | 1.750 / 1.473 / 0.270 / 225903 | 3.050 / 2.760 / 0.283 / 267757 | 3.582 / 3.267 / 0.307 / 272743 |
+| 2–5 | Portable | 0.965 / 1.530 / 0.188 / 142751 | 2.013 / 3.067 / 0.250 / 165150 | 2.310 / 3.473 / 0.230 / 167410 |
+| 2–5 | Shared | 1.578 / 2.430 / 0.407 / 230559 | 2.878 / 4.185 / 0.433 / 268416 | 3.405 / 4.848 / 0.435 / 270650 |
+
+Seven separate wrong-step controls changed the expectation from zero to one
+for one named child at a time. They ran on both original and corrected
+modules with both frontends, for 28 intentional failing module runs. Each
+reported the target child and its parent as failed, the other six children
+as passed and 14/16 overall. The complete subject trace still matched the
+green trace for the corresponding version, including every later case.
+Node reported the original child registration at `execution.test.mjs:148:13`
+and the corrected registration at `execution.test.mjs:88:13`. In each
+corrected control the shared assertion body was placed in the selected
+declaration with its wrong step expectation. Its failure reported the
+matching Tower file and the verified byte offset of that assertion. Each
+restoration reproduced the source bytes and passed 16/16 on both frontends
+in both versions. No implementation correction was required. This evidence
+covers the release images under Node. No compiler rebuild, UI test or
+sanitizer-instrumented execution was part of the qualification.
