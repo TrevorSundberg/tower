@@ -120527,3 +120527,88 @@ native compiler or worker code. Native source sanitizers, Chromium UI and
 Jenkins were outside this Node entry. The assignment packet retains the
 two source traces per image, mutation patches and logs, timing samples,
 manifest and public-base Git bundle. Manager review and publication remain.
+
+### Direct Wasm imports through an exported function and table
+
+The original Playground platform test compiles a Foundation provider and a
+consumer, binds the export directly, then binds the same function through
+slot zero of a real WebAssembly table. This change places the four existing
+expectations in `playground/src/platform_wasm_imports_test.tower`. The two
+Foundation programs are readable sibling fixtures. The browser test still
+instantiates the actual modules through the shipping LLVM host and supplies
+the compile results and both executions to the selected language test.
+
+The manager compared the fixture tokens with both original inline programs
+and checked the transport with `node --check playground/tests/platform.test.mjs`.
+Execution on the two shipping compiler images and negative controls require
+the assigned worker's evidence before publication.
+
+#### Host 5 validation of the direct and table calls
+
+Assignment `45e67713-0c5d-4241-bc53-e5fae936df5f` compared public
+`105b927e`, the verified bundle tip `54e50b93` and correction `98c2b39c`.
+The shared checkout had an unfinished rebase and three local commits, so
+validation used a separate local main. Pages `8417c9ae` supplied the portable,
+shared and LLVM reactors. All three manifest build-source entries identify
+`0da4e5137453044c9fff9eba262537608de31b6f`. The shipped assets and expanded LLVM
+bytes matched their SHA-256 entries. The five language inputs matched the
+release manifest. The packet includes the compiler sources, release bytes,
+exact inline and extracted programs, checksums, commands and raw console/TAP.
+
+All four original registration names passed together on each frontend at all
+three revisions. The abort and writes entries each selected one declaration.
+The candidate also selected exactly one in `platform_wasm_imports_test.tower`
+through the existing explicit-entry runner. The ordinary-calls registration
+is byte-identical. On each arm LLVM produced the same provider (`90419ab9…`)
+and consumer (`c7806c93…`). The real consumer instance received the provider's
+export as `env.twice` on the first run. On the second, the one-slot
+WebAssembly table returned that export from index zero. Both runs returned
+`done`, empty error, and bytes `34 32 0a` without truncation.
+
+A consumer with a trap after its print passed the proposed output-only test.
+The corrected Tower test checks each returned status before its output and
+propagates the actual error. Both frontends rejected the trap with
+`after expected output` despite the correct three bytes. Changing only the
+direct expectation from 42 to 43 failed at original JS line 119, proposed
+Tower byte 389 and corrected byte 521. Changing only the table expectation
+failed at line 121, byte 496 and byte 654 respectively. Each location matches
+its assertion, and each restored registration passed on both images.
+
+An unknown name in the provider stopped LLVM compilation before the consumer.
+An unknown name in the consumer followed exactly one successful compilation.
+Neither case reached guest execution. The original assertions exposed the
+compiler's missing name. The corrected assertions also identify the named
+fixture and the compiler's input offset (provider byte 72, consumer byte 73).
+The diagnostic, assertion location and nonzero process result are in each log.
+
+The following independent medians cover three rotating, matched trials per
+cell on an AMD Ryzen 9 5900XT, Debian 12, Node 24.22.3. Each cell gives
+wall seconds / user-plus-system CPU seconds / peak RSS in KiB, measured by
+GNU time. Fresh Node processes ran one at a time under the host timing lock
+on CPUs 4–7, within the inherited 0–31 affinity and 3071999/100000 CPU
+quota. Files were warm. The command used Node's test runner at concurrency
+one with phase counters enabled, the shipping LLVM host's default optimized
+wasm32-unknown-unknown target, and capacity one for each selected assertion
+instance. Binding tracing ran separately.
+
+| Registration and image | Original | Proposed | Corrected |
+| --- | --- | --- | --- |
+| Direct/table, portable | 0.47 / 0.78 / 185384 | 0.79 / 1.18 / 186388 | 0.79 / 1.18 / 186612 |
+| Direct/table, shared | 0.55 / 0.95 / 251780 | 0.96 / 1.44 / 254104 | 0.96 / 1.43 / 252720 |
+| All four, portable | 1.57 / 2.24 / 209192 | 1.86 / 2.55 / 210412 | 1.86 / 2.55 / 213004 |
+| All four, shared | 2.03 / 2.97 / 334396 | 2.41 / 3.38 / 361592 | 2.41 / 3.38 / 362840 |
+
+The migration adds a separate instance to compile and execute the Tower test.
+The corrected and proposed whole-file wall medians agreed at timer precision.
+In the first corrected shared full-file sample RSS reached 296960 KiB after the
+third registration and peaked at 362840 KiB during the fourth. The original
+reached 297812 and 334136 KiB at those boundaries. These are process
+high-water marks. Live guest allocations and reclamation were unmeasured.
+
+Pinned to CPU 4 alone in three further pairs, the target's original/corrected
+median wall times were 0.74/1.12 s portable and 0.89/1.37 s shared. CPU
+affinity bounds the whole Node process, including V8 compilation. These trials
+measure registration cost and give no compiler-worker scaling result. Coverage
+is Node execution of the production Wasm images. No browser UI, native
+sanitizer, or release rebuild ran for these test-only changes. Manager
+integration and publication remain separate.

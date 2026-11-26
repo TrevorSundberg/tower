@@ -50,6 +50,10 @@ async function checkPlatform(entry, fixtures, expected) {
     programs.set(name, {source:text, llvm:await observeLLVM(text)});
   }
 
+  return runPlatformChecks(entry, programs, expected);
+}
+
+async function runPlatformChecks(entry, programs, expected) {
   let result;
   function program(context, name) {
     const key = guestString(context, name);
@@ -110,15 +114,30 @@ test('platform abort preserves its exact foreign signature and terminates on inv
 
 test('platform writes share byte ordering and UTF-8 decoding across interpreter and Wasm', async () =>
   checkPlatform('platform_writes_test', ['platform_writes'], await read('scaffolding/tests/platform_writes.expected')));
-test('pure Wasm exports bind directly as external imports, and tables can supply the function',async()=>{
- const provider=llvm.compile('import foundation; export fn twice(x: i32): i32 { var y: i32 = x + x; return y; }');
- assert.equal(provider.status,'compiled',provider.error);
- const {instance}=await WebAssembly.instantiate(provider.wasm,{});
- const consumer=llvm.compile('import foundation; extern fn twice(x: i32): i32; var value: i32 = twice(21); print(value);');
- assert.equal(consumer.status,'compiled',consumer.error);
- assert.equal((await executeWasm(consumer,()=>{},{imports:{twice:{wasm:instance.exports.twice}}})).output,'42\n');
- const table=new WebAssembly.Table({element:'anyfunc',initial:1});table.set(0,instance.exports.twice);
- assert.equal((await executeWasm(consumer,()=>{},{imports:{twice:{wasm:table.get(0)}}})).output,'42\n');
+test('pure Wasm exports bind directly as external imports, and tables can supply the function', async () => {
+  const programs = new Map();
+  async function compileFixture(name, fixture) {
+    const result = llvm.compile(await source('scaffolding/tests/' + fixture));
+    const diagnostic = result.status === 'error'
+      ? `${fixture}.tower (${result.errorFile ?? 'input'} at byte ${result.errorOffset}): ${result.error}`
+      : result.error;
+    programs.set(name, {llvm:{compilation:result.status, diagnostic}});
+    return result;
+  }
+
+  const provider = await compileFixture('provider', 'platform_twice_provider');
+  if (provider.status === 'compiled') {
+    const {instance} = await WebAssembly.instantiate(provider.wasm, {});
+    const consumer = await compileFixture('consumer', 'platform_twice_consumer');
+    if (consumer.status === 'compiled') {
+      const runWith = twice => executeWasm(consumer, () => {}, {imports:{twice:{wasm:twice}}});
+      programs.set('direct', {llvm:await runWith(instance.exports.twice)});
+      const table = new WebAssembly.Table({element:'anyfunc', initial:1});
+      table.set(0, instance.exports.twice);
+      programs.set('table', {llvm:await runWith(table.get(0))});
+    }
+  }
+  await runPlatformChecks('platform_wasm_imports_test', programs);
 });
 test('built-ins and ordinary functions share calls and typed argument validation',async()=>{
  const source=(await read('scaffolding/tests/platform_calls.tower')).toString();

@@ -1,0 +1,20 @@
+import platform_observations;
+
+fn check_result(fixture: u8*, field: u8*, wanted: u8*, error_field: u8*): void {
+    platform_llvm(fixture);
+    if (!field_is(field, wanted)) {
+        var diagnostic = observed(error_field);
+        defer free(diagnostic.data);
+        assert(false, diagnostic.data);
+    }
+}
+
+test() {
+    check_result("provider", "compilation", "compiled", "diagnostic");
+    check_result("consumer", "compilation", "compiled", "diagnostic");
+
+    check_result("direct", "status", "done", "error");
+    assert(field_is("output", "42\n"), "Call the exported function directly");
+    check_result("table", "status", "done", "error");
+    assert(field_is("output", "42\n"), "Call the function retrieved from the Wasm table");
+}

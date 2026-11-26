@@ -1,0 +1,5 @@
+import foundation;
+
+extern fn twice(x: i32): i32;
+var value: i32 = twice(21);
+print(value);

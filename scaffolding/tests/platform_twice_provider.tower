@@ -1,0 +1,6 @@
+import foundation;
+
+export fn twice(x: i32): i32 {
+    var y: i32 = x + x;
+    return y;
+}
