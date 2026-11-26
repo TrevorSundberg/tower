@@ -123,6 +123,26 @@ including the final line ending. See [the function-values test](function_values_
 The child interpreter uses the selected graph's source snapshots and captures
 both `print` and counted writes to stdout.
 
+Use `fixture_diagnostic(name)` to compile either granted file as ordinary source
+without executing its top-level statements. For a suite of negative cases, import
+`library.test_rejections` directly from a valid companion. In the owner's
+same-stem `.fixtures` file, list one sibling stem per line using lowercase
+ASCII letters, digits and underscores, with LF line endings. Each stem grants its `.tower` source
+for diagnostic compilation and its raw `.expected` bytes for comparison.
+Discovery freezes both files and tracks them with the declaration. The native
+reader requires regular sibling files and rejects leaf symlinks. A registered
+project supplies the same three kinds of input under their exact keys.
+The child resolves imports from the selected graph's frozen inputs.
+A successful compile returns an empty `FixtureDiagnostic`. A rejected compile
+returns the source map's file identity, zero-based byte offset, one-based
+line and column, and the compiler's counted diagnostic bytes including any
+instantiation frames. Dispose the result once with
+`fixture_diagnostic_dispose(&result)` after reading it. Its file and message
+share a single guest allocation. Grant, input-read and resource failures
+fail the parent test. Ordinary `fixture_stdout` also fails the parent on a
+child compile or execution error. The [staged rejection companion](semantic_invalid/staged_rejections_test.tower)
+checks the original child sources and a clean compile.
+
 After successful discovery, `TestFileSelection.fixtures` owns an ordered
 `TestFixturePair` per opted-in companion. Its `companion`, `source` and
 `oracle` paths have explicit byte lengths and trailing NULs. These paths
@@ -135,7 +155,8 @@ duration of execution.
 Use the existing `--list-test-files` command with the entry and
 `-o inventory --depfile inventory.d` to track disk inputs. The depfile names
 the owner source and the exact expected path, even while the latter is missing.
-The runtime read reports a missing expected file at its call site. Ordinary
+The runtime read reports a missing same-stem expected file at its call site.
+For a declared set, all listed files must be present at discovery. Ordinary
 compilation continues to use the entry and its ordinary imports.
 
 Keep source inputs and expected text readable as files. Track each old case by

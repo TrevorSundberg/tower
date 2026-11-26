@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("aggregate_inferred_copy.tower");
-    defer free(error);
-    assert(stage_error_offset() == 103, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Expected Other, got Item; use an explicit conversion"), error);
+    check_browser_rejection("aggregate_inferred_copy.tower", 103);
 }

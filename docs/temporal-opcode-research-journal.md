@@ -111540,6 +111540,166 @@ deliberately skipped case. Both decimal CI selectors ran four checks each
 with the documented default native build on Debian 12. Host 4's raw results
 cover this source freeze. After the separate arena migration the manager
 enumerated 50 registrations and confirmed the original 46 kept their order.
+### Compile-time rejection fixtures on the published portable and LLVM reactors
+
+Host 2 started from public `3ca5e7cc`. The 2,870 bytes of the original
+24-row rejection table (through its closing brace) hashed to
+`86100114687c5cfa8bb5203adbf17a74ce07deedd9e4e0957210ba8635029d8d`.
+An initial pull conflicted with an unpublished SHA-256 companion in the shared
+checkout. The rebase was aborted and an independent main used for this change.
+Pages commit `c9773ec3` supplied the portable and compressed LLVM reactors
+built at `8bc867b6`. The raw executables were 1,711,218 and 35,456,501 bytes.
+
+On the frozen public source the bounded negative-only Node run passed all 48
+registrations. It observed 96 terminal errors. The Tower entries in
+the adjacent `_browser.tower` files compare the full message and its byte
+offset and check the source filename against the selected case. In the
+portable interpreter they also require zero steps and complete empty output.
+Each LLVM target retains its own compile, and each result goes through a
+single selected Tower declaration at the corresponding pointer width.
+
+The 24 unchanged sources total 2,790 bytes. Across two backends and two widths
+the compilers received 11,160 source bytes and returned 6,208 diagnostic bytes.
+All 96 comparisons retained the exact messages, relative byte offsets and raw
+compiler offsets. The sixth source-map entry starts at byte 19,870. The
+self-cycle witnesses are `19909 -> 19909` and `19953 -> 19953`. The old host
+labelled every error `input.tower` when filtered, or
+`.tower/tests/comptime_capture_values.tower` in the full run. Setting the entry
+to the actual subject corrected all 96 filenames. Packet `cases.tsv` records
+each subject's Git blob, registered input positions, size, source coordinate
+and assertion identity.
+
+All 48 registrations passed in isolation. An instrumented positive run counted
+one test per subcase and 1,026,384 completed assertion steps with empty output.
+An added trap after the last assertion failed all 48 registrations at their
+respective Tower files. An incorrect division message and an offset of 54 for
+the true offset of 53 each failed. Calling `invalid(1)` directly removed the
+wrapper frame. Calling `invalid(1)` inside the wrapper retained the wrapper
+frame and replaced the valid `invalid(value)` frame. Both edits kept the same
+terminal error and failed its trace assertion. An empty test also failed the
+host's diagnostic-read check. Each field, trace and empty-test control failed on both backends at each
+width, using an 8-byte-first run to reach the second width before failure.
+Restoration passed. All 88 names passed in their original order on the assigned
+base and on a separate source export of public `46e22072` with the focused
+patch. Its newer positive cases and shared helper applied without edits.
+
+The pinned Linux compiler produced byte-identical reference stderr (including
+file, line, column and trace) and empty stdout for all 24 inputs at jobs 1 and
+4. Native `--test` on 22 original owners rejects their declarations before a
+companion can run. The two generic body owners omit their top-level calls in
+test mode and select zero by default. Pairing their browser assertions with
+`--test-suffix _browser.tower` reaches a missing `stage_text` binding on both
+owner and direct entry. All 24 unpaired assertion entries need this browser
+observation. The native fixture grant returns text or stdout and propagates
+child errors to the outer execution. It exposes no child diagnostic record
+for an assertion to inspect. The ordinary native rejection runs supply the
+independent reference.
+
+Host 2 used a Ryzen 5 3600, Node 24.22.3, CPU affinity 0,2,4,6 and a cgroup
+quota of 11.52 CPUs. Three serial matched fresh-process pairs on warm files
+had median wall / CPU / process peak RSS of 1.58 s / 2.78 s / 240,944 KiB
+before and 9.03 s / 11.22 s / 312,760 KiB after. The new work includes a
+second portable reactor and compilation and execution of 96 selected tests.
+An early checker opened within a Node test closed at that test's teardown.
+Another trial used the subject's full file set for each checker selection and
+took 11.45 s wall. The final checker opens on first use, has suite lifetime
+and registers its assertion inputs separately from the subject. The selected
+production Wasm binaries are uninstrumented. This change adds test code and
+host transport and changes no compiler or worker code. Source bundle and raw
+packet `e3f9a80d-e11a-49de-ae9d-c0263fa498be` are for manager publication.
+
+### Cost of selecting the compile-time rejection assertions
+
+Host 2 remeasured `487e4f62` and its unmigrated public baseline `3ca5e7cc`
+with the same published portable and LLVM reactors. On instrumented copies
+the original compiletime.test.mjs registrations drove the ordinary host APIs.
+A probe timed compile, test selection, execution and disposal. The module
+transport counted each source length at the real registration call. Timings
+of these overlapping API layers are reported separately from the interleaved
+unmodified timing runs. The 48-name run on 487e4f62 issued 96 subject compile
+requests and 96 selected test compilations. It spent 4.96 s in compileTests,
+0.83 s in subject compilation and 2.38 s in module setup. Setup registered
+901,518,833 source bytes across 199 calls. Execution calls took 0.07 s.
+
+Each adjacent Tower entry now imports its assertion module and calls its
+NUL-terminated text comparison. The same prefix walk checks the directory,
+then exact equality checks the complete basename. Removing the backend.text
+import also removes library.vector from the assertion parse. The
+decltype_body_runtime selected source map went from ten files to eight
+at both widths and on both backends. The checker opens with its assertion
+project. This also avoids a startup upload of the entire fixture collection.
+The suites and their test handles still compile and execute separately
+at widths 4 and 8. A first trial used the reserved parameter name `expected`
+and failed to parse. The corrected comparison uses `wanted`.
+
+On the 48 negative names, selected compilation took 2.83 s after the change.
+The module transport made 197 setups and registered 892,690,715 source bytes.
+Most setup time still belongs to the subject host's full source uploads
+when changing and restoring the entry. Across all 88 names, direct debugger
+breakpoints on the published Wasm functions counted 154 portable and 83 LLVM
+subject root parsing sessions on all three arms. Selected root sessions,
+selection opens and discovery calls each counted 6 on the old arm and 102
+on both migrated arms. A cold individual negative LLVM name compiled two
+subjects and two assertions on both migrated arms. Each of its two selected
+handles was preflighted, counted, executed and destroyed. Each guest starts
+with fresh execution state. The breakpoint runs were separate from timing.
+
+Three interleaved samples per arm ran on host 2's Ryzen 5 3600, CPUs 0,2,4,6,
+11.52-CPU quota, Node 24.22.3, one Node test at a time. The table gives
+medians of wall seconds / CPU seconds / peak process RSS in KiB.
+
+| Selection | Unmigrated 3ca5e7cc | Migrated 487e4f62 | Trimmed assertion project |
+| --- | --- | --- | --- |
+| 48 negative names | 1.62 / 2.85 / 243220 | 9.02 / 11.33 / 316080 | 6.98 / 9.04 / 312644 |
+| All 88 names | 7.42 / 11.81 / 343776 | 14.93 / 19.91 / 412576 | 12.70 / 17.78 / 416160 |
+| Cold decltype_body_runtime (LLVM) | 0.89 / 1.56 / 231152 | 1.43 / 2.29 / 234552 | 1.35 / 2.17 / 223636 |
+
+On CPU 0 alone the negative selection took 2.17 / 10.11 / 7.82 s wall and
+241032 / 310832 / 307104 KiB. Full-file peak RSS rose 3584 KiB in the
+four-CPU median. Each process started cold with warm files. GNU time measures
+the process, including V8. Its RSS does not isolate guest allocations.
+
+All 96 subject terminal records matched the mapped 487e4f62 records in full,
+in the focused group and across 48 independent cold filters. The six-entry
+subject maps and input identities belong to the earlier receipt. On the new
+tree every negative subcase selected one entry, completed, and produced zero
+output bytes. Other full-file execution records and the observed Foundation
+and Wasm digests matched 487e4f62. The pre-existing post-table inference
+stress case reported `input.tower` on both migrated versions. That one case
+used the preceding positive filename on 3ca5e7cc.
+
+Altering the first case's expected offset and shortening the last case's
+message each failed the corresponding two backends among all 88 names.
+The traps were at bytes 126 and 207 in the corresponding assertion files.
+Longer message, missing wrapper, forbidden inner trace, unexpected compile
+success, empty or absent error, zero offset, incorrect directory and incorrect
+basename each failed. Restoring the actual fixtures passed the pair and
+the complete file. Raw streams, mapping comparisons, breakpoint hits,
+commands and trial orders are in host 2 packet
+`b4cb2d90-cb9f-4b95-a9e5-64beab7c6d1a`.
+
+At native jobs 1, all 120 original-owner, paired, standalone and ordinary
+interpretation probes reproduced the prior outcomes and diagnostics after
+normalizing the checkout prefix. For 22 owners the source fails before a
+paired test runs. The two generic-body owners select zero by default.
+Their paired tests and all standalone browser entries require the missing
+`stage_text` native interpreter binding. Native ordinary interpretation
+rejected all 24 inputs. Expected-diagnostic support remains a separate task.
+The production compiler and Wasm reactors were reused. The evidence measures
+the public test path. Sanitizer compiler builds, CI and publication are
+outside this focused run. The manager owns publication.
+### 2026-11-26 — Observing an ordinary child compilation in a native Tower test
+
+Host 1 verified the source bundle and seven declared members of the 24-negative-case migration receipt before reproducing its native limitation on public `46e22072`. The checked-in Linux bootstrap SHA-256 began `7315b86e`; the retained native-suite driver began `a4f6f566`. In ordinary `--test` at jobs 1 and 4, the strict staged fixture aborted its valid parent at the stdout call. Independent `--interpret` reported the forward declaration cycle at byte 14, line 2 column 1 and unknown local `missing_body_value` at byte 53, line 2 column 40, followed by the `invalid(1)` instantiation at line 4 column 16.
+
+Implementation `c7408522` adds `fixture_diagnostic` and its guest-owned disposal operation to the existing test fixture capability. It accepts either granted path as counted source and returns a mapped point and raw message, including frames. The two new valid owners keep the invalid programs in their rooted same-stem data files. Child imports use the frozen selection, and ordinary compilation of the aggregate excludes its test-only inputs. Child, source map and copied diagnostic have distinct lifetimes. The compiler checks typed resource errors and failed input access before returning a language rejection. Native `fixture_stdout` continues to treat both compilation and execution failures as parent failures.
+
+Both generated CTest registrations ran both case coordinates. Changing the expected file, byte offset, message or frame made the parent's assertion fail at both job widths. Changing only the staged input failed under `--test-affected`; restoring it passed in the same state directory. The discovery depfile names both exact data paths. Fixture foreign calls retain their conservative rerun policy. A valid child with a top-level division by zero compiled cleanly and still failed the strict stdout path. Missing inputs, a non-granted name, a missing snapshot import and exhausted guest memory all failed the parent. An isolated competing reservation denied the child's real compiler allocation in both guest profiles and both worker worlds. Both recovered and ordinary four-job runs retained their expected coordinates.
+
+The ordinary x64 CLI admits its native target profile. The registered execution harness independently exercised the same test files at 4- and 8-byte guest widths in 1- and 4-worker worlds, checking final live reservations, bytes and lanes. AddressSanitizer with leak detection and ThreadSanitizer passed both native job widths and the broader declaration-world test. The container denied the TSan ASLR personality call on 34 pre-main starts across three selectors before initialized successful runs. Tower's native instrumentation supports address and thread profiles. The initial output wrapper misclassified the silent operators fixture, and an initial heap-pressure control stopped while constructing its input literal. The corrected controls check silent success and exhaust the guest heap after the inputs are live.
+
+Host 1 used two Xeon Gold 6244 sockets, affinity 4–11 out of 0–31, quota 15.36 CPUs, LLVM 19.1.7, Ninja and the public bootstrap. At jobs 1/4, the new staged parent on the repaired driver took 0.82/1.35 s wall, 0.81/1.50 s CPU, and 86,824/95,788 KiB peak RSS. With identical guest resources the prior driver stopped at the missing binding in 0.40/0.48 s wall. The existing strict failure had identical diagnostics at 0.63/0.84 s wall before and 0.66/0.92 s after. The function-values test produced identical stdout. Assignment `4507be09-c404-422b-bbfe-532d5aa9a730` contains exact commands, original and repaired CPU/RSS, reference fields, mutations, depfiles and sanitizer logs. The migration covers two native test cases. The remaining negative fixtures and browser transport retain separate ownership.
+
 ### Ordinary body admission after signature-only specialization
 
 Host 2 reproduced the two default-suffix discovery failures on manager main
@@ -113198,3 +113358,67 @@ fixed. Assignment `703dd03e-8dc5-4ff6-912a-e02c8ffe9e44` contains the exact
 commands, fresh and live-process costs per individual name, traces, original
 failures, restored runs and source bundle. Allocation counters and multicore
 scaling were outside the single-slot test interface.
+### Native rejection fixtures with their original source identity (2026-11-26)
+
+On host 1 the three manager merges reproduced tree
+`acc9619eae9c7cee246069c410ea0190d7451bce`. Its cycle and staged-frame
+proofs compiled duplicate source bytes under an oracle filename. A direct
+test-only import now declares sibling source/oracle pairs using the owner's
+`.fixtures` file. Discovery snapshots the named inputs and supplies them
+to the existing child compiler. The native reader opens regular leaves
+without following a leaf symlink. Registered projects supply exact keys.
+The initial implementation hit the published bootstrap's 65536-node
+generic expansion limit in the parser unit. Sharing its existing ModuleInput
+vector specialization allowed the same bootstrap and limit to build it.
+
+The ordinary aggregate ran both assertions at jobs 1 and 4 with the original
+`decltype_cycle.tower` at byte 14 and `decltype_body_comptime.tower` at byte
+53, including the instantiation frame. The declaration-world test also
+passed both pointer widths. Assignment 10b3f97f holds the build commands,
+native compiler stderr, host quota and measured runs.
+
+The staged rejection suite now has 24 explicit declarations in one checked-in
+companion. All 24 original sources failed ordinary native compilation and
+interpretation with identical stderr. The two generic bodies instantiate
+when ordinary root statements are checked. A separate control compiled
+successfully and failed only on interpretation with division by zero.
+The portable and LLVM registrations each retained both guest pointer widths.
+The two runners compare the same literal diagnostic file through the same
+Tower byte-and-offset assertion. Native checks also compare the source path,
+line and column. Browser checks retain their original path and status fields
+and the portable pre-execution observations. All 96 recorded browser rows
+matched the producer packet field for field.
+
+Both native selections ran 24 declarations at jobs 1 and 4. The first
+registered-input run of the expanded suite reached the two-proof harness's
+fixed step ceiling. Scaling that harness allowance by the declared case
+count ran the complete suite at both guest widths in both worker worlds.
+A wrong child with identical bytes, an altered frame, a wrong byte offset,
+a changed child line, undeclared or missing data, traversal, a symlink and
+a permission denial all failed. Restoration ran 24 again. Discovery named
+all 24 sources, 24 oracles and the declaration in its depfile. The ordinary
+owner object required none of those inputs. Affected mode conservatively
+executed the foreign-calling suite on unchanged and changed runs.
+
+The Linux x86-64 and AArch64 drivers use their respective ABI values for
+opening a regular leaf without following a symlink. A Tower probe linked to
+AArch64 libc opened the real child and refused a symlink to it under QEMU.
+The Windows and Darwin boundaries cross-compiled. On the frozen Linux x64
+driver, withholding all 24 sources, their 24 oracles, the declaration, the
+companion and its library still produced a byte-identical ordinary object.
+The default native link succeeded and the executable exited silently.
+
+Host 1 used CPUs 4–11 of affinity 0–31, with a quota of 15.36 CPUs on Xeon
+Gold 6244. Single warm direct selections at jobs 1 and 4 took respectively
+5.37 and 7.54 seconds wall, 5.36 and 8.45 seconds CPU, and 87984 and 96892
+KiB peak RSS. The 48-registration browser selection took 10.94 seconds wall,
+16.03 seconds CPU and 271248 KiB peak RSS. Each final independent native
+interpretation at jobs 1 and 4 matched the original stderr byte for byte.
+
+On the final Linux x64 binaries, ASan with leak checking and TSan each
+passed all 24 disk cases at jobs 1 and 4. Each also passed the two original
+proofs at both pointer widths in both worker worlds. The uninstrumented
+registered harness ran all 24 in each of those four combinations. TSan's
+successful final runs were attempts 20, 3 and 6 respectively. The 26 earlier
+starts stopped before main when the host denied its ASLR personality
+request. The receipt includes these statuses and the successful traces.

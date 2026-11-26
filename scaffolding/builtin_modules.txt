@@ -29,6 +29,7 @@ library/sha256.tower
 library/stack.tower
 library/storage.tower
 library/test_fixtures.tower
+library/test_rejections.tower
 library/testing.tower
 library/vector.tower
 library/work_arena.tower

@@ -5,7 +5,7 @@ import {loadTower} from '../src/tower-host.mjs';
 import {builtins, files} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, runSelectedTest} from './compiler_test_host.mjs';
 
-let result, portable, readMessage;
+let result, portable, readMessage, expectedBytes;
 
 function integerField(name) {
  const value = result[name];
@@ -26,6 +26,13 @@ const imports = {
   context.memory().set(bytes, pointer);
   return pointer;
  },
+ stage_expected(context) {
+  const pointer = context.allocate(Math.max(1, expectedBytes.length));
+  if (!pointer) throw new Error('Cannot copy the expected diagnostic');
+  context.memory().set(expectedBytes, pointer);
+  return pointer;
+ },
+ stage_expected_size: () => expectedBytes.length,
  stage_error_offset: () => integerField('errorOffset'),
  stage_portable: () => portable,
  stage_steps: () => integerField('steps'),
@@ -35,7 +42,8 @@ const imports = {
  },
 };
 
-function checkObservation(checker, name, backend, pointerBytes, observation) {
+function checkObservation(checker, name, backend, pointerBytes, observation, oracle) {
+ expectedBytes = oracle;
  result = observation;
  readMessage = false;
  portable = backend === 'portable';
@@ -45,7 +53,7 @@ function checkObservation(checker, name, backend, pointerBytes, observation) {
   if (!readMessage) throw new Error(entry + ' did not read the subject diagnostic');
  } catch (error) {
   throw new Error(`${name} (${backend}, ${pointerBytes}-byte pointers): ${error.message}\nObserved: ${JSON.stringify(result)}`, {cause:error});
- } finally { result = undefined; }
+ } finally { result = undefined; expectedBytes = undefined; }
 }
 
 const directory = '.tower/tests/semantic_invalid/';
@@ -66,6 +74,7 @@ export async function checkStageRejection(host, project, name, backend) {
  }
  const entry = directory + name + '.tower';
  const source = fixtureSource(entry);
+ const oracle = await readFile(new URL(`../../scaffolding/tests/semantic_invalid/${name}.expected`, import.meta.url));
  try {
   host.configureModules({entry});
   for (const width of [4, 8]) {
@@ -77,7 +86,7 @@ export async function checkStageRejection(host, project, name, backend) {
    } else {
     observed = host.compile(source, {target:`wasm${width * 8}-unknown-unknown`});
    }
-   checkObservation(checker, name, backend, width, observed);
+   checkObservation(checker, name, backend, width, observed, oracle);
   }
  } finally { host.configureModules(project); }
 }

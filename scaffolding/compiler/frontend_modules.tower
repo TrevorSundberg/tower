@@ -85,11 +85,6 @@ var ModuleReadFailure: u32 = 3;
 var ModuleSourceLimit: u32 = 4;
 var ModulePathCase: u32 = 5;
 
-struct ModuleInput {
-    name: vector(u8);
-    text: vector(u8);
-}
-
 struct ModuleAlias {
     name: vector(u8);
     path: vector(u8);
@@ -124,6 +119,7 @@ struct ModuleEnvironment {
     test_discovery: TestFileDiscovery*;
     // A synchronous nested fixture compilation borrows the finished selection's source map.
     fixture_parent: ModuleEnvironment*;
+    fixture_input_failed: bool;
     observe_source: function(void, void*, u8*, u8*, usize);
     observe_context: void*;
 }
@@ -404,9 +400,11 @@ fn module_read(environment: ModuleEnvironment*, path: u8*, text: vector(u8)*): u
         return ModuleReady;
     }
     var file = fopen(path, "rb");
-    if file == null {
-        return ModuleMissing;
-    }
+    if file == null { return ModuleMissing; }
+    return module_read_stream(file, path, text);
+}
+
+fn module_read_stream(file: void*, path: u8*, text: vector(u8)*): u32 {
     if !module_file_case_matches(path) {
         fclose(file);
         return ModulePathCase;
@@ -994,6 +992,7 @@ fn module_load_input(parent: FrontendModule*, name: u8*, path: u8*, text: vector
             }
         }
     } else {
+        if parent.graph.environment.fixture_parent != null { parent.graph.environment.fixture_input_failed = true; }
         if status == ModuleInvalidSource {
             module_fail(parent, "Imported source must be UTF-8 without NUL bytes: ", name);
         }
@@ -1125,6 +1124,76 @@ export fn frontend_modules_test_input_root(world: void*, environment: ModuleEnvi
     return module_root_named_result(world, input.text.data, input.text.length, environment, path, error);
 }
 
+// Freeze the input while its native descriptor or registered bytes belong to
+// discovery. A nested compile never reopens a path chosen by guest code.
+fn module_fixture_snapshot(owner: FrontendModule*, selection: TestFileSelection*, pair: TestFixturePair*,
+    path: vector(u8)*, registered: bool): bool {
+    var input: ModuleInput = default;
+    defer vector_dispose(&input.name);
+    defer vector_dispose(&input.text);
+    var env = owner.graph.environment;
+    var status = ModuleMissing;
+    if registered {
+        var found = module_registered_input(env, path.data);
+        if found != null && bytes_assign_text(&input.text, found.text.data, found.text.length) { status = ModuleReady; }
+    } else {
+        if selection.open_sibling != null {
+            var file = selection.open_sibling(path.data);
+            if file != null { status = module_read_stream(file, path.data, &input.text); }
+        }
+    }
+    if status != ModuleReady { module_fail(owner, "Cannot read declared fixture: ", path.data); return false; }
+    if env.observe_source != null { env.observe_source(env.observe_context, path.data, input.text.data, input.text.length); }
+    if !node_text_set(&input.name, path.data) || !vector_reserve(&pair.inputs, pair.inputs.length + 1) {
+        module_fail(owner, "Cannot retain declared fixture: ", path.data); return false;
+    }
+    pair.inputs.data[pair.inputs.length] = input;
+    ++pair.inputs.length;
+    input = default;
+    return true;
+}
+
+// Each line declares one exact sibling stem, granting only its ordinary source
+// for compilation and its literal .expected bytes for comparison.
+fn module_fixture_set(owner: FrontendModule*, selection: TestFileSelection*, pair: TestFixturePair*, registered: bool): bool {
+    var path: vector(u8) = default;
+    defer vector_dispose(&path);
+    if !test_file_replace_suffix(pair.source.data, selection.rule.source_suffix, ".fixtures", &path) {
+        module_fail(owner, "Cannot name fixture declaration for ", pair.source.data); return false;
+    }
+    if !module_fixture_snapshot(owner, selection, pair, &path, registered) { return false; }
+    var list = pair.inputs.data[0].text;
+    var directory = path.length;
+    while directory != 0 && path.data[directory - 1] != *"/" { --directory; }
+    var at: usize = 0;
+    while at < list.length {
+        var start = at;
+        while at < list.length && list.data[at] != 10 {
+            var ch = list.data[at];
+            if !(ch >= *"a" && ch <= *"z" || ch >= *"0" && ch <= *"9" || ch == *"_") {
+                module_fail(owner, "Invalid sibling fixture name in ", pair.inputs.data[0].name.data); return false;
+            }
+            ++at;
+        }
+        if at == start { module_fail(owner, "Empty sibling fixture name in ", pair.inputs.data[0].name.data); return false; }
+        path.length = directory;
+        if !test_file_append(&path, list.data + start, at - start) || !test_file_append(&path, ".tower", strlen(".tower") + 1) { break; }
+        --path.length;
+        foreach (var &prior in &pair.inputs) {
+            if module_equal(prior.name.data, path.data) { module_fail(owner, "Duplicate declared fixture: ", path.data); return false; }
+        }
+        if !module_fixture_snapshot(owner, selection, pair, &path, registered) { return false; }
+        path.length -= strlen(".tower");
+        if !test_file_append(&path, ".expected", strlen(".expected") + 1) { break; }
+        --path.length;
+        if !module_fixture_snapshot(owner, selection, pair, &path, registered) { return false; }
+        if at < list.length { ++at; }
+        if at == list.length { return true; }
+    }
+    module_fail(owner, "Empty or incomplete fixture declaration: ", pair.inputs.data[0].name.data);
+    return false;
+}
+
 // A null probe selects the registered in-memory inputs. A native probe can
 // distinguish a missing file from a failed OS lookup and record consulted
 // directories. Both transports traverse the same growing lexical graph.
@@ -1163,13 +1232,18 @@ export fn frontend_module_discover_tests(root: FrontendModule*, selection: TestF
         var module = frontend_module_load_companion(owner, path.data);
         if module == null { return false; }
         module.companion = true;
+        var granted = false;
+        var declared = false;
         foreach (var dependency in &module.dependencies) {
-            if test_fixture_library(frontend_module_name(dependency)) {
-                if !test_fixture_grant_pair(&grants, rule, path.data, name) {
-                    module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
-                }
-                break;
+            var imported = frontend_module_name(dependency);
+            granted ||= test_fixture_library(imported, "library/test_fixtures.tower");
+            declared ||= test_fixture_library(imported, "library/test_rejections.tower");
+        }
+        if granted || declared {
+            if !test_fixture_grant_pair(&grants, rule, path.data, name) {
+                module_fail(owner, "Cannot grant fixture files for ", path.data); return false;
             }
+            if declared && !module_fixture_set(owner, selection, &grants.data[grants.length - 1], probe == null) { return false; }
         }
         var pair: TestFileCompanion = {owner: bits(void*, owner), module: bits(void*, module)};
         if !vector_push(&found, pair) { module_fail(owner, "Cannot retain companion: ", path.data); return false; }
@@ -2013,8 +2087,17 @@ export fn frontend_modules_error_offset(environment: ModuleEnvironment*): usize 
     return environment.diagnostic_offset;
 }
 
+export fn frontend_fixture_input_failed(environment: ModuleEnvironment*): bool {
+    return environment.fixture_input_failed;
+}
+
 // Native transport asks the same source map used by browser execution handles.
 export fn frontend_modules_location(environment: ModuleEnvironment*, offset: usize, line: usize*, column: usize*): u8* {
+    var local: usize = 0;
+    return frontend_modules_source_location(environment, offset, &local, line, column);
+}
+
+export fn frontend_modules_source_location(environment: ModuleEnvironment*, offset: usize, local: usize*, line: usize*, column: usize*): u8* {
     var source = environment.diagnostic;
     var found = source != null;
     if found {
@@ -2036,6 +2119,7 @@ export fn frontend_modules_location(environment: ModuleEnvironment*, offset: usi
     }
     found = source != null;
     if found {
+        *local = offset;
         syntax_source_location(source, offset, line, column);
         return source.name.data;
     }

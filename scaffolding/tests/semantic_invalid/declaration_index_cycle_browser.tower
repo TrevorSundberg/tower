@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("declaration_index_cycle.tower");
-    defer free(error);
-    assert(stage_error_offset() == 14, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Cannot resolve declaration type: initializer dependency cycle first -> second -> first"), error);
+    check_browser_rejection("declaration_index_cycle.tower", 14);
 }

@@ -6,3 +6,6 @@ extern fn `stat$INODE64`(path: u8*, data: void*): i32;
 export fn driver_stat(path: u8*, data: void*): i32 {
     return `stat$INODE64`(path, data);
 }
+
+extern fn `fstat$INODE64`(fd: i32, data: void*): i32;
+export fn driver_fstat(fd: i32, data: void*): i32 { return `fstat$INODE64`(fd, data); }

@@ -1,8 +1,5 @@
 import rejection_observation;
 
 test() {
-    var error = rejection_message("inference_alias_invalid.tower");
-    defer free(error);
-    assert(stage_error_offset() == 146, "Unexpected source byte offset");
-    assert(rejection_equal(error, "Cannot infer type argument 'T'; pass explicit type arguments"), error);
+    check_browser_rejection("inference_alias_invalid.tower", 146);
 }
