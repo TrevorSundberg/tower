@@ -1,48 +1,10 @@
 import tower;
-import .library.work_buffer;
-import .library.work_buffer_types;
-import .library.work_budget;
-import .library.work_budget_types;
-import .host.memory;
+import work_buffer_faults_fixture_test;
 
-extern fn tower_test_buffer_count(): usize;
-extern fn tower_test_buffer_fail_after(count: usize): void;
 extern fn puts(text: u8*): i32;
 
-fn fault_buffer_check(ok: bool): void {
-    if !ok { trap("Retained buffer allocation failure regression", 0); }
-}
-
-// Link only with the existing single-owner fault allocator and serial transport.
-// Production transport stress is in work_buffer_shared, without this allocator.
 export fn main(argc: i32, argv: u8**): i32 {
-    var baseline = tower_test_buffer_count();
-    var budget: WorkBudget = default;
-    fault_buffer_check(work_budget_init(&budget, 1, 4096, 1));
-    var buffer: WorkBuffer = default;
-    // The first reservation grows its own ledger; this failure precedes buffer
-    // allocation and cannot consume either a byte grant or a physical buffer.
-    tower_test_buffer_fail_after(0);
-    fault_buffer_check(work_buffer_resize(&buffer, &budget, 64, 0) == WorkBudgetError.Memory);
-    tower_test_buffer_fail_after(~convert(usize, 0));
-    fault_buffer_check(budget.used_bytes == 0 && budget.live == 0 && buffer.data == null);
-    fault_buffer_check(work_buffer_resize(&buffer, &budget, 64, 0) == WorkBudgetError.None);
-    fill(buffer.data, 91, 64);
-    var previous = buffer.data;
-    var receipt = buffer.reservation;
-    var live = tower_test_buffer_count();
-    // Ledger capacity now suffices. Fail the physical replacement allocation,
-    // checking both old contents and exact grant/allocator cleanup.
-    tower_test_buffer_fail_after(0);
-    fault_buffer_check(work_buffer_resize(&buffer, &budget, 128, 64) == WorkBudgetError.Memory);
-    tower_test_buffer_fail_after(~convert(usize, 0));
-    fault_buffer_check(buffer.data == previous && buffer.data[63] == 91 && buffer.capacity == 64);
-    fault_buffer_check(buffer.reservation.generation == receipt.generation && budget.live == 1);
-    fault_buffer_check(budget.used_bytes == 64 + sizeof(usize) * 4 && tower_test_buffer_count() == live);
-    fault_buffer_check(work_buffer_resize(&buffer, &budget, 128, 64) == WorkBudgetError.None);
-    fault_buffer_check(buffer.data[63] == 91 && budget.live == 1);
-    work_buffer_dispose(&buffer);
-    fault_buffer_check(work_budget_dispose(&budget) && tower_test_buffer_count() == baseline);
+    buffer_reserve_and_growth_refusal();
     puts("0");
     return 0;
 }

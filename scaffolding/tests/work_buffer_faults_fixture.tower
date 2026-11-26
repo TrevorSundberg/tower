@@ -1,0 +1,17 @@
+import .library.testing;
+import .library.work_buffer;
+import .library.work_buffer_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_test_buffer_fail_after(count: usize): void;
+
+// The fault ticket belongs to the single-owner allocator. Disarm it before
+// checking the result so only the attempted resize runs with injection enabled.
+fn buffer_fault_resize(buffer: WorkBuffer*, budget: WorkBudget*, bytes: usize, preserve: usize): WorkBudgetError {
+    tower_test_buffer_fail_after(0);
+    defer tower_test_buffer_fail_after(~convert(usize, 0));
+    return work_buffer_resize(buffer, budget, bytes, preserve);
+}

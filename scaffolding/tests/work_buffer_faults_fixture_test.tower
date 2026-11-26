@@ -1,0 +1,42 @@
+import work_buffer_faults_fixture;
+import .library.work_budget;
+import .library.work_buffer;
+
+fn buffer_reserve_and_growth_refusal(): void {
+    var baseline = tower_test_buffer_count();
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 4096, 1), "Initialize the buffer budget");
+    var buffer: WorkBuffer = default;
+
+    assert(buffer_fault_resize(&buffer, &budget, 64, 0) == WorkBudgetError.Memory,
+        "Refusing the first ledger allocation reports Memory");
+    assert(budget.used_bytes == 0 && budget.live == 0 && buffer.data == null,
+        "The failed reservation leaves no charge, receipt or buffer");
+    assert(work_buffer_resize(&buffer, &budget, 64, 0) == WorkBudgetError.None,
+        "Retrying the first reservation succeeds");
+    fill(buffer.data, 91, 64);
+    var previous = buffer.data;
+    var receipt = buffer.reservation;
+    var live = tower_test_buffer_count();
+
+    // The ledger has space for another receipt. The next allocation is the
+    // replacement buffer, while the original data and receipt are still live.
+    assert(buffer_fault_resize(&buffer, &budget, 128, 64) == WorkBudgetError.Memory,
+        "Refusing the physical replacement reports Memory");
+    assert(buffer.data == previous && buffer.data[63] == 91 && buffer.capacity == 64,
+        "Growth refusal preserves the pointer, data and capacity");
+    assert(buffer.reservation.generation == receipt.generation && budget.live == 1,
+        "The original generation and its single live receipt survive refusal");
+    assert(budget.used_bytes == 64 + sizeof(usize) * 4 && tower_test_buffer_count() == live,
+        "Growth refusal preserves the exact byte charge and live allocation count");
+
+    assert(work_buffer_resize(&buffer, &budget, 128, 64) == WorkBudgetError.None,
+        "Retrying physical growth succeeds");
+    assert(buffer.data[63] == 91 && budget.live == 1, "Retry preserves the data and leaves one live receipt");
+    work_buffer_dispose(&buffer);
+    assert(budget.used_bytes == 0 && budget.live == 0, "Disposing the buffer returns its byte charge and receipt");
+    assert(work_budget_dispose(&budget) && tower_test_buffer_count() == baseline,
+        "Disposing the budget restores the allocation baseline");
+}
+
+test() { buffer_reserve_and_growth_refusal(); }

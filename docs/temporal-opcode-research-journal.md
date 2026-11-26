@@ -114701,3 +114701,137 @@ one-job direct selection took median 0.57 s wall and 0.56 s CPU, maximum
 107,640 KiB RSS. Four jobs took 0.71 s wall and 0.84 s CPU, maximum 121,036
 KiB. These measurements include compiling the selected guest. Raw commands,
 effective limits, timings and sanitizer startup logs are in the receipt.
+### Single-owner work buffer refusal through native test selection
+
+Host 6, assignment `b59c5d9b-2699-4bdb-9546-bdd58f918b87`. On published
+`015b09aa`, the standalone passed with stdout `0\n` and empty stderr.
+The ledger refusal, retained allocation, physical replacement refusal and
+retry share a single budget lifetime. The standalone and one adjacent test
+now call that sequence from a fixture without an entry point. Each injected
+resize disarms the allocator on return. The test checks the final byte and
+receipt counts before disposing the ledger. Both fault suites use the
+existing work-policy allocator and serial transport in their native guests.
+
+The pinned Linux x64 compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All packaged resource checksums passed. Building the two standalone targets
+also prepared the native test guest and exact-count checker. With
+`TOWER_NATIVE=ON TOWER_WORK_TESTS=ON`, the two original CTests and eight
+selections passed. At compiler jobs 1 and 4 the buffer owner selected the
+buffer case and five work-budget cases. Direct selection ran just the buffer
+case. The constructor counts were 15 and two. The same ten CTests passed
+with `TOWER_BACKEND_TESTS=ON`, which supplies the already-configured fault
+allocator. Its object matched the work-only allocator byte for byte.
+The restored buffer executable wrote exactly `0\n` with empty stderr.
+
+An evidence-only Tower observer recorded six states in the original and
+migrated standalone and in each of the four buffer selections. Their rows
+matched byte for byte. Refusing the initial ledger allocation left capacity,
+charges and live allocations at zero. After physical growth refusal, the
+original pointer compared equal, byte 63 held 91, capacity was 64 and the
+receipt still had generation 1. The single grant charged 96 bytes including
+the four-word header, with two live allocations. Retry produced capacity 128,
+generation 3, one grant, 160 charged bytes and the same retained byte.
+Buffer disposal returned the grant and byte charge, leaving one ledger
+allocation. Budget disposal returned the allocator count to its zero baseline.
+
+Changing only the expected retained byte from 91 to 90 failed all five buffer
+CTests (CTest exit 8). All four selected compilers returned 1 and diagnosed
+the pointer/data/capacity assertion at fixture line 40. Restoration reproduced
+the frozen fixture, object and standalone hashes and all ten CTests passed
+again. An earlier direct registration incorrectly expected the plural summary
+for one test. The exact-count checker rejected it at both widths. Other setup
+failures were an absent unversioned Clang on PATH, a CMake compiler cache
+reset and a malformed CMake function declaration. A fresh cache with LLVM
+19's bin directory and the corrected declaration and summary produced the
+receipts above.
+
+Host 6 exposed CPUs 0–11 on an Intel Xeon E5-2680 v4. The cgroup CPU quota
+was 1,152,000 µs per 100,000 µs, and the memory limit was 32,282,509,312
+bytes. Release builds used Clang 19.1.7, x86_64-pc-linux-gnu, two Ninja
+lanes and one compiler job per object. Timings ran one at a time on CPUs
+0–3 under the host timing lock. After one warm batch per arm, three
+alternating pairs of 200 fresh standalone processes each produced 200 zero
+lines. Median wall/CPU seconds per batch were 0.20/0.21 original and
+0.21/0.22 migrated. Maximum batch RSS was 3,216 and 3,236 KiB,
+respectively, including the shell. Single warm buffer CTests (compile, link,
+run and count) took 0.95/1.15 s owner and 0.70/0.93 s direct at jobs 1/4;
+the highest of those process RSS measurements was 124,904 KiB. Jobs affect
+compilation. The test itself uses the serial allocator.
+
+The native address/leak and thread sanitizer profiles each passed the
+standalone CTest on the first launch. Both link maps identify the fault
+allocator and serial transport, and both instrumented IR files have memory
+hooks in the moved body. Tower's native instrumentation supports address
+and thread modes. There is no project UBSan profile. The packet
+`b59c5d9b-2699-4bdb-9546-bdd58f918b87.tar.gz` contains the source bundle,
+commands, raw streams, statuses, timings, link maps, observer sources and
+negative patch. The manager owns integration and publication.
+
+### Work buffer assertions in the selected companion on d2336509
+
+For assignment `92e00114-7029-4d1a-866f-22f995f4cfed`, host 6 checked
+the size, SHA-256 and archive contents of the three declared inputs. The two
+232-byte observation transcripts were identical. The 5,205-byte source
+bundle supplied `e6c9a536`. Merge `ec3c71f6` has public `d2336509` as its
+first parent and that bundle commit as its second. Git applied the journal's
+union merge attribute. The previous job's build directories had been removed
+after handoff, so the measured comparison used a freshly configured focused
+build of that merge, then reused the build for the move.
+
+The exact manager edit at `ce70b3fc` produced the requested tree
+`8ed8794cc0d1002ee16f6444017d2cbf06fdaed9`. The standalone build failed at
+companion line 6 with “Unknown function 'work_budget_init'”. Importing
+`.library.work_budget` exposed “Unknown function 'work_buffer_resize'”.
+Importing `.library.work_buffer` resolved the second error. Qualification
+ran on `b45f576ce06b5e18408a72890deaf4a17748a366`, tree
+`b4c4eb39b835db91f250b37b51e3a15a2fd0e81a`. Those two import lines are the
+whole correction to the manager tree. The standalone imports the companion.
+The fixture owner provides allocator bindings and scopes the failure ticket.
+All twelve assertions are in the companion's named function. Its bytes,
+including statement order and assertion messages, match the original helper
+(SHA-256 `f7cd991d18654ced4e13fa7d0f54bb2fe583d946d9058c0e7950705020339c9a`).
+
+The public compiler was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The package checksum check passed. The native work-only build passed both
+standalone CTests and all eight owner/direct registrations before and after
+the move. At jobs 1 and 4 the counts were buffer 6/1 and constructors 15/2.
+The unobserved buffer executable produced exactly `0\n` and empty stderr.
+An isolated observer used the same six observation calls as the supplied
+fixture. The standalone reproduced both complete reference streams and
+all four selected entries reproduced the six rows. At growth refusal,
+byte 63 was 91 at the saved pointer, capacity was 64, generation was 1,
+one receipt charged 96 bytes and two physical allocations were live.
+Retry reached capacity 128 and a 160-byte grant at generation 3. Buffer
+disposal left only the ledger allocation. Budget disposal restored zero.
+
+Changing only the expected byte to 90 failed all five normal buffer CTests.
+Independently writing 90 to just byte 63 after filling the buffer, while
+expecting 91, failed the same five. Both CTest commands exited 8. All four
+selected diagnostics located the assertion in the actual companion (line 26
+for the changed expectation and 27 for the inserted write). The standalone
+reported the same assertion. Restoration reproduced the source, object and
+executable hashes and all ten ordinary CTests passed. Both ASan with leak
+detection and TSan passed through the standalone before the mutations and
+after restoration, with matching sanitizer product hashes. The link maps
+and moved function's IR show the instrumented path through the single-owner
+allocator and serial transport. Tower's native profiles cover address and
+thread sanitization. Source-level UBSan is unavailable.
+
+Measurements used this host's Xeon E5-2680 v4, CPUs 0–3 of 0–11, cgroup
+quota 1,152,000/100,000 µs and memory limit 32,282,509,312 bytes. The
+Release x86_64-pc-linux-gnu build used Clang 19.1.7, two Ninja lanes and
+one compiler job per object. All timed processes held the host timing lock.
+After one warm batch per arm, three alternating batches of 200 successful
+standalone launches per arm had median wall/CPU 0.20/0.20 s before and
+0.20/0.21 s after. The measured wall delta was zero at 0.01 s resolution.
+Maximum batch RSS including the shell was 3,244/3,232 KiB. Single warm
+CTest samples after the move took 0.98/1.14 s owner and 0.70/0.81 s
+direct at jobs 1/4, with maximum RSS 123,724 KiB for these four runs.
+The final ten-test matrix peaked at 204,136 KiB. Compiler jobs change
+compilation width. The fault sequence itself has one allocator owner.
+
+The assignment archive contains the base-relative Git bundle, source
+locations, exact tree and import patches, input verification, observer
+sources and rows, negative diagnostics, timings and sanitizer evidence.
+The manager owns publication.

@@ -1228,6 +1228,14 @@ ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
   -R '^tower-(work-(ready|budget|budget-shared|kernel-admission|buffer|buffer-shared|buffer-faults)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
 
+For the single-owner buffer refusal sequence, build `tower-work-buffer-faults-tests`
+and run `ctest -R '^tower-work-buffer-faults-'` in the native build directory.
+The standalone prints one zero line. On native Linux x64 GNU, the ordinary
+build also selects the fixture owner (one buffer test and five budget tests)
+and its companion directly (one buffer test), each at compiler jobs 1 and 4.
+Both selections link the fault allocator and serial transport. The address
+and thread sanitizer profiles exercise the same body through the standalone.
+
 These checks preserve explicit stale/owner receipts, independent budget totals,
 actual barrier-proven overlap, typed kernel projection and valid semaphore
 handoffs. Fixed four/eight worker cases are concurrency stress, not the host's
