@@ -121830,3 +121830,20 @@ memory/heap run. The optimized shipping reactors have no native source
 ASan, UBSan or TSan instrumentation. No compiler, runtime or deployment
 assets changed. The unmodified todo.txt blob is `bac009f4`. The verified
 bundle and raw logs are for manager review and publication.
+
+### Native alias and loop query diagnostics in adjacent tests
+
+The original LR work executable has two focused selectors, `alias-type-queries`
+and `module-loop-queries`. Their two alias and nine loop input files exercise
+exact diagnostics, source locations and terminal retries at 32- and 64-bit
+guest widths with one and four inner workers. The loop failures also compare
+budget snapshots on both sides of the terminal retry.
+
+Keep the original source-reading and execution functions together in each
+owner's `_test.tower` companion. The LR work executable imports those functions
+for its original selectors and smoke modes. Each companion has a `test()`
+declaration for its selector. Native test selection uses the threaded LR
+service library and checks both direct and owner discovery. The manager
+compared the moved functions byte for byte against `c01c60a5`. Worker
+qualification must establish actual test counts and guest outputs for both
+selections, together with original executable parity and mutation controls.

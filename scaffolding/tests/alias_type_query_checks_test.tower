@@ -1,0 +1,64 @@
+import library.testing;
+import alias_type_query_checks;
+import frontend_units;
+import .library.vector;
+
+fn alias_type_query_case(root: u8*, bedrock: u8*, foundation: u8*, path: u8*, location: u8*, wanted: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, path, &source);
+    var call = strstr(source.data, location);
+    units_check(call != null, "Original alias query fixture retains its first error location");
+    var expected_offset = bits(usize, call) - bits(usize, source.data);
+    var expected_line: usize = 1;
+    var expected_column: usize = 1;
+    for(var i: usize = 0; i < expected_offset; i++) {
+        if source.data[i] == 10 { expected_line++; expected_column = 1; }
+        else { expected_column++; }
+    }
+    var first_offset: usize = 0;
+    for(var width: u32 = 4; width <= 8; width *= 2) {
+        for(var workers: usize = 1; workers <= 4; workers *= 4) {
+            var batch = frontend_units_create(1, workers, width, 1, 1, bedrock, foundation, root);
+            units_check(batch != null, "Alias inference batch");
+            defer frontend_units_close(batch);
+            units_check(units_source(batch, 1, root, path, source.data, strlen(source.data)), "Unchanged alias inference input");
+            while !frontend_units_step(batch, true) {}
+            var error = frontend_units_error(batch);
+            if strcmp(error, wanted) != 0 { puts(error); }
+            units_check(frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                && strcmp(error, wanted) == 0, "Exact alias query diagnostic without partial publication");
+            var offset = frontend_units_error_offset(batch);
+            var line: usize = 0;
+            var column: usize = 0;
+            var file = frontend_modules_location(frontend_units_environment(batch, 1), offset, &line, &column);
+            units_check(file != null && strstr(file, path) != null
+                && line == expected_line && column == expected_column, "Exact first-error source position");
+            if first_offset == 0 { first_offset = offset; }
+            units_check(offset == first_offset && frontend_units_step(batch, false) && frontend_units_step(batch, true)
+                && frontend_units_failed(batch) == 1 && frontend_units_program(batch, 1) == null
+                && strcmp(frontend_units_error(batch), wanted) == 0 && frontend_units_error_offset(batch) == offset,
+                "Stable alias inference diagnostic and semantic offset across widths/workers/retry");
+        }
+    }
+    puts(path);
+}
+
+fn alias_type_query_checks(root: u8*): void {
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&foundation); defer vector_dispose(&bedrock);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    alias_type_query_case(root, bedrock.data, foundation.data,
+        "/tests/semantic_invalid/inference_alias_invalid.tower", "read(actual)",
+        "Cannot infer type argument 'T'; pass explicit type arguments");
+    alias_type_query_case(root, bedrock.data, foundation.data,
+        "/tests/semantic_invalid/alias_condition_scalar.tower", "1 {",
+        "An integer literal needs an integer type");
+    puts("Alias inference/condition: exact messages, source positions and terminal failures without partial programs passed at 32/64 bits and workers 1/4.");
+}
+
+test() {
+    alias_type_query_checks("scaffolding");
+}
