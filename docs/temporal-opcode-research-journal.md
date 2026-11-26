@@ -110005,3 +110005,89 @@ On host 8, the portable and shared-memory Chromium workers each answered 80 actu
 On the 41de9006 release baseline the matching production-source change is 64fcfc1a. The exact 41de bootstrap and the editable bootstrap produced identical IDE and parser-nodes objects. Original portable and shared images were independently reproduced before replacing these two objects. The new frontends retain existing import and export signatures and add one frontend snapshot symbol. The LLVM and cross production link requests also use the changed parser-nodes object. Each exited 1 on the unavailable WASI libLLVMCore.a, whose required SHA-256 starts 8854363d. All 11 editable support/import assets matched the retained package byte for byte. The two frozen standalone backends keep their original release identity. No complete Pages release was sealed.
 
 Evidence packet cdce8b73-5780-4602-97b1-07b0decd7374 records receiver digests, exact recipe arguments, ordered inputs, checked outputs, controls, known failures and process measurements. Host 8 had affinity 0–23, 23.04 CPU quota and a 63,577,260,032-byte memory limit. The 56-case fixture/denial matrix took 22.53 s portable and 28.86 s shared in separate runs. The four-generation editor Build took 85.38 s wall and 190.27 sampled CPU seconds with peak summed RSS 2,960,900,096 bytes. The WASI release targets have no supported native sanitizer profile. The production backend links and their delivery gates remain for the matching cache.
+
+## 2026-11-26 — Browser fixture grants after a project upload, host 8
+
+Assignment fc099860-fff3-460d-beac-1a57e18f48b8 started from cdce8b73's editable
+main c6cf5a32. Its 9,876,045-byte receipt, all six required members and all
+375 internal checksum entries matched. The 803-file editable project digest
+was 15de6e7aa5db6197b96954f69d9d3ac0c9b431bd77aac2a99d22171d50b5faf8.
+The delivered portable and shared reactors were d6a600a1… and afc9562b….
+The original interleaved test passed on each. The workspace pull encountered
+unrelated parser conflicts. Aborting that rebase restored ff4c96f7 and its five
+local commits. This work ran on main in a separate clone of the supplied bundle.
+
+fcfa2b71 moved the count, truncation, output and diagnostic assertions to
+tests/fixture_selection/live_grants_test.tower. Its owner prints the guest word
+size and its sibling oracle contains 8 followed by LF. The Node registration
+performs the real project uploads and execution, keeps observations per Wasm
+instance and serves numeric fields and bounded byte copies back to Tower.
+Every run compiles four original handles before mounting different source and
+oracle bytes. It executes and releases the oldest, selects the new companion
+in that slot, mounts another drive and executes all surviving handles. The
+new companion verifies its own source output and oracle bytes independently.
+
+The original and migrated four terminal results matched in Node 24.22.3 and
+Chromium 159.0.8154.6, including the following file-relative byte offsets.
+All counts were one and every output was complete.
+
+| Handle | Entry and width | Status | Output or diagnostic | Steps |
+| --- | --- | --- | --- | ---: |
+| Older | Owner, 4 | done | 0 and LF | 1005 |
+| Wrong | Companion, 8 | error | Function values stdout differs from function_values.expected, companion byte 243 | 945 |
+| Missing | Companion, 4 | error | Cannot open fixture: .tower/tests/function_values.expected, companion byte 168 | 747 |
+| Restored | Owner, 8 | done | 0 and LF | 1005 |
+
+The new selected test completed in 12,236 steps. Changing only the expected
+word “differs” to “DIFFERS” made handle 5 fail with “Selected fixture diagnostic
+differs” at byte 1479 of the new companion. Releasing 5 and reselecting the
+restored bytes passed as handle 6 in the same instance. Both images passed the
+recovery in Node and Chromium. A second four-live-handle replay selected the
+new owner or companion with a good 4-byte oracle, a wrong 8-byte oracle, an
+absent 4-byte oracle and a repaired 8-byte oracle. The oldest released first.
+The absent and wrong cases reported the new companion at bytes 2323 and 2554.
+
+411c8828 fixes a real shared Chromium transport failure found during this
+migration. The test helper passed a shared view to TextDecoder, which Chromium
+rejected even though Node had completed the same suite. guestString now uses
+the browser host's existing decodeBytes function. The original failure and
+the passing browser reruns are in the packet. An early draft also used a
+reserved identifier. Executing the check before reporting an unexpected count
+exposed the parser diagnostic. An early native inventory could not resolve a
+backend text import from the installed library. The final test needs only
+library.test_fixtures. Complete checkout inventory uses the pinned driver and
+a checkout resource root so existing examples in other compiler tests resolve.
+
+The --list-test-files inventory contains the browser test only for its own
+owner and direct companion. Compiler execution_fixtures reaches three other
+companions, test_file_rule one and semantic_call_inference 23. The existing
+function_values owner selects only its original companion. Ordinary object
+emission for both fixture owners and test_file_rule had no test imports or
+companion depfile entries. Native ordinary execution of live_grants printed 8
+and LF. The frozen 803-file compiler project's seven default selections kept
+their counts of 60/7, 5/5, 2, 2 and 8. The 56 actual UI requests per image
+reproduced both predecessor JSONL streams byte for byte.
+
+The matched Node runs retained all 803 original files in order at every upload.
+Only the test sources and oracle capabilities were appended. One process ran
+at a time on the Ryzen 9 7900X, 12 cores / 24 threads, affinity 0–23, quota
+23.04 CPUs, 63,577,260,032-byte cgroup memory ceiling. Portable used its serial
+transport and shared used its default four worker slots. GNU time measured
+fresh Node processes on warm files, in original/migrated/migrated/original/
+original/migrated order for each image. The medians of three runs follow.
+
+| Image | Wall s, original → migrated | CPU s | Peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Portable | 1.14 → 1.31 | 1.42 → 1.61 | 194344 → 198424 |
+| Shared | 1.67 → 1.90 | 2.39 → 2.69 | 278976 → 282756 |
+
+The extra selection adds one full upload, compile, count, execution and
+destruction, plus one drive mount. The selected assertions read 12 numeric
+and 16 text fields. The separate ABI trace counted 4,068 → 4,882 registered
+sources and 8,160 → 9,791 matched tw_alloc/tw_free calls per image. At close
+each trace had the same 17,340 live nodes and reported zero live allocations.
+Every owned execution handle had a matching destruction. These measurements
+cover test transport costs. The delivered WASI products provide no ASan or
+TSan profile. Worker scheduling and compiler implementation were unchanged.
+The manager owns publication. The standalone backend archive work remains
+with its assigned owner.
