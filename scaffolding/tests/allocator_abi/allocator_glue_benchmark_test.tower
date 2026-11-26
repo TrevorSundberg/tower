@@ -1,3 +1,38 @@
-import allocator_glue_test;
+import library.testing;
+
+extern fn tower_test_buffer_count(): usize;
 
 test() { assert(allocator_glue_benchmark() == 0, "Allocation benchmark failed"); }
+
+// Short alternating before/after trials use identical Tower workload objects.
+fn allocator_glue_benchmark(): i32 {
+    var initial = tower_test_buffer_count();
+    var pointers: u8*[64];
+    var sum: u64 = 0;
+    for(var round: usize = 0; round < 10000; round++) {
+        var i: usize = 0;
+        for(; i < 64; i++) {
+            var size = i *17;
+            size++;
+            var pointer = alloc(u8, size);
+            if pointer == null {
+                return 39;
+            }
+            pointers[i] = pointer;
+            pointer[0] = convert(u8, i);
+        }
+        i = 0;
+        for(; i < 64; i++) {
+            var pointer = pointers[i];
+            sum = sum + convert(u64, pointer[0]);
+            free(pointer);
+        }
+    }
+    if tower_test_buffer_count() != initial {
+        return 40;
+    }
+    if sum != 20160000 {
+        return 41;
+    }
+    return 0;
+}

@@ -1,12 +1,8 @@
 import tower;
-import allocator_abi.runtime_abi;
+import allocator_abi.runtime_abi_benchmark_test;
 import allocator_abi.runtime_abi_test;
 
-extern fn atoi(text: u8*): i32;
-
-extern fn strcmp(left: u8*, right: u8*): i32;
-
-// Linked against the production runtime object, with no test allocator bridge.
+// Windows calls this entry with the production heap.
 export fn runtime_abi_tests(): i32 {
     var status: i32 = 0;
     check_runtime_abi(&status);
@@ -28,3 +24,8 @@ export fn main(argc: i32, argv: u8**): i32 {
 export fn __main_argc_argv(argc: i32, argv: u8**): i32 {
     return main(argc, argv);
 }
+
+// Keep the CLI imports after main to preserve its reported division trap offset.
+extern fn atoi(text: u8*): i32;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
