@@ -1,0 +1,27 @@
+import results;
+import backend.text;
+import library.testing;
+
+test() {
+    var subject = observation(0, "case", "subject");
+    defer free(subject.data);
+    var file: u8* = "zero";
+    if backend_equal(subject.data, "language_control") { file = "language_control"; }
+    if backend_equal(subject.data, "work_observe") { file = "work_observe"; }
+    var wanted = observation(0, "expected", file);
+    defer free(wanted.data);
+    for (var width: usize = 4; width <= 8; width *= 2) {
+        expect_replay(width, "graph", "graph replay", wanted);
+        expect_replay(width, "fast", "fast replay", wanted);
+        expect_output(width, "unoptimized", wanted);
+        expect_output(width, "optimized", wanted);
+        if backend_equal(subject.data, "backend_popcount") {
+            var ir = observation(width, "optimized", "ir");
+            defer free(ir.data);
+            assert(backend_contains(ir.data, "llvm.ctpop.i8") || backend_contains(ir.data, "llvm.ctpop.i32")
+                || backend_contains(ir.data, "llvm.ctpop.i64"), "optimized population count");
+        }
+    }
+    expect_output(4, "source wasm", wanted);
+    expect_output(4, "canonical wasm", wanted);
+}

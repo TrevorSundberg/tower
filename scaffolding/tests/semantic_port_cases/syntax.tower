@@ -1,0 +1,6 @@
+import results;
+
+test() {
+    expect_invalid("match_default", 89, false);
+    expect_invalid("while_braces", 81, false);
+}

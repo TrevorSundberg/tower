@@ -1,0 +1,2 @@
+Expected i32, got bool; use an explicit conversion
+Instantiated by wrong(i32) at line 7, column 7.
