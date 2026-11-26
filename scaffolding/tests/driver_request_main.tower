@@ -1,0 +1,12 @@
+import driver_request;
+import driver_request_test;
+import .host.driver_support;
+
+extern fn puts(text: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { driver_error("Driver request test failed: ", "resource root argument"); return 1; }
+    request_run(argv[1], false, request_all_cases);
+    puts("Tower CLI request ownership passed");
+    return 0;
+}
