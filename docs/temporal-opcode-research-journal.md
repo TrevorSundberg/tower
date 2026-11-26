@@ -108195,6 +108195,42 @@ again after restoring the inputs. The unfiltered run took 371.99 s wall,
 624.77 s user and 19.95 s system with a peak RSS of 2,737,480 KiB on four
 physical cores under a 15.36-CPU quota. This measures the test run, including
 its subprocesses' work, and supplies no compiler scaling comparison.
+### Release import-path audit for the module-scope fixtures
+
+On the manager's frozen `c5467fbd` test inputs, top-level TAP test 312
+(ordered row 319) failed on `import "left.tower" as again;` in the diamond
+fixture. The module-scope tests supply independent lexical file trees under
+`compiler/semantic_module_cases/`. Their Tower assertions check qualified
+identity, duplicate imports, initialization order and expected diagnostics.
+The filesystem audit now treats that directory as test input, as it already
+does for `scaffolding/tests/`. It still checks every owned filename.
+
+Host 7 reproduced the failure with
+`node --test --test-reporter=tap playground/tests/module-path-names.test.mjs`.
+The repaired file passed both registrations. In neighboring
+`compiler/semantic_modules.tower`, quoting the existing
+`semantic_context_types.tower` import failed the dotted-name assertion.
+Changing it to `semantic_context_types_absent` failed the missing-import
+assertion. A copy named `diamond/main-bad.tower` failed the filename check
+inside the fixture directory. Restoring all three controls passed.
+
+Using the same four Pages `c9773ec3` reactors and LR fixture, one unfiltered
+`npm run test:node --prefix playground` passed 509 of 511 with the same two
+opt-in skips. Row 319 was the only changed outcome. All five package cases,
+the seven migrated module-scope cases and the seven stage and scheduler
+cases passed. The twelve cross-target outputs matched the predecessor.
+A separate module-scope replay reproduced all 499 original trace events,
+including the ten diagnostics in the migrated cases. The five quoted-import
+locations and all 52 module fixture files retained their original identities.
+
+On the same EPYC 7502, with affinity 0,2,4,6 and quota 3071999/100000, the
+predecessor used 507.83 s wall, 825.69 s user, 27.18 s system and 2,730,076 KiB
+peak process RSS. The repair used 507.83 s wall, 825.47 s user, 27.95 s
+system and 2,732,272 KiB. Each is one warm-cache run. Host 7 packet
+`6b208771-8b84-4f6a-9d82-bf402b1e2267` contains both TAP ledgers, the
+controls, the measured Wasm identities and the module trace. The source
+repair is commit `9e242023` on public `3ca5e7cc`.
+
 ### Loopback Pages candidate with the f85 production-link project
 
 Host 3 qualified the packaging and serving gate for assignment 635cba24-3b70-47f8-a61d-29fcc86a8cbe. The public Pages parent was `890bbf7fa2058e70271579db2e70c86cd59c1aa6`, tree `750ca7603597c001b08d006c95089f0935c011c5`. The four authenticated archives, 13 required members and their loose copies matched. All 112 parent files matched Git. Each of the three retained Linux archives also matched the paths, modes and blobs from its own package commit.
