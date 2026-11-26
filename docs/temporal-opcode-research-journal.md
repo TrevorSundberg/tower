@@ -115359,3 +115359,116 @@ execArgv. Running with test isolation disabled completed that check. No
 native compiler or allocator was rebuilt or sanitized in this browser test
 migration. The manager packet includes the commands, raw TAP, observations,
 ZIPs, control diffs, source map, timing samples and local commits.
+
+### Project archive shape qualification on the two 8417c9ae frontends
+
+Host 4, assignment 871410fb, November 26, 2026. The acceptance check was
+to change the actual fulfilled JS import one shape at a time, see the
+intended assertion in archive_test.tower with its byte offset, then restore
+and compare the original project observations. The recipient verified the
+456,802-byte 3196a70b archive, all three manifest member lengths and hashes,
+the extracted copies and all 629 entries of its internal SHA256SUMS. Fetching
+the incremental bundle by HEAD first failed because it advertises only
+refs/heads/main. Fetching that ref gave 64011856fafc75d90669de58132f8583b076bdf2.
+The supplied patch reproduced tree 8123d4d3f936efe845b8c37bf1d5f9d8549f80c2
+for manager commit 44c6f46e. The recipient reconstructed the tree in an
+isolated local main to preserve the shared checkout's unpublished commit.
+The evidence includes the patch, hashes, source bundle and both sets of TAPs.
+
+All eight unmodified registrations passed with the supplied patch on each
+image. Its missing-files and array-like controls returned JS false from
+Array.isArray. A short array returned length 1. A hole and an extra own key
+returned counts 1 and 3. The unchanged 00 ff 03 link supplied as an ordinary
+array returned false from the prototype observation. Changing the second
+file's prototype while keeping path and text returned true then false for
+the two file observations. Each failure named its Tower assertion. In the
+ordinary case both file predicates, the builtin and link table predicates,
+and the byte-array predicate returned true. The length and own counts were
+JS numbers. The foreign transport converts these scalar results to integers
+for the interpreter.
+
+The supplied patch also let an array with a changed prototype pass. A null
+file and a sparse array with a compensating enumerable key both reached the
+JS path read first. Missing builtins and a null link reached getPrototypeOf
+without a value. These last four failures reported the host error at byte
+zero of bedrock.tower. The follow-up checks the array prototype, checks file
+prototypes before path access and reports false for nullish prototype
+subjects. Tower continues to own the assertions. Mutation hooks exist only
+in the evidence runner, at the JS test boundary after a successful real
+import. Every control gets a fresh Node process. New source changes are
+limited to the archive registration's guest and test host.
+
+For both the supplied and corrected trees, the observer reconciled all
+52 original host rows in order among 59 and compared the complete 59 with
+the previously qualified migration. UUID freshness was checked before
+normalization. The seven additional rows comprise two execute/Foundation
+pairs and the before/error/after state for the valid-prefix refused mount.
+All 14 original compile/format rows matched in order among 18. Literal
+source and Foundation files were compared with cmp. The added four rows
+are compileFiles/Foundation for two diagnostic inputs. The three importer
+inputs matched their originals byte for byte on each image. The exported ZIP
+was 7,708,578 bytes with SHA-256
+c8cfcc9883314f05bee9b283fb182d27484dc1986baf48dee75f62302e30d041.
+The Tower oracle compares all 7,700,000 Unicode bytes. Relative to 64011856,
+the supplied patch adds seven guest-to-host calls per suite. The follow-up
+adds one more, for Array.prototype. The other seven read the array brand and
+length once, file prototypes twice, record prototypes twice and link
+prototype once. The JSONL counts cover the whole eight-case run.
+
+The images were extracted with git show from Pages
+8417c9ae4cd9accdf672b22d6676bd465c8a79d6. Portable SHA-256 starts
+eb6c4878 and shared starts 616c0885. The Node v24.22.3 runner held
+/tmp/tower-host4-timing.lock for each process. The AMD Ryzen 7 5800H
+had eight physical cores with SMT, effective affinity 0–15, CPU quota
+1,536,000/100,000 and cgroup memory limit 64,061,702,144 bytes. The
+portable image ran serially. The shared subject used its default capacity
+four and each checker capacity one. Timing trials used fresh Node processes,
+warm filesystem inputs, the original --test entry point and GNU time.
+Separate observer runs sampled the archive checker's execution memory.
+It reached 19,602,592 bytes at 64011856, 19,602,640 in the supplied tree and
+19,602,656 after correction. Each used 9,205 execute calls and reported
+zero guest bytes for the released handle on both profiles.
+
+Each corrected frontend produced 16/16 intended negative exits, including
+a named Array subclass and a matching-field FileRecord instance. The exact
+tree supplied by the manager produced 10/16. It accepted both changed-array
+prototype controls and emitted four host diagnostics. As an independent
+calibration, the original Node deepEqual rejected the named Array subclass,
+FileRecord and same-byte ordinary array. Node accepted an intermediate array
+prototype inheriting the default constructor. Checking exact Array.prototype
+intentionally also catches that case. The fixture imports and checks plain
+arrays. The two highlighted corrected failures report archive_test.tower at
+bytes 4434 (file prototype) and 5461 (link prototype).
+
+| Eight original registrations, three runs | Median wall s | Median user + sys s | Maximum RSS KiB |
+|---|---:|---:|---:|
+| Portable, original Node file | 1.07 | 1.38 | 197,204 |
+| Portable, 64011856 | 2.87 | 3.42 | 282,720 |
+| Portable, supplied patch | 2.92 | 3.45 | 283,132 |
+| Portable, corrected shape checks | 2.87 | 3.41 | 283,544 |
+| Portable, direct UTF-8 trial | 2.88 | 3.43 | 278,984 |
+| Shared, original Node file | 1.48 | 2.25 | 347,752 |
+| Shared, 64011856 | 3.53 | 4.52 | 459,948 |
+| Shared, supplied patch | 3.52 | 4.51 | 459,268 |
+| Shared, corrected shape checks | 3.53 | 4.52 | 459,672 |
+| Shared, direct UTF-8 trial | 3.52 | 4.49 | 449,336 |
+
+In a disposable copy, the Node test text bridge sized UTF-8 with
+Buffer.byteLength, allocated the guest buffer, reacquired its live view and
+used TextEncoder.encodeInto with both read and written lengths checked. This
+eliminated the host's temporary encoded payload and its copy. Peak RSS fell
+by 4,560 and 10,336 KiB. The 0.01 s median wall movements went in opposite
+directions, and the helper serves multiple other test suites. The experiment
+stays in the evidence packet. The measured scope is a fresh Node test file
+on this host. Allocation counts and worker contention are unavailable on
+these public binaries.
+
+The 15 retained storage controls produced 30 negative exits at a Tower
+source location, including a changed final Unicode byte, all refusal message
+checks and the WASI directory, descriptor and retained-content checks.
+Restoring the fixtures yielded eight passes and zero skips on each frontend.
+Both also passed with V8 Wasm bounds and stack checks enabled and the trap
+handler disabled. These were Node runs of public Wasm images. Native
+sanitizers, browser UI and new compiler builds were outside this
+test-boundary change. Only the manager publishes. The handoff bundle carries
+the supplied tree, the follow-up and this journal entry.
