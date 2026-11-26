@@ -68,6 +68,28 @@ or bodies, a Foundation identifier, and formatting idempotence. The positive
 output file alone covers only part of this suite. [Loop suite](../../playground/tests/for-loops.test.mjs)
 and [expected output](for_loops.expected.txt).
 
+## Forward references
+
+Run `towerc --test scaffolding/tests/forward.tower --test-details` for owner
+discovery, or select `scaffolding/tests/forward_test.tower` directly. The
+companion checks an earlier function's access to a later record and binding,
+local shadowing, and the values observed before and after a later write.
+
+The raw programs in `forward_inputs/` also run in their original source order.
+For the native fixture enable `TOWER_EXECUTION_TESTS`, build
+`tower-execution-tests`, then run `ctest -R '^tower-forward-references$' -V` in
+the build directory. For the browser reactors run
+`node --test playground/tests/forward-references.test.mjs` from the repository
+root. The module registration loads LLVM when selected. The parser registrations
+use the ordinary playground reactor alone.
+
+| Original browser registration | Tower assertions and inputs |
+| --- | --- |
+| Forward rule and token dependencies | `forward_graph` consumes the direct, transitive, token, recursive and replaced-rule programs and checks Foundation's actual CoreCallArgument declaration. |
+| Incomplete grammar activation and EOF | `forward_activation` steps the first declaration, inspects pending A, and checks the failed activation and retained revision. EOF, declaration-reader and optional-reference errors have separate inputs, dependency paths and byte offsets. |
+| Declaration grammar changes and pinned sessions | `forward_pinned` holds a Foundation session after its import, parses the changed declaration reader and the conflict in separate sessions, then resumes the original statement. |
+| Forward module references and initialization | `forward_reference_tests` executes `module.tower` and its canonical round trip. `browser_module` checks the interpreter and both independent LLVM/Wasm runs against the six-line output. Both hosts reject the duplicate module variable and the early local read at their original offsets. |
+
 ## Generic body demand fixtures
 
 `generic_body_cases.tower` supplies the shared syntax for `generic_body_lazy.tower`
