@@ -1,4 +1,12 @@
 examples/inference.tower
+library/bytes_test.tower
+library/gzip_test.tower
+library/gzip_test_data.tower
+library/queue_test.tower
+library/sha256_test.tower
+library/stack_test.tower
+library/test_data.tower
+library/work_graph_test.tower
 tests/default_inputs/aggregate.tower
 tests/default_inputs/format.tower
 tests/default_inputs/generics.tower

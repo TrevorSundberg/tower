@@ -108762,3 +108762,76 @@ repacked backend archive byte totals differ from the sealed site's totals.
 These runs qualify local resource packaging and the editable request.
 The frozen deployment, external harness registrations and public refs
 were outside publication scope.
+
+## Editable library test discovery on the 5e365adf source
+
+Host 8, assignment 766ec17b-97ee-44ef-9b89-d61222f10f9c. The retained
+6,950,784-byte input archive matched SHA-256
+32591e64093eac0831effc6515ee7f0dd82c4a70e337b5dbcb5dda758fa0939a.
+The normal packager reproduced the 666-file project from 5e365adf.
+The checkout oracle at that revision located the eight WorkGraph declarations
+at lines 13, 67, 100, 150, 185, 224, 245 and 273, and the two stack
+declarations at lines 5 and 15. Supplying the two source companions to the
+same editable drive ran 41 tests for semantic_types and four for the direct
+inference companion. Both pairs ran through the Chromium test button.
+
+The standard packager now reads the eight exact optional paths identified by
+the native compiler's test-discovery depfiles. The shared inventory reader
+admits flat library Tower files. Builtin inventory entries occupy the initial
+range of the append-only file table, so a test-only resource cannot satisfy an
+ordinary unit's builtin dependency check. The normal package has 674 rows.
+Its 666 existing texts, 25 units and three reactors' ordered link arguments
+match the input. The extra 28,816 serialized bytes include six companions and
+the existing gzip_test_data and test_data helpers. No permanent test text
+changed.
+
+The four-byte checkout interpreter and the editable request both completed the
+41 declarations in 136,643 steps and direct inference in 192 steps. Diagnostic
+copies printed the ten source locations in the checkout oracle's order, even
+with the editable file rows reversed after the entry. The generic owner and
+direct companion each kept one test and 61 steps. UTF-8 kept one test and
+95,188,364 steps for each selection. Withholding test_data identified its gzip
+and SHA-256 importers. Renaming stack_test to stack_spec yielded zero with
+the default suffix and two through the alternate suffix. The packager rejected
+a nested library, traversal, a different extension, a host path, an absent
+helper and a normal depfile naming the optional stack companion.
+
+Stack, WorkGraph, bytes, queue, gzip and SHA-256 passed on the actual portable
+provider set. Gzip selects the two bytes declarations before its three direct
+declarations. With their exact three additional source files mounted, the
+graph_components owner and direct companion each selected two and stopped at
+step 99 on the unregistered tower_test_buffer_count external. Both passed
+against the separate Linux native test runtime with its real instrumented
+provider. The editable inventory omits that suite and its exclusive resources.
+The WorkGraph companion alone imports the normal host memory implementation
+for its test. Its ordinary owner compiles with twelve inputs.
+
+These receipts use the WorkGraph companion from 6892489b and stack from
+fbfdabf8 on the requested 5e365adf tree. They qualify discovery on this
+source and test revision. Later scheduler suite migrations need their own
+checkout oracle.
+
+One edited assertion in each of the six companions failed at its own source.
+Restoring its original hash restored all direct tests, including the complete
+1,178,107,446-step gzip and 2,962,431,924-step SHA-256 browser runs. A stack
+or WorkGraph assertion also failed through semantic_types while direct
+inference still passed four. Restoring each returned the owner to 41.
+
+On the same Ryzen 9 7900X, CPUs 0–23 were permitted with a 23.04 CPU quota
+and 63,577,260,032-byte memory limit. Warm matched jobs ran one at a time on
+CPUs 0,2,4,6, with one compiler worker and a fresh process per request.
+Whole packaging took 7.86/7.78 s before and 7.79/7.73 s after. Candidate
+packaging peak RSS was 236,968/236,868 KiB. Ordinary WorkGraph, semantic_types
+and the compiler semantics unit emitted identical 166-, 690,098- and
+884,255-byte objects and identical ordered path/content hashes for 12, 92
+and 114 inputs. The compiler owner took 11.97/12.00 s before and
+12.06/12.04 s after. The containing unit took 14.37/14.38 s before and
+14.30/14.23 s after, with candidate peak RSS 786,888/782,220 KiB. The
+retained previous assignment has the same two compiler objects and inputs.
+The serial inventory read provides no worker scaling comparison.
+
+Address/leak and thread instrumentation of 351 packager functions reproduced
+the normal candidate. TSan's first runtime start hit the host personality
+restriction; its second completed. Tower source-level UBSan remains
+unavailable. Raw emissions, ordered input hashes, controls and resource
+measurements are in the host 8 evidence archive for this assignment.
