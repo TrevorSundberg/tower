@@ -1,0 +1,11 @@
+import tower;
+import semantic_executable_admission_checks;
+import semantic_executable_admission_checks_test;
+import semantic_admission_result;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var mode: ExecutableAdmissionMode;
+    if !executable_admission_select(argc, argv, &mode) { return 1; }
+    var outcome = executable_admission_case(mode);
+    return outcome.failures == 0 ? 0 : 1;
+}

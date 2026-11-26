@@ -1,0 +1,193 @@
+import library.testing;
+import semantic_dispatch_checks;
+import semantic_admission_result;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_query_api;
+import .compiler.semantic_work_ids;
+import .compiler.foundation_tags;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.vector;
+
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_bind_budget(world: void*, budget: WorkBudget*): bool;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn entity_create(store: void*): void*;
+extern fn entity_store_count(store: void*): usize;
+extern fn entity_store_component_count(store: void*): usize;
+
+fn dispatch_trial(width: u32, mode: SemanticDispatchCase, outcome: SemanticAdmissionResult*): void {
+    var terminal = mode == SemanticDispatchCase.TerminalDenied;
+    var deny = terminal || mode == SemanticDispatchCase.SignalDenied;
+    var source = mode == SemanticDispatchCase.SourceDenied;
+    var admission = source || mode == SemanticDispatchCase.AdmissionDenied;
+    var workers: usize = 4;
+    var budget: WorkBudget = default;
+    var gate = work_signal_open();
+    sem_require(gate != null);
+    defer work_signal_close(gate);
+    work_signal_post(gate);
+    sem_require(work_budget_init(&budget, workers, 1048576, 89)
+        && work_budget_synchronize(&budget, gate, work_signal_wait, work_signal_post));
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null && compiler_world_bind_budget(world, &budget));
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, width);
+    var context: SemanticContext = default;
+    sem_context_init(&context, &program);
+    work_dispose(&context.queries);
+    sem_require(work_init_budget(&context.queries, 1, convert(u64, width), &budget));
+    context.generics = generic_begin(root);
+    context.known_bindings = sem_create(root);
+    var blocks: void*[3];
+    var count = sizeof(decltype(blocks)) / sizeof(void*);
+    for(var i: usize = 0; i < count; i++) {
+        var function = i == 0 ? root : sem_create(root);
+        var value = i == 0 ? sem_get(root) : sem_attach(function, KFunction);
+        value.start = 11 + i * 18;
+        value.type.pointer_bytes = width;
+        var block = function;
+        if i != 0 {
+            block = sem_create(function);
+            sem_attach(block, KBlock);
+            value.body = block;
+            sem_require(vector_push(&program.functions, function));
+        }
+        blocks[i] = block;
+        var item = sem_create(block);
+        var literal = sem_attach(item, KOperand);
+        literal.type.scalar = SI32;
+        literal.type.pointer_bytes = width;
+        literal.constant = true;
+        literal.bits = 42;
+        sem_require(vector_push(&sem_get(block).items, null)
+            && vector_push(&sem_get(block).items, item));
+    }
+    if terminal {
+        // The normal phase will finish sealing its own still-building producer.
+        // Failure propagation visits these sealed, undemanded consumers; the
+        // earlier demand stack remains small, so terminal scratch must grow.
+        var producer = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownPublish), 0);
+        sem_require(producer != 0);
+        for(var i: usize = 0; i < 32; i++) {
+            var consumer = work_request(&context.queries, root, convert(u32, SemanticQuery.KnownSnapshot), convert(u64, i + 1));
+            sem_require(consumer != 0 && work_depend(&context.queries, consumer, producer)
+                && work_seal(&context.queries, consumer));
+        }
+    }
+    // Complete pool construction before arming the later batch-claim failure.
+    sem_require(work_pool_open(&context.workers, workers)
+        && context.workers.threaded && context.workers.count == workers);
+    var occupied: WorkReservation = default;
+    if admission {
+        var available: WorkBudgetSnapshot = default;
+        sem_require(work_budget_snapshot(&budget, &available)
+            && work_budget_reserve_result(&budget, 0, 0, budget.bytes - available.used_bytes, &occupied)
+                == WorkBudgetError.None);
+    }
+    SemanticDispatchBudget = terminal ? &budget : null;
+    SemanticDispatchOccupied = &occupied;
+    SemanticDispatchFailSignal = deny;
+    if source { semantic_admission_check(sem_source_binding_request(&context, root) == 0,
+        "Failed source proof admission returns no usable dependency", outcome); }
+    else { sem_known_publish(&context); }
+    SemanticDispatchBudget = null;
+    SemanticDispatchOccupied = null;
+    semantic_admission_check(!SemanticDispatchFailSignal, "The requested dispatch claim was exercised", outcome);
+    semantic_admission_check(context.workers.running == 0 && context.queries.running == 0,
+        "Dispatch failure drains every peer and retires all claimed tickets", outcome);
+    semantic_admission_check(context.workers.resource_error == (deny ? WorkBudgetError.Memory : WorkBudgetError.None),
+        "Dispatch retains its typed allocation failure", outcome);
+    semantic_admission_check(deny || admission ? program.error.length != 0 && program.error_offset == 11 : program.error.length == 0,
+        "Dispatch failure reports the first source ordinal", outcome);
+    semantic_admission_check(program.resource.error == (deny ? WorkBudgetError.Memory
+        : admission ? WorkBudgetError.Capacity : WorkBudgetError.None)
+        && program.resource.offset == (deny || admission ? 11 : 0),
+        "The selected typed failure and source location survive transport cleanup", outcome);
+    semantic_admission_check(!admission || (context.queries.cancelled && context.queries.resource_error == WorkBudgetError.Capacity
+        && context.queries.tasks.length == 0 && context.workers.claim == null),
+        "Graph admission denial fails before dispatch without retaining a live ticket", outcome);
+    semantic_admission_check(!terminal || (context.queries.cancelled && context.queries.resource_error == WorkBudgetError.Capacity
+        && sem_equal(program.error.data, "Cannot allocate semantic query work")),
+        "Terminal graph denial cancels remaining receipts and preserves the first dispatch failure", outcome);
+    for(var i: usize = 0; i < count; i++) {
+        var query = work_find(&context.queries, program.functions.data[i], convert(u32, SemanticQuery.KnownPublish), 0);
+        semantic_admission_check(admission ? query == 0 : query != 0 && work_task(&context.queries, query).state
+            == (terminal ? WorkState.Cancelled : deny ? WorkState.Failed : WorkState.Succeeded),
+            "No unexecuted publication ticket succeeds", outcome);
+        var items = &sem_get(blocks[i]).items;
+        semantic_admission_check(items.length == (deny || admission ? 2 : 1)
+            && (deny || admission ? items.data[0] == null : items.data[0] != null),
+            "A failed dispatch cannot publish canonical compaction", outcome);
+    }
+    if deny || admission {
+        // Editor recovery may clear ordinary diagnostics, but cannot make a
+        // resource failure eligible to execute or publish a second time.
+        program.error.length = 0;
+        var tasks = context.queries.tasks.length;
+        var store = compiler_world_store(world);
+        var nodes = entity_store_count(store);
+        var components = entity_store_component_count(store);
+        if source { semantic_admission_check(sem_source_binding_request(&context, root) == 0,
+            "Repeated failed source proof has no usable dependency", outcome); }
+        else { sem_known_publish(&context); }
+        semantic_admission_check(context.queries.tasks.length == tasks && context.workers.claim == null,
+            "Repeated failed entry cannot retry dispatch or its effects", outcome);
+        semantic_admission_check(entity_store_count(store) == nodes && entity_store_component_count(store) == components,
+            "Repeated failed entry cannot recreate proof or work components", outcome);
+        semantic_admission_check(program.error.length == 0 && program.resource.offset == 11
+            && program.resource.error == (deny ? WorkBudgetError.Memory : WorkBudgetError.Capacity),
+            "Ordinary diagnostic recovery cannot erase or relabel the resource receipt", outcome);
+    }
+    work_pool_close(&context.workers);
+    semantic_admission_check(context.workers.resource_error == (deny ? WorkBudgetError.Memory : WorkBudgetError.None),
+        "Pool close preserves the fixed failure receipt", outcome);
+    sem_context_dispose(&context);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    semantic_admission_check(compiler_world_dispose(world), "Dispatch world cleanup succeeds", outcome);
+    var snapshot: WorkBudgetSnapshot = default;
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    semantic_admission_check(snapshot.used_bytes == occupied.bytes && snapshot.used_lanes == 0
+        && snapshot.live == (occupied.active ? 1 : 0), "Only the independent terminal holder remains", outcome);
+    if occupied.active { sem_require(work_budget_release_result(&budget, &occupied) == WorkBudgetError.None); }
+    sem_require(work_budget_snapshot(&budget, &snapshot));
+    semantic_admission_check(snapshot.used_bytes == 0 && snapshot.used_lanes == 0 && snapshot.live == 0
+        && work_budget_dispose(&budget), "Dispatch cleanup releases every budget receipt", outcome);
+}
+
+fn dispatch_case(mode: SemanticDispatchCase): SemanticAdmissionResult {
+    var outcome: SemanticAdmissionResult = default;
+    for(var width: u32 = 4; width <= 8; width *= 2) { dispatch_trial(width, mode, &outcome); }
+    return outcome;
+}
+
+test() {
+    var outcome = dispatch_case(SemanticDispatchCase.Publish);
+    assert(outcome.failures == 0, outcome.first_failure);
+}
+
+test() {
+    var outcome = dispatch_case(SemanticDispatchCase.SignalDenied);
+    assert(outcome.failures == 0, outcome.first_failure);
+}
+
+test() {
+    var outcome = dispatch_case(SemanticDispatchCase.TerminalDenied);
+    assert(outcome.failures == 0, outcome.first_failure);
+}
+
+test() {
+    var outcome = dispatch_case(SemanticDispatchCase.AdmissionDenied);
+    assert(outcome.failures == 0, outcome.first_failure);
+}
+
+test() {
+    var outcome = dispatch_case(SemanticDispatchCase.SourceDenied);
+    assert(outcome.failures == 0, outcome.first_failure);
+}
