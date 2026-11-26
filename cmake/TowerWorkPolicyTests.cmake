@@ -334,12 +334,6 @@ function(tower_lr_work_policy_test)
 
     foreach(suite IN ITEMS source_proof executable)
       string(REPLACE "_" "-" name "semantic-${suite}-admission")
-      set(entry "semantic_${suite}_admission_checks")
-      if(suite STREQUAL "source_proof")
-        set(entry "semantic_source_proof_admission_main")
-      endif()
-      tower_runtime_object(${name}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower" "${triple}")
       set(admission_sources ${sources})
       set(admission_libraries ${libraries})
       set(modes healthy failed cancelled query edge finish)
@@ -352,6 +346,8 @@ function(tower_lr_work_policy_test)
         list(REMOVE_ITEM admission_libraries tower-compiler-semantics)
         set(modes healthy query edge access take partial observe finish pinned startup metadata signature signature-healthy batch batch-partial batch-growth alias)
       endif()
+      tower_runtime_object(${name}
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_${suite}_admission_main.tower" "${triple}")
       add_executable(tower-${name}-tests ${admission_sources} "${${name}_OBJECT}")
       set_target_properties(tower-${name}-tests PROPERTIES LINKER_LANGUAGE CXX)
       target_link_libraries(tower-${name}-tests PRIVATE ${admission_libraries})
@@ -408,8 +404,8 @@ function(tower_lr_work_policy_test)
     # Supplying both transport objects prevents extraction of the default host
     # archive member; the normal production allocator remains in use.
     tower_runtime_object(semantic-dispatch-checks
-      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_dispatch_checks.tower" "${triple}"
-      SOURCE __wrap_work_signal_open work_signal_open)
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/semantic_dispatch_main.tower" "${triple}"
+      SOURCE)
     add_executable(tower-semantic-dispatch-tests ${sources}
       "${semantic-dispatch-checks_OBJECT}" "${work-dispatch-transport_OBJECT}" "${host_work_dispatch_OBJECT}")
     set_target_properties(tower-semantic-dispatch-tests PROPERTIES LINKER_LANGUAGE CXX)
@@ -422,6 +418,22 @@ function(tower_lr_work_policy_test)
       add_test(NAME tower-semantic-dispatch-${mode} COMMAND tower-semantic-dispatch-tests ${mode_arguments})
       set_tests_properties(tower-semantic-dispatch-${mode} PROPERTIES TIMEOUT 60)
     endforeach()
+    if(TARGET tower-lr-row-services)
+      set(semantic_selection_args
+        --bedrock "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/bedrock.tower"
+        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --test-native-runtime "${row_guest}" --link "$<TARGET_FILE:tower-lr-row-services>"
+        --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-lr-row-services>")
+      foreach(suite IN ITEMS dispatch executable-admission)
+        add_dependencies(tower-semantic-${suite}-tests tower-lr-row-services tower-selected-test-count tower-guest-native-test)
+      endforeach()
+      # Owner discovery also reaches 15 library tests or 74 library and compiler tests.
+      tower_native_test_selections(semantic-dispatch semantic_dispatch_checks "20 tests" "5 tests"
+        ${semantic_selection_args} --link "${work-dispatch-transport_OBJECT}" --link "${host_work_dispatch_OBJECT}")
+      tower_native_test_selections(semantic-executable-admission semantic_executable_admission_checks "91 tests" "17 tests"
+        ${semantic_selection_args})
+    endif()
+
     # Explicit clock/rusage measurement using this same compiler closure.
     # No default build, CTest registration or timing pass threshold.
     tower_runtime_object(semantic-layout-profile

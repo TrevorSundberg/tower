@@ -1,0 +1,27 @@
+import tower;
+import semantic_dispatch_checks;
+import semantic_dispatch_checks_test;
+import semantic_admission_result;
+import .compiler.semantic_query_api;
+
+extern fn puts(text: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var outcome: SemanticAdmissionResult = default;
+    var source = argc == 2 && sem_equal(argv[1], "source");
+    if source || (argc == 2 && sem_equal(argv[1], "admission")) {
+        outcome = dispatch_case(source ? SemanticDispatchCase.SourceDenied : SemanticDispatchCase.AdmissionDenied);
+    } else {
+        if argc != 1 {
+            puts("Usage: semantic_dispatch_checks [admission|source]");
+            return 2;
+        }
+        for(var width: u32 = 4; width <= 8; width *= 2) {
+            dispatch_trial(width, SemanticDispatchCase.Publish, &outcome);
+            dispatch_trial(width, SemanticDispatchCase.SignalDenied, &outcome);
+            dispatch_trial(width, SemanticDispatchCase.TerminalDenied, &outcome);
+        }
+    }
+    if outcome.failures == 0 { puts("Semantic dispatch failures retain diagnostics without publishing or replaying work."); }
+    return outcome.failures == 0 ? 0 : 1;
+}
