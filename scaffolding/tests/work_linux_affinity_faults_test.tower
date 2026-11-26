@@ -1,0 +1,90 @@
+import library.testing;
+import work_linux_affinity_faults;
+import .host.memory;
+import .library.work_pool;
+import .library.work_budget_types;
+
+extern fn __sched_cpucount(bytes: usize, mask: usize*): i32;
+
+test() { linux_affinity_faults(); }
+
+fn affinity_query(state: AffinityFaultState*): usize {
+    var capacity = affinity_capacity(state);
+    assert(AffinityFault == null, "Release the serial probe state before returning");
+    assert(state.live == null && state.live_bytes == 0, "The query must release its mask");
+    return capacity;
+}
+
+fn affinity_masks(state: AffinityFaultState*): void {
+    var bytes = sizeof(decltype(state.mask));
+    var words = bytes / sizeof(usize);
+    // Two permitted CPUs with widely separated IDs beyond cpu_set_t.
+    state.mask[0] = 1;
+    state.mask[words - 1] = convert(usize, 1) << (sizeof(usize) * 8 - 1);
+    assert(affinity_query(state) == 2, "Count both sparse CPU IDs");
+    assert(state.calls > 0 && state.queries > 1, "The sparse high CPU ID requires resizing the mask");
+
+    fill(&state.mask[0], 0, bytes);
+    assert(affinity_query(state) == 0, "An empty mask permits no CPUs");
+    fill(&state.mask[0], 255, bytes);
+    assert(affinity_query(state) == WorkPoolMaximumCapacity, "Clamp a full mask to the pool limit");
+
+    var seed: u64 = 731;
+    for (var sample: usize = 0; sample < 64; sample++) {
+        for (var word: usize = 0; word < words; word++) {
+            seed ^= seed << 13;
+            seed ^= seed >> 7;
+            seed ^= seed << 17;
+            state.mask[word] = convert(usize, seed & (seed >> 1) & (seed >> 2));
+        }
+        var count = convert(usize, __sched_cpucount(bytes, &state.mask[0]));
+        var permitted = count > WorkPoolMaximumCapacity ? WorkPoolMaximumCapacity : count;
+        assert(affinity_query(state) == permitted, "Match the libc CPU count for each seeded mask");
+    }
+}
+
+fn affinity_query_errors(state: AffinityFaultState*): void {
+    state.mode = AffinityMockMode.Error;
+    var calls = state.calls;
+    assert(affinity_query(state) == 0, "An address error denies capacity");
+    assert(state.calls == calls, "An initial address error must not allocate a mask");
+    var pool: WorkPool = default;
+    var opened = affinity_pool_open(state, &pool);
+    defer work_pool_close(&pool);
+    assert(AffinityFault == null, "Release the pool probe state before returning");
+    assert(!opened && pool.resource_error == WorkBudgetError.Capacity, "Denied affinity must refuse the pool");
+    assert(pool.count == 0 && pool.slots == null, "A denied pool has no worker slots");
+    assert(!work_pool_submit(&pool, bits(void*, state)), "A denied pool must reject dispatch");
+
+    state.mode = AffinityMockMode.ResizeError;
+    assert(affinity_query(state) == 0, "An address error after resizing denies capacity");
+}
+
+fn affinity_allocation_recovery(state: AffinityFaultState*): void {
+    state.mode = AffinityMockMode.Mask;
+    state.fail_at = state.calls;
+    assert(affinity_query(state) == 0, "Refusing the first allocation denies capacity");
+    assert(state.calls == state.fail_at + 1, "Refuse the first allocation");
+    state.fail_at = state.calls + 1;
+    assert(affinity_query(state) == 0, "Refusing the second allocation denies capacity");
+    assert(state.calls == state.fail_at + 1, "Refuse the second allocation after freeing the first");
+
+    state.fail_at = ~convert(usize, 0);
+    var bytes = sizeof(decltype(state.mask));
+    fill(&state.mask[0], 0, bytes);
+    state.mask[bytes / sizeof(usize) - 1] = 1;
+    assert(affinity_query(state) == 1, "Recover the high CPU after allocation refusals");
+    assert(state.peak_bytes < compiler_buffer_allocation_size(bytes * 2), "Bound the peak mask allocation");
+}
+
+// Keep the cumulative allocation receipt through recovery in both entry points.
+fn linux_affinity_faults(): void {
+    var state: AffinityFaultState = default;
+    state.fail_at = ~convert(usize, 0);
+    affinity_masks(&state);
+    affinity_query_errors(&state);
+    affinity_allocation_recovery(&state);
+    print(state.calls);
+    print(state.peak_bytes);
+    print(state.live_bytes);
+}
