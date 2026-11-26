@@ -1,0 +1,42 @@
+import session;
+import backend.text;
+
+extern fn grammar_node_terminal(event: usize, node: usize): bool;
+extern fn editor_offsets(source: u8*): void;
+extern fn editor_slice(source: u8*, start: usize, end: usize): u8*;
+extern fn editor_offsets_count(): usize;
+extern fn editor_offset(i: usize): usize;
+extern fn editor_source_units(source: u8*): usize;
+extern fn editor_encoded_bytes(source: u8*): usize;
+
+test() {
+    var source = "// 🚀 café\nparse Statement = String ';';\"雪🚀 ; // }\";";
+    grammar_parse(source);
+    check_status("done");
+    editor_offsets(source);
+    var events = grammar_events();
+    assert(events > 0, "Missing string statement");
+    var last = events - 1;
+    var nodes = grammar_nodes(last);
+    var found = false;
+    for (var i: usize = 0; i < nodes; i++) {
+        if grammar_node_terminal(last, i) {
+            var label = grammar_node_text(last, i, "label");
+            defer free(label);
+            if backend_prefix(label, "\"") {
+                var text = editor_slice(source, grammar_node_offset(last, i, "start"), grammar_node_offset(last, i, "end"));
+                defer free(text);
+                assert(backend_equal(text, "\"雪🚀 ; // }\""), "UTF-16 editor slice");
+                found = true;
+                break;
+            }
+        }
+    }
+    assert(found, "Missing quoted terminal");
+    var kind = grammar_highlight_kind(0);
+    defer free(kind);
+    assert(backend_equal(kind, "comment"), "Leading emoji comment");
+    var count = editor_offsets_count();
+    assert(count == editor_encoded_bytes(source) + 1, "UTF-8 offset table length");
+    assert(editor_offset(count - 1) == editor_source_units(source), "Final UTF-16 offset");
+}

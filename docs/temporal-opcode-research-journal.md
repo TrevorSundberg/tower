@@ -121698,3 +121698,135 @@ to the assignment and reused across build steps. The first configure lacked
 an unversioned clang on PATH. Retrying with a changed compiler identity in
 that incomplete cache lost configure options. A fresh cache with the LLVM 19
 path and explicit public pin built successfully. The manager owns publication.
+
+### Wasm registration migration on host 3
+
+Assignment 108b8c50-389d-4ef9-a6f8-02bb0cf07d4c starts at public
+`c5d896ea` with Pages `8417c9ae`. Only the manager publishes. The four
+existing entries are revisions, lookahead, keyword_boundaries and name_styles
+(registrations 2–5). The first group moves the exported selftest result (1),
+live preview (6), invalid declarations and recovery (7), editor byte-to-unit
+mapping (8) and scanner highlights (9). The guest drives the actual subject
+handle and reads its observations through the selected-test host. The editor
+still computes the mapping and slices the original UTF-16 string in Node.
+Subject handles remain owned until released or the registration exits.
+On the first compilation the two borrowed string-table entries needed an
+explicit dereference. After correction the portable suite passed 15/15.
+Foundation, ABI lifetime, cache reuse and lexical registrations follow.
+
+Registrations 10, 13, 14 and 15 now check Foundation installation, token
+declarations, lexical replacement and atomic Foundation token installation in
+Tower. Both existing Foundation handles stay live through installation. The
+selector restores the installed source even if a guest comparison fails. The
+token test edits the shipped example. It checks seven spelling/style pairs,
+the pattern and hash comment, the final Identifier pattern and all three
+reset outcomes. All five refused substitutions query the same live handle.
+Pointer subtraction in the edit helper failed checking, so it uses byte
+indices. A proposed filename ending in the selector's reserved
+`_module_test.tower` suffix triggered owner discovery. Using
+`foundation_install_test.tower` selected the explicit body successfully.
+
+The last two registrations exercise guarded and direct Wasm inputs, native
+counts after every one of 30 alternating parses (11), and cached parsing
+against independent fresh sessions (12). The host serializes JSON records
+with sorted object keys and ordered arrays. The Tower caller supplies the
+four cache/identity field exclusions for fresh comparisons and excludes
+nothing across a rejected reset. All 32 eviction edits inspect the actual
+cache size. Decimal bytes 192 and 128 are the original malformed input (the
+published grammar rejected hexadecimal integer spelling in the first trial).
+The full portable and shared registrations passed. On each image the initial
+candidate reproduced all 1,382 ordered subject calls and outputs byte for
+byte, including session IDs. The retained-record test executed 44,610,793
+guest steps, close to the original trial ceiling of 448 slices. Raw TAP,
+trace data and images are retained for qualification.
+
+Comparing the complete JSON text one byte at a time dominated guest execution
+in the reuse registration. The host now supplies the exact UTF-8 byte count
+with the serialized record. Tower checks the lengths and compares full words
+with alignment-independent copies, followed by the trailing bytes. Both
+images returned the same parser records and reduced the registration from
+44,610,793 to 9,240,156 guest steps. One shared run allocated the raw two-byte
+test buffer at a different address. The address was used for the matching
+create and free. No other subject call or output differed.
+
+#### Shipping qualification and original registration map
+
+The subject and separate assertion VM both instantiated the portable image
+`eb6c4878…ad6e1a` or the shared image `616c0885…91d84a` from Pages
+`8417c9ae`. The deployment manifest attributes both to source `0da4e513`.
+The five language inputs, the testing and vector libraries, and both shipped
+examples matched the manifest. Backend text operations came from public
+`c5d896ea`. Host qualification used source freeze `78d28e74`. The packet's
+`registrations.tsv` gives each original Node name verbatim.
+
+| Original position | Selected file stem before `_test.tower` | Subject and comparison |
+| --- | --- | --- |
+| 1 | self_tests | Actual `tw_self_test` return from the linked node, parser and syntax suites |
+| 2 | revisions | Existing example revision, keywords and named captures |
+| 3 | lookahead | Existing shared prefix, construct boundary and conflict cases |
+| 4 | keyword_boundaries | Existing whole-word classification and declaration revisions |
+| 5 | name_styles | Existing complete and incomplete name classifications |
+| 6 | preview | Initial revision/offset, six live step revisions, repeated inspect offsets and final statement |
+| 7 | invalid_grammar | Both empty quotes and their byte offsets, six rejected declarations, diagnostic text, unchanged revision and fresh recovery |
+| 8 | editor_offsets | Actual editor offset map, quoted terminal's UTF-16 slice, emoji comment, encoded byte count and final code-unit index |
+| 9 | scanner | Multi-character operator and four malformed inputs, including the block-comment fallback |
+| 10 | foundation_install | Self-bootstrap, CoreFunction, zero rebuild, both double installs, changed call spelling, pinned import, rejected installation and module reset |
+| 11 | abi_disposal | Embedded NUL, 8 MiB plus one, two malformed raw bytes, invalid handle and both counters after each of 30 disposals |
+| 12 | parse_reuse | Nine builds/hits, complete fresh-record comparisons on every edit, both invalid resets, exact intact snapshot, 32 cache edits and both disposal counts |
+| 13 | token_declarations | Example events and revisions, seven token styles, pattern/hash comment, Identifier rule and all three edited parses |
+| 14 | lexical_replacement | Preview/live installation, five rejected patterns against the actual seed, early/late declarations and longest-match ties |
+| 15 | foundation_tokens | Import and Bedrock behavior, refused install, survival of the prior install, pinned session and reset |
+
+The 15 names ran in order on both images. The four existing Tower entry
+files were byte-identical and reproduced their execution step counts. Each
+of the fifteen candidate entries ran one test and returned empty error and
+output with no truncation. The traces include 857 steps, 204 inspections,
+54 resets, nine configurations, all 93 destroys and both sets of 33 counter
+reads. Each counter read returned 6,856 live nodes and zero live allocations,
+respectively. The restored portable trace matched byte for byte. The shared
+trace differed only in the address of the two-byte buffer in the allocation,
+create and free records. Both actual inputs were 192,128, and both raw
+creates returned zero. The complete editor offset arrays also matched.
+
+On each image 11 paired wrong expectations failed in their original JS and
+migrated Tower registrations. Another 17 guest controls covered later
+observations including the pinned import, refused reset, repeated disposal
+and cache eviction. The comparisons also failed when only the last byte of a
+fresh record or the first byte of an intact snapshot changed. All 56 guest
+failures located the intended assertion at its byte offset. Fault groups ran
+against separate copies. The assigned source checkout remained frozen.
+
+#### Host 3 cost and validation boundary
+
+Three original/candidate pairs per image ran under the host timing lock,
+reversing order in the middle pair. Each used a fresh Node 24.22.3 process,
+warm files, `--test --test-isolation=none --test-concurrency=1`, and AMD
+EPYC 7542 CPUs 4–7 within inherited affinity 0–63. The cgroup's CPU quota
+was 1,228,800 µs per 100,000 µs. The shared subject requested its default
+four slots and the assertion VM requested one. GNU time measured the whole
+15-name file, including startup and assertion compilation. Each table cell
+is the median of three measurements for that metric.
+
+| Image | Original wall s | Tower wall s | Original CPU s | Tower CPU s | Original peak KiB | Tower peak KiB |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Portable | 8.53 | 8.24 | 2.99 | 4.13 | 192,632 | 200,316 |
+| Shared | 19.81 | 16.61 | 4.10 | 5.30 | 290,924 | 293,920 |
+
+Wall times varied considerably on this host. One sample found 6.56 s of
+main-thread run-queue wait in 13 elapsed seconds. Portable candidate wall
+ranged from 5.77 to 20.38 s, with CPU from 4.11 to 4.21 s. The additional
+guest tests increased CPU cost on both images. Within the full file, median
+duration for the cache/reuse registration grew from 135 to 400 ms portable
+and 179 to 475 ms shared. One whole-file pair pinned only to CPU 4 took
+3.08/4.25 s wall and 2.84/3.98 s CPU portable, and 4.27/5.59 s wall and
+3.91/5.21 s CPU shared (original/candidate). These are test-runner costs.
+
+The normal npm glob also selected the full file using Node shard 51/51,
+passing 15/15 on each image with no skips. The existing compound-operator
+default discovery test still counted all 14 declarations. Explicit Wasm
+bounds checks, moving-memory stress and heap verification passed all names
+on portable. Shared passed explicit bounds checks and a separate moving-
+memory/heap run. The optimized shipping reactors have no native source
+ASan, UBSan or TSan instrumentation. No compiler, runtime or deployment
+assets changed. The unmodified todo.txt blob is `bac009f4`. The verified
+bundle and raw logs are for manager review and publication.

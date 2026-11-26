@@ -1,0 +1,25 @@
+import session;
+
+test() {
+    var base = grammar_fixture("base");
+    var rules = grammar_fixture("loop");
+    defer free(base);
+    defer free(rules);
+    var source = joined(base, rules, "for(x in xs){}");
+    defer free(source);
+    var handle = grammar_open(source);
+    grammar_inspect(handle);
+    assert(grammar_number("revision") == 0, "Initial preview revision");
+    grammar_inspect(handle);
+    assert(grammar_number("offset") == 0, "Initial preview offset");
+    for (var revision: usize = 1; revision <= 6; revision++) {
+        grammar_step(handle);
+        assert(grammar_end_revision() == revision, "Declaration revision");
+        grammar_inspect(handle);
+        var offset = grammar_number("offset");
+        grammar_inspect(handle);
+        assert(grammar_number("offset") == offset, "Preview consumed input");
+    }
+    grammar_step(handle);
+    check_status("statement");
+}

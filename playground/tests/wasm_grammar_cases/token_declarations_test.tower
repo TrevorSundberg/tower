@@ -1,0 +1,50 @@
+import session;
+import backend.text;
+
+struct TokenStyle {
+    text: u8*;
+    kind: u8*;
+}
+
+fn parse_edit(handle: usize, source: u8*, before: u8*, after: u8*, all: bool, status: u8*): void {
+    var edited = replace_spelling(source, before, after, all);
+    defer free(edited);
+    grammar_reset(handle, edited);
+    grammar_finish(handle);
+    check_status(status);
+}
+
+test() {
+    var source = grammar_fixture("tokens");
+    defer free(source);
+    grammar_parse(source);
+    check_status("done");
+    assert(grammar_end_revision() == 11, "Token program revision");
+    assert(grammar_events() == 18, "Token program events");
+    var required: TokenStyle[7] = {{"player-name", "identifier"}, {"café", "identifier"}, {"3.14", "number"},
+        {"`hello from Tower`", "string"}, {"0xff", "number"}, {"@player", "identifier"}, {"@score", "identifier"}};
+    foreach (var &style in &required) { assert(highlight_exists(style.kind, style.text), style.text); }
+    assert(highlight_exists("pattern", null), "Missing pattern");
+    var hash_comment = false;
+    var count = grammar_highlights();
+    for (var i: usize = 0; i < count; i++) {
+        var kind = grammar_highlight_kind(i);
+        defer free(kind);
+        if backend_equal(kind, "comment") {
+            var text = grammar_highlight_text(i);
+            defer free(text);
+            if backend_prefix(text, "#") { hash_comment = true; break; }
+        }
+    }
+    assert(hash_comment, "Declared hash comment");
+    var pattern = identifier_pattern();
+    defer free(pattern);
+    assert(backend_equal(pattern, "@[A-Za-z_][A-Za-z_0-9]*"), "Final Identifier pattern");
+    var handle = grammar_open(source);
+    grammar_finish(handle);
+    parse_edit(handle, source, "3.14;", "6.28;", false, "done");
+    grammar_inspect(handle);
+    assert(grammar_number("grammarBuilds") == 0, "Number value edit rebuilt grammar");
+    parse_edit(handle, source, "0x[0-9A-Fa-f]+", "0y[0-9A-Fa-f]+", false, "error");
+    parse_edit(handle, source, "0x", "0y", true, "done");
+}

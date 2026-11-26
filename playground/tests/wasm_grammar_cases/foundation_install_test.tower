@@ -1,0 +1,52 @@
+import session;
+import backend.text;
+
+test() {
+    var bootstrap = grammar_fixture("bootstrap");
+    defer free(bootstrap);
+    var module = foundation_open(bootstrap);
+    var pinned = grammar_open("import foundation; print(3);");
+    grammar_step(pinned);
+    assert(grammar_end_revision() == 1, "Pinned import revision");
+    grammar_finish(module);
+    check_status("done");
+    grammar_inspect(module);
+    assert(named_row("rules", "CoreFunction") < grammar_rows("rules"), "Missing CoreFunction");
+    grammar_reset(module, bootstrap);
+    grammar_finish(module);
+    check_status("done");
+    grammar_inspect(module);
+    assert(grammar_number("grammarBuilds") == 0, "Reset rebuilt Foundation");
+
+    foundation_install(bootstrap);
+    foundation_install(bootstrap);
+    grammar_parse("import foundation; fn answer(): i32 { return 42; } var x: i32 = answer(); print(x);");
+    check_status("done");
+    var edited = joined(bootstrap, "\nparse CoreCall = 'invoke' $name:CoreLocation '(' $args:CoreArguments? ')';", "");
+    defer free(edited);
+    assert(!backend_equal(edited, bootstrap), "Foundation edit must change the source");
+    foundation_install(edited);
+    foundation_install(edited);
+    var invoke = "import foundation; invoke print(4);";
+    grammar_parse(invoke);
+    check_status("done");
+    grammar_parse("import foundation; print(4);");
+    check_status("error");
+    grammar_finish(pinned);
+    check_status("done");
+
+    var invalid = joined(edited, "\nprint(5);", "");
+    defer free(invalid);
+    var refused = foundation_install_error(invalid);
+    defer free(refused);
+    assert(backend_contains(refused, "only token, skip and parse"), "Foundation install diagnostic");
+    grammar_parse(invoke);
+    check_status("done");
+    var forbidden = joined(bootstrap, "\nvar forbidden: i32;", "");
+    defer free(forbidden);
+    grammar_reset(module, forbidden);
+    grammar_finish(module);
+    var diagnostic = grammar_end_text("error");
+    defer free(diagnostic);
+    assert(backend_contains(diagnostic, "only token, skip and parse"), diagnostic);
+}

@@ -1,0 +1,139 @@
+import session;
+import backend.text;
+
+extern fn grammar_parse_live(handle: usize): void;
+extern fn grammar_record(omitted_fields: u8*, length: u32*): u8*;
+
+struct ParserRecord {
+    bytes: u8*;
+    length: u32;
+}
+
+fn record(omit: u8*): ParserRecord {
+    var result: ParserRecord = default;
+    result.bytes = grammar_record(omit, &result.length);
+    return result;
+}
+
+fn records_equal(left: ParserRecord, right: ParserRecord): bool {
+    if left.length != right.length { return false; }
+    var length = convert(usize, left.length);
+    var at: usize = 0;
+    while length - at >= sizeof(u64) {
+        var a: u64;
+        var b: u64;
+        copy(&a, left.bytes + at, sizeof(u64));
+        copy(&b, right.bytes + at, sizeof(u64));
+        if a != b { return false; }
+        at += sizeof(u64);
+    }
+    while at < length {
+        if left.bytes[at] != right.bytes[at] { return false; }
+        at++;
+    }
+    return true;
+}
+
+fn compare_fresh(input: u8*): void {
+    var omitted = "id grammarBuilds grammarCacheHits cachedGrammars";
+    var retained = record(omitted);
+    defer free(retained.bytes);
+    grammar_parse(input);
+    var fresh = record(omitted);
+    defer free(fresh.bytes);
+    assert(records_equal(retained, fresh), "Retained and fresh parser records differ");
+}
+
+fn compare_edit(handle: usize, input: u8*): void {
+    grammar_reset(handle, input);
+    grammar_inspect(handle);
+    assert(grammar_number("revision") == 0, "Reset revision");
+    grammar_inspect(handle);
+    assert(grammar_number("offset") == 0, "Reset offset");
+    grammar_parse_live(handle);
+    compare_fresh(input);
+}
+
+fn check_refused_reset(handle: usize): void {
+    grammar_inspect(handle);
+    var before = record("");
+    defer free(before.bytes);
+    var embedded: u8[3] = {97, 0, 98};
+    var error = abi_reset_error(handle, &embedded[0], sizeof(decltype(embedded)));
+    defer free(error);
+    assert(backend_contains(error, "UTF-8"), "Embedded NUL reset diagnostic");
+    grammar_inspect(handle);
+    var after = record("");
+    defer free(after.bytes);
+    assert(records_equal(after, before), "Rejected reset changed the live snapshot");
+    var invalid = abi_reset_error(0, "", 0);
+    defer free(invalid);
+    assert(backend_contains(invalid, "Invalid session"), "Invalid reset handle diagnostic");
+}
+
+fn churn(handle: usize): void {
+    for (var i: usize = 0; i < 32; i++) {
+        var digits: u8[3] = default;
+        var at: usize = 0;
+        var decimal = "0123456789";
+        if i >= 10 { digits[at++] = decimal[i / 10]; }
+        digits[at] = decimal[i % 10];
+        var input = replace_spelling("parse Statement = 'wordN' ';';wordN;", "N", &digits[0], true);
+        defer free(input);
+        grammar_reset(handle, input);
+        grammar_parse_live(handle);
+        check_status("done");
+        grammar_inspect(handle);
+        assert(grammar_number("cachedGrammars") <= 64, "Cache size after eviction");
+    }
+}
+
+test() {
+    var example = grammar_fixture("example");
+    defer free(example);
+    grammar_parse(example);
+    var nodes = live_nodes();
+    var allocations = live_allocations();
+    var handle = grammar_open(example);
+    grammar_parse_live(handle);
+    assert(grammar_number("grammarBuilds") == 9, "Initial grammar builds");
+    var edited = replace_spelling(example, "item;", "another;", false);
+    defer free(edited);
+    grammar_reset(handle, edited);
+    grammar_parse_live(handle);
+    assert(grammar_number("grammarBuilds") == 0, "Value-only edit rebuilt grammar");
+    assert(grammar_number("grammarCacheHits") == 9, "Value-only edit cache hits");
+    compare_fresh(edited);
+
+    var base = grammar_fixture("base");
+    var rules = grammar_fixture("loop");
+    defer free(base);
+    defer free(rules);
+    var prefix = joined(base, "for;", rules);
+    defer free(prefix);
+    var future = joined(prefix, "for(x in xs){}", "");
+    defer free(future);
+    compare_edit(handle, future);
+    var walk = replace_spelling(example, "foreach", "walk", true);
+    defer free(walk);
+    compare_edit(handle, walk);
+    var conflict = joined(base, "parse Statement |= Expression ';';", "");
+    defer free(conflict);
+    compare_edit(handle, conflict);
+    var recovered = joined(base, "42;", "");
+    defer free(recovered);
+    compare_edit(handle, recovered);
+    var shifted = joined("// snow 雪🚀\n", example, "");
+    defer free(shifted);
+    compare_edit(handle, shifted);
+    compare_edit(handle, "parse Statement = String ';';\"hello\";");
+    compare_edit(handle, example);
+    check_refused_reset(handle);
+    churn(handle);
+    grammar_reset(handle, example);
+    grammar_parse_live(handle);
+    compare_fresh(example);
+    grammar_dispose(handle);
+    assert(live_nodes() == nodes, "Nodes after cache disposal");
+    assert(live_allocations() == allocations, "Allocations after cache disposal");
+}
