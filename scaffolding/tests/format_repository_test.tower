@@ -1,0 +1,129 @@
+import library.testing;
+import parser_fixture_setup;
+import .compiler.format_types;
+import .host.driver_api;
+import .library.bytes_types;
+import .library.bytes_interface;
+import storage_api;
+import format_abi;
+import format_fixture_test;
+import utility_checks;
+
+extern fn getenv(name: u8*): u8*;
+
+extern fn frontend_modules_fallback(modules: void*, root: u8*): void;
+
+extern fn syntax_create_bedrock(source: u8*): void*;
+
+extern fn syntax_create_foundation(source: u8*): void*;
+
+fn format_repository_session(input: u8*, name: u8*): void* {
+    if strcmp(name, "bedrock.tower") == 0 {
+        return syntax_create_bedrock(input);
+    }
+    if strcmp(name, "foundation.tower") == 0 {
+        return syntax_create_foundation(input);
+    }
+    return syntax_create(input, null);
+}
+
+fn format_repository_source(input: u8*, name: u8*, invalid: bool, result: FormatResult*, check: function(void, bool, u8*)): void {
+    var session = format_repository_session(input, name);
+    check(session is not null, "Repository formatter source session");
+    defer syntax_destroy(session);
+    loop {
+        var root = syntax_next(session);
+        if root is null {
+            break;
+        }
+        tower_node_release_ref(root);
+    }
+    if invalid {
+        check(syntax_get_error(session)[0] != 0, "Intentionally invalid syntax rejected");
+        return;
+    }
+    if syntax_get_error(session)[0] != 0 {
+        puts(syntax_get_error(session));
+    }
+    check(syntax_get_error(session)[0] == 0, "Repository source parses");
+    var error: u8*;
+    var ready = syntax_format_into(session, result, &error);
+    if error[0] != 0 {
+        puts(error);
+    }
+    check(ready && error[0] == 0, "Repository formatter shared source result has no error");
+}
+
+// The file list is mechanical CMake packaging, sorted and rooted at scaffolding.
+// All read/parse/format/canonical/invalid-fixture assertions remain Tower code.
+fn format_repository_check(list_path: u8*, library: u8*, modules: void*, check: function(void, bool, u8*)): void {
+    var listing: ByteBuffer = default;
+    defer bytes_dispose(&listing);
+    check(driver_read_file(list_path, &listing) && host_text_terminate(&listing), "Read repository formatter file list");
+    var files: usize = 0;
+    var invalid_files: usize = 0;
+    var begin: usize = 0;
+    var invalid_directory = "syntax_invalid/";
+    var invalid_length = strlen(invalid_directory);
+    for(var end: usize = 0; end <= listing.length; ++end) {
+        if end != listing.length && listing.data[end] != *"\n" {
+            continue;
+        }
+        listing.data[end] = 0;
+        if begin == end {
+            begin = end + 1;
+            continue;
+        }
+        var path = &listing.data[begin];
+        var name = path;
+        var invalid = false;
+        for(var at: usize = 0; path[at] != 0; ++at) {
+            if path[at] == *"/" {
+                name = path + at + 1;
+                if strlen(name) >= invalid_length && utility_equal(name, invalid_directory, invalid_length) {
+                    invalid = true;
+                }
+            }
+        }
+        puts(path);
+        frontend_modules_configure(modules, path, library);
+        var input: ByteBuffer = default;
+        defer bytes_dispose(&input);
+        check(driver_read_file(path, &input) && host_text_terminate(&input), "Read repository formatter source");
+        var actual: FormatResult = default;
+        defer format_dispose(&actual);
+        format_repository_source(input.data, name, invalid, &actual, check);
+        if invalid {
+            ++invalid_files;
+        }
+        else {
+            check(actual.text.length == input.length && utility_equal(actual.text.data, input.data, input.length), "Repository source already canonical");
+            var again: FormatResult = default;
+            defer format_dispose(&again);
+            format_repository_source(actual.text.data, name, false, &again, check);
+            format_test_equal(&actual, &again, false);
+            ++files;
+        }
+        begin = end + 1;
+    }
+    check(files != 0 && invalid_files != 0, "Repository sweep covers source and invalid fixtures");
+    puts("Repository canonical source, idempotence and invalid fixtures passed.");
+}
+
+// Keep the last path visible if a selected guest traps before stdio teardown.
+fn format_repository_assert(ok: bool, message: u8*): void {
+    if !ok {
+        fflush(null);
+    }
+    assert(ok, message);
+}
+
+test() {
+    var list_path = getenv("TOWER_FORMAT_FILE_LIST");
+    assert(list_path != null && list_path[0] != 0, "Set TOWER_FORMAT_FILE_LIST to the generated tower_format_files.txt");
+    var fixture = format_fixture_open(".");
+    defer format_fixture_close(&fixture);
+    frontend_modules_fallback(fixture.modules, fixture.root);
+    parser_fixture_setup();
+    format_repository_check(list_path, fixture.root, fixture.modules, format_repository_assert);
+}
