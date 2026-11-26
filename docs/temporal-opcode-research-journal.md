@@ -106844,3 +106844,45 @@ qualification. Raw commands, artifacts and diagnostics belong to receipt
 The forward-reference migration at 77f65fda keeps four browser registrations, checks their parser and execution results in Tower, and uses external Tower grammar inputs. Its packet includes 15 failing controls and matching six-line interpreter and LLVM guest output. On the integrated source, two new CTest entries run the ordinary forward.tower owner at jobs 1 and 4. The published Linux pin selected and passed the declarations at forward_test.tower:6:1 and 11:1 in both entries. The other 178 generated registrations kept their commands. The browser/LLVM transport still has JavaScript callers.
 
 A separate full-owner check on 3fa3348a completed 53 of 54 checks successfully. In the remaining four-worker TSan run, sem_set_type wrote a four-byte field while sem_type_query_syntax read the same address during declaration work. Both stacks reached semantic_declaration_kernel. The direct companion selected all six declarations cleanly. Receipt d3f9a5d7 contains the failing stack and instrumented binary identity. The full-owner gate remains open pending an ownership repair and a repeat on the integrated compiler.
+
+### Boolean parameters in numeric type constructors
+
+The unfiltered Node suite in receipt b6aaeb66 failed on the boolean parameter
+in `templates.test.mjs`. The same case failed on the parent using the same
+reactor. Both runs rejected the declaration before executing `print(123)`.
+The test still expected an integer-only message. The declaration checker
+now accepts integer and floating-point parameter types and reports both in
+its diagnostic. The boolean case now checks that entire diagnostic, along
+with the existing zero steps and empty guest output. This changes only the
+expected diagnostic in the test. The original Jenkins 56 console is a
+separate outstanding infrastructure request.
+### Jenkins 57 boolean compile-time parameter assertion
+
+Jenkins tested `5a134705ddd75bf942cad22664bcbbe1ae5f5c20`. Its Node suite
+reported 512 passes, one failure and two skips among 515 tests. In
+`playground/tests/templates.test.mjs` the boolean constructor parameter had
+already failed before any output or execution steps. The remaining assertion
+expected “require an integer type”. The declared floating numeric parameter
+change documented above admits both integers and floats in
+`sem_numeric_parameter`. Native semantic case 52 already checks the full
+diagnostic for a boolean parameter. The browser test now checks that same
+message exactly. The input and pre-execution assertions are identical.
+
+Host 1 built the browser interpreter from the assigned source with the public
+bootstrap, WASI SDK 34, four build jobs and one worker per bootstrap invocation.
+The first configure lacked an unversioned host clang. Adding the LLVM 19 bin
+directory to PATH completed the build. The reactor SHA-256 was
+`42bac6391df208c5a1ede3df3e0530931e5b0143ef73107602a40559c9e3cd74`.
+Positive template cases also exercised the manifest-verified LLVM reactor
+from Pages commit `516deee1e985b02bbae5822aa401fbf25648f027`, built from
+`0823b028fba66eb19de815f4d49d4fdbc0bdc56a`.
+
+On Node 24.22.3, `node --test --test-concurrency=1 playground/tests/templates.test.mjs`
+reproduced the sole mismatch (15/16, exit 1), then passed 16/16 (exit 0) with
+the same reactors. The two fresh processes ran sequentially on Xeon Gold 6244
+with 32 logical CPUs available, quota 15.36 CPUs. Wall/CPU/peak RSS were
+2.79 s / 6.40 s / 245820 KiB before and 2.88 s / 6.85 s / 258628 KiB after.
+These are single validation samples for a test expectation edit. The full
+Jenkins pipeline rerun remains open. Assignment
+`8da5f5b9-1c06-42db-8b3c-d507a73c7f6e` carries the console, raw runs,
+commands, host details and checksums for manager review.
