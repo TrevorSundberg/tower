@@ -1,0 +1,5 @@
+import library.test_fixtures;
+
+fn cfg_check_output(actual: FixtureBytes, wanted: FixtureBytes): void {
+    assert(fixture_equal(actual, wanted), "CFG output bytes");
+}

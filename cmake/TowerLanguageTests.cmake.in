@@ -70,3 +70,6 @@ register_language_tests(entity-views tests/entity_views 6 --link "@scc_objects@/
 register_language_tests(generic-registry tests/generic_registry 6 --link "@scc_objects@/libtower-compiler-memory.a")
 register_language_tests(entity-store tests/entity_store 6 --link "@scc_objects@/runtime-instrumented.o"
   --link "@scc_objects@/libtower-compiler-memory.a")
+
+register_language_tests(cfg-exchange tests/semantic_statements_cfg_inputs/exchange 1 INTERPRETED)
+register_language_tests(cfg-exchange-direct tests/semantic_statements_cfg_inputs/exchange_test 1 INTERPRETED)

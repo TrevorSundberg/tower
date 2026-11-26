@@ -1,4 +1,5 @@
 import library.testing;
+import semantic_statements_cfg_output;
 import library.test_fixtures;
 import library.vector;
 import backend.text;
@@ -109,7 +110,7 @@ status: u8*, output: FixtureBytes, error: FixtureBytes, offset: u32): void {
     defer cfg_dispose(&fast);
     assert(fixture_equal(graph.status, fast.status) && backend_equal(graph.status.data, status), "CFG terminal status");
     assert(fixture_equal(cfg_stdout(&graph), cfg_stdout(&fast)), "Graph and Fast output bytes");
-    assert(fixture_equal(cfg_stdout(&graph), output), "CFG output bytes");
+    cfg_check_output(cfg_stdout(&graph), output);
     assert(fixture_equal(graph.error, fast.error) && fixture_equal(graph.error, error), "CFG diagnostic bytes");
     assert(graph.offset == fast.offset && graph.offset == offset, "CFG diagnostic byte offset");
     assert(!graph.truncated && !fast.truncated, "Complete Graph and Fast output");
