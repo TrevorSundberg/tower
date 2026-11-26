@@ -114355,3 +114355,14 @@ The packet retains the instrumented tree-transfer function and both maps.
 Other link objects and the published selector compiler were uninstrumented.
 Source-level UBSan, parallel guest execution and WASI/browser coverage remain
 outside this native migration evidence.
+
+Host 2 preserved the assigned-base tip `14df4a8f` before rebasing on
+published `c3635391`. The rebuilt analysis object matched the assigned
+candidate. All 49 integrated parser-profile CTests passed, including the
+default aggregate and the ten new selections. The selector and aggregate each
+matched their original stdout and stderr. Frontend `lr-order` passed. Both
+sanitizer links reused the verified instrumented suite and parser provider
+and picked up the updated syntax-node object. Both passed on their first
+launch. The final incremental build had no work. Assignment packet
+`7a42df0f-3b01-4263-8276-3504048033a9` includes the source bundles on both
+bases and the raw measurements. Publication belongs to the manager.
