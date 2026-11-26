@@ -118,7 +118,10 @@ test('pure Wasm exports bind directly as external imports, and tables can supply
   const programs = new Map();
   async function compileFixture(name, fixture) {
     const result = llvm.compile(await source('scaffolding/tests/' + fixture));
-    programs.set(name, {llvm:{compilation:result.status, diagnostic:result.error}});
+    const diagnostic = result.status === 'error'
+      ? `${fixture}.tower (${result.errorFile ?? 'input'} at byte ${result.errorOffset}): ${result.error}`
+      : result.error;
+    programs.set(name, {llvm:{compilation:result.status, diagnostic}});
     return result;
   }
 
