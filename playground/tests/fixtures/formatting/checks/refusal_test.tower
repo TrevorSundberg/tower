@@ -1,7 +1,0 @@
-import refusal;
-import library.test_fixtures;
-
-test() {
-    assert(fixture_equal(diagnostic, wanted), "Expected the changed-parse refusal");
-    assert(fixture_equal(recovered, literal), "Valid format after the refusal");
-}

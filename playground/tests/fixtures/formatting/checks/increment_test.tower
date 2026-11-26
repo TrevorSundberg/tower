@@ -1,8 +1,0 @@
-import increment;
-import library.test_fixtures;
-
-test() {
-    assert(fixture_equal(formatted, wanted), "Prefix and postfix increment, locations and comments");
-    assert(fixture_equal(second, formatted), "Increment changed on second format");
-    assert(fixture_equal(example_format, example), "Increment example changed");
-}

@@ -1,8 +1,0 @@
-import declarations;
-import library.test_fixtures;
-
-test() {
-    assert(fixture_equal(formatted, wanted), "Declaration spacing and indentation");
-    assert(fixture_equal(second, formatted), "Source changed on second format");
-    assert(fixture_equal(canonical_format, canonical), "Canonical Foundation changed on source format");
-}

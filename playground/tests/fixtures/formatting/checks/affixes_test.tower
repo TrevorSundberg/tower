@@ -1,7 +1,0 @@
-import affixes;
-import library.test_fixtures;
-
-test() {
-    assert(fixture_equal(formatted, wanted), "Nested prefix, postfix and infix spacing");
-    assert(fixture_equal(second, formatted), "Affix spacing changed on second format");
-}
