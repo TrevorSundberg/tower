@@ -105831,3 +105831,15 @@ host 2 reconstructed Pages tree 750ca760, verified 111 HTTP response bodies
 on loopback, ran the desktop and mobile checks and checked the installer
 against matching and older prefixes. Receipts 888c72f9 and 5e904379 record
 those results. These measurements precede public network installation.
+
+### Boolean parameters in numeric type constructors
+
+The unfiltered Node suite in receipt b6aaeb66 failed on the boolean parameter
+in `templates.test.mjs`. The same case failed on the parent using the same
+reactor. Both runs rejected the declaration before executing `print(123)`.
+The test still expected an integer-only message. The declaration checker
+now accepts integer and floating-point parameter types and reports both in
+its diagnostic. The boolean case now checks that entire diagnostic, along
+with the existing zero steps and empty guest output. This changes only the
+expected diagnostic in the test. The original Jenkins 56 console is a
+separate outstanding infrastructure request.

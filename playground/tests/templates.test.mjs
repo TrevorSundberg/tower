@@ -54,7 +54,7 @@ for(const [name,program,error] of [
  // Unsigned negation wraps; the resulting extent must fail the array bound.
  ['negative unsigned argument','var x: buffer(i32,-1);',/Array length must be between 1 and 1,048,576/],
  ['type instead of integer','var x: buffer(i32,i32);',/^Expected usize, got type; use an explicit conversion$/],
- ['boolean argument type','fn bad(n: bool): type { return i32; } var x: bad(1);',/require an integer type/],
+ ['boolean argument type','fn bad(n: bool): type { return i32; } var x: bad(1);',/^Compile-time value parameters require an integer or floating-point type$/],
 ]) {
  test('invalid integer type argument: '+name,()=>{
   const result=execute('import tower; print(123); fn buffer(T: type, size: usize): type { struct R { data: T[size]; } return R; } '+program);
