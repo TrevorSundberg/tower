@@ -109292,3 +109292,106 @@ selected guest. The public compilers retain their release instrumentation,
 and source-level UBSan for Tower is unavailable. The raw packet contains the
 oracle tables, commands, source inputs, binaries, link maps and original
 compiler provenance for manager review.
+
+### Four replacement grammar selections on the published parser (host 3, 2026-11-26)
+
+Assignment e8080cb3 started at public main `cd21d55c`. The parser was
+`tower.wasm` from Pages `dd6651b1` (SHA-256 `41bb9b11`, build source
+`8bc867b6`). The native driver matched the executable inside that same
+deployment's Linux kit byte for byte (`7315b86e`). The existing host
+checkout had two counted-loop commits whose rebase conflicted. Aborting
+that rebase preserved both. A separate checkout of main carried the work.
+
+Before extracting the inputs, the four original names ran against the
+release reactor. Their 16 parser sessions yielded 12 errors and four
+successes on 14 distinct source texts. The input fixtures preserve the
+original bytes, including the lambda comment, missing final newlines and
+the trailing space in one empty template case. The two empty templates
+fail at different bytes, 221 and 222. The browser tests reuse the public
+parser diagnostic assertions. Each name selects its own Tower declaration.
+The scanner checks both wrapped blocks, the absent and present optional
+expression, the two copies of the repeated statement, and the invocation
+and template spans on the generated and captured nodes.
+
+A single-reactor trial preserved the input, terminal responses, inspections
+and all tree fields except 1,294 node IDs. Compiling a Tower test first
+changed the parser's allocation sequence. The final harness compiles the
+released Wasm module once and opens one separate assertion instance on the
+first selected replacement case. All four declarations reuse that instance.
+Across the four names the original and final streams, including all node
+IDs and every grammar snapshot, matched at 642,907 bytes (SHA-256
+`c105acae67e4a1205634d0f64be057ef0cc8be9d199fc82c0402db412c7a34a6`).
+
+Changing the UTF-8 Statement diagnostic offset from 95 to 96 failed in
+`format_diagnostic_cases/session.tower` at byte 1413. Expecting three
+copies of `x` failed in `replacement_cases/scanner.tower` at byte 2315.
+Both individual filters passed after restoring the original expectation.
+An initial scanner declaration used the reserved word `expected` for a
+parameter. Its compilation failure preceded assertion execution.
+
+With the release CLI at jobs 1 and 4, every distinct malformed input
+reported the browser's complete diagnostic at the matching line and
+column. The three scanner successes parsed with zero test declarations.
+The repaired Foundation input discovered its adjacent companion; selecting
+the companion directly also executed the subtraction assignment and
+checked that the captured variable became zero. Importing the test
+language after the repaired grammar initially replaced its Statement
+rule. Installing the repaired grammar last made the assignment available.
+The four event-based test entries each reached the native interpreter's
+missing binding for `diagnostic_read`. The CLI can diagnose the files
+directly. Its test interpreter has no provider for the browser event
+stream, node origins or expanded-code renderer.
+
+Memcheck ran the native owner at one job and reported zero errors and zero
+lost bytes, with 151,054 bytes still reachable. Its first launch failed to
+find the loader symbols. Supplying the matching glibc debug file at the
+loader's relative path allowed the run to complete. DRD at four jobs
+reported zero errors (10 suppressed). Both tools warned about reading the
+release executable's debug section mapping. The released compilers provide
+no source-level ASan, UBSan or TSan instrumentation.
+
+All four filters passed individually. The complete replacements suite and
+the diagnostics suite that shares the text transport passed 10/10 each.
+Across the complete replacements file, the 28 calls to `analyze` yielded
+2,464,549 identical bytes before and after. The separately filtered runs
+also matched their corresponding original processes, including the first
+IDs in each fresh parser. The six other registrations retained their
+original bodies.
+
+Host 3 ran Node 24.22.3 on an AMD EPYC 7542 with 64 available logical CPUs
+and a cgroup quota of 12.288 CPUs. All measured processes held the host
+timing lock and were pinned to CPUs 0–3. Each process started with fresh
+Wasm and parser state on a previously read filesystem. Both arms used the
+same fixture inventory. GNU time measured user plus system CPU and process
+peak RSS. Each filter has one paired sample. The full-file row reports
+component-wise medians of three pairs with alternating arm order.
+
+| Node selection | Original wall s / CPU s / peak KiB | Migrated wall s / CPU s / peak KiB |
+| --- | ---: | ---: |
+| invalid captures | 5.28 / 0.64 / 109,500 | 2.84 / 1.24 / 144,432 |
+| invalid replacement diagnostics | 8.40 / 0.67 / 115,000 | 6.32 / 1.26 / 144,760 |
+| template scanner respects | 14.00 / 0.70 / 111,696 | 7.76 / 1.30 / 146,664 |
+| named helper inference never | 10.95 / 0.68 / 113,636 | 19.80 / 1.30 / 145,260 |
+| all | 15.38 / 1.02 / 149,656 | 11.90 / 2.05 / 182,956 |
+
+Full-file wall times ranged from 5.46 to 22.01 s on this shared host.
+The Tower assertions added about one CPU-second to the full file. In a
+separate four-name profile, the assertion reactor opened once in 105 ms.
+Compiling the first declaration took 471 ms. Subsequent declarations
+compiled in 130, 140 and 111 ms. For context, the published ten-name parser
+diagnostic suite on this host spent 463 ms on its first compilation and
+77–94 ms on each subsequent one. The replacement selections include the
+additional revision and tree observations. These measurements include
+the real compiler cost of running the tests.
+
+The subject's exposed allocation count, live nodes and linear memory size
+matched the original at all 32 observed create/destroy boundaries. It
+finished with 6,913 live nodes and 17,235,968 bytes of linear memory. The
+separate assertion instance retained 13,483 nodes and 28,770,304 bytes
+after each selection. The production allocation counters read zero.
+Host 3 packet `e8080cb3-60bd-4765-952a-a7afb1608af3` includes pinned
+product hashes, raw events, mutation logs, command lines, native output,
+timings and disk measurements. The manager owns integration and publication.
+
+Free space on the host overlay measured 49.94 GiB before qualification
+and 49.90 GiB after validation. These readings include concurrent host use.

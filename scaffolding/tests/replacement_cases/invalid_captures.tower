@@ -1,0 +1,12 @@
+import diagnostic;
+
+test() {
+    reject_unknown_capture();
+    reject_expression_semicolon();
+    rejected("empty_wide", 3, 222,
+        "Replacement for Expression must produce a valid Expression. <empty> is not a valid Expression.\nUnexpected end of input. Expected Identifier, Number or 'bad'.");
+    rejected("unclosed", 3, 223,
+        "Unexpected end of input. Expected Identifier, GrammarCharacter, Number or '['.");
+    rejected("duplicate_expression", 3, 252,
+        "Replacement for Expression must produce a valid Expression. \"$value $value\" is not a valid Expression.\nUnexpected end of input. Expected end of input.");
+}

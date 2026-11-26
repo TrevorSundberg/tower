@@ -1,0 +1,8 @@
+import library.testing;
+import repaired_statement;
+
+test() {
+    var value: i32 = 7;
+    fart value;
+    assert(value == 0, "The repaired Statement assigns the difference to the captured name");
+}

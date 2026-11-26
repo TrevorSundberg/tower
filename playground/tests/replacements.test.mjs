@@ -1,11 +1,55 @@
-import { test } from 'node:test';
+import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { loadTower, runToEnd } from './compiler-fixtures.mjs';
+import { builtins, files, loadTowerBytes, runToEnd } from './compiler-fixtures.mjs';
+import { loadTower as createTower } from '../src/tower-host.mjs';
 import { expandedCode } from '../src/expanded-code.mjs';
 import { replacementLocations } from '../src/replacement-locations.mjs';
-const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)), undefined,
-  await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8'));
+import { fixtureSource, guestString, runSelectedTest } from './compiler_test_host.mjs';
+import { copyText, diagnosticFields, numberField } from './parser_observations.mjs';
+
+const cases = '.tower/tests/replacement_cases/';
+const assertionFiles = files.filter(({path}) => (path.startsWith(cases) && !path.startsWith(cases + 'inputs/')) ||
+  path === '.tower/compiler/format_diagnostic_cases/session.tower' ||
+  path === '.tower/backend/text.tower' || path.startsWith('.tower/library/'));
+
+const wasm = await WebAssembly.compile(await readFile(process.env.TOWER_TEST_WASM ||
+  new URL('../../build/browser-wasi/tower.wasm', import.meta.url)));
+const tower = await loadTowerBytes(wasm, undefined, builtins.foundation);
+let checks, parsed, statements, nodes;
+after(() => { checks?.close(); tower.close(); });
+
+const observations = {
+  diagnostic_read(context, file, edit) {
+    if (edit) throw new Error('Replacement fixture requests a fresh parser');
+    parsed = analyze(fixtureSource(cases + 'inputs/' + guestString(context, file) + '.tower'));
+    statements = parsed.events.filter(event => event.status === 'statement');
+    return parsed.end.status === 'done';
+  },
+  ...diagnosticFields(() => parsed.end),
+  replacement_revision: () => numberField(parsed.end.revision),
+  replacement_previous_revision: () => numberField(parsed.end.previousRevision),
+  statement_count: () => statements.length,
+  select_statement(_context, index) { nodes = statements[index].nodes; },
+  expanded_code: context => copyText(context, expandedCode(nodes)),
+  node_count: () => nodes.length,
+  node_label: (context, index) => copyText(context, nodes[index].label),
+  node_start: (_context, index) => numberField(nodes[index].start),
+  node_end: (_context, index) => numberField(nodes[index].end),
+  template_start: (_context, index) => numberField(nodes[index].origin.templateStart),
+  template_end: (_context, index) => numberField(nodes[index].origin.templateEnd),
+  node_generated: (_context, index) => nodes[index].origin.generated,
+};
+
+// Parsing and compiling tests both allocate node IDs. Keep the parser's
+// identity sequence intact and reuse the assertion instance across names.
+async function checkReplacement(entry) {
+  checks ??= await createTower(wasm, undefined, builtins.foundation, undefined, builtins.bedrock,
+    {tower: builtins.tower, builtins, project: {files: assertionFiles}, imports: observations});
+  try { runSelectedTest(checks, cases + entry + '.tower'); }
+  finally { parsed = statements = nodes = undefined; }
+}
+
 const example = await readFile(new URL('../../scaffolding/examples/replacements.tower', import.meta.url), 'utf8');
 const base = await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8') +
   "parse Expression = Identifier | Number;parse Statement = Expression ';';";
@@ -118,76 +162,13 @@ test('changed bodies, grammar and lexical rules invalidate templates without poi
   assert.match(lexical.end.error, /Replacement/);
 });
 
-test('invalid captures, wrong categories and unclosed bodies fail atomically at their source', () => {
-  for (const rhs of ['$missing', '1;', '']) {
-    const source = base + `parse Expression |= 'bad' => replace { ${rhs} };`;
-    const { end } = analyze(source);
-    assert.equal(end.status, 'error', rhs);
-    assert.equal(end.revision, 3); // The numeric token and two accepted grammar rules.
-    assert.ok(end.errorOffset >= source.indexOf('replace {') + 'replace {'.length);
-  }
-  const broken = analyze(base + "parse Expression |= 'bad' => replace { 1;");
-  assert.equal(broken.end.status, 'error'); assert.match(broken.end.error, /Unexpected end of input/);
-  const missing = analyze(base + "parse Expression |= 'x' '(' $value:Expression ')' => replace { $value $value };");
-  assert.equal(missing.end.status, 'error');
-  assert.equal(missing.end.revision, 3);
-});
+test('invalid captures, wrong categories and unclosed bodies fail atomically at their source', () => checkReplacement('invalid_captures'));
 
-test('invalid replacement diagnostics identify the required syntax and template without losing the error location', () => {
-  const source = "import foundation;\n// \u03bb\nparse Statement |= 'fart' $name:Identifier ';'\n    => replace { $name - $name; };";
-  const { end } = analyze(source);
-  assert.equal(end.status, 'error');
-  assert.match(end.error, /Replacement for Statement must produce a valid Statement\./);
-  assert.ok(end.error.includes('"$name - $name;" is not a valid Statement.'));
-  assert.equal(end.errorOffset, Buffer.byteLength(source.slice(0, source.indexOf(' - ') + 1)));
-  assert.equal(end.revision, 1); // Only the language import committed.
-  assert.equal(analyze(source.replace('$name - $name;', '$name = $name - $name;')).end.status, 'done');
+test('invalid replacement diagnostics identify the required syntax and template without losing the error location', () => checkReplacement('diagnostics'));
 
-  const expression = analyze(base + "parse Expression |= 'bad' => replace { 1; };").end;
-  assert.ok(expression.error.includes('"1;" is not a valid Expression.'));
-  const empty = analyze(base + "parse Expression |= 'bad' => replace { }; ").end;
-  assert.ok(empty.error.includes('<empty> is not a valid Expression.'));
-  const unknown = analyze(base + "parse Expression |= 'bad' => replace { $missing };").end;
-  assert.match(unknown.error, /Unknown replacement capture: \$missing/);
+test('template scanner respects strings, comments, nested braces, optional and repeated captures', () => checkReplacement('scanner'));
 
-  // A helper can replace into a unit-rule parent: don't falsely claim that its
-  // own rule is the only permitted destination when none of the candidates fit.
-  const helper = analyze(base + "parse Alias = 'bad' => replace { 1; };parse Expression |= Alias;").end;
-  assert.equal(helper.status, 'error');
-  assert.match(helper.error, /syntax categories: Alias, Expression/);
-  assert.match(helper.error, /"1;" is not valid in any of these categories/);
-});
-
-test('template scanner respects strings, comments, nested braces, optional and repeated captures', () => {
-  const source = base + "parse Expression |= String;" +
-    "parse Block = '{' $Statement* '}';parse Statement |= Block;" +
-    "parse Statement |= 'wrap' '{' $body:Statement* '}' => replace { { /* } */ $body \"}\"; } };" +
-    "wrap { x; }wrap {}";
-  const { end, events } = analyze(source);
-  assert.equal(end.status, 'done', end.error);
-  assert.ok(events.at(-1).nodes.some(node => node.label === '"}"'));
-  assert.equal(expandedCode(events.at(-1).nodes), '{\n  "}";\n}');
-  const optional = analyze(base + "parse Statement |= 'maybe' $value:Expression? ';' => replace { $value; };maybe;");
-  assert.equal(optional.end.status, 'error'); // Optional syntax cannot fill a required expression.
-  const validOptional = analyze(base + "parse Statement |= 'show' Expression? ';';" +
-    "parse Statement |= 'maybe' $value:Expression? ';' => replace { show $value; };maybe;maybe x;");
-  assert.equal(validOptional.end.status, 'done', validOptional.end.error);
-  assert.equal(validOptional.events.at(-2).nodes.filter(node => node.label === 'show').length, 1);
-  assert.equal(validOptional.events.at(-1).nodes.filter(node => node.label === 'x').length, 1);
-  const plus = analyze(base + "parse Block = '{' $Statement* '}';parse Statement |= Block;" +
-    "parse Statement |= 'copy' '{' $body:Statement+ '}' => replace { { $body $body } };copy { x; }");
-  assert.equal(plus.end.status, 'done', plus.end.error);
-  assert.equal(plus.events.at(-1).nodes.filter(node => node.label === 'x').length, 2);
-});
-
-test('named helper inference never silently leaves a replacement unexpanded in an incompatible context', () => {
-  const source = base + "parse Alias = 'named' => replace { 9 };parse Expression |= Alias;" +
-    "parse Statement |= 'use' Alias ';';use named;";
-  const { end } = analyze(source);
-  assert.equal(end.status, 'error');
-  assert.match(end.error, /requires a Expression destination/);
-  assert.equal(end.errorOffset, source.lastIndexOf('named'));
-});
+test('named helper inference never silently leaves a replacement unexpanded in an incompatible context', () => checkReplacement('helper'));
 
 test('long identity nesting moves normalized captures without copying or recursive expansion calls', () => {
   const depth = 400;
