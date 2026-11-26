@@ -1,0 +1,25 @@
+import .tests.precedence_inputs.left as left;
+import .tests.precedence_inputs.left_alias as left_alias;
+import .tests.precedence_inputs.right as right;
+import .tests.precedence_inputs.right_alias as right_alias;
+import .tests.precedence_inputs.chained as chain;
+import .tests.precedence_inputs.nonassoc as nonassoc;
+import .tests.precedence_inputs.replacement as twice_rule;
+import library.testing;
+
+test() {
+    assert(left.subtraction == 4 && left.product == 14 && left.grouped == 20, "left grouping");
+    assert(left_alias.subtraction == 4 && left_alias.product == 14 && left_alias.grouped == 20, "L>R grouping");
+    assert(right.subtraction == 6 && right.product == 14 && right.grouped == 20, "right grouping");
+    assert(right_alias.subtraction == 6 && right_alias.product == 14 && right_alias.grouped == 20, "R<L grouping");
+}
+test() {
+    assert(chain.subtraction == 4 && chain.product == 14 && chain.grouped == 20, "layered expression grammar");
+}
+test() {
+    assert(nonassoc.grouped_left == 4 && nonassoc.grouped_right == 6, "explicit nonassociative groups");
+}
+test() {
+    assert(twice_rule.result == 25, "annotated replacement capture");
+    assert(twice_rule.quotient == 5, "expand twice before integer division");
+}

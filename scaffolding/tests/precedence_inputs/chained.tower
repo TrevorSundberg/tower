@@ -1,0 +1,11 @@
+import bindings;
+// Atom, product and sum, using expression node names understood by the checker.
+parse CoreCallArgument = Number | '(' $value:TowerExpression ')';
+parse TowerComma = CoreCallArgument | $left:TowerComma '*' $right:CoreCallArgument;
+parse TowerExpression = TowerComma | $left:TowerExpression '+' $right:TowerComma
+    | $left:TowerExpression '-' $right:TowerComma;
+parse Statement = CoreDeclare;
+
+var subtraction = 8-3-1;
+var product = 2+3*4;
+var grouped = (2+3)*4;

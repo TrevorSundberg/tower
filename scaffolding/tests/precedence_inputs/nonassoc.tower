@@ -1,0 +1,9 @@
+import bindings;
+parse TowerExpression = Number | '(' $value:TowerExpression ')';
+parse TowerExpression |= $left:TowerExpression '-' $right:TowerExpression @ 10 nonassoc;
+parse TowerExpression |= $left:TowerExpression '+' $right:TowerExpression @ 10 nonassoc;
+parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression @ 20 left;
+parse Statement = CoreDeclare;
+
+var grouped_left = (8-3)-1;
+var grouped_right = 8-(3-1);
