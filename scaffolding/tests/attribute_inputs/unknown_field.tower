@@ -1,0 +1,5 @@
+import tower;
+
+struct A { x: i32; }
+[init(A, {wrong: 1})]
+fn f(): void {}

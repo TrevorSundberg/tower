@@ -1,0 +1,126 @@
+import tower;
+import body_runs;
+import frontend_units;
+import execution_support;
+import execution_core;
+import execution_source_case;
+import .compiler.execution_session;
+import .compiler.foundation_tags;
+import .compiler.foundation_types;
+import .compiler.format_types;
+import .library.vector;
+
+fn declaration_attribute_values(session: ExecutionSession*): void {
+    var count: usize = 0;
+    foreach(var node in &sem_get(session.program.root).items) {
+        var declaration = sem_get(node);
+        foreach(var attribute in &declaration.attributes) {
+            count++;
+            var value = sem_get(attribute);
+            execution_check(value.kind == KMetadataValue && value.type.scalar == SStruct, "Attribute is a shared typed Foundation value");
+            var name = sem_get(value.type.record).name.data;
+            if strcmp(name, "Representation") == 0 {
+                var width: u64 = declaration.kind == KType ? 4 : 8;
+                execution_check(value.items.length == 2
+                    && sem_get(sem_get(value.items.data[0]).value).bits == width
+                    && sem_get(sem_get(value.items.data[1]).value).bits == width, "Ordinary constructor evaluates metadata");
+            } else {
+                execution_check(strcmp(name, "Behavior") == 0, "Nominal metadata type");
+                var callback = sem_get(sem_get(value.items.data[0]).value);
+                execution_check(callback.kind == KFunctionReference && strcmp(sem_get(callback.binding).name.data, "twice") == 0, "Attribute callback relocates by declaration");
+                var array = sem_get(sem_get(value.items.data[1]).value);
+                execution_check(array.kind == KMetadataValue && array.items.length == 2
+                    && sem_get(sem_get(array.items.data[0]).value).bits == 3
+                    && sem_get(sem_get(array.items.data[1]).value).bits == 7, "Attribute array fields retain typed values");
+            }
+        }
+    }
+    execution_check(count == 3, "Type, function and variable attributes survive compilation");
+}
+
+fn attribute_import_cycle(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/attribute_inputs/cycle.tower", &source);
+    var cycle: ExecutionSession = default;
+    defer execution_session_close(&cycle);
+    execution_compile(&cycle, source.data, 8, modules);
+    execution_check(execution_session_start(&cycle), "Attributed declarations preserve valid import cycles");
+    execution_run(&cycle, 1000, 100000);
+    execution_check(cycle.machine.done && cycle.error.length == 0 && execution_text(&cycle.output, "42\n"),
+        "Attributes preserve fixed-binding inference and staged dependencies");
+    execution_roundtrip(&cycle, modules, false);
+    var metadata_count: usize = 0;
+    foreach(var declaration in &sem_get(cycle.program.root).items) { metadata_count += sem_get(declaration).attributes.length; }
+    execution_check(metadata_count == 3, "Fixed-binding inference retains declaration metadata");
+}
+
+fn attribute_typed_values(modules: void*, root: u8*): void {
+    var source: vector(u8) = default;
+    var bedrock: vector(u8) = default;
+    var foundation: vector(u8) = default;
+    defer vector_dispose(&source);
+    defer vector_dispose(&bedrock);
+    defer vector_dispose(&foundation);
+    units_read(root, "/tests/declaration_attributes.tower", &source);
+    units_read(root, "/bedrock.tower", &bedrock);
+    units_read(root, "/foundation.tower", &foundation);
+    for(var width: u32 = 4; width <= 8; width += 4) {
+        var graph: ExecutionSession = default;
+        defer execution_session_close(&graph);
+        execution_compile(&graph, source.data, width, modules);
+        declaration_attribute_values(&graph);
+        execution_check(execution_session_start(&graph), "Attributed program starts");
+        execution_run(&graph, 1000, 100000);
+        execution_check(graph.machine.done && graph.error.length == 0 && execution_text(&graph.output, "0\n"), "Attributes preserve ordinary execution");
+        execution_roundtrip(&graph, modules, false);
+        var text: FormatResult = default;
+        defer format_dispose(&text);
+        format_entity(&text, graph.program.root, syntax_component_type(), null, parser_match_get_type());
+        execution_check(vector_reserve(&text.text, text.text.length + 1), "Attribute text terminator storage");
+        text.text.data[text.text.length] = 0;
+        execution_check(!text.failed && strstr(text.text.data, "[init(Representation,") != null, "Attributes have canonical Foundation spelling");
+        var canonical: ExecutionSession = default;
+        defer execution_session_close(&canonical);
+        execution_compile(&canonical, text.text.data, width, modules);
+        declaration_attribute_values(&canonical);
+        var deterministic: vector(u8) = default;
+        defer vector_dispose(&deterministic);
+        for(var workers: usize = 1; workers <= 8; workers *= 2) {
+            body_runs_trial(source.data, workers, width, bedrock.data, foundation.data, root, &deterministic);
+        }
+    }
+}
+
+fn attribute_reject_scalar(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/scalar.tower", "must produce a struct");
+}
+
+fn attribute_reject_duplicate(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/duplicate.tower", "Duplicate attribute type");
+}
+
+fn attribute_reject_output(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/output.tower", "output");
+}
+
+fn attribute_reject_missing_field(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/missing_field.tower", "every field");
+}
+
+fn attribute_reject_unknown_field(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/unknown_field.tower", "Unknown metadata field");
+}
+
+fn attribute_reject_runtime_capture(modules: void*, root: u8*): void {
+    execution_reject_file(modules, root, "/tests/attribute_inputs/runtime_capture.tower", "cannot capture runtime storage");
+}
+
+test() { execution_source_case(attribute_import_cycle); }
+test() { execution_source_case(attribute_typed_values); }
+test() { execution_source_case(attribute_reject_scalar); }
+test() { execution_source_case(attribute_reject_duplicate); }
+test() { execution_source_case(attribute_reject_output); }
+test() { execution_source_case(attribute_reject_missing_field); }
+test() { execution_source_case(attribute_reject_unknown_field); }
+test() { execution_source_case(attribute_reject_runtime_capture); }

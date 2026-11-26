@@ -1,0 +1,33 @@
+import tower;
+import execution_fixture_input;
+import execution_support;
+import frontend_units;
+import struct_value_checks;
+import .compiler.syntax_version_types;
+import .host.driver_request;
+import .host.driver_types;
+import .host.syntax_baseline_api;
+import .library.vector;
+
+// Selected native tests run with the resource directory as their working directory.
+fn execution_source_case(run: function(void, void*, u8*)): void {
+    var options: DriverOptions = { source: "./foundation.tower", bedrock: "", foundation: "", ..default };
+    var request: DriverRequest = default;
+    execution_check(driver_request_open(&request, &options, "."), "bootstrap snapshots");
+    defer driver_request_close(&request);
+    var world = compiler_host_world();
+    driver_request_bind(&request, syntax_host_environment(world));
+    var result: SyntaxVersionDiagnostic = default;
+    defer syntax_version_diagnostic_dispose(&result);
+    execution_check(syntax_host_install(world, request.text[DriverBedrockText].data, false, &result), "install Bedrock");
+    execution_check(syntax_host_install(world, request.text[DriverFoundationText].data, true, &result), "install Foundation");
+    execution_fixture_input(&request, "named_initialization_input.tower");
+    run(request.modules, request.root_path.data);
+}
+
+fn execution_reject_file(modules: void*, root: u8*, filename: u8*, diagnostic: u8*): void {
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, filename, &source);
+    struct_value_reject(modules, source.data, diagnostic);
+}
