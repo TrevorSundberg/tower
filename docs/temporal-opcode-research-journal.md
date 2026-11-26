@@ -107378,3 +107378,46 @@ Packet 14dc5b80-789f-4cd1-b2de-f3f591818055 contains the control, candidate,
 source refs, per-call output map, build commands, Chromium receipts and resource
 samples for the manager. Other browser profiles, native generation, unfiltered
 Node tests and site publication have separate owners.
+
+### 2026-11-26 — cross-target browser LLVM release and editable link support
+
+Slot 5 built the missing Release `tower-browser-cross` target on the exact
+8bc867b69cc6084b9da09a51475c7c740efd9419 source and LLVM/WASI cache of the
+ordinary reactor. Its 241 actions took 80.84 s wall and 1,588.57 s CPU with 24
+build jobs on a Ryzen 9 5900XT, 30.72-CPU quota, 129,569,390,592-byte memory
+limit. Peak sampled process-family RSS was 8,344,788 KiB. The common runtime
+embed step repeated because its depfile names the intermediate object. All 88
+ordinary link inputs and both ordinary binaries retained their prior bytes.
+A separate cross relink reproduced the unstripped candidate. SDK strip and
+the production packager yielded a 56,611,790-byte raw image (SHA-256
+`858f36202d9060b4f8ad3fe358f65876a9d2c6b6e0d0061a3c19e4e1ccd548ae`)
+and 17,698,356-byte gzip (SHA-256
+`edc0d6f5122d5ffaa126a9c5eeeac2f14f8884bc3b30a418a645c6833268ee09`).
+
+The seven existing cross registrations passed three times each on the published
+and candidate images. Each run used the intended cross slot. Ordinary LLVM
+overrides were scoped to ordinary requests. Chromium selected separate cached
+compilers in the same worker. The six executable pairs and twelve raw/optimized
+object pairs matched across revisions, as did the six linked libraries.
+The real source guest and library ran under Wasm, Linux x64, QEMU Linux ARM64
+and Wine Windows x64. Both Mach-O variants passed architecture, link and
+libSystem checks. Darwin execution needs a Mac. Five native bootstrap objects
+matched the browser bytes. The Wasm object's target features differed; its
+independent link and execution returned 42. Wrong-architecture and missing
+runtime inputs returned recoverable linker diagnostics. The original fixed
+array fixture distinguishes the images at byte 170. All 22 WASI imports and
+1,322 prior exports retained their signatures and limits; 14 functions were
+added. Three alternating warm pairs had median wall/CPU seconds and peak
+process KiB of 1.29/3.05/453592 published and 1.30/3.08/454196 candidate.
+
+Three further actions built this cache's same-source release parser for the
+production project packager. It emitted 25 unit registrations, 603 source
+entries and complete parser, ordinary and cross support. Seven regenerated
+target inputs matched the public pack. The production editable linker rejected
+a truncated backend-native.o, then linked and checked all three intact reactor
+images. A fresh archive extraction reproduced the hashes using its own objects,
+support and recipe. Packet f85dfd7b-3b9b-4b52-b7fb-7983a3813879 includes the
+compressed release image, editable project transfer, per-member checksums,
+link recipes, measured registrations, target execution and ABI records.
+Edited two-generation worker builds, shared and IDE profiles, unfiltered Node
+and assembled-site registration remain release-level gates for their owners.
