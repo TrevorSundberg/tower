@@ -45,6 +45,17 @@ if(TOWER_ALLOCATOR_TESTS)
     tower_guest_runtime(host-library "${triple}" posix OFF UNINSTRUMENTED)
     get_property(test_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
     tower_selected_test_count("${triple}")
+    tower_guest_runtime(native-test-libc "${triple}" posix ON UNINSTRUMENTED)
+    get_property(guest_abi_runtime GLOBAL PROPERTY TOWER_GUEST_native-test-libc_OBJECT)
+    add_dependencies(tower-allocator-tests tower-guest-native-test-libc)
+    set(guest_selection --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+      --test-native-runtime "${guest_abi_runtime}")
+    file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/guest-abi.expected" CONTENT "")
+    file(GENERATE OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/guest-main.expected" CONTENT "0\n")
+    tower_native_test_selections(guest-abi guest_runtime_abi "1 test" "1 test" ${guest_selection}
+      --test-oracle "${CMAKE_CURRENT_BINARY_DIR}/guest-abi.expected")
+    tower_native_test_selections(guest-main guest_runtime_main "2 tests" "1 test" ${guest_selection}
+      --test-oracle "${CMAKE_CURRENT_BINARY_DIR}/guest-main.expected")
     foreach(suite IN ITEMS allocator runtime-abi)
       if(suite STREQUAL "allocator")
         set(owner allocator_glue)
@@ -85,13 +96,14 @@ if(TOWER_ALLOCATOR_TESTS)
     set(wasm_imports "${CMAKE_CURRENT_BINARY_DIR}/tower-allocator-wasm.imports")
     file(GENERATE OUTPUT "${wasm_imports}" CONTENT "tower_trap\n")
     tower_runtime_object(tower-allocator-wasm "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_wasm.tower" wasm32-unknown-unknown)
+    set(heap_link "--allow-undefined-file=${wasm_imports}" --initial-memory=131072 --max-memory=524288)
     add_custom_command(OUTPUT "${wasm_module}"
       COMMAND "${wasi_linker}" --freestanding "${tower-allocator-wasm_OBJECT}" "${wasi_libc}"
         -Wl,--no-entry -Wl,--export=allocator_wasm_tests
-        "-Wl,--allow-undefined-file=${wasm_imports}"
-        -Wl,--initial-memory=131072 -Wl,--max-memory=524288 -o "${wasm_module}"
+        ${heap_link} -o "${wasm_module}"
       DEPENDS "${tower-allocator-wasm_OBJECT}" "${wasm_imports}" "${wasi_libc}" "${wasi_linker}" VERBATIM)
     add_custom_target(tower-allocator-wasm DEPENDS "${wasm_module}")
+    tower_guest_wasm_selections(allocator_wasm 1 "${wasi_linker}" "${wasi_libc}" ${heap_link})
     add_test(NAME tower-allocator-wasm COMMAND "${TOWER_ALLOCATOR_NODE}"
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/run-allocator-wasm.mjs" "${wasm_module}")
   endif()

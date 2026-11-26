@@ -1,0 +1,81 @@
+import allocator_abi.case;
+import .host.guest_memory;
+import .host.guest_wasm;
+
+// Link with 128 KiB initial / 512 KiB maximum memory. No libc allocator runs
+// alongside this explicit arena.
+abi_entry(check_wasm_heap)
+test() {
+    abi_assert(sizeof(usize) == 4, 1, "Use 32-bit guest pointers");
+    abi_assert(sizeof(GuestBlock) == 16, 2, "Guest block header occupies 16 bytes");
+    abi_assert(guest_wasm_limit(65536) == 4294967295, 3, "Saturate the full W32 page limit");
+    var heap: GuestHeap;
+    abi_assert(guest_wasm_init(&heap), 4, "Initialize an empty Wasm heap");
+    var begin = heap.cursor;
+    var initial_pages = guest_wasm_pages();
+    var zero = guest_wasm_allocate(&heap, 0, 1);
+    abi_assert(zero != null, 5, "Allocate the zero-size block");
+    var address = bits(usize, zero);
+    var remainder = address % 16;
+    abi_assert(remainder == 0, 6, "Align the zero-size block");
+    var wanted = initial_pages + 1;
+    abi_assert(guest_wasm_pages() == wanted, 7, "Commit the first page");
+    guest_heap_free(&heap, zero);
+    abi_assert(heap.cursor == begin, 8, "Free restores the initial cursor");
+    var first = guest_wasm_allocate(&heap, 65520, 1);
+    abi_assert(first != null, 9, "Allocate the first payload");
+    abi_assert(guest_wasm_pages() == wanted, 10, "Fit the first payload in the committed page");
+    var bytes = bits(u8*, first);
+    fill(bytes, 91, 65520);
+    var second = guest_wasm_allocate(&heap, 17, 1);
+    abi_assert(second != null, 11, "Allocate the second payload");
+    wanted++;
+    abi_assert(guest_wasm_pages() == wanted, 12, "Commit another page");
+    abi_assert(bytes[0] == 91, 13, "Keep the first byte after growth");
+    abi_assert(bytes[65519] == 91, 14, "Keep the last byte after growth");
+    var next = guest_wasm_reallocate(&heap, first, 70000, 1);
+    abi_assert(next != null, 15, "Grow the first allocation");
+    first = next;
+    bytes = bits(u8*, first);
+    for (var i: usize = 0; i < 65520; i++) {
+        abi_assert(bytes[i] == 91, 16, "Copy every original byte");
+    }
+    var cursor = heap.cursor;
+    var limit = heap.limit;
+    var available = heap.available;
+    var pages = guest_wasm_pages();
+    // Failed growth and multiplication/rounding/address overflow preserve both
+    // existing bytes and the arena's free-list/cursor/committed-limit state.
+    next = guest_wasm_reallocate(&heap, first, 1048576, 1);
+    abi_assert(next == null, 17, "Reject growth beyond maximum memory");
+    next = guest_wasm_reallocate(&heap, first, 4294967295, 2);
+    abi_assert(next == null, 18, "Reject overflowing realloc multiplication");
+    next = guest_wasm_allocate(&heap, 4294967295, 1);
+    abi_assert(next == null, 19, "Reject allocation size rounding overflow");
+    next = guest_wasm_allocate(&heap, 4294901760, 1);
+    abi_assert(next == null, 20, "Reject end-address overflow");
+    abi_assert(heap.cursor == cursor, 21, "Keep the cursor after refusal");
+    abi_assert(heap.limit == limit, 22, "Keep the committed limit after refusal");
+    abi_assert(heap.available == available, 23, "Keep the free list after refusal");
+    abi_assert(guest_wasm_pages() == pages, 24, "Keep the page count after refusal");
+    abi_assert(bytes[65519] == 91, 25, "Keep the last payload byte after refusal");
+    next = guest_wasm_reallocate(&heap, first, 4, 1);
+    abi_assert(next == first, 26, "Shrink in place");
+    guest_heap_free(&heap, second);
+    next = guest_wasm_reallocate(&heap, first, 0, 1);
+    abi_assert(next == null, 27, "Release on zero-size realloc");
+    abi_assert(heap.cursor == begin, 28, "Restore the initial cursor after both releases");
+    var reused = guest_wasm_allocate(&heap, 100000, 1);
+    abi_assert(reused != null, 29, "Reuse committed storage");
+    abi_assert(guest_wasm_pages() == pages, 30, "Reuse without growing memory");
+    guest_heap_free(&heap, reused);
+    // A context can keep its committed storage if someone else grew memory,
+    // but must not claim the new foreign suffix when it needs more storage.
+    var foreign_previous = `llvm.wasm.memory.grow.i32`(0, 1);
+    abi_assert(foreign_previous == pages, 31, "Observe the previous page count on foreign growth");
+    var capacity = heap.limit - heap.cursor;
+    next = guest_wasm_allocate(&heap, capacity, 1);
+    abi_assert(next == null, 32, "Refuse the foreign suffix");
+    abi_assert(heap.limit == limit, 33, "Keep the owned limit after foreign growth");
+    abi_assert(heap.cursor == begin, 34, "Keep the cursor after foreign growth");
+}

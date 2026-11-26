@@ -2711,3 +2711,27 @@ one deliberately wrong value and must return1 after cleanup. CTests
 native binary/180s convention; the latter has `WILL_FAIL`. `all` includes only the
 correct paired fixture once. These target64 checks require two native lanes;
 observed unit overlap is not a body-overlap, race-safety or general speedup claim.
+
+### Guest allocator ABI and Wasm memory growth
+
+Configure the native build with `TOWER_ALLOCATOR_TESTS=ON` and point
+`TOWER_ALLOCATOR_WASI_SDK` at the WASI SDK. For W32 declaration selection,
+set `TOWER_ALLOCATOR_TEST_REACTOR` to a portable `tower.wasm` with
+`tw_exec_create_tests` and conditional-declaration support. It defaults to
+the `TOWER_TEST_WASM` environment variable on first configuration.
+
+```sh
+cmake --build "$B" --target tower-allocator-tests tower-allocator-wasm \
+  tower-guest-runtime-fixed-tests tower-guest-runtime-growth-tests
+ctest --test-dir "$B" -V -R '^tower-(allocator-wasm$|guest-)'
+```
+
+The ordinary commands call the original exports. The declaration commands use
+the default owner or direct companion selection, format the W32 test program
+as Foundation, compile it with the configured bootstrap and invoke its
+`tower_main` in a fresh Wasm instance. Each selection's Foundation, object and
+module are in `Testing/guest/<entry>/` under the build directory. The explicit
+arena uses wasi-libc byte primitives. The production fixed and growing heaps
+use `guest-wasm32.o`. All three start at 128 KiB. The fixed heap has a 128 KiB
+maximum, and both growing heaps have a 512 KiB maximum. The Linux GNU native
+ABI and main declarations use the hosted test runtime and compare guest stdout.

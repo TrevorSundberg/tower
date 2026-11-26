@@ -1,3 +1,23 @@
+# Optional portable frontend for selecting W32 test declarations.
+set(TOWER_ALLOCATOR_TEST_REACTOR "$ENV{TOWER_TEST_WASM}" CACHE FILEPATH "Portable Tower compiler with test selection")
+function(tower_guest_wasm_selections unit owner_count)
+  if(NOT TOWER_ALLOCATOR_TEST_REACTOR)
+    return()
+  endif()
+  foreach(entry IN ITEMS "${unit}" "${unit}_test")
+    set(count "${owner_count}")
+    if(entry STREQUAL "${unit}_test")
+      set(count 1)
+    endif()
+    set(work "${CMAKE_CURRENT_BINARY_DIR}/Testing/guest/${entry}")
+    file(MAKE_DIRECTORY "${work}")
+    add_test(NAME tower-guest-declarations-${entry} COMMAND "${TOWER_ALLOCATOR_NODE}"
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/run-guest-declarations.mjs"
+      "${TOWER_ALLOCATOR_TEST_REACTOR}" "${entry}" "${count}" "${TOWER_BOOTSTRAP_COMPILER}" ${ARGN})
+    set_tests_properties(tower-guest-declarations-${entry} PROPERTIES WORKING_DIRECTORY "${work}")
+  endforeach()
+endfunction()
+
 function(tower_guest_runtime_tests)
   if(NOT TOWER_ALLOCATOR_TESTS OR NOT TOWER_ALLOCATOR_WASI_SDK)
     return()
@@ -6,21 +26,29 @@ function(tower_guest_runtime_tests)
   get_property(runtime GLOBAL PROPERTY TOWER_GUEST_wasm32_OBJECT)
   tower_wasi_link_tool()
   get_property(linker GLOBAL PROPERTY TOWER_WASI_LINK_TOOL)
+  set(main_imports "${CMAKE_CURRENT_BINARY_DIR}/guest-main.imports")
+  file(GENERATE OUTPUT "${main_imports}" CONTENT "tower_trap\ntower_print\n")
+  tower_guest_wasm_selections(guest_runtime_main 2 "${linker}" "${runtime}"
+    "--allow-undefined-file=${main_imports}" --initial-memory=131072 --max-memory=131072)
   foreach(mode IN ITEMS fixed growth)
     set(source guest_runtime_abi)
     set(function allocator_wasm_tests)
     set(maximum 131072)
+    set(count 1)
     if(mode STREQUAL "growth")
       set(source guest_runtime_growth)
       set(function guest_runtime_growth_tests)
       set(maximum 524288)
+      set(count 2)
     endif()
     set(base "${CMAKE_CURRENT_BINARY_DIR}/guest-runtime-${mode}-tests")
+    set(heap_link "--allow-undefined-file=${base}.imports" --initial-memory=131072 "--max-memory=${maximum}")
+    tower_guest_wasm_selections("${source}" "${count}" "${linker}" "${runtime}" ${heap_link})
     tower_runtime_object(guest-runtime-${mode}-tests "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${source}.tower" wasm32-unknown-unknown)
     file(GENERATE OUTPUT "${base}.imports" CONTENT "tower_trap\n")
     add_custom_command(OUTPUT "${base}.wasm"
       COMMAND "${linker}" --freestanding --no-entry --export=${function}
-        --allow-undefined-file=${base}.imports --initial-memory=131072 --max-memory=${maximum}
+        ${heap_link}
         "${base}.o" "${runtime}" -o "${base}.wasm"
       DEPENDS "${base}.o" "${base}.imports" "${runtime}" "${linker}" VERBATIM)
     add_custom_target(tower-guest-runtime-${mode}-tests ALL DEPENDS "${base}.wasm")

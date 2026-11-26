@@ -1,0 +1,13 @@
+import library.testing;
+import guest_runtime_abi;
+
+// The command prints the ABI result before reporting the original trap.
+fn report_guest_runtime(): void {
+    var result = guest_runtime_tests();
+    print(result);
+    assert(result == 0, "Division by zero");
+}
+
+test() {
+    report_guest_runtime();
+}

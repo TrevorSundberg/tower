@@ -1,66 +1,10 @@
 import tower;
+import guest_runtime_abi_test;
 
-// The production guest ABI, including its raw byte primitives. Functional
-// checks run as the same Tower program on native and Wasm target runtimes.
 export fn guest_runtime_tests(): i32 {
-    var maximum: usize = 0;
-    --maximum;
-    var too_large = alloc(u64, maximum);
-    var bad = too_large != null;
-    if bad {
-        return 1;
-    }
-    var zero = alloc(u8, 0);
-    free(zero);
-    var size: usize = 1;
-    while size < 258 {
-        var data = alloc(u8, size);
-        bad = data == null;
-        if bad {
-            return 2;
-        }
-        var alignment = bits(usize, data) % 16;
-        bad = alignment != 0;
-        if bad {
-            return 3;
-        }
-        fill(data, 173, size);
-        var failed = realloc(u64, bits(u64*, data), maximum);
-        bad = failed != null;
-        if bad {
-            return 4;
-        }
-        var grown = size + 513;
-        var next = realloc(u8, data, grown);
-        bad = next == null;
-        if bad {
-            return 5;
-        }
-        var i: usize = 0;
-        while i < size {
-            bad = next[i] != 173;
-            if bad {
-                return 6;
-            }
-            ++i;
-        }
-        // Both overlap directions require memmove semantics.
-        next[0] = 42;
-        copy(&next[1], next, size);
-        bad = next[1] != 42;
-        if bad {
-            return 7;
-        }
-        copy(next, &next[1], size);
-        bad = next[0] != 42;
-        if bad {
-            return 8;
-        }
-        next = realloc(u8, next, 0);
-        free(next);
-        ++size;
-    }
-    return 0;
+    var status: i32 = 0;
+    check_guest_abi(&status);
+    return status;
 }
 
 export fn allocator_wasm_tests(): i32 {
