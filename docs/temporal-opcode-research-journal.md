@@ -109190,3 +109190,43 @@ as well. Follow-up `eeadec59` opens it on the first selected table assertion
 and registers cleanup on the module's hook. It retains one VM across selected
 names. The ordinary source compiler and all registrations below the table keep
 their existing calls.
+
+Each of the 17 original and 17 final exact-name Node filters passed on the
+same published portable and LLVM reactors (SHA-256 prefixes `41bb9b11` and
+`15b4f33b`, Pages `dd6651b1`). The packet records the readers, names,
+fixtures and raw output by backend in `outputs.tsv`. Its 170 paired artifacts
+match byte for byte, including 62,610 bytes of canonical Foundation, all
+reparsed source and type tables, pre-optimization IR, executable Wasm and
+all three sets of guest output (254 bytes per engine). Replaying the existing
+growable-buffer reader at both Roku optimization settings and the existing
+Graph/Fast width/budget reader passed before and after the fixture move.
+
+The public Linux x64 compiler (`7315b86e`) passed 68 owner/direct commands
+at jobs 1 and 4. Direct selection ran one declaration each. Storage owner
+selection also found the two existing byte-library tests at both widths.
+Ordinary 64-bit native interpretation produced the original stdout for 16
+cases and the separately asserted eight-byte-pointer layout for field offsets.
+The allocator's interpreter heap limit also rejects the original large counts
+at width eight. The 32-bit programs still request 4,294,967,295 elements.
+
+Replacing just the leading ASCII 7 with 8 in the pointer round-trip oracle
+failed the browser's Tower Graph assertion and all four native selections
+at `pointer_round_trip_test.tower:7:5`. Restoring the byte passed all five.
+Separate changes to the transported Graph, Fast and LLVM output each failed
+a Tower assertion. Altering only the second Foundation, its reflected types,
+or the pre-optimization IR also failed at the corresponding check.
+
+Host 7 used an AMD EPYC 7502, Node 24.22.3, a 30.71999-core cgroup quota
+and CPUs 0–3 of the allowed 0–63. One timing command held the host lock at
+a time. Six fresh Node processes per selection alternated original/candidate
+in ABBAAB order with warm files and unchanged released binaries. The 17-case
+selection's median wall / CPU / maximum RSS changed from 2.27 s / 5.17 s /
+267,616 KiB to 3.92 s / 7.35 s / 296,908 KiB. The isolated field-offset
+selection changed from 1.16 s / 2.00 s / 233,404 KiB to 1.68 s / 2.74 s /
+244,720 KiB. The final subject and assertion VMs had zero tracked legacy
+allocations after handle destruction. Their Wasm capacities were 46,465,024
+and 29,294,592 bytes, respectively. Both retained frontend entities.
+These measurements include test discovery, the second interpreter and the
+Node harness. The guest binaries match. Compiler generations, instrumented
+products and the full CI matrix were outside this released-fixture run.
+Integration and publication belong to the manager.
