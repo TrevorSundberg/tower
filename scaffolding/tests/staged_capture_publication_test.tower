@@ -1,0 +1,9 @@
+import tower;
+import staged_capture_identity;
+import utility_checks;
+import .compiler.semantic_context_types;
+
+fn capture_inspect_root(c: SemanticContext*, check: CaptureCheck*): void {
+    utility_check(check != null, "Capture observer installed for the root");
+    check.inspect(c, check);
+}

@@ -1,6 +1,6 @@
 import tower;
 import execution_support;
-import utility_checks;
+import staged_capture_publication_test;
 import staged_capture_identity;
 import .compiler.semantic_known_types;
 import .compiler.semantic_context_types;
@@ -22,8 +22,7 @@ export fn semantic_known_publish_kernel(job: SemanticKnownWork*): void {
     if job.subject == c.program.root {
         var world = compiler_node_world(job.subject);
         var check = bits(CaptureCheck*, compiler_world_grammar(world).observer.context);
-        utility_check(check != null, "Capture observer installed for the root");
-        check.inspect(c, check);
+        capture_inspect_root(c, check);
     }
     capture_publish_original(job);
 }
