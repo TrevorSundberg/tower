@@ -35,13 +35,13 @@ targets, limitations, build commands and deployment checks.
 On Ubuntu 24.04 x86-64, the prerequisites are Bash, curl, CA certificates, GNU
 coreutils and the packages `llvm-19-dev`, `clang-19`, `libc6-dev` and `binutils`.
 Use this command to install the compiler
-built at `0823b028` from package commit `b9342ba1`. The versioned
+built at `3ae475c2` from package commit `e3872c21`. The versioned
 prefix lets you keep an earlier installation alongside it.
 
 ```sh
 installer=$(curl -qfsS -H 'Accept: application/vnd.github.raw+json' \
-  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/b7e14bf007857d108c90834230bedae240edb3ba) &&
-  bash -c "$installer" -- "$HOME/.local/Tower Dev 0823b028"
+  https://api.github.com/repos/TrevorSundberg/tower/git/blobs/30113ef9fec199da4e8a060bc393bd94a5332906) &&
+  bash -c "$installer" -- "$HOME/.local/Tower Dev 3ae475c2"
 ```
 
 The installer prints the executable path. Repeating the command verifies the
@@ -51,8 +51,8 @@ as `example.tower` in a new directory. Run these commands from that directory.
 Each prints `42`.
 
 ```sh
-"$HOME/.local/Tower Dev 0823b028/linux-x64/towerc" example.tower --interpret
-"$HOME/.local/Tower Dev 0823b028/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
+"$HOME/.local/Tower Dev 3ae475c2/linux-x64/towerc" example.tower --interpret
+"$HOME/.local/Tower Dev 3ae475c2/linux-x64/towerc" example.tower --cc clang-19 -o example && ./example
 ```
 
 The delivery receipt records the Ubuntu 24.04.5 x86-64 installation checks

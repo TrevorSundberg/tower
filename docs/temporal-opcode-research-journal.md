@@ -105801,3 +105801,23 @@ Host 1 packet `98d9afe1-7131-4b9e-80a6-8dd428cead96.tar.gz` carries the
 Jenkins console, commands, inputs, comparison products, sanitizer attempts
 and local commit for review. The full Jenkins rerun and publication remain
 with the manager.
+
+### Ubuntu development bootstrap for native companion tests
+
+The package built from 3ae475c2 uses Ubuntu 24.04.5 and LLVM 19.1.1. The public
+predecessor built three generations with identical outputs across 39 native
+products and 59 package payloads. A separate host verified every payload, its
+mode and size, and all 1,335 source hashes. From a relocated prefix the mixed
+owner selected three tests and the direct companion selected two at one and four
+workers. The deliberately wrong assertion failed at owner_test.tower:12:1.
+The receiver compared 38 fixture runs against their expected streams and exits.
+
+The original strict verifier rejected the Semantics call to the parser label
+setter. The verifier in 6977d11d accepted all ten regenerated object inventories
+and rejected eleven unrelated, misspelled or wrong-unit cases. In the wider
+native suite, 205 CTest registrations ran fresh and three prior results had
+matching compiler, inputs and command lines. All 208 passed. These run counts
+cover the 3ae475c2 build. The public browser application has separate provenance.
+The producer, receiver and native suite receipts are c398f856, 5b1b928c and
+2c9e5bc9. The archive SHA-256 is
+`ddec8a02b149f80932b2120476422f502b97b3ee587b8de418d221609fc5cc74`.

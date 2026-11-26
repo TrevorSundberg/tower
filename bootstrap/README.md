@@ -14,11 +14,11 @@ syntax reset/expansion ownership, literal-query filtering, lowering frontier,
 capture-scan reuse, LR range ordering, raw-owner page savings and LR shift indexing.
 The predecessor at `c49c8b37` added reachable-production grammar emission, shared
 LR predictions and budgeted worker scratch that transfers to the graph after joins.
-The checked-in Linux x64 compiler was built from `0823b028fba66eb19de815f4d49d4fdbc0bdc56a`.
-Package commit `b9342ba14683a9679d3160f6fb3c8aa7222cb121` holds the
-2,279,480-byte executable and its adjacent resources. The executable SHA-256 is
-`0100aa61813fe15c4f058bf6e3b8265b9e214bdaf23484c80c5e428f59f59233`.
-The compiler discovers qualified type-alias dependencies before dispatching declaration workers.
+The checked-in Linux x64 compiler was built from `3ae475c2edaca11573bcb74c47a287508ee48981`.
+Package commit `e3872c21682584bd61135399dd4d89ee863ae111` holds the
+2,299,240-byte executable and its adjacent resources. The executable SHA-256 is
+`02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7`.
+This compiler runs inline tests and adjacent companion files with the native test command.
 The release archive and installer select this same compiler and verify the payloads.
 The [Linux install instructions](../README.md#install-the-linux-x64-development-compiler)
 give each compiler its own prefix and immutable installer command.
