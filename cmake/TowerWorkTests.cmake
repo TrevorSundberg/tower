@@ -32,11 +32,14 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         "${host_work_linux_OBJECT}" -o "${affinity_transport}"
       DEPENDS "${host_work_linux_OBJECT}" VERBATIM)
 
+    tower_runtime_object(work-arena-link-provider
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_arena.tower" "${work_triple}")
+
     function(tower_work_fixture unit profile)
       string(REPLACE "_" "-" target "tower-${unit}-tests")
       set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
       set(fixture_mode)
-      if(unit STREQUAL "work_ready" OR unit STREQUAL "entity_component_layout")
+      if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout)$")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
       elseif(unit STREQUAL "work_dispatch_result" OR unit STREQUAL "work_linux_affinity_faults" OR unit STREQUAL "entity_attach_leases")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
@@ -47,8 +50,6 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       if(unit STREQUAL "work_budget_shared")
         list(APPEND fixture_objects "${host_work_linux_OBJECT}")
       elseif(unit STREQUAL "work_arena_linkage")
-        tower_runtime_object(work-arena-link-provider
-          "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_arena.tower" "${work_triple}")
         list(APPEND fixture_objects "${work-arena-link-provider_OBJECT}")
       elseif(unit STREQUAL "entity_create_result")
         list(APPEND fixture_objects "${entity-create-provider_OBJECT}" "${host_memory_OBJECT}")
@@ -145,6 +146,10 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         ${ARGN} --link "${work_allocator}")
     endfunction()
     tower_work_native_selections(entity-component-layout entity_component_layout "9 tests" "4 tests" ${work_guest_args})
+    # Both arena owners also discover the five budget declarations.
+    tower_work_native_selections(work-arena work_arena "7 tests" "2 tests" ${work_guest_args})
+    tower_work_native_selections(work-arena-linkage work_arena_linkage "6 tests" "1 test"
+      ${work_guest_args} --link "${work-arena-link-provider_OBJECT}")
     # Ready owner discovery includes eight graph and five budget declarations.
     tower_work_native_selections(work-ready work_ready "18 tests" "5 tests" ${work_guest_args})
     tower_work_native_selections(work-schedule-budget work_schedule_budget_fixture "19 tests" "6 tests" ${work_guest_args})

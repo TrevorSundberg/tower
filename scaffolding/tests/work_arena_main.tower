@@ -1,0 +1,6 @@
+import tower;
+import work_arena as fixture;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    return fixture.main(argc, argv);
+}

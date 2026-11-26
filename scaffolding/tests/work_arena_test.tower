@@ -1,0 +1,105 @@
+import library.testing;
+import .library.work_arena;
+import .library.work_arena_types;
+import .library.work_budget;
+import .library.work_budget_types;
+import .host.memory;
+
+test() { arena_retention(); }
+test() { arena_addresses(); }
+
+fn arena_retention(): void {
+    var budget: WorkBudget = default;
+    var other: WorkBudget = default;
+    var chunk_bytes: usize = 4096;
+    var charged = compiler_buffer_allocation_size(chunk_bytes);
+    assert(work_budget_init(&budget, 1, charged * 2, 1));
+    assert(work_budget_init(&other, 1, charged, 1));
+    var parent: WorkArena = default;
+    var worker: WorkArena = default;
+    var wrong: WorkArena = default;
+    assert(work_arena_init(&parent, &budget, chunk_bytes));
+    assert(work_arena_init(&worker, &budget, chunk_bytes));
+    assert(work_arena_init(&wrong, &other, chunk_bytes));
+
+    var first_size: usize = 3500;
+    var second_size: usize = 2000;
+    var first = work_arena_allocate(&parent, first_size, 8);
+    var second = work_arena_allocate(&worker, second_size, 16);
+    assert(first != null && second != null);
+    fill(first, 41, first_size);
+    fill(second, 73, second_size);
+    var output = first;
+    assert(work_arena_allocate_result(&parent, second_size, 8, &output) == WorkBudgetError.Capacity);
+    assert(output == first && first[first_size - 1] == 41 && second[second_size - 1] == 73,
+        "Refused growth preserves the output pointer and both slices");
+
+    assert(!work_arena_append(&wrong, &worker) && wrong.first == null && worker.first != null,
+        "A different budget cannot take the worker's chunks");
+    assert(work_arena_append(&parent, &worker) && worker.first == null && worker.last == null,
+        "The parent takes both ends of the worker's chain");
+    assert(work_arena_append(&parent, &parent));
+    for (var i: usize = 0; i < first_size; i++) { assert(first[i] == 41); }
+    for (var i: usize = 0; i < second_size; i++) { assert(second[i] == 73); }
+    assert(budget.used_bytes == charged * 2 && !work_budget_dispose(&budget));
+    assert(work_arena_allocate_result(&worker, 1, 1, &output) == WorkBudgetError.Capacity && output == first);
+    var snapshot: WorkArenaSnapshot;
+    assert(work_arena_snapshot(&parent, &snapshot));
+    assert(snapshot.chunks == 2 && snapshot.payload == first_size + second_size && snapshot.retained == charged * 2);
+    assert(work_arena_allocate_result(&parent, 1, 3, &output) == WorkBudgetError.Invalid && output == first);
+    assert(work_arena_allocate_result(&parent, ~convert(usize, 0), 8, &output) == WorkBudgetError.Invalid && output == first);
+
+    work_arena_dispose(&parent);
+    assert(budget.used_bytes == 0 && budget.live == 0);
+    assert(work_arena_allocate(&worker, 1, 1) != null, "The moved worker can allocate again");
+    assert(work_arena_allocate(&parent, 1, 1) == null, "The disposed parent requires initialization");
+    work_arena_dispose(&worker);
+    work_arena_dispose(&wrong);
+    assert(budget.used_bytes == 0 && budget.live == 0 && other.used_bytes == 0 && other.live == 0);
+    assert(work_budget_dispose(&budget) && work_budget_dispose(&other));
+}
+
+fn arena_addresses(): void {
+    var budget: WorkBudget = default;
+    assert(work_budget_init(&budget, 1, 65536, 2));
+    var arena: WorkArena = default;
+    assert(work_arena_init(&arena, &budget, 4096));
+    var addresses: u8*[128];
+    var sizes: usize[128];
+    var count = sizeof(decltype(addresses)) / sizeof(u8*);
+    var payload: usize = 0;
+    for (var i: usize = 0; i < count; i++) {
+        sizes[i] = 1 + (i * 13) % 93;
+        var alignment: usize = 1 << (i % 7);
+        addresses[i] = work_arena_allocate(&arena, sizes[i], alignment);
+        assert(addresses[i] != null && bits(usize, addresses[i]) % alignment == 0);
+        fill(addresses[i], convert(u8, i + 1), sizes[i]);
+        payload += sizes[i];
+    }
+    var large_size: usize = 8193;
+    var large = work_arena_allocate(&arena, large_size, 256);
+    assert(large != null && bits(usize, large) % 256 == 0);
+    fill(large, 97, large_size);
+    payload += large_size;
+    var zero = work_arena_allocate(&arena, 0, 1);
+    var next = work_arena_allocate(&arena, 0, 1);
+    assert(zero != null && next != null && zero != next);
+    payload += 2;
+
+    for (var i: usize = 0; i < count; i++) {
+        for (var byte: usize = 0; byte < sizes[i]; byte++) {
+            assert(addresses[i][byte] == convert(u8, i + 1), "Retain every small allocation byte");
+        }
+    }
+    for (var i: usize = 0; i < large_size; i++) { assert(large[i] == 97); }
+    var snapshot: WorkArenaSnapshot;
+    assert(work_arena_snapshot(&arena, &snapshot));
+    assert(snapshot.payload == payload && snapshot.capacity >= snapshot.used
+        && snapshot.used >= payload + snapshot.chunks * sizeof(WorkArenaChunk));
+    assert(snapshot.retained == budget.used_bytes
+        && snapshot.retained == snapshot.capacity + snapshot.chunks * sizeof(usize) * 4);
+    work_arena_dispose(&arena);
+    assert(budget.used_bytes == 0 && budget.live == 0 && work_budget_dispose(&budget));
+    assert(work_arena_init(&arena, null, 4096) && work_arena_allocate(&arena, 16, 16) != null);
+    work_arena_dispose(&arena);
+}
