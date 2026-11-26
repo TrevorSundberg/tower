@@ -115655,3 +115655,93 @@ in 0.93 s on the original input. The repaired compile took 2.97 s and
 reproduced the linked object's bytes. Its IDE suite and ownership selection
 both passed. These Wasm runs used the ordinary Node runtime. The CMake
 native sanitizer configuration requires a Linux x64 target.
+
+### Discovering the original staged capture identity fixture
+
+Host 2 started from public `d2336509ef829fa8a926f605b5f122c0d9e53b0f`.
+The original execution CTest imported the POSIX driver resources, rebound
+the interpreter unit's publication implementation to `capture_publish_original`
+and linked the remaining compiler units. Its executable took an absolute
+scaffolding root and exited silently. Selecting the original owner also
+selected an exported main and failed to link. The direct companion was absent.
+
+The adjacent test now runs the original four fresh batches through the same
+function as the executable. It loads Bedrock, Foundation and the real
+`retained_target_width/main.tower` and `profile_seed.tower`. Both entries link
+the fixture's host and rebound interpreter objects. The selected guest uses
+a private shared library for that link closure. The joined root callback
+reads the live declarations and query graph before calling the original
+kernel. Only the paths and scalar observations cross the guest/host boundary.
+The failed branch drains the batch and checks that publication never occurred.
+
+The original frozen probe found selected task 71 reading salt capture 197
+at both worker budgets. Task 197 depended on required evaluation 198.
+The producer's parent was provider.salt, its bits were 23, its frame owner
+was null and its declaration ordinal was 15. The distinct optional
+`known_producer` had the same parent and an inferred evaluation. Task 197
+had no direct edge to that inferred evaluation. The test follows the
+required producer and compares its ordering metadata with the capture.
+
+At both outer compiler widths the direct selector ran the declaration at
+`staged_capture_identity_test.tower:77` once. The owner ran six declarations
+in order, starting with the capture case and then `budget_receipts`,
+`budget_reference`, `budget_limits`, `budget_optional` and `budget_validate`
+at lines 6–10 of `library/work_budget_test.tower`. The original executable
+and all four selected entries captured the same producer facts. Each ran
+the ordinary, edited, ordinary, edited sequence at inner widths 1, 1, 4, 4.
+Both successful trials produced the same 3,065 canonical bytes (SHA-256
+`15402b44a52a2cbf7714e93a625a2d9b55d1caff7a723f7361e4bb9f0e2e76a4`)
+and `8\n24\n147\n8\n`. Both edited trials returned one failed unit, no
+program or root observation, and the original mutable/escaped-storage
+diagnostic at `profile_seed.tower:3:1`. Joined peak lane reservations were
+1 and 4, with zero held at the snapshot. Peak charged bytes were 21,173,243
+and 25,165,688. Batch close drains workers, worlds and the remaining grants.
+
+In the raw control, a second real sibling declared its own `salt: u8 = 23`.
+Changing the salt read from the provider to that sibling kept every Foundation
+and guest byte. Both executables rejected it. The selected owner and direct
+entry rejected it at companion line 71 at both compiler widths. Starting
+the inner loop at four in a temporary copy isolated that width past the
+first failure. Restoring the provider read passed all routes. The bounded
+observer used each format buffer's byte count. A draft that used `puts` on
+the formatter's counted buffer emitted surplus bytes and was discarded.
+
+Six repeated native runs and the restored five CTests passed. The normal
+native cache was reused throughout. On a Ryzen 5 3600, Linux x64, LLVM 19
+Release, host quota 11.52 CPUs and timing affinity 0–3, three warm-cache
+fresh processes per version ran in alternating order. Original wall time
+was 0.93–1.00 s, CPU 0.97–1.06 s and peak RSS 83,068–84,068 KiB. Migrated
+wall time was 0.92–0.95 s, CPU 0.96–0.99 s and peak RSS 83,172–84,800 KiB.
+Each sample covered all four batches. One compile-and-run sample per
+selector at jobs 1/4 took 1.95/2.01 s (owner, 151,236/161,104 KiB) and
+1.82/1.90 s (direct, 138,732/148,428 KiB). These are fixture costs.
+
+The supported address/leak and thread sanitizer native CTests both passed.
+Their link maps identify the production runtime allocator and Linux worker
+transport. The instrumented publication hook and common trial ran through
+the original executable. The selected guest used its ordinary native test
+runtime. Tower's instrumenter exposes address and thread modes. There is
+no source-level UBSan result. The raw packet for assignment
+`2661ec6d-ccd0-4684-a4a7-16e080ba62a9` includes commands, maps, traces,
+failed drafts, the control, hashes and exact source bundles. The manager
+owns publication.
+
+### Qualifying the staged capture callback in its test companion
+
+Host 4 qualified the manager's typed callback on `52de93abf5b814dbd91968ee66568eca6c28a59b` for assignment `25ded68e-a64a-4ef0-aa68-902cb2d057a7`. The acceptance check was whether the actual test companion could distinguish two declarations of the same value at the joined evaluation frontier, across both native links, while preserving the original bytes, diagnostic and observation lifetime.
+
+The recipient verified the size and SHA-256 of the 2661ec6d evidence archive and all four declared members. The extracted copies compared byte for byte with the supplied member files. The input bundle verified against prerequisite `78c3bd0e`. The shared main already had two local commits. A separate local main held the exact bundle revision and the public Linux x64 bootstrap passed its checked-in SHA256SUMS. The unmodified five registrations passed there.
+
+Commit `1df2bde360f48e2f9f0ba1f11c93ad3fab55d8b2` has the requested tree `21407e927c9e9cfddefa8470f959421595c3277f`. Its host and standalone objects compiled, then the executable link failed on `im_fail`. The rebound interpreter imports that symbol from the fixture's existing `execution_support` provider. Restoring the host import fixed the executable and the shared service's strict ELF link. The first repaired matrix passed the standalone and both direct registrations. Both owner registrations executed 16 passing declarations and failed their old six-test summary. The newly typed receipt imports `semantic_context_types`, which imports `work_graph` and `stack`. Discovery listed the five existing budget cases, eight graph cases, two stack cases and the capture companion at line 138. Direct selection listed only the capture case. Commit `ba6feb116708978c9ab1929c6669fcad28da19f4` records the import repair and the exact owner count. No production source or target changed. The provider depfile dropped three compiler inputs and added none.
+
+The unit batch owns its world. The trial keeps the receipt on the stack and borrows paths from live outer vectors. The host consults only the root's world, calls its typed guest function synchronously and then calls the original publisher. The callback reads the frozen context, graph and component payloads through local variables. It writes only three booleans back to the receipt. The publication job runs after evaluation has joined. Its own dispatch in `semantic_known_work.tower` drains before releasing the shared view. `frontend_units_step` completes the unit batch with zero running jobs, including the cancel/drain path. The trial clears the observer at line 113, before deferred batch/world disposal. Zero or two calls in temporary host variants made all five registrations fail. Selected entries located the missing observation at `staged_capture_identity_test.tower:132:5` and the repeated observation at `60:5`. The standalone traps retained the same messages and native offsets 207126 and 202678.
+
+The ordinary standalone and both selected routes at outer compiler jobs 1 and 4 passed the original four fresh batches at inner widths 1, 1, 4, 4. A temporary bounded observer in the companion compared all five routes with the archived original stream. Only the absolute checkout prefix was normalized in its path. The two additional model and budget observations per ordinary width were checked separately. Selected task 71 read demanded capture 197, which depended on required producer 198 in provider.salt. The producer was ready, non-inferred, its own literal, with value 23, null frame and matching ordinal 15. The optional producer was distinct, inferred, and outside the capture's direct edges. The untaken model was undemanded. Both widths produced the archived 3,065 Foundation bytes (SHA-256 `15402b44a52a2cbf7714e93a625a2d9b55d1caff7a723f7361e4bb9f0e2e76a4`) and all 11 output bytes (`8\n24\n147\n8\n`). Each edited batch reached the escaped declaration at `profile_seed.tower:3:1`, returned one failed unit, no program, and no root observation. Its full diagnostic matched the original.
+
+The sibling control used both archived modules declaring salt 23. Provider, other and restored reads gave identical Foundation and guest bytes at both CLI widths. Redirecting only the read failed at companion line 132, column 5 at all four outer/inner width combinations through both selectors. The standalone rejected it at inner one and in an isolated inner-four-first run. Restoring the provider passed. The old baseline standalone also rejected the substitution. Removing each evidence-only change reproduced the final objects, service and executable by hash.
+
+On an AMD Ryzen 7 5800H, Linux x64, clang/LLVM 19.1.7 Release, the cgroup had 16 logical CPUs, quota 15.36 CPUs and a 64,061,702,144-byte memory ceiling. Timings used CPUs 0–3, warm filesystem, fresh processes and a single active sample. The six alternating baseline/candidate standalone runs each took 0.88 s wall, with CPU ranges 0.92–0.93 s for both. Peak RSS was 83,864–86,716 KiB baseline and 85,696–85,952 KiB candidate. At jobs 1/4 one compile-and-run per selector took 1.83/1.88 s baseline and 2.40/2.41 s candidate for the owner, or 1.70/1.76 s and 1.88/1.90 s for the direct companion. Candidate peak RSS was 195,104/207,180 and 164,036/173,380 KiB respectively. The selected guest now compiles the oracle and its imports. The owner's workload grew by ten tests. The separate bounded observer recorded joined peak charge 21,173,243/25,165,688 bytes and peak reservations 1/4, with zero lanes held in all four trials.
+
+The supported ASan with leak detection and TSan builds each passed the ordinary standalone registration on their first test launch. Their link maps identify `runtime-allocate.o` and `tower_work_host.o` (Linux transport). Instrumented IR and final executable disassembly show checked reads in both the root router and the companion's `tower.fn.capture_inspect`. The initial TSan evidence extractor expected aligned read symbols. The router uses `__tsan_unaligned_read8`. Correcting the extractor recovered the linked probes before launching the test. Address/leak used 6.38 s wall, 6.65 s CPU and 631,580 KiB RSS. Thread used 18.95 s wall, 19.75 s CPU and 245,508 KiB RSS. The selected shared-service runs used their ordinary test runtime. Source-level UBSan is unavailable in this instrumentation path.
+
+The raw packet contains the manifest checks, configure and Ninja commands, registration and failure logs, exact controls, bounded streams, sample ledger, sanitizer artifacts and a source bundle. The manager owns integration and publication.

@@ -1,0 +1,29 @@
+import tower;
+import execution_support;
+import utility_checks;
+import staged_capture_identity;
+import .compiler.semantic_known_types;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.grammar_types;
+
+extern fn capture_publish_original(job: SemanticKnownWork*): void;
+extern fn compiler_world_grammar(world: void*): CompilerGrammarCache*;
+extern fn compiler_node_world(node: void*): void*;
+
+export fn capture_observe(world: void*, check: CaptureCheck*): void {
+    compiler_world_grammar(world).observer.context = bits(void*, check);
+}
+
+// The guest owns the check until this batch drains. The callback inspects the
+// joined root while its graph is live and before publication replaces the reads.
+export fn semantic_known_publish_kernel(job: SemanticKnownWork*): void {
+    var c = job.context;
+    if job.subject == c.program.root {
+        var world = compiler_node_world(job.subject);
+        var check = bits(CaptureCheck*, compiler_world_grammar(world).observer.context);
+        utility_check(check != null, "Capture observer installed for the root");
+        check.inspect(c, check);
+    }
+    capture_publish_original(job);
+}

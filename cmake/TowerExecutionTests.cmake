@@ -59,20 +59,49 @@ function(tower_execution_tests)
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding" retained-sources)
     set_tests_properties(tower-retained-source-updates PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
     set(capture_input "${CMAKE_CURRENT_BINARY_DIR}/tower_staged_capture_test.tower")
-    file(GENERATE OUTPUT "${capture_input}" CONTENT "${source}import tests.staged_capture_identity;\n")
-    tower_runtime_object(tower-staged-capture-test "${capture_input}" "${triple}")
+    file(GENERATE OUTPUT "${capture_input}" CONTENT "${source}import tests.staged_capture_publication;\n")
+    tower_runtime_object(capture-host "${capture_input}" "${triple}")
+    tower_runtime_object(tower-staged-capture-test
+      "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/staged_capture_main.tower" "${triple}")
     add_executable(tower-staged-capture-test ${sources} "${tower-staged-capture-test_OBJECT}")
     set_target_properties(tower-staged-capture-test PROPERTIES LINKER_LANGUAGE CXX)
     # Keep the ordinary publication kernel and redirect its single external call in this fixture.
     tower_runtime_object(capture-interpreter "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/units/interpreter.tower"
       "${triple}" semantic_known_publish_kernel capture_publish_original)
-    target_sources(tower-staged-capture-test PRIVATE "${capture-interpreter_OBJECT}")
+    set(capture_objects "${capture-host_OBJECT}" "${capture-interpreter_OBJECT}")
+    target_sources(tower-staged-capture-test PRIVATE ${capture_objects})
     set(capture_libraries ${libraries})
     list(REMOVE_ITEM capture_libraries tower-compiler-interpreter)
     target_link_libraries(tower-staged-capture-test PRIVATE ${capture_libraries})
     add_test(NAME tower-staged-capture-identity COMMAND tower-staged-capture-test
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding")
     set_tests_properties(tower-staged-capture-identity PROPERTIES TIMEOUT 90 LABELS "native;focused;query")
+    if(TARGET tower-guest-native-test AND NOT TOWER_SANITIZER)
+      # Give the selected guest the same host callbacks and renamed interpreter as the executable.
+      add_library(tower-staged-capture-services SHARED ${sources} ${capture_objects})
+      set_target_properties(tower-staged-capture-services PROPERTIES LINKER_LANGUAGE CXX)
+      target_link_libraries(tower-staged-capture-services PRIVATE ${capture_libraries})
+      target_link_options(tower-staged-capture-services PRIVATE "LINKER:-z,defs")
+      add_dependencies(tower-staged-capture-services tower-selected-test-count tower-guest-native-test)
+      get_property(capture_runtime GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+      foreach(entry IN ITEMS staged_capture_identity staged_capture_identity_test)
+        set(path "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${entry}.tower")
+        set(summary "1 test")
+        if(entry STREQUAL "staged_capture_identity")
+          # The typed context reaches the budget, graph and stack companions (5 + 8 + 2).
+          set(summary "16 tests")
+        endif()
+        foreach(jobs IN ITEMS 1 4)
+          set(name "tower-selected-${entry}-jobs-${jobs}")
+          add_test(NAME "${name}" COMMAND tower-selected-test-count "${summary} passed for ${path}"
+            "${TOWER_BOOTSTRAP_COMPILER}" --test "${path}" --jobs "${jobs}" --test-details
+            --test-native-runtime "${capture_runtime}" --link "$<TARGET_FILE:tower-staged-capture-services>"
+            --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-staged-capture-services>")
+          set_tests_properties("${name}" PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+            LABELS "native;focused;query" TIMEOUT 90)
+        endforeach()
+      endforeach()
+    endif()
     # The measurement owns a Linux x64 getrusage ABI. Keep it outside the
     # portable execution runner and reuse this same production link closure.
     set(profile_input "${CMAKE_CURRENT_BINARY_DIR}/tower_type_reachability_profile.tower")
