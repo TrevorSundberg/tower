@@ -117499,3 +117499,92 @@ The world ledger peaked at 19,146,105 bytes with one worker and 23,129,518 with 
 The same six predicates passed in the instrumented standalone through their ordinary file/argv registrations. ASan with leak detection took 8.71 s wall and peaked at 543,048 KiB. TSan took 26.62 s and peaked at 233,164 KiB. The link maps place allocation in `runtime-allocate.o` and pthread transport in `tower_work_host.o` from `libtower-compiler-memory.a`. The packet includes the instrumented callback IR, function attributes, link maps and exact command lines. All eight instrumented reconstructions matched the reference Foundation and LLVM. The first ASan configuration, with execution tests disabled, generated no top-level CTest registry on this parent. CTest exited 8. Enabling the execution-test profile produced the registrations and the run passed. Tower source-level UBSan is unavailable.
 
 With backend and execution tests disabled, the ordinary compiler linked and ran the guest at both widths. Its link command, dynamic dependencies and symbol table excluded the new provider and case functions. Both Wasm object depfiles excluded the companion and test API. Touching the companion left Ninja clean and preserved the compiler SHA-256 `4499ebcd67b6459d8455712aed39696b8266692967d254660d8707f57627a1c9`. That compiler also passed direct and owner discovery with the explicit test provider. Validation covers the Linux x64 backend test transport. The packet includes raw stdout, stderr, statuses, GNU time reports, source and tool identities, reference and migrated outputs, and a bundle relative to the published parent. Publication belongs to the manager.
+
+### Physical allocation census shared by the two serial fault suites, 2026-11-26
+
+Host 5 traced both fixture companions on public `f9c23aec` to
+`scaffolding/tests/entity_fault_accounting.tower`. Component growth checks
+the store before admission, after admission, after a refused staged publish,
+and after final publication. Refusal also counts the next type's surviving
+instance index. Stage publication checks the live stage before preparation,
+again on refusal, and the published store after the stage is gone. Inline
+promotion, layout, descriptor and lease trials keep their independent checks.
+
+In `3f18aa35` the collector retains its allocation-free traversal and calls
+one helper-only companion, `entity_fault_accounting_test.tower`. Six call
+sites pass the store, buffer, receipt and computed size, page and traversed
+pool, table, or independently accumulated totals to the assertions. They
+require a budget and no open view, backed storage, a valid receipt in that
+budget with zero lanes and the exact physical size, the correct page owner
+and a live slot count in 1..capacity, zero pending table reservations, and
+exact agreement with used bytes, live receipts and zero used lanes. Assertions
+still run before counting a bad allocation or walking past a bad owner.
+The existing standalone mains, case declarations, failure allocator, lifecycle
+exports, links and registrations retain their public-base blobs.
+
+The checked-in Linux x64 compiler and resource manifest verified (compiler
+SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+The native Release build used Clang/LLVM 19.1.7, Ninja, one build operation
+at a time and separate compiler-width 1/4 caches reused for each source
+state. In each cache all 11 focused CTests passed on base, candidate and
+restored source. The three legacy entries printed exactly 1,110 bytes
+(component default), 2 bytes (inline) and 357 bytes (stage), with empty
+stderr. Component owner/direct selected 12/7 and stage owner/direct 9/4
+at each width. Each owner included the same five budget declarations. The
+only added inventory file belongs to the census used by these two owners
+and registers zero cases. Symbol tables of the four guests per suite and
+both standalone builds show one suite-specific finalizer and the expected
+fixture functions. The compiler link command has no fault fixture inputs.
+
+Disposable Tower observers recorded all 82 component and 25 publication
+census results per complete sweep, including ledger bytes and receipts.
+All 16 component refusal deltas matched the original (12 with 0 bytes and
+0 receipts, four with 136 bytes and one receipt). Full direct growth refused
+tickets 0–4 and succeeded at 5, staged growth and inline promotion refused
+0–2 and succeeded at 3. Lease refused 0 and succeeded at 1, publication
+refused 0–6 and succeeded at 7. The grown descriptor refusal took one
+attempt. The uninjected successes and zero drains are included. The
+203-line component selected trace matched the original inline and growth
+cases in selection order. Every 72-line stage trace matched a complete base
+execution. At publication ticket 4 either child/instance capacity 1/2
+retained 27,863 bytes or 2/0 retained 27,879 bytes, each with 17 receipts,
+one target reference and zero finalizers. Both layouts occurred in both
+source states. The two totals follow the address-hashed preparation order
+documented in the earlier c3635391 entry. The comparisons use whole
+matching traces with those capacities and no numeric tolerance.
+
+Requiring the physical total to exceed the ledger by one byte made both
+default standalones abort (134) and all eight owner/direct registrations
+fail at the shared byte assertion (compiler exit 1). The inline selector
+still passed. CTest returned 8 in both builds. Restoring the single expected
+value restored the candidate binaries byte for byte at both widths.
+ASan with leak detection and TSan each passed all three standalone modes
+on first launch. The instrumented objects included the fixture, allocator,
+trap and serial transport. These runs cover the single-owner fault injector.
+The available Tower sanitizer modes are address and thread.
+
+AMD Ryzen 9 5900XT, 32 logical CPUs available, cpu.max 3071999/100000
+(30.72 CPU equivalents), memory.max 129569390592 bytes. Matched timings held
+the host timing lock and used four distinct cores (CPUs 0,2,4,6), warm
+filesystem and a fresh process per invocation. Three pairs per entry/width
+reversed order in pair two. The median of 100 legacy process launches,
+including the shell loop, was 0.06–0.07 s on both revisions. Selected
+measurement includes discovery, guest compilation, link and execution.
+Base → candidate median wall seconds (jobs 1 / 4) were 1.14→1.15 /
+1.12→1.14 for component owner, 1.02→1.06 / 1.00→1.04 for component
+direct, 1.19→1.20 / 1.16→1.18 for stage owner and 1.07→1.08 /
+1.05→1.06 for stage direct. Selected maximum RSS grew by 1,468–2,816 KiB
+per configuration, with identical stdout and selected detail streams. The
+test-only companion adds a source module and source-located assertions to
+these compilations. The three pairs measure their combined cost. No runtime
+or compiler implementation changed.
+
+Assignment `0a5e165e-526e-479d-b57d-1667099a7941` contains the incremental
+Git bundle on f9c23aec, raw stdout/stderr, full trace comparisons, negative
+and restored runs, link evidence, exact commands, host limits and all 84
+wall/CPU/RSS/output-size samples. Two temporary observer compile failures
+preceded execution (a declaration interrupted the imports, then an edit
+pattern omitted that declaration). Both diagnostics are retained. The
+shared checkout already contained an unfinished rebase, so the local source
+commits use an isolated main checkout at the assigned parent. Integration
+and publication belong to the manager.
