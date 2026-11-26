@@ -122190,3 +122190,103 @@ was 35,186,274,304 bytes before the paired evidence collection and about
 34 GB after the instrumented artifacts. The worker made local commits for
 manager review. Integration, other audited families and publication remain
 outside this assignment.
+### Shared unsigned multiplication reference cases, 2026-11-26
+
+Host 4, assignment `84598ad5-dbdd-4665-b820-fe38a33206a1`, started at
+`2705094e8f55475a2c2261f76f155be8039c1448`. The audit archive from
+`5d481bf0-a965-4e5d-a108-4938e728b79b` and its six declared members matched
+their manifest SHA-256 values in both the archive and the supplied files.
+The audit identifies S009 and S015–S017 as shared between the F14 storage
+and F25 native overflow suites. The later default-selection receipt already
+covers the native harness, its wrong mode and its two standard selections.
+
+The backend test provider imports the real LLVM fixture through
+`compiler.units.backend_checks`. Its companion now emits the product and
+flag comparisons and the calls with independent expected arguments. It
+selects the same four one-bit rows or ten wider rows from the LLVM integer
+width, including the one bad product in wrong mode. The original fixture
+still constructs and verifies the intrinsic and its control flow.
+The recheck companion owns the exact reconstructed output and world/budget
+disposal checks. The native guest reaches it through the existing exported
+provider function. The storage executable imports that same implementation
+through its overflow selector. The storage rejection cases S010–S011 and
+the native harness S018 retain their published implementations.
+
+The first parent link omitted the project's CMake backend include and
+failed on `backend_import_fixture_overflow`. Reconfiguring with
+`-DCMAKE_PROJECT_scaffolding_INCLUDE=$PWD/cmake/TowerBackend.cmake`
+restored the original provider. Release Ninja built
+`tower-overflow-native-tests` and `tower-storage-tests` with the checked-in
+Linux x64 bootstrap, Clang/LLVM 19.1.7 and one worker per Tower compilation.
+No registration or link rule changed. On both revisions the six F25 CTests
+and `tower-storage-backend-import` passed. Direct invocations reproduced
+stdout, stderr and status byte for byte. Native correct ran 30 raw/O2
+trials with 60 Graph/Fast checks. Native wrong ran two trials with four
+rechecks, printed the mismatch-count-one diagnostic twice and exited 1.
+Each owner/direct selection matched the original 7/2 declarations at jobs
+1 and 4, with all 178 files matching the parent (166 positive and 12
+negative, as in the default-selection receipt). The raw negative IR
+differed from the positive by the expected product of row zero alone.
+
+The storage i1, wide and combined import commands reproduced 13, 49 and
+72 lines. Both pointer widths ran the three extraction modes. Wide and
+combined include aggregate and vector rejection, i128 and a preexisting
+diagnostic at each pointer width. The backend admission control still
+reported 200 allocations, 293125 peak bytes and 233134 retained bytes.
+Changing the expected product of the wide half-times-half row from zero
+to one made the correct native run abort at raw i8/both. On both revisions
+direct selection reported `backend_overflow_native_test.tower:81:5`;
+the wide storage selector completed cleanup and exited 1. Restoring the
+row reproduced the parent streams and files. In the Release build the two
+entry objects, the recheck provider object and the native executable
+retained their byte identity. The LLVM fixture object and its containing
+linked products changed.
+
+Bounded Release measurements used a Ryzen 7 5800H, 16 visible logical CPUs
+and a 15.36-CPU cgroup quota. Original and candidate binaries used the
+same runtime and resource root. A host timing lock serialized processes.
+After one warmup per binary, three alternating pairs ran on CPUs 0,2,4,6
+with the middle pair reversed. The table gives median wall seconds,
+median user plus system seconds and maximum process RSS in KiB.
+
+| Command | Parent wall / CPU / RSS | Candidate wall / CPU / RSS |
+| --- | --- | --- |
+| Native correct | 3.47 / 3.47 / 100296 | 3.47 / 3.46 / 99992 |
+| Native wrong | 0.51 / 0.50 / 100112 | 0.52 / 0.51 / 99912 |
+| Storage overflow i1 | 0.42 / 0.41 / 79300 | 0.41 / 0.41 / 78376 |
+| Storage overflow wide | 1.59 / 1.59 / 79372 | 1.59 / 1.59 / 80892 |
+
+The fixture uses the original serial accounting allocator and work
+transport. Test selection jobs 1/4 measure compiler admission plus guest
+execution. One candidate owner process at each width took 4.93/4.92 s wall,
+4.92/5.03 s CPU, 152856/161708 KiB peak. Direct selection took 4.77/4.82 s
+wall, 4.76/4.91 s CPU, 140436/146392 KiB peak. These small process samples
+support equivalence of the tested work and give no scaling conclusion.
+
+A tests-disabled native compiler built and reported its development
+version. All 435 repository inputs in its object depfiles matched the
+public parent. The overflow fixtures and their companions were absent
+from that closure. Eleven existing counted-byte and generic-result
+storage registrations also passed. The supported address and thread
+builds used the mapped `runtime-instrumented.o`, `tower_work_serial.o`
+and real `tower-backend-native.o`. Each mapped relink matched the
+corresponding CMake-linked product byte for byte. In both recheck
+providers the function retained its 21 address or 30 thread hook calls
+before and after. Its textual IR changed, including compiler-generated
+local names. Address/thread IR contained 19/16 hook calls in the
+product/flag comparison, 30/25 in the row emitter and 96/58 in the new
+reference function. The system LLVM library, emitted child programs and
+standard selected guest use their ordinary builds. Tower's supported
+profiles are address and thread. There is no source-level UBSan profile.
+
+On both revisions ASan with leak checking completed the native correct
+and wrong modes and all three storage commands on their first attempts.
+The same five TSan runs completed with exact parent streams and status.
+In command order (correct, wrong, i1, wide, combined), TSan initialized
+on attempts 6/7/4/8/22 for the parent and 15/4/15/25/17 for the candidate.
+The other 42 and 71 starts respectively refused the pre-execution
+`ADDR_NO_RANDOMIZE` personality request. Each attempt has a separate
+receipt. The assignment packet includes the audit, file/line crosswalk,
+scoped Git bundle, raw outputs, emitted native files, timings, hook-bearing
+IR and link maps. The scoped build was clean on its final Ninja invocation.
+Manager review and publication follow this local result.

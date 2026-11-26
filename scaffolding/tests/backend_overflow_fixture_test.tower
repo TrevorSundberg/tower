@@ -1,0 +1,72 @@
+import tower;
+import .backend.bindings;
+import .backend.context;
+import .backend.lowering;
+
+extern fn LLVMBuildExtractValue(builder: void*, aggregate: void*, index: u32, name: u8*): void*;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+var OverflowNotEqual: u32 = 33;
+struct OverflowCase { left: u64; right: u64; product: u64; overflow: bool; }
+
+// Compare independent expected arguments, never the reconstruction algorithm.
+// Every extraction is a separate SSA value; branches exercise dominating-call
+// assignments to users outside the call's block as well as repeated users.
+fn overflow_fixture_mismatch(b: Backend*, pair: void*, probe: void*, mode: u8*): void* {
+    var bad = LLVMConstInt(LLVMIntTypeInContext(b.context, 1), 0, 0);
+    if strcmp(mode, "flag") != 0 {
+        var product = LLVMBuildExtractValue(b.builder, pair, 0, "product");
+        bad = LLVMBuildOr(b.builder, bad,
+            LLVMBuildICmp(b.builder, OverflowNotEqual, product, LLVMGetParam(probe, 2), ""), "");
+    }
+    if strcmp(mode, "product") != 0 {
+        var flag = LLVMBuildExtractValue(b.builder, pair, 1, "overflow");
+        bad = LLVMBuildOr(b.builder, bad,
+            LLVMBuildICmp(b.builder, OverflowNotEqual, flag, LLVMGetParam(probe, 3), ""), "");
+    }
+    return bad;
+}
+
+fn overflow_fixture_cases(b: Backend*, probe: void*, type: void*, cases: OverflowCase*, count: usize, wrong: bool): void* {
+    var errors = LLVMConstInt(b.i32, 0, 0);
+    for(var index: usize = 0; index < count; index++) {
+        var row = &cases[index];
+        var arguments: void*[4];
+        arguments[0] = LLVMConstInt(type, row.left, 0);
+        arguments[1] = LLVMConstInt(type, row.right, 0);
+        arguments[2] = LLVMConstInt(type, wrong && index == 0 ? row.product ^ 1 : row.product, 0);
+        arguments[3] = LLVMConstInt(LLVMIntTypeInContext(b.context, 1), row.overflow ? 1 : 0, 0);
+        var result = backend_call_values(b, probe, &arguments[0], convert(u32, sizeof(decltype(arguments)) / sizeof(void*)));
+        errors = LLVMBuildAdd(b.builder, errors, result, "");
+    }
+    return errors;
+}
+
+fn overflow_fixture_reference(b: Backend*, probe: void*, type: void*, width: u32, wrong: bool): void* {
+    if width == 1 {
+        // Exhaustive unsigned one-bit multiplication truth table.
+        var cases: OverflowCase[4] = default;
+        cases[1] = {left: 0, right: 1, product: 0, overflow: false};
+        cases[2] = {left: 1, right: 0, product: 0, overflow: false};
+        cases[3] = {left: 1, right: 1, product: 1, overflow: false};
+        return overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase), wrong);
+    }
+
+    var maximum = width == 64 ? ~convert(u64, 0) : (convert(u64, 1) << width) - 1;
+    var half = convert(u64, 1) << (width / 2);
+    // Factor identities: (half-1)(half+1)=2^width-1 fits;
+    // half^2=2^width is the first out-of-range power, wraps to zero.
+    // (max)^2 wraps to one. No quotient/guard oracle mirrors importer.
+    var cases: OverflowCase[10] = default;
+    cases[0] = {left: 0, right: maximum, product: 0, overflow: false};
+    cases[1] = {left: maximum, right: 0, product: 0, overflow: false};
+    cases[2] = {left: 1, right: 1, product: 1, overflow: false};
+    cases[3] = {left: maximum, right: 1, product: maximum, overflow: false};
+    cases[4] = {left: 1, right: maximum, product: maximum, overflow: false};
+    cases[5] = {left: maximum, right: 2, product: maximum - 1, overflow: true};
+    cases[6] = {left: half, right: half, product: 0, overflow: true};
+    cases[7] = {left: half - 1, right: half + 1, product: maximum, overflow: false};
+    cases[8] = {left: maximum / 2 + 1, right: 2, product: 0, overflow: true};
+    cases[9] = {left: maximum, right: maximum, product: 1, overflow: true};
+    return overflow_fixture_cases(b, probe, type, &cases[0], sizeof(decltype(cases)) / sizeof(OverflowCase), wrong);
+}
