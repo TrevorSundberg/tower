@@ -105939,3 +105939,147 @@ The optional installation now contains 70 files, including the 58 identical
 production files. Three warm samples per profile on the same Ryzen 9 7900X
 gave candidate median wall/user/system times of 0.31/0.27/0.04 seconds with
 one job and 0.39/0.38/0.07 with four. Peak RSS was 106524 and 118832 KiB.
+
+### SHA-256 companion on the public native test runner, host 2
+
+The SHA-256 entry in the native inventory is a direct executable taking an
+isolated directory (scaffolding/tests/README.md). Its first four vectors have
+lengths 0, 3, 56 and 112. The next input is 1,000 updates of 1,000 repeated
+bytes. Its rejection checks cover a nonempty null input, preservation of the
+previous digest and an unrepresentable bit length. The last loop checks whole
+and single-byte updates, snapshots and independent file digests for lengths
+0 through 259. The standalone entry also checks its argument count, writes
+each file and manifest line, and reports when the external oracle can run.
+
+Built the native CLI from a fresh export of published e2ebb16a with its verified
+bootstrap and six Ninja jobs. No existing local build had receipts for that
+source. The unchanged direct fixture built as a library against the build's
+guest-host-library.o, returned 2 for a missing directory argument and ran
+successfully with the directory argument. GNU sha256sum accepted all 260
+manifest entries. Before adding the companion the owner selected zero tests.
+Four adjacent test blocks now check the original published digests, expected
+hex length, whole update, both updates at all 175 splits and exact digest
+including the terminator. The public-source owner selected and passed all four.
+A one-digit corruption of the abc vector in an isolated copy exited 1 at the
+whole-message assertion in sha256_test.tower:25:5. The grammar reserves
+`expected` in parameter position. Renaming that parameter to `wanted` resolved
+the parse diagnostic. Packet 98188150 contains raw commands, streams and times.
+
+The companion's binary corpus uses the original seed 1789 and the same 260
+prefixes. It finalizes a single live byte stream at each length and compares
+all 32 bytes against the digest of a fresh whole update. The legacy executable
+also replays each prefix from the beginning, including 33,670 byte updates
+and intervening finishes across the loop. Those repeated operations remain
+available in the native fixture. The language test compares SHA-256 of the
+260 ordered raw digests with
+`ddda469d69de4d6d0d341bb4b8fcbb953d4bcd24aeb7ac77218a3f27fe042dae`.
+GNU sha256sum read the binary files individually and supplied those 8,320
+digest bytes in numeric filename order. GNU basenc decoded the hex after the
+first transport attempt found xxd unavailable. A checked narrowing conversion
+rejected the first attempt to use an entire xorshift word as a byte. Restoring
+the original low-byte mask preserves the generator and its conversion contract.
+
+The last two blocks reject a one-byte update at the maximum encodable byte
+count and stream one million `a` bytes in the original 1,000 calls. The latter
+checks the published answer, rejects a nonempty null update on that same state
+and compares the pre/post digests. GNU sha256sum independently reproduced the
+million-byte answer and the other four standard answers. Mutating the corpus
+seed with both internal hashing paths still in agreement failed at the pinned
+aggregate digest (line 76).
+
+Host 2 ran the e2ebb16a source CLI (SHA-256
+`a792d2d2e42c167b1f5eb0bdec8cc342853cfaa37e09d6b2554ee397ee6e1d17`)
+on Debian x86-64, Ryzen 5 3600, LLVM 19.1.7. The build used six outer jobs,
+one compiler worker, CPUs 0–11 and a quota of 11.52 CPUs. It took 23.16 s wall,
+79.66 s CPU and 784,180 KiB peak RSS. Single warm-filesystem runs below used
+fresh processes on CPUs 0–3. Owner discovery at one job passed seven in 261.80 s
+wall / 261.78 s CPU / 84,116 KiB. Explicit selection at four jobs passed the
+same seven in 259.08 s / 259.11 s / 98,904 KiB. Guest stdout was empty for
+both. Test interpretation is serial. Each check ran the full million-byte
+stream. The native direct reference took 0.06 s before and after, including
+file creation. Its workload includes repeated prefix replays and uses native
+machine code. These timings describe different execution paths.
+
+Both list modes found the companion once. A missing suffix selected zero.
+An ordinary SHA-256 consumer built with the companion absent, present, and
+with a missing private import produced identical executable and depfile
+bytes each time and printed 186 (the first digest byte of abc). The three
+compiles took 0.61, 0.59 and 0.61 s with peak RSS 97,592, 97,424 and
+97,216 KiB. The owner library object and depfile also remained identical.
+Direct interpreter probes reported missing bindings for strlen, strcmp and
+the file writer's fopen. The first file probe mixed two lexical roots for
+the byte API and failed on bytes_reserve before execution. Selecting the
+local bytes implementation reached fopen. The checked-in bootstrap still
+rejects --test and independently builds the registered direct executable.
+Its original 260 files passed the external oracle as well.
+
+For native memory checks, an evidence-only copy of the suite removed the seven
+`test()` prefixes, leaving ordinary lexical blocks with identical statements.
+The public-source native emitter lowered that guest. Tower's LLVM 19 tool
+instrumented the guest and Linux x64 runtime independently for ASan and TSan.
+Each binary completed with empty streams (0.17 and 0.31 s). The maps and IR
+identify both instrumented inputs and the checks in sha256_test_matches.
+Those runs cover serial guest code. They do not instrument the compiler running
+--test. Tower has no source-level UBSan mode. Packet
+98188150-a7d2-4313-9df4-e4475cb84726 contains the per-assertion mapping, both
+suites, generated files, binaries, measurements, failure diagnostics and
+transfer commits. Distribution of a test-capable bootstrap remains with the
+manager.
+
+### Closing the installed SHA-256 companion's import dependency
+
+The previous SHA-256 runs on e2ebb16a used the source tree. The manager
+reproduced a discovery failure after relocating the candidate at 72ed31f4.
+The leading dot in `import .tests.utility_checks;` requested a sibling
+tests directory outside library. The native resource copy in CMakeLists.txt
+includes library/*.tower and has no such directory. Host 2 reproduced the
+same exit 1 at sha256_test.tower:3:30 for both owner and explicit inventories.
+
+The shared portable implementations now live in library/test_data.tower.
+The SHA-256 companion directly imports its sibling. The legacy facade retains
+utility_equal and utility_random for existing callers and forwards to
+test_bytes_equal and test_xorshift32. Those two definitions import only Tower.
+Native checks keep their original puts, fflush and abort declarations in tests.
+The three SHA-256 migration commits remain in the candidate's ancestry.
+
+The old and repaired layouts used the same e2ebb16a native executable and
+canonical resources. A fresh PRoot root exposed the installed compiler,
+system libraries and an empty work directory. Opening known checkout and
+prior packet sources failed there. The root supplies /proc/self/exe pointing
+to the relocated executable for the Linux resource locator. After a separate
+CMake configuration using the public pin, all 49 configured Tower resources
+matched the tested installation by name and SHA-256. The new discovery depfile
+lists the language resources, SHA-256 owner, testing, test_data and companion.
+
+Both repaired inventories returned just the installed companion. Flipping a
+digit of the abc answer returned 1 at sha256_test.tower:25:5. The restored
+owner selected and passed seven tests with empty guest stdout, including the
+million-byte stream. One run took 255.80 s wall, 255.78 s CPU and 83,880 KiB
+peak RSS. The ordinary abc consumer printed true with both optional files
+present and with both removed; object and depfile matched byte for byte.
+Same host (Ryzen 5 3600, Debian Linux x64, LLVM 19.1.7), CPUs 0–3, cgroup
+quota 11.52 CPUs, one compiler job, serialized fresh processes on warm files.
+Owner inventories took 0.41 s before and 0.37 s after; direct took 0.34 s
+and 0.36 s. These single samples establish failure and repair.
+
+The pinned predecessor compiled the unchanged SHA, gzip and command-word
+fixtures with the original and forwarding helper modules. All three ran at
+both revisions. GNU sha256sum accepted 260/260 files each time. Both complete
+corpora and manifests were byte-identical. SHA took 0.06 s before and after,
+gzip 0.15 s and command words 0.03 s. ASan and TSan each ran the original
+native SHA entry and its external manifest check. Both moved helper bodies
+contain the respective memory instrumentation. The initial inspection filter
+missed TSan's unaligned 32-bit hooks. A corrected filter found them in the
+retained instrumented IR. These checks cover the serial guest; the compiler
+interpreter was the ordinary build. Source-level UBSan is unavailable.
+
+Read-only browser observation: playground/scripts/build.mjs:42–50 enumerates
+every library .tower file. Evaluating its manifest expression on this candidate
+returned 49 module names. In playground/src/app.mjs, start() reads builtins.json
+and fetches every name at lines 1020–1025. An ordinary startup would fetch
+./library/sha256_test.tower and ./library/test_data.tower. The separate
+getCanonicalSources() path in playground/src/compiler-runtime.mjs does the same.
+The published Pages Git manifest at 3d57e291 contained 46 names and neither
+optional file. Browser selection and publication remain with their owners.
+Packet 61a32ef3-7cff-4be2-8edf-7e506b34675e contains the exact manifests,
+commands, statuses, streams, binary outputs, sources and measurements.

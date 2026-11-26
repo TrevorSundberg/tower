@@ -1,0 +1,17 @@
+import tower;
+
+fn test_bytes_equal(left: u8*, right: u8*, count: usize): bool {
+    for (var index: usize = 0; index < count; ++index) {
+        if left[index] != right[index] {
+            return false;
+        }
+    }
+    return true;
+}
+
+fn test_xorshift32(state: u32*): u32 {
+    *state ^= *state << 13;
+    *state ^= *state >> 17;
+    *state ^= *state << 5;
+    return *state;
+}
