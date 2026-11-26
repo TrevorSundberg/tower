@@ -783,7 +783,9 @@ when generated spans differ, and verifies private current/scope restoration.
 Retained semantic and resource failures reject later declaration admission without
 another allocation or diagnostic. This selector needs no grammar bootstrap run.
 
-The original native formatter suite lives in `format_suite_test.tower`.
+The 17 native formatter cases live in `format_suite_test.tower`. They share
+exact text, span and round-trip checks with the legacy callers through
+`format_fixture_test.tower`, which declares no test of its own.
 In a Linux x64 parser-only build, build `tower-parser-tests` and
 `tower-reader-test-services`, then run
 `ctest --test-dir <build> -R '^tower-parser-format-' -V`. These four
@@ -817,9 +819,25 @@ restricted to Linux x86_64/libstdc++ and WASI SDK 34/libc++.
 The broad repository formatting check remains available as the separate native
 `-DTOWER_FORMAT_SWEEP=ON` / `tower-format-repository` CTest. It checks canonical
 source, idempotence, filename-relative modules, Bedrock/Foundation baselines and
-invalid syntax fixtures. It is off by default. The migration check exercised
-its file-list path with the three formatter modules and a syntax-invalid input. The
-scoped native `--emit source` / `--check-format` commands remain available.
+invalid syntax fixtures. It is off by default. The native executable takes
+the resource root and the generated `tower_format_files.txt` as arguments.
+It shares the list traversal and predicates with the single selectable
+`format_repository_test.tower` case. To run that case directly on Linux x64,
+set `native_build` to the absolute path of the sweep-enabled build and
+`parser_build` to the absolute path of the parser-only build described above.
+Run the following from the repository root.
+
+```sh
+cd scaffolding
+TOWER_FORMAT_FILE_LIST="$native_build/tower_format_files.txt" \
+  ../bootstrap/linux-x64/towerc --test tests/format_repository_test.tower --jobs 1 --test-details \
+  --test-native-runtime "$parser_build/guest-native-test.o" \
+  --link "$parser_build/libtower-reader-test-services.so" --link "-Wl,-rpath,$parser_build"
+```
+
+At `a7ce48f5` the full generated list stops at the canonical-source check
+for `backend/bindings.tower`. The focused formatter suite and shorter lists
+have separate results.
 
 `tower-parser-tests --suite nodes` selects the focused native/WASI payload suite.
 It retains the native syntax-payload suite's independent equality traversal,

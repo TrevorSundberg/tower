@@ -1,6 +1,6 @@
 import tower;
 import format_suite_test;
-import format_fixture;
+import format_fixture_test;
 import utility_checks;
 
 export fn formatter_tests(resource_root: u8*): void {
