@@ -142,3 +142,14 @@ exercises the source reader and resulting grouping without rebuilding that
 synthetic table oracle. Parser reset, inspect, format and error events require
 the linked host API. The ordinary native test interpreter exposes no guest
 binding for those handles.
+
+### Stack and queue cases
+
+`scaffolding/library/stack_test.tower` checks empty-pop output and LIFO order
+after growth, self-move and replacement of a populated destination.
+`scaffolding/library/queue_test.tower` checks FIFO order across wraparound,
+growth and moves, rejected pops and reserve, and borrowed pointer elements.
+The [case map](evidence/language_collections_checks.tsv) pairs all 25 failure
+codes in `language_collections.tower` with their adjacent assertions.
+The browser suite continues to run the original script, which prints zero
+across its interpreter, Foundation round-trip and LLVM comparisons.

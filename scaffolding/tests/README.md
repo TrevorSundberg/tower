@@ -1930,7 +1930,7 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The optional language suite runs the SCC, SHA-256 and WorkGraph suspension companions through the
+The optional language suite runs the SCC, SHA-256, WorkGraph suspension, stack and queue companions through the
 public driver on Linux GNU. In a native build configured with
 `TOWER_DRIVER_TESTS=ON`, build the suite and run the registrations at one and four
 compiler jobs. Set `B` to
@@ -1938,7 +1938,7 @@ the native build directory.
 
 ```sh
 cmake --build "$B" --target tower-language-tests
-ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256|work-graph(-direct)?)-jobs-' -V
+ctest --test-dir "$B" -R '^tower-selected-' -V
 ```
 
 For a checkout-independent installation, set `PREFIX` to a writable staging
@@ -1972,6 +1972,13 @@ so the kit installs `memory.tower`, `memory_libc.tower` and `memory_types.tower`
 under `share/tower/host`. The linked program uses the kit's guest test runtime
 and production `libtower-compiler-memory.a`. The original assertion map is in
 `docs/evidence/work_resume_check_map.tsv`.
+
+The stack and queue owner registrations run two declarations each. From the
+installed suite directory, select both owners with
+`ctest -R '^tower-selected-(stack|queue)-jobs-' -V`. Direct selection of
+`stack_test.tower` or `queue_test.tower` takes the same arguments printed by
+CTest. The published bootstrap also runs either owner or companion with
+`--test`, `--jobs` and `--test-details`.
 
 For graph components the private installation adds two adjacent fixtures and their corpus-count module
 `graph_components_expectations.tower` under `share/tower/library`, the reachability

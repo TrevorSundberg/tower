@@ -1,0 +1,26 @@
+result_code	original_lines	return_line	owner	test_line	assertion_line	case	assertion
+1	11	13	stack	5	10	empty pop returns false	assert(!stack_pop(i32, &values, &output));
+2	15	17	stack	5	11	empty pop leaves output 123	assert(output == 123);
+3	21	23	stack	15	25	push every i32 from 0 through 79 across growth	assert(stack_push(i32, &values, value));
+4	26-31	29	stack	15	28	self-move populated stack; push 999 onto destination before replacement	assert(stack_push(i32, &moved, 999));
+5	32	34	stack	15	30	moved-from length zero	assert(values.length == 0);
+6	36	38	stack	15	31	moved-from data null	assert(values.data == null);
+7	42	44	stack	15	35	all 80 pops succeed	assert(stack_pop(i32, &moved, &output));
+8	46	48	stack	15	36	pop value equals descending index, 79 through 0	assert(output == remaining - 1, "Moved stack must pop in LIFO order");
+9	60	62	queue	5	15	push 0 through 7	assert(queue_push(i32, &fifo, next));
+10	67	69	queue	5	20	pop first five successfully	assert(queue_pop(i32, &fifo, &output));
+11	71	73	queue	5	21	first five are 0 through 4 in order	assert(output == expected_value);
+12	77	80	queue	5	25	push 8 through 99, wrapping and then growing while head is advanced	assert(queue_push(i32, &fifo, next));
+13	84	86	queue	5	29	pop with null output returns false	assert(!queue_pop(i32, &fifo, null));
+14	88	90	queue	5	30	length preserved on rejected pop	assert(fifo.length == length);
+15	95	97	queue	5	34	maximum usize reserve returns false	assert(!queue_reserve(i32, &fifo, maximum));
+16	99	101	queue	5	35	data pointer preserved on rejected reserve	assert(fifo.data == data);
+17	103-108	106	queue	5	38	self-move populated ring; push 999 onto destination before replacement	assert(queue_push(i32, &destination, 999));
+18	109	111	queue	5	40	moved-from ring data null	assert(fifo.data == null);
+19	113-115	116	queue	5	42	drain by successful pops, compare 5 through 99 in order	assert(output == expected_value, "Moved queue must pop in FIFO order");
+20	119	121	queue	5	45	expect next index 100 after drain	assert(expected_value == count);
+21	124	126	queue	5	47	empty pop returns false	assert(!queue_pop(i32, &destination, &output));
+22	128	130	queue	5	48	output remains 123	assert(output == 123);
+23	137	139	queue	52	57	push borrowed pointer to i32	assert(queue_push(i32*, &pointers, &value));
+24	142	144	queue	52	59	pop borrowed pointer	assert(queue_pop(i32*, &pointers, &pointer));
+25	146	148	queue	52	60	dereferenced borrowed value 123	assert(*pointer == 123);

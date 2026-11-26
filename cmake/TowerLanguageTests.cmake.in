@@ -13,10 +13,13 @@ set(scc_suffix_args)
 if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
   list(APPEND scc_suffix_args --test-suffix "$ENV{TOWER_SCC_TEST_SUFFIX}")
 endif()
-register_language_tests(graph-components graph_components "1 test passed for"
-  ${scc_suffix_args}
-  --link "@scc_objects@/runtime-instrumented.o" --link "@scc_objects@/tower-compiler-bytes.o"
+set(compiler_memory_links --link "@scc_objects@/tower-compiler-bytes.o"
   --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(graph-components graph_components "1 test passed for"
+  ${scc_suffix_args} --link "@scc_objects@/runtime-instrumented.o" ${compiler_memory_links})
+foreach(owner IN ITEMS stack queue)
+  register_language_tests(${owner} ${owner} "(^|\n)([013-9]|[1-9][0-9]+) tests? (passed|selected) for " ${compiler_memory_links})
+endforeach()
 register_language_tests(sha256 sha256 "1 test passed for;[2-6] tests passed for")
 set(work_graph_incomplete "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
 register_language_tests(work-graph work_graph "${work_graph_incomplete}" --link "@scc_objects@/libtower-compiler-memory.a")
