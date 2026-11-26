@@ -1,51 +1,14 @@
 import tower;
-import .library.float_text;
-import .library.float_bits;
+import .library.float_text_test as cases;
 
 var failures: u32 = 0;
-fn check(text: u8*, width: u32, wanted: u64): void {
-    var status: FloatParseStatus;
-    var actual = float_parse(text, width, &status);
-    if status != FloatParseStatus.Valid || actual != wanted { print(text); print(actual); print(wanted); failures++; }
-}
-fn round_trip(raw: u64, width: u32): void {
-    var output: float_text_buffer();
-    float_text(raw, width, &output[0]);
-    check(&output[0], width, raw);
-}
-check("0.1", Float32Width, 1036831949);
-check("0.1", Float64Width, 4591870180066957722);
-check("-0.0", Float64Width, Float64Sign);
-check("1.000000059604644775390625", Float32Width, 1065353216);
-check("1.000000059604644775390626", Float32Width, 1065353217);
-check("1.000000178813934326171875", Float32Width, 1065353218);
-check("1e-45", Float32Width, 1);
-check("5e-324", Float64Width, 1);
-check("2.4703282292062327e-324", Float64Width, 0);
-check("2.4703282292062328e-324", Float64Width, 1);
-check("1.7976931348623157e308", Float64Width, Float64Infinity - 1);
-check("3.4028234663852886e38", Float32Width, Float32Infinity - 1);
-check("0e99999999999999999", Float32Width, 0);
-check("-1e-99999999999999999", Float64Width, Float64Sign);
-var status: FloatParseStatus;
-float_parse("1e309", Float64Width, &status);
-if status != FloatParseStatus.Overflow { failures++; }
-float_parse("1e", Float64Width, &status);
-if status != FloatParseStatus.Invalid { failures++; }
-float_parse("1.2.3", Float64Width, &status);
-if status != FloatParseStatus.Invalid { failures++; }
-round_trip(0, Float32Width);
-round_trip(Float64Sign, Float64Width);
-round_trip(1, Float64Width);
-round_trip(Float64Infinity - 1, Float64Width);
-round_trip(4503599627370496, Float64Width);
-var random: u64 = 8675309;
-var cases: u32 = 512;
-for (var i: u32 = 0; i < cases; i++) {
-    random = random * 6364136223846793005 + 1442695040888963407;
-    if (random & Float64Infinity) != Float64Infinity { round_trip(random, Float64Width); }
-    var small = random & FloatLimbMask;
-    if (small & Float32Infinity) != Float32Infinity { round_trip(small, Float32Width); }
-}
+failures += cases.signed_decimal_values().failures;
+failures += cases.decimal_midpoints().failures;
+failures += cases.decimal_range_limits().failures;
+failures += cases.rejected_decimals().failures;
+failures += cases.decimal_boundary_round_trips().failures;
+failures += cases.generated_decimal_round_trips().failures;
 print(failures);
-if failures != 0 { trap("Floating text tests failed", failures); }
+if failures != 0 {
+    trap("Floating text tests failed", failures);
+}

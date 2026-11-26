@@ -110211,3 +110211,113 @@ objects produced zero failures and empty stderr in both modes. This exercises
 the case helpers in a serial guest. The Tower instrumentation tool supports
 address and thread modes. Assignment `64b14835-6875-4781-8b93-2424eb9ada6e`
 retains the case-to-line map, input identities, link maps and raw runs.
+
+### Decimal text round trips in default companion discovery
+
+The integration parent is `bddf13315bf8f484b8d8e9fdb0b801f426450401` on
+published `442f3bea`. On host 4 the received archive, source bundle,
+arithmetic oracle map and registration scan matched the assignment manifest.
+The bundle verified and fast-forwarded. The first linked default selection
+of `library/float_text.tower` passed nine arithmetic declarations. The
+original linked decimal script printed exactly `0\n` and exited zero.
+
+The [companion](../scaffolding/library/float_text_test.tower) exercises
+the production Tower decimal parser and formatter. The standalone calls the
+same six groups, sums their failures and traps after printing a nonzero count.
+Each group keeps its first failed literal or boundary label. Round trips
+consume their formatted buffer while it is live. On mismatch they print the
+width, actual bits, wanted bits and status. The selected declaration reports
+the label through the test runner.
+
+| Group | Original standalone lines | Oracle |
+| --- | --- | --- |
+| Signed decimals | 16–18 | Exact f32/f64 bits for `0.1` and f64 negative zero |
+| Binary32 midpoints | 19–21 | Lower even tie, just above the tie and upper even tie |
+| Decimal range limits | 22–29 | Eight exact results covering subnormal rounding, maximum finite values and extreme exponents |
+| Rejected decimals | 30–36 | Overflow for `1e309`, invalid for `1e` and `1.2.3` |
+| Boundary formatting | 37–41 | Format five raw values, parse at the original width, require valid status and the original bits |
+| Generated formatting | 42–49 | Seed 8675309, 512 advances with the original multiplier and increment, f64 then masked f32 with separate finite filters |
+
+A separate counted replay observed 512 finite f64 and 511 finite f32 round
+trips. The one excluded f32 value is part of the original stream. The packet
+maps individual lexemes, status checks, raw values and generator lines in
+`case-map.tsv`. The release driver (`41de9006`, executable SHA-256
+`e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`)
+and the 60 release manifest entries verified. Native count-checked CTests
+passed from the checkout and from the moved CMake SccTests installation at
+jobs 1 and 4. The direct companion ran six decimal tests. The ordinary owner
+ran those six plus the same nine arithmetic source locations as the received
+native log. The optional installation reused the release compiler, checker,
+providers and runtime IR. The two edited Tower files passed the release
+formatter check after whitespace normalization. The legacy executable matched
+its pre-format bytes.
+
+Changing the expected f32 midpoint from 1065353216 to 1065353217 in the
+moved kit made direct selection exit 1 with the exact lexeme
+`1.000000059604644775390625` at line 57, column 5. The ordinary standalone
+printed the mismatching bits, valid status and one failure, then emitted
+`Floating text tests failed` on stderr and exited 1. Restoration passed all
+six direct declarations and produced the original two standalone output bytes
+with empty stderr. The unmodified LLVM arithmetic reference generated and
+passed all 10,240 checks. Its host entry links with the kit's bytes, UTF-8 and
+compiler memory providers. Linking the guest runtime introduced a second main,
+and the memory archive alone lacked the bytes and UTF-8 definitions.
+
+| Existing default registration | Arithmetic baseline | With decimal companion |
+| --- | ---: | ---: |
+| Bytecode package, jobs 1 and 4 | 15 | 21 |
+| Semantic defer, jobs 1 and 4 | 69 | 75 |
+| Semantic iteration, jobs 4 | 69 | 75 |
+
+The five registrations come from the verified arithmetic selection scan.
+Their owner inventories gained just the decimal companion. Host 4 confirmed
+the baseline totals in successful ordinary runs and read the candidate
+compiler's compiled declaration count before guest execution for each registered
+width. A one-iteration copy kept every static assertion and both finite
+streams. Bytecode at jobs 4, defer at jobs 1 and 4, and iteration at jobs 4
+passed that control. Full execution coverage is identified below.
+
+Host 4 ran Debian 12 and LLVM 19.1.7 on a Ryzen 7 5800H with 8 cores and
+16 hardware threads. Each measurement used CPUs 0,2,4,6, a 15.36-CPU cgroup
+quota and a warm filesystem. GNU time measured one command at a time under
+the shared host lock. The loop executes serially. Single observations include
+the compiler process for compilation and selection, and exclude it for a guest
+executable. Peak RSS is in KiB. Tower allocation totals were unavailable.
+
+| Path | Jobs | Wall s | User s | System s | Peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Standalone compile and link, baseline | 1 | 0.69 | 0.62 | 0.06 | 110080 |
+| Standalone compile and link, formatted candidate | 1 | 0.80 | 0.70 | 0.09 | 114424 |
+| Full standalone ELF, baseline | 1 | 0.01 | 0.01 | 0.00 | 1516 |
+| Full standalone ELF, candidate | 1 | 0.01 | 0.01 | 0.00 | 1576 |
+| Native owner, nine arithmetic declarations | 1 | 0.55 | 0.49 | 0.06 | 113884 |
+| Native owner, nine arithmetic and six decimal declarations | 1 | 0.70 | 0.62 | 0.07 | 119144 |
+| Native direct, six decimal declarations | 1 | 0.51 | 0.44 | 0.07 | 113744 |
+| Bytecode package, graph interpreter, baseline | 1 | 1.51 | 1.36 | 0.15 | 228152 |
+| Bytecode package, graph interpreter, full candidate | 1 | 184.92 | 184.77 | 0.15 | 229584 |
+| Semantic iteration, graph interpreter, full formatted candidate | 4 | 190.61 | 192.97 | 0.70 | 764664 |
+| Four final native CTests, checkout | 1, 4 | 2.60 | 2.34 | 0.35 | 123608 |
+| Four final native CTests, moved kit | 1, 4 | 2.58 | 2.34 | 0.33 | 124784 |
+
+All 21 declarations passed in the full bytecode run before whitespace
+normalization. The full formatted semantic iteration owner passed all 75 at
+jobs 4. Discovering the 512-iteration group adds about three minutes
+to this graph-interpreted invocation on host 4. The ordinary decimal library,
+bytecode package and platform output objects and their depfiles matched the
+baseline byte for byte. Their dependency lists exclude the adjacent tests and
+assertion grammar. The standalone is the intentional test-source consumer.
+
+Address/leak and thread instrumentation of the shared corpus and guest runtime
+completed the full serial standalone with `0\n` and empty stderr. The first
+TSan executable failed at startup because the host denied its personality
+call. The same objects passed with a non-PIE link and the system ELF loader.
+The compiler and its worker transport were reused. The Tower IR instrumentation
+tool provides address and thread modes. An initial semantic iteration inventory
+with default package paths failed to resolve the checkout's examples import.
+The registered Bedrock and Foundation paths resolved it.
+
+Assignment `365f78ee-48d3-40db-a28d-4eb9a0b05eaf` retains the source
+bundle, moved kit, case map, link maps, discovery inventories, exact stdout
+and stderr, including the deliberate failures and restorations. Available
+disk was 39,427,772,416 bytes at intake and 39,294,967,808 before sealing
+the evidence on the shared filesystem. Publication belongs to the manager.
