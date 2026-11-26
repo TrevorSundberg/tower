@@ -169,6 +169,7 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
+    tower_companion_test(tower-fixture-diagnostics tests/fixture_diagnostics.tower ${workers})
     tower_companion_test(tower-borrowed-foreach tests/iteration_parallel_unit.tower ${workers})
     foreach(fixture IN ITEMS operators null_operators compound_operators)
       tower_companion_test(tower-${fixture}-owner tests/${fixture}.tower ${workers})

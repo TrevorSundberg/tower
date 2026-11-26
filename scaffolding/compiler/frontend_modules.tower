@@ -124,6 +124,7 @@ struct ModuleEnvironment {
     test_discovery: TestFileDiscovery*;
     // A synchronous nested fixture compilation borrows the finished selection's source map.
     fixture_parent: ModuleEnvironment*;
+    fixture_input_failed: bool;
     observe_source: function(void, void*, u8*, u8*, usize);
     observe_context: void*;
 }
@@ -994,6 +995,7 @@ fn module_load_input(parent: FrontendModule*, name: u8*, path: u8*, text: vector
             }
         }
     } else {
+        if parent.graph.environment.fixture_parent != null { parent.graph.environment.fixture_input_failed = true; }
         if status == ModuleInvalidSource {
             module_fail(parent, "Imported source must be UTF-8 without NUL bytes: ", name);
         }
@@ -1980,8 +1982,17 @@ export fn frontend_modules_error_offset(environment: ModuleEnvironment*): usize 
     return environment.diagnostic_offset;
 }
 
+export fn frontend_fixture_input_failed(environment: ModuleEnvironment*): bool {
+    return environment.fixture_input_failed;
+}
+
 // Native transport asks the same source map used by browser execution handles.
 export fn frontend_modules_location(environment: ModuleEnvironment*, offset: usize, line: usize*, column: usize*): u8* {
+    var local: usize = 0;
+    return frontend_modules_source_location(environment, offset, &local, line, column);
+}
+
+export fn frontend_modules_source_location(environment: ModuleEnvironment*, offset: usize, local: usize*, line: usize*, column: usize*): u8* {
     var source = environment.diagnostic;
     var found = source != null;
     if found {
@@ -2003,6 +2014,7 @@ export fn frontend_modules_location(environment: ModuleEnvironment*, offset: usi
     }
     found = source != null;
     if found {
+        *local = offset;
         syntax_source_location(source, offset, line, column);
         return source.name.data;
     }

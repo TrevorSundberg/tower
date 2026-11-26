@@ -1,0 +1,12 @@
+import library.test_fixtures;
+import check;
+
+test() {
+    var source = "decltype_body_comptime.expected";
+    var suffix = "/fixture_diagnostics/decltype_body_comptime.expected";
+    var wanted = "Unknown local 'missing_body_value'\nInstantiated by invalid(1) at line 4, column 16.";
+    check_diagnostic(source, suffix, wanted, 53, 2, 40);
+    var accepted = fixture_diagnostic("decltype_body_comptime.tower");
+    defer fixture_diagnostic_dispose(&accepted);
+    assert(accepted.message.data == null && accepted.file.data == null, "valid owner rejected");
+}
