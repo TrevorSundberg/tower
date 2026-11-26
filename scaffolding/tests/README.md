@@ -786,7 +786,12 @@ all 1,000 seeded identifier/literal byte cases,
 in-place/aliased decoding, eight declaration fixtures, exact malformed-tree
 diagnostics, shared source provenance, canonical declaration output and allocation
 failures. Native CTest sets its working directory to the grammar resources.
-The parser aggregate calls the same cases.
+The parser aggregate calls the same cases. On native Linux x64 GNU, build
+`tower-reader-test-services` for the selected guest. Run
+`ctest -R '^tower-reader($|-)' -V` from the parser build. The direct
+companion selects seven reader declarations. Default discovery through
+`tests/syntax_reader.tower` also selects five work-budget declarations.
+Both entries run at compiler jobs 1 and 4 with serial guest fault injection.
 
 `tower-parser-tests --suite validation` checks grammar validation against the
 independent Tower oracle on Linux and WASI. It compares exact result/error/offset/pending-term

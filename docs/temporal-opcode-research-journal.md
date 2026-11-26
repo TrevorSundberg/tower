@@ -112843,3 +112843,84 @@ failed in the host personality check before startup and the sixth passed.
 The maps identify runtime-instrumented and tower_work_serial. The provider
 objects were uninstrumented. The Tower IR tool has no UBSan mode. These
 runs cover the serial suite. Manager integration and publication are pending.
+
+### Native syntax reader regression on 21f409e5 (host 1)
+
+The original CTest runs `tower-parser-tests --suite reader` in
+`scaffolding`. The aggregate executable also calls `syntax_reader_tests`.
+Both share the serial instrumented allocator. The baseline passed three
+times in a fresh parser-only Release build. The independent
+`tests/reader_oracle.tower` also serves validation and remains shared.
+The migration puts the reader checks in the test fixture's adjacent
+companion and keeps the native entry for existing callers.
+
+The 36 original assertion predicates and messages match the 36 companion
+assertions in order. The packet's `assertions.tsv` maps each original
+line to the new assertion and its declarations. The first declaration runs
+all 1,000 MT19937 trials (seed 1380270404), comparing decoded bytes,
+in-place bytes and literal classification. The second checks overlap,
+escapes, pointer preservation on refusal and overflow. Four declarations
+cover the original eight rule, replacement, token and skip inputs. Each
+still compares checked results and exact diagnostic bytes on separate
+clones. Success checks include structural equality, canonical text,
+shared source identity, exact spans and child/replacement bounds after
+session destruction. The seventh checks allocation refusal while reporting
+a missing capture, followed by the exact ordinary diagnostic.
+
+A separate instrumented replay recorded each allocation baseline after
+the fixture's pinned retry and final ownership check. The two native
+runs produced identical rows. The fault loops refuse every construction
+allocation in order, check Memory and compare live owner counts after
+each refusal. The open view separately forces Busy, then a closed view
+permits a successful retry with None.
+
+| Fault-injected fixture | Refusal indices tried | Baseline live buffers | Baseline live nodes |
+| --- | ---: | ---: | ---: |
+| Rule with alternatives | 17 | 12852 | 5422 |
+| Exclusion rule | 11 | 13217 | 5403 |
+| Foundation replacement | 11 | 14419 | 5423 |
+| Contextual token | 4 | 14400 | 5418 |
+| Styled skip | 4 | 14786 | 5408 |
+
+The Linux x64 GNU parser-only build links the existing serial services
+into a test-only shared library. `tower-reader` and the aggregate retain
+their command and stdout. On jobs 1 and 4, `tower-reader-direct-jobs-*`
+selected seven declarations each. `tower-reader-owner-jobs-*` selected
+the same seven and five work-budget declarations each. The initial
+seven-count expectation for owner discovery failed on the exact-count
+guard. After correcting it, all five registered CTests passed in three
+runs. Changing the missing-capture expectation from Memory to Busy made
+the direct jobs-1 CTest exit 8 at the original Tower assertion message
+(line 238, column 5). Restoring the exact companion checksum recovered
+all five. The full native parser aggregate and the focused WASI SDK 34
+reader (Node 24.22.3) passed. Both native selections also passed at
+both widths with the existing installed 8bc867b6 test kit.
+
+The primary compiler was the public Linux x64 build from 41de9006
+(SHA-256 `e2d03c1e8530fbc5b4dccd147ec388ea0f2663037a26f0f7418ce43eb9dd3e07`).
+All 60 installed payload checks passed. Release configuration used
+Clang/LLVM 19.1.7, x86_64-pc-linux-gnu, four outer build slots and one
+compiler job per bootstrap invocation. The host has Xeon Gold 6244 CPUs,
+32 visible logical CPUs and 15.36 CPUs of quota. GNU time recorded three
+warm-filesystem pairs under the host timing lock, one fresh process at a
+time. The native executables linked the same parser and allocator objects
+and differed in their reader case object. Stdout matched in each pair.
+
+| Invocation | Median wall s | Median user + system s | Maximum RSS KiB |
+| --- | ---: | ---: | ---: |
+| Original prelinked reader | 0.14 | 0.13 | 12880 |
+| Migrated prelinked reader | 0.14 | 0.13 | 12864 |
+| Compile and run seven declarations, jobs 1 | 0.96 | 0.96 | 130144 |
+| Compile and run seven declarations, jobs 4 | 1.20 | 1.41 | 138140 |
+
+The job count controls compilation. Guest allocation refusals execute
+serially. The focused address/leak and thread checks instrumented all
+44 definitions in the reader fixture/oracle object and all 1,616 in
+the production parser-nodes object. Both runs returned the expected
+stdout. TSan had 15 startup failures from the host's denied personality
+call before the same executable ran successfully. Other parser link
+inputs used the ordinary objects. The Tower IR instrumentation tool
+supports address and thread modes only. No full-compiler sanitizer or
+browser release matrix ran for this test migration. Packet
+`78993b7d-22e0-4d00-8869-94f1b99df22c` carries commands, outputs, source
+bundle, assertion map and checksums for manager integration.
