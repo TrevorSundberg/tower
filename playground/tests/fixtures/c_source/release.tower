@@ -1,0 +1,51 @@
+import observations;
+import backend.text;
+
+extern fn c_strip(handle: u32): void;
+
+extern fn c_nodes(): usize;
+
+extern fn c_allocations(): usize;
+
+fn warm_emitter(): void {
+    var handle = c_open("comments.tower");
+    defer c_release(handle);
+    c_guest_output(handle, "42\n");
+    free(c_foundation(handle));
+    free(c_emit(handle, true));
+}
+
+test() {
+    warm_emitter();
+    var nodes = c_nodes();
+    var allocations = c_allocations();
+    for (var i: usize = 0; i < 3; i++) {
+        var handle = c_open("comments.tower");
+        defer c_release(handle);
+        c_guest_output(handle, "42\n");
+        var canonical = c_foundation(handle);
+        defer free(canonical);
+        c_roundtrip(canonical);
+        c_notes(canonical, true);
+        var output = c_emit(handle, true);
+        defer free(output);
+        assert(c_find(output, "int main(void)") != null);
+        assert(c_find(output, "#define TC_POINTER_BYTES 8") != null);
+        c_notes(output, true);
+        var stripped = c_emit(handle, false);
+        defer free(stripped);
+        c_notes(stripped, false);
+        var preserved = c_foundation(handle);
+        defer free(preserved);
+        assert(backend_equal(preserved, canonical), "Emission option mutated the source");
+        c_strip(handle);
+        var stripped_foundation = c_foundation(handle);
+        defer free(stripped_foundation);
+        c_notes(stripped_foundation, false);
+        var stripped_entity_output = c_emit(handle, true);
+        defer free(stripped_entity_output);
+        assert(backend_equal(stripped, stripped_entity_output));
+    }
+    assert(c_nodes() == nodes, "Emitter retained nodes");
+    assert(c_allocations() == allocations, "Emitter retained allocations");
+}

@@ -1,0 +1,1 @@
+C target needs a plain C identifier for extern/export; namespace or member declarations require a C ABI wrapper

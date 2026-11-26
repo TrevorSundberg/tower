@@ -1,0 +1,3 @@
+import foundation;
+// original note
+fn answer():i32 { /* body note */ return 42; } print(answer()); // end note

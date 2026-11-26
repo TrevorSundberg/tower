@@ -1,0 +1,59 @@
+import library.testing;
+import backend.text;
+
+// Text crossing the reactor boundary is an owned NUL-terminated copy.
+extern fn c_input(name: u8*): u8*;
+
+extern fn c_compile(source: u8*, pointer_bytes: u32): u32;
+
+extern fn c_release(handle: u32): void;
+
+extern fn c_foundation(handle: u32): u8*;
+
+extern fn c_emit(handle: u32, comments: bool): u8*;
+
+extern fn c_execute(handle: u32): u8*;
+
+extern fn c_llvm(source: u8*, optimize: bool, target: u8*): u8*;
+
+var CPointerBytes: u32 = 8;
+
+fn c_open(name: u8*): u32 {
+    var source = c_input(name);
+    defer free(source);
+    return c_compile(source, CPointerBytes);
+}
+
+fn c_roundtrip(canonical: u8*): void {
+    var round = c_compile(canonical, CPointerBytes);
+    defer c_release(round);
+    var text = c_foundation(round);
+    defer free(text);
+    assert(backend_equal(text, canonical), "Foundation round trip");
+}
+
+fn c_guest_output(handle: u32, wanted: u8*): void {
+    var output = c_execute(handle);
+    defer free(output);
+    assert(backend_equal(output, wanted), "Recompiled guest stdout");
+}
+
+fn c_find(text: u8*, part: u8*): u8* {
+    while *text != 0 {
+        if *text == *part && backend_prefix(text, part) {
+            return text;
+        }
+        text++;
+    }
+    return null;
+}
+
+fn c_notes(text: u8*, present: bool): void {
+    assert((c_find(text, "original note") != null) == present, "original note");
+    assert((c_find(text, "body note") != null) == present, "body note");
+    assert((c_find(text, "end note") != null) == present, "end note");
+}
+
+fn c_digit(byte: u8): bool {
+    return byte >= *"0" && byte <= *"9";
+}

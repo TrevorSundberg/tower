@@ -1,0 +1,61 @@
+import observations;
+import backend.text;
+
+// Compare each whole example comment, including comments introduced by later edits.
+fn example_notes(source: u8*, text: u8*, present: bool): void {
+    var line = source;
+    while *line != 0 {
+        var end = line;
+        while *end != 0 && *end != *"\n" {
+            end++;
+        }
+        var next = *end;
+        if backend_prefix(line, "// ") {
+            *end = 0;
+            assert((c_find(text, line + 3) != null) == present, line + 3);
+            *end = next;
+        }
+        line = end;
+        if next != 0 {
+            line++;
+        }
+    }
+}
+
+test() {
+    var source = c_input("increment.tower");
+    defer free(source);
+    assert(c_find(source, "\n// 5: the old value, then 6: the updated variable.\n") != null);
+    var handle = c_compile(source, CPointerBytes);
+    defer c_release(handle);
+    var canonical = c_foundation(handle);
+    defer free(canonical);
+    example_notes(source, canonical, true);
+    var wanted = c_input("increment.expected");
+    defer free(wanted);
+    for (var profile: usize = 0; profile < 2; profile++) {
+        var generated = handle;
+        if profile != 0 {
+            var optimized = c_llvm(canonical, true, "wasm64-unknown-unknown");
+            defer free(optimized);
+            generated = c_compile(optimized, CPointerBytes);
+        }
+        defer {
+            if generated != handle {
+                c_release(generated);
+            }
+        }
+        c_guest_output(generated, wanted);
+        var output = c_emit(generated, true);
+        defer free(output);
+        example_notes(source, output, true);
+        var stripped = c_emit(generated, false);
+        defer free(stripped);
+        example_notes(source, stripped, false);
+        if profile == 0 {
+            var main = c_find(output, "int main(void)");
+            var old_value = "5: the old value";
+            assert(main != null && c_find(main, old_value) == c_find(output, old_value));
+        }
+    }
+}

@@ -1,0 +1,53 @@
+import observations;
+import backend.text;
+
+fn number_end(at: u8*, wanted: usize): u8* {
+    assert(c_digit(*at), "Expected decimal suffix");
+    assert(*at != *"0" || !c_digit(at[1]), "Noncanonical decimal suffix");
+    var value: usize = 0;
+    while c_digit(*at) {
+        value = value * 10 + convert(usize, *at -*"0");
+        at++;
+    }
+    assert(value == wanted, "Comment or declaration out of order");
+    return at;
+}
+
+test() {
+    var count: usize = 128;
+    var handle = c_open("generated.tower");
+    defer c_release(handle);
+    var canonical = c_foundation(handle);
+    defer free(canonical);
+    var at = canonical;
+    for (var i: usize = 0; i < count; i++) {
+        var marker = "/* note_";
+        at = c_find(at, marker);
+        assert(at != null);
+        at = number_end(at + backend_length(marker), i);
+        var declaration = "*/\nfn ";
+        assert(backend_prefix(at, declaration));
+        at += backend_length(declaration);
+        var quoted = *at == *"`";
+        if quoted {
+            at++;
+        }
+        assert(*at == *"f");
+        at = number_end(at + 1, i);
+        assert(quoted ? backend_prefix(at, "@input.tower`("): *at == *"(");
+    }
+    assert(c_find(at, "/* note_") == null);
+    c_roundtrip(canonical);
+    var output = c_emit(handle, true);
+    defer free(output);
+    var notes: usize = 0;
+    at = c_find(output, "note_");
+    while at != null {
+        at += backend_length("note_");
+        if c_digit(*at) {
+            notes++;
+        }
+        at = c_find(at, "note_");
+    }
+    assert(notes == count, "C declaration comments");
+}
