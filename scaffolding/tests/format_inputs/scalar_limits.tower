@@ -1,0 +1,2 @@
+import foundation;
+var lo:i64=-9223372036854775808; var hi:u64=18446744073709551615; var b:bool=true; var p:i32*=null;

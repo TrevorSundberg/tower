@@ -1,0 +1,4 @@
+import foundation;
+parse Statement |= 'show' $x:CoreOperand ';'
+    => replace { print($x); };
+show 42;

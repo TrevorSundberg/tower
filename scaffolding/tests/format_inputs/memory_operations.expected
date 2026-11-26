@@ -1,0 +1,7 @@
+var p: i32* = alloc(i32, 2);
+p = realloc(i32, p, 3);
+fill(p, 0, 12);
+copy(p, p, 12);
+var x: usize = sizeof(i32);
+x = alignof(i32);
+free(p);

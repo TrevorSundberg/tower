@@ -1,0 +1,2 @@
+import foundation;
+struct S { x:i32; } extern fn ext(a:i32):i32; export fn f(a:i32):i32 { var x:i32=ext(a); return x; }

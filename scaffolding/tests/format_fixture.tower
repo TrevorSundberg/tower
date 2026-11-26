@@ -1,0 +1,211 @@
+import library.testing;
+import .compiler.format_types;
+import .compiler.foundation_types;
+import .compiler.foundation_tags;
+import .compiler.semantic_program_types;
+import .host.driver_api;
+import .host.syntax_baseline_api;
+import .library.bytes_interface;
+import .library.bytes_types;
+import .library.vector;
+import storage_api;
+import format_abi;
+import utility_checks;
+
+extern fn frontend_modules_create(): void*;
+
+extern fn frontend_modules_destroy(modules: void*): void;
+
+extern fn frontend_modules_configure(modules: void*, source: u8*, library: u8*): void;
+
+extern fn driver_read_file(path: u8*, out: ByteBuffer*): bool;
+
+extern fn host_text_terminate(out: ByteBuffer*): bool;
+
+extern fn compiler_runtime_write(data: u8*, length: usize): void;
+
+extern fn host_json_unsigned(out: ByteBuffer*, value: u64): bool;
+
+struct FormatterFixture {
+    root: u8*;
+    modules: void*;
+    slot: void**;
+    previous: void*;
+}
+
+fn format_fixture_open(root: u8*): FormatterFixture {
+    var modules = frontend_modules_create();
+    assert(modules is not null, "Create formatter module environment");
+    var slot = syntax_host_environment(compiler_host_world());
+    var previous = *slot;
+    *slot = modules;
+    frontend_modules_configure(modules, "formatter_fixture.tower", root);
+    return {
+        root: root, modules: modules, slot: slot, previous: previous
+    };
+}
+
+fn format_fixture_close(fixture: FormatterFixture*): void {
+    *fixture.slot = fixture.previous;
+    frontend_modules_destroy(fixture.modules);
+}
+
+fn format_read(fixture: FormatterFixture*, name: u8*, suffix: u8*): ByteBuffer {
+    var path: ByteBuffer = default;
+    defer bytes_dispose(&path);
+    var directory = "/tests/format_inputs/";
+    assert(bytes_append(&path, fixture.root, strlen(fixture.root))
+    && bytes_append(&path, directory, strlen(directory))
+    && bytes_append(&path, name, strlen(name))
+    && bytes_append(&path, suffix, strlen(suffix)) && host_text_terminate(&path), "Formatter fixture path");
+    var input: ByteBuffer = default;
+    assert(driver_read_file(path.data, &input), path.data);
+    return input;
+}
+
+fn format_expect_bytes(name: u8*, kind: u8*, data: u8*, length: usize, wanted: ByteBuffer*): void {
+    if length == wanted.length && utility_equal(data, wanted.data, length) {
+        return;
+    }
+    compiler_runtime_write(name, strlen(name));
+    compiler_runtime_write("\n", 1);
+    compiler_runtime_write(kind, strlen(kind));
+    var expected_label = "\nExpected:\n";
+    compiler_runtime_write(expected_label, strlen(expected_label));
+    compiler_runtime_write(wanted.data, wanted.length);
+    var actual_label = "\nActual:\n";
+    compiler_runtime_write(actual_label, strlen(actual_label));
+    compiler_runtime_write(data, length);
+    assert(false, name);
+}
+
+// Each line of the frozen map is output begin, output end, source byte offset.
+// Compare the complete ordered sequence, including empty maps and import spans.
+fn format_check_source(fixture: FormatterFixture*, name: u8*, actual: FormatResult*): void {
+    var wanted = format_read(fixture, name, ".expected");
+    defer bytes_dispose(&wanted);
+    assert(!actual.failed, name);
+    format_expect_bytes(name, "Formatter text", actual.text.data, actual.text.length, &wanted);
+    var spans = format_read(fixture, name, ".spans");
+    defer bytes_dispose(&spans);
+    var observed: ByteBuffer = default;
+    defer bytes_dispose(&observed);
+    foreach(var & span in &actual.spans) {
+        assert(host_json_unsigned(&observed, convert(u64, span.begin)) && bytes_push(&observed, 32)
+        && host_json_unsigned(&observed, convert(u64, span.end)) && bytes_push(&observed, 32)
+        && host_json_unsigned(&observed, convert(u64, span.source)) && bytes_push(&observed, 10), "Record formatter span");
+    }
+    format_expect_bytes(name, "Formatter source map", observed.data, observed.length, &spans);
+}
+
+fn format_check_foundation(fixture: FormatterFixture*, name: u8*, actual: FormatResult*, body_spans: usize): void {
+    var prelude = format_read(fixture, "foundation_prelude", ".expected");
+    defer bytes_dispose(&prelude);
+    var body = format_read(fixture, name, ".expected");
+    defer bytes_dispose(&body);
+    // Two functions with one return statement each, followed by thirteen declarations.
+    var prelude_spans: usize = 17;
+    assert(!actual.failed && actual.spans.length == prelude_spans + body_spans, name);
+    assert(bytes_append(&prelude, body.data, body.length), "Assemble frozen Foundation text");
+    format_expect_bytes(name, "Canonical Foundation", actual.text.data, actual.text.length, &prelude);
+}
+
+extern fn format_source(out: FormatResult*, roots: void**, count: usize, source: u8*, length: usize,
+comments: FormatComment*, comment_count: usize, syntax: void*, foundation: void*, match_kind: void*): void;
+
+fn format_test_source(input: u8*, out: FormatResult*): void {
+    var session = syntax_create(input, null);
+    assert(session is not null, "Formatter source session");
+    defer syntax_destroy(session);
+    loop {
+        var root = syntax_next(session);
+        if root is null {
+            break;
+        }
+        tower_node_release_ref(root);
+    }
+    if syntax_get_error(session)[0] != 0 {
+        puts(syntax_get_error(session));
+        puts(input);
+        fflush(null);
+    }
+    assert(syntax_get_error(session)[0] == 0, "Formatter source parsed");
+    var error: u8*;
+    var ready = syntax_format_into(session, out, &error);
+    if error[0] != 0 {
+        puts(error);
+        fflush(null);
+    }
+    assert(ready && error[0] == 0, "Formatter shared source result has no error");
+}
+
+fn format_test_compile_bytes(input: u8*, length: usize, program: SemanticProgram*, modules: void*): void {
+    semantic_initialize(program, tower_node_create(), 4);
+    var source: FrontendSource;
+    source.data = input;
+    source.length = length;
+    frontend_compile_sources(program, &source, 1, modules);
+    if program.error.length != 0 {
+        assert(vector_push(&program.error, 0), "Formatter compile diagnostic terminator");
+        --program.error.length;
+        puts(program.error.data);
+        fflush(null);
+    }
+    assert(program.error.length == 0, "Formatter Foundation fixture compiles");
+}
+
+fn format_test_program_dispose(program: SemanticProgram*): void {
+    semantic_program_dispose(program);
+    tower_node_release_ref(program.root);
+}
+
+fn format_test_entity(out: FormatResult*, root: void*): void {
+    format_entity(out, root, syntax_component_type(), null, parser_match_get_type());
+}
+
+fn format_test_equal(actual: FormatResult*, oracle: FormatResult*, spans: bool): void {
+    assert(!actual.failed && !oracle.failed && actual.text.length == oracle.text.length
+    && utility_equal(actual.text.data, oracle.text.data, actual.text.length), "Formatter exact canonical text");
+    if spans {
+        assert(actual.spans.length == oracle.spans.length, "Formatter exact span count");
+        for(var index: usize = 0; index < actual.spans.length; ++index) {
+            var a = &actual.spans.data[index];
+            var b = &oracle.spans.data[index];
+            assert(a.begin == b.begin && a.end == b.end && a.source == b.source, "Formatter exact ordered span triples");
+        }
+    }
+}
+
+fn format_source_case(fixture: FormatterFixture*, name: u8*): void {
+    var source = format_read(fixture, name, ".tower");
+    defer bytes_dispose(&source);
+    var actual: FormatResult = default;
+    defer format_dispose(&actual);
+    format_test_source(source.data, &actual);
+    format_check_source(fixture, name, &actual);
+    var again: FormatResult = default;
+    defer format_dispose(&again);
+    format_test_source(actual.text.data, &again);
+    format_test_equal(&actual, &again, false);
+}
+
+fn format_foundation_case(fixture: FormatterFixture*, name: u8*, body_spans: usize): void {
+    var source = format_read(fixture, name, ".tower");
+    defer bytes_dispose(&source);
+    var program: SemanticProgram;
+    format_test_compile_bytes(source.data, source.length, &program, fixture.modules);
+    defer format_test_program_dispose(&program);
+    var actual: FormatResult = default;
+    defer format_dispose(&actual);
+    format_test_entity(&actual, program.root);
+    format_check_foundation(fixture, name, &actual, body_spans);
+    assert(vector_push(&actual.text, 0), "Formatter Foundation terminator");
+    --actual.text.length;
+    var rebuilt: SemanticProgram;
+    format_test_compile_bytes(actual.text.data, actual.text.length, &rebuilt, fixture.modules);
+    defer format_test_program_dispose(&rebuilt);
+    var again: FormatResult = default;
+    defer format_dispose(&again);
+    format_test_entity(&again, rebuilt.root);
+    format_test_equal(&actual, &again, false);
+}

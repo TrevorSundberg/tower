@@ -1,0 +1,14 @@
+import foundation;
+
+struct Pair {
+    a: i32;
+    b: u8;
+}
+
+fn f(p: Pair*): i32 {
+    if true {
+        return p.a;
+    } else {
+        return 0;
+    }
+}

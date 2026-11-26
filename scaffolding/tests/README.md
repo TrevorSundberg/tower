@@ -783,7 +783,25 @@ when generated spans differ, and verifies private current/scope restoration.
 Retained semantic and resource failures reject later declaration admission without
 another allocation or diagnostic. This selector needs no grammar bootstrap run.
 
-Formatter fixtures now run in Tower. Configure the native build with
+The original native formatter suite lives in `format_suite_test.tower`.
+In a Linux x64 parser-only build, build `tower-parser-tests` and
+`tower-reader-test-services`, then run
+`ctest --test-dir <build> -R '^tower-parser-format-' -V`. These four
+registrations verify the final test count at one and four compiler jobs.
+Direct selection runs 17 formatter declarations. Selecting `format_suite.tower`
+also discovers five imported work-budget tests. Both use the serial parser
+services for allocation-failure injection.
+
+The 15 source files in `format_inputs/` preserve the original spelling and
+line endings. Their siblings contain expected output bytes and, where the
+original compared offsets, ordered rows of output begin, output end and
+source byte offset. The generated entity's binary golden contains two NULs.
+The five canonical Foundation cases share one frozen prelude and check their
+individual span counts. The constructor test covers four valid and four
+malformed entities. The browser formatter port and the five production
+`syntax_session_format` cases have their own owners.
+
+To run the standalone native caller, configure the native build with
 `-DTOWER_FORMAT_TESTS=ON`, build `tower-format-tests`, and run
 `ctest --test-dir <build> -R '^tower-format$' --output-on-failure`.
 The WASI parser configuration provides the same standalone target, executable
@@ -799,8 +817,8 @@ restricted to Linux x86_64/libstdc++ and WASI SDK 34/libc++.
 The broad repository formatting check remains available as the separate native
 `-DTOWER_FORMAT_SWEEP=ON` / `tower-format-repository` CTest. It checks canonical
 source, idempotence, filename-relative modules, Bedrock/Foundation baselines and
-invalid syntax fixtures. It is off by default and was not run during this
-migration; a two-file check exercised its valid/invalid file-list path. The
+invalid syntax fixtures. It is off by default. The migration check exercised
+its file-list path with the three formatter modules and a syntax-invalid input. The
 scoped native `--emit source` / `--check-format` commands remain available.
 
 `tower-parser-tests --suite nodes` selects the focused native/WASI payload suite.

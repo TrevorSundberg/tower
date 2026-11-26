@@ -1,0 +1,5 @@
+import foundation;
+token Context = /abc/ when expected as identifier;
+parse Extra = Context;
+parse Statement = Extra ';';
+abc;

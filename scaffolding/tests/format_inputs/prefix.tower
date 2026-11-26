@@ -1,0 +1,2 @@
+import foundation;
+parse Prefix = '~~' Identifier; parse Statement |= 'prefix' Prefix ';'; prefix ~~ x;
