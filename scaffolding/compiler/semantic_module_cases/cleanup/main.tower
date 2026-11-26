@@ -1,0 +1,6 @@
+import tower;
+import left;
+import right;
+print(40);
+change();
+defer print(4);

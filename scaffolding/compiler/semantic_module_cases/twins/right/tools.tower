@@ -1,0 +1,6 @@
+import tower;
+// Helper from module 2.
+fn helper(): i32 { return hidden(); }
+fn hidden(): i32 { return 2; }
+struct Item { value: i32; }
+var count: i32 = 2;

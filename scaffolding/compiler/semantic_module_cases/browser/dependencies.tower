@@ -1,0 +1,16 @@
+import scopes;
+
+test() {
+    scope_reset();
+    scope_file("left.tower", "visibility/missing_import.tower");
+    scope_file("right.tower", "visibility/right.tower");
+    assert(scope_rejects("visibility/missing_dependency.tower", "Unknown function 'hidden'",
+        "left.tower", "hidden()"), "A sibling cannot supply an undeclared dependency");
+
+    scope_reset();
+    scope_file("left.tower", "visibility/left.tower");
+    scope_file("right.tower", "visibility/right.tower");
+    assert(both_outputs("visibility/declared_dependency.tower", "visibility/declared_dependency.expected"), "Direct dependency");
+    assert(scope_rejects("visibility/transitive.tower", "Unknown function 'hidden'",
+        "main.tower", "hidden()"), "Importing left does not open right");
+}

@@ -1,0 +1,7 @@
+import tower;
+import left;
+import right;
+import "left.tower" as again;
+print(answer());
+print(again.answer());
+print(other());

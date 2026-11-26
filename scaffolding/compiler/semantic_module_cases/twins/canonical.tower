@@ -1,0 +1,15 @@
+import tower;
+import left.tools as left;
+import "right/tools.tower" as right;
+print(left.helper());
+print(right.helper());
+var a: left.Item;
+var b: right.Item;
+a.value = 30;
+b.value = 40;
+print(a.value);
+print(b.value);
+left.count = 5;
+right.count = 6;
+print(left.count);
+print(right.count);

@@ -1,0 +1,6 @@
+import library.testing;
+import local_override as program;
+
+test() {
+    assert(program.helper(7) == 7, "Local callable shadows the imported template");
+}

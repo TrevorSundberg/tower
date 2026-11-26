@@ -1,0 +1,6 @@
+import library.testing;
+import left;
+
+test() {
+    assert(answer() == 42, "The declaring module can import its dependency");
+}

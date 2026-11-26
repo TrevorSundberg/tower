@@ -1,0 +1,4 @@
+import tower;
+import shared;
+print(30);
+defer print(3);

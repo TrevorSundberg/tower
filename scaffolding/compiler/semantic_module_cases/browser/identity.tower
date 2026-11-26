@@ -1,0 +1,8 @@
+import scopes;
+
+test() {
+    use_twins();
+    assert(both_outputs("twins/canonical.tower", "twins/canonical.expected"), "Distinct helper, record and global bindings");
+    assert(scope_rejects("twins/wrong_pointer.tower", "Expected Item@left/tools.tower*, got Item@right/tools.tower*",
+        "main.tower", "&b"), "Same-layout records retain their module identity");
+}
