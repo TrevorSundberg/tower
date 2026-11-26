@@ -1,0 +1,3 @@
+import work_buffer_faults_fixture;
+
+test() { buffer_reserve_and_growth_refusal(); }

@@ -114248,3 +114248,70 @@ outputs, exit statuses, observer patches and per-run timing. Qualification
 uses the requested 2556019c resources. Public main advanced to 401c402e with
 a new bootstrap during the run. Integration and publication belong to the
 manager.
+
+### Single-owner work buffer refusal through native test selection
+
+Host 6, assignment `b59c5d9b-2699-4bdb-9546-bdd58f918b87`. On published
+`015b09aa`, the standalone passed with stdout `0\n` and empty stderr.
+The ledger refusal, retained allocation, physical replacement refusal and
+retry share a single budget lifetime. The standalone and one adjacent test
+now call that sequence from a fixture without an entry point. Each injected
+resize disarms the allocator on return. The test checks the final byte and
+receipt counts before disposing the ledger. Both fault suites use the
+existing work-policy allocator and serial transport in their native guests.
+
+The pinned Linux x64 compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All packaged resource checksums passed. Building the two standalone targets
+also prepared the native test guest and exact-count checker. With
+`TOWER_NATIVE=ON TOWER_WORK_TESTS=ON`, the two original CTests and eight
+selections passed. At compiler jobs 1 and 4 the buffer owner selected the
+buffer case and five work-budget cases. Direct selection ran just the buffer
+case. The constructor counts were 15 and two. The same ten CTests passed
+with `TOWER_BACKEND_TESTS=ON`, which supplies the already-configured fault
+allocator. Its object matched the work-only allocator byte for byte.
+The restored buffer executable wrote exactly `0\n` with empty stderr.
+
+An evidence-only Tower observer recorded six states in the original and
+migrated standalone and in each of the four buffer selections. Their rows
+matched byte for byte. Refusing the initial ledger allocation left capacity,
+charges and live allocations at zero. After physical growth refusal, the
+original pointer compared equal, byte 63 held 91, capacity was 64 and the
+receipt still had generation 1. The single grant charged 96 bytes including
+the four-word header, with two live allocations. Retry produced capacity 128,
+generation 3, one grant, 160 charged bytes and the same retained byte.
+Buffer disposal returned the grant and byte charge, leaving one ledger
+allocation. Budget disposal returned the allocator count to its zero baseline.
+
+Changing only the expected retained byte from 91 to 90 failed all five buffer
+CTests (CTest exit 8). All four selected compilers returned 1 and diagnosed
+the pointer/data/capacity assertion at fixture line 40. Restoration reproduced
+the frozen fixture, object and standalone hashes and all ten CTests passed
+again. An earlier direct registration incorrectly expected the plural summary
+for one test. The exact-count checker rejected it at both widths. Other setup
+failures were an absent unversioned Clang on PATH, a CMake compiler cache
+reset and a malformed CMake function declaration. A fresh cache with LLVM
+19's bin directory and the corrected declaration and summary produced the
+receipts above.
+
+Host 6 exposed CPUs 0–11 on an Intel Xeon E5-2680 v4. The cgroup CPU quota
+was 1,152,000 µs per 100,000 µs, and the memory limit was 32,282,509,312
+bytes. Release builds used Clang 19.1.7, x86_64-pc-linux-gnu, two Ninja
+lanes and one compiler job per object. Timings ran one at a time on CPUs
+0–3 under the host timing lock. After one warm batch per arm, three
+alternating pairs of 200 fresh standalone processes each produced 200 zero
+lines. Median wall/CPU seconds per batch were 0.20/0.21 original and
+0.21/0.22 migrated. Maximum batch RSS was 3,216 and 3,236 KiB,
+respectively, including the shell. Single warm buffer CTests (compile, link,
+run and count) took 0.95/1.15 s owner and 0.70/0.93 s direct at jobs 1/4;
+the highest of those process RSS measurements was 124,904 KiB. Jobs affect
+compilation. The test itself uses the serial allocator.
+
+The native address/leak and thread sanitizer profiles each passed the
+standalone CTest on the first launch. Both link maps identify the fault
+allocator and serial transport, and both instrumented IR files have memory
+hooks in the moved body. Tower's native instrumentation supports address
+and thread modes. There is no project UBSan profile. The packet
+`b59c5d9b-2699-4bdb-9546-bdd58f918b87.tar.gz` contains the source bundle,
+commands, raw streams, statuses, timings, link maps, observer sources and
+negative patch. The manager owns integration and publication.
