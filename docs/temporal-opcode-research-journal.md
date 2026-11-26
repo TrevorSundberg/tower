@@ -105642,3 +105642,61 @@ Those runs cover serial guest code. They do not instrument the compiler running
 suites, generated files, binaries, measurements, failure diagnostics and
 transfer commits. Distribution of a test-capable bootstrap remains with the
 manager.
+
+### Closing the installed SHA-256 companion's import dependency
+
+The previous SHA-256 runs on e2ebb16a used the source tree. The manager
+reproduced a discovery failure after relocating the candidate at 72ed31f4.
+The leading dot in `import .tests.utility_checks;` requested a sibling
+tests directory outside library. The native resource copy in CMakeLists.txt
+includes library/*.tower and has no such directory. Host 2 reproduced the
+same exit 1 at sha256_test.tower:3:30 for both owner and explicit inventories.
+
+The shared portable implementations now live in library/test_data.tower.
+The SHA-256 companion directly imports its sibling. The legacy facade retains
+utility_equal and utility_random for existing callers and forwards to
+test_bytes_equal and test_xorshift32. Those two definitions import only Tower.
+Native checks keep their original puts, fflush and abort declarations in tests.
+The three SHA-256 migration commits remain in the candidate's ancestry.
+
+The old and repaired layouts used the same e2ebb16a native executable and
+canonical resources. A fresh PRoot root exposed the installed compiler,
+system libraries and an empty work directory. Opening known checkout and
+prior packet sources failed there. The root supplies /proc/self/exe pointing
+to the relocated executable for the Linux resource locator. After a separate
+CMake configuration using the public pin, all 49 configured Tower resources
+matched the tested installation by name and SHA-256. The new discovery depfile
+lists the language resources, SHA-256 owner, testing, test_data and companion.
+
+Both repaired inventories returned just the installed companion. Flipping a
+digit of the abc answer returned 1 at sha256_test.tower:25:5. The restored
+owner selected and passed seven tests with empty guest stdout, including the
+million-byte stream. One run took 255.80 s wall, 255.78 s CPU and 83,880 KiB
+peak RSS. The ordinary abc consumer printed true with both optional files
+present and with both removed; object and depfile matched byte for byte.
+Same host (Ryzen 5 3600, Debian Linux x64, LLVM 19.1.7), CPUs 0–3, cgroup
+quota 11.52 CPUs, one compiler job, serialized fresh processes on warm files.
+Owner inventories took 0.41 s before and 0.37 s after; direct took 0.34 s
+and 0.36 s. These single samples establish failure and repair.
+
+The pinned predecessor compiled the unchanged SHA, gzip and command-word
+fixtures with the original and forwarding helper modules. All three ran at
+both revisions. GNU sha256sum accepted 260/260 files each time. Both complete
+corpora and manifests were byte-identical. SHA took 0.06 s before and after,
+gzip 0.15 s and command words 0.03 s. ASan and TSan each ran the original
+native SHA entry and its external manifest check. Both moved helper bodies
+contain the respective memory instrumentation. The initial inspection filter
+missed TSan's unaligned 32-bit hooks. A corrected filter found them in the
+retained instrumented IR. These checks cover the serial guest; the compiler
+interpreter was the ordinary build. Source-level UBSan is unavailable.
+
+Read-only browser observation: playground/scripts/build.mjs:42–50 enumerates
+every library .tower file. Evaluating its manifest expression on this candidate
+returned 49 module names. In playground/src/app.mjs, start() reads builtins.json
+and fetches every name at lines 1020–1025. An ordinary startup would fetch
+./library/sha256_test.tower and ./library/test_data.tower. The separate
+getCanonicalSources() path in playground/src/compiler-runtime.mjs does the same.
+The published Pages Git manifest at 3d57e291 contained 46 names and neither
+optional file. Browser selection and publication remain with their owners.
+Packet 61a32ef3-7cff-4be2-8edf-7e506b34675e contains the exact manifests,
+commands, statuses, streams, binary outputs, sources and measurements.

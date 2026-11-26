@@ -1,6 +1,6 @@
 import library.testing;
 import sha256;
-import .tests.utility_checks;
+import test_data;
 
 fn sha256_test_length(text: u8*): usize {
     var count: usize = 0;
@@ -14,7 +14,7 @@ fn sha256_test_matches(state: Sha256*, wanted: u8*): bool {
     sha256_hex(&digest, &hex[0]);
     var size = sizeof(decltype(hex));
     assert(sha256_test_length(wanted) == size - 1);
-    return utility_equal(&hex[0], wanted, size);
+    return test_bytes_equal(&hex[0], wanted, size);
 }
 
 fn sha256_test_vector(message: u8*, wanted: u8*): void {
@@ -67,9 +67,9 @@ test() {
         assert(sha256_update(&whole, length == 0 ? null : &bytes[0], length));
         var digest = sha256_finish(&whole);
         var snapshot = sha256_finish(&stream);
-        assert(utility_equal(&snapshot.bytes[0], &digest.bytes[0], Sha256DigestBytes));
+        assert(test_bytes_equal(&snapshot.bytes[0], &digest.bytes[0], Sha256DigestBytes));
         assert(sha256_update(&corpus, &digest.bytes[0], Sha256DigestBytes));
-        bytes[length] = convert(u8, utility_random(&random) & convert(u32, ~convert(u8, 0)));
+        bytes[length] = convert(u8, test_xorshift32(&random) & convert(u32, ~convert(u8, 0)));
         assert(sha256_update(&stream, &bytes[length], 1));
     }
     // SHA-256 of the 260 raw sha256sum digests in numeric prefix-length order.
@@ -99,5 +99,5 @@ test() {
     var before = sha256_finish(&state);
     assert(!sha256_update(&state, null, 1));
     var after = sha256_finish(&state);
-    assert(utility_equal(&before.bytes[0], &after.bytes[0], Sha256DigestBytes));
+    assert(test_bytes_equal(&before.bytes[0], &after.bytes[0], Sha256DigestBytes));
 }
