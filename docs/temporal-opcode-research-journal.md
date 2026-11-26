@@ -119202,3 +119202,113 @@ and exited before starting Node. Their replacements used the frozen wrapper.
 A preliminary shared run on the first implementation commit was superseded
 by the complete shared run on the final fixture source. Publication belongs
 to the manager.
+
+### Host 1, structural reuse and live seed/replacement test migration
+
+Assignment a99f0622-1a93-40fb-ae02-8ed1051a0b0d uses frozen public
+`10271859ca2aad1c7b7ff9b1ab056ed4204725e0`. The structural source change is
+`c94e374c` and the live change is `15054dd1`. The required initial pull
+encountered conflicts in unrelated local browser work. Aborting that rebase
+returned the shared checkout to `203f2497` and its original five local commits.
+Both migrations use a separate local main. Publication belongs to the manager.
+
+The native frontend's `structure-reuse` selector retains its ordered owner,
+eviction, optional-index denial, version scope, reachable grammar, import reader
+and independent session-world calls. The companion keeps the original grammar
+and expected state-zero context rows, including the single-lane physical
+allocation fault. It tests version and runtime identity across worlds and
+replacement Bedrock revisions, pin retirement, and destruction of a failed
+reader while its old version stays usable. The original diagnostics and
+recognizer calls still run against the production tables.
+
+The live parser's seed and replacement calls remain between the attributes and
+boundary calls in `syntax_tests`. The standalone parser, the frontend's
+`grammar-equivalence` and the IDE self-test all call that export. The focused
+`--suite replacements` installs the same Bedrock/Foundation files at the same
+parser entry and calls just this pair. Direct native selections also install
+those files. The support companion owns the allocation, byte-equality and tree
+dump checks alongside the published reader and span predicates. The two
+case groups retain the inner and outer snapshots and reverse-order cleanup.
+
+The frontend exercises `syntax_version_cached_reusing` (world, budget and
+Bedrock scope), `syntax_world_structures` (optional index), and the reuse
+branch of `parser_table_build`. A dormant production first had no emitted
+rule index, then became rule 17 after append. The intermediate literal still
+affected lexing, with the original error “Unexpected 'later'. Expected a
+statement or grammar declaration.” The frontend module loader calls
+`syntax_read_import`, which uses a limit-one structural cache, releases each
+root and disposes its cache on return. The import version index stayed at one.
+The failed edit produced “Missing 'import' before 'old'.” The surviving table
+had 87 rules and still mapped the old literal to 2097179 after reader teardown.
+The final reader and structural ledgers each had zero bytes, lanes and grants.
+
+For the seed, `syntax_completion_create(..., 2)` uses `SyntaxSeedBaseline`.
+The canonical document survived reader teardown with the original parse
+provenance and formatted semantic edit. For replacements, `syntax_session_next`
+runs `syntax_expand` against the pinned version. The chain performed three
+expansions. Its retained tree placed the generated token at [280, 285) and its
+template at [149, 150). The repeated forest had four children, nine copied
+nodes and the original spans for a;, b;, a; at 260, 263 and 260. The snapshots
+held 5,380 nodes, 6,138 components and zero tracked memory blocks before and
+after the cases. The packet contains the exact seed text, tree dump and
+malformed-input diagnostics, including the 256-expansion recursion error.
+
+At compiler widths 1 and 4 the original frontend and migrated frontend
+produced identical observations. After removing only the standalone frontend
+banner, all 1,769 observation bytes matched both selected routes. All 21,241
+bytes of the live pair matched directly across the original, migrated, owner
+and direct routes. Six structural and two live declarations ran directly.
+Each owner also selected the existing five budget declarations. Changing the
+expected unchanged reader index from initial to initial + 1, or changing the
+expected copied forest size from four to three, returned 134 from the ordinary
+executables and 1 from both selected modes at both widths. The original
+fixtures also rejected these mutations. File restoration reproduced the
+final executables byte-for-byte and every clean case passed again.
+
+The unmodified final Release frontend, native parser and WASI parser passed
+the focused commands. Compiling their affected units with four jobs and
+relinking reproduced each one-job executable. A separate native/WASI
+`--suite live` integration probe used the original dispatcher and live aggregate
+on both revisions, replacing only the attribute entry with a printed marker.
+All four probe outputs matched. No emission or attribute qualification ran.
+The IDE self-test caller was inspected only. The shared allocator ran on
+serial transport. Clang 19 ASan/LSan and TSan passed both families. The
+container rejected personality changes during eleven TSan starts for the
+frontend and eight for the live pair before each completed with empty stderr.
+The repository has no standalone Tower UBSan profile. These runs do not
+establish parallel guest execution.
+
+Measurements used Linux x64, Xeon Gold 6244, 32 logical CPUs, affinity 0–7,
+a 1,536,000/100,000 µs CPU quota, LLVM 19.1.7, SDK 34 and the verified
+public bootstrap 7430bdb3. Each timed command held the host timing lock.
+Processes and compiler worlds started fresh on a warm filesystem. The
+private build caches began empty and were reused across the source change.
+There was no OS-cold comparison. At one job the original/migrated legacy
+fixture wall times were 0.04/0.04 s (structure) and 0.09/0.08 s (live).
+At four jobs they were 0.04/0.04 s and 0.09/0.09 s. Jobs controls compilation
+of the fixture or selected guest.
+
+With the same six original structural groups selected in each arm, three
+paired direct runs had median wall times of 2.65 to 2.75 s at one job and
+2.48 to 2.72 s at four. Median direct RSS was 254,744 to 258,616 KiB and
+263,128 to 269,860 KiB respectively. The eleven-test owner medians were
+2.90 to 2.93 s and 2.83 to 2.88 s. The live pair's single direct samples were
+0.86 to 0.85 s and 1.01 to 0.97 s. GNU time user/system, all samples,
+output sizes, cgroup counters and disk inventories are in the evidence.
+
+A diagnostic-only timing control put the original utility_check failure
+transport back into the final structural layout for all 81 checks. Two
+direct runs took 2.77/2.77 s at one job and 2.70/2.77 s at four. The
+transport change alone did not recover the earlier direct selection time.
+The selector overhead remains measured; the standalone runtime samples
+show no corresponding slowdown at the precision of GNU time here.
+
+The first WASI command assumed a .wasm suffix while this SDK emitted
+tower-parser-tests. The sanitizer harness first used an unsupported LLVM
+emission flag. The initial observation helper needed an explicit integer
+conversion, and the first aggregate marker and matched original selector
+needed corrected imports. Each failed command and its successful correction
+are preserved. Build-cache reuse was limited to the frozen project, Release
+and individual instrumentation profiles. Both source patches apply separately
+to the public base. The handoff packet carries the Git bundle and raw receipts;
+deployment and hosted checks are reserved for manager acceptance.
