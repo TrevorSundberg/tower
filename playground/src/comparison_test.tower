@@ -1,0 +1,37 @@
+import library.testing;
+import backend.text;
+
+// The test host calls the editor's compareResults with these two JSON values.
+extern fn compare_results(left: u8*, right: u8*): u8*;
+
+fn comparison_is(left: u8*, right: u8*, fields: u8*): bool {
+    var actual = compare_results(left, right);
+    defer free(actual);
+    return backend_equal(actual, fields);
+}
+
+test() {
+    var done = '{"status":"done","output":"42\\n","steps":42}';
+    assert(comparison_is(done, "null", "null"), "Wait for the second result");
+    assert(comparison_is("null", done, "null"), "Wait for the first result");
+
+    var defaults = '{"status":"done","output":"42\\n","error":"","errorOffset":0,"outputTruncated":false}';
+    assert(comparison_is(done, defaults, "[]"), "Omitted fields take their public defaults");
+    var null_fields = '{"status":null,"output":null,"error":null,"errorOffset":null,"outputTruncated":null}';
+    var empty = '{"status":"","output":"","error":"","errorOffset":0,"outputTruncated":false}';
+    assert(comparison_is(null_fields, empty, "[]"), "Null fields take the same defaults");
+    var more_steps = '{"status":"done","output":"42\\n","steps":43}';
+    assert(comparison_is(done, more_steps, "[]"), "Backend step counts are private");
+
+    var other_output = '{"status":"done","output":"43\\n","steps":42}';
+    assert(comparison_is(done, other_output, '["output"]'), "Report changed stdout");
+    var trapped = '{"status":"error","output":"","error":"Division by zero","errorOffset":17}';
+    var moved_trap = '{"status":"error","output":"","error":"Division by zero","errorOffset":18}';
+    assert(comparison_is(trapped, moved_trap, '["errorOffset"]'), "Report a moved trap");
+    var limited = '{"status":"done","output":"42\\n","steps":42,"outputTruncated":true}';
+    assert(comparison_is(done, limited, '["outputTruncated"]'), "Report output truncation");
+
+    var partial_trap = '{"outputTruncated":true,"errorOffset":17,"error":"Division by zero","output":"","status":"error"}';
+    assert(comparison_is(done, partial_trap, '["status","output","error","errorOffset","outputTruncated"]'),
+        "Report every difference in public field order");
+}

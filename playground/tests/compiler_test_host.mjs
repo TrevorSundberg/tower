@@ -33,11 +33,4 @@ export function fixtureSource(path) {
   return sources.get(path);
 }
 
-const decoder = new TextDecoder('utf-8', {fatal:true});
-export function guestString(context, pointer) {
-  const start = Number(pointer);
-  if (!Number.isSafeInteger(start) || start <= 0) throw new Error('Invalid guest pointer');
-  const memory = context.memory(), end = memory.indexOf(0, start);
-  if (end < 0) throw new Error('Unterminated guest string');
-  return decoder.decode(memory.subarray(start, end));
-}
+export {guestString} from './guest_text.mjs';

@@ -110639,3 +110639,72 @@ also passed explicit V8 bounds checks. These public binaries supply no
 source-level sanitizer or per-allocation evidence for this run. The packet
 includes the focused build commands, failing controls, raw records, sample
 logs and source bundle. Publication belongs to the manager.
+
+### Checking Playground result differences through the editor's comparator
+
+On published `fdd321484762bee3fd0a3bc4779725a70bc88b4f`, the only production
+import of `compareResults` is in `app.mjs`. Its synchronous `updateComparison`
+waits for all selected backend results, compares each against the first, and
+uses the returned field names in the status text. The Graph/Fast integration
+test also calls this public export. Moving the export into a reactor would
+add a dependency to the editor status path, including while workers are
+starting or being replaced.
+
+The [adjacent companion](../playground/src/comparison_test.tower) supplies both
+operands and the expected return for each call. Its original Node registration
+opens one test reactor on selection. A test-only foreign binding decodes the
+operands, calls the actual ES module export, and copies its JSON result back
+into guest memory. The companion checks the complete text and frees each copy.
+The import closure comprises the companion and eight language/library files.
+The default companion suffix tried to open a missing Tower owner. Passing
+the existing browser-specific suffix to `runSelectedTest` selects the explicit
+entry and its single test block. Early compilation also exposed a reserved
+parameter name and a local named `trap` that shadowed the assertion primitive.
+
+The five original calls had byte-identical operand/result traces in the
+old registration and the matched Tower case (SHA-256
+`0c5d7fc30edbf44d35ec1ab8bcf376e8afc5cedec107432739baac98f82c4dac`).
+The final nine calls include a missing first result, explicit null field
+values, different step counts, and a result that differs on all five fields
+with its properties inserted in reverse order. It returned
+`["status","output","error","errorOffset","outputTruncated"]`.
+Changing the public return field to `trapOffset` in a private copy failed
+at companion byte 1602. Reversing the real return array failed at byte 2000.
+Both exited 1. Restoring the exact public module passed.
+
+Host 3's local build cache contained an older reactor without test exports.
+Before building the UI, the existing portable and threaded images were
+matched to Pages `f2214133`, build source `8bc867b6`. Both passed the named
+case and V8 explicit Wasm bounds checks. The first bounds command used an
+unrecognized Node flag. The successful runs used
+`node --wasm-enforce-bounds-checks playground/tests/comparison.test.mjs`.
+These images provide no source-level ASan, UBSan or TSan evidence.
+
+Separate parent and candidate `npm run build` runs used the same portable
+and LLVM assets. All 88 output files matched by SHA-256. Chromium ran the
+existing desktop mismatch-and-edit test against the candidate build. The
+editor showed the differing output and then matching results after an edit.
+The Graph/Fast execution case and the shared Bedrock text transport also
+passed. With the comparison test present and its Wasm path deliberately
+missing, the unrelated Linux x64 target name still ran alone. Native
+exchange companion discovery matched across both trees.
+
+Host 3 used one AMD EPYC 7542 socket, 32 cores/64 threads, cpuset 0–63,
+cgroup quota 1228800/100000 and timing affinity CPU 24. Node 24.22.3 ran the
+original name at test concurrency one, portable Wasm, warm files and a fresh
+process per sample. Six serial samples per arm used every ordering under the
+host timing lock. The table gives median GNU time seconds and maximum peak
+process RSS. The matched candidate ran exactly the five public-parent calls.
+The additional elapsed time and memory are the cost of the test process
+loading the reactor, compiling the companion and executing the assertions.
+
+| Named selection | Wall s | User s | System s | Peak KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Published, five calls | 0.10 | 0.08 | 0.015 | 53,568 |
+| Tower, matched five | 0.77 | 0.72 | 0.045 | 94,004 |
+| Tower, full nine | 0.78 | 0.71 | 0.045 | 95,020 |
+
+Packet `ed3edeb1-3fd8-4611-80cb-fd224e6304c1.tar.gz` includes frozen inputs,
+raw observations, selection count, injected failures, build inventories,
+timing samples and a source bundle from the assigned parent. Allocator
+grants were unmeasured. Manager review and publication are pending.
