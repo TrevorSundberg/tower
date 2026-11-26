@@ -1,0 +1,4 @@
+import tower;
+import target_once_test;
+
+export fn main(): i32 { return target_once_trial(); }

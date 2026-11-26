@@ -119669,3 +119669,110 @@ generated Ninja recipes select the matching main for flow, lifecycle and
 staging. The expected owner and direct counts were checked at jobs 1 and 4.
 These were configuration checks. The execution evidence above comes from the
 worker builds. One original clone-overlap observation needed a retry.
+
+### Native target registry and file identity fixtures at aeb497f5
+
+Host 6, assignment `9657ebef-10dc-44c2-b6be-75314c7e35ef`. On the public
+parent the two focused CTests pass. Both owner selections fail linking two
+definitions of main and both direct companions are absent. The Linux registry
+entry links the pthread-once adapter, bound zero-initialized control, pthread
+transport and dispatch object. The file fixture creates a fresh mkstemp file,
+a hard link, a symlink and an absent sibling. Its opt-in measure argument
+reports the observed hard-link admission even if the ordinary mode would fail.
+Both fixtures use the work guest's libc allocator.
+
+The new standalone mains and native selections call the same companion trials.
+The registry guest keeps the original process-local control word and exported
+callback. The file trial retains the timed 10,000 rounds and five output lines.
+The selected guest uses the existing native result protocol with the standalone
+guest allocator bindings. Initial discovery found two bytes tests besides the
+file trial, and five work-budget tests besides the registry trial.
+
+Implementation `ba86875103007a22fad6fbf4086d0c2c884b2dc0` passed all ten
+affected CTests after restoration in both Release builds. Direct selection
+ran one declaration per fixture. The registry owner ran six and the file owner
+ran three. The original standalone binaries, the migrated standalone binaries
+and each captured selected executable were individually byte-identical across
+compiler jobs 1 and 4 within their respective routes.
+
+* On one available CPU the standalone registry returned 77 with empty stdout.
+  The native selector reported insufficient capacity and failed its guest
+  assertion. CTest marked the standalone and all four selectors skipped.
+  With two or four available CPUs, GDB counted 64 real initialization calls
+  per worker, 128 or 256 in total, and one `backend_register_targets` call.
+  The original, migrated, owner and direct guests returned the same 83 stdout
+  bytes. The pipe traces show entry byte 17, release byte 23, publication byte
+  29, restoration of stdin/stdout and EOF. Each run used a fresh process.
+* The file trial printed `false`, monotonic elapsed nanoseconds, CPU
+  microseconds, maximum RSS in KiB and retained path capacity 204. Ordinary
+  and explicit measure runs exited 0. An unknown argument and an extra
+  argument each exited 2 with empty output. On every traced route, the
+  source had 20,005 statx reads, its hard link 10,001 and its symlink one.
+  All returned the same device and inode with link count two. The absent
+  sibling returned ENOENT 10,001 times. Independent GNU stat and readlink
+  checks ran while each guest held its real paths. In each two-process
+  isolation run the source inodes differed. The second process's paths
+  and reference identity survived the first process's three unlinks.
+* Changing the final pipe read expectation from EOF to one byte aborted
+  the standalone (134) and failed owner and direct selection (1). Inverting
+  the hard-link expectation failed those same three routes (1). The measure
+  argument still exited 0. Both controls ran at jobs 1 and 4. Restoring
+  the comparisons recovered all ten CTests. A separate debugger control
+  lowered the kernel descriptor limit just before the first dup or mkstemp.
+  All four routes stopped at the original channels check or file identity
+  trap. The debugger observed the actual failing guest independently of
+  the parent driver's result code.
+* The repository's address and thread instrumenters each passed both migrated
+  standalone CTests on the first launch. Leak detection was enabled for ASan.
+  Both link maps include the work guest runtime. The registry maps also
+  identify the production Linux worker and dispatch objects, the Linux
+  target adapter and the bound registry state. Both trial bodies,
+  work_kernel_execute and tool_output_distinct contain sanitizer hooks.
+  This coverage applies to the ordinary standalone entry points. The public
+  compiler and its selected guest runs were uninstrumented. The project
+  has no separate Tower UBSan profile.
+
+Host 6 exposed twelve Xeon E5-2680 v4 KVM CPUs, a quota of 1,152,000 µs
+per 100,000 µs and a 32,282,509,312-byte memory limit. All 61 public
+bootstrap package checks passed. The compiler SHA-256 was
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Clang/LLVM 19.1.7, Ninja Release and x86_64-pc-linux-gnu used one
+task-owned CMake cache for both compiler widths and sanitizer modes.
+The existing checkout's build contained an older packaged compiler. Other
+tasks owned the existing build caches. Initial configuration could not
+locate unversioned clang. Changing PATH changed CMake's cached compiler
+identities. Setting the LLVM path and absolute compiler paths and refreshing
+the failed configure in the same directory succeeded.
+
+The table gives median wall seconds / median user plus system seconds /
+maximum RSS in KiB for three warm samples. The original and migrated
+standalones alternated order within a sample. The four-CPU registry runtime
+row includes 100 launches per sample to resolve the short operation.
+File execution used one CPU for jobs 1 and four CPUs for jobs 4.
+CLI and object compilation used CPUs 0–3 throughout. One process tree ran
+at a time under the host timing lock. Cgroup throttle counts stayed fixed.
+
+| Operation | Jobs | Original | Migrated | Direct selected guest |
+| --- | ---: | --- | --- | --- |
+| Registry object | 1 | 0.65 / 0.64 / 104644 | 0.82 / 0.81 / 107028 | |
+| Registry object | 4 | 0.71 / 0.77 / 109356 | 0.98 / 1.12 / 121460 | |
+| File object | 1 | 0.53 / 0.52 / 94440 | 0.68 / 0.68 / 98920 | |
+| File object | 4 | 0.62 / 0.67 / 102236 | 0.86 / 0.96 / 114660 | |
+| Registry, 100 launches | 1 | 0.16 / 0.20 / 3240 | 0.16 / 0.21 / 3192 | 0.16 / 0.20 / 3172 |
+| Registry, 100 launches | 4 | 0.18 / 0.22 / 3248 | 0.18 / 0.22 / 3220 | 0.18 / 0.22 / 3160 |
+| File, one launch | 1 | 0.06 / 0.06 / 1784 | 0.06 / 0.05 / 1772 | 0.06 / 0.06 / 1848 |
+| File, one launch | 4 | 0.06 / 0.06 / 1780 | 0.06 / 0.05 / 1844 | 0.06 / 0.06 / 1780 |
+
+The new standalone entries load the companion and assertion grammar.
+A separate phase-timed compile reproduced each measured CMake object
+byte for byte. At one job the registry parse time grew from 331 to 485 ms
+and the file parse time from 291 to 438 ms. At four jobs the respective
+parse times grew from 401 to 668 ms and from 370 to 674 ms. Emission was
+42–54 ms across those builds. Full direct selection took median 0.82/0.94 s
+for the registry and 0.78/0.89 s for the file trial at jobs 1/4.
+Owner discovery took 1.04/1.16 s and 0.76/0.95 s respectively.
+
+The raw host packet includes the command lines, exit statuses, physical
+reference and syscall observations, captured guest executables, failure
+controls, timing samples, instrumentation maps and source-based Git bundle.
+The manager owns integration and publication.

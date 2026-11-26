@@ -1,0 +1,11 @@
+import tower;
+import tool_output_identity_test;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    // Measurement reports the observed hard-link result even when ordinary admission fails.
+    var measure = argc == 2 && strcmp(argv[1], "measure") == 0;
+    if argc != 1 && !measure { return 2; }
+    return identity_trial(measure);
+}

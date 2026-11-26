@@ -39,7 +39,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       string(REPLACE "_" "-" target "tower-${unit}-tests")
       set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
       set(fixture_mode)
-      if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout|work_buffer|work_signal_observe)$")
+      if(unit MATCHES "^(work_ready|work_arena|work_arena_linkage|entity_component_layout|work_buffer|work_signal_observe|tool_output_identity)$")
         set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
       elseif(unit MATCHES "^work_linux_affinity(_faults)?$" OR unit STREQUAL "work_dispatch_result" OR unit STREQUAL "entity_attach_leases"
           OR unit MATCHES "^entity_page_(reuse|property)$")
@@ -106,7 +106,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   set(target_once_objects)
   tower_target_registry_runtime("${work_triple}")
   get_property(target_registry_runtime GLOBAL PROPERTY TOWER_TARGET_REGISTRY_RUNTIME)
-  foreach(unit IN ITEMS tests/target_once backend/target_once_linux)
+  foreach(unit IN ITEMS tests/target_once_main backend/target_once_linux)
     string(REPLACE "/" "_" once_name "${unit}")
     tower_runtime_object(${once_name} "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/${unit}.tower" "${work_triple}")
     list(APPEND target_once_objects "${${once_name}_OBJECT}")
@@ -146,6 +146,25 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       tower_native_test_selections("${suite}" "${unit}" "${owner_summary}" "${direct_summary}"
         ${ARGN} --link "${work_allocator}")
     endfunction()
+    # Use the same guest libc allocator as the standalone work tests.
+    tower_guest_runtime(native-test-libc "${work_triple}" posix ON UNINSTRUMENTED)
+    get_property(libc_guest GLOBAL PROPERTY TOWER_GUEST_native-test-libc_OBJECT)
+    foreach(suite IN ITEMS target-once tool-output-identity)
+      add_dependencies(tower-${suite}-tests tower-guest-native-test-libc tower-selected-test-count)
+    endforeach()
+    tower_native_test_selections(tool-output-identity tool_output_identity "3 tests" "1 test"
+      --test-native-runtime "${libc_guest}")
+    tower_native_test_selections(target-once target_once "6 tests" "1 test"
+      --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/target_once.expected"
+      --test-native-runtime "${libc_guest}" --link "${backend_target_once_linux_OBJECT}"
+      --link "${target_registry_runtime}" --link "${host_work_linux_OBJECT}" --link "${host_work_dispatch_OBJECT}"
+      --link "-Wl,--export-dynamic-symbol=work_thread_entry" --link "-Wl,--export-dynamic-symbol=backend_register_targets")
+    foreach(entry IN ITEMS owner direct)
+      foreach(jobs IN ITEMS 1 4)
+        set_tests_properties(tower-target-once-${entry}-jobs-${jobs} PROPERTIES
+          SKIP_REGULAR_EXPRESSION "Target registry test requires at least two available CPUs")
+      endforeach()
+    endforeach()
     tower_work_native_selections(entity-component-layout entity_component_layout "9 tests" "4 tests" ${work_guest_args})
     # Both arena owners also discover the five budget declarations.
     tower_work_native_selections(work-arena work_arena "7 tests" "2 tests" ${work_guest_args})

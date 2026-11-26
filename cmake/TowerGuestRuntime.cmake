@@ -16,14 +16,15 @@ function(tower_guest_runtime name triple profile entry)
   set(modules guest_runtime)
   set(trap_entry guest_runtime_trap)
   set(main_entry guest_runtime_main)
-  if(name STREQUAL "native-test")
-    # The caller links the allocator and its observation functions as one supply.
-    set(pairs)
+  if(name STREQUAL "native-test" OR name STREQUAL "native-test-libc")
     set(trap_entry guest_native_test_trap)
     set(main_entry guest_native_test_main)
     list(APPEND modules guest_native_test)
-  else()
-    set(pairs guest_runtime_allocate tower_allocate guest_runtime_reallocate tower_reallocate guest_runtime_deallocate tower_deallocate)
+  endif()
+  set(pairs guest_runtime_allocate tower_allocate guest_runtime_reallocate tower_reallocate guest_runtime_deallocate tower_deallocate)
+  if(name STREQUAL "native-test")
+    # The caller links the allocator and its observation functions as one supply.
+    set(pairs)
   endif()
   list(APPEND pairs guest_runtime_float_binary tower_strict_float_binary
     guest_runtime_float_convert tower_strict_float_convert
