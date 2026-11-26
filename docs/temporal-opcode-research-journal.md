@@ -121417,3 +121417,78 @@ and TSan. No compiler, runtime, or native worker code changed. The archive
 `bb19c17e-5de7-45a4-9416-acded7d5a1d3.tar.gz` retains the raw TAP, timing
 and observation records, mutations, capacity samples and inputs. The manager
 owns publication.
+
+### Optional allocator benchmarks as Tower tests, 2026-11-26
+
+Assignment `5f55ad50-b240-427c-a895-4346066d7184`, host 8. At published
+`9760a3c595de924a5156836ebee4ce6f00063cbb` the F01/S003 and F02/S004
+sources and registrations matched audit freeze `d45d8b10`. The recipient
+verified the `5d481bf0` archive and all six named members against SHA-256,
+including the extracted bytes. The shared checkout's pull hit conflicts in
+unrelated parser work. Aborting restored `ff4c96f7` and its five local commits.
+The implementation used a separate local main rooted at the assigned revision.
+
+Implementation `a6637dababeadc26f494b579a4903ff4105d40ce` moved each complete
+benchmark function byte for byte. Paths below start at `scaffolding/tests/allocator_abi/`.
+
+| Workload | Measured helper | Allocation refusal | Live-count mismatch | Checksum mismatch | Optional Tower test |
+| --- | --- | --- | --- | --- | --- |
+| Allocator glue | `allocator_glue_test.tower:98` | line 108, exit 39 | line 121, exit 40 | line 124, exit 41 | `allocator_glue_benchmark.tower:3` |
+| Runtime ABI | `runtime_abi_test.tower:35` | line 45, exit 11 | — | line 62, exit 12 | `runtime_abi_benchmark.tower:3` |
+
+Both workloads allocate and free 64 buffers for 10,000 rounds and expect
+20,160,000. The glue helper also requires the instrumented live count to return
+to its starting value. Each default declaration still selects one ABI test.
+The optional launchers use the public pin's alternate companion suffix and a
+zero-byte stdout oracle. The first launcher prototype used the default suffix
+and failed looking for a missing benchmark owner. The delivered names and
+`--test-suffix _benchmark.tower` select the existing owner explicitly.
+Build targets `tower-allocator-benchmark-declaration` and
+`tower-runtime-abi-benchmark-declaration` run these selections on demand.
+The default Ninja graph contains zero benchmark selections.
+
+Native Release, Clang/LLVM 19.1.7, Linux x64, checked-in compiler SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All 61 pin members verified. A fresh private Ninja cache built both baseline
+executables and their providers with one compiler job. The candidate reused
+that cache after the baseline jobs finished. The glue selection links
+`runtime-instrumented.o` and the allocator policy. Production links the UTF-8
+and bytes objects and the memory archive containing `runtime-allocate.o`.
+All four original CTest registrations passed before and after. The default and
+optional selections each reported exactly one test at one and four compiler
+jobs. The selected benchmarks and both manual benchmarks produced empty stdout.
+Non-test builds and the original default commands exercised their original routes.
+
+Both standalone ELFs matched the originals byte for byte after restoration.
+Glue accepted an arbitrary extra argument as well as `--benchmark`. Production
+inputs 1, 2, 7 and 8 returned 7, 3, 1 and 0. Both zero and invalid text aborted
+with exit 134 and the exact original stderr
+`Tower compiler internal trap at 23743: Division by zero` plus LF.
+Raising only the checksum expectation to 20,160,001 caused the original and
+migrated manual commands to return 41 and 12. Each selected benchmark rejected
+the same mutation, while both selected defaults still passed. A zero-size first
+request returned 39 and 11. Leaving one glue allocation per round live returned
+40. The corresponding selected tests rejected those controls. After restoring
+the sources, both manual and selected routes passed again.
+
+Host affinity 0–23, Ryzen 9 7900X, cgroup quota 23.04 CPUs. Timings ran one at
+a time on CPU 0 under the host timing lock, after warmup, with alternating
+baseline/candidate order. Each row gives the arithmetic means of six batches
+of 100 fresh processes per version. RSS is the batch process-family maximum
+as reported by GNU time, including the shell. Output and exits were checked
+for every batch. The workloads execute serially.
+
+| Mode | Wall seconds, original / moved | CPU seconds, original / moved | Peak KiB, original / moved |
+| --- | --- | --- | --- |
+| Glue default | 0.045 / 0.042 | 0.035 / 0.038 | 2957 / 2989 |
+| Glue benchmark | 0.628 / 0.628 | 0.622 / 0.623 | 2960 / 2929 |
+| Production default | 0.040 / 0.040 | 0.032 / 0.032 | 2939 / 2977 |
+| Production benchmark | 0.622 / 0.622 | 0.618 / 0.615 | 2917 / 3003 |
+
+Native ASan completed all four default/manual modes. TSan completed the same
+four after 31 host startup failures in `personality(ADDR_NO_RANDOMIZE)`,
+retained individually. These suites run serially. The repository has no UBSan
+build mode. WASI SDK 34 passed both default registrations and both manual
+benchmarks through the project host. The Windows x64 object retained its
+`mainCRTStartup` and runtime ABI exports. Windows execution, independent
+manager review and publication remain open.
