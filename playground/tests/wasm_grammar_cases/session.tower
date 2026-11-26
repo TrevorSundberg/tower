@@ -15,6 +15,8 @@ extern fn grammar_node_offset(event: usize, node: usize, field: u8*): usize;
 extern fn grammar_keywords(): usize;
 extern fn grammar_keyword(index: usize): u8*;
 extern fn grammar_highlights(): usize;
+extern fn grammar_highlight_text(index: usize): u8*;
+extern fn grammar_highlight_revision(index: usize): usize;
 extern fn grammar_highlight_kind(index: usize): u8*;
 extern fn grammar_highlight_offset(index: usize, field: u8*): usize;
 

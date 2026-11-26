@@ -1,0 +1,47 @@
+import session;
+import library.vector;
+import backend.text;
+
+test() {
+    var base = grammar_fixture("base");
+    var loop_rules = grammar_fixture("loop");
+    defer free(base);
+    defer free(loop_rules);
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    assert(backend_text(&source, base));
+    assert(backend_text(&source, "for;"));
+    assert(backend_text(&source, loop_rules));
+    assert(backend_text(&source, "for(x in xs){}"));
+    assert(backend_text(&source, "parse ForEach = 'walk' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';"));
+    assert(backend_text(&source, "for;forest;walk(x in xs){}"));
+    grammar_parse(source.data);
+    check_status("done");
+
+    var kinds: u8*[3] = {"identifier", "keyword", "identifier"};
+    var revisions: usize[3] = {4, 6, 7};
+    var count = sizeof(decltype(revisions)) / sizeof(usize);
+    var seen: usize = 0;
+    var found_forest = false;
+    var highlights = grammar_highlights();
+    for (var i: usize = 0; i < highlights; i++) {
+        var word = grammar_highlight_text(i);
+        defer free(word);
+        if backend_equal(word, "for") {
+            assert(seen < count, "Unexpected for highlight");
+            var kind = grammar_highlight_kind(i);
+            defer free(kind);
+            assert(backend_equal(kind, kinds[seen]), "for classification across the declaration");
+            assert(grammar_highlight_revision(i) == revisions[seen], "for declaration revision");
+            seen++;
+        }
+        if !found_forest && backend_equal(word, "forest") {
+            var kind = grammar_highlight_kind(i);
+            defer free(kind);
+            assert(backend_equal(kind, "identifier"), "forest is a whole identifier");
+            found_forest = true;
+        }
+    }
+    assert(seen == count, "Missing for highlight");
+    assert(found_forest, "Missing forest highlight");
+}

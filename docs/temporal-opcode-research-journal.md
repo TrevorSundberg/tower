@@ -121218,3 +121218,113 @@ and reproduced both source exports. The raw packet contains the mutation
 patches, TAP, diagnostics, timings, per-registration observations, deployment
 manifest, shipping bytes and the source bundle against `1a454331`. Manager
 review and publication remain open.
+### Moving the Wasm keyword and name styling expectations into Tower
+
+The original two Node registrations inspect highlights returned by the shipped parser. The selected Tower tests read the spelling, kind and revision of those same spans, keeping the subject parser separate from the assertion VM. The declaration-boundary case checks all three classifications of `for` and the whole identifier `forest`. The name-style case checks the names and keywords in a real source fixture, exact grammar-name and capture counts, and identifier styling in the incomplete import. On the control host both subject programs matched the original JavaScript source expressions byte for byte and the revised Node module passed its syntax check. Execution, mutation controls and measurements on the released portable and shared compilers are pending worker verification.
+
+#### Host 7 qualification on Pages 8417c9ae
+
+Assignment `d79719ec-efb3-4778-a56c-0fccea4ee6c2` used public base
+`1a454331` and the manager bundle at `5f2315a7`. Its SHA-256 matched
+`73626dcf73de6689cebb5b3acb3e707319f7fb715f02fa1f026fd2a557d5a893`.
+The shared main contains an earlier unpublished archive change. The initial
+pull conflicted in that change. We aborted the rebase and used a separate
+local main at the requested base. Only the manager publishes this assignment.
+
+The supplied keyword test stopped at byte 1504 on both frontends because the
+release grammar requires a block after `else`. Two independent spelling checks
+compile and preserve the three ordered `for` classifications and the first
+`forest` check. The names case originally traversed all 60 complete-input
+highlights three times. Its combined table now reads each spelling once,
+checks every matching occurrence, and requires exactly one of each rule name
+and capture. The incomplete import must also produce all three identifier
+names. Its diagnostic points to byte 33, with length zero.
+
+The parser reports byte offsets. The proposed transport used those offsets
+as UTF-16 indices. Prepending an ordinary comment containing 雪🚀 to the
+names fixture made the proposed transport lose the spelling of `tower` on
+both images. Keeping the UTF-8 bytes of the current input fixes that control
+while retaining the same live subject parser and separate assertion instance.
+
+The packet includes the Pages manifest (SHA-256 `27918580…`) and both
+verified Wasm products. Their build source is `0da4e5137453044c9fff9eba262537608de31b6f`,
+tree `aa97a31ec4a8115bb0d9556ce564b67fb6a63dbf`. Portable SHA-256 is
+`eb6c48780d67876e1c0726f0e3aad12f761db973c3e5f647e79c362805ad6e1a`,
+shared `616c0885632d614372a61ea677402df2454fa118357f49c1ce548fca0391d84a`.
+All five checkout grammar inputs match the manifest. An observer hashed the
+actual bytes passed to WebAssembly.compile and identified the module passed
+to instantiate at each of the two coordinator call sites. Both had the
+requested digest and memory mode. The first observer incorrectly required
+child workers to have the coordinator's module identity map. Shared workers
+receive cloned modules. The rerun observed the coordinator instantiations.
+
+In the two real registrations, the 436-, 237- and 33-byte sources produced
+12, 8 and 1 parser events with 88, 60 and 7 highlight spans. Comparing the
+source, ordered events, terminal record and inspected snapshot gave identical
+328,477-byte traces at each width. The portable trace SHA-256 starts
+`23a764d3`, shared `effc7c92`. Only object ID fields differed between widths.
+The three standalone `for`s at bytes 210, 318 and 410 were identifier/4,
+keyword/6 and identifier/7. `forest` at 414 was identifier/7. The names test
+observed every occurrence of 11 required identifiers and eight keywords, and
+one each of Label, Name, Identifier and value. The incomplete import reported
+the missing semicolon at EOF with the ImportDeclaration diagnostic, and the
+three names had identifier styling.
+
+The full 15 names ran in the original order. All 86 calls to the module's
+analyze helper also matched byte for byte within each image (4,582,153 bytes
+per run). Each new registration selected exactly one Tower test and ended
+with empty output, empty error and no truncation. The existing default-suffix
+compound operator selector still found its 14 tests on both images.
+
+Three fresh processes per cell used warm files and forward/reverse/forward
+order under the host timing lock. GNU time measured one Node 24.22.3 process
+per slot with `--test --test-isolation=none --test-concurrency=1`. Host 7 is
+Debian 12 on an AMD EPYC 7502 (32 cores, 64 threads), inherited affinity 0–63,
+measured affinity 4–7, CPU quota 3071999/100000 µs. The shared subject used
+its default worker capacity four and the assertions requested capacity one.
+The table gives median wall seconds / CPU seconds / peak RSS KiB. Original
+uses the JS expectations at 1a454331. The middle column changes only the
+unsupported syntax in 5f2315a7. Final uses the tested code at b7b98b5c.
+
+| Registration | Original | Syntax correction only | Final |
+| --- | --- | --- | --- |
+| Keyword, portable | 0.62 / 0.99 / 120688 | — | 1.09 / 1.69 / 153084 |
+| Keyword, shared | 0.73 / 1.20 / 183368 | — | 1.43 / 2.12 / 223940 |
+| Names, portable | 0.84 / 1.33 / 134444 | 1.34 / 2.05 / 159252 | 1.32 / 1.99 / 160408 |
+| Names, shared | 1.15 / 1.87 / 206788 | 1.81 / 2.73 / 246920 | 1.81 / 2.69 / 244932 |
+| Both, portable | 0.89 / 1.39 / 135284 | 1.42 / 2.22 / 160412 | 1.41 / 2.19 / 160140 |
+| Both, shared | 1.14 / 1.88 / 208248 | 1.87 / 2.87 / 247028 | 1.92 / 2.90 / 245032 |
+| All 15, portable | 2.26 / 3.20 / 193324 | — | 2.38 / 3.41 / 195044 |
+| All 15, shared | 3.08 / 4.26 / 283636 | — | 3.27 / 4.55 / 290452 |
+
+The two cases made 275 spelling requests with the three-scan version and
+155 with the combined table. The latter also saved two highlight-count
+requests. The whole-name wall medians changed by 20 ms portable and zero
+at timer precision shared. Neither result warrants a new bulk transfer ABI.
+The larger original-to-final difference includes opening the assertion VM
+and compiling and executing its explicit entries. The full module already
+opens that VM for the two preceding tests. A single CPU-4-only pair for both
+names gave original/final wall 1.10/1.80 s portable and 1.56/2.43 s shared.
+The measurements cover whole Node registrations, including V8 and file reads.
+
+At the last of the three focused inspections the original and final subject
+both had 13,131 live nodes. Linear capacity was 26,804,224 bytes portable and
+39,124,992/39,190,528 bytes shared (original/final). The exposed allocation
+counter read zero for all three inspections. RSS includes both reactors
+and V8. These test/transport changes used the shipping Wasm runtime. Native
+instrumentation, browser UI, compiler rebuild and publication are outside
+this Node registration qualification.
+
+In 69 independent final mutations per image the real parser ran first. The
+adapter then changed one observation before the registration consumed it.
+Each process exited 1 at the expected Tower assertion byte with the expected
+message. The matrix changed every `for` kind and revision, removed and
+duplicated a `for`, changed and removed `forest`, and changed each terminal
+status. For every required complete-input spelling it corrupted the last
+occurrence's kind or removed all occurrences. Each of the four unique
+grammar/capture names was also duplicated. Each incomplete name was both
+misclassified and removed in separate runs. Removing `path` had passed both
+original JS and the supplied Tower test. The final presence assertion caught
+it at byte 2141. Removing the adapter restored all 15 registrations on each
+image. The local packet contains the 138 source-located failures, injected
+records, original and restored controls, raw traces and paired measurements.

@@ -1,0 +1,6 @@
+import tower; import library.vector;
+token Label = /@[a-z]+/ as identifier;
+parse Name = $value:Identifier;
+struct Record { field: i32; }
+fn identity(parameter: i32): i32 { return parameter; }
+var local: i32 = identity(42); print(local);
