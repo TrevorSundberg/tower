@@ -111259,3 +111259,15 @@ rounded at entry and 60 GiB before sealing. The owned build, scratch source
 trees and instrumented binaries were removed after their jobs drained.
 The manager owns publication. All runtime checks above used the local
 candidate with the existing release artifacts.
+
+The final pull encountered the concurrent baee0107 kernel-test publication.
+The packet preserves the 442f3bea-based candidate as candidate.bundle,
+tip 61d7f8cee25367771a01d9b6cd429b7649022930, whose only change after
+ef8ae05d is this qualification journal. Rebase replayed the two repairs
+as 71437167 and 401fb3ea. At 31739fa3, the native owners again returned
+the exact ordered 60/60/13/22 IDs for inference, semantic modules,
+WorkGraph and formatter. The revised browser harness passed all five
+formatter names. Reconstructing the editor drive on this base reproduced
+the previously button-tested bytes exactly. None of the concurrent new
+test sources was in the editable inventory. The packet includes this
+second local history separately. No deployment or push ran.
