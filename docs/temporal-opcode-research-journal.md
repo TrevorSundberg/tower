@@ -120461,3 +120461,69 @@ when PATH changed the cached compiler identity. A fresh configure using the
 absolute public compiler and LLVM 19 paths succeeded. Host logs, checked raw
 buffers, binaries and an incremental public-base bundle are in the manager
 packet for the assignment. Publication belongs to the manager.
+
+### Eight observed Wasm grammar sessions for revision and lookahead tests
+
+Host 3 assignment `15fe1bc8-5df8-46d8-9780-3e790fb0bb23` started at public
+`105b927ec8112bbde9426e1d0058dbf7f5cec9c8`. The starting pull conflicted
+with earlier unpublished work. Aborting the rebase restored that checkout
+at `9cfdd448`. A separate local main held the requested public base.
+Implementation `1f8c338feefd5389bf985edfd60dfaa4347c108a` changes two
+registrations in wasm.test.mjs. The unchanged Wasm parser supplies
+events and the final inspection from each real handle. A separate assertion
+instance uses the existing selectedCases host to run the adjacent
+[revision](../playground/tests/wasm_grammar_cases/revisions_test.tower) and
+[lookahead](../playground/tests/wasm_grammar_cases/lookahead_test.tower) tests.
+The fixture ABI gives Tower the original example and the shared base and loop
+declarations. Tower edits the first matching declaration, reads the individual
+node and highlight fields and checks the observed byte ranges. It compares
+the example's strictly ordered keyword set with a second, empty-input parse
+and the two added words.
+
+The f75f7ab0 receipt supplied both manifest-verified images from compiler
+`8bc867b69cc6084b9da09a51475c7c740efd9419`. The portable digest begins
+`41bb9b11`, the shared digest `72c882ee`. No reactor build was needed.
+An observer recorded the complete source, ordered events, terminal object
+and inspected snapshot at the original analyze boundary. All 55 constructs
+across eight sessions per image were preserved. Both before/after JSONL
+pairs matched byte for byte (493,599 bytes each). Portable SHA-256 is
+`5050e10e32ba3c3003b42fb968606fdafd3d77b1b527ac3affa6c831b5468e64`
+and shared is
+`00e82fd86a7225a31ccddc6f2f34d546ee29d6e896c17a40870379201399c4fe`.
+Removing only object fields named id made the two image traces agree too.
+The two successful alternative orders had ten constructs each. An incomplete
+prefix had seven declaration events and zero statements. The rejected
+shift/reduce alternative retained revision one. The duplicate production
+reported reduce/reduce. The eight subject linear-memory sizes and exposed
+live counters at inspection agreed at each boundary, including 16,711,680
+bytes and 7,709 nodes in the last session before its handle was destroyed.
+
+The compiler rejected a reserved parameter name, integer conversions on
+two pointers and an invalid named-field initializer during development.
+The fixture uses an ordinary byte index and destination-typed initialization.
+Separate mutations expected revision nine, three Variable roles, and
+reduce/reduce for the shift/reduce input. Each mutation reached its own
+Tower assertion through the original Node name on both images.
+
+Restoring the three edits passed both names on both images. The complete
+Wasm file then passed all 15 registrations on each image with zero skips.
+GNU time wrapped `node --test --test-concurrency=1 --test-name-pattern=...`
+on Node 24.22.3, Linux x64, EPYC 7542, CPUs 0–3 of 64, quota 12.288 CPUs.
+Three original/migrated pairs used a host timing lock, warm files and fresh
+processes, in AB/BA/AB order. The shared subject used its default capacity
+four and the assertion instance used capacity one. Portable median process
+wall/CPU seconds and peak KiB were 6.99/0.75/117692 original and
+16.86/1.54/153384 migrated. Shared medians were 14.90/1.03/181064 and
+8.20/1.95/225004. Process wall varied widely across runs. The median sums
+of Node's two test-body durations increased from 59.41 to 755.62 ms portable
+and from 73.98 to 991.13 ms shared. Those durations include compiling and
+running the two Tower tests in the additional instance.
+
+After each selected execution handle was destroyed, the separate assertion
+instance held 28,377,088 bytes of linear memory and reported 13,483 live
+nodes on each image. The release allocation counter returned zero. These
+are capacity and live-node observations. The test change introduces no
+native compiler or worker code. Native source sanitizers, Chromium UI and
+Jenkins were outside this Node entry. The assignment packet retains the
+two source traces per image, mutation patches and logs, timing samples,
+manifest and public-base Git bundle. Manager review and publication remain.

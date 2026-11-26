@@ -1,0 +1,106 @@
+import session;
+import library.vector;
+import backend.text;
+
+fn check_alternative(example: u8*, declaration: u8*): void {
+    var original = "parse Statement |= ForEach;";
+    var at: usize = 0;
+    while !backend_prefix(example + at, original) {
+        assert(example[at] != 0, original);
+        at++;
+    }
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    assert(backend_text_append(&source, example, at));
+    assert(backend_text(&source, declaration));
+    assert(backend_text(&source, example + at + backend_length(original)));
+    grammar_parse(source.data);
+    check_status("done");
+    assert(grammar_events() == 10, declaration);
+    assert(matching_nodes(7, "label", "ForEach") == 2, declaration);
+}
+
+fn span_equals(source: vector(u8)*, start: usize, end: usize, wanted: u8*): bool {
+    assert(start <= end && end <= source.length, "Parser span outside source");
+    return end - start == backend_length(wanted) && backend_prefix(source.data + start, wanted);
+}
+
+fn check_boundaries(source: vector(u8)*): void {
+    grammar_parse(source.data);
+    check_status("done");
+    var statements: u8*[5] = {"for", "item;", "for", "@item;", "for"};
+    var count = sizeof(decltype(statements)) / sizeof(u8*);
+    var seen: usize = 0;
+    var events = grammar_events();
+    for (var i: usize = 0; i < events; i++) {
+        var status = grammar_event_status(i);
+        defer free(status);
+        if backend_equal(status, "statement") {
+            assert(seen < count, "Extra statement");
+            assert(span_equals(source, grammar_node_offset(i, 0, "start"), grammar_node_offset(i, 0, "end"),
+                statements[seen]), statements[seen]);
+            seen++;
+        }
+    }
+    assert(seen == count, "Missing statement");
+
+    var comments: usize = 0;
+    var previous_end: usize = 0;
+    var highlights = grammar_highlights();
+    for (var i: usize = 0; i < highlights; i++) {
+        var start = grammar_highlight_offset(i, "start");
+        var end = grammar_highlight_offset(i, "end");
+        assert(previous_end <= start, "Overlapping or out-of-order highlights");
+        if span_equals(source, start, end, "/* boundary */") { comments++; }
+        previous_end = end;
+    }
+    assert(comments == 1, "Boundary comment highlight");
+}
+
+fn conflict(kind: u8*): void {
+    var error = grammar_end_text("error");
+    defer free(error);
+    assert(backend_contains(error, kind), error);
+}
+
+test() {
+    var example = grammar_fixture("example");
+    defer free(example);
+    check_alternative(example, "parse Statement |= ForEach | 'for';");
+    check_alternative(example, "parse Statement |= 'for' | ForEach;");
+
+    var base = grammar_fixture("base");
+    defer free(base);
+    var loop_rules = grammar_fixture("loop");
+    defer free(loop_rules);
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    assert(backend_text(&source, base));
+    assert(backend_text(&source, loop_rules));
+    assert(backend_text(&source, "parse Statement |= 'for';"));
+    var prefix_length = source.length;
+    assert(backend_text(&source, "for /* boundary */ item;for\n"));
+    assert(backend_text(&source, "token Identifier = /@[a-z]+/ as identifier;@item;for"));
+    check_boundaries(&source);
+
+    source.length = prefix_length;
+    assert(backend_text(&source, "for("));
+    grammar_parse(source.data);
+    check_status("error");
+    var events = grammar_events();
+    for (var i: usize = 0; i < events; i++) {
+        var status = grammar_event_status(i);
+        defer free(status);
+        assert(!backend_equal(status, "statement"), "Incomplete prefix committed a statement");
+    }
+
+    grammar_parse("parse Statement = 'x';parse Statement |= 'x' 'x';");
+    conflict("shift/reduce");
+    assert(grammar_end_revision() == 1, "Revision after rejected shift/reduce alternative");
+
+    source.length = 0;
+    assert(backend_text(&source, base));
+    assert(backend_text(&source, "parse Statement |= Expression ';';"));
+    grammar_parse(source.data);
+    conflict("reduce/reduce");
+}
