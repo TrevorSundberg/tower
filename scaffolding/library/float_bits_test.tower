@@ -1,0 +1,206 @@
+import library.testing;
+import float_bits;
+
+// The standalone corpus reports every mismatch. A selected test also reports
+// its first failing case through the test runner.
+struct FloatBitsResult {
+    failures: u32;
+    first_failure: u8*;
+}
+
+fn check_float_case(result: FloatBitsResult*, ok: bool, message: u8*): void {
+    if !ok {
+        if result.failures == 0 { result.first_failure = message; }
+        result.failures++;
+        print(message);
+    }
+}
+
+fn check_float_binary(result: FloatBitsResult*, a: u64, b: u64, op: FloatOperation,
+        width: u32, wanted: u64, message: u8*): void {
+    var actual = tower_float_binary(a, b, convert(u32, op), width);
+    check_float_case(result, actual == wanted, message);
+    if actual != wanted {
+        print(actual);
+        print(wanted);
+    }
+}
+
+fn binary32_sums(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, 1065353216, 1073741824,
+        FloatOperation.Add, Float32Width, 1077936128, "f32 one plus two");
+    check_float_binary(&result, 1065353216, 864026624,
+        FloatOperation.Add, Float32Width, 1065353216, "f32 even lower midpoint");
+    check_float_binary(&result, 1065353217, 864026624,
+        FloatOperation.Add, Float32Width, 1065353218, "f32 odd lower midpoint");
+    check_float_binary(&result, 1065353216, 1065353216,
+        FloatOperation.Subtract, Float32Width, 0, "exact cancellation");
+    check_float_binary(&result, Float32Sign, Float32Sign,
+        FloatOperation.Add, Float32Width, Float32Sign, "negative zeros add");
+    check_float_binary(&result, 0, Float32Sign,
+        FloatOperation.Add, Float32Width, 0, "opposite zeros add");
+    check_float_binary(&result, 1, 1,
+        FloatOperation.Add, Float32Width, 2, "smallest subnormals add");
+    check_float_binary(&result, 8388607, 1,
+        FloatOperation.Add, Float32Width, 8388608, "subnormal normal boundary");
+    check_float_binary(&result, 8388608, 1,
+        FloatOperation.Subtract, Float32Width, 8388607, "normal subnormal boundary");
+    check_float_binary(&result, 2139095039, 2139095039,
+        FloatOperation.Add, Float32Width, Float32Infinity, "f32 overflow");
+    return result;
+}
+
+test() {
+    var result = binary32_sums();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn binary32_products_and_quotients(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, 1069547520, 1073741824,
+        FloatOperation.Multiply, Float32Width, 1077936128, "f32 multiplication");
+    check_float_binary(&result, 1, 1056964608,
+        FloatOperation.Multiply, Float32Width, 0, "underflow tie to zero");
+    check_float_binary(&result, 3, 1056964608,
+        FloatOperation.Multiply, Float32Width, 2, "underflow tie to even subnormal");
+    check_float_binary(&result, Float32Sign | 1, 1056964608,
+        FloatOperation.Multiply, Float32Width, Float32Sign, "negative underflow preserves sign");
+    check_float_binary(&result, 1065353216, 1077936128,
+        FloatOperation.Divide, Float32Width, 1051372203, "f32 one third");
+    check_float_binary(&result, 1065353216, 0,
+        FloatOperation.Divide, Float32Width, Float32Infinity, "finite over zero");
+    return result;
+}
+
+test() {
+    var result = binary32_products_and_quotients();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn binary32_nan_results(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, 0, 0,
+        FloatOperation.Divide, Float32Width, 2143289344, "zero over zero canonical NaN");
+    check_float_binary(&result, Float32Infinity, 0,
+        FloatOperation.Multiply, Float32Width, 2143289344, "infinity times zero");
+    check_float_binary(&result, 2139095041, 1065353216,
+        FloatOperation.Add, Float32Width, 2143289344, "signaling NaN canonicalizes");
+    check_float_binary(&result, Float32Infinity, Float32Infinity,
+        FloatOperation.Subtract, Float32Width, 2143289344, "infinities cancel to NaN");
+    return result;
+}
+
+test() {
+    var result = binary32_nan_results();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn binary32_comparisons(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, Float32Sign, 0,
+        FloatOperation.Equal, Float32Width, 1, "zero signs compare equal");
+    check_float_binary(&result, 2143289344, 0,
+        FloatOperation.NotEqual, Float32Width, 1, "NaN unequal");
+    check_float_binary(&result, 2143289344, 0,
+        FloatOperation.LessEqual, Float32Width, 0, "NaN unordered");
+    check_float_binary(&result, 3212836864, 3221225472,
+        FloatOperation.Greater, Float32Width, 1, "negative ordering");
+    return result;
+}
+
+test() {
+    var result = binary32_comparisons();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn binary64_arithmetic(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, 4607182418800017408, 4611686018427387904,
+        FloatOperation.Add, Float64Width, 4613937818241073152, "f64 one plus two");
+    check_float_binary(&result, 4607182418800017408, 4368491638549381120,
+        FloatOperation.Add, Float64Width, 4607182418800017408, "f64 midpoint even");
+    check_float_binary(&result, 4607182418800017409, 4368491638549381120,
+        FloatOperation.Add, Float64Width, 4607182418800017410, "f64 midpoint odd");
+    check_float_binary(&result, 4607182418800017408, 4613937818241073152,
+        FloatOperation.Divide, Float64Width, 4599676419421066581, "f64 one third");
+    check_float_binary(&result, 4609434218613702656, 4611686018427387904,
+        FloatOperation.Multiply, Float64Width, 4613937818241073152, "f64 multiplication");
+    return result;
+}
+
+test() {
+    var result = binary64_arithmetic();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn binary64_subnormals_and_nan(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_binary(&result, 4503599627370496, 1,
+        FloatOperation.Subtract, Float64Width, 4503599627370495, "f64 normal boundary");
+    check_float_binary(&result, 3, 4602678819172646912,
+        FloatOperation.Divide, Float64Width, 6, "f64 tiny quotient");
+    check_float_binary(&result, 3, 4611686018427387904,
+        FloatOperation.Divide, Float64Width, 2, "f64 tiny quotient midpoint");
+    check_float_binary(&result, Float64Infinity, Float64Infinity,
+        FloatOperation.Divide, Float64Width, 9221120237041090560, "f64 canonical NaN");
+    return result;
+}
+
+test() {
+    var result = binary64_subnormals_and_nan();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn integer_to_float_rounding(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_case(&result, tower_float_from_integer(16777217, Float32Width, false, Float32Width) == 1266679808,
+        "integer midpoint to f32");
+    check_float_case(&result, tower_float_from_integer(~convert(u64, 0), Float64Width, false, Float64Width) == 4895412794951729152,
+        "u64 max rounds to two to 64");
+    check_float_case(&result, tower_float_from_integer(Float64Sign, Float64Width, true, Float64Width) == 14114281232179134464,
+        "i64 min exact");
+    return result;
+}
+
+test() {
+    var result = integer_to_float_rounding();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn float_width_conversions(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    check_float_case(&result, tower_float_convert(4607182418800017408, Float64Width, Float32Width) == 1065353216,
+        "narrow one");
+    check_float_case(&result, tower_float_convert(1, Float32Width, Float64Width) == 3936146074321813504,
+        "widen smallest subnormal");
+    check_float_case(&result, tower_float_convert(Float32Sign, Float32Width, Float64Width) == Float64Sign,
+        "widen negative zero");
+    return result;
+}
+
+test() {
+    var result = float_width_conversions();
+    assert(result.failures == 0, result.first_failure);
+}
+
+fn float_to_integer_status(): FloatBitsResult {
+    var result: FloatBitsResult = default;
+    var ok: bool = false;
+    check_float_case(&result, tower_float_to_integer(14114281232179134464, Float64Width, Float64Width, true, &ok) == Float64Sign && ok,
+        "i64 min conversion");
+    tower_float_to_integer(4895412794951729152, Float64Width, Float64Width, false, &ok);
+    check_float_case(&result, !ok, "u64 conversion overflow");
+    check_float_case(&result, tower_float_to_integer(3204448256, Float32Width, Float32Width, false, &ok) == 0 && ok,
+        "negative fraction truncates to unsigned zero");
+    tower_float_to_integer(3212836864, Float32Width, Float32Width, false, &ok);
+    check_float_case(&result, !ok, "negative unsigned conversion rejected");
+    tower_float_to_integer(2143289344, Float32Width, Float32Width, true, &ok);
+    check_float_case(&result, !ok, "NaN integer conversion rejected");
+    return result;
+}
+
+test() {
+    var result = float_to_integer_status();
+    assert(result.failures == 0, result.first_failure);
+}
