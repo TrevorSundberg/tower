@@ -117499,3 +117499,56 @@ The world ledger peaked at 19,146,105 bytes with one worker and 23,129,518 with 
 The same six predicates passed in the instrumented standalone through their ordinary file/argv registrations. ASan with leak detection took 8.71 s wall and peaked at 543,048 KiB. TSan took 26.62 s and peaked at 233,164 KiB. The link maps place allocation in `runtime-allocate.o` and pthread transport in `tower_work_host.o` from `libtower-compiler-memory.a`. The packet includes the instrumented callback IR, function attributes, link maps and exact command lines. All eight instrumented reconstructions matched the reference Foundation and LLVM. The first ASan configuration, with execution tests disabled, generated no top-level CTest registry on this parent. CTest exited 8. Enabling the execution-test profile produced the registrations and the run passed. Tower source-level UBSan is unavailable.
 
 With backend and execution tests disabled, the ordinary compiler linked and ran the guest at both widths. Its link command, dynamic dependencies and symbol table excluded the new provider and case functions. Both Wasm object depfiles excluded the companion and test API. Touching the companion left Ninja clean and preserved the compiler SHA-256 `4499ebcd67b6459d8455712aed39696b8266692967d254660d8707f57627a1c9`. That compiler also passed direct and owner discovery with the explicit test provider. Validation covers the Linux x64 backend test transport. The packet includes raw stdout, stderr, statuses, GNU time reports, source and tool identities, reference and migrated outputs, and a bundle relative to the published parent. Publication belongs to the manager.
+### Original entity page cases on the Linux native test runner (host 5, November 26)
+
+The original standalone fixtures at `1e5ab20d` supply the stdout reference.
+The verified bundle `a0bdb13d` moves the five reuse cases and three seeded
+property cases to adjacent companions. Each executable and selected guest
+compiles one suite's lifecycle callback. The public Linux x64 bootstrap
+compiled both standalone entrypoints and both default-suffix selection routes
+without linkage changes. The direct routes select five and three cases. Owner
+discovery adds five work-budget tests to each. The optional native work suite
+uses the shared count checker at compiler widths one and four. The property
+oracle is the 137-byte standalone capture in seed order.
+
+Ten registered checks passed, including the two original executable names.
+The property guest and standalone both emitted seeds 1, 314159 and 4294967291
+with operations 1147/1150/1141, finalizers 556/557/558, capacities 64/64/64/51,
+retained bytes 116619/116779/116715, 98 grants and a charged peak of 8388608
+for each seed. Reuse preserved its standalone `0\n` and silent selected cases.
+Replaying all eight captured ELF guests reproduced their compiler-run stdout and
+24-byte completion records. Each defined its own `tower_entity_finalize`.
+
+Disposable Tower observers recorded actual buffer requests, frees, finalizer
+arguments and disposal. All routes balanced bytes and grants. The five reuse
+cases made 13/4/15/58/30 buffer allocations and reached charged peaks of
+67108864/67108864/67108864/97955/32491. The two staged row cases completed
+133 and 13 finalizers. The three property seeds made 541/519/528 allocations.
+Exact ordered lifecycle traces and per-case allocation-size multisets matched.
+A repeat of the same reuse binary also changed allocation order within a case.
+Independent glibc memusage runs on the original, migrated standalone and
+direct guest saw 208325 total bytes (101555 peak) for reuse and 999848
+(144936 peak) for property. The extra owner cases added 2240 requested bytes.
+A corrupt reuse payload, a corrupt property-model stamp, and an incorrect
+property lifecycle check each tripped the original diagnostic on all three
+entry routes. All nine restored runs passed.
+
+Host 5 used a Ryzen 9 5900XT, Linux x86-64, LLVM/Clang 19.1.7, Release,
+public towerc SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+The cpuset exposed 0–31, quota 3071999/100000, with measurements pinned to
+four physical cores (0,2,4,6) under the host timing lock. Three warm samples
+per configuration ran fresh processes sequentially. Standalone object compile
+mean wall seconds at widths 1/4 changed from 0.980/0.933 to 1.060/1.053 for
+reuse and 0.913/0.877 to 0.993/0.980 for property. Mean peak compiler RSS
+grew by 2.6–8.6 MiB. Phase timings on the extra imported sources attributed
+about 80–90 ms to parse at width one under either object entry mode.
+Thirty warm property executions took 0.210 s in both arms and widths.
+The native CMake address/leak and thread builds instrumented both fixtures
+and their runtime. Each completed with the original bytes and empty stderr.
+Two property TSan launches hit the host's denied personality call before the
+successful third launch. The fixture executions are serial. The public guest
+runner accepts an ordinary native link, and the project offers address and
+thread instrumentation for the standalones. A Tower UBSan profile is unavailable.
+Raw products, CTest lines, control diagnostics, source depfiles, traces and
+per-sample wall/CPU/RSS are in host 5 packet
+`a94ec5f4-f937-4669-a3f2-7f11118277c9`.
