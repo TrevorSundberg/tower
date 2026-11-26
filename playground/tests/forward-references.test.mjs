@@ -1,69 +1,116 @@
-import {test, after} from 'node:test';
-import assert from 'node:assert/strict';
+import {after, test} from 'node:test';
 import {readFile} from 'node:fs/promises';
-import {loadTower,runToEnd} from './compiler-fixtures.mjs';
-import {loadLLVM,executeWasm} from './compiler-fixtures.mjs';
-const read=p=>readFile(new URL('../../'+p,import.meta.url));
-const foundation=(await read('scaffolding/foundation.tower')).toString();
-const foundationSyntax=(await read('scaffolding/foundation_syntax.tower')).toString();
-const tower=await loadTower(process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm'),undefined,foundation);
-after(()=>tower.close());
-function parse(source){const h=tower.create(source);try{return runToEnd(tower,h);}finally{tower.destroy(h);}}
-test('forward rule and token dependencies resolve before root activation',()=>{
- for(const source of [
-  "parse A = B;parse B = 'hello';parse Statement = A;hello",
-  "parse A = B;parse B = C;parse C = 'hello';parse Statement = A;hello",
-  "parse A = Later;token Later = /@hello/;parse Statement = A;@hello",
-  "parse A = 'start' B;parse B = A | 'end';parse Statement = A;start start end",
-  "parse A = B;parse A = 'ready';parse Statement = A;ready",
- ]) {const r=parse(source);assert.equal(r.end.status,'done',r.end.error);}
- assert.match(foundationSyntax,/CoreCallArgument = CoreOperand \| CorePointerArgument/);
+import {executeWasm, files, loadLLVM, loadTower} from './compiler-fixtures.mjs';
+
+const read = path => readFile(new URL('../../' + path, import.meta.url));
+const foundation = (await read('scaffolding/foundation.tower')).toString();
+const sources = new Map(files.map(({path, text}) => [path, text]));
+function input(file) {
+  const source = sources.get('.tower/tests/forward_inputs/' + file);
+  if (source === undefined) throw new Error('Missing forward reference fixture ' + file);
+  return source;
+}
+
+const decoder = new TextDecoder('utf-8', {fatal:true});
+function string(context, pointer) {
+  const memory = context.memory();
+  const end = memory.indexOf(0, pointer);
+  if (!pointer || end < 0) throw new Error('Invalid fixture string');
+  return decoder.decode(memory.subarray(pointer, end));
+}
+
+const encoder = new TextEncoder();
+function copyText(context, value) {
+  if (typeof value !== 'string') throw new Error('Missing text observation');
+  const bytes = encoder.encode(value);
+  const pointer = context.allocate(bytes.length + 1);
+  if (!pointer) throw new Error('Unable to copy observation into Tower');
+  const memory = context.memory();
+  memory.set(bytes, pointer);
+  memory[pointer + bytes.length] = 0;
+  return pointer;
+}
+
+const bytes = process.env.TOWER_TEST_WASM ? undefined : await read('build/browser-wasi/tower.wasm');
+const tower = await loadTower(bytes, undefined, foundation);
+after(() => tower.close());
+const sessions = new Set();
+const outputs = new Map([['foundation_syntax.tower', sources.get('.tower/foundation_syntax.tower')]]);
+let selection, event;
+const observations = {
+  selected: (context, name) => selection === string(context, name),
+  parser_open(context, _root, name) {
+    const handle = tower.create(input(string(context, name)));
+    sessions.add(handle);
+    return handle;
+  },
+  parser_close(_context, handle) {
+    tower.destroy(handle);
+    sessions.delete(handle);
+  },
+  parser_step(_context, handle) { event = tower.step(handle); },
+  parser_pending(context, handle, rule) {
+    const name = string(context, rule);
+    const found = tower.inspect(handle).rules.find(item => item.name === name);
+    if (!found) throw new Error("Missing grammar rule " + name);
+    return found.pending;
+  },
+  parser_revision: (_context, handle) => tower.inspect(handle).revision,
+  event_text: (context, field) => copyText(context, event[string(context, field)]),
+  event_offset: () => event.errorOffset,
+  observed_text: (context, name) => copyText(context, outputs.get(string(context, name))),
+  execute_fixture(context, file) {
+    const handle = tower.compile(input(string(context, file)));
+    try { event = tower.execute(handle); }
+    finally { tower.destroyExecution(handle); }
+  },
+};
+
+// Keep the assertion interpreter independent of the parser handles it observes.
+const checks = await loadTower(bytes, undefined, foundation, undefined, undefined, {imports:observations});
+after(() => checks.close());
+const entry = '.tower/tests/forward_browser.tower';
+function check(name) {
+  selection = name;
+  const handle = checks.compile(sources.get(entry));
+  try {
+    checks.useFast(handle);
+    for (let chunk = 0; chunk < 10; chunk++) {
+      const result = checks.execute(handle, 100_000);
+      if (result.status === "done") return;
+      if (result.status !== "executing") throw new Error(result.error || result.status);
+    }
+    throw new Error("Forward-reference assertions exceeded one million steps");
+  } finally {
+    checks.destroyExecution(handle);
+    for (const open of sessions) tower.destroy(open);
+    sessions.clear();
+  }
+}
+
+test('forward rule and token dependencies resolve before root activation', () => {
+  check('graph');
 });
-test('incomplete active grammars fail at activation; unresolved module references fail at EOF',()=>{
- const h=tower.create("parse A = B;parse Statement = A;");
- try{
-  assert.equal(tower.step(h).status,'declaration');
-  const r=tower.step(h);assert.equal(r.status,'error');assert.match(r.error,/Cannot activate incomplete grammar: Statement -> A -> B/);
-  assert.equal(tower.inspect(h).revision,1);
- }finally{tower.destroy(h);}
- const end=parse("parse A = B;").end;assert.equal(end.status,'error');assert.match(end.error,/end of module: A -> B/);
- const reader=parse("parse GrammarDeclaration = 'rule' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement Missing ';';").end;
- assert.match(reader.error,/Cannot activate incomplete grammar: GrammarDeclaration -> Missing/);
- // An unresolved optional branch still matters to recognition/conflict analysis.
- assert.match(parse("parse A = B? 'x';parse Statement = A;").end.error,/incomplete grammar/);
+test('incomplete active grammars fail at activation; unresolved module references fail at EOF', () => {
+  check('activation');
 });
-test('forward rules follow declaration grammar changes without prescanning or changing pinned sessions',()=>{
- const source="parse A = B;parse GrammarDeclaration = 'rule' $name:Identifier $op:GrammarAssignment $alternatives:GrammarAlternatives $replacement:GrammarReplacement ';';"+
- "rule B = 'hello';rule Statement = A;hello";
- assert.equal(parse(source).end.status,'done');
- assert.equal(parse('import foundation;\nprint(42);').end.status,'done');
- assert.match(parse("parse A = B;parse B = 'x' | 'x';parse Statement = A;").end.error,/Grammar conflict/);
+test('forward rules follow declaration grammar changes without prescanning or changing pinned sessions', () => {
+  check('pinned');
 });
-test('module functions, types and variables resolve forward, preserving initialization order and local scopes',async()=>{
- const llvm=await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'),undefined,foundation);
- const source=`import foundation;
-fn read_later(): i32 { return later; }
-fn read_field(): i32 { return value.left; }
-fn read_index(): i32 { return entries[1]; }
- later = 41;
- var later: i32;
- var value: Pair;
- value.left = read_later(); value.right = 1;
- var result: i32 = add(value.left, value.right); print(result);
- struct Pair { left: i32; right: i32; }
- fn add(a: i32, b: i32): i32 { var later: i32 = a + b; return later; }
- print(later);
- later = 8; result = read_later(); print(result);
-var observed: i32 = read_later(); later = 9; print(observed);
-var field: i32 = read_field(); print(field);
-var entries: i32[2]; entries[1] = 73;
-var indexed: i32 = read_index(); print(indexed);`;
- const h=tower.compile(source);let text;
- try {const r=tower.execute(h);assert.equal(r.status,'done',r.error);assert.equal(r.output,'42\n41\n8\n8\n41\n73\n');text=tower.foundation(h).source;}finally{tower.destroyExecution(h);}
- for(const input of [source,text]){
-  const c=llvm.compile(input);assert.equal(c.status,'compiled',c.error);assert.equal((await executeWasm(c)).output,'42\n41\n8\n8\n41\n73\n');
- }
- for(const bad of ['var x: i32;var x: i32;','fn bad(): i32 { return later; var later: i32 = 1; }']){
-  const h=tower.compile('import foundation;\n'+bad);try{assert.equal(tower.execute(h).status,'error');}finally{tower.destroyExecution(h);}
- }
+test('module functions, types and variables resolve forward, preserving initialization order and local scopes', async () => {
+  const source = input('module.tower');
+  const llvm = await loadLLVM(process.env.TOWER_TEST_LLVM_WASM ? undefined : await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, foundation);
+  const handle = tower.compile(source);
+  try {
+    const result = tower.execute(handle);
+    if (result.status !== 'done') throw new Error(result.error);
+    outputs.set('interpreter', result.output);
+    const canonical = tower.foundation(handle);
+    for (const [engine, text] of [['LLVM source', source], ['LLVM Foundation', canonical.source]]) {
+      const compiled = llvm.compile(text);
+      if (compiled.status !== 'compiled') throw new Error(compiled.error);
+      outputs.set(engine, (await executeWasm(compiled)).output);
+    }
+    check('module');
+  } finally { tower.destroyExecution(handle); }
 });

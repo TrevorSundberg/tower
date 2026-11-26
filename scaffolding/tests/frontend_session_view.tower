@@ -6,6 +6,7 @@ import .compiler.syntax_version_types;
 import .compiler.frontend_revision_types;
 import .compiler.format_types;
 import frontend_world;
+import frontend_session_rules;
 import frontend_format;
 import utility_checks;
 
@@ -13,9 +14,6 @@ extern fn syntax_session_open(world: void*, environment: void*, source: u8*, mod
 extern fn syntax_next(session: void*): void*;
 extern fn syntax_destroy(session: void*): void;
 extern fn syntax_get_error(session: void*): u8*;
-extern fn syntax_session_rule_count(session: SyntaxSession*): usize;
-extern fn syntax_session_rule(session: SyntaxSession*, index: usize): SyntaxRuleView*;
-extern fn syntax_session_rule_pending(session: SyntaxSession*, index: usize): bool;
 extern fn syntax_session_rule_format(session: SyntaxSession*, index: usize, output: FormatResult*): bool;
 extern fn syntax_session_token_count(session: SyntaxSession*): usize;
 extern fn syntax_session_token(session: SyntaxSession*, index: usize): SyntaxNode*;
@@ -30,14 +28,6 @@ extern fn compiler_node_world(node: void*): void*;
 extern fn puts(text: u8*): i32;
 extern fn syntax_baseline_install(world: void*, environment: void*, source: u8*, foundation: bool, diagnostic: SyntaxVersionDiagnostic*): bool;
 extern fn syntax_version_diagnostic_dispose(diagnostic: SyntaxVersionDiagnostic*): void;
-
-fn session_view_rule(session: SyntaxSession*, name: u8*): usize {
-    for (var i: usize = 0; i < syntax_session_rule_count(session); ++i) {
-        if strcmp(syntax_session_rule(session, i).name, name) == 0 { return i; }
-    }
-    utility_check(false, "session rule exists");
-    return 0;
-}
 
 fn session_view_read(session: SyntaxSession*): void {
     loop {

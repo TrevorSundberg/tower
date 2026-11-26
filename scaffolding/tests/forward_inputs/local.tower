@@ -1,0 +1,2 @@
+import foundation;
+fn bad(): i32 { return later; var later: i32 = 1; }
