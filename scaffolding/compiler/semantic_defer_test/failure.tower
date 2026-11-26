@@ -1,0 +1,11 @@
+import output;
+
+// The transport returns the span from the real compiler or interpreter.
+// The two payloads are the accumulated guest output and the diagnostic text.
+extern fn defer_error_offset(fixture: u8*, fast: bool): i32;
+
+fn defer_failure(fixture: u8*, message: u8*, offset: i32, fast: bool): bool {
+    return defer_error_offset(fixture, fast) == offset
+        && defer_read_output(0, null, 0) == 0
+        && defer_output_text(1, message);
+}

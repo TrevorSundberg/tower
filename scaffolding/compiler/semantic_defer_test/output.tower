@@ -1,0 +1,29 @@
+import library.testing;
+import ..tests.utility_checks;
+
+// Query the byte count with a null destination. The guest owns the copy.
+extern fn defer_read_output(slot: usize, destination: u8*, capacity: usize): usize;
+
+fn defer_output_equals(slot: usize, wanted: u8*, size: usize): bool {
+    var actual = alloc(u8, size);
+    defer free(actual);
+    return defer_read_output(slot, actual, size) == size && utility_equal(actual, wanted, size);
+}
+
+fn defer_output_text(slot: usize, text: u8*): bool {
+    var size: usize = 0;
+    while text[size] != 0 { size++; }
+    return defer_output_equals(slot, text, size);
+}
+
+fn check_defer_outputs(runs: usize): void {
+    // Slot zero holds the expected fixture bytes. Remaining slots are in execution order.
+    var size = defer_read_output(0, null, 0);
+    assert(size != 0, "empty defer output oracle");
+    var wanted = alloc(u8, size);
+    defer free(wanted);
+    assert(defer_read_output(0, wanted, size) == size);
+    for (var run: usize = 1; run <= runs; run++) {
+        assert(defer_output_equals(run, wanted, size), "defer output bytes");
+    }
+}
