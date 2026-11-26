@@ -12,6 +12,20 @@ test() { shared_arenas(SharedArenaCase.Grow); }
 test() { shared_arenas(SharedArenaCase.Cancel); }
 test() { shared_arenas(SharedArenaCase.Deny); }
 
+var ArenaValuesPerJob: usize = 2048;
+
+// Runs on the owning worker and checks its first slice after every allocation.
+fn arena_grow_values(job: ArenaJob*): bool {
+    for (var i: usize = 1; i < ArenaValuesPerJob; i++) {
+        var value = bits(ArenaValue*, work_arena_allocate(&job.arena, sizeof(ArenaValue), alignof(ArenaValue)));
+        if value == null { return false; }
+        *value = init(ArenaValue) {index: i, owner: job.ordinal, first: 17, last: 29};
+        job.last = value;
+        if job.first.index != 0 || job.first.owner != job.ordinal || job.first.last != 29 { return false; }
+    }
+    return true;
+}
+
 // The coordinator owns the lane and the pointer sampled at the barrier.
 struct ArenaParticipant {
     job: ArenaJob;
@@ -40,6 +54,7 @@ fn shared_arenas(mode: SharedArenaCase): void {
     assert(work_pool_open(&pool, count) && pool.threaded && pool.count == count, "Open four native worker slots");
     for (var i: usize = 0; i < count; i++) {
         var job = &workers[i].job;
+        job.grow = arena_grow_values;
         job.ordinal = i + 1;
         job.entered = entered;
         job.release = release;
