@@ -46,6 +46,7 @@ function scheduleCompilerBuild() {
   if (!project?.compilerProject) return;
   const snapshot = JSON.stringify(project.files);
   if (snapshot === compilerBuildSnapshot) return;
+  compilerBuildSnapshot = snapshot;
   retainedCompilerObjects = undefined;
   cancelCompilerBuild('Compiler source changed');
   if (!$('auto-rebuild-compiler').checked) return;
@@ -405,8 +406,8 @@ function publishDiagnostic(error, phase) {
   }
 }
 function updateTestControls() {
-  $('test-suffix').disabled = !project || project.compilerProject;
-  $('run-tests').disabled = !editor || !project || project.compilerProject || !!editingModule || isExecuting();
+  $('test-suffix').disabled = !project;
+  $('run-tests').disabled = !editor || !project || !!editingModule || isExecuting();
 }
 function showTestLocation(answer) {
   const file = project.files.find(file => file.path === answer.errorFile);
@@ -449,7 +450,10 @@ function updateComparison() {
   cancelState();
 }
 function execute(testMode = false) {
-  if (project?.compilerProject) { rebuildCompiler(); return; }
+  if (project?.compilerProject) {
+    if (!testMode) { rebuildCompiler(); return; }
+    if (compilerBuildTimer || compilerBuildWorker) cancelCompilerBuild('Compiler build cancelled');
+  }
   stopExecution(undefined,true); runners = {};
   executedRevision = documentRevision; executionError = null;
   setExecutionStatus('Updating…');
@@ -935,6 +939,7 @@ $('test-suffix').oninput = () => {
 };
 $('execute').onclick = () => { diagnosticDelay.reveal(); execute(); };
 $('cancel-execution').onclick = () => {
+  if (compilerBuildTimer) cancelCompilerBuild('Compiler build cancelled');
   executedRevision = documentRevision;
   if (busy) {
     ++generation; queued = null;

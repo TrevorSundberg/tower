@@ -87,18 +87,30 @@ fn compiler_project_tree(project: CompilerProjectFiles*, directory: u8*): bool {
     }
     return true;
 }
+fn compiler_project_test_source(path: u8*): bool {
+    return compiler_project_prefix(path, "tests/") && compiler_project_suffix(path, ".tower");
+}
+
+fn compiler_project_inventory(project: CompilerProjectFiles*, repository: u8*, inventory_name: u8*,
+    accepts: function(bool, u8*)): bool {
+    var inventory: ByteBuffer = default; var modules: vector(u8*) = default; var path: ByteBuffer = default;
+    defer bytes_dispose(&path); defer bytes_dispose(&inventory); defer vector_dispose(&modules);
+    if !package_inventory_read(repository, inventory_name, &inventory, &modules, accepts) {
+        puts("Invalid compiler project inventory:"); puts(inventory_name); return false;
+    }
+    foreach(var name in &modules) {
+        if !tool_join(&path, project.source.data, name) || !compiler_project_read_source(project, name, path.data) {
+            puts("Cannot package compiler project source:"); puts(name); return false;
+        }
+    }
+    return true;
+}
+
 fn compiler_project_sources(project: CompilerProjectFiles*, repository: u8*): bool {
     if !tool_join(&project.source, repository, "scaffolding") || !compiler_project_tree(project, "compiler")
         || !compiler_project_tree(project, "host") || !compiler_project_tree(project, "backend") { return false; }
-    var inventory: ByteBuffer = default; var modules: vector(u8*) = default; var path: ByteBuffer = default;
-    defer bytes_dispose(&path); defer bytes_dispose(&inventory); defer vector_dispose(&modules);
-    if !builtin_modules_read(repository, "scaffolding/builtin_modules.txt", &inventory, &modules) {
-        puts("Invalid builtin module inventory"); return false;
-    }
-    foreach(var name in &modules) {
-        if !tool_join(&path, project.source.data, name) || !compiler_project_read_source(project, name, path.data) { return false; }
-    }
-    return true;
+    return compiler_project_inventory(project, repository, "scaffolding/builtin_modules.txt", builtin_module_namespace)
+        && compiler_project_inventory(project, repository, "scaffolding/compiler_project_test_sources.txt", compiler_project_test_source);
 }
 
 fn compiler_project_unit_source(name: u8*): u8* {
