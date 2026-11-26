@@ -77,16 +77,40 @@ endforeach()
 
 # Same session provider with the existing single-owner allocation-denial seam.
 get_property(response_runtime GLOBAL PROPERTY TOWER_RUNTIME_INSTRUMENTED_OBJECT)
-set(response_input "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_response_tests.tower")
-file(GENERATE OUTPUT "${response_input}" CONTENT
-  "import tower;\nimport compiler.units.backend_core;\nimport backend.file_posix;\nimport tower_backend_native_targets;\nimport backend.target_once_linux;\nimport backend.linker_wasi_wasm;\nimport tests.backend_response_native;\n")
-tower_runtime_object(tower-backend-response "${response_input}" "${triple}")
-add_custom_command(OUTPUT "${tower-backend-response_OBJECT}" APPEND
+set(response_platform "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_response_platform.tower")
+file(GENERATE OUTPUT "${response_platform}" CONTENT
+  "import tower;\nimport backend.file_posix;\nimport tower_backend_native_targets;\nimport backend.target_once_linux;\nimport backend.linker_wasi_wasm;\nimport tests.backend_clock_native;\n")
+tower_runtime_object(tower-response-platform "${response_platform}" "${triple}")
+set(response_platform_output "${tower-response-platform_OBJECT}")
+if(TOWER_SANITIZER)
+  set(response_platform_output "${tower-response-platform_PRIMARY_OUTPUT}")
+endif()
+add_custom_command(OUTPUT "${response_platform_output}" APPEND
   DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/tower_backend_native_targets.tower")
-add_executable(tower-backend-response-tests ${test_sources} ${source_backend_objects}
-  "${tower-backend-response_OBJECT}" "${response_runtime}")
+set(response_objects ${test_sources} ${source_backend_objects} "${tower-response-platform_OBJECT}")
+tower_runtime_object(tower-backend-response "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/backend_response_native.tower" "${triple}")
+add_executable(tower-backend-response-tests ${response_objects} "${tower-backend-response_OBJECT}" "${response_runtime}")
 set_target_properties(tower-backend-response-tests PROPERTIES LINKER_LANGUAGE CXX)
 target_link_libraries(tower-backend-response-tests PRIVATE ${source_libraries} ${source_backend_libraries})
 target_link_options(tower-backend-response-tests PRIVATE -Wl,--export-dynamic-symbol=backend_register_targets)
 add_test(NAME tower-backend-response COMMAND tower-backend-response-tests)
 set_tests_properties(tower-backend-response PROPERTIES TIMEOUT 30 LABELS "native;backend;focused;storage")
+
+if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND triple MATCHES "^x86_64-.*linux.*gnu")
+  # The guest compiles session.tower itself. Supply the native compiler services,
+  # platform bindings and allocator used by the standalone executable.
+  tower_guest_runtime(native-test "${triple}" posix ON UNINSTRUMENTED)
+  tower_guest_runtime(host-library "${triple}" posix OFF UNINSTRUMENTED)
+  tower_selected_test_count("${triple}")
+  get_property(response_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+  add_library(tower-response-services SHARED ${response_objects} "${response_runtime}")
+  set_target_properties(tower-response-services PROPERTIES LINKER_LANGUAGE CXX)
+  target_link_libraries(tower-response-services PRIVATE tower-compiler-work-serial ${source_libraries} ${source_backend_libraries})
+  target_link_options(tower-response-services PRIVATE "LINKER:-z,defs")
+  add_dependencies(tower-backend-response-tests tower-response-services tower-selected-test-count tower-guest-native-test)
+  # Default owner discovery also collects nine float_bits and five work_budget cases.
+  tower_native_test_selections(backend-response backend_response_checks "16 tests" "2 tests"
+    --test-native-runtime "${response_guest}" --link "$<TARGET_FILE:tower-response-services>"
+    --link "$<TARGET_FILE:LLVM>" --link "-Wl,-rpath,$<TARGET_FILE_DIR:tower-response-services>"
+    --link "-Wl,-rpath,$<TARGET_FILE_DIR:LLVM>")
+endif()

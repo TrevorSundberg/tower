@@ -1,6 +1,5 @@
 import tower;
 import backend_response_checks;
-import backend_clock_native;
 import utility_checks;
 
 extern fn tower_test_buffer_count(): usize;
