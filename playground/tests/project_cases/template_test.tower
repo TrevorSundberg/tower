@@ -1,0 +1,25 @@
+import session;
+import backend.text;
+
+test() {
+    project_add("main.tower", "semantic/main.tower");
+    project_add("bad.tower", "semantic/bad.tower");
+    project_run();
+    check_diagnostic("bad.tower", 32);
+    var error = project_field("error");
+    defer free(error);
+    assert(backend_contains(error, "Expected i32"), "Imported declaration diagnostic");
+
+    project_clear();
+    project_add("main.tower", "template/main.tower");
+    project_add("lib.tower", "template/lib.tower");
+    project_run();
+    check_output("answer.expected");
+
+    project_clear();
+    project_add("main.tower", "template/main.tower");
+    project_add("lib.tower", "template/broken.tower");
+    project_run();
+    check_diagnostic("lib.tower", 57);
+    check_fixture("error", "template/error.expected");
+}

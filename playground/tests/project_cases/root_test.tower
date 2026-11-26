@@ -1,0 +1,10 @@
+import session;
+
+test() {
+    project_add_library();
+    project_add("units/main.tower", "root/units/main.tower");
+    project_add("lib/value.tower", "root/lib/value.tower");
+    project_run_entry("units/main.tower", ".");
+    check_output("answer.expected");
+    check_fixture("dependencies", "root/dependencies.expected");
+}
