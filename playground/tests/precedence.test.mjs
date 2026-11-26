@@ -2,86 +2,77 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {loadTower, runToEnd} from './compiler-fixtures.mjs';
+
 const tower = await loadTower(await readFile(new URL('../../build/browser-wasi/tower.wasm', import.meta.url)),
   undefined, await readFile(new URL('../../scaffolding/foundation.tower', import.meta.url), 'utf8'));
-const numericGrammar = 'import bedrock;\n' + await readFile(new URL('fixtures/numeric_token.tower', import.meta.url), 'utf8');
-const grammar = direction => numericGrammar + `parse E = Number | '(' $value:E ')';
-parse E |= $left:E '-' $right:E @ 10 ${direction};
-parse E |= $left:E '+' $right:E @ 10 ${direction};
-parse E |= $left:E '*' $right:E @ 20 left;
-parse Statement = $value:E ';';`;
-function evaluate(nodes, source, index = 0) {
-  const children = nodes.map((node, i) => ({...node, index:i})).filter(node => node.parent === index);
-  const role = name => children.find(node => node.role === name);
-  const left = role('left'), right = role('right');
-  if (left && right) {
-    const a = evaluate(nodes, source, left.index), b = evaluate(nodes, source, right.index);
-    const op = source.slice(left.end, right.start).trim();
-    return op === '+' ? a + b : op === '-' ? a - b : a * b;
-  }
-  const child = role('value') || children.find(node => !['(',')',';'].includes(node.label));
-  if (child) return evaluate(nodes, source, child.index);
-  return Number(source.slice(nodes[index].start, nodes[index].end));
-}
-function parsed(source) {
+tower.configureModules({entry:'.tower/tests/precedence_inputs/input.tower'});
+const fixture = name => readFile(new URL(`../../scaffolding/tests/precedence_inputs/${name}.tower`, import.meta.url), 'utf8');
+
+function parse(source) {
   const handle = tower.create(source);
   try {
     const result = runToEnd(tower, handle);
-    return {...result, formatted:result.end.status === 'done' ? tower.format(handle) : null};
+    return {...result, formatted:result.end.status === 'done' ? tower.format(handle).source : null};
   } finally { tower.destroy(handle); }
 }
-function values(result, source) {
+
+// Read roles and original byte spans from the live parser's statement events.
+function captures(result, source) {
   assert.equal(result.end.status, 'done', result.end.error);
-  return result.events.filter(event => event.status === 'statement').map(event => evaluate(event.nodes, source));
+  return result.events.filter(event => event.status === 'statement').map(({nodes}) =>
+    nodes.filter(node => ['value', 'left', 'right'].includes(node.role)).map(node =>
+      node.role + '=' + source.slice(node.start, node.end).replace(/\s+/g, '')).join(' '));
 }
-test('numeric levels and directional aliases preserve left and right associativity', () => {
-  for (const [direction, expected] of [['left',4],['L>R',4],['right',6],['R<L',6]]) {
-    const source = grammar(direction) + '8-3-1; 2+3*4; (2+3)*4;';
-    const result = parsed(source);
-    assert.deepEqual(values(result, source), [expected,14,20]);
-    assert.match(result.formatted.source, /@ 10 (left|right)/);
-    const roundtrip = parsed(result.formatted.source);
-    assert.deepEqual(values(roundtrip, result.formatted.source), [expected,14,20]);
-    assert.equal(roundtrip.formatted.source, result.formatted.source);
+const subtraction = {
+  left: 'value=8-3-1 left=8-3 left=8 right=3 right=1',
+  right: 'value=8-3-1 left=8 right=3-1 left=3 right=1',
+};
+function trees(direction) {
+  return [subtraction[direction], 'value=2+3*4 left=2 right=3*4 left=3 right=4',
+    'value=(2+3)*4 left=(2+3) value=2+3 left=2 right=3 right=4'];
+}
+
+test('formatted annotations retain their direction and captured trees on reparse', async () => {
+  for (const direction of ['left', 'right']) {
+    for (const name of [direction, direction + '_alias']) {
+      const source = await fixture(name);
+      const result = parse(source);
+      assert.deepEqual(captures(result, source), trees(direction));
+      assert.ok(result.formatted.includes('@ 10 ' + direction));
+      const roundtrip = parse(result.formatted);
+      assert.deepEqual(captures(roundtrip, result.formatted), trees(direction));
+      assert.equal(roundtrip.formatted, result.formatted);
+    }
   }
 });
-test('ordinary chained rules remain an equivalent way to express precedence', () => {
-  const source = numericGrammar + `parse Atom = Number | '(' $value:E ')';
-parse Product = Atom | $left:Product '*' $right:Atom;
-parse E = Product | $left:E '+' $right:Product | $left:E '-' $right:Product;
-parse Statement = $value:E ';'; 8-3-1; 2+3*4; (2+3)*4;`;
-  assert.deepEqual(values(parsed(source), source), [4,14,20]);
+
+test('the linked parser reports conflicting grammars and invalid precedence', async () => {
+  for (const [name, diagnostic] of [
+    ['nonassoc_chain', /Unexpected '-'/],
+    ['shift_reduce', /shift\/reduce/], ['mixed_shift_reduce', /shift\/reduce/],
+    ['reduce_reduce', /reduce\/reduce/],
+    ['zero_level', /precedence must be positive/], ['overflowing_level', /precedence exceeds u32/],
+  ]) {
+    const {end} = parse(await fixture(name));
+    assert.equal(end.status, 'error', name);
+    assert.match(end.error, diagnostic, name);
+  }
 });
-test('nonassociative operators reject unparenthesized chains', () => {
-  assert.equal(parsed(grammar('nonassoc') + '8-3-1;').end.status, 'error');
-  const source = grammar('nonassoc') + '(8-3)-1; 8-(3-1);';
-  assert.deepEqual(values(parsed(source), source), [4,6]);
-});
-test('precedence never silently resolves unannotated or reduce/reduce ambiguities', () => {
-  for (const source of [
-    "parse E = Number | E '+' E; parse Statement = E ';';",
-    "parse E = Number; parse E |= E '+' E @ 10 left; parse E |= E '*' E; parse Statement = E ';';",
-  ]) assert.match(parsed(numericGrammar + source).end.error, /shift\/reduce/);
-  assert.match(parsed(numericGrammar + "parse A = Number @ 10 left; parse B = Number @ 20 right; parse E = A | B; parse Statement = E ';';").end.error, /reduce\/reduce/);
-  for (const number of ['0','4294967296']) assert.match(parsed(numericGrammar + `parse E = Number @ ${number} left;`).end.error, /precedence/);
-});
-test('editing metadata invalidates cached tables and restores old grouping correctly', () => {
-  const handle = tower.create(grammar('left') + '8-3-1;');
+
+test('editing metadata on one parser invalidates and reuses cached tables', async () => {
+  const left = await fixture('left'), right = await fixture('right');
+  const handle = tower.create(left);
   try {
-    for (const [direction, expected] of [['left',4],['right',6],['left',4]]) {
-      const source = grammar(direction) + '8-3-1;';
+    for (const [source, direction] of [[left, 'left'], [right, 'right'], [left, 'left']]) {
       tower.reset(handle, source);
-      assert.deepEqual(values(runToEnd(tower, handle), source), [expected]);
+      assert.deepEqual(captures(runToEnd(tower, handle), source), trees(direction));
     }
     assert.ok(tower.inspect(handle).grammarCacheHits > 0);
   } finally { tower.destroy(handle); }
 });
 
-test('annotated captures and replacements compose with the Tower expression grammar', () => {
-  const source = `import tower;
-parse TowerExpression |= 'twice' $value:TowerExpression @ 140 right => replace { $value + $value };
-print(twice 3 * 4 + 1);`;
-  const handle = tower.compile(source);
+test('annotated replacement output reaches the execution host', async () => {
+  const handle = tower.compile(await fixture('replacement'));
   try {
     const result = tower.execute(handle, 100000);
     assert.equal(result.status, 'done', result.error);

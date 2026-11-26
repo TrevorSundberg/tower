@@ -1,0 +1,7 @@
+import bedrock;
+// A custom grammar needs its own numeric token; the Bedrock seed has none.
+[number] token Number = /[0-9]+/;
+parse A = Number @ 10 left;
+parse B = Number @ 20 right;
+parse E = A | B;
+parse Statement = E ';';

@@ -1,0 +1,9 @@
+import bedrock;
+[number] token Number = /[0-9]+/;
+
+// Bind each parsed expression to a name the native test can inspect.
+parse Statement = ';';
+parse TowerExpression = Number;
+parse CoreOperand = TowerExpression;
+parse CoreValue = CoreOperand;
+parse CoreDeclare = 'var' $name:Identifier '=' $value:CoreValue ';';

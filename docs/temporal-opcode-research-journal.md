@@ -107098,3 +107098,46 @@ provider hashes, raw process streams, statuses, timings and the relocated kit.
 The manager owns publication. These results qualify the frozen native integration
 with its fixture repair. They do not establish a portable release or a repair
 of the separate owner race.
+
+### 2026-11-26 — Parser precedence through adjacent tests
+
+Host 5 migrated the source-level grouping checks in `bfd99644` with the
+59-file Linux x64 development pin at `5a134705`. The browser reference was
+the manifest-verified serial reactor `5ecf1b63` built from `9ab581c8`.
+The [assertion inventory](test-inventory.md#parser-precedence) identifies each
+original check, its current runner and the existing lower-level LR coverage.
+The historical JS generated Bedrock statements with an arbitrary rule named E.
+The shared positive files bind the same expressions using compiler-recognized
+node names so the native interpreter observes the parser's grouping directly.
+
+Four discovered blocks passed at jobs 1 and 4 with empty stdout. Both CTest
+registrations ran against the pin. Changing only the expected right result from
+6 to 4 exited 1 at `lr_runtime_test.tower:13:5` at both widths. All six
+malformed files exited 1 with the expected diagnostic at both widths.
+The untouched browser suite passed 6/6. Its arithmetic evaluator and six
+case oracles also passed on the shared files. Native and reactor canonical text
+matched byte-for-byte for all four spellings on both the historical and new
+inputs. Substituting the four formatted files passed native discovery again.
+The retained browser suite passed 4/4. One handle returned 4, 6, 4 for successive
+subtractions with 1, 3, 7 hits. A separate observed run recorded 6, 4, 0 table
+builds across those edits, ending with 11 cached grammars.
+
+Five fresh processes per command used warm files, alternating order, GNU time,
+Node 24.22.3, Ryzen 9 5900XT cores 0,2,4,6 and quota 3071999/100000. Median
+wall seconds / user+system seconds / peak RSS KiB were 0.50/0.69/160464 for
+the historical Node suite, 0.52/0.71/169592 for its oracle on the shared
+files, and 0.52/0.70/169124 for the retained suite. Native discovery took
+0.57/0.56/160036 at one job and 0.55/0.69/169528 at four. These commands
+include startup and perform different work. No timing bracket throttled.
+Memcheck found zero errors or lost bytes at one job and 151054 reachable bytes
+at exit. DRD completed four-job discovery with zero reported errors.
+Helgrind aborted inside its client-request handler. Both tools warned about
+debug mapping on the pin. Tower source-level UBSan and instrumented browser
+coverage remain open.
+
+Assignment `9130a863-8689-484f-8c76-1c92e546821b` carries the historical
+inputs, shared inputs, raw trees, formatter bytes, diagnostics, per-process
+measurements, failed attempts and bundle. Rebasing on `4b2685e5` picked up the
+independent template-test correction and journal entry. Source checks showed
+identical precedence, compiler and pin inputs. Both native registrations and
+the browser suite passed again.

@@ -167,6 +167,12 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
+    add_test(NAME tower-parser-precedence-${workers}
+      COMMAND $<TARGET_FILE:towerc> --test
+        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr_runtime.tower"
+        --test-details --jobs ${workers})
+    set_tests_properties(tower-parser-precedence-${workers} PROPERTIES
+      FAIL_REGULAR_EXPRESSION "0 tests selected")
     add_test(NAME tower-work-resume-owner-${workers}
       COMMAND $<TARGET_FILE:towerc> --test
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/library/work_graph.tower" --test-details --jobs ${workers})

@@ -1,0 +1,10 @@
+import bindings;
+parse TowerExpression = Number | '(' $value:TowerExpression ')';
+parse TowerExpression |= $left:TowerExpression '-' $right:TowerExpression @ 10 R<L;
+parse TowerExpression |= $left:TowerExpression '+' $right:TowerExpression @ 10 R<L;
+parse TowerExpression |= $left:TowerExpression '*' $right:TowerExpression @ 20 left;
+parse Statement = CoreDeclare;
+
+var subtraction = 8-3-1;
+var product = 2+3*4;
+var grouped = (2+3)*4;
