@@ -1,4 +1,4 @@
-import session;
+import vm_test;
 import backend.text;
 
 // Both edits change a single loop-bound digit. Preserve the original no-op

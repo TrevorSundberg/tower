@@ -122516,3 +122516,64 @@ successful retries, instrumented object manifests, raw commands, output,
 exit statuses and measurements. The repository offers no UBSan profile.
 The original shared checkout had an unfinished rebase. An isolated local
 `main` at the assigned parent holds the implementation for manager review.
+
+### Execution predicates in the shared Tower test module on host 4
+
+Assignment `80e605d9-07e0-48cd-ac08-be71c644fa2f` started with public
+`c01c60a5` and the verified host 1 bundle from `1a58cbf3` through
+`9aa7cbcf`. The worker checked the archive and all six named members against
+the delivered manifest. The archive supplied the certified TAP trees, raw
+subject traces and Node observer. A shared clone tried to fetch unrelated
+promisor objects and failed. An isolated local main using the existing object
+store checked out the qualified commit directly. Public `be7c84f9` later
+included that commit and had identical execution suite and host files.
+
+At `932ff7bb` the 15 declarations import `vm_test.tower`. This one support
+module contains the foreign declarations, fixture transport helpers and
+shared verdicts, including both alternatives for a malformed-tree error.
+The host takes an optional support filename with the existing `session.tower`
+default. The selection still supplies the entry and one support file. Only
+the selected entry declares a test. The equal-length import preserves every
+declaration's line and byte offset. The seven independent guest fixtures,
+their titles, the Node registration lines and the subject callbacks retain
+their qualified contents or positions.
+
+Node 24.22.3 ran the full execution module on the two SHA-256-verified Pages
+images listed in the input manifest. Both baseline and candidate reproduced
+all 16 TAP results, the 15 distinct one-body selections and all 227 ordered
+subject records byte for byte on each image (TAP comparisons omit durations).
+Removing the certified 12-call edit span reproduced all 215 original records.
+All 47 compilations and 51 execution results retain their source, fuel,
+output and diagnostics. A CoreLoad-only selection also reached one body on
+the portable image. The unchanged module-resolution client selected all 14
+bodies and passed all 14 cases on each image with the default support file.
+
+Two disposable mutations kept the predicate inside its imported module.
+CoreIf alone expected one step, and CoreLoad alone expected an absent capture
+name. On each image only the intended child and its aggregating parent
+failed. All six siblings passed, all selections and subject records matched,
+and restoring the helper bytes returned each full run to 16/16. The
+diagnostics identified `execution.test.mjs:88:13` and the live assertion in
+`vm_test.tower` at byte 2414 or 2520 respectively. The packet retains the
+actual guest errors and locations, failure TAP, stacks, exact mutations,
+restorations, sources and per-process commands.
+
+The table gives means of four observer-free whole-module runs after one
+warm-up per revision, affinity and image. Baseline/candidate order alternated
+within each cell. Processes ran one at a time on a Ryzen 7 5800H, cpuset
+0–15, quota 1536000/100000. CPUs 2–5 span two physical cores with SMT.
+The shared subject's worker capacity was four and its assertion host's was
+one. Values are elapsed/user/system seconds and process peak RSS in KiB.
+
+| Logical CPUs | Image | Qualified | Shared test module |
+| --- | --- | --- | --- |
+| 2 | Portable | 2.435 / 2.165 / 0.260 / 169573 | 2.442 / 2.188 / 0.245 / 170119 |
+| 2 | Shared | 3.335 / 2.860 / 0.467 / 273913 | 3.328 / 2.853 / 0.470 / 271195 |
+| 2–5 | Portable | 1.935 / 2.360 / 0.225 / 168297 | 1.925 / 2.347 / 0.222 / 167319 |
+| 2–5 | Shared | 2.565 / 3.275 / 0.385 / 269780 | 2.555 / 3.258 / 0.385 / 270472 |
+
+Every timed TAP matched the certified tree. No timed run had a major page
+fault, filesystem input block or cgroup throttling increment. These release
+images provide ordinary Wasm execution coverage under Node. They supply no
+sanitizer instrumentation or per-test allocation ledger. The change touches
+test placement and selection inputs and reuses both released binaries.
