@@ -108690,3 +108690,43 @@ in the JS harness and introduces no compiler, worker or allocator code.
 The full Jenkins pipeline and publication are pending manager review.
 Host 1 packet `4ade3a78-7004-4d4b-8cb2-701bd0ee41e6` retains the original
 console, build and selection logs, timing samples, packet bytes and replay outputs.
+
+### 2026-11-26. Jenkins 61 browser screencast teardown
+
+At `3ca5e7cccfd6a382c56880bbe5ea806eed199dc3` the Jenkins Node suite
+passed 509 tests and skipped two. Playwright passed 243, skipped two and
+failed the desktop numeric edit on a CDP frame acknowledgement to a closed
+target. The fixture detached immediately after stopping the screencast. It
+kept its frame listener installed and discarded each acknowledgement promise.
+Only the JPEG writes were awaited, after detach.
+
+On host 1 the unmodified four edit/recompile cases passed at one and two
+Playwright workers. A browser-only timing control held the first real frame
+acknowledgement until 100 ms after the stop reply. The old fixture detached
+first, then Chromium rejected the delayed send with the Jenkins error. The
+console alone does not identify the exact order of the last frame and detach
+on Jenkins.
+
+The fixture now removes the listener, stops capture and drains every admitted
+ACK and write before detaching. The drain also runs if probe setup or the
+browser action fails. With the same delayed ACK the repaired test sent it
+before detach and passed. Sending an invalid session ID on the first ACK
+failed the repaired test with Chromium's original invalid-parameters error.
+
+The local server used Pages commit `516deee1`. All 110 manifest asset hashes
+matched, and the UI sources, index and stylesheet matched the assigned base.
+Node 24.22.3, Playwright 1.65.1 and Chromium 159.0.8154.6 ran on the dual Xeon
+Gold 6244 with 15.36 CPUs of quota. Each invocation held the host timing lock,
+used CPUs 0,2,4,6 and ran the four cases with a fresh runner and warm files.
+Two one-worker baseline runs took 23.26/23.56 s wall and 19.53/19.61 s CPU.
+The fix took 22.61/23.23 s wall and 19.00/19.36 s CPU. Across these four
+runs peak process RSS ranged from 346,896 to 405,444 KiB. The two-worker
+baseline took 15.37/14.41 s wall and 17.75/16.48 s CPU. The final fixture
+took 14.26/15.10 s wall and 16.28/17.30 s CPU, with peak process RSS of
+431,692/321,828 KiB (baseline 407,632/404,548 KiB). All cases passed
+on both viewports, including the expected guest output and scroll/geometry
+checks. Raw timings, final compositor images, geometry samples, negative
+controls and local failure traces are in host 1 packet
+`7f020327-2a90-4250-83e8-798ead7e1e5a`. These measure the browser test
+harness. The patch changes no Tower runtime, allocator or native thread code.
+The full Jenkins rerun and publication remain with the manager.
