@@ -1,15 +1,12 @@
 import { after, test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { isDeepStrictEqual } from 'node:util';
 import { files, loadTower, loadLLVM, executeWasm } from './compiler-fixtures.mjs';
-import { fixtureSource, guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
+import { guestString, requireStatus, runSelectedTest } from './compiler_test_host.mjs';
 import { originalDiagnostic } from '../src/foundation-source.mjs';
 const read = p => readFile(new URL('../../' + p, import.meta.url));
 const grammar = (await read('scaffolding/foundation.tower')).toString();
 const bytes = await read('build/browser-wasi/tower.wasm');
-const tower = await loadTower(bytes, undefined, grammar);
-const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, grammar);
 const linkedOutput = '33\ntrue\ntrue\n42\n42\n18446744073709551615\n0\ntrue\n5\n42\n';
 let nativeWasm;
 try { nativeWasm = await read('build/linking/native-compiled.wasm'); } catch (error) { if (error.code !== 'ENOENT') throw error; }
@@ -34,10 +31,8 @@ const cases = [
   ['raw field offsets', 'field_offsets'],
 ];
 
-// The assertion interpreter sees counted guest outputs and the host objects
-// returned by the real formatter and LLVM compiler. The companion owns the oracle.
-let sample, assertionHost;
-after(() => assertionHost?.close());
+// Callbacks borrow the observations only while the selected Tower test runs.
+let sample;
 const encoder = new TextEncoder();
 const imports = {
   raw_bytes(context, file, stream, length) {
@@ -53,31 +48,45 @@ const imports = {
     sample.streams.delete(key);
     return address;
   },
-  raw_round_trip_equal(context, name) {
-    const key = guestString(context, name);
-    return Object.hasOwn(sample.formatted, key) && Object.hasOwn(sample.round, key)
-      && isDeepStrictEqual(sample.formatted[key], sample.round[key]);
-  },
   raw_ir_contains: (context, text) => sample.ir.includes(guestString(context, text)),
 };
-async function checkOutputs(stem, path, outputs, formatted, round, ir) {
-  assertionHost ??= await loadTower(bytes, undefined, grammar, undefined, undefined, {imports});
+async function checkOutputs(stem, path, {outputs, formatted, round, ir}) {
   const entry = '.tower/' + path + stem;
+  const companion = entry + '_test.tower';
+  const [expected, testSource, reader] = await Promise.all([
+    read('scaffolding/' + path + stem + '.expected'),
+    read('scaffolding/' + path + stem + '_test.tower'),
+    read('scaffolding/' + directory + 'browser_results.tower'),
+  ]);
+  const assertionFiles = [...subjectProject.files, {path:companion, text:testSource.toString()},
+    {path:'.tower/' + directory + 'results.tower', text:reader.toString()}];
   const streams = new Map(Object.entries(outputs).map(([engine, output]) =>
     [stem + '.tower/' + engine, encoder.encode(output)]));
-  streams.set(stem + '.expected/file', await read('scaffolding/' + path + stem + '.expected'));
-  sample = {formatted, round, ir, streams};
+  streams.set(stem + '.expected/file', expected);
+  for (const [name, value] of [['formatted', formatted], ['reparsed', round]]) {
+    assert.equal(typeof value.source, 'string');
+    assert.ok(Array.isArray(value.types));
+    streams.set(name + '/source', encoder.encode(value.source));
+    streams.set(name + '/types', encoder.encode(JSON.stringify(value.types)));
+  }
+  sample = {ir, streams};
   try {
-    runSelectedTest(assertionHost, entry + '_test.tower', undefined, {files:assertionFiles});
-    assert.equal(streams.size, 0, 'The selected Tower test must consume the oracle and all three outputs');
+    // Select only this companion's inline test. Its owner has already executed.
+    // Comparing the storage wrapper's full Foundation needs 34 execution slices.
+    runSelectedTest(tower, companion, 40, {files:assertionFiles, suffix:'_browser_test.tower'});
+    assert.equal(streams.size, 0, 'The selected Tower test must consume every observation');
   } finally { sample = undefined; }
 }
-const reader = '.tower/' + directory + 'results.tower';
-const browserReader = fixtureSource('.tower/' + directory + 'browser_results.tower');
-const assertionFiles = files.filter(({path}) => path.startsWith('.tower/' + directory)
-  || path.startsWith('.tower/library/') || path.startsWith('.tower/examples/memory')
-  || path === '.tower/tests/storage.tower' || path === '.tower/backend/text.tower')
-  .map(file => file.path === reader ? {...file, text:browserReader} : file);
+// The ordinary project also serves the foreign-host registrations below.
+const subjectFiles = files.filter(({path}) => path.startsWith('.tower/library/')
+  || ['.tower/tests/storage.tower', '.tower/tests/floating_foreign.tower',
+    '.tower/tests/narrow_foreign.tower', '.tower/backend/text.tower'].includes(path));
+
+const subjectProject = {entry:'input.tower', files:subjectFiles};
+const tower = await loadTower(bytes, undefined, grammar, undefined, undefined, {imports});
+after(() => tower.close());
+tower.configureModules(subjectProject);
+const llvm = await loadLLVM(await read('build/browser-wasi-llvm/tower-llvm.wasm'), undefined, grammar);
 
 function executeFixture(handle) {
   let result, output = '';
@@ -90,14 +99,7 @@ function executeFixture(handle) {
   }
   return {...result, output};
 }
-for (const [name, stem, path = directory] of cases) test('raw memory: ' + name, async t => {
-  const entry = '.tower/' + path + stem + '.tower';
-  const source = fixtureSource(entry);
-  // The storage wrapper has imports relative to its own directory.
-  if (stem === 'storage_imports') {
-    tower.configureModules({entry});
-    t.after(() => tower.configureModules({entry:'input.tower'}));
-  }
+async function observeSource(source) {
   const handle = tower.compile(source);
   try {
     const graph = executeFixture(handle);
@@ -118,10 +120,19 @@ for (const [name, stem, path = directory] of cases) test('raw memory: ' + name, 
     requireStatus(compiled, 'compiled');
     const wasm = originalDiagnostic(await executeWasm(compiled), formatted.spans, formatted.sourceMap);
     requireStatus(wasm, 'done');
-    await checkOutputs(stem, path, {Graph:graph.output, Fast:fast.output, LLVM:wasm.output},
-      formatted, round, compiled.before);
+    return {outputs:{Graph:graph.output, Fast:fast.output, LLVM:wasm.output}, formatted, round, ir:compiled.before};
   } finally { tower.destroyExecution(handle); }
-});
+}
+
+async function runCase(stem, path = directory) {
+  const entry = '.tower/' + path + stem + '.tower';
+  try {
+    tower.configureModules({entry});
+    const source = (await read('scaffolding/' + path + stem + '.tower')).toString();
+    await checkOutputs(stem, path, await observeSource(source));
+  } finally { tower.configureModules(subjectProject); }
+}
+for (const [name, stem, path] of cases) test('raw memory: ' + name, () => runCase(stem, path));
 
 test('raw pointer printing exposes addresses without embedding display metadata', async () => {
   const source = 'import foundation; var value: i32 = 1; var p: i32* = &value; print(p);';
