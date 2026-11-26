@@ -1,0 +1,31 @@
+import observations;
+import backend.text;
+import library.vector;
+
+extern fn scanner_formatted(): u8*;
+
+fn use_declarations(declarations: u8*, statements: u8*): void {
+    var program: vector(u8) = default;
+    defer vector_dispose(&program);
+    assert(backend_text(&program, declarations));
+    assert(backend_text(&program, statements));
+    accept(program.data, ScannerEntry.Source);
+}
+
+test() {
+    var declarations = source_file("contextual_digits.tower");
+    defer free(declarations);
+    use_declarations(declarations, "special 12;print(42);");
+    accept(declarations, ScannerEntry.Source);
+    var formatted = scanner_formatted();
+    defer free(formatted);
+    var wanted = source_file("contextual_digits.expected");
+    defer free(wanted);
+    assert(backend_equal(formatted, wanted), "Formatted contextual token declarations");
+    use_declarations(formatted, "special 12;");
+
+    var division = source_file("division.tower");
+    defer free(division);
+    accept(division, ScannerEntry.Source);
+    assert(!scanner_parse("import foundation;\n@", ScannerEntry.Source), "Template fallback leaked into ordinary source");
+}

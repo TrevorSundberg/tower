@@ -1,0 +1,2 @@
+import foundation;
+token GrammarPattern = /#[^#]+#/ when expected as pattern;token Number = #[0-9]+#;print(42);

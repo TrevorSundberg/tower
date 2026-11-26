@@ -1,0 +1,30 @@
+import backend.text;
+import library.test_fixtures;
+
+enum ScannerEntry: i32 { Source, Bedrock }
+extern fn scanner_file(name: u8*, size: usize*): u8*;
+extern fn scanner_parse(source: u8*, entry: ScannerEntry): bool;
+extern fn scanner_error(): u8*;
+extern fn scanner_output(source: u8*, size: usize*): u8*;
+
+fn source_file(name: u8*): u8* {
+    return scanner_file(name, null);
+}
+
+fn accept(source: u8*, entry: ScannerEntry): void {
+    if !scanner_parse(source, entry) {
+        var error = scanner_error();
+        defer free(error);
+        assert(false, error);
+    }
+}
+
+fn check_output(source: u8*, golden: u8*): void {
+    var actual: FixtureBytes = default;
+    actual.data = scanner_output(source, &actual.length);
+    defer free(actual.data);
+    var wanted: FixtureBytes = default;
+    wanted.data = scanner_file(golden, &wanted.length);
+    defer free(wanted.data);
+    assert(fixture_equal(actual, wanted), golden);
+}

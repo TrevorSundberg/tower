@@ -1,0 +1,27 @@
+import observations;
+import backend.text;
+
+extern fn scanner_seed(): u8*;
+
+test() {
+    var seed = scanner_seed();
+    defer free(seed);
+    var program = source_file("hash_pattern.tower");
+    defer free(program);
+    accept(program, ScannerEntry.Source);
+    check_output(program, "hash_pattern.expected");
+
+    var hash = source_file("edited_hash.tower");
+    defer free(hash);
+    accept(hash, ScannerEntry.Bedrock);
+    var slash = source_file("edited_slash.tower");
+    defer free(slash);
+    assert(!scanner_parse(slash, ScannerEntry.Bedrock), "Hash override must reject slash-delimited patterns");
+
+    var fresh = source_file("fresh_slash.tower");
+    defer free(fresh);
+    accept(fresh, ScannerEntry.Bedrock);
+    var current = scanner_seed();
+    defer free(current);
+    assert(backend_equal(seed, current), "Bedrock seed changed");
+}

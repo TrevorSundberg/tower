@@ -1,0 +1,1 @@
+token GrammarPattern = /#[^#]+#/ when expected as pattern;token Extra = #x+#;
