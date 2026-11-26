@@ -106083,3 +106083,56 @@ The published Pages Git manifest at 3d57e291 contained 46 names and neither
 optional file. Browser selection and publication remain with their owners.
 Packet 61a32ef3-7cff-4be2-8edf-7e506b34675e contains the exact manifests,
 commands, statuses, streams, binary outputs, sources and measurements.
+
+### Integrated optional graph and SHA-256 installation, host 8, 2026-11-26
+
+The two worker tips `60950b8e` and `e7083756` are merge parents in the
+integration on public `a5c4b40f`. Both declared archives and all eight named
+members matched their supplied digests. The persistent user-facing target is
+`tower-language-tests`. One CTest registration function invokes the public
+driver. Both owners use the linked test runtime. Only the graph owner needs
+the allocator and its providers. The old SCC target, component, path and test
+names still work. The legacy graph oracle and the GNU SHA fixture remain
+independent controls.
+
+With the private source and native build directories renamed, the moved
+installation (staged under a prefix with spaces) ran owner and direct
+selection independently at jobs 1 and 4. Every graph run compared 8 fixed
+and 234 seeded inputs with all-pairs reachability and reported zero live
+buffers. Traced requests matched the original 242 raw inputs. Every SHA run
+reported seven located declarations. One corrupt abc digest failed at
+`sha256_test.tower:25:5`; the corrupt singleton failed at
+`graph_components_wrong.tower:7:5`. The release packager required
+`library/testing.tower` and verified all ordinary builtin sources. The
+normal and optional layouts produced byte-identical ordinary objects. All
+260 generated SHA input files matched the retained hashes and GNU sha256sum.
+
+The Playground compiler-project generator had a second recursive library
+scan. Its production source list now consumes the same inventory as the
+bootstrap packager and refuses an unowned flat builtin from a real unit's
+depfile. The shipped syntax-live checks already depend on the public
+`tests/utility_checks.tower`. Keeping its original definitions preserves its
+browser dependency closure and keeps the SHA companion's portable data
+helper private. The dedicated Tests example remains part of the Playground.
+
+The real project packager produced 582 source files, 25 units and three
+reactor recipes. The ordinary site build copied all 12 project products
+byte for byte and all 48 declared builtin modules. Both the recipe and the
+45 object depfiles omitted the six suite-private source names. The parser
+reactor was built with the local WASI SDK 34. For the backend recipes, the
+current Tower units were compiled and linked with retained release support
+archives and runtime data. This checks resource generation and distribution;
+it does not qualify a fresh LLVM build or a new deployed browser runtime.
+
+On Linux x86-64 (Ryzen 9 7900X, 23.04 CPU quota, LLVM 19.1.7) three
+alternating, serially measured requests gave combined median wall times of
+0.31/0.38 s for the graph owner at jobs 1/4 and 0.25/0.33 s for SHA.
+Peak RSS was 106628/118952 KiB and 99204/111632 KiB respectively.
+A bootstrap comparison in the backend-test profile rejected
+`work_arena_snapshot` in the instrumented ParserNodes unit. With the
+documented release profile, the full independent gate passed all 29
+object, optimized IR and symbol checks plus the explicit grammar controls
+in 157.46 s. The compiler-project source/depfile check passed ASan and
+TSan; one TSan initialization encountered the host personality restriction.
+Packet `d54e464a-f736-4436-a9da-dd5c0c2e460a` contains the installed
+products, raw streams, link recipes, provenance, pair outputs and timings.

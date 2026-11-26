@@ -1844,14 +1844,15 @@ existing focused 60-second timeout. `graph-components-wrong` intentionally flips
 one reflexive reachability expectation and must exit1 after complete cleanup;
 it is a manual rejecting oracle control, not an accepted graph result.
 
-The adjacent SCC suite runs the two declarations through the public driver on
-Linux GNU. In a native build configured with `TOWER_DRIVER_TESTS=ON`, build the
-suite and run its registered checks at one and four compiler jobs. Set `B` to
+The optional language suite runs the SCC and SHA-256 companions through the
+public driver on Linux GNU. In a native build configured with
+`TOWER_DRIVER_TESTS=ON`, build the suite and run both owners at one and four
+compiler jobs. Set `B` to
 the native build directory.
 
 ```sh
 cmake --build "$B" --target tower-language-tests
-ctest --test-dir "$B" -R '^tower-selected-graph-components-jobs-' -V
+ctest --test-dir "$B" -R '^tower-selected-(graph-components|sha256)-jobs-' -V
 ```
 
 For a checkout-independent installation, set `PREFIX` to a writable staging
@@ -1861,11 +1862,11 @@ CTest and the shared libraries required by its native compiler.
 ```sh
 cmake --install "$B" --component SccTests --prefix "$PREFIX"
 ctest --test-dir "$PREFIX/scc-suite" -V
-TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R 'jobs-1$' -V
+TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tower-selected-graph-components-jobs-1$' -V
 ```
 
-Each registration selects the owner with `towerc --test`. With the default
-file rule it executes 8 fixed and 234 seeded cases, reports both declaration
+Each registration selects its owner with `towerc --test`. With the default
+file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
 locations and checks zero live buffers in the linked allocator. The last
 command supplies the alternate suffix to the same driver. It deliberately
 fails on the singleton at `graph_components_wrong.tower:7:5` and returns
@@ -1873,9 +1874,8 @@ nonzero. Direct selection of the corresponding companion uses the same
 providers shown by `ctest -V`.
 
 The same installation registers `tower-selected-sha256-jobs-1` and
-`tower-selected-sha256-jobs-4` through the same linked test runtime. SHA-256 also runs through the portable
-interpreter when invoked directly. Its SHA-256
-companion and ordinary-named `library/test_data.tower` are private test inputs.
+`tower-selected-sha256-jobs-4` through the same linked test runtime. The seven SHA-256 declarations also
+support direct portable interpretation. The companion and ordinary-named `library/test_data.tower` are private test inputs.
 `tower-scc-suite`, the `SccTests` install component, the `scc-suite` directory
 and the SCC registration names remain supported.
 
