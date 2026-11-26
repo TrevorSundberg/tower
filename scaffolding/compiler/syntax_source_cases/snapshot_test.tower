@@ -1,0 +1,16 @@
+import ..library.testing;
+import .syntax_source;
+import snapshot;
+
+test() {
+    var source = location_snapshot();
+    assert(source is not null, "Create immutable source snapshot");
+    defer syntax_source_release(source);
+
+    var question_byte: usize = 20;
+    assert(source.text.data[question_byte] == *"?", "Diagnostic byte selects the question mark");
+    var line: usize = 0;
+    var column: usize = 0;
+    syntax_source_location(source, question_byte, &line, &column);
+    assert(line == 2 && column == 6, "The question mark is on line 2 at scalar column 6");
+}

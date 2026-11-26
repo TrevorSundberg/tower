@@ -313,7 +313,7 @@ nodes during inspection and restore the exact idle count after destruction.
 
 ### Parser diagnostics
 
-Each of the ten names in the Node diagnostics suite selects one Tower
+Each of the ten parser diagnostic names selects one Tower
 `test()` declaration from the [diagnostic cases](../scaffolding/compiler/format_diagnostic_cases).
 The parser reads the original bytes from ordinary files, including the six
 successful repairs. The two cache inputs are the original and edited source
@@ -332,3 +332,11 @@ Foundation paths. Each malformed fixture can also be passed directly to
 `--test` to observe its diagnostic. The operator repair in `plus_repair.tower`
 passes the parser and source formatter, then receives a void-operand error
 during type checking. The browser checks its original parse-only contract.
+
+The browser registration `cursor and diagnostic locations share filenames and
+Unicode scalar columns` also runs in `diagnostics.test.mjs`. Its Tower
+companion checks the actual CodeMirror cursor and diagnostic on the same
+document. To run the UTF-8 snapshot check with ordinary companion discovery,
+run `towerc --test scaffolding/compiler/syntax_source_cases/snapshot.tower
+--test-details --foundation scaffolding/foundation.tower` from the repository
+root. Both fixtures read the same Tower string. [Editor checks](../scaffolding/compiler/syntax_source_cases/editor_test.tower) · [Snapshot check](../scaffolding/compiler/syntax_source_cases/snapshot_test.tower)

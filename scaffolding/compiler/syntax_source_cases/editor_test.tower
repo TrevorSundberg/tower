@@ -1,0 +1,29 @@
+import ..library.testing;
+import ..backend.text;
+import editor;
+import input;
+
+fn expect_text(actual: u8*, wanted: u8*): void {
+    defer free(actual);
+    assert(backend_equal(actual, wanted), wanted);
+}
+
+fn expect_question_location(point: u8*): void {
+    expect_text(editor_text(point, "file"), "foundation.tower");
+    assert(editor_number(point, "line") == 2, "Question mark line");
+    assert(editor_number(point, "column") == 6, "Question mark scalar column");
+    expect_text(editor_text(point, "label"), "foundation.tower:2:6");
+}
+
+test() {
+    var question_utf16: usize = 17;
+    var question_byte: usize = 20;
+    observe_editor(location_fixture(), ".tower/foundation.tower", question_utf16, question_byte);
+    expect_question_location("cursor");
+    expect_question_location("diagnostic");
+    assert(editor_number("diagnostic", "from") == question_utf16, "Diagnostic starts at the UTF-16 cursor");
+    assert(editor_number("diagnostic", "to") == question_utf16 + 1, "Diagnostic spans the question mark");
+
+    expect_text(editor_display_label("helpers/math.tower", 3, 7), "helpers/math.tower:3:7");
+    expect_text(editor_default_label(3), "input.tower:3");
+}

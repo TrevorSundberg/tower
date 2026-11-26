@@ -1,0 +1,7 @@
+import tower;
+
+// The question mark follows a surrogate pair in CodeMirror and two multibyte
+// scalars in the compiler's UTF-8 snapshot.
+fn location_fixture(): u8* {
+    return '// heading\n"🚀é";?';
+}
