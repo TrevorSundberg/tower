@@ -55,12 +55,20 @@ if(TOWER_ALLOCATOR_TESTS)
           --link "${CMAKE_CURRENT_BINARY_DIR}/tower-compiler-bytes.o" --link "$<TARGET_FILE:tower-compiler-memory>")
       endif()
       set(source "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.tower")
+      set(selection --jobs 1 --test-details --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
+        --test-native-runtime "${test_runtime}" ${providers})
       add_dependencies(tower-${suite}-tests tower-guest-native-test tower-selected-test-count)
       add_test(NAME tower-${suite}-declaration COMMAND tower-selected-test-count
-        "1 test passed for ${source}" "${TOWER_BOOTSTRAP_COMPILER}" --test "${source}" --jobs 1 --test-details
-        --foundation "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/foundation.tower"
-        --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.expected"
-        --test-native-runtime "${test_runtime}" ${providers})
+        "1 test passed for ${source}" "${TOWER_BOOTSTRAP_COMPILER}" --test "${source}" ${selection}
+        --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}.expected")
+
+      # Explicit targets keep the measured workload out of default builds and CTest runs.
+      set(benchmark "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/${owner}_benchmark_test.tower")
+      add_custom_target(tower-${suite}-benchmark-declaration
+        COMMAND tower-selected-test-count "1 test passed for ${benchmark}"
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${benchmark}" ${selection}
+          --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/allocator_abi/benchmark.expected"
+        DEPENDS tower-${suite}-tests VERBATIM)
     endforeach()
   endif()
 

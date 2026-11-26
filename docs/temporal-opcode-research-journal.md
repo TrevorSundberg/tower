@@ -122290,3 +122290,169 @@ receipt. The assignment packet includes the audit, file/line crosswalk,
 scoped Git bundle, raw outputs, emitted native files, timings, hook-bearing
 IR and link maps. The scoped build was clean on its final Ninja invocation.
 Manager review and publication follow this local result.
+
+### Optional allocator benchmarks as Tower tests, 2026-11-26
+
+Assignment `5f55ad50-b240-427c-a895-4346066d7184`, host 8. At published
+`9760a3c595de924a5156836ebee4ce6f00063cbb` the F01/S003 and F02/S004
+sources and registrations matched audit freeze `d45d8b10`. The recipient
+verified the `5d481bf0` archive and all six named members against SHA-256,
+including the extracted bytes. The shared checkout's pull hit conflicts in
+unrelated parser work. Aborting restored `ff4c96f7` and its five local commits.
+The implementation used a separate local main rooted at the assigned revision.
+
+Implementation `a6637dababeadc26f494b579a4903ff4105d40ce` moved each complete
+benchmark function byte for byte. Paths below start at `scaffolding/tests/allocator_abi/`.
+
+| Workload | Measured helper | Allocation refusal | Live-count mismatch | Checksum mismatch | Optional Tower test |
+| --- | --- | --- | --- | --- | --- |
+| Allocator glue | `allocator_glue_test.tower:98` | line 108, exit 39 | line 121, exit 40 | line 124, exit 41 | `allocator_glue_benchmark.tower:3` |
+| Runtime ABI | `runtime_abi_test.tower:35` | line 45, exit 11 | — | line 62, exit 12 | `runtime_abi_benchmark.tower:3` |
+
+Both workloads allocate and free 64 buffers for 10,000 rounds and expect
+20,160,000. The glue helper also requires the instrumented live count to return
+to its starting value. Each default declaration still selects one ABI test.
+The optional launchers use the public pin's alternate companion suffix and a
+zero-byte stdout oracle. The first launcher prototype used the default suffix
+and failed looking for a missing benchmark owner. The delivered names and
+`--test-suffix _benchmark.tower` select the existing owner explicitly.
+Build targets `tower-allocator-benchmark-declaration` and
+`tower-runtime-abi-benchmark-declaration` run these selections on demand.
+The default Ninja graph contains zero benchmark selections.
+
+Native Release, Clang/LLVM 19.1.7, Linux x64, checked-in compiler SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+All 61 pin members verified. A fresh private Ninja cache built both baseline
+executables and their providers with one compiler job. The candidate reused
+that cache after the baseline jobs finished. The glue selection links
+`runtime-instrumented.o` and the allocator policy. Production links the UTF-8
+and bytes objects and the memory archive containing `runtime-allocate.o`.
+All four original CTest registrations passed before and after. The default and
+optional selections each reported exactly one test at one and four compiler
+jobs. The selected benchmarks and both manual benchmarks produced empty stdout.
+Non-test builds and the original default commands exercised their original routes.
+
+Both standalone ELFs matched the originals byte for byte after restoration.
+Glue accepted an arbitrary extra argument as well as `--benchmark`. Production
+inputs 1, 2, 7 and 8 returned 7, 3, 1 and 0. Both zero and invalid text aborted
+with exit 134 and the exact original stderr
+`Tower compiler internal trap at 23743: Division by zero` plus LF.
+Raising only the checksum expectation to 20,160,001 caused the original and
+migrated manual commands to return 41 and 12. Each selected benchmark rejected
+the same mutation, while both selected defaults still passed. A zero-size first
+request returned 39 and 11. Leaving one glue allocation per round live returned
+40. The corresponding selected tests rejected those controls. After restoring
+the sources, both manual and selected routes passed again.
+
+Host affinity 0–23, Ryzen 9 7900X, cgroup quota 23.04 CPUs. Timings ran one at
+a time on CPU 0 under the host timing lock, after warmup, with alternating
+baseline/candidate order. Each row gives the arithmetic means of six batches
+of 100 fresh processes per version. RSS is the batch process-family maximum
+as reported by GNU time, including the shell. Output and exits were checked
+for every batch. The workloads execute serially.
+
+| Mode | Wall seconds, original / moved | CPU seconds, original / moved | Peak KiB, original / moved |
+| --- | --- | --- | --- |
+| Glue default | 0.045 / 0.042 | 0.035 / 0.038 | 2957 / 2989 |
+| Glue benchmark | 0.628 / 0.628 | 0.622 / 0.623 | 2960 / 2929 |
+| Production default | 0.040 / 0.040 | 0.032 / 0.032 | 2939 / 2977 |
+| Production benchmark | 0.622 / 0.622 | 0.618 / 0.615 | 2917 / 3003 |
+
+Native ASan completed all four default/manual modes. TSan completed the same
+four after 31 host startup failures in `personality(ADDR_NO_RANDOMIZE)`,
+retained individually. These suites run serially. The repository has no UBSan
+build mode. WASI SDK 34 passed both default registrations and both manual
+benchmarks through the project host. The Windows x64 object retained its
+`mainCRTStartup` and runtime ABI exports. Windows execution, independent
+manager review and publication remain open.
+
+### Default discovery for optional allocator benchmarks
+
+Review of receipt `5f55ad50` compared both benchmark functions with the
+pre-migration source at `9760a3c5`. Their bodies match byte for byte.
+Stdout, stderr and exit status match across the baseline, migrated and
+independently rebuilt programs for eleven command lines, including both
+division traps. The optional declarations in that receipt required a custom
+filename suffix. Give each benchmark its own module and adjacent
+`_benchmark_test.tower` companion so the normal filename rule can find it.
+The two existing opt-in build targets select the companions directly.
+Ordinary ABI tests retain their separate owners, providers and output oracles.
+Qualification of the new paths requires both direct and owner discovery on
+the native installation. The earlier timing and sanitizer results cover the
+benchmark functions.
+
+### Qualifying ordinary benchmark companion discovery on host 8
+
+Follow-up `f6089bc3-fd7a-477f-8ecd-2ab5e249ad27`. The receiver verified
+receipt `5f55ad50`, its six named members and the remaining archive checksums,
+then verified the supplied bundle (SHA-256
+`89755a407907da22807dc2481b7264d09503c50fcda87ce81591e9f7c490ccb0`)
+against public prerequisite `9760a3c5`. A separate local main began at
+`120ff2b3`. The prior build caches had been cleaned. The original executables,
+all eight provider/runner files and raw comparisons remained available. All 61
+public pin entries verified, including compiler `7430bdb39f73b285`.
+
+On the supplied source, four of 16 selections failed. The first error on each
+benchmark owner was an empty-stdout mismatch, with 28 glue bytes or 36 runtime
+ABI bytes at both one and four jobs. Replaying without the stdout oracle showed
+two executed tests per owner. Importing the default companion for its helper
+brought its default test into the benchmark owner's selection. Direct
+companion selection already picked only the requested declaration.
+
+Repair `b52aa2476001a01b741e4febd52b956f09dad312` puts each measured helper
+beside its optional declaration and lets the standalone executable import both
+companions. The glue benchmark declares only the live-counter ABI it needs.
+Both helper bodies match their original bytes. The first standalone runtime
+build moved the numeric trap from 23743 to 23849. Simplifying the numeric
+branch and shortening the entry comment produced 23809. Keeping the original
+division code and placing the two CLI extern declarations after main restored
+the exact original executable, diagnostic and exit.
+
+| Suite in scaffolding/tests/allocator_abi/ | Reported default | Reported benchmark | Benchmark predicates |
+| --- | --- | --- | --- |
+| Glue | allocator_glue_test.tower:6:1 | allocator_glue_benchmark_test.tower:5:1 | allocation line 18, live count 31, checksum 34 |
+| Runtime | runtime_abi_test.tower:5:1 | runtime_abi_benchmark_test.tower:3:1 | allocation line 15, checksum 32 |
+
+All 16 owner/direct, default/benchmark, jobs 1/4 combinations selected exactly
+one test at the expected location on the default filename rule. Each benchmark
+had empty stdout. Each default matched its original text including LF.
+Changing only one checksum expectation to 20,160,001 at a time made all four
+routes for that benchmark fail at its assertion. The 12 other routes passed.
+The manual commands returned 41 and 12 respectively. Both restorations
+reproduced the original executables. The final 16 selections, both explicit
+CMake targets and the four original CTests passed. The 87-name default CTest
+list and the 62-command Ninja all plan contain zero benchmark selections.
+
+Eleven manual command lines were replayed on the retained original and
+rebuilt native executables. Their stdout, stderr and exit status matched all
+33 retained records, including both aborts at 23743. All eight rebuilt
+provider/runner files matched their retained hashes. The standalone ELF
+digests are `eabf6a14c0e11d4a9b2b0580276bdfe50c62ad482f6ce1902de9dcea34165537`
+and `7c29462a7c34443ef97b7746b2c0dbcecb0808fbaf5f41b164906b477da8c6ca`.
+
+The previous paired allocation timings apply to these identical executables.
+A separate comparison timed direct test discovery, compilation, linking,
+execution and count checking on the supplied and repaired source. Four
+alternating pairs followed one warmup per configuration, with one timed
+process family at a time under the host timing lock. Ryzen 9 7900X, Linux
+x64, LLVM 19.1.7, host affinity 0–23, quota 23.04 CPUs. One-job processes
+used CPU 0 and four-job processes used CPUs 0–3. The numbers are mean wall
+seconds, CPU seconds and peak RSS KiB for the command family including the
+compiler. Each output and location was checked.
+
+| Direct companion | Supplied | Repaired |
+| --- | --- | --- |
+| Glue, one job | 0.283 / 0.280 / 102962 | 0.193 / 0.188 / 95599 |
+| Glue, four jobs | 0.365 / 0.405 / 116748 | 0.232 / 0.247 / 106213 |
+| Runtime, one job | 0.270 / 0.263 / 101689 | 0.190 / 0.188 / 95432 |
+| Runtime, four jobs | 0.338 / 0.373 / 112621 | 0.230 / 0.240 / 105079 |
+
+Both re-emitted Wasm workload objects matched the corresponding parent objects.
+The Windows wrapper compiled with identical external symbols. Its disassembly
+differs in the offset operand of the conversion guard in mainCRTStartup, from
+0x5f14 to 0x5fb6. Windows execution remains untested. The Linux sanitizer
+input IR changed function/global order and source offsets. Fresh focused ASan
+and TSan builds therefore ran both standalone defaults and benchmarks. All
+eight successful runs matched the original streams. The TSan log also retains
+39 startup failures in the container's personality call. The repository
+supports no UBSan build mode. The manager owns publication.

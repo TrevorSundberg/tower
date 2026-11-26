@@ -1,5 +1,5 @@
 import tower;
-import allocator_abi.allocator_glue;
+import allocator_abi.allocator_glue_benchmark_test;
 import allocator_abi.allocator_glue_test;
 
 export fn main(argc: i32, argv: u8**): i32 {

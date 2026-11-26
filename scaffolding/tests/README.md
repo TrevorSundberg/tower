@@ -74,6 +74,24 @@ return ordered owner/companion handles borrowed from the root graph. Use a fresh
 root per discovery, release it after consuming those handles, and dispose the
 selection with `test_file_selection_dispose`.
 
+### Optional allocator ABI benchmarks
+
+With `TOWER_NATIVE=ON` and `TOWER_ALLOCATOR_TESTS=ON` on native GNU/Linux,
+run either benchmark as one selected Tower test in an ordinary uninstrumented build.
+
+```sh
+cmake --build "$B" --target tower-allocator-benchmark-declaration
+cmake --build "$B" --target tower-runtime-abi-benchmark-declaration
+```
+
+Each target selects its `_benchmark_test.tower` companion using the default
+filename rule. The matching `_benchmark.tower` module allows selection by
+owner as well. The test checks for empty guest stdout and uses the same
+allocation provider as its standalone executable.
+The original `tower-allocator-tests` accepts any extra argument for the
+benchmark. Use `tower-runtime-abi-tests --benchmark` for the production
+allocator. The default declarations and CTest registrations run the ABI checks.
+
 ### Testing the production source formatter
 
 On Linux x64, configure a native build with `TOWER_FORMAT_TESTS=ON` and the
