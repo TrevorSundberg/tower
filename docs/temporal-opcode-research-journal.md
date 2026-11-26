@@ -121126,3 +121126,12 @@ keeps those as separate subjects from the assertion compiler. Tower selects
 one declaration per original registration and drives the import calls in order.
 The host boundary supplies the actual import object, memory views, file data,
 stream logs and caught process-exit exception.
+
+The first portable trial diagnosed a direct call to a helper outside the
+companion's scope. Routing counted bytes through the imported ABI module
+recovered all four cases. Six language inputs at the assignment revision
+match the public Pages manifest. The seventh, `library/test_fixtures.tower`,
+has since gained a string-length helper and compilation-diagnostic support.
+The text comparison now walks the observed byte count, rejects an early
+terminator, and checks the expected terminator at that count. This lets the
+same tests use either fixture library and preserves embedded-NUL sensitivity.

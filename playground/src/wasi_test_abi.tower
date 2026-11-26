@@ -88,5 +88,8 @@ fn bytes_are(value: FixtureBytes, data: u8*, length: usize): bool {
 }
 
 fn text_is(value: FixtureBytes, text: u8*): bool {
-    return bytes_are(value, text, fixture_text_length(text));
+    for (var i: usize = 0; i < value.length; i++) {
+        if text[i] == 0 || text[i] != value.data[i] { return false; }
+    }
+    return text[value.length] == 0;
 }
