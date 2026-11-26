@@ -109214,6 +109214,141 @@ controls and local failure traces are in host 1 packet
 `7f020327-2a90-4250-83e8-798ead7e1e5a`. These measure the browser test
 harness. The patch changes no Tower runtime, allocator or native thread code.
 The full Jenkins rerun and publication remain with the manager.
+## Editable test resources on the aed77666 compiler project
+
+Host 8, assignment 546c9a4f-42f8-4687-9823-97fa007966c2. The two source
+inputs are public aed77666 and c7c4e04b. The supplied site bundle reproduced
+dd6651b1 locally. Its 631-file project has 12 companion paths. Rebuilding
+the c7c4e04b packager on the combined source reproduced the supplied tool's
+SHA-256. Its normal entry emitted 656 files, including 16 companions and
+zero library companions. All seven adjacent library suites in the checkout
+are outside that project. The project imports production library modules
+from the builtin inventory and ordinary object depfiles.
+
+With those current sources, the semantic types owner first reported
+tests/test_declaration_inputs/array_assertions in the aggregate companion.
+Direct selection first reported examples/inference in the inference companion.
+The four direct native discovery depfiles, checked against actual project
+membership, identify ten missing Tower texts. The optional inventory adds
+their exact paths and admits the examples directory through the existing
+portable name and Tower suffix checks. Compiler units, discovery and test
+sources have no edits in this change.
+
+The unmodified c7c4e04b Playground dispatched the selected source text,
+four-byte interpreter request, single ordinary entry and entire standard
+project to its execution worker in Chromium. The fixed drive has 666 files.
+The native release compiler ran the same input set with --test-details.
+Owner/direct counts matched in both hosts: semantic_types 31/4,
+semantic_values 31/4, semantic_aggregates 31/5 and bytecode_package 1/1.
+The 31 selections overlap. The full checkout additionally selected eight
+work_graph tests and two stack tests for the inference owner (41/4). The
+installed aggregate registration uses a different suffix. Its alternate
+selection includes array_assertions' inline test for a total of six.
+
+Withholding peers in the UI failed both inference selections at its import
+in semantic_types_test.tower. After restoration both passed. Withholding
+the aggregate companion's array_assertions import failed the inference
+owner at that path while its direct companion still passed four. Restoring
+the file returned the owner to 31. Ten one-file removals each identified
+the particular missing import. The ordinary semantic_types object was
+690,098 bytes with 92 ordered dependency records. The containing production
+unit was 884,255 bytes with 114. Each pair matched by bytes and by every
+dependency path and source hash. The latter also matched the producer's
+retained object SHA-256 and dependency order.
+
+On the Ryzen 9 7900X, the container allowed CPUs 0–23 with 23.04 CPU
+equivalents and a 63,577,260,032-byte memory limit. Warm matched runs used
+CPUs 0,2,4,6, one compiler worker, fresh LLVM instances and two samples per
+arm in forward and reverse order. The ordinary owner took 12.31/12.56 s
+before and 13.01/12.09 s after. Complete packaging took 7.87/7.76 s before
+and 7.80/7.80 s after, with peak RSS between 237,028 and 237,108 KiB.
+The optional texts added 4,511 serialized bytes. The source reader stayed
+serial. Per-process user/system time, memory capacity and RSS for each
+run are in the packet. LLVM 19 address/leak and thread instrumentation of
+the normal packager reproduced the project; the first TSan runtime start
+hit the host personality restriction. Tower source-level UBSan is unavailable.
+
+The producer's frozen replay regenerated all 114 site files. The normal
+current-source comparison used a native WASI parser build, freshly compiled
+Tower LLVM/cross units and retained backend support. Its 25 unit definitions
+and all ordered link arguments match the frozen recipe. The two locally
+repacked backend archive byte totals differ from the sealed site's totals.
+These runs qualify local resource packaging and the editable request.
+The frozen deployment, external harness registrations and public refs
+were outside publication scope.
+
+## Editable library test discovery on the 5e365adf source
+
+Host 8, assignment 766ec17b-97ee-44ef-9b89-d61222f10f9c. The retained
+6,950,784-byte input archive matched SHA-256
+32591e64093eac0831effc6515ee7f0dd82c4a70e337b5dbcb5dda758fa0939a.
+The normal packager reproduced the 666-file project from 5e365adf.
+The checkout oracle at that revision located the eight WorkGraph declarations
+at lines 13, 67, 100, 150, 185, 224, 245 and 273, and the two stack
+declarations at lines 5 and 15. Supplying the two source companions to the
+same editable drive ran 41 tests for semantic_types and four for the direct
+inference companion. Both pairs ran through the Chromium test button.
+
+The standard packager now reads the eight exact optional paths identified by
+the native compiler's test-discovery depfiles. The shared inventory reader
+admits flat library Tower files. Builtin inventory entries occupy the initial
+range of the append-only file table, so a test-only resource cannot satisfy an
+ordinary unit's builtin dependency check. The normal package has 674 rows.
+Its 666 existing texts, 25 units and three reactors' ordered link arguments
+match the input. The extra 28,816 serialized bytes include six companions and
+the existing gzip_test_data and test_data helpers. No permanent test text
+changed.
+
+The four-byte checkout interpreter and the editable request both completed the
+41 declarations in 136,643 steps and direct inference in 192 steps. Diagnostic
+copies printed the ten source locations in the checkout oracle's order, even
+with the editable file rows reversed after the entry. The generic owner and
+direct companion each kept one test and 61 steps. UTF-8 kept one test and
+95,188,364 steps for each selection. Withholding test_data identified its gzip
+and SHA-256 importers. Renaming stack_test to stack_spec yielded zero with
+the default suffix and two through the alternate suffix. The packager rejected
+a nested library, traversal, a different extension, a host path, an absent
+helper and a normal depfile naming the optional stack companion.
+
+Stack, WorkGraph, bytes, queue, gzip and SHA-256 passed on the actual portable
+provider set. Gzip selects the two bytes declarations before its three direct
+declarations. With their exact three additional source files mounted, the
+graph_components owner and direct companion each selected two and stopped at
+step 99 on the unregistered tower_test_buffer_count external. Both passed
+against the separate Linux native test runtime with its real instrumented
+provider. The editable inventory omits that suite and its exclusive resources.
+The WorkGraph companion alone imports the normal host memory implementation
+for its test. Its ordinary owner compiles with twelve inputs.
+
+These receipts use the WorkGraph companion from 6892489b and stack from
+fbfdabf8 on the requested 5e365adf tree. They qualify discovery on this
+source and test revision. Later scheduler suite migrations need their own
+checkout oracle.
+
+One edited assertion in each of the six companions failed at its own source.
+Restoring its original hash restored all direct tests, including the complete
+1,178,107,446-step gzip and 2,962,431,924-step SHA-256 browser runs. A stack
+or WorkGraph assertion also failed through semantic_types while direct
+inference still passed four. Restoring each returned the owner to 41.
+
+On the same Ryzen 9 7900X, CPUs 0–23 were permitted with a 23.04 CPU quota
+and 63,577,260,032-byte memory limit. Warm matched jobs ran one at a time on
+CPUs 0,2,4,6, with one compiler worker and a fresh process per request.
+Whole packaging took 7.86/7.78 s before and 7.79/7.73 s after. Candidate
+packaging peak RSS was 236,968/236,868 KiB. Ordinary WorkGraph, semantic_types
+and the compiler semantics unit emitted identical 166-, 690,098- and
+884,255-byte objects and identical ordered path/content hashes for 12, 92
+and 114 inputs. The compiler owner took 11.97/12.00 s before and
+12.06/12.04 s after. The containing unit took 14.37/14.38 s before and
+14.30/14.23 s after, with candidate peak RSS 786,888/782,220 KiB. The
+retained previous assignment has the same two compiler objects and inputs.
+The serial inventory read provides no worker scaling comparison.
+
+Address/leak and thread instrumentation of 351 packager functions reproduced
+the normal candidate. TSan's first runtime start hit the host personality
+restriction; its second completed. Tower source-level UBSan remains
+unavailable. Raw emissions, ordered input hashes, controls and resource
+measurements are in the host 8 evidence archive for this assignment.
 
 ### 2026-11-26. Raw memory positive cases on the released compiler
 
@@ -109532,3 +109667,41 @@ slice counters took 3.30 and 5.30 s wall, 6.67 and 8.73 s CPU, and 257,452
 and 301,840 KiB peak RSS. The candidate keeps the five Tower-selected lookups
 against the LLVM compiler's host string and compares canonical text, type
 tables and all output bytes using Tower's `fixture_equal`.
+### Editable inputs for the generic-call inference companion
+
+The combined compiler test tree at `5ed79b5b` contains
+`compiler/semantic_call_inference_test.tower`. Its seven assertions import
+five files in `tests/generic_call_inputs/`, plus `tests/generic_cast_inference.tower`
+and `tests/inferred_parallel_unit.tower`. All seven sources exist in the
+checkout. None occurred in the earlier 674-file project from receipt
+`766ec17b` or in the combined optional source inventory. The project packager
+recurses through compiler sources and reads external test fixtures from that
+inventory. The companion therefore lacked its inputs in the editable project.
+
+Added the seven imported paths to `compiler_project_test_sources.txt`. The
+two transitive library dependencies of the cast fixture, stack and vector,
+already occur in the project. Checked the inventory against the import
+declarations, actual source paths and the ordinary builtin module list.
+The earlier 41-test Playground result applies to the semantic-types owner
+on the prior package. The integrated generic-call companion needs its own
+seven-test run and a failed assertion followed by recovery on the real worker.
+
+### Editable work-budget discovery on the combined generic-call release
+
+Host 8 reconstructed 2da9f988 and its tree 7cf6fb6b from the five supplied
+source bundles. The 674-file predecessor lacked all seven generic-call test
+imports. On the manager tree the standard packager supplies them. Its
+editable Chromium test button runs the seven direct cases but selects 55 on
+the owner. The complete checkout on the same four-byte interpreter selects
+60. The native location oracle identifies the difference at
+library/work_budget_test.tower lines 6 through 10. Mounting that single file
+runs the five real reservation tests. Its imports already exist on the drive.
+
+Add this exact companion to the optional project inventory. The builtin
+inventory and ordinary compilation inputs retain their original roles.
+With their full fixtures the isolated graph, entity-stage ownership and
+syntax attribute runs encounter unregistered tower_test_buffer_count,
+compiler_buffer_allocation_size and syntax_kind_name respectively. The
+alternate ownership fixture defines its own native finalizer. The release
+evidence for assignment 053eeb38-345e-4fc9-94ec-7f57c51618ee records the
+repacked selections, ordinary object comparison and staged-site checks.
