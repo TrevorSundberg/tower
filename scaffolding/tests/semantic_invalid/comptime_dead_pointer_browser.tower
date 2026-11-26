@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("comptime_dead_pointer.tower");
+    defer free(error);
+    assert(stage_error_offset() == 149, "Unexpected source byte offset");
+    assert(backend_equal(error, "Strict evaluation access is outside live local storage"), error);
+}

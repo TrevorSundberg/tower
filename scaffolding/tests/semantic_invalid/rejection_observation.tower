@@ -1,0 +1,27 @@
+import library.testing;
+import backend.text;
+
+extern fn stage_text(field: u8*): u8*;
+extern fn stage_error_offset(): usize;
+extern fn stage_portable(): bool;
+extern fn stage_steps(): usize;
+extern fn stage_output_truncated(): bool;
+
+fn rejection_message(file: u8*): u8* {
+    var status = stage_text("status");
+    defer free(status);
+    assert(backend_equal(status, "error"), status);
+
+    var path = stage_text("errorFile");
+    defer free(path);
+    var directory: u8* = ".tower/tests/semantic_invalid/";
+    assert(backend_prefix(path, directory) && backend_equal(path + backend_length(directory), file), path);
+
+    if stage_portable() {
+        var output = stage_text("output");
+        defer free(output);
+        assert(!stage_output_truncated() && output[0] == 0 && stage_steps() == 0,
+            "Expected rejection before guest execution");
+    }
+    return stage_text("error");
+}

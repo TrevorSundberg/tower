@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("decltype_layout_cycle.tower");
+    defer free(error);
+    assert(stage_error_offset() == 14, "Unexpected source byte offset");
+    assert(backend_equal(error, "Recursive by-value layout: Recursive -> Recursive; use a pointer"), error);
+}

@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("aggregate_inferred_copy.tower");
+    defer free(error);
+    assert(stage_error_offset() == 103, "Unexpected source byte offset");
+    assert(backend_equal(error, "Expected Other, got Item; use an explicit conversion"), error);
+}

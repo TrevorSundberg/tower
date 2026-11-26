@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("comptime_output.tower");
+    defer free(error);
+    assert(stage_error_offset() == 67, "Unexpected source byte offset");
+    assert(backend_equal(error, "Compile-time output requires an explicit effect capability"), error);
+}

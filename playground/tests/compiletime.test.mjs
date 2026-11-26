@@ -143,60 +143,22 @@ for (const name of ['decltype', 'decltype_expressions', 'declaration_continuatio
  });
 }
 
-for (const [name, message] of [
- ['decltype_cycle', /initializer dependency cycle/],
- ['decltype_header_cycle', /initializer dependency cycle/],
- ['decltype_parameter_cycle', /initializer dependency cycle/],
- ['decltype_parameter_field_cycle', /initializer dependency cycle/],
- ['decltype_field_cycle', /initializer dependency cycle/],
- ['decltype_generic_header_cycle', /initializer dependency cycle/],
- ['decltype_layout_cycle', /Recursive by-value layout: Recursive -> Recursive/],
- ['decltype_type_field_cycle', /initializer dependency cycle/],
- ['decltype_aggregate_operator', /Binary operators require scalar or pointer operands/],
- ['aggregate_inferred_copy', /Expected Other, got Item; use an explicit conversion/],
- ['decltype_body_runtime', /Unknown local 'missing_body_value'/],
- ['decltype_body_comptime', /Unknown local 'missing_body_value'/],
- ['decltype_unknown', /Unknown local/],
- ['comptime_cycle', /Compile-time dependency cycle/],
- ['comptime_defer_cycle', /Compile-time dependency cycle/],
- ['comptime_return', /without returning a value/],
- ['comptime_output', /explicit effect capability/],
- ['comptime_uninitialized', /uninitialized local/],
- ['comptime_dead_pointer', /outside live local storage/],
- ['comptime_fuel', /fuel exhausted/],
- ['comptime_generic_selected', /Division by zero/],
- ['inference_alias_invalid', /Cannot infer type argument 'T'; pass explicit type arguments/],
- ['declaration_index_cycle', /initializer dependency cycle first -> second -> first/],
- ['declaration_index_type', /An index must be an integer/],
+import {checkStageRejection} from './stage_rejection_host.mjs';
+
+for (const name of [
+ 'decltype_cycle', 'decltype_header_cycle', 'decltype_parameter_cycle', 'decltype_parameter_field_cycle',
+ 'decltype_field_cycle', 'decltype_generic_header_cycle', 'decltype_layout_cycle', 'decltype_type_field_cycle',
+ 'decltype_aggregate_operator', 'aggregate_inferred_copy', 'decltype_body_runtime', 'decltype_body_comptime',
+ 'decltype_unknown', 'comptime_cycle', 'comptime_defer_cycle', 'comptime_return', 'comptime_output',
+ 'comptime_uninitialized', 'comptime_dead_pointer', 'comptime_fuel', 'comptime_generic_selected',
+ 'inference_alias_invalid', 'declaration_index_cycle', 'declaration_index_type',
 ]) {
- test(`${name} reports its stage dependency or execution error (portable)`, async () => {
-  const source = await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`, 'utf8');
-  for (const width of [4, 8]) {
-   const handle = tower.compile(source, {pointerBytes: width});
-   try {
-    const result = tower.execute(handle);
-    assert.equal(result.status, 'error');
-    assert.match(result.error, message);
-    if (name === 'decltype_body_runtime') {
-     assert.match(result.error, /Instantiated by wrapper[(]1[)]/);
-     assert.doesNotMatch(result.error, /Instantiated by invalid[(]1[)]/);
-    }
-   } finally { tower.destroyExecution(handle); }
-  }
- });
- test(`${name} reports its stage dependency or execution error (LLVM)`, async () => {
-  const source = await readFile(`scaffolding/tests/semantic_invalid/${name}.tower`, 'utf8');
-  const llvm = await llvmHost();
-  for (const width of [4, 8]) {
-   const compiled = llvm.compile(source, {target:width === 4 ? 'wasm32-unknown-unknown' : 'wasm64-unknown-unknown'});
-   assert.equal(compiled.status, 'error');
-   assert.match(compiled.error, message);
-   if (name === 'decltype_body_runtime') {
-    assert.match(compiled.error, /Instantiated by wrapper[(]1[)]/);
-    assert.doesNotMatch(compiled.error, /Instantiated by invalid[(]1[)]/);
-   }
-  }
- });
+ for (const backend of ['portable', 'LLVM']) {
+  test(`${name} reports its stage dependency or execution error (${backend})`, async () => {
+   const host = backend === 'portable' ? tower : await llvmHost();
+   await checkStageRejection(host, project, name, backend);
+  });
+ }
 }
 
 test('forward declaration queries resolve long annotated and inferred chains without recursive inference (portable)', async () => {

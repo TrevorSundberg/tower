@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("declaration_index_type.tower");
+    defer free(error);
+    assert(stage_error_offset() == 79, "Unexpected source byte offset");
+    assert(backend_equal(error, "An index must be an integer"), error);
+}

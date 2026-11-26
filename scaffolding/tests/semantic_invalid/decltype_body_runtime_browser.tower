@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("decltype_body_runtime.tower");
+    defer free(error);
+    assert(stage_error_offset() == 53, "Unexpected source byte offset");
+    assert(backend_equal(error, "Unknown local 'missing_body_value'\nInstantiated by invalid(value) at line 4, column 40.\nInstantiated by wrapper(1) at line 5, column 7."), error);
+}

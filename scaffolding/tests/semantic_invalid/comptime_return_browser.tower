@@ -1,0 +1,9 @@
+import rejection_observation;
+import backend.text;
+
+test() {
+    var error = rejection_message("comptime_return.tower");
+    defer free(error);
+    assert(stage_error_offset() == 14, "Unexpected source byte offset");
+    assert(backend_equal(error, "Function 'incomplete' can finish without returning a value"), error);
+}
