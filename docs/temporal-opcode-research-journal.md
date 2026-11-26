@@ -109308,3 +109308,134 @@ Each of the ten external names also ran alone against the base and candidate. An
 Raising the early EOF offset from 28 to 29 failed in session.tower at byte 1413. Changing the contextual case's expected keyword failed in contextual.tower at byte 156 with the live missing-then diagnostic citing input.tower:2:56. The single-fault runs passed the other nine names. The double-fault run passed eight, including both names after the contextual failure. All handles closed on these paths. Two further controls made an expected parser error succeed and required a zero length for an omitted length. They failed at session.tower bytes 1365 and 1462. Restoring the inputs and assertions reproduced the entire reference stream.
 
 Native owner and direct selection at one and four jobs returned the same inventory, two byte-identical declaration bodies in order, empty stdout and the original passing summaries. Moving the browser assertions out of the companion moved the native test locations from lines 131/136 to 10/15. Direct Memcheck at one job and DRD at four completed with zero reported errors. The frozen release provides no source-level sanitizer instrumentation. The shared test helper and release assets are unchanged. Assignment 93339038 carries the source bundle and raw evidence; the manager owns publication.
+
+### 2026-11-26. Raw memory assertion cost on the released portable reactor
+
+Host 7 assignment `8a7caec3-68cc-4875-a95b-39460db1292b` compares the
+original program table, reviewed migration `733217c5` and implementation
+`f0ff3925`. Merge `0ef446f5` retains the four reviewed commits and
+published `cd21d55c`. The initial pull tried to replay the four reviewed
+commits. Aborting that rebase and keeping both LF rules in the merge
+preserved the original commit identities. The three timing arms use the
+combined source inventory, Node 24.22.3 and the retained portable and LLVM
+reactors (`41bb9b11` and `15b4f33b`). The original harness was taken from
+the published parent. The historical full release TAP oracle on this host
+began at 09:45:04 UTC and ended at 09:53:26 UTC. Its 17 table registrations
+are top-level numbers 377–393. The packet also retains the 10:18:26–10:26:54
+combined release TAP and the earlier migration's accepted native evidence.
+
+In an instrumented 17-case run the reviewed harness spent 117 ms wall and
+149 ms process CPU opening its assertion VM. Installing it raised current
+RSS from 264,216,576 to 276,799,488 bytes. It spent 1,322/1,586 ms wall/CPU
+in 17 test compilations, 17/30 ms configuring their modules, and 30/52 ms
+stepping the selected programs. The 68 counted copies transferred 1,016 bytes
+in 2.4 ms wall. Host comparison of the Foundation and reflected types took
+2.5 ms. These are nested measurements with process-wide CPU and high-water
+RSS. They cannot be added to reconstruct peak memory. At the first field
+offset selection, opening the VM and compiling the test took 128 and 356 ms.
+A second selection on the **same live instance** took 89 ms to compile.
+
+The new harness destroys the Graph, Fast and Foundation-reparse handles
+before it opens the assertion handle on that reactor. The normal coordinator
+selects the original companion as an inline test under the browser suffix.
+Each selection reads the owner, companion, browser reader and raw oracle.
+The program's lexical entry and the assertion's entry are explicit.
+The callback sample exists only during synchronous test execution. The outer
+finally restores the ordinary project after success or failure. Tower compares
+both complete Foundation texts and both ordered type tables using the existing
+counted byte comparator. The LLVM IR substring requests still read the
+compiler's host string. All five query strings and their expectations live in
+Tower. Exact guest-output and target-width checks remain in their original
+companions.
+
+The first compact subject inventory omitted the foreign imports used below
+the positive table. The unfiltered file exposed the missing floating provider
+where the original expected an unbound callback. Restoring the entire compiler
+fixture project after every row passed this check but cost 3.91 s for the table.
+Supplying the ordinary project's actual foreign providers restored all 26
+registrations. The large storage companion used 34 bounded execution slices
+for the full Foundation and metadata comparison. The candidate allows 40.
+The final phase trace transferred 160,384 bytes through 136 calls in 4.4 ms.
+Its 17 compilations took 781/1,030 ms wall/CPU and stepping took 121/172 ms.
+On the live field-offset repeat, compile wall time fell from 358 ms on first
+use to 69 ms; the second complete row took 113 ms versus the reviewed 135 ms.
+
+Two instrumented controls used the same source, target and reactor.
+Reintroducing the owner during assertion discovery raised the total time for
+17 test compilations from 781 to 1,167 ms wall and from 1,030 to 1,455 ms
+CPU. The subjects had already run on all three backends. With that duplicate
+work removed, moving just the two equality checks back to JS reduced
+assertion execution from 121 to 30 ms wall and transfers from 160,384 to
+1,016 bytes. The full-text Tower checks remain in the candidate. The actual
+transfers took 4.4 ms across the group. The large storage wrapper accounts
+for 39,122 bytes of canonical text on each side of the comparison.
+
+Six fresh processes per arm and selection reused the same warmed release
+files. No other timed run shared their four assigned physical cores. The
+host was an AMD EPYC 7502 with CPU affinity 0–63 and a cgroup quota of
+3,071,999 µs per 100,000 µs. Named runs used CPUs 0–3. The full suite
+used the oracle's CPUs 0,2,4,6. Group and single selections were ordered as
+recorded by UTC start time in the packet. The final block repeated the
+preceding arm order. The following are independent medians of wall time,
+user plus system CPU, and process peak RSS.
+
+| Selection | Arm | Wall seconds | CPU seconds | Peak KiB |
+| --- | --- | ---: | ---: | ---: |
+| All 17 | Original JS table | 2.270 | 5.215 | 267,256 |
+| All 17 | Reviewed Tower companions | 3.930 | 7.285 | 297,070 |
+| All 17 | Shared reactor | 3.290 | 6.660 | 300,026 |
+| Field offsets | Original JS table | 1.180 | 2.010 | 235,880 |
+| Field offsets | Reviewed Tower companion | 1.685 | 2.750 | 245,408 |
+| Field offsets | Shared reactor | 1.555 | 2.585 | 232,820 |
+
+The shared reactor recovered 0.640 s of the 1.660 s table wall overhead and
+0.625 s of the 2.070 s CPU overhead. Median peak RSS for the group grew by
+2,956 KiB relative to the reviewed migration. Candidate peaks ranged from
+261,028 to 308,212 KiB. All 17 names were also run individually in all three
+arms. Their exact commands, timestamps, outputs and process measurements are
+in the raw evidence.
+
+Each of 170 output, metadata and product files matched both a fresh run of
+the original table and the retained original capture. This compares raw
+expected bytes, Graph/Fast/LLVM stdout, both Foundation texts, both ordered
+reflection tables, LLVM IR before optimization and the resulting ordinary
+optimized Wasm. Source input was verified separately against its own file.
+The Wasm guest used four-byte pointers. Field offsets, size and alignment
+printed 4/12/4 there and 4/16/8 under the 64-bit native interpreter.
+The 68 accepted native owner/direct runs at worker limits 1 and 4 used the
+same source, compiler and resources. Their raw receipts are in the packet.
+
+On one live reactor 18 independent failures covered the oracle, every output
+and metadata reader, the five IR queries, a throwing callback, a throwing
+subject, a malformed owner and on-disk oracle and companion edits. After
+each failure the ordinary relative-import sentinel compiled against its
+original sibling, the sample was absent, and outstanding handles numbered
+zero. An unrelated byte-alias case and the repaired or edited pointer case
+both ran again. In a separate process changing just the byte for 7 to 8
+exited 1 at the Tower Graph stdout assertion. Restoring it passed.
+
+The full unfiltered Node command on the frozen candidate ran from 11:28:50
+to 11:37:23 UTC. It passed 509 tests and returned both historical
+capability skips. All 511 TAP rows matched both timestamped oracles in order,
+number, name, nesting, status and skip reason. The observer verified 51 test
+modules, seven expected Wasm products, the released portable self-test and
+12 cross products. Wall time was 512.56 s, CPU 858.74 s and peak RSS
+2,734,416 KiB. The preceding combined release took 507.83 s, 853.42 s CPU
+and 2,732,272 KiB on the same affinity. Each full-suite number is one sample.
+
+Three additional full-table profiles per arm sampled RSS on both sides of
+each compiler API, including LLVM compilation and guest execution. In the
+reviewed harness all three process peaks first appeared in assertion
+compilation (295,280–299,928 KiB). The two lower shared-reactor peaks appeared
+in late assertion compilations (258,900 and 262,564 KiB). In the high run,
+the first storage fixture's LLVM compile raised the peak from 236,044 to
+300,540 KiB before its assertion was opened. The original peaks appeared
+in LLVM compilation or guest execution. Removing a reactor saved attributable
+startup and compile time. The process peak still depended on the subject
+compiler as well as the assertion workload. The release measurements do
+not resolve allocator internals.
+
+The local handoff retains the faster experiment and its source ancestry.
+The ordinary browser coordinator, release products and native owner inputs
+are unchanged. Validation used the retained release builds and their existing
+instrumentation. There was no new sanitizer build or published deployment.
