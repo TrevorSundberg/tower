@@ -107415,3 +107415,67 @@ hashes, conditional and generated registrations, and the initial configure
 failures. The full native, CI and browser suites were outside this inventory.
 The correction changes documentation only, so runtime performance and memory
 comparisons do not apply.
+
+### Borrowed foreach on the public companion-test compiler
+
+Host 5 migrated the seven `foreach.test.mjs` selectors from public main
+`4b2685e5` in test commit `4c5f8762`. The nominal cases and the shared worker
+now run as five declarations selected from `iteration_parallel_unit.tower`.
+The native registrations and browser Tests request both use the default
+companion rule. Ordinary fixture entries print the same observations through
+a callback. The browser keeps the execution, diagnostic, formatter and LLVM
+comparisons. The independently owned fixed-array and layout tests ran through
+their existing owner. The [assertion map](test-inventory.md#borrowed-foreach)
+names the cases and the retained selectors.
+
+The 59-file native pin verified, including compiler SHA-256
+`02bbc2824c3c2c9817b3ffe584013e3068a6df600048947495b77bed041243a7`.
+The immutable Pages manifest at `890bbf7f` identified portable source
+`863ac216` and LLVM source `0823b028`. The unversioned site returned a
+different manifest on this host. The runs used the pinned Pages blobs with
+verified hashes. Native jobs 1 and 4 and browser Tests each executed all five
+declarations and emitted the same 93 bytes. All seven prior selector names
+passed before and after migration. Fifty interpreter results and fifteen
+LLVM results had byte-identical guest streams across the two suites. Each
+of the eight diagnostic texts matched, including the fallthrough function
+name. A development fixture had changed that name and was corrected.
+
+Skipping just the borrowed write for vector element 2 left it at 2 instead
+of 4. At both job counts the test printed 28 bytes and exited 1 at
+`iteration_parallel_unit_test.tower:30:5`. Browser Tests reported the same
+stream and assertion at byte 872 for guest widths 4 and 8. The existing
+fixed-array companion passed on native and on portable Graph and Fast. The
+published LLVM reactor rejected its first raw-array loop at 9:5 in both
+optimization modes with “foreach requires a pointer to a nominal collection;
+use &collection”. Its five nominal source/Foundation comparisons remain active.
+
+Five cold-process, warm-filesystem samples per arm used four physical cores
+(0,2,4,6) of a Ryzen 9 5900XT, effective cpuset 0–31, CPU quota 3071999 µs
+per 100000 µs, Node 24.22.3 and serial test launches. Median wall seconds,
+user+system seconds and peak RSS KiB were 0.28/0.27/89872 at one native job
+and 0.32/0.36/99296 at four. Two runnable native threads appeared together
+in a separate four-job process sample. The seven original browser cases
+took 2.40/4.58/277444 and the migrated cases took 2.53/4.72/291628.
+The migrated guests add an output callback and module imports. The portable
+host reported 98269 vs 102613 total terminal steps on the comparable cases.
+On byte-identical migrated inputs the original and migrated browser checks
+took 2.52/4.73/285992 and 2.53/4.70/281860 across three samples each.
+The complete eight-selector browser run took 2.71/4.93/297372.
+
+Five focused CTest registrations passed with the published executable.
+Memcheck at one job recorded 540520 allocations, 563256482 cumulative
+allocated bytes, zero lost bytes and 151054 reachable bytes at exit. DRD
+at four jobs reported zero errors with ten suppressions. Memcheck first
+stopped at loader startup, then ran with matching glibc debug symbols.
+These dynamic checks used the packaged binary. Source-instrumented ASan,
+UBSan and TSan coverage of a compiler rebuild is outside this test migration.
+Packet `b537a955-65ca-4208-8379-41ab20bc419c` contains the raw streams,
+source maps, timings, reactor identities, wrong-write patch and local commits
+for manager review.
+
+On the combined checkout the borrowed foreach owner ran its five cases and the
+two stack and two queue tests imported through the ring-order fixture. At one
+and four workers the native driver reported all nine locations and retained
+the 93-byte output. The two new registered CTests passed. The browser
+discovery expectation now includes the four imported cases; the earlier
+eight-selector browser receipt used the published-base fixture tree.

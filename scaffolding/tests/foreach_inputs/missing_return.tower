@@ -1,0 +1,8 @@
+import tower;
+import library.vector;
+
+fn f(): i32 {
+    var values: vector(i32);
+    vector_init(&values);
+    foreach (var item in &values) { return item; }
+}

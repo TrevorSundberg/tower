@@ -167,6 +167,7 @@ if(TARGET towerc)
   set(output_cases generation-layout-frontier generic-cast-inference generic-pointer-alias type-return-dependencies
     type_numeric_composition nominal_wrapper_known numeric_wrapper_minimal numeric_wrapper_known token_text)
   foreach(workers IN ITEMS 1 4)
+    tower_companion_test(tower-borrowed-foreach tests/iteration_parallel_unit.tower ${workers})
     add_test(NAME tower-parser-precedence-${workers}
       COMMAND $<TARGET_FILE:towerc> --test
         "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/compiler/lr_runtime.tower"

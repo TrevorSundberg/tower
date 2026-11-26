@@ -1,0 +1,53 @@
+import tower;
+import ..library.vector;
+import print_value;
+
+struct Pair { a: i32; b: i32; }
+
+var values: vector(i32);
+var calls = 0;
+
+fn source(): vector(i32)* {
+    calls++;
+    return &values;
+}
+
+fn vector_values(emit: function(void, i32)): void {
+    vector_init(&values);
+    defer vector_dispose(&values);
+    foreach (var item in &values) { emit(99); }
+
+    vector_push(&values, 1);
+    vector_push(&values, 2);
+    vector_push(&values, 3);
+    calls = 0;
+    foreach (var item in source()) {
+        item += 10;
+        emit(item);
+    }
+    emit(calls);
+    emit(values.data[0]);
+
+    foreach (var &item in &values) { *item *= 2; }
+    foreach (var item in &values) { emit(item); }
+
+    var records: vector(Pair);
+    vector_init(&records);
+    defer vector_dispose(&records);
+    vector_reserve(&records, 2);
+    records.length = 2;
+    records.data[0] = {a: 20, b: 1};
+    records.data[1] = {a: 21, b: 1};
+    foreach (var &item in &records) {
+        item.a += item.b;
+        emit(item.a);
+    }
+
+    var pointers: vector(Pair*);
+    vector_init(&pointers);
+    defer vector_dispose(&pointers);
+    vector_push(&pointers, &records.data[0]);
+    foreach (var item in &pointers) { emit(item.a); }
+}
+
+vector_values(print_value);

@@ -1,0 +1,4 @@
+import tower;
+
+var value = 1;
+foreach (var item in &value) {}

@@ -1,0 +1,7 @@
+import tower;
+import library.vector;
+
+struct Box { value: i32; }
+var boxes: vector(Box);
+vector_init(&boxes);
+foreach (var item in &boxes) {}
