@@ -1,0 +1,13 @@
+import library.testing;
+import failure;
+
+test() {
+    assert(defer_failure("return_cleanup", "A deferred cleanup cannot return from its enclosing function", 49, false));
+    assert(defer_failure("break_cleanup", "CoreBreak requires an enclosing loop", 41, false));
+    assert(defer_failure("continue_cleanup", "CoreContinue requires an enclosing loop", 41, false));
+    assert(defer_failure("mixed_label", "defer cannot be combined with explicit function labels or jumps", 41, false));
+    assert(defer_failure("cleanup_jump", "defer cannot be combined with explicit function labels or jumps", 41, false));
+    assert(defer_failure("later_binding", "Unknown local 'later'", 53, false));
+    assert(defer_failure("missing_return", "Function 'f' can finish without returning a value", 26, false));
+    assert(defer_failure("nesting_limit", "defer expansion exceeds Foundation block nesting limit of 128", 0, false));
+}

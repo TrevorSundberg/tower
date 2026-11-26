@@ -1,0 +1,52 @@
+import library.testing;
+import .tests.defer_scopes as scopes;
+import .tests.defer_cases.foundation_identifier as keyword;
+
+test() {
+    scopes.trace = 0;
+    assert(scopes.early(true) == 5 && scopes.trace == 21, "snapshot return before reverse cleanup");
+    scopes.trace = 0;
+    assert(scopes.early(false) == 5 && scopes.trace == 321, "fallthrough cleanup");
+
+    scopes.trace = 0;
+    scopes.lexical();
+    assert(scopes.trace == 966, "cleanup captures the binding and reads its final value");
+    scopes.trace = 0;
+    assert(scopes.shadow_return() == 8 && scopes.trace == 1, "shadowed local");
+    scopes.trace = 0;
+    assert(scopes.shadow_global() == 7 && scopes.trace == 4, "shadowed global");
+    scopes.trace = 0;
+    assert(scopes.shadow_parameter(2) == 9 && scopes.trace == 2, "shadowed parameter");
+    scopes.trace = 0;
+    assert(scopes.shadow_record() == 7 && scopes.trace == 4, "shadowed record");
+    scopes.trace = 0;
+    assert(scopes.cloned_local(true) == 1 && scopes.cloned_local(false) == 2
+        && scopes.trace == 44, "cloned cleanup locals");
+}
+
+test() {
+    scopes.trace = 0;
+    scopes.loops();
+    assert(scopes.trace == 17829, "nested loop break and continue");
+    scopes.trace = 0;
+    scopes.conditional(true);
+    assert(scopes.trace == 321, "taken return");
+    scopes.trace = 0;
+    scopes.conditional(false);
+    assert(scopes.trace == 41, "untaken defer");
+    scopes.trace = 0;
+    scopes.own_loop();
+    assert(scopes.trace == 12, "cleanup can control its own loop");
+    scopes.trace = 0;
+    assert(scopes.recurse(3) == 6 && scopes.trace == 123, "recursive cleanup order");
+    assert(scopes.memory() == 42, "read return value before deferred free");
+    scopes.trace = 0;
+    assert(scopes.match_exit(0) == 3 && scopes.trace == 21, "first match arm");
+    scopes.trace = 0;
+    assert(scopes.match_exit(8) == 5 && scopes.trace == 41, "default match arm");
+    assert(scopes.`control value 0`() == 8, "synthetic return binding");
+}
+
+test() {
+    assert(keyword.`defer` == 42, "Foundation identifier");
+}

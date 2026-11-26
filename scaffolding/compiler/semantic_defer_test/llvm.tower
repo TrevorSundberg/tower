@@ -1,0 +1,6 @@
+import output;
+
+test() {
+    // Raw and optimized LLVM must both execute the same cleanup sequence.
+    check_defer_outputs(2);
+}
