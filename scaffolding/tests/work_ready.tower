@@ -1,74 +1,7 @@
 import tower;
-import .host.memory;
-import .library.work_graph;
+import work_ready_test;
 
-fn ready_check(ok: bool): void {
-    if !ok { trap("Ready selection order or ticket mismatch", 0); }
-}
-
-fn ready_yield_order(): void {
-    var graph: WorkGraph;
-    work_init(&graph, 3, 8);
-    defer work_dispose(&graph);
-    var order: usize[4];
-    order[0] = 1; order[1] = 3; order[2] = 4; order[3] = 2;
-    var count = sizeof(decltype(order)) / sizeof(usize);
-    for(var i: usize = 0; i < count; i++) {
-        var id = work_request(&graph, null, 1, convert(u64, i));
-        ready_check(work_seal(&graph, id) && work_demand(&graph, id));
-    }
-    var previous: WorkTicket;
-    ready_check(work_take_task(&graph, &previous, 2) && work_yield(&graph, &previous));
-    for(var i: usize = 0; i < count; i++) {
-        var current: WorkTicket;
-        ready_check(work_take(&graph, &current) && current.task == order[i]);
-        ready_check(!work_finish(&graph, &previous, true));
-        ready_check(work_finish(&graph, &current, true));
-    }
-    ready_check(!work_take_task(&graph, &previous, 2) && work_order_ready(&graph));
-    ready_check(work_reset(&graph, 4, 8));
-    var id = work_request(&graph, null, 1, 0);
-    ready_check(work_seal(&graph, id) && work_demand(&graph, id));
-    var current: WorkTicket;
-    ready_check(work_take_task(&graph, &current, id) && !work_finish(&graph, &previous, true));
-    work_cancel(&graph);
-    ready_check(!work_finish(&graph, &current, true) && !work_take_task(&graph, &previous, id));
-}
-
-fn ready_sorted_selection(count: usize): void {
-    var graph: WorkGraph;
-    work_init(&graph, 1, 8);
-    defer work_dispose(&graph);
-    var tickets = alloc(WorkTicket, count);
-    ready_check(tickets != null);
-    defer free(tickets);
-    for(var i: usize = 0; i < count; i++) {
-        var producer = work_request(&graph, null, 1, convert(u64, i));
-        var consumer = work_request(&graph, null, 2, convert(u64, i));
-        ready_check(work_depend(&graph, consumer, producer));
-        ready_check(work_seal(&graph, producer) && work_seal(&graph, consumer));
-        ready_check(work_demand(&graph, consumer));
-        ready_check(work_take_task(&graph, &tickets[i], producer));
-    }
-    for(var i = count; i != 0;) { ready_check(work_finish(&graph, &tickets[--i], true)); }
-    ready_check(work_order_ready(&graph));
-    // Sorted and subsequently compacted positions must both support direct
-    // selection without consuming unrelated jobs or reviving a yielded receipt.
-    for(var i = count; i != 0;) {
-        var id = i-- * 2;
-        var ticket: WorkTicket;
-        ready_check(work_take_task(&graph, &ticket, id) && ticket.task == id);
-        ready_check(work_yield(&graph, &ticket) && work_order_ready(&graph));
-        var next: WorkTicket;
-        ready_check(work_take_task(&graph, &next, id) && !work_finish(&graph, &ticket, true));
-        ready_check(work_finish(&graph, &next, true));
-    }
-    ready_check(work_order_ready(&graph));
-    var spare: WorkTicket = default;
-    ready_check(!work_take(&graph, &spare) && graph.running == 0 && work_ok(&graph));
-}
-
-export fn main(argc: i32, argv: u8**): i32 {
+fn main(argc: i32, argv: u8**): i32 {
     ready_yield_order();
     ready_sorted_selection(2);
     ready_sorted_selection(3);

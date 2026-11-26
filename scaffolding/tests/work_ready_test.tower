@@ -1,0 +1,70 @@
+import library.testing;
+import .host.memory;
+import .library.work_graph;
+
+fn ready_yield_order(): void {
+    var graph: WorkGraph;
+    work_init(&graph, 3, 8);
+    defer work_dispose(&graph);
+    var order: usize[4] = { 1, 3, 4, 2 };
+    var count = sizeof(decltype(order)) / sizeof(usize);
+    for(var i: usize = 0; i < count; i++) {
+        var id = work_request(&graph, null, 1, convert(u64, i));
+        assert(work_seal(&graph, id) && work_demand(&graph, id));
+    }
+    var previous: WorkTicket;
+    assert(work_take_task(&graph, &previous, 2) && work_yield(&graph, &previous));
+    foreach (var &expected_task in &order) {
+        var current: WorkTicket;
+        assert(work_take(&graph, &current) && current.task == *expected_task);
+        assert(!work_finish(&graph, &previous, true));
+        assert(work_finish(&graph, &current, true));
+    }
+    assert(!work_take_task(&graph, &previous, 2) && work_order_ready(&graph));
+    assert(work_reset(&graph, 4, 8));
+    var id = work_request(&graph, null, 1, 0);
+    assert(work_seal(&graph, id) && work_demand(&graph, id));
+    var current: WorkTicket;
+    assert(work_take_task(&graph, &current, id) && !work_finish(&graph, &previous, true));
+    work_cancel(&graph);
+    assert(!work_finish(&graph, &current, true) && !work_take_task(&graph, &previous, id));
+}
+
+fn ready_sorted_selection(count: usize): void {
+    var graph: WorkGraph;
+    work_init(&graph, 1, 8);
+    defer work_dispose(&graph);
+    var tickets = alloc(WorkTicket, count);
+    assert(tickets != null);
+    defer free(tickets);
+    for(var i: usize = 0; i < count; i++) {
+        var producer = work_request(&graph, null, 1, convert(u64, i));
+        var consumer = work_request(&graph, null, 2, convert(u64, i));
+        assert(work_depend(&graph, consumer, producer));
+        assert(work_seal(&graph, producer) && work_seal(&graph, consumer));
+        assert(work_demand(&graph, consumer));
+        assert(work_take_task(&graph, &tickets[i], producer));
+    }
+    for(var i = count; i != 0;) { assert(work_finish(&graph, &tickets[--i], true)); }
+    assert(work_order_ready(&graph));
+    // Sorted and subsequently compacted positions must both support direct
+    // selection without consuming unrelated jobs or reviving a yielded receipt.
+    for(var i = count; i != 0;) {
+        var id = i-- * 2;
+        var ticket: WorkTicket;
+        assert(work_take_task(&graph, &ticket, id) && ticket.task == id);
+        assert(work_yield(&graph, &ticket) && work_order_ready(&graph));
+        var next: WorkTicket;
+        assert(work_take_task(&graph, &next, id) && !work_finish(&graph, &ticket, true));
+        assert(work_finish(&graph, &next, true));
+    }
+    assert(work_order_ready(&graph));
+    var spare: WorkTicket = default;
+    assert(!work_take(&graph, &spare) && graph.running == 0 && work_ok(&graph));
+}
+
+test() { ready_yield_order(); }
+test() { ready_sorted_selection(2); }
+test() { ready_sorted_selection(3); }
+test() { ready_sorted_selection(33); }
+test() { ready_sorted_selection(513); }

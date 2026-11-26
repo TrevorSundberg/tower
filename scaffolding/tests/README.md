@@ -1243,8 +1243,15 @@ cmake --build "$TOWER_NATIVE_BUILD" --parallel 1 --target \
   tower-work-signal-observe-tests tower-entity-stage-concurrent-tests \
   tower-work-buffer-tests tower-work-buffer-shared-tests tower-work-buffer-faults-tests
 ctest --test-dir "$TOWER_NATIVE_BUILD" --output-on-failure \
-  -R '^tower-(work-(ready|budget|budget-shared|kernel-admission|buffer|buffer-shared|buffer-faults)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
+  -R '^tower-(work-ready-(tests|(owner|direct)-jobs-(1|4))|work-(budget|budget-shared|kernel-admission|buffer|buffer-shared|buffer-faults)-tests|tool-output-identity-tests|work-signal-observe-tests-(try|wait)|entity-stage-concurrent-tests)$'
 ```
+
+For the ready queue alone, build `tower-work-ready-tests` and run
+`ctest -R '^tower-work-ready-'` in the native build directory. The standalone
+prints one zero line. On native Linux x64 GNU, the ordinary build also runs
+the five ready tests through the native guest at compiler jobs 1 and 4.
+Selecting the owner adds eight graph and five budget tests. The address and
+thread sanitizer builds exercise the ready checks through the standalone.
 
 For the single-owner buffer refusal sequence, build `tower-work-buffer-faults-tests`
 and run `ctest -R '^tower-work-buffer-faults-'` in the native build directory.
