@@ -1317,6 +1317,15 @@ standalone payloads, header identity, stage publication/discard, denied growth
 and zero-owner cleanup. Its printed target sizes include `sizeof(EntityComponent)`.
 Rebuild its complete typed import closure after an Entity layout change.
 
+On Linux, `tower-entity-component-layout-tests` builds the exported main in
+`entity_component_layout_main.tower`. The Windows module body and the Linux
+entry both call the same fixture main, including its pooled and standalone
+allocation checks and target-size output. The adjacent
+`entity_component_layout_test.tower` selects the three original child-index,
+inline-component-index and stage-policy cases. Owner selection also runs the
+five work-budget tests. Run all five registrations with
+`ctest --test-dir "$TOWER_NATIVE_BUILD" -R "^tower-entity-component-layout-" -V`.
+
 The retained-buffer checks reserve replacement storage while the old allocation
 is still live, preserve owners on denial, transfer receipts with buffers, and
 retain charges after joins/cancellation until disposal. The shared fixture uses

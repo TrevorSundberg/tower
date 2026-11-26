@@ -116317,3 +116317,23 @@ native link needed the documented TowerBackend project include. The first
 draft retired the old template file. Running its original path showed that
 it also selects the nine emission cases, so the delivered source preserves
 that entry and its ABI bindings. The manager owns public integration.
+
+### Component layout fixture selection and Windows startup (host 8, 2026-11-26)
+
+Assignment `caff3cb8-2784-4aa8-8d05-84befd609d34` used public
+`fababa9f9fccf9a848fc3928ec5441055413b4dd`. The shared checkout's pull
+conflicted while replaying prior parser work. Aborting restored its local
+main. The implementation used an isolated main at the assigned revision.
+
+The baseline standalone ran the three named cases before its pooled and
+oversized allocation checks. At both compiler widths, owner selection failed
+on a duplicate exported main and direct selection lacked a companion.
+Windows startup calls the module body, which calls the fixture main with
+`(0, null)` and forwards any nonzero status to ExitProcess. Moving the ELF
+export to a thin Linux entry leaves that explicit Windows call intact.
+The companion now owns the child-index, component inline-index and stage-policy
+bodies and the original unconditional unexpected-finalizer trap. The legacy
+main still runs those same bodies in their original order before checking
+target sizes, payload back-pointers and receipt retirement. The native CTest
+registrations select all three directly and all three plus five imported
+budget tests through the owner, at compiler jobs 1 and 4.
