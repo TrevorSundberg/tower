@@ -1,11 +1,21 @@
-# Each registration executes the public driver with its declared host inputs.
-function(register_language_tests name owner incomplete)
+# Match the public driver's terminal stderr line after a successful invocation.
+function(register_language_tests name owner count)
+  # CTest evaluates installed registrations in the moved kit's working directory.
+  get_filename_component(registry "CTestTestfile.cmake" REALPATH BASE_DIR ".")
+  get_filename_component(suite_dir "${registry}" DIRECTORY)
+  get_filename_component(source "@scc_library@/${owner}.tower" ABSOLUTE BASE_DIR "${suite_dir}")
+  set(outcome "tests passed")
+  if(count EQUAL 1)
+    set(outcome "test passed")
+  elseif(count EQUAL 0)
+    set(outcome "tests selected")
+  endif()
   foreach(jobs IN ITEMS 1 4)
     set(test "tower-selected-${name}-jobs-${jobs}")
-    add_test("${test}" "@scc_bin@/towerc" --test "@scc_library@/${owner}.tower"
+    add_test("${test}" "@scc_bin@/tower-selected-test-count" "${count} ${outcome} for ${source}"
+      "@scc_bin@/towerc" --test "${source}"
       --jobs "${jobs}" --test-details --test-native-runtime "@scc_objects@/guest-native-test.o" ${ARGN})
-    set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused"
-      FAIL_REGULAR_EXPRESSION "0 tests selected for;${incomplete}")
+    set_tests_properties("${test}" PROPERTIES TIMEOUT 60 LABELS "native;focused")
   endforeach()
 endfunction()
 
@@ -15,12 +25,11 @@ if(DEFINED ENV{TOWER_SCC_TEST_SUFFIX})
 endif()
 set(compiler_memory_links --link "@scc_objects@/tower-compiler-bytes.o"
   --link "@scc_objects@/tower-compiler-utf8.o" --link "@scc_objects@/libtower-compiler-memory.a")
-register_language_tests(graph-components graph_components "1 test passed for"
+register_language_tests(graph-components graph_components 2
   ${scc_suffix_args} --link "@scc_objects@/runtime-instrumented.o" ${compiler_memory_links})
 foreach(owner IN ITEMS stack queue)
-  register_language_tests(${owner} ${owner} "(^|\n)([013-9]|[1-9][0-9]+) tests? (passed|selected) for " ${compiler_memory_links})
+  register_language_tests(${owner} ${owner} 2 ${compiler_memory_links})
 endforeach()
-register_language_tests(sha256 sha256 "1 test passed for;[2-6] tests passed for")
-set(work_graph_incomplete "(^|\n)([0-79]|[1-9][0-9]+) tests? (passed|selected) for ")
-register_language_tests(work-graph work_graph "${work_graph_incomplete}" --link "@scc_objects@/libtower-compiler-memory.a")
-register_language_tests(work-graph-direct work_graph_test "${work_graph_incomplete}" --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(sha256 sha256 7)
+register_language_tests(work-graph work_graph 8 --link "@scc_objects@/libtower-compiler-memory.a")
+register_language_tests(work-graph-direct work_graph_test 8 --link "@scc_objects@/libtower-compiler-memory.a")

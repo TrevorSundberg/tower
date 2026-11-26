@@ -107271,3 +107271,69 @@ the Tower interpreter. The two adapters plus the shared helper shrank from
 selector failed when run alone on both revisions, while its full 13-test
 module passed. Its first compile changes the live-node baseline and needs
 a separate lifetime check.
+### Exact declaration counts in the relocated native language kit
+
+Host 1 reproduced a false CTest pass at 84efe241. One added passing declaration
+made the real graph owner report three tests and the SHA-256 owner report eight.
+Each compiler and each original registration exited 0 at jobs 1 and 4. The SCC
+failure patterns covered zero and one. SHA's patterns also missed eight.
+
+Commit dea59724738a361462b82e8939e2950195e9af75 gives each registration a
+declared count. A 34,168-byte Tower test runner uses the existing Linux process
+and stderr capture helpers. It inherits stdout, relays diagnostics, propagates
+child failure, and compares the complete trailing stderr line to the required
+count, outcome and owner. The existing SccTests component installs the runner
+beside towerc. The compiler and its resources retain their qualification hashes.
+Only the runner and its support targets were built. An initial source compile
+identified a missing bytes import. The first registration used CMAKE_CURRENT_LIST_DIR,
+which CTest left empty in this relocated testfile. Resolving the working directory
+before calculating the owner's absolute lexical path fixed the exact comparison.
+
+At jobs 1 and 4, the moved registrations accepted SCC/SHA counts 2/7 and
+rejected 1/6 and 3/8. The wrong counts exited 0 in towerc, 1 in the count
+runner and 8 in CTest. Failing the last assertion with the correct declaration
+count gave exits 1, 1 and 8. Those guests first wrote the exact expected summary
+to stdout and stderr. Both compiler diagnostics retained the final assertion
+coordinate, graph_components_test.tower:20:5 and sha256_test.tower:105:5.
+The runner also rejected 12 for 2. The plain CLI still returned 0 for an empty
+selection. An unrelated guest-authored stderr summary did not reject a correct
+selection. The generated build-tree registrations passed as well.
+
+A separate copy of the moved kit used the existing eight-declaration WorkGraph
+companion and its three host memory modules from this checkout. The first
+linked request lacked the allocator and failed with an undefined tower_deallocate
+symbol. Passing the existing runtime-instrumented.o provider ran all eight at
+both job counts through the same registration helper. This checks compatibility
+with a count of eight using local sources. Packaging of the newer kit is a
+separate integration.
+
+The integrated compiler remained e1eded72a3393af76b0872b9d6fbaa34cd071946403df232c43dd428ae18a800.
+Debian 12, Clang/LLVM 19.1.7, two Xeon Gold 6244 sockets, 32 logical CPUs,
+15.36-CPU quota, 136,709,144,576-byte memory limit. Three matched warm pairs of
+fresh one-registration CTest processes used the same two-declaration SCC
+companion and linked providers, CPUs 0–3, alternating pair order under the host
+timing lock. At jobs 1 the median wall/CPU seconds and maximum-process RSS in
+KiB were 0.49/0.48/100364 before and 0.45/0.44/100212 after. At jobs 4 they
+were 0.63/0.71/113684 before and 0.66/0.73/114344 after. Each pair produced
+identical declaration coordinates and count. These small samples include the
+compiler and guest launch. The wrapper temporarily retains the compiler's stderr
+bytes. ASan and initialized TSan runs of the runner passed the small native
+guest at jobs 1 and 4. Seven TSan processes exited 139 during the container's
+denied ASLR personality call before execution. Tower IR tooling does not support
+source-level UBSan. The child compiler and guest used the ordinary qualified kit.
+
+Packet 1a629bf1-baeb-46ee-b2db-afd995f8c315 retains the scoped patch, review
+bundle, moved installation, original and changed fixture bytes, generated argv,
+raw stdout/stderr, exits, sanitizer attempts and host measurements. Publication
+belongs to the manager.
+
+The combined optional kit applies the same exact-count runner to the stack
+and queue owners (two each) and both WorkGraph selections (eight each).
+On CTest 3.31.6, resolving the directory named `.` in a CTest registration
+produced an empty base and a policy warning. Resolving the existing
+`CTestTestfile.cmake` and taking its parent preserved the absolute lexical
+owner path after relocation, including a prefix containing spaces. The
+generated build registry retained all 192 entries and the original driver
+arguments on all twelve wrapped commands. The manager separately checked the
+twelve installed registrations' paths and counts. The first worker matrix
+executed the SCC and SHA-256 registrations on its relocated installation.

@@ -1953,7 +1953,10 @@ TOWER_SCC_TEST_SUFFIX=_wrong.tower ctest --test-dir "$PREFIX/scc-suite" -R '^tow
 
 The registrations use `towerc --test`. With the default
 file rule the graph suite executes 8 fixed and 234 seeded cases, reports both declaration
-locations and checks zero live buffers in the linked allocator. The last
+locations and checks zero live buffers in the linked allocator. The kit requires
+the driver's final stderr line to report exactly two SCC declarations or seven
+SHA-256 declarations for the selected owner. A compiler or guest failure fails
+the registration even if the guest printed the expected summary. The last
 command supplies the alternate suffix to the same driver. It deliberately
 fails on the singleton at `graph_components_wrong.tower:7:5` and returns
 nonzero. Direct selection of the corresponding companion uses the same
