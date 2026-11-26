@@ -167,6 +167,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(work-kernel-admission work_kernel_admission_fixture "6 tests" "1 test"
       ${work_guest_args} --link "-Wl,--export-dynamic-symbol=work_thread_entry"
       --link "-Wl,--export-dynamic-symbol=admission_named_entry")
+    tower_work_native_selections(work-constructor-budget work_constructor_budget_fixture "15 tests" "2 tests" ${work_guest_args})
     # Separate native guests each export their own default pool callback.
     tower_work_native_selections(work-budget-shared work_budget_shared_fixture "8 tests" "3 tests"
       ${work_guest_args} --link "${host_work_linux_OBJECT}")
