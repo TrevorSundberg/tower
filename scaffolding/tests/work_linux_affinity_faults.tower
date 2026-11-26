@@ -3,13 +3,10 @@ import .host.memory;
 import .library.work_pool;
 
 extern fn __errno_location(): i32*;
-extern fn __sched_cpucount(bytes: usize, mask: usize*): i32;
-extern fn __real_compiler_buffer_allocate(bytes: usize): void*;
-extern fn __real_compiler_buffer_free(pointer: void*): void;
 
-// Link the separate production work_linux object with GNU --wrap for these
-// three boundaries. Counters/faults are single-owner test state, never used by
-// concurrent transport. The actual compiler buffer allocator still owns memory.
+// GNU --wrap redirects the separately compiled Linux transport's three calls.
+// Only these serial probes borrow the state. Other users of the real allocator
+// and the concurrent affinity fixture keep their ordinary transport.
 enum AffinityMockMode: u32 { Mask, Error, ResizeError }
 struct AffinityFaultState {
     mode: AffinityMockMode;
@@ -21,16 +18,20 @@ struct AffinityFaultState {
     peak_bytes: usize;
     queries: usize;
 }
-// Borrowed only during this serial fixture's main frame; no worker uses it.
 var AffinityFault: AffinityFaultState* = null;
 var AffinityMockSizeError: i32 = 22;
 var AffinityMockAddressError: i32 = 14;
 
-fn affinity_fault_check(ok: bool): void {
-    if !ok { trap("Linux affinity mask or ownership regression", 0); }
+// Guest traps terminate without unwinding a deferred cleanup.
+fn affinity_fault_trap(message: u8*): void {
+    AffinityFault = null;
+    trap(message, 0);
 }
+
 export fn __wrap_sched_getaffinity(pid: i32, bytes: usize, mask: usize*): i32 {
-    affinity_fault_check(pid == 0 && mask != null && bytes % sizeof(usize) == 0);
+    if pid != 0 || mask == null || bytes % sizeof(usize) != 0 {
+        affinity_fault_trap("Query the current thread with a whole-word mask");
+    }
     AffinityFault.queries++;
     if AffinityFault.mode == AffinityMockMode.Error
         || (AffinityFault.mode == AffinityMockMode.ResizeError && bytes > sizeof(usize)) {
@@ -41,86 +42,51 @@ export fn __wrap_sched_getaffinity(pid: i32, bytes: usize, mask: usize*): i32 {
         *__errno_location() = AffinityMockSizeError;
         return -1;
     }
-    // Leave padding untouched: the owner must not count uninitialized bytes.
+    // Leave the caller's padding untouched after the last supplied word.
     copy(mask, &AffinityFault.mask[0], sizeof(decltype(AffinityFault.mask)));
     return 0;
 }
+
 export fn __wrap_compiler_buffer_allocate(bytes: usize): void* {
-    affinity_fault_check(AffinityFault.live == null && AffinityFault.live_bytes == 0);
+    if AffinityFault.live != null || AffinityFault.live_bytes != 0 {
+        affinity_fault_trap("Release the previous affinity buffer before growing the mask");
+    }
     var ordinal = AffinityFault.calls++;
     if ordinal == AffinityFault.fail_at { return null; }
-    var memory = __real_compiler_buffer_allocate(bytes);
+    var memory = compiler_buffer_allocate(bytes);
     if memory != null {
         AffinityFault.live = memory;
         AffinityFault.live_bytes = compiler_buffer_allocation_size(bytes);
-        if AffinityFault.live_bytes > AffinityFault.peak_bytes { AffinityFault.peak_bytes = AffinityFault.live_bytes; }
+        if AffinityFault.live_bytes > AffinityFault.peak_bytes {
+            AffinityFault.peak_bytes = AffinityFault.live_bytes;
+        }
         fill(memory, 255, bytes);
     }
     return memory;
 }
+
 export fn __wrap_compiler_buffer_free(pointer: void*): void {
     if pointer == null { return; }
-    affinity_fault_check(pointer == AffinityFault.live && AffinityFault.live_bytes != 0);
-    __real_compiler_buffer_free(pointer);
+    if pointer != AffinityFault.live || AffinityFault.live_bytes == 0 {
+        affinity_fault_trap("Free the currently owned affinity buffer");
+    }
+    compiler_buffer_free(pointer);
     AffinityFault.live = null;
     AffinityFault.live_bytes = 0;
 }
+
 export fn work_kernel_execute(payload: void*): void {
-    trap("Denied affinity must not dispatch", 0);
+    affinity_fault_trap("Denied affinity must not dispatch");
 }
 
-fn affinity_fault_query(capacity: usize): void {
-    affinity_fault_check(work_thread_capacity() == capacity && AffinityFault.live == null && AffinityFault.live_bytes == 0);
-}
-export fn main(argc: i32, argv: u8**): i32 {
-    var state_owner: AffinityFaultState = default;
-    AffinityFault = &state_owner;
+fn affinity_capacity(state: AffinityFaultState*): usize {
+    AffinityFault = state;
     defer { AffinityFault = null; }
-    AffinityFault.fail_at = ~convert(usize, 0);
-    var bytes = sizeof(decltype(AffinityFault.mask));
-    var words = bytes / sizeof(usize);
-    AffinityFault.mode = AffinityMockMode.Mask;
-    fill(&AffinityFault.mask[0], 0, bytes);
-    // Two permitted CPUs can have widely separated IDs beyond cpu_set_t.
-    AffinityFault.mask[0] = 1;
-    AffinityFault.mask[words - 1] = convert(usize, 1) << (sizeof(usize) * 8 - 1);
-    affinity_fault_query(2);
-    affinity_fault_check(AffinityFault.calls > 0 && AffinityFault.queries > 1);
-    // Deterministic independent libc CPU_COUNT oracle, including zero/full sets.
-    fill(&AffinityFault.mask[0], 0, bytes);
-    affinity_fault_query(0);
-    fill(&AffinityFault.mask[0], 255, bytes);
-    affinity_fault_query(WorkPoolMaximumCapacity);
-    var state: u64 = 731;
-    for (var sample: usize = 0; sample < 64; sample++) {
-        for (var word: usize = 0; word < words; word++) {
-            state ^= state << 13; state ^= state >> 7; state ^= state << 17;
-            AffinityFault.mask[word] = convert(usize, state & (state >> 1) & (state >> 2));
-        }
-        var count = convert(usize, __sched_cpucount(bytes, &AffinityFault.mask[0]));
-        affinity_fault_query(count > WorkPoolMaximumCapacity ? WorkPoolMaximumCapacity : count);
-    }
-    AffinityFault.mode = AffinityMockMode.Error;
-    var calls = AffinityFault.calls;
-    affinity_fault_query(0);
-    affinity_fault_check(AffinityFault.calls == calls);
-    var pool: WorkPool = default;
-    affinity_fault_check(!work_pool_open(&pool, 1) && pool.resource_error == WorkBudgetError.Capacity
-        && pool.count == 0 && pool.slots == null);
-    work_pool_close(&pool);
-    AffinityFault.mode = AffinityMockMode.ResizeError;
-    affinity_fault_query(0);
-    AffinityFault.mode = AffinityMockMode.Mask;
-    // Denial of the first and a later physical allocation releases all storage.
-    AffinityFault.fail_at = AffinityFault.calls;
-    affinity_fault_query(0);
-    AffinityFault.fail_at = AffinityFault.calls + 1;
-    affinity_fault_query(0);
-    AffinityFault.fail_at = ~convert(usize, 0);
-    fill(&AffinityFault.mask[0], 0, bytes);
-    AffinityFault.mask[words - 1] = 1;
-    affinity_fault_query(1);
-    affinity_fault_check(AffinityFault.peak_bytes < compiler_buffer_allocation_size(bytes * 2));
-    print(AffinityFault.calls); print(AffinityFault.peak_bytes); print(AffinityFault.live_bytes);
-    return 0;
+    return work_thread_capacity();
+}
+
+fn affinity_pool_open(state: AffinityFaultState*, pool: WorkPool*): bool {
+    AffinityFault = state;
+    defer { AffinityFault = null; }
+    return work_pool_open(pool, 1);
 }

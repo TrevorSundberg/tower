@@ -23,23 +23,26 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_runtime_object(work-dispatch-transport
       "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/host/work_linux.tower" "${work_triple}"
       work_signal_open __real_work_signal_open)
+    # The public linker accepts objects. Apply GNU --wrap to the production
+    # transport's undefined references before either test entry links it.
+    set(affinity_transport "${CMAKE_CURRENT_BINARY_DIR}/work_linux_affinity_wrapped.o")
+    add_custom_command(OUTPUT "${affinity_transport}"
+      COMMAND "${CMAKE_LINKER}" -r --wrap=sched_getaffinity
+        --wrap=compiler_buffer_allocate --wrap=compiler_buffer_free
+        "${host_work_linux_OBJECT}" -o "${affinity_transport}"
+      DEPENDS "${host_work_linux_OBJECT}" VERBATIM)
+
     function(tower_work_fixture unit profile)
       string(REPLACE "_" "-" target "tower-${unit}-tests")
+      set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower")
       set(fixture_mode)
       if(unit STREQUAL "work_dispatch_result")
         set(fixture_mode SOURCE __wrap_work_signal_open work_signal_open)
       elseif(unit STREQUAL "work_linux_affinity_faults")
-        # Bind the serial fault boundary using the existing Tower LLVM tool;
-        # the public native linker deliberately does not accept GNU --wrap.
-        set(fixture_mode SOURCE
-          compiler_buffer_allocate __real_compiler_buffer_allocate
-          compiler_buffer_free __real_compiler_buffer_free
-          __wrap_compiler_buffer_allocate compiler_buffer_allocate
-          __wrap_compiler_buffer_free compiler_buffer_free
-          __wrap_sched_getaffinity sched_getaffinity)
+        set(fixture_input "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}_main.tower")
+        set(fixture_mode SOURCE)
       endif()
-      tower_runtime_object(${target}
-        "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/${unit}.tower" "${work_triple}" ${fixture_mode})
+      tower_runtime_object(${target} "${fixture_input}" "${work_triple}" ${fixture_mode})
       set(fixture_objects "${${target}_OBJECT}")
       if(unit STREQUAL "work_budget_shared")
         list(APPEND fixture_objects "${host_work_linux_OBJECT}")
@@ -52,7 +55,7 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       elseif(unit STREQUAL "work_dispatch_result")
         list(APPEND fixture_objects "${work-dispatch-transport_OBJECT}" "${host_work_dispatch_OBJECT}")
       elseif(unit STREQUAL "work_linux_affinity_faults")
-        list(APPEND fixture_objects "${host_work_linux_OBJECT}")
+        list(APPEND fixture_objects "${affinity_transport}")
       endif()
       add_executable(${target} ${fixture_objects} "${work_runtime}")
       set_target_properties(${target} PROPERTIES LINKER_LANGUAGE C)
@@ -128,6 +131,33 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     set_target_properties(tower-sanitizer-race-control PROPERTIES LINKER_LANGUAGE C)
     target_link_libraries(tower-sanitizer-race-control PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
     target_link_options(tower-sanitizer-race-control PRIVATE -Wl,--export-dynamic-symbol=work_thread_entry)
+  endif()
+  if(NOT CMAKE_CROSSCOMPILING AND NOT TOWER_SANITIZER AND work_triple MATCHES "^x86_64-.*linux.*gnu")
+    # Work-policy registration supplies the public native-test guest and count checker.
+    get_property(affinity_guest GLOBAL PROPERTY TOWER_GUEST_native-test_OBJECT)
+    set(affinity_allocator "${CMAKE_CURRENT_BINARY_DIR}/runtime-allocate.o")
+    add_custom_target(tower-affinity-test-support DEPENDS "${affinity_allocator}"
+      tower-guest-native-test tower-selected-test-count)
+    add_dependencies(tower-work-linux-affinity-faults-tests tower-affinity-test-support)
+    set(affinity_oracle "${CMAKE_CURRENT_BINARY_DIR}/work_linux_affinity_faults.stdout")
+    file(GENERATE OUTPUT "${affinity_oracle}" CONTENT "412\n544\n0\n")
+    foreach(selection IN ITEMS owner direct)
+      set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_linux_affinity_faults.tower")
+      # Owner discovery also reaches the five work-budget declarations.
+      set(summary "6 tests passed")
+      if(selection STREQUAL "direct")
+        set(entry "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/work_linux_affinity_faults_test.tower")
+        set(summary "1 test passed")
+      endif()
+      foreach(jobs IN ITEMS 1 4)
+        set(name "tower-work-linux-affinity-faults-${selection}-jobs-${jobs}")
+        add_test(NAME "${name}" COMMAND tower-selected-test-count "${summary} for ${entry}"
+          "${TOWER_BOOTSTRAP_COMPILER}" --test "${entry}" --jobs "${jobs}" --test-details
+          --test-oracle "${affinity_oracle}" --test-native-runtime "${affinity_guest}"
+          --link "${affinity_transport}" --link "${affinity_allocator}")
+        set_tests_properties("${name}" PROPERTIES LABELS "native;focused" TIMEOUT 60)
+      endforeach()
+    endforeach()
   endif()
   if(work_triple MATCHES "^x86_64-.*linux")
     tower_work_fixture(entity_create_result OFF)

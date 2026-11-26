@@ -1,0 +1,7 @@
+import tower;
+import work_linux_affinity_faults_test;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    linux_affinity_faults();
+    return 0;
+}

@@ -114676,3 +114676,28 @@ and picked up the updated syntax-node object. Both passed on their first
 launch. The final incremental build had no work. Assignment packet
 `7a42df0f-3b01-4263-8276-3504048033a9` includes the source bundles on both
 bases and the raw measurements. Publication belongs to the manager.
+
+### Linux affinity masks and allocation refusal through the native test command
+
+The standalone Linux transport fixture and its adjacent Tower test share the
+same case body. A relocatable link applies GNU wrapping to the separately
+compiled production transport. The test compares 64 seeded masks with libc,
+checks sparse IDs, errors, denied dispatch, both allocation refusals and
+recovery, and verifies release of the serial probe's borrowed stack state.
+
+Worker receipt fc2d4d2d-e907-4c5e-a490-cb7bf0f0f02e qualified 127a1f73
+against 015b09aa. All six focused CTests passed. Direct selection counted
+one test and owner selection counted six at each of one and four jobs.
+The manager compared all 2,112 words and 64 libc observations on the
+original and migrated standalone and on all four selections. Every route
+printed 412, 544 and 0 on separate lines. Perturbing the count failed the
+standalone and all four selections. Restoration reproduced the binary hashes.
+Address and thread sanitizer runs passed for the serial and concurrent
+fixtures. Serial TSan required seven launches owing to host startup failures.
+The selector ran without sanitizers. Tower IR had no UBSan profile.
+
+On the dual Xeon Gold 6244, CPUs 4–11 with a 15.36-CPU quota, the ordinary
+one-job direct selection took median 0.57 s wall and 0.56 s CPU, maximum
+107,640 KiB RSS. Four jobs took 0.71 s wall and 0.84 s CPU, maximum 121,036
+KiB. These measurements include compiling the selected guest. Raw commands,
+effective limits, timings and sanitizer startup logs are in the receipt.
