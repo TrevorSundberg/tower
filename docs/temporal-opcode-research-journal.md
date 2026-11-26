@@ -109926,3 +109926,41 @@ functions. The unchanged service DSO supplies the native allocator and Linux
 work transport. The replay covers these case calls serially. The Tower LLVM
 instrumenter exposes address and thread modes. Source-level UBSan and a
 fully instrumented published browser reactor remain outside this evidence.
+
+### Formatter, raw memory, replacement and ownership qualification on f528f182
+
+Host 4 assignment 93187178 merged c4044e01 then 437d50cf on published
+f528f182. The only conflict was in .gitattributes. Keeping the existing LF
+rules and the formatter expectation rule produced tree ca0c22f631c840cad3c78a10b7b1f0e6d45ff144.
+All other delivered source files matched their producer blobs. Both manifest
+archives and all eight declared members verified before review.
+
+With the dd6651b1 release, each of the five anchored formatter names passed.
+The browser selected the checked-in cases module and its named suffix. The
+42-file observation stream and lifecycle trace matched the bc445be1 final
+capture. This includes 38 historical observations, all three valid recovery
+records and the additional cancelled parse. All 17 raw-memory cases returned
+their expected bytes through Graph, Fast and the LLVM-emitted guest. The four
+replacement entries reproduced the 642,907-byte parser trace and their
+selected declarations. Both shipping capability skips, the enabled package
+and backend tests, negative capabilities and same-instance recovery reproduced
+the prior qualification.
+
+The optional CMake configuration registered the five-case count check against
+the checkout's syntax_session_format.tower. The published Linux driver and
+three hash-verified providers executed that CTest, then each of the five owner
+suffixes independently. Mutating the affixes and refusal expectations failed
+the corresponding native and browser cases. Changing the actual formatter
+owner's refusal message with the providers fixed also failed the linked test.
+Each restoration passed. The linked CTest used 12.25 s wall, 11.67 s user,
+0.60 s system and 623996 KiB peak RSS. The default-suffix repair is separate.
+
+Default compiler inputs, commands, generated entry sources and bootstrap
+resources matched the public checkout. The ordinary formatter object and
+its normalized depfile matched the retained producer result. Resolving the
+25 released project units reproduced all 427 ordinary dependency paths.
+The format and driver test configurations shared one count executable. The
+compiler and production Wasm products were reused. Host 4 used the Ryzen 7
+5800H, CPUs 0,2,4,6 and a quota of 15.36 CPUs. The assignment packet records
+the full ordered Node result, image identities, metrics and replay bundle
+for the frozen commit.
