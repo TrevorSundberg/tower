@@ -1,5 +1,6 @@
 import tower;
 import .library.float_text_test as cases;
+import decimal_round_trips;
 
 var failures: u32 = 0;
 failures += cases.signed_decimal_values().failures;
@@ -7,7 +8,7 @@ failures += cases.decimal_midpoints().failures;
 failures += cases.decimal_range_limits().failures;
 failures += cases.rejected_decimals().failures;
 failures += cases.decimal_boundary_round_trips().failures;
-failures += cases.generated_decimal_round_trips().failures;
+failures += generated_decimal_round_trips().failures;
 print(failures);
 if failures != 0 {
     trap("Floating text tests failed", failures);

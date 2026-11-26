@@ -58,6 +58,7 @@ install(FILES scaffolding/tests/entities.tower scaffolding/tests/entities_test.t
   scaffolding/tests/generic_registry.tower scaffolding/tests/generic_registry_test.tower scaffolding/tests/generic_registry.expected
   scaffolding/tests/generic_body_budget.tower scaffolding/tests/entity_store.tower scaffolding/tests/entity_store_test.tower
   scaffolding/tests/entity_stage_ownership_cases.tower
+  scaffolding/tests/decimal_round_trips.tower scaffolding/tests/decimal_round_trips_test.tower
   scaffolding/tests/graph_components_checks.tower scaffolding/tests/utility_checks.tower
   scaffolding/tests/narrow_foreign.tower scaffolding/tests/narrow_foreign_test.tower
   DESTINATION scc-suite/share/tower/tests ${scc_install})

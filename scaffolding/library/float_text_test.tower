@@ -118,25 +118,3 @@ test() {
     var result = decimal_boundary_round_trips();
     assert(result.failures == 0, result.first_failure);
 }
-
-fn generated_decimal_round_trips(): FloatTextResult {
-    var result: FloatTextResult = default;
-    var random: u64 = 8675309;
-    var cases: u32 = 512;
-    for(var i: u32 = 0; i < cases; i++) {
-        random = random * 6364136223846793005 + 1442695040888963407;
-        if(random &Float64Infinity) != Float64Infinity {
-            check_decimal_round_trip(&result, random, Float64Width, "generated f64 round trip");
-        }
-        var small = random &FloatLimbMask;
-        if(small &Float32Infinity) != Float32Infinity {
-            check_decimal_round_trip(&result, small, Float32Width, "generated f32 round trip");
-        }
-    }
-    return result;
-}
-
-test() {
-    var result = generated_decimal_round_trips();
-    assert(result.failures == 0, result.first_failure);
-}
