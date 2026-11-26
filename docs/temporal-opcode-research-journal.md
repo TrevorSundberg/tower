@@ -108645,3 +108645,82 @@ was replaced by reading the captured ELF type field. The browser and bootstrap
 were not rebuilt. The manager owns integration and publication.
 
 On integration the combined native configuration retained all 216 existing CTest commands and properties and added eight exact-count registrations. The manager compared the member bytes of both optional install archives with their inventories and the 15 additional installed sources and oracles with the checkout. The twelve ordinary output runs matched the three checked-in expected files. The captured native store completion and its replay were identical. These comparisons cover the registered entity suites; unrelated CTest outcomes have separate receipts.
+### Adjacent positive compiletime cases on the retained release reactors
+
+Host 1, assignment `1813f3a3-c7b5-484a-a739-a54210b7fa80`, parent
+`c2d339ea`. Sixteen unchanged source fixtures have sixteen adjacent Tower
+test declarations. Each supplies its filename, exact stdout and a representative
+typed declaration from its canonical Foundation. The lazy-body case also
+excludes both the unresolved value and the unused specialization. The original
+source-level type and value checks still execute. The two backend names per
+owner give 32 browser registrations. A completed test execution must consume
+both portable observations or the one LLVM observation. The shared text
+observation and selection helpers also serve the four generic-body registrations.
+
+Fourteen companions use the native fixture grant to check actual stdout. In
+the browser the assertion session binds the checked-in browser profile at the
+test-only results module path. Its reader checks the observed source name and
+pointer width. The portable observations contain graph output, fast canonical
+replay output and both full Foundation texts for each width. For LLVM, the
+original source and four-byte graph canonical both compile for
+`wasm32-unknown-unknown`. The test checks the graph output, both Wasm guest
+outputs and both error strings. Compilation, completion and truncation are
+checked at the host boundary. The source and LLVM sessions retain their normal
+resources. The existing optional phase and artifact captures remain available.
+
+On this release, paired discovery for `decltype_type_fields` and
+`decltype_lazy_body` returned a count of one but executed five steps and read
+zero observations. The selected Foundation contained an empty test function.
+The native test command exited 139 for each owner, including with a companion
+consisting only of a failing assertion. Named and direct-call trials and their
+canonical outputs are in the evidence packet. Each of these two cases therefore
+uses an adjacent inline `_browser.tower` test importing the browser observer
+directly. Both consume the expected observations, and both original sources
+also run through native ordinary interpretation. The native release compiler's
+paired-discovery failure is open. The portable body-continuation comparison
+exhausted an initial 200 chunks. The complete two-width comparison took 217
+chunks of 100,000 interpreter steps and runs under a bounded 300-chunk limit.
+
+Both release reactor hashes match the prior receipts, portable `41bb9b11`
+and raw LLVM `15b4f33b` from compiler source `8bc867b6`. All 16 original
+input hashes match. Original and migrated replays produced byte-identical
+inputs, output, final execution records and complete Foundation text for all
+80 portable executions, including LLVM's graph setup. All 128 LLVM artifacts
+matched, including 32 Wasm binaries and 32 guest execution records. The full
+file passed all 88 registrations in identical order with zero skips. The
+negative and generated stress registration bodies compare byte for byte.
+
+Each of the 14 native owners selected one test at jobs 1 and 4. Independently
+changing the output to one in every direct companion returned exit 1. Each
+passed after restoration. Both exceptional originals printed zero under
+`--interpret`. Substituting `comptime_flow.tower` for `decltype.tower`
+preserved zero stdout and failed both browser canonical type assertions.
+Changing only the Tower output oracle failed both registrations. Replaying
+a different zero-printing producer on fast failed the Foundation equality
+check. Each lazy-body exclusion failed independently against a present name.
+Sending the real eight-byte body-continuation canonical to wasm32 produced
+zero from source and one from the canonical guest. All controls were restored.
+
+Debian 12, two Xeon Gold 6244 sockets, affinity 0–31, cgroup quota 15.36
+CPUs, Node 24.22.3. The matched release reactors are serial. Three warm-file,
+fresh-process pairs per workload ran under one host timing lock, alternating
+pair order. Median wall and combined CPU seconds, with maximum process RSS
+in KiB across the three runs, were as follows.
+
+| Selection | Before wall / CPU / RSS | After wall / CPU / RSS |
+| --- | --- | --- |
+| One decltype portable registration | 0.89 / 1.58 / 143172 | 1.15 / 2.15 / 150940 |
+| 32 positive registrations | 5.60 / 12.63 / 324932 | 11.64 / 19.65 / 365344 |
+
+A separate trace attributed 6.33 seconds to the 32 observed-test selections,
+including input configuration, compilation, interpreted assertions and entry
+restoration. The one decltype portable selection took 0.316 seconds in this
+trace. The code changed the cost of the test harness. Per-case allocation
+counters and new sanitizer instrumentation were unavailable on the retained
+release reactors. No build was required. The packet includes the selector map,
+input and result bytes, commands, timings, failed trials and focused bundle.
+The manager owns integration and publication.
+
+The manager compared all 80 portable input, Foundation, stdout and execution-result records, and both emitted Wasm modules per case, with the original runs. The shared browser test helper accepts a files override for the assertion session and still passes the existing suffix option to the compiler for entity-store tests. Two generic owners retain explicit browser tests. Their failing adjacent companions and raw native exit 139 records are kept in 1813f3a3 for a separate collector repair.
+
+The preceding release published source aed77666 and Pages c9773ec3 atomically. The twelve editable compiler inputs matched the release manifest. In receipt 0ce85bc0, all 89 archived products matched the checksum inventory. Node and Chromium agreed on the three generated reactors at two and four workers with the selected 747b999f project. Both generations drained their workers and diagnosed the changed source. Immediately after the ref update the canonical domain still served manifest 14c11e4b; its deployment and CI receipt are tracked separately.

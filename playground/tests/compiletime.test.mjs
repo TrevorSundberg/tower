@@ -1,14 +1,15 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile, writeFile, mkdir} from 'node:fs/promises';
-import {executeWasm, generatedSource} from './compiler-fixtures.mjs';
+import {executeWasm, files, generatedSource} from './compiler-fixtures.mjs';
 import {fixtureSource, guestString, llvmOutput, openLLVM, openTower, runSelectedTest} from './compiler_test_host.mjs';
 
 const project = {entry:'input.tower'};
 let observations;
+let selectedBackend;
 const encoder = new TextEncoder();
 const tower = await openTower({project, imports: {
- generic_body_text(context, name) {
+ observed_text(context, name) {
   const key = guestString(context, name);
   const value = observations[key];
   if (typeof value !== 'string' || value.includes('\0')) throw new Error('Invalid text observation: ' + key);
@@ -17,6 +18,13 @@ const tower = await openTower({project, imports: {
   if (!pointer) throw new Error('Cannot allocate observation: ' + key);
   context.memory().set(bytes, pointer);
   return pointer;
+ },
+ compiletime_is_llvm() { return selectedBackend.engine === 'LLVM'; },
+ select_compiletime_run(_context, index) {
+  assert.equal(Number(index), selectedBackend.consumed, 'Unexpected observation index');
+  observations = selectedBackend.runs[Number(index)];
+  selectedBackend.consumed++;
+  return observations.pointerBytes;
  },
 }});
 let llvm;
@@ -49,15 +57,29 @@ function execute(source, pointerBytes, fast) {
  return canonical;
 }
 
-// Each subject handle is closed before its observations enter the selected Tower test.
-function checkGenericBody(name, values) {
+// Only the assertion session binds the browser implementation of the result
+// reader. Ordinary source, Foundation replay and native discovery keep their inputs.
+const readerPath = '.tower/tests/compiletime_results.tower';
+const browserReader = fixtureSource('.tower/tests/compiletime_browser/profile.tower');
+const assertionFiles = files.map(file => file.path === readerPath ? {...file, text:browserReader} : file);
+// Comparing both complete body_continuation texts took 217 chunks of 100,000 steps.
+const compiletimeCheckChunks = 300;
+
+function checkObserved(entry, values, backend) {
  try {
   observations = values;
-  runSelectedTest(tower, `.tower/tests/generic_body_browser/${name}.tower`);
+  selectedBackend = backend && {...backend, consumed:0};
+  runSelectedTest(tower, entry, backend ? compiletimeCheckChunks : undefined, backend ? {files:assertionFiles} : undefined);
+  if (backend) assert.equal(selectedBackend.consumed, backend.runs.length, entry);
  } finally {
   observations = undefined;
-  tower.configureModules(project);
+  selectedBackend = undefined;
+  tower.configureModules(backend ? {...project, files} : project);
  }
+}
+
+function checkGenericBody(name, values) {
+ checkObserved(`.tower/tests/generic_body_browser/${name}.tower`, values);
 }
 
 const lazyBody = fixtureSource('.tower/tests/generic_body_lazy.tower');
@@ -93,23 +115,26 @@ test('demanded generic body copies retain the node budget and reject execution (
 });
 
 for (const name of ['decltype', 'decltype_expressions', 'declaration_continuations', 'declaration_inference', 'declaration_operands', 'enum_expressions', 'decltype_headers', 'decltype_layout', 'decltype_generic_headers', 'decltype_type_fields', 'decltype_aggregate', 'decltype_lazy_body', 'body_continuation', 'comptime', 'comptime_flow', 'comptime_capture_values']) {
- test(`${name} preserves types and behavior through Foundation and interpreters (portable)`, async () => {
-  tower.configureModules({entry: `.tower/tests/${name}.tower`});
-  const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
-  let canonical;
+ const file = name + '.tower', entry = '.tower/tests/' + file;
+ // These two generic owners emit empty test bodies under paired discovery on the release reactor.
+ const paired = name !== 'decltype_lazy_body' && name !== 'decltype_type_fields';
+ const companion = `.tower/tests/${name}_${paired ? 'test' : 'browser'}.tower`;
+ const source = fixtureSource(entry);
+ test(`${name} preserves types and behavior through Foundation and interpreters (portable)`, () => {
+  tower.configureModules({entry});
+  const runs = [];
   for (const width of [4, 8]) {
-   canonical = execute(source, width, false);
-   assert.equal(execute(canonical, width, true), canonical);
-   if (name === 'decltype_lazy_body') {
-    assert.doesNotMatch(canonical, /missing_body_value|fn `unused\(/);
-   }
+   const graph = observeExecution(source, width, false);
+   const fast = observeExecution(graph.canonical, width, true);
+   runs.push({pointerBytes:width, 'source file':file, 'graph output':graph.output,
+    'graph Foundation':graph.canonical, 'fast output':fast.output, 'fast Foundation':fast.canonical});
   }
+  checkObserved(companion, undefined, {engine:'portable', runs});
  });
  test(`${name} preserves types and behavior through Foundation and LLVM (LLVM)`, async () => {
   const llvm = await llvmHost();
-  tower.configureModules({entry: `.tower/tests/${name}.tower`});
-  llvm.configureModules({entry: `.tower/tests/${name}.tower`});
-  const source = await readFile(`scaffolding/tests/${name}.tower`, 'utf8');
+  tower.configureModules({entry});
+  llvm.configureModules({entry});
   // Foundation layout constants belong to the target that produced them.
   // The portable registration above retains both 32- and 64-bit coverage.
   const target = 'wasm32-unknown-unknown', canonicalPointerBytes = 4;
@@ -119,8 +144,9 @@ for (const name of ['decltype', 'decltype_expressions', 'declaration_continuatio
    if (process.env.TOWER_TEST_PHASES) console.error(`${name}: ${message}`);
   };
   phase(`Graph canonical begin pointerBytes=${canonicalPointerBytes}`);
-  const canonical = execute(source, canonicalPointerBytes, false);
-  phase('Graph canonical done output="0\\n"');
+  const {output, canonical} = observeExecution(source, canonicalPointerBytes, false);
+  const run = {pointerBytes:canonicalPointerBytes, 'source file':file, 'graph output':output, 'graph Foundation':canonical};
+  phase(`Graph canonical done output=${JSON.stringify(output)}`);
   for (const [kind, input] of [['source', source], ['canonical', canonical]]) {
    const label = `${name} ${kind} -> ${target} (canonical pointerBytes=${canonicalPointerBytes})`;
    const path = artifacts && `${artifacts}/${name}.${kind}`;
@@ -136,10 +162,11 @@ for (const name of ['decltype', 'decltype_expressions', 'declaration_continuatio
    if (path) await writeFile(`${path}.execution.json`, JSON.stringify(executed));
    phase(`${label}: execute ${executed.status} output=${JSON.stringify(executed.output)}`);
    assert.equal(executed.status, 'done', `${label}: ${executed.error}`);
-   assert.equal(executed.error, '', label);
+   run[`LLVM ${kind} error`] = executed.error;
    assert.equal(executed.outputTruncated, false, label);
-   assert.equal(executed.output, '0\n', label);
+   run[`LLVM ${kind} output`] = executed.output;
   }
+  checkObserved(companion, undefined, {engine:'LLVM', runs:[run]});
  });
 }
 

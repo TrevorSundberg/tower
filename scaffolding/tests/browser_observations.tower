@@ -1,0 +1,11 @@
+import library.testing;
+import backend.text;
+
+// Each call copies one named host observation into guest-owned memory.
+extern fn observed_text(name: u8*): u8*;
+
+fn expect_text(name: u8*, wanted: u8*): void {
+    var actual = observed_text(name);
+    defer free(actual);
+    assert(backend_equal(actual, wanted), name);
+}

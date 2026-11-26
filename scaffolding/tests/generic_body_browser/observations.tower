@@ -1,16 +1,6 @@
-import library.testing;
-import backend.text;
-
-// Each call copies one named host observation into guest-owned memory.
-extern fn generic_body_text(name: u8*): u8*;
+import tests.browser_observations;
 
 var SignatureOutput: u8* = "0\n";
-
-fn expect_text(name: u8*, wanted: u8*): void {
-    var actual = generic_body_text(name);
-    defer free(actual);
-    assert(backend_equal(actual, wanted), name);
-}
 
 fn expect_rejection(): void {
     expect_text("status", "error");

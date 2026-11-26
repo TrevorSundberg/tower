@@ -1,0 +1,6 @@
+import tests.compiletime_case;
+import tests.compiletime_browser.results;
+
+fn check_compiletime(value: CompiletimeCase): void {
+    check_browser_compiletime(value);
+}

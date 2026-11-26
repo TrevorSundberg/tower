@@ -1,0 +1,19 @@
+import tower;
+import library.test_fixtures;
+import backend.text;
+
+struct CompiletimeCase {
+    file: u8*;
+    output: u8*;
+    declaration: u8*;
+    absent_body: u8*;
+    absent_function: u8*;
+}
+
+// The native test command grants each companion its own source fixture.
+fn check_native_compiletime(value: CompiletimeCase): void {
+    var actual = fixture_stdout(value.file);
+    defer free(actual.data);
+    var wanted: FixtureBytes = {data: value.output, length: backend_length(value.output)};
+    assert(fixture_equal(actual, wanted), value.file);
+}

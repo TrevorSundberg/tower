@@ -1,0 +1,9 @@
+import tests.compiletime_browser.results;
+
+test() {
+    check_browser_compiletime({
+        file: "decltype_type_fields.tower", output: "0\n",
+        declaration: "var direct: u32;",
+        ..default
+    });
+}

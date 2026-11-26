@@ -1,0 +1,10 @@
+import library.test_fixtures;
+import compiletime_results;
+
+test() {
+    check_compiletime({
+        file: "declaration_inference.tower", output: "0\n",
+        declaration: "var picked: u64 =",
+        ..default
+    });
+}

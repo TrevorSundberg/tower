@@ -1,0 +1,37 @@
+import tests.compiletime_case;
+import tests.browser_observations;
+import backend.text;
+import library.testing;
+
+// The browser supplies observations from the selected original entry, its
+// canonical replay and, for the LLVM selector, the two emitted Wasm modules.
+extern fn select_compiletime_run(index: usize): usize;
+extern fn compiletime_is_llvm(): bool;
+
+fn check_browser_compiletime(value: CompiletimeCase): void {
+    var llvm = compiletime_is_llvm();
+    var runs: usize = llvm ? 1 : 2;
+    for (var run: usize = 0; run < runs; run++) {
+        assert(select_compiletime_run(run) == (run == 0 ? 4 : 8), "Canonical pointer width");
+        expect_text("source file", value.file);
+        expect_text("graph output", value.output);
+        var canonical = observed_text("graph Foundation");
+        defer free(canonical);
+        assert(backend_contains(canonical, value.declaration), value.declaration);
+        if value.absent_body != null {
+            assert(!backend_contains(canonical, value.absent_body), value.absent_body);
+        }
+        if value.absent_function != null {
+            assert(!backend_contains(canonical, value.absent_function), value.absent_function);
+        }
+        if llvm {
+            expect_text("LLVM source error", "");
+            expect_text("LLVM canonical error", "");
+            expect_text("LLVM source output", value.output);
+            expect_text("LLVM canonical output", value.output);
+        } else {
+            expect_text("fast output", value.output);
+            expect_text("fast Foundation", canonical);
+        }
+    }
+}
