@@ -1,0 +1,12 @@
+import library.test_fixtures;
+import check;
+
+test() {
+    var source = "decltype_cycle.expected";
+    var suffix = "/fixture_diagnostics/decltype_cycle.expected";
+    var wanted = "Cannot resolve declaration type: initializer dependency cycle first -> second -> first";
+    check_diagnostic(source, suffix, wanted, 14, 2, 1);
+    var accepted = fixture_diagnostic("decltype_cycle.tower");
+    defer fixture_diagnostic_dispose(&accepted);
+    assert(accepted.message.data == null && accepted.file.data == null, "valid owner rejected");
+}

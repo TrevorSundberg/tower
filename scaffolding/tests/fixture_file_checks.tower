@@ -94,3 +94,49 @@ fn fixture_file_checks(modules: void*, root: u8*): void {
     fixture_memory_input(modules, "mem/right/function_values.expected", &oracle);
     fixture_memory_trial(modules, &selection, source, 0, "0\n1\n");
 }
+
+// Exercise the ordinary companion bodies under both guest ABIs. A null file
+// probe admits only registered companions and data; each child shares the
+// declaration world's budget, whose teardown checks memory and worker leases.
+fn fixture_diagnostic_profiles(modules: void*, root: u8*): void {
+    var files: u8*[7] = {
+        "/tests/fixture_diagnostics/check.tower",
+        "/tests/fixture_diagnostics/decltype_cycle.tower",
+        "/tests/fixture_diagnostics/decltype_cycle_test.tower",
+        "/tests/fixture_diagnostics/decltype_cycle.expected",
+        "/tests/fixture_diagnostics/decltype_body_comptime.tower",
+        "/tests/fixture_diagnostics/decltype_body_comptime_test.tower",
+        "/tests/fixture_diagnostics/decltype_body_comptime.expected"
+    };
+    foreach (var path in &files) {
+        var text: vector(u8) = default;
+        defer vector_dispose(&text);
+        units_read(root, path, &text);
+        fixture_memory_input(modules, path + 1, &text);
+    }
+    var entry = "tests/fixture_diagnostics.tower";
+    var source: vector(u8) = default;
+    defer vector_dispose(&source);
+    units_read(root, "/tests/fixture_diagnostics.tower", &source);
+    fixture_memory_input(modules, entry, &source);
+    frontend_modules_configure(modules, entry, root);
+    var rule = test_file_default_rule();
+    for (var width: u32 = 4; width <= 8; width *= 2) {
+        var selection: TestFileSelection = default;
+        defer test_file_selection_dispose(&selection);
+        execution_check(frontend_test_selection_open(&selection, &rule, entry), "open diagnostic fixtures");
+        var discovery: TestFileDiscovery = {selection: &selection, ..default};
+        var session: ExecutionSession = default;
+        defer execution_session_close(&session);
+        {
+            var previous = frontend_modules_swap_test_discovery(modules, &discovery);
+            defer frontend_modules_swap_test_discovery(modules, previous);
+            execution_check(execution_session_compile_tests(&session, source.data, source.length, width, modules)
+                && session.program.test_count == 2, "compile two diagnostic companions");
+        }
+        var access: ExecutionFixtureAccess = {selection: &selection, modules: modules};
+        session.fixtures = &access;
+        execution_run(&session, 1000, 100000);
+        execution_check(session.machine.done && !session.machine.failed, "registered diagnostic fields and guest ownership");
+    }
+}

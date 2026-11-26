@@ -86,6 +86,20 @@ including the final line ending. See [the function-values test](function_values_
 The child interpreter uses the selected graph's source snapshots and captures
 both `print` and counted writes to stdout.
 
+Use `fixture_diagnostic(name)` to compile either granted file as ordinary source
+without executing its top-level statements. For a negative case, keep the
+owner valid and store the child source in the same-stem `.expected` file.
+The child resolves imports from the selected graph's frozen inputs.
+A successful compile returns an empty `FixtureDiagnostic`. A rejected compile
+returns the source map's file identity, zero-based byte offset, one-based
+line and column, and the compiler's counted diagnostic bytes including any
+instantiation frames. Dispose the result once with
+`fixture_diagnostic_dispose(&result)` after reading it. Its file and message
+share a single guest allocation. Grant, input-read and resource failures
+fail the parent test. Ordinary `fixture_stdout` also fails the parent on a
+child compile or execution error. The [cycle and staged cases](fixture_diagnostics/)
+show both granted inputs and the compile-only success check.
+
 After successful discovery, `TestFileSelection.fixtures` owns an ordered
 `TestFixturePair` per opted-in companion. Its `companion`, `source` and
 `oracle` paths have explicit byte lengths and trailing NULs. These paths
