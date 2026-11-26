@@ -1,0 +1,9 @@
+import .syntax_source;
+import .syntax_types;
+import ..backend.text;
+import input;
+
+fn location_snapshot(): SyntaxSource* {
+    var text = location_fixture();
+    return syntax_source_create(".tower/foundation.tower", text, backend_length(text));
+}

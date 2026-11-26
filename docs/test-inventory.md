@@ -336,6 +336,7 @@ during type checking. The browser checks its original parse-only contract.
 The browser registration `cursor and diagnostic locations share filenames and
 Unicode scalar columns` also runs in `diagnostics.test.mjs`. Its Tower
 companion checks the actual CodeMirror cursor and diagnostic on the same
-document. The native source owner has a separate companion for the UTF-8
-snapshot. Run `towerc --test scaffolding/compiler/syntax_source.tower
---test-details` to select it. [Editor checks](../scaffolding/compiler/syntax_source_cases/editor_test.tower) · [Snapshot check](../scaffolding/compiler/syntax_source_test.tower)
+document. To run the UTF-8 snapshot check with ordinary companion discovery,
+run `towerc --test scaffolding/compiler/syntax_source_cases/snapshot.tower
+--test-details --foundation scaffolding/foundation.tower` from the repository
+root. Both fixtures read the same Tower string. [Editor checks](../scaffolding/compiler/syntax_source_cases/editor_test.tower) · [Snapshot check](../scaffolding/compiler/syntax_source_cases/snapshot_test.tower)

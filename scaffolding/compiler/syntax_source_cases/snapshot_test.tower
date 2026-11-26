@@ -1,11 +1,9 @@
-import .library.testing;
-import .backend.text;
-import syntax_source;
-import syntax_source_cases.input;
+import ..library.testing;
+import .syntax_source;
+import snapshot;
 
 test() {
-    var text = location_fixture();
-    var source = syntax_source_create(".tower/foundation.tower", text, backend_length(text));
+    var source = location_snapshot();
     assert(source is not null, "Create immutable source snapshot");
     defer syntax_source_release(source);
 
