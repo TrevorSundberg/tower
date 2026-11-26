@@ -121,6 +121,9 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
   add_test(NAME tower-target-registry-once COMMAND tower-target-once-tests)
   set_tests_properties(tower-target-registry-once PROPERTIES TIMEOUT 30 SKIP_RETURN_CODE 77)
   include("${CMAKE_CURRENT_LIST_DIR}/TowerWorkPolicyTests.cmake")
+  if(work_triple MATCHES "^x86_64-.*linux")
+    tower_work_fixture(entity_create_result OFF)
+  endif()
   if(TOWER_SANITIZER STREQUAL "thread")
     # Deliberately invalid sensitivity control: explicit target only, never an
     # ordinary passing CTest. The unchanged probe needs the buffer provider.
@@ -165,7 +168,13 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
           SKIP_REGULAR_EXPRESSION "Target registry test requires at least two available CPUs")
       endforeach()
     endforeach()
+    set(entity_success --test-oracle "${CMAKE_CURRENT_SOURCE_DIR}/scaffolding/tests/entity_result_success.expected")
+    tower_work_native_selections(entity-create-result entity_create_result_fixture "1 test" "1 test"
+      ${entity_success} ${work_guest_args} --link "${entity-create-provider_OBJECT}" --link "${host_memory_OBJECT}")
     tower_work_native_selections(entity-component-layout entity_component_layout "9 tests" "4 tests" ${work_guest_args})
+    # The component-budget owner also selects the five work-budget declarations.
+    tower_work_native_selections(entity-component-budget entity_component_budget_fixture "7 tests" "2 tests"
+      ${entity_success} ${work_guest_args} --link "-Wl,--export-dynamic-symbol=work_thread_entry")
     # Both arena owners also discover the five budget declarations.
     tower_work_native_selections(work-arena work_arena "7 tests" "2 tests" ${work_guest_args})
     tower_work_native_selections(work-arena-linkage work_arena_linkage "6 tests" "1 test"
@@ -199,9 +208,6 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
       --test-oracle "${affinity_oracle}" ${work_guest_args} --link "${affinity_transport}")
     tower_work_native_selections(work-dispatch-result work_dispatch_result "8 tests" "3 tests"
       ${work_guest_args} --link "${work-dispatch-transport_OBJECT}" --link "${host_work_dispatch_OBJECT}")
-  endif()
-  if(work_triple MATCHES "^x86_64-.*linux")
-    tower_work_fixture(entity_create_result OFF)
   endif()
 endif()
 
