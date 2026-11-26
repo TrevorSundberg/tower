@@ -153,6 +153,9 @@ if(TOWER_WORK_TESTS AND TOWER_NATIVE AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
     tower_work_native_selections(entity-create-result entity_create_result_fixture "1 test" "1 test"
       ${entity_success} ${work_guest_args} --link "${entity-create-provider_OBJECT}" --link "${host_memory_OBJECT}")
     tower_work_native_selections(entity-component-layout entity_component_layout "9 tests" "4 tests" ${work_guest_args})
+    # The component-budget owner also selects the five work-budget declarations.
+    tower_work_native_selections(entity-component-budget entity_component_budget_fixture "7 tests" "2 tests"
+      ${entity_success} ${work_guest_args} --link "-Wl,--export-dynamic-symbol=work_thread_entry")
     # Both arena owners also discover the five budget declarations.
     tower_work_native_selections(work-arena work_arena "7 tests" "2 tests" ${work_guest_args})
     tower_work_native_selections(work-arena-linkage work_arena_linkage "6 tests" "1 test"

@@ -1,0 +1,41 @@
+import tower;
+import .library.entities;
+import .library.entity_types;
+import .library.entity_stage;
+import .library.work_budget;
+import .library.work_budget_types;
+import .library.work_pool;
+import .host.memory;
+import .host.work_linux;
+import .host.work_dispatch;
+
+extern fn pthread_self(): usize;
+extern fn backtrace(frames: void**, capacity: i32): i32;
+extern fn backtrace_symbols_fd(frames: void**, count: i32, descriptor: i32): void;
+extern fn puts(text: u8*): i32;
+extern fn fflush(stream: void*): i32;
+extern fn abort(): void;
+
+enum PageDisposition: u32 { Publish, Cancel, Deny }
+var PageBudgetBytes: usize = 1048576;
+var PageLargeBytes: usize = 32768;
+var PageStressRounds: usize = 8;
+struct PagePayload { target: Entity*; ordinal: usize; }
+struct PageState { coordinator: usize; finalized: usize; }
+struct PageJob {
+    stage: EntityStage*;
+    parent: Entity*;
+    type: Entity*;
+    large_type: Entity*;
+    target: Entity*;
+    first: EntityComponent*;
+    last: EntityComponent*;
+    large: EntityComponent*;
+    entered: void*;
+    release: void*;
+    thread: usize;
+    rows: usize;
+    holds: usize;
+    error: WorkBudgetError;
+    cancelled: bool;
+}

@@ -119088,3 +119088,11 @@ The same error variable survives disposal of the first store and the finite-ID
 trial on the next. The callback still traps on any finalization. The two
 selection paths passed with one declaration at each compiler width (1 and 4),
 including the two-byte output oracle. The original executable also passed.
+
+The component-budget owner exposes the original page/job types and host
+declarations. Its companion owns both original trial bodies, the worker and
+the finalizer. The executable still runs the serial checks before eight
+rounds of publish, cancel and denial at two and four pthreads. The owner
+selects seven declarations including five from work_budget. Direct selection
+runs the two page trials. All five native registrations passed with the
+production allocator, including the original stdout on both widths.
