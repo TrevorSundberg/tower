@@ -107394,3 +107394,24 @@ adapter. The generated profile retained all 192 entries, with only the two
 aggregate commands changed. The full-owner and 31 negative diagnostic results
 above apply to the worker's published-base checkout. The merged compiler and
 its larger set of discovered companions still need their full-owner run.
+
+### Test inventory reconciliation at 4b2685e5
+
+Host 3 compared all 2,066 paths at tree `728ce71b` with the 2,027-path
+`91b3e1f8` census, its 28 archived tables and the 64-entry playground
+module inventory. CMake generation and CTest listing across 20 profiles
+identified 14 additional names. Playwright listing identified four additional
+project registrations. The retained temporal aggregate names 17 children.
+The byte and nested examples also contain assertions and ran separately
+under Node.
+
+From the exact source archive on Linux x64, the opt-in build linked only the
+narrow ABI target and its dependencies for the focused CTest. The pinned
+compiler executed all eight direct companion selections and their owners at
+one worker. Two direct requests reported zero tests. The export, compiled
+caller and host-side comparisons are recorded separately in receipt
+`3743bc35-f63e-4008-a365-8c5bd2b494fc`. It also retains commands, source
+hashes, conditional and generated registrations, and the initial configure
+failures. The full native, CI and browser suites were outside this inventory.
+The correction changes documentation only, so runtime performance and memory
+comparisons do not apply.
