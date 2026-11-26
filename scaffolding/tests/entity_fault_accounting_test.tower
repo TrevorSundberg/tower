@@ -1,0 +1,35 @@
+import library.testing;
+import .library.entity_types;
+import .library.work_budget;
+import .library.work_buffer_types;
+
+fn entity_fault_assert_store(store: EntityStore*): void {
+    assert(store.budget != null, "The censused store has a budget");
+    assert(store.views == 0, "Close all views before counting physical owners");
+}
+
+fn entity_fault_assert_buffer(buffer: WorkBuffer*): void {
+    assert(buffer.data != null, "A counted buffer has backing storage");
+}
+
+fn entity_fault_assert_receipt(budget: WorkBudget*, receipt: WorkReservation*, bytes: usize): void {
+    assert(work_budget_validate_result(budget, receipt) == WorkBudgetError.None,
+        "The allocation receipt is live in the owning budget");
+    assert(receipt.lanes == 0, "A physical allocation reserves no worker lanes");
+    assert(receipt.bytes == bytes, "The receipt charges the full physical allocation size");
+}
+
+fn entity_fault_assert_page(page: EntityComponentPage*, pool: EntityComponentPool*): void {
+    assert(page.owner == pool, "The page belongs to the pool being counted");
+    assert(page.live != 0 && page.live <= page.capacity, "The page has live slots within its capacity");
+}
+
+fn entity_fault_assert_table(table: EntityTable*): void {
+    assert(table.pending == 0, "A published table has no pending reservations at census time");
+}
+
+fn entity_fault_assert_totals(bytes: usize, receipts: usize, budget: WorkBudget*): void {
+    assert(bytes == budget.used_bytes, "Physical allocation bytes equal the budget charge");
+    assert(receipts == budget.live, "Each physical allocation accounts for one live receipt");
+    assert(budget.used_lanes == 0, "The serial allocation census holds no worker lanes");
+}
