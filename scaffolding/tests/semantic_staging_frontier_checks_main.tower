@@ -1,0 +1,6 @@
+import tower;
+import semantic_staging_frontier_checks as fixture;
+
+export fn main(): i32 {
+    return fixture.main();
+}

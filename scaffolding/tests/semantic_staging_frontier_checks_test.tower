@@ -1,0 +1,423 @@
+import library.testing;
+import .compiler.semantic_query_api;
+import .compiler.semantic_context_types;
+import .compiler.semantic_program_types;
+import .compiler.semantic_evaluation_types;
+import .compiler.semantic_work_ids;
+import .compiler.compiler_kernel;
+import .compiler.foundation_tags;
+import .compiler.component_kinds;
+import .compiler.parser_types;
+import .library.work_graph;
+import .library.work_pool;
+import .library.work_budget_types;
+
+extern fn sem_lifecycle_queries_pump(c: SemanticContext*): SemanticPumpResult;
+extern fn compiler_world_create_workers(workers: usize): void*;
+extern fn compiler_world_store(world: void*): void*;
+extern fn compiler_world_dispose(world: void*): bool;
+extern fn compiler_node_world(node: void*): void*;
+extern fn compiler_world_component(world: void*, node: void*, kind: u32): void*;
+extern fn entity_create(store: void*): void*;
+extern fn puts(message: u8*): i32;
+extern fn entity_register(kind: void*, size: usize, alignment: usize, flags: u32): bool;
+extern fn sem_member(node: void*, name: u8*): void*;
+extern fn work_kernel_execute(payload: void*): void;
+
+enum StagingCase: u32 { Healthy, LowerFailure, EvaluationFailure, Cancelled, Count }
+var StagingMalformedDepth: usize = 130;
+var StagingWaitRepetitions: usize = 3;
+
+// Invocation-owned probes rendezvous only in the parallel fixture; the ordinary
+// production kernel still executes every operation. No shared mutable counter.
+struct StagingProbe { arrived: void*; peer: void*; calls: usize; }
+
+fn staging_kernel(payload: void*): void {
+    var kernel = bits(CompilerKernel*, payload);
+    if kernel.kind == CompilerKernelKind.Evaluate {
+        var invocation = bits(IMInvocation*, kernel.payload);
+        var kind = sem_member(invocation.context.root, "staging_probe");
+        if kind != null {
+            var probe = bits(StagingProbe*, entity_component_data(entity_component_get(invocation.context.root, kind)));
+            if probe.calls++ == 0 && probe.arrived != null {
+                work_signal_post(probe.arrived);
+                work_signal_wait(probe.peer);
+            }
+        }
+    }
+    work_kernel_execute(payload);
+}
+
+fn staging_probe(result: SemanticEvaluation*): StagingProbe* {
+    result.function = staging_node(result.subject, KFunction, 41);
+    var kind = sem_create(result.function);
+    sem_require(entity_attach(kind, result.function, "staging_probe")
+        && entity_register(kind, sizeof(StagingProbe), alignof(StagingProbe), 0));
+    var probe = bits(StagingProbe*, entity_component_data(entity_component_add(result.function, kind)));
+    sem_require(probe != null);
+    *probe = default;
+    return probe;
+}
+
+fn staging_check(ok: bool, message: u8*, failures: u32*): void {
+    if !ok { puts(message); (*failures)++; }
+}
+
+fn staging_node(owner: void*, kind: u32, offset: usize): void* {
+    var node = sem_create(owner);
+    var value = sem_attach(node, kind);
+    value.start = offset;
+    value.type = { scalar: SI32, pointers: 0, record: null, pointer_bytes: convert(u32, sizeof(void*)) };
+    var syntax = bits(ParserMatchData*, compiler_world_component(compiler_node_world(node), node, CompilerParserMatch));
+    sem_require(syntax != null);
+    syntax.start = offset;
+    return node;
+}
+
+fn staging_number(owner: void*, number: u64): void* {
+    var node = staging_node(owner, KOperand, 0);
+    sem_get(node).constant = true;
+    sem_get(node).bits = number;
+    return node;
+}
+
+fn staging_function(c: SemanticContext*, offset: usize): void* {
+    var subject = staging_node(c.program.root, KFunction, offset);
+    var function = sem_get(subject);
+    function.type.scalar = SVoid;
+    function.index = c.program.functions.length;
+    function.body = staging_node(subject, KBlock, offset);
+    sem_require(entity_attach(function.body, subject, "body"));
+    sem_push(&c.program.functions, subject);
+    return subject;
+}
+
+fn staging_gate(c: SemanticContext*, subject: void*, query: SemanticQuery): usize {
+    var id = work_request(&c.queries, subject, convert(u32, query), 0);
+    sem_require(id != 0 && work_seal(&c.queries, id) && work_demand(&c.queries, id));
+    return id;
+}
+
+fn staging_complete(c: SemanticContext*, id: usize): void {
+    var ticket: WorkTicket = default;
+    sem_require(work_take_task(&c.queries, &ticket, id) && work_finish(&c.queries, &ticket, true));
+}
+
+fn staging_value(c: SemanticContext*, owner: void*, input: void*, requested: bool, inferred: bool, gate: usize): SemanticEvaluation* {
+    var subject = staging_node(c.program.root, KOperand, 41);
+    sem_get(subject).constant = true;
+    var result = bits(SemanticEvaluation*, entity_component_data(entity_component_add(subject, c.evaluation_results)));
+    sem_require(result != null);
+    *result = default;
+    result.subject = subject;
+    result.literal = subject;
+    result.owner = owner;
+    result.expression = input;
+    result.requested = requested;
+    result.inferred = inferred;
+    result.ready = bits(IMDependency*, entity_component_data(entity_component_add(subject, c.evaluation_ready)));
+    sem_require(result.ready != null);
+    *result.ready = default;
+    result.ready.subject = subject;
+    result.kernel.kind = CompilerKernelKind.Evaluate;
+    result.kernel.payload = bits(void*, &result.invocation);
+    sem_push(&c.evaluation_jobs, bits(void*, result));
+    var query = work_request(&c.queries, subject, convert(u32, SemanticQuery.Evaluation), 0);
+    sem_require(query != 0 && (gate == 0 || work_depend(&c.queries, query, gate)));
+    sem_evaluation_request(c, result);
+    return result;
+}
+
+fn staging_increment_before_wait(c: SemanticContext*, result: SemanticEvaluation*, dependency: void*): void {
+    // Canonical Foundation owns a local increment before the executed read.
+    // Resuming must retain the initialized local and its increment.
+    result.expression = null;
+    if result.function == null { result.function = staging_node(result.subject, KFunction, 41); }
+    var function = sem_get(result.function);
+    function.frame_size = sizeof(i32);
+    function.body = staging_node(result.function, KBlock, 41);
+    var block = sem_get(function.body);
+    var counter = staging_node(result.function, KDeclare, 41);
+    sem_get(counter).value = staging_number(result.function, 0);
+    sem_push(&function.locals, counter);
+    sem_push(&block.items, counter);
+    var read = staging_node(result.function, KOperand, 41);
+    sem_get(read).binding = counter;
+    var increment = staging_node(result.function, KBinary, 41);
+    sem_get(increment).op = OAdd;
+    sem_get(increment).left = read;
+    sem_get(increment).right = staging_number(result.function, 1);
+    var assign = staging_node(result.function, KAssign, 41);
+    sem_get(assign).target = read;
+    sem_get(assign).value = increment;
+    sem_push(&block.items, assign);
+    var sum = staging_node(result.function, KBinary, 41);
+    sem_get(sum).op = OAdd;
+    sem_get(sum).left = dependency;
+    sem_get(sum).right = read;
+    var returned = staging_node(result.function, KReturn, 41);
+    sem_get(returned).value = sum;
+    sem_push(&block.items, returned);
+}
+
+fn staging_lazy_branch(result: SemanticEvaluation*, untaken: void*): void {
+    result.function = staging_node(result.subject, KFunction, 41);
+    var function = sem_get(result.function);
+    function.body = staging_node(result.function, KBlock, 41);
+    var branch = staging_node(result.function, KIf, 41);
+    var condition = sem_get(branch);
+    condition.value = staging_number(result.function, 1);
+    sem_get(condition.value).type.scalar = SBool;
+    condition.body = staging_node(result.function, KBlock, 41);
+    condition.otherwise = staging_node(result.function, KBlock, 41);
+    var selected = staging_node(result.function, KReturn, 41);
+    sem_get(selected).value = staging_number(result.function, 42);
+    var skipped = staging_node(result.function, KReturn, 41);
+    sem_get(skipped).value = untaken;
+    sem_push(&sem_get(condition.body).items, selected);
+    sem_push(&sem_get(condition.otherwise).items, skipped);
+    sem_push(&sem_get(function.body).items, branch);
+}
+
+fn staging_drain(c: SemanticContext*): SemanticPumpResult {
+    var state = sem_lifecycle_queries_pump(c);
+    while state == SemanticPumpResult.Progress { state = sem_lifecycle_queries_pump(c); }
+    return state;
+}
+
+fn staging_capture(c: SemanticContext*, owner: void*, known: void*, required: void*): void* {
+    if c.value_inputs == null {
+        c.value_inputs = sem_create(c.program.root);
+        sem_require(entity_register(c.value_inputs, sizeof(IMValueInput), alignof(IMValueInput), 0));
+    }
+    var declaration = staging_node(c.program.root, KDeclare, 41);
+    sem_get(declaration).global = owner == null;
+    var input = bits(IMValueInput*, entity_component_data(entity_component_add(declaration, c.value_inputs)));
+    sem_require(input != null);
+    *input = { owner: owner, producer: required, known_producer: known, ..default };
+    var read = staging_node(c.program.root, KOperand, 41);
+    sem_get(read).binding = declaration;
+    return read;
+}
+
+fn staging_trial(workers: usize, mode: StagingCase, optional: bool): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    sem_evaluation_begin(&c);
+    var owner = staging_function(&c, 7);
+    var later = staging_function(&c, 17);
+    var body_gate = staging_gate(&c, later, SemanticQuery.Body);
+    var producer_gate = staging_gate(&c, staging_node(root, KOperand, 31), SemanticQuery.Body);
+    staging_complete(&c, staging_gate(&c, root, SemanticQuery.KnownProof));
+    staging_complete(&c, staging_gate(&c, root, SemanticQuery.KnownSnapshot));
+    var producer = staging_value(&c, owner, staging_number(root, 41), false, optional, producer_gate);
+    var division = staging_node(root, KBinary, 41);
+    sem_get(division).op = ODiv;
+    sem_get(division).left = staging_number(root, 1);
+    sem_get(division).right = staging_number(root, 0);
+    var unused = staging_value(&c, owner, division, false, false, 0);
+    var consumer = staging_value(&c, owner, null, true, optional, 0);
+    var dependency = optional ? staging_capture(&c, owner, producer.subject, unused.subject) : producer.subject;
+    var callee: void* = null;
+    if optional {
+        callee = staging_function(&c, 23);
+        sem_get(callee).type.scalar = SI32;
+        var function: SemanticEvaluation = { subject: callee, function: callee, ..default };
+        staging_increment_before_wait(&c, &function, dependency);
+        staging_complete(&c, staging_gate(&c, callee, SemanticQuery.Body));
+        var call = staging_node(root, KCall, 41);
+        sem_get(call).binding = callee;
+        consumer.expression = call;
+    } else { staging_increment_before_wait(&c, consumer, dependency); }
+    var independent = staging_value(&c, owner, null, true, optional, 0);
+    var dormant = staging_node(root, KFunction, 41);
+    sem_get(dormant).body = staging_node(dormant, KBlock, 41);
+    var returned = staging_node(dormant, KReturn, 41);
+    sem_get(returned).value = unused.subject;
+    sem_push(&sem_get(sem_get(dormant).body).items, returned);
+    var untaken = staging_node(root, KCall, 41);
+    sem_get(untaken).binding = dormant;
+    staging_lazy_branch(independent, untaken);
+    var owned = staging_value(&c, later, staging_number(root, 42), true, optional, 0);
+    var inferred = staging_value(&c, owner, staging_number(root, 42), true, true, 0);
+    var module: SemanticEvaluation* = null;
+    if optional {
+        module = staging_value(&c, root, staging_capture(&c, null, producer.subject, unused.subject), true, true, 0);
+    }
+    var fallback = staging_value(&c, owner, division, true, true, 0);
+    sem_get(fallback.subject).start = 37;
+    var bad: SemanticEvaluation* = null;
+    if mode == StagingCase.LowerFailure || mode == StagingCase.EvaluationFailure {
+        var invalid = staging_node(root, KBinary, 41);
+        sem_get(invalid).op = ODiv;
+        sem_get(invalid).left = staging_number(root, 1);
+        sem_get(invalid).right = staging_number(root, 0);
+        bad = staging_value(&c, owner, invalid, true, false, 0);
+    }
+    if mode == StagingCase.LowerFailure {
+        c.has_defer = true;
+        var parent = sem_get(later).body;
+        for(var depth: usize = 0; depth < StagingMalformedDepth; depth++) {
+            var child = staging_node(parent, KBlock, 17);
+            sem_push(&sem_get(parent).items, child);
+            parent = child;
+        }
+    }
+    if mode == StagingCase.Cancelled { work_cancel(&c.queries); }
+    var state = staging_drain(&c);
+    if mode == StagingCase.Cancelled {
+        staging_check(state == SemanticPumpResult.Failed && program.resource.error == WorkBudgetError.Invalid,
+            "Cancelled lifecycle entry fails before dispatch", &failures);
+    } else {
+        var lower = work_find(&c.queries, later, convert(u32, SemanticQuery.Lowering), 0);
+        staging_check(state == SemanticPumpResult.Waiting && program.error.length == 0 && independent.ready.ready
+            && !independent.ready.failed && sem_get(independent.subject).bits == 42
+            && !consumer.ready.ready && consumer.started && !owned.ready.ready && inferred.ready.ready
+            && !inferred.ready.failed && sem_get(inferred.subject).bits == 42
+            && work_task(&c.queries, lower).state == WorkState.Waiting,
+            "Required and inferred stages progress before unrelated lowering while executed inputs wait", &failures);
+        staging_check(fallback.ready.ready && fallback.ready.failed && fallback.error.length == 0,
+            "Optional interpreter failure retains runtime fallback without a required diagnostic", &failures);
+        if optional {
+            var executable = work_find(&c.queries, callee, convert(u32, SemanticQuery.ExecutableFunction), 0);
+            staging_check(executable != 0 && work_task(&c.queries, executable).state == WorkState.Succeeded
+                && consumer.invocation.state.frame_count == 2 && !module.ready.ready
+                && !consumer.invocation.context.type_arguments && !consumer.invocation.context.construct_types,
+                "Inferred calls request executable inputs and suspend inside their own frame without required capabilities", &failures);
+        }
+        var count = c.count;
+        var steps = consumer.invocation.state.steps;
+        var memory = consumer.invocation.state.memory.data;
+        var frames = consumer.invocation.state.frame_count;
+        for(var repeat: usize = 0; repeat < StagingWaitRepetitions; repeat++) {
+            staging_check(sem_lifecycle_queries_pump(&c) == SemanticPumpResult.Waiting && c.count == count
+                && !consumer.ready.ready && consumer.invocation.state.steps == steps
+                && consumer.invocation.state.memory.data == memory && consumer.invocation.state.frame_count == frames
+                && program.error.length == 0,
+                "Repeated waits retain interpreter effects and source-error priority", &failures);
+        }
+        if bad != null {
+            staging_check(bad.ready.failed && bad.error.length != 0 && program.error.length == 0,
+                "Executed stage failure stays private until lowering diagnostics settle", &failures);
+        }
+        staging_complete(&c, producer_gate);
+        state = staging_drain(&c);
+        staging_check(state == SemanticPumpResult.Waiting && consumer.ready.ready && !consumer.ready.failed
+            && sem_get(consumer.subject).bits == 42 && !owned.ready.ready && inferred.ready.ready
+            && work_task(&c.queries, lower).state == WorkState.Waiting,
+            "Executed nested producer resumes exactly-once prefix before the blanket lowering join", &failures);
+        if optional {
+            staging_check(module.ready.ready && !module.ready.failed && sem_get(module.subject).bits == 41,
+                "Module and foreign local captures use only optional known producers, including coincident local offsets", &failures);
+        }
+        var unused_query = work_find(&c.queries, unused.subject, convert(u32, SemanticQuery.Evaluation), 0);
+        staging_check(!work_task(&c.queries, unused_query).demanded && unused.function == null && !unused.started,
+            "Untaken staged branch creates no producer demand or effects", &failures);
+        staging_check(work_find(&c.queries, dormant, convert(u32, SemanticQuery.ExecutableFunction), 0) == 0,
+            "Untaken call creates no executable dependency in either inference policy", &failures);
+        staging_complete(&c, body_gate);
+        state = staging_drain(&c);
+        if mode == StagingCase.Healthy {
+            staging_check(state == SemanticPumpResult.Complete && owned.ready.ready && !owned.ready.failed
+                && sem_get(owned.subject).bits == 42 && inferred.ready.ready && !inferred.ready.failed
+                && sem_get(inferred.subject).bits == 42, "Owning lowering releases its remaining stage", &failures);
+        } else {
+            staging_check(state == SemanticPumpResult.Failed && program.error.length != 0
+                && program.error_offset == (mode == StagingCase.LowerFailure ? 17 : 41),
+                "Lowering retains priority over executed stage errors; completed lowering exposes stage failure", &failures);
+        }
+    }
+    var final_state = state;
+    var tasks = c.queries.tasks.length;
+    for(var repeat: usize = 0; repeat < StagingWaitRepetitions; repeat++) {
+        staging_check(sem_lifecycle_queries_pump(&c) == final_state && c.queries.tasks.length == tasks
+            && c.workers.running == 0 && c.queries.running == 0,
+            "Terminal lifecycle calls neither replay work nor retain running tickets", &failures);
+    }
+    sem_context_dispose(&c);
+    semantic_program_dispose(&program);
+    entity_release(root);
+    staging_check(compiler_world_dispose(world), "Staging frontier releases its world", &failures);
+    return failures;
+}
+
+fn staging_ready_frontier(workers: usize, optional: bool): u32 {
+    var failures: u32 = 0;
+    var world = compiler_world_create_workers(workers);
+    sem_require(world != null);
+    var root = entity_create(compiler_world_store(world));
+    var program: SemanticProgram = default;
+    semantic_initialize(&program, root, convert(u32, sizeof(void*)));
+    var c: SemanticContext = default;
+    sem_context_init(&c, &program);
+    c.generics = generic_begin(root);
+    c.source = "";
+    c.surface_expressions = true;
+    sem_evaluation_begin(&c);
+    staging_complete(&c, staging_gate(&c, root, SemanticQuery.KnownProof));
+    staging_complete(&c, staging_gate(&c, root, SemanticQuery.KnownSnapshot));
+    var owner = staging_function(&c, 7);
+    var last = owner;
+    while program.functions.length <= SemanticPreparationWindow {
+        last = staging_function(&c, program.functions.length);
+    }
+    var result = staging_value(&c, owner, staging_number(root, 42), true, optional, 0);
+    var peer = staging_value(&c, owner, staging_number(root, 43), true, optional, 0);
+    var first = staging_probe(result);
+    var second = staging_probe(peer);
+    if workers > 1 {
+        first.arrived = work_signal_open();
+        second.arrived = work_signal_open();
+        first.peer = second.arrived;
+        second.peer = first.arrived;
+        sem_require(first.arrived != null && second.arrived != null);
+    }
+    sem_require(work_pool_open_kernel(&c.workers, workers, staging_kernel));
+    if workers > 1 { sem_require(c.workers.threaded && c.workers.count > 1); }
+    var state = sem_lifecycle_queries_pump(&c);
+    var pending = work_find(&c.queries, last, convert(u32, SemanticQuery.Lowering), 0);
+    staging_check(state == SemanticPumpResult.Progress && result.ready.ready && !result.ready.failed
+        && sem_get(result.subject).bits == 42 && peer.ready.ready && !peer.ready.failed
+        && sem_get(peer.subject).bits == 43 && first.calls == 1 && second.calls == 1
+        && work_task(&c.queries, pending).state == WorkState.Ready,
+        "Ready stage finishes before the remaining ready lowering frontier without an artificial dependency", &failures);
+    staging_check(staging_drain(&c) == SemanticPumpResult.Complete && c.queries.running == 0 && c.workers.running == 0,
+        "Remaining ready lowering refills and joins within the shared budget", &failures);
+    sem_context_dispose(&c);
+    if first.arrived != null { work_signal_close(first.arrived); }
+    if second.arrived != null { work_signal_close(second.arrived); }
+    semantic_program_dispose(&program);
+    entity_release(root);
+    staging_check(compiler_world_dispose(world), "Ready frontier releases its world", &failures);
+    return failures;
+}
+
+test() { assert(staging_trial(1, StagingCase.Healthy, false) == 0); }
+test() { assert(staging_trial(4, StagingCase.Healthy, false) == 0); }
+test() { assert(staging_trial(1, StagingCase.Healthy, true) == 0); }
+test() { assert(staging_trial(4, StagingCase.Healthy, true) == 0); }
+test() { assert(staging_trial(1, StagingCase.LowerFailure, false) == 0); }
+test() { assert(staging_trial(4, StagingCase.LowerFailure, false) == 0); }
+test() { assert(staging_trial(1, StagingCase.LowerFailure, true) == 0); }
+test() { assert(staging_trial(4, StagingCase.LowerFailure, true) == 0); }
+test() { assert(staging_trial(1, StagingCase.EvaluationFailure, false) == 0); }
+test() { assert(staging_trial(4, StagingCase.EvaluationFailure, false) == 0); }
+test() { assert(staging_trial(1, StagingCase.EvaluationFailure, true) == 0); }
+test() { assert(staging_trial(4, StagingCase.EvaluationFailure, true) == 0); }
+test() { assert(staging_trial(1, StagingCase.Cancelled, false) == 0); }
+test() { assert(staging_trial(4, StagingCase.Cancelled, false) == 0); }
+test() { assert(staging_trial(1, StagingCase.Cancelled, true) == 0); }
+test() { assert(staging_trial(4, StagingCase.Cancelled, true) == 0); }
+test() { assert(staging_ready_frontier(1, false) == 0); }
+test() { assert(staging_ready_frontier(4, false) == 0); }
+test() { assert(staging_ready_frontier(1, true) == 0); }
+test() { assert(staging_ready_frontier(4, true) == 0); }
