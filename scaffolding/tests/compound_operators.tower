@@ -1,0 +1,12 @@
+import tower;
+
+// Record the order in which a compound assignment evaluates its place and value.
+fn destination(T: type, place: T*, trace: i32*): T* {
+    *trace = *trace * 10 + 1;
+    return place;
+}
+
+fn operand(T: type, value: T, trace: i32*): T {
+    *trace = *trace * 10 + 2;
+    return value;
+}

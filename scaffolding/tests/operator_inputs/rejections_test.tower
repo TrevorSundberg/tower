@@ -1,0 +1,48 @@
+import rejections;
+
+test() {
+    expect_rejection("operator_inputs/bool_postfix",
+    "This operation requires integer operands");
+    expect_rejection("increment/literal_place",
+    "Operator requires an addressable location");
+    expect_rejection("operator_inputs/integer_not",
+    "Expected bool, got i32; use an explicit conversion");
+    expect_rejection("operator_inputs/mixed_width_add",
+    "Expected u8, got u32; use an explicit conversion");
+    expect_rejection("operator_inputs/bool_shift",
+    "This operation requires integer operands");
+    expect_rejection("operator_inputs/void_increment",
+    "Cannot offset a void pointer");
+    expect_rejection("operator_inputs/void_add",
+    "Cannot offset a void pointer");
+    expect_rejection("operator_inputs/void_load",
+    "Cannot load a void pointer");
+    expect_rejection("operator_inputs/pointer_multiply",
+    "Only += and -= (or ??=) apply to pointers");
+    expect_rejection("operator_inputs/void_conditional",
+    "A void call cannot be used as a value");
+    expect_rejection("syntax_invalid/operator_arrow",
+    "Unexpected '>'. Expected Identifier, Number, '&', '{', '(', '-', among other valid continuations.");
+    expect_rejection("operator_inputs/i32_overflow",
+    "Integer literal out of range for i32");
+    expect_rejection("operator_inputs/i32_underflow",
+    "Integer literal out of range for i32");
+    expect_rejection("operator_inputs/i64_overflow",
+    "Integer literal out of range for i64");
+    expect_rejection("operator_inputs/i64_underflow",
+    "Integer literal out of range for i64");
+    expect_rejection("operator_inputs/magnitude_overflow",
+    "Integer literal out of range");
+    expect_rejection("operator_inputs/integer_logical_or",
+    "Logical compound assignment requires bool operands");
+    expect_rejection("operator_inputs/integer_logical_and",
+    "An integer literal needs an integer type");
+    expect_rejection("operator_inputs/scalar_coalesce_assign",
+    "Null-coalescing assignment requires a pointer location");
+    expect_rejection("operator_inputs/scalar_coalesce",
+    "Null coalescing requires a pointer or null-conditional access");
+    expect_rejection("operator_inputs/nullable_scalar",
+    "A null-conditional scalar result must be consumed with ??; nullable scalar storage is not supported");
+    expect_rejection("operator_inputs/nonpointer_receiver",
+    "Null-conditional access requires a pointer receiver");
+}

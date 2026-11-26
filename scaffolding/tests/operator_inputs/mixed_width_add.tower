@@ -1,0 +1,6 @@
+import tower;
+
+print(123);
+var a: u8 = 1;
+var b: u32 = 2;
+a += b;

@@ -1,0 +1,5 @@
+import tower;
+
+print(123);
+var p: void* = null;
+p += 1;

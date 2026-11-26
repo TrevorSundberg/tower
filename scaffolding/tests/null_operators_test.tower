@@ -1,0 +1,9 @@
+import library.test_fixtures;
+
+test() {
+    var actual = fixture_stdout("null_operators.tower");
+    defer free(actual.data);
+    var wanted = fixture_text("null_operators.expected");
+    defer free(wanted.data);
+    assert(fixture_equal(actual, wanted), "null_operators output differs from null_operators.expected");
+}

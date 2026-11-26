@@ -1,0 +1,143 @@
+import compound_operators;
+import library.testing;
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left + right;
+    var trace = 0;
+    *destination(&left, &trace) += operand(right, &trace);
+    assert(left == binary_result, "+= result");
+    assert(trace == 12, "+= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left -right;
+    var trace = 0;
+    *destination(&left, &trace) -= operand(right, &trace);
+    assert(left == binary_result, "-= result");
+    assert(trace == 12, "-= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left *right;
+    var trace = 0;
+    *destination(&left, &trace) *= operand(right, &trace);
+    assert(left == binary_result, "*= result");
+    assert(trace == 12, "*= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left / right;
+    var trace = 0;
+    *destination(&left, &trace) /= operand(right, &trace);
+    assert(left == binary_result, "/= result");
+    assert(trace == 12, "/= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left % right;
+    var trace = 0;
+    *destination(&left, &trace) %= operand(right, &trace);
+    assert(left == binary_result, "%= result");
+    assert(trace == 12, "%= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left << right;
+    var trace = 0;
+    *destination(&left, &trace) <<= operand(right, &trace);
+    assert(left == binary_result, "<<= result");
+    assert(trace == 12, "<<= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left >> right;
+    var trace = 0;
+    *destination(&left, &trace) >>= operand(right, &trace);
+    assert(left == binary_result, ">>= result");
+    assert(trace == 12, ">>= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left >>> right;
+    var trace = 0;
+    *destination(&left, &trace) >>>= operand(right, &trace);
+    assert(left == binary_result, ">>>= result");
+    assert(trace == 12, ">>>= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left &right;
+    var trace = 0;
+    *destination(&left, &trace) &= operand(right, &trace);
+    assert(left == binary_result, "&= result");
+    assert(trace == 12, "&= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left ^ right;
+    var trace = 0;
+    *destination(&left, &trace) ^= operand(right, &trace);
+    assert(left == binary_result, "^= result");
+    assert(trace == 12, "^= operand evaluation");
+}
+
+test() {
+    var left: i32 = -17;
+    var right: i32 = 3;
+    var binary_result = left | right;
+    var trace = 0;
+    *destination(&left, &trace) |= operand(right, &trace);
+    assert(left == binary_result, "|= result");
+    assert(trace == 12, "|= operand evaluation");
+}
+
+test() {
+    var left: bool = true;
+    var right: bool = false;
+    var binary_result = left && right;
+    var trace = 0;
+    *destination(&left, &trace) &&= operand(right, &trace);
+    assert(left == binary_result, "&&= result");
+    assert(trace == 12, "&&= operand evaluation");
+}
+
+test() {
+    var left: bool = false;
+    var right: bool = true;
+    var binary_result = left || right;
+    var trace = 0;
+    *destination(&left, &trace) ||= operand(right, &trace);
+    assert(left == binary_result, "||= result");
+    assert(trace == 12, "||= operand evaluation");
+}
+
+test() {
+    var number = 42;
+    var left: i32* = null;
+    var right: i32* = &number;
+    var binary_result = left ?? right;
+    var trace = 0;
+    *destination(&left, &trace) ??= operand(right, &trace);
+    assert(left == binary_result, "??= result");
+    assert(trace == 12, "??= operand evaluation");
+}

@@ -1,0 +1,19 @@
+import library.testing;
+import backend.text;
+
+extern fn operator_execute(path: u8*): usize;
+
+extern fn operator_text(field: u8*): u8*;
+
+extern fn operator_output_length(): usize;
+
+fn expect_rejection(path: u8*, diagnostic: u8*): void {
+    var steps = operator_execute(path);
+    var status = operator_text("status");
+    defer free(status);
+    var error = operator_text("error");
+    defer free(error);
+    assert(backend_equal(status, "error"), path);
+    assert(steps == 0 && operator_output_length() == 0, path);
+    assert(backend_equal(error, diagnostic), diagnostic);
+}
