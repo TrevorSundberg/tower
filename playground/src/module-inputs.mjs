@@ -44,6 +44,14 @@ export function moduleInputs(exports, initial = {}, context = {}) {
   }
   return {
     environment, configure,
+    createTests(suffix, width) {
+      if (!exports.tw_exec_create_tests) throw new Error('This compiler has no playground test entry point');
+      if (suffix?.includes('\0')) throw new Error('Invalid test suffix');
+      return text(state.entry, entry => {
+        const create = pointer => exports.tw_exec_create_tests(environment, entry, pointer, width);
+        return suffix ? text(suffix, create) : create(0);
+      });
+    },
     // The wrapper's imports resolve from its own path, even when its
     // dependency is the active editor. The request keeps its entry on failure.
     installFoundation(source) {

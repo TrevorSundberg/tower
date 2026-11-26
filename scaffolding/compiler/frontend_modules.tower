@@ -1011,6 +1011,26 @@ export fn frontend_test_selection_open(selection: TestFileSelection*, rule: Test
     return module_path(entry, &path) && test_file_selection_freeze(selection, rule, path.data);
 }
 
+// A virtual test request borrows the registered owner's bytes and temporarily
+// names it as the compile entry. Restore the caller's path after compilation.
+export fn frontend_modules_enter_test_root(environment: ModuleEnvironment*, selection: TestFileSelection*,
+    saved: vector(u8)*, length: usize*): u8* {
+    var path = test_file_selection_root(selection);
+    var input = module_registered_input(environment, path);
+    var next: vector(u8) = default;
+    if input == null || !node_text_set(&next, path) { vector_dispose(&next); return null; }
+    *saved = environment.entry;
+    environment.entry = next;
+    *length = input.text.length;
+    return input.text.data;
+}
+
+export fn frontend_modules_leave_test_root(environment: ModuleEnvironment*, saved: vector(u8)*): void {
+    vector_dispose(&environment.entry);
+    environment.entry = *saved;
+    *saved = default;
+}
+
 export fn frontend_modules_test_input_root(world: void*, environment: ModuleEnvironment*, selection: TestFileSelection*,
     error: WorkBudgetError*): FrontendModule* {
     var path = test_file_selection_root(selection);

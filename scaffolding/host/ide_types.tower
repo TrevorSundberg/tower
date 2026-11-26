@@ -3,7 +3,7 @@ import .library.bytes_types;
 import .library.vector;
 import .compiler.host_handle_types;
 import .compiler.semantic_program_types;
-import .compiler.interpreter_types;
+import .compiler.execution_session;
 import .library.work_vector_types;
 
 // Transport ownership only. Programs own ordinary Foundation entity roots;
@@ -14,11 +14,8 @@ struct IdeParser {
 }
 
 struct IdeExecution {
-    machine: IMState;
-    program: SemanticProgram;
-    fast: void*;
-    error: work_vector(u8);
-    output: work_vector(u8);
+    // The interpreter callbacks receive the first member's machine.
+    execution: ExecutionSession;
     handle: u32;
 }
 
