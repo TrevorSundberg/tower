@@ -120612,3 +120612,7 @@ measure registration cost and give no compiler-worker scaling result. Coverage
 is Node execution of the production Wasm images. No browser UI, native
 sanitizer, or release rebuild ran for these test-only changes. Manager
 integration and publication remain separate.
+
+### Moving the Wasm keyword and name styling expectations into Tower
+
+The original two Node registrations inspect highlights returned by the shipped parser. The selected Tower tests read the spelling, kind and revision of those same spans, keeping the subject parser separate from the assertion VM. The declaration-boundary case checks all three classifications of `for` and the whole identifier `forest`. The name-style case checks the names and keywords in a real source fixture, exact grammar-name and capture counts, and identifier styling in the incomplete import. On the control host both subject programs matched the original JavaScript source expressions byte for byte and the revised Node module passed its syntax check. Execution, mutation controls and measurements on the released portable and shared compilers are pending worker verification.

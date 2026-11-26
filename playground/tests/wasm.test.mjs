@@ -24,11 +24,16 @@ test('all native node, parser and syntax tests also pass in WASM without excepti
 });
 // The assertion VM reads the same public parser records as the other Wasm
 // tests in this file. Parsing another input replaces the current record.
-let parsed;
-const fixtures = new Map(Object.entries({example, base, loop}));
+let parsed, parsedSource;
+const fixtures = new Map(Object.entries({example, base, loop,
+  names:await readFile(new URL('wasm_grammar_cases/highlight_names.tower', import.meta.url), 'utf8'),
+}));
 const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_fixture: (c, name) => moduleText(c, fixtures.get(guestString(c, name))),
-  grammar_parse(c, input) { parsed = analyze(guestString(c, input)); },
+  grammar_parse(c, input) {
+    parsedSource = guestString(c, input);
+    parsed = analyze(parsedSource);
+  },
   grammar_end_text: (c, field) => moduleText(c, parsed.end[guestString(c, field)]),
   grammar_end_revision: () => numberField(parsed.end.revision),
   grammar_events: () => parsed.events.length,
@@ -40,50 +45,22 @@ const grammarCase = selectedCases('wasm_grammar_cases', {
   grammar_keywords: () => parsed.snapshot.keywords.length,
   grammar_keyword: (c, i) => moduleText(c, parsed.snapshot.keywords[i]),
   grammar_highlights: () => parsed.snapshot.highlights.length,
+  grammar_highlight_text(c, i) {
+    const {start, end} = parsed.snapshot.highlights[i];
+    return moduleText(c, parsedSource.slice(start, end));
+  },
+  grammar_highlight_revision: (_, i) => numberField(parsed.snapshot.highlights[i].revision),
   grammar_highlight_kind: (c, i) => moduleText(c, parsed.snapshot.highlights[i].kind),
   grammar_highlight_offset: (c, i, field) => numberField(parsed.snapshot.highlights[i][guestString(c, field)]),
 });
 async function checkGrammar(name) {
   try { await grammarCase(name); }
-  finally { parsed = undefined; }
+  finally { parsed = undefined; parsedSource = undefined; }
 }
 test('real example crosses eight grammar revisions and retains named nested captures', () => checkGrammar('revisions'));
 test('construct lookahead continues shared prefixes, preserves boundaries and reports real conflicts', () => checkGrammar('lookahead'));
-test('keyword classification follows declaration boundaries, including removal and whole words', () => {
-  const source = base + 'for;' + loop + 'for(x in xs){}' +
-    "parse ForEach = 'walk' '(' $Variable 'in' $Expression ')' '{' $Statement* '}';" +
-    'for;forest;walk(x in xs){}';
-  const { end, snapshot } = analyze(source);
-  assert.equal(end.status, 'done');
-  assert.deepEqual(snapshot.highlights.filter(t => source.slice(t.start,t.end) === 'for').map(t => [t.kind,t.revision]),
-    [['identifier',4],['keyword',6],['identifier',7]]);
-  assert.equal(snapshot.highlights.find(t => source.slice(t.start,t.end) === 'forest').kind, 'identifier');
-});
-
-test('names keep identifier styling while actual keywords, grammar names and captures stay distinct', () => {
-  const source = 'import tower; import library.vector;\n' +
-    'token Label = /@[a-z]+/ as identifier;\n' +
-    "parse Name = $value:Identifier;\n" +
-    'struct Record { field: i32; }\n' +
-    'fn identity(parameter: i32): i32 { return parameter; }\n' +
-    'var local: i32 = identity(42); print(local);';
-  const {end,snapshot} = analyze(source);
-  assert.equal(end.status,'done',end.error);
-  const kinds = text => snapshot.highlights.filter(span=>source.slice(span.start,span.end)===text).map(span=>span.kind);
-  for (const name of ['tower','library','vector','identifier','Record','field','i32','identity','parameter','local','print'])
-    assert.ok(kinds(name).length && kinds(name).every(kind=>kind==='identifier'),name+': '+kinds(name));
-  for (const word of ['import','token','as','parse','struct','fn','return','var'])
-    assert.ok(kinds(word).length && kinds(word).every(kind=>kind==='keyword'),word+': '+kinds(word));
-  assert.deepEqual(kinds('Label'),['rule']);
-  assert.deepEqual(kinds('Name'),['rule']);
-  assert.deepEqual(kinds('Identifier'),['rule']);
-  assert.deepEqual(kinds('value'),['capture']);
-  const incomplete = analyze('import tower; import missing.path');
-  assert.equal(incomplete.end.status,'error');
-  for (const span of incomplete.snapshot.highlights)
-    if (['tower','missing','path'].includes('import tower; import missing.path'.slice(span.start,span.end)))
-      assert.equal(span.kind,'identifier');
-});
+test('keyword classification follows declaration boundaries, including removal and whole words', () => checkGrammar('keyword_boundaries'));
+test('names keep identifier styling while actual keywords, grammar names and captures stay distinct', () => checkGrammar('name_styles'));
 test('highlight preview never consumes input or commits future declarations', () => {
   const handle = tower.create(base + loop + 'for(x in xs){}');
   try {

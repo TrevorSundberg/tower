@@ -1,0 +1,59 @@
+import session;
+import backend.text;
+
+struct Style {
+    word: u8*;
+    kind: u8*;
+    seen: usize;
+}
+
+fn collect_styles(styles: Style*, count: usize): void {
+    var highlights = grammar_highlights();
+    for (var i: usize = 0; i < highlights; i++) {
+        var word = grammar_highlight_text(i);
+        defer free(word);
+        for (var j: usize = 0; j < count; j++) {
+            if backend_equal(word, styles[j].word) {
+                var kind = grammar_highlight_kind(i);
+                defer free(kind);
+                assert(backend_equal(kind, styles[j].kind), word);
+                styles[j].seen++;
+                break;
+            }
+        }
+    }
+}
+
+test() {
+    var source = grammar_fixture("names");
+    defer free(source);
+    grammar_parse(source);
+    check_status("done");
+
+    var names: Style[11] = {
+        {"tower", "identifier", 0}, {"library", "identifier", 0}, {"vector", "identifier", 0},
+        {"identifier", "identifier", 0}, {"Record", "identifier", 0}, {"field", "identifier", 0},
+        {"i32", "identifier", 0}, {"identity", "identifier", 0}, {"parameter", "identifier", 0},
+        {"local", "identifier", 0}, {"print", "identifier", 0}
+    };
+    var keywords: Style[8] = {
+        {"import", "keyword", 0}, {"token", "keyword", 0}, {"as", "keyword", 0}, {"parse", "keyword", 0},
+        {"struct", "keyword", 0}, {"fn", "keyword", 0}, {"return", "keyword", 0}, {"var", "keyword", 0}
+    };
+    var grammar: Style[4] = {
+        {"Label", "rule", 0}, {"Name", "rule", 0}, {"Identifier", "rule", 0}, {"value", "capture", 0}
+    };
+    collect_styles(&names[0], sizeof(decltype(names)) / sizeof(Style));
+    collect_styles(&keywords[0], sizeof(decltype(keywords)) / sizeof(Style));
+    collect_styles(&grammar[0], sizeof(decltype(grammar)) / sizeof(Style));
+    foreach (var &name in &names) { assert(name.seen != 0, name.word); }
+    foreach (var &word in &keywords) { assert(word.seen != 0, word.word); }
+    foreach (var &rule in &grammar) { assert(rule.seen == 1, rule.word); }
+
+    grammar_parse("import tower; import missing.path");
+    check_status("error");
+    var partial: Style[3] = {
+        {"tower", "identifier", 0}, {"missing", "identifier", 0}, {"path", "identifier", 0}
+    };
+    collect_styles(&partial[0], sizeof(decltype(partial)) / sizeof(Style));
+}
