@@ -1,0 +1,34 @@
+import session;
+
+test() {
+    storage_file("src/a.tower", "hello");
+    drive_mount();
+    require_success();
+    assert(drive_type("src") == 3, "Mounted directory");
+    check_text(drive_text("src/a.tower"), "hello", "Mounted file");
+    var fd = drive_open("src/a.tower");
+    assert(fd == 4 && drive_has_fd(fd) && drive_fd_stat(fd) == 0, "Open descriptor");
+
+    storage_clear_files();
+    storage_file("main.tower", "other");
+    drive_mount();
+    require_success();
+    assert(!drive_has_file("src") && !drive_has_file("src/a.tower"), "Old directory and file removed");
+    assert(!drive_has_fd(fd) && drive_fd_stat(fd) == 8, "Retired descriptor");
+
+    storage_clear_files();
+    storage_file("../bad", "");
+    drive_mount();
+    check_text(storage_error(), "Invalid virtual file path: ../bad", "Rejected mount");
+    assert(drive_has_file("main.tower"), "Original drive survived rejection");
+
+    var live = drive_open("main.tower");
+    storage_clear_files();
+    storage_file("partial.tower", "uncommitted");
+    storage_file("../bad", "");
+    drive_mount();
+    check_text(storage_error(), "Invalid virtual file path: ../bad", "Rejected partial mount");
+    assert(drive_file_count() == 2 && !drive_has_file("partial.tower"), "Partial mount discarded");
+    check_text(drive_text("main.tower"), "other", "Drive contents after rejection");
+    assert(drive_has_fd(live) && drive_fd_stat(live) == 0, "Live descriptor after refusal");
+}

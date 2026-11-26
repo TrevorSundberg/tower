@@ -1,0 +1,51 @@
+import library.testing;
+import backend.text;
+
+extern fn storage_clear_files(): void;
+extern fn storage_file(path: u8*, text: u8*): void;
+extern fn storage_fixture(name: u8*): u8*;
+extern fn storage_create(name: u8*): void;
+extern fn storage_link(name: u8*, fixture: u8*): void;
+extern fn storage_activate(path: u8*): void;
+extern fn storage_original_id(): u8*;
+extern fn storage_export(): void;
+extern fn storage_damage(offset: usize, mask: u8): void;
+extern fn storage_blob(text: u8*): void;
+extern fn storage_import(): void;
+extern fn storage_busy(): bool;
+extern fn storage_error(): u8*;
+extern fn storage_duplicate(): void;
+extern fn archive_count(group: u8*): usize;
+extern fn archive_key(group: u8*, index: usize): u8*;
+extern fn archive_file_fields(index: usize): usize;
+extern fn archive_file_text(index: usize): u8*;
+extern fn archive_file_size(index: usize): usize;
+extern fn archive_field(name: u8*): u8*;
+extern fn archive_builtin(name: u8*, original: bool): u8*;
+extern fn archive_link_length(name: u8*): usize;
+extern fn archive_link_byte(name: u8*, index: usize): u8;
+extern fn drive_mount(): void;
+extern fn drive_file_count(): usize;
+extern fn drive_has_file(path: u8*): bool;
+extern fn drive_type(path: u8*): u8;
+extern fn drive_text(path: u8*): u8*;
+extern fn drive_open(path: u8*): i32;
+extern fn drive_has_fd(fd: i32): bool;
+extern fn drive_fd_stat(fd: i32): i32;
+
+// All returned strings are copies in the assertion VM.
+fn check_text(value: u8*, wanted: u8*, label: u8*): void {
+    defer free(value);
+    assert(backend_equal(value, wanted), label);
+}
+
+fn import_archive(): void {
+    storage_import();
+    while storage_busy() {}
+}
+
+fn require_success(): void {
+    var error = storage_error();
+    defer free(error);
+    assert(*error == 0, error);
+}

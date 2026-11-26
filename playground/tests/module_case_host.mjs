@@ -2,7 +2,7 @@ import {readFileSync} from 'node:fs';
 import {after} from 'node:test';
 import {loadTower} from '../src/tower-host.mjs';
 import {copyText} from './guest_text.mjs';
-import {runSelectedTest} from './selected_test.mjs';
+import {selectedTestSteps} from './selected_test.mjs';
 
 // The Tower API uses NUL-terminated UTF-8. Reject embedded terminators so an
 // unexpected suffix in host output cannot disappear before an equality check.
@@ -24,7 +24,7 @@ export async function moduleHost(options = {}, wrapper = grammar.foundation) {
 }
 
 // Keep the assertion VM separate from the project whose loader is under test.
-export function selectedCases(directory, imports) {
+export function selectedCases(directory, imports, settle) {
   const root = new URL(directory + '/', import.meta.url);
   const prefix = 'playground/tests/' + directory + '/';
   const libraries = Object.fromEntries(['library/testing', 'backend/text', 'library/vector']
@@ -37,6 +37,7 @@ export function selectedCases(directory, imports) {
     const files = [entry, 'session.tower'].map(path => ({path:prefix + path, text:read(root, path)}));
     // Each entry belongs to a named Node registration. Collect its explicit
     // test body directly, without requiring a same-stem Tower production file.
-    runSelectedTest(checks, prefix + entry, chunks, {files, suffix:'_module_test.tower'});
+    const steps = selectedTestSteps(checks, prefix + entry, chunks, {files, suffix:'_module_test.tower'}, settle ? 8192 : undefined);
+    for (const _ of steps) { if (settle) await settle(); }
   };
 }

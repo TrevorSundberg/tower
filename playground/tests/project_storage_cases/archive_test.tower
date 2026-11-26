@@ -1,0 +1,137 @@
+import session;
+import backend.text;
+
+// Double the initialized prefix to build the original 7.7 MB UTF-8 input.
+fn repeated(unit: u8*, repetitions: usize, length: usize*): u8* {
+    var size = backend_length(unit);
+    *length = size * repetitions;
+    var data = alloc(u8, *length + 1);
+    assert(data != null, "Allocate Unicode input");
+    copy(data, unit, size);
+    while size < *length {
+        var next = *length - size;
+        if next > size { next = size; }
+        copy(data + size, data, next);
+        size += next;
+    }
+    data[*length] = 0;
+    return data;
+}
+
+// Both allocations start at word-aligned addresses. Compare the full byte
+// range, then the remaining bytes when its length is not a whole word.
+fn same_bytes(left: u8*, right: u8*, length: usize): bool {
+    var a = bits(u64*, left);
+    var b = bits(u64*, right);
+    var end = a + length / sizeof(u64);
+    while a != end {
+        if *a != *b { return false; }
+        ++a;
+        ++b;
+    }
+    for (var at = length - length % sizeof(u64); at < length; ++at) {
+        if left[at] != right[at] { return false; }
+    }
+    return true;
+}
+
+fn check_builtin(index: usize, name: u8*): void {
+    check_text(archive_key("builtins", index), name, "Builtin order");
+    var original = archive_builtin(name, true);
+    defer free(original);
+    check_text(archive_builtin(name, false), original, name);
+}
+
+// The importer uses manifest order to reconstruct the project. Also inspect
+// the exported ZIP directory and the local headers it actually references.
+extern fn archive_is_array(group: u8*): bool;
+extern fn archive_array_prototype(group: u8*): bool;
+extern fn archive_array_length(group: u8*): usize;
+extern fn archive_plain_record(group: u8*): bool;
+extern fn archive_plain_file(index: usize): bool;
+extern fn archive_byte_array(name: u8*): bool;
+extern fn archive_inspect_blob(): void;
+extern fn archive_size(): usize;
+extern fn archive_u16(at: usize): usize;
+extern fn archive_u32(at: usize): usize;
+extern fn archive_name(at: usize, length: usize): u8*;
+
+enum RecordSignature: u32 { Local = 67324752, Central = 33639248, End = 101010256 }
+
+fn check_zip_order(): void {
+    archive_inspect_blob();
+    while storage_busy() {}
+    var names: u8*[6];
+    names[0] = ".tower/project.json";
+    names[1] = ".tower/foundation.tower";
+    names[2] = ".tower/bedrock.tower";
+    names[3] = "src/main.tower";
+    names[4] = "data/large.txt";
+    names[5] = ".tower/links/fixture.o";
+
+    var end = archive_size() - 22;
+    assert(archive_u32(end) == convert(usize, RecordSignature.End) && archive_u16(end + 10) == sizeof(decltype(names)) / sizeof(u8*), "ZIP directory count");
+    var directory = archive_u32(end + 16);
+    var central = directory;
+    var local: usize = 0;
+    foreach (var name in &names) {
+        assert(archive_u32(central) == convert(usize, RecordSignature.Central) && archive_u32(central + 42) == local, "ZIP local record order");
+        var length = archive_u16(central + 28);
+        check_text(archive_name(central + 46, length), name, "ZIP directory name");
+        assert(archive_u32(local) == convert(usize, RecordSignature.Local), "ZIP local signature");
+        var local_length = archive_u16(local + 26);
+        check_text(archive_name(local + 30, local_length), name, "ZIP local name");
+        local += 30 + local_length + archive_u16(local + 28) + archive_u32(central + 20);
+        central += 46 + length + archive_u16(central + 30) + archive_u16(central + 32);
+    }
+    assert(local == directory && central == end, "Complete ZIP entry sequence");
+}
+
+test() {
+    var source = storage_fixture("src/main.tower");
+    defer free(source);
+    var size: usize;
+    var large = repeated("雪🚀", 1100000, &size);
+    defer free(large);
+    storage_file("src/main.tower", source);
+    storage_file("data/large.txt", large);
+    storage_create("Large project");
+    require_success();
+    storage_link("fixture.o", "fixture.bin");
+    storage_activate("data/large.txt");
+    var id = storage_original_id();
+    defer free(id);
+    storage_export();
+    import_archive();
+    require_success();
+
+    check_zip_order();
+    assert(archive_is_array("files"), "Imported files form an array");
+    assert(archive_array_prototype("files"), "Imported files have the Array prototype");
+    assert(archive_array_length("files") == 2, "Imported file array length");
+    assert(archive_count("files") == 2, "File count");
+    assert(archive_plain_file(0) && archive_plain_file(1), "Imported files have plain record prototypes");
+    check_text(archive_key("files", 0), "src/main.tower", "First file");
+    check_text(archive_key("files", 1), "data/large.txt", "Second file");
+    assert(archive_file_fields(0) == 2 && archive_file_fields(1) == 2, "File record fields");
+    check_text(archive_file_text(0), source, "Entry source");
+    var actual = archive_file_text(1);
+    defer free(actual);
+    assert(archive_file_size(1) == size, "Unicode byte length");
+    assert(same_bytes(actual, large, size), "Unicode file bytes");
+    assert(archive_plain_record("builtins"), "Builtins have a plain record prototype");
+    assert(archive_count("builtins") == 2, "Builtin count");
+    check_builtin(0, "foundation");
+    check_builtin(1, "bedrock");
+    assert(archive_plain_record("links"), "Links have a plain record prototype");
+    assert(archive_count("links") == 1, "Link count");
+    check_text(archive_key("links", 0), "fixture.o", "Link name");
+    assert(archive_byte_array("fixture.o"), "Imported link has the Uint8Array prototype");
+    assert(archive_link_length("fixture.o") == 3, "Link length");
+    assert(archive_link_byte("fixture.o", 0) == 0 && archive_link_byte("fixture.o", 1) == 255
+        && archive_link_byte("fixture.o", 2) == 3, "Binary link bytes");
+    check_text(archive_field("active"), "data/large.txt", "Active file");
+    var imported_id = archive_field("id");
+    defer free(imported_id);
+    assert(!backend_equal(imported_id, id), "New project ID");
+}

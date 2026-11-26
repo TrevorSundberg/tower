@@ -1,0 +1,38 @@
+import session;
+
+fn invalid_path(path: u8*): void {
+    storage_clear_files();
+    storage_file(path, "");
+    storage_create("bad");
+    check_text(storage_error(), "Use a relative file path, such as src/main.tower.", path);
+}
+
+test() {
+    invalid_path("../escape.tower");
+    invalid_path("/absolute");
+    invalid_path("a\\b");
+    invalid_path("a/../b");
+    invalid_path(".tower/project.json");
+    invalid_path("a//b");
+    invalid_path("C:/file");
+
+    storage_clear_files();
+    storage_file("a", "");
+    storage_file("a/b", "");
+    storage_create("bad");
+    check_text(storage_error(), "A file conflicts with a folder: a/b", "File/folder conflict");
+
+    storage_clear_files();
+    storage_create("ok");
+    require_success();
+    storage_export();
+    storage_damage(70, 1);
+    while storage_busy() {}
+    import_archive();
+    check_text(storage_error(), "Damaged ZIP entry: .tower/project.json", "Damaged archive");
+    storage_blob("invalid");
+    import_archive();
+    check_text(storage_error(), "Invalid project ZIP.", "Invalid archive");
+    storage_duplicate();
+    check_text(storage_error(), "Invalid or duplicate file: main.tower", "Duplicate file");
+}
