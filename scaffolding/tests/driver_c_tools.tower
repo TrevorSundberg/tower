@@ -1,0 +1,55 @@
+import tower;
+import driver;
+import driver_differentials;
+import .host.driver_support;
+import .host.driver_platform;
+import .library.bytes_types;
+import .library.bytes_interface;
+
+enum DriverCMode: u32 { Native, Profiles, Downloads }
+enum DriverCTool: usize { Clang, Gcc, ClangCpp, GccCpp, Count }
+struct DriverCValidation {
+    compiler: DriverDifferentials;
+    tools: u8**;
+    mode: DriverCMode;
+    results: ByteBuffer;
+    rows: usize;
+    checks: usize;
+    layout_checked: bool[2];
+}
+var DriverCProfileCount: usize = 2;
+var DriverCWidth32: usize = 32;
+var DriverCWidth64: usize = 64;
+
+fn driver_c_path(prefix: u8*, suffix: u8*): ByteBuffer {
+    var path: ByteBuffer = default;
+    driver_check(driver_text(&path, prefix) && driver_text(&path, suffix) && host_text_terminate(&path), "C artifact path");
+    return path;
+}
+
+fn driver_c_run(executable: u8*): DriverExecutionResult {
+    var args: DriverArguments = default; driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "./", executable);
+    return driver_execution_capture(&args);
+}
+
+fn driver_c_compile(context: DriverCValidation*, tool: DriverCTool, source: u8*, executable: u8*,
+    modern: bool, width: usize, optimize: bool): DriverExecutionResult {
+    var cpp = tool == DriverCTool.ClangCpp || tool == DriverCTool.GccCpp;
+    var args: DriverArguments = default; driver_arguments_init(&args);
+    defer driver_arguments_dispose(&args);
+    driver_argument(&args, "", context.tools[convert(usize, tool)]);
+    driver_argument(&args, "", "-x"); driver_argument(&args, "", cpp ? "c++" : "c");
+    driver_argument(&args, "-std=", modern ? (cpp ? "c++11" : "c99") : (cpp ? "c++98" : "c89"));
+    if modern {
+        driver_argument(&args, "", width == DriverCWidth32 ? "-m32" : "-m64");
+        if width == DriverCWidth32 { driver_argument(&args, "", "-malign-double"); }
+    }
+    driver_argument(&args, "", "-pedantic"); driver_argument(&args, "", "-Wall");
+    driver_argument(&args, "", "-Wextra"); driver_argument(&args, "", "-Werror");
+    driver_argument(&args, "", optimize ? "-O2" : "-O0");
+    driver_argument(&args, "", source); driver_argument(&args, "", "-o"); driver_argument(&args, "", executable);
+    driver_platform_remove(executable);
+    return driver_execution_capture(&args);
+}

@@ -1,77 +1,15 @@
 import tower;
-import driver_c_validation;
+import driver_c_tools;
 import driver;
 import .host.driver_support;
 import .library.bytes_types;
 import .library.bytes_interface;
 
-// Shared C-output fixtures; numeric literals here are deliberate boundary data.
-fn driver_c_integers(context: DriverCValidation*): void {
-    var types: u8*[5]; types[0] = "u8"; types[1] = "u32"; types[2] = "i32"; types[3] = "u64"; types[4] = "i64";
-    var values: u8*[5]; values[0] = "250"; values[1] = "4294967294"; values[2] = "-17";
-    values[3] = "18446744073709551614"; values[4] = "-5000000000";
-    var operators: u8*[14]; operators[0] = "+"; operators[1] = "-"; operators[2] = "*";
-    operators[3] = "/"; operators[4] = "%"; operators[5] = "&"; operators[6] = "|"; operators[7] = "^";
-    operators[8] = "=="; operators[9] = "!="; operators[10] = "<"; operators[11] = "<="; operators[12] = ">"; operators[13] = ">=";
-    var source: ByteBuffer = default; defer bytes_dispose(&source);
-    driver_check(driver_text(&source, "import foundation;\n"), "integer fixture language import");
-    var type_count: usize = 5; var operator_count: usize = 14;
-    for(var i: usize = 0; i < type_count; i++) {
-        var kind = types[i];
-        for(var j: usize = 0; j < operator_count; j++) {
-            driver_check(driver_text(&source, "{var a: ") && driver_text(&source, kind)
-                && driver_text(&source, " = ") && driver_text(&source, values[i])
-                && driver_text(&source, "; var b: ") && driver_text(&source, kind)
-                && driver_text(&source, " = 3; var c = a ") && driver_text(&source, operators[j])
-                && driver_text(&source, " b; print(c);}\n"), "integer fixture allocation");
-        }
-    }
-    driver_check(host_text_terminate(&source), "integer fixture terminator");
-    driver_c_case(context, "integers", source.data, true, false);
-}
-
-fn driver_c_file(context: DriverCValidation*, directory: u8*, name: u8*): void {
-    if context.mode != DriverCMode.Native || !driver_c_selected(context, name) { return; }
+fn driver_c_fixture(root: u8*, directory: u8*, name: u8*): ByteBuffer {
     var path: ByteBuffer = default; var source: ByteBuffer = default;
-    defer bytes_dispose(&path); defer bytes_dispose(&source);
-    driver_check(driver_text(&path, context.compiler.grammar) && driver_text(&path, directory)
+    defer bytes_dispose(&path);
+    driver_check(driver_text(&path, root) && driver_text(&path, directory)
         && driver_text(&path, name) && driver_text(&path, ".tower") && host_text_terminate(&path)
         && driver_read_file(path.data, &source) && host_text_terminate(&source), "read required C fixture");
-    driver_c_case(context, name, source.data, false, false);
-}
-
-fn driver_c_cases(context: DriverCValidation*): void {
-    driver_c_file(context, "/tests/", "language_enums");
-    driver_c_file(context, "/tests/", "backend_import_constants");
-    driver_c_file(context, "/tests/", "backend_void_returns_direct");
-    driver_c_file(context, "/tests/", "backend_unsigned_overflow");
-    driver_c_file(context, "/examples/", "execution");
-    driver_c_file(context, "/examples/", "functions");
-    driver_c_file(context, "/examples/", "structs");
-    driver_c_file(context, "/examples/", "memory");
-    driver_c_file(context, "/examples/", "inference");
-    driver_c_file(context, "/examples/", "templates");
-    driver_c_file(context, "/examples/", "collections");
-    driver_c_integers(context);
-    driver_c_case(context, "conversion", "import foundation; var a: i32 = -1; print(bits(u32,a)); print(convert(i64,a));\nvar b: i64 = -9223372036854775808; print(convert(i64,b)); print(convert(bool,b));\nvar c: u64 = 18446744073709551615; print(bits(i64,c)); print(convert(u8,42));\nvar p = alloc(u32, 3); p[0] = 42; var q = p + 2; q = q - 2; print(q[0]);\nvar address = bits(usize,p); var r = bits(u32*,address); print(r[0]); free(p);", true, false);
-    driver_c_case(context, "order", "import foundation; var state: i32; fn next(): i32 { state = state + 1; return state; } fn pair(a:i32,b:i32):i32 { var value = a * 10; value = value + b; return value; } print(pair(next(),next())); {var state:i32=7; print(state);} print(state);", false, false);
-    driver_c_case(context, "alias", "import foundation; struct Pair { first:u8; second:u64; } var value:Pair; value.second = 18446744073709551615; var raw = bits(u8*, &value.second); raw[0] = 1; print(value.second); print(sizeof(Pair)); print(alignof(Pair)); var bytes = alloc(u8,16); var unaligned = bytes + 1; var wide = bits(u64*,unaligned); *wide = 123456789; print(*wide); copy(bytes,unaligned,8); var bp=bits(u64*,bytes); print(*bp); free(bytes);", true, false);
-    driver_c_case(context, "comments", "import foundation; // carry source notes\nfn answer():i32 { /* nested note */ return 42; }\nprint(answer()); // trailing note\n", false, false);
-    driver_c_case(context, "labels", "import foundation; fn choose(x:bool):i32 { if x { jump(yes); } else { jump(no); } label(yes); return 1; label(no); return 2; } print(choose(false));", false, false);
-    driver_c_case(context, "pointers", "import foundation; var p:u8*=null; print(p); p=bits(u8*,convert(usize,4660)); print(p);", true, false);
-    driver_c_case(context, "constant_control", "import foundation; fn always():i32 { if true { return 42; } } fn forever():i32 { loop { if false { break; } return 17; } return 1; } fn dead():i32 { if false { jump(unused); } return 5; label(unused); return 9; } fn backwards():i32 { jump(last); label(first); return 7; label(last); jump(first); } print(always()); print(forever()); print(dead()); print(backwards());", true, false);
-    var long_text: ByteBuffer = default; defer bytes_dispose(&long_text);
-    driver_check(driver_text(&long_text, "import foundation; var text=\""), "long string fixture prefix");
-    var long_string_length: usize = 1200;
-    for(var i: usize = 0; i < long_string_length; i++) { driver_check(bytes_push(&long_text, *"x"), "long string fixture byte"); }
-    driver_check(driver_text(&long_text, "\"; print(text[1199]);") && host_text_terminate(&long_text), "long string fixture suffix");
-    driver_c_case(context, "long_string", long_text.data, false, false);
-    driver_c_case(context, "signed_rounding", "import foundation; var a:i64=-17; var b:i64=-3; var q=a/b; var r=a%b; print(q); print(r); a=17; q=a/b; r=a%b; print(q); print(r);", true, false);
-    driver_c_case(context, "signed_abi", "import foundation; export fn signed32(value:i32):i32 { return value; } export fn signed64(value:i64):i64 { return value; } print(signed32(-2147483648)); print(signed64(-9223372036854775808));", false, false);
-    driver_c_case(context, "comment_preprocessing", "import foundation; // trigraph ??/ and trailing \\\nprint(42);\n", false, false);
-    driver_c_case(context, "trap_zero", "import foundation; var a = 1 / 0;", false, true);
-    driver_c_case(context, "trap_overflow", "import foundation; var a = -2147483648 / -1;", false, true);
-    driver_c_case(context, "trap_overflow64", "import foundation; var a:i64=-9223372036854775808; var b = a % -1;", false, true);
-    driver_c_case(context, "trap_range", "import foundation; var a:i32=-1; print(convert(u32,a));", false, true);
-    driver_c_case(context, "trap_range64", "import foundation; var a:u64=18446744073709551615; print(convert(i64,a));", false, true);
+    return source;
 }

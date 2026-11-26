@@ -1,7 +1,6 @@
 import tower;
 import driver;
 import driver_differentials;
-import driver_c_validation;
 import driver_measure_timings;
 import .host.driver_support;
 import .host.driver_platform;
@@ -9,6 +8,8 @@ import .library.bytes_types;
 import .library.bytes_interface;
 import .library.vector;
 import .library.sha256;
+
+extern fn host_json_quote(out: ByteBuffer*, source: u8*, length: usize): bool;
 
 enum MeasureCompare: u32 { None, Output, Product }
 struct MeasureMetric { name: ByteBuffer; values: vector(u64); }

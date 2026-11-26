@@ -122810,3 +122810,149 @@ five unrelated tests. The former direct commands exited at discovery in
 0.55–0.73 s. The added time buys execution of the original cases. Full
 per-process wall/user/system time, peak RSS and selected source locations
 are in the assignment archive. Publication belongs to the manager.
+### F13 foreign process transport on host 6
+
+Assignment `3f5b6836-6694-402d-8aa6-ef03c0a5b860` starts at published
+`2705094e8f55475a2c2261f76f155be8039c1448`. The recipient verified the
+archive and the six declared members against manifest SHA-256. M028/S108–109
+and M029/S110–116 cover the fixture matrix and its C/C++ comparisons.
+The original driver calls the common validator with a compiler and resource
+root for backend/profiles and with neither for downloads. The latter takes
+four existing browser files in the artifact directory. The measurement CLI
+is another caller of the C compilation helper.
+
+The formatter guest's five POSIX capture functions are shared with the
+ordinary driver. Raw C validation also needs the existing fork/execv/waitpid
+function, including its alarm, EINTR retry and negative signal results.
+Move that same implementation into the capture object. The ordinary POSIX
+entry already imports this object. The selected guest links the formatter's
+request service, which defines driver_errno. No Windows ABI changes.
+The private Release Ninja baseline used the checked-in Linux bootstrap,
+LLVM 19, one compiler job and four build lanes. A traced baseline completed
+448 C89/C++98 executions and 96 C99/C++11 executions, including all four
+32-bit hosted compiler drivers, at the assigned pin. These are case counts,
+excluding compiler launches and the three expected layout compile failures.
+
+### F13 case ownership and the two original dispatcher calls
+
+After `d54cf703`, the executable entry dispatches both original calls into
+the same Tower case code as direct guest selection. Keeping that dispatch
+at the executable entry keeps the C suites out of unrelated driver selection
+graphs, including formatter discovery through the measurement imports.
+`driver_c_cases_test.tower` owns the 28-case inventory, the five-by-fourteen
+integer program, its literal stdout and case/profile eligibility.
+`driver_c_validation_test.tower` owns variant ordering, the graph, fast and
+native references, byte/status comparisons, layout and coverage decisions.
+`driver_c_downloads_test.tower` uses the same compiler comparison with the
+original 42-newline, empty-stderr, zero-status reference. JSON recording
+still serializes native results for the MSVC consumer. The measurement
+caller retains its warning-free C compilation check. Source-file reading,
+argument construction, process creation and the real compilers stay at their
+existing boundaries. The 11 file-backed programs are read from the supplied
+resource root and copied into the work directory.
+
+Two initial builds diagnosed the measurement module's indirect JSON extern
+and an unsupported value operand to sizeof. An explicit declaration and
+sizeof(decltype(array)) restored the ordinary build. On host 6 all 1,092
+original backend child argv/status pairs and 231 profile pairs reproduced
+in order. Both CLIs reproduced baseline stdout and empty stderr. Backend
+also reproduced expected.json. The original graph-only reference now has
+a fast differential for each raw/optimized variant, adding 56 executions
+to backend and 24 to profiles. The installed direct profile guest already
+matched all 255 pairs and stdout, with its test location and count on stderr.
+
+### Host 6 F13 paired acceptance on the published pin
+
+On parent `2705094e`, `d54cf703` shares the process transport,
+`b1f09d27` owns the case migration and `3db2bb0f` registers the direct
+suites. The worker retained these local descendants for manager publication.
+No compiler, code generator, original file-backed program or todo content
+changed. All six recipient-side member sizes and hashes matched, as did the
+enclosing receipt. The incremental bundle, exact ancestry, manifest, original
+M028/M029 sources, S108–S116 crosswalk, command lines, compiler hashes,
+execve/wait4 traces, exit statuses, streams, generated fixtures and product
+checksums travel in the assignment packet.
+
+| Mode | Original child commands | Added fast runs | C/C++ executions | Matched product hashes |
+| --- | ---: | ---: | ---: | ---: |
+| Backend, 28 cases | 1,092 | 56 | 448 | 589 |
+| Profiles, six cases at two widths | 231 | 24 | 96 | 126 |
+| Downloads, four original browser C files | 64 | 0 | 32 | 37 |
+
+The original commands matched the migrated CLI in executable, argument
+sequence and exit status. The CLI and installed direct guest matched all
+1,467 child pairs including the new fast executions. Each route preserved
+the original stdout, native/guest trap exit codes, generated C and JSON.
+Direct success added only its test location and final count on stderr. The
+backend JSON SHA-256 was `d5b211d27975df3f86f12817f10ddeef641a1d6a1d198b11b9857b81448afe4a`.
+Clang/Clang++ 19.1.7 and GCC/G++ 12.2 each ran 112 backend builds, 24 profile
+builds and eight browser C builds. GCC also rejected both incompatible pointer
+widths and the misaligned 32-bit ABI with status 1 and the expected typedef
+diagnostics. The system lacked multilib development files. Digest-checked
+Debian packages extracted in a private prefix supplied headers and libraries
+to the four real compiler drivers for -m32. All four 32-bit binaries ran.
+
+Both entry points exited 1 for each of four independent changes. Changing the
+first integer result from 253 to 254 failed immediately after graph execution.
+Requesting x86-64 emission for the 32-bit variant produced TC_POINTER_BYTES 8
+in the saved C. Changing the expected GCC diagnostic failed after the real
+compiler rejected the layout. Expecting 43 from the immutable mobile C input
+failed after Clang compiled it and its executable returned 0 and printed 42.
+Restoration passed 16, 16, 16 and eight respective comparisons. Unknown case
+names and a native-only case under profiles failed on all routes. A filtered
+download used only the selected file and an empty download selection removed
+stale JSON. All 11 file-backed programs and four retained download inputs
+passed their original checksums after all runs.
+
+The host exposed 12 virtual cores (Xeon E5-2680 v4, affinity 0–11), CPU quota
+11.52 and 32,282,509,312 bytes cgroup memory. Warm filesystem, fresh process,
+Release, Clang/LLVM 19, x86-64 Linux. The selector used one compiler job unless
+stated. Child compiler arguments retain the original host-default job setting.
+Runs were serial across routes. The full traced baseline / migrated CLI /
+installed guest backend took 271.01 / 296.30 / 297.26 s wall and peaked at
+110,536 / 156,160 / 204,188 KiB. Profiles took 51.78 / 61.29 / 65.90 s and
+peaked at 107,532 / 118,336 / 205,812 KiB. Downloads took 12.65 / 12.12 /
+15.13 s and peaked at 105,560 / 105,812 / 204,724 KiB. These include ptrace.
+Generated code, raw compiler stderr and reference results were also checked in
+the observer-off filtered runs.
+
+The two counterbalanced CLI samples for backend/comments were 3.72, 3.76 s
+baseline and 4.14, 4.13 s migrated. For profiles/integers they were 4.88,
+4.84 s and 6.26, 6.29 s. The additional uncached fast requests account for
+extra work. On collections the standalone graph, fast raw and fast optimized
+children used 93,344, 155,904 and 110,968 KiB. On integers they used 74,992,
+118,940 and 82,148 KiB. The raw fast child reproduced the higher full CLI
+peak; direct selection also compiles its guest. The packet includes both
+CPU components, RSS and individual samples at selector widths one and four.
+No scheduler or ownership contract changed. No Tower allocation ledger was
+enabled during timings. An initial timing wrapper routed shell xtrace into
+captured stderr and failed comparison. Keeping that attempt separately and
+tracing to a dedicated descriptor restored exact comparison.
+
+The regular CTest direct backend and profile registrations ran complete with
+an inherited invalid filter, which the registrations clear. The existing
+formatter owner still passed its 16 tests. At one and four compiler jobs,
+selected comments took 6.37 and 6.34 s, and selected integer profiles took
+8.60 and 8.30 s. The Windows x64 object retained both driver_tests and
+driver_test_run_status. MSVC execution belongs to its separate Windows
+mode and was not exercised on this Linux host.
+
+Separate native address and thread sanitizer configurations built the real
+ordinary driver entry. Both completed backend/integers and profiles/integers
+on their first attempts, with the restored output and empty sanitizer stderr.
+The link maps identify the instrumented guest libc runtime and the aggregate
+containing the original POSIX fork/exec/wait transport. IR excerpts include
+the sanitizer calls in driver_test_run_status and the C test code. The child
+compiler, external C/C++ processes and installed native test guest used their
+ordinary binaries. This test runs sequential foreign child processes. It
+does not measure compiler-worker races. This repository has no separate
+Tower source UBSan instrumentation profile.
+
+The ordinary owner selection also completed with 19 tests (the three C
+companions, nine formatter tests and seven SHA-256 tests). Its stdout
+matched the concatenated original downloads, profiles and backend streams
+byte for byte. Its final expected.json matched the original backend file.
+The combined owner used a separate work directory containing copies of
+the four browser C files. Source discovery and all 19 reported locations
+are retained. Deployment and integration against later main belong to
+the manager.
