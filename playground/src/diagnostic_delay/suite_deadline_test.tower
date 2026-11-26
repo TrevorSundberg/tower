@@ -1,0 +1,18 @@
+import suite;
+import library.testing;
+
+test() {
+    edit(1);
+    update("editor", "first", 1);
+    advance(9999);
+    assert(published_is("[]"), "Hold the first revision before the deadline");
+    edit(2);
+    update("editor", "stale", 1);
+    update("editor", "second", 2);
+    advance(9999);
+    assert(timers_fired() == 0 && published_is("[]"), "Retire the old timer and restart the full delay");
+    advance(1);
+    assert(timers_fired() == 1 && published_is('[["editor","second"]]'), "Publish at the new deadline");
+    update("editor", "late current result", 2);
+    assert(published_is('[["editor","second"],["editor","late current result"]]'), "Publish late current replies immediately");
+}

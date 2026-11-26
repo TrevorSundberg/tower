@@ -1,0 +1,12 @@
+{
+  "method": "complete",
+  "source": "point.",
+  "cursor": 6,
+  "activePath": "main.tower",
+  "compilerRevision": 0,
+  "library": ".tower",
+  "foundation": "foundation",
+  "bedrock": "bedrock",
+  "builtins": {"tower": "tower"},
+  "files": [{"path": "lib.tower", "text": "struct Point { x:i32; }"}]
+}

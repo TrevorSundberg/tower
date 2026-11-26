@@ -112502,3 +112502,79 @@ file. The new one closed all 14 subjects and its assertion reactor. Allocation
 grants and source-level sanitizer coverage are unmeasured. These runs exercised
 the shipped Wasm under Node. They did not run a Chromium UI or rebuild an
 instrumented native compiler. The manager owns publication.
+
+### Completion request identity and diagnostic deadlines in selected Tower tests
+
+Assignment f75f7ab0 on host 3 started at public main `8fdfe15a`. All eight
+original names passed independently. The first bounded compilation of each
+suite rejected the reserved name `expected`. Using `wanted` allowed the first
+prediction and deadline cases to run. The production callers are
+`completion.mjs` and `app.mjs`. The two ES modules still provide their
+ordinary synchronous editor APIs.
+
+The `playground/src/completion_queries` and `diagnostic_delay` directories
+hold eight directly selected tests. The Node registrations reuse one reactor
+per suite. Tower supplies the edits, caller order, replies, elapsed intervals
+and expectations. The shared page fixture runs the production LanguageService
+up to its Worker boundary. Each query is identified by the service task ID
+found by reference equality with its returned request handle. Tests inspect
+the canceled task and the delivered null or answer object. A bounded guest
+can request a JavaScript microtask turn to observe a promise reaction. This
+also allows reply and reuse to occur within one turn. DiagnosticDelay uses its
+ordinary timeout handles under the Node test clock. Its publication stream is
+sampled before and after deadlines, reveal, successful clears and reset.
+
+The local Wasm build has SHA-256 `73660e4a…` and predates the test entry
+point. The cached published portable `41bb9b11…` and shared `72c882ee…`
+reactors from compiler source `8bc867b6` match the retained Pages manifest.
+The bounded selections used those public resources without a compiler build.
+
+At the first freeze `78b5a38b`, opening each assertion file directly selected
+one test in Wasm. Native `--list-test-files` enumerates discovered companions
+and returned an empty inventory for that form. Using `suite.tower` as the
+owner and one named suffix per case gives both frontends the same file
+selection. An explicit four-job native inventory listed `suite_exact_test.tower`
+and the bounded completion and deadline selections then passed in Node.
+
+On source `c55e91b5`, the transport supplies handles for JS values with zero
+reserved for null. The selected Tower tests compare the delivered handle with
+the worker's sent answer and check the null received after cancellation. Exact
+reuse covers a request still in flight, reuse in the same turn as the reply,
+and reuse after its promise reaction. Foreground priority runs with an idle
+worker and with a real warm request occupying it.
+
+The original and final eight Node filters each passed alone. Tracing each
+production module matched all four diagnostic operation/publication streams
+byte for byte. The four completion cases retained all 10, 54, 8 and 5 original
+synchronous observations in order, including payloads, keys, returned
+request/promise identity and cancellations. The production service teardown
+also rejects outstanding work when an input ends. Native companion discovery
+at jobs 1 and 4 listed each selected file alone. The Wasm collector reported
+one selected declaration in every combination of portable/shared reactor,
+four/eight-byte guest pointers and graph/fast execution (64 passes). Shared
+profile runs used a four-slot pool. The first shared bounds run using Node's
+isolated test launcher failed before compilation with invalid Worker execArgv.
+The same explicit V8 bounds switch passed when the files ran directly. Native
+bindings for these JavaScript host objects and source-level sanitizer builds
+were outside these checks.
+
+Reversing the exact request identity assertion and expecting two deadline
+callbacks instead of one each produced exit 1 at the selected Tower site.
+Restoration passed. The four targeted Node modules passed 12/12. The same
+candidate Playwright inputs and 89 identical built files as the final rebuild
+passed ten desktop/mobile checks at `c3e63036`. These cover prepared completion,
+a delayed worker launch, deadline restart, cursor departure and document reset.
+
+Host 3 used Node 24.22.3 on one AMD EPYC 7542 (32 cores/64 threads), CPU
+quota 1228800/100000 and cpuset 0–63. Six counterbalanced pairs ran one at a
+time under the host timing lock on CPU 24 with warm files and a fresh Node
+process per suite. The original and migrated eight-case batches had median
+wall 0.17/2.27 s, median user+system CPU 0.165/2.26 s and maximum RSS
+54,848/115,184 KiB, respectively. The new cost includes two portable reactor
+startups, eight selected compilations and the real service transport.
+Guest allocation counters were unavailable. The original tests used plain
+JavaScript and supplied no Tower compiler target. The measured candidate
+used four-byte target pointers and the fast interpreter. All timing processes
+returned zero. The assignment packet contains the source bundle, full
+name-to-companion mapping, commands, raw streams, paired timings, published
+reactor hashes and negative controls. The manager handles publication.

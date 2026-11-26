@@ -1,0 +1,17 @@
+import suite;
+import library.testing;
+
+test() {
+    edit(1);
+    update("editor", "parse", 1);
+    update("output", "runtime", 1);
+    assert(published_is("[]"), "Hold errors while the cursor stays");
+    reveal();
+    assert(published_is('[["editor","parse"],["output","runtime"]]'), "Release both channels at cursor departure");
+    update("native", "compile", 1);
+    var wanted = editor_fixture("departure.expected");
+    defer free(wanted);
+    assert(published_is(wanted), "Deliver the later reply immediately and preserve channel order");
+    advance(10000);
+    assert(timers_fired() == 0, "Revealing cancels the idle timer");
+}

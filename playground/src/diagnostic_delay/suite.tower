@@ -1,0 +1,17 @@
+import library.testing;
+import backend.text;
+
+extern fn edit(revision: i32): void;
+extern fn update(channel: u8*, message: u8*, revision: i32): void;
+extern fn reveal(): void;
+extern fn reset(revision: i32): void;
+extern fn advance(milliseconds: i32): void;
+extern fn timers_fired(): i32;
+extern fn publications(): u8*;
+extern fn editor_fixture(file: u8*): u8*;
+
+fn published_is(wanted: u8*): bool {
+    var actual = publications();
+    defer free(actual);
+    return backend_equal(actual, wanted);
+}
