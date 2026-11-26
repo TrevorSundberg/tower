@@ -1,0 +1,37 @@
+import tower;
+import .compiler.syntax_emission_types;
+import utility_checks;
+
+extern fn syntax_create(source: u8*, module: void*): void*;
+extern fn syntax_destroy(session: void*): void;
+extern fn syntax_native_bedrock(): void*;
+extern fn syntax_component_type(): void*;
+extern fn parser_rule_get_type(): void*;
+extern fn parser_reference_get_type(): void*;
+extern fn parser_string_get_type(): void*;
+extern fn parser_range_get_type(): void*;
+extern fn tower_test_buffer_count(): usize;
+extern fn tower_node_get_allocated_count(): usize;
+
+fn emission_test_context(): SyntaxEmissionInput {
+    var warm = syntax_create("", null);
+    utility_check(warm is not null, "Emission fixture initializes the host world");
+    syntax_destroy(warm);
+    var context: SyntaxEmissionInput = default;
+    context.root = syntax_native_bedrock(); context.syntax_kind = syntax_component_type();
+    context.rule_kind = parser_rule_get_type(); context.reference_kind = parser_reference_get_type();
+    context.string_kind = parser_string_get_type(); context.range_kind = parser_range_get_type();
+    utility_check(context.root is not null, "Emission fixture has Bedrock entities");
+    return context;
+}
+
+struct EmissionLiveCounts { buffers: usize; entities: usize; }
+
+fn emission_test_live_counts(): EmissionLiveCounts {
+    return { buffers: tower_test_buffer_count(), entities: tower_node_get_allocated_count() };
+}
+
+fn emission_test_check_released(before: EmissionLiveCounts): void {
+    utility_check(before.buffers == tower_test_buffer_count(), "Emission fixtures release their buffers");
+    utility_check(before.entities == tower_node_get_allocated_count(), "Emission fixtures release their entities");
+}

@@ -114356,3 +114356,125 @@ the launching shell. Individual outputs and exit codes were checked.
 The host receipt contains raw stdout/stderr, commands, failed attempts,
 source hashes, original/delivered objects, archive membership, guest ELFs and
 the local commit bundle. Manager integration and publication are pending.
+
+## Native syntax emission fixtures at 401c402e
+
+Host 3 audited the parser-only Release entry on the published
+`401c402e414ca889b1eeebdc91bf2053e02305cd`. The default Linux x64 compiler
+is the 841e48e5 build (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+The parser main's aggregate path provides the active Bedrock root and five
+component kinds and prints a nonzero emission status before its utility check.
+Its focused entry, also called by the native frontend emission selector,
+opens and destroys an empty syntax session, obtains the Bedrock and component
+handles, runs the entire suite twice and compares live buffer and entity
+counts across the second invocation.
+
+The late nullable/recursive FIRST and edited Z comparison uses
+`utility_check` directly. The six subsequent returns are 1 for the empty
+grammar and refusal walk, 2 for Bedrock, 3 for Bedrock with reserved helper
+names, 4 for mutually nullable rules and ordinary/reachable/Statement
+refusals, 5 for captured repetitions and optional exclusions with refusals,
+and 6 for two excluded sets sharing the 512-input corpus. The random group
+threads seed 1162692948 through 400 grammars and returns 100 plus the
+zero-based failed trial. The final template walk returns 502 for a buffer
+imbalance, 503 for a result/error or tree/ID mismatch and 501 for an
+unsuccessful otherwise conforming baseline. Zero indicates completion.
+The independent oracle uses linear name and FIRST sets over the same shared
+entities. The comparison checks the ordered production trees, name metadata,
+production indices and helper provenance. Both emissions, their roots and
+each fixture's private vectors and entity owner are released.
+
+The parser-only fragment compiles the fixture and oracle as separate Tower
+objects. The parser node unit supplies production emission over live
+entities, the template unit supplies hole construction, the syntax host
+supplies Bedrock and the parser-only memory archive supplies the serial
+failure-injecting allocator. The optional native frontend builds the same
+two test objects from its own CMake fragment. The migration must keep
+both existing exported entry contracts. Assignment
+`9e2207e9-a867-41f8-8cbd-ba5cb3ce1b1c` holds the exact link commands.
+
+The companion now has nine source-located cases. The first seven each run one
+fixed fixture, the eighth runs the seeded sequence once and the ninth checks
+template holes. Each selected case takes live buffer and entity counts after
+opening the real Bedrock context and checks them at return. The aggregate
+calls the same functions with its caller's context, preserves the original
+failure order and codes, and forwards the template result. The focused CLI
+continues to check the second complete pass. The production emitter,
+independent oracle, allocation refusal walks and template expectations retain
+their published source. The four new CTests reuse the existing native test
+runtime, selected-count checker and parser services DSO from the reader build.
+
+The original owner reported zero selected tests and its absent direct companion
+failed to load. After migration, both default inventories list only
+`tests/syntax_emission_test.tower`. Both selectors reported nine passes at
+jobs 1 and 4, with zero transitive tests. The owner imports type declarations
+such as `work_budget_types`, which has no companion at this revision.
+For the parser-only Release build, the replay is
+
+```sh
+cmake --build "$B" --target tower-parser-tests tower-reader-test-services
+ctest --test-dir "$B" -V -R '^(tower-emission-tests|tower-selected-syntax_emission(_test)?-jobs-[14])$'
+```
+
+The legacy focused CLI, its CTest and the full parser aggregate exited zero
+on both source versions. The CLI and full aggregate each reproduced their
+original stdout and stderr byte for byte. In a separate trace through the
+real entries, both baseline and migrated CLI invocations recorded the same
+400 trial indices and end states on each of their two passes. Each selected
+guest produced exactly one copy of those 400 rows (SHA-256
+`2bb8d8caa28f819f93dfb13055d26ac206c882ee902af0604f44da42eae9ca6a`).
+The first trial ended at 3972237511 and the last at 2811643849.
+
+In the first negative control, the separately compiled oracle returned false
+for the expected declaration start bit. The CLI aborted at its original FIRST
+check (134). Both selectors exited 1 at the FIRST assertion, line 65, column
+5. In the second control, the expected first template hole ID changed from
+3145728 to 3145729. The CLI aborted at the legacy fixture check, the full
+parser printed `Tower grammar emission test failed: 503`, and both selectors
+exited 1 at line 324, column 5. The legacy CTest exited 8 on each mutation.
+Restoring the inputs reproduced the original oracle object hash
+`68362b725b529dd17a9f7fc1025bc59c5b6751f84cdac111cc9560990709b4e9`.
+All five final parser-only registrations passed. The first small-unit compile
+had reported an unknown `entity_create_related`; the companion now imports
+its declaration module directly.
+
+On host 3, the AMD EPYC 7542 exposed 32 physical cores, 64 logical CPUs and
+a cgroup quota of 1228800/100000 (12.288 CPUs). Each process in the timing
+comparison had affinity 24–27. Runs used warm files, fresh processes, LLVM
+19, the verified Linux pin, Release parser objects for x86_64-pc-linux-gnu,
+and the host timing lock. There were no new throttled periods in the timing
+series. Before and after used the same parser build directory and flags.
+The legacy executable runs the guest serially. Selector width is the
+compiler's job limit; its linked guest also uses the serial test allocator.
+
+| Timed entry | Samples | Median wall s | Median user + system s | Highest observed peak RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Old focused CLI | 4 | 0.68 | 0.67 | 5664 |
+| Migrated focused CLI | 4 | 0.68 | 0.68 | 5716 |
+| Owner, jobs 1 | 3 | 1.16 | 1.15 | 117604 |
+| Owner, jobs 4 | 3 | 1.26 | 1.41 | 127640 |
+| Direct, jobs 1 | 3 | 1.16 | 1.15 | 117420 |
+| Direct, jobs 4 | 3 | 1.26 | 1.40 | 126480 |
+
+The legacy samples alternated which binary ran first in each pair. The
+selection timings include discovery, lowering, linking and child execution.
+Four compiler jobs took longer here. In a separate allocation probe around
+the two real aggregate calls, both versions made 1,320,512 allocations on
+the first pass and 1,320,492 on the second. All four calls returned zero
+with 1,996 live buffers and 1,017 entities on entry and exit. The production
+Tower linker rejected the probe's GNU `--wrap` option. Clang 19 linked that
+observation-only wrapper over the parser objects. Ordinary CLI and selector
+comparisons used the published Tower linker.
+
+The optional native frontend emission selector passed under ASan with leak
+detection and under initialized TSan. Each link map identifies
+`runtime-instrumented.o`, `tower_work_serial.o`, the cases and the oracle.
+Both sanitized IRs contain instrumentation in the random-grammar function.
+These checks cover serial lifetime and accesses; source-level Tower UBSan
+is unavailable. The packet retains build recipes, source dependencies,
+link maps, startup output, commands, per-process time/RSS and exit codes.
+The shared checkout's initial pull conflicted in previously committed browser
+work. Aborting that pull restored its previous main, and a separate local
+main at the assigned revision supplied this build. Integration with later
+published commits and deployment belong to the manager.

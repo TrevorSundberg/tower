@@ -1,0 +1,326 @@
+import tower;
+import .compiler.syntax_emission_types;
+import syntax_emission_api;
+import library.testing;
+import syntax_emission;
+import syntax_emission_context;
+import syntax_template;
+
+// Rules are swept in name order. A discovers its nullability through Z only
+// after GrammarDeclaration has visited A. Left receives 'right' from Right
+// on a later sweep. Neither nonnullable alternative can expose its tail.
+fn emission_test_late_first(context: SyntaxEmissionInput*): bool {
+    var fixture: EmissionFixture;
+    emission_test_init(&fixture, context, false);
+    defer emission_test_dispose(&fixture);
+    var root = emission_test_rule(&fixture, "GrammarDeclaration");
+    var sequence = emission_test_sequence(&fixture, root);
+    emission_test_term(&fixture, sequence, "A", false, 0, "");
+    emission_test_term(&fixture, sequence, "Left", false, 0, "");
+    emission_test_term(&fixture, sequence, "hidden", true, 0, "");
+    sequence = emission_test_sequence(&fixture, root);
+    emission_test_term(&fixture, sequence, "Stop", false, 0, "");
+    emission_test_term(&fixture, sequence, "tail", true, 0, "");
+    emission_test_one(&fixture, "A", "Z", false);
+    var left = emission_test_rule(&fixture, "Left");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, left), "Right", false, 0, "");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, left), "left", true, 0, "");
+    var right = emission_test_rule(&fixture, "Right");
+    sequence = emission_test_sequence(&fixture, right);
+    emission_test_term(&fixture, sequence, "Left", false, 0, "");
+    emission_test_term(&fixture, sequence, "again", true, 0, "");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, right), "right", true, 0, "");
+    var stop = emission_test_rule(&fixture, "Stop");
+    emission_test_term(&fixture, emission_test_sequence(&fixture, stop), "stop", true, convert(u8, EmissionTestRepeat.Plus), "");
+    var z = emission_test_rule(&fixture, "Z");
+    sequence = emission_test_sequence(&fixture, z);
+    emission_test_term(&fixture, sequence, "maybe", true, convert(u8, EmissionTestRepeat.Optional), "");
+    emission_test_term(&fixture, sequence, "many", true, convert(u8, EmissionTestRepeat.Star), "");
+    // Only A and Z are nullable. The independent fixed-point oracle checks
+    // every start flag: {maybe, many, left, right, stop}.
+    if !emission_test_compare(&fixture, null) { return false; }
+    var old_root = entity_create_related(fixture.owner);
+    defer entity_release(old_root);
+    fixture.input.root = old_root;
+    var old = syntax_emit(&fixture.input);
+    if old == null { return false; }
+    defer syntax_emission_destroy(old);
+
+    // Replacing Z with a required token makes Left unreachable from the start.
+    emission_test_one(&fixture, "Z", "fixed", true);
+    if !emission_test_compare(&fixture, null) { return false; }
+    var new_root = entity_create_related(fixture.owner);
+    defer entity_release(new_root);
+    fixture.input.root = new_root;
+    var current = syntax_emit(&fixture.input);
+    if current == null { return false; }
+    defer syntax_emission_destroy(current);
+    return emission_test_starts(old, "right") && !emission_test_starts(old, "fixed")
+        && !emission_test_starts(current, "right") && emission_test_starts(current, "fixed");
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_late_first(&context), "Late nullable prefix and recursive declaration FIRST set");
+    emission_test_check_released(live);
+}
+
+fn emission_test_empty(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, false);
+    var ok = emission_test_both(&f);
+    ok &&= emission_test_failures(&f, null);
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_empty(&context), "Empty grammar and allocation refusals");
+    emission_test_check_released(live);
+}
+
+fn emission_test_bedrock(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, true);
+    var ok = emission_test_both(&f);
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_bedrock(&context), "Bedrock production and oracle trees");
+    emission_test_check_released(live);
+}
+
+fn emission_test_reserved_names(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, true);
+    emission_test_reserve(&f, "document(0)");
+    emission_test_reserve(&f, "document(1)");
+    emission_test_reserve(&f, "repeat(2)");
+    emission_test_reserve(&f, "capture(4)");
+    emission_test_reserve(&f, "token set(3)");
+    emission_test_reserve(&f, "template(0)");
+    emission_test_reserve(&f, "token Identifier(1)");
+    emission_test_token(&f, "Number", false, false);
+    emission_test_token(&f, "Context", false, true);
+    emission_test_token(&f, "Ignored", true, false);
+    var rule = emission_test_rule(&f, "Statement");
+    var sequence = emission_test_sequence(&f, rule);
+    emission_test_term(&f, sequence, "Identifier", false, 42, "items");
+    emission_test_term(&f, sequence, "Number", false, 43, "numbers");
+    emission_test_term(&f, sequence, "!", true, 63, "");
+    emission_test_excluded(&f, sequence, 42, "body");
+    emission_test_term(&f, sequence, ";", true, 0, "");
+    var ok = emission_test_both(&f);
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_reserved_names(&context), "Reserved helper names and captures on Bedrock");
+    emission_test_check_released(live);
+}
+
+fn emission_test_recursive_refusals(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, false);
+    emission_test_token(&f, "Identifier", false, false);
+    emission_test_token(&f, "String", false, false);
+    emission_test_token(&f, "Context", false, true);
+    emission_test_one(&f, "GrammarDeclaration", "A", false);
+    emission_test_one(&f, "GrammarTokenDeclaration", "Identifier", false);
+    emission_test_one(&f, "GrammarSkipDeclaration", "skip", true);
+    var rule = emission_test_rule(&f, "A");
+    var sequence = emission_test_sequence(&f, rule);
+    emission_test_term(&f, sequence, "B", false, 63, "");
+    rule = emission_test_rule(&f, "B");
+    sequence = emission_test_sequence(&f, rule);
+    emission_test_term(&f, sequence, "A", false, 63, "");
+    sequence = emission_test_sequence(&f, rule);
+    emission_test_term(&f, sequence, "begin", true, 0, "");
+    rule = emission_test_rule(&f, "Statement");
+    sequence = emission_test_sequence(&f, rule);
+    emission_test_excluded(&f, sequence, 0, "");
+    emission_test_term(&f, sequence, ";", true, 0, "");
+    var ok = emission_test_both(&f);
+    ok &&= emission_test_failures(&f, null);
+    f.input.reachable = true;
+    ok &&= emission_test_failures(&f, null);
+    f.input.reachable = false;
+    ok &&= emission_test_failures(&f, "Statement");
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_recursive_refusals(&context), "Recursive declarations and reachable allocation refusals");
+    emission_test_check_released(live);
+}
+
+fn emission_test_repeated_capture(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, false);
+    emission_test_token(&f, "Identifier", false, false);
+    var rule = emission_test_rule(&f, "Statement");
+    var sequence = emission_test_sequence(&f, rule);
+    emission_test_term(&f, sequence, "Identifier", false, 43, "items");
+    emission_test_excluded(&f, sequence, 63, "");
+    var ok = emission_test_both(&f);
+    ok &&= emission_test_failures(&f, null);
+    ok &&= emission_test_failures(&f, "Statement");
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_repeated_capture(&context), "Repeated captures and optional excluded terminals");
+    emission_test_check_released(live);
+}
+
+fn emission_test_large_exclusions(context: SyntaxEmissionInput*): bool {
+    var f: EmissionFixture;
+    emission_test_init(&f, context, false);
+    emission_test_token(&f, "Identifier", false, false);
+    var rule = emission_test_rule(&f, "Statement");
+    var sequence = emission_test_sequence(&f, rule);
+    var first = emission_test_excluded(&f, sequence, 43, "a");
+    var second = emission_test_excluded(&f, sequence, 42, "b");
+    var item: u32 = 0;
+    for(; item != 512; item++) {
+        var text: u8[5];
+        text[0] = 120;
+        text[4] = 0;
+        var digit = item / 100;
+        digit = digit + 48;
+        digit = digit & 255;
+        text[1] = convert(u8, digit);
+        digit = item / 10;
+        digit = digit % 10;
+        digit = digit + 48;
+        digit = digit & 255;
+        text[2] = convert(u8, digit);
+        digit = item % 10;
+        digit = digit + 48;
+        digit = digit & 255;
+        text[3] = convert(u8, digit);
+        var owner = first;
+        var bit = item &1;
+        if bit != 0 {
+            owner = second;
+        }
+        emission_test_term(&f, owner, &text[0], true, 0, "");
+    }
+    var ok = emission_test_both(&f);
+    emission_test_dispose(&f);
+    return ok;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_large_exclusions(&context), "Two excluded terminal sets across 512 literals");
+    emission_test_check_released(live);
+}
+
+fn emission_test_random_grammars(context: SyntaxEmissionInput*): usize {
+    var trial: usize = 0;
+    var state: u32 = 1162692948;
+    while trial < 400 {
+        var f: EmissionFixture;
+        emission_test_init(&f, context, false);
+        f.random = state;
+        emission_test_token(&f, "Identifier", false, false);
+        emission_test_token(&f, "String", false, false);
+        emission_test_token(&f, "Number", false, false);
+        emission_test_token(&f, "Comment", true, false);
+        emission_test_token(&f, "Context", false, true);
+        emission_test_one(&f, "GrammarDeclaration", "R0", false);
+        emission_test_one(&f, "GrammarTokenDeclaration", "token", true);
+        emission_test_one(&f, "GrammarSkipDeclaration", "skip", true);
+        var count = emission_test_random(&f, 10);
+        count++;
+        var r: u32 = 0;
+        for(; r != count; r++) {
+            var name: u8[3];
+            name[0] = 82;
+            var ordinal = r + 48;
+            ordinal = ordinal & 255;
+            name[1] = convert(u8, ordinal);
+            name[2] = 0;
+            var rule = emission_test_rule(&f, &name[0]);
+            var alternatives = emission_test_random(&f, 3);
+            alternatives++;
+            var a: u32 = 0;
+            for(; a != alternatives; a++) {
+                var sequence = emission_test_sequence(&f, rule);
+                var terms = emission_test_random(&f, 5);
+                var t: u32 = 0;
+                for(; t != terms; t++) {
+                    var kind = emission_test_random(&f, 5);
+                    var repeat = emission_test_repeat(&f);
+                    var capture: u8[2];
+                    ordinal = t + 97;
+                    ordinal = ordinal & 255;
+                    capture[0] = convert(u8, ordinal);
+                    capture[1] = 0;
+                    if kind == 4 {
+                        emission_test_excluded(&f, sequence, repeat, &capture[0]);
+                    } else {
+                        var text: u8* = "Identifier";
+                        var literal = kind == 1;
+                        if literal {
+                            text = "literal";
+                        }
+                        if kind == 2 {
+                            text = "Context";
+                        }
+                        if kind == 3 {
+                            ordinal = emission_test_random(&f, count);
+                            ordinal = ordinal + 48;
+                            ordinal = ordinal & 255;
+                            name[1] = convert(u8, ordinal);
+                            text = &name[0];
+                        }
+                        emission_test_term(&f, sequence, text, literal, repeat, &capture[0]);
+                    }
+                }
+            }
+        }
+        emission_test_one(&f, "Statement", "R0", false);
+        var ok = emission_test_both(&f);
+        state = f.random;
+        emission_test_dispose(&f);
+        if !ok {
+            var failure = trial + 100;
+            return failure;
+        }
+        trial++;
+    }
+    return 0;
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(emission_test_random_grammars(&context) == 0, "400 seeded grammars match the independent oracle");
+    emission_test_check_released(live);
+}
+
+test() {
+    var context = emission_test_context();
+    var live = emission_test_live_counts();
+    assert(template_test_holes(&context) == 0, "Typed template hole names, terminal IDs and allocation refusals");
+    emission_test_check_released(live);
+}
