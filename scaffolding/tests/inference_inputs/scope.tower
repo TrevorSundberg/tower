@@ -1,0 +1,2 @@
+import foundation;
+fn f(a: u32): u32 { var result = a + 1; { var result = true; print(result); } return result; } var result = f(41); print(result);

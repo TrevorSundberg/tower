@@ -1,4 +1,4 @@
-// Browser boundaries used by the defer and forward-reference Tower tests.
+// Browser transport for language tests executed by real Tower and LLVM reactors.
 import {after} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
@@ -17,7 +17,7 @@ export async function openLLVM() {
   return loadLLVM(bytes, undefined, builtins.foundation);
 }
 
-function requireStatus(result, status) {
+export function requireStatus(result, status) {
   assert.equal(result.status, status, result.error && `${result.errorFile ?? 'input'} at byte ${result.errorOffset}: ${result.error}`);
   assert.ok(!result.outputTruncated, 'Truncated guest output');
 }

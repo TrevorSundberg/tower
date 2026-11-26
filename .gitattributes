@@ -1,6 +1,7 @@
 *.sh text eol=lf
 *.tower text eol=lf
 scaffolding/tests/*.expected text eol=lf
+scaffolding/tests/inference_inputs/*.expected text eol=lf
 CNAME text eol=lf
 
 # The project journal preserves concurrent append-only entries from each writer.
