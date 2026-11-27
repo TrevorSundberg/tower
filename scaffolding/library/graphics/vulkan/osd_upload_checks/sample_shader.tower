@@ -1,0 +1,66 @@
+import tower;
+import .readback_abi;
+import .readback_device;
+import .counted_abi;
+import .counted_pipeline;
+
+// SPIR-V 1.0 fixture, assembled directly from the annotated instructions.
+// outColor = texelFetch(texture, ivec2(gl_FragCoord.xy) [, layer], mip).
+// A sampled-image descriptor without a sampler suffices for integer texel fetches.
+fn sample_module(device: VkDeviceHandle*, arrayed: u32, module: VkShaderModuleHandle**): bool {
+    var coordinates: u32 = 26; // ivec2 for 2D, ivec3 for 2D_ARRAY.
+    if arrayed != 0 { coordinates = 31; }
+    var words: u32[195] = {
+        119734787, 65536, 0, 34, 0,
+        131089, 1, // OpCapability Shader
+        196622, 0, 1, // OpMemoryModel Logical GLSL450
+        458767, 4, 21, 1852399981, 0, 12, 14, // OpEntryPoint Fragment main, FragCoord and color
+        196624, 21, 7, // OpExecutionMode OriginUpperLeft
+        262215, 12, 11, 15, // OpDecorate FragCoord BuiltIn FragCoord
+        262215, 14, 30, 0, // OpDecorate color Location 0
+        262215, 10, 34, 0, // OpDecorate texture DescriptorSet 0
+        262215, 10, 33, 0, // OpDecorate texture Binding 0
+        196679, 15, 2, // OpDecorate Params Block
+        327752, 15, 0, 35, 0, // OpMemberDecorate Params.layer Offset 0
+        327752, 15, 1, 35, 4, // OpMemberDecorate Params.mip Offset 4
+        131091, 1, // OpTypeVoid
+        196630, 2, 32, // OpTypeFloat 32
+        262165, 3, 32, 1, // OpTypeInt 32 signed
+        262167, 4, 2, 4, // OpTypeVector vec4
+        262167, 5, 2, 2, // OpTypeVector vec2
+        262167, 6, 3, 2, // OpTypeVector ivec2
+        262167, 7, 3, 3, // OpTypeVector ivec3
+        589849, 8, 2, 1, 0, arrayed, 0, 1, 0, // OpTypeImage float 2D, optionally arrayed, sampled, unknown format
+        262176, 9, 0, 8, // OpTypePointer UniformConstant image
+        262203, 9, 10, 0, // OpVariable texture
+        262176, 11, 1, 4, // OpTypePointer Input vec4
+        262203, 11, 12, 1, // OpVariable FragCoord
+        262176, 13, 3, 4, // OpTypePointer Output vec4
+        262203, 13, 14, 3, // OpVariable color
+        262174, 15, 3, 3, // OpTypeStruct Params
+        262176, 16, 9, 15, // OpTypePointer PushConstant Params
+        262203, 16, 17, 9, // OpVariable params
+        262176, 18, 9, 3, // OpTypePointer PushConstant int
+        262187, 3, 19, 0, // OpConstant int zero
+        262187, 3, 20, 1, // OpConstant int one
+        196641, 22, 1, // OpTypeFunction void
+        327734, 1, 21, 0, 22, // OpFunction main
+        131320, 23, // OpLabel
+        262205, 4, 24, 12, // OpLoad FragCoord
+        458831, 5, 25, 24, 24, 0, 1, // OpVectorShuffle xy
+        262254, 6, 26, 25, // OpConvertFToS pixel
+        327745, 18, 27, 17, 19, // OpAccessChain layer
+        262205, 3, 28, 27, // OpLoad layer
+        327745, 18, 29, 17, 20, // OpAccessChain mip
+        262205, 3, 30, 29, // OpLoad mip
+        327760, 7, 31, 26, 28, // OpCompositeConstruct ivec3(pixel,layer)
+        262205, 8, 32, 10, // OpLoad texture
+        458847, 4, 33, 32, coordinates, 2, 30, // OpImageFetch texture, coordinates, Lod mip
+        196670, 14, 33, // OpStore color
+        65789, // OpReturn
+        65592 // OpFunctionEnd
+    };
+    var info: VkShaderModuleCreateInfo = { sType: VkShaderModuleTag, codeSize: sizeof(decltype(words)),
+        pCode: &words[0], ..default };
+    return vk_ok("create fragment texelFetch module", vkCreateShaderModule(device, &info, null, module));
+}

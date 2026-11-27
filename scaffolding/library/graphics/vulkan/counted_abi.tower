@@ -20,7 +20,7 @@ struct VkVertexInputAttributeDescription {}
 struct VkPipelineTessellationStateCreateInfo {}
 struct VkPipelineDepthStencilStateCreateInfo {}
 struct VkPipelineDynamicStateCreateInfo {}
-struct VkDescriptorImageInfo {}
+struct VkDescriptorImageInfo { sampler: VkSamplerHandle*; imageView: VkImageViewHandle*; imageLayout: u32; }
 struct VkCopyDescriptorSet {}
 
 struct VkShaderModuleCreateInfo {

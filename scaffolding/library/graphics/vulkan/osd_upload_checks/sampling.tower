@@ -1,0 +1,56 @@
+import tower;
+import .readback_abi;
+import .readback_clear;
+import .readback_device;
+import .counted_abi;
+import .counted_pipeline;
+import .synchronization2_abi;
+import sample_shader;
+
+var SampledImageDescriptor: u32 = 2;
+var View2DArray: u32 = 5;
+struct SampleIndex { layer: i32; mip: i32; }
+extern fn vkCmdDraw(cmd: VkCommandBufferHandle*, vertices: u32, instances: u32, first_vertex: u32, first_instance: u32): void;
+
+fn open_sampler_pipeline(device: VkDeviceHandle*, p: CountedPipelines*, extent: VkExtent2D, arrayed: u32, vertex_path: u8*): bool {
+    var binding: VkDescriptorSetLayoutBinding = { descriptorType: SampledImageDescriptor, descriptorCount: 1, stageFlags: VkFragmentShader, ..default };
+    var set_info: VkDescriptorSetLayoutCreateInfo = { sType: VkSetLayoutTag, bindingCount: 1, pBindings: &binding, ..default };
+    if !vk_ok("sample set layout", vkCreateDescriptorSetLayout(device, &set_info, null, &p.bindings)) { p.bindings = null; return false; }
+    var push: VkPushConstantRange = { stageFlags: VkFragmentShader, size: convert(u32, sizeof(SampleIndex)), ..default };
+    var info: VkPipelineLayoutCreateInfo = { sType: VkPipelineLayoutTag, setLayoutCount: 1, pSetLayouts: &p.bindings,
+        pushConstantRangeCount: 1, pPushConstantRanges: &push, ..default };
+    if !vk_ok("sample pipeline layout", vkCreatePipelineLayout(device, &info, null, &p.layout)) { p.layout = null; return false; }
+    var counts: VkDescriptorPoolSize = { descriptorType: SampledImageDescriptor, descriptorCount: 1 };
+    var pool: VkDescriptorPoolCreateInfo = { sType: VkDescriptorPoolTag, maxSets: 1, poolSizeCount: 1, pPoolSizes: &counts, ..default };
+    if !vk_ok("sample descriptor pool", vkCreateDescriptorPool(device, &pool, null, &p.pool)) { p.pool = null; return false; }
+    var sets: VkDescriptorSetAllocateInfo = { sType: VkSetAllocateTag, descriptorPool: p.pool, descriptorSetCount: 1, pSetLayouts: &p.bindings, ..default };
+    if !vk_ok("sample set", vkAllocateDescriptorSets(device, &sets, &p.set)) { return false; }
+    var vertex: VkShaderModuleHandle*;
+    if !counted_shader(device, vertex_path, "7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999", &vertex) { return false; }
+    defer vkDestroyShaderModule(device, vertex, null);
+    var fragment: VkShaderModuleHandle*;
+    if !sample_module(device, arrayed, &fragment) { return false; }
+    defer vkDestroyShaderModule(device, fragment, null);
+    if !fixture_raster(device, p.layout, vertex, fragment, extent, &p.raster) { p.raster = null; return false; }
+    return true;
+}
+
+fn set_sample_image(device: VkDeviceHandle*, set: VkDescriptorSetHandle*, view: VkImageViewHandle*): void {
+    var desc: VkDescriptorImageInfo = { imageView: view, imageLayout: VkShaderReadOnlyOptimal, ..default };
+    var write: VkWriteDescriptorSet = { sType: VkWriteDescriptorTag, dstSet: set, descriptorCount: 1,
+        descriptorType: SampledImageDescriptor, pImageInfo: &desc, ..default };
+    vkUpdateDescriptorSets(device, 1, &write, 0, null);
+}
+
+fn sample_to_attachment(cmd: VkCommandBufferHandle*, p: CountedPipelines*, target: VkImageViewHandle*, extent: VkExtent2D, index: SampleIndex): void {
+    var attachment: VkRenderingAttachmentInfo = { sType: VkAttachmentTag, imageView: target, imageLayout: VkColorLayout,
+        loadOp: VkClearOp, storeOp: VkStoreOp, ..default };
+    var render: VkRenderingInfo = { sType: VkRenderingTag, layerCount: 1, colorAttachmentCount: 1,
+        pColorAttachments: &attachment, renderArea: { extent: extent, ..default }, ..default };
+    vkCmdBeginRendering(cmd, &render);
+    vkCmdBindPipeline(cmd, 0, p.raster);
+    vkCmdBindDescriptorSets(cmd, 0, p.layout, 0, 1, &p.set, 0, null);
+    vkCmdPushConstants(cmd, p.layout, VkFragmentShader, 0, convert(u32, sizeof(SampleIndex)), bits(void*, &index));
+    vkCmdDraw(cmd, 3, 1, 0, 0);
+    vkCmdEndRendering(cmd);
+}

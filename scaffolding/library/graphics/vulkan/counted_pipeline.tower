@@ -111,13 +111,20 @@ fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**)
         module: modules[0], pName: "main", ..default };
     var compute: VkComputePipelineCreateInfo = { sType: VkComputePipelineTag, stage: stage, layout: p.layout, ..default };
     if !vk_ok("vkCreateComputePipelines", vkCreateComputePipelines(device, null, 1, &compute, null, &p.compute)) { return false; }
+    return fixture_raster(device, p.layout, modules[1], modules[2],
+        {width: ReadbackWidth, height: ReadbackHeight}, &p.raster);
+}
+
+fn fixture_raster(device: VkDeviceHandle*, layout: VkPipelineLayoutHandle*, vertex_module: VkShaderModuleHandle*,
+    fragment_module: VkShaderModuleHandle*, extent: VkExtent2D, result: VkPipelineHandle**): bool {
+    var stage: VkPipelineShaderStageCreateInfo = { sType: VkShaderStageTag, pName: "main", ..default };
     var stages: VkPipelineShaderStageCreateInfo[2];
-    stage.stage = VkVertexShader; stage.module = modules[1]; stages[0] = stage;
-    stage.stage = VkFragmentShader; stage.module = modules[2]; stages[1] = stage;
+    stage.stage = VkVertexShader; stage.module = vertex_module; stages[0] = stage;
+    stage.stage = VkFragmentShader; stage.module = fragment_module; stages[1] = stage;
     var vertex: VkPipelineVertexInputStateCreateInfo = { sType: VkVertexInputTag, ..default };
     var assembly: VkPipelineInputAssemblyStateCreateInfo = { sType: VkAssemblyTag, topology: VkTriangleList, ..default };
-    var viewport: VkViewport = { width: convert(f32, ReadbackWidth), height: convert(f32, ReadbackHeight), maxDepth: 1.0, ..default };
-    var scissor: VkRect2D = { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default };
+    var viewport: VkViewport = { width: convert(f32, extent.width), height: convert(f32, extent.height), maxDepth: 1.0, ..default };
+    var scissor: VkRect2D = { extent: extent, ..default };
     var views: VkPipelineViewportStateCreateInfo = { sType: VkViewportTag, viewportCount: 1, pViewports: &viewport,
         scissorCount: 1, pScissors: &scissor, ..default };
     var raster: VkPipelineRasterizationStateCreateInfo = { sType: VkRasterTag, lineWidth: 1.0, ..default };
@@ -127,9 +134,9 @@ fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**)
     var format = VkRgba8Unorm;
     var render: VkPipelineRenderingCreateInfo = { sType: VkPipelineRenderingTag, colorAttachmentCount: 1,
         pColorAttachmentFormats: &format, ..default };
-    var graphics: VkGraphicsPipelineCreateInfo = { sType: VkGraphicsPipelineTag, layout: p.layout,
+    var graphics: VkGraphicsPipelineCreateInfo = { sType: VkGraphicsPipelineTag, layout: layout,
         pNext: bits(void*, &render), stageCount: convert(u32, sizeof(decltype(stages)) / sizeof(decltype(stage))),
         pStages: &stages[0], pVertexInputState: &vertex, pInputAssemblyState: &assembly, pViewportState: &views,
         pRasterizationState: &raster, pMultisampleState: &ms, pColorBlendState: &blend, ..default };
-    return vk_ok("vkCreateGraphicsPipelines", vkCreateGraphicsPipelines(device, null, 1, &graphics, null, &p.raster));
+    return vk_ok("vkCreateGraphicsPipelines", vkCreateGraphicsPipelines(device, null, 1, &graphics, null, result));
 }
