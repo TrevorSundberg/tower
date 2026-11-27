@@ -124582,3 +124582,13 @@ records exact binary and capture identities and outstanding Draw/Windows
 coverage. Win64 trapping C UBSan ran; native Windows ASan/TSan and driver
 instrumentation remain unverified. Local review used retained artifacts
 without rerunning the GPU.
+
+### Draw cross-links the seven-entry staged upload library
+
+Draw independently rebuilt Tower `207f5d07` with LLVM 19 and linked
+a Win64 C PE calling record then finish. The [Draw C link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-c-cross-link-for-the-seven-export-dll)
+records Draw's consumer digest, import count and application test
+dependency. Rendering compared the recorder and header with `dadf38c0`
+and rehashed its retained DLL and import library against the clean
+replay manifest. Both matched Draw's reported digests. This is a
+documentation update. There was no new device execution.

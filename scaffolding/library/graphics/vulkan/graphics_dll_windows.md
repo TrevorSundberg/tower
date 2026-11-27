@@ -207,6 +207,24 @@ output with the new DLL. Draw application execution through ordinal 7
 and physical Windows execution remain open.
 [Host 11 checks and replay](../../../../docs/temporal-opcode-research-journal.md#draw-staged-buffer-recording-in-the-win64-dll)
 
+### Draw C cross-link for the seven-export DLL
+
+Draw fetched Tower `207f5d073c29cdce7bb794b82b173645bd3a584e` and
+reproduced the DLL and import-library hashes above using the published
+LLVM 19 recipe. The recorder and C header matched the Linux source at
+`dadf38c072c6757277d4043cb358e3310af0d6a1`.
+
+Draw linked a separate Win64 C executable through the released recorder
+and submit headers. Its code calls the recorder and then blocking finish.
+Draw reported that the PE imports all seven names and identified its
+SHA-256 as `6e8b787e26b4de58bb3cb166bfd4ea0bd39c39d600b881c9e7b9a7a2c1a9111e`.
+The DLL exposes the recorder at ordinal 7 and finish at ordinal 6.
+
+This receipt covers the independent C link. Draw assigned execution in
+the staged uploader to slot 9 job `24a62b15-b781-40c8-a3fc-d38bf0710359`,
+dependent on six-export job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`.
+The guarded upload captures above came from Tower's Wine fixture.
+
 ## Five-export validation at c40dae39
 
 The C example created a shader and retired the same event-setting primary
