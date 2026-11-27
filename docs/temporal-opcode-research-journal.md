@@ -123849,3 +123849,21 @@ incremental bundle against edb8c333 and reproduced the DLL, import library,
 consumer PE, counted PE, gate and control outputs. Packet `replay.sh`
 contains the exact checks. Source publication belongs to the rendering
 coordinator. The packet includes no Draw or presentation implementation.
+
+### Draw counted-record C contract and independent recording probe
+
+Draw reviewed 24 counted indexed draw sites at `be2fb42065dacdb49c476efdde892ab649cfe772`,
+draw.c blob `84ce1a58`. Its temporary native Linux recording-callback
+probe compiled the existing helper at Tower
+`1db528e8505d4cd416f1c5f8aa6edf798b944e07`. Draw reported 18/18 layout
+and rejection cases passed. Rendering reviewed the Tower source and checked
+the interval arithmetic in the [caller matrix](../scaffolding/library/graphics/vulkan/counted_draw.md#draw-counted-record-c-contract-v1).
+Slot 11 owns the native C export, recorded/refused status, external link
+instructions and hardware tests. The Linux recording result measures the
+existing Tower entry. This contract update adds no runtime code.
+
+Draw also independently rebuilt the 2,560-byte combined Windows x64 DLL at
+`1db528e8`, SHA-256 `d29a2d9345e7dae3c8894f5c6db4058f68d4c59fb26357c57b1470f7e96359e4`.
+Draw verified both exports and both loader imports. Its application test of
+the combined DLL is assigned to `4c9c47bb-5faa-4a1b-a0cc-e8d60940b24b`
+after the shader-only Windows job. Physical Windows execution remains open.

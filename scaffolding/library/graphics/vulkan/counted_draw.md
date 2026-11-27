@@ -301,3 +301,51 @@ These execution results cover Linux x64. The asset loader can release its
 word buffer when the call returns. The fixture still owns Linux-specific
 file I/O. Qualification through a Windows executable requires a Windows-safe
 asset-loading path and a completed render and readback in that executable.
+
+## Draw counted-record C contract v1
+
+Draw reviewed 24 `vkCmdDrawIndexedIndirectCount` sites at
+`be2fb42065dacdb49c476efdde892ab649cfe772` (draw.c blob `84ce1a58`).
+The proposed C entry exposes the existing
+[Tower recording helper](indexed_draw.tower). Its public status will be
+**1 for recorded** and **0 for refused**. The underlying Vulkan command
+returns void. Recording success says the command was issued once; the caller
+submits the command buffer and observes completion separately.
+
+Use the typed `PFN_vkCmdDrawIndexedIndirectCount` resolved for the live
+logical device. On acceptance the helper forwards the seven Vulkan arguments
+in their original order. They are the recording `VkCommandBuffer`, indirect
+argument `VkBuffer`, command offset, count `VkBuffer`, count offset, maximum
+draw count and stride. Judge both spans against their respective logical
+`VkBuffer` sizes (Draw's `Buffer.size`). Backing allocation padding cannot
+extend either span. Offsets and logical sizes are 64-bit. Buffer identity and
+offsets survive unchanged when both roles refer to the same buffer.
+
+| Draw site | Command offset | Count offset | Maximum / stride | Boundary check |
+| --- | ---: | ---: | --- | --- |
+| GPU check, shared buffer | 4 | 0 | 16,384 / 20 | Final record ends at byte 327,684, exactly the logical size. A logical size of 327,683 refuses even if the allocation is larger. |
+| Nuclear particles, shared 3,624-byte buffer | 2,560 | 3,584 | 32 / 32 | Final record starts at 3,552 and ends at 3,572. The count occupies bytes 3,584 through 3,587. |
+| OSD, shared buffer | pass × 24 | pass × 24 + 20 | 1 / 20 | For pass 1, the record occupies [24, 44) and the count [44, 48). A 47-byte logical buffer refuses. |
+| Scene bucket, distinct buffers | bucket × frame info[0] × 20 | 32 + bucket × 4 | Caller values | Check the command span and the separate 128-byte count buffer independently. Keep the command offset at VkDeviceSize width. |
+| Water pool, shared buffer | 1,032 | 4 | poolChunkCount / caller stride | Zero maximum may place an aligned command offset at the logical end. The count word still has to fit. |
+
+A command record is 20 bytes, including a signed 32-bit base vertex at byte
+12. The stride determines where the next record starts. For a positive
+maximum the final record needs its 20 data bytes. The range checker compares
+the last stride displacement with the remaining size after the first record
+fits. It never needs to add a near-limit offset to the displacement. A zero
+maximum still forwards a valid command once. Null required handles or
+function pointer, misalignment, invalid stride, or a short logical span
+refuse before the callback. The host reads neither the count nor the records.
+[Range and alignment implementation](../indexed_indirect.tower)
+
+Draw owns device features and limits, bindings, rendering scope,
+compute-to-indirect barriers, queue submission and buffer lifetime through
+GPU completion. A function pointer is cached per enabled device and expires
+with it. Draw's Linux CPU probe at Tower `1db528e8` called the existing
+Tower helper with a recording callback. Draw reported 18/18 cases passed:
+valid inputs forwarded the original seven arguments once, and invalid
+inputs made zero calls. That probe covered the layouts above, nulls,
+short and misaligned spans, an oversized maximum and near-u64 arithmetic.
+The public C header, external caller link and hardware replay are under
+development on rendering slot 11. Draw's real-shader adoption is pending.
