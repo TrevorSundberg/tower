@@ -59,9 +59,10 @@ The staging allocation holds two disjoint 40-byte samples. Host reads follow a
 transfer-to-host barrier and completion of the single submission. Noncoherent
 memory requires whole-allocation invalidation. Shader modules retire after
 pipeline creation. The pipelines, descriptors, buffers, backing memory, image
-and view live through fence completion. Failed fence waits take the v1
-device-idle recovery path. Failure to establish either retirement or device loss
-terminates with the objects still live.
+and view live through fence completion. The shared synchronous operation
+recovers an indeterminate fence wait on the submitted queue. Only a successful
+fence wait permits readback. The [failure table](readback_v1.md#synchronous-submission-and-failure)
+also covers submit errors, device loss and termination with objects live.
 
 ## Reproduce on Linux x86-64
 

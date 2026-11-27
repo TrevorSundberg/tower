@@ -10,9 +10,8 @@ The rendering review verified this synchronous Linux x64 reference on an RTX
 3090 with a 20-byte destination span. Draw's C oracle at
 `36f61b4b312e41846742985bab4884f99f2c62ed` lends 24 bytes from the same
 offset. Both layouts have the same 16 active bytes and the same guarded
-32-byte result. A hardware replay with the 24-byte loan is pending. The
-planned common submission handle and recoverable completion errors also
-require separate implementation and tests.
+32-byte result. Host 12 replayed the 24-byte loan on the RTX 3090 and
+llvmpipe before and after adopting synchronous queue retirement.
 
 ## Byte layout exercised by this fixture
 
@@ -26,14 +25,16 @@ There are zero draws. Each row contains two consecutive RGBA texels.
 | 4–11 | 112233ff112233ff |
 | 12–15 | a5a5a5a5 |
 | 16–23 | 112233ff112233ff |
-| 24–31 | a5a5a5a5a5a5a5a5 |
+| 24–27 (second row padding) | a5a5a5a5 |
+| 28–31 (trailing guard) | a5a5a5a5 |
 
 The caller provides 32 bytes initialized to `a5`, an offset of 4, a writable
-span of 20 bytes measured from that offset, and a row pitch of 12.
+span of 24 bytes measured from that offset, and a row pitch of 12.
 Source and destination allocations must be live and disjoint. Validate both
 full active ranges before copying the first byte. The CPU control places
 `01234567` and `abcdefgh` at source offsets 0 and 256 in 264 bytes.
-The whole-buffer literal oracle detects a row swap or a copied padding byte.
+The CPU marker also runs with an exact-fit span of 20. The whole-buffer
+literal oracle detects a row swap or a copied padding byte.
 A destination pitch of 7, span of 19, or source length of 263 must fail with
 all 32 bytes preserved.
 
@@ -52,9 +53,32 @@ dependency. A tightly packed image-to-buffer copy and a transfer-write to
 host-read buffer barrier follow. The backend submits once and waits on its
 fence. It maps the whole staging allocation and invalidates that whole range
 when its memory lacks HOST_COHERENT. It copies eight bytes per row into the
-caller span, unmaps, destroys the objects and releases their memory. A failed
-wait takes the device-idle recovery path before cleanup. An undrainable
-device other than device loss terminates the process with a diagnostic.
+caller span, unmaps, destroys the objects and releases their memory.
+
+### Synchronous submission and failure
+
+Both native fixtures borrow the device, queue, primary command buffer and
+fresh unsignaled fence through `vk_submit_and_wait`. Keep the queue externally
+synchronized and all referenced objects live through return. The helper submits
+the command buffer once. It prints the caller's submission message after
+successful submit and reports a signaled fence after successful wait.
+
+| Vulkan outcome | Lifetime and caller result |
+| --- | --- |
+| Submit and fence wait succeed | The caller can map the staging memory, apply the visibility requirements, copy the bytes, and release its objects. |
+| Submit returns host or device OOM | The batch left resources unaffected. Return failure and release. |
+| Device loss or another indeterminate result from submit | Treat the command as potentially pending. Drain the submitted queue and report failure. |
+| Fence wait reports device loss | Return failure and release. The wait establishes retirement for lifetime purposes. |
+| Other fence wait error | Report the error and drain the submitted queue. |
+| Recovery returns success or device loss | Return failure without consuming the staging data. The caller may release. |
+| Other recovery error | Report the original and drain results, flush the diagnostic and abort with the objects live. |
+
+The queue drain covers outstanding work on that queue. Host 12 held another
+queue pending on a timeline semaphore through recovery, checked both fences,
+then released the second queue. Only the fence-wait error was injected.
+See [queue host synchronization](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueWaitIdle.html),
+[submit failure guarantees](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit.html)
+and [device loss](https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#devsandqueues-lost-device).
 
 ## Build and run
 
@@ -92,7 +116,7 @@ host runtime. Tower supplies the application entry and links the executable.
 The fixture exits 0 only after both CPU and Vulkan checks pass. An unavailable
 device or required validation layer exits 1. An invalid index argument exits 2.
 
-## Host 12 evidence
+## Host 12 evidence for the original 20-byte run
 
 The executable produced the following results on the assigned host. Each run
 used its own explicitly selected ICD, physical device 0, queue family 0 and
@@ -121,8 +145,20 @@ has no native Tower UBSan profile. This assignment collected no timings.
 The original compiler-manager fixture was unavailable in the authorized Tower
 ref trees, including main, gh-pages, the two bootstrap/linker tags and the
 indexed-indirect rendering ref advertised during validation. The byte contract
-above supplied the oracle. SHA-256 of `readback_oracle.tower` is
+above supplied the oracle. SHA-256 of the original `readback_oracle.tower` was
 `eafff14f025e76b67a99b7f8e79a72fb89691d10034f496390b5e2fe4e456b66`.
 The original fixture checksum and Draw revision remain open for the rendering
 manager. The assignment archive contains raw stdout/stderr, exits, checksums,
 capability dumps, failed attempts and the incremental Git bundle.
+
+## 24-byte hardware replay
+
+With the same selected device and driver, the active digest matched the
+20-byte run. All 32 bytes hashed to
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The span oracle at `f0183813` hashes to
+`b74c48a8da072dcd235efbcb06b2fe64f6f9ce588957e3b67d7fa7d1a5465e44`.
+The counted runner has its own [producer, raster oracle and command](counted_draw.md).
+Packet `c6689824-b5c5-42c0-a0c5-edcc01f9bddd` includes both real runs,
+the CPU-only failure controls, child-process diagnostics, two-queue probe,
+sanitizer logs, measurements and exact commands.

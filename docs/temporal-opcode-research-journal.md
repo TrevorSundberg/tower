@@ -123480,3 +123480,68 @@ aborts with caller defers still pending. See the Khronos references for
 [device loss](https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#devsandqueues-lost-device),
 [queue idle](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueWaitIdle.html)
 and [device idle](https://docs.vulkan.org/refpages/latest/refpages/source/vkDeviceWaitIdle.html).
+
+At 07857fd4 both Linux ELFs import vkQueueSubmit, vkWaitForFences and
+vkQueueWaitIdle. Each baseline ELF imported vkDeviceWaitIdle. The
+standalone controls (61ab4ef6) provide typed symbols at link time and use
+per-call state behind distinct queue/device handles. They check the batch,
+timeout, call order, untouched caller data path and final release. A first
+attempt to put uninitialized mutable state at module scope failed in the
+Tower library frontend. Keeping it in the caller also avoids shared state.
+The ELF import comparison initially used an unavailable unversioned nm.
+llvm-nm-19 inspected both ordinary executables.
+
+On actual devices the command lines were `./readback_fixture 0` and
+`./counted_fixture counted-core13 shaders/produce.comp.spv shaders/triangle.vert.spv shaders/color.frag.spv`.
+Both passed on the RTX 3090 (NVIDIA 565.57.01, Vulkan 1.3.289) and then
+separately on llvmpipe (Mesa 22.3.6, LLVM 15.0.6). Before/after logs
+matched byte-for-byte for each fixture and ICD, including the selected
+adapter, one submit, one fence and zero validation warnings/errors. The
+24-byte shaderless loan, CPU short source/pitch/span refusals and guarded
+SHA-256 matched the contract. The counted GPU wrote 0 and 1 with the same
+(3,1,0,0,0) record. The four texels were 112233ff and 4080bfff respectively.
+Full counted captures also matched the previously accepted binary controls.
+
+With link-time probes on each ordinary caller, injected submit OOM led to
+fence cleanup directly. Following real submit, an injected wait OOM led to
+real queue drain, a signaled status at fence destruction and failure exit 1.
+The map hook was untouched. The terminal probe withheld the real submit and
+injected both wait and drain OOM. Both child processes logged -1 and -2
+and died by SIGABRT (134), before map or fence destruction. Actual GPU
+device loss and driver OOM remain unobserved.
+
+Family 0 exposed 16 queues. A separate hardware probe held queue 1 waiting
+for timeline value 1 and used the production operation on queue 0 with an
+injected fence error. Queue 0's fence signaled while queue 1's fence remained
+VK_NOT_READY. Host signal and a real queue 1 drain then signaled the second
+fence. Twelve repetitions passed. Each fixture normally opens one queue.
+
+Host 12 ran Debian x86-64, EPYC 7282, affinity 0–31, 15.36 CPU quota, the
+checked Linux bootstrap and LLVM 19.1.7. Five paired, warm-file, fresh-process
+runs per fixture followed the hardware pixel gate, one runner at a time, with
+Khronos synchronization validation. Columns give median wall seconds, summed
+user/system seconds and peak process RSS in KiB. Each compile entry uses three
+warm samples with identical output objects across worker counts.
+
+| Operation | d817e45 baseline | Shared operation |
+| --- | --- | --- |
+| Shaderless hardware process | 0.30 / 0.30 / 91540 | 0.30 / 0.29 / 91556 |
+| Counted hardware process | 0.31 / 0.30 / 94616 | 0.31 / 0.30 / 94628 |
+| Shaderless compile, jobs 1 | 0.65 / 0.64 / 110944 | 0.65 / 0.65 / 111136 |
+| Shaderless compile, jobs 4 | 0.75 / 0.84 / 116044 | 0.76 / 0.85 / 115928 |
+| Counted compile, jobs 1 | 0.78 / 0.77 / 128588 | 0.78 / 0.77 / 128076 |
+| Counted compile, jobs 4 | 0.88 / 1.03 / 133900 | 0.89 / 1.04 / 133044 |
+
+The new operation uses a stack submission descriptor and borrows existing
+handles. The timings include device and layer setup. GPU timestamps, device
+allocator totals and scene throughput were outside this measurement.
+LLVM ASan and TSan instrumented the operation and pinned native Tower runtime.
+The deterministic test passed both. On the GPU, both address-only processes
+passed. Unfiltered LSan retained 3511 bytes/8 allocations (clear) and 4075/14
+(counted) on both revisions with synchronization validation. These reproduce
+the earlier validation-layer investigation. Both baseline and candidate GPU
+TSan binaries failed startup at the container's denied personality syscall.
+Three additional attempts per candidate did the same. There is no completed GPU
+TSan or Tower source UBSan result. The link maps, function IR, stdout/stderr,
+status files, binary captures and replay scripts accompany the HEAD bundle in
+packet c6689824-b5c5-42c0-a0c5-edcc01f9bddd.
