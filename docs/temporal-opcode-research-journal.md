@@ -125365,3 +125365,68 @@ relocation. It passes through the device and descriptor registers, clears
 the allocator register and passes the address of its zeroed stack slot.
 The sole caller-visible store follows a zero-result check. Release hashes
 are in the [Win64 build record](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#creating-an-unbound-image-at-ordinal-11).
+
+The SDK, DLL and plain COFF recording lanes reproduced the original 21
+rows each. Seven descriptors include a cube-compatible mutable image with
+a format list and three queue families, and a 3D storage volume. The
+observer compared the original pointer, all descriptor and referenced
+bytes, device, allocator, private slot, public slot and guards. The double
+wrote the private slot on success, −1 and −2. Only success published.
+The recording PE imports the new entry from tower_graphics.dll. Its
+direct-object counterpart has no Tower DLL import. Wine identified the
+native test loader on recording and injected failure, and its builtin
+Vulkan loader plus the release Tower DLL on hardware success.
+
+The Vulkan-selected discrete Quadro RTX 6000 (device 0, queue 0/0, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, Vulkan 1.4.351, NVIDIA 615.71.10)
+reproduced all 27,542,768 bytes in the SDK, release DLL, and Win64 C
+trapping UBSan runs. The capture SHA-256 was
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The independent reference checked 256 texels and 240 guard bytes from
+16 subresources across the five source images. The extended Tower
+trace verifier correlated each returned source image with its memory
+requirements, allocation, offset-zero bind and views. It also checked
+the five readback targets and the allocation of staging/readback buffers.
+Ten source views survived their last submit/wait and were destroyed before
+their images and the matched bound memory. Removing the first allocation
+event made the verifier exit 3. Wine logs record input arguments to each
+allocation and the actual handles subsequently bound and freed.
+On first-source failure the forwarding loader wrote a poison handle and
+returned −2. The external application reported a null image and exited 3
+before requirements, allocation, binding, view creation, submit or release.
+Host-inserted synchronization validation ran with zero guest warnings or
+errors on success. Explicit guest layer creation returned −6.
+
+The original contract-linked capture PE, ten-, nine- and eight-export
+capture clients, checked-region fields, shader creation/queue retirement,
+counted draw pixels, and small/large staged-upload hashes all passed with
+the eleven-entry DLL. The original contract and release links produced
+the same capture PE, and both ran. Only the release-generated import
+library participated in the new link.
+
+Three fresh processes per arm alternated SDK/DLL, DLL/SDK, SDK/DLL on
+a warm Wine 8 prefix, same release DLL, Clang 19.1.7 Win64 GNU −O2,
+one caller, one graphics queue and host synchronization validation.
+The host used a Xeon E5-2699 v4, affinity 0–87, CPU quota 10.56.
+Each timed output matched the accepted capture.
+
+| Arm | Wall seconds | User seconds | System seconds | Peak process RSS KiB |
+| --- | --- | --- | --- | --- |
+| SDK | 1.50 / 1.62 / 1.60 | 0.87 / 0.76 / 0.84 | 0.59 / 0.60 / 0.58 | 191924 / 190976 / 186876 |
+| DLL | 1.50 / 1.40 / 1.36 | 0.80 / 0.75 / 0.71 | 0.59 / 0.55 / 0.54 | 192756 / 191116 / 190044 |
+
+Across 15 source image calls per arm the QPC medians were 58.4 µs SDK
+(range 18.9–143.4) and 66.2 µs DLL (19.8–144.3). These include the
+driver, validation and scheduling. The ranges overlap. The provider owns
+one automatic handle and retains no allocations. The twenty Vulkan memory
+allocations per capture include ten for images and ten for buffers. Driver
+internal allocation counts and DLL-only timing remain unmeasured.
+
+Native Linux ASan with leak detection and TSan instrumented the Tower
+provider and C recording boundary. Each passed 336 calls on four libc
+pthreads. The packet includes disassembly, link maps and runtime dependency
+tables. Win64 trapping UBSan covered the C caller, recording boundary and
+C device probe on success and injected failure. The Win64 ASan link lacked
+its target runtime and Clang rejected Win64 TSan. The production COFF, Wine,
+validation layer and driver ran without compiler sanitizer instrumentation.
+Physical Windows and Draw's shipping application remain separate open checks.
