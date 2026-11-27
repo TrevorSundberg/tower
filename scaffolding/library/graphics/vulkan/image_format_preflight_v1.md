@@ -71,5 +71,67 @@ shipping application comparison.
 Draw has already independently rebuilt the preceding Linux `create.o` at
 Tower `07587159dbc5606b3e24d85fa6e3babfc2f9b6fe` and matched its 952 bytes
 and SHA-256 `9e870edce24bc9759319332a5fc643b4b0cc16cc35d7d04042a17d970e7c174c`.
-Its linked constructor and device results are pending. The preflight acceptance so far covers source and contract review.
-Linked application and device results await the provider.
+At confirmation, the preflight receipt covered Draw source and contract review.
+The Linux provider and rendering device results follow below. Draw owns
+acceptance of its linked shipping application.
+
+## Linux x86-64 implementation and link
+
+The provider is available as a standalone object or shared library. Include
+`image_format_preflight.h` in the SDK caller. Use the pinned Tower bootstrap,
+GNU linker and Vulkan loader from the slot 12 sysroot. From the Tower root
+with an existing output directory and the packet's `host.env` sourced, run
+
+```bash
+v=scaffolding/library/graphics/vulkan
+bootstrap/linux-x64/towerc --foundation scaffolding/foundation.tower --library --jobs 1 \
+  "$v/image_format_preflight.tower" -o "$OUT/preflight.o"
+x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$OUT/preflight.o" \
+  "$TOWER_SDK_ROOT/usr/lib/x86_64-linux-gnu/libvulkan.so.1" \
+  -soname libtower_preflight.so -o "$OUT/libtower_preflight.so"
+```
+
+The 1,192-byte object has SHA-256
+`37b926d98ee6c2dd66785e7f9e4c0d005990690bc235257df5fdf2895f3f1ebf`.
+It exports the confirmed entry and imports only the Vulkan query. The
+13,576-byte DSO has SHA-256
+`49d257ae9d80fad613e7ab8f4ac058f030637c9e1a1bba7af9c254e014237367`.
+Link the object and Vulkan, or link with `-L"$OUT" -ltower_preflight` and
+make the DSO available at runtime. The caller owns all output storage.
+
+## Recorded results
+
+The raw SDK, C/object, C/DSO and Tower recording calls each passed 32 cases.
+All five inclusive maxima, their zero and one-over neighbors, a high unsigned
+width, sample intersections, a zero sample mask and two resource-size extremes
+were exercised. A driver that wrote its private slot before returning −11,
+−1, −2 or synthetic +1 preserved both guarded outputs. The same zero-width
+request succeeded at query time and published all limits with decision zero
+when the recorder returned zero.
+
+The standalone SDK client selected physical device 0, NVIDIA GeForce RTX 3090,
+Vulkan 1.3.289, driver 565.57.01. Raw, object and DSO clients printed
+identical fields and decisions. For the sRGB 2D sampled image the maximum
+extent was 32768 × 32768 × 1, with 16 mips, 2048 layers, sample mask 15 and
+resource size 1099511627776. The six-layer cube-compatible R8 request had
+sample mask 1. The 31 × 17 × 9 R32_UINT 3D storage request returned maximum
+extent 16384³, 15 mips, one layer and sample mask 1. The four-sample,
+two-layer color attachment also passed.
+
+The retained OSD test called the preflight before its existing create and
+bind operations for five textures and five sampled-readback attachments.
+The Tower call and both external C routes resolved to the recorded APIs,
+issued ten per-image queries plus one existing adapter-admission query, and
+passed all sixteen guarded reads. The complete 103,158,144 bytes matched
+SHA-256 `140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+All 189 lifetime events passed on family 0, queue 0 of device UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`. Sync validation counted zero warnings
+or errors. A width of 4294967295 returned the hardware limits to the caller
+and stopped before the first image creation. An injected −11 at the second
+source left one earlier image to retire. The later create and view OOM
+controls retained their original diagnostics and cleanup.
+
+Job `098ed838-0613-4ba0-9e4a-ee201427aeea` contains the ELF files, link maps,
+original captures, SDK client and replay scripts. On the assigned Linux
+host run `bash replay.sh /path/to/authorized/tower /new/replay-directory`
+from the extracted packet. Draw's linked application run remains with Draw.

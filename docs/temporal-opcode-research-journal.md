@@ -125266,3 +125266,63 @@ sample during adapter admission. The new call consumes a complete per-image
 descriptor after device selection. Creation, allocation, binding and
 diagnostics continue at the caller. The retained OSD fixture and standalone
 SDK links are the device and ABI acceptance paths on Linux x64.
+
+Linux implementation 745336f uses one private properties record and a
+32-bit decision. There is no heap allocation or retained handle. The
+existing device-open helpers now retain the selected physical handle under
+the live instance. Their fixed RGBA8 admission predicates are unchanged.
+The OSD caller at d3798bb9 supplies its actual per-image descriptor and
+checks the result before reading either output. The packet's recording
+controls at 0fa9ae1 use SDK descriptors including 2D, cube-compatible
+arrays and 3D. Each of six separate faulty providers was rejected by the
+original C/shared caller with status 3. The original test compiler
+diagnostics for a reserved parameter name and a missing fixture import
+are retained. The frozen baseline initially failed to launch because the
+measurement helper expects an executable path. Running /usr/bin/env
+reproduced the complete baseline before candidate hardware tests.
+
+On the selected RTX 3090, the raw SDK control, C/shared and ordinary Tower
+callers reproduced all 103158144 guarded bytes and the reference release
+order. The standalone C executable also exercised a 3D image query on the
+device. The [contract and results](../scaffolding/library/graphics/vulkan/image_format_preflight_v1.md)
+include the query limits, device identity, failure policy and Linux link
+instructions. The existing 24-byte CPU/GPU readback and counted-core13
+pixel checks passed. The strict Draw profile reported its existing API 1.4
+refusal. The verified 24-byte oracle at f0183813 has SHA-256
+b74c48a8da072dcd235efbcb06b2fe64f6f9ce588957e3b67d7fa7d1a5465e44.
+The rendering oracle follows the byte contract from the a580e70a baseline.
+An original compiler-manager RGBA8 fixture file is unavailable at that pin.
+
+EPYC 7282, affinity 0–31, quota 15.36 cores, one caller, one queue, warm
+files and a fresh process/device per sample. All six measured samples per
+lane used the same descriptors, sync validation, probes and golden byte
+comparison. Median wall ms / CPU ms / peak RSS KiB were 2284.09 / 2280.02 /
+116228 for raw C, 2274.99 / 2276.71 / 116142 for C/DSO and 2027.28 /
+2026.83 / 116264 for the Tower caller. Reordering the lanes for three more
+samples moved the initial medians. Wall ranges overlap across all three
+lanes. The frozen executable preceding the preflight ran once at 2086.72 /
+2069.27 / 116100 with its earlier probes. File output and validation are
+included. These runs establish equivalent results and do not isolate GPU
+query latency.
+
+With the recording driver, three fresh processes ran two batches of two
+million checked queries each. Median first and second ns/call were 15.12
+and 13.04 raw, 12.32 and 10.40 C/shared. Whole-process median wall ms /
+CPU ms / peak RSS KiB were 59.12 / 58.91 / 2060 raw and 48.26 / 48.04 /
+2064 shared. These timings include the SDK caller and double. The
+operation is synchronous and has no internal worker pool.
+
+ASan on Tower code and ASan/UBSan on SDK C passed the four-pthread
+recording suite. LLVM TSan completed both raw and shared four-thread
+suites after two personality-check startup failures per lane. Address-only
+hardware runs passed pixels, retirement and the oversized request in
+both lanes. Full LSan with sync validation reported 4187 bytes in 15
+allocations in both lanes, matching the preceding creation fixture. A
+private full leak check disabling only sync validation passed on the
+ordinary caller with the same bytes. Ownership of the reported allocations
+is unresolved. GPU TSan raw exited 139 on the personality check. The shared
+caller exited 66 with a nested sanitizer SEGV before recording an image.
+Runtime and driver internals remain outside this instrumentation. The
+packet preserves the maps, instrumented function, failed exits and logs.
+Draw's independent shipping binary, original source and pack were outside
+this Tower-only checkout. Its published ACK pins both constructor sites.
