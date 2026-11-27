@@ -123382,3 +123382,30 @@ unexercised. The synchronous helper aborts if both fence wait and its
 device-idle recovery fail without establishing retirement or device loss.
 This branch supplies a hardware reference for the next worker. Review for
 main and the general-purpose library remains open.
+
+### Contractual 24-byte Vulkan readback on host 12
+
+The earlier shaderless hardware receipt exercised a 20-byte loan. The
+[updated v1 contract and build](../scaffolding/library/graphics/vulkan/readback_v1.md)
+use offset 4, span 24 and pitch 12 in 32 caller bytes. Worker source
+`f0183813` supplies the correction and `9d4f7286` the minimal layer probe.
+Recovery `60a21793-1497-4113-8f81-942913890efd` delivered the original
+records from `d3572146-3852-4f2b-8d29-ad6bfc901a5e`. The worker performed
+compile-only provenance checks. The rendering manager checked both adapters'
+original exit codes, selected drivers, fence and visibility reports, and all
+14 actual byte comparisons per run. The unchanged worker sources match all
+12 entries in the source and tool manifest. The transport bundle had SHA-256
+`44749e5c4ff70ad8800efcafd0c8cb84b5eba16e36b00ad2421e3667665f956a`.
+Both validated readbacks exited 0. The full unfiltered leak check exited 1 with 3,511
+bytes in eight allocations. The pool-only control exited 0. Allocating one
+primary command buffer reproduced 3,280 bytes in five allocations without
+a submit. The probes distinguish this layer configuration from an issue
+requiring readback. TSan failed before main. Noncoherent staging and device
+loss remain unexercised.
+
+Host 12 recorded three fresh single-process runs of each revision on the
+RTX 3090 using the same ICD, validation and one build job. Median wall,
+user plus system CPU and peak RSS were 0.37 s, 0.36 s and 90800 KiB for the
+20-byte fixture and 0.31 s, 0.31 s and 91048 KiB for the 24-byte fixture.
+Each process checked its own output and included instance and device setup.
+No GPU timestamps, new allocator measurements or scaling run were collected.

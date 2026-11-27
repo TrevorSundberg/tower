@@ -2,17 +2,12 @@
 
 Tower base `a580e70af42e67d5309c4121737fa9e21652a9dd`. The CPU copy and
 oracle are at `3dd5f11f`, the backend at `dc3c135a`, and the executable
-fixture at `f6b850ab`. This slice belongs to Tower rendering. Draw owns its
-C implementation. Its source revision was unavailable to this Tower-only
-worker and remains a dependency for a cross-project comparison.
-
-The rendering review verified this synchronous Linux x64 reference on an RTX
-3090 with a 20-byte destination span. Draw's C oracle at
-`36f61b4b312e41846742985bab4884f99f2c62ed` lends 24 bytes from the same
-offset. Both layouts have the same 16 active bytes and the same guarded
-32-byte result. A hardware replay with the 24-byte loan is pending. The
-planned common submission handle and recoverable completion errors also
-require separate implementation and tests.
+fixture at `f6b850ab`. Draw owns its C implementation. The rendering review
+at `cf53212c` identifies Draw's C oracle as
+`36f61b4b312e41846742985bab4884f99f2c62ed` on Draw base
+`7be8d020b07454789195427588712c72ee465637`. Tower's 24-byte fixture at
+`f0183813` reproduced the previous 20-byte receipt's active and guarded
+outputs on the RTX 3090 and separately on llvmpipe.
 
 ## Byte layout exercised by this fixture
 
@@ -26,14 +21,16 @@ There are zero draws. Each row contains two consecutive RGBA texels.
 | 4–11 | 112233ff112233ff |
 | 12–15 | a5a5a5a5 |
 | 16–23 | 112233ff112233ff |
-| 24–31 | a5a5a5a5a5a5a5a5 |
+| 24–27 (second row padding) | a5a5a5a5 |
+| 28–31 (trailing guard) | a5a5a5a5 |
 
 The caller provides 32 bytes initialized to `a5`, an offset of 4, a writable
-span of 20 bytes measured from that offset, and a row pitch of 12.
+span of 24 bytes measured from that offset, and a row pitch of 12.
 Source and destination allocations must be live and disjoint. Validate both
 full active ranges before copying the first byte. The CPU control places
 `01234567` and `abcdefgh` at source offsets 0 and 256 in 264 bytes.
-The whole-buffer literal oracle detects a row swap or a copied padding byte.
+The marker must pass with both the contractual span and the exact-fit span of
+20. Each CPU case starts with fresh guards and compares all 32 bytes.
 A destination pitch of 7, span of 19, or source length of 263 must fail with
 all 32 bytes preserved.
 
@@ -54,7 +51,10 @@ fence. It maps the whole staging allocation and invalidates that whole range
 when its memory lacks HOST_COHERENT. It copies eight bytes per row into the
 caller span, unmaps, destroys the objects and releases their memory. A failed
 wait takes the device-idle recovery path before cleanup. An undrainable
-device other than device loss terminates the process with a diagnostic.
+device other than device loss terminates the process with a diagnostic and
+the resources still live. The caller must keep its destination writable
+and its queue exclusively available through the synchronous return.
+Asynchronous submission handles and recoverable retirement remain design work.
 
 ## Build and run
 
@@ -108,21 +108,58 @@ providing its missing EGL dispatch library in a private SDK.
 | Returned rows 0 and 1 | 112233ff112233ff each | 112233ff112233ff each |
 | Guards / validation warnings and errors / exit | Intact / 0 / 0 | Intact / 0 / 0 |
 
-Both runs produced tight active SHA-256
+The 24-byte runs each submitted once. SHA-256 of the two observed rows was
 `f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88`.
-The hardware exposes only coherent host-visible memory types. Execution on
-noncoherent memory and the device-loss path remain open. The address-only
-sanitizer run passed. LeakSanitizer reported 3,511 bytes in eight allocations
-with validation-layer allocation stacks. Explicitly freeing the command buffer
-or resetting the pool did not change the leak report. ThreadSanitizer failed
-at startup because the container denied its personality request. The repository
-has no native Tower UBSan profile. This assignment collected no timings.
+SHA-256 of all 32 caller bytes was
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The hardware exposes only coherent host-visible memory types. Noncoherent
+invalidation, device loss and undrainable recovery remain unexercised.
+
+With the same ICD, compiler and Khronos validation layer 1.3.239, the full
+ASan+LSan run exited 1 (3,511 bytes in eight allocations). The separate
+`readback_layer_probe.tower` at `9d4f7286` creates and destroys one pool.
+Its `pool` mode exited 0. Its `allocate` mode added one primary command
+buffer, destroyed the pool, device and instance, and exited 1 (3,280 bytes
+in five allocations). It uses no image, readback buffer, queue submit or
+Tower heap allocation. Keeping the layer mapped identifies allocation frames
+in its DSO, including a path through `vkAllocateCommandBuffers`.
+
+Recording the original clear and copy, then destroying the unsubmitted pool,
+reproduced all 3,511 bytes. Four repetitions on one live device reported
+14,044 bytes in 32 allocations. The diagnostic full run with the layer
+enabled and synchronization validation omitted exited 0. These results
+localize retention to synchronization validation in this layer build.
+TSan exited 139 before main at its denied personality request. Native Tower
+UBSan coverage is unavailable.
 
 The original compiler-manager fixture was unavailable in the authorized Tower
 ref trees, including main, gh-pages, the two bootstrap/linker tags and the
 indexed-indirect rendering ref advertised during validation. The byte contract
-above supplied the oracle. SHA-256 of `readback_oracle.tower` is
+above supplied the oracle. SHA-256 of the prior `readback_oracle.tower` was
 `eafff14f025e76b67a99b7f8e79a72fb89691d10034f496390b5e2fe4e456b66`.
-The original fixture checksum and Draw revision remain open for the rendering
-manager. The assignment archive contains raw stdout/stderr, exits, checksums,
-capability dumps, failed attempts and the incremental Git bundle.
+The 24-byte version has SHA-256
+`b74c48a8da072dcd235efbcb06b2fe64f6f9ce588957e3b67d7fa7d1a5465e44`.
+The original compiler-manager fixture checksum remains unverified.
+
+## Verified handoff
+
+The rendering manager recovered the original worker runs from receipt
+`60a21793-1497-4113-8f81-942913890efd` and verified all 215 file
+checksums in the archive manifest. Archive SHA-256 was
+`42321a9cda564156f44e14b3c5f4ac4e3499c502a500ed3434d15f886dfba693`.
+The bundle advertised checkpoint `46208a4cef0a29b028ffef71ed9801234b4a134a`.
+Its Tower sources match the two ordinary commits on this branch,
+`f018381351d1642a60758af49bd426d8a690cdbe` for the fixture and
+`9d4f728686e415c38038f794354a96769ef7b876` for the allocation probe.
+The worker reproduced the original fixture object and pre-instrumentation LLVM
+from that source. The original native executable SHA-256 was
+`7a25af74a5f56f24e52f9c3f1da61b153299d8a7bf690ef373450a2346f5e45b`.
+
+For each adapter the manager decoded all 14 actual byte arrays from its
+process log, checked each CPU case and compared the observed GPU rows
+and full caller array with independently constructed expectations. The
+archive includes exact invocations and child exit codes in
+`receipts/commands-and-exits.tsv`. The recovered runs used coherent staging.
+The reported full leak result includes eight allocations. A 3,040-byte
+allocation in the layer-resident run has a stack through the Khronos
+validation library and `vkAllocateCommandBuffers`.
