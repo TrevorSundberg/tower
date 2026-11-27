@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles eight Tower objects for
+The entry verifies the checked-in bootstrap, compiles nine Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -595,3 +595,38 @@ warnings or errors. Explicit guest layer creation returned −6. Win64 C
 trapping UBSan passed. ASan and TSan completed on the native Linux provider.
 Win64 ASan/TSan, physical Windows and the shipping Draw Win64 caller remain
 open. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
+
+## Creating an unbound image at ordinal 11
+
+Include `create_image.h` and link the external C application with the
+release `tower_graphics.lib`. Pass a live device, the original SDK
+descriptor and a separate, initially null image slot.
+
+```c
+VkImage image = VK_NULL_HANDLE;
+VkResult result = tower_vk_create_image_v1(device, &info, &image);
+```
+
+Keep the descriptor, including its chain and queue-family array, live
+through return. On success the caller owns the image, queries requirements,
+allocates and binds memory, and may then create a view. Retire submitted
+uses before destroying the views, image and bound memory in order. An
+error preserves the caller slot and returns the driver's signed result.
+
+Build with the clean-checkout command above. The following SHA-256 digests
+identify the products built with the checked-in Linux x64 bootstrap and
+LLVM 19.1.7 at `d79cc78b193340ec0376ea226b2e2ca7a35ec212`.
+
+| Product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `create_image.obj` | 641 | `ebe5a75947f64a847b8de4bccc3ba678f57b672a60204a0e91b62d12b0fda405` |
+| `tower_graphics.dll` | 6656 | `e7524e2b14f148a37e79eb4912f9aa07bfc6e252dfd1fd45be211cd5914b7e6c` |
+| `tower_graphics.lib` | 4522 | `3662deaaf18aaaf028f0653a516ecaa8f5e171a49cac48cea625eb3e5b4ae246` |
+| External capture PE | 305152 | `19505a2530855043833d1f053772054171de01904d8941d6ba00b20b496274e7` |
+
+Ordinals 1–10 retain their names. The new export imports only
+`vkCreateImage`. The DLL link map identifies `create_image.obj` as its
+definition. The release-linked PE imports ordinals 8–11 by name with
+matching hints. The original expected.lib and the release import library
+have different digests and produce identical capture executables.
+The job packet contains both original controls and the release link map.

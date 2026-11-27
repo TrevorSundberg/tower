@@ -125355,3 +125355,13 @@ The build adds the object, loader import and ordinal 11 to the existing DLL.
 The external C caller now includes the published declaration. Its frozen
 COFF, the independent SDK control and the original link-only library are
 retained in the baseline archive for comparison.
+
+The 952-byte native object reproduced the Linux release SHA-256
+`9e870edce24bc9759319332a5fc643b4b0cc16cc35d7d04042a17d970e7c174c`.
+The eight pre-existing provider objects, legacy shader PE, SDK arm and
+C consumer COFF all matched the frozen bytes. The release table retains
+ordinals 1–10. The new 641-byte Win64 object carries one vkCreateImage
+relocation. It passes through the device and descriptor registers, clears
+the allocator register and passes the address of its zeroed stack slot.
+The sole caller-visible store follows a zero-result check. Release hashes
+are in the [Win64 build record](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#creating-an-unbound-image-at-ordinal-11).
