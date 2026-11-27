@@ -94,6 +94,8 @@ presentation code. Its source review topic was unpublished at the time of
 this acknowledgment. At contract acceptance, Tower implementation and a Draw build linked to
 that implementation were separate outstanding checks.
 
+For recording-to-submit handoff, see [command end and caller-owned storage](command_end_v1.md).
+
 ## Linux x86-64 implementation and conformance
 
 Include `frame_submit.h` with the standard Vulkan headers. The Tower module

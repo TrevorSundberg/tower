@@ -123663,3 +123663,58 @@ the prepared descriptor and applies the existing retirement policy. Its
 command-only entry for already executable buffers shares that policy.
 The initial Draw mapping assumes app-owned optional semaphore fields set
 after a successful end. Worker source access is limited to Tower.
+
+Implementation `3ac509b8` and conformance tests `336d9dec` were built
+with the checked Linux x64 bootstrap, LLVM 19.1.7 and the host 12 SDK.
+The ELF exports command end and the prior submit, with just
+`vkEndCommandBuffer` and `vkQueueSubmit` imported. The end path has
+caller-owned input/output and zero dynamic allocations or retained host
+addresses. A C Vulkan-header reference and DSO transport, plus a Tower
+transport, verified all success fields and every failure byte. Both GPU
+paths matched all baseline captures. A separate wrapped-loader run
+matched the end and submit command handles, then the submit and completed
+fence handles. The original audit tried to store a mutable module-level
+handle, rejected by the pinned compiler. The corrected audit compares
+logged identities after process exit. An intermediate matcher expected
+the label without its handle. The final check requires one labeled end.
+The CPU row oracle in the verified source hashes to
+`b74c48a8da072dcd235efbcb06b2fe64f6f9ce588957e3b67d7fa7d1a5465e44`.
+The earlier compiler-manager fixture at the main base has no recovered
+checksum. [ABI, per-lane outcomes and replay](../scaffolding/library/graphics/vulkan/command_end_v1.md)
+
+Host 12 used an AMD EPYC 7282, affinity 0–31, cgroup CPU quota 15.36,
+NVIDIA RTX 3090, 565.57.01, Vulkan 1.3.289. Ordinary timed processes ran
+one at a time with synchronization validation, warm files and fresh
+device setup. Five paired samples per binary compared the complete GPU
+output against the accepted log. Three compiles per width used the same
+source path and compared every object against its one-worker reference.
+The receipt's Tower launcher measures CLOCK_MONOTONIC around child
+launch and exit and uses RUSAGE_CHILDREN for CPU time and peak RSS.
+
+| Median wall seconds / CPU seconds / peak KiB | 08a30b04 | 336d9dec |
+| --- | --- | --- |
+| Shaderless clear process | 0.306 / 0.306 / 91844 | 0.305 / 0.305 / 91632 |
+| Counted process | 0.314 / 0.314 / 94660 | 0.309 / 0.309 / 94668 |
+| Clear compile, 1 worker | 0.665 / 0.665 / 110936 | 0.662 / 0.661 / 112156 |
+| Clear compile, 4 workers | 0.785 / 0.885 / 115740 | 0.782 / 0.885 / 116768 |
+| Counted compile, 1 worker | 0.774 / 0.773 / 128348 | 0.785 / 0.784 / 128900 |
+| Counted compile, 4 workers | 0.906 / 1.069 / 133952 | 0.887 / 1.051 / 134568 |
+
+The host samples include validation, driver startup and readback.
+They cannot isolate end-call cost or GPU throughput. Neither compilation
+benefited from four workers here. No allocator instrumentation inside the
+proprietary driver, no GPU time query and no claim about worker contention.
+
+The pinned LLVM instrumentation tool produced ASan and TSan reads and
+writes in the exported end function. Instrumented native runtime objects
+and Clang's matching sanitizer runtime appear in the link maps. The
+foreign C transport used Clang UBSan as well. The recording test passed
+ASan+LSan and completed one TSan run. GPU address-only clear, counted and
+shared gate passed. Leak-enabled clear, counted and raw/shared gate
+reported 3511 bytes/8 allocations, 4075/14 and 3560/11 respectively,
+matching the previous receipt's validation-layer runs. The synchronous
+matrix passed ASan+LSan. Hardware and synchronous TSan attempts hit the
+container personality restriction (139). The lane exit files retain every
+attempt. There is no completed hardware TSan or source-level Tower UBSan
+result. An initial extraction script searched for the old helper name in
+optimized IR. The final pass records the new entry and both transports.

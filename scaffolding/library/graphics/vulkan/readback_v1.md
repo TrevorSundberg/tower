@@ -55,7 +55,7 @@ caller keeps its destination writable through the synchronous return.
 ### Synchronous submission and failure
 
 Both native fixtures borrow the device, queue, primary command buffer and
-fresh unsignaled fence through `vk_submit_and_wait`. Keep the queue externally
+fresh unsignaled fence through `vk_submit_prepared_and_wait`. Keep the queue externally
 synchronized and all referenced objects live through return. The helper submits
 the command buffer once. It prints the caller's submission message after
 successful submit and reports a signaled fence after successful wait.
