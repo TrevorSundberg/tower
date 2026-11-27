@@ -140,3 +140,26 @@ relocations inspected. The job does not assign DLL ordinals.
 The archived job `fb2f4a01-62de-4f17-9d0f-0ae92eed5cba` includes the
 object pair, checked fixture inputs, raw Linux results and the clean replay
 entry point. See the [host 12 journal entry](../../../../docs/temporal-opcode-research-journal.md#standalone-draw-image-memory-provider-on-host-12).
+
+### Standalone objects for the Draw caller
+
+At tested Tower commit `69c3209ec4a4138f1a969228dec0a2d4fea86f37`,
+the command above produced these files from the same Tower source.
+
+| File | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Linux x64 `image_memory.o` | 1,144 | `17c7069d583de69b154c899e077a0b4caea8d94c8a41cc4457f1045cd9f03584` |
+| Win64 `image_memory.obj` | 754 | `288c5360fd28fe3701ec32ca9b163f6bbab88618901a104531070478c55c6aed` |
+| SDK `image_memory.h` | 612 | `aa3a711505a5c81f33e58fa8f0c0ec837802deaf7630e58fb758db33cbff6ce0` |
+
+Rendering also linked the Linux object to the external C consumer and
+recorder from `0b2b80cfd1f11037f06f87d455675a7aef104ac4`. This control
+passes the caller's output directly to the raw SDK. TinyCC on Linux x64
+ran both link forms for five scenarios and checked their separate exit
+codes, stdout and diagnostics. A driver that wrote `badc0ffe1357abcd` and
+returned −2 changed the raw caller's slot. The Tower-linked caller kept
+its slot null, its guards intact and its allocation count zero. A −2 bind
+error left the acquired handle and 16,384 accounted bytes with the owner.
+The two successes included a 4,294,983,680-byte allocation at type 31.
+This additional test exercised the Linux ELF. The Win64 COFF requires
+its own external-consumer execution.
