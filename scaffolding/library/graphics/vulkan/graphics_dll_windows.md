@@ -667,7 +667,7 @@ the first source, the caller's output stayed null. The fixture exited 3
 before memory requirements, allocation, binding, view creation or submit.
 Win64 trapping UBSan passed at the C boundary. The worker reported
 overlapping device timings, unavailable Win64 ASan runtime and unsupported
-Win64 TSan. Physical Windows and Draw's shipping Win64 caller remain open.
+Win64 TSan. Draw subsequently tested its shipping caller on Wine 11.
 
 ### Draw Win64 cross-link for image creation
 
@@ -688,3 +688,33 @@ execution belongs to slot 9 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`
 after the ordinal-10 bound-view job `966e83dc-85c9-4fd1-bd67-2ab72fa6f796`.
 The separate Linux provider test is assigned to
 `447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.
+
+### Draw shipping image creation on Wine 11
+
+Draw tested runtime `4a121b3d4b2f19c46011c4fd753db0f5df8726a9`
+and tests `63074dca85b263fa3e651754769e7051283744ca` with Tower
+`a639a49e0c9709117d990331361a8801ee41746a`. Its slot 9 job
+`3a6e478a-93ad-42c5-a9b1-82317fb70b48` used Wine 11. Vulkan selected
+the RTX 3060, device API 1.4.329, NVIDIA driver 595.99.02. Draw verified
+820 members in archive
+`6807e38e245458d6b996148bac7d95d6d7edf99bdedaebc81fd93de9f251e5c5`.
+The shipping executable had SHA-256
+`64bae40f7d3b29a915a9088820ca1fe5fe701a183a0681402fa3c3dcd47d374d`.
+
+Draw observed the call returning inside the released DLL at RVA `0x1b8e`.
+Rendering decoded that path in its retained DLL. Ordinal 11 starts at
+`0x1b70`. The call at `0x1b89` targets thunk `0x1be0`, which jumps through
+IAT slot `0x22c0` for `vulkan-1.dll!vkCreateImage`.
+
+On the healthy path Draw retired nine OSD images. The frozen frames, layers
+and camera matched ordinal 10, as did the packed texture bytes. The active
+digest was `df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+The guarded digest was
+`3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97`.
+When the injected create wrote its private slot and returned −2, the failed
+image stopped before its memory requirements query. In the second-create
+trial the first image, view and allocation were still live at fatal exit.
+
+Both stock validated Wine suites exited 1 with the existing registry and
+loader diagnostics. Physical Windows remains untested. Draw owns the
+application runs and archive verification.
