@@ -161,7 +161,7 @@ SPIR-V each failed before submission with their own diagnostics.
 
 The separate [shaderless v1 fixture](readback_v1.md) also passed on the
 hardware with its original `112233ff` oracle. The original counted runner at `fb49e797` has SHA-256
-is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
+`1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 
 | Stage | GLSL source SHA-256 | SPIR-V SHA-256 (Vulkan 1.1 target) |
 | --- | --- | --- |
@@ -172,3 +172,37 @@ is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 The controls initialize and execute at most one record. Full-capacity
 execution, noncoherent invalidation, device loss, true Draw-profile execution
 and other graphics backends remain unverified for this path.
+
+## Rendering review for Draw
+
+Rendering accepted the Linux `counted-core13` operation at Tower
+`fb49e79732e41a69a8080acbc39f4a34077d6e53` against the counted draw
+layout and pixel oracle reported for Draw `7be8d020b07454789195427588712c72ee465637`.
+For each count, the review compared the captured count and five command fields,
+all 16 active bytes and all 32 caller bytes with independently constructed
+expectations. The tight raster SHA-256 was
+`048402e9c4d980772355b55651974f77b1eca456a62116b54bfce1871d725ff1`.
+Each adapter's replay log matched its original byte for byte. The ELF imports
+`vkGetDeviceProcAddr` and has a direct dependency on `libvulkan.so.1`.
+Worker archive SHA-256 was `a32c55677b93b047d6d8e688fed2e9ab1a3807b7ed03b65ef16ac95e997cf10e`.
+
+The reported Draw gate includes Vulkan 1.4, `multiDrawIndirect`,
+`drawIndirectFirstInstance`, `drawIndirectCount`, `shaderDrawParameters` and
+capacity for at least 16384 draws. The strict fixture currently refuses every
+device, including devices reporting 1.4, pending implementation and comparison
+with Draw's pinned C and original shaders. Full-profile acceptance needs those
+inputs and matching guarded captures from a qualifying device.
+
+Rendering verified the in-memory shader-module operation in all three counted
+stages at Tower `39e33fd4816c73c612b9747b5c0fedbb65694daf`. Each adapter's
+baseline, candidate and clean replay logs were byte-identical. For counts
+zero and one, rendering decoded the count word, first command and all 32
+caller bytes and checked each against the captured bytes. The real llvmpipe
+allocation refusal reached the caller as `VkResult=-1` before submission.
+The receipt archive SHA-256 is
+`221c6384881c40c9bdcbd2e47c886016e599330579407a00b060d0188e12b8c5`.
+
+These execution results cover Linux x64. The asset loader can release its
+word buffer when the call returns. The fixture still owns Linux-specific
+file I/O. Qualification through a Windows executable requires a Windows-safe
+asset-loading path and a completed render and readback in that executable.
