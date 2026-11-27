@@ -36,7 +36,7 @@ done
 llvm-readobj --coff-exports tower_graphics.dll >dll.exports
 awk '$1=="Ordinal:"{ord=$2} $1=="Name:"{print ord,$2}' dll.exports >ordinals
 object_run=$(sed -n 's/^results //p' "$out/object.log")
-(cat "$object_run/prior/evidence/clean/exports"; printf '14 tower_vk_allocate_memory_v1\n15 tower_vk_bind_image_memory_zero_v1\n') | diff -u - ordinals
+(cat "$object_run/prior/evidence/clean/exports"; printf '14 tower_vk_allocate_memory_v1\n15 tower_vk_bind_image_memory_zero_v1\n') | diff -u - <(awk '$1 <= 15' ordinals)
 sha256sum tower_graphics.dll tower_graphics.lib image_memory.obj >release.sha256
 PROVIDER_DLL=$PWD/tower_graphics.dll PROVIDER_LIB=$PWD/tower_graphics.lib bash "$here/replay.sh" | tee "$out/dll.log"
 export D

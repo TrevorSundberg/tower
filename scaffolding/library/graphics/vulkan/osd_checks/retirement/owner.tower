@@ -1,0 +1,76 @@
+import tower;
+
+struct Owner {
+    view: u8*;
+    image: u8*;
+    memory: u8*;
+    size: u64;
+    metadata: u8[32];
+}
+struct Account { live: u64; peak: u64; count: u32; }
+struct Observation {
+    owner: Owner*;
+    account: Account*;
+    previous: Account;
+    seen: u32;
+    last: u32;
+    invalid: bool;
+}
+var View: u32 = 1;
+var Image: u32 = 2;
+var Memory: u32 = 4;
+var All: u32 = View | Image | Memory;
+var SourceBytes: u64 = 4294983680;
+extern fn osd_destroy_retired_image(device: Observation*, view: u8*, image: u8*, memory: u8*): void;
+extern fn printf(format: u8*, mask: u32, seen: u32): i32;
+
+fn observe(device: Observation*, bit: u32, child: u8*, wanted: u8*, allocator: u8*): void {
+    if child == null || child != wanted || allocator != null || bit <= device.last ||
+        device.account.live != device.previous.live || device.account.count != device.previous.count ||
+        device.account.peak != device.previous.peak || device.owner.metadata[0] != 165 { device.invalid = true; }
+    device.seen |= bit;
+    device.last = bit;
+}
+export fn record_view(device: Observation*, child: u8*, allocator: u8*): void {
+    observe(device, View, child, device.owner.view, allocator);
+}
+export fn record_image(device: Observation*, child: u8*, allocator: u8*): void {
+    observe(device, Image, child, device.owner.image, allocator);
+}
+export fn record_memory(device: Observation*, child: u8*, allocator: u8*): void {
+    observe(device, Memory, child, device.owner.memory, allocator);
+}
+fn release(device: Observation*, owner: Owner*, account: Account*): void {
+    osd_destroy_retired_image(device, owner.view, owner.image, owner.memory);
+    if owner.memory != null {
+        account.live -= owner.size;
+        account.count--;
+    }
+    *owner = default;
+}
+export fn main(): i32 {
+    for (var mask: u32 = 0; mask <= All; mask++) {
+        var owner: Owner = default;
+        var account: Account = {live: 128, peak: SourceBytes + 256, count: 2};
+        owner.size = SourceBytes;
+        fill(&owner.metadata[0], 165, sizeof(decltype(owner.metadata)));
+        if (mask & View) != 0 { owner.view = &owner.metadata[0]; }
+        if (mask & Image) != 0 { owner.image = &owner.metadata[1]; }
+        if (mask & Memory) != 0 {
+            owner.memory = &owner.metadata[2];
+            account.live += owner.size;
+            account.count++;
+        }
+        var device: Observation = {owner: &owner, account: &account, previous: account, ..default};
+        for (var pass: u32 = 0; pass < 2; pass++) {
+            release(&device, &owner, &account);
+            if device.invalid || device.seen != mask || account.live != 128 || account.count != 2 ||
+                account.peak != device.previous.peak || sizeof(Owner) != 64 { return convert(i32, mask + 1); }
+            for (var i: usize = 0; i < sizeof(Owner); i++) {
+                if bits(u8*, &owner)[i] != 0 { return convert(i32, mask + 1); }
+            }
+        }
+        printf("mask=%u seen=%u owner_bytes=64 live=128 count=2 passes=2\n", mask, device.seen);
+    }
+    return 0;
+}

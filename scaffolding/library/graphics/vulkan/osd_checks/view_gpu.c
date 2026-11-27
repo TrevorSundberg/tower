@@ -68,13 +68,19 @@ VKAPI_ATTR VkResult VKAPI_CALL osd_fixture_create_view(VkDevice device, const Vk
     return result;
 }
 
+/* Extra test views remain with the fixture that created them. */
+void osd_fixture_release_extra_views(VkDevice device, VkImageView view) {
+    require(view && view == active.sampled && device == active.device, "source retirement owner");
+    if (active.full_array) vkDestroyImageView(device, active.full_array, NULL);
+    if (active.subresource) vkDestroyImageView(device, active.subresource, NULL);
+    active.sampled = active.subresource = active.full_array = VK_NULL_HANDLE;
+}
+
 VKAPI_ATTR void VKAPI_CALL osd_fixture_destroy_view(VkDevice device, VkImageView view,
         const VkAllocationCallbacks *allocator) {
-    if (view == active.sampled) {
-        require(device == active.device && allocator == NULL, "source retirement device or allocator");
-        if (active.full_array) vkDestroyImageView(device, active.full_array, NULL);
-        if (active.subresource) vkDestroyImageView(device, active.subresource, NULL);
-        active.sampled = active.subresource = active.full_array = VK_NULL_HANDLE;
+    if (view && view == active.sampled) {
+        require(allocator == NULL, "source retirement allocator");
+        osd_fixture_release_extra_views(device, view);
     }
     vkDestroyImageView(device, view, allocator);
 }

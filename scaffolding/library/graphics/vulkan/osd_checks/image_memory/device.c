@@ -59,14 +59,20 @@ VkResult memory_bind_source(VkDevice d, VkImage image, VkDeviceMemory memory, Vk
     return result;
 }
 
+void osd_fixture_account_retired(VkDevice d, VkImage image, VkDeviceMemory memory) {
+    require(d == source.device && image == source.image && memory && memory == source.memory &&
+            source.account.count == 1, "retired owner");
+    memory_released(&source.account);
+    printf("memory retired case=%u memory=%p live=%" PRIu64 " peak=%" PRIu64 " count=%u\n",
+           source.retired++, (void *)memory, source.account.live, source.account.peak, source.account.count);
+    source.memory = VK_NULL_HANDLE;
+    source.image = VK_NULL_HANDLE;
+}
+
 void memory_free_source(VkDevice d, VkDeviceMemory memory, const VkAllocationCallbacks *cb) {
     vkFreeMemory(d, memory, cb);
     if (memory && memory == source.memory) {
-        require(d == source.device && !cb && source.account.count == 1, "free inputs");
-        memory_released(&source.account);
-        printf("memory retired case=%u memory=%p live=%" PRIu64 " peak=%" PRIu64 " count=%u\n",
-               source.retired++, (void *)memory, source.account.live, source.account.peak, source.account.count);
-        source.memory = VK_NULL_HANDLE;
-        source.image = VK_NULL_HANDLE;
+        require(!cb, "source retirement allocator");
+        osd_fixture_account_retired(d, source.image, memory);
     }
 }

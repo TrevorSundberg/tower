@@ -6,7 +6,6 @@
 #include "flat.h"
 #include "array.h"
 
-extern VkResult perform_finish(VkQueue queue, VkCommandBuffer cmd);
 static void check(VkResult result, const char *operation) {
     if (result != VK_SUCCESS) {
         fprintf(stderr, "%s failed with VkResult %d\n", operation, result);

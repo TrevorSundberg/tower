@@ -1,0 +1,15 @@
+import tower;
+import readback_abi;
+
+extern fn osd_fixture_release_extra_views(device: VkDeviceHandle*, view: VkImageViewHandle*): void;
+extern fn osd_destroy_retired_image(device: VkDeviceHandle*, view: VkImageViewHandle*,
+    image: VkImageHandle*, memory: VkDeviceMemoryHandle*): void;
+extern fn osd_fixture_account_retired(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): void;
+
+// Called by the serial hardware fixture after successful sampling and readback.
+fn retire_sampled_source(device: VkDeviceHandle*, view: VkImageViewHandle*, image: VkImageHandle*,
+    memory: VkDeviceMemoryHandle*): void {
+    osd_fixture_release_extra_views(device, view);
+    osd_destroy_retired_image(device, view, image, memory);
+    osd_fixture_account_retired(device, image, memory);
+}
