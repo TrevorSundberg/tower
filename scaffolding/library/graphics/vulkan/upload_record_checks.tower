@@ -2,6 +2,7 @@ import tower;
 import readback_abi;
 import counted_abi;
 import buffer_upload_record;
+import synchronization2_abi;
 import readback_output;
 
 extern fn fixture_record(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, dst: VkBufferHandle*, size: u64): void;

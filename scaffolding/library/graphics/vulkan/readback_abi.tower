@@ -576,3 +576,5 @@ struct VkPhysicalDeviceIDProperties {
     sType: u32; pNext: void*; deviceUUID: u8[16]; driverUUID: u8[16];
     deviceLUID: u8[8]; deviceNodeMask: u32; deviceLUIDValid: u32;
 }
+var VkNoFamily: u32 = ~convert(u32, 0);
+var VkColorAspect: u32 = 1;

@@ -1,0 +1,26 @@
+import tower;
+import readback_abi;
+import synchronization2_abi;
+
+fn transition_layers(cmd: VkCommandBufferHandle*, layers: u32, barrier: VkImageMemoryBarrier2*): void {
+    var dep: VkDependencyInfo = { sType: VkDependencyInfoTag, imageMemoryBarrierCount: 1,
+        pImageMemoryBarriers: barrier, ..default };
+    for (var layer: u32 = 0; layer < layers; layer++) {
+        barrier.subresourceRange.baseArrayLayer = layer;
+        vkCmdPipelineBarrier2(cmd, &dep);
+    }
+}
+
+export fn tower_vk_osd_texture_upload_record_v1(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void {
+    var barrier: VkImageMemoryBarrier2 = { sType: VkImageMemoryBarrier2Tag, image: image,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
+        subresourceRange: { aspectMask: VkColorAspect, levelCount: mips, layerCount: 1, ..default },
+        newLayout: VkTransferDstOptimal, dstStageMask: VkStage2Transfer, dstAccessMask: VkAccess2TransferWrite, ..default };
+    transition_layers(cmd, layers, &barrier);
+    vkCmdCopyBufferToImage(cmd, staging, image, VkTransferDstOptimal, count, regions);
+    barrier.oldLayout = VkTransferDstOptimal; barrier.newLayout = VkShaderReadOnlyOptimal;
+    barrier.srcStageMask = VkStage2Transfer; barrier.srcAccessMask = VkAccess2TransferWrite;
+    barrier.dstStageMask = VkStage2FragmentShader; barrier.dstAccessMask = VkAccess2ShaderSampledRead;
+    transition_layers(cmd, layers, &barrier);
+}

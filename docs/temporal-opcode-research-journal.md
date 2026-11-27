@@ -124306,3 +124306,17 @@ The evidence packet contains build.sh, exercise.sh, negative.sh, buffer.sh,
 sanitize.sh and replay.sh with link maps, exit codes and guarded bytes.
 Production work requires Draw's pinned image-upload body, signature,
 formats, regions, complete transition dependencies and post-upload use.
+
+### Draw confirms the new OSD texture transaction
+
+Draw supplied the source contract at 752f55c1280a1c737eedeaa46285af2a199aa37d,
+draw.c blob 7b6ee8f42bbde29790364d3de73a5d75216cbf1d, osd_create
+lines 5339–5357 and image_layer_barrier lines 2079–2096. Producer
+tools/bake-osd.mjs:78–85 creates assets/osd/textures.bin, reported SHA-256
+0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9.
+The caller normalizes a raw zero layer count to one and supplies a borrowed,
+layer-major region list. The public recording operation will transition each
+layer of a new image, issue one copy with that list, then transition each
+layer for fragment sampled reads. Allocation, mapping, image/view lifetime,
+begin, finish and staging retirement stay with the caller. All tests use
+reconstructed descriptors and synthetic bytes. The pack was not read.
