@@ -1,0 +1,50 @@
+import tower;
+import readback_abi;
+
+// Linux x86-64 Vulkan ABI from vulkan_core.h, header 239.
+// Copyright 2015-2022 The Khronos Group Inc.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+struct VkShaderModuleHandle {}
+struct VkShaderModuleCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    codeSize: usize;
+    pCode: u32*;
+}
+extern fn vkCreateShaderModule(device: VkDeviceHandle*, pCreateInfo: VkShaderModuleCreateInfo*, pAllocator: VkAllocationCallbacks*, pShaderModule: VkShaderModuleHandle**): i32;
+extern fn vkDestroyShaderModule(device: VkDeviceHandle*, shaderModule: VkShaderModuleHandle*, pAllocator: VkAllocationCallbacks*): void;
+
+var VkShaderModuleTag: u32 = 16;
+var SpirvHeaderWords: usize = 5;
+
+struct VkShaderModuleResult {
+    called: bool;
+    result: i32; // Exact VkResult when called.
+}
+
+// Borrow a live device, a readable array of device-valid SPIR-V and a separate,
+// initialized, writable empty handle slot. The caller owns the words on every
+// return and can release them immediately. Success transfers a module to out;
+// destroy it once on this device with a null allocator before device teardown.
+// Local refusal or driver failure leaves the slot and its ownership unchanged.
+fn vk_create_shader_module(device: VkDeviceHandle*, words: u32*, word_count: usize,
+        out: VkShaderModuleHandle**): VkShaderModuleResult {
+    var max_size = ~convert(usize, 0);
+    if device == null || words == null || bits(usize, words) % alignof(u32) != 0
+        || word_count < SpirvHeaderWords || word_count > max_size / sizeof(u32)
+        || out == null || bits(usize, out) % alignof(VkShaderModuleHandle*) != 0 {
+        return default;
+    }
+    var size = word_count * sizeof(u32);
+    var start = bits(usize, words);
+    var slot = bits(usize, out);
+    if size - 1 > max_size - start { return default; }
+    if slot <= start + (size - 1) && start <= slot + (sizeof(VkShaderModuleHandle*) - 1) { return default; }
+    if *out != null { return default; }
+    var info: VkShaderModuleCreateInfo = { sType: VkShaderModuleTag, codeSize: size, pCode: words, ..default };
+    var module: VkShaderModuleHandle* = null;
+    var status = vkCreateShaderModule(device, &info, null, &module);
+    if status == 0 { *out = module; }
+    return { called: true, result: status };
+}

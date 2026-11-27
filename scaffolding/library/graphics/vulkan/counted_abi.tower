@@ -1,10 +1,10 @@
 import tower;
 import readback_abi;
+import shader_module;
 
 // Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
 // Linux x86-64 Vulkan ABI from Khronos vulkan_core.h, header 239.
 // SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
-struct VkShaderModuleHandle {}
 struct VkPipelineHandle {}
 struct VkPipelineLayoutHandle {}
 struct VkRenderPassHandle {}
@@ -22,14 +22,6 @@ struct VkPipelineDepthStencilStateCreateInfo {}
 struct VkPipelineDynamicStateCreateInfo {}
 struct VkDescriptorImageInfo {}
 struct VkCopyDescriptorSet {}
-
-struct VkShaderModuleCreateInfo {
-    sType: u32;
-    pNext: void*;
-    flags: u32;
-    codeSize: usize;
-    pCode: u32*;
-}
 
 struct VkPipelineShaderStageCreateInfo {
     sType: u32;
@@ -301,8 +293,6 @@ struct VkPipelineRenderingCreateInfo {
     stencilAttachmentFormat: u32;
 }
 
-extern fn vkCreateShaderModule(device: VkDeviceHandle*, pCreateInfo: VkShaderModuleCreateInfo*, pAllocator: VkAllocationCallbacks*, pShaderModule: VkShaderModuleHandle**): i32;
-extern fn vkDestroyShaderModule(device: VkDeviceHandle*, shaderModule: VkShaderModuleHandle*, pAllocator: VkAllocationCallbacks*): void;
 extern fn vkCreateGraphicsPipelines(device: VkDeviceHandle*, pipelineCache: VkPipelineCacheHandle*, createInfoCount: u32, pCreateInfos: VkGraphicsPipelineCreateInfo*, pAllocator: VkAllocationCallbacks*, pPipelines: VkPipelineHandle**): i32;
 extern fn vkCreateComputePipelines(device: VkDeviceHandle*, pipelineCache: VkPipelineCacheHandle*, createInfoCount: u32, pCreateInfos: VkComputePipelineCreateInfo*, pAllocator: VkAllocationCallbacks*, pPipelines: VkPipelineHandle**): i32;
 extern fn vkDestroyPipeline(device: VkDeviceHandle*, pipeline: VkPipelineHandle*, pAllocator: VkAllocationCallbacks*): void;
