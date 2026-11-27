@@ -234,8 +234,7 @@ and exited 0. Draw checked five copies, all 208 fields in the 16 regions,
 28 per-layer dependencies with their 64-bit access masks, and begin/finish
 order against its independent oracle. Each run produced a 64-line trace
 with SHA-256 `1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
-Device readback of these packed texels and rendered OSD parity are pending
-on Draw's reserved hardware.
+The Linux application device results follow below.
 
 ### Replaying the Draw test
 
@@ -272,6 +271,49 @@ Rendering verified the individual spans of 25,165,824, 450,560, 450,560,
 The 16-byte file header and five 32-byte record headers account for the
 remaining 176 bytes in the full pack.
 
-Draw queued job `a07d1af8` for the device comparison. Its hardware
-invocation, selected device, observed texel digest and rendered HUD
-digest remain outstanding.
+Draw verified the file-derived digest in the following device run.
+
+## Draw Linux hardware acceptance on the shipped OSD pack
+
+Draw job `a07d1af8` compared its raw and Tower-linked recorders on an
+API-selected RTX 3060, Vulkan 1.4.329, NVIDIA 595.99.02. The worker
+reconstructed the adoption at Draw `c95c6e7c2b63ae829620933b0807432e7421db3e`,
+with tests `70beaa3bd549f69773f29957f8e2aa3f273b2967` based on
+`7104049a`. The earlier manager adoption is a separate tree at `e850df53`.
+Tower supplied the 1,528-byte recorder at `846176abc06dfa3ac6dbb939f3f683e9380cd99e`,
+object SHA-256 `b2cd884a14b66be6454083455e7e89eb18df5b4af79eae9dc6c2a722d3118d95`.
+
+From the Draw root the manager's CPU check and the worker's GPU test were:
+
+```sh
+python3 tests/verify-osd-texture-record.py build/tower-port/manager/receipt-145/provider \
+  --out build/tower-port/manager/receipt-162/cpu
+bash tests/osd-texture.sh /tmp/draw-a07d1af8/raw /tmp/draw-a07d1af8/linked \
+  /tmp/draw-a07d1af8/provider /tmp/draw-a07d1af8/probe
+```
+
+Both checks exited 0. The CPU runs reproduced the 64-line trace above. Both
+GPU arms ran `--offscreen --validate --osd-test assets/osd/state.bin --fixed-time 0 --frames 1 --size 1280 800 --capture /tmp/draw-a07d1af8/probe/frame.rgba`.
+An instrumented readback supplied the packed texture bytes. Draw verified
+all 208 fields across five copies (6, 2, 2, 4 and 2 regions), 28 per-layer
+barriers, same-queue completion before each of the five staging releases,
+and sampled draws before image destruction. Native validation reported zero
+warnings or errors.
+
+| Draw output | SHA-256 verified by Draw |
+| --- | --- |
+| 27,541,504 active texel bytes from the shipped pack, both GPU arms | `df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4` |
+| 27,632,640 bytes including 91,136 bytes of `a5` guards and padding | `3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97` |
+| Visible 1280×800 HUD layer | `cb466e6d1d99597316171d274fabe58718c126f4eec9829d9b59751db081fef2` |
+| Visible full RGB PPM | `721296ac221895d46094a7468fa8059504da5124698f45a92da34a2f6027e12a` |
+| Resized HUD layer | `26bcbccf9bbff785fc3ab3c2f9a7ef9f63d8372dc64f1cbd4438077bfb7a264d` |
+
+Draw observed identical raw and linked RGB and camera output. The raw ELF
+SHA-256 was `6378d17a8aa1521d0bfa08856a6c24e30b8245d7cd8d4c1108da43a4844da4b5`;
+the linked ELF was `604117b6013bfa5d0fab5f502eaa73038783f371130bbfe7b70dc17ff75ed731`.
+Draw verified 320 indexed files plus the manifest in archive
+`3a559fc8958b5a4ad02162d7c8ca6d9ea47fc6ad75d0503445624ce1d9851fa6`.
+Tower rendering rehashed its retained object and independently decoded
+the 208 fields, five payload spans and 28 barriers in its own two Linux
+loader traces. The tight-region builder, bound-view provider and Win64 OSD
+recorder each have a separate Draw application test.
