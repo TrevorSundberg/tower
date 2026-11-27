@@ -124404,3 +124404,94 @@ The public cross-build adds the module as a separate object and exports
 its by-value entry at ordinal 7. An isolated compilation with the
 checked-in bootstrap and LLVM 19 produced one public COFF symbol with
 only vkCmdCopyBuffer and core vkCmdPipelineBarrier2 unresolved.
+
+The Draw reference is 41d8b9ba, draw.c blob
+`7b6ee8f42bbde29790364d3de73a5d75216cbf1d` also reported at 752f55c1.
+Lines 1943–1952 and 1970–1979 define the global sync2 dependency and
+staged copy. The reviewed Linux provider and the SDK C control were read
+from rendering/vulkan-buffer-upload-2ebc7ab2 at dadf38c0. The Win64
+build links the unchanged module against the two core loader names.
+The indexed-draw header retains Git blob 542397563bf9782850191360c52d7c9d2c7dac23.
+
+The release's five Tower COFF inputs define each of seven exports once.
+Both the map and actual PE agree on their owners. The DLL has no entry
+point and one import descriptor with eight names from vulkan-1.dll.
+The C recording and finish objects in the linked PE import ordinals 7
+and 6 by name via tower_graphics.lib. The test harness owns its separate
+readback copy and failure drain. The raw PE imports both recording calls
+and the end/submit/idle sequence from Vulkan. In the Wine module trace,
+the ordinary linked caller loaded the exact release DLL beside its EXE
+and Wine's system32 Vulkan loader. Both the five-name prior consumer and
+its 336 checked bytes survived. The two asynchronous gate controls
+observed VK_NOT_READY before host release, then both fences and a set
+event. The signed finish matrix observed E, ES and ESI up to the first
+nonzero result at each position for −4, −1 and +1. All 18 isolated fatal
+control exits were 1. The recording-only PE pair used a separate test
+Vulkan DLL. Each observed the original primary and two buffers, the
+two driver calls in order, the zero offsets, exact 64-bit sizes 1, 73,
+67,108,864 and 4,294,967,369 and every field of both sync2 descriptors.
+
+Wine 8 on Linux 6.8 selected the discrete Quadro RTX 6000, NVIDIA
+615.71.10, Vulkan device API 1.4.351, UUID 26f60f6cead65faf0253a959b2e93a2d,
+family/index 0/0. The instance requested core 1.3. The feature query and
+device creation used VkPhysicalDeviceSynchronization2Features and the
+fixture reported enabled_synchronization2=1. Guest explicit validation
+layer creation returned VK_ERROR_LAYER_NOT_PRESENT (−6). The positive
+runs used a guest debug-utils callback, requested synchronization
+validation from the host loader, observed host Khronos device-layer
+insertion and reported zero callback warnings/errors.
+
+Both arms used coherent staging (flags 6), a device-local destination
+(1) and a separate coherent readback (6). They initialized the suffix,
+recorded the upload, finished on the same queue, then recorded a separate
+destination-to-host copy and a TRANSFER_WRITE/HOST_READ barrier before
+retiring again. The trace checks one resettable primary, one queue, one
+submit and a null fence per finish. Each reset followed retirement
+except the initial reset. Payload byte i alternated between (3i+2) and
+(3i+151) modulo 256. Both four-byte a5 readback guards and the destination
+suffix (seven or eight 3c bytes) were part of each full comparison.
+
+| Per-lane capture | Bytes per trial | Expected and observed SHA-256 of the complete stream |
+| --- | ---: | --- |
+| 73 bytes × 64 | 88 | `464400b39d3b85b232fc092a41fa409846d7ad845e6383f5b69752514b98cdbe` |
+| 64 MiB × 2 | 67,108,880 | `00ff1657355954087fdc48ca2cb3acc6d2bd6f0b487aaf58a081595342a4ac71` |
+
+Each guarded capture matched the Linux reference and its opposite PE
+lane byte for byte. The DLL does not allocate or retire resources.
+The caller owns the direct-mapped bypass and staging lifetime.
+
+On the same Xeon E5-2699 v4, 88 logical CPUs and 10.56-CPU quota,
+one caller thread and one process ran at a time. Three warm-cache
+fresh-process raw/linked pairs per size alternated order after the
+checked capture runs. Every timed trial compared the complete mapping.
+Median wall, user+system CPU seconds and peak RSS KiB for the 64 short
+uploads were 0.40/0.36/116144 raw and 0.35/0.32/116968 linked.
+For the two 64 MiB uploads they were 3.22/3.02/443588 raw and
+3.12/3.04/443364 linked. At 10 MHz QPC the median first/second short
+recordings took 77.5/23.5 µs raw and 61.8/18.0 µs linked. For the large
+pair they took 163.6/131.8 µs raw and 159.6/130.6 µs linked. These
+host recording intervals include driver and validation work. End-to-end
+times also include payload generation, staging, finish, readback and
+comparison. GPU timestamps, allocation counts and driver contention
+were unmeasured.
+
+The public six/seven-entry builds with consumer took 2.10/2.49 s wall,
+2.14/2.54 s CPU and 109192/109892 KiB peak RSS in one observation each.
+Three compilations of the new unit at one/four jobs produced identical
+COFF. Median wall seconds were 0.49/0.52 and RSS KiB 91328/94848.
+The ordinary release build uses one job and the checked-in Linux x64
+development bootstrap. The host SDK used LLVM 19.1.7 and SDK header 239.
+
+The first fixture build found inconsistent declarations of the CRT's
+opaque FILE pointer. The Win64 fixture now uses the existing foreign
+declaration. Win64 C trapping UBSan completed the recording checks and
+both linked hardware sizes. The x64 MinGW ASan import libraries were
+missing; Clang rejected Win64 TSan. Native Linux ASan and TSan
+instrumented the actual recorder, its recording checks and a four-pthread
+control with four repetitions per worker. Each completed with empty
+sanitizer stderr. Three TSan starts failed the container's
+ADDR_NO_RANDOMIZE personality check before the fourth succeeded. This
+instrumentation covers CPU descriptors and callbacks. PE Tower machine
+code and the graphics driver were outside the sanitizer coverage.
+Physical Windows, actual device loss and use in a Draw process remain
+open. The manager owns publication.

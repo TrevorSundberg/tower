@@ -1,12 +1,12 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, blocking upload finish and asynchronous
+`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, staged buffer recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h) and [counted recording](indexed_draw_c.h).
+Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h) and [buffer uploads](buffer_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
 calls. At runtime the Tower DLL imports `vkCreateShaderModule`, `vkResetCommandBuffer`,
-`vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit` and `vkQueueWaitIdle` from `vulkan-1.dll`.
+`vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
 
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles four Tower objects for
+The entry verifies the checked-in bootstrap, compiles five Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -45,7 +45,7 @@ MinGW-w64 10.0, Vulkan headers 1.3.239, glslang 12.0.0 and the x64 loader
 import library generated from the checksummed Khronos definition.
 The command compiles the repository's fragment shader to an array of SPIR-V
 words, then builds [graphics_consumer.c](graphics_consumer.c) as a separate
-PE executable. Run `out\graphics_consumer.exe` with a Vulkan 1.1-capable
+PE executable. Run `out\graphics_consumer.exe` with a Vulkan loader exporting the core 1.3 names, a Vulkan 1.1-capable
 first adapter and a graphics queue in family zero. The observed exit was 0:
 
 ```text
@@ -100,7 +100,7 @@ Keep the pool, primary, buffers and memory live until a separate owner
 drain establishes retirement or the caller applies its device-loss policy.
 The existing asynchronous frame submission still returns after submit.
 
-The release adds finish at ordinal 6. The aggregate `command_finish.obj`
+The six-export release added finish at ordinal 6. The aggregate `command_finish.obj`
 defines finish, end/prepare (5) and queue submit (1) once each. The PE
 imports six Vulkan loader calls. The 4,096-byte DLL has SHA-256
 `b5a46d778883c9c34dfc2921374c4fa3212c4b5d9e0cde6056480d388d5af222`.
@@ -114,6 +114,48 @@ after a separate successful queue drain. The prior frame gate, counted
 pixels, staging order and C executables also passed with this DLL.
 Physical Windows and full Draw application execution remain open.
 [Host, build and replay evidence](../../../../docs/temporal-opcode-research-journal.md#blocking-upload-finish-in-the-windows-x64-graphics-dll)
+
+## Staged buffer recording at ordinal 7
+
+Include `buffer_upload_record.h` and `frame_submit.h`. For Draw's staged
+branch, copy the logical payload to coherent staging and begin the primary.
+At this point the caller can issue both operations through one import library.
+
+```c
+tower_vk_buffer_upload_record_v1(cmd, staging, dst, size);
+VkResult result = tower_vk_command_finish_v1(queue, cmd);
+```
+
+Pass a recording transfer-capable primary outside a render pass, with core
+Vulkan 1.3 synchronization2 enabled on its device. Both buffers must have
+bound memory, the corresponding TRANSFER_SRC/DST usage and valid,
+non-overlapping ranges for the positive logical `VkDeviceSize`. All four
+arguments cross the Windows x64 C ABI by value. The recorder returns void.
+
+The first driver call copies one region, offset zero at both ends, with
+the exact size. The next calls core `vkCmdPipelineBarrier2` with one global
+`VkMemoryBarrier2` from TRANSFER/TRANSFER_WRITE to ALL_COMMANDS/MEMORY_READ.
+The dependency flags and unused counts are zero. Its unused pointers and
+both extension-chain pointers are null. The recorder borrows handles and
+uses stack descriptors. Draw's direct-mapped branch bypasses both calls.
+Draw retains staging until the separate finish establishes retirement.
+
+Build the DLL with the public command above. For an application using these
+two entries, set the same SDK variables and link its own objects normally.
+
+```sh
+clang --target=x86_64-w64-windows-gnu --sysroot="$MINGW_SYSROOT" \
+  -fuse-ld=lld -L"$MINGW_GCC_LIB" upload_consumer.obj \
+  out/tower_graphics.lib "$VULKAN_IMPORT_LIB" -o out/upload_consumer.exe
+```
+
+The seven-export DLL is 4,096 bytes with SHA-256
+`b6b7b867cb665f43376339e5e01f5ce98c10a7b1182bf4a04f4dee8223ec46a4`.
+On Wine 8 the linked upload PE imported the recorder and finish by name.
+It reproduced Draw's guarded 73-byte and 64 MiB upload references on a
+Quadro RTX 6000. The previous five-import counted PE retained its guarded
+output with this DLL. Physical Windows and Draw process adoption remain open.
+[Host 11 checks and replay](../../../../docs/temporal-opcode-research-journal.md#draw-staged-buffer-recording-in-the-win64-dll)
 
 ## Five-export validation at c40dae39
 
