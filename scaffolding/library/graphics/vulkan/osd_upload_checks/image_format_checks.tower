@@ -1,0 +1,87 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+extern fn fixture_sdk_images(first: VkImageCreateInfo**): usize;
+extern fn fixture_preflight(physical: VkPhysicalDeviceHandle*, info: VkImageCreateInfo*,
+    properties: VkImageFormatProperties*, supported: u32*): i32;
+extern fn memcmp(a: void*, b: void*, size: usize): i32;
+extern fn memset(dst: void*, value: i32, size: usize): void*;
+
+struct PropertiesSlot { before: u64; value: VkImageFormatProperties; after: u64; }
+struct DecisionSlot { before: u32; value: u32; after: u32; }
+struct Recording {
+    physical: VkPhysicalDeviceHandle*; info: VkImageCreateInfo; limits: VkImageFormatProperties;
+    properties: PropertiesSlot; decision: DecisionSlot; calls: usize; result: i32;
+}
+
+export fn vkGetPhysicalDeviceImageFormatProperties(physical: VkPhysicalDeviceHandle*, format: u32,
+        kind: u32, tiling: u32, usage: u32, flags: u32, out: VkImageFormatProperties*): i32 {
+    var s = bits(Recording*, physical);
+    view_check(s.physical == physical && s.info.format == format && s.info.imageType == kind &&
+        s.info.tiling == tiling && s.info.usage == usage && s.info.flags == flags, "query arguments");
+    view_check(out != &s.properties.value, "driver received public properties");
+    s.calls++;
+    *out = s.limits;
+    return s.result;
+}
+
+fn check(s: Recording*, wanted: u32): void {
+    memset(bits(void*, &s.properties), 165, sizeof(PropertiesSlot));
+    memset(bits(void*, &s.decision), 90, sizeof(DecisionSlot));
+    var properties = s.properties;
+    var decision = s.decision;
+    if s.result == 0 { properties.value = s.limits; decision.value = wanted; }
+    var before = s.calls;
+    var input = s.info;
+    var result = fixture_preflight(s.physical, &input, &s.properties.value, &s.decision.value);
+    view_check(s.calls == before + 1 && s.result == result, "query count or signed result");
+    view_check(memcmp(bits(void*, &s.properties), bits(void*, &properties), sizeof(PropertiesSlot)) == 0,
+        "properties or guards");
+    view_check(memcmp(bits(void*, &s.decision), bits(void*, &decision), sizeof(DecisionSlot)) == 0,
+        "VkBool32 or guards");
+}
+
+export fn main(): i32 {
+    var s: Recording = default;
+    s.physical = bits(VkPhysicalDeviceHandle*, &s);
+    var images: VkImageCreateInfo*;
+    var count = fixture_sdk_images(&images);
+    view_check(count == 4, "SDK descriptor inventory");
+    for (var i: usize = 0; i < count; i++) {
+        s.info = images[i];
+        s.limits = {maxExtent: s.info.extent, maxMipLevels: s.info.mipLevels,
+            maxArrayLayers: s.info.arrayLayers, sampleCounts: s.info.samples, maxResourceSize: 0};
+        check(&s, 1);
+        s.limits.maxResourceSize = ~convert(u64, 0);
+        check(&s, 1);
+    }
+    // Distinct limits, high unsigned width and nonzero linear tiling expose field swaps.
+    s.info.tiling = 1;
+    s.info.extent = {width: 2147483653, height: 19, depth: 7};
+    s.info.mipLevels = 3; s.info.arrayLayers = 11; s.info.samples = 4;
+    s.limits = {maxExtent: s.info.extent, maxMipLevels: 3, maxArrayLayers: 11,
+        sampleCounts: 5, maxResourceSize: 4294967311};
+    check(&s, 1);
+    var fields: u32*[5] = {&s.info.extent.width, &s.info.extent.height, &s.info.extent.depth,
+        &s.info.mipLevels, &s.info.arrayLayers};
+    for (var i: usize = 0; i < sizeof(decltype(fields)) / sizeof(u32*); i++) {
+        var field = fields[i]; var exact = *field;
+        *field = 0; check(&s, 0);
+        *field = exact + 1; check(&s, 0);
+        *field = exact - 1; check(&s, 1);
+        *field = exact;
+    }
+    s.info.samples = 0; check(&s, 0);
+    s.info.samples = 2; check(&s, 0);
+    s.info.samples = 6; check(&s, 1);
+    s.info.extent.width = 0;
+    var errors: i32[4] = {-11, -1, -2, 1};
+    for (var i: usize = 0; i < sizeof(decltype(errors)) / sizeof(i32); i++) {
+        s.result = errors[i]; check(&s, 0);
+    }
+    s.result = 0; check(&s, 0);
+    puts("32 queries passed with exact fields, results, properties, decisions and guards");
+    view_check(s.calls == 32, "unexpected test count");
+    return 0;
+}
