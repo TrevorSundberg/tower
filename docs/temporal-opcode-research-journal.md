@@ -124182,3 +124182,11 @@ RGB pixels of 40 80 bf reproduced Draw's shipping image digest. Draw
 owns the guard and payload comparisons against its device captures.
 This receipt changes documentation only. Runtime and memory profiles
 are unchanged inputs from the prior implementation.
+
+### Guarded bytes in the Draw finish capture
+
+Draw supplied the source and readback layout for slot 10 job `00d4d868`.
+Rendering independently streamed the 73-byte sequence and 64 MiB fill
+through SHA-256, then repeated each with the two destination guards.
+All four lengths and all four digests matched. Draw verified the four
+retained staged captures. [Byte formulas and binary spans](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits)

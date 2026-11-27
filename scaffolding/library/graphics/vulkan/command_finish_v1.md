@@ -170,12 +170,25 @@ command end, one unfenced submit and a successful wait-idle on the
 submitting queue before staging unmap, destruction and memory release.
 Draw checked both C and Tower arms, staged and directly mapped, against
 every expected payload byte and the 16-byte guards at both ends.
-These hashes cover only the guards and logical payload.
+For the 73-byte upload, payload byte `i` is `(37*i + 11) mod 256`
+starting at `i = 0`. All 67,108,864 bytes of the large payload are
+`5a` hex. The host source has 16 bytes of `a5` on each side. Upload
+starts at source offset 16 and takes exactly the logical payload length.
+Readback starts filled with `c7`. The copy writes at offset 16 and
+preserves both 16-byte `c7` guards. Hash the decompressed binary bytes.
+The small device allocation's seven alignment bytes lie outside both
+hashed spans.
 
-| Logical payload | Guarded bytes | Guarded SHA-256 |
-| --- | ---: | --- |
-| 73 bytes | 105 | `6f83b083f799c51fa51ad8b60061eaefa615edb15ac1baeb5b055fa22c0d8335` |
-| 64 MiB | 67,108,896 | `b36df9bbdb0b7c344b42d721ead2b068c2d19537438273073d574a78db138968` |
+| Payload | Bytes hashed | Span | SHA-256 |
+| --- | ---: | --- | --- |
+| 73 bytes | 73 | Payload | `d3d699995b8dca504d20bdaf82d9ef8bc2f7bf3a2126eb7192a6e831f5b4babb` |
+| 73 bytes | 105 | Guarded readback | `6f83b083f799c51fa51ad8b60061eaefa615edb15ac1baeb5b055fa22c0d8335` |
+| 64 MiB | 67,108,864 | Payload | `103f23a15401a701b73587902f16e3b5b3bf38a039d5c94b675a9a8e84dbd5b5` |
+| 64 MiB | 67,108,896 | Guarded readback | `b36df9bbdb0b7c344b42d721ead2b068c2d19537438273073d574a78db138968` |
+
+Rendering regenerated all four streams on CPU and matched their lengths
+and hashes. Draw compared the four staged captures retained from the raw C
+and linked Tower runs with the reconstructed bytes.
 
 The shipping command was `build/draw-linked --offscreen --gpu-check --staged-uploads --validate --no-nuclear --frames 3 --size 1280 800 --capture OUTPUT`.
 It returned 0 with PPM SHA-256 `42c6fe3a6e638e17551cb10c267d48451b1d8ef0f9fb2835df85a2b3a606f57b`.
