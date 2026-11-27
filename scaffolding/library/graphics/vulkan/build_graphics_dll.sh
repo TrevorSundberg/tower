@@ -10,13 +10,13 @@ root=$(cd "$v/../../../.." && pwd)
 mkdir -p "$1"
 cd "$1"
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
-for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record tight_color_regions bound_image_view create_image image_format_preflight image_allocation_plan image_memory; do
+for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record tight_color_regions bound_image_view create_image image_format_preflight image_allocation_plan image_memory image_retirement; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
         -o "$unit.obj"
 done
 # These are the complete loader dependencies of the graphics DLL.
-printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkResetCommandBuffer\n  vkBeginCommandBuffer\n  vkEndCommandBuffer\n  vkQueueSubmit\n  vkQueueWaitIdle\n  vkCmdCopyBuffer\n  vkCmdCopyBufferToImage\n  vkCmdPipelineBarrier2\n  vkCreateImageView\n  vkCreateImage\n  vkGetPhysicalDeviceImageFormatProperties\n  vkGetImageMemoryRequirements\n  vkAllocateMemory\n  vkBindImageMemory\n' > graphics_loader.def
+printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkResetCommandBuffer\n  vkBeginCommandBuffer\n  vkEndCommandBuffer\n  vkQueueSubmit\n  vkQueueWaitIdle\n  vkCmdCopyBuffer\n  vkCmdCopyBufferToImage\n  vkCmdPipelineBarrier2\n  vkCreateImageView\n  vkCreateImage\n  vkGetPhysicalDeviceImageFormatProperties\n  vkGetImageMemoryRequirements\n  vkAllocateMemory\n  vkBindImageMemory\n  vkDestroyImageView\n  vkDestroyImage\n  vkFreeMemory\n' > graphics_loader.def
 llvm-dlltool -m i386:x86-64 -d graphics_loader.def -l graphics_loader.lib
 lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_try_create_shader_module,@2 /export:tower_vk_queue_submit_one_v1,@1 \
@@ -29,8 +29,9 @@ lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_image_format_preflight_v1,@12 \
     /export:tower_vk_plan_image_allocation_v1,@13 \
     /export:tower_vk_allocate_memory_v1,@14 /export:tower_vk_bind_image_memory_zero_v1,@15 \
+    /export:tower_vk_destroy_retired_image_v1,@16 \
     /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
-    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj tight_color_regions.obj bound_image_view.obj create_image.obj image_format_preflight.obj image_allocation_plan.obj image_memory.obj graphics_loader.lib
+    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj tight_color_regions.obj bound_image_view.obj create_image.obj image_format_preflight.obj image_allocation_plan.obj image_memory.obj image_retirement.obj graphics_loader.lib
 
 if [[ ${2:-} == --with-consumer ]]; then
     : "${MINGW_SYSROOT:?absolute path to the x86_64-w64-mingw32 sysroot}"

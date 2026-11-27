@@ -125959,3 +125959,12 @@ six pairs returned the same guarded bytes. These process measurements do
 not resolve per-call overhead. Both new entries allocate zero heap objects.
 Device source allocation count, maximum live bytes and retirement were the
 same in the SDK, COFF and release runs.
+
+### Win64 normal image retirement on slot 11
+
+Assignment 7a12ef3c starts at c5dfef51. The public provider, header,
+eight-mask Tower fixture and C call site come from 5dea5876, reviewed at
+6aa610c9. The release appends ordinal 16. The first independent standalone
+build with the packaged bootstrap, one worker and x86_64-w64-windows-gnu
+matched the published bf3fa4e1 COFF. The sealed ordinal-15 device client
+and full guarded capture are the compatibility and hardware controls.

@@ -1,0 +1,9 @@
+import tower;
+import readback_abi;
+
+export fn tower_vk_destroy_retired_image_v1(device: VkDeviceHandle*, owned_view: VkImageViewHandle*,
+    owned_image: VkImageHandle*, owned_memory: VkDeviceMemoryHandle*): void {
+    if owned_view != null { vkDestroyImageView(device, owned_view, null); }
+    if owned_image != null { vkDestroyImage(device, owned_image, null); }
+    if owned_memory != null { vkFreeMemory(device, owned_memory, null); }
+}
