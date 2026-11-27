@@ -123451,3 +123451,69 @@ Git bundle based on `cf53212c`, runner and shader bytes, reproduction scripts,
 raw GPU/negative logs, timings, instrumentation receipts and checksums.
 The next cross-project check needs an authorized Draw source and shader ref
 and a device that satisfies its complete profile.
+
+## Slot 11 native counted draw feature gate
+
+Assignment 4cb0a9d6 starts at the fetched rendering ref `4bd67941`
+(worker code `fb49e797`). The independent GLSL controls and oracle are
+from counted_draw.md. The reported predicate comes from the rendering
+handoff for Draw `7be8d020`. The preceding DLL job had delivered its
+bundle. This job uses a separate checkout and the previous worker's private
+Debian libEGL with the NVIDIA ICD. Before edits, the pinned bootstrap built
+the original counted-core13 runner. The Quadro RTX 6000 returned the two
+expected guarded images and both command headers with one signaled submit
+and zero validation warnings/errors. Its API is 1.4.351. The earlier
+bookworm loader supports 1.3.239. Keep that environment for the strict
+loader refusal and exercise 1.4 separately using a private matching loader
+and layer. Both use the same physical GPU.
+
+Implementation `dd2bebe0` queries the loader before instance creation and
+requests the API of the selected profile. A typed Tower snapshot drives the
+device decision. Device creation starts with zero-initialized feature
+structures. The strict run enables both base indirect bits, the 1.1 shader
+draw parameters bit, the 1.2 counted draw bit and dynamic rendering. The
+debug callback remains installed through device destruction. The shared
+indexed wrapper, pipeline, recorder, shaders and pixel capture are byte-for-byte
+the parent's. The first compile rejected an unbraced nested conditional;
+the second caught the language's direct-import rule for CountedCapacity.
+The device module now keeps its public capacity and derives it from the
+feature contract. No compiler or bootstrap changes were needed.
+
+On the same Quadro the strict run used private LunarG 1.4.313 loader and
+Khronos synchronization validation with NVIDIA 615.71.10. Its 112 captured
+bytes matched the literal independent record/guard oracle. The SHA-256 is
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+Exact replay, enabled values, the two distinct real API refusals and shell
+commands are in the [run note](../scaffolding/library/graphics/vulkan/counted_features.md).
+Fifteen feature/queue tests and four existing indexed layout/range tests
+passed. Controls also refused omitted shader paths on qualifying hardware,
+a missing file and a mismatched shader before submission. The Debian
+vulkaninfo capture reported instance 1.3.239; the matching LunarG utility
+resolved the private 1.4.313 loader, corroborating the strict runner.
+
+The frozen bookworm core13 before/after samples used alternating fresh
+processes after warm-up, one fixture process at a time on Intel E5-2699 v4
+(88 visible CPUs, quota 10.56). The build used the published Linux x64
+bootstrap and LLVM 19.1.7. Across three samples elapsed times were
+0.28–0.37 s before and 0.28–0.44 s after. User+system CPU ranged from
+0.27–0.36 and 0.28–0.33 s respectively. Maximum RSS ranged from
+116616–118012 and 116624–117328 KiB. These are validation-enabled process
+measurements including driver startup. GPU timestamps and allocation
+instrumentation were outside this run. The same existing 327684-byte
+indirect buffer and two 40-byte staging samples remain live through the fence.
+
+LLVM 19 address instrumentation on the emitted fixture and selected host
+runtime passed the hardware draw14 capture. The thread-instrumented link
+initially lacked the unwinder. Adding the host libgcc_s resolved it.
+TSan then exited 139 before main at the container's denied personality
+request. The evidence retains both failures, the maps and instrumented
+function disassembly. The compiler has no source-level Tower UBSan pass.
+The GPU and driver were outside host instrumentation. The remaining parity
+check needs Draw's pinned source and original shaders.
+
+A separate unoptimized strict run exposed the actual readback_two_rows
+entry arguments to GDB. Both calls reported source size 16 and pitch 8,
+destination capacity 32, offset 4, span 24 and pitch 12. The same process
+logged the Quadro UUID, enabled bits, one submit, signaled fence, both
+command headers and guarded pixels. The optimized raw replay remained the
+primary capture.
