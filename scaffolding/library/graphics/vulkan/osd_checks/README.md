@@ -1,0 +1,47 @@
+# Win64 OSD initial-upload control
+
+Host 11's packet for job `6cd74574-f678-4bbe-9de0-701de63065af` contains
+the replay recipe, its checksummed inputs, build commands, ordinary seven-entry
+DLL and import library, recording-only loader, real Wine PE, validation and
+instrumentation logs, and the exact guarded GPU result. Slot 12 owns the
+production recorder. The SDK C control in raw.c has test-only linkage.
+
+Use the packet and sibling Git bundle with a Tower reader that can fetch the
+published seven-entry history. On a Linux x64 worker with the package versions
+and NVIDIA ICD from platform.txt and packages.txt, set PACKET, BUNDLE,
+PREPARED_SDK and D to absolute paths. D is a fresh directory.
+
+```bash
+set -euo pipefail
+(cd "$PACKET" && sha256sum --quiet -c SHA256SUMS)
+mkdir -p "$D/src"
+git -C "$D/src" init -q -b main
+git -C "$D/src" fetch --depth=3 https://github.com/TrevorSundberg/tower \
+    refs/heads/rendering/windows-vulkan-upload-1512cb96:refs/tags/public-seven
+git -C "$D/src" bundle verify "$BUNDLE"
+git -C "$D/src" fetch "$BUNDLE" HEAD
+git -C "$D/src" merge --ff-only FETCH_HEAD
+D="$D" PREPARED_SDK="$PREPARED_SDK" bash "$PACKET/replay.sh"
+gzip -dc "$PACKET/guarded-raw.gz" | sha256sum
+```
+
+The four replay phases build, run Wine tests in a private prefix/display,
+audit linkage/retirement, and run the supported sanitizers. Keep the fixture
+import paths and bootstrap resources from the recipe together. The build
+uses the prior reviewed upload fixture's device, buffer and command helpers.
+The suffixes .log, .err, .exit and .time identify stdout, stderr, process
+exit and wall/user/system seconds plus peak RSS KiB and exit status.
+
+The upload recorder enters and returns with the same primary recording.
+A separate owner finishes, releases staging, records fragment sampling
+and transfer readback, finishes again and releases both views/images.
+The copy region array is caller-owned throughout each recording. The
+separate recording test observes all public fields at the Vulkan ABI.
+Four-by-four samples per subresource exercise the 2D and array views
+and both bitmap mips. The raw hardware control's expected output is
+27,542,768 bytes with SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+For each texture in order the stream contains 16 a5 bytes, every encoded
+texel, 16 a5 bytes, the linear RGBA8 sample atlas, and 16 a5 bytes.
+The complete observed/expected shape table, measurements and remaining
+obligations are in the [project journal](../../../../../docs/temporal-opcode-research-journal.md#win64-raw-control-for-initial-osd-texture-uploads).
