@@ -595,3 +595,19 @@ warnings or errors. Explicit guest layer creation returned −6. Win64 C
 trapping UBSan passed. ASan and TSan completed on the native Linux provider.
 Win64 ASan/TSan, physical Windows and the shipping Draw Win64 caller remain
 open. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
+
+### Draw Win64 post-bind view cross-link
+
+Draw independently rebuilt Tower `4bcb724436879c5b2447ac9617100c989992f8be`
+and reproduced the DLL and import-library sizes and hashes above. Draw linked
+its post-bind helper at `a0ee83752c68f3fcff54f0128a71d8bcdc753b4b` into
+the existing nine-import C probe. The resulting optimized Win64 PE SHA-256
+was `20352d826d0f36b94a2568a8ff54b36e10e0dca7a3a8b46d448a139f911cd41a`.
+Draw verified all ten named imports, matched the provider ordinals and found
+the AMD64 REL32 relocation for the bound-view call in its actual helper.
+
+This was a host cross-link. Draw slot 9 job
+`966e83dc-85c9-4fd1-bd67-2ab72fa6f796` owns the shipping Win64 packed
+texel and HUD comparison. It requires the ordinal-9 application artifact
+from `53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`. Draw's separate Linux
+application job is `7a36cecf-5020-480c-90a9-bbecaacecc2c`.
