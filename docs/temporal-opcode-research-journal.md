@@ -125127,3 +125127,67 @@ object requested the recorder and the builder. Only the latter symbol
 was unresolved against the eight-entry import library. Slot 11 job
 `6b525080` now has [the reviewed Linux builder](https://github.com/TrevorSundberg/tower/blob/0e385907c24e0d465aaf5aeccb98ddeb7f4b8871/scaffolding/library/graphics/vulkan/tight_color_regions.tower)
 for its production Win64 link and on-device comparisons.
+
+### Win64 SDK control for the bound OSD image view
+
+Slot 11 fetched the released nine-entry DLL at 3b739bb6 and the Draw
+acknowledgement at 0c38f209 via the Tower reader. The nine-entry PE ran
+before edits on the Quadro and reproduced the prior guarded stream and all
+256 sampled texels. The next test uses the existing five bound images and
+the same submit, sampling and transfer commands. Slot 12 owns the portable
+provider. This checkpoint prepares an external caller for that implementation.
+
+**Result on host 11.** The raw test C object has SHA-256
+`38bd27a1ae7bc53feb3d0f138fb8677d917036f6d67fd1fc79c668e1d1bf0a24`.
+The independently compiled external C object requests
+`tower_vk_create_bound_image_view_v1`. Linking the complete device client
+against the released import library exited 1 with just that symbol unresolved.
+The released DLL and library retain SHA-256
+`2cfb10fa35320531c01d3d8b5a042a6aba771a1c4749fad417e3aed096bef05e`
+and `a5a2c26c8adb72307ae810299695105382750b7693118df4fa037aecbf9d22b5`.
+The PE export directory matched the nine original ordinal/name pairs.
+
+**Recording loader.** Eight descriptors each ran with results 0, −1 and −2.
+The C observer checked device, image, structure type, chain, flags, explicit
+view type, format, all four swizzles, all five range fields, null allocator,
+a single call and private output. Each error clobbered that private slot while
+the separate caller slot stayed null. The success handle, signed status,
+borrowed range and both sets of guards matched. The depth case ran here.
+
+**Wine device.** API-selected Quadro RTX 6000, driver 615.71.10, Vulkan
+1.4.351, UUID `26f60f6cead65faf0253a959b2e93a2d`, queue family/index 0/0.
+The Wine 8 PE imported the existing upload/region operations at ordinals 8/9.
+All eight SDK view calls succeeded. Five full views were sampled, two
+one-actual-layer array views used base mip 1 and the font subview used layers
+2–4. The stream matched the archived 27,542,768 bytes, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`,
+including every transfer byte, 256 RGBA probes and 240 guard bytes.
+A Tower audit correlated the application's returned handles with Wine calls,
+ten successful submit/wait pairs and view/image/bound-memory retirement
+on the creating device. Replacing a wait in the trace failed the audit.
+Host-inserted Khronos synchronization validation ran with zero guest warnings
+or errors. Explicit guest layer selection still returned −6.
+
+**Measurement.** Xeon E5-2699 v4, affinity 0–87, cgroup quota 10.56 CPUs.
+One caller, one queue, serial Wine runs with a warm prefix, identical textures,
+completion and checked outputs. Clang 19.1.7, Win64 GNU, SDK C at −O2.
+The raw view suite took 1.39/1.21/1.11 s wall, 0.65/0.62/0.60 s user,
+0.54/0.47/0.48 s system and 191988/192460/192580 KiB peak process RSS.
+Across the 24 separately timed successful driver calls the median was
+14.1 µs (7.0–85.5 µs); this includes the host validation layer. The old
+nine-entry capture PE took 1.39/1.13/1.08 s and had three fewer probe
+calls. These end-to-end numbers cannot isolate DLL overhead. Each SDK call
+uses automatic descriptor and handle storage. Driver heap use was unmeasured.
+
+**Instrumentation and continuation.** Win64 trapping UBSan covered the SDK
+C checks, double and device boundary. Native Clang ASan with leak detection
+and native TSan each completed 384 recording calls across four libc pthreads.
+The first six TSan launches failed during runtime address-space setup. Win64
+ASan lacks its target runtime and this Clang does not support Win64 TSan.
+The Tower DLL, Wine and GPU driver were uninstrumented. Slot 11 recorded no
+device or cost result for ordinal 10. On receipt of slot 12's reviewed source
+and header, build it once into the existing DLL, verify the unchanged nine
+ordinals and new import, repeat both consumers with the frozen objects and
+compare guarded bytes, traces and timings. Physical Windows and Draw remain
+open. Job 01f5b8d5 contains the bounded source bundle, recipe, manifests and
+recording/device logs.

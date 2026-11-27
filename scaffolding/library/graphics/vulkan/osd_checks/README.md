@@ -67,3 +67,33 @@ D="$D" PACKET="$PACKET" PREPARED_SDK="$PREPARED_SDK" bash "$SUPPLEMENT/replay.sh
 gzip -dc "$PACKET/guarded-raw.gz" > "$D/b/guarded.raw"
 "$D/e/bin/verify_capture" "$D/b/guarded.raw"
 ```
+
+## SDK control for creating a bound view
+
+Draw acknowledged `draw-tower-bound-image-view/v1` at Tower
+`0c38f209d80679279ad4696953513e90387536bc`. The page and prototype are in
+`scaffolding/library/graphics/vulkan/bound_image_view_v1.md` on that ref.
+The Win64 release used for this control is `3b739bb6` with nine exports.
+
+Compile `view_sdk.c` as a separate object for the raw SDK reference.
+Compile `view_client.c` for the external DLL path. When a reviewed header is
+available, define `TOWER_REVIEWED_VIEW_HEADER` to its quoted filename. The C11
+assertion checks the function pointer type. Both objects supply the same test
+entry. Neither implements a production export.
+
+The recording PE links `view_cases.c` with one of these objects. Its local
+test loader exports `vkCreateImageView` and the PFN registration in
+`view_driver.c`. The hardware PE links the same selected object with
+`view_gpu.c` and the ordinal-nine capture fixture. Redirect only its
+`gpu.obj` references to `vkCreateImageView` and `vkDestroyImageView`. The
+adapter leaves the readback target on its original SDK path, retains three
+additional subresource views through completion, and logs returned handles
+for comparison with the Wine retirement trace. Sampling uses the original
+five full views. Build, execution and replay commands are in the packet for
+`01f5b8d5-c2f6-4a88-b80c-a248fd127cea`.
+
+The numeric result and output guard checks exercise the published valid-input
+contract. The recording driver deliberately returns an error after writing
+the private slot. The two bitmap probes separately create a 2D-array view of
+mip 1 on an image with exactly one actual layer. The font probe starts at
+layer 2. See the [Win64 measurements and open link](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-the-bound-osd-image-view).
