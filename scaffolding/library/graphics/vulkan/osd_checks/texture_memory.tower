@@ -1,0 +1,11 @@
+import tower;
+import readback_abi;
+import readback_device;
+import readback_clear;
+
+// Original allocation path for the raw fixture and the readback atlas.
+fn allocate(ctx: ReadbackDevice*, image: VkImageHandle*, required: u32, sampled: bool, out: VkDeviceMemoryHandle**): bool {
+    var req: VkMemoryRequirements; var flags: u32;
+    vkGetImageMemoryRequirements(ctx.device, image, &req);
+    return vk_readback_allocate(ctx, &req, required, out, &flags);
+}

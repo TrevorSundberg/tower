@@ -125627,3 +125627,76 @@ The host validation layer was loaded and the debug callback counted zero.
 The explicit guest layer is unavailable (−6). Physical Windows and linked
 shipping Draw execution remain open. In the job archive run
 `TOWER_CHECKOUT=/path/to/tower PREPARED_SDK=/path/to/sdk bash replay.sh`.
+### Host 11 Win64 post-create allocation control
+
+Assignment 5994bd8f starts with Win64 control 45944492, contract 9840659b
+and Draw 2f38b19c. The frozen eleven-entry fixture returned the prior
+27,542,768-byte guarded capture on the Quadro before changing the allocation
+test. The SDK control and its private test DLL now share the existing PE
+recording transport. Ten Tower cases check both unsigned mask endpoints,
+tie and truncated counts, partial and zero flags, empty inputs, full size
+and padding-preserving refusal. The COFF C client contains a REL32 jump to
+the agreed function. Both paths returned identical rows. This first check
+uses an SDK provider double. Portable source belongs to slot 12.
+
+### Observe the raw and planned five-source Win64 allocations
+
+Win64 control 45944492 and Draw contract 9840659b (Draw 2f38b19c).
+The original GPU fixture queries the image, selects memory using the
+physical table in ReadbackDevice, allocates and binds at offset zero.
+Only source allocation decisions enter the new C comparison. Creation
+retains its released ordinal 11. The target still uses the fixture's
+original allocator. The packet reuses prior checksummed COFF inputs for
+the observed raw path, redirects SDK calls for logging and builds the
+comparison fixture with one explicit memory-module import substitution.
+Both paths query once per image. The actual SDK calls write the recorded
+requirements, allocation handle and signed results. The C client contains
+an AMD64 REL32 relocation to tower_vk_plan_image_allocation_v1. On hardware
+this resolves to the SDK control object. In the recording check the
+same client imports that symbol from a private test DLL.
+
+On the Quadro RTX 6000, Vulkan 1.4.351, NVIDIA 615.71.10, the memory
+table (flags,heap) was [(0,1),(1,0),(1,0),(6,1),(14,1),(7,0)] for
+each source. All five masks were 3 and all alignments 1024 bytes.
+The first allowed DEVICE_LOCAL entry was 1. Full sizes in texture order
+were 25165824, 569856, 569856, 1572864 and 32768 bytes. Independent Tower
+reconstruction checked the creating device, original image, borrowed type
+entries, plan fields and plan pointer at allocation, and the allocated
+handle at the offset-zero bind. The raw and C control rows agreed. Wine's
+own call stream passed the separate lifetime verifier for ten submissions.
+The 27,542,768-byte guarded streams matched the prior capture, all 256
+sampled texels and 240 guard bytes, SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811.
+
+The ten serial recording rows matched between direct SDK and private DLL.
+A deliberately incorrect provider successfully queried and filled all
+fields but returned VkBool32 2. The external PE and its script exited 4
+with the status assertion; its SDK sibling passed. Both driver stubs for
+forbidden allocation/bind terminate immediately. Requests include a
+4294983687-byte unaligned size and entries at index 31. The owner double
+returned signed −2 at each injected call, accounting zero bytes after a
+failed allocation and 16384 before the failed bind.
+
+Host 11 used the pinned Linux x64 bootstrap with one compiler worker, LLVM
+19.1.7, MinGW x64, Wine 8 and one GPU queue. Three alternating warm pairs
+gave raw wall seconds 1.38/1.39/1.48 and planned 1.28/1.34/1.31. User+
+system seconds were 1.27/1.35/1.33 and 1.24/1.31/1.29. Peak process RSS
+was 190416–192332 KiB. These synthetic end-to-end runs include trace
+printing, uploads and readback. Each path made five source allocations and
+five binds. Selection needed no additional Vulkan allocation. Win64
+trapping UBSan passed at the SDK boundary. Native instrumented cases and
+SDK control passed 160 rows each under ASan/leak and TSan on four pthreads.
+An initial TSan startup was refused by the host personality restriction.
+Physical Windows, shipping Draw, and the separate slot-12 portable
+allocation provider have not run in this qualification.
+
+One packet command reproduces this work and the separately based ordinal-12
+qualification: `TOWER_CHECKOUT=/path/to/tower PREPARED_SDK=/path/to/sdk bash replay.sh`.
+An initial compiler launch lacked the SDK library path. The first recording
+session lacked MinGW environment variables. A variadic declaration in the
+native trace reader failed to parse; it now uses the established fixed
+Linux x64 printf signature. A first owner-double link brought in the row
+printer through its import of the cases. Sharing only the observer interface
+removed that dependency. All corrected invocations and original failures
+are distinguished in the packet. The allocation line retains the verified
+eleven-entry release hash e7524e2b…14b7e6c.

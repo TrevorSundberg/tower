@@ -1,0 +1,53 @@
+import tower;
+import trace_reader;
+
+extern fn printf(format: u8*, shape: u32, a: u64, b: u64, c: u64, d: u64): i32;
+fn plan_fields(r: Row, size: u64, index: u32): void {
+    check(r.a == 5 && r.b == 0 && r.c == size && r.d == convert(u64, index), "allocation fields differ from first match");
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    check(argc == 3, "usage: allocation_trace raw|planned TRACE");
+    var planned = strcmp(argv[1], "planned") == 0;
+    check(planned || strcmp(argv[1], "raw") == 0, "unknown trace mode");
+    var f = fopen(argv[2], "r");
+    check(f != null, "open allocation trace"); defer fclose(f);
+    for (var shape: u32 = 0; shape < 5; shape++) {
+        var create = next(f, "Create", 4);
+        check(create.a != 0 && create.b != 0 && create.c != 0 && create.d <= 32, "creating device/image/table");
+        var flags: u64[32]; var heaps: u64[32];
+        for (var i: u32 = 0; convert(u64, i) < create.d; i++) {
+            var t = next(f, "Type", 3);
+            check(t.a == convert(u64, i), "type table order"); flags[i] = t.b; heaps[i] = t.c;
+            printf("shape=%u type=%llu flags=%llu heap=%llu\n", shape, convert(u64, i), t.b, t.c, 0);
+        }
+        if planned {
+            var borrow = next(f, "Borrow", 4);
+            check(borrow.a == create.a && borrow.b == create.b && borrow.c == create.d && borrow.d == 1,
+                "borrowed device, image, table count or required flags");
+            for (var i: u32 = 0; convert(u64, i) < create.d; i++) {
+                var input = next(f, "Input", 3);
+                check(input.a == convert(u64, i) && input.b == flags[i] && input.c == heaps[i], "borrowed type table");
+            }
+        }
+        var req = next(f, "Requirements", 4); var mask = next(f, "Mask", 1).a;
+        check(req.a == create.a && req.b == create.b && req.c != 0 && req.d != 0, "requirements identity/size");
+        var index: u32 = 0;
+        while convert(u64, index) < create.d && (((mask >> convert(u64, index)) & 1) == 0 || (flags[index] & 1) == 0) { index++; }
+        check(convert(u64, index) < create.d, "no allowed device-local entry");
+        var address: u64 = 0;
+        if planned {
+            var plan = next(f, "Plan", 2); address = plan.a;
+            check(address != 0 && plan.b == 1, "plan return");
+            plan_fields(next(f, "Fields", 4), req.c, index);
+        }
+        var alloc = next(f, "Allocate", 4);
+        check(alloc.a == create.a && alloc.b != 0 && alloc.c != 0 && alloc.d == 0
+            && (!planned || address == alloc.b), "allocation device, plan pointer, memory or VkResult");
+        plan_fields(next(f, "Fields", 4), req.c, index);
+        var bind = next(f, "Bind", 4);
+        check(bind.a == create.a && bind.b == create.b && bind.c == alloc.c && bind.d == 0
+            && next(f, "BindResult", 1).a == 0, "bind device, image, allocation, offset or VkResult");
+        printf("shape=%u size=%llu alignment=%llu mask=%llu index=%llu bindOffset=0\n", shape, req.c, req.d, mask, convert(u64, index));
+    }
+    check(end(f), "trailing source allocations"); return 0;
+}

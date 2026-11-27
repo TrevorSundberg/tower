@@ -1,0 +1,20 @@
+import tower;
+import readback_abi;
+import readback_device;
+import texture_memory as original;
+
+extern fn osd_check_allocation(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+    count: u32, required: u32, out: VkMemoryAllocateInfo*): u32;
+extern fn osd_trace_borrow(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*, count: u32, required: u32): void;
+extern fn osd_trace_plan(out: VkMemoryAllocateInfo*, status: u32): void;
+
+fn allocate(ctx: ReadbackDevice*, image: VkImageHandle*, required: u32, sampled: bool, out: VkDeviceMemoryHandle**): bool {
+    if !sampled { return original.allocate(ctx, image, required, sampled, out); }
+    var plan: VkMemoryAllocateInfo;
+    var types = &ctx.memory.memoryTypes[0]; var count = ctx.memory.memoryTypeCount;
+    osd_trace_borrow(ctx.device, image, types, count, required);
+    var status = osd_check_allocation(ctx.device, image, types, count, required, &plan);
+    osd_trace_plan(&plan, status);
+    if status != 1 { return vk_failure("No compatible Vulkan image memory type"); }
+    return vk_ok("vkAllocateMemory", vkAllocateMemory(ctx.device, &plan, null, out));
+}

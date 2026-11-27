@@ -3,6 +3,7 @@ import shapes;
 import oracle;
 import readback_abi;
 import readback_clear;
+import texture_memory as memory;
 import readback_device;
 import readback_output as output;
 import counted_abi;
@@ -34,9 +35,7 @@ fn texture(ctx: ReadbackDevice*, out: Texture*, s: OsdShape, format: u32, usage:
         extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: layers,
         samples: VkSample1, usage: usage, ..default};
     require(vk_ok("vkCreateImage", vkCreateImage(ctx.device, &info, null, &out.image)), "image creation");
-    var req: VkMemoryRequirements; var flags: u32;
-    vkGetImageMemoryRequirements(ctx.device, out.image, &req);
-    require(vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &flags), "image memory");
+    require(memory.allocate(ctx, out.image, DeviceLocal, (usage & SampledUsage) != 0, &out.memory), "image memory");
     require(vk_ok("bind image", vkBindImageMemory(ctx.device, out.image, out.memory, 0)), "bind");
     var view: VkImageViewCreateInfo = {sType: VkImageViewCreateTag, image: out.image, viewType: VkView2D,
         format: format, subresourceRange: {aspectMask: VkColorAspect, levelCount: s.mips, layerCount: layers, ..default}, ..default};
