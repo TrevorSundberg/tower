@@ -69,7 +69,8 @@ fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, s
     if !vk_ok("begin retained upload", tower_vk_command_begin_v1(cmd)) { return false; }
     var start = now();
     fixture_record(cmd, staging.handle, image.handle, shape.layers, shape.mips, count, regions);
-    output.readback_label("record_ns"); output.readback_decimal(now() - start);
+    var elapsed = now() - start;
+    output.readback_label("record_ns"); output.readback_decimal(elapsed);
     return retire(ctx.queue, cmd);
 }
 
