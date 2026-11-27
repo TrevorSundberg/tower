@@ -1,0 +1,41 @@
+import tower;
+
+// draw-tower-rgba8/v1. The browser owns one encoder and its resources per request.
+var WebgpuWidth: usize = 2;
+var WebgpuHeight: usize = 2;
+var WebgpuRowBytes: usize = WebgpuWidth * 4;
+var WebgpuCopyPitch: usize = 256;
+var WebgpuMappedBytes: usize = WebgpuCopyPitch + WebgpuRowBytes;
+
+// GPUTextureUsage and GPUBufferUsage have separate flag spaces.
+var WebgpuTextureCopySrc: u32 = 1;
+var WebgpuTextureAttachment: u32 = 16;
+var WebgpuBufferMapRead: u32 = 1;
+var WebgpuBufferCopyDst: u32 = 8;
+
+extern fn webgpu_texture_rgba8unorm(width: usize, height: usize, samples: u32, usage: u32): void;
+extern fn webgpu_staging(size: usize, usage: u32): void;
+extern fn webgpu_clear_store(r: f64, g: f64, b: f64, a: f64): void;
+extern fn webgpu_copy_to_buffer(width: usize, height: usize, pitch: usize): void;
+extern fn webgpu_submit(): void;
+
+fn webgpu_submit_rgba8(): void {
+    webgpu_texture_rgba8unorm(WebgpuWidth, WebgpuHeight, 1, WebgpuTextureAttachment | WebgpuTextureCopySrc);
+    webgpu_staging(WebgpuMappedBytes, WebgpuBufferCopyDst | WebgpuBufferMapRead);
+    var scale: f64 = 255;
+    webgpu_clear_store(17.0 / scale, 34.0 / scale, 51.0 / scale, 1.0);
+    webgpu_copy_to_buffer(WebgpuWidth, WebgpuHeight, WebgpuCopyPitch);
+    webgpu_submit();
+}
+
+// Source and destination are disjoint. The destination span starts at dst.
+// Validate both rows before writing, including when pitch is near usize's limit.
+fn webgpu_repack_rgba8(src: u8*, src_length: usize, dst: u8*, dst_length: usize, pitch: usize): bool {
+    if src == null || dst == null || src_length < WebgpuMappedBytes
+        || pitch < WebgpuRowBytes || pitch > dst_length || dst_length - pitch < WebgpuRowBytes {
+        return false;
+    }
+    copy(dst, src, WebgpuRowBytes);
+    copy(dst + pitch, src + WebgpuCopyPitch, WebgpuRowBytes);
+    return true;
+}

@@ -1,0 +1,81 @@
+import library.testing;
+import library.test_data;
+import library.sha256;
+import webgpu_rgba8;
+
+enum WebgpuFixturePhase: u32 { Cpu, Submit, Readback }
+extern fn webgpu_fixture_phase(): WebgpuFixturePhase;
+extern fn webgpu_read_mapped(dst: u8*, capacity: usize): usize;
+extern fn webgpu_observe(label: u8*, bytes: u8*, size: usize): void;
+
+var GuardOffset: usize = 4;
+var DestinationSpan: usize = 24;
+var DestinationPitch: usize = 12;
+var GuardByte: u8 = 165;
+
+fn webgpu_check_fixture(cpu: bool): void {
+    var source: u8[WebgpuMappedBytes];
+    var destination: u8[32];
+    var wanted: u8[32];
+    var pixel: u8[4] = {17, 34, 51, 255};
+    var source_size = sizeof(decltype(source));
+    var size = sizeof(decltype(destination));
+    var src = &source[0];
+    var dst = &destination[GuardOffset];
+    fill(&destination[0], GuardByte, size);
+    fill(&wanted[0], GuardByte, size);
+    webgpu_observe("before", &destination[0], size);
+
+    if cpu {
+        fill(src, 0, source_size);
+        for (var i: usize = 0; i < WebgpuRowBytes; i++) {
+            src[i] = pixel[i % sizeof(decltype(pixel))];
+            src[WebgpuCopyPitch + i] = convert(u8, 128 + i);
+        }
+        assert(!webgpu_repack_rgba8(src, source_size, dst, DestinationSpan, 7), "Accepted pitch 7");
+        webgpu_observe("pitch7", &destination[0], size);
+        assert(test_bytes_equal(&destination[0], &wanted[0], size), "Pitch rejection wrote bytes");
+        assert(!webgpu_repack_rgba8(src, source_size, dst, 19, DestinationPitch), "Accepted destination length 19");
+        webgpu_observe("dst19", &destination[0], size);
+        assert(test_bytes_equal(&destination[0], &wanted[0], size), "Destination rejection wrote bytes");
+        assert(!webgpu_repack_rgba8(src, 263, dst, DestinationSpan, DestinationPitch), "Accepted source length 263");
+        webgpu_observe("src263", &destination[0], size);
+        assert(test_bytes_equal(&destination[0], &wanted[0], size), "Source rejection wrote bytes");
+    } else {
+        assert(webgpu_read_mapped(src, source_size) == source_size, "Incomplete mapped range");
+    }
+
+    webgpu_observe("staging0", src, WebgpuRowBytes);
+    webgpu_observe("staging256", src + WebgpuCopyPitch, WebgpuRowBytes);
+    for (var i: usize = 0; i < WebgpuRowBytes; i++) {
+        var first = pixel[i % sizeof(decltype(pixel))];
+        var second = cpu ? convert(u8, 128 + i) : first;
+        assert(src[i] == first, "Wrong first staging row");
+        assert(src[WebgpuCopyPitch + i] == second, "Wrong second staging row");
+        wanted[GuardOffset + i] = first;
+        wanted[GuardOffset + DestinationPitch + i] = second;
+    }
+    assert(webgpu_repack_rgba8(src, source_size, dst, DestinationSpan, DestinationPitch), "Repack refused");
+    webgpu_observe("after", &destination[0], size);
+    assert(test_bytes_equal(&destination[0], &wanted[0], size), "Destination pixels, padding or guards differ");
+    if !cpu {
+        var state: Sha256;
+        sha256_init(&state);
+        assert(sha256_update(&state, dst, WebgpuRowBytes));
+        assert(sha256_update(&state, dst + DestinationPitch, WebgpuRowBytes));
+        var digest = sha256_finish(&state);
+        webgpu_observe("active_sha256", &digest.bytes[0], Sha256DigestBytes);
+        var hex: u8[Sha256DigestBytes * 2 + 1];
+        sha256_hex(&digest, &hex[0]);
+        assert(test_bytes_equal(&hex[0], "f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88",
+            sizeof(decltype(hex))), "Wrong active-byte digest");
+    }
+}
+
+var phase = webgpu_fixture_phase();
+if phase == WebgpuFixturePhase.Submit {
+    webgpu_submit_rgba8();
+} else {
+    assert(phase == WebgpuFixturePhase.Cpu || phase == WebgpuFixturePhase.Readback);
+    webgpu_check_fixture(phase == WebgpuFixturePhase.Cpu);
+}
