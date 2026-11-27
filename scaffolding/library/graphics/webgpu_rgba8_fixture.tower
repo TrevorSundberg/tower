@@ -3,8 +3,9 @@ import library.test_data;
 import library.sha256;
 import webgpu_rgba8;
 
-enum WebgpuFixturePhase: u32 { Cpu, Submit, Readback }
+enum WebgpuFixturePhase: u32 { Cpu, Submit, Readback, VerifyAdapter }
 extern fn webgpu_fixture_phase(): WebgpuFixturePhase;
+extern fn webgpu_adapter_fact(name: u8*): bool;
 extern fn webgpu_read_mapped(dst: u8*, capacity: usize): usize;
 extern fn webgpu_observe(label: u8*, bytes: u8*, size: usize): void;
 
@@ -12,6 +13,19 @@ var GuardOffset: usize = 4;
 var DestinationSpan: usize = 24;
 var DestinationPitch: usize = 12;
 var GuardByte: u8 = 165;
+
+fn webgpu_verify_adapter(): void {
+    if webgpu_adapter_fact("softwareRequested") {
+        assert(webgpu_adapter_fact("software"), "Software request lacks a selected fallback or software identity");
+        return;
+    }
+    assert(!webgpu_adapter_fact("software"), "Hardware request selected a software or fallback adapter");
+    assert(webgpu_adapter_fact("nonFallback"), "Hardware verification requires an explicit non-fallback adapter");
+    assert(webgpu_adapter_fact("physical"), "WebGPU must report a discrete or integrated GPU");
+    assert(webgpu_adapter_fact("vulkan"), "WebGPU must identify the selected Vulkan backend");
+    assert(webgpu_adapter_fact("matchingDeviceAndDriver"),
+        "Correlate the selected WebGPU vendor, model, PCI device and driver version with one Chromium device");
+}
 
 fn webgpu_check_fixture(cpu: bool): void {
     var source: u8[WebgpuMappedBytes];
@@ -69,13 +83,24 @@ fn webgpu_check_fixture(cpu: bool): void {
         sha256_hex(&digest, &hex[0]);
         assert(test_bytes_equal(&hex[0], "f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88",
             sizeof(decltype(hex))), "Wrong active-byte digest");
+        sha256_init(&state);
+        assert(sha256_update(&state, &destination[0], size));
+        digest = sha256_finish(&state);
+        webgpu_observe("guarded_sha256", &digest.bytes[0], Sha256DigestBytes);
+        sha256_hex(&digest, &hex[0]);
+        assert(test_bytes_equal(&hex[0], "19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374",
+            sizeof(decltype(hex))), "Wrong guarded-buffer digest");
     }
 }
 
 var phase = webgpu_fixture_phase();
-if phase == WebgpuFixturePhase.Submit {
-    webgpu_submit_rgba8();
+if phase == WebgpuFixturePhase.VerifyAdapter {
+    webgpu_verify_adapter();
 } else {
-    assert(phase == WebgpuFixturePhase.Cpu || phase == WebgpuFixturePhase.Readback);
-    webgpu_check_fixture(phase == WebgpuFixturePhase.Cpu);
+    if phase == WebgpuFixturePhase.Submit {
+        webgpu_submit_rgba8();
+    } else {
+        assert(phase == WebgpuFixturePhase.Cpu || phase == WebgpuFixturePhase.Readback);
+        webgpu_check_fixture(phase == WebgpuFixturePhase.Cpu);
+    }
 }

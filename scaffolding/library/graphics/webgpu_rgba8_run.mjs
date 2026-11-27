@@ -17,6 +17,7 @@ try {
   console.log('flags', (await cdp.send('Browser.getBrowserCommandLine')).arguments);
   const page = await browser.newPage();
   page.on('console', msg => console.log(msg.type(), msg.text()));
+  await page.exposeFunction('getGpuDevices', async () => (await cdp.send('SystemInfo.getInfo')).gpu.devices);
   const transport = '/scaffolding/library/graphics/webgpu_rgba8.mjs';
   await page.route('http://127.0.0.1/**', async route => {
     const {pathname} = new URL(route.request().url());
@@ -30,7 +31,9 @@ try {
   try {
     await page.evaluate(async ({mode, transport}) => {
       const {runWebgpuRgba8} = await import(transport);
-      await runWebgpuRgba8(await (await fetch('/build/webgpu_rgba8.wasm')).arrayBuffer(), {forceFallbackAdapter:mode === 'software'});
+      await runWebgpuRgba8(await (await fetch('/build/webgpu_rgba8.wasm')).arrayBuffer(), {
+        forceFallbackAdapter: mode === 'software', getGpuDevices: window.getGpuDevices,
+      });
     }, {mode, transport});
   } finally {
     console.log('CDP GPU', JSON.stringify((await cdp.send('SystemInfo.getInfo')).gpu, null, 2));

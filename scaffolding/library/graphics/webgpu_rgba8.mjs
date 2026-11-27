@@ -3,6 +3,7 @@ import {executeWasm} from '../../../playground/src/llvm-host.mjs';
 
 const signatures = {
   webgpu_fixture_phase: [],
+  webgpu_adapter_fact: ['u8*'],
   webgpu_texture_rgba8unorm: ['usize', 'usize', 'u32', 'u32'],
   webgpu_staging: ['usize', 'u32'],
   webgpu_clear_store: ['f64', 'f64', 'f64', 'f64'],
@@ -12,11 +13,44 @@ const signatures = {
   webgpu_observe: ['u8*', 'u8*', 'usize'],
 };
 
-export async function runWebgpuRgba8(wasm, {forceFallbackAdapter = false, log = console.log} = {}) {
+function guestString(memory, pointer) {
+  const end = memory.indexOf(0, pointer);
+  if (end < 0) throw Error('Unterminated Tower label');
+  return new TextDecoder().decode(memory.subarray(pointer, end));
+}
+
+// Chromium can put PCI IDs in the ANGLE device string and add trailing zero
+// components to the driver version. Match all fields against the same CDP row.
+function matchesBrowserDevice(info, devices) {
+  const {vendor, device, description, driver} = info;
+  const placeholder = /unknown|redact|masked|hidden|unavailable|unspecified|generic|anonymous|^n\/a$/i;
+  if (![vendor, description, driver].every(s => typeof s === 'string' && s.trim() && !placeholder.test(s))) return false;
+  if (!/[\da-z]/i.test(description) || /^(gpu|adapter|graphics|device)$/i.test(description.trim())) return false;
+  if (!/^0x[\da-f]{1,8}$/i.test(device) || !(Number(device) > 0 && Number(device) < 0xffff)) return false;
+  const versions = driver.match(/\b\d+(?:\.\d+)+\b/g) ?? [];
+  const normalizeVersion = v => v.replace(/(?:\.0)+$/, '');
+  return devices.some(row => {
+    const renderer = (row.deviceString ?? '').toLowerCase();
+    const ids = renderer.match(/\b0x[\da-f]+\b/g) ?? [];
+    const vendorWords = (row.vendorString ?? '').toLowerCase().split(/\W+/);
+    const version = row.driverVersion ?? '';
+    const deviceMatches = row.deviceId ? row.deviceId === Number(device) : ids.some(id => Number(id) === Number(device));
+    return vendorWords.includes(vendor.toLowerCase()) && renderer.includes(description.toLowerCase()) && deviceMatches &&
+      /^\d+(?:\.\d+)+$/.test(version) && /[1-9]/.test(version) &&
+      versions.some(v => normalizeVersion(v) === normalizeVersion(version));
+  });
+}
+
+export async function runWebgpuRgba8(wasm, {forceFallbackAdapter = false, getGpuDevices = async () => [], log = console.log} = {}) {
   let device, texture, view, staging, encoder, mapped;
-  let phase, submits = 0;
+  let phase, facts, submits = 0;
   const imports = {
     webgpu_fixture_phase: () => phase,
+    webgpu_adapter_fact(context, pointer) {
+      const name = guestString(context.memory(), pointer);
+      if (!Object.hasOwn(facts, name)) throw Error('Unknown WebGPU adapter fact ' + name);
+      return Number(facts[name]);
+    },
     webgpu_texture_rgba8unorm(_, width, height, sampleCount, usage) {
       texture = device.createTexture({size: [width, height], format: 'rgba8unorm', sampleCount, usage});
       view = texture.createView();
@@ -43,7 +77,7 @@ export async function runWebgpuRgba8(wasm, {forceFallbackAdapter = false, log = 
     },
     webgpu_observe(context, label, pointer, length) {
       const memory = context.memory();
-      const name = new TextDecoder().decode(memory.subarray(label, memory.indexOf(0, label)));
+      const name = guestString(memory, label);
       const hex = Array.from(memory.subarray(pointer, pointer + length), b => b.toString(16).padStart(2, '0')).join('');
       log(name + '=' + hex);
     },
@@ -56,15 +90,24 @@ export async function runWebgpuRgba8(wasm, {forceFallbackAdapter = false, log = 
   await runPhase(0);
   log('cpu_controls=passed');
   const adapter = await navigator.gpu?.requestAdapter({forceFallbackAdapter});
-  if (!adapter) throw Error('No WebGPU adapter for forceFallbackAdapter=' + forceFallbackAdapter);
-  const info = adapter.info ?? await adapter.requestAdapterInfo();
+  if (!adapter) throw Error('No WebGPU adapter for forceFallbackAdapter=' + forceFallbackAdapter + '. Inspect the browser GPU log and selected ICD.');
+  const info = adapter.info ?? await adapter.requestAdapterInfo?.() ?? {};
   const fields = ['vendor', 'architecture', 'device', 'description', 'backend', 'driver', 'type', 'subgroupMinSize', 'subgroupMaxSize'];
   const identity = Object.fromEntries(fields.map(key => [key, info[key] ?? null]));
   identity.isFallbackAdapter = info.isFallbackAdapter ?? adapter.isFallbackAdapter ?? null;
   log('adapter=' + JSON.stringify(identity));
-  if (!forceFallbackAdapter && (identity.isFallbackAdapter || info.type?.toLowerCase() === 'cpu')) {
-    throw Error('Hardware request selected a software or fallback adapter');
-  }
+  const softwareName = /swiftshader|llvmpipe|lavapipe|softpipe|swrast|software|\bwarp\b|microsoft basic render/i;
+  facts = {
+    softwareRequested: forceFallbackAdapter,
+    software: identity.isFallbackAdapter === true || /^cpu$/i.test(info.type) ||
+      [info.architecture, info.vendor, info.description, info.driver].some(value => softwareName.test(value)),
+    nonFallback: identity.isFallbackAdapter === false,
+    physical: /^(discrete|integrated)[ -]?gpu$/i.test(info.type),
+    vulkan: info.backend?.toLowerCase() === 'vulkan',
+    matchingDeviceAndDriver: !forceFallbackAdapter && matchesBrowserDevice(identity, await getGpuDevices()),
+  };
+  log('adapter_evidence=' + JSON.stringify(facts));
+  await runPhase(3);
   device = await adapter.requestDevice();
   const errors = [];
   device.addEventListener('uncapturederror', event => errors.push(event.error));
@@ -87,6 +130,7 @@ export async function runWebgpuRgba8(wasm, {forceFallbackAdapter = false, log = 
     if (staging?.mapState === 'mapped') {
       staging.unmap();
       log('unmap=' + staging.mapState);
+      if (staging.mapState !== 'unmapped') errors.push(Error('Staging buffer remained mapped'));
     }
     view = undefined;
     staging?.destroy();
