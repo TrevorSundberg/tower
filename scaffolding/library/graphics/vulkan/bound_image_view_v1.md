@@ -94,3 +94,31 @@ is unresolved. Address-only checks passed, and the full leak check passed
 with synchronization validation disabled. ThreadSanitizer stopped at startup
 in five attempts. Draw's application integration and Win64 DLL execution
 remain separate acceptance steps.
+
+## Draw constructor adoption on Linux
+
+Draw integrated this provider locally at
+`a0ee83752c68f3fcff54f0128a71d8bcdc753b4b`. From the Draw root,
+with the provider checked out at Tower `6b39d552b312a4d79436b49337cf3fff20b9b5cc`
+and the bootstrap compiler from `a580e70af42e67d5309c4121737fa9e21652a9dd`,
+Draw ran the following command.
+
+```sh
+DRAW_TOWER_BOUND_VIEW_ROOT="$provider_checkout" \
+TOWERC="$bootstrap_checkout/bootstrap/linux-x64/towerc" \
+bash tests/vulkan-image.sh
+```
+
+Draw reported exit 0. Its owning C and Tower constructors each ran 23
+recording-driver scenarios through both the raw Vulkan call and the public
+provider. Outputs matched across the 92 runs. In two additional controls,
+the driver wrote a handle and returned signed −2. Both public output slots
+remained null. For the five headers from Draw's texture pack, image creation,
+binding, view creation and teardown yielded identical 45-line traces.
+Draw's trace SHA-256 is
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+Draw scheduled the packed texel and HUD comparison on its RTX 5060 Ti as
+job `7a36cecf-5020-480c-90a9-bbecaacecc2c`. The results above cover CPU
+recording. Draw also acknowledged the [separate image-creation contract](https://github.com/TrevorSundberg/tower/blob/a6ddd4598fe08625fdebaf5a49a0a28d3dbb1c97/scaffolding/library/graphics/vulkan/create_image_v1.md).
+Implementation and runtime checks for image creation are pending.
