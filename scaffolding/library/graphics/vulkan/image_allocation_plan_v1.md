@@ -142,3 +142,44 @@ Draw retains allocation policy and adoption. Linux shared-library export
 packaging belongs to the rendering manager. Its next reviewed build should
 check the complete preceding export set, including preflight if adopted,
 alongside this entry. This receipt covers the Linux standalone object.
+
+## Draw constructor adoption on Linux
+
+Draw adopted Tower `26efb7bb7d06da8ccd6748c283a8e5eae07c40e4` in its
+owning C and Tower image constructors at local commit
+`51d4785e6456353b9a65f49d311cb0c6925ee42d`
+(tree `509f0a80c0459aec8610cee96c53c2cd6a5cc72d`).
+Draw reproduced the 1,088-byte object and the nine external C recording
+rows above. Rendering reran its retained C recorder and matched those rows
+byte for byte.
+
+From the Draw root, select the standalone provider with the following
+command, where `tower_root` is the checked-out Tower release.
+
+```sh
+DRAW_TOWER_IMAGE_ALLOCATION_PLAN_ROOT="$tower_root" bash tests/vulkan-image.sh
+```
+
+Draw ran 29 cases across four recording configurations, then the same 29
+across twelve configurations with the earlier shared graphics and preflight
+libraries. It also ran two view controls. Both combined test executables
+linked the planner object directly and imported image creation and preflight.
+Draw reported these executable hashes.
+
+| Draw constructor | Recording ELF SHA-256 |
+| --- | --- |
+| C | `bd7eed9f39147f21bed5ea10da591d24c5b7083ded6bae151fec73f3b8dc4ce3` |
+| Tower | `d054a66d58a8aea0d0e2041c4840a12917f2327332b5920ee89fc953f9d101c2` |
+
+Both owners carried 4,294,983,680 bytes and memory type 31 through the
+allocation, bind and retirement trace. With an empty table or no matching
+type, the process exited 1 after the requirements query. An injected −2
+at allocation stopped before accounting. The same signed error at bind
+followed an accounted allocation of 16,384 bytes. The five shipping OSD
+headers reproduced the earlier 45-event lifecycle trace, SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+These Draw checks used a recording driver. Draw queued its shipping GPU
+comparison on the RTX 5060 Ti under job
+`7e3234ce-f5ca-4d1a-807a-086d3a68d274`, after its preflight and recovery
+inputs.
