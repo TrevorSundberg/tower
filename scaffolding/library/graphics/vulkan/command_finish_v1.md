@@ -1,51 +1,124 @@
 # draw-tower-command-finish/v1
 
-Draw's staged buffer and texture uploaders need a blocking operation that
-finishes the current command buffer and retires work on its queue. At Draw
-`30b66f597b33c6f88964779f0ab1b87e847dc839`, the implementation is
-`command_finish` at draw.c:1851 and the staged buffer caller is at
-draw.c:1892. At Draw `94f2d31e618e8a10177afcb3f6c95251595faab2`, the
-corresponding lines are 1913 and 1954. Draw confirmed this C signature for
-the planned Tower entry:
+Draw's staged `buffer_upload` at `30b66f597b33c6f88964779f0ab1b87e847dc839`,
+draw.c:1892, copies host bytes to staging, records a buffer copy and a
+TRANSFER/TRANSFER_WRITE to ALL_COMMANDS/MEMORY_READ barrier, then finishes
+the primary and releases staging after success. The directly mapped path
+bypasses finish. Draw also uses finish after recording OSD texture uploads. At Draw
+`41d8b9badce3e6520d43b798c44cbb7e19b6d57c`, the staged buffer caller
+is in draw.c:1970–1979. It records a zero-offset copy followed by one
+global `VkMemoryBarrier2` through `vkCmdPipelineBarrier2`. That recorder
+is a separate port. Tower's tested finish implementation is `d1f468c33`. Include
+`frame_submit.h` and use the Linux x86-64 Vulkan C ABI.
 
 ```c
 VkResult tower_vk_command_finish_v1(VkQueue queue, VkCommandBuffer cmd);
 ```
 
-The caller lends both handles by value and externally synchronizes access
-to the primary, its pool and the queue. The operation owns a local
-`VkSubmitInfo` and a local copy of the command handle. On a successful
-end, the submit descriptor has `sType = VK_STRUCTURE_TYPE_SUBMIT_INFO`,
-null `pNext`, one primary and a pointer to the command-handle slot.
-Both semaphore counts are zero. Wait, stage and signal pointers are null.
-Draw's raw C implementation can borrow its existing command slot. The
-slot that the descriptor references has to live through the submit call.
+Pass a recording primary from a command pool compatible with the queue's
+family. Externally synchronize the queue, primary and pool. Keep the device,
+queue, pool, primary, referenced resources and their bound memory alive
+through retirement. The local submit descriptor and the slot holding the
+borrowed command handle only need to survive the submit call.
 
-| Step | Vulkan invocation | If it fails |
-| --- | --- | --- |
-| End (E) | `vkEndCommandBuffer(cmd)` | Return the exact signed result after E. |
-| Submit (S) | `vkQueueSubmit(queue, 1, &si, VK_NULL_HANDLE)` | Return the exact signed result after ES. |
-| Idle (I) | `vkQueueWaitIdle(queue)` | Return the exact signed result after ESI. Previously submitted work has unknown completion. |
+| Call | On a nonzero signed result |
+| --- | --- |
+| `vkEndCommandBuffer(cmd)` | Return the result immediately. This finish made no submission. |
+| `vkQueueSubmit(queue, 1, &si, VK_NULL_HANDLE)` | Return the submit result. Finish skips the wait. Apply Vulkan's failure rules to the specific result. |
+| `vkQueueWaitIdle(queue)` | Return the wait result. The driver accepted submission. The caller must retain in-flight objects and establish retirement or apply its terminal-device policy. |
 
-A successful ESI returns `VK_SUCCESS`. The same queue is used for S and I.
-There are no retries, waits on a fence, device-wide waits or resource
-destruction in the entry. Draw's raw C caller checks each individual API
-expression. Its Tower-enabled caller checks the single
-`draw_vk_command_finish_v1(queue, cmd)` expression. Its fatal policy logs
-`Vulkan error %d at line %d: %s` followed by a newline, then exits 1.
-The library returns the result to its caller.
+After a successful end, the existing prepare helper supplies a local
+`VK_STRUCTURE_TYPE_SUBMIT_INFO` with null next pointer, one command slot,
+zero waits/signals and null semaphore/stage pointers. The submit helper
+borrows that descriptor. Successful queue idle returns zero and covers
+prior work on that queue. Equal errors at different steps have the same
+public value. The library performs no recovery or cleanup. Draw checks
+individual raw calls or its single linked helper, prints the signed result,
+line and expression, then exits 1 on error. The asynchronous frame entry
+and the guarded readback retain their separate fence contracts.
+[Frame submit](frame_submit_v1.md) and [guarded readback](readback_v1.md).
 
-Draw's staged `buffer_upload` path copies the host data to coherent
-staging, records the buffer copy, and issues a barrier from
-TRANSFER/TRANSFER_WRITE to ALL_COMMANDS/MEMORY_READ. It calls finish, then
-destroys staging after normal success. Direct-mapped uploads bypass finish.
-The OSD texture uploader records image transitions and a buffer-to-image
-copy before finish and staging retirement. Draw owns resource lifetime and
-its failure policy. Interactive frames use the [separate asynchronous end
-and submit operations](command_end_v1.md).
+## Standalone objects and C link
 
-Draw's recording control exercised −4, −1 and +1 at each reachable stage.
-The expected traces are E, ES and ESI with the first signed error preserved.
-These are measurements of Draw's current finish implementation. The
-reusable Tower implementation and a checked upload on hardware are assigned
-to rendering slot 12.
+Run in Bash from the Tower root with LLVM 19 tools, GNU ld and the Linux
+x64 Vulkan loader. Set `VULKAN_LOADER` to the full path to libvulkan.so.1.
+The receipt
+pins the LLVM 19 tools, GNU ld, Vulkan headers/loader (1.3.239), bootstrap
+resources and the compiler (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
+This recipe selects the new entry before optimization so it calls the
+two public functions in the byte-identical, previously tested end object.
+
+```bash
+v=scaffolding/library/graphics/vulkan
+c=bootstrap/linux-x64/towerc
+loader=${VULKAN_LOADER:?Set VULKAN_LOADER to the Linux x64 libvulkan.so.1}
+out=$(mktemp -d)
+"$c" "$v/command_begin.tower" --library --jobs 1 -o "$out/command_begin.o"
+"$c" "$v/command_end.tower" --library --jobs 1 -o "$out/command_end.o"
+"$c" "$v/command_finish.tower" --library --jobs 1 --emit llvm -o "$out/finish.ll"
+llvm-extract-19 --func=tower_vk_command_finish_v1 "$out/finish.ll" -o "$out/finish.bc"
+opt-19 -passes='default<O2>' "$out/finish.bc" -o "$out/finish-opt.bc"
+llc-19 -relocation-model=pic -filetype=obj "$out/finish-opt.bc" -o "$out/finish_only.o"
+x86_64-linux-gnu-ld --hash-style=both -shared -z defs "$out/command_begin.o" \
+    "$out/command_end.o" "$out/finish_only.o" "$loader" \
+    -soname libtower_frame_submit.so -o "$out/libtower_frame_submit.so"
+```
+
+Link the external C caller to `libtower_frame_submit.so` or directly to
+`finish_only.o`, `command_end.o` and the Vulkan loader. The packet's
+`build.sh` exercises both links. Compiling `command_finish.tower` directly
+with `--library -o command_finish.o` instead emits an aggregate object
+with finish, end and submit. It replaces the end object in that form.
+
+| Linux product | SHA-256 |
+| --- | --- |
+| Additive finish object, 1,144 bytes | `68cd4ba1c9dcddf18e1c25629a3254c40256ede42ace6eb2f7f367530db23693` |
+| Combined four-entry DSO, 13,968 bytes | `1bcf0db193e46756559f2b64659d95b8eea4ab2be1dafc080619df804721310e` |
+| Aggregate finish/end/submit object | `da4424945c4fddbc0e4c69279f39d2e0346b238bb7ac28fea22ad17fa6507654` |
+
+## Host 12 evidence
+
+Assignment `b820dd37-38b4-4fae-8a65-01effba2cd0f` contains the bundle,
+header, objects, paired callers, observer and logs. From the unpacked packet,
+run `REPLAY=$(mktemp -d) LOCAL_TOWER=/path/to/local/Tower bash replay.sh`.
+The local Git objects must include the tested tree `06d47a5d` and
+the host must have the pinned SDK and NVIDIA ICD.
+
+Raw C and C through the DSO each performed 64 eight-byte transfers to
+offset 4 of a coherent 16-byte destination, resetting one primary only
+after the previous finish. The fixture uses buffer-specific barriers for the test destination and
+coherent host readback. Draw uses a global synchronization2 barrier in
+its production copy path. The comparison exercises the finish entry. The entire destination alternated between
+`a5a5a5a53031323334353637a5a5a5a5` and
+`a5a5a5a56162636465666768a5a5a5a5`. Each caller exited 0 with zero
+Khronos synchronization validation warnings/errors. Trace checks verified
+the queue, original primary, descriptor fields, null fence, call order
+and successful queue-idle return. The selected device was the discrete
+RTX 3090, UUID `cd3d9791fe794e0b3ec29fc16b74d31c`, PCI 10de:2204,
+Vulkan 1.3.289, NVIDIA 565.57.01, family 0 queue 0.
+
+Each recording lane returned 0 and each of −4, −1 and +1 injected at
+end, submit and idle. The fatal C controls exited 1. On the GPU the
+interposer returned each injected value before forwarding that call.
+The fixture's separate recovery wait always reached the real driver.
+After that drain, end and submit faults left all 16 bytes at a5. Idle
+faults produced the first guarded payload, proving that transfer ran
+after a real accepted submit. These are synthetic results on a healthy
+device. The async gate returned with VK_NOT_READY before host release,
+then signaled both fences and the GPU event. Guarded clear and counted
+raster reproduced the frozen bytes. Draw application execution, WSI and
+real device loss remain unchecked.
+
+The rendering manager verified all 382 archive entries, inspected the
+additive object's three imports and the DSO's four public symbols, and
+checked the 64 guarded results in each raw, DSO and direct-object run
+in both the original and clean replay. The local CPU recording replay
+matched the worker stdout SHA-256
+`8494c46f47a4a660ceb4af42048ae7ca446233fcfda3a7a9376d7851d47cc3c9`.
+All 18 fatal recording cases reproduced their exact diagnostics and exit 1.
+
+Address-only GPU checks passed. With synchronization validation enabled,
+LSan reported 3,432 bytes in seven allocations in both lanes. TSan did
+not complete. Draw's application upload and physical Windows execution of
+the finish entry remain open.

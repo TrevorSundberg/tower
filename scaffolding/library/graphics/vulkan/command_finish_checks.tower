@@ -1,0 +1,78 @@
+import tower;
+import readback_abi;
+import frame_submit_test_types;
+import readback_output;
+
+extern fn finish_raw(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32;
+extern fn finish_from_c(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32;
+extern fn exit(status: i32): void;
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn atoi(text: u8*): i32;
+extern fn printf(format: u8*, value: i32): i32;
+
+var Finish: type = function(i32, VkQueueHandle*, VkCommandBufferHandle*);
+enum Step: u32 { Success, End, Submit, Idle }
+struct Recording { fault: Step; result: i32; calls: u32; accepted: bool; retired: bool; }
+
+fn require(ok: bool, message: u8*): void { if !ok { puts(message); exit(3); } }
+fn observe(trace: Recording*, step: Step, label: u8*): i32 {
+    trace.calls++;
+    require(trace.calls == convert(u32, step), "wrong Vulkan call order");
+    puts(label);
+    if step == trace.fault { return trace.result; }
+    return 0;
+}
+export fn vkEndCommandBuffer(cmd: VkCommandBufferHandle*): i32 {
+    return observe(bits(Recording*, cmd), Step.End, "E");
+}
+export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    var trace = *bits(Recording**, queue);
+    require(count == 1 && info != null && fence == null, "submit count, descriptor or fence");
+    require(info.sType == SubmitInfoTag && info.pNext == null && info.commandBufferCount == 1
+        && info.pCommandBuffers != null && *info.pCommandBuffers == bits(VkCommandBufferHandle*, trace)
+        && info.waitSemaphoreCount == 0 && info.pWaitSemaphores == null && info.pWaitDstStageMask == null
+        && info.signalSemaphoreCount == 0 && info.pSignalSemaphores == null, "submit descriptor mismatch");
+    var result = observe(trace, Step.Submit, "S");
+    trace.accepted = result == 0;
+    return result;
+}
+export fn vkQueueWaitIdle(queue: VkQueueHandle*): i32 {
+    var trace = *bits(Recording**, queue);
+    require(trace.accepted, "queue wait without accepted submit");
+    var result = observe(trace, Step.Idle, "I");
+    trace.retired = result == 0;
+    return result;
+}
+fn run(call: Finish, fault: Step, value: i32): void {
+    var trace: Recording = { fault: fault, result: value, ..default };
+    var reference = &trace;
+    var result = call(bits(VkQueueHandle*, &reference), bits(VkCommandBufferHandle*, &trace));
+    printf("returned=%d\n", result);
+    var expected_calls = convert(u32, fault);
+    if fault == Step.Success { expected_calls = convert(u32, Step.Idle); }
+    require(result == value && trace.calls == expected_calls, "wrong result or trailing calls");
+    require(trace.accepted == (fault == Step.Idle || fault == Step.Success)
+        && trace.retired == (fault == Step.Success), "wrong retirement");
+    if trace.accepted && !trace.retired { puts("caller retains pending resources"); }
+}
+fn matrix(call: Finish): void {
+    run(call, Step.Success, 0);
+    var errors: i32[3]; errors[0] = -4; errors[1] = -1; errors[2] = 1;
+    for (var i: usize = 0; i < sizeof(decltype(errors)) / sizeof(i32); i++) {
+        var value = errors[i];
+        run(call, Step.End, value); run(call, Step.Submit, value); run(call, Step.Idle, value);
+    }
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 1 { puts("raw"); matrix(finish_raw); puts("C through Tower"); matrix(finish_from_c); return 0; }
+    if argc != 4 { return 2; }
+    var call: Finish = finish_raw;
+    if strcmp(argv[1], "shared") == 0 { call = finish_from_c; }
+    else { if strcmp(argv[1], "raw") != 0 { return 2; } }
+    var fault = Step.End;
+    if strcmp(argv[2], "submit") == 0 { fault = Step.Submit; }
+    else { if strcmp(argv[2], "idle") == 0 { fault = Step.Idle; }
+        else { if strcmp(argv[2], "end") != 0 { return 2; } } }
+    run(call, fault, atoi(argv[3]));
+    puts("expected C diagnostic"); return 3;
+}

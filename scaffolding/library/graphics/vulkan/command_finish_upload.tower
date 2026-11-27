@@ -1,0 +1,123 @@
+import tower;
+import counted_abi;
+import counted_capture;
+import counted_record;
+import readback_abi;
+import readback_clear;
+import readback_device;
+import readback_oracle;
+import readback_rows;
+import readback_validation;
+import command_begin;
+import readback_output as output;
+
+// The replay links the same caller to raw C or C through the production DSO.
+extern fn perform_finish(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32;
+extern fn exit(status: i32): void;
+struct Timespec { seconds: i64; nanos: i64; }
+extern fn clock_gettime(clock: i32, time: Timespec*): i32;
+var Monotonic: i32 = 1;
+var AllCommands: u32 = 65536;
+var MemoryRead: u32 = 32768;
+var Samples: u32 = 64;
+fn now(): u64 {
+    var time: Timespec;
+    if clock_gettime(Monotonic, &time) != 0 { puts("clock_gettime failed"); exit(3); }
+    return convert(u64, time.seconds) * 1000000000 + convert(u64, time.nanos);
+}
+fn upload(ctx: ReadbackDevice*): bool {
+    var src: CountedBuffer = default; var dst: CountedBuffer = default;
+    defer counted_release_buffer(ctx.device, &src);
+    defer counted_release_buffer(ctx.device, &dst);
+    var region: VkBufferCopy = { dstOffset: 4, size: 8, ..default };
+    var bytes: usize = 16;
+    var coherent = VkHostVisible | VkHostCoherent;
+    if !counted_buffer(ctx, &src, region.size, VkTransferSrcUsage, coherent)
+        || !counted_buffer(ctx, &dst, convert(u64, bytes), VkTransferDstUsage, coherent) { return false; }
+    var input: void*; var output_bytes: void*;
+    if !vk_ok("map staging", vkMapMemory(ctx.device, src.memory, 0, VkWholeSize, 0, &input)) { return false; }
+    defer vkUnmapMemory(ctx.device, src.memory);
+    if !vk_ok("map destination", vkMapMemory(ctx.device, dst.memory, 0, VkWholeSize, 0, &output_bytes)) { return false; }
+    defer vkUnmapMemory(ctx.device, dst.memory);
+    var mapped = bits(u8*, output_bytes);
+    fill(mapped, ReadbackGuard, bytes);
+    var pinfo: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer,
+        queueFamilyIndex: ctx.family, ..default };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create resettable pool", vkCreateCommandPool(ctx.device, &pinfo, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(ctx.device, pool, null);
+    var info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool,
+        commandBufferCount: 1, ..default };
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate primary", vkAllocateCommandBuffers(ctx.device, &info, &cmd)) { return false; }
+    var elapsed: u64 = 0;
+    for (var n: u32 = 0; n < Samples; n++) {
+        var payload = "01234567";
+        var wanted = "a5a5a5a53031323334353637a5a5a5a5";
+        if n % 2 != 0 { payload = "abcdefgh"; wanted = "a5a5a5a56162636465666768a5a5a5a5"; }
+        copy(bits(u8*, input), payload, convert(usize, region.size));
+        if !vk_ok("begin primary", tower_vk_command_begin_v1(cmd)) { return false; }
+        vkCmdCopyBuffer(cmd, src.handle, dst.handle, 1, &region);
+        counted_buffer_barrier(cmd, dst.handle, VkStageTransfer, AllCommands, VkTransferWrite, MemoryRead);
+        // The fixture additionally makes the transfer available to its coherent host reader.
+        counted_buffer_barrier(cmd, dst.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
+        var start = now();
+        var result = perform_finish(ctx.queue, cmd);
+        var duration = now() - start;
+        if !vk_ok("finish", result) {
+            puts("owner retains both mappings, buffers, memory and primary until separate queue drain");
+            if !vk_ok("owner queue drain", vkQueueWaitIdle(ctx.queue)) {
+                puts("retirement unknown; exiting with Vulkan owners live"); exit(3);
+            }
+            puts("owner drain succeeded");
+            // Fault trials inject on the first copy. Report the entire destination.
+            output.readback_label("after_drain");
+            var digits = "0123456789abcdef";
+            for (var i: usize = 0; i < bytes; i++) {
+                output.putchar(convert(i32, digits[convert(usize, mapped[i] >> 4)]));
+                output.putchar(convert(i32, digits[convert(usize, mapped[i] & 15)]));
+            }
+            puts("");
+            return false;
+        }
+        if !readback_compare("guarded destination after finish", mapped, bytes, wanted) { return false; }
+        if n < 2 { output.readback_label("finish_ns"); output.readback_decimal(duration); }
+        elapsed += duration;
+    }
+    readback_number("checked_copies", Samples);
+    output.readback_label("total_finish_ns"); output.readback_decimal(elapsed);
+    return true;
+}
+fn validated(messages: u32*): bool {
+    var debug: VkMessengerInfo = { sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
+        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default };
+    var enable = VkSyncValidation;
+    var validation: VkValidationFeatures = { sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
+        enabledCount: 1, enabled: &enable, ..default };
+    var app: VkApplicationInfo = { sType: VkApplicationTag, pApplicationName: "Tower staged buffer upload", apiVersion: VkApi13, ..default };
+    var layer = "VK_LAYER_KHRONOS_validation";
+    var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
+    var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
+        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &extensions[0], ..default };
+    var instance: VkInstanceHandle*;
+    if !vk_ok("vkCreateInstance (validation required)", vkCreateInstance(&info, null, &instance)) { return false; }
+    defer vkDestroyInstance(instance, null);
+    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    if create == null || destroy == null { return vk_failure("Debug messenger functions unavailable"); }
+    var messenger: VkMessenger*;
+    if !vk_ok("vkCreateDebugUtilsMessengerEXT", create(instance, &debug, null, &messenger)) { return false; }
+    defer destroy(instance, messenger, null);
+    puts("backend=Vulkan requested_api=1.3 validation=Khronos+sync severity=warning,error");
+    var ctx: ReadbackDevice = default;
+    if !readback_open_device(instance, 0, &ctx) { return false; }
+    defer vkDestroyDevice(ctx.device, null);
+    return upload(&ctx);
+}
+export fn main(): i32 {
+    var messages: u32 = 0;
+    var ok = validated(&messages);
+    readback_number("validation_warnings_errors", messages);
+    if !ok || messages != 0 { return 1; }
+    return 0;
+}

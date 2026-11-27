@@ -124033,3 +124033,118 @@ only. The previous bounded performance and instrumentation results still
 describe those sources. The separate live-device immediate-exit finding
 and pending Draw slot 10 run remain open. [Bundle paths and repeat
 command](../scaffolding/library/graphics/vulkan/command_begin_v1.md#frozen-raw-and-linked-baseline-comparison)
+### Blocking command finish for Draw uploads on host 12
+
+The rendering manager supplied the command contract and staged buffer_upload
+site at Draw 30b66f597b33c6f88964779f0ab1b87e847dc839, draw.c:1892.
+The site records the staging copy and a TRANSFER_WRITE to MEMORY_READ
+barrier before its synchronous finish. It destroys staging on success.
+The Tower starting point is 06d47a5d with its documentation tip 960c855a.
+An unrelated unstaged edit prevented the initial pull. Work used local
+objects in a separate main checkout. A full-history fetch attempted to
+pack a missing historical blob. The local alternate and selected tree
+checked out successfully without fetching that blob.
+
+The proposed entry calls the existing end/prepare and submit helpers with
+one local handle slot and no fence or semaphores. Only an accepted submit
+can reach queue idle. Draw retains the pool, queue and referenced storage.
+The public result alone cannot distinguish equal errors at different stages.
+
+Implementation d1f468c33 calls the existing two Tower helpers. The
+additive object imports those symbols and vkQueueWaitIdle. It has no
+allocator, destruction or recovery imports. Its descriptor and primary
+slot stay on the stack. Neither pointer escapes the submit call. The
+separate Vulkan objects remain externally owned. A failed wait leaves
+their completion unknown. An owner that cannot distinguish a failure
+stage from the result can retain the resources and drain independently.
+[Contract, link commands, hashes and guard bytes](../scaffolding/library/graphics/vulkan/command_finish_v1.md)
+
+On the discrete RTX 3090 (Vulkan 1.3.289, NVIDIA 565.57.01), raw C
+and C through the DSO matched every byte on 64 alternating transfers
+to the same destination. The recording loader exercised success and
+nine signed faults per lane. E, ES and ESI stopped at the injected
+operation. All 18 fatal recording processes exited 1 with their expected
+signed diagnostic. All 18 returning GPU fault cases exited 1 after
+retaining the pool, primary, mappings, buffers and memory through a
+separate driver queue wait. An injected idle failure followed a real
+successful submit. The guarded payload was present after the owner's
+drain. End and submit faults did not write the destination. The prior
+three exports passed their recording checks, and both asynchronous gate
+lanes remained pending before host release. The clear and counted
+fixtures matched the previous complete logs. This used rendering's
+checksummed fixtures. The compiler-manager CPU fixture digest at
+a580e70a remains unverified.
+
+Five alternating warm-file, fresh-device processes per lane ran one at
+a time on host 12 (EPYC 7282, affinity 0–31, quota 15.36 CPUs). The
+first raw and shared guarded runs passed before sampling. Each sample
+checked all 64 destinations with synchronization validation enabled.
+The timer surrounds only the host finish call. Each sample's mean
+includes end, submit, driver work and queue wait. Samples use the same
+coherent memory and queue. The second invocation uses a retired primary.
+
+| Median across processes | Raw C | C through additive Tower DSO |
+| --- | ---: | ---: |
+| First finish, µs | 396.81 | 417.13 |
+| Second finish, µs | 100.71 | 98.74 |
+| Mean finish across 64 copies, µs | 92.30 | 89.91 |
+| Process wall / user+system, ms | 307.73 / 305.98 | 312.66 / 310.80 |
+| Process peak RSS, KiB | 90,972 | 91,220 |
+
+The numbers characterize tiny blocking transfers on this queue. Raw
+sample clocks and RSS are in the receipt. Three warm compiles examined
+the old end and new aggregate finish entry on identical bootstrap
+resources. At one worker, median wall times were 323.21 / 332.72 ms and
+peak RSS 91,204 / 92,056 KiB. At four workers they were 425.08 /
+440.39 ms and 96,904 / 97,656 KiB. Every object matched its serial
+reference. The rendering library adds no scheduling or heap calls.
+
+The address-instrumented finish, helpers, recording owner and C UBSan
+boundary passed the recording matrix. Both address-only GPU lanes
+passed. With LSan and the sync layer, both GPU processes returned 1,
+reporting 3,432 bytes in seven allocations. Both passed with LSan and
+the same Khronos layer when the diagnostic fixture omitted only sync
+validation. The comparison localizes the observed retention to that
+configuration without attributing unsymbolized allocations. The first
+TSan link needed libgcc_s for unwind symbols. Eight of nine TSan runs
+failed at the container personality request (139). The remaining linked
+GPU process returned 66 after TSan reported a SEGV at address 0x1048
+and a nested failure. Its PC lacks a module attribution. No TSan run
+completed. Source-level Tower UBSan remains unavailable.
+
+During development, the recording fixture failed to compile an invalid
+foreach form and then a raw array iteration. A counted array loop built.
+The upload's nested library imports required the repository Foundation
+path. An initial frozen-counted comparison failed on printed absolute
+shader paths. Running with the original relative arguments reproduced
+the entire log. The original diagnostics and final commands are in
+job b820dd37-38b4-4fae-8a65-01effba2cd0f. Next integration check is
+Draw's own staged upload/prewarm on its supported application profile.
+
+The first clean replay selected the shared checkout as its only local
+object source. It had the reviewed documentation commit but lacked
+rendering blobs (including frame_submit_test_types.tower). The replay
+now checks out the complete worker-owned 06d47a5d tree and applies the
+bundle containing the documentation parent and this change. It requires
+no historical lazy fetch or external repository access.
+
+### Rendering review of the external blocking finish entry
+
+Rendering integrated source `d1f468c33a81f22769fae235fdb151438bbc331f`
+and evidence tip `44f2cdf6d29e20f00b8d0ead7c1bfec721c46933` with the
+existing begin pair and finish contract. Worker receipt `b820dd37` archive
+SHA-256 is `47e7937760ac2c7a4e81dfd9c899919f41d1a24a4a9c57b032c2d387ff9e5585`.
+Both bundle bases, all 382 files and the seven source hashes verified. On
+the control host the raw and linked recording matrix and 18 fatal processes
+matched the retained logs, including each exit status. Rendering checked
+the 16-byte destination at every iteration of the raw, shared and direct
+Linux runs in both hardware captures, reconfirmed queue and primary identity,
+and compared the frozen object symbol table and DSO exports.
+
+Draw confirmed at `41d8b9badce3e6520d43b798c44cbb7e19b6d57c` that
+the actual staged upload uses a single global synchronization2 memory
+barrier. The finish fixture used a buffer-specific dependency and an
+extra host-read barrier. It establishes completion for an actual transfer
+through the public finish entry. Application-level parity requires running
+the Draw caller. Rendering slot 12 job `02f6d984` takes the separately
+scoped copy and global-barrier recording port.
