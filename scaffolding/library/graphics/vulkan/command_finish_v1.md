@@ -34,7 +34,8 @@ borrows that descriptor. Successful queue idle returns zero and covers
 prior work on that queue. Equal errors at different steps have the same
 public value. The library performs no recovery or cleanup. Draw checks
 individual raw calls or its single linked helper, prints the signed result,
-line and expression, then exits 1 on error. The asynchronous frame entry
+line and expression, then calls its fatal handler. Draw expects process exit 1.
+The observed statuses on Linux are recorded below. The asynchronous frame entry
 and the guarded readback retain their separate fence contracts.
 [Frame submit](frame_submit_v1.md) and [guarded readback](readback_v1.md).
 
@@ -107,8 +108,8 @@ faults produced the first guarded payload, proving that transfer ran
 after a real accepted submit. These are synthetic results on a healthy
 device. The async gate returned with VK_NOT_READY before host release,
 then signaled both fences and the GPU event. Guarded clear and counted
-raster reproduced the frozen bytes. Draw application execution, WSI and
-real device loss remain unchecked.
+raster reproduced the frozen bytes. The Host 12 fixture ran offscreen
+with synthetic errors on a healthy device.
 
 The rendering manager verified all 382 archive entries, inspected the
 additive object's three imports and the DSO's four public symbols, and
@@ -120,8 +121,7 @@ All 18 fatal recording cases reproduced their exact diagnostics and exit 1.
 
 Address-only GPU checks passed. With synchronization validation enabled,
 LSan reported 3,432 bytes in seven allocations in both lanes. TSan did
-not complete. Draw's application upload and physical Windows execution of
-the finish entry remain open.
+not complete. Physical Windows execution of the finish entry remains open.
 
 ## Draw staged upload through the public entry
 
@@ -143,3 +143,61 @@ finish steps. Each failure propagated the first signed result and kept
 staging live. A failed idle after accepted mock submission left work
 pending. Draw assigned the 73-byte and 64 MiB device tests to slot 10
 job `00d4d868-4cb6-4141-9212-8fb128a0ed04`.
+
+## Draw Linux hardware upload and fatal exits
+
+Draw verified 617 entries plus the manifest in the slot 10 archive for
+that job, SHA-256 `411731112a98f23ddc613632817aee138775b86c50d9c2172ae04d820044e2c4`.
+The API selected the RTX 5060 Ti, Vulkan 1.4.303, NVIDIA 570.169.
+Draw tested implementation `d78139ec635e97bb1e83309e74d8721651580fdc`
+and tests `34e3a9d87c1c7651d8e0885b7a8767e3652c7372` with Tower
+`4b1f0af2bcfcbb9d8d7d86eae7fa885ffb1ed8e4`. Draw compared the
+pre-change upload and barrier bodies at `41d8b9ba` and `c37b27c7`.
+The application kept its existing zero-offset copy and global synchronization2
+barrier and called the Tower finish entry.
+
+| Binary checked by Draw | SHA-256 |
+| --- | --- |
+| Tower aggregate finish/end/submit object | `da4424945c4fddbc0e4c69279f39d2e0346b238bb7ac28fea22ad17fa6507654` |
+| Linked production ELF | `6a4beb1b75517a341c5cd4d1e3d1f32309e272eed95c035496b32e56c699891c` |
+| Raw C production ELF | `b4ca01029f531c805048d400c3ccb844b4339ca9b4014760a50e33beaf8c43e4` |
+
+**Successful uploads.** From the worker worktree, Draw ran
+`build/upload-linked --staged-uploads N OUTPUT` with `upload-trace.so`
+and `DRAW_TRACE_UPLOAD_BYTES=N`, once with `N=73` and once with
+`N=67108864`. Both returned 0. On the staged path Draw observed one
+command end, one unfenced submit and a successful wait-idle on the
+submitting queue before staging unmap, destruction and memory release.
+Draw checked both C and Tower arms, staged and directly mapped, against
+every expected payload byte and the 16-byte guards at both ends.
+These hashes cover only the guards and logical payload.
+
+| Logical payload | Guarded bytes | Guarded SHA-256 |
+| --- | ---: | --- |
+| 73 bytes | 105 | `6f83b083f799c51fa51ad8b60061eaefa615edb15ac1baeb5b055fa22c0d8335` |
+| 64 MiB | 67,108,896 | `b36df9bbdb0b7c344b42d721ead2b068c2d19537438273073d574a78db138968` |
+
+The shipping command was `build/draw-linked --offscreen --gpu-check --staged-uploads --validate --no-nuclear --frames 3 --size 1280 800 --capture OUTPUT`.
+It returned 0 with PPM SHA-256 `42c6fe3a6e638e17551cb10c267d48451b1d8ef0f9fb2835df85a2b3a606f57b`.
+Draw also reported canonical/core, three-frame parity and eight package browser tests passing.
+Rendering independently matched the retained Tower object's hash, reran
+the CPU recording check and reconstructed the shipping PPM digest from the
+expected 1280×800 RGB pixels. Draw verified the guarded capture files.
+
+**Fatal exit gate failed in both arms.** Each injected error produced the
+expected signed diagnostic. The expected process status was 1 in every
+case. Draw observed these OS statuses for both raw C and linked Tower.
+
+| Injected call | Real work reached before the fault | Original series | ICD-instrumented series |
+| --- | --- | ---: | ---: |
+| End, −1 | Injection preceded driver end | 1 | 139 |
+| Submit, −2 | Driver end succeeded, injection preceded driver submit | 1 | 1 |
+| Queue idle, −1 | Driver accepted one unfenced submit | 139 | 1 |
+
+The failed idle left completion unknown to the application. The observer
+issued a separate successful wait-idle on the same queue after the
+diagnostic and saw staging remain live through that drain. Production
+failure cleanup remains unverified. The cause of the SIGSEGV remains
+open. Draw retained its branch and assigned the repair to job
+`97562fd0-fd7d-418d-8dab-7995188b9079`. Combined Linux adoption of the
+Tower copy/barrier recorder and finish has its own job, `3c86f4a7`.

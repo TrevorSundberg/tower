@@ -124160,3 +124160,25 @@ signed fault injections and the pending 73-byte and 64 MiB device tests.
 This evidence addition changes documentation only. On the rendering
 manager the existing raw/DSO recording executable again matched its
 worker log. The two recording suites have distinct workloads and digests.
+
+### Draw verifies Linux staged upload and reports fatal exit failures
+
+Draw verified both guarded upload sizes and the shipping three-frame
+capture on the RTX 5060 Ti at `d78139ec`, with Tower finish from
+`4b1f0af2`. Its implementation still used Draw's existing buffer
+recorder. Both implementations reported the expected signed errors.
+In one series both exited 139 on injected idle failure after accepted
+submit. In the ICD-instrumented series both exited 139 on injected
+end failure before driver end. The observer established retirement for
+the idle fault with its own drain. Draw owns the application repair
+and the combined recorder/finish trial. [Linux commands, guarded
+digests and exit statuses](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits)
+
+Rendering rehashed the two retained aggregate objects and reran
+`bin/command_finish_checks` with the packet DSO and loader. Exit 0 and
+stdout SHA-256 `8494c46f47a4a660ceb4af42048ae7ca446233fcfda3a7a9376d7851d47cc3c9`
+matched the earlier recording run. The expected P6 header and 1,024,000
+RGB pixels of 40 80 bf reproduced Draw's shipping image digest. Draw
+owns the guard and payload comparisons against its device captures.
+This receipt changes documentation only. Runtime and memory profiles
+are unchanged inputs from the prior implementation.
