@@ -124908,3 +124908,61 @@ control and recorder remain the frozen inputs. The raw helper can write a
 prefix before rejecting a bitmap span. The new SDK test uses a fixed
 expected region table and an independent whole-buffer sentinel check.
 The reviewed portable implementation belongs to slot 12.
+
+Test source dfdb7a9d checks the 56-byte, eight-aligned SDK struct and
+all thirteen scalar member offsets at compile time. Both Clang 19 Win64
+clients (optimized and trapping UBSan) compared the five exact-capacity
+outputs with the literal SDK rows, repeated with seven available slots,
+and refused one fewer slot per shape without changing a byte. Leading
+and trailing region-sized guards and the spare slots stayed at 0xa5.
+The two-region 65537 × 65536 R8 case produced offset 4295032832 and
+covered 8590065664 bytes using only descriptor storage. The 18 output
+rows including the wide case hash to
+49af83bde459815ccd8be14a0ecdf6781295918ee1077c916bbeac8f8d2fd1b2 (LF).
+For a bitmap with 450559 available bytes the old helper returned zero
+after changing byte zero from a5 to 00. Both clients caught this with
+exit 1. The separate checked suite freezes zero/null, shifted extent,
+count/product/sum overflow, spare span and combined layer/mip cases for
+the reviewed provider. Its full execution remains open.
+
+The standalone SDK C main used the original ordinal 8 in the release
+DLL with the recording-only Vulkan loader. The observer saw its original
+caller pointers, all 16 region descriptors and 28 transitions. Its
+declaration-only ordinal-nine COFF references both public functions.
+Linking that object against the old import library exited 1 with the
+builder as the sole missing symbol. The probe header reflects Draw's
+signature and has no definitions.
+
+On Wine 8 with NVIDIA Quadro RTX 6000, UUID
+26f60f6cead65faf0253a959b2e93a2d and driver 615.71.10, the frozen
+ordinal-eight hardware client reproduced the 27542768-byte stream
+(5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811).
+The independent verifier matched all 256 sampled texels and 240 guard
+bytes. The trace matched the old 90-event sequence and ten buffer
+releases after queue idle. The guest selected device 0, API 1.4.351,
+queue 0/0 with sync2. Its debug-utils warning/error count was zero. The
+host loader inserted the Khronos device layer with synchronization
+validation requested. Explicit guest layer creation returned -6.
+
+The initial hardware control took 1.32 s wall, 1.21 s CPU and 192448 KiB
+peak RSS. Clean replay took 1.25 s wall, 1.11 s CPU and 191996 KiB.
+Both are single warm processes with tracing and readback on this host's
+dual Xeon E5-2699 v4, 88 logical CPUs and 10.56 CPU quota, one caller
+and one queue. A clean-prefix CPU process took 5.97 s including Wine
+startup. The following warm C recorder process took 0.09 s, 0.06 s CPU
+and 12012 KiB. No ordinal-nine timing was possible. Check buffers have
+fixed automatic storage. These measurements do not quantify driver
+allocations. The native Linux raw C oracle and helper passed ASan,
+trapping UBSan and leak detection with identical rows. Win64 UBSan
+covers the C code. Win64 ASan could not link its target runtime, and
+Clang rejected Win64 TSan. This independent caller is single-threaded.
+
+Clean replay imported the bounded source bundle in a separate checkout,
+verified the archived ordinal-eight packet, rebuilt both Win64 clients,
+and compared eleven frozen products including the complete capture.
+The evidence archive includes replay.sh, expanded compile commands,
+exit records, link maps, PE imports/exports, the raw capture and trace.
+The manager's reviewed slot-12 source/header/ref is the dependency for
+the ordinary ordinal-nine link, full failure suite, paired device
+execution and retirement. Physical Windows and Draw assets/app execution
+remain unverified here. All changes are local to this worker.
