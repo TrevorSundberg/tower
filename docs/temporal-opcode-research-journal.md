@@ -124978,3 +124978,105 @@ retains the same build inputs as 67345e19. The Win64 change adds the
 reviewed builder object to the existing DLL and passes the fixture's
 caller-owned array through the new C import. The separate SDK packer
 and independently placed readback regions remain the controls.
+
+At source b8b59ccc, the ordinary bootstrap built the identical 1,472-byte
+Linux ELF SHA-256 4e278070fd315787d14a113329cec6fc38b3fe5a8aaba891b2de2d4e909c9722.
+The 1,307-byte COFF SHA-256 is
+6181c6ce1ac784b46032aa3443dcf35f483b3b4144a9ceae4a9a286b71fe734c.
+It has no undefined symbols. LLD places the builder at RVA 0x1720, with
+the recorder at 0x1500. The previous six COFF files and the prior public
+C smoke executable reproduced byte for byte. PE inspection matched the
+previous eight ordinal/name pairs and all nine loader imports. Optimized
+and trapping-UBSan C clients used ordinary import-library linkage. The
+SDK C main and the GPU executable each import the builder and recorder
+by name from the same DLL. The five-texture executable links the frozen
+GPU caller, sampler, finish and CRT objects and the two SDK C boundary
+objects. Its upload path has no raw packer. The sampling destinations
+and synthetic payload still come from the independent fixture.
+
+**CPU controls.** All thirteen SDK fields in each of sixteen records and
+the two wide-offset rows matched the frozen C control. The second wide
+offset was 4,295,032,832. The four mixed layer/mip rows also passed.
+Exact capacity, extra slots, surplus span and leading/trailing sentinels
+passed. Every short capacity (including fonts 5) and short span
+(including bitmap 450559) returned zero with the entire array untouched.
+The old SDK packer had changed the first byte in that bitmap case.
+The clients checked null and zero inputs, erased mip extents and count,
+product, layer and mip-sum overflow. The Tower client checked all 32
+mips of an exact UINT64_MAX-byte chain and the untouched spare slot.
+A span one byte shorter and a 33rd mip were refused before writing.
+The first local draft of this test used a hexadecimal literal rejected
+by the pinned compiler. The committed test uses its decimal u64 value.
+
+**Recording and execution.** In the frozen recording loader, all five
+copy calls received the original caller pointer, all 208 SDK fields
+matched and the observer validated 12/2/2/8/4 barriers across the five
+calls. In a separate hardware process Wine 8 loaded the release DLL,
+system32 Vulkan and winevulkan. The host loader used the NVIDIA ICD
+(libGLX_nvidia.so.0), Quadro RTX 6000, PCI 0000:89:00.0, UUID
+26f60f6cead65faf0253a959b2e93a2d, device 0, NVIDIA 615.71.10, Vulkan
+1.4.351, queue family/index 0/0 and synchronization2. The host loader
+inserted the Khronos device layer with sync validation requested. The
+guest debug-utils count was zero. Explicit guest layer selection
+returned VK_ERROR_LAYER_NOT_PRESENT (-6).
+
+Control, linked and C UBSan processes each reproduced the original
+27,542,768 bytes, SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811.
+The independent verifier checked 256 fragment samples and 240 sentinel
+bytes. Each 90-event trace contained ten successful owner completions
+with submit and wait on one queue. Each staging buffer and its bound
+memory survived the upload wait. Host readback buffers, image views
+and images survived the second submission. The old eight-entry GPU
+executable and observer also ran with the new DLL. Ordinals 1–5 passed
+the counted draw and shader/event regressions. Ordinals 6–7 reproduced
+the small and large upload bytes. The manager attributed an independent
+eight-export cross-link to Draw bd203f60. This worker ran synthetic
+texels on Linux/Wine. The nine-entry Draw application, its shipped OSD
+pack and physical Windows driver execution need separate receipts.
+
+**Host cost.** LLVM 19.1.7, pinned Tower bootstrap, optimized Windows
+x64 code, MinGW-w64, one caller and one graphics queue on dual Xeon
+E5-2699 v4, 88 logical CPUs, CPU quota 10.56. QPC ran at 10 MHz. Three
+alternating warm-process pairs each ran two batches. Every call checked
+the returned count and final offset in stable stack storage. The raw SDK
+packer linked directly. The checked path included the SDK adapter and
+Win64 DLL import. Original-run medians follow.
+
+| Work per batch | Raw first / second | DLL first / second |
+| --- | ---: | ---: |
+| 1,000,000 lists over the five shapes, ns/list | 31.74 / 34.86 | 30.66 / 31.16 |
+| 25,000 lists of 128 layers × 8 mips, µs/list | 6.00 / 6.03 | 6.98 / 7.01 |
+| Both batches, process wall / CPU seconds, peak RSS KiB | 0.42 / 0.40, 6348 | 0.49 / 0.47, 12008 |
+
+The large second batch took about 0.98 µs more per 1,024-record list.
+The Tower path checks the mip chain before emitting its descriptors.
+These measurements include the distinct build and call paths and do
+not isolate that check. The builder allocates no heap memory and retains
+no caller storage. The traced, validated, full-capture hardware pair
+took 1.43 / 1.20 s wall, 1.21 / 1.16 s CPU and 192156 / 192040 KiB
+peak RSS (control / release). A separate pre-change frozen run took
+1.22 s wall, 1.17 s CPU and 189796 KiB. Device work, copying, tracing
+and verification dominate this workload. GPU and driver allocations
+were outside allocation instrumentation.
+
+**Instrumentation.** On Linux, LLVM-instrumented Tower builder code
+and SDK C ASan/trapping UBSan passed the full CPU controls with leak
+detection. For both ASan and TSan, four libc pthreads with separate
+caller storage each ran four maximal/short/shift boundary suites.
+Disassembly, runtime dependencies and link maps accompany the outputs.
+The two configurations completed on their first launch in the original
+run. Win64 trapping UBSan covered C fixture code. Win64 ASan could not
+link its target runtime and Clang rejected Win64 TSan. The production
+Win64 Tower object and graphics driver ran without sanitizer instrumentation.
+
+**Replay.** A fresh checkout imported the original baseline bundle from
+the archived 12a29d40 packet, then the new source bundle bounded at
+8f807648. The initial fetches of full reader history failed on missing
+historical Git objects. Fetching only the public eight-entry snapshot
+67345e19 at depth one supplied the complete prerequisite tree. Build,
+device/CPU checks, old-client compatibility and native instrumentation
+each exited zero. All 15 locked products matched, including both PEs,
+the DLL/import library, both cost executables and the complete capture.
+The job archive includes the original control packet intact, exact
+commands in replay.sh and scripts/, raw results and the release pair.

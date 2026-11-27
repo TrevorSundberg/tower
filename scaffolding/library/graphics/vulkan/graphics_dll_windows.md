@@ -1,6 +1,6 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
 Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles six Tower objects for
+The entry verifies the checked-in bootstrap, compiles seven Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -383,3 +383,46 @@ The 3,644-byte import library has SHA-256
 The C boundary and raw hardware control both produced 27,542,768 identical
 guarded bytes on Wine 8 with the Quadro RTX 6000, driver 615.71.10.
 See the [Win64 observations and replay](../../../../docs/temporal-opcode-research-journal.md#win64-osd-recorder-through-the-external-graphics-dll).
+
+## Building OSD copy regions at ordinal 9
+
+Include `tight_color_regions.h` and link `tower_graphics.lib`. Supply the
+actual layer count (normalize a serialized zero to one before the call),
+the texture's available payload bytes and a caller-owned array. Capacity
+counts SDK `VkBufferImageCopy` elements. The return value counts initialized
+elements in layer-major, mip-minor order. Zero means refusal and leaves
+all output bytes untouched. Offsets start at zero for each texture.
+
+```c
+VkBufferImageCopy regions[8];
+uint32_t n = tower_vk_build_tight_color_regions_v1(
+    regions, sizeof regions / sizeof regions[0], width, height,
+    actual_layers, mip_count, bytes_per_texel, available_bytes);
+if (n == 0) return false;
+tower_vk_osd_texture_upload_record_v1(
+    cmd, staging, image, actual_layers, mip_count, n, regions);
+```
+
+The array can be reused as soon as the recorder returns. Staging and the
+image follow the queue retirement rules above. To run the independent C
+caller with the cross-toolchain environment from the build instructions:
+
+```sh
+v=scaffolding/library/graphics/vulkan
+"$v/build_graphics_dll.sh" "$PWD/out"
+clang --target=x86_64-w64-windows-gnu --sysroot="$MINGW_SYSROOT" \
+  -idirafter "$VULKAN_INCLUDE" -std=c11 -O2 -Wall -Wextra -Werror \
+  '-DTOWER_REVIEWED_BUILDER_HEADER="../tight_color_regions.h"' \
+  "$v/osd_checks/tight_regions_check.c" -fuse-ld=lld -L"$MINGW_GCC_LIB" \
+  out/tower_graphics.lib -Wl,--no-insert-timestamp -o out/check.exe
+wine64 out/check.exe checked
+```
+
+The 5,632-byte DLL has SHA-256
+`2cfb10fa35320531c01d3d8b5a042a6aba771a1c4749fad417e3aed096bef05e`.
+The 3,962-byte import library has SHA-256
+`a5a2c26c8adb72307ae810299695105382750b7693118df4fa037aecbf9d22b5`.
+The SDK executable imports both functions by name. The DLL maps them
+to ordinals 9 and 8. The checked call returns 6, 2, 2, 4 and 2 for the
+five textures. The archived command trace, captures and same-host costs
+are indexed in the [project journal](../../../../docs/temporal-opcode-research-journal.md#win64-tight-color-region-builder-at-ordinal-9).
