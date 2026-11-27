@@ -124385,3 +124385,48 @@ process exited 1 with reported Wine loader diagnostics. Draw reports
 neither per-texel readback nor use of a new provider in that receipt.
 Host 12 did not read the API dump. The following independent Tower test
 will use the confirmed shapes with generated texture contents.
+
+Commits 84bb5e08e and 461c8c608 extend the hardware fixture with the
+full-size fonts, bitmap, inverted, firmware and images. The normal path
+keeps each new image and view in the caller's inventory, retires each
+upload separately and releases its staging on return. Sampling starts
+only after the fifth staging allocation is gone. It checks subresources
+one at a time to bound readback memory. Six bytes of each 256-texel
+block independently identify distant rows, texture, layer, mip and
+block inside the synthetic payload. The compiled production recorder
+remains the 1528-byte object at 2dfb3fd47.
+
+Commit cffa0525c includes the lifetime event schema, loader interposer
+and ordered verifier. Per lane the 4408-byte live descriptor trace
+matched the caller's expected descriptors, handles and original list
+pointers for five copies and 28 image barriers. The separate 6048-byte
+event stream resolves image, view, buffer and allocation identities. It
+shows the original primary ended and submitted alone with no semaphores
+or fence, five successful waits on the same queue before staging
+unmap/destroy/free, then all sixteen fragment draws before disposal of
+any of the five source images. A mutation moving the first staging
+unmap ahead of queue idle in the saved stream exited 3 at that event.
+
+Host 12's raw C and external DSO lanes each staged 27541504 bytes and
+sampled 25759744 texels. All 103158144 guarded output bytes matched the
+independent stream, SHA-256
+140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b.
+There were zero synchronization-validation warnings/errors. Each fresh
+process used one caller, validation, one graphics queue on the RTX 3090
+and the same EPYC 7282 host/CPU affinity as the preceding sample. Across
+three alternating runs per lane, median whole-process wall/CPU times
+were 2260.88/2261.04 ms raw and 2237.70/2238.50 ms external, with
+peak RSS 116032/115824 KiB. Median mean recording time per image was
+88.64/87.78 µs. The first font and second bitmap medians were 243.89
+and 40.46 µs raw, 240.37 and 40.98 µs external. Whole-process times
+include validation, fixture sampling, verification and capture of 98 MiB.
+Draw's Wine receipt supplies no matching timing measurement.
+
+Address-instrumented Tower with C ASan/UBSan passed both CPU captures
+and address-only full inventory runs. LSan with synchronization validation
+exited 1 with 4187 bytes in 15 allocations in both GPU paths. The full
+leak checks without that single validation feature returned 0 with exact
+pixel bytes. Ownership of the reported allocations remains unresolved.
+All four TSan launches failed before main at the container personality
+check, exit 139. These are host 12 results. Draw's original process exit
+1 and its diagnostics remain attached to its independent receipt.

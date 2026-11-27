@@ -118,3 +118,50 @@ On host 12, extract it and run:
 sha256sum --quiet -c SHA256SUMS
 LOCAL_TOWER=/tmp/buffer-upload-02f6d984/src REPLAY="$(mktemp -d)" bash replay.sh
 ```
+
+## Five retained images
+
+Draw reports a separate raw application control at runtime `d1060797`,
+manager `41d8b9ba`, on Wine Win64, RTX 3060, NVIDIA 595.99.02. Draw
+parsed first.log, reported SHA-256
+`144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383`.
+It observed 5 copies, 16 regions, 28 exact transitions, matching handles
+and scopes, and five unfenced same-queue retirements before staging unmap,
+destroy and free. The five images survived. The original process exited
+1 with reported Wine loader diagnostics. Draw's receipt contains no
+per-texel readback or new provider execution.
+
+The independent host 12 fixture runs the five full production shapes
+through raw Vulkan C and C linked to the Tower DSO. Each texture has
+its own staging allocation. The caller ends its primary, submits with
+a null fence, waits for success on the same queue, then unmaps the
+allocation, destroys the staging buffer and frees its memory. All five
+device-local images and views stay live through all sixteen fragment
+reads. The loader probe records the actual resource bindings, image
+views, zero-offset coherent mappings, command buffers, submissions,
+successful idle returns, releases and draws. Its verifier uses the
+handles in those events to check ordering and identity. Swapping the
+first idle and unmap in a saved trace gives verifier exit 3.
+
+| Texture | Synthetic staging bytes | Sampled RGBA8 bytes including guards |
+| --- | ---: | ---: |
+| Fonts | 25165824 | 100761648 |
+| Bitmap | 450560 | 454800 |
+| Inverted | 450560 | 454800 |
+| Firmware | 1441792 | 1453088 |
+| Images | 32768 | 33808 |
+
+The 2048×2048 font expands from R8 to RGBA8 in the sampled read.
+The first six texels of each 256-texel horizontal block encode the
+row's low and high bytes, layer, mip, texture index and block index,
+using red for R8 and alpha for sRGB. The other texels retain the changing
+synthetic pattern. Intermediate sRGB codes and guard bytes use the same
+oracle as the smaller fixtures. The GPU writes each subresource to a
+separate guarded span before reusing readback storage. Raw C, external
+Tower and an independently generated row stream each produced 103158144
+bytes with SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+Both Linux lanes exited 0 with zero synchronization-validation warnings
+or errors. In the packet, inventory.sh and inventory_trace.sh reproduce
+these results from the built source. The original Draw dump and packed
+texels were not accessed on host 12.
