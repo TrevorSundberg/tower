@@ -22,6 +22,12 @@ export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, batch: VkSubmitInfo*,
     var state = bits(Recording*, queue);
     require(count == 1 && state.queue == queue && state.fence == fence && batch == &state.payload.batch, "submit identity mismatch");
     require(memcmp(bits(void*, state.original), bits(void*, state.payload), sizeof(Payload)) == 0, "loader saw changed input");
+    require(batch.pCommandBuffers == &state.payload.command && *batch.pCommandBuffers == state.original.command, "command slot at submit");
+    if batch.waitSemaphoreCount == 1 {
+        require(batch.pWaitSemaphores == &state.payload.acquired && *batch.pWaitSemaphores == state.original.acquired
+            && batch.pWaitDstStageMask == &state.payload.stage && *batch.pWaitDstStageMask == AllCommands
+            && batch.pSignalSemaphores == &state.payload.ready && *batch.pSignalSemaphores == state.original.ready, "binary slots at submit");
+    }
     state.calls++;
     return state.result;
 }
@@ -61,7 +67,56 @@ fn check(call: Submit): void {
     exercise(call, false, 0); exercise(call, true, 0);
     exercise(call, false, lost); exercise(call, true, lost);
 }
+extern fn tower_vk_command_end_for_submit_v1(command: VkCommandBufferHandle**, info: VkSubmitInfo*): i32;
+extern fn frame_end_matches(info: VkSubmitInfo*, size: usize, command: VkCommandBufferHandle**): i32;
+extern fn memset(dst: void*, byte: i32, size: usize): void*;
+
+struct EndProbe { calls: u32; result: i32; }
+export fn vkEndCommandBuffer(command: VkCommandBufferHandle*): i32 {
+    var probe = bits(EndProbe*, command);
+    probe.calls++;
+    return probe.result;
+}
+
+var End: type = function(i32, VkCommandBufferHandle**, VkSubmitInfo*);
+fn exercise_end(call: End, submit: Submit, result: i32, binary: bool): void {
+    var probe: EndProbe = { result: result, ..default };
+    var payload: Payload = default;
+    payload.command = bits(VkCommandBufferHandle*, &probe);
+    var original: Payload;
+    memset(bits(void*, &payload.batch), 165, sizeof(VkSubmitInfo));
+    memcpy(bits(void*, &original), bits(void*, &payload), sizeof(Payload));
+    var state: Recording = { payload: &payload, original: &original, ..default };
+    state.queue = bits(VkQueueHandle*, &state);
+    state.fence = bits(VkFenceHandle*, &state.fence);
+    require(call(&payload.command, &payload.batch) == result && probe.calls == 1, "end result or count");
+    require(state.calls == 0 && payload.command == original.command, "unexpected submit or changed command slot");
+    if result != 0 {
+        require(memcmp(bits(void*, &original), bits(void*, &payload), sizeof(Payload)) == 0, "end failure wrote destination");
+        return;
+    }
+    require(frame_end_matches(&payload.batch, sizeof(VkSubmitInfo), &payload.command) == 1, "native descriptor mismatch");
+    if binary {
+        payload.acquired = bits(VkSemaphoreHandle*, &payload.acquired);
+        payload.ready = bits(VkSemaphoreHandle*, &payload.ready);
+        payload.stage = AllCommands;
+        payload.batch.waitSemaphoreCount = 1; payload.batch.pWaitSemaphores = &payload.acquired;
+        payload.batch.pWaitDstStageMask = &payload.stage;
+        payload.batch.signalSemaphoreCount = 1; payload.batch.pSignalSemaphores = &payload.ready;
+    }
+    memcpy(bits(void*, &original), bits(void*, &payload), sizeof(Payload));
+    require(submit(state.queue, &payload.batch, state.fence) == 0 && state.calls == 1 && probe.calls == 1, "separate submit");
+}
+
+fn check_end(call: End, submit: Submit): void {
+    exercise_end(call, submit, 0, false);
+    exercise_end(call, submit, 0, true);
+    exercise_end(call, submit, -4, false);
+}
 export fn main(): i32 {
+    check_end(frame_end_raw, direct); puts("raw end and later submit passed");
+    check_end(tower_vk_command_end_for_submit_v1, tower_vk_queue_submit_one_v1); puts("Tower end and later submit passed");
+    check_end(frame_end_from_c, frame_submit_from_c); puts("C end and later submit passed");
     check(direct); puts("direct raw descriptor checks passed");
     check(tower_vk_queue_submit_one_v1); puts("Tower external descriptor checks passed");
     check(frame_submit_from_c); puts("C external descriptor checks passed");
