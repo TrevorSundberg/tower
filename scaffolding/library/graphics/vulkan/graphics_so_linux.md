@@ -55,3 +55,48 @@ commands, checked operation rows, provider bindings and the frozen controls.
 The job also compares a Linux RTX 3090 capture with the full guarded raw
 reference. The journal records device identity, test scope, measurements and
 the open leak report. [Linux release evidence](../../../../docs/temporal-opcode-research-journal.md#combining-eleven-reviewed-vulkan-entries-on-linux-x86-64)
+
+## Run the eleven-entry C recording check
+
+From the repository root, build the shared library as above. Generate the
+shader header from the checked-in fragment shader using `glslangValidator`.
+The C executable provides Vulkan recording functions. Export them from the
+executable so the shared library resolves its loader calls to the recorder.
+
+```bash
+v=scaffolding/library/graphics/vulkan
+glslangValidator -V --target-env vulkan1.1 --vn color_frag \
+  "$v/counted_shaders/color.frag" -o out/color_frag.h
+bootstrap/linux-x64/towerc "$v/linux_checks/api_trace.tower" \
+  --library --jobs 1 --foundation "$PWD/scaffolding/foundation.tower" -o out/api_trace.o
+cc -std=c11 -O2 -I"$v" -Iout "$v/linux_checks/api_client.c" out/api_trace.o \
+  -Lout -ltower_graphics '-Wl,--export-dynamic-symbol=vk*' \
+  -Wl,-rpath,'$ORIGIN' -o out/sdk-all
+out/sdk-all
+```
+
+A passing run exits 0 and prints twelve rows. Shader creation reports
+`called` and `VkResult` separately. The last three rows trace end (`E`),
+submit (`S`) and blocking finish (`ESI`). Rendering reran the delivered
+recording executable and verified all eleven runtime bindings to this DSO.
+
+## Hardware readback
+
+Vulkan selected an RTX 3090, API 1.3.289, NVIDIA 565.57.01, for the
+worker's synthetic texture test. The ELF loader bound six entries to the
+shared library in this run: image creation, bound-view creation, region
+building, texture upload recording, command begin and blocking finish.
+The device caller retained five source images and views across sixteen
+sampled reads. All 189 lifetime events passed the ownership check. Each
+upload completed on its queue before staging was freed. Injected failure
+of the second image creation returned signed −2 and stopped before binding
+the failed image. The first retired allocation was released.
+
+Rendering compared the 103,158,144 captured bytes with the separately
+retained raw SDK control. Both yielded SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+Synchronization validation reported zero warnings or errors. Full-device
+LeakSanitizer reported 4,187 bytes in 15 allocations in each link form.
+Ownership remains unresolved. Both GPU ThreadSanitizer processes exited
+66 before completing. The recording boundary separately completed its
+four-thread checks. Draw's shipping application has separate adoption tests.
