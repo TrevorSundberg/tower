@@ -163,3 +163,45 @@ error left the acquired handle and 16,384 accounted bytes with the owner.
 The two successes included a 4,294,983,680-byte allocation at type 31.
 This additional test exercised the Linux ELF. The Win64 COFF requires
 its own external-consumer execution.
+
+## Draw constructor adoption on Linux
+
+Draw adopted both exports in its C and Tower image constructors at local
+commit `9fc0c9beec514d161032be7337cc7dcacaee0ba2`, tree
+`974c0714998551759e2749edbaa81a9096d2658c`. The provider release is
+`397a659f4e1cfedf9d44dd96eeee61c477f52284`. Draw independently
+reproduced the Linux ELF and Win64 GNU COFF object digests above.
+
+From that Draw checkout, set `TOWERC` to the Linux x64 bootstrap from
+Tower `a580e70af42e67d5309c4121737fa9e21652a9dd`. Set `RELEASE` to
+the provider checkout and `MEMORY_SO` to the absolute path of the shared
+library linked from its Linux object. Draw ran both link forms.
+
+```sh
+env -u DRAW_TOWER_IMAGE_MEMORY_SO DRAW_TOWER_IMAGE_MEMORY_ROOT="$RELEASE" \
+  TOWERC="$TOWERC" bash tests/vulkan-image.sh
+DRAW_TOWER_IMAGE_MEMORY_ROOT="$RELEASE" DRAW_TOWER_IMAGE_MEMORY_SO="$MEMORY_SO" \
+  TOWERC="$TOWERC" bash tests/vulkan-image.sh
+```
+
+Each run exercised 30 recording-driver scenarios in four configurations:
+the raw C and Tower constructors and each constructor with the external
+provider. Draw reported that all 120 object-link cases and all 120
+shared-link cases matched their expected exits, traces and diagnostics.
+It confirmed that both constructors resolved both shared exports. Five
+shipped texture headers produced the same 45-event trace, SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+| Recording driver outcome | Draw owner state |
+| --- | --- |
+| Allocation wrote a sentinel then returned −2 | The raw caller exposed the sentinel. Both external callers kept the slot null, charged zero allocations and skipped binding. |
+| Bind returned −2 | The owner retained the image and the successful allocation, with 16,384 bytes and one allocation charged. No view was created. |
+| Both succeeded | The owner kept the allocation through view and image use, then released it during cleanup. |
+
+Rendering rehashed the retained objects and reran the ten external SDK
+fixture cases (five raw, five object-linked), comparing stdout, stderr
+and exit status with the recorded results. Draw ran the constructor
+matrix. Its reserved Linux slot 10 job
+`909e5601-e45b-4711-9ddb-4f85a261d0a0` will exercise the shipping
+application after its thirteen-entry library baseline. Win64 evidence
+for this Draw handoff covers compilation of the COFF object.
