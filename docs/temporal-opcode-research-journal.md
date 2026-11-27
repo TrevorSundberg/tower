@@ -124484,3 +124484,24 @@ The job's base-bounded bundle and checksummed packet are local. A public
 bulk signature, a real caller of that signature and its device comparison
 await the application owner's account of the offset source, record and
 payload lengths, region loop and failure behavior.
+
+### Draw confirms the inputs to the tight color region builder
+
+Draw's manager confirmed 3b0c80e4d0e4352ac50498cdec0723ddc0fc6d5b
+osd_create:5380–5398 and reported that this block matches 41d8b9ba and
+752f55c1. Draw's serialized record supplies a payload length. The offset
+starts at zero for each texture and is derived from preceding subresources.
+Draw normalizes raw layers and validates its whitelisted headers. Its
+shared_upload path uses explicit offsets/coordinates and stays independent.
+The confirmed ABI takes a borrowed output with capacity in records, base
+dimensions, actual layer count, mip count, positive bytes per texel and a
+64-bit available byte length. Fill layer-major / mip-minor; return the
+unsigned count, or zero with no output writes when preflight refuses.
+The seven-argument recording function and its separate object stay intact.
+
+The builder checks count via division before multiplication and rules out
+shifts beyond the dimension width or a zero last mip extent. It divides
+available bytes by layers and texel bytes, then subtracts the area of each
+mip from that per-layer texel allowance. Each area fits in u64 because both
+dimensions are u32. A complete preflight proves every subsequent byte
+offset and size fits, including an exactly UINT64_MAX-byte payload.

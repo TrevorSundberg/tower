@@ -1,0 +1,33 @@
+import tower;
+import readback_abi;
+
+// The output is borrowed for this call. Check one full mip chain against its
+// share of the payload before constructing any layer.
+export fn tower_vk_build_tight_color_regions_v1(out: VkBufferImageCopy*, capacity: u32,
+    width: u32, height: u32, actual_layers: u32, mip_count: u32, bytes_per_texel: u32,
+    available_bytes: u64): u32 {
+    if out == null || actual_layers == 0 || mip_count == 0 || bytes_per_texel == 0
+        || mip_count > convert(u32, sizeof(u32) * 8) || actual_layers > capacity / mip_count { return 0; }
+    if (width >> (mip_count - 1)) == 0 || (height >> (mip_count - 1)) == 0 { return 0; }
+
+    var remaining_texels = available_bytes / convert(u64, actual_layers) / convert(u64, bytes_per_texel);
+    for (var mip: u32 = 0; mip < mip_count; mip++) {
+        var texels = convert(u64, width >> mip) * convert(u64, height >> mip);
+        if texels > remaining_texels { return 0; }
+        remaining_texels -= texels;
+    }
+
+    var count: u32 = 0;
+    var offset: u64 = 0;
+    for (var layer: u32 = 0; layer < actual_layers; layer++) {
+        for (var mip: u32 = 0; mip < mip_count; mip++) {
+            var w = width >> mip; var h = height >> mip;
+            out[count] = {bufferOffset: offset,
+                imageSubresource: {aspectMask: VkColorAspect, mipLevel: mip, baseArrayLayer: layer, layerCount: 1},
+                imageExtent: {width: w, height: h, depth: 1}, ..default};
+            offset += convert(u64, w) * convert(u64, h) * convert(u64, bytes_per_texel);
+            count++;
+        }
+    }
+    return count;
+}
