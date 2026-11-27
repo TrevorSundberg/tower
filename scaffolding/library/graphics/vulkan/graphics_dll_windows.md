@@ -593,8 +593,8 @@ SHA-256 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
 Host synchronization validation ran, and the guest callback reported zero
 warnings or errors. Explicit guest layer creation returned −6. Win64 C
 trapping UBSan passed. ASan and TSan completed on the native Linux provider.
-Win64 ASan/TSan, physical Windows and the shipping Draw Win64 caller remain
-open. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
+Win64 ASan/TSan and physical Windows remain open. Draw later exercised
+its shipping Win64 caller under Wine in the run below. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
 
 ### Draw Win64 post-bind view cross-link
 
@@ -606,8 +606,46 @@ was `20352d826d0f36b94a2568a8ff54b36e10e0dca7a3a8b46d448a139f911cd41a`.
 Draw verified all ten named imports, matched the provider ordinals and found
 the AMD64 REL32 relocation for the bound-view call in its actual helper.
 
-This was a host cross-link. Draw slot 9 job
-`966e83dc-85c9-4fd1-bd67-2ab72fa6f796` owns the shipping Win64 packed
-texel and HUD comparison. It requires the ordinal-9 application artifact
-from `53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`. Draw's separate Linux
-application job is `7a36cecf-5020-480c-90a9-bbecaacecc2c`.
+Draw followed the host cross-link with a shipping run using the retained
+ordinal-9 application results from job `53a91d0e` as its reference.
+
+### Draw shipping bound-image views on Wine 11
+
+Draw slot 9 job `966e83dc-85c9-4fd1-bd67-2ab72fa6f796` tested Draw
+source `6dccec7e913f1d08c7fdadaa52546d15379a0f81` and tests
+`ca8a259ab2e858b2577e8a8858057c640ea38504` against Tower
+`4bcb724436879c5b2447ac9617100c989992f8be`. Draw verified three Git
+bundles and 641 manifest entries in archive
+`2602c3146122ee0c25170537ff1562748da6dfe0f053f271a9b4c3e962ddeb97`.
+
+The shipping PE, SHA-256
+`d1802c029689be3836b060252e301305582fc4002b4d6170fd9ecc91e44a1821`,
+imported all ten Tower operations. Draw traced both image owners to return
+RVA `0x1b4c` in the adjacent DLL. Rendering independently checked the
+DLL and import-library hashes above and decoded that call. Ordinal 10
+starts at RVA `0x1ae0`. Its call at `0x1b47` reaches the thunk at
+`0x1bb0`, which dispatches through the import for
+`vulkan-1.dll!vkCreateImageView`.
+
+Draw selected the RTX 3060 (10de:2503), API 1.4.329, NVIDIA 595.99.02.
+The offscreen run under Wine 11 exited 0.
+
+```sh
+wine draw.exe --offscreen --osd-test assets/osd/state.bin --fixed-time 0 \
+    --frames 1 --size 1280 800 --capture ten-production.rgba
+```
+
+Draw compared the ordinal-9 and ordinal-10 traces. Each showed nine default
+views, including views for the five packed textures. All 16 subresources
+matched the pack. The 27,541,504 active bytes had SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+The guarded capture matched the retained ordinal-9 digest (prefix
+`3946dbc8`). Both bitmap images accepted 2D and 2D-array views.
+Normal, resized, presentation and profiling frames matched the frozen
+ordinal-9 RGB, HUD and camera references. Across the resize trace, all
+382 default views retired and all 285 submissions completed.
+
+The 27 raw and DLL recording rows matched. Injected signed results −1
+and −2 each led to process exit 1. Both stock validated Wine gates
+also exited 1 with the existing loader and registry diagnostics.
+Native Windows execution remains open.
