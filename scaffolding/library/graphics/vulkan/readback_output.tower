@@ -1,0 +1,24 @@
+import tower;
+extern fn puts(text: u8*): i32;
+extern fn putchar(character: i32): i32;
+
+fn readback_label(label: u8*): void {
+    while *label != 0 { putchar(convert(i32, *label)); label++; }
+    putchar(convert(i32, *"="));
+}
+fn readback_decimal(value: u64): void {
+    var text: u8[21];
+    var end = sizeof(decltype(text)) - 1;
+    text[end] = 0;
+    loop {
+        text[--end] = *"0" + convert(u8, value % 10);
+        value /= 10; if value == 0 { break; }
+    }
+    puts(&text[end]);
+}
+fn readback_number(label: u8*, value: u32): void {
+    readback_label(label); readback_decimal(convert(u64, value));
+}
+fn readback_size(label: u8*, value: usize): void {
+    readback_label(label); readback_decimal(convert(u64, value));
+}
