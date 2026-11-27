@@ -1,0 +1,11 @@
+import tower;
+import readback_abi;
+
+// Native Linux x64, vulkan_core.h 1.3.239.
+struct TimelineSubmit {
+    sType: u32; pNext: void*; waitCount: u32; waits: u64*; signalCount: u32; signals: u64*;
+}
+var SubmitInfoTag: u32 = 4;
+var TimelineSubmitTag: u32 = 1000207003;
+var AllCommands: u32 = 65536; // VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
+extern fn frame_submit_from_c(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32;

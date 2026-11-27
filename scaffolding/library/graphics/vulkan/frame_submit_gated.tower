@@ -1,0 +1,185 @@
+import tower;
+import readback_abi;
+import readback_device;
+import readback_clear;
+import readback_validation;
+import readback_output as output;
+import submit_and_wait;
+import frame_submit_test_types;
+
+// Test-only native Vulkan/clock ABI. GPU sets one event in the subject command buffer.
+struct TimelineFeatures { sType: u32; pNext: void*; timelineSemaphore: u32; }
+struct SemaphoreTypeInfo { sType: u32; pNext: void*; semaphoreType: u32; initialValue: u64; }
+struct CreateInfo { sType: u32; pNext: void*; flags: u32; }
+struct HostSignal { sType: u32; pNext: void*; semaphore: VkSemaphoreHandle*; value: u64; }
+struct EventHandle {}
+struct Timespec { seconds: i64; nanos: i64; }
+var TimelineFeaturesTag: u32 = 1000207000;
+var SemaphoreTypeTag: u32 = 1000207002;
+var HostSignalTag: u32 = 1000207005;
+var SemaphoreTag: u32 = 9;
+var EventTag: u32 = 10;
+var TimelineType: u32 = 1;
+var NotReady: i32 = 1;
+var EventSet: i32 = 3;
+var EventReset: i32 = 4;
+var FenceTimeoutNs: u64 = 5000000000;
+extern fn vkSignalSemaphore(device: VkDeviceHandle*, info: HostSignal*): i32;
+extern fn vkGetFenceStatus(device: VkDeviceHandle*, fence: VkFenceHandle*): i32;
+extern fn vkCreateSemaphore(device: VkDeviceHandle*, info: CreateInfo*, allocator: VkAllocationCallbacks*, out: VkSemaphoreHandle**): i32;
+extern fn vkDestroySemaphore(device: VkDeviceHandle*, semaphore: VkSemaphoreHandle*, allocator: VkAllocationCallbacks*): void;
+extern fn vkCreateEvent(device: VkDeviceHandle*, info: CreateInfo*, allocator: VkAllocationCallbacks*, out: EventHandle**): i32;
+extern fn vkDestroyEvent(device: VkDeviceHandle*, event: EventHandle*, allocator: VkAllocationCallbacks*): void;
+extern fn vkCmdSetEvent(cmd: VkCommandBufferHandle*, event: EventHandle*, stage: u32): void;
+extern fn vkGetEventStatus(device: VkDeviceHandle*, event: EventHandle*): i32;
+extern fn clock_gettime(clock: i32, time: Timespec*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn exit(status: i32): void;
+
+fn require(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
+fn check(label: u8*, result: i32): void { require(vk_ok(label, result), "Vulkan fixture failure"); }
+fn now(): u64 {
+    var t: Timespec;
+    var monotonic: i32 = 1;
+    require(clock_gettime(monotonic, &t) == 0, "clock_gettime failed");
+    return convert(u64, t.seconds) * 1000000000 + convert(u64, t.nanos);
+}
+
+fn gated(device: VkDeviceHandle*, queue: VkQueueHandle*, raw: bool): bool {
+    var type_info: SemaphoreTypeInfo = { sType: SemaphoreTypeTag, semaphoreType: TimelineType, ..default };
+    var sem_info: CreateInfo = { sType: SemaphoreTag, pNext: bits(void*, &type_info), ..default };
+    var timeline: VkSemaphoreHandle*;
+    check("vkCreateSemaphore(timeline)", vkCreateSemaphore(device, &sem_info, null, &timeline));
+    defer vkDestroySemaphore(device, timeline, null);
+    sem_info.pNext = null;
+    var acquired: VkSemaphoreHandle*; var ready: VkSemaphoreHandle*;
+    check("vkCreateSemaphore(acquired)", vkCreateSemaphore(device, &sem_info, null, &acquired));
+    defer vkDestroySemaphore(device, acquired, null);
+    check("vkCreateSemaphore(ready)", vkCreateSemaphore(device, &sem_info, null, &ready));
+    defer vkDestroySemaphore(device, ready, null);
+
+    var finfo: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
+    var fence: VkFenceHandle*; var retired: VkFenceHandle*;
+    check("vkCreateFence(subject)", vkCreateFence(device, &finfo, null, &fence));
+    defer vkDestroyFence(device, fence, null);
+    check("vkCreateFence(consumer)", vkCreateFence(device, &finfo, null, &retired));
+    defer vkDestroyFence(device, retired, null);
+    var einfo: CreateInfo = { sType: EventTag, ..default };
+    var event: EventHandle*;
+    check("vkCreateEvent", vkCreateEvent(device, &einfo, null, &event));
+    defer vkDestroyEvent(device, event, null);
+    require(vkGetEventStatus(device, event) == EventReset, "event must start reset");
+
+    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, ..default };
+    var pool: VkCommandPoolHandle*;
+    check("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool));
+    defer vkDestroyCommandPool(device, pool, null);
+    var alloc_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
+    var cmd: VkCommandBufferHandle*;
+    check("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &alloc_info, &cmd));
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
+    check("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin));
+    vkCmdSetEvent(cmd, event, AllCommands);
+    check("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+
+    var target: u64 = 1; var ignored: u64 = 0;
+    var values: TimelineSubmit = { sType: TimelineSubmitTag, waitCount: 1, waits: &target, signalCount: 1, signals: &ignored, ..default };
+    var stage = AllCommands;
+    var produce: VkSubmitInfo = { sType: VkSubmitTag, pNext: bits(void*, &values), waitSemaphoreCount: 1, pWaitSemaphores: &timeline,
+        pWaitDstStageMask: &stage, signalSemaphoreCount: 1, pSignalSemaphores: &acquired, ..default };
+    var subject: VkSubmitInfo = { sType: VkSubmitTag, waitSemaphoreCount: 1, pWaitSemaphores: &acquired,
+        pWaitDstStageMask: &stage, commandBufferCount: 1, pCommandBuffers: &cmd, signalSemaphoreCount: 1, pSignalSemaphores: &ready, ..default };
+    var consume: VkSubmitInfo = { sType: VkSubmitTag, waitSemaphoreCount: 1, pWaitSemaphores: &ready, pWaitDstStageMask: &stage, ..default };
+    var signal: HostSignal = { sType: HostSignalTag, semaphore: timeline, value: target, ..default };
+
+    // Even on a submit or fence failure, release the producer and drain the queue
+    // before ordinary teardown. An unretirable queue terminates with resources live.
+    var release_needed = true;
+    var consumer_complete = false;
+    defer {
+        if release_needed { check("vkSignalSemaphore(recovery)", vkSignalSemaphore(device, &signal)); }
+        if !consumer_complete {
+            var drain = vkQueueWaitIdle(queue);
+            if !vk_ok("vkQueueWaitIdle(recovery)", drain) && drain != VkDeviceLost { exit(3); }
+        }
+    }
+    if !vk_ok("vkQueueSubmit(producer)", vkQueueSubmit(queue, 1, &produce, null)) { return false; }
+    var start = now();
+    var result: i32;
+    if raw { result = vkQueueSubmit(queue, 1, &subject, fence); }
+    else { result = frame_submit_from_c(queue, &subject, fence); }
+    var returned = now();
+    if !vk_ok("submit(subject)", result) { return false; }
+    var pending = vkGetFenceStatus(device, fence);
+    if pending != NotReady { vk_ok("unexpected subject fence status", pending); return false; }
+    if !vk_ok("vkQueueSubmit(consumer)", vkQueueSubmit(queue, 1, &consume, retired)) { return false; }
+    var release = now();
+    check("vkSignalSemaphore", vkSignalSemaphore(device, &signal));
+    release_needed = false;
+    if !vk_ok("vkWaitForFences(subject)", vkWaitForFences(device, 1, &fence, 1, FenceTimeoutNs)) { return false; }
+    var completed = now();
+    if !vk_ok("vkWaitForFences(consumer)", vkWaitForFences(device, 1, &retired, 1, FenceTimeoutNs)) { return false; }
+    consumer_complete = true;
+    if vkGetEventStatus(device, event) != EventSet { return vk_failure("GPU event missing after completion"); }
+    puts("subject fence=VK_NOT_READY before host signal; subject and binary consumer fences completed; GPU event=VK_EVENT_SET");
+    output.readback_label("submit_return_ns"); output.readback_decimal(returned - start);
+    output.readback_label("release_through_subject_wait_ns"); output.readback_decimal(completed - release);
+    return true;
+}
+
+fn validated(raw: bool, messages: u32*): bool {
+    var debug: VkMessengerInfo = { sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
+        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default };
+    var enable = VkSyncValidation;
+    var validation: VkValidationFeatures = { sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
+        enabledCount: 1, enabled: &enable, ..default };
+    var app: VkApplicationInfo = { sType: VkApplicationTag, apiVersion: VkApi13, ..default };
+    var layer = "VK_LAYER_KHRONOS_validation";
+    var ext: u8*[2]; ext[0] = "VK_EXT_debug_utils"; ext[1] = "VK_EXT_validation_features";
+    var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
+        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &ext[0], ..default };
+    var instance: VkInstanceHandle*;
+    check("vkCreateInstance", vkCreateInstance(&info, null, &instance));
+    defer vkDestroyInstance(instance, null);
+    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    require(create != null && destroy != null, "missing debug messenger");
+    var messenger: VkMessenger*;
+    check("vkCreateDebugUtilsMessengerEXT", create(instance, &debug, null, &messenger));
+    defer destroy(instance, messenger, null);
+    var physical: VkPhysicalDeviceHandle*;
+    var count: u32 = 1;
+    check("vkEnumeratePhysicalDevices", vkEnumeratePhysicalDevices(instance, &count, &physical));
+    require(count == 1, "pin a single-device ICD");
+    var props: VkPhysicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(physical, &props); puts(&props.deviceName[0]);
+    readback_number("vendor_id", props.vendorID); readback_number("device_id", props.deviceID);
+    readback_number("driver_version", props.driverVersion);
+    var family: VkQueueFamilyProperties;
+    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, &family);
+    require(count == 1 && family.queueCount > 0 && (family.queueFlags & VkGraphicsQueue) != 0, "need graphics queue in family zero");
+    var features: TimelineFeatures = { sType: TimelineFeaturesTag, ..default };
+    var query: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &features), ..default };
+    vkGetPhysicalDeviceFeatures2(physical, &query);
+    require(features.timelineSemaphore != 0, "need timelineSemaphore");
+    var priority: f32 = 1.0;
+    var qinfo: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueCount: 1, pQueuePriorities: &priority, ..default };
+    var dinfo: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, pNext: bits(void*, &features), pQueueCreateInfos: &qinfo, queueCreateInfoCount: 1, ..default };
+    var device: VkDeviceHandle*;
+    check("vkCreateDevice", vkCreateDevice(physical, &dinfo, null, &device));
+    defer vkDestroyDevice(device, null);
+    var queue: VkQueueHandle*;
+    vkGetDeviceQueue(device, 0, 0, &queue);
+    return gated(device, queue, raw);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { puts("expected raw or shared"); return 2; }
+    var raw = strcmp(argv[1], "raw") == 0;
+    if !raw && strcmp(argv[1], "shared") != 0 { puts("expected raw or shared"); return 2; }
+    var messages: u32 = 0;
+    var passed = validated(raw, &messages);
+    readback_number("validation_warnings_errors", messages);
+    if !passed || messages != 0 { return 1; }
+    return 0;
+}

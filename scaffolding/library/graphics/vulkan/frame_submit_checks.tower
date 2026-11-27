@@ -1,0 +1,69 @@
+import tower;
+import readback_abi;
+import readback_output;
+import frame_submit_test_types;
+
+// Resolve this declaration from the production shared library at link time.
+extern fn tower_vk_queue_submit_one_v1(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32;
+extern fn memcmp(left: void*, right: void*, count: usize): i32;
+extern fn memcpy(out: void*, src: void*, count: usize): void*;
+extern fn exit(status: i32): void;
+
+struct Payload {
+    batch: VkSubmitInfo; extension: TimelineSubmit; stage: u32; waitValue: u64; signalValue: u64;
+    command: VkCommandBufferHandle*; acquired: VkSemaphoreHandle*; ready: VkSemaphoreHandle*;
+}
+struct Recording {
+    payload: Payload*; original: Payload*; queue: VkQueueHandle*; fence: VkFenceHandle*; result: i32; calls: u32;
+}
+fn require(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
+
+export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, batch: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    var state = bits(Recording*, queue);
+    require(count == 1 && state.queue == queue && state.fence == fence && batch == &state.payload.batch, "submit identity mismatch");
+    require(memcmp(bits(void*, state.original), bits(void*, state.payload), sizeof(Payload)) == 0, "loader saw changed input");
+    state.calls++;
+    return state.result;
+}
+
+fn direct(queue: VkQueueHandle*, batch: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    return vkQueueSubmit(queue, 1, batch, fence);
+}
+var Submit: type = function(i32, VkQueueHandle*, VkSubmitInfo*, VkFenceHandle*);
+fn exercise(call: Submit, binary: bool, result: i32): void {
+    var payload: Payload = default;
+    var original: Payload;
+    // Use distinct storage as opaque handles. The recording loader never dispatches them.
+    payload.command = bits(VkCommandBufferHandle*, &payload.command);
+    payload.batch = { sType: SubmitInfoTag, commandBufferCount: 1, pCommandBuffers: &payload.command, ..default };
+    if binary {
+        payload.acquired = bits(VkSemaphoreHandle*, &payload.acquired);
+        payload.ready = bits(VkSemaphoreHandle*, &payload.ready);
+        payload.stage = AllCommands;
+        payload.waitValue = 5; payload.signalValue = 7;
+        payload.extension = { sType: TimelineSubmitTag, waitCount: 1, waits: &payload.waitValue,
+            signalCount: 1, signals: &payload.signalValue, ..default };
+        payload.batch.pNext = bits(void*, &payload.extension);
+        payload.batch.waitSemaphoreCount = 1; payload.batch.pWaitSemaphores = &payload.acquired;
+        payload.batch.pWaitDstStageMask = &payload.stage;
+        payload.batch.signalSemaphoreCount = 1; payload.batch.pSignalSemaphores = &payload.ready;
+    }
+    memcpy(bits(void*, &original), bits(void*, &payload), sizeof(Payload));
+    var state: Recording = { payload: &payload, original: &original, result: result, ..default };
+    state.queue = bits(VkQueueHandle*, &state);
+    state.fence = bits(VkFenceHandle*, &state.fence);
+    require(call(state.queue, &payload.batch, state.fence) == result, "changed VkResult");
+    require(state.calls == 1, "wrong loader call count");
+    require(memcmp(bits(void*, &original), bits(void*, &payload), sizeof(Payload)) == 0, "changed caller storage");
+}
+fn check(call: Submit): void {
+    var lost: i32 = -4;
+    exercise(call, false, 0); exercise(call, true, 0);
+    exercise(call, false, lost); exercise(call, true, lost);
+}
+export fn main(): i32 {
+    check(direct); puts("direct raw descriptor checks passed");
+    check(tower_vk_queue_submit_one_v1); puts("Tower external descriptor checks passed");
+    check(frame_submit_from_c); puts("C external descriptor checks passed");
+    return 0;
+}
