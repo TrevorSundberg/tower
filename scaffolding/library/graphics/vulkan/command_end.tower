@@ -1,0 +1,11 @@
+import tower;
+import readback_abi;
+import frame_submit;
+
+// The caller owns all slots through the subsequent, separate queue submit.
+export fn tower_vk_command_end_for_submit_v1(out: VkSubmitInfo*, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32 {
+    var result = vkEndCommandBuffer(*commands);
+    if result == 0 { *out = vk_one_command_submit_info(commands, wait, stage, signal); }
+    return result;
+}

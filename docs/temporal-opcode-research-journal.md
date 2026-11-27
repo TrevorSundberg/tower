@@ -124086,3 +124086,17 @@ offsets and passes the handles to the resolved function without mapping or
 reading a GPU count. Only C proof inputs changed. Runtime performance and
 GPU retirement evidence are the prior frozen measurements. This OSD receipt
 covers recording. Draw owns application integration and execution.
+
+### Win64 frame operations in the counted graphics DLL
+
+Host 11 job `a7c423bf-a745-48b0-86ee-734279f112b0` starts at the
+counted-C publication `7f7bf7df` (provider `ea062c4b`). The registered
+`5ffd24e7-3172-4404-a96c-d262f31142ac` bundle identifies OSD supplement
+`42aaa2170bbbfab4ed70da269b0f251ac07c2ea5`. Its 38 recording cases
+and header are retained via a merge. Both sets of Draw link notes survive
+the documentation conflict.
+
+The DLL links the begin and end implementations from `960c855a` (tested
+`06d47a5d`). End imports the module that defines submit. The link recipe
+uses its object once and assigns begin/end ordinals 4/5. One-shot and
+reusable callers share the begin/submit structure tags in the ABI module.
