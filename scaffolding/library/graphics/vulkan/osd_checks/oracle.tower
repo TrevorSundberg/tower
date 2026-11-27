@@ -1,0 +1,61 @@
+import tower;
+import shapes;
+import readback_output as output;
+
+// Encoded SRGB values and their IEC 61966-2-1 linear equivalents rounded to UNORM8.
+fn texel(index: u32, layer: u32, mip: u32, x: u32, y: u32, c: u32, decoded: bool): u8 {
+
+    var Encoded: u8[8] = {0, 38, 64, 96, 128, 160, 192, 255};
+    var Linear: u8[8] = {0, 5, 13, 30, 55, 90, 134, 255};
+    var key = 17 * index + 37 * layer + 67 * mip + 11 * x + 7 * y + 5 * (x >> 5) + 3 * (y >> 4);
+    if index == 0 {
+        if c == 0 { return convert(u8, key & 255); }
+        if c == 3 { return 255; }
+        return 0;
+    }
+    if c == 3 { return convert(u8, (key + 73) & 255); }
+    var at = (key + 3 * c + (key >> (c + 2))) & 7;
+    if decoded { return Linear[at]; }
+    return Encoded[at];
+}
+fn synthesize(index: u32, bytes: u8*): void {
+    var s = shape(index);
+    var at: usize = 0;
+    for (var l: u32 = 0; l < actual_layers(s); l++) {
+        for (var m: u32 = 0; m < s.mips; m++) {
+            for (var y: u32 = 0; y < s.height >> m; y++) {
+                for (var x: u32 = 0; x < s.width >> m; x++) {
+                    for (var c: u32 = 0; c < s.channels; c++) {
+                        bytes[at] = texel(index, l, m, x, y, c, false); at++;
+                    }
+                }
+            }
+        }
+    }
+    require(at == convert(usize, payload_bytes(index)), "synthetic payload length");
+}
+fn probe_coordinate(which: u32, extent: u32): u32 {
+    match which { 0 => { return 0; } 1 => { return extent / 3; }
+        2 => { return extent / 2 + 1; } _ => { return extent - 1; } }
+}
+fn check_samples(index: u32, bytes: u8*): void {
+    var s = shape(index);
+    var at: u32 = 0;
+    for (var l: u32 = 0; l < actual_layers(s); l++) {
+        for (var m: u32 = 0; m < s.mips; m++) {
+            for (var row: u32 = 0; row < RowsPerRegion; row++) {
+                for (var col: u32 = 0; col < AtlasWidth; col++) {
+                    for (var c: u32 = 0; c < 4; c++) {
+                        var wanted = texel(index, l, m, probe_coordinate(col, s.width >> m),
+                            probe_coordinate(row, s.height >> m), c, true);
+                        if wanted != bytes[at] {
+                            output.readback_number("sample_byte", at); output.readback_number("wanted", convert(u32, wanted));
+                            output.readback_number("observed", convert(u32, bytes[at])); require(false, "fragment sample mismatch");
+                        }
+                        at++;
+                    }
+                }
+            }
+        }
+    }
+}

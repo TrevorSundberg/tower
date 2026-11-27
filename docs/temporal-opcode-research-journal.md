@@ -124570,3 +124570,20 @@ comparisons against `dadf38c0` verified both the pinned recorder and its
 header. Runtime, memory and timing evidence still belongs to the archived
 seven-entry build. The original job-ID archive and bundle verified against
 their deposited SHA-256 manifest.
+
+### Win64 raw control for initial OSD texture uploads
+
+Host 11 starts from seven-entry d1a8df2a, including the public six-entry
+documentation receipts. Assignment 6cd74574-f678-4bbe-9de0-701de63065af
+uses Draw's confirmed layout at 752f55c1280a1c737eedeaa46285af2a199aa37d,
+draw.c blob 7b6ee8f42bbde29790364d3de73a5d75216cbf1d, lines
+2079–2096 and 5339–5357 and tools/bake-osd.mjs lines 78–85. The manager
+identified textures.bin by SHA-256
+0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9.
+Only the Tower reader and synthetic bytes are used on this host. Draw's
+external API dump 144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383
+is a supplied observation (five copies, 16 regions, 28 image barriers,
+process exit 1), without a pixel check. Slot 12 owns the library operation.
+The SDK C recorder here is the independent test control. The experiment
+separates initial upload, retired staging, actual fragment sampling,
+test-only transfer readback, and final view/image retirement.

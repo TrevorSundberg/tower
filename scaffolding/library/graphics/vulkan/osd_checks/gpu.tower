@@ -1,0 +1,139 @@
+import tower;
+import shapes;
+import oracle;
+import readback_abi;
+import readback_clear;
+import readback_device;
+import readback_output as output;
+import counted_abi;
+import counted_capture;
+import command_begin;
+import win_io;
+import wine_device;
+extern fn osd_record(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void;
+extern fn perform_finish(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32;
+extern fn osd_format(p: VkPhysicalDeviceHandle*, fmt: u32, usage: u32, w: u32, h: u32, l: u32, m: u32): i32;
+extern fn osd_sample_retire(device: VkDeviceHandle*, queue: VkQueueHandle*, cmd: VkCommandBufferHandle*, s: OsdShape*,
+    source: VkImageHandle*, view: VkImageViewHandle*, target: VkImageHandle*, color: VkImageViewHandle*,
+    host: VkBufferHandle*, offset: u64, extent: VkExtent2D*, count: u32, read_regions: VkBufferImageCopy*): void;
+extern fn memcmp(a: u8*, b: u8*, n: usize): i32;
+extern fn getenv(name: u8*): u8*;
+var R8Unorm: u32 = 9;
+var Rgba8Srgb: u32 = 43;
+var SampledUsage: u32 = 4;
+var ArrayView2D: u32 = 5;
+var DeviceLocal: u32 = 1;
+var GuardBytes: usize = 16;
+var GuardValue: u8 = 165;
+struct Texture { image: VkImageHandle*; memory: VkDeviceMemoryHandle*; view: VkImageViewHandle*; }
+fn texture(ctx: ReadbackDevice*, out: Texture*, s: OsdShape, format: u32, usage: u32): void {
+    var layers = actual_layers(s);
+    require(osd_format(ctx.physical, format, usage, s.width, s.height, layers, s.mips) != 0, "format unsupported");
+    var info: VkImageCreateInfo = {sType: VkImageCreateTag, imageType: VkImage2D, format: format,
+        extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: layers,
+        samples: VkSample1, usage: usage, ..default};
+    require(vk_ok("vkCreateImage", vkCreateImage(ctx.device, &info, null, &out.image)), "image creation");
+    var req: VkMemoryRequirements; var flags: u32;
+    vkGetImageMemoryRequirements(ctx.device, out.image, &req);
+    require(vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &flags), "image memory");
+    require(vk_ok("bind image", vkBindImageMemory(ctx.device, out.image, out.memory, 0)), "bind");
+    var view: VkImageViewCreateInfo = {sType: VkImageViewCreateTag, image: out.image, viewType: VkView2D,
+        format: format, subresourceRange: {aspectMask: VkColorAspect, levelCount: s.mips, layerCount: layers, ..default}, ..default};
+    if s.raw_layers != 0 { view.viewType = ArrayView2D; }
+    require(vk_ok("create view", vkCreateImageView(ctx.device, &view, null, &out.view)), "view");
+}
+fn release(ctx: ReadbackDevice*, t: Texture*): void {
+    vkDestroyImageView(ctx.device, t.view, null);
+    vkDestroyImage(ctx.device, t.image, null);
+    vkFreeMemory(ctx.device, t.memory, null);
+}
+fn upload(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, dst: VkImageHandle*, index: u32, input: u8*): void {
+    var s = shape(index); var bytes = convert(u64, payload_bytes(index));
+    var src: CountedBuffer = default;
+    require(counted_buffer(ctx, &src, bytes, VkTransferSrcUsage, VkHostVisible | VkHostCoherent), "staging buffer");
+    defer counted_release_buffer(ctx.device, &src);
+    var mapped: void*;
+    require(vk_ok("map staging", vkMapMemory(ctx.device, src.memory, 0, bytes, 0, &mapped)), "map staging");
+    copy(bits(u8*, mapped), input, convert(usize, bytes));
+    vkUnmapMemory(ctx.device, src.memory);
+    var regions: VkBufferImageCopy[6];
+    var count = osd_regions(&s, bytes, &regions[0], MaxRegions);
+    require(count == actual_layers(s) * s.mips, "validated copy list");
+    require(vk_ok("begin upload", tower_vk_command_begin_v1(cmd)), "begin upload");
+    var start = now();
+    osd_record(cmd, src.handle, dst, actual_layers(s), s.mips, count, &regions[0]);
+    var ticks = now() - start;
+    require(vk_ok("finish upload", perform_finish(ctx.queue, cmd)), "upload retirement unknown");
+    output.readback_label("record_ticks"); output.readback_decimal(ticks);
+    output.readback_number("staging_flags", src.flags);
+}
+fn exercise_shape(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, index: u32, file: void*): void {
+    var s = shape(index); var count = actual_layers(s) * s.mips;
+    var size = convert(usize, payload_bytes(index));
+    var reference = alloc(u8, size); require(reference != null, "reference allocation"); defer free(reference);
+    synthesize(index, reference);
+    var source: Texture = default;
+    var format = Rgba8Srgb; if s.channels == 1 { format = R8Unorm; }
+    texture(ctx, &source, s, format, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage);
+    defer release(ctx, &source);
+    upload(ctx, cmd, source.image, index, reference);
+    puts("staging_retired_and_released");
+    var extent: VkExtent2D = {width: AtlasWidth, height: count * RowsPerRegion};
+    var atlas: OsdShape = {width: extent.width, height: extent.height, mips: 1, channels: 4, ..default};
+    var target: Texture = default;
+    texture(ctx, &target, atlas, VkRgba8Unorm, VkColorAttachmentUsage | VkTransferSrcUsage);
+    defer release(ctx, &target);
+    var sample_bytes = convert(usize, extent.width * extent.height * atlas.channels);
+    var sample_offset = size + 2 * GuardBytes;
+    var total = sample_offset + sample_bytes + GuardBytes;
+    var host: CountedBuffer = default;
+    require(counted_buffer(ctx, &host, convert(u64, total), VkTransferDstUsage, VkHostVisible | VkHostCoherent), "host capture");
+    defer counted_release_buffer(ctx.device, &host);
+    var mapped: void*;
+    require(vk_ok("map capture", vkMapMemory(ctx.device, host.memory, 0, convert(u64, total), 0, &mapped)), "map capture");
+    defer vkUnmapMemory(ctx.device, host.memory);
+    var data = bits(u8*, mapped);
+    fill(data, GuardValue, total);
+    var regions: VkBufferImageCopy[6];
+    for (var r: u32 = 0; r < count; r++) {
+        var mip = r % s.mips;
+        regions[r] = {bufferOffset: convert(u64, GuardBytes) + expected_offset(index, r),
+            imageSubresource: {aspectMask: VkColorAspect, mipLevel: mip, baseArrayLayer: r / s.mips, layerCount: 1},
+            imageExtent: {width: s.width >> mip, height: s.height >> mip, depth: 1}, ..default};
+    }
+    require(vk_ok("begin sampling", tower_vk_command_begin_v1(cmd)), "begin sampling");
+    osd_sample_retire(ctx.device, ctx.queue, cmd, &s, source.image, source.view, target.image, target.view,
+        host.handle, convert(u64, sample_offset), &extent, count, &regions[0]);
+    require(memcmp(data + GuardBytes, reference, size) == 0, "encoded transfer texels differ");
+    for (var i: usize = 0; i < GuardBytes; i++) {
+        require(data[i] == GuardValue && data[GuardBytes + size + i] == GuardValue
+            && data[sample_offset + sample_bytes + i] == GuardValue, "readback guard");
+    }
+    check_samples(index, data + sample_offset);
+    if file != null { require(fwrite(data, 1, total, file) == total, "capture write"); }
+    output.readback_number("shape", index); output.readback_size("transfer_bytes", size);
+    output.readback_size("fragment_bytes", sample_bytes); output.readback_size("guarded_bytes", total);
+}
+fn exercise(ctx: ReadbackDevice*): bool {
+    var pool_info: VkCommandPoolCreateInfo = {sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer,
+        queueFamilyIndex: ctx.family, ..default};
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("pool", vkCreateCommandPool(ctx.device, &pool_info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(ctx.device, pool, null);
+    var info: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("primary", vkAllocateCommandBuffers(ctx.device, &info, &cmd)) || !report_frequency() { return false; }
+    var file: void* = null; var path = getenv("OSD_CAPTURE");
+    if path != null { file = fopen(path, "wb"); require(file != null, "open capture"); }
+    for (var i: u32 = 0; i < ShapeCount; i++) { exercise_shape(ctx, cmd, i, file); }
+    if file != null { require(fclose(file) == 0, "close capture"); }
+    return true;
+}
+export fn main(): i32 {
+    var messages: u32 = 0;
+    var ok = validated_upload(&messages, true, exercise);
+    output.readback_number("validation_warnings_errors", messages);
+    if !ok || messages != 0 { return 1; }
+    return 0;
+}

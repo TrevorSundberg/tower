@@ -1,0 +1,70 @@
+import tower;
+import shapes;
+import readback_abi;
+import buffer_upload_record as upload;
+import readback_output as output;
+
+struct ImageTransition {
+    sType: u32; pNext: void*; srcStage: u64; srcAccess: u64; dstStage: u64; dstAccess: u64;
+    oldLayout: u32; newLayout: u32; srcFamily: u32; dstFamily: u32; image: VkImageHandle*; range: VkImageSubresourceRange;
+}
+struct Observation {
+    index: u32; calls: u32; src: u8; dst: u8; regions: VkBufferImageCopy*;
+}
+extern fn osd_record(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void;
+
+export fn vkCmdPipelineBarrier2(cmd: VkCommandBufferHandle*, d: upload.VkDependencyInfo*): void {
+    var state = bits(Observation*, cmd);
+    var s = shape(state.index);
+    var layers = actual_layers(s);
+    require(d != null && d.sType == upload.VkDependencyInfoTag && d.pNext == null && d.dependencyFlags == 0
+        && d.memoryBarrierCount == 0 && d.pMemoryBarriers == null && d.bufferMemoryBarrierCount == 0
+        && d.pBufferMemoryBarriers == null && d.imageMemoryBarrierCount == 1 && d.pImageMemoryBarriers != null,
+        "dependency fields");
+    var b = bits(ImageTransition*, d.pImageMemoryBarriers);
+    var ignored = ~convert(u32, 0);
+    require(b.sType == 1000314002 && b.pNext == null && b.srcFamily == ignored && b.dstFamily == ignored
+        && b.image == bits(VkImageHandle*, &state.dst) && b.range.aspectMask == 1 && b.range.baseMipLevel == 0
+        && b.range.levelCount == s.mips && b.range.layerCount == 1, "image barrier fields");
+    if state.calls < layers {
+        require(b.range.baseArrayLayer == state.calls && b.oldLayout == 0 && b.newLayout == 7
+            && b.srcStage == 0 && b.srcAccess == 0 && b.dstStage == 4096 && b.dstAccess == 4096, "initial barrier");
+    } else {
+        require(state.calls > layers && state.calls <= 2 * layers && b.range.baseArrayLayer == state.calls - layers - 1
+            && b.oldLayout == 7 && b.newLayout == 5 && b.srcStage == 4096 && b.srcAccess == 4096
+            && b.dstStage == 128 && b.dstAccess == convert(u64, 1) << 32, "final sampled barrier");
+    }
+    state.calls++;
+}
+export fn vkCmdCopyBufferToImage(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkImageHandle*,
+    layout: u32, count: u32, regions: VkBufferImageCopy*): void {
+    var state = bits(Observation*, cmd);
+    var s = shape(state.index);
+    require(state.calls == actual_layers(s) && src == bits(VkBufferHandle*, &state.src)
+        && dst == bits(VkImageHandle*, &state.dst) && layout == 7 && count == actual_layers(s) * s.mips
+        && regions == state.regions, "copy order, borrowed list, handles, count or layout");
+    for (var i: u32 = 0; i < count; i++) { check_region(state.index, i, &regions[i]); }
+    state.calls++;
+}
+
+export fn main(): i32 {
+    var regions: VkBufferImageCopy[6];
+    for (var i: u32 = 0; i < ShapeCount; i++) {
+        var s = shape(i);
+        var layers = actual_layers(s);
+        var bytes = convert(u64, payload_bytes(i));
+        require(osd_regions(&s, bytes - 1, &regions[0], MaxRegions) == 0
+            && osd_regions(&s, bytes + 1, &regions[0], MaxRegions) == 0
+            && osd_regions(&s, bytes, &regions[0], layers * s.mips - 1) == 0, "accepted wrong region bounds");
+        var count = osd_regions(&s, bytes, &regions[0], MaxRegions);
+        require(count == layers * s.mips, "region count");
+        var state: Observation = {index: i, regions: &regions[0], ..default};
+        osd_record(bits(VkCommandBufferHandle*, &state), bits(VkBufferHandle*, &state.src),
+            bits(VkImageHandle*, &state.dst), layers, s.mips, count, &regions[0]);
+        require(state.calls == 2 * layers + 1, "incomplete transaction");
+        output.readback_number("shape", i); output.readback_number("initial", layers);
+        output.readback_number("copy_regions", count); output.readback_number("final", layers);
+    }
+    return 0;
+}

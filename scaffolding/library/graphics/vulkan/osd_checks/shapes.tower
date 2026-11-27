@@ -1,0 +1,42 @@
+import tower;
+import readback_abi;
+extern fn puts(text: u8*): i32;
+extern fn exit(code: i32): void;
+
+struct OsdShape { width: u32; height: u32; raw_layers: u32; mips: u32; channels: u32; }
+var ShapeCount: u32 = 5;
+fn shape(index: u32): OsdShape {
+    var Shapes: OsdShape[5] = {
+        {2048, 2048, 6, 1, 1}, {256, 352, 0, 2, 4}, {256, 352, 0, 2, 4},
+        {256, 352, 4, 1, 4}, {64, 64, 2, 1, 4}
+    };
+    return Shapes[index];
+}
+fn payload_bytes(index: u32): u32 {
+    var PayloadBytes: u32[5] = {25165824, 450560, 450560, 1441792, 32768};
+    return PayloadBytes[index];
+}
+var AtlasWidth: u32 = 4;
+var RowsPerRegion: u32 = 4;
+var MaxRegions: u32 = 6;
+fn require(ok: bool, reason: u8*): void { if !ok { puts(reason); exit(3); } }
+fn actual_layers(s: OsdShape): u32 { if s.raw_layers != 0 { return s.raw_layers; } return 1; }
+
+// Independent packed offsets, relative to this texture's staging base.
+fn expected_offset(index: u32, region: u32): u64 {
+    var stride: u32[5] = {4194304, 360448, 360448, 360448, 16384};
+    return convert(u64, region) * convert(u64, stride[index]);
+}
+extern fn osd_regions(s: OsdShape*, payload: u64, regions: VkBufferImageCopy*, capacity: u32): u32;
+fn check_region(index: u32, ordinal: u32, r: VkBufferImageCopy*): void {
+    var s = shape(index);
+    var mip = ordinal % s.mips;
+    require(r.bufferOffset == expected_offset(index, ordinal) && r.bufferRowLength == 0
+        && r.bufferImageHeight == 0, "copy staging range");
+    require(r.imageSubresource.aspectMask == 1 && r.imageSubresource.mipLevel == mip
+        && r.imageSubresource.baseArrayLayer == ordinal / s.mips && r.imageSubresource.layerCount == 1,
+        "copy subresource");
+    require(r.imageOffset.x == 0 && r.imageOffset.y == 0 && r.imageOffset.z == 0
+        && r.imageExtent.width == s.width >> mip && r.imageExtent.height == s.height >> mip
+        && r.imageExtent.depth == 1, "copy extent or offset");
+}
