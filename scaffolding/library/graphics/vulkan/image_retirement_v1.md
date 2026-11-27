@@ -80,6 +80,49 @@ observed the accounting change after the free and all 64 bytes cleared.
 Draw reported the full-call trace SHA-256
 `fd488c43641dff81ef9b18969b6fbf3c6b434a1f0ecfdd6b10113efad285bfea`.
 These subsets exercise CPU call policy. Real-device tests require valid
-ownership, known retirement and the selected driver. Draw application
-adoption, device execution and Win64 DLL execution are outstanding for this
-release.
+ownership, known retirement and the selected driver.
+
+## Draw adoption with the fifteen-entry graphics library
+
+Draw adopted standalone retirement at local commit
+`76099faa552ee9ab17ef94d73cc70be579a6e4a1`, tree
+`f7071800940b84561cf1e618034f37b6407645a1`. Its C and Tower image
+owners pass the retired handles to the public entry, adjust their memory
+accounting after return, then clear the 64-byte owner. Draw independently
+reproduced the retirement ELF, DSO and COFF from `6aa610c90736056cf0bd2f0fd7937ff81c4a1b7a`.
+
+Draw ran `bash tests/vulkan-image.sh` with a recording driver. It reported
+31 scenarios across 16 configurations (496 cases), plus two separate
+view-creation controls in which the driver overwrote the output slot.
+The retirement cases included all eight handle subsets, dirty metadata,
+a second call with the cleared owner, and injected signed constructor errors.
+
+For each owner, Draw compared ordinary destruction with the external
+retirement entry while keeping construction on the same fifteen-entry
+library. In all four binaries, runtime linker traces resolved preflight,
+create, plan, allocate, bind and view to the same `libtower_graphics.so`.
+In both external retirement binaries, destruction resolved to
+`libtower_retirement.so`. All four processed the five packed image headers
+and produced the same 45-event trace, SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+[Linux fifteen-entry release](https://github.com/TrevorSundberg/tower/blob/6e94f10f8aeafb1a72b7dd1a1c798221b2496d40/scaffolding/library/graphics/vulkan/graphics_so_linux.md#allocate-and-bind-through-the-fifteen-entry-library)
+
+Draw also cross-compiled its current allocation and bind wrappers for
+Win64. The AMD64 REL32 relocations and PE import names matched the
+released DLL exports at ordinals 14 and 15. Ordinals 1–13 were preserved.
+Draw reported probe PE SHA-256
+`155595615d408e65096fb16d5e545d2df0d55ab49eae50cdbbdeb33f2adc422a`.
+Draw reproduced the fifteen-entry Linux library and the Win64 DLL and import
+library from their release recipes. Rendering rehashed all six published
+artifacts, reran its independent Linux recording clients, and observed
+exit 4 for its reversed destruction-order control.
+[Win64 fifteen-entry release](https://github.com/TrevorSundberg/tower/blob/c5dfef51b37ca5ec389d86ef98753598b9585abd/scaffolding/library/graphics/vulkan/graphics_dll_windows.md#device-memory-allocation-and-zero-offset-binding)
+
+Draw assigned the Linux device comparison to slot 10 job
+`8a97ee7a-f29b-4855-a188-6b144bde564f` after standalone allocation and
+bind job `909e5601-e45b-4711-9ddb-4f85a261d0a0`. It will compare the
+fifteen-entry library first, then vary only retirement and check completed
+texels and HUD. Draw assigned shipping Win64 allocation and bind to slot 9
+job `83bebca9-c966-43cc-851b-868708c7d4aa` after its ordinal-13 baseline.
+The Win64 evidence above covers linking. No shipping GPU result for these
+two new comparisons had arrived when Draw sent this receipt.
