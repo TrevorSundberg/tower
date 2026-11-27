@@ -5,6 +5,7 @@ import readback_clear;
 import readback_validation;
 import readback_output as output;
 import submit_and_wait;
+import frame_submit;
 import frame_submit_test_types;
 
 // Test-only native Vulkan/clock ABI. GPU sets one event in the subject command buffer.

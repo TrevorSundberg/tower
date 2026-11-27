@@ -2,6 +2,7 @@ import tower;
 import submit_and_wait;
 import readback_device;
 import readback_abi;
+import command_end;
 import readback_rows;
 
 var VkImageCreateTag: u32 = 14;
@@ -49,8 +50,9 @@ fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, requir
     return vk_failure("No compatible Vulkan memory type");
 }
 
-fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
+fn vk_record_clear(command: VkCommandBufferHandle**, submit: VkSubmitInfo*, image: VkImageHandle*, view: VkImageViewHandle*,
     buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
+    var cmd = *command;
     var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
     if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
     var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
@@ -78,7 +80,7 @@ fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkI
         srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
         srcAccessMask: VkTransferWrite, dstAccessMask: VkHostRead, ..default };
     vkCmdPipelineBarrier(cmd, VkStageTransfer, VkStageHost, 0, 0, null, 1, &host, 0, null);
-    return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(command, submit));
 }
 
 // The device and its queue stay live and exclusively available to this caller.
@@ -123,12 +125,13 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
-    if !vk_record_clear(cmd, image, view, buffer, range) { return false; }
+    var submit: VkSubmitInfo;
+    if !vk_record_clear(&cmd, &submit, image, view, buffer, range) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    if !vk_submit_and_wait(device, ctx.queue, cmd, fence,
+    if !vk_submit_prepared_and_wait(device, ctx.queue, &submit, fence,
         "submitted=1 clear/store -> image-to-buffer -> host-read barrier") { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, stage_memory, 0, VkWholeSize, 0, &mapped)) { return false; }

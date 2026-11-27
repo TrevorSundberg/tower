@@ -123643,3 +123643,23 @@ runs that got past startup both faulted on a read at 0x1048, at offset
 0xd57cb of the TSan runtime (66). No hardware TSan pass, Tower source-level
 UBSan result, or resolution of the external sanitizer faults. Draw integration,
 display/present ownership and actual driver loss remain separate open checks.
+
+### Borrowing the frame owner's command slot across command end and queue submit
+
+Host 12, worker 74b8d178, used the complete local checkout at `08a30b04`
+(prerequisite `163976c1`). The shared repository's object cache lacked
+some Vulkan blobs. A local clone of the prior worker checkout supplied
+them. The prior receipt manifest verified locally. Both rebuilt baseline
+fixtures matched its captured stdout on the selected NVIDIA ICD before
+the source change. The source anchor for Draw is `30b66f59`.
+
+The command slot allocated by `vk_readback_clear` or the counted capture
+owner survives the recording helper, fence creation and separate submit.
+The recording helper's old by-value argument did not provide such storage.
+Pass the owner's slot and destination down to command end. On success
+initialize a single-primary descriptor with empty semaphore fields. On
+any other result return before storing. The synchronous caller now consumes
+the prepared descriptor and applies the existing retirement policy. Its
+command-only entry for already executable buffers shares that policy.
+The initial Draw mapping assumes app-owned optional semaphore fields set
+after a successful end. Worker source access is limited to Tower.

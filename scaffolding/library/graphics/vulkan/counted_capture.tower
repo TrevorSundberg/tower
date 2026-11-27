@@ -100,13 +100,14 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
     var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
-    if !counted_record(cmd, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
+    var submit: VkSubmitInfo;
+    if !counted_record(&cmd, &submit, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
         image, view, range, staging.handle) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    if !vk_submit_and_wait(device, ctx.queue, cmd, fence,
+    if !vk_submit_prepared_and_wait(device, ctx.queue, &submit, fence,
         "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy") { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }

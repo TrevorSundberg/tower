@@ -2,6 +2,7 @@ import tower;
 import readback_abi;
 import readback_output;
 import submit_and_wait;
+import frame_submit;
 
 extern fn exit(status: i32): void;
 extern fn strcmp(left: u8*, right: u8*): i32;

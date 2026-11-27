@@ -1,5 +1,6 @@
 import tower;
 import readback_abi;
+import command_end;
 import readback_clear;
 import readback_device;
 import readback_rows;
@@ -86,9 +87,10 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
     return true;
 }
 
-fn counted_record(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
+fn counted_record(command: VkCommandBufferHandle**, submit: VkSubmitInfo*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, indices: u16*, index_bytes: u64,
     image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*): bool {
+    var cmd = *command;
     var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
     if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
     vkCmdUpdateBuffer(cmd, index_buffer, 0, index_bytes, bits(void*, indices));
@@ -98,5 +100,5 @@ fn counted_record(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCou
         return false;
     }
     counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
-    return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(command, submit));
 }

@@ -1,6 +1,13 @@
 import tower;
 import readback_abi;
 
+var VkSubmitTag: u32 = 4;
+
+fn vk_one_command_submit_info(command: VkCommandBufferHandle**): VkSubmitInfo {
+    var info: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: command, ..default };
+    return info;
+}
+
 // Borrow the caller's descriptor and arrays through the loader call.
 export fn tower_vk_queue_submit_one_v1(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
     return vkQueueSubmit(queue, 1, info, fence);
