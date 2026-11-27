@@ -1,55 +1,59 @@
-# Starting another recording on a retired primary
+# draw-tower-command-begin/v1
 
-This Linux x86-64 Tower entry is under internal review for Draw
-`30b66f597b33c6f88964779f0ab1b87e847dc839`. The counted Tower caller
-and native C controls below exercised the entry. Draw's exact parameter
-list, failed-operation reporting convention and per-caller flag values
-still need comparison before proposing an adapter or publishing a Draw
-contract. The work started at Tower `09769704` and includes the
-documentation corrections from `2477ba66`.
-
-## Caller contract
-
-Include `frame_submit.h`. Pass a live primary allocated from a pool
-created with `VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT` and a
-distinct writable 32-bit result slot. The caller synchronizes host access
-to the pool and command buffer and establishes that every submission
-using the buffer has retired. On the frame path, only a successful wait
-for the corresponding submitted fence establishes the completion used here.
+Draw confirmed this mapping at `draw.c:1841` in
+`30b66f597b33c6f88964779f0ab1b87e847dc839`. Draw's
+`draw_vk_command_begin_v1` and the reusable Tower entry each take one
+primary command buffer handle by value and return a signed `VkResult`.
+Tower implements the entry in `command_begin.tower` with an `i32` result.
+The header accepts ordinary Vulkan C types.
 
 ```c
-VkResult tower_vk_command_reset_begin_v1(VkCommandBuffer command,
-    VkCommandBufferResetFlags reset_flags, VkCommandBufferUsageFlags usage,
-    uint32_t *failed_step);
+#include "frame_submit.h"
+
+VkResult tower_vk_command_begin_v1(VkCommandBuffer cmd);
 ```
 
-The operation resets this one primary with the supplied reset flags.
-After success it begins the same buffer with the supplied valid primary
-usage flags, `VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO`, and null
-extension and inheritance pointers. It retains no addresses and creates
-no resources. Each call returns its first non-success signed Vulkan
-result unchanged. The following table gives all outcomes.
+## Before and after the call
 
-| Loader calls in order | Return | Output step |
-| --- | --- | --- |
-| Reset fails | Reset result | TOWER_VK_COMMAND_STEP_RESET |
-| Reset succeeds, begin fails | Begin result | TOWER_VK_COMMAND_STEP_BEGIN |
-| Reset succeeds, begin succeeds | VK_SUCCESS | TOWER_VK_COMMAND_STEP_OK |
+The caller owns a live non-pending primary from a pool created with
+`VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT`. It synchronizes host
+access to the buffer and pool and establishes completion of every
+submission using the primary. The function resets that buffer exactly
+once with flags zero. Only successful reset reaches begin. Its local
+`VkCommandBufferBeginInfo` has `sType = 42`, null `pNext`,
+`flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT` (1), and null
+`pInheritanceInfo`. All host storage used by the operation is local
+to the call.
 
-The step identifies the Vulkan operation even when both would report the
-same result. On success, record ordinary commands, then use the existing
-end and submit entries. On failure, stop the frame at the identified step.
-A fence the app reset for a submission that never happened cannot signal
-for that submission. Acquisition, fence wait/reset, queue synchronization,
-history updates and presentation all belong to the app. Fresh allocations
-in the existing shaderless and counted callers continue to begin directly
-from pools with flags zero. [End and submit lifetime](command_end_v1.md)
+| Vulkan outcome | Loader trace | Returned result | Caller consequence |
+| --- | --- | --- | --- |
+| Reset fails | R | Exact reset result | Stop before recording. |
+| Reset succeeds, begin fails | RB | Exact begin result | Reset already succeeded. Stop before recording. |
+| Both succeed | RB | VK_SUCCESS | Record one submission's work on this primary. |
 
-## C linkage
+Draw's raw C path checks each Vulkan expression. Its Tower-enabled C path
+checks the single helper expression. Draw's fatal diagnostic format is
+`Vulkan error %d at line %d: %s`, with exit 1. Identical signed results
+can come from either Vulkan operation. The trace distinguishes them in
+tests. The return value alone carries no failed-operation tag.
 
-From the repository root, with the absolute loader path in
-`vulkan_loader`, build the new object independently. The combined DSO
-can reuse the original end/submit object.
+Draw waits for the prior frame before reuse. An out-of-date acquire
+returns before fence reset and begin. After an accepted acquire the render
+caller resets its fence before calling begin. The guarded-clear caller
+resets its fence after end, before submit. Upload/prewarm callers can
+retire work synchronously. Acquisition, fence operations, external queue
+synchronization, end, submit, frame history, presentation and destruction
+stay with their respective callers. A frame that fails before submit
+cannot wait for its reset fence to signal for that frame. Fresh buffers
+in the one-shot Tower fixtures retain direct begin with flags zero from a
+pool with flags zero. [End and submit lifetime](command_end_v1.md)
+
+## Linking from C on Linux x86-64
+
+From the Tower root, set `vulkan_loader` to the SDK's absolute loader path.
+The following builds a standalone C-linkable begin object and a DSO with
+all three frame operations. Applications that already have the verified
+end/submit object can reuse it.
 
 ```sh
 v=scaffolding/library/graphics/vulkan
@@ -59,45 +63,65 @@ x86_64-linux-gnu-ld -shared -z defs command_begin.o command_end.o "${vulkan_load
     -soname libtower_frame_submit.so -o libtower_frame_submit.so
 ```
 
-The standalone begin object exports only the new entry. Its two undefined
-symbols are `vkResetCommandBuffer` and `vkBeginCommandBuffer`. The
-combined DSO adds the existing end and submit exports and the loader
-dependencies `vkEndCommandBuffer` and `vkQueueSubmit`. The verified
-end/submit object still hashes to
-`e6cb394beffaf44bce041603f58af6c29bf934e0edd8d408d56cd16857a9c5d1`.
+| Product | SHA-256 on host 12 |
+| --- | --- |
+| command_begin.o | `4c8e8e1da85e03cf270fda962a6d8c0b8146c3db86409edc82adfb378908f75f` |
+| command_end.o | `e6cb394beffaf44bce041603f58af6c29bf934e0edd8d408d56cd16857a9c5d1` |
+| libtower_frame_submit.so | `289df8122bdf427a0be737c8da5f4d38772767dc03a0ece38b237affe867dd2c` |
 
-## Host 12 replay
+The begin object defines `tower_vk_command_begin_v1` and imports
+`vkResetCommandBuffer` and `vkBeginCommandBuffer`. The DSO also defines
+`tower_vk_command_end_for_submit_v1` and `tower_vk_queue_submit_one_v1`
+and imports `vkEndCommandBuffer` and `vkQueueSubmit`. Draw independently
+reproduced the previous combined end/submit object and passed 31/31 CPU
+checks for those two entries. Draw's slot 10 linked Vulkan run is pending.
 
-Extract assignment `e576d09c-c639-4b78-aafb-bd90e2144800` and run the
-following from its manifest directory on the provisioned SDK host.
+## Clean repeat and observed results
+
+From the extracted host 12 receipt for assignment
+`e576d09c-c639-4b78-aafb-bd90e2144800`, run the following with the local
+SDK and a checkout containing `09769704`.
 
 ```sh
 REPLAY=$(mktemp -d) LOCAL_TOWER=/tmp/end-confirmed-74b8/clean bash replay.sh
 ```
 
-The replay verifies input hashes and the bundle, builds from the pinned
-Linux bootstrap, reuses the hashed shader data, compares rebuilt link
-products, and exercises both one-shot callers and the new test entry.
+The clean repeat verifies input hashes, builds the Linux objects and
+DSO, and runs the isolated recording loader, gated binary-semaphore case,
+one-shot controls and the reusable offscreen caller. The latter runs as:
 
 ```sh
 ./counted_fixture reuse-core13 shaders/produce.comp.spv shaders/triangle.vert.spv shaders/color.frag.spv
 ```
 
-The reuse caller keeps one pool, one primary and one fence through three
-frames. Each frame ends, submits, waits, and checks two 24-byte producer
-records and two 32-byte guarded caller buffers. The count-zero pixels are
-`112233ff` and the count-one pixels are `4080bfff`, four of each. The
-two captures swap storage positions on the middle frame. The loader trace
-records the command and fence addresses, pool flags, independent fence
-status after each wait, and reset/begin arguments. The tested reuse caller
-uses zero for both flag words. The recording controls independently
-exercise release-resources reset and one-time or simultaneous-use begin.
+On the discrete RTX 3090 (PCI 10de:2204, Vulkan 1.3.289, NVIDIA
+565.57.01), three frames used the same pool, primary and fence. The
+initial begin used flags zero. Each successful fence wait and signaled
+status preceded the next fence reset, command reset and one-time begin.
+Each frame supplied two 24-byte GPU count/indirect records and two
+32-byte guarded captures. Count zero yielded four `112233ff` pixels.
+Count one yielded four `4080bfff` pixels. Their staging positions swapped
+in frame two. The ordinary Tower, raw Vulkan C and C-through-DSO callers
+matched every byte, including guards, with zero synchronization-validation
+warnings or errors.
 
-The hardware-selected device was the discrete RTX 3090, PCI 10de:2204,
-API 1.3.289, NVIDIA 565.57.01. The raw Vulkan C reference, ordinary Tower
-and C-through-DSO reuse caller produced identical guarded output and zero
-Khronos synchronization-validation warnings or errors. Injecting host OOM
-at reset or begin on the second frame exited 1 with the respective Vulkan
-name, before that frame could submit. Displayed WSI, Draw linking this
-entry, actual device loss and noncoherent memory remain open. Details of
-instrumentation and bounded timings accompany the assignment.
+The recording loader exercised zero, −1 and −4 results, including the
+same error at either call. The C header check compared all begin-info
+member addresses and values. Injected reset/begin failures on frame two
+returned −1 without a second submit. All six hardware cases that
+returned to the owner for teardown exited 1 with zero validation
+warnings/errors. Four fatal recording cases exited 1. Raw C identified
+the particular Vulkan expression. The DSO caller identified its single
+helper expression for both faults.
+
+In a separate immediate-exit experiment with a live device, one C-through-
+DSO reset fault printed the correct diagnostic and then exited 139. All
+12 subsequent raw/shared trials (three per stage and path) exited 1.
+With the ASan runtime preloaded, shutdown signals also appeared in the raw
+Vulkan C path. One such faulting PC was inside the executable range
+previously mapped for NVIDIA's eglcore library. The same process loader
+log records unloading that library. The cause remains unverified. The
+replay checks the diagnostic,
+the recorded operations and the actual process exit independently.
+Displayed WSI, real device loss, noncoherent readback and Draw execution
+of this begin object remain unverified.

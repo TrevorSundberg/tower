@@ -123888,3 +123888,75 @@ one-shot fixtures and its three-frame reuse output matched their previous
 logs. The change keeps the fresh-buffer begin paths and the caller's fence
 ordering. The count reversal and guarded capture on the middle frame remain
 the test for stale command or staging contents.
+
+Implementation ac283993 and recording tests f13273d3 use the confirmed
+single handle. The begin object has exactly the two Vulkan loader imports.
+Its SHA-256 is 4c8e8e1da85e03cf270fda962a6d8c0b8146c3db86409edc82adfb378908f75f.
+The previous end/submit object remained byte-identical. Received from Draw:
+31/31 CPU cases passed for the previous end/submit object. Draw's slot 10
+linked Vulkan run is still pending. [C ABI, caller order, commands and
+products](../scaffolding/library/graphics/vulkan/command_begin_v1.md)
+
+Each of the raw C, external Tower and C-through-DSO recording callers
+checked five cases (success, signed −1 and −4 at each stage). The stub
+required reset flags zero. Independent native-header checks covered
+the struct size, all field offsets, tag 42, begin bit 1 and both nulls.
+A failed reset produced R. Both successful and failed begins produced RB.
+In four native fatal recording cases, raw diagnostics named the particular
+Vulkan expression, and linked diagnostics named the single helper. All
+four returned exit 1. No production failure-status argument is needed.
+
+Host 12 reran the ordinary and external callers using the same SDK, pinned
+NVIDIA ICD and frozen SPIR-V. The audit interposed on the Vulkan loader so
+the unchanged production DSO and native C control could be traced through
+the same GPU workload. Its indirect dispatch needed the pinned trap runtime
+at link time. The matched pool, primary and fence traces accompany the
+selected device/version/driver and all guarded count/pixel bytes. The first
+begin used flags zero and both post-retirement begins used one. Three
+hardware caller paths, each injected at reset and at begin, stopped the
+second frame before end or submit and returned exit 1 through normal
+teardown. The successful and returning-fault hardware cases reported zero
+validation warnings/errors. The acked raw/shared asynchronous gate, both
+one-shot controls and the prior end/submit/retirement fault cases passed.
+
+The EPYC 7282 host (CPU affinity 0–31, quota 15.36) ran one process at a
+time, with validation on the RTX 3090, Vulkan 1.3.289, NVIDIA 565.57.01.
+Five warm-file, fresh-device samples per binary ran the same three-frame
+fixture and compared every output byte. Three compiler invocations per
+width used the same source path and verified equivalent objects across
+widths. Files in samples record wall ns, user/system µs and peak KiB.
+
+| Median wall s / CPU s / peak KiB | Provisional 129e7029 | Confirmed f13273d3 |
+| --- | --- | --- |
+| Three-frame counted process | 0.3177 / 0.3174 / 94672 | 0.3120 / 0.3117 / 94656 |
+| Counted compile, 1 worker | 0.8326 / 0.8323 / 130648 | 0.8306 / 0.8302 / 130096 |
+| Counted compile, 4 workers | 0.9498 / 1.1221 / 136312 | 0.9483 / 1.1236 / 135808 |
+
+With the confirmed flag semantics and a common external caller, the raw C
+three-frame median was 0.3208 s wall / 0.3204 s CPU / 94828 KiB. Through
+the C transport and Tower DSO it was 0.3182 / 0.3180 / 94812. The helper
+uses a stack descriptor, borrows the primary through the call, and has no
+heap calls. Whole-process results include driver startup, validation and
+readback. They do not measure operation latency or GPU throughput.
+
+The instrumented recording test passed ASan+LSan, including Clang UBSan
+for the C transport. The integrated and raw GPU paths passed address-only.
+Both leak-enabled checks returned 1 with 4075 bytes in 14 allocations,
+matching the prior counted control. Each of three TSan startup attempts
+for each binary (recording/Tower GPU/raw GPU) returned 139 at the container
+personality restriction. There is no completed TSan or source-level Tower
+UBSan check for this revision.
+
+A separate check injected the same failures into an application that calls
+exit(1) inside its C diagnostic while the device is live. One C-through-
+DSO reset fault printed the correct expression and exited 139. The next
+12 uninstrumented trials (3 per stage per caller) exited 1. Preloading
+the ASan runtime solely for shutdown observation found DEADLYSIGNAL in
+5 of 12 more runs, across raw and shared callers, despite process statuses
+of 1. Under loader tracing a raw C begin fault also signaled. Its reported
+PC was at offset 0xa01960 in the recorded executable segment of
+libnvidia-eglcore.so.565.57.01. The same PID's loader log records that
+library's link-map destruction. These observations localize one shutdown
+fault. They do not prove a driver race or explain Draw's earlier exit 139.
+The packet keeps immediate-exit trials distinct from exact returned
+VkResults, instrumented Tower accesses, and normal owner cleanup.
