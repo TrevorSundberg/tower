@@ -1,0 +1,10 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+extern fn __real_vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageViewHandle**): i32;
+export fn __wrap_vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageViewHandle**): i32 {
+    var result = __real_vkCreateImageView(device, info, allocator, slot);
+    record_view(OwnerViewTrace, device, info, allocator, slot, result);
+    return result;
+}

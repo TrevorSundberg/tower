@@ -1,0 +1,30 @@
+import tower;
+import .readback_abi;
+
+extern fn write(fd: i32, data: void*, size: usize): i64;
+extern fn read(fd: i32, data: void*, size: usize): i64;
+extern fn exit(code: i32): void;
+extern fn puts(text: u8*): i32;
+
+var OwnerViewTrace: i32 = 8;
+var LoaderViewTrace: i32 = 9;
+struct ViewCall {
+    device: VkDeviceHandle*;
+    info: VkImageViewCreateInfo*;
+    allocator: VkAllocationCallbacks*;
+    slot: VkImageViewHandle**;
+    created: VkImageViewHandle*;
+    result: i64;
+}
+fn view_check(value: bool, why: u8*): void {
+    if !value { puts(why); exit(3); }
+}
+// The receipt includes the original SDK/Tower object representation. Padding
+// is only comparable when observing the very same descriptor in one process.
+fn record_view(fd: i32, device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*,
+        slot: VkImageViewHandle**, result: i32): void {
+    var call: ViewCall = {device: device, info: info, allocator: allocator, slot: slot, result: convert(i64, result), ..default};
+    if result == 0 { call.created = *slot; }
+    view_check(write(fd, bits(void*, &call), sizeof(ViewCall)) == convert(i64, sizeof(ViewCall)), "write view call");
+    view_check(write(fd, bits(void*, info), sizeof(VkImageViewCreateInfo)) == convert(i64, sizeof(VkImageViewCreateInfo)), "write view descriptor");
+}

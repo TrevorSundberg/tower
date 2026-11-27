@@ -1,0 +1,32 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+extern fn fixture_sdk_create_view(row: u32, device: VkDeviceHandle*, image: VkImageHandle*, slot: VkImageViewHandle**): i32;
+var DeviceOutOfMemory: i32 = -2;
+struct Recording {
+    image: u8; returned: u8; slot: VkImageViewHandle*;
+    calls: u32; result: i32;
+}
+export fn vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageViewHandle**): i32 {
+    var state = bits(Recording*, device);
+    view_check(info != null && info.image == bits(VkImageHandle*, &state.image) && allocator == null && slot == &state.slot, "SDK call handles");
+    state.calls++;
+    // Deliberately clobber the output even on failure. A failed handle cannot
+    // be treated as an owned object. record_view reads the slot only on success.
+    *slot = bits(VkImageViewHandle*, &state.returned);
+    record_view(LoaderViewTrace, device, info, allocator, slot, state.result);
+    return state.result;
+}
+export fn main(): i32 {
+    var state: Recording = default;
+    var device = bits(VkDeviceHandle*, &state);
+    for (var row: u32 = 0; row < 8; row++) {
+        var index = row;
+        if row == 7 { index = 6; state.result = DeviceOutOfMemory; }
+        state.slot = null;
+        var result = fixture_sdk_create_view(index, device, bits(VkImageHandle*, &state.image), &state.slot);
+        view_check(state.calls == row + 1 && result == state.result && state.slot == bits(VkImageViewHandle*, &state.returned), "SDK result or output");
+    }
+    puts("raw SDK view calls: five sources, attachment, configured one-layer array, device OOM"); return 0;
+}

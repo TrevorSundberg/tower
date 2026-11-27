@@ -1,0 +1,21 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn getenv(name: u8*): u8*;
+export fn vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageViewHandle**): i32 {
+    // First SRGB source in the retained inventory (after the retired R8 font).
+    if getenv("OSD_FAIL_SRGB_VIEW") != null && info.format == 43 {
+        *slot = bits(VkImageViewHandle*, info.image);
+        var out_of_device_memory: i32 = -2;
+        record_view(LoaderViewTrace, device, info, allocator, slot, out_of_device_memory);
+        return out_of_device_memory;
+    }
+    var next = dlsym(bits(void*, ~convert(usize, 0)), "vkCreateImageView");
+    view_check(next != null, "missing next vkCreateImageView");
+    var create = bits(function(i32, VkDeviceHandle*, VkImageViewCreateInfo*, VkAllocationCallbacks*, VkImageViewHandle**), next);
+    var result = create(device, info, allocator, slot);
+    record_view(LoaderViewTrace, device, info, allocator, slot, result);
+    return result;
+}

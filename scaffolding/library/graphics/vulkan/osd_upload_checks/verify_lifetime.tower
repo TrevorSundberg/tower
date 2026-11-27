@@ -1,6 +1,7 @@
 import tower;
 import lifetime_events;
 import library.graphics.vulkan.readback_output;
+extern fn getenv(name: u8*): u8*;
 extern fn read(fd: i32, data: void*, size: usize): i64;
 extern fn exit(status: i32): void;
 fn insist(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
@@ -46,7 +47,16 @@ export fn main(): i32 {
     var sources: Texture[5]; var cmd: u64 = 0; var queue: u64 = 0;
     var count = sizeof(decltype(sources)) / sizeof(Texture);
     for (var i: usize = 0; i < count; i++) {
-        var loan = mapped_buffer(); var t = texture(views[i]); sources[i] = t;
+        var loan = mapped_buffer();
+        if i == 1 && getenv("OSD_FAIL_SRGB_VIEW") != null {
+            var bound = take(BindImage);
+            insist(bound.a != 0 && bound.b != 0 && bound.c == 0 && bound.a != sources[0].image && bound.b != sources[0].memory, "failed source binding");
+            released(loan); destroyed(sources[0]);
+            destroyed({image: bound.a, memory: bound.b, view: 0});
+            var extra: Event; insist(read(0, bits(void*, &extra), sizeof(Event)) == 0, "events after failure cleanup");
+            puts("second view failed: staging released, first view destroyed once, both bound images freed"); return 0;
+        }
+        var t = texture(views[i]); sources[i] = t;
         for (var j: usize = 0; j < i; j++) {
             insist(t.image != sources[j].image && t.view != sources[j].view && t.memory != sources[j].memory, "live image ownership collision");
         }

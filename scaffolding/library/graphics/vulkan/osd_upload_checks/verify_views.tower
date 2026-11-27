@@ -1,0 +1,52 @@
+import tower;
+import .readback_abi;
+import view_trace;
+import lifetime_events;
+
+struct Sample { call: ViewCall; info: VkImageViewCreateInfo; }
+fn read_sample(fd: i32): Sample {
+    var sample: Sample;
+    view_check(read(fd, bits(void*, &sample.call), sizeof(ViewCall)) == convert(i64, sizeof(ViewCall)), "truncated view call");
+    view_check(read(fd, bits(void*, &sample.info), sizeof(VkImageViewCreateInfo)) == convert(i64, sizeof(VkImageViewCreateInfo)), "truncated view descriptor");
+    return sample;
+}
+fn same_configuration(a: VkImageViewCreateInfo*, b: VkImageViewCreateInfo*): bool {
+    var x = a.subresourceRange; var y = b.subresourceRange;
+    return a.sType == b.sType && a.pNext == b.pNext && a.flags == b.flags && a.viewType == b.viewType && a.format == b.format
+        && a.components.r == b.components.r && a.components.g == b.components.g && a.components.b == b.components.b && a.components.a == b.components.a
+        && x.aspectMask == y.aspectMask && x.baseMipLevel == y.baseMipLevel && x.levelCount == y.levelCount
+        && x.baseArrayLayer == y.baseArrayLayer && x.layerCount == y.layerCount;
+}
+fn end_of_file(fd: i32): void {
+    var extra: u8;
+    view_check(read(fd, bits(void*, &extra), 1) == 0, "unexpected trailing bytes");
+}
+export fn main(): i32 {
+    var device: VkDeviceHandle* = null;
+    var sdk: Sample;
+    for (var i: u32 = 0; i < 10; i++) {
+        if i <= 5 { sdk = read_sample(3); }
+        var live = read_sample(4);
+        var e: Event;
+        loop {
+            view_check(read(5, bits(void*, &e), sizeof(Event)) == convert(i64, sizeof(Event)), "missing lifetime create event");
+            if e.kind == CreateView { break; }
+        }
+        if i == 0 { device = live.call.device; }
+        view_check(device != null && live.call.device == device && live.call.slot != null && live.call.info != null &&
+            live.call.result == 0 && live.call.allocator == null, "loader call header mismatch");
+        view_check(same_configuration(&sdk.info, &live.info), "SDK/loader view fields differ");
+        view_check(e.a == bits(u64, live.info.image) && e.b == bits(u64, live.call.created) &&
+            e.c == convert(u64, live.info.viewType), "view call and lifetime event disagree");
+    }
+    end_of_file(4);
+    var configured = read_sample(3); var failure = read_sample(3);
+    var info = configured.info; var range = info.subresourceRange;
+    view_check(configured.call.result == 0 && configured.call.created != null && info.sType == 15 && info.pNext == null &&
+        info.viewType == 5 && info.format == 9 && info.flags == 1 && info.components.r == 5 && info.components.g == 2 &&
+        info.components.b == 3 && info.components.a == 1 && range.aspectMask == 1 && range.baseMipLevel == 3 &&
+        range.levelCount == 2 && range.baseArrayLayer == 7 && range.layerCount == 1, "configured SDK fields");
+    view_check(failure.call.result == -2 && failure.call.created == null && same_configuration(&failure.info, &info), "failure receipt");
+    end_of_file(3);
+    puts("SDK fields matched all ten device creations and their lifetime handles"); return 0;
+}
