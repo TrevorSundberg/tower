@@ -454,3 +454,22 @@ matched all 14 locked products. The archive SHA-256 was
 The packet's `build.sh`, `session.sh`, `check.sh`, `audit.sh` and `native.sh`
 record the exact invocations. From its extracted location on the prepared
 worker, use `D="$D" PREPARED_SDK="$PREPARED_SDK" bash "$PACKET/replay.sh"`.
+
+### Draw cross-link of the ordinal 8 recorder
+
+Draw fetched Tower `0d0f117b07b48a48c3897efc8559646ed928f9a6` and
+independently ran the published DLL build. Its DLL and import library
+matched the release sizes and hashes above. At Draw
+`bd203f60b00954acd3b0405720e40a24e94ef430`, Draw cross-linked a
+freestanding Win64 C PE containing the descriptor-building loop and
+selected recorder call from `osd_create`. The PE SHA-256 was
+`f6733d1ba086fd55f35c7f131e358866d8124f909c58d96a42d929f698a24766`.
+Draw verified the consumer's eight named imports, the provider's eight
+ordinals, the caller relocation for the OSD recorder and its two Vulkan
+loader calls. Rendering independently rehashed the retained DLL and
+import library.
+
+Draw's shipping application run, packed texture readback and final HUD
+comparison are queued on slot 9 under
+`4ff01175-385e-4039-bc8e-28e4465856f6`. That run depends on the
+seven-export Windows and Linux real-pack OSD results.

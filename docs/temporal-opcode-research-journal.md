@@ -124920,3 +124920,12 @@ The scope is a synthetic Win64 C consumer on Wine and the Quadro.
 The prior Draw five-export frame receipt remains separate. Slot 11's
 next assignment is the checked region-builder C/DLL boundary.
 [Hashes, acceptance and coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#ordinal-8-release-verification)
+
+### Draw cross-links ordinal 8
+
+Draw rebuilt the eight-entry release and used its actual OSD caller
+loop in a freestanding C cross-link at `bd203f60`. Its PE imports the
+eight names and its caller references the recorder. The manager matched
+the retained release hashes. The cross-link did not exercise the
+shipping application or a device. Draw tracks both under `4ff01175`.
+[PE digest and prerequisites](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-cross-link-of-the-ordinal-8-recorder)
