@@ -124794,3 +124794,105 @@ constants. The test C boundary forwards the caller-owned array to the DLL.
 The original raw control, region generator and three shader controls supply
 the comparison. The pre-change raw capture on this host matched the
 27,542,768-byte frozen stream. Verification below uses synthetic textures.
+
+Implementation eb6f1ce8 builds six Tower COFF objects. The original five
+compare byte for byte with the seven-entry release. The DLL has eight
+ordinal/name pairs and one loader dependency with nine core Vulkan imports.
+Only vkCmdCopyBufferToImage is new. The DLL link map identifies the Tower
+object defining ordinal 8. The Win64 SDK C object in osd_checks/linked.c
+has one undefined symbol. Its PE imports the reviewed entry by name from
+tower_graphics.dll. The GPU fixture's main is Tower, and its upload call
+crosses that C boundary. The raw PE imports Vulkan directly. The recording
+PE uses the same release DLL beside an isolated recording vulkan-1.dll.
+The observer saw the caller's original region pointer, every region field,
+handles, 14 initial transitions, five copies covering 16 regions, and 14
+final transitions with full-width sampled access. Truncating the mask in
+the frozen raw control exited 3 at the first final transition.
+
+In Wine's builtin system32 Vulkan lane, raw and linked selected discrete
+device 0, Quadro RTX 6000 (10de:1e78), UUID 26f60f6cead65faf0253a959b2e93a2d,
+NVIDIA driver 615.71.10, Vulkan 1.4.351, queue family/index 0/0. The guest
+requested core 1.3 with sync2. Loader tracing identified the native PE
+tower_graphics.dll. The explicit guest Khronos-layer probe exited 1 with
+VK_ERROR_LAYER_NOT_PRESENT (-6). Host loader logs identify instance and
+device layer insertion with synchronization validation requested. Each
+healthy debug-utils guest reported zero warnings/errors. Loader stderr
+also reports forced layer enablement. The faulting processes exited at
+the pixel comparison, before the guest's final callback count.
+
+All five synthetic Draw shapes passed every encoded byte, all 256 linear
+RGBA8 sample checks and all 240 bytes of 0xa5 guards, with no first
+difference. Both captures have 27,541,504 encoded bytes plus 1,024 atlas
+bytes and guards, SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811.
+The separate Tower verifier derived the samples from the retired transfer
+planes. The three linked shader controls reproduced these first mismatches
+(plane-relative byte, expected/observed): fonts layer 1 at 64, 37/0;
+bitmap mip 1 at 64, 5/90; fonts reversed row at 0, 0/118. All three exited
+3. The following healthy capture exited 0 and matched the earlier one.
+The source layout, Draw revision and per-shape byte counts appear in the
+frozen control above. The original control and sampling archives, bundles
+and checksums are included intact under previous/ in this job's packet.
+
+The owner unmapped coherent staging after writing it and before submission.
+In each upload it ended the primary, submitted without a fence, waited for
+the same queue, then destroyed the staging buffer and freed its bound
+memory. Five further retirements preceded consumer readback and final
+destruction. Both Wine traces passed the frozen sequence audit and ten
+buffer releases matched their bound buffer and memory handles. The
+recording-only observer supplies the individual command descriptors.
+
+The rebuilt original C shader/frame executable matched its frozen hash
+and verified each of three GPU event/fence retirements. The existing
+counted PE produced its frozen 336-byte result. Both old buffer callers
+retained the 64 x 73-byte and 2 x 64 MiB payload digests listed under
+ordinal 7. The old linked PEs loaded the new DLL. The readback and counted
+fixture sources compiled against the shared constants. All tests used
+host 11's checked-in Linux x64 compiler, one compiler job, Clang/LLD 19.1.7,
+Wine 8 and the existing Quadro. Compiling the provider for Linux produced
+the reviewed 1,528-byte object with hash b2cd884a14b66be6454083455e7e89eb18df5b4af79eae9dc6c2a722d3118d95.
+The local LLD-linked DSO has one public function, two Vulkan imports and
+one NEEDED entry (libvulkan.so.1). A separate native C-linked CPU
+observer resolved that DSO and exercised four pthreads with private jobs.
+
+| Three checked warm processes per lane | Median wall s | Median user + sys s | Median peak RSS KiB |
+| --- | ---: | ---: | ---: |
+| Frozen raw before integration | 1.14 | 1.08 | 192472 |
+| Initial paired raw | 1.09 | 1.05 | 192044 |
+| Initial paired linked | 1.11 | 1.06 | 192400 |
+| Clean paired raw | 1.22 | 1.05 | 191240 |
+| Clean paired linked | 1.16 | 1.11 | 192092 |
+
+The fixture used one caller and one graphics queue on a dual-socket Xeon
+E5-2699 v4, 88 logical CPUs and a 10.56 CPU quota. Each pair alternated
+lane order across the three trials following capture verification. On the
+initial run the five median CPU recording times in microseconds (fonts,
+bitmap, inverted, firmware, images) were 297.5/77.7/50.3/118.0/62.2 raw
+and 278.1/62.3/53.1/96.8/77.0 linked. QPC frequency was 10 MHz. The
+recording code has stack descriptors and no allocator imports. The
+measurements cover host recording and process RSS. GPU timestamp,
+driver allocation and multicore speedup measurements remain open.
+
+Win64 trapping UBSan exercised the C caller/region and sampling boundaries
+with the real PE, the recording loader and the full hardware capture.
+Win64 ASan lacked its target import libraries and Clang rejected Win64
+TSan. On Linux the Tower LLVM instrumentation covered the provider,
+descriptor observer and pthread jobs, and Clang instrumented the C
+boundary and region generator. Four real threads ran four complete suites
+each. Link maps and disassembly accompany the results. ASan and TSan
+both completed with empty sanitizer stderr. Three initial and one clean
+TSan startups failed at ADDR_NO_RANDOMIZE before successful retries.
+The Windows Tower executable, Vulkan loader and GPU driver were outside
+these sanitizers. Physical Windows and actual Draw application/asset
+execution remain open.
+
+For clean replay, import this job's base-bounded bundle after fetching
+the seven-entry public base three commits deep. The packet README gives
+the exact commands. The independent checkout used the registered local
+public-seven copy, a private Wine prefix and the prepared SDK. All 14
+locked build products matched; build, hardware checks, linkage/retirement
+audit and native instrumentation exited 0. The first development launcher
+used a relative test-script path after changing directory. The first
+native wrapper matched the wrong wording for the missing Win64 ASan
+import libraries. The clean replay used an absolute path and checked
+LLD's actual diagnostic. The logs preserve both initial failures.

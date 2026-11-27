@@ -354,3 +354,32 @@ forwarded arguments, and exit 0. The release DLL exports submit at ordinal 1,
 shader creation at 2 and counted recording at 3. The [host 11
 receipt](../../../../docs/temporal-opcode-research-journal.md#counted-indexed-recording-through-the-external-graphics-abi)
 identifies both integrated callers, their GPU captures and the clamp control.
+
+## OSD texture upload at ordinal 8
+
+Use the existing DLL build command and include `osd_texture_upload_record.h`.
+On a recording graphics primary outside a render pass, pass a bound, newly
+created color image in UNDEFINED layout and a populated TRANSFER_SRC
+buffer. Enable core synchronization2. The region list covers all mip levels
+of each layer in layer-major order, with offsets relative to this texture.
+
+```c
+uint32_t layers = raw_layers ? raw_layers : 1;
+tower_vk_osd_texture_upload_record_v1(cmd, staging, image, layers, mips, count, regions);
+```
+
+The DLL records one initial barrier per layer, a single copy using the
+original region pointer, and one final barrier per layer covering all mips.
+Fragment sampling uses SHADER_READ_ONLY_OPTIMAL and the 64-bit
+SHADER_SAMPLED_READ access mask. The caller can release the region list
+on return. It owns primary end, submit and retirement, keeps staging alive
+through upload completion, and retains the image and view through their last
+submitted use. These requirements follow the [reviewed Linux contract](https://github.com/TrevorSundberg/tower/blob/846176abc06dfa3ac6dbb939f3f683e9380cd99e/scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md).
+
+The 4,608-byte DLL has SHA-256
+`768ffe8d0c18caa6fded190045ad684c35c320be5773c30c2ba05ed0545400dd`.
+The 3,644-byte import library has SHA-256
+`f611956482a39235d02f28dbae97927ff77f2a0f752bd12fa2ff0469a4cec019`.
+The C boundary and raw hardware control both produced 27,542,768 identical
+guarded bytes on Wine 8 with the Quadro RTX 6000, driver 615.71.10.
+See the [Win64 observations and replay](../../../../docs/temporal-opcode-research-journal.md#win64-osd-recorder-through-the-external-graphics-dll).
