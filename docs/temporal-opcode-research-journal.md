@@ -125539,3 +125539,11 @@ provider reuses the readback types, query declaration and allocate-info tag.
 The caller supplies a bounded memory-type table. Only a successful search
 writes the separate output. Allocation, accounting, binding and retirement
 belong to the image owner. Hardware and recording evidence follow separately.
+
+Host 12's first standalone object selected all nine SDK cases correctly.
+Three fresh processes each ran 900,000 checked calls at one caller. Wall
+time was 52.6–54.0 ms raw SDK, 109.5–112.8 ms external C to Tower, and
+113.7–116.4 ms external Tower to Tower. The object disassembly and emitted
+IR show that forming an indexed one-bit mask lowered to an inner shift
+loop. Advancing one unsigned bit per row removes that repeated work.
+Production readback and buffer allocation retain their existing paths.

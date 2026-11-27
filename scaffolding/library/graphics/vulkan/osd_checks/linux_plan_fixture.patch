@@ -1,34 +1,20 @@
 --- a/scaffolding/library/graphics/vulkan/osd_upload_checks/device_cases.tower
 +++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/device_cases.tower
-@@ -1,6 +1,7 @@
- import tower;
- import pack;
+@@ -3,2 +3,3 @@
  import sampling;
 +import plan_gpu;
  import .readback_abi;
- import .readback_device;
- import .readback_clear;
-@@ -37,6 +38,7 @@
-         extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: s.layers,
-         samples: VkSample1, usage: usage, ..default };
+@@ -39,2 +40,3 @@
      if !vk_ok("create image", tower_vk_create_image_v1(ctx.device, &info, &out.handle)) { return false; }
 +    if (usage & SampledUsage) != 0 { return plan_bind_source(ctx, out.handle, DeviceLocal, &out.memory, &out.flags); }
      var req: VkMemoryRequirements;
-     vkGetImageMemoryRequirements(ctx.device, out.handle, &req);
-     return vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
 --- a/scaffolding/library/graphics/vulkan/readback_device.tower
 +++ b/scaffolding/library/graphics/vulkan/readback_device.tower
-@@ -1,6 +1,7 @@
- import tower;
- import readback_abi;
+@@ -3,2 +3,3 @@
  import readback_output as output;
 +extern fn strcmp(left: u8*, right: u8*): i32;
- 
- // Keep the device diagnostics available to callers of the counted API.
- extern fn puts(text: u8*): i32;
-@@ -67,6 +68,13 @@
-     defer free(physicals);
-     if !vk_ok("vkEnumeratePhysicalDevices/list", vkEnumeratePhysicalDevices(instance, &count, physicals)) { return false; }
+
+@@ -69,2 +70,9 @@
      if index >= count { return vk_failure("Requested physical device disappeared"); }
 +    for (index = 0; index < count; index++) {
 +        var candidate: VkPhysicalDeviceProperties;
@@ -38,5 +24,3 @@
 +    }
 +    if index == count { return vk_failure("RTX 3090 unavailable"); }
      var physical = physicals[index];
-     var core: VkPhysicalDeviceProperties;
-     vkGetPhysicalDeviceProperties(physical, &core);
