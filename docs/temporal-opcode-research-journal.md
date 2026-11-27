@@ -124505,3 +124505,74 @@ available bytes by layers and texel bytes, then subtracts the area of each
 mip from that per-layer texel allowance. Each area fits in u64 because both
 dimensions are u32. A complete preflight proves every subsequent byte
 offset and size fits, including an exactly UINT64_MAX-byte payload.
+
+The public builder in 82eec2cc2 and final preflight in 0b584d883 feed
+the eight-slot stack array in the retained caller through the C header
+(9fc0ef6ea). Draw supplies the payload lengths 25165824, 450560, 450560,
+1441792 and 32768. The new caller passes the returned count and its same
+array to the released recorder. The sampling reference still uses the
+independent fixture packer. Allocation, image construction, staging
+mapping, queue submission and retirement stay in the existing owner.
+
+The native SDK and linked Tower arrays agree on all fields and all 896
+production bytes, plus four mixed-axis records. All slots and both guards
+survived exact-minus-one capacity and byte-span refusal. Exact capacity,
+one spare payload byte and spare slots also passed. The boundary fixture
+covers null, zero fields, erased mip dimensions, 32 valid mips, 33 mips,
+count wrap, texel-byte product overflow, chain and layer sum overflow,
+and an exactly UINT64_MAX payload. See the
+[builder header and record layout](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#build-the-tight-region-list-before-recording).
+The first guard fixture attempted an unsupported Tower array value copy;
+explicit fills initialize both arrays. The first benchmark used the
+reserved spelling expected, corrected to wanted_count.
+
+The retained packer and new builder ran through the same timing driver
+and DSO call boundary. Both wrote identical checked arrays on valid inputs.
+Three alternating fresh processes per version ran two batches per process
+on the EPYC 7282, one caller, warm files, affinity 0–31, CPU quota 15.36.
+The first checked implementation used separate divisions for capacity and
+texel budget. Its second batch took median 26.65 ns per inventory call.
+Widening the count and the layers × bytes_per_texel products to u64 permits
+one division for the complete preflight. A trial that guarded only the
+individual factors kept an undefined tower_trap reference in the object;
+checking their product directly eliminated it. The standalone link requires
+no runtime and no allocator. Each nonzero factor is u32, so their product
+fits u64. The per-layer mip-area subtraction still precedes all output stores.
+
+| Single-thread batch, median | Old packer | Final checked builder |
+| --- | ---: | ---: |
+| Five texture shapes, first / second batch, ns per call | 19.29 / 15.03 | 23.66 / 19.40 |
+| Five shapes, process wall / CPU ms, peak KiB | 36.35 / 36.10, 1024 | 44.93 / 44.71, 1036 |
+| 128 layers × 8 mips, first / second batch, ns per call | 5525.69 / 5339.54 | 5773.63 / 5365.03 |
+| Large shape, process wall / CPU ms, peak KiB | 272.77 / 272.47, 1036 | 282.56 / 282.22, 1040 |
+
+Each small batch constructs one million lists. Each large batch constructs
+25000 lists in stable caller storage (1024 descriptors each). The final
+small-list preflight adds about 4.37 ns on the second batch. Both helpers
+are serial, with zero helper heap allocations and no retained state.
+
+The same discrete RTX 3090, cd3d9791fe794e0b3ec29fc16b74d31c, NVIDIA
+565.57.01, Vulkan 1.3.289, family/index 0/0, synchronization2, ran the
+original and new linked callers. The independently checked original and
+final results each matched all 103158144 guarded sampled bytes, SHA-256
+140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b.
+The 4408-byte descriptor trace matched the owner's expectations in each
+process. Both 6048-byte lifetime streams passed verification, including
+five successful same-queue idle returns before staging releases and all
+five views/images surviving sixteen fragment reads. Sync validation
+reported zero warnings/errors. The swapped-idle/unmap trace exited 3.
+Three fresh device processes per version, on this same host with one
+caller and one queue, gave median old/final wall 2285.89/2078.63 ms,
+CPU 2285.63/2079.96 ms and peak 115832/116060 KiB. Final measurements
+reused the verified old baselines. These whole-process times include
+sampled rendering, readback, checks and 98 MiB of output.
+
+LLVM ASan on the changed builder, fixture, runtime and recorder, with C
+ASan/UBSan, passed the CPU boundary fixture and address-only GPU inventory.
+Full GPU LSan with synchronization validation reported 4187 bytes in 15
+allocations, the same count as the retained baseline. With only that sync
+feature omitted the full leak check returned zero with identical pixels.
+Allocation ownership remains unresolved. The TSan CPU and GPU binaries
+exited 139 at the container personality check before main. The driver
+and source-level Tower UBSan remain outside the instrumentation. The job
+packet records actual commands, maps, instrumented IR, samples and exits.

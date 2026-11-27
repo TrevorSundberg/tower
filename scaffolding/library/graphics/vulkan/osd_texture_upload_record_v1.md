@@ -165,3 +165,89 @@ Both Linux lanes exited 0 with zero synchronization-validation warnings
 or errors. In the packet, inventory.sh and inventory_trace.sh reproduce
 these results from the built source. The original Draw dump and packed
 texels were not accessed on host 12.
+
+## Build the tight region list before recording
+
+Draw confirmed the loop in osd_create at 3b0c80e4d0e4352ac50498cdec0723ddc0fc6d5b,
+lines 5380–5398, with the same texture block at 41d8b9ba and 752f55c1.
+Each accepted Draw record supplies the payload byte length. Draw chooses
+the texel size for its validated format and converts raw zero layers to
+one actual layer. Its shared_upload path accepts explicit offsets and
+coordinates and continues to use those caller-supplied regions.
+
+Include [tight_color_regions.h](tight_color_regions.h) to build into
+caller storage before passing it to the recorder.
+
+```c
+uint32_t tower_vk_build_tight_color_regions_v1(VkBufferImageCopy *out,
+    uint32_t capacity, uint32_t width, uint32_t height, uint32_t actual_layers,
+    uint32_t mip_count, uint32_t bytes_per_texel, VkDeviceSize available_bytes);
+```
+
+Supply an aligned array with capacity in **records** and available_bytes
+in **bytes from the start of this texture's staging payload**. The unsigned
+result is the number of records written. Zero means refusal before any
+write. A null destination, zero dimension/count/texel size, shift outside
+the 32-bit dimension width, zero shifted extent, insufficient output or
+payload, or an unrepresentable count, size or cumulative offset all refuse.
+The builder allocates nothing, retains no pointer and accepts any positive
+bytes_per_texel that fits the payload arithmetic.
+
+On success, index `layer * mip_count + mip` contains COLOR/mip/layer/1,
+zero bufferRowLength and bufferImageHeight, imageOffset (0,0,0) and
+imageExtent (width >> mip, height >> mip, 1). The first bufferOffset is
+zero. Each subsequent offset advances by the preceding subresource's
+width × height × bytes_per_texel. Spare output slots retain their original
+bytes. A payload may have trailing bytes. On the checked Linux x86-64
+Vulkan ABI the native record is 56 bytes, including the 64-bit offset at
+byte 0 and twelve consecutive 32-bit fields at bytes 8–55. The three
+imageOffset fields are signed. The SDK assertion and complete byte
+comparison are in [the C control](osd_upload_checks/control.c).
+
+```c
+VkBufferImageCopy copies[8];
+uint32_t count = tower_vk_build_tight_color_regions_v1(copies,
+    sizeof copies / sizeof copies[0], width, height, layers, mips,
+    bytes_per_texel, payload_bytes);
+if (count == 0) {
+    /* Leave recording and recovery to the caller. */
+    return false;
+}
+tower_vk_osd_texture_upload_record_v1(cmd, staging, image, layers, mips, count, copies);
+```
+
+Build the new object independently with the pinned host 12 tools.
+
+```bash
+source /tmp/tower12/env
+v=scaffolding/library/graphics/vulkan
+out=$(mktemp -d)
+bootstrap/linux-x64/towerc "$v/tight_color_regions.tower" --library --jobs 1 -o "$out/tight.o"
+x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$out/tight.o" \
+    -soname libtower_tight_regions.so -o "$out/libtower_tight_regions.so"
+llvm-nm-19 "$out/tight.o"
+```
+
+The 1472-byte object exports tower_vk_build_tight_color_regions_v1 and
+has no undefined symbols. SHA-256 is
+`4e278070fd315787d14a113329cec6fc38b3fe5a8aaba891b2de2d4e909c9722`.
+Link this object directly, or use `-L"$out" -ltower_tight_regions` and
+make the DSO available at runtime. The existing recorder remains a separate
+object and DSO. The retained fixture exercises the public header through
+a C translation unit, with the array owned by [the uploading caller](osd_upload_checks/retained.tower).
+
+For the Draw inventory the expected returns are 6, 2, 2, 4, 2. The
+16 records total 896 bytes and match the raw SDK control with SHA-256
+`afffaf85ebb9fa1d5a84d583eded1c95a4d797435778fa7c9a3ce21e65f3eb93`.
+Font capacity 5 and bitmap payload length 450559 both returned zero
+and preserved all destination bytes. The six-case capture, byte files,
+checked device and lifetime traces, timing samples and focused clean
+replay are in job 1ef1efe6-95c6-47f5-90ef-68af5b35e6d5. Extract that
+packet and run from its root on host 12:
+
+```bash
+sha256sum --quiet -c SHA256SUMS
+export PRIOR=/tmp/osd-aea4af39/retained-packet
+export LOCAL_TOWER=/tmp/osd-aea4af39/retained-clean/src
+REPLAY=$(mktemp -d) bash replay.sh
+```
