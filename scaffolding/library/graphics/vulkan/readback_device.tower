@@ -1,32 +1,13 @@
 import tower;
 import readback_abi;
+import readback_output;
 
-extern fn puts(text: u8*): i32;
-extern fn putchar(character: i32): i32;
-
-fn readback_label(label: u8*): void {
-    while *label != 0 { putchar(convert(i32, *label)); label++; }
-    putchar(convert(i32, *"="));
-}
-fn readback_decimal(value: u32): void {
-    var text: u8[11];
-    var end = sizeof(decltype(text)) - 1;
-    text[end] = 0;
-    loop {
-        text[--end] = *"0" + convert(u8, value % 10);
-        value /= 10; if value == 0 { break; }
-    }
-    puts(&text[end]);
-}
-fn readback_number(label: u8*, value: u32): void {
-    readback_label(label); readback_decimal(value);
-}
 fn vk_ok(operation: u8*, result: i32): bool {
     if result == 0 { return true; }
     puts(operation); readback_label("VkResult");
     if result < 0 {
-        putchar(convert(i32, *"-")); readback_decimal(convert(u32, -convert(i64, result)));
-    } else { readback_decimal(convert(u32, result)); }
+        putchar(convert(i32, *"-")); readback_decimal(convert(u64, -convert(i64, result)));
+    } else { readback_decimal(convert(u64, result)); }
     return false;
 }
 fn vk_failure(reason: u8*): bool { puts(reason); return false; }

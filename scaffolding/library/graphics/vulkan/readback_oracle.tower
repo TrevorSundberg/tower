@@ -1,7 +1,7 @@
 import readback_rows;
+import readback_output;
 import tower;
 
-extern fn puts(text: u8*): i32;
 extern fn strcmp(left: u8*, right: u8*): i32;
 
 var ReadbackGuard: u8 = 165;
@@ -31,25 +31,43 @@ fn readback_compare(label: u8*, data: u8*, size: usize, wanted: u8*): bool {
     return strcmp(wanted, &hex[0]) == 0;
 }
 
+fn readback_fixture_destination(data: u8*, capacity: usize): ReadbackDestination {
+    return { data: data, capacity: capacity, offset: 4, span: 24, pitch: 12 };
+}
+
+fn readback_log_destination(dst: ReadbackDestination*): void {
+    readback_size("capacity", dst.capacity); readback_size("offset", dst.offset);
+    readback_size("span", dst.span); readback_size("pitch", dst.pitch);
+}
+
+fn readback_marker_case(label: u8*, dst: ReadbackDestination*, src: u8*, size: usize,
+    pitch: usize, should_copy: bool): bool {
+    puts(label); readback_log_destination(dst);
+    readback_size("source_size", size); readback_size("source_pitch", pitch);
+    fill(dst.data, ReadbackGuard, dst.capacity);
+    if !readback_compare("CPU before", dst.data, dst.capacity, readback_guard_hex()) { return false; }
+    var copied = readback_two_rows(dst, src, size, pitch);
+    if copied { puts("copy=accepted"); } else { puts("copy=refused"); }
+    var wanted = readback_guard_hex();
+    if should_copy { wanted = readback_marker_hex(); }
+    return readback_compare("CPU after", dst.data, dst.capacity, wanted) && copied == should_copy;
+}
+
 fn readback_controls(): bool {
     var stage: u8[264]; var guard: u8[32];
     var pitch: usize = 256;
-    var source_size = sizeof(decltype(stage));
-    var capacity = sizeof(decltype(guard));
-    fill(&stage[0], ReadbackGuard, source_size);
+    var size = sizeof(decltype(stage));
+    fill(&stage[0], ReadbackGuard, size);
     copy(&stage[0], "01234567", ReadbackRowBytes);
     copy(&stage[pitch], "abcdefgh", ReadbackRowBytes);
-    fill(&guard[0], ReadbackGuard, capacity);
-    var dst: ReadbackDestination = { data: &guard[0], capacity: capacity, pitch: 12, span: 20, offset: 4 };
-    dst.pitch = 7;
-    if readback_two_rows(&dst, &stage[0], source_size, pitch)
-        || !readback_compare("CPU pitch 7 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
-    dst.pitch = 12; dst.span = 19;
-    if readback_two_rows(&dst, &stage[0], source_size, pitch)
-        || !readback_compare("CPU span 19 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
-    dst.span = 20;
-    if readback_two_rows(&dst, &stage[0], source_size - 1, pitch)
-        || !readback_compare("CPU source 263 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
-    return readback_two_rows(&dst, &stage[0], source_size, pitch)
-        && readback_compare("CPU marker, source pitch 256", dst.data, capacity, readback_marker_hex());
+    var dst = readback_fixture_destination(&guard[0], sizeof(decltype(guard)));
+    if !readback_marker_case("CPU contractual loan", &dst, &stage[0], size, pitch, true)
+        || !readback_marker_case("CPU short source", &dst, &stage[0], size - 1, pitch, false) { return false; }
+    var control = dst;
+    control.pitch = ReadbackRowBytes - 1;
+    if !readback_marker_case("CPU short pitch", &control, &stage[0], size, pitch, false) { return false; }
+    control = dst; control.span = dst.pitch + ReadbackRowBytes;
+    if !readback_marker_case("CPU exact fit", &control, &stage[0], size, pitch, true) { return false; }
+    control.span--;
+    return readback_marker_case("CPU short span", &control, &stage[0], size, pitch, false);
 }
