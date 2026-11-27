@@ -104,15 +104,26 @@ The release adds finish at ordinal 6. The aggregate `command_finish.obj`
 defines finish, end/prepare (5) and queue submit (1) once each. The PE
 imports six Vulkan loader calls. The 4,096-byte DLL has SHA-256
 `b5a46d778883c9c34dfc2921374c4fa3212c4b5d9e0cde6056480d388d5af222`.
+The matching `tower_graphics.lib` has SHA-256
+`a97e7d790373b11a1cef6a88c131f83ea3bf184250c8bee65900ee4c929a99e7`.
+The linked upload test PE imports `tower_vk_command_finish_v1` from the
+DLL. Its SHA-256 is `eb0fe711aefe7753edeb4380993e18d2ba911899a8b997f1321a0ba5fed2b812`.
+The raw Vulkan control used the same workload object.
 
 On host 11, a Win64 raw Vulkan caller and a separate C caller linked to
-this DLL each completed 64 uploads on the Quadro RTX 6000 under Wine 8.
+this DLL each completed 64 eight-byte copies on the Quadro RTX 6000
+under Wine 8, NVIDIA 615.71.10. The selected adapter reported Vulkan
+1.4.351 and the workload requested core 1.3. The explicit guest validation
+layer request returned −6. The successful runs used the host Khronos layer
+with synchronization validation and reported zero callback warnings/errors.
 Each checked all 16 destination bytes through successive payload changes.
 Independent E/ES/ESI controls returned −4, −1 and +1 at each step. On the
 GPU, each injected idle result left the guarded first payload readable
 after a separate successful queue drain. The prior frame gate, counted
 pixels, staging order and C executables also passed with this DLL.
-Physical Windows and full Draw application execution remain open.
+Draw's 73-byte staged uploader was checked separately with the Linux
+library and a recording driver. Physical Windows and execution of this
+six-export DLL inside Draw remain open. [Draw Linux recording receipt](https://github.com/TrevorSundberg/tower/blob/37809215a14090a05eb6dda968f5d8ad5d8f4278/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
 [Host, build and replay evidence](../../../../docs/temporal-opcode-research-journal.md#blocking-upload-finish-in-the-windows-x64-graphics-dll)
 
 ## Five-export validation at c40dae39

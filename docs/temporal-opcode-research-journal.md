@@ -124392,3 +124392,30 @@ The packet checks the prepared SDK, inspects the just-built DLL and starts
 its private server before the first PE. An independent reader fetched the
 reviewed manager base and reconstructed the worker checkout from the
 incremental bundle. All tracked regular files matched their SHA-256 list.
+
+### Six-export Win64 DLL review
+
+Rendering accepted the slot 11 `cce07bd9` bundle ending at
+`ed308ca01fd18935ada9340faa4ec7559288a659`. The archive SHA-256 was
+`69fbd67bf2838ce98abdb771d88ee0ad4c758bbf472a424e382a50abb80f1bd4`.
+The manager verified all 838 manifest entries, the standalone bundle and
+its three prerequisites, all 3,638 regular source-file digests and the
+clean replay product hashes. The prior five-entry packet and header-only
+supplement were also available in this archive. The manager verified
+their respective 359 and 361 inner manifest entries. The public indexed
+header matches `be779636`. The finish implementation and declaration
+match the reviewed Linux files at `37809215`.
+
+Inspection of the supplied PE binaries confirmed ordinals 1–6, six loader
+imports, the external C caller's finish import and the raw Vulkan control's
+independent link. In both original and clean captures the manager checked
+the 64 alternating guarded results, the same primary on each reset, and
+one unfenced submit followed by a wait on its own queue before reuse.
+It independently checked that injected idle errors propagated and that
+pool destruction and unmapping followed the owner's successful drain.
+The earlier counted captures, 240 staging bytes and asynchronous pending
+fence also matched the previous oracle with the new DLL loaded.
+The [Win64 link guide](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#blocking-staged-uploads)
+identifies the DLL, import library, C caller, validation scope and open
+application coverage. This review adds documentation without changing
+the tested code or build inputs.
