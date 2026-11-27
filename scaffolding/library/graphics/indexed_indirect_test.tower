@@ -1,0 +1,60 @@
+import library.testing;
+import indexed_indirect;
+
+test() {
+    var command: IndexedIndirectArguments = {
+        index_count: 3, instance_count: 2, first_index: 1,
+        base_vertex: -2, first_instance: 0
+    };
+    var base = bits(usize, &command);
+    assert(sizeof(IndexedIndirectArguments) == 20);
+    assert(alignof(IndexedIndirectArguments) == 4);
+    assert(bits(usize, &command.index_count) == base);
+    assert(bits(usize, &command.instance_count) - base == 4);
+    assert(bits(usize, &command.first_index) - base == 8);
+    assert(bits(usize, &command.base_vertex) - base == 12);
+    assert(bits(usize, &command.first_instance) - base == 16);
+    assert(bits(u32, command.base_vertex) == 4294967294);
+}
+
+test() {
+    assert(indexed_indirect_fits(20, 0));
+    assert(indexed_indirect_fits(24, 4));
+    assert(!indexed_indirect_fits(19, 0));
+    assert(!indexed_indirect_fits(24, 2));
+    assert(!indexed_indirect_fits(16, 20));
+    var maximum = ~convert(u64, 0);
+    assert(!indexed_indirect_fits(maximum, maximum - 3));
+}
+
+test() {
+    var scene: IndexedIndirectRange = { command_offset: 4, max_draws: 16384, stride: 20 };
+    assert(indexed_indirect_count_fits(327684, 0));
+    assert(indexed_indirect_commands_fit(327684, scene));
+    assert(!indexed_indirect_commands_fit(327683, scene));
+    assert(indexed_indirect_count_fits(8, 4));
+    assert(!indexed_indirect_count_fits(7, 4));
+    assert(!indexed_indirect_count_fits(8, 2));
+    assert(!indexed_indirect_count_fits(~convert(u64, 0), ~convert(u64, 0) - 3));
+
+    var padded: IndexedIndirectRange = { command_offset: 4, max_draws: 2, stride: 32 };
+    assert(indexed_indirect_commands_fit(56, padded));
+    assert(!indexed_indirect_commands_fit(55, padded));
+    padded.stride = 16;
+    assert(!indexed_indirect_commands_fit(56, padded));
+    padded.stride = 22;
+    assert(!indexed_indirect_commands_fit(56, padded));
+}
+
+test() {
+    var range: IndexedIndirectRange = { command_offset: 4, max_draws: 0, stride: 20 };
+    assert(indexed_indirect_commands_fit(4, range));
+    assert(!indexed_indirect_commands_fit(3, range));
+    range.command_offset = 2;
+    assert(!indexed_indirect_commands_fit(4, range));
+
+    range = { command_offset: 0, max_draws: 65537, stride: 65536 };
+    var end = (convert(u64, 1) << 32) + convert(u64, sizeof(IndexedIndirectArguments));
+    assert(indexed_indirect_commands_fit(end, range));
+    assert(!indexed_indirect_commands_fit(end - 1, range));
+}
