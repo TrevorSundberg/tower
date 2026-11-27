@@ -81,17 +81,15 @@ fn gated(device: VkDeviceHandle*, queue: VkQueueHandle*, raw: bool): bool {
     var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
     check("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin));
     vkCmdSetEvent(cmd, event, AllCommands);
+    var stage = AllCommands;
     var subject: VkSubmitInfo;
-    if raw { check("vkEndCommandBuffer", frame_end_raw(&cmd, &subject)); }
-    else { check("tower_vk_command_end_for_submit_v1", frame_end_from_c(&cmd, &subject)); }
+    if raw { check("vkEndCommandBuffer", frame_end_raw(&subject, &cmd, &acquired, &stage, &ready)); }
+    else { check("tower_vk_command_end_for_submit_v1", frame_end_from_c(&subject, &cmd, &acquired, &stage, &ready)); }
 
     var target: u64 = 1; var ignored: u64 = 0;
     var values: TimelineSubmit = { sType: TimelineSubmitTag, waitCount: 1, waits: &target, signalCount: 1, signals: &ignored, ..default };
-    var stage = AllCommands;
     var produce: VkSubmitInfo = { sType: VkSubmitTag, pNext: bits(void*, &values), waitSemaphoreCount: 1, pWaitSemaphores: &timeline,
         pWaitDstStageMask: &stage, signalSemaphoreCount: 1, pSignalSemaphores: &acquired, ..default };
-    subject.waitSemaphoreCount = 1; subject.pWaitSemaphores = &acquired; subject.pWaitDstStageMask = &stage;
-    subject.signalSemaphoreCount = 1; subject.pSignalSemaphores = &ready;
     var consume: VkSubmitInfo = { sType: VkSubmitTag, waitSemaphoreCount: 1, pWaitSemaphores: &ready, pWaitDstStageMask: &stage, ..default };
     var signal: HostSignal = { sType: HostSignalTag, semaphore: timeline, value: target, ..default };
 

@@ -10,23 +10,26 @@ extern fn memcpy(out: void*, src: void*, count: usize): void*;
 extern fn exit(status: i32): void;
 
 struct Payload {
-    batch: VkSubmitInfo; extension: TimelineSubmit; stage: u32; waitValue: u64; signalValue: u64;
+    guard_before: u64; batch: VkSubmitInfo; guard_after: u64; extension: TimelineSubmit; stage: u32; waitValue: u64; signalValue: u64;
     command: VkCommandBufferHandle*; acquired: VkSemaphoreHandle*; ready: VkSemaphoreHandle*;
 }
 struct Recording {
-    payload: Payload*; original: Payload*; queue: VkQueueHandle*; fence: VkFenceHandle*; result: i32; calls: u32;
+    payload: Payload*; original: Payload*; queue: VkQueueHandle*; fence: VkFenceHandle*; result: i32; calls: u32; end_probe: EndProbe*;
 }
 fn require(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
 
 export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, batch: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
     var state = bits(Recording*, queue);
+    if state.end_probe != null { event(state.end_probe, "S"); }
     require(count == 1 && state.queue == queue && state.fence == fence && batch == &state.payload.batch, "submit identity mismatch");
     require(memcmp(bits(void*, state.original), bits(void*, state.payload), sizeof(Payload)) == 0, "loader saw changed input");
     require(batch.pCommandBuffers == &state.payload.command && *batch.pCommandBuffers == state.original.command, "command slot at submit");
     if batch.waitSemaphoreCount == 1 {
         require(batch.pWaitSemaphores == &state.payload.acquired && *batch.pWaitSemaphores == state.original.acquired
-            && batch.pWaitDstStageMask == &state.payload.stage && *batch.pWaitDstStageMask == AllCommands
-            && batch.pSignalSemaphores == &state.payload.ready && *batch.pSignalSemaphores == state.original.ready, "binary slots at submit");
+            && batch.pWaitDstStageMask == &state.payload.stage && *batch.pWaitDstStageMask == AllCommands, "wait slots at submit");
+    }
+    if batch.signalSemaphoreCount == 1 {
+        require(batch.pSignalSemaphores == &state.payload.ready && *batch.pSignalSemaphores == state.original.ready, "binary slots at submit");
     }
     state.calls++;
     return state.result;
@@ -67,51 +70,73 @@ fn check(call: Submit): void {
     exercise(call, false, 0); exercise(call, true, 0);
     exercise(call, false, lost); exercise(call, true, lost);
 }
-extern fn tower_vk_command_end_for_submit_v1(command: VkCommandBufferHandle**, info: VkSubmitInfo*): i32;
-extern fn frame_end_matches(info: VkSubmitInfo*, size: usize, command: VkCommandBufferHandle**): i32;
+extern fn tower_vk_command_end_for_submit_v1(out: VkSubmitInfo*, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32;
+extern fn frame_end_matches(info: VkSubmitInfo*, size: usize, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32;
 extern fn memset(dst: void*, byte: i32, size: usize): void*;
 
-struct EndProbe { calls: u32; result: i32; }
+struct EndProbe { next: u8*; result: i32; payload: Payload*; original: Payload*; }
+fn event(probe: EndProbe*, letter: u8*): void {
+    require(*probe.next == *letter, "unexpected end/profile/submit/release event");
+    probe.next++;
+}
 export fn vkEndCommandBuffer(command: VkCommandBufferHandle*): i32 {
     var probe = bits(EndProbe*, command);
-    probe.calls++;
+    event(probe, "E");
+    require(memcmp(bits(void*, probe.original), bits(void*, probe.payload), sizeof(Payload)) == 0, "output touched before end");
     return probe.result;
 }
+struct ProfileTime { seconds: i64; nanos: i64; }
+extern fn clock_gettime(clock: i32, value: ProfileTime*): i32;
 
-var End: type = function(i32, VkCommandBufferHandle**, VkSubmitInfo*);
-fn exercise_end(call: End, submit: Submit, result: i32, binary: bool): void {
-    var probe: EndProbe = { result: result, ..default };
-    var payload: Payload = default;
-    payload.command = bits(VkCommandBufferHandle*, &probe);
+var End: type = function(i32, VkSubmitInfo*, VkCommandBufferHandle**, VkSemaphoreHandle**, u32*, VkSemaphoreHandle**);
+fn exercise_end(call: End, submit: Submit, result: i32, use_wait: bool, use_stage: bool, use_signal: bool, use_fence: bool): void {
     var original: Payload;
+    var payload: Payload = { guard_before: 165, guard_after: 90, stage: AllCommands, ..default };
+    var probe: EndProbe = { next: "E", result: result, payload: &payload, original: &original };
+    if result == 0 { probe.next = "EPSR"; }
+    payload.command = bits(VkCommandBufferHandle*, &probe);
+    payload.acquired = bits(VkSemaphoreHandle*, &payload.acquired);
+    payload.ready = bits(VkSemaphoreHandle*, &payload.ready);
+    var wait: VkSemaphoreHandle** = null; var stage: u32* = null; var signal: VkSemaphoreHandle** = null;
+    if use_wait { wait = &payload.acquired; }
+    if use_stage { stage = &payload.stage; }
+    if use_signal { signal = &payload.ready; }
+    var state: Recording = { payload: &payload, original: &original, end_probe: &probe, ..default };
+    state.queue = bits(VkQueueHandle*, &state);
+    if use_fence { state.fence = bits(VkFenceHandle*, &state.fence); }
     memset(bits(void*, &payload.batch), 165, sizeof(VkSubmitInfo));
     memcpy(bits(void*, &original), bits(void*, &payload), sizeof(Payload));
-    var state: Recording = { payload: &payload, original: &original, ..default };
-    state.queue = bits(VkQueueHandle*, &state);
-    state.fence = bits(VkFenceHandle*, &state.fence);
-    require(call(&payload.command, &payload.batch) == result && probe.calls == 1, "end result or count");
-    require(state.calls == 0 && payload.command == original.command, "unexpected submit or changed command slot");
+    require(call(&payload.batch, &payload.command, wait, stage, signal) == result, "changed end result");
     if result != 0 {
-        require(memcmp(bits(void*, &original), bits(void*, &payload), sizeof(Payload)) == 0, "end failure wrote destination");
+        require(*probe.next == 0 && state.calls == 0, "failed end event sequence");
+        require(memcmp(bits(void*, &original), bits(void*, &payload), sizeof(Payload)) == 0, "failed end changed guarded output");
         return;
     }
-    require(frame_end_matches(&payload.batch, sizeof(VkSubmitInfo), &payload.command) == 1, "native descriptor mismatch");
-    if binary {
-        payload.acquired = bits(VkSemaphoreHandle*, &payload.acquired);
-        payload.ready = bits(VkSemaphoreHandle*, &payload.ready);
-        payload.stage = AllCommands;
-        payload.batch.waitSemaphoreCount = 1; payload.batch.pWaitSemaphores = &payload.acquired;
-        payload.batch.pWaitDstStageMask = &payload.stage;
-        payload.batch.signalSemaphoreCount = 1; payload.batch.pSignalSemaphores = &payload.ready;
-    }
-    memcpy(bits(void*, &original), bits(void*, &payload), sizeof(Payload));
-    require(submit(state.queue, &payload.batch, state.fence) == 0 && state.calls == 1 && probe.calls == 1, "separate submit");
+    require(frame_end_matches(&payload.batch, sizeof(VkSubmitInfo), &payload.command, wait, stage, signal) == 1, "native descriptor mismatch");
+    // Accept only the descriptor's new bytes; all surrounding storage must match the original.
+    memcpy(bits(void*, &original.batch), bits(void*, &payload.batch), sizeof(VkSubmitInfo));
+    var stamp: ProfileTime;
+    var monotonic: i32 = 1;
+    require(clock_gettime(monotonic, &stamp) == 0, "profiling clock failed");
+    event(&probe, "P");
+    require(submit(state.queue, &payload.batch, state.fence) == 0 && state.calls == 1, "later submit");
+    event(&probe, "R");
+    require(*probe.next == 0, "incomplete host slot lifetime");
 }
 
 fn check_end(call: End, submit: Submit): void {
-    exercise_end(call, submit, 0, false);
-    exercise_end(call, submit, 0, true);
-    exercise_end(call, submit, -4, false);
+    for (var wait: u32 = 0; wait < 2; wait++) {
+        for (var signal: u32 = 0; signal < 2; signal++) {
+            for (var fence: u32 = 0; fence < 2; fence++) {
+                exercise_end(call, submit, 0, wait != 0, wait != 0, signal != 0, fence != 0);
+                exercise_end(call, submit, -4, wait != 0, wait != 0, signal != 0, fence != 0);
+            }
+        }
+    }
+    // Vulkan ignores stage when there are no waits. Still forward its exact address.
+    exercise_end(call, submit, 0, false, true, false, false);
 }
 export fn main(): i32 {
     check_end(frame_end_raw, direct); puts("raw end and later submit passed");

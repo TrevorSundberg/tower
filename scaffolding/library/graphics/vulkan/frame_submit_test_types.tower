@@ -9,5 +9,7 @@ var SubmitInfoTag: u32 = 4;
 var TimelineSubmitTag: u32 = 1000207003;
 var AllCommands: u32 = 65536; // VK_PIPELINE_STAGE_ALL_COMMANDS_BIT
 extern fn frame_submit_from_c(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32;
-extern fn frame_end_raw(command: VkCommandBufferHandle**, info: VkSubmitInfo*): i32;
-extern fn frame_end_from_c(command: VkCommandBufferHandle**, info: VkSubmitInfo*): i32;
+extern fn frame_end_raw(out: VkSubmitInfo*, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32;
+extern fn frame_end_from_c(out: VkSubmitInfo*, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32;
