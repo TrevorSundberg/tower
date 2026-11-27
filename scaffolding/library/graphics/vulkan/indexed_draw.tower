@@ -1,6 +1,6 @@
 import tower;
 import readback_abi;
-import library.graphics.indexed_indirect;
+import .indexed_indirect;
 
 // Vulkan's returned PFN_vkVoidFunction takes its real signature at lookup.
 extern fn vkGetDeviceProcAddr(device: VkDeviceHandle*, name: u8*): function(void);

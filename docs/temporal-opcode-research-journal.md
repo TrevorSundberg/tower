@@ -123382,3 +123382,143 @@ unexercised. The synchronous helper aborts if both fence wait and its
 device-idle recovery fail without establishing retirement or device loss.
 This branch supplies a hardware reference for the next worker. Review for
 main and the general-purpose library remains open.
+
+### 2026-11-27 — Draw indexed indirect count loader on x64
+
+Rendering assignment 684d8da0 on host 11 targets the manager-recorded Draw
+call at 7be8d020b07454789195427588712c72ee465637, draw.c:8093.
+The input merge parents are cf53212cf8b7299916e98971555e844058a30e61 and
+62323bbe30d9674495563e7396a5f8bc22745151. The latter is the source parent
+of advertised evidence tip 87952f72950d8168fc29449d9f0e0bc516e4a7a7.
+Commit 8d6c24c7feda0d76e47a6ae607eccfddf9d16335 preserves the supplied
+32 lines in tree a05f4082884a9dcc5475b05eb601a447ae04d4ec. The module
+SHA-256 is 89aa51cad4e2cf3b529c6b1cbd577accb624e370bdb4957e029d2256c9481ce8.
+
+The packaged bootstrap searched its installed library for indexed_indirect
+and reported an unreadable import (exit 1). Selecting the source Foundation
+explicitly allowed the original consumer to compile. A single parent-relative
+import fixes the default build. Both public signatures are unchanged. The
+recording fixture passes Tower-owned tokens and checks every delivered argument.
+A separate probe enables the core 1.2 feature on a real logical device and
+looks up the core command before destroying that device. Its borrowed PFN
+never reaches the recording fixture. No GPU draw or submission occurs here.
+
+The repaired module SHA-256 is
+`02faa8f73ef099af429505fc0ddd7b7ee13402ab36abc9389a2d173a171f29c7`.
+The executable checks the manager-recorded shape (one buffer, command offset
+4, count offset 0, 16384 records, stride 20) and a distinct-buffer call
+(command offset 4294967300, count offset 8589934600, maximum 2, stride 32).
+The command span ends at the last 20-byte record. The recording observer
+checks the number of calls and all seven scalar/pointer arguments. It checks
+zero further calls after refusals for short spans, misalignment and missing
+handles or PFN. Masking off the count offset's upper half made the positive
+control exit 1. Dispatching before refusing a short count made the negative
+control exit 1. Optimized compilation can fold a local recording callback.
+The qualification executables use the ordinary unoptimized native backend.
+Their disassemblies show an indirect call and the stack argument stores for
+each target. Default optimized Linux compilation and execution also passed.
+
+| Host 11 observation | Result |
+| --- | --- |
+| Linux Debian 12 x64 | ELF64 x86-64 PIE. DT_NEEDED includes libvulkan.so.1 and libc.so.6. The undefined vkGetDeviceProcAddr symbol bound to the Debian loader. Native probe exit 0. |
+| Windows x64 link | Tower GNU Windows target emitted AMD64 COFF. LLD and MinGW-w64 CRT produced a PE32+ console image with vulkan-1.dll importing vkGetDeviceProcAddr and seven instance/device functions. Timestamp-free repeat link was byte-identical. |
+| Windows runtime via Wine 8.0 | PE layout checks, recording checks, instance/device creation and same-process lookup succeeded on the Quadro. Exit 0. Wine also logged a wineusb service initialization error. |
+| MSVC target | Tower produced AMD64 COFF. The initial MSVC object/MinGW CRT link attempt had unresolved CRT symbols including _fltused. The qualified PE uses the GNU target. |
+| Native Windows | No Windows OS or native Windows driver on this worker. |
+| Missing Linux ICD control | CPU recording checks passed, then vkCreateInstance reported −9 and the executable exited 2. |
+
+Both successful loader processes selected the discrete NVIDIA Quadro RTX 6000,
+PCI 10de:1e78, Vulkan 1.4.351, NVIDIA 615.71.10. Both requested Vulkan 1.2,
+queried drawIndirectCount, enabled only that Vulkan 1.2 feature, and used
+queue family 0 for device creation. The lookup completed before device and
+instance destruction. This probe tests neither submission nor pixels. GPU
+timings, rendering state, producer synchronization, and native Windows driver
+execution remain separate renderer checks.
+
+Clang 19 dumped layouts directly from Debian Vulkan header 239 on both
+Linux x64 and Windows x64. VkApplicationInfo, VkInstanceCreateInfo,
+VkPhysicalDeviceProperties, VkPhysicalDeviceFeatures2,
+VkPhysicalDeviceVulkan12Features, VkDeviceQueueCreateInfo and
+VkDeviceCreateInfo measure 48, 64, 824, 240, 208, 40 and 72 bytes,
+respectively, all aligned to 8. The Tower probe checks these sizes and
+alignments plus the fields used in the probe. The feature chain has pNext
+at 8 and drawIndirectCount at 20. It reuses the existing readback ABI for
+all previously declared types.
+
+From the checked-out candidate, use the pinned Tower compiler with LLVM 19
+on PATH. SDK is a Debian multiarch sysroot, or / on an installed host. This
+worker extracted checksum-verified Debian packages privately. Its loader
+is libvulkan1 1.3.239.0-1, SHA-256
+`91dd2cb10ee4de7b77d0624938ff0a7542641e5348708d0d8c42d9404476d152`.
+Use a writable OUT and an appropriate Vulkan ICD. The Linux command below
+expects the worker's NVIDIA manifest.
+
+```bash
+set -eu
+C=bootstrap/linux-x64/towerc
+R=bootstrap/linux-x64/share/tower
+V=scaffolding/library/graphics/vulkan
+LIB=$SDK/usr/lib/x86_64-linux-gnu
+export LD_LIBRARY_PATH="$LIB${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+(cd bootstrap/linux-x64 && sha256sum -c --status SHA256SUMS)
+"$C" "$V/indexed_draw_probe.tower" --library --jobs 1 --no-optimize -o "$OUT/calls.o"
+opt -passes=internalize,globaldce -internalize-public-api-list=tower_trap \
+  "$R/runtime-host-linux-x64.ll" -o "$OUT/rt.bc"
+llc -relocation-model=pic -filetype=obj "$OUT/rt.bc" -o "$OUT/rt.o"
+"$C" --link-executable "$OUT/calls.o" --link "$OUT/rt.o" \
+  --link "$LIB/libvulkan.so.1" --sysroot "$SDK" -o "$OUT/indexed_draw_linux"
+llvm-readelf -hl -d --dyn-syms --wide "$OUT/indexed_draw_linux"
+VK_ICD_FILENAMES=/etc/vulkan/icd.d/nvidia_icd.json "$OUT/indexed_draw_linux"
+```
+
+The import library was generated from the complete [Khronos loader export
+definition at v1.3.239](https://raw.githubusercontent.com/KhronosGroup/Vulkan-Loader/v1.3.239/loader/vulkan-1.def).
+The evidence contains the original file. DEF below names its path. W and G
+refer to the MinGW-w64 x64 development and GCC 12 POSIX libraries. Wine
+execution requires a working Wine Vulkan bridge, host loader, display and ICD.
+
+```bash
+set -eu
+W=$SDK/usr/x86_64-w64-mingw32/lib
+G=$SDK/usr/lib/gcc/x86_64-w64-mingw32/12-posix
+echo "166014c0b24e6d6b728a05fed1ea4b6a123ed2ac5d98f63f3a176da4e93ed75d  $DEF" | sha256sum -c -
+llvm-dlltool -m i386:x86-64 -d "$DEF" -l "$OUT/vulkan-1.lib"
+"$C" "$V/indexed_draw_probe.tower" --library --jobs 1 --no-optimize \
+  --target x86_64-w64-windows-gnu -o "$OUT/calls.obj"
+opt -passes=internalize,globaldce -internalize-public-api-list=tower_trap \
+  "$R/runtime-windows-x64.ll" -o "$OUT/win.bc"
+llc -filetype=obj "$OUT/win.bc" -o "$OUT/winrt.obj"
+ld.lld -m i386pep --no-insert-timestamp --subsystem console -o "$OUT/qualified.exe" \
+  "$W/crt2.o" "$OUT/calls.obj" "$OUT/winrt.obj" "$OUT/vulkan-1.lib" \
+  -L"$W" -L"$G" -lmingw32 -lgcc -lmingwex -lmsvcrt -lkernel32
+llvm-readobj --file-headers "$OUT/calls.obj"
+llvm-readobj --file-headers --coff-imports "$OUT/qualified.exe"
+wine64 "$OUT/qualified.exe"
+```
+
+ELF SHA-256 `6d02af62623824b1faf416183a2d43df138d7109ae41ffe11792d6b5f6a557ad`.
+PE SHA-256 `f8057b1a520b4b889a143c4512a11f95ceb0978e87c304f1cf9de43c9a7ab3ac`.
+Both print the layout and seven-argument checks, device identity, and
+`live device: enabled drawIndirectCount; vkGetDeviceProcAddr returned vkCmdDrawIndexedIndirectCount`.
+
+On host 11 (Xeon E5-2699 v4, CPU affinity 0–87, cgroup quota 10.56 CPUs),
+three alternating source-warm, fresh-process compiles of each frozen probe
+used explicit source Foundation for both imports. The median wall/CPU seconds
+and maximum RSS in KiB were 0.45/0.44/95256 before and 0.49/0.48/94908
+after at one job. At four jobs they were 0.54/0.61/98720 and 0.62/0.69/98064.
+The sample ranges overlap at each width. The two widths produced identical
+objects within each revision, and all four executable outputs matched.
+These measurements include compiler startup. They do not isolate import
+resolution or establish a scaling effect. The forwarding wrapper allocates
+no storage dynamically. Driver allocation accounting and GPU timing were
+outside the probe. The existing indexed_indirect owner selection passed
+all four declarations at jobs 1 and 4.
+
+The repository's instrument_llvm processed 35 Tower function definitions.
+ASan with leak detection ran the complete Linux probe and exited 0 with
+empty stderr. Its wrapper disassembly contains ASan checks. TSan instrumented
+the same wrapper and linked with libgcc_s, then exited 139 before main when
+the container denied ADDR_NO_RANDOMIZE. No source-level Tower UBSan profile
+is available. The linked Vulkan loader, NVIDIA driver and Wine were external
+binaries. The archive contains stdout/stderr, exits, import and layout dumps,
+link maps, per-sample measurements, mutation controls and qualified binaries.

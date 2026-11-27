@@ -1,0 +1,161 @@
+import tower;
+import indexed_draw;
+import readback_device;
+import readback_abi;
+import indexed_draw_recording;
+
+// Core Vulkan 1.2 feature chain, from vulkan_core.h (Khronos header 239,
+// Apache-2.0, see readback_abi_license.txt). Query storage includes every bit.
+struct VkPhysicalDeviceVulkan12Features {
+    sType: u32;
+    pNext: void*;
+    samplerMirrorClampToEdge: u32;
+    drawIndirectCount: u32;
+    storageBuffer8BitAccess: u32;
+    uniformAndStorageBuffer8BitAccess: u32;
+    storagePushConstant8: u32;
+    shaderBufferInt64Atomics: u32;
+    shaderSharedInt64Atomics: u32;
+    shaderFloat16: u32;
+    shaderInt8: u32;
+    descriptorIndexing: u32;
+    shaderInputAttachmentArrayDynamicIndexing: u32;
+    shaderUniformTexelBufferArrayDynamicIndexing: u32;
+    shaderStorageTexelBufferArrayDynamicIndexing: u32;
+    shaderUniformBufferArrayNonUniformIndexing: u32;
+    shaderSampledImageArrayNonUniformIndexing: u32;
+    shaderStorageBufferArrayNonUniformIndexing: u32;
+    shaderStorageImageArrayNonUniformIndexing: u32;
+    shaderInputAttachmentArrayNonUniformIndexing: u32;
+    shaderUniformTexelBufferArrayNonUniformIndexing: u32;
+    shaderStorageTexelBufferArrayNonUniformIndexing: u32;
+    descriptorBindingUniformBufferUpdateAfterBind: u32;
+    descriptorBindingSampledImageUpdateAfterBind: u32;
+    descriptorBindingStorageImageUpdateAfterBind: u32;
+    descriptorBindingStorageBufferUpdateAfterBind: u32;
+    descriptorBindingUniformTexelBufferUpdateAfterBind: u32;
+    descriptorBindingStorageTexelBufferUpdateAfterBind: u32;
+    descriptorBindingUpdateUnusedWhilePending: u32;
+    descriptorBindingPartiallyBound: u32;
+    descriptorBindingVariableDescriptorCount: u32;
+    runtimeDescriptorArray: u32;
+    samplerFilterMinmax: u32;
+    scalarBlockLayout: u32;
+    imagelessFramebuffer: u32;
+    uniformBufferStandardLayout: u32;
+    shaderSubgroupExtendedTypes: u32;
+    separateDepthStencilLayouts: u32;
+    hostQueryReset: u32;
+    timelineSemaphore: u32;
+    bufferDeviceAddress: u32;
+    bufferDeviceAddressCaptureReplay: u32;
+    bufferDeviceAddressMultiDevice: u32;
+    vulkanMemoryModel: u32;
+    vulkanMemoryModelDeviceScope: u32;
+    vulkanMemoryModelAvailabilityVisibilityChains: u32;
+    shaderOutputViewportIndex: u32;
+    shaderOutputLayer: u32;
+    subgroupBroadcastDynamicId: u32;
+}
+
+var VkApi12: u32 = (1 << 22) | (2 << 12);
+var VkVulkan12FeaturesTag: u32 = 51;
+var VkInstanceCreateInfoTag: u32 = 1;
+var VkIncomplete: i32 = 5;
+
+// Reference offsets are from Clang's x64 record layouts for vulkan_core.h 239.
+fn probe_offset(Owner: type, Field: type, owner: Owner*, field: Field*): usize {
+    return bits(usize, field) - bits(usize, owner);
+}
+
+fn probe_layouts(): bool {
+    var app: VkApplicationInfo;
+    if sizeof(VkApplicationInfo) != 48 || alignof(VkApplicationInfo) != 8
+        || probe_offset(&app, &app.sType) != 0
+        || probe_offset(&app, &app.pNext) != 8
+        || probe_offset(&app, &app.apiVersion) != 44 { return vk_failure("VkApplicationInfo layout"); }
+    var instance: VkInstanceCreateInfo;
+    if sizeof(VkInstanceCreateInfo) != 64 || alignof(VkInstanceCreateInfo) != 8
+        || probe_offset(&instance, &instance.sType) != 0
+        || probe_offset(&instance, &instance.pNext) != 8
+        || probe_offset(&instance, &instance.pApplicationInfo) != 24 { return vk_failure("VkInstanceCreateInfo layout"); }
+    var props: VkPhysicalDeviceProperties;
+    if sizeof(VkPhysicalDeviceProperties) != 824 || alignof(VkPhysicalDeviceProperties) != 8
+        || probe_offset(&props, &props.apiVersion) != 0
+        || probe_offset(&props, &props.driverVersion) != 4
+        || probe_offset(&props, &props.vendorID) != 8
+        || probe_offset(&props, &props.deviceID) != 12
+        || probe_offset(&props, &props.deviceType) != 16
+        || probe_offset(&props, &props.deviceName[0]) != 20 { return vk_failure("VkPhysicalDeviceProperties layout"); }
+    var features: VkPhysicalDeviceFeatures2;
+    if sizeof(VkPhysicalDeviceFeatures2) != 240 || alignof(VkPhysicalDeviceFeatures2) != 8
+        || probe_offset(&features, &features.sType) != 0
+        || probe_offset(&features, &features.pNext) != 8
+        || probe_offset(&features, &features.features) != 16 { return vk_failure("VkPhysicalDeviceFeatures2 layout"); }
+    var core: VkPhysicalDeviceVulkan12Features;
+    if sizeof(VkPhysicalDeviceVulkan12Features) != 208 || alignof(VkPhysicalDeviceVulkan12Features) != 8
+        || probe_offset(&core, &core.sType) != 0
+        || probe_offset(&core, &core.pNext) != 8
+        || probe_offset(&core, &core.drawIndirectCount) != 20
+        || probe_offset(&core, &core.subgroupBroadcastDynamicId) != 200 { return vk_failure("VkPhysicalDeviceVulkan12Features layout"); }
+    var queue: VkDeviceQueueCreateInfo;
+    if sizeof(VkDeviceQueueCreateInfo) != 40 || alignof(VkDeviceQueueCreateInfo) != 8
+        || probe_offset(&queue, &queue.sType) != 0
+        || probe_offset(&queue, &queue.pNext) != 8
+        || probe_offset(&queue, &queue.queueFamilyIndex) != 20
+        || probe_offset(&queue, &queue.queueCount) != 24
+        || probe_offset(&queue, &queue.pQueuePriorities) != 32 { return vk_failure("VkDeviceQueueCreateInfo layout"); }
+    var device: VkDeviceCreateInfo;
+    if sizeof(VkDeviceCreateInfo) != 72 || alignof(VkDeviceCreateInfo) != 8
+        || probe_offset(&device, &device.sType) != 0
+        || probe_offset(&device, &device.pNext) != 8
+        || probe_offset(&device, &device.queueCreateInfoCount) != 20
+        || probe_offset(&device, &device.pQueueCreateInfos) != 24 { return vk_failure("VkDeviceCreateInfo layout"); }
+    puts("Vulkan x64 layouts: seven sizes, alignments and accessed field offsets match header 239");
+    return true;
+}
+
+fn indexed_draw_lookup(): bool {
+    var app: VkApplicationInfo = { apiVersion: VkApi12, ..default };
+    var request: VkInstanceCreateInfo = { sType: VkInstanceCreateInfoTag, pApplicationInfo: &app, ..default };
+    var instance: VkInstanceHandle* = null;
+    if !vk_ok("vkCreateInstance", vkCreateInstance(&request, null, &instance)) { return false; }
+    defer vkDestroyInstance(instance, null);
+
+    // Select the first enumerated physical device even if more are present.
+    var physical: VkPhysicalDeviceHandle* = null;
+    var count: u32 = 1;
+    var result = vkEnumeratePhysicalDevices(instance, &count, &physical);
+    if result != VkIncomplete && !vk_ok("vkEnumeratePhysicalDevices", result) { return false; }
+    if count != 1 || physical == null { return vk_failure("no Vulkan physical device"); }
+    var props: VkPhysicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(physical, &props);
+    puts(&props.deviceName[0]); puts(vk_device_kind(props.deviceType));
+    readback_number("apiVersion", props.apiVersion); readback_number("driverVersion", props.driverVersion);
+    readback_number("vendorID", props.vendorID); readback_number("deviceID", props.deviceID);
+    if props.apiVersion < VkApi12 { return vk_failure("core Vulkan 1.2 required"); }
+
+    var supported: VkPhysicalDeviceVulkan12Features = { sType: VkVulkan12FeaturesTag, ..default };
+    var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &supported), ..default };
+    vkGetPhysicalDeviceFeatures2(physical, &features);
+    if supported.drawIndirectCount == 0 { return vk_failure("drawIndirectCount unavailable"); }
+    var enabled: VkPhysicalDeviceVulkan12Features = { sType: VkVulkan12FeaturesTag, drawIndirectCount: 1, ..default };
+    var priority: f32 = 1.0;
+    var queue: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: 0,
+        queueCount: 1, pQueuePriorities: &priority, ..default };
+    var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, pNext: bits(void*, &enabled),
+        queueCreateInfoCount: 1, pQueueCreateInfos: &queue, ..default };
+    var device: VkDeviceHandle* = null;
+    if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &device)) { return false; }
+    defer vkDestroyDevice(device, null);
+    if vk_load_indexed_indirect_count(device) == null { return vk_failure("vkCmdDrawIndexedIndirectCount lookup returned null"); }
+    puts("live device: enabled drawIndirectCount; vkGetDeviceProcAddr returned vkCmdDrawIndexedIndirectCount");
+    return true;
+}
+
+export fn main(): i32 {
+    if !probe_layouts() { return 3; }
+    if !indexed_draw_recording_checks() { return 1; }
+    if !indexed_draw_lookup() { return 2; }
+    return 0;
+}

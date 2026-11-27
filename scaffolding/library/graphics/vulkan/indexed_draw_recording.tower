@@ -1,0 +1,82 @@
+import tower;
+import .indexed_indirect;
+import readback_abi;
+import indexed_draw;
+import readback_device;
+
+// Only the Tower recording callback sees these tokens. No fake handle reaches Vulkan.
+struct DrawObservation {
+    calls: u32;
+    cmd: VkCommandBufferHandle*;
+    commands: VkBufferHandle*;
+    offset: u64;
+    count: VkBufferHandle*;
+    count_offset: u64;
+    maximum: u32;
+    stride: u32;
+}
+
+fn observe_draw(cmd: VkCommandBufferHandle*, commands: VkBufferHandle*, offset: u64,
+    count: VkBufferHandle*, count_offset: u64, maximum: u32, stride: u32): void {
+    var observed = bits(DrawObservation*, cmd);
+    observed.calls++;
+    observed.cmd = cmd;
+    observed.commands = commands;
+    observed.offset = offset;
+    observed.count = count;
+    observed.count_offset = count_offset;
+    observed.maximum = maximum;
+    observed.stride = stride;
+}
+
+fn recording_case(observed: DrawObservation*, commands: VulkanIndirectBuffer, range: IndexedIndirectRange,
+    count: VulkanIndirectBuffer, count_offset: u64): bool {
+    *observed = default;
+    var cmd = bits(VkCommandBufferHandle*, observed);
+    return vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset)
+        && observed.calls == 1 && observed.cmd == cmd && observed.commands == commands.handle
+        && observed.offset == range.command_offset && observed.count == count.handle
+        && observed.count_offset == count_offset && observed.maximum == range.max_draws
+        && observed.stride == range.stride;
+}
+
+
+fn indexed_draw_recording_checks(): bool {
+    var tokens: u64[2] = default;
+    var observed: DrawObservation = default;
+    var cmd = bits(VkCommandBufferHandle*, &observed);
+    var commands: VulkanIndirectBuffer = { handle: bits(VkBufferHandle*, &tokens[0]), byte_size: 327684 };
+    var range: IndexedIndirectRange = { command_offset: 4, max_draws: 16384, stride: 20 };
+    if !recording_case(&observed, commands, range, commands, 0) { return vk_failure("aliased stride-20 call"); }
+
+    var high = convert(u64, 1) << 32;
+    var count_offset = high * 2 + 8;
+    var count: VulkanIndirectBuffer = { handle: bits(VkBufferHandle*, &tokens[1]), byte_size: count_offset + 4 };
+    range = { command_offset: high + 4, max_draws: 2, stride: 32 };
+    commands.byte_size = high + 56;
+    if !recording_case(&observed, commands, range, count, count_offset) { return vk_failure("64-bit stride-32 call"); }
+
+    observed.calls = 0;
+    commands.byte_size--;
+    if vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset) { return vk_failure("short commands accepted"); }
+    commands.byte_size++;
+    count.byte_size--;
+    if vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset) { return vk_failure("short count accepted"); }
+    count.byte_size++;
+    if vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset - 2) { return vk_failure("misaligned count accepted"); }
+    range.command_offset -= 2;
+    if vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset) { return vk_failure("misaligned commands accepted"); }
+    range.command_offset += 2;
+    range.stride = 22;
+    if vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, count, count_offset) { return vk_failure("misaligned stride accepted"); }
+    range.stride = 32;
+    var missing: VulkanIndirectBuffer = { handle: null, byte_size: count.byte_size };
+    if vk_record_indexed_indirect_count(null, cmd, commands, range, count, count_offset)
+        || vk_record_indexed_indirect_count(observe_draw, null, commands, range, count, count_offset)
+        || vk_record_indexed_indirect_count(observe_draw, cmd, missing, range, count, count_offset)
+        || vk_record_indexed_indirect_count(observe_draw, cmd, commands, range, missing, count_offset)
+        || vk_load_indexed_indirect_count(null) != null { return vk_failure("null input accepted"); }
+    if observed.calls != 0 { return vk_failure("callback reached on refused input"); }
+    puts("recording callback: seven arguments matched twice; all invalid inputs refused before dispatch");
+    return true;
+}
