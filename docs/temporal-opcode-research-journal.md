@@ -123721,3 +123721,16 @@ verified the incremental bundle on the pinned prerequisite and reproduced
 the COFF, DLL, import library, C consumers, simulated driver and guarded PE.
 The packet contains full command traces, module paths, exit codes and raw
 bytes for replay.
+
+## Windows x64 combined Vulkan library
+
+Host 11, assignment `b0757601-2785-4a65-bae3-d37a7a6aeb8e`. Started at
+published shader receipt `edb8c3336e0026821422142c3bd66afb631996cc`.
+Imported only `frame_submit.tower` and `frame_submit.h` from
+`525c4d257f538ea454d1418a5bb9a5891c7e21d0` (implementation `a2c1560f`).
+Git blob IDs match the donor, respectively
+`4eb72744ebba0ffeb7921e01316857c137882a85` and
+`d1eb8663147c90513ee403b733a9b37ea2feda3c`. The only difference
+between the two readback ABI files is the declaration of device versus
+queue idle. The queue, fence, submit descriptor and loader signature match.
+The shader base retains its own readback ABI and synchronous callers.

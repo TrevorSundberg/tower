@@ -1,0 +1,7 @@
+import tower;
+import readback_abi;
+
+// Borrow the caller's descriptor and arrays through the loader call.
+export fn tower_vk_queue_submit_one_v1(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    return vkQueueSubmit(queue, 1, info, fence);
+}
