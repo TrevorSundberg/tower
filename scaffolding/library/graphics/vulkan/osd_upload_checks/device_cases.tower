@@ -31,15 +31,18 @@ fn release_image(device: VkDeviceHandle*, im: Image*): void {
     vkDestroyImage(device, im.handle, null);
     vkFreeMemory(device, im.memory, null);
 }
-fn make_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: Image*): bool {
+fn bind_new_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: Image*): bool {
     var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: format,
         extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: s.layers,
         samples: VkSample1, usage: usage, ..default };
     if !vk_ok("create image", vkCreateImage(ctx.device, &info, null, &out.handle)) { out.handle = null; return false; }
     var req: VkMemoryRequirements;
     vkGetImageMemoryRequirements(ctx.device, out.handle, &req);
-    if !vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
-        || !vk_ok("bind image", vkBindImageMemory(ctx.device, out.handle, out.memory, 0)) { return false; }
+    return vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
+        && vk_ok("bind image", vkBindImageMemory(ctx.device, out.handle, out.memory, 0));
+}
+fn make_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: Image*): bool {
+    if !bind_new_image(ctx, s, format, usage, out) { return false; }
     var view: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: out.handle, viewType: VkView2D, format: format,
         subresourceRange: { aspectMask: VkColorAspect, levelCount: s.mips, layerCount: s.layers, ..default }, ..default };
     if s.layers > 1 { view.viewType = View2DArray; }

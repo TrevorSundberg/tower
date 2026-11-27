@@ -31,8 +31,14 @@ fn retained_color(shape: Shape, texture: u32, layer: u32, mip: u32, x: u32, y: u
     return p;
 }
 
+extern fn tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
+    format: u32, range: VkImageSubresourceRange*, out: VkImageViewHandle**): i32;
+
+struct TextureRecord { shape: Shape; payload_bytes: u64; view_type: u32; }
+
 // Upload from one mapped allocation. The caller owns the new image across return.
-fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, bytes: u64, seed: u32, image: Image*): bool {
+fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, record: TextureRecord, seed: u32, image: Image*): bool {
+    var shape = record.shape; var bytes = record.payload_bytes;
     var copies: VkBufferImageCopy[8];
     var count = build_texture_regions(shape, &copies[0], convert(u32, sizeof(decltype(copies)) / sizeof(VkBufferImageCopy)), bytes);
     if count == 0 { return vk_failure("invalid retained upload regions"); }
@@ -54,7 +60,9 @@ fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, b
     }
     if convert(u64, offset) != bytes { return vk_failure("staging size mismatch"); }
     var format = Rgba8Srgb; if shape.texel_bytes == 1 { format = R8Unorm; }
-    if !make_image(ctx, shape, format, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage, image) { return false; }
+    if !bind_new_image(ctx, shape, format, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage, image) { return false; }
+    var range: VkImageSubresourceRange = {aspectMask: VkColorAspect, levelCount: shape.mips, layerCount: shape.layers, ..default};
+    if !vk_ok("create view", tower_vk_create_bound_image_view_v1(ctx.device, image.handle, record.view_type, format, &range, &image.view)) { return false; }
     output.readback_number("texture", seed); output.readback_label("staged_bytes"); output.readback_decimal(bytes);
     output.readback_number("image_format", format); output.readback_number("image_memory_flags", image.flags);
     output.readback_number("staging_memory_flags", staging.flags);
@@ -101,12 +109,13 @@ fn check_retained_pixels(shape: Shape, seed: u32, region: VkBufferImageCopy*, da
 }
 
 // Read one subresource at a time so the font does not require six simultaneous readback allocations.
-fn sample_retained(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, s: Shape, seed: u32, image: Image*): bool {
+fn sample_retained(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, record: TextureRecord, seed: u32, image: Image*): bool {
+    var s = record.shape;
     var target: Image = default; defer release_image(ctx.device, &target);
     if !make_image(ctx, {width: s.width, height: s.height, layers: 1, mips: 1, texel_bytes: 4},
         VkRgba8Unorm, VkColorAttachmentUsage | VkTransferSrcUsage, &target) { return false; }
     var pipe: CountedPipelines = default; defer counted_destroy_pipelines(ctx.device, &pipe);
-    var arrayed: u32 = 0; if s.layers > 1 { arrayed = 1; }
+    var arrayed: u32 = 0; if record.view_type == View2DArray { arrayed = 1; }
     var vertex = getenv("OSD_VERTEX_SPV"); if vertex == null { return vk_failure("OSD_VERTEX_SPV is required"); }
     if !open_sampler_pipeline(ctx.device, &pipe, {width: s.width, height: s.height}, arrayed, vertex) { return false; }
     set_sample_image(ctx.device, pipe.set, image.view);
@@ -133,15 +142,13 @@ fn sample_retained(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, s: Shape, 
     return true;
 }
 
-struct TextureRecord { shape: Shape; payload_bytes: u64; }
-
 fn retained_inventory(ctx: ReadbackDevice*): bool {
     var records: TextureRecord[5] = {
-        {shape: {width: 2048, height: 2048, layers: 6, mips: 1, texel_bytes: 1}, payload_bytes: 25165824},
-        {shape: {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4}, payload_bytes: 450560},
-        {shape: {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4}, payload_bytes: 450560},
-        {shape: {width: 256, height: 352, layers: 4, mips: 1, texel_bytes: 4}, payload_bytes: 1441792},
-        {shape: {width: 64, height: 64, layers: 2, mips: 1, texel_bytes: 4}, payload_bytes: 32768}
+        {shape: {width: 2048, height: 2048, layers: 6, mips: 1, texel_bytes: 1}, payload_bytes: 25165824, view_type: View2DArray},
+        {shape: {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4}, payload_bytes: 450560, view_type: VkView2D},
+        {shape: {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4}, payload_bytes: 450560, view_type: VkView2D},
+        {shape: {width: 256, height: 352, layers: 4, mips: 1, texel_bytes: 4}, payload_bytes: 1441792, view_type: View2DArray},
+        {shape: {width: 64, height: 64, layers: 2, mips: 1, texel_bytes: 4}, payload_bytes: 32768, view_type: View2DArray}
     };
     var count = sizeof(decltype(records)) / sizeof(TextureRecord);
     var images = alloc(Image, count); if images == null { return vk_failure("allocate retained image owners"); }
@@ -156,12 +163,12 @@ fn retained_inventory(ctx: ReadbackDevice*): bool {
     if !vk_ok("allocate inventory primary", vkAllocateCommandBuffers(ctx.device, &allocation, &cmd)) { return false; }
     for (var i: usize = 0; i < count; i++) {
         images[i] = default; live++;
-        if !upload_one(ctx, cmd, records[i].shape, records[i].payload_bytes, convert(u32, i), &images[i]) { return false; }
+        if !upload_one(ctx, cmd, records[i], convert(u32, i), &images[i]) { return false; }
         puts("staging_released");
     }
     output.readback_size("retained_images", live);
     for (var i: usize = 0; i < count; i++) {
-        if !sample_retained(ctx, cmd, records[i].shape, convert(u32, i), &images[i]) { return false; }
+        if !sample_retained(ctx, cmd, records[i], convert(u32, i), &images[i]) { return false; }
     }
     puts("all_samples_retired");
     return true;
