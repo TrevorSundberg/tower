@@ -762,3 +762,25 @@ owns the allocation and retires GPU use before releasing the resources.
 
 The [Win64 allocation recorder](osd_checks/README.md#post-create-allocation-plan-on-win64)
 builds a separate C consumer against the public header and release library.
+
+### Draw Win64 cross-link of the allocation planner
+
+Draw independently rebuilt Tower `61ebea411f92bc8e750181aaa543aca42a955818`
+with the pinned bootstrap. The 6,656-byte DLL had SHA-256
+`3d6fd8e03868b072fb55d16ba963f4fa2880e0d4e0c8092694c1670fa08ce30b`.
+The 5,122-byte import library had SHA-256
+`ed9a0e67ff7de692509398880aa68b090335f84d241e7f451e26654127e96479`.
+
+At Draw `51d4785e6456353b9a65f49d311cb0c6925ee42d`, Draw cross-compiled
+the actual `draw_vk_prepare_image_allocation` body. It reported an AMD64
+REL32 relocation at offset `0x17` to `tower_vk_plan_image_allocation_v1`.
+The linked consumer PE had SHA-256
+`8a918f57244ec2fbbb82ef98fa196ac7ff8ae84f244eb94eb17f460d24114ffb`
+and imported that name from `tower_graphics.dll` with hint 13. Rendering
+independently checked the two release hashes, the preserved ordinal 1–12
+mappings and hint 13 in its own retained external C consumer.
+
+Draw's result covers cross-compilation and linking. Its slot 9 job
+`304c4244-b69d-42fe-afc8-f2903aedd622` owns execution of the release
+checker and the shipping packed HUD comparison after ordinal-12 job
+`a1fbfaac-7f89-4011-8648-dadada799ec8`.
