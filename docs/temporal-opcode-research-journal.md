@@ -125530,3 +125530,14 @@ C device probe on success and injected failure. The Win64 ASan link lacked
 its target runtime and Clang rejected Win64 TSan. The production COFF, Wine,
 validation layer and driver ran without compiler sanitizer instrumentation.
 Physical Windows and Draw's shipping application remain separate open checks.
+
+### Package the image-format preflight with the Linux Vulkan C entries
+
+Host 12 job a3a243ec starts at the eleven-entry Linux tip 8edf50ba.
+Its ordinary builder reproduced the bef3026f release before editing. The
+frozen C executable reproduced its twelve recording rows. The preflight
+source and SDK header come verbatim from b68b1835, introduced at 745336fa.
+91737041 tested the standalone provider alongside the eleven-entry package.
+The common package uses the existing readback_abi owner at 8edf50ba.
+Its declarations already cover the query and limits. The Linux builder
+adds one ordinary Tower unit to its existing link.
