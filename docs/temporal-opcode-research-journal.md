@@ -123400,3 +123400,99 @@ is `fd76de21f987309932111fb2a8b29f3c4d77c0a7031e1c9c2e9c516ee61c9b55`.
 Rendering checked the archive manifest, Git-backed inputs, Wasm digest,
 raw browser log and binary snapshots. The original compiler-manager CPU
 fixture remains a separate dependency.
+
+### WebGPU hardware acceptance and native EGL recovery on host 11
+
+Worker assignment `a2de15ed-4e3a-4d86-98ff-7580f66b8473` started from
+the published WebGPU reference `eef7b6ce2d1473cd997a39dacb639bb990b6ccdf`.
+Its sole parent is the tested worker source `9560c6599553e0037d909ad9b50505d9e03c5694`.
+The four WebGPU files match between those commits. A fresh search of
+`a580e70a` found no path or content matching the original RGBA8 oracle.
+The worker fixture and supplied byte contract remain the inputs for this
+backend. The manager owns the Draw and compiler-manager fixture provenance.
+
+**Native Vulkan.** The NVIDIA GLX ICD's direct dependencies resolved. Its
+dynamic search for `libEGL.so.1` exhausted the private SDK and system paths.
+With the NVIDIA manifest pinned, `vulkaninfo --summary` exited 1 at
+`vkCreateInstance` with `ERROR_INCOMPATIBLE_DRIVER`. Extracting Debian
+12 `libegl1:amd64=1.6.0-1` into a private directory supplied the missing
+dispatcher for the installed GLVND 1.6.0-1 and NVIDIA 615.71.10 libraries.
+The package SHA-256 is `fe4d8b39f6e6fe1a32ab1efd85893553eaa9cf3866aa668ccf355f585b37d523`.
+With that directory prepended to the loader path the same probe exited 0.
+Its sole physical device was the discrete Quadro RTX 6000, PCI `10de:1e78`
+at `89:00.0`, UUID `26f60f6c-ead6-5faf-0253-a959b2e93a2d`, Vulkan
+1.4.351, driverInfo 615.71.10. The SDK and driver hashes, device-node
+ownership and both loader traces are in the packet. The host has a
+world-writable `/dev/nvidia7` and a group-restricted `/dev/dri/renderD134`.
+
+**Chromium hardware.** Chromium 156.0.8078.108, revision
+`730482a940ce25ae7cf051320d8340e793acf8b9`, used ANGLE/Vulkan on the
+Quadro for its renderer. The loader trace also shows Dawn creating a
+Vulkan instance and enumerating the Quadro. The page's adapter request
+returned null and logged `A valid external Instance reference no longer exists.`
+The hardware fixture exited 1 after its CPU controls. Headless
+`--enable-gpu` still returned null. Two diagnostic launches narrowed
+the optional adapter data exposed by the service, first removing
+`--enable-unsafe-webgpu`, then enabling developer information only in
+Blink. Both returned null. The matching Dawn source emits this message
+when it cancels the request callback during wire shutdown. The cause of
+shutdown was not established. Further diagnosis needs the reason the
+Dawn wire connection closes after enumeration. Hardware device creation,
+submission, completion, map, unmap, validation and pixels remain open.
+[Chromium headless GPU guidance](https://chromium.googlesource.com/chromium/src.git/+/main/docs/gpu/using-gpu-hardware-in-headless-chrome.md)
+and [pinned Dawn request callback](https://dawn.googlesource.com/dawn/+/68b5c1f3f2fc6ccacf7a9cc0cbea0d2b6805ebfa/src/dawn/wire/client/Instance.cpp).
+
+**Runner.** `2e57c152` adds a Tower admission phase before requesting a
+device. Hardware requires explicit non-fallback status, discrete or
+integrated GPU type, and the Vulkan backend on the selected adapter.
+CPU, fallback and software renderer names fail. The browser transport
+compares the selected vendor, model, PCI device and driver version with
+one CDP device in that browser. It accepts zero-padded hexadecimal ANGLE
+IDs and trailing zero version components. Missing or conflicting evidence
+fails closed. `dd8608a5` retains that CDP snapshot for the log. The software
+request forces fallback and requires a reported fallback or software identity.
+The Tower readback now checks both digest literals.
+
+The evidence packet's `bash /path/to/evidence/check-controls.sh`, run from
+the built checkout root with Node, exercises the same Wasm gate using recorded
+synthetic browser inputs. The correlated physical sample reaches the
+`requestDevice` boundary and stops there, exit 0. No adapter, inventory alone,
+redaction, declared fallback, SwiftShader, CPU, absent fallback status, unknown
+type, missing backend, missing or different driver, different PCI ID and empty
+CDP inventory each exit 1. Each case records the selected fields, CDP records,
+reason and exit. These controls create zero devices.
+
+Use the exact build and locked npm commands in the preceding entry. For the
+private Debian SDK on this worker, source the packet's `host-env.sh` from Bash,
+then run from the checkout root:
+
+```sh
+export LD_LIBRARY_PATH="$job/egl/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH"
+export VK_DRIVER_FILES=/etc/vulkan/icd.d/nvidia_icd.json
+VK_LOADER_DEBUG=all LD_DEBUG=libs "$job/sdk/usr/bin/vulkaninfo" --summary
+DEBUG=pw:browser timeout 60 node scaffolding/library/graphics/webgpu_rgba8_run.mjs hardware
+VK_DRIVER_FILES="$(dirname "$CHROMIUM")/vk_swiftshader_icd.json" DEBUG=pw:browser \
+  timeout 60 node scaffolding/library/graphics/webgpu_rgba8_run.mjs software
+```
+
+At the code change, software exited 0. Its WebGPU adapter was Google
+SwiftShader Device (Subzero), `0xc0de`, Vulkan, driver 5.0.0, type CPU,
+fallback true. One submission completed. Both eight-byte rows in the 264-byte
+mapping were `112233ff112233ff` at offsets 0 and 256. Unmap finished and
+validation was clean. At destination offset 4, span 24 and pitch 12, the
+16 active bytes and full 32 guarded bytes matched the two SHA-256 values in
+the preceding entry. The three short-input rejections preserved the 32 sentinels.
+The new Wasm SHA-256 is `fefa70df86899b005d323dc603b82091557acde99d1d25d8430e75d5094096fb`.
+The previous source reproduced its published Wasm hash.
+
+Host 11 used the Xeon E5-2699 v4, affinity 0–87, CPU quota 1056000/100000,
+the pinned Linux x64 Tower compiler, Clang 19.1.7, Node 24.22.3 and Playwright
+1.65.1. Single samples at one compiler job measured baseline/candidate wall
+1.23/1.15 s, user+system CPU 1.22/1.14 s and peak RSS 96536/96508 KiB.
+Whole software runner invocations, each with a fresh browser profile, took
+1.18/1.22 s wall, 1.87/1.95 s CPU and 202296/204312 KiB peak RSS. These
+include process startup and all guest phases. No GPU timings were collected.
+This guest runs in one lane. The repository has no supported Wasm
+ASan/UBSan/TSan execution for it. The first edited build diagnosed an
+unsupported unbraced else-if; the corrected nested branch compiled.
+The packet retains the final tested tip, commands, exits and readback bytes.
