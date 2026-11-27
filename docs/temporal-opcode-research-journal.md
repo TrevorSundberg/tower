@@ -125689,3 +125689,19 @@ bounded bundle and executes the ordinary recording, fault and hardware
 checks. Its manifest lists the separate sanitizer commands and expected
 exits. The published bootstrap emits both objects directly from the new
 unit. The source and artifacts are available for Win64 review and linkage.
+
+## Public Vulkan operation for normal retirement of an owned image
+
+Draw 9fc0c9be identified the duplicate teardown after normal retirement in its
+C and Tower owners. The new standalone provider at 5dea5876 consumes the view,
+image and memory handle values independently. Draw supplies completion,
+bookkeeping and owner reset. The CPU recorder exercised all eight subsets
+against the actual object and standalone DSO via a C caller, with a repeated
+empty call after each. Both exited 0 and a swapped-order control exited 4.
+Verified all four runtime bindings for the DSO. GNU Win64 COFF cross-compiled.
+The bootstrap parser rejected expected as a parameter name, so the
+recording fixture uses expected_handle. The extracted TinyCC needed explicit CRT
+object paths and the Vulkan loader directory while linking the DSO client.
+The release recipe assumes an installed C toolchain. Device, sanitizer and
+paired measurement work is delegated to reserved workers.
+[Contract and exact acceptance commands](../scaffolding/library/graphics/vulkan/image_retirement_v1.md)
