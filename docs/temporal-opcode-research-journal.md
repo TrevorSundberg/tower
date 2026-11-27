@@ -125331,3 +125331,13 @@ portable source, build it verbatim, check the reviewed header against
 the frozen caller and repeat the recording, positive/fault device,
 old-client and timing checks using the eleven-entry DLL. Physical Windows
 and the shipping Draw application remain open.
+
+| Win64 arm | C source SHA-256 | Optimized AMD64 COFF SHA-256 |
+| --- | --- | --- |
+| Independent SDK reference | `cfb75d60c78bb66d4e49af4597b427c7c1460482d37541c088fe5753c64a4b31` | `ea9743d28a17c72e8dd7c8d107a5ff8a4233b5bb5fcf7a92e5061faa19fee358` |
+| External DLL caller | `e4f383141861a79b52de65f9ff364d5107ff1b4c3f12f60e0d5dc63175127c0d` | `e31256e989616776a8ebeaf9cc997e22f12dd02002c69110c9c16fff01adc7d6` |
+
+A fresh upstream reader replay at 838ab5c7 reproduced all 16 checked
+product hashes and passed the recording, positive/fault device and native
+sanitizer runs. An earlier attempt to serve the base through a local
+partial checkout stopped at upload-pack's missing promisor object.
