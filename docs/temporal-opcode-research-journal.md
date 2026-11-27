@@ -124235,16 +124235,6 @@ recording inputs and GPU receipts retain their build identity at the
 frozen Win64 handoff. Runtime timing and memory measurements apply to
 that build. This packaging change edits only the header comment.
 
-### Blocking upload finish in the Windows x64 graphics DLL
-
-Host 11 started from the tested five-export tree `c40dae39` and its separate
-header correction `208ebc4d`. The blocking finish source and C declaration
-come from `rendering/vulkan-command-finish-d1f468c3` at `4b1f0af2`
-(implementation `d1f468c3`). The finish module imports end and frame submit.
-The ordinary COFF build therefore replaces the end object with the aggregate
-finish object. The outward C link command remains the same. The release
-adds ordinal 6 and imports queue idle from the Vulkan loader. The fixture
-retains ownership of reset, copy, barriers, queue synchronization and cleanup.
 ### Review of Win64 frame command reuse through the Tower DLL
 
 Rendering verified the bare-ID package for `a7c423bf`, SHA-256
@@ -124271,3 +124261,106 @@ The gated control first returned VK_NOT_READY, then reported completion of
 both fences and a set GPU event. The hardware evidence is Wine 8 on a
 Quadro RTX 6000, NVIDIA 615.71.10. The host loader inserted the Khronos
 layer. Physical Windows and the five-entry Draw application remain open.
+
+### Blocking upload finish in the Windows x64 graphics DLL
+
+Host 11 started from the tested five-export tree `c40dae39` and its separate
+header correction `208ebc4d`. The blocking finish source and C declaration
+come from `rendering/vulkan-command-finish-d1f468c3` at `4b1f0af2`
+(implementation `d1f468c3`). The finish module imports end and frame submit.
+The ordinary COFF build therefore replaces the end object with the aggregate
+finish object. The outward C link command remains the same. The release
+adds ordinal 6 and imports queue idle from the Vulkan loader. The fixture
+retains ownership of reset, copy, barriers, queue synchronization and cleanup.
+
+The source history includes the manager's five-export integration
+`32e6f52b2d60953c7bad1678fb7bc1786bfccc2a` and the independently
+verifiable header commit `208ebc4d`. The packet preserves both original
+receipts. The final source keeps the 38-case C/HUD input from the reviewed
+branch. The release used the checked-in Linux x64 bootstrap, LLVM 19 and
+the preceding worker's checksummed SDK lock on host 11. Commands from a
+fresh source tree, with SDK variables set as in graphics_dll_windows.md:
+
+```sh
+v=scaffolding/library/graphics/vulkan
+"$v/build_graphics_dll.sh" "$PWD/out" --with-consumer
+llvm-readobj --file-headers --coff-imports --coff-exports out/tower_graphics.dll
+llvm-nm --extern-only out/command_finish.obj
+```
+
+**Release and controls.** The baseline reproduced the previous 3,584-byte
+DLL. The successor has six public names and one loader dependency,
+vulkan-1.dll. The link map and COFF symbols place one definition each
+of end, submit and finish in the aggregate. The only added loader import
+is vkQueueWaitIdle. The separate upload executables share one fixture
+object exporting run_upload. Their ordinary C calls use the independent
+raw body or the production ordinal 6. The raw executable imports no Tower
+DLL. Wine's loader trace identifies the production DLL in the linked lane.
+These checks use native x64 PE binaries on Wine 8, Linux x86-64, Vulkan
+1.3 core profile. The selected discrete Quadro RTX 6000 reported Vulkan
+1.4.351, NVIDIA 615.71.10, UUID 26f60f6cead65faf0253a959b2e93a2d,
+queue family 0, index 0. The guest's explicit Khronos-layer request failed
+at instance creation with VK_ERROR_LAYER_NOT_PRESENT (−6). The supported
+runs installed a guest debug-utils callback, requested synchronization
+validation at the host loader and verified Khronos device-layer insertion.
+All upload and gate runs reported zero callback warnings/errors.
+
+Each arm reused a single resettable primary for 64 coherent buffer copies.
+The complete 16-byte destination alternated between
+`a5a5a5a53031323334353637a5a5a5a5` and `a5a5a5a56162636465666768a5a5a5a5`.
+The trace identifies 64 ends, single-command submits with null fence, and
+idle calls to the submit queue. Only success permitted the next reset.
+A separate recording loader checked the whole descriptor, order, exact
+results and absence of trailing calls for −4, −1 and +1 injected at
+each of E, S and I. Success produced ESI. All 18 fatal C controls exited
+1. In six isolated real-GPU fault runs the loader forwarded end/submit
+to Wine and returned a synthetic idle result. The owner retained both
+mappings, memory, buffers and primary. It resolved the real device PFN,
+drained the same queue, and observed the complete first guarded payload
+before cleanup. Each fault process exited 1 with its injected signed
+result in the log. These faults did not cause real device loss.
+
+The unchanged earlier C programs, 38 counted-record controls, two async
+gate lanes, 336 logical bytes of counted results and the 240 captured
+staging bytes passed against the six-export DLL. The gate observed
+VK_NOT_READY before the host signal, then both fences and the GPU event.
+The alternating frame positions and guard bytes matched the prior packet.
+
+**Measurements.** Xeon E5-2699 v4, 88 logical CPUs, 10.56-CPU quota,
+one application recording thread, same Quadro and layer configuration.
+Five fresh processes per arm, alternating order with warm inputs. Every
+timed run checked every destination. Median wall/CPU seconds and peak
+KiB were 0.36/0.32/116412 raw and 0.36/0.33/116060 linked. QPC at
+10 MHz gave median first/second finish times of 540.3/146.0 µs raw and
+497.9/109.4 µs linked. The median sum over 64 calls was 6.3792/5.7581 ms
+raw/linked. These host intervals include driver and validation work.
+The provider uses stack locals and borrowed handles. Driver allocation
+counts, GPU timestamps and scheduling contention were unmeasured.
+
+Three warm compiles per unit produced byte-identical objects at jobs 1
+and 4. At one job, end/finish median wall seconds, CPU seconds and peak
+KiB were 0.37/0.36/91188 and 0.38/0.37/92736. At four jobs they were
+0.45/0.49/93528 and 0.47/0.52/96948. Release uses one job.
+
+**Instrumentation and limitations.** Trapping Win64 C UBSan passed the
+recording matrix and checked hardware upload through the release DLL.
+The cross-SDK lacks the Win64 ASan runtime and Clang rejects Win64 TSan.
+Linux ASan and TSan instrumented the actual Tower finish function and
+the CPU recording suite, running four rounds on each of four libc pthreads
+with distinct stack-backed recorder state. One TSan startup failed on
+ADDR_NO_RANDOMIZE before the same executable completed. Both completed
+runs had empty sanitizer stderr. These CPU checks exclude the PE Tower
+machine code and GPU driver. Physical Windows, full Draw, displayed WSI,
+noncoherent memory and actual device loss remain untested.
+
+The first fixture compile exposed a missing import for the recovery PFN.
+The initial Wine parser expected a copy thunk which Wine 8 does not log.
+The final parser checks the observable reset/begin/end/submit/idle calls,
+and the content oracle checks the copy. The fixture's imported public
+roots initially emitted unused provider definitions into the executable.
+Keeping them private in the test-only snapshot removed them, verified by
+COFF symbols. The final measurements above use this frozen fixture. The
+sanitizer tool initially requested libc from the extracted cross-SDK. An
+explicit native CRT/libc link built the tool on the same host. All raw
+logs, source, manifests and replay commands are in worker packet
+`cce07bd9-4039-4a29-87d6-7d955443b83f`.

@@ -1,12 +1,12 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare and asynchronous
+`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
 Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h) and [counted recording](indexed_draw_c.h).
 The application also links the Vulkan SDK import library for its own Vulkan
 calls. At runtime the Tower DLL imports `vkCreateShaderModule`, `vkResetCommandBuffer`,
-`vkBeginCommandBuffer`, `vkEndCommandBuffer` and `vkQueueSubmit` from `vulkan-1.dll`.
+`vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit` and `vkQueueWaitIdle` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
 
@@ -80,7 +80,42 @@ shader created and destroyed; GPU event set after each of three fence retirement
   visibility before reading staging. A failed submit supplies no fence
   completion to wait on.
 
-## Host 11 validation
+## Blocking staged uploads
+
+With the queue externally synchronized, pass a recording primary allocated
+from a compatible pool. The C caller includes `frame_submit.h` and uses the
+same import library and Vulkan SDK link command as above.
+
+```c
+VkResult result = tower_vk_command_finish_v1(queue, cmd);
+```
+
+Finish ends the primary, submits its handle in one descriptor with zero
+semaphores and a null fence, then calls `vkQueueWaitIdle(queue)`. Each
+operation returns immediately on the first nonzero signed result. On
+success the caller can reuse the retired primary and release staging.
+The caller owns recording, memory visibility, external synchronization
+and all resource lifetimes. A failed idle follows an accepted submit.
+Keep the pool, primary, buffers and memory live until a separate owner
+drain establishes retirement or the caller applies its device-loss policy.
+The existing asynchronous frame submission still returns after submit.
+
+The release adds finish at ordinal 6. The aggregate `command_finish.obj`
+defines finish, end/prepare (5) and queue submit (1) once each. The PE
+imports six Vulkan loader calls. The 4,096-byte DLL has SHA-256
+`b5a46d778883c9c34dfc2921374c4fa3212c4b5d9e0cde6056480d388d5af222`.
+
+On host 11, a Win64 raw Vulkan caller and a separate C caller linked to
+this DLL each completed 64 uploads on the Quadro RTX 6000 under Wine 8.
+Each checked all 16 destination bytes through successive payload changes.
+Independent E/ES/ESI controls returned −4, −1 and +1 at each step. On the
+GPU, each injected idle result left the guarded first payload readable
+after a separate successful queue drain. The prior frame gate, counted
+pixels, staging order and C executables also passed with this DLL.
+Physical Windows and full Draw application execution remain open.
+[Host, build and replay evidence](../../../../docs/temporal-opcode-research-journal.md#blocking-upload-finish-in-the-windows-x64-graphics-dll)
+
+## Five-export validation at c40dae39
 
 The C example created a shader and retired the same event-setting primary
 three times. The separate counted C-linked executable imported all five
@@ -94,14 +129,14 @@ the subject fence returned VK_NOT_READY before host release. Both fences
 then completed and the GPU event was set. The counted and gated callbacks
 reported zero warnings or errors with host synchronization validation.
 
-The release DLL exports submit, shader creation and counted recording at
+The five-export DLL exposed submit, shader creation and counted recording at
 ordinals 1, 2 and 3. Begin is 4 and end/prepare is 5. The end object
 supplies the single definition of submit. Recorded C controls cover signed
 reset, begin, end and submit results, all optional descriptor slots,
 failure preservation and call order. Full Draw, displayed WSI and native
 Windows driver execution remain open. [Host 11 evidence](../../../../docs/temporal-opcode-research-journal.md#win64-frame-operations-in-the-counted-graphics-dll)
 
-The release DLL (3,584 bytes) has SHA-256
+The five-export DLL (3,584 bytes) has SHA-256
 `89fd77ce3213b9144994097b37560fdf7cb4487d00c9c2e5c25967b2b9f94bb6`.
 The direct C control and C application linked through all five exports
 produced identical 336-byte guarded output. An independent capture of the
