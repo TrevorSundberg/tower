@@ -24,10 +24,11 @@ an authorized source comparison.
 | Output | 2×2 `R8G8B8A8_UNORM`, CLEAR and STORE, 8 active bytes per row |
 | CPU copy | 32-byte allocation filled with `a5`, offset 4, writable span 24, pitch 12. Both row gaps and both outer guards are checked. |
 
-The `draw14` probe identifies the physical device through a Vulkan 1.3
-instance. It exits 1 before device creation if the device API is below Draw's
-required Vulkan 1.4. On a newer device it also refuses to certify the missing
-Draw feature inventory. The runnable profile is an explicit CLI choice.
+The `draw14` profile requests a Vulkan 1.4 instance after checking the
+loader version. It checks the selected physical device, enables the reported
+features on a new logical device and runs both captures. A refusal ends the
+request before submission. The [feature checks and Quadro run](counted_features.md)
+list the enabled bits, limits and commands.
 
 `counted-core13` queries and enables core `drawIndirectCount` and
 `dynamicRendering`. It requires a graphics+compute queue, the full advertised
@@ -97,9 +98,15 @@ llc-19 -relocation-model=pic -filetype=obj "$out/runtime.bc" -o "$out/runtime.o"
 "$out/counted_fixture" counted-core13 "$out/produce.comp.spv" "$out/triangle.vert.spv" "$out/color.frag.spv"
 ```
 
-Run `"$out/counted_fixture" draw14` separately. The expected result here
-is exit 1 with the Vulkan 1.4 refusal. Missing shaders and a wrong stage's
-SPIR-V each failed before submission with their own diagnostics.
+The 1.4 profile takes the same three shader paths.
+
+```bash
+"$out/counted_fixture" draw14 "$out/produce.comp.spv" "$out/triangle.vert.spv" "$out/color.frag.spv"
+```
+
+Host 11 passed on the Quadro RTX 6000 with the 1.4 loader. The 1.3 loader
+and a 1.3 physical device each refused the 1.4 request in separate runs.
+Missing shaders and a wrong digest each failed before submission.
 
 | Host 12 result | RTX 3090 hardware | llvmpipe software reference |
 | --- | --- | --- |
@@ -122,7 +129,7 @@ is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 | Fragment | `17e5f3481060bae1ae4f77e73146424a5c67b2aad4724dfcd754d72c9dc12e00` | `2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517` |
 
 The controls initialize and execute at most one record. Full-capacity
-execution, noncoherent invalidation, device loss, true Draw-profile execution
+execution, noncoherent invalidation, device loss, Draw’s shipped shaders
 and other graphics backends remain unverified for this path.
 
 ## Rendering review for Draw
@@ -140,12 +147,13 @@ Worker archive SHA-256 was `a32c55677b93b047d6d8e688fed2e9ab1a3807b7ed03b65ef16a
 
 The reported Draw gate includes Vulkan 1.4, `multiDrawIndirect`,
 `drawIndirectFirstInstance`, `drawIndirectCount`, `shaderDrawParameters` and
-capacity for at least 16384 draws. The strict fixture currently refuses every
-device, including devices reporting 1.4, pending implementation and comparison
-with Draw's pinned C and original shaders. Full-profile acceptance needs those
-inputs and matching guarded captures from a qualifying device.
-
-The next Tower library change will let a caller create a Vulkan shader module
-from borrowed SPIR-V words. The counted pipeline will use it for compute,
-vertex and fragment stages. Offline compilation, fixture hashes and file I/O
-stay at the call site. This gives Draw's asset loader an in-memory entry point.
+capacity for at least 16384 draws. The counted caller also needs dynamic
+rendering. On the Quadro RTX 6000 the `draw14` run enabled all five bits
+and used one command stream with capacity 16384, writing counts zero and one.
+The two headers and the two guarded caller buffers total 112 bytes. Rendering
+verified their SHA-256 as
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`
+on the strict run and its replay. Worker archive SHA-256 was
+`c24dae6e35a7ce8f7ea1d4276d8a72d3b281bf2fa159c31c9272f9b7d4540223`.
+These fixtures use independent shaders. Running Draw’s shipped assets through
+Tower’s shader-module operation remains a separate integration check.
