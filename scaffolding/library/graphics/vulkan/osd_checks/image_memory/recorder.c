@@ -10,7 +10,7 @@
 enum Case { Small, Wide, AllocationError, Clobber, BindError };
 static enum Case scenario;
 static int linked;
-static unsigned queries, allocs, binds, views;
+static unsigned queries, allocs, binds, views, destroyed;
 static VkDeviceSize size;
 static VkMemoryAllocateInfo plan;
 static VkMemoryDedicatedAllocateInfo dedicated;
@@ -59,6 +59,18 @@ VKAPI_ATTR VkResult VKAPI_CALL record_view(VkDevice d, const VkImageViewCreateIn
             !cb && account.count == 1 && scenario <= Wide, "view after bind");
     *out = (VkImageView)(uintptr_t)0x4321;
     return VK_SUCCESS;
+}
+
+VKAPI_ATTR void VKAPI_CALL record_destroy_view(VkDevice d, VkImageView v, const VkAllocationCallbacks *cb) {
+    require(!cb && d == device && v == (VkImageView)(uintptr_t)0x4321 &&
+            views == 1 && destroyed++ == 0, "view release");
+}
+VKAPI_ATTR void VKAPI_CALL record_destroy_image(VkDevice d, VkImage i, const VkAllocationCallbacks *cb) {
+    require(!cb && d == device && i == image && destroyed++ == 1, "image release");
+}
+VKAPI_ATTR void VKAPI_CALL record_free(VkDevice d, VkDeviceMemory m, const VkAllocationCallbacks *cb) {
+    require(!cb && d == device && m == acquired && destroyed++ == 2 && slot.memory == acquired &&
+            account.live == size && account.count == 1, "free before accounting reversal");
 }
 
 int main(int argc, char **argv) {
@@ -112,5 +124,13 @@ int main(int argc, char **argv) {
         fprintf(stderr, "source image %s failed (%d)\n", stage, result);
         return 1;
     }
+    vkDestroyImageView(device, view, NULL);
+    vkDestroyImage(device, image, NULL);
+    vkFreeMemory(device, slot.memory, NULL);
+    memory_released(&account);
+    slot.memory = VK_NULL_HANDLE;
+    require(destroyed == 3 && !account.count && !account.live && !account.allocation_bytes &&
+            account.peak == size && slot.left == guard && slot.right == guard, "retired owner");
+    printf("retired case=%s live=0 peak=%" PRIu64 " count=0 slot=null\n", names[scenario], account.peak);
     return 0;
 }
