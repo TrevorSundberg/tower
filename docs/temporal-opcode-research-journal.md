@@ -123447,3 +123447,51 @@ Rendering slot 11 job `e792b5c8-59f7-407f-9e7b-8108e7ba633c`
 will run the strict Win64 fixture under Wine and compare the dynamic
 ordinary and explicit u32 viewport conversions at binary32 rounding
 boundaries. Draw's whole-frame timings remain attributed to Draw.
+### Win64 execution of the Draw strict scalar fixtures
+
+Rendering assignment `e792b5c8-59f7-407f-9e7b-8108e7ba633c` starts from
+the published scalar topic at `fc7c4956bc261d5a321fb6ea69c970d0d50fb1c0`.
+The reported Draw viewport caller is at `cb8c04f7` with integration
+`0e653426`. The test reproduces the two numeric expressions in Tower.
+The proposed check is a separate translation unit per dynamic conversion,
+the retained four assertion groups, isolated conversion-trap processes,
+and an independent binary32 encoding of the eleven integer inputs.
+
+On slot 11, Wine 8.0 ran two AMD64 PE32+ console executables. Debian LLVM
+19.1.7 and the pinned Linux bootstrap (SHA-256 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`)
+emitted the fixture objects at one job for `x86_64-pc-windows-msvc` and
+`x86_64-w64-windows-gnu`. The original MSVC update, operations and
+acceptance IR and objects matched the prior receipt byte for byte.
+Both links used the checked-in MSVC-triple `runtime-windows-x64.ll`
+(SHA-256 `4ac2eab59e18338852e967b744f2257c85173731140d568d85ac594d91049326`),
+pruned to the strict helpers, trap, print and their dependencies.
+Clang/LLD linked the objects with MinGW-w64 10 CRT startup, GCC 12 POSIX
+libraries and Wine's builtin msvcrt.dll. The initial MSVC link required
+`_fltused`. The SDK's `-lntdllcrt` supplied the import from ntdll.dll.
+Only the GNU-target fixture main called `__main`. The dynamic scalar
+functions used the same Win64 argument positions and XMM0 result on both
+targets. This qualifies the named CRT combination under Wine.
+
+Wine cmd.exe captured each Windows child status as a signed decimal. A
+separate exit of -513 checked the transport. On each target check_updates
+(14 assertions), check_ops32 (19), check_ops64 (19) and check_widths (5)
+returned 0 with empty output. Each of the nine original conversion exports
+ran in a separate child, exited +1 and wrote exactly
+`Numeric conversion out of range; use bits for bit reinterpretation` and LF
+to stderr. The viewport child returned 0. All eleven ordinary and explicit
+encodings matched the independent LLVM assembler binary32 data. The two
+midpoints 16777217 and 16777219 yielded 0x4b800000 and 0x4b800002.
+At exponent 24 the spacing is two, and each choice has an even low
+significand bit. UINT32_MAX rounded to 0x4f800000.
+
+In both linked PEs, ordinary u32_to_f32 calls tower_strict_float_from_integer
+and moves EAX into XMM0. The explicit wrapper inlines integer normalization,
+sticky-bit shifts, rounding and packing, then reinterprets the bits. Its
+three call sites target tower_trap on range-check paths. Neither body uses
+a hardware integer-to-float conversion. Each update32/update64 still calls
+tower_strict_float_binary, tower_strict_float_from_integer and
+tower_strict_float_binary. Hardware lowering and physical Windows execution
+remain open. Draw source execution, shaders, GPU behavior and application
+performance are outside this CPU-only fixture. The packet includes the build
+and run commands, both PEs and link maps, disassembly, signed exits, raw
+streams, SDK hashes, failures and clean-checkout replay instructions.
