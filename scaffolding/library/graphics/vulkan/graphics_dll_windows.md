@@ -121,6 +121,14 @@ and index buffer. It submits separately and keeps resources live until
 retirement. The library borrows the handles for the call and never maps the
 GPU count.
 
+Draw's optional OSD encoder at `94f2d31e` supplies the same 1,088-byte
+logical buffer for both roles. The first pass forwards command/count offsets
+0/20 and the second forwards 24/44. Both use maximum 1 and stride 20.
+Pass the logical size in both size arguments. For each pass, a return of
+1 means that its supplied PFN was called once. The release object passed
+both cases in a manager-side Linux recording test. Draw owns the switch
+from its direct Vulkan extern. [Other Draw call sites](counted_draw.md#draw-counted-record-c-contract-v1)
+
 ### External link and recording controls
 
 From the repository root on a Linux x86-64 host with Vulkan headers:

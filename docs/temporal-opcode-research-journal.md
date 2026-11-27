@@ -123975,3 +123975,38 @@ Wine instance creation with −3. A private foreground Xvfb server stayed
 live through the verified replay. The existing four indexed_indirect tests
 also passed at compiler jobs 1 and 4, including the 20-byte record, the
 signed −2 vertex offset and the original zero-maximum contract.
+
+### Review of the counted recording C provider
+
+Rendering accepted the source in coordinator job
+`a2c7f8e1-5cec-4270-b126-2397c05902bf`. Its incremental bundle tip was
+`ea062c4bc365c60b4d7b7da01abc9ffe90dd40ff`, on `1db528e8`. Its bundle
+SHA-256 was `b1939186980cb567542abf50b04136c7d1b97509479ff1896e88e8c4736c8110`.
+All 448 manifest entries verified in archive
+`4e8c37179cb87da8d07ad2588819a27b5da117ecdb99b9aaeab5528d4ad2c855`.
+The public C function forwards the checked 64-bit offsets, maximum and
+stride through the existing range checker and recording operation. The
+new Windows export occupies ordinal 3; submit and shader creation retain
+ordinals 1 and 2. Rendering inspected the actual PE imports and exports.
+
+The manager ran the retained native C recording executable and matched
+all 20 output lines. A separate CPU-only foreign-call probe linked the
+verified 1,080-byte Linux object into a temporary DSO with Debian GNU ld
+2.44 (`-shared -z noexecstack -z defs`). Both OSD calls at Draw
+`94f2d31e` returned 1 and forwarded the expected seven values exactly once.
+The eight-case probe also checked a short OSD count span, particle stride
+32, distinct scene buffers above 4 GiB, zero water maximum, the 16,384
+capacity boundary and a one-byte-short logical size. The initial review-only
+TinyCC link failed to load on this host due to its executable-stack marking.
+The GNU link used ordinary non-executable stack permissions.
+
+On the Quadro RTX 6000 with NVIDIA 615.71.10 and device API 1.4.351, native
+Linux draw14 and Win64 under Wine 8 core13 captured the expected 112-byte
+count/record/guarded payload. Native paired execution captured 152 bytes
+at counts 1 and 2; the deliberate clamp to one record left the count word
+at 2 and the unchanged paired pixel oracle exited 1. The manager reconstructed
+and matched all three packet hashes. The ordinary recording controls passed
+on both ABIs. Draw's integrated application and native Windows remain open.
+Job `5ffd24e7` is collecting the later `42aaa217` 38-case supplement
+described in the worker report. That supplement has separate source and
+evidence from the registered `ea062c4b` handoff.
