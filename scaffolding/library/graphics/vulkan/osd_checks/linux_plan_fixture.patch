@@ -18,12 +18,14 @@
      return vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
 --- a/scaffolding/library/graphics/vulkan/readback_device.tower
 +++ b/scaffolding/library/graphics/vulkan/readback_device.tower
-@@ -1,4 +1,5 @@
+@@ -1,6 +1,7 @@
  import tower;
-+extern fn strcmp(left: u8*, right: u8*): i32;
  import readback_abi;
  import readback_output as output;
++extern fn strcmp(left: u8*, right: u8*): i32;
  
+ // Keep the device diagnostics available to callers of the counted API.
+ extern fn puts(text: u8*): i32;
 @@ -67,6 +68,13 @@
      defer free(physicals);
      if !vk_ok("vkEnumeratePhysicalDevices/list", vkEnumeratePhysicalDevices(instance, &count, physicals)) { return false; }
@@ -31,7 +33,7 @@
 +    for (index = 0; index < count; index++) {
 +        var candidate: VkPhysicalDeviceProperties;
 +        vkGetPhysicalDeviceProperties(physicals[index], &candidate);
-+        if candidate.vendorID == 0x10de && candidate.deviceType == 2
++        if candidate.vendorID == 4318 && candidate.deviceType == 2
 +            && strcmp(&candidate.deviceName[0], "NVIDIA GeForce RTX 3090") == 0 { break; }
 +    }
 +    if index == count { return vk_failure("RTX 3090 unavailable"); }
