@@ -125547,3 +125547,52 @@ time was 52.6–54.0 ms raw SDK, 109.5–112.8 ms external C to Tower, and
 IR show that forming an indexed one-bit mask lowered to an inner shift
 loop. Advancing one unsigned bit per row removes that repeated work.
 Production readback and buffer allocation retain their existing paths.
+
+The final object at 0647ddc0 has one external call and a single bit advance
+in the outer loop. Nine cases passed through raw SDK, external C/object
+and external Tower/object. The query saw both original handles once, with
+zero allocation and bind calls. All no-match bytes and surrounding
+canaries survived. Mutating a failed output, overwriting its trailing
+guard or truncating the allocation size each made the suite exit 1 on the
+expected case. The first narrowing mutation used a checked Tower conversion
+and acquired a trap dependency. The tested truncation mutation masks to 32 bits.
+
+Three fresh processes per arm, rotating the order, used the same Linux
+x86-64 worker (EPYC 7282, affinity 0–31, CPU quota 15.36), one caller,
+one queue, packaged Tower bootstrap, Clang/LLVM 19.1.7 and sync validation.
+Each recording process ran 900,000 checked calls. The device process
+included startup, allocations, uploads, sampling, guarded readback and trace
+writes. Wall times below are medians. CPU and peak RSS cover whole processes.
+
+| Entry | Recording wall ms | Device wall s | Device user + system s, range | Device peak RSS KiB, range |
+| --- | ---: | ---: | ---: | ---: |
+| SDK control | 53.69 | 2.294 | 2.266–2.356 | 115824–116124 |
+| C to Tower object | 51.25 | 2.081 | 2.037–2.284 | 115836–116120 |
+| Tower to Tower object | 51.33 | 2.261 | 2.041–2.308 | 115812–115844 |
+
+The planner requests no heap storage and retains no handles. The GPU
+comparison reproduced the established five-source byte capture on every
+completed timing run. In the first-source controls an empty table returned
+false after one real query. Injected allocation −2 followed a written
+plan with zero accounted bytes. Injected bind −2 followed a successful
+allocation and accounting of 25,165,824 bytes. Each fixture process exited
+1 and produced no pixels. Real success and per-image handles, requirements,
+plans and release ordering are in the job packet.
+
+ASan and TSan instrumented the planner IR, SDK boundary and four-pthread
+recording path. Both completed 36 cases per arm. GPU ASan with sync
+validation completed the full byte and lifetime check with leak detection
+off. With leak detection on, raw and linked runs each reported 4,187 bytes
+in 15 allocations. With core validation alone both passed leak detection
+and reproduced the capture. GPU TSan hit restricted personality startup
+attempts and then a nested sanitizer failure (exit 66) in both arms.
+Full hardware leak and thread checks with sync validation remain open.
+The Vulkan loader, validation layer and NVIDIA driver are external binaries.
+
+The first builds exposed a reserved parameter name, unsupported hex
+literal syntax, import order and the SDK linker's TLS model. Final builds
+use the published bootstrap syntax and initial-exec TLS for the test
+recorder. The measured child needs an absolute executable path. All
+original failures and successful commands are retained in the packet.
+The [provider record](../scaffolding/library/graphics/vulkan/image_allocation_plan_v1.md#linux-standalone-provider-and-checks)
+contains the device table, object build, fixture pin and capture hash.
