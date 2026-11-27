@@ -1,25 +1,31 @@
 #include "allocation_check.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static _Thread_local struct {
     VkDevice device;
     VkImage image;
     VkMemoryRequirements req;
+    const VkMemoryAllocateInfo *public_out;
+    unsigned char before[sizeof(VkMemoryAllocateInfo)];
     unsigned calls;
 } recording;
 
-void osd_begin_query(VkDevice device, VkImage image, const VkMemoryRequirements *req) {
+void osd_begin_query(VkDevice device, VkImage image, const VkMemoryRequirements *req, const VkMemoryAllocateInfo *public_out) {
     recording.device = device;
     recording.image = image;
     recording.req = *req;
+    recording.public_out = public_out;
+    memcpy(recording.before, public_out, sizeof recording.before);
     recording.calls = 0;
 }
 
 uint32_t osd_query_count(void) { return recording.calls; }
 
 VKAPI_ATTR void VKAPI_CALL vkGetImageMemoryRequirements(VkDevice device, VkImage image, VkMemoryRequirements *out) {
-    if (++recording.calls != 1 || recording.device != device || recording.image != image || !out) {
+    if (++recording.calls != 1 || recording.device != device || recording.image != image || !out ||
+            memcmp(recording.public_out, recording.before, sizeof recording.before)) {
         fputs("unexpected requirements query arguments or count\n", stderr);
         exit(4);
     }

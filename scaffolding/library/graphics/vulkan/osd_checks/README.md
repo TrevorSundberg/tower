@@ -268,3 +268,18 @@ status. To test another provider, append its C source or standalone Win64
 COFF object. Both arms must match. A missing query, in-planner allocation
 or bind, wrong status or output, and changed guard bytes fail the check.
 The public graphics DLL is independent of these test links.
+
+The hardware replay in packet 5994bd8f uses the frozen 45944492 Win64
+environment and the original five synthetic OSD shapes. It observes the
+original caller first. The comparison fixture selects `allocation_memory`
+for source images and passes the returned descriptor directly to
+`vkAllocateMemory`. The existing bind and atlas path stay in the fixture.
+The C call site resolves to the SDK control under the agreed external
+symbol. Supply the portable provider for its own qualification when available.
+
+`allocation_trace.tower` reconstructs the first allowed type from the raw
+requirements and physical table. It checks the device and image, borrowed
+table, output fields, consumed descriptor address, returned memory and bind
+offset. `image_lifetime.tower` checks the independent Wine call sequence
+through retirement. The recording-only Draw owner double makes the
+accounting point observable with injected allocation and bind errors.

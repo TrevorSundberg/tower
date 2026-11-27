@@ -1,0 +1,12 @@
+import tower;
+import .readback_abi;
+
+extern fn osd_check_allocation(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+    count: u32, required: u32, out: VkMemoryAllocateInfo*): u32;
+extern fn osd_begin_query(device: VkDeviceHandle*, image: VkImageHandle*, req: VkMemoryRequirements*, public_out: VkMemoryAllocateInfo*): void;
+extern fn osd_query_count(): u32;
+extern fn puts(s: u8*): i32;
+extern fn exit(status: i32): void;
+fn check(ok: bool, name: u8*, what: u8*): void {
+    if !ok { puts(name); puts(what); exit(4); }
+}

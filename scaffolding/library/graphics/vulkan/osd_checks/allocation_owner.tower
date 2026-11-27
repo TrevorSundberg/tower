@@ -1,0 +1,34 @@
+import tower;
+import .readback_abi;
+import allocation_observer;
+
+// Isolated Draw policy double. Vulkan allocation and bind outcomes are injected.
+struct Owner {
+    allocation_result: i32; bind_result: i32;
+    allocations: u32; binds: u32; accounted: u64;
+}
+fn consume(owner: Owner*, plan: VkMemoryAllocateInfo*): i32 {
+    owner.allocations++;
+    if owner.allocation_result != 0 { return owner.allocation_result; }
+    owner.accounted += plan.allocationSize;
+    owner.binds++;
+    return owner.bind_result;
+}
+fn exercise(allocation_result: i32, bind_result: i32, binds: u32, accounted: u64): void {
+    var owner: Owner = {allocation_result: allocation_result, bind_result: bind_result, ..default};
+    var req: VkMemoryRequirements = {size: 16384, alignment: 512, memoryTypeBits: 1};
+    var entry: VkMemoryType = {propertyFlags: 1, heapIndex: 7};
+    var out: VkMemoryAllocateInfo = default;
+    var device = bits(VkDeviceHandle*, &entry); var image = bits(VkImageHandle*, &req);
+    osd_begin_query(device, image, &req, &out);
+    check(osd_check_allocation(device, image, &entry, 1, 1, &out) == 1 && osd_query_count() == 1,
+        "owner double", "expected a plan");
+    var status = consume(&owner, &out);
+    check(status == -2 && owner.allocations == 1 && owner.binds == binds && owner.accounted == accounted,
+        "owner double", "signed result, call count or accounted bytes");
+}
+export fn main(): i32 {
+    exercise(-2, 0, 0, 0); puts("owner-double allocation=-2 allocations=1 binds=0 accounted=0");
+    exercise(0, -2, 1, 16384); puts("owner-double allocation=0 bind=-2 allocations=1 binds=1 accounted=16384");
+    return 0;
+}

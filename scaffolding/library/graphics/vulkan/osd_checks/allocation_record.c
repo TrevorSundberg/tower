@@ -9,10 +9,12 @@ _Static_assert(sizeof(VkBool32) == 4 && sizeof(VkMemoryType) == 8 &&
         "Win64 SDK memory layout");
 
 void osd_row(const char *name, VkBool32 status, const VkMemoryAllocateInfo *out) {
-    printf("case=%s query=1 status=%u", name, status);
-    if (status) printf(" sType=%d next=null size=%llu index=%u", out->sType,
-            (unsigned long long)out->allocationSize, out->memoryTypeIndex);
-    puts(" guards=intact");
+    if (status) {
+        printf("case=%s query=1 status=%u sType=%d next=null size=%llu index=%u guards=intact\n",
+                name, status, out->sType, (unsigned long long)out->allocationSize, out->memoryTypeIndex);
+    } else {
+        printf("case=%s query=1 status=0 guards=intact\n", name);
+    }
 }
 
 #ifndef OSD_THREADED_SUITE
