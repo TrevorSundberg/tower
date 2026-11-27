@@ -124087,6 +124087,32 @@ reading a GPU count. Only C proof inputs changed. Runtime performance and
 GPU retirement evidence are the prior frozen measurements. This OSD receipt
 covers recording. Draw owns application integration and execution.
 
+### Draw OSD object linked through the public counted-record entry
+
+Draw independently rebuilt Tower's 1,080-byte Linux provider and the
+three-export Win64 DLL from `eb5622c440494fba4fa510e26547561746bbaff4`.
+It reported exit 0 on all 38 Linux C recording cases. Rendering independently
+matched the stdout SHA-256 from both the retained worker log and its local
+replay, `36fe022774de58d3c5154512243ef834ff95770cef5bb8408ca4589e46ec0498`.
+
+At Draw `94f2d31e618e8a10177afcb3f6c95251595faab2`, Draw linked its
+`draw_vk_osd_render` object (digest prefix `40704004`) through the public
+export using a CPU recording shim. The Draw test ELF hashed to
+`b48a3eca110e598a882dbb6851ff830565c0054a60178a85606c36bf42ab002d`.
+Both passes used the same 1,088-byte logical buffer and each reached its
+callback once. For pass 1 the last command occupies [24,44) and the count
+occupies [44,48). At 48 bytes both passes succeeded. A 43-byte command
+span or a 47-byte count span independently refused pass 1 before the
+callback. Draw observed that the borrowed frame, canaries and 1,104
+backing bytes were preserved.
+
+The public operation consumes the index binding set by its caller. Draw
+reported that the HUD uses UINT16 and that water and nuclear particles use
+UINT32 (draw.c:7766 and :6322). The header comment now describes that
+ownership. The public declaration, provider inputs and test logic are
+identical to the verified revision. Draw assigned application adoption,
+original/corrected strict raster and HUD readback to slot 9 job
+`5d1c45b6-537f-4e64-a898-a8a8a1929de9`.
 ### Win64 frame operations in the counted graphics DLL
 
 Host 11 job `a7c423bf-a745-48b0-86ee-734279f112b0` starts at the
@@ -124219,3 +124245,29 @@ The ordinary COFF build therefore replaces the end object with the aggregate
 finish object. The outward C link command remains the same. The release
 adds ordinal 6 and imports queue idle from the Vulkan loader. The fixture
 retains ownership of reset, copy, barriers, queue synchronization and cleanup.
+### Review of Win64 frame command reuse through the Tower DLL
+
+Rendering verified the bare-ID package for `a7c423bf`, SHA-256
+`0f2a09229a6ae15ab3642b203877355fc12762d68a69aceb6fd5114fa29aa930`.
+All 359 manifest entries verified, as did the two bundle prerequisites
+and tested tip `c40dae39ead5aa316d917010ce2ab2220999a39d`.
+The coordinator served that packet. The worker separately reported a
+header-comment supplement at `208ebc4d`. This integration takes the
+already reviewed public header directly from `be779636`. Its declaration
+matches the tested header after removing comments. All other build and
+test sources match the tested tree.
+
+Rendering inspected the supplied PE images. The linked counted executable
+imports all five entries from tower_graphics.dll. Its raw control imports
+Vulkan directly. The DLL imports five commands from vulkan-1.dll.
+Rendering verified the original exports at ordinals 1–3, the new begin and
+end/prepare at 4–5, and the release and replay binary hashes. Independent
+reconstruction from the count word, 20-byte record, two RGBA values and
+guard layout matched both captured byte streams. The 336 logical bytes
+include all three frames. The 240 staging bytes confirm the physical order
+0/1, 1/0, 0/1. Both traces contain three submits to one queue, three fence
+waits before mapping, and two resets of the same retired primary.
+The gated control first returned VK_NOT_READY, then reported completion of
+both fences and a set GPU event. The hardware evidence is Wine 8 on a
+Quadro RTX 6000, NVIDIA 615.71.10. The host loader inserted the Khronos
+layer. Physical Windows and the five-entry Draw application remain open.

@@ -101,6 +101,16 @@ reset, begin, end and submit results, all optional descriptor slots,
 failure preservation and call order. Full Draw, displayed WSI and native
 Windows driver execution remain open. [Host 11 evidence](../../../../docs/temporal-opcode-research-journal.md#win64-frame-operations-in-the-counted-graphics-dll)
 
+The release DLL (3,584 bytes) has SHA-256
+`89fd77ce3213b9144994097b37560fdf7cb4487d00c9c2e5c25967b2b9f94bb6`.
+The direct C control and C application linked through all five exports
+produced identical 336-byte guarded output. An independent capture of the
+240 bytes in GPU staging verified that the two results changed positions
+on the second frame. The test requested the core 1.3 profile on Wine.
+The selected device reported Vulkan 1.4.351. The host Vulkan loader
+inserted the Khronos validation layer. Physical Windows and the Draw
+application using this five-entry DLL still require their own runs.
+
 ## Recording indexed draws from C
 
 On Windows x64 and Linux x86-64, include `indexed_draw_c.h`. During device
@@ -137,14 +147,6 @@ and index buffer. It submits separately and keeps resources live until
 retirement. The library borrows the handles for the call and never maps the
 GPU count.
 
-Draw's optional OSD encoder at `94f2d31e` supplies the same 1,088-byte
-logical buffer for both roles. The first pass forwards command/count offsets
-0/20 and the second forwards 24/44. Both use maximum 1 and stride 20.
-Pass the logical size in both size arguments. For each pass, a return of
-1 means that its supplied PFN was called once. The release object passed
-both cases in a manager-side Linux recording test. Draw owns the switch
-from its direct Vulkan extern. [Other Draw call sites](counted_draw.md#draw-counted-record-c-contract-v1)
-
 Draw identified 24 sites at `be2fb42065dacdb49c476efdde892ab649cfe772`
 (draw.c blob prefix `84ce1a58`). The external C recording controls cover
 the GPU check, nuclear particles, OSD, scene buckets and water. For a
@@ -152,6 +154,13 @@ scene bucket, widen the bucket to `VkDeviceSize` before multiplying by
 `frame->info[0]` and 20. The separate count buffer has 128 logical bytes.
 For water, pass `poolChunkCount` unchanged, including zero. The rendering
 manager published the full [Draw caller matrix](https://github.com/TrevorSundberg/tower/blob/1556ec5bec47f3d7da1d623f1122585c2942affe/scaffolding/library/graphics/vulkan/counted_draw.md#draw-counted-record-c-contract-v1).
+
+Draw's optional OSD encoder at `94f2d31e` uses the same 1,088-byte logical
+buffer for both roles, with command/count offsets 0/20 and 24/44, maximum 1
+and stride 20. Draw linked its OSD render object through a CPU recording shim and observed
+one callback per pass. The production HUD binds `VK_INDEX_TYPE_UINT16`.
+Water and nuclear particles bind `VK_INDEX_TYPE_UINT32`. Each draw uses
+the current index binding. Draw's on-device HUD readback is pending. [Other Draw call sites](counted_draw.md#draw-counted-record-c-contract-v1)
 
 ### External link and recording controls
 

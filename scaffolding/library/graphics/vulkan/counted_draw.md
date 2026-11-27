@@ -348,5 +348,7 @@ valid inputs forwarded the original seven arguments once, and invalid
 inputs made zero calls. That probe covered the layouts above, nulls,
 short and misaligned spans, an oversized maximum and near-u64 arithmetic.
 Rendering verified the external C symbol on Linux x86-64 and Windows x64
-at `ea062c4b`. The Draw application still uses its direct Vulkan extern.
+at `ea062c4b`. Draw subsequently linked its `94f2d31e` OSD render object
+through the public entry with a CPU recording shim. Draw assigned its
+strict raster and HUD GPU checks to job `5d1c45b6`.
 [External C link and run instructions](graphics_dll_windows.md#external-link-and-recording-controls)
