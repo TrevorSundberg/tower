@@ -123559,3 +123559,87 @@ records the tested boundaries and what remains for Tower's worker.
 This revision changes documentation only. Runtime measurements apply
 to the forthcoming implementation.
 [Frame submit contract and acceptance checks](../scaffolding/library/graphics/vulkan/frame_submit_v1.md)
+
+### Returning a pending frame submission through the Tower Vulkan C ABI
+
+Host 12 used the registered Tower reader in a new private checkout on local
+main at `163976c1bcd89130e2a9c2f75d4c9cf6659ee8ef`, parent `2bf097e0`,
+main base `a580e70a`. Draw's reference was `30b66f59`. The existing checkout
+had seven unpublished commits and a modified readback document. It and the
+shader C ABI and Windows work were outside the checkout used for this change.
+
+The public Tower function in `a2c1560f` passes the original descriptor and
+count 1 directly to the loader and returns the signed result. The synchronous
+caller's only change is that call site and its import. Receipt
+`1c0ecea2-1128-48e2-ad91-065fce8a468d` contains the source bundle, transport
+scripts, checksums, raw captures, maps, timed samples and per-mode statuses.
+[Native declaration, caller ownership and reproduction](../scaffolding/library/graphics/vulkan/frame_submit_v1.md)
+
+Before editing, both ordinary runs passed with the verified executables and
+SPIR-V from packet `c6689824`. The pinned source rebuild and the integrated
+build reproduced their complete stdout. A separate paired loader audit saw
+one submit in each process and observed the identical fence handle signaled
+after the wait. Both 24-byte indirect captures, both 32-byte guarded outputs,
+the tight pixels and the clear fixture's own buffer matched the prior hardware
+hashes. The selected backend was Vulkan on a discrete RTX 3090, PCI 10de:2204,
+bus 81:00.0, NVIDIA 565.57.01, API 1.3.289. Validation 1.3.239 with sync
+checks reported zero warnings or errors in these runs.
+
+At `addc779a`, separate C and Tower objects resolve the production ELF
+export. A recording loader checks the original descriptor and all pointed-to
+storage, including a non-null timeline extension in the binary stub case.
+Only vkQueueSubmit appears in the production object's import table. The
+gated hardware check sets a real GPU event behind a timeline and two binary
+semaphores. Raw and C-through-shared submissions returned while the original
+fence was pending. Host release, bounded subject and consumer waits, then
+the event read establish completion. A 15-second outer watchdog bounded the
+process. On a failed submit or wait the fixture releases the producer and
+drains the queue before returning failure. Failure to establish retirement
+terminates with the handles live. Neither hardware mode produced a submit
+error. A recorded −4 exercises only the driver-bypassed ABI result.
+
+The old ownership matrix passed. In its terminal child, fence wait −1 and
+drain −2 terminated with SIGABRT. Both real callers exited 1 on a
+driver-bypassed submit OOM without waiting, and 1 after a real submit,
+injected wait OOM and successful queue retirement. Neither mapped on failure.
+Both synthetic terminal controls aborted before fence destruction, exit 134.
+The prior caller probe's imports now bring in a duplicate exported wrapper.
+Localizing its unused copy in the probe object preserves the ordinary
+fixture's definition. Other setup failures were an unsupported git pull
+filter option, a hex literal in Tower test code, a missing Tower trap at
+test link, missing unwind support in the TSan DSO and shell xtrace entering
+a byte comparison. Corrected runs and failing logs are in the receipt.
+
+Host 12 used an EPYC 7282, affinity 0–31, CPU quota 15.36, the checked Linux
+x64 bootstrap and LLVM 19.1.7. GPU processes ran serially, five paired
+fresh processes per mode after pixel validation, warm files. The table
+reports median wall seconds, summed CPU seconds and peak RSS KiB. Compile
+measurements used three samples per entry and worker count at a common
+source path, checking each object against its revision's single-worker result.
+
+| Operation | Direct | Integrated |
+| --- | --- | --- |
+| Clear process | 0.30 / 0.29 / 91564 | 0.30 / 0.30 / 91508 |
+| Counted process | 0.31 / 0.30 / 94388 | 0.31 / 0.30 / 94600 |
+| Gated process | 0.30 / 0.30 / 90728 | 0.30 / 0.29 / 90696 |
+| Clear compile, 1 / 4 workers | 0.65 / 0.65 / 110692; 0.75 / 0.85 / 115616 | 0.67 / 0.66 / 110968; 0.78 / 0.88 / 116308 |
+| Counted compile, 1 / 4 workers | 0.77 / 0.76 / 128056; 0.89 / 1.05 / 133264 | 0.77 / 0.76 / 127992; 0.89 / 1.05 / 133820 |
+
+Median host time inside the gated subject submit was 38.339 µs raw and
+43.130 µs via C and the DSO. Median host signal through subject fence wait
+was 212.188 and 206.598 µs. These intervals include loader, validation and
+host scheduling. The wrapper allocates no memory and retains no host state.
+The samples do not establish an intrinsic call cost or GPU throughput.
+
+LLVM 19 instrumented the Tower entries and native runtime. The forwarding
+function has no payload memory access. The C transport also used Clang
+UBSan in its instrumented runs. The standalone descriptor and synchronous
+ownership checks completed under ASan+LSan and TSan. Address-only GPU runs
+passed. With leak detection, clear retained 3511 B / 8 allocations and
+counted retained 4075 B / 14, matching their previous direct controls.
+Gated raw and shared retained 3560 B / 11 each. GPU TSan frequently failed
+the container's personality call at startup (139). Traced raw and shared gate
+runs that got past startup both faulted on a read at 0x1048, at offset
+0xd57cb of the TSan runtime (66). No hardware TSan pass, Tower source-level
+UBSan result, or resolution of the external sanitizer faults. Draw integration,
+display/present ownership and actual driver loss remain separate open checks.

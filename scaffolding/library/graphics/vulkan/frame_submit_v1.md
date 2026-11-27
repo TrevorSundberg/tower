@@ -71,7 +71,7 @@ Tower exited 1 and C sometimes exited 139 after the diagnostic, including
 under the older C control. The cause remains open. Draw has no actual device
 loss or failed wait following a real submit in that run.
 
-The Tower library candidate needs the following evidence before adoption.
+The agreed conformance checks for the Tower operation follow.
 
 - At the ordinary native caller boundary, compare raw Vulkan and Tower calls
   for both descriptor shapes. Check exactly one submit, queue and fence
@@ -91,5 +91,67 @@ The Tower library candidate needs the following evidence before adoption.
 
 Draw owns its acquire, resize, fence reset, resource selection, history and
 presentation code. Its source review topic was unpublished at the time of
-this acknowledgment. Tower-side implementation and a Draw build linked to
-that implementation are separate outstanding checks.
+this acknowledgment. At contract acceptance, Tower implementation and a Draw build linked to
+that implementation were separate outstanding checks.
+
+## Linux x86-64 implementation and conformance
+
+Include `frame_submit.h` with the standard Vulkan headers. The Tower module
+`frame_submit.tower` exports the C symbol `tower_vk_queue_submit_one_v1`.
+
+```c
+VkResult tower_vk_queue_submit_one_v1(VkQueue queue, const VkSubmitInfo *info, VkFence fence);
+```
+
+Implementation `a2c1560fabf79a98ddcfb839660c33cb2af2cb09` imports
+`vkQueueSubmit` from the Vulkan loader. The standalone ELF shared object
+has exactly that one import and one export. Tower uses `VkQueueHandle*`,
+`VkSubmitInfo*`, `VkFenceHandle*` and an `i32` result. The existing
+`vk_submit_and_wait` helper calls the export before applying its synchronous
+retirement policy. Draw's measured caller locations are `draw.c:6898`
+(`render_frame`) and `draw.c:1862/1874` (command end and submit).
+
+Receipt `1c0ecea2-1128-48e2-ad91-065fce8a468d` includes `replay.sh`,
+a focused Git bundle based on `163976c1`, and hashed inputs and captures.
+With the extracted receipt as the working directory and the registered Tower
+reader configured, replay on the documented host using:
+
+```bash
+REPLAY="$(mktemp -d)" bash ./replay.sh
+```
+
+The script builds the direct and integrated Linux executables and runs these
+commands from their respective build directories with the NVIDIA ICD selected:
+
+```bash
+./readback_fixture 0
+./counted_fixture counted-core13 shaders/produce.comp.spv shaders/triangle.vert.spv shaders/color.frag.spv
+./recording
+timeout -k 2 15 ./gate raw
+timeout -k 2 15 ./gate shared
+```
+
+The last three commands use the conformance build. `recording` compares a raw
+Tower call, a separately linked Tower caller and a Vulkan-header C caller
+through the shared object. For zero waits/signals and one binary wait/signal,
+the stub verified one call, original queue, fence and descriptor identities,
+and identical bytes in the descriptor, extension, handle slots, stage and
+value arrays on entry and after return. Both success and injected −4 reached
+the caller unchanged. Injection bypassed the driver.
+
+| Check on RTX 3090, PCI 10de:2204, NVIDIA 565.57.01, Vulkan 1.3.289 | Required and observed result |
+| --- | --- |
+| Clear / counted, direct and integrated | Exit 0, one driver submit, its original fence signaled, zero Khronos validation warnings/errors with synchronization checks enabled. |
+| Clear and counted zero | Four `112233ff` pixels. Counted one returned four `4080bfff`. The two GPU count words were 0 and 1, each followed by the little-endian indexed command (3, 1, 0, 0, 0). Every byte matched the prior receipt. |
+| CPU / staging layout | 32 caller bytes, offset 4, span 24, row pitch 12. Padding and guards stayed `a5`. The CPU oracle accepted the 24-byte and minimum 20-byte loans and refused the short pitch, span and source. [Readback contract and oracle provenance](readback_v1.md) |
+| Host-gated binary submit, raw and shared | A timeline-gated producer signaled a real binary acquired semaphore. The subject waited at ALL_COMMANDS, recorded a GPU event and signaled a second binary semaphore. After normal return the subject fence was VK_NOT_READY. Only then did the host signal the timeline and wait for the subject and consumer fences. The event was set. Both modes exited 0 with zero validation warnings/errors. |
+| Existing synchronous failure controls | Positive ownership matrix 0. Standalone terminal child 134. In both ordinary callers, submit OOM 1, recoverable fence-wait fault after real submit 1, injected terminal drain failure 134 before teardown. |
+
+The loader borrows host storage through return. The caller retains the queue
+submission's device objects until retirement, including the final consumer of
+each binary semaphore. An unsuccessful raw return cannot authorize a staging
+read, frame-history commit, fence reuse or blanket release. Submit OOM leaves
+the referenced state unaffected. An indeterminate or device-lost submit
+requires the caller's retirement policy. Hardware coverage here is offscreen.
+Displayed WSI, Draw linked to this export, real device loss, Windows and
+Draw's intermittent validated-C exit 139 remain outside the observed results.
