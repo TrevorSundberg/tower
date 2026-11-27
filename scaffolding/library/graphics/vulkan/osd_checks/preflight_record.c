@@ -67,7 +67,7 @@ void record_preflight(const char *name, const Limits *max, const Limits *shape, 
     out.supported = 0x12345678;
     memcpy(&expected, &out, sizeof out);
     driver.physical = (VkPhysicalDevice)(uintptr_t)0x1234567854321000ull;
-    driver.in = &in; driver.out = &out; driver.calls = 0; driver.status = (VkResult)status;
+    driver.in = &original; driver.out = &out; driver.calls = 0; driver.status = (VkResult)status;
     driver.caps = (VkImageFormatProperties){{max->w,max->h,max->d}, max->mips, max->layers,
         VK_SAMPLE_COUNT_1_BIT | VK_SAMPLE_COUNT_4_BIT, resource};
     if (status == VK_SUCCESS) { expected.caps = driver.caps; expected.supported = supported; }

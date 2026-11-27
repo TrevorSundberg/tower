@@ -2,6 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#include <windows.h>
+#endif
 
 static _Thread_local PFN_vkGetPhysicalDeviceImageFormatProperties observer;
 void osd_observe_query(PFN_vkGetPhysicalDeviceImageFormatProperties callback) { observer = callback; }
@@ -10,6 +13,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
     VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage,
     VkImageCreateFlags flags, VkImageFormatProperties *caps) {
     if (observer) return observer(physical, format, type, tiling, usage, flags, caps);
+#ifdef _WIN32
+    /* Device selection also queries its RGBA8 readback target. */
+    if (format == VK_FORMAT_R8G8B8A8_UNORM) {
+        PFN_vkGetPhysicalDeviceImageFormatProperties next = (PFN_vkGetPhysicalDeviceImageFormatProperties)
+            GetProcAddress(GetModuleHandleW(L"winevulkan.dll"), "vkGetPhysicalDeviceImageFormatProperties");
+        if (!next) exit(4);
+        return next(physical, format, type, tiling, usage, flags, caps);
+    }
+#endif
     /* Full device PE, first sampled image. Other imports forward to Wine. */
     if (!physical || format != VK_FORMAT_R8_UNORM || type != VK_IMAGE_TYPE_2D ||
         tiling != VK_IMAGE_TILING_OPTIMAL || usage != (VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
