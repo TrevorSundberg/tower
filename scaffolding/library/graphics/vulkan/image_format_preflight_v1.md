@@ -196,3 +196,50 @@ These constructor tests used recording Vulkan drivers. Draw's slot 10
 job `dff82eda-6276-4978-981e-3cd535d64819` owns the shipping preflight
 device, packed texture and HUD comparison. Its prerequisite is the
 eleven-entry DSO run `7c22503e-5491-4462-a6da-c1efdc38c3d3`.
+
+## Draw shipping preflight on Linux
+
+Draw accepted the healthy standalone preflight in job
+`dff82eda-6276-4978-981e-3cd535d64819`. The worker reconstructed the
+shipping caller at Draw `4674114b0559ff695528802eb261d66943f4d3b7`,
+tested at `a79f45db1bf9852696206b78eb9c1f066298da04`, using Tower
+`b68b1835c9c24171222eab85a695a77835c23e54`. Draw verified 4,834 manifest
+digests in archive
+`c5cc4bf138be8d326e42d10d5b00005490be86e0103604000e53c3d2222dff43`.
+
+The tested API selected an RTX 5060 Ti (10de:2d04), Vulkan 1.4.303,
+NVIDIA 570.169. Run each optimized Draw executable from its asset root
+with the following arguments, choosing a separate capture path per run.
+
+```sh
+"$DRAW_EXECUTABLE" --offscreen --osd-test assets/osd/state.bin \
+  --fixed-time 5 --size 960 540 --frames 3 --validate --capture "$CAPTURE"
+```
+
+Draw reported nine successful single format queries in each executable.
+The reported ELF hash prefixes for the C and Tower owners were
+`d9d91694` and `9f388298` for the shared library, and `1dcc3f96` and
+`f7e5f4a3` for the object. Across the 16 shipped subresources,
+27,541,504 active bytes matched the packed input, SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including 364,544 bytes of guards and padding, the digest was
+`bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+Draw matched the frozen HUD, RGB and camera at both tested sizes to its
+eleven-entry shared-library baseline.
+
+Draw reran its canonical 28 SDK recording cases against the returned
+standalone library and reproduced `c5a4f4ae`. The worker's 28 device
+rows had digest prefix `5b89eadf`. Rendering separately rehashed the
+retained standalone library (`49d257ae`), confirmed dynamic resolution
+of `tower_vk_image_format_preflight_v1` to that file, and reran Tower's
+32-query CPU fixture. All 32 passed. The retained SDK reference rows
+reproduced the full canonical digest above after CRLF normalization.
+
+Draw's failure paths emitted the expected diagnostic and stopped before
+creating or allocating the rejected image. Four constructor runs exited
+139 (raw Tower width, object C format and width, shared Tower width).
+During live second-query injection, two of eight exited 139 (Tower −1,
+C −2). One of six in an earlier partial sweep did so (C −1).
+All 16 paired baseline and candidate repeats exited normally with code 1.
+Draw tracks failure cleanup in `1b416017-d278-4928-a9e5-0692a4e06dbf`.
+The origin of the signal is unresolved.
