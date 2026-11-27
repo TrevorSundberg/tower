@@ -125265,3 +125265,12 @@ driver and GPU were uninstrumented. Physical Windows and the shipping Draw
 application remain open. The assignment packet includes the original SDK
 baseline intact, exact commands, release pair, object and PE maps, both
 loader traces, guarded capture, timing samples and sanitizer startup logs.
+
+### Combining eleven reviewed Vulkan entries on Linux x86-64
+
+Host 12 job 322c325f starts at the documented ten-function Win64 release
+a0475562. The Linux image unit and SDK header come from 07587159. The
+native link uses nine ordinary bootstrap objects. The command_finish
+unit also emits the end and submit entries. Its two helper objects must
+therefore be omitted from this link. The Vulkan loader is an explicit
+input. The Windows build and compiler have no changes in this job.
