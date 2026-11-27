@@ -94,3 +94,6 @@ Assignment `ae126103-8417-471b-a3df-eba172943df8` contains the external
 consumer, Tower fixtures, build and load commands, import tables, link maps,
 raw captures and per-process results. The [project journal](../../../../docs/temporal-opcode-research-journal.md#windows-x64-shader-module-dll-through-wine)
 records the revisions, binary identities, measurements and instrumentation limits.
+
+For a C application that also submits work, see the
+[combined Windows x64 graphics DLL and consumer](graphics_dll_windows.md).
