@@ -78,16 +78,20 @@ acceptance of its linked shipping application.
 ## Linux x86-64 implementation and link
 
 The provider is available as a standalone object or shared library. Include
-`image_format_preflight.h` in the SDK caller. Use the pinned Tower bootstrap,
-GNU linker and Vulkan loader from the slot 12 sysroot. From the Tower root
-with an existing output directory and the packet's `host.env` sourced, run
+`image_format_preflight.h` in the SDK caller. From the Tower root on Linux
+x86-64, use the pinned bootstrap, GNU linker and target Vulkan loader.
+The default loader path below is for Debian. Set `VULKAN_LOADER` to the
+absolute path to your loader to override it.
 
 ```bash
 v=scaffolding/library/graphics/vulkan
+OUT="$PWD/out/preflight"
+mkdir -p "$OUT"
+VULKAN_LOADER=${VULKAN_LOADER:-/usr/lib/x86_64-linux-gnu/libvulkan.so.1}
 bootstrap/linux-x64/towerc --foundation scaffolding/foundation.tower --library --jobs 1 \
   "$v/image_format_preflight.tower" -o "$OUT/preflight.o"
 x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$OUT/preflight.o" \
-  "$TOWER_SDK_ROOT/usr/lib/x86_64-linux-gnu/libvulkan.so.1" \
+  "$VULKAN_LOADER" \
   -soname libtower_preflight.so -o "$OUT/libtower_preflight.so"
 ```
 
