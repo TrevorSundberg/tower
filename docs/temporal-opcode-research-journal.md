@@ -125342,7 +125342,7 @@ prior and combined full GPU processes both exited 1 and reported 4,187 bytes
 in 15 allocations. Ownership is unresolved. The instrumented bound-view
 entry and ASan/trapping C UBSan SDK boundary completed 108 calls over four
 libc pthreads. The TSan equivalent completed 108 after three runtime
-address-space startup failures. The CUDA/Vulkan driver, validation layer and
+address-space startup failures. The Vulkan driver, validation layer and
 GPU instructions were outside compiler instrumentation. The TSan run covers
 the host recording boundary. Draw's shipping application, physical Windows,
 WebGPU and actual device loss have separate acceptance requirements.
@@ -125356,3 +125356,13 @@ module restored the original import closure. The single-client Tower checker
 initially used a reserved identifier and then unsupported module-level mutable
 storage. The final checker borrows a stack-owned trace for the call. See the
 [build command, SDK link and per-entry results](../scaffolding/library/graphics/vulkan/graphics_so_linux.md).
+
+A subsequent GPU TSan diagnostic exited 66 inside the sanitizer with a
+nested SEGV at address 0x1048. The prior separate-library GPU executable
+also exited 66 at 0x1048 after fourteen TSan address-layout startup
+failures. Neither GPU process produced a completed TSan trace. A fresh
+compile from the archived 07587159 source tree reproduced the full retained
+device IR after normalizing its private symbol checkout paths, and reproduced
+both external SDK caller objects exactly. The reviewed Linux branch advanced
+to 5dd53312 during the job with a documentation-only Draw adoption receipt.
+The specified 07587159 source and header are the inputs to this library.
