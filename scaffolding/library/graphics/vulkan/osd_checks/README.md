@@ -45,3 +45,25 @@ For each texture in order the stream contains 16 a5 bytes, every encoded
 texel, 16 a5 bytes, the linear RGBA8 sample atlas, and 16 a5 bytes.
 The complete observed/expected shape table, measurements and remaining
 obligations are in the [project journal](../../../../../docs/temporal-opcode-research-journal.md#win64-raw-control-for-initial-osd-texture-uploads).
+
+## Independent capture verification and sampling fault controls
+
+`verify_capture.tower` reads the retired transfer bytes and reconstructs
+each expected atlas pixel from the corresponding mip, row, column and
+layer. Its sRGB channels use the piecewise transfer function and native
+libm. Alpha passes through and an R8 sample expands to (R,0,0,255). The
+verifier checks all three guards for each texture and requires end of file
+after the fifth. Use the raw receipt to verify every transfer byte against
+the generated input.
+
+The job's sibling `-sampling` packet includes a three-case shader fault
+control, the original raw recorder object, and capture-verifier build and
+test recipes. Run its replay script with PACKET set to the extracted raw
+packet, D to a new absolute directory containing the candidate in src,
+and PREPARED_SDK to the same SDK path as the raw replay.
+
+```bash
+D="$D" PACKET="$PACKET" PREPARED_SDK="$PREPARED_SDK" bash "$SUPPLEMENT/replay.sh"
+gzip -dc "$PACKET/guarded-raw.gz" > "$D/b/guarded.raw"
+"$D/e/bin/verify_capture" "$D/b/guarded.raw"
+```

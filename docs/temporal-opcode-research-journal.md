@@ -124724,3 +124724,59 @@ Slot 12's reviewed source/header and an ordinary DLL link at ordinal 8
 are the remaining dependency for paired Win64 qualification. Physical
 Windows, actual Draw pack/application use and device-loss recovery
 remain outside this receipt.
+
+### Win64 OSD sampling controls on the published seven-entry base
+
+The public Tower branch rendering/windows-vulkan-upload-1512cb96 contains
+the manager's merge 207f5d07 and its documentation-only successor 4d40a3b0.
+Both are ancestors of the frozen Win64 control at 82882580. A non-document
+tree comparison of the reviewed merge against 1512cb96 was empty. The
+ordinary DLL, recorder, host policy and frozen raw packet retain their
+original identities. The `-sampling` supplement to host 11 job 6cd74574
+exercises three erroneous sampling selections on the same synthetic
+upload. No Draw reader or fixture was used.
+
+Each control recompiled just the selected fragment shader and the Vulkan
+sampling boundary, then linked the original GPU fixture, raw recording,
+regions, finish and runtime objects. The unmodified PE bracketed the three
+controls. Both bracket captures had SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811
+and matched byte for byte. The existing oracle checked the original
+encoded transfer and its guards before identifying each fragment error.
+
+| Deliberate shader change | First differing sample | Expected / actual linear UNORM8 | Exit |
+| --- | --- | --- | ---: |
+| Read array layer zero | Fonts layer 1, byte 64 | 37 / 0 | 3 |
+| Read bitmap mip zero | Bitmap mip 1, byte 64 | 5 / 90 | 3 |
+| Reverse four sampled rows | Fonts layer 0, byte 0 | 0 / 118 | 3 |
+
+The physical device, Wine/core feature selection and host validation
+configuration match the raw packet. These negative processes exit at the
+pixel comparison. The successful bracket runs reached the validation
+counter. On the same one-caller Quadro host the fresh-prefix positive
+took 7.04 s wall including Wine setup, and the warm positive took 1.18 s,
+1.08 s CPU, 191684 KiB peak RSS. These are functional controls; the
+earlier three-sample raw timings remain the paired comparison baseline.
+
+A separate native Tower verifier reads individual transfer planes from
+the retired capture and derives the 256 pixel expectations from those
+bytes. It uses the IEC piecewise sRGB equation with host libm, independent
+of the fixture's synthetic pattern and its quantized color lookup tables.
+Both bracket captures passed. Four separate files with a damaged leading
+guard, modified atlas byte, truncated final guard, and an extra trailing
+byte each failed at the intended check with exit 1. On the first warm
+file the verifier used 0.01 s wall and 5408 KiB peak RSS. Native ASan
+ran the same verifier on the second complete capture with leak detection
+and empty stderr. The verifier has one thread. The frozen raw receipt
+covers the recorder's threaded observer, Win64 UBSan and Win64 sanitizer
+limitations. The verifier's first build exposed the bootstrap's explicit
+borrow requirement for aggregate iteration and its use of the strict
+floating-to-integer runtime helper. The final recipe retains that helper.
+
+The supplement's replay script verifies the original packet manifest,
+builds the fault variants, runs the two bracketing positives and the
+three negatives on Wine, then builds and executes the native verifier,
+malformed-file checks and ASan. It records the per-run exit, CPU/wall
+and peak memory observations beside the raw stdout/stderr files. Slot
+12's reviewed production entry/header and the paired ordinal-8 link
+remain open.

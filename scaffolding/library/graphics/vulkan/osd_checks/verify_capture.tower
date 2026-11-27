@@ -1,0 +1,93 @@
+import tower;
+
+// Native file verifier. Derive the expected atlas from the retired encoded bytes.
+// It shares neither the shader, the generator, nor its precomputed color tables.
+struct NativeFile {}
+extern fn fopen(path: u8*, mode: u8*): NativeFile*;
+extern fn fread(dst: u8*, size: usize, count: usize, f: NativeFile*): usize;
+extern fn fclose(f: NativeFile*): i32;
+extern fn fgetc(f: NativeFile*): i32;
+extern fn feof(f: NativeFile*): i32;
+extern fn ferror(f: NativeFile*): i32;
+extern fn puts(s: u8*): i32;
+extern fn pow(x: f64, exponent: f64): f64;
+
+struct Shape { width: usize; height: usize; channels: usize; layers: usize; mips: usize; }
+struct Pixel { component: u8[4]; }
+
+fn failed(message: u8*): bool { puts(message); return false; }
+fn guard(f: NativeFile*): bool {
+    var bytes: u8[16];
+    if fread(&bytes[0], 1, sizeof(decltype(bytes)), f) != sizeof(decltype(bytes)) { return failed("short guard"); }
+    foreach (var byte in &bytes) { if byte != 165 { return failed("damaged guard"); } }
+    return true;
+}
+fn linear(encoded: u8): u8 {
+    var srgb: f64 = convert(f64, encoded) / 255.0;
+    var value: f64 = srgb / 12.92;
+    if srgb > 0.04045 { value = pow((srgb + 0.055) / 1.055, 2.4); }
+    return convert(u8, value * 255.0 + 0.5);
+}
+var ProbeWidth: usize = 4;
+fn plane(f: NativeFile*, w: usize, h: usize, channels: usize, pixels: Pixel*): bool {
+    var size = w * h * channels;
+    var data = alloc(u8, size);
+    if data == null { return failed("plane allocation failed"); }
+    defer free(data);
+    if fread(data, 1, size, f) != size { return failed("short transfer readback"); }
+    var xs: usize[4] = {0, w / 3, w / 2 + 1, w - 1};
+    var ys: usize[4] = {0, h / 3, h / 2 + 1, h - 1};
+    var at: usize = 0;
+    foreach (var y in &ys) {
+        foreach (var x in &xs) {
+            var src = data + (y * w + x) * channels;
+            var pixel: Pixel = {component: {0, 0, 0, 255}};
+            if channels == 1 { pixel.component[0] = src[0]; }
+            else {
+                for (var c: usize = 0; c < 3; c++) { pixel.component[c] = linear(src[c]); }
+                pixel.component[3] = src[3];
+            }
+            pixels[at] = pixel;
+            at++;
+        }
+    }
+    return true;
+}
+fn texture(f: NativeFile*, s: Shape): bool {
+    if !guard(f) { return false; }
+    var per_plane = ProbeWidth * ProbeWidth;
+    var count = s.layers * s.mips * per_plane;
+    var pixels = alloc(Pixel, count);
+    if pixels == null { return failed("atlas allocation failed"); }
+    defer free(pixels);
+    var at: usize = 0;
+    for (var l: usize = 0; l < s.layers; l++) {
+        for (var m: usize = 0; m < s.mips; m++) {
+            if !plane(f, s.width >> m, s.height >> m, s.channels, pixels + at) { return false; }
+            at += per_plane;
+        }
+    }
+    if !guard(f) { return false; }
+    for (var i: usize = 0; i < count; i++) {
+        foreach (var channel in &pixels[i].component) {
+            if fgetc(f) != convert(i32, channel) { return failed("sampled RGBA differs from encoded transfer"); }
+        }
+    }
+    return guard(f);
+}
+fn verify(f: NativeFile*): bool {
+    var shapes: Shape[5] = {{2048,2048,1,6,1}, {256,352,4,1,2}, {256,352,4,1,2},
+        {256,352,4,4,1}, {64,64,4,2,1}};
+    foreach (var &shape in &shapes) { if !texture(f, *shape) { return false; } }
+    if fgetc(f) != -1 || feof(f) == 0 || ferror(f) != 0 { return failed("unexpected data or stream error"); }
+    puts("all 256 sampled RGBA texels match encoded transfer and all guards are intact");
+    return true;
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { puts("usage: verify_capture GUARDED_CAPTURE"); return 2; }
+    var f = fopen(argv[1], "rb");
+    if f == null { puts("cannot open capture"); return 1; }
+    var ok = verify(f);
+    if fclose(f) != 0 { puts("capture close failed"); return 1; }
+    return ok ? 0 : 1;
+}
