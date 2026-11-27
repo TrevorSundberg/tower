@@ -259,6 +259,23 @@ at `0x146e` in that DLL. Draw reviewed the executable, captures and driver
 trace. Both strict Wine assets/core checks exited 1 with the registry and
 ICD diagnostics. Physical Windows execution remains open.
 
+Draw later identified the exact trace files in the same sealed archive.
+`shipping-origin.stderr` records six 67,108,864-byte copies, each with DLL
+return RVA `0x146e`. The separate `workload-linked.stderr` records those six
+copy returns and six returns at RVA `0x1285` from `vkEndCommandBuffer`
+inside ordinal 6. Its `tower_vk_command_finish_v1` starts at RVA `0x1270`.
+Draw recorded exit 0 for this linked workload:
+
+```sh
+workload-linked/draw.exe --offscreen --staged-uploads --no-nuclear --gpu-check --frames 3 --capture workload-linked.ppm
+```
+
+Rendering independently decoded both call instructions in the retained
+seven-export DLL. The return at `0x1285` follows a call through thunk
+`0x1540` to `vulkan-1.dll!vkEndCommandBuffer`. The return at `0x146e`
+follows thunk `0x1510` to `vulkan-1.dll!vkCmdCopyBuffer`. These file
+attributions describe the previously accepted run.
+
 ## Five-export validation at c40dae39
 
 The C example created a shader and retired the same event-setting primary
