@@ -181,11 +181,49 @@ clang --target=x86_64-w64-windows-gnu --sysroot="$MINGW_SYSROOT" \
 
 The seven-export DLL is 4,096 bytes with SHA-256
 `b6b7b867cb665f43376339e5e01f5ce98c10a7b1182bf4a04f4dee8223ec46a4`.
-On Wine 8 the linked upload PE imported the recorder and finish by name.
-It reproduced Draw's guarded 73-byte and 64 MiB upload references on a
-Quadro RTX 6000. The previous five-import counted PE retained its guarded
-output with this DLL. Physical Windows and Draw process adoption remain open.
+The matching import library has SHA-256
+`4a72821b4e00bcf594ae6c79c1c8deebd68c404dc216e9c8c62354f217c48e71`.
+The tested x64 C executable (`07d6cd055115a3171c30e3fbffc2931268ad180e3a9537d9a468e671e7350aca`)
+imports the recorder and finish by name. The DLL imports eight symbols
+from `vulkan-1.dll`, including core `vkCmdCopyBuffer` and
+`vkCmdPipelineBarrier2`. The loader must provide both symbols at DLL
+load time.
+
+Under Wine 8, the selected Quadro RTX 6000 reported Vulkan 1.4.351 and
+NVIDIA driver 615.71.10. The test requested core 1.3 and enabled
+synchronization2. The explicit guest validation-layer request returned −6.
+Host Khronos synchronization validation was enabled for the successful
+runs, which reported zero callback warnings or errors.
+
+| Upload size | Transfers per caller | Bytes per guarded readback | SHA-256 of the complete stream, raw and linked |
+| --- | ---: | ---: | --- |
+| 73 bytes | 64 | 88 | `464400b39d3b85b232fc092a41fa409846d7ad845e6383f5b69752514b98cdbe` |
+| 64 MiB | 2 | 67,108,880 | `00ff1657355954087fdc48ca2cb3acc6d2bd6f0b487aaf58a081595342a4ac71` |
+
+Both streams match the [Linux recorder fixture](https://github.com/TrevorSundberg/tower/blob/dadf38c072c6757277d4043cb358e3310af0d6a1/scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md#hardware-evidence).
+The Windows recording control also preserved the 64-bit byte count
+4,294,967,369. The previous five-import counted PE retained its guarded
+output with the new DLL. Draw application execution through ordinal 7
+and physical Windows execution remain open.
 [Host 11 checks and replay](../../../../docs/temporal-opcode-research-journal.md#draw-staged-buffer-recording-in-the-win64-dll)
+
+### Draw C cross-link for the seven-export DLL
+
+Draw fetched Tower `207f5d073c29cdce7bb794b82b173645bd3a584e` and
+reproduced the DLL and import-library hashes above using the published
+LLVM 19 recipe. The recorder and C header matched the Linux source at
+`dadf38c072c6757277d4043cb358e3310af0d6a1`.
+
+Draw linked a separate Win64 C executable through the released recorder
+and submit headers. Its code calls the recorder and then blocking finish.
+Draw reported that the PE imports all seven names and identified its
+SHA-256 as `6e8b787e26b4de58bb3cb166bfd4ea0bd39c39d600b881c9e7b9a7a2c1a9111e`.
+The DLL exposes the recorder at ordinal 7 and finish at ordinal 6.
+
+This receipt covers the independent C link. Draw assigned execution in
+the staged uploader to slot 9 job `24a62b15-b781-40c8-a3fc-d38bf0710359`,
+dependent on six-export job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`.
+The guarded upload captures above came from Tower's Wine fixture.
 
 ## Five-export validation at c40dae39
 
