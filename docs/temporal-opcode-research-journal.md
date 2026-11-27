@@ -125761,3 +125761,111 @@ before passing the acquired handle to bind. Host 12 has the original
 release objects, client executables, device probes and guarded captures.
 The shared main checkout had an existing edit, so the worker used an
 isolated main at the requested packaging parent.
+
+The pinned Linux bootstrap compiled the new unit first with `--library
+--jobs 1 --foundation scaffolding/foundation.tower`. Its 1,144-byte ELF
+object reproduced SHA-256
+`17c7069d583de69b154c899e077a0b4caea8d94c8a41cc4457f1045cd9f03584`.
+Its two undefined symbols, `vkAllocateMemory` and `vkBindImageMemory`,
+are also the complete difference between the two DSO import lists.
+The eleven retained object files passed the previous release manifest.
+Appending the new object in the existing GNU ld command produced
+15,352 bytes, SHA-256
+`1296b5b49762c4807d343c69afda5bfca52ee35621d86c0142b27e8bed2e2104`.
+The normal source build independently reproduced that ELF in 4.069 s
+wall, 3.348 s user, 0.718 s system and 97,600 KiB peak RSS.
+The SONAME is `libtower_graphics.so` and the sole DT_NEEDED is
+`libvulkan.so.1`. The package guide lists each export.
+
+The unmodified `sdk-all`, `sdk-all-clang-driver`, `sdk-new` and release-13
+`cpu-combined` binaries reproduced their stored stdout and exited 0.
+Their loader traces covered the thirteen older public symbols. The earlier
+`gpu-combined` executable also exited 0 and reproduced its guarded capture
+using the new library. Linking the new memory SDK object against release
+13 exited 1 and named both missing entries. Eager loading exited 127
+and named `tower_vk_bind_image_memory_zero_v1`.
+
+One external C main includes the SDK headers and calls preflight, create,
+plan, allocate, bind and view directly. The existing validated fixture
+lends it the selected device. The six lazy bindings resolved to the new
+DSO. Its 2×2 image consumed 512 bytes at type 1, and the caller reported
+zero live bytes after release. The separate CPU recorder exercised 16,384
+and 4,294,983,680 bytes at index 31. It compared the original descriptor
+and pNext pointers, their contents, the private initial null slot and the
+guarded public slot. The injected allocation statuses −2 and +1 preserved
+the slot and stopped before charging. Bind statuses −2 and −7 left one
+charged allocation and stopped before view creation. In both success
+cases the observer saw the charge and owned handle at bind, then view,
+completion, view/image destruction and free.
+
+The device test uses the same retained b68b1835 fixture, the planner patch
+and the standalone worker's two-call owner patch. For shared calls the
+executable exports the existing trace's three SDK observers so that calls
+from inside the library reach them as well. RTLD_NEXT forwards successful
+operations along the existing lifetime-probe and Vulkan loader path.
+Both arms used preflight/create/plan/view from the packaged library.
+The baseline called the raw SDK for allocation and bind against release
+13. The candidate used all six constructor entries in release 15.
+
+The Vulkan API selected discrete RTX 3090 device 0, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, driver 565.57.01 and API 1.3.289,
+graphics family 0, queue 0. Khronos layer 1.3.239 ran with synchronization
+validation and synchronization2 was enabled on the device. Five plans
+selected type 1 with sizes 25,165,824, 569,856, 569,856, 1,572,864 and
+32,768 bytes. Each actual allocation used the planner's original address.
+At bind, device/image/memory identity, the charged bytes and offset zero
+matched. All ten real source calls per passing run returned VK_SUCCESS.
+The format limits, ten image/view descriptors and 4,408 bytes of upload
+records matched their independent references. The 189 lifetime events
+covered five completed uploads, staging release, sixteen sampled reads
+and destruction of each view, image and bound memory. The byte comparison
+covered all 103,158,144 guarded bytes, SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+All ordinary device runs reported zero validation warnings/errors.
+
+Each arm also ran two injected −2 controls and exited 1 at the requested
+operation. Allocation denial left zero charged bytes. Bind denial followed
+a real successful allocation and a 25,165,824-byte charge. Neither case
+created a view or produced pixels. The existing release verifier checked
+the staging unmap/destruction/free, destruction of the actual source image,
+and the free on the original device with a null or live allocation,
+respectively. Hardware exhaustion and device loss were not observed.
+
+The host has an AMD EPYC 7282 with 16 cores, 32 hardware threads, affinity
+0–31 and a 15.36-CPU quota. Clang 19.1.7 used -O2 for the SDK transport.
+Three fresh processes per arm used warm files, one queue and alternating
+arm order after the hardware trace warmup. Every timed hardware process
+passed its capture and release checks. CPU processes checked 600,000
+recorded cases per thread. The packet has individual wall ns, user and
+system µs, and peak RSS KiB. Times include process startup and observation.
+
+| Route | Serial CPU wall ms | Four pthreads wall ms | Device wall s | Device user / system s | Device peak KiB |
+| --- | --- | --- | --- | --- | --- |
+| Raw SDK + thirteen | 32.45, 32.41, 32.08 | 52.58, 52.44, 34.73 | 2.052, 2.313, 2.046 | .614–.709 / 1.422–1.604 | 116080–116116 |
+| Fifteen | 33.58, 31.24, 32.75 | 52.94, 51.76, 34.18 | 2.030, 2.289, 2.315 | .628–.694 / 1.402–1.631 | 116112–116360 |
+
+These samples characterize the checked fixture on this host. The
+allocation entry uses one automatic handle slot. The bind entry forwards
+scalars. Driver-private allocations and shipping frame times were outside
+this measurement. The original 2×2 CPU row-copy and oracle blobs on the
+a580e70a lineage matched the checksums from 3dd5f11f. That archived
+pitch-12 test and Draw's thirteen-entry receipt retain their own execution
+revisions.
+
+The address and thread builds instrumented the new Tower provider object,
+the Tower fixture and C SDK boundaries. The other eleven provider objects
+reused their release-13 code. Maps, dynamic sections and the instrumented
+function bodies are in the packet. ASan checked the private output slot
+and publication store. The scalar bind body has no memory access to
+instrument. CPU ASan/LSan and fatal UBSan passed all four pthread owners.
+CPU TSan also passed on both arms, after five restricted-personality starts
+on raw and four on shared. GPU ASan with leak detection disabled passed
+both arms, including pixels, completion and synchronization validation.
+With leak detection enabled, both arms exited 1 with 4,187 bytes in 15
+allocations. The shared core-validation control with leak detection enabled
+exited 0 and passed the capture and lifetime checks. Attribution remains
+open. Each GPU TSan arm had five restricted-personality startup failures
+(139) then a nested sanitizer SEGV (66) before verified device execution.
+Driver, loader, layer and retained binary probes kept their original
+instrumentation. Shipping Draw adoption and publication belong to the
+respective managers.

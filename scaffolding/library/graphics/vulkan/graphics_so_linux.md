@@ -1,6 +1,6 @@
 # Linux x86-64 Vulkan C library
 
-Build the thirteen functions from the Tower checkout. The host needs the
+Build the fifteen functions from the Tower checkout. The host needs the
 checked-in Linux x64 bootstrap's LLVM 19.1 shared library, Bash, coreutils and
 GNU x86-64 binutils. Supply the absolute path to the target's Vulkan loader.
 
@@ -26,7 +26,9 @@ For an application making its own Vulkan calls, use the same link with
 `-lvulkan` after `-ltower_graphics`. Install the loader in the host library
 search path and configure the intended ICD. The library's SONAME is
 `libtower_graphics.so`. Its sole DT_NEEDED entry is `libvulkan.so.1`. The
-twelve-entry build is 14,976 bytes, SHA-256
+fifteen-entry build is 15,352 bytes, SHA-256
+`1296b5b49762c4807d343c69afda5bfca52ee35621d86c0142b27e8bed2e2104`.
+The earlier twelve-entry build was 14,976 bytes, SHA-256
 `652949ebd1103e806b1e55ad5528a7b7b07bb0d338091bf0f62cec6254496ed6`.
 
 | SDK header | Export | Checked through the combined library |
@@ -44,6 +46,8 @@ twelve-entry build is 14,976 bytes, SHA-256
 | create_image.h | tower_vk_create_image_v1 | Four SDK descriptors × four results (0, −1, −2, +1) checked borrowed pointers, driver clobber and success-only publication. The device check correlated ten created images with their views. |
 | image_format_preflight.h | tower_vk_image_format_preflight_v1 | 32 raw SDK and linked recording cases checked query fields, signed results, output guards and driver clobber. The retained device caller used the same DSO for preflight, create and view. |
 | image_allocation_plan.h | tower_vk_plan_image_allocation_v1 | Nine external C recording cases and five RTX source allocations, including guarded readback and injected allocation and bind failures. |
+| image_memory.h | tower_vk_allocate_memory_v1 | Original descriptor and extension chain, null allocator, full-width size and success-only handle publication through a private slot. |
+| image_memory.h | tower_vk_bind_image_memory_zero_v1 | The recorder checked the acquired memory handle, image, zero offset and caller accounting at bind. |
 
 Include `image_format_preflight.h` and link with `-ltower_graphics`.
 Pass the selected physical device and the descriptor you intend to create.
@@ -58,6 +62,26 @@ Creation leaves binding to the caller. Upload recording returns before
 submission. Keep staging live through retirement, and keep a sampled view,
 its image and memory live through the final read. A failed idle after a
 successful submit requires recovery before freeing pending resources.
+
+## Allocate and bind through the fifteen-entry library
+
+Include `image_allocation_plan.h` and `image_memory.h`. After successful
+preflight, image creation and planning, pass the planner's original
+`VkMemoryAllocateInfo` to `tower_vk_allocate_memory_v1`. Supply a
+separate, initially null `VkDeviceMemory` slot. On `VK_SUCCESS`, record
+the full `allocationSize` and allocation count, then call
+`tower_vk_bind_image_memory_zero_v1` with the acquired handle. Create the
+view only after a successful bind. Each call preserves its signed driver
+result. A bind failure leaves the image, allocation and charge with the
+caller. After last use, destroy the view and image, free the memory and
+reverse the charge. [External C SDK client](linux_checks/memory_sdk_client.c)
+
+On host 12 the ELF loader bound all six construction calls from that C
+client to one DSO. The retained raw and shared five-image runs on the RTX
+3090 matched all 103,158,144 guarded bytes. Job
+`b8b88b52-ea22-4141-b4cf-1c498c4e93b1` includes the binaries, commands,
+captures, loader traces, exit statuses and sanitizer logs. Draw's
+thirteen-entry uptake is recorded below. [Device checks and coverage](../../../../docs/temporal-opcode-research-journal.md#linux-graphics-library-allocation-and-zero-offset-bind-on-host-12)
 
 ## Link the image planner
 
