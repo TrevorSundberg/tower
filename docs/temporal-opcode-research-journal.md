@@ -123849,3 +123849,14 @@ incremental bundle against edb8c333 and reproduced the DLL, import library,
 consumer PE, counted PE, gate and control outputs. Packet `replay.sh`
 contains the exact checks. Source publication belongs to the rendering
 coordinator. The packet includes no Draw or presentation implementation.
+
+### Draw reviews the two-export DLL in its Win64 application
+
+Draw's sealed worker job `4c9c47bb` identifies the two-export DLL used
+by the native Windows PE under Wine on the RTX 3060. Its manager verified
+the two counted payloads, shaderless clear and resize observations. The
+[application receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-application-with-the-two-export-dll)
+records the successful functional frame run and stock validation exit 1.
+Rendering rehashed both copies of the release DLL and reconstructed the
+expected count-prefixed payload digests. This was a documentation review
+of prior runs. Live five-export testing is assigned to Draw job `97a65c6b`.

@@ -86,3 +86,31 @@ Native Windows drivers and Draw's WSI/presentation integration require
 separate runs. Artifact identities, exact link inspection, hardware details
 and per-call timing are in the
 [project journal](../../../../docs/temporal-opcode-research-journal.md#windows-x64-combined-vulkan-library).
+
+## Draw application with the two-export DLL
+
+Draw's manager reviewed job `4c9c47bb` and reported local integration at
+`525a105`. It rehashed 331 files and the 177-file predecessor package.
+The Win64 Draw OSD executable (digest prefix `c2810e92`) used the shader
+and submit DLL at Tower `1db528e8505d4cd416f1c5f8aa6edf798b944e07`.
+Rendering matched its release and packaged DLL copies to SHA-256
+`d29a2d9345e7dae3c8894f5c6db4058f68d4c59fb26357c57b1470f7e96359e4`.
+
+On the RTX 3060 under Wine, Draw reported exit 0 for the functional frame
+run. The first submission remained pending until the wait. On resize, all
+96 created shader modules were retired. Draw also verified the shaderless
+clear and matching resize RGB, HUD and camera results. Stock validated
+Wine runs exited 1.
+
+Draw rehashed both 4,096,004-byte counted raster streams. Each started
+with little-endian count 16384 and contained 1,024,000 uniform RGBA
+pixels. Rendering independently reconstructed these expected stream
+digests from the count and reported pixels.
+
+| Shader | RGBA pixel | Expected SHA-256 including count |
+| --- | --- | --- |
+| Original | `407fbfff` | `4eddbebef0549f4d642a7c2363778c47e76973c8a3912f89883b6575d32b8a7f` |
+| Corrected | `4080bfff` | `78ee87c63b6022644debc6d4b2563e4a9f1d9d92e566084886855141484fa411` |
+
+Draw assigned live five-export testing to `97a65c6b`. The six-export
+release has its own review. Physical Windows and displayed WSI remain open.
