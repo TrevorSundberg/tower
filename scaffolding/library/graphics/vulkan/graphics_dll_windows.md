@@ -243,7 +243,7 @@ The five-export DLL exposed submit, shader creation and counted recording at
 ordinals 1, 2 and 3. Begin is 4 and end/prepare is 5. The end object
 supplies the single definition of submit. Recorded C controls cover signed
 reset, begin, end and submit results, all optional descriptor slots,
-failure preservation and call order. Full Draw, displayed WSI and native
+failure preservation and call order. Displayed WSI and native
 Windows driver execution remain open. [Host 11 evidence](../../../../docs/temporal-opcode-research-journal.md#win64-frame-operations-in-the-counted-graphics-dll)
 
 The five-export DLL (3,584 bytes) has SHA-256
@@ -266,8 +266,30 @@ and linked it against that import library. It reported PE SHA-256
 `9b3e010ffc5ad9bb0fcc21b044e3c2594ec2841b2ca99af81d52717b6226a2d8`.
 Its import table contained all five operations, and Draw confirmed provider
 ordinals 1 through 5. This receipt covers cross-compilation and inspection.
-Draw assigned execution through its application to job `4c9c47bb`.
-Physical Windows and displayed WSI coverage remain open.
+
+### Draw application using the five-export DLL
+
+Draw job `97a65c6b` used application `87d4e8d094572c13c0c9beba369577b9cdf59e0d`,
+tests `0a59710fafc6db481bd4e76f694679e76e5ad482` and Tower
+`32e6f52b2d60953c7bad1678fb7bc1786bfccc2a`. Draw verified 433 hashes
+in archive `9784a81737a60194c55488f28b803918f38da4a43e451ee477088893cda543b1`.
+The shipping PE, SHA-256 `bdd9c146cd84d9594a39c946ab3e896d5c2d1381f01e47d9a6cfb4bd63743a73`,
+imported the entries at ordinals 1, 2, 4 and 5. Rendering independently
+rehashed the matching release DLL and import library.
+
+The offscreen functional trial on Wine 11 selected the RTX 3060,
+Vulkan 1.4.329, NVIDIA 595.99.02. Draw reported frame arguments
+`--osd assets/osd/state.bin --no-hud --day-hour 12 --fixed-time 0 --size 320 180 --frames 3 --benchmark-motion --fixed-step 0.016666667`.
+It exited 0. In each of the three frames, end/prepare and submit used
+the same borrowed command slot and descriptor. A zero-time fence wait
+returned 2 (`VK_TIMEOUT`) before later retirement and reuse. On a failed
+end the 72-byte descriptor and all 32 guard bytes were preserved.
+
+Draw checked counts of 16,384 and all 1,024,000 RGBA pixels against
+each original and corrected raster control. The resized HUD layer
+matched its retained digest (`26bcbccf…`). The stock validated asset
+and core runs exited 1 with three registry diagnostics and a loader
+warning. Physical Windows and displayed WSI remain open.
 
 ## Recording indexed draws from C
 
@@ -383,6 +405,74 @@ The 3,644-byte import library has SHA-256
 The C boundary and raw hardware control both produced 27,542,768 identical
 guarded bytes on Wine 8 with the Quadro RTX 6000, driver 615.71.10.
 See the [Win64 observations and replay](../../../../docs/temporal-opcode-research-journal.md#win64-osd-recorder-through-the-external-graphics-dll).
+
+### Ordinal 8 release verification
+
+The Windows build uses the Linux recorder source and public header at
+Tower `846176abc06dfa3ac6dbb939f3f683e9380cd99e`. The Windows-tested
+implementation is `eb6f1ce89aa0b097638a3f79de7df67a10e57153`. The Win64
+C object includes the public header and imports the recorder through
+`tower_graphics.dll`. Rendering checked the export and import tables
+in the actual PE files, verified the seven existing ordinal/name pairs
+and resolved ordinal 8 to `tower_vk_osd_texture_upload_record_v1`.
+
+| Reviewed artifact | SHA-256 |
+| --- | --- |
+| Tower recorder COFF | `30924c11328f85c15448ec4e9b60dcf89b1248b157f76e674b5d2d6822430523` |
+| Linked test PE | `52a98ed666c6905f47513e6dac38053f63c00bd1e7e1cfd1ad4fd2f93b038803` |
+| Raw control PE | `d85c607adadc3b6db42a2571014b6fec0b4f325bec097bdeddc9bfd782bdc940` |
+| Guarded readback, both paths | `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811` |
+
+Slot 11 job `9821d998-31d1-4665-8369-27063d5d5d84` ran both PEs on
+Wine 8 with the API-selected Quadro RTX 6000, Vulkan 1.4.351, driver
+615.71.10, UUID `26f60f6cead65faf0253a959b2e93a2d`. The recording
+control compared the original region pointer, 16 region descriptors,
+five copy calls and 28 per-layer barriers. Both hardware runs exited 0.
+Each released staging after queue completion. The 27,542,768-byte
+capture includes 27,541,504 synthetic transfer bytes, 1,024 sampled
+RGBA bytes and 240 guard bytes. Rendering independently ran the capture
+verifier on the raw, linked and clean linked streams and reproduced
+all 256 sampled texels and every guard.
+
+| Deliberate sampling fault | First atlas byte | Expected | Observed | Exit |
+| --- | ---: | ---: | ---: | ---: |
+| Force layer zero | 64 | 37 | 0 | 3 |
+| Force mip zero | 64 | 5 | 90 | 3 |
+| Reverse rows | 0 | 0 | 118 | 3 |
+
+The host loader inserted Khronos synchronization validation. Healthy
+guest callbacks reported zero warnings or errors. Explicit guest layer
+creation returned −6 and exited 1. Win64 C UBSan and native threaded
+ASan/TSan completed. Win64 ASan/TSan, physical Windows and execution of
+ordinal 8 inside Draw remain open. Draw's five-export Wine 11 receipt
+above covers its earlier shipping frame path.
+
+Rendering verified the archive's 466 manifest entries, its two previous
+packets and the 170-entry sampling supplement at `c2bafc6f`. Clean replay
+matched all 14 locked products. The archive SHA-256 was
+`5ebcf3d0f85e27c5179cb3c4752294f8a30062a6f3ce6797b0196426e4921559`.
+The packet's `build.sh`, `session.sh`, `check.sh`, `audit.sh` and `native.sh`
+record the exact invocations. From its extracted location on the prepared
+worker, use `D="$D" PREPARED_SDK="$PREPARED_SDK" bash "$PACKET/replay.sh"`.
+
+### Draw cross-link of the ordinal 8 recorder
+
+Draw fetched Tower `0d0f117b07b48a48c3897efc8559646ed928f9a6` and
+independently ran the published DLL build. Its DLL and import library
+matched the release sizes and hashes above. At Draw
+`bd203f60b00954acd3b0405720e40a24e94ef430`, Draw cross-linked a
+freestanding Win64 C PE containing the descriptor-building loop and
+selected recorder call from `osd_create`. The PE SHA-256 was
+`f6733d1ba086fd55f35c7f131e358866d8124f909c58d96a42d929f698a24766`.
+Draw verified the consumer's eight named imports, the provider's eight
+ordinals, the caller relocation for the OSD recorder and its two Vulkan
+loader calls. Rendering independently rehashed the retained DLL and
+import library.
+
+Draw's shipping application run, packed texture readback and final HUD
+comparison are queued on slot 9 under
+`4ff01175-385e-4039-bc8e-28e4465856f6`. That run depends on the
+seven-export Windows and Linux real-pack OSD results.
 
 ## Building OSD copy regions at ordinal 9
 
