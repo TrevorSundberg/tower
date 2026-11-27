@@ -123545,3 +123545,86 @@ the team reader supplied the exact prerequisite; bundle verification, a
 fresh build, runner and shader hash checks and both adapter replays then
 passed. The module documentation sits before the recording section so
 the manager's subsequent review at the counted branch tip can be retained.
+
+### Linux x64 C entry for Vulkan shader-module creation
+
+Slot 12 fetched the accepted shader branch at `d779b775` (worker
+`39e33fd4`) with the registered Tower reader after the queue-completion
+job's archive replay. The standalone inner module has no public create
+symbol. The counted object uses a local Tower function and imports the
+Vulkan driver symbol. Its two-field Tower return has no documented C ABI.
+The new entry passes the pinned operation a borrowed device, word range
+and empty slot and returns its two status fields separately. The result
+slot needs its own overlap check before publishing either field.
+
+The checked-in bootstrap emitted a 64-bit SysV relocatable whose only
+defined global is `tower_vk_try_create_shader_module` and whose only
+external is `vkCreateShaderModule`. Clang 19.1.7 and Tower emitted the
+same i32 return and (ptr, ptr, i64, ptr, ptr) parameters. The minimal C
+main linked and ran with both the object and a DSO depending only on the
+Vulkan loader. No Tower runtime or allocator is referenced by the wrapper.
+The production counted fixture and the inner Tower operation stayed at
+their pinned sources. The test overlay substituted a separately compiled C
+call only after the counted loader's file, size and SHA checks. Its
+existing defer frees each word buffer before pipeline creation.
+
+Each of the three known SPIR-V inputs (438/273/95 words) passed the pinned
+digests. The C caller checked that only called=1 and VK_SUCCESS transferred
+a module. Each success recorded the same device/handle pair exactly once
+at destruction, with a null allocator. A missing fragment and a wrong
+third digest each released the earlier two pairs and failed before submit.
+With a live device, zero words returned 0, result 0 and an empty slot. The
+focused Tower check also exercised null and misaligned result pointers,
+aliases into the last word and both halves of the handle, an occupied slot,
+and a synthetic driver that wrote a candidate and returned -2. The real
+llvmpipe allocator-denial probe returned called=1, result=-1, null module
+and exit 1 with zero validation messages.
+
+Linux x64, `counted-core13`, device/family/queue 0/0/0 on each run.
+Hardware was RTX 3090, API 1.3.289 and driver 565.57.01. The software
+reference was llvmpipe, API 1.3.230, Mesa 22.3.6 (LLVM 15.0.6). All three
+shader stages in the two pipelines came from the C entry. Each backend submitted
+once, signaled its fence and passed count/command, four pixels and all
+32 guarded bytes for both counts. Entire stdout matched the pinned
+runner per backend. Zero used 112233ff and one used 4080bfff. Both
+draw14 probes refused the devices. There was no Draw asset or Windows
+run. The reported Draw observations at 7be8d020 and 40e70982 were outside
+the comparison.
+
+Three warm-input fresh processes per version alternated order on the RTX
+3090 after pixel validation. Median elapsed / user+sys CPU seconds /
+peak KiB RSS were 0.33 / 0.32 / 94632 for the pinned application and
+0.30 / 0.30 / 94564 through C. These include whole-process startup and
+provide no GPU timing. The wrapper introduces no heap allocation or
+retained state. Driver-internal allocation and idle time were unmeasured.
+Host 12 had an AMD EPYC 7282, 32 visible logical CPUs and 15.36 CPU quota.
+Three warm compiles of the small wrapper at jobs 1 and 4 each reproduced
+the object. Median elapsed / CPU / KiB were 0.33 / 0.32 / 92036 and
+0.42 / 0.46 / 96868. The packet records per-sample context switches.
+
+The address-instrumented Tower checks passed with leak detection. The
+hardware executable with address-only checks and C UBSan passed and
+matched its baseline stdout. With leak detection enabled the pixels passed
+and LSan reported 4075 bytes in 14 allocations, matching the pinned
+shader-module investigation's total. Its ownership remains unresolved.
+Both TSan processes failed during startup at the container-denied
+ADDR_NO_RANDOMIZE personality request (139). The link maps include the
+host runtime backed by libc and the counted validation transport through
+libatomic. The packet retains instrumented wrapper IR. Tower source-level
+UBSan and completed threaded sanitizer coverage remain open.
+
+The baseline build initially lacked glslang in PATH. Re-extracting the
+three checksummed Debian tool packages restored glslang, spirv-val and
+GNU time. Standalone C linking first hit missing default linker-script
+paths in the extracted SDK. The tested packet recipe passes the startup
+objects and library locations explicitly. The sanitizer experiment first
+linked redundant UBSan and ASan runtimes and stalled in startup. Removing
+the extra runtime supplied by ASan/TSan and bounding each run produced
+the results above.
+
+A fresh address-instrumented baseline run on this host reproduced the
+4075-byte / 14-allocation LSan finding without the C entry. Three TSan
+retries per binary gave the same startup denial on all focused tests and
+two hardware invocations. The other hardware retry aborted with TSan's
+nested SEGV at 0x1048 (exit 66), also seen in the prior shader-module
+investigation. No TSan invocation completed.

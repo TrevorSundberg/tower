@@ -1,0 +1,49 @@
+import library.testing;
+import shader_module_c;
+import shader_module;
+import readback_abi;
+
+// The test device owns the counter and the candidate handle.
+struct CEntryProbe {
+    calls: u32;
+    result: i32;
+    candidate: VkShaderModuleHandle;
+}
+export fn vkCreateShaderModule(device: VkDeviceHandle*, info: VkShaderModuleCreateInfo*,
+        allocator: VkAllocationCallbacks*, out: VkShaderModuleHandle**): i32 {
+    var probe = bits(CEntryProbe*, device);
+    assert(info != null && allocator == null);
+    probe.calls++;
+    *out = &probe.candidate; // Exercise a driver that writes even on failure.
+    return probe.result;
+}
+
+export fn main(): i32 {
+    var probe: CEntryProbe = { result: -2, ..default };
+    var device = bits(VkDeviceHandle*, &probe);
+    var words: u32[6] = { 1, 2, 3, 4, 5, 6 };
+    var code = &words[0];
+    var count = sizeof(decltype(words)) / sizeof(u32);
+    var module: VkShaderModuleHandle* = null;
+    var status: i32 = 42;
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, null) == 0);
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, bits(i32*, bits(u8*, &status) + 1)) == 0);
+    assert(status == 42);
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, bits(i32*, &words[count - 1])) == 0);
+    assert(words[count - 1] == 6);
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, bits(i32*, &module) + 1) == 0);
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, bits(i32*, &module)) == 0);
+    assert(module == null && probe.calls == 0);
+    assert(tower_vk_try_create_shader_module(device, code, SpirvHeaderWords - 1, &module, &status) == 0);
+    assert(status == 0 && module == null && probe.calls == 0);
+
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, &status) == 1);
+    assert(status == -2 && module == null && probe.calls == 1);
+    probe.result = 0;
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, &status) == 1);
+    assert(status == 0 && module == &probe.candidate && probe.calls == 2);
+    status = 42;
+    assert(tower_vk_try_create_shader_module(device, code, count, &module, &status) == 0);
+    assert(status == 0 && module == &probe.candidate && probe.calls == 2);
+    return 0;
+}

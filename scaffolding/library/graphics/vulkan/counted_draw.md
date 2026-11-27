@@ -85,6 +85,67 @@ callbacks carry no mutable state and always deny allocations. The probe
 destroys an unexpected successful handle with the same allocator and fails
 the test. Normal runs use the loader directly and pass a null allocator.
 
+### Calling from C on Linux x86-64
+
+Use `shader_module_c.h` with the Vulkan SDK and SysV LP64 calling convention.
+Keep the caller's missing-file, byte-length and SPIR-V magic checks. Divide
+the validated byte length by `sizeof(uint32_t)` to obtain the word count.
+The C entry borrows all inputs synchronously. Supply exclusive, naturally
+aligned storage for each output, disjoint from the words and any device
+storage. Initialize the handle even when the old raw Vulkan call accepted
+an uninitialized output. For example, inside the caller's success path:
+
+```c
+VkShaderModule candidate = VK_NULL_HANDLE;
+int32_t result = 0;
+uint32_t called = tower_vk_try_create_shader_module(
+    device, words, byte_length / sizeof(*words), &candidate, &result);
+/* The caller may release words here. */
+if (called && result == VK_SUCCESS) {
+    /* Transfer candidate to the pipeline owner. */
+}
+```
+
+A return of zero with a valid, separate result slot sets `result` to zero.
+Report that case as an argument refusal. A return of one with a nonzero
+result delivers the driver's signed error. In both cases the module slot
+retains its original value. The wrapper rejects a null, misaligned or
+overlapping result pointer without writing through it. The overlap check
+uses the claimed extent even for an excessive word count. Callers own the
+actual allocation sizes and lifetimes. Destroy a successful handle once
+with `vkDestroyShaderModule(device, candidate, NULL)` on its creating
+logical device after the last pipeline creation that uses it returns.
+
+From the checkout containing this entry, build the object with the published
+bootstrap. With an ordinary Linux x64 C toolchain and Vulkan development
+headers/libraries, link it alongside the consumer's existing objects:
+
+```sh
+set -eu
+v=scaffolding/library/graphics/vulkan
+(cd bootstrap/linux-x64 && sha256sum -c --status SHA256SUMS)
+bootstrap/linux-x64/towerc "$v/shader_module_c.tower" --library --jobs 1 \
+    --foundation scaffolding/foundation.tower -o shader_module_c.o
+nm -g shader_module_c.o
+cc -I"$v" -c consumer.c -o consumer.o
+# Run with the ordinary application's main and any other required objects.
+cc main.o consumer.o shader_module_c.o -lvulkan -o application
+```
+
+The ELF64 relocatable defines `tower_vk_try_create_shader_module` and has
+one undefined symbol, `vkCreateShaderModule`. The object requires the
+Vulkan loader (`libvulkan.so.1` at runtime). The standalone entry requires
+no Tower runtime object. Alternatively link the same object as a shared
+library with `cc -shared -nostdlib -Wl,-z,defs shader_module_c.o -lvulkan -o libtower_shader_module.so`.
+Place the resulting library on the application's loader search path.
+
+Slot 12 assignment `31e3de36-8175-4013-b2d6-368435dfb3d6` exercised C
+calls into this object for all three independent control shaders. The
+packet includes the C consumer, counted-fixture overlay, link commands,
+object and DSO, device traces and failure runs. The Linux
+`counted-core13` hardware and software results below apply. Draw's original
+292/285/84-word assets and 16384-draw rendering remain Draw-owned checks.
+
 ## Recording and lifetime
 
 One compute invocation writes record zero as `(3,1,0,0,0)` on each pass.

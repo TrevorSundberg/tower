@@ -1,0 +1,25 @@
+import tower;
+import readback_abi;
+import shader_module;
+
+// Compare byte distances without constructing an overflowing end address or
+// multiplying an untrusted count. A false result allows writing vk_result.
+fn shader_result_overlaps(result: usize, start: usize, count: usize, stride: usize): bool {
+    if start == 0 || count == 0 { return false; }
+    if result < start { return start - result < sizeof(i32); }
+    return (result - start) / stride < count;
+}
+
+export fn tower_vk_try_create_shader_module(device: VkDeviceHandle*, words: u32*, word_count: usize,
+        out: VkShaderModuleHandle**, vk_result: i32*): u32 {
+    var result = bits(usize, vk_result);
+    if vk_result == null || result % alignof(i32) != 0
+        || shader_result_overlaps(result, bits(usize, out), 1, sizeof(VkShaderModuleHandle*))
+        || shader_result_overlaps(result, bits(usize, words), word_count, sizeof(u32)) {
+        return 0;
+    }
+    var created = vk_create_shader_module(device, words, word_count, out);
+    *vk_result = created.result;
+    if created.called { return 1; }
+    return 0;
+}
