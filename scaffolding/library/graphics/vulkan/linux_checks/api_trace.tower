@@ -1,0 +1,36 @@
+import tower;
+
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn printf(format: u8*, name: u8*, result: i32, trace: u8*): i32;
+extern fn exit(status: i32): void;
+struct Row { name: u8*; result: i32; calls: u8*; }
+struct Trace { rows: Row*; count: usize; row: usize; calls: u8[8]; used: usize; }
+extern fn exercise_api(state: Trace*): void;
+
+export fn record_driver(state: Trace*, code: u8): void {
+    if state.used + 1 >= sizeof(decltype(state.calls)) { exit(3); }
+    state.calls[state.used] = code;
+    state.used++;
+}
+export fn record_result(state: Trace*, result: i32): void {
+    if state.row >= state.count { exit(3); }
+    state.calls[state.used] = 0;
+    var observed = &state.calls[0];
+    var want = &state.rows[state.row];
+    printf("%s result=%d driver=%s\n", want.name, result, observed);
+    if result != want.result || strcmp(observed, want.calls) != 0 { exit(3); }
+    state.row++;
+    state.used = 0;
+}
+export fn check_sdk(): i32 {
+    var rows: Row[12] = {
+        {"shader called", 1, "M"}, {"shader VkResult", 0, ""},
+        {"create image", 0, "C"}, {"bound view", 0, "V"}, {"begin", 0, "RB"},
+        {"region count", 1, ""}, {"OSD upload (void)", 0, "PUP"}, {"buffer upload (void)", 0, "TP"},
+        {"counted draw", 1, "D"}, {"end", 0, "E"}, {"submit", 0, "S"}, {"finish", 0, "ESI"}
+    };
+    var state: Trace = {rows: &rows[0], count: sizeof(decltype(rows)) / sizeof(Row), ..default};
+    exercise_api(&state);
+    if state.row == state.count && state.used == 0 { return 0; }
+    return 3;
+}
