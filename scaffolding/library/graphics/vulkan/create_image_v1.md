@@ -170,3 +170,53 @@ Those executables did not exercise the published bound-view object.
 Draw queued job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` to exercise
 the published bound-view provider first, then image creation, binding,
 view creation, packed texel readback and HUD comparison with matched inputs.
+
+## Draw object-linked hardware acceptance on Linux
+
+Draw job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` tested runtime
+`d46d9fe5503c43956cef18dac5b38e8a32e8a59b` and fixtures
+`942cf1eecbf5a63043949e6c7e3485ed3935db2a` on `f377e943`. The worker
+reconstructed the adoption because the earlier Draw manager commit was
+unavailable on that worker. Draw identified both released Tower objects
+in the run, create at `07587159` and bound view at `6b39d552`.
+Rendering independently rehashed the retained objects as
+`9e870edce24bc9759319332a5fc643b4b0cc16cc35d7d04042a17d970e7c174c` and
+`61fdd20166c5844906dfb3320bab3d7b36222268015c546de29a21bc312d0418`.
+
+Vulkan selected an RTX 5060 Ti (10de:2d04), API 1.4.303, NVIDIA 570.169.
+Draw verified 1,263 entries in archive
+`7404cbdefddd9eb1afa625965e750440b5e6768b20867ddd83c65e69cf009cef`.
+Its C-owner executable was
+`2d137b2124fb77f714fb33478e2f55c1e2ff84e1a5a9d540abf7ec62bf14b773`.
+The combined executable was
+`a2404976de38d356d3804930299f5e807cc9735fcb4dfe79ccbf2c8e1ca5eb6c`.
+From the Draw root the following combined capture exited 0.
+
+```sh
+"$combined" --offscreen --validate --fixed-time 0 --day-hour 12 \
+    --size 1280 800 --frames 4 --osd assets/osd/state.bin \
+    --resize-test --no-hud --capture hud-combined.ppm
+```
+
+Draw reconstructed every active texture byte from its shipping input.
+All three configurations matched the 27,541,504-byte payload SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including 364,544 guard and padding bytes, each capture matched
+`bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+Frozen HUD, RGB and camera outputs agreed. Native canonical and core checks exited 0.
+
+Draw also injected −2 before the second image creation reached the driver.
+
+```sh
+DRAW_TEST_FAIL_SECOND=1 LD_PRELOAD="$image_trace_so" "$combined" \
+    --offscreen --osd-test assets/osd/state.bin --fixed-time 5 \
+    --size 960 540 --frames 3 --validate --capture "$out"
+```
+
+The first atlas reached bind and view creation. The failed image had no
+requirements query or bind. The trace contained no teardown of the first
+atlas after the diagnostic. Of 41 process outcomes, 33 exited 1 and eight
+received SIGSEGV. The fault occurred with Tower creation enabled and
+disabled. Its cause remains open with Draw repair `f6abd0c0`. This
+receipt covers object linkage. The eleven-entry shared library and
+shipping preflight have their own device runs.
