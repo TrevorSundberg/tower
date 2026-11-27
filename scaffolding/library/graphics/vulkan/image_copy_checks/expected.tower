@@ -1,0 +1,21 @@
+import tower;
+extern fn write(fd: i32, data: u8*, count: usize): i64;
+
+// Standalone byte stream for the fixed 5 x 3 test. Walk the readback layout
+// linearly so the oracle uses neither the staging permutation nor its pitches.
+export fn main(): i32 {
+    var bytes: u8[104];
+    for (var trial: u32 = 0; trial < 32; trial++) {
+        fill(&bytes[0], 165, sizeof(decltype(bytes)));
+        var at: usize = 4;
+        var row_start = convert(u8, (trial * 17) & 255);
+        for (var row: u32 = 0; row < 3; row++) {
+            var value = row_start;
+            for (var active: u32 = 0; active < 20; active++) { bytes[at++] = value; value += 7; }
+            at += 12;
+            row_start += 51;
+        }
+        if write(1, &bytes[0], sizeof(decltype(bytes))) != convert(i64, sizeof(decltype(bytes))) { return 1; }
+    }
+    return 0;
+}

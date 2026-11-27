@@ -1,0 +1,136 @@
+import tower;
+import .readback_abi;
+import .readback_clear;
+import .readback_device;
+import .readback_oracle;
+import .counted_capture;
+import .counted_record;
+import .command_begin;
+import .command_finish;
+import .upload_test_device;
+import .readback_output as output;
+
+extern fn fixture_copy(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*, offset: u64): void;
+extern fn getenv(name: u8*): u8*;
+extern fn write(fd: i32, data: u8*, size: usize): i64;
+extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
+var ImageWidth: u32 = 5;
+var ImageHeight: u32 = 3;
+var TexelBytes: usize = 4;
+var ReadPitch: usize = 8;
+var StagePitch: usize = 7;
+var Prefix: usize = 4;
+var DeviceLocal: u32 = 1;
+var TransferDestination: u32 = 7;
+var Trials: u32 = 32;
+
+fn retire(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): bool {
+    if vk_ok("fixture finish", tower_vk_command_finish_v1(queue, cmd)) { return true; }
+    if !vk_ok("fixture recovery drain", vkQueueWaitIdle(queue)) { exit(3); }
+    return false;
+}
+
+fn check_image(ctx: ReadbackDevice*): bool {
+    var device = ctx.device;
+    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
+        extent: { width: ImageWidth, height: ImageHeight, depth: 1 }, mipLevels: 1, arrayLayers: 1,
+        samples: VkSample1, usage: VkTransferSrcUsage | VkTransferDstUsage, ..default };
+    var memory: VkDeviceMemoryHandle* = null;
+    defer { if memory != null { vkFreeMemory(device, memory, null); } }
+    var image: VkImageHandle*;
+    if !vk_ok("create test image", vkCreateImage(device, &info, null, &image)) { return false; }
+    defer vkDestroyImage(device, image, null);
+    var req: VkMemoryRequirements; var flags: u32;
+    vkGetImageMemoryRequirements(device, image, &req);
+    if !vk_readback_allocate(ctx, &req, DeviceLocal, &memory, &flags)
+        || !vk_ok("bind image", vkBindImageMemory(device, image, memory, 0)) { return false; }
+    output.readback_number("image_memory_flags", flags);
+    var stage: CountedBuffer = default; var host: CountedBuffer = default;
+    defer counted_release_buffer(device, &stage); defer counted_release_buffer(device, &host);
+    var height = convert(usize, ImageHeight);
+    var stage_bytes = 2 * Prefix + height * StagePitch * TexelBytes;
+    var read_bytes = 2 * Prefix + height * ReadPitch * TexelBytes;
+    var coherent = VkHostVisible | VkHostCoherent;
+    if !counted_buffer(ctx, &stage, convert(u64, stage_bytes), VkTransferSrcUsage, coherent)
+        || !counted_buffer(ctx, &host, convert(u64, read_bytes), VkTransferDstUsage, coherent) { return false; }
+    output.readback_number("staging_memory_flags", stage.flags);
+    output.readback_number("readback_memory_flags", host.flags);
+    var input: void*; var result: void*;
+    if !vk_ok("map staging", vkMapMemory(device, stage.memory, 0, VkWholeSize, 0, &input)) { return false; }
+    defer vkUnmapMemory(device, stage.memory);
+    if !vk_ok("map readback", vkMapMemory(device, host.memory, 0, VkWholeSize, 0, &result)) { return false; }
+    defer vkUnmapMemory(device, host.memory);
+    var want = alloc(u8, read_bytes);
+    if want == null { return vk_failure("cannot allocate reference bytes"); }
+    defer free(want);
+    var primary_pool: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer,
+        queueFamilyIndex: ctx.family, ..default };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create pool", vkCreateCommandPool(device, &primary_pool, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(device, pool, null);
+    var allocation: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate primary", vkAllocateCommandBuffers(device, &allocation, &cmd)) { return false; }
+
+    var range: VkImageSubresourceRange = { aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default };
+    var read: VkBufferImageCopy = { bufferOffset: convert(u64, Prefix), bufferRowLength: convert(u32, ReadPitch),
+        imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default }, imageExtent: info.extent, ..default };
+    var stage_data = bits(u8*, input);
+    var read_data = bits(u8*, result);
+    var capture = getenv("CAPTURE_IMAGE_BYTES") != null;
+    var total: u64 = 0;
+    for (var trial: u32 = 0; trial < Trials; trial++) {
+        fill(stage_data, 60, stage_bytes); fill(read_data, ReadbackGuard, read_bytes); fill(want, ReadbackGuard, read_bytes);
+        for (var y: usize = 0; y < height; y++) {
+            var storage_row = (y + height - 1) % height;
+            for (var x: usize = 0; x < convert(usize, ImageWidth) * TexelBytes; x++) {
+                var byte = convert(u8, (17 * convert(usize, trial) + 51 * y + 7 * x) & 255);
+                stage_data[Prefix + storage_row * StagePitch * TexelBytes + x] = byte;
+                want[Prefix + y * ReadPitch * TexelBytes + x] = byte;
+            }
+        }
+        if !vk_ok("begin upload", tower_vk_command_begin_v1(cmd)) { return false; }
+        // Both transitions belong to this test owner, outside the private recording entry.
+        var barrier: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
+            srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
+            newLayout: TransferDestination, dstAccessMask: VkTransferWrite, ..default };
+        var before = VkStageTop;
+        if trial != 0 { before = VkStageTransfer; barrier.oldLayout = VkCopyLayout; barrier.srcAccessMask = VkTransferRead; }
+        vkCmdPipelineBarrier(cmd, before, VkStageTransfer, 0, 0, null, 0, null, 1, &barrier);
+        var start = now();
+        fixture_copy(cmd, stage.handle, image, convert(u64, Prefix));
+        var elapsed = now() - start;
+        total += elapsed;
+        if trial < 2 { output.readback_label("record_ns"); output.readback_decimal(elapsed); }
+        if !retire(ctx.queue, cmd) { return false; }
+        if !vk_ok("begin fixture readback", tower_vk_command_begin_v1(cmd)) { return false; }
+        barrier.oldLayout = TransferDestination; barrier.newLayout = VkCopyLayout;
+        barrier.srcAccessMask = VkTransferWrite; barrier.dstAccessMask = VkTransferRead;
+        vkCmdPipelineBarrier(cmd, VkStageTransfer, VkStageTransfer, 0, 0, null, 0, null, 1, &barrier);
+        vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, host.handle, 1, &read);
+        counted_buffer_barrier(cmd, host.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
+        if !retire(ctx.queue, cmd) { return false; }
+        if memcmp(read_data, want, read_bytes) != 0 {
+            for (var i: usize = 0; i < read_bytes; i++) {
+                if read_data[i] != want[i] {
+                    output.readback_number("trial", trial); output.readback_size("mismatch_at", i);
+                    output.readback_number("expected", convert(u32, want[i])); output.readback_number("actual", convert(u32, read_data[i]));
+                    return false;
+                }
+            }
+        }
+        if capture && write(4, read_data, read_bytes) != convert(i64, read_bytes) { return vk_failure("capture write failed"); }
+    }
+    output.readback_label("total_record_ns"); output.readback_decimal(total);
+    output.readback_size("guarded_bytes", read_bytes);
+    output.readback_number("retired_images", Trials);
+    return true;
+}
+
+export fn main(): i32 {
+    var warnings: u32 = 0;
+    var ok = validated_upload(&warnings, false, check_image);
+    output.readback_number("validation_warnings_errors", warnings);
+    if !ok || warnings != 0 { return 1; }
+    return 0;
+}

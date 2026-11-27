@@ -1,0 +1,44 @@
+import tower;
+import .readback_abi;
+import .readback_output;
+extern fn fixture_copy(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*, offset: u64): void;
+extern fn exit(status: i32): void;
+
+struct Observation { count: u32; offset: u64; source: u8; destination: u8; }
+
+fn require(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(3); }
+}
+
+export fn vkCmdCopyBufferToImage(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layout: u32, count: u32, regions: VkBufferImageCopy*): void {
+    var owner = bits(Observation*, cmd);
+    require(owner.count == 0 && bits(u8*, staging) == &owner.source && bits(u8*, image) == &owner.destination,
+        "copy order or handle mismatch");
+    require(layout == 7 && count == 2 && regions != null, "copy layout or count mismatch");
+    for (var i: u32 = 0; i < count; i++) {
+        var r = regions[i];
+        require(r.imageSubresource.aspectMask == 1 && r.imageSubresource.mipLevel == 0
+            && r.imageSubresource.baseArrayLayer == 0 && r.imageSubresource.layerCount == 1, "subresource mismatch");
+        require(r.imageOffset.x == 0 && r.imageOffset.y == convert(i32, i) && r.imageOffset.z == 0
+            && r.imageExtent.width == 5 && r.imageExtent.height == 1 + i && r.imageExtent.depth == 1, "rectangle mismatch");
+        if i == 0 {
+            require(r.bufferOffset == owner.offset + 56 && r.bufferRowLength == 0 && r.bufferImageHeight == 0, "first buffer region mismatch");
+        } else {
+            require(r.bufferOffset == owner.offset && r.bufferRowLength == 7 && r.bufferImageHeight == 3, "second buffer region mismatch");
+        }
+    }
+    owner.count++;
+}
+
+fn observe(offset: u64): void {
+    var owner: Observation = { offset: offset, ..default };
+    fixture_copy(bits(VkCommandBufferHandle*, &owner), bits(VkBufferHandle*, &owner.source),
+        bits(VkImageHandle*, &owner.destination), offset);
+    require(owner.count == 1, "missing buffer to image call");
+    readback_label("verified_offset"); readback_decimal(offset);
+}
+export fn main(): i32 {
+    observe(4); observe((convert(u64, 1) << 32) + 12);
+    return 0;
+}

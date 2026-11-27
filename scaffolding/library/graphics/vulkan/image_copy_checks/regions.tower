@@ -1,0 +1,22 @@
+import tower;
+import .readback_abi;
+import .readback_clear;
+
+// This export belongs to the link test. It has no Draw caller.
+var TransferDestinationLayout: u32 = 7;
+var Width: u32 = 5;
+var Height: u32 = 3;
+var StagingPitchTexels: u32 = 7;
+var TexelBytes: u32 = 4;
+
+export fn fixture_tower_copy(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*, offset: u64): void {
+    var layers: VkImageSubresourceLayers = { aspectMask: VkColorAspect, layerCount: 1, ..default };
+    var regions: VkBufferImageCopy[2];
+    regions[0] = { bufferOffset: offset + convert(u64, (Height - 1) * StagingPitchTexels * TexelBytes),
+        imageSubresource: layers, imageExtent: { width: Width, height: 1, depth: 1 }, ..default };
+    regions[1] = { bufferOffset: offset, bufferRowLength: StagingPitchTexels, bufferImageHeight: Height,
+        imageSubresource: layers, imageOffset: { y: 1, ..default },
+        imageExtent: { width: Width, height: Height - 1, depth: 1 }, ..default };
+    vkCmdCopyBufferToImage(cmd, staging, image, TransferDestinationLayout,
+        convert(u32, sizeof(decltype(regions)) / sizeof(VkBufferImageCopy)), &regions[0]);
+}
