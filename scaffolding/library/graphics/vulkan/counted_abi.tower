@@ -1,0 +1,323 @@
+import tower;
+import readback_abi;
+
+// Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
+// Linux x86-64 Vulkan ABI from Khronos vulkan_core.h, header 239.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+struct VkShaderModuleHandle {}
+struct VkPipelineHandle {}
+struct VkPipelineLayoutHandle {}
+struct VkRenderPassHandle {}
+struct VkDescriptorSetLayoutHandle {}
+struct VkDescriptorSetHandle {}
+struct VkDescriptorPoolHandle {}
+struct VkBufferViewHandle {}
+struct VkSamplerHandle {}
+struct VkPipelineCacheHandle {}
+struct VkSpecializationInfo {}
+struct VkVertexInputBindingDescription {}
+struct VkVertexInputAttributeDescription {}
+struct VkPipelineTessellationStateCreateInfo {}
+struct VkPipelineDepthStencilStateCreateInfo {}
+struct VkPipelineDynamicStateCreateInfo {}
+struct VkDescriptorImageInfo {}
+struct VkCopyDescriptorSet {}
+
+struct VkShaderModuleCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    codeSize: usize;
+    pCode: u32*;
+}
+
+struct VkPipelineShaderStageCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    stage: u32;
+    module: VkShaderModuleHandle*;
+    pName: u8*;
+    pSpecializationInfo: VkSpecializationInfo*;
+}
+
+struct VkComputePipelineCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    stage: VkPipelineShaderStageCreateInfo;
+    layout: VkPipelineLayoutHandle*;
+    basePipelineHandle: VkPipelineHandle*;
+    basePipelineIndex: i32;
+}
+
+struct VkPipelineVertexInputStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    vertexBindingDescriptionCount: u32;
+    pVertexBindingDescriptions: VkVertexInputBindingDescription*;
+    vertexAttributeDescriptionCount: u32;
+    pVertexAttributeDescriptions: VkVertexInputAttributeDescription*;
+}
+
+struct VkPipelineInputAssemblyStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    topology: u32;
+    primitiveRestartEnable: u32;
+}
+
+struct VkViewport {
+    x: f32;
+    y: f32;
+    width: f32;
+    height: f32;
+    minDepth: f32;
+    maxDepth: f32;
+}
+
+struct VkPipelineViewportStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    viewportCount: u32;
+    pViewports: VkViewport*;
+    scissorCount: u32;
+    pScissors: VkRect2D*;
+}
+
+struct VkPipelineRasterizationStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    depthClampEnable: u32;
+    rasterizerDiscardEnable: u32;
+    polygonMode: u32;
+    cullMode: u32;
+    frontFace: u32;
+    depthBiasEnable: u32;
+    depthBiasConstantFactor: f32;
+    depthBiasClamp: f32;
+    depthBiasSlopeFactor: f32;
+    lineWidth: f32;
+}
+
+struct VkPipelineMultisampleStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    rasterizationSamples: u32;
+    sampleShadingEnable: u32;
+    minSampleShading: f32;
+    pSampleMask: u32*;
+    alphaToCoverageEnable: u32;
+    alphaToOneEnable: u32;
+}
+
+struct VkPipelineColorBlendAttachmentState {
+    blendEnable: u32;
+    srcColorBlendFactor: u32;
+    dstColorBlendFactor: u32;
+    colorBlendOp: u32;
+    srcAlphaBlendFactor: u32;
+    dstAlphaBlendFactor: u32;
+    alphaBlendOp: u32;
+    colorWriteMask: u32;
+}
+
+struct VkPipelineColorBlendStateCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    logicOpEnable: u32;
+    logicOp: u32;
+    attachmentCount: u32;
+    pAttachments: VkPipelineColorBlendAttachmentState*;
+    blendConstants: f32[4];
+}
+
+struct VkGraphicsPipelineCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    stageCount: u32;
+    pStages: VkPipelineShaderStageCreateInfo*;
+    pVertexInputState: VkPipelineVertexInputStateCreateInfo*;
+    pInputAssemblyState: VkPipelineInputAssemblyStateCreateInfo*;
+    pTessellationState: VkPipelineTessellationStateCreateInfo*;
+    pViewportState: VkPipelineViewportStateCreateInfo*;
+    pRasterizationState: VkPipelineRasterizationStateCreateInfo*;
+    pMultisampleState: VkPipelineMultisampleStateCreateInfo*;
+    pDepthStencilState: VkPipelineDepthStencilStateCreateInfo*;
+    pColorBlendState: VkPipelineColorBlendStateCreateInfo*;
+    pDynamicState: VkPipelineDynamicStateCreateInfo*;
+    layout: VkPipelineLayoutHandle*;
+    renderPass: VkRenderPassHandle*;
+    subpass: u32;
+    basePipelineHandle: VkPipelineHandle*;
+    basePipelineIndex: i32;
+}
+
+struct VkPushConstantRange {
+    stageFlags: u32;
+    offset: u32;
+    size: u32;
+}
+
+struct VkPipelineLayoutCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    setLayoutCount: u32;
+    pSetLayouts: VkDescriptorSetLayoutHandle**;
+    pushConstantRangeCount: u32;
+    pPushConstantRanges: VkPushConstantRange*;
+}
+
+struct VkDescriptorBufferInfo {
+    buffer: VkBufferHandle*;
+    offset: u64;
+    range: u64;
+}
+
+struct VkDescriptorPoolSize {
+    descriptorType: u32;
+    descriptorCount: u32;
+}
+
+struct VkDescriptorPoolCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    maxSets: u32;
+    poolSizeCount: u32;
+    pPoolSizes: VkDescriptorPoolSize*;
+}
+
+struct VkDescriptorSetAllocateInfo {
+    sType: u32;
+    pNext: void*;
+    descriptorPool: VkDescriptorPoolHandle*;
+    descriptorSetCount: u32;
+    pSetLayouts: VkDescriptorSetLayoutHandle**;
+}
+
+struct VkDescriptorSetLayoutBinding {
+    binding: u32;
+    descriptorType: u32;
+    descriptorCount: u32;
+    stageFlags: u32;
+    pImmutableSamplers: VkSamplerHandle**;
+}
+
+struct VkDescriptorSetLayoutCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    bindingCount: u32;
+    pBindings: VkDescriptorSetLayoutBinding*;
+}
+
+struct VkWriteDescriptorSet {
+    sType: u32;
+    pNext: void*;
+    dstSet: VkDescriptorSetHandle*;
+    dstBinding: u32;
+    dstArrayElement: u32;
+    descriptorCount: u32;
+    descriptorType: u32;
+    pImageInfo: VkDescriptorImageInfo*;
+    pBufferInfo: VkDescriptorBufferInfo*;
+    pTexelBufferView: VkBufferViewHandle**;
+}
+
+struct VkBufferCopy {
+    srcOffset: u64;
+    dstOffset: u64;
+    size: u64;
+}
+
+struct VkPhysicalDeviceVulkan12Features {
+    sType: u32;
+    pNext: void*;
+    samplerMirrorClampToEdge: u32;
+    drawIndirectCount: u32;
+    storageBuffer8BitAccess: u32;
+    uniformAndStorageBuffer8BitAccess: u32;
+    storagePushConstant8: u32;
+    shaderBufferInt64Atomics: u32;
+    shaderSharedInt64Atomics: u32;
+    shaderFloat16: u32;
+    shaderInt8: u32;
+    descriptorIndexing: u32;
+    shaderInputAttachmentArrayDynamicIndexing: u32;
+    shaderUniformTexelBufferArrayDynamicIndexing: u32;
+    shaderStorageTexelBufferArrayDynamicIndexing: u32;
+    shaderUniformBufferArrayNonUniformIndexing: u32;
+    shaderSampledImageArrayNonUniformIndexing: u32;
+    shaderStorageBufferArrayNonUniformIndexing: u32;
+    shaderStorageImageArrayNonUniformIndexing: u32;
+    shaderInputAttachmentArrayNonUniformIndexing: u32;
+    shaderUniformTexelBufferArrayNonUniformIndexing: u32;
+    shaderStorageTexelBufferArrayNonUniformIndexing: u32;
+    descriptorBindingUniformBufferUpdateAfterBind: u32;
+    descriptorBindingSampledImageUpdateAfterBind: u32;
+    descriptorBindingStorageImageUpdateAfterBind: u32;
+    descriptorBindingStorageBufferUpdateAfterBind: u32;
+    descriptorBindingUniformTexelBufferUpdateAfterBind: u32;
+    descriptorBindingStorageTexelBufferUpdateAfterBind: u32;
+    descriptorBindingUpdateUnusedWhilePending: u32;
+    descriptorBindingPartiallyBound: u32;
+    descriptorBindingVariableDescriptorCount: u32;
+    runtimeDescriptorArray: u32;
+    samplerFilterMinmax: u32;
+    scalarBlockLayout: u32;
+    imagelessFramebuffer: u32;
+    uniformBufferStandardLayout: u32;
+    shaderSubgroupExtendedTypes: u32;
+    separateDepthStencilLayouts: u32;
+    hostQueryReset: u32;
+    timelineSemaphore: u32;
+    bufferDeviceAddress: u32;
+    bufferDeviceAddressCaptureReplay: u32;
+    bufferDeviceAddressMultiDevice: u32;
+    vulkanMemoryModel: u32;
+    vulkanMemoryModelDeviceScope: u32;
+    vulkanMemoryModelAvailabilityVisibilityChains: u32;
+    shaderOutputViewportIndex: u32;
+    shaderOutputLayer: u32;
+    subgroupBroadcastDynamicId: u32;
+}
+
+struct VkPipelineRenderingCreateInfo {
+    sType: u32;
+    pNext: void*;
+    viewMask: u32;
+    colorAttachmentCount: u32;
+    pColorAttachmentFormats: u32*;
+    depthAttachmentFormat: u32;
+    stencilAttachmentFormat: u32;
+}
+
+extern fn vkCreateShaderModule(device: VkDeviceHandle*, pCreateInfo: VkShaderModuleCreateInfo*, pAllocator: VkAllocationCallbacks*, pShaderModule: VkShaderModuleHandle**): i32;
+extern fn vkDestroyShaderModule(device: VkDeviceHandle*, shaderModule: VkShaderModuleHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkCreateGraphicsPipelines(device: VkDeviceHandle*, pipelineCache: VkPipelineCacheHandle*, createInfoCount: u32, pCreateInfos: VkGraphicsPipelineCreateInfo*, pAllocator: VkAllocationCallbacks*, pPipelines: VkPipelineHandle**): i32;
+extern fn vkCreateComputePipelines(device: VkDeviceHandle*, pipelineCache: VkPipelineCacheHandle*, createInfoCount: u32, pCreateInfos: VkComputePipelineCreateInfo*, pAllocator: VkAllocationCallbacks*, pPipelines: VkPipelineHandle**): i32;
+extern fn vkDestroyPipeline(device: VkDeviceHandle*, pipeline: VkPipelineHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkCreatePipelineLayout(device: VkDeviceHandle*, pCreateInfo: VkPipelineLayoutCreateInfo*, pAllocator: VkAllocationCallbacks*, pPipelineLayout: VkPipelineLayoutHandle**): i32;
+extern fn vkDestroyPipelineLayout(device: VkDeviceHandle*, pipelineLayout: VkPipelineLayoutHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkCreateDescriptorSetLayout(device: VkDeviceHandle*, pCreateInfo: VkDescriptorSetLayoutCreateInfo*, pAllocator: VkAllocationCallbacks*, pSetLayout: VkDescriptorSetLayoutHandle**): i32;
+extern fn vkDestroyDescriptorSetLayout(device: VkDeviceHandle*, descriptorSetLayout: VkDescriptorSetLayoutHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkCreateDescriptorPool(device: VkDeviceHandle*, pCreateInfo: VkDescriptorPoolCreateInfo*, pAllocator: VkAllocationCallbacks*, pDescriptorPool: VkDescriptorPoolHandle**): i32;
+extern fn vkDestroyDescriptorPool(device: VkDeviceHandle*, descriptorPool: VkDescriptorPoolHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkAllocateDescriptorSets(device: VkDeviceHandle*, pAllocateInfo: VkDescriptorSetAllocateInfo*, pDescriptorSets: VkDescriptorSetHandle**): i32;
+extern fn vkUpdateDescriptorSets(device: VkDeviceHandle*, descriptorWriteCount: u32, pDescriptorWrites: VkWriteDescriptorSet*, descriptorCopyCount: u32, pDescriptorCopies: VkCopyDescriptorSet*): void;
+extern fn vkCmdBindPipeline(commandBuffer: VkCommandBufferHandle*, pipelineBindPoint: u32, pipeline: VkPipelineHandle*): void;
+extern fn vkCmdBindDescriptorSets(commandBuffer: VkCommandBufferHandle*, pipelineBindPoint: u32, layout: VkPipelineLayoutHandle*, firstSet: u32, descriptorSetCount: u32, pDescriptorSets: VkDescriptorSetHandle**, dynamicOffsetCount: u32, pDynamicOffsets: u32*): void;
+extern fn vkCmdBindIndexBuffer(commandBuffer: VkCommandBufferHandle*, buffer: VkBufferHandle*, offset: u64, indexType: u32): void;
+extern fn vkCmdDispatch(commandBuffer: VkCommandBufferHandle*, groupCountX: u32, groupCountY: u32, groupCountZ: u32): void;
+extern fn vkCmdCopyBuffer(commandBuffer: VkCommandBufferHandle*, srcBuffer: VkBufferHandle*, dstBuffer: VkBufferHandle*, regionCount: u32, pRegions: VkBufferCopy*): void;
+extern fn vkCmdUpdateBuffer(commandBuffer: VkCommandBufferHandle*, dstBuffer: VkBufferHandle*, dstOffset: u64, dataSize: u64, pData: void*): void;
+extern fn vkCmdPushConstants(commandBuffer: VkCommandBufferHandle*, layout: VkPipelineLayoutHandle*, stageFlags: u32, offset: u32, size: u32, pValues: void*): void;
