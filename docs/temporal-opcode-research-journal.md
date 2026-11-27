@@ -124576,3 +124576,29 @@ Allocation ownership remains unresolved. The TSan CPU and GPU binaries
 exited 139 at the container personality check before main. The driver
 and source-level Tower UBSan remain outside the instrumentation. The job
 packet records actual commands, maps, instrumented IR, samples and exits.
+
+### Compare the Draw CPU reference to the saved Tower region fields
+
+Draw reports 20/20 CPU cases on 3b0c80e4 with the verbatim packed-texture
+loop and read_exact, including independent checks of all 13 SDK fields.
+The canonical file size is 27541680. Reported SHA-256 digests are
+c4074cad66dad564a41d31430fc7ea89513959ffc7e4bc6ae99e46623b30c0b5
+(source block) and f1e549d9291d7604185e267952e5a0f203c714711a6db4d0567c8e44d4da6dee
+(textual field trace). Draw tested diagnostics and the copy count for
+invalid fields, truncation and trailing data. Its file gate rejects raw
+bitmap layers 1, accepts nonzero ignored words and accepts changes to texel
+contents. Conversion of raw zero to one actual layer is the caller’s job.
+Draw’s tests concern its reader and loop. The all-or-nothing output
+guarantee comes from the external API and its separate host 12 evidence.
+
+Host 12 verified the prior 36c01243c packet and decoded the first 896
+bytes of each captured descriptor array with GNU od using little-endian
+u64, u32 and i32 views, 56 bytes per record. Each 16-row result matched
+208 literal field values transcribed from the confirmed layout contract.
+The final four mixed-axis control records were excluded from this
+comparison. Draw’s text itself was unavailable here; the evidence records
+its reported digest without assuming any text encoding. From the updated
+packet, run `bash draw-fields/check.sh "$(mktemp -d)"` for the numeric
+comparison. The original build, GPU, sanitizer and timing receipts apply
+to the implementation tree at 36c01243c. This documentation-only update
+adds no runtime path to measure.

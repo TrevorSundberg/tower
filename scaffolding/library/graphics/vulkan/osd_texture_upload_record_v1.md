@@ -251,3 +251,30 @@ export PRIOR=/tmp/osd-aea4af39/retained-packet
 export LOCAL_TOWER=/tmp/osd-aea4af39/retained-clean/src
 REPLAY=$(mktemp -d) bash replay.sh
 ```
+
+### Draw’s file-reader and region reference
+
+Draw reports 20/20 CPU cases at `3b0c80e4` using its verbatim packed-texture
+loop and `read_exact`, with an independent field-by-field comparison. The
+canonical input file is 27,541,680 bytes. Draw reports SHA-256
+`c4074cad66dad564a41d31430fc7ea89513959ffc7e4bc6ae99e46623b30c0b5`
+for the source block and
+`f1e549d9291d7604185e267952e5a0f203c714711a6db4d0567c8e44d4da6dee`
+for its textual field trace.
+
+On host 12, decoding the retained builder and Vulkan SDK arrays gave
+the confirmed values for all 13 scalar fields in each of the 6 font,
+2 bitmap, 2 inverted, 4 firmware and 2 images regions (208 comparisons
+per array). The check reads bufferOffset as u64, imageOffset.x/y/z as
+i32 and the other fields as u32. The literal rows in the packet's
+`draw-fields/confirmed-fields.txt` come from the confirmed layout
+contract. Draw supplied its text digest; its raw trace was unavailable
+on host 12 for a direct parse or independent hash.
+
+Draw’s file gate rejects a raw bitmap layer count of one. Its accepted
+raw zero becomes one actual layer for the builder. Draw’s reader accepted
+nonzero ignored words and changes to texel contents. Draw also tested
+diagnostics and copy counts for bad fields, truncation and trailing data.
+The external builder has its own failure contract: a refusal returns
+zero before any destination byte is written, including when the byte
+span is one short. The host 12 guarded-array tests exercise this property.
