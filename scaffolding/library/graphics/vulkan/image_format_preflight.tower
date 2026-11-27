@@ -1,0 +1,21 @@
+import tower;
+import readback_abi;
+
+export fn tower_vk_image_format_preflight_v1(physical: VkPhysicalDeviceHandle*, info: VkImageCreateInfo*,
+        properties: VkImageFormatProperties*, supported: u32*): i32 {
+    var limits: VkImageFormatProperties;
+    var result = vkGetPhysicalDeviceImageFormatProperties(physical, info.format, info.imageType,
+        info.tiling, info.usage, info.flags, &limits);
+    if result != 0 { return result; }
+    *properties = limits;
+    var extent = info.extent;
+    var fits = extent.width != 0 && extent.width <= limits.maxExtent.width
+        && extent.height != 0 && extent.height <= limits.maxExtent.height
+        && extent.depth != 0 && extent.depth <= limits.maxExtent.depth
+        && info.mipLevels != 0 && info.mipLevels <= limits.maxMipLevels
+        && info.arrayLayers != 0 && info.arrayLayers <= limits.maxArrayLayers
+        && (info.samples & limits.sampleCounts) != 0;
+    *supported = 0;
+    if fits { *supported = 1; }
+    return result;
+}
