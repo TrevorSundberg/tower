@@ -74,7 +74,9 @@ The begin object defines `tower_vk_command_begin_v1` and imports
 `tower_vk_command_end_for_submit_v1` and `tower_vk_queue_submit_one_v1`
 and imports `vkEndCommandBuffer` and `vkQueueSubmit`. Draw independently
 reproduced the previous combined end/submit object and passed 31/31 CPU
-checks for those two entries. Draw's slot 10 linked Vulkan run is pending.
+checks for those two entries. Slot 10 subsequently reported linked Vulkan
+end/submit runs; Draw requested the matching archive. Draw's application
+run against this begin provider is pending.
 
 ## Clean repeat and observed results
 
@@ -125,3 +127,37 @@ replay checks the diagnostic,
 the recorded operations and the actual process exit independently.
 Displayed WSI, real device loss, noncoherent readback and Draw execution
 of this begin object remain unverified.
+
+### Immediate-exit process evidence
+
+The original C-through-DSO process ran in
+`/tmp/begin-confirmed-e576/integrated`, with the SDK, ICD and layer settings
+listed in the receipt's `host.env`. The recorded command was:
+
+```sh
+timeout -k 2 15 env LD_PRELOAD=/tmp/begin-confirmed-e576/integrated/probe.so \
+  TOWER_REUSE_FAULT=reset ./fatal-shared reuse-core13 \
+  shaders/produce.comp.spv shaders/triangle.vert.spv shaders/color.frag.spv
+```
+
+Frame 0 reached the driver for begin, end, submit and fence wait. The hook
+then verified the fence was signaled. On frame 1 the driver reset the fence.
+The hook for `vkResetCommandBuffer(cmd, 0)` returned −1 before forwarding.
+Frame 1 stopped before begin and submit. The fatal C check printed
+`Vulkan error -1 at line 22: tower_vk_command_begin_v1(cmd)`. The shell
+logged a segmentation fault and exit 139. The receipt has no raw waitpid
+status, stack, PC or faulting module for this process. The exact invocation,
+trace and exit are in `immediate-exit/first-run.log`,
+`immediate-exit/audit-shared-reset.log` and its sibling `.exit` file.
+`lifecycle_probe.tower` identifies which calls the hook forwarded.
+
+Two separate raw C processes ran with ASan preloaded and exited 1. PID
+44253 recorded a read SEGV in the reset-fault trial. Its packet lacks a
+same-process module attribution. PID 44440 recorded a SEGV in a begin-fault
+trial after a successful driver command reset. Its loader trace places its
+PC at offset `0xa01960` of `libnvidia-eglcore.so.565.57.01` and records
+destruction of that library's link map. Its build ID was
+`fa9b77a0b814a164957de2524b78e8d47350f106`. The receipt retains the trace
+and address arithmetic in `shutdown-libraries/` and `shutdown-location.txt`.
+The immediate-exit cause remains unresolved. Draw's guarded-clear failure
+injected −4 at queue submit in a separate application run.

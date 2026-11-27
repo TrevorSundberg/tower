@@ -123960,3 +123960,21 @@ library's link-map destruction. These observations localize one shutdown
 fault. They do not prove a driver race or explain Draw's earlier exit 139.
 The packet keeps immediate-exit trials distinct from exact returned
 VkResults, instrumented Tower accesses, and normal owner cleanup.
+
+### Reviewed one-handle Vulkan command begin
+
+Rendering reviewed slot 12 job `e576d09c-c639-4b78-aafb-bd90e2144800`.
+The coordinator delivered tested `06d47a5d287d4f44e71b5b61a15841f18938b113`
+over `2477ba66`, with archive SHA-256
+`e6b9f45b27f371028521b6cb7d0d35c0849e98b58f64956cb6e72352c50c7506`
+and bundle `dede31cf89e905c240fa34287fadded374aaa6beea770e373ddc8309c6d52951`.
+All 350 manifest entries and the tested source hashes verified. The manager
+inspected the ELF symbols of the 1,048-byte begin object and three-entry
+shared library, and independently reconstructed the twelve guarded and
+indirect records in each of the three RTX 3090 traces. Each reused the same
+primary and fence twice after signaled completion. The five signed result
+cases passed through raw C, Tower and C through the DSO. Six returning
+hardware fault cases exited 1. The [C link guide and teardown evidence](../scaffolding/library/graphics/vulkan/command_begin_v1.md)
+identify the original injected-command-reset process and the distinct raw C
+ASan processes. This review used existing evidence. It changes documentation
+only. The later `ba98cc4a` paired-executable supplement has its own receipt.
