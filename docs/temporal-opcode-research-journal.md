@@ -125762,3 +125762,13 @@ Contract 9840659b specifies the allocation ABI. At verification its
 rendering ref contained the contract alone. Production ordinal 13 and its
 five-image, fault and accounting runs need slot 12's reviewed provider
 source and public header from assignment a66f0252.
+
+### Host 11 production Win64 image allocation plan
+
+Assignment 84bd5154 starts from the combined recorder a2b0899a, with the
+provider and SDK header copied unchanged from 26efb7bb (tested code
+182eaee5). The checked-in bootstrap reproduced the published 1,088-byte
+Linux object 2884c8ad…3ad80 on host 11. Its Win64 COFF is 758 bytes.
+Add the object as the only implementation of ordinal 13 and import the
+single requirements query from Vulkan. Reuse the allocation fixture from
+5994bd8f and compare the real DLL with its sealed guarded SDK capture.
