@@ -95,3 +95,48 @@ runs before the bind call and the two diagnostics retain their separate
 operation names. This acknowledgement covers the interface and ownership
 sequence. The portable provider and the device runs have separate
 implementation and test receipts.
+
+## Standalone provider and consumption
+
+The [implementation](image_memory.tower) imports the existing readback ABI. Include
+[the SDK header](image_memory.h) in the C caller. Link the resulting object into the
+consumer along with the target Vulkan loader. Allocation uses one initially null
+automatic handle and publishes it after success. The bind entry has no state.
+
+From the Tower repository root, the packaged Linux bootstrap builds either object.
+
+```bash
+v=scaffolding/library/graphics/vulkan
+tower=(bootstrap/linux-x64/towerc --foundation scaffolding/foundation.tower --library --jobs 1)
+"${tower[@]}" "$v/image_memory.tower" -o image_memory.o
+"${tower[@]}" "$v/image_memory.tower" --target x86_64-w64-windows-gnu -o image_memory.obj
+```
+
+Host 12 built the x86-64 ELF and AMD64 COFF directly from the same source.
+Both define the two entries above and require only `vkAllocateMemory` and
+`vkBindImageMemory`. The SDK caller in [memory_client.c](osd_checks/memory_client.c)
+uses the same call sites in the CPU recorder and the five-image hardware run.
+Define `OSD_RAW_SDK` to build the independent SDK reference. The linked arm calls
+the separate Tower object. The CPU double overwrites its private output on success
+and failure. With both allocation sizes it observed a memory-type index of 31 and
+the original descriptor and dedicated-allocation chain. At bind it inspected the
+owner's published slot, allocation size, live bytes, peak and count.
+
+| Checked on host 12 | Result |
+| --- | --- |
+| 16 KiB and 4 GiB + 16 KiB, allocation and bind succeed | Recorded view creation and modeled completion, followed by view/image destruction, free, zero live bytes and zero count. |
+| Allocation returns −2 or +1 | Exact status, guarded public slot unchanged, zero live bytes, no bind or view. |
+| Bind returns −2 or −7 | Exact status, owner retains the published handle, full live and peak bytes and count one. CPU trace stops at bind. |
+| Five retained hardware images | RTX 3090, driver 565.57.01, all ten real calls succeeded per run. Sixteen completed sampled reads matched all 103,158,144 reference bytes. After completion the owner destroyed each view and image and freed its bound allocation. |
+
+The hardware return controls inject −2 at the first allocation or first bind.
+The Linux fixture's failure cleanup releases its staging allocation, destroys the
+source image, then calls `vkFreeMemory` with its current slot (null on allocation
+failure, the live allocation on bind failure). Neither path created a view.
+Draw's own retirement/accounting policy and a running Win64 consumer require
+their respective owner tests. The standalone COFF has been cross-built and its
+relocations inspected. The job does not assign DLL ordinals.
+
+The archived job `fb2f4a01-62de-4f17-9d0f-0ae92eed5cba` includes the
+object pair, checked fixture inputs, raw Linux results and the clean replay
+entry point. See the [host 12 journal entry](../../../../docs/temporal-opcode-research-journal.md#standalone-draw-image-memory-provider-on-host-12).

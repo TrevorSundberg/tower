@@ -3,7 +3,7 @@
 @@ -2,6 +2,8 @@
  import .readback_abi;
  import .readback_device;
- 
+
 +extern fn osd_allocate_memory(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, out: VkDeviceMemoryHandle**): i32;
 +extern fn osd_bind_memory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32;
  extern fn osd_plan(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,

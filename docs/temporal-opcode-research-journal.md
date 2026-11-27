@@ -125596,3 +125596,96 @@ recorder. The measured child needs an absolute executable path. All
 original failures and successful commands are retained in the packet.
 The [provider record](../scaffolding/library/graphics/vulkan/image_allocation_plan_v1.md#linux-standalone-provider-and-checks)
 contains the device table, object build, fixture pin and capture hash.
+
+### Standalone Draw image memory provider on host 12
+
+Rendering assignment `fb2f4a01-62de-4f17-9d0f-0ae92eed5cba` implements
+the [two-entry contract](../scaffolding/library/graphics/vulkan/image_memory_v1.md).
+The authorized Tower reader returned the specified contract 21e0d03b and its
+documentation-only successor edae3cf7 confirming Draw 51d4785e. The shared
+checkout's initial pull refused its existing unstaged edit. A private main
+checkout retained the acknowledgement. Commit 6d90fca7 adds the single
+Tower unit and SDK header. 337ed9d2 adds the external SDK comparison and
+test-only source-owner overlay. The existing graphics package has a separate
+owner. No Draw source or compiler input changed.
+
+Host 12 used the checked-in Linux x64 bootstrap (7430bdb3…), LLVM/Clang 19.1.7,
+one compilation job and the previous planner fixture inputs. The Linux fixture
+archive from Tower 5dd53312b20bd063cd9d469dc1549d3720017a2b matched the
+Git reconstruction byte for byte (compressed SHA-256
+`f7fbf933ef05f7daa3f4676f38fe7068ef00306ed49b0f7973fa68c2a8a80528`).
+The same compiled owner, planner, recorder, shaders and guarded CPU reference
+served both arms. Only the two-call SDK client and the presence of the provider
+object differed. Linux object SHA-256 is
+`17c7069d583de69b154c899e077a0b4caea8d94c8a41cc4457f1045cd9f03584`
+(1,144 bytes). Win64 COFF SHA-256 is
+`288c5360fd28fe3701ec32ca9b163f6bbab88618901a104531070478c55c6aed`
+(754 bytes). Both have just the two contracted loader dependencies.
+
+The C recorder checked pointer identity, a nonnull dedicated-allocation
+chain and its fields, null callbacks, index 31, the full 64-bit descriptor,
+an initially null private output, both public-slot guard words and exact
+signed returns. A clobbering −2 or +1 at allocation left all public bytes
+and counters at their initial values. At bind the recorder read the actual
+owner ledger and saw one allocation, identical allocation/live/peak bytes
+and the exact published handle. Bind −2 and −7 preserved this state with
+no view, free or rollback before the CPU owner returned. Successful CPU
+runs modeled completion and retired each resource in order. Four deliberate
+provider changes (copied descriptor, public driver destination, publish on
+error, offset one) all failed the corresponding checks.
+
+The API selected physical device 0, discrete NVIDIA GeForce RTX 3090,
+UUID cd3d9791fe794e0b3ec29fc16b74d31c, driver 565.57.01, Vulkan 1.3.289,
+synchronization2, family/queue 0/0. Type 1 allocations consumed the same
+descriptor addresses returned by the planner at 25,165,824, 569,856,
+569,856, 1,572,864 and 32,768 bytes. Each bind consumed the returned
+memory at offset zero on the creating device. Raw SDK and external
+C/object each completed three captures with all ten real results zero,
+zero validation warnings/errors, 4,408 matching owner/loader upload bytes,
+189 lifetime events and 16 completed sampling draws. All 103,158,144
+guarded bytes matched `140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+The verifier matched queue-idle events and actual handles through staging
+release and final view/image/memory destruction. Injecting −2 in the
+first allocation or bind exited 1 in both arms before sampling. The trace
+showed the fixture's staging release and image destruction followed by a
+free of the null slot or real allocation, respectively. The Linux fixture
+records the source byte charge at bind. It has no Draw global ledger to
+observe on unwind. Draw's production error paths and Windows execution
+remain checks for their owners.
+
+Three fresh processes per arm alternated raw/linked order on an AMD EPYC
+7282 (16 cores, 32 logical CPUs, affinity 0–31, quota 15.36 CPUs), warm
+host, one graphics queue. Time includes the process and SDK recorder.
+The parallel recording has four independent pthread owners and 2.4 million
+cases per process. The serial recording has 600,000. CPU is user plus
+system time. All memory figures are process peaks.
+
+| Workload | SDK median wall | Linked median wall | SDK CPU range | Linked CPU range | Peak RSS KiB SDK / linked |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Recording, one caller | 32.42 ms | 31.92 ms | 31.68–33.99 ms | 31.51–31.84 ms | 1,284–1,288 / 1,284–1,288 |
+| Recording, four callers | 33.59 ms | 33.04 ms | 114.45–138.32 ms | 117.04–118.73 ms | 1,284–1,312 / 1,024–1,036 |
+| Complete capture | 2.309 s | 2.330 s | 2.303–2.356 s | 2.309–2.350 s | 115,844–116,120 / 115,940–116,120 |
+
+These captures include startup, allocations, validation, uploads, sampling,
+readback and tracing. Their ranges overlap. The provider allocates one
+automatic handle and retains no bytes. Driver-internal allocations and
+per-driver-call timings were not measured.
+
+ASan with leak detection and TSan both completed 24 checked CPU cases per
+arm on four libc pthreads. The C boundary also used trapping UBSan.
+GPU ASan with synchronization validation and leak detection disabled passed
+in both arms. Enabling leak detection produced 4,187 bytes in 15 allocations
+and exit 1 in each arm, as in the earlier planner control. With core
+validation alone and leak detection enabled, both captures passed. GPU TSan
+encountered restricted personality calls at startup (exit 139), then a nested
+SEGV (exit 66) in each arm. Full sync-validation leak ownership and GPU TSan
+remain unresolved. The loader, layer and GPU driver are external binaries.
+The packet preserves instrumented provider IR, maps, runtime libraries,
+per-attempt exits and stderr. The first failure-trace verifier build needed
+an explicit conversion at the POSIX read boundary. Its error log is retained.
+
+The packet's `replay.sh LOCAL_TOWER_READER NEW_DIRECTORY` rebuilds from the
+bounded bundle and executes the ordinary recording, fault and hardware
+checks. Its manifest lists the separate sanitizer commands and expected
+exits. The published bootstrap emits both objects directly from the new
+unit. The source and artifacts are available for Win64 review and linkage.
