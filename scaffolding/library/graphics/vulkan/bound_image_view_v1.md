@@ -57,4 +57,40 @@ and compared the contract against Draw `bd203f60b00954acd3b0405720e40a24e94ef430
 It confirmed explicit type and range, including a one-layer array, one
 null-allocator call with identity swizzles, success-only output publication
 and exact signed driver status. Draw retains allocation, fatal diagnostics
-and destruction. The tested provider and device receipt are pending.
+and destruction. The tested Linux provider and device receipt follow below.
+
+## Linux provider and hardware acceptance
+
+The [Tower implementation](bound_image_view.tower) and [C header](bound_image_view.h)
+were tested at `69d838e7d638812b71ef02a5bb06dd5662ed4059`. From the Tower root,
+use the [object and shared-library link commands](bound_image_view.md#link-on-host-12).
+The 1,040-byte object has SHA-256
+`61fdd20166c5844906dfb3320bab3d7b36222268015c546de29a21bc312d0418`.
+The 13,552-byte shared library has SHA-256
+`ea76e706492cb7d449ce42d63f4fcf5e980e069cad0390ac47cede859e5e658f`.
+
+In slot 12 job `793a7dca-648d-45bb-a52f-eb64469b3796`, the raw Vulkan SDK
+caller, C linked to the object, and C linked to the shared library agreed on
+all 36 recording cases. A further four-call test in each of the raw and
+shared-library callers held the image, one-layer range, format and output
+address fixed. Changing only the requested type produced a 2D or 2D-array
+view as requested. In both cases a driver that wrote its private result before
+returning signed −2 left the caller's output unchanged.
+
+The Vulkan-selected RTX 3090 (API 1.3.289, NVIDIA 565.57.01) sampled all five
+synthetic OSD images. Rendering compared the complete 103,158,144-byte guarded
+capture against the retained reference, SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+All five source views survived the 16 sampled readbacks. After the final
+queue retirement, each view and then its image were destroyed on the creating
+device before its memory was freed. Injected failure of the second view
+published no handle. The caller released both bound images and the one
+successfully created view. Normal hardware runs reported zero validation
+warnings or errors.
+
+Full hardware LeakSanitizer with synchronization validation enabled reported
+4,187 bytes in 15 allocations on both the baseline and candidate. Ownership
+is unresolved. Address-only checks passed, and the full leak check passed
+with synchronization validation disabled. ThreadSanitizer stopped at startup
+in five attempts. Draw's application integration and Win64 DLL execution
+remain separate acceptance steps.
