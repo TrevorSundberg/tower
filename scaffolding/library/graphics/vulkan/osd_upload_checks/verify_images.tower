@@ -1,0 +1,42 @@
+import tower;
+import .readback_abi;
+import image_trace;
+import view_trace;
+
+extern fn getenv(name: u8*): u8*;
+fn take_image(fd: i32): ImageCall {
+    var call: ImageCall;
+    view_check(read(fd, bits(void*, &call), sizeof(ImageCall)) == convert(i64, sizeof(ImageCall)), "truncated image call");
+    return call;
+}
+fn same_image(a: VkImageCreateInfo*, b: VkImageCreateInfo*): bool {
+    return a.sType == b.sType && a.pNext == b.pNext && a.flags == b.flags && a.imageType == b.imageType &&
+        a.format == b.format && a.extent.width == b.extent.width && a.extent.height == b.extent.height &&
+        a.extent.depth == b.extent.depth && a.mipLevels == b.mipLevels && a.arrayLayers == b.arrayLayers &&
+        a.samples == b.samples && a.tiling == b.tiling && a.usage == b.usage && a.sharingMode == b.sharingMode &&
+        a.queueFamilyIndexCount == b.queueFamilyIndexCount && a.pQueueFamilyIndices == b.pQueueFamilyIndices &&
+        a.initialLayout == b.initialLayout;
+}
+export fn main(): i32 {
+    var failing = getenv("OSD_FAIL_SRGB_IMAGE") != null;
+    var count: u32 = 10; if failing { count = 2; }
+    var device: VkDeviceHandle* = null;
+    for (var i: u32 = 0; i < count; i++) {
+        var sdk = take_image(3); var live = take_image(4);
+        if i == 0 { device = live.device; }
+        view_check(device != null && live.device == device && live.slot != null && live.allocator == null, "image call arguments");
+        view_check(same_image(&sdk.info, &live.info), "SDK/loader image fields differ");
+        if failing && i == 1 {
+            view_check(live.result == convert(i64, DeviceOOM) && live.created == null, "expected image failure");
+            break;
+        }
+        var view: ViewCall; var info: VkImageViewCreateInfo;
+        view_check(read(5, bits(void*, &view), sizeof(ViewCall)) == convert(i64, sizeof(ViewCall)) &&
+            read(5, bits(void*, &info), sizeof(VkImageViewCreateInfo)) == convert(i64, sizeof(VkImageViewCreateInfo)), "missing downstream view");
+        view_check(live.result == 0 && live.created != null && info.image == live.created && view.device == device &&
+            view.result == 0 && view.created != null, "created image and downstream view disagree");
+    }
+    var extra: u8;
+    view_check(read(4, bits(void*, &extra), 1) == 0 && read(5, bits(void*, &extra), 1) == 0, "extra image or view creation");
+    puts("SDK image fields, device, result and downstream view checked"); return 0;
+}

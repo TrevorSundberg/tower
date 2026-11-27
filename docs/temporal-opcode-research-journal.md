@@ -125090,3 +125090,84 @@ the ownership boundary, explicit view/range selection and success-only
 publication rule. Slot 12 received this acknowledgement. This updates
 the contract status; provider validation remains pending.
 [Native peer acknowledgement](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-acknowledgement)
+
+### Freeze the unbound image creation control
+
+Slot 12 job 793660b1-3055-4f07-b4d3-f382be98e200 starts from published
+6b39d552. The bound-view receipt at Draw bd203f60 identifies Draw's owning
+constructor. Its image creation fields and error contract require a separate
+consumer receipt. The reference here is Tower's retained OSD workload.
+
+The ten calls share bind_new_image in osd_upload_checks/device_cases.tower.
+It creates the handle, clears it on a driver error, then queries requirements,
+selects device-local memory and binds at offset zero. The source's later
+view type is independently selected in retained.tower. The five readback
+attachments take make_image's existing view path. counted_capture.tower
+and readback_clear.tower use single-level single-layer RGBA8_UNORM color
+attachments and request no required memory flags. image_copy_checks/device.tower
+uses transfer-only usage and device-local memory. Each caller owns its
+allocation and cleanup. The candidate boundary is descriptor construction
+and one vkCreateImage call, subject to Draw's actual inputs and output rule.
+
+The local test commit 6de703798e3211755bdb0059bd657d2b8ecbd372 adds a raw
+SDK boundary, a Tower recording double and loader probe, and checks linking
+each returned image to its later view. The existing lifetime check links
+views to binds at offset zero, device memory, submits, waits and destruction.
+The test compiled with the published Linux x64 bootstrap and Clang 19.
+Every named VkImageCreateInfo field matched on ten runtime calls. All use
+IMAGE_CREATE_INFO, null pNext, zero flags, TYPE_2D, depth 1, one sample,
+optimal tiling, exclusive sharing, zero family count with null indices,
+UNDEFINED layout and null allocator.
+
+| Source | Format | Width × height | Mips | Layers | Later view |
+| --- | --- | --- | ---: | ---: | --- |
+| Fonts | R8_UNORM | 2048 × 2048 | 1 | 6 | 2D_ARRAY |
+| Bitmap | RGBA8_SRGB | 256 × 352 | 2 | 1 | 2D |
+| Inverted | RGBA8_SRGB | 256 × 352 | 2 | 1 | 2D |
+| Firmware | RGBA8_SRGB | 256 × 352 | 1 | 4 | 2D_ARRAY |
+| Images | RGBA8_SRGB | 64 × 64 | 1 | 2 | 2D_ARRAY |
+
+Tower's sampled source controls request SAMPLED | TRANSFER_SRC | TRANSFER_DST.
+Each temporary output uses its source width and height, RGBA8_UNORM, one
+mip, one layer, COLOR_ATTACHMENT | TRANSFER_SRC. The Vulkan-selected
+discrete RTX 3090 (cd3d9791fe794e0b3ec29fc16b74d31c, driver 565.57.01,
+API 1.3.289, family/index 0/0, synchronization2) reproduced all 103158144
+guarded bytes at 16 reads. SHA-256 was
+140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b.
+The 4408-byte upload streams agreed. The 189 events verified staging
+retirement, all five live bindings and final disposal. The Vulkan
+validation callback counted zero warnings/errors. A saved descriptor
+with only its image type changed failed verification (exit 3).
+
+The raw SDK recorder writes a nonnull slot even on signed -2. Injecting
+that behavior at the second source on the ordinary GPU path returned
+process status 1 with the existing create-image diagnostic. Its 21
+lifetime events include both staging releases, destruction of the first
+source, and null image destroy/free from the failed owner's empty slots.
+The second source acquired no binding or view and submitted no upload.
+The established later view-failure control also passed.
+
+On the EPYC 7282, CPUs 0–31, 15.36-core quota, one caller and one queue,
+three fresh processes with warm files had median wall/CPU/peak RSS of
+2220.10/2220.94 ms/116100 KiB without probes. Three interleaved samples
+per lane gave 2015.80/2015.53 ms/116120 KiB with the prior lifetime/view
+probes and 2282.69/2282.21 ms/116152 KiB with the additional image probe.
+The measured ranges overlap. The latter adds ten file writes and ten
+downstream symbol lookups per process. Timings cover device setup, validation,
+uploads, draws, guarded readback and capture. Production code is unchanged.
+
+The SDK C control used ASan/UBSan. LLVM ASan covered the Tower double,
+image probe and both result checkers. The CPU controls and address-only
+device run passed. With synchronization validation, full GPU LSan again
+reported 4187 bytes in 15 allocations. Attribution is unresolved. Six
+TSan starts exited 139 on the container personality check before main.
+Driver internals and Tower source-level UB are outside this coverage.
+The initial test compile needed an explicit i32-to-i64 result comparison
+and a void-pointer cast at EOF. Both original diagnostics are in the packet.
+
+Run the packet's replay.sh on slot 12 with LOCAL_TOWER pointing to the
+authorized base and REPLAY to an empty directory. build.sh, hardware.sh,
+trace.sh, views.sh and create-control.sh contain the exact invocations.
+The manager's Draw receipt for creation inputs, error publication and
+ownership remains outstanding. The fixture freezes the current Tower
+control without introducing a production signature or changing Draw.

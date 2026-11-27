@@ -1,0 +1,16 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+var ImageTraceFD: i32 = 10;
+var DeviceOOM: i32 = -2;
+struct ImageCall {
+    device: VkDeviceHandle*; allocator: VkAllocationCallbacks*; slot: VkImageHandle**;
+    created: VkImageHandle*; result: i64; info: VkImageCreateInfo;
+}
+fn record_image(device: VkDeviceHandle*, info: VkImageCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageHandle**, result: i32): void {
+    var call: ImageCall = {device: device, allocator: allocator, slot: slot, result: convert(i64, result), info: *info, ..default};
+    // A failed call has no usable image. Avoid reading an undefined output.
+    if result == 0 { call.created = *slot; }
+    view_check(write(ImageTraceFD, bits(void*, &call), sizeof(ImageCall)) == convert(i64, sizeof(ImageCall)), "write image call");
+}

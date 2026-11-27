@@ -1,0 +1,21 @@
+import tower;
+import .readback_abi;
+import image_trace;
+import view_trace;
+
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn getenv(name: u8*): u8*;
+export fn vkCreateImage(device: VkDeviceHandle*, info: VkImageCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageHandle**): i32 {
+    var first_srgb: u32 = 43;
+    if getenv("OSD_FAIL_SRGB_IMAGE") != null && info.format == first_srgb {
+        *slot = bits(VkImageHandle*, device);
+        record_image(device, info, allocator, slot, DeviceOOM);
+        return DeviceOOM;
+    }
+    var next = dlsym(bits(void*, ~convert(usize, 0)), "vkCreateImage");
+    view_check(next != null, "missing next vkCreateImage");
+    var create = bits(function(i32, VkDeviceHandle*, VkImageCreateInfo*, VkAllocationCallbacks*, VkImageHandle**), next);
+    var result = create(device, info, allocator, slot);
+    record_image(device, info, allocator, slot, result);
+    return result;
+}
