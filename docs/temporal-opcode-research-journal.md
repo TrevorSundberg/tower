@@ -123863,3 +123863,102 @@ the PFN. The caller still owns the feature gate, barriers, render state,
 queue, fence and retirement. The source fixture for Draw 7be8d020 line 8093
 is the manager-supplied call contract. This checkout contains the Tower
 reader and the published paired fixture at 4e4959be.
+
+**Binary contract.** At `2ed808b3`, the unchanged shader and submit code
+retains the two published DLL ordinals (2 and 1). Appending the new export
+at ordinal 3 avoids an alphabetical renumber. The 3,072-byte DLL imports
+only vkCreateShaderModule and vkQueueSubmit. COFF and ELF disassembly show
+the new export calling the supplied function pointer. The 1,080-byte release
+ELF object has zero undefined symbols and no allocator or loader dependency.
+The separately compiled recording C caller passed all 20 cases on both
+ABIs, with every PFN argument and call count checked. The previous shader/submit
+consumer PE ran against the new DLL. The rebuilt Windows and Linux C consumers
+created/destroyed a module, submitted a GPU event and observed it after a fence.
+
+| Host 11 release | SHA-256 |
+| --- | --- |
+| tower_graphics.dll | `0a83ff558ff5a9b101b4507c2ad4a7abffa96e20c43d9f41827bbc56e7fc9a82` |
+| tower_graphics.lib | `6de49ae14526b5b1d7986ab6d6916efc1138144d80dbe244e0b3a72c8fde1460` |
+| indexed_draw_c.o | `9df513b5e66e91ed413818b8969ab960ce0059d31717a7a2de4e4cac633d0e2a` |
+| Direct Linux / external Linux | `43e16887180101db753970b8b4393ef3c8333953c683b8604361dd275e0b5e79` / `5f9f5682cdde018a4359003b7f500b5942ace242eb77d060dc0530390bf4cd1a` |
+| Direct PE / external PE | `9a32fe8ca314f4789c1dfcdcbcd856f28fb213843ab6b92d05ac1afd2cd0eceb` / `ce4314b2e1ad558f8235bde5ed930ea43c78d78e846f08f3d7220c7aad471a3b` |
+
+**Hardware.** API-selected Quadro RTX 6000, discrete, Vulkan 1.4.351,
+NVIDIA 615.71.10, PCI 10de:1e78 at 89:00.0, UUID
+26f60f6cead65faf0253a959b2e93a2d, device/family/queue 0/0/0. Native
+Linux used the strict draw14 fixture at `4e4959be`, code `e8d7d20a`,
+loader/layer 1.4.313 and all five feature checks. Wine 8 used the 1.3
+instance and counted-core13 profile at `ea6ce027` with its host-selected
+Khronos layer and synchronization validation. The external overlay replaced
+only the recording expression, calling through a separately compiled C
+translation unit. The three pinned SPIR-V controls matched their hashes.
+Each integrated run submitted once, retired its fence and read coherent
+staging. Validation reported zero warnings/errors.
+
+| Caller and count | All four pixels | Checked capture |
+| --- | --- | --- |
+| Linux and Wine, 0 / 1 | 112233ff / 4080bfff | 112 bytes, `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6` |
+| Linux pair, 1 / 2 | 51a2f2ff / 91ffffff | 152 bytes, `985872ef06325cdd21b0e0151690f8c9dd262cbdaee999ee48df0d3502bd9a6e` |
+| Linux pair clamped to 1 at C ABI entry | 51a2f2ff / 51a2f2ff | Second count stayed 2. Both records, padding and guards matched the independent clamp expectation. The original oracle rejected the second image (exit 1). |
+
+Each capture contains the GPU count, all exercised command fields and a
+32-byte caller allocation for each image (offset 4, pitch 12, loan 24).
+Debugger breakpoints at the public entry and the actual resolved PFN on
+both ABIs showed the same primary, buffers and offsets, max and stride,
+twice per submission. The application looked up the PFN once. Native
+submit and wait traced the same fence. Wine's loader log identified the
+loaded DLL, one application lookup, submit, wait and map. Wine's Vulkan
+logging omitted the draw thunk. The second debugger run installed the
+breakpoint after Wine's self-exec and captured both calls.
+
+The compiler base `a580e70a` precedes the rendering row-copy and CPU oracle
+files at `3dd5f11f`. The paired branch includes their 24-byte loan successor.
+Its separate clear run passed the marker and source/pitch/span controls,
+both rows and all guards. The 16 active and 32 guarded byte hashes were
+`f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88`
+and `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+Physical Windows drivers, Draw's full C application/WSI, and executing
+16,384 GPU commands remain open. The independent fixture checks a capacity
+of 16,384 and executes at most two records.
+
+**Cost.** Xeon E5-2699 v4, 88 logical CPUs, 10.56 CPU quota. Five fresh
+processes per arm, warm shader/tool inputs, alternating order, one host
+recording thread on the same GPU. A monotonic clock on Linux and 10 MHz
+QPC under Wine enclosed each recording call. Complete outputs were checked
+per sample. The two durations include validation and driver recording.
+
+| Median | First / second recording (µs) | Process wall / CPU (s) | Peak RSS (KiB) |
+| --- | ---: | ---: | ---: |
+| Linux direct | 37.73 / 12.32 | 0.30 / 0.23 | 98532 |
+| Linux external | 47.55 / 15.97 | 0.24 / 0.24 | 98560 |
+| Wine direct | 33.2 / 13.7 | 0.48 / 0.37 | 119308 |
+| Wine external | 25.9 / 11.5 | 0.35 / 0.32 | 117964 |
+
+The first-call ranges overlap (Linux 31–47 and 37–58 µs, Wine 26–50 and
+24–52 µs). The samples do not isolate FFI overhead. The wrapper uses
+borrowed handles and stack values. GPU timestamps, internal driver
+allocations and worker idle time were unmeasured. Three warm job-1/job-4
+compiles produced identical objects. For the small provider the median
+wall/CPU/peak KiB were 0.39/0.39/91924 and 0.51/0.55/95196. For the
+integrated external Linux fixture they were 0.98/0.98/132872 and
+1.08/1.23/135104. Both release builds use one compiler job.
+
+**Instrumentation and reproduction.** The Linux ASan/LSan and TSan C
+recording controls exited 0 using the instrumented Tower export. The
+Clang recorder also used trapping undefined-behavior checks. Win64 trapping
+UBSan on the C caller passed against the release DLL. The native release
+stress used four pthreads with disjoint fake primaries, each checking
+100,000 called/refused pairs. The instrumented stress encountered a TSan
+startup failure when the container denied ADDR_NO_RANDOMIZE. Driver internals
+and PE Tower sanitizer coverage are outside these controls. The package uses
+LLVM 19.1.7, the checked-in Linux bootstrap and Vulkan headers 1.3.239.
+
+The first caller build exported only the graphics directory and missed the
+relative SHA-256 module. Exporting the pinned library closure fixed it.
+The clear receipt extractor initially selected just the two active rows.
+Including the preceding guarded allocation produced the expected 48 bytes.
+The assignment packet contains the source bundle on the published prerequisite,
+public headers, link maps, per-command logs, independently assembled oracles,
+raw results and replay scripts. Draw's published shaders and code are owned
+by Draw. The manager can review this isolated change alongside slot 12's
+separate command lifecycle work.
