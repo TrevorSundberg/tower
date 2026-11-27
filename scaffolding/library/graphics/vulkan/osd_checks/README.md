@@ -156,3 +156,42 @@ compile `preflight_client.c` with `OSD_PREFLIGHT_PROVIDER_HEADER` set to its
 quoted header, link with the release import library and repeat both device
 outcomes, the recording rows, complete captures and timing pairs. See the
 [device and ABI results](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-image-format-preflight).
+
+### Reviewed Win64 SDK and external caller results
+
+Draw's contract at `b15f6edd305d2234362f3ca863656f2a7487e21e`
+distinguishes a failed format query from a successful query whose limits
+cannot accommodate the image. In the SDK control at Tower
+`cc43665c708e23ccb52da7181ff6cb2f15ad62ea`, the same zero-width request
+exercised both paths. The real Vulkan query succeeded and returned the
+limits. An injected driver wrote its temporary output and returned −11.
+Both callers stopped after one source query, before creation, allocation
+or submission, with fixture exit 3. The 28 recording cases also checked
+positive and negative nonzero status, all five inclusive unsigned limits,
+sample-mask intersection, and preservation of both outputs on error.
+[Confirmed C contract](https://github.com/TrevorSundberg/tower/blob/7e2683c248404957a7e6caaced23f74ba95e839a/scaffolding/library/graphics/vulkan/image_format_preflight_v1.md)
+
+For the five accepted source textures, Wine 8 selected a Quadro RTX 6000,
+Vulkan 1.4.351, NVIDIA 615.71.10. The SDK query returned maximum extent
+32768×32768×1, 16 mip levels, 2048 layers, sample mask 15 and
+`maxResourceSize` 1099511627776. This last field is returned to the
+caller. The support predicate uses the extent, level, layer and sample
+limits. From the replay's prepared executable directory, the device
+invocation was `OSD_CAPTURE=sdk.raw WINEDEBUG=+vulkan,+loaddll wine64 ./gpu-sdk.exe`,
+exit 0. Rendering compared all 27,542,768 captured bytes to the retained
+independent SDK control. SHA-256 was
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The capture verifier checked 256 sampled texels and 240 guard bytes. All
+ten submits completed before teardown. The explicit guest validation
+layer returned −6. Physical Windows remains untested.
+
+| Executable | Preflight path | SHA-256 |
+| --- | --- | --- |
+| SDK device control executed on the Quadro | SDK query followed by Tower ordinal-11 image creation | `0a57174f4fdc67ba2cf039d3e1ca9ac2d06141ee881ff9937f6349649af92a81` |
+| Prospective external device caller | Link fixture with the proposed preflight import, hint 12 | `f391ba3776188cb243bcf5fb56485518022bf352274e3eec6167b34586083268` |
+| Prospective recording caller | Link fixture with only the preflight import from Tower | `382fe35e7d73b8e9c78805c9e4f189fbec2f25a6d31fa49b40badf2bbda9c8f9` |
+
+Rendering decoded the PE import tables and confirmed the released DLL's
+eleven exports. Linking the external caller against that release stopped
+at the unresolved `tower_vk_image_format_preflight_v1`. Running the two
+prospective callers requires a DLL exporting that entry.
