@@ -349,6 +349,95 @@ inputs made zero calls. That probe covered the layouts above, nulls,
 short and misaligned spans, an oversized maximum and near-u64 arithmetic.
 Rendering verified the external C symbol on Linux x86-64 and Windows x64
 at `ea062c4b`. Draw subsequently linked its `94f2d31e` OSD render object
-through the public entry with a CPU recording shim. Draw assigned its
-strict raster and HUD GPU checks to job `5d1c45b6`.
+through the public entry with a CPU recording shim. Draw completed its Linux
+strict raster and HUD GPU checks in job `5d1c45b6`.
 [External C link and run instructions](graphics_dll_windows.md#external-link-and-recording-controls)
+
+### Draw Linux hardware acceptance
+
+Draw accepted `draw-tower-counted-record/v1` on the API-selected GeForce
+RTX 3060 (PCI 10de:2503, Vulkan 1.4.329, NVIDIA 595.99.02,
+`libGLX_nvidia.so.0`). Slot 9 job `5d1c45b6-537f-4e64-a898-a8a8a1929de9`
+used Tower release `eb5622c440494fba4fa510e26547561746bbaff4` and Draw
+source `d93f28210b9c218250177c1a3b55542d06deb658`. Draw's tests were at
+`7104049a70a2918ec82d0676673415e8d604e191` and its local integration was
+`2badf903d274f066947cf4677c67daf553ddac60`.
+
+| Reviewed by Draw | SHA-256 |
+| --- | --- |
+| Archive, 359 checksummed payloads plus manifest | `296aeb9993e66e5c83d41c7bd26167de48984aaabeaf2a81fc1c4474537dd455` |
+| Git bundle | `670c9b715935e015536353c712ca6c0e922aa955d44026a0da240838ac0f4f72` |
+| Production ELF | `17d96bd846bf1db04835905e2c0b0a9bb71a25687af782843dcdf853c81eb451` |
+| Observer ELF | `7a23bdb09e0583f444daafbd4e895a347952733f769d89e084ac0bcc8074a60a` |
+| Linked Tower object, 1,080 bytes | `9df513b5e66e91ed413818b8969ab960ce0059d31717a7a2de4e4cac633d0e2a` |
+
+The HUD used one cached Vulkan function pointer. Its two passes each
+reached the driver exactly once on the same 1,088-byte buffer, at
+command/count offsets 0/20 and 24/44 with maximum 1 and stride 20.
+The 47-byte HUD view refused the second pass. The 327,683-byte GPU-check
+view refused its counted draw. Both refusals made zero driver calls for
+the rejected operation.
+
+With the full 327,684-byte GPU-check buffer, each of three frames issued
+one counted call at offsets 4/0, maximum 16,384 and stride 20. Draw checked
+the count word and every indexed record against `(6, 1, 0, 0, i)`, with
+signed vertex offset at byte 12. It checked all 1,024,000 RGBA pixels per
+shader variant. Rendering independently reconstructed the following digests
+from those expected values.
+
+| Observed stream | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Little-endian count 16,384 plus 16,384 records | 327,684 | `39f8e7dfd0486aa494cb9b38cf0931414e346b865b71a7a47317e55ac99fbf9a` |
+| Original raster, `407fbfff` per pixel | 4,096,000 | `7e15d42a1802f81d9b79852d3ef53a2d3ba805fc984100eecdf14e145c92fce6` |
+| Corrected raster, `4080bfff` per pixel | 4,096,000 | `4ba73bd5a93480f6cff23e23bab97956f86ee9e83ce0231ed64cb7b85d8124a1` |
+
+#### Invocations and exits
+
+The retained observer executable was
+`/tmp/draw-5d1c45b6/evidence/counts/observe`. The HUD invocations used
+`--offscreen --validate --osd-test assets/osd/state.bin --fixed-time 0 --size 1280 800 --frames 1 --capture hud.rgba`.
+The raster invocations used
+`--offscreen --validate --no-nuclear --gpu-check --frames 3 --size 1280 800`.
+The directory column is relative to `/tmp/draw-5d1c45b6/evidence/counts`.
+The ordinary stage directory was `/tmp/draw-5d1c45b6/work/build`.
+
+| Directory | Observer arguments | Short view | Stage directory | Exit |
+| --- | --- | --- | --- | ---: |
+| `hud` | HUD | None | Ordinary | 0 |
+| `short-hud` | HUD | HUD | Ordinary | 1 |
+| `short-gpu` | Raster | GPU check | Ordinary | 1 |
+| `corrected` | Raster | None | Ordinary | 0 |
+| `original` | Raster | None | `/tmp/draw-5d1c45b6/evidence/native/stages/original` | 1 |
+
+The production resize command ran from `/tmp/draw-5d1c45b6/work` and
+exited 0.
+
+```sh
+build/draw --offscreen --validate --fixed-time 0 --day-hour 12 --size 1280 800 \
+  --frames 4 --osd assets/osd/state.bin --resize-test --no-hud \
+  --capture /tmp/draw-5d1c45b6/evidence/hud/candidate.ppm
+```
+
+All three resized 960×640 artifacts matched the parent byte for byte.
+
+| Artifact | SHA-256 |
+| --- | --- |
+| RGB PPM | `8bb843797e58449d25371cc0014e88824127d4d4035eff621f148883bc19f2af` |
+| HUD layer | `26bcbccf9bbff785fc3ab3c2f9a7ef9f63d8372dc64f1cbd4438077bfb7a264d` |
+| Camera | `f7b10deeed7538b06b940fd210902d9ec2989e6e404d7e77e79c00594220c4b7` |
+
+The shaderless clear used
+`build/draw --offscreen --no-nuclear --validate --rgba8-check --capture /tmp/draw-5d1c45b6/evidence/raster/clear.rgba`.
+It exited 0 with four `112233ff` pixels. Linux render/core and the
+hardware browser regression also passed per Draw. Draw reported native
+completed intervals of 9.382 ms for the parent and 9.413 ms for the
+candidate. In a separate ordinary Chromium WebGPU run at 1920×1080, Draw
+reported a p50 completed interval of 127.460 ms over 120 samples and
+7.712 completed frames/s. Browser artifacts matched 325/325 against the
+parent and 324/325 against live Pages, with the known `nuclear.mjs`
+difference. These browser figures cover the WebGPU workload.
+
+The separate Windows counted check linked COFF. Its stock Wine validation
+runs exited 1 with loader diagnostics. Win64 DLL ordinal-7 application
+uptake and physical Windows execution retain separate acceptance checks.
+Draw reported local integration. Draw publication remains open.

@@ -124113,3 +124113,16 @@ ownership. The public declaration, provider inputs and test logic are
 identical to the verified revision. Draw assigned application adoption,
 original/corrected strict raster and HUD readback to slot 9 job
 `5d1c45b6-537f-4e64-a898-a8a8a1929de9`.
+
+### Draw accepts counted recording on the Linux RTX 3060
+
+Draw's manager reviewed slot 9 job `5d1c45b6`, all 359 checksummed
+payloads and the Git bundle. The [final counted-record receipt](../scaffolding/library/graphics/vulkan/counted_draw.md#draw-linux-hardware-acceptance)
+records the two executable identities, exact commands and exits,
+API-selected RTX 3060 and driver, individual HUD calls and refusals,
+all counted raster records/pixels, and parent-matched resize artifacts.
+Rendering independently reconstructed the three counted streams from
+the count, signed record format and two pixel oracles; each digest
+matched Draw's report. Its retained 1,080-byte provider and 38-case
+Linux CPU replay matched the previous checksums. Draw reviewed the raw
+device captures. This update introduces no new runtime execution path.

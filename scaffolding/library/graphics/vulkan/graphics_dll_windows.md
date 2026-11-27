@@ -136,7 +136,7 @@ buffer for both roles, with command/count offsets 0/20 and 24/44, maximum 1
 and stride 20. Draw linked its OSD render object through a CPU recording shim and observed
 one callback per pass. The production HUD binds `VK_INDEX_TYPE_UINT16`.
 Water and nuclear particles bind `VK_INDEX_TYPE_UINT32`. Each draw uses
-the current index binding. Draw's on-device HUD readback is pending. [Other Draw call sites](counted_draw.md#draw-counted-record-c-contract-v1)
+the current index binding. Draw verified these passes and the resized HUD on Linux. [Linux hardware receipt](counted_draw.md#draw-linux-hardware-acceptance) [Other Draw call sites](counted_draw.md#draw-counted-record-c-contract-v1)
 
 ### External link and recording controls
 
