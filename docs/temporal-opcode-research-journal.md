@@ -125530,3 +125530,12 @@ C device probe on success and injected failure. The Win64 ASan link lacked
 its target runtime and Clang rejected Win64 TSan. The production COFF, Wine,
 validation layer and driver ran without compiler sanitizer instrumentation.
 Physical Windows and Draw's shipping application remain separate open checks.
+
+### Linux allocation plan for the five unbound OSD source images
+
+Assignment a66f0252 uses the [agreed ABI](../scaffolding/library/graphics/vulkan/image_allocation_plan_v1.md)
+at Tower 9840659b and the recorded Draw caller 2f38b19c. The standalone
+provider reuses the readback types, query declaration and allocate-info tag.
+The caller supplies a bounded memory-type table. Only a successful search
+writes the separate output. Allocation, accounting, binding and retirement
+belong to the image owner. Hardware and recording evidence follow separately.
