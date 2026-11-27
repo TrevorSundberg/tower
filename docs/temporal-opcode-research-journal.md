@@ -124602,3 +124602,96 @@ packet, run `bash draw-fields/check.sh "$(mktemp -d)"` for the numeric
 comparison. The original build, GPU, sanitizer and timing receipts apply
 to the implementation tree at 36c01243c. This documentation-only update
 adds no runtime path to measure.
+
+### Freeze the retained OSD image-view creation boundary on host 12
+
+The five source images in retained.tower use device_cases.make_image, which
+creates and binds an image before building its view. It chooses 2D_ARRAY
+only when the normalized layer count exceeds one. The five temporary sample
+attachments use the same function. counted_capture and readback_clear
+independently create 2D RGBA8_UNORM attachment views over mip 0, layer 0.
+Those two functions register their view cleanup only after success.
+The retained owner clears its slot on failure and cleans up the partially
+built Image. readback_abi already declares the handle types, component
+mapping, range, create info and the signed vkCreateImageView return.
+
+The test baseline uses the retained implementation at a6123328915031e5c66ee94743afd3e2611aea76.
+The SDK fixture makes actual calls to a recording vkCreateImageView. On
+x86-64 each receipt contains a 48-byte argument/result header and the
+80 original bytes of the descriptor. Only named fields are compared
+across distinct descriptors. Within a device process, the caller and
+loader probes observed the very same pointer arguments, field bytes,
+returned VkResult and successful output handle on ten calls. The loader
+bindings end at libvulkan.so.1 (SHA-256
+91dd2cb10ee4de7b77d0624938ff0a7542641e5348708d0d8c42d9404476d152).
+
+| Source | SDK format | View type | Levels | Layers |
+| --- | --- | --- | ---: | ---: |
+| Fonts | R8_UNORM | 2D_ARRAY | 1 | 6 |
+| Bitmap | R8G8B8A8_SRGB | 2D | 2 | 1 |
+| Inverted | R8G8B8A8_SRGB | 2D | 2 | 1 |
+| Firmware | R8G8B8A8_SRGB | 2D_ARRAY | 1 | 4 |
+| Images | R8G8B8A8_SRGB | 2D_ARRAY | 1 | 2 |
+
+Each source used IMAGE_VIEW_CREATE_INFO, null pNext and allocator, zero
+flags, identity RGBA mapping and COLOR from base mip/layer zero. Each of
+five attachments matched the separate SDK 2D RGBA8_UNORM record with one
+level and layer. A recording-only one-layer array case exercised flags 1,
+B/ONE/R/ZERO, base mip 3 with two levels and base layer 7. The recording
+loader returned success and device OOM (-2) on request. This case makes
+the configured SDK values observable independently of Draw's caller policy.
+
+On NVIDIA RTX 3090 cd3d9791fe794e0b3ec29fc16b74d31c, driver 565.57.01,
+Vulkan 1.3.289, family/index 0/0, every created view matched its bound
+image and lifetime record. Five live sources remained distinct through
+16 fragment reads. All 103158144 bytes including guards matched the prior
+row oracle (SHA-256 140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b).
+The owner/loader upload records matched (4408 bytes); the 6048-byte event
+stream passed the existing identity and destruction-order checks. Swapping
+idle and unmap and changing only the first view's level count each caused
+the corresponding verifier to exit 3. The SDK test is CPU-only. The
+captured hardware payload is synthetic.
+
+On a separate device run the interposer overwrote the second source's
+output slot with its image handle and returned -2 without creating a view.
+The unmodified caller reported -2 and exited 1 with zero validation
+messages. All 23 events matched, including the first upload's idle,
+second staging release, exactly one first-view destroy, a null-handle
+destroy call for the second view, and destruction/free of both bound
+images and allocations. The failure produced zero sampled bytes.
+
+Three fresh processes on the same AMD EPYC 7282 host, affinity
+0–31, quota 15.36 CPUs, warm inputs, one caller and one queue, gave
+2270.84 ms median wall, 2270.65 ms median CPU, 115820 KiB median peak
+RSS. Each passed the full guard and pixel comparison before its timing
+was accepted. These are whole-process baseline measurements. Test probes
+write fixed-size records to fds using stack storage. Application code,
+its ownership and its uninstrumented performance path are unchanged.
+
+LLVM ASan on the recording/verification code and C ASan/UBSan on the
+SDK boundary passed the CPU runs. The address-only hardware run matched
+the pixels, create calls, upload calls and all lifetime checks. With leak
+detection and synchronization validation enabled, LSan again reported
+4187 bytes in 15 allocations (exit 1); ownership is unresolved. All four
+TSan starts exited 139 at the host personality check before main.
+The driver and Tower source-level UB were uninstrumented. The initial
+sanitizer build omitted the explicit Foundation resource path and could
+not import readback_output; rebuilding with it resolved the diagnostic.
+
+Packet 793a7dca-648d-45bb-a52f-eb64469b3796 includes the raw traces,
+host/tool hashes, full compile/link commands and replay.sh. The original
+builder/recorder objects and DSOs rebuilt byte-identically and their
+raw, external and direct CPU checks ran again. Draw's existing
+draw_vk_image_create_view implementation, public signature, one-layer
+array selection and failure/output policy still require its receipt.
+The recorded Tower behavior alone does not establish that contract.
+
+With the original lifetime probe alone and then with both view probes,
+three interleaved processes per lane repeated the same device and pixel
+checks. Median wall / CPU / peak KiB were 2047.37 ms / 2047.66 ms /
+115996 and 2121.39 ms / 2121.63 ms / 116088. Individual wall samples
+overlap. This measures full-process test tracing, including file writes.
+The clean replay initially exceeded Git's nested local alternate limit.
+Cloning the authorized local base with --local preserved its existing
+object-store depth; the bundle, hashes, three CPU lanes, negative
+controls and both device outcomes then replayed at a clean checkout.
