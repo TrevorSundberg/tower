@@ -124865,3 +124865,14 @@ The exact application revision, malformed-file results and device
 assignment are pending from Draw. Rendering rechecked the four released
 object/shared-library hashes and the binary region reference.
 [Packed-reader CPU result](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-packed-reader-cpu-comparison)
+
+### Draw packed-reader result with revision and malformed-file controls
+
+Draw `ff8da985` supplied the CPU invocation and exact object, record
+and trace digests. Each of four builder/recorder combinations passed
+the 20 file cases and returned the expected 16 records on the shipped
+pack. Rendering invoked the released Linux builder across all five
+shapes and both short-input cases, matched the 896-byte SDK stream
+and checked guards and unused slots. Draw job `f7150463` is queued
+behind the real-pack recorder device receipt `a07d1af8`.
+[Four-way replay and byte digests](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-packed-reader-cpu-comparison)

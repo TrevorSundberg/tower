@@ -284,13 +284,35 @@ validation.
 ### Draw packed-reader CPU comparison
 
 Draw linked Tower builder `0e385907c24e0d465aaf5aeccb98ddeb7f4b8871`
-into the packed-texture reader. It ran the raw C and Tower builders
-with each recorder (raw C and linked Tower). Draw reported matching
-16 SDK records and a matching 64-line command trace in all four runs.
-Rendering rechecked the released objects and the 896-byte reference
-record stream above. Draw will supply the exact test revision,
-malformed-file results and device assignment with its full receipt.
-Device execution through Draw's combined builder and recorder remains open.
+into its packed-texture reader at local Draw commit
+`ff8da985f4a7de2ef555c48e5d666f0e544f3d55`. From the Draw root,
+it used the `a580e70a` bootstrap compiler, Vulkan SDK headers and C17
+with `-O2 -Wall -Wextra -Werror`.
+
+```sh
+python3 tests/verify-osd-texture-record.py build/tower-port/manager/receipt-152/provider \
+    --out build/tower-port/manager/receipt-152/cpu
+```
+
+Draw ran each builder (raw C and Tower) with each recorder (raw C and
+Tower). All four runs exited 0. Each returned region counts 6, 2, 2, 4
+and 2 for the five textures. The 16 SDK records occupied 896 bytes
+with SHA-256 `afffaf85ebb9fa1d5a84d583eded1c95a4d797435778fa7c9a3ce21e65f3eb93`.
+Each 64-line command trace had SHA-256
+`1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
+The two earlier recorder modes at Tower `846176ab` also passed.
+
+For each texture, a short byte span or record capacity preserved the
+entire guarded destination. Successful calls preserved the tail and unused
+slots. Draw's `check-files.py` compared exit status, diagnostics and partial
+output across all 20 file cases. Every combination passed.
+Rendering independently called the released builder on the five shapes,
+checked both short-input cases and the success guards, and matched the
+1,472-byte object and 896 SDK bytes to Draw's digests.
+
+Draw's combined device comparison is queued on slot 9 as
+`f7150463-6202-461b-902b-4773433aa964`. It requires the real-pack
+recorder device receipt from `a07d1af8`.
 
 ## Rendering review
 
