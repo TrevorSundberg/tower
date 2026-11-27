@@ -287,3 +287,22 @@ above. The registered slot 11 reader supplied Tower only. Draw's exact
 three hashes and corrected pixel receipt were unavailable in the assigned
 refs. All Quadro pixel results on this page refer to the Tower controls.
 [Tower shader ABI review](https://github.com/TrevorSundberg/tower/commit/5e649360258171d66e924a1f1281080147cf957b)
+
+### Comparison with Draw's shipped shaders
+
+On the Quadro the Tower shader-module and synchronous submission libraries
+ran together through the strict 1.4 feature gate. The 152 captured bytes
+from the one- and two-draw cases (both count/command prefixes and both
+guarded destinations) have SHA-256
+`985872ef06325cdd21b0e0151690f8c9dd262cbdaee999ee48df0d3502bd9a6e`.
+Limiting execution to one draw left the second count word at two and
+produced the one-draw color. This control failed the pixel comparison.
+
+Draw separately reported running its production C caller at
+`f3356f2c377ec29c7aa6ad1d06fcecbcff81bada` with the Tower shader export at
+`5e649360` on an RTX 3060. At count 16,384 the original Draw fragment
+(`7be8d020`) yielded 407fbfff at all 1,024,000 pixels, exit 1; the corrected
+fragment (`40e70982`) yielded 4080bfff throughout, exit 0. The Quadro
+fixture uses its own pinned SPIR-V and executed at most two records. The
+Draw receipt concerns the shader export. Draw's frame-loop use of the
+separate asynchronous submit export is tracked under slot 10 job b1d09e31.
