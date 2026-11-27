@@ -1,6 +1,6 @@
 # Linux x86-64 Vulkan C library
 
-Build the eleven reviewed functions from the Tower checkout. The host needs the
+Build the twelve functions from the Tower checkout. The host needs the
 checked-in Linux x64 bootstrap's LLVM 19.1 shared library, Bash, coreutils and
 GNU x86-64 binutils. Supply the absolute path to the target's Vulkan loader.
 
@@ -26,8 +26,8 @@ For an application making its own Vulkan calls, use the same link with
 `-lvulkan` after `-ltower_graphics`. Install the loader in the host library
 search path and configure the intended ICD. The library's SONAME is
 `libtower_graphics.so`. Its sole DT_NEEDED entry is `libvulkan.so.1`. The
-review build is 14,816 bytes, SHA-256
-`d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715`.
+twelve-entry build is 14,976 bytes, SHA-256
+`652949ebd1103e806b1e55ad5528a7b7b07bb0d338091bf0f62cec6254496ed6`.
 
 | SDK header | Export | Checked through the combined library |
 | --- | --- | --- |
@@ -42,6 +42,15 @@ review build is 14,816 bytes, SHA-256
 | tight_color_regions.h | tower_vk_build_tight_color_regions_v1 | SDK compared ordered fields, exact and short capacities/payloads, wide offsets, mixed mips, invalid inputs and output guards. |
 | bound_image_view.h | tower_vk_create_bound_image_view_v1 | Nine Linux cases × four results checked the descriptor, private handle slot and guarded output. The GPU fixture sampled all five retained views. |
 | create_image.h | tower_vk_create_image_v1 | Four SDK descriptors × four results (0, −1, −2, +1) checked borrowed pointers, driver clobber and success-only publication. The device check correlated ten created images with their views. |
+| image_format_preflight.h | tower_vk_image_format_preflight_v1 | 32 raw SDK and linked recording cases checked query fields, signed results, output guards and driver clobber. The retained device caller used the same DSO for preflight, create and view. |
+
+Include `image_format_preflight.h` and link with `-ltower_graphics`.
+Pass the selected physical device and the descriptor you intend to create.
+Supply distinct writable properties and decision outputs. A nonzero
+`VkResult` preserves both outputs. On `VK_SUCCESS`, inspect `supported`
+before creating the image. Both successful decisions publish the complete
+queried properties. The decision compares positive extents, mip levels and
+array layers with their inclusive limits and checks for a common sample bit.
 
 The SDK headers specify the ownership and synchronization requirements.
 Creation leaves binding to the caller. Upload recording returns before
@@ -49,14 +58,7 @@ submission. Keep staging live through retirement, and keep a sampled view,
 its image and memory live through the final read. A failed idle after a
 successful submit requires recovery before freeing pending resources.
 
-The single-executable recording check in `linux_checks` imports all eleven
-functions. Job `322c325f-64d2-4ca0-8656-438ea23b6260` supplies its binary,
-commands, checked operation rows, provider bindings and the frozen controls.
-The job also compares a Linux RTX 3090 capture with the full guarded raw
-reference. The journal records device identity, test scope, measurements and
-the open leak report. [Linux release evidence](../../../../docs/temporal-opcode-research-journal.md#combining-eleven-reviewed-vulkan-entries-on-linux-x86-64)
-
-## Run the eleven-entry C recording check
+## Run the twelve-entry C recording check
 
 From the repository root, build the shared library as above. Generate the
 shader header from the checked-in fragment shader using `glslangValidator`.
@@ -75,12 +77,24 @@ cc -std=c11 -O2 -I"$v" -Iout "$v/linux_checks/api_client.c" out/api_trace.o \
 out/sdk-all
 ```
 
-A passing run exits 0 and prints twelve rows. Shader creation reports
-`called` and `VkResult` separately. The last three rows trace end (`E`),
-submit (`S`) and blocking finish (`ESI`). Rendering reran the delivered
-recording executable and verified all eleven runtime bindings to this DSO.
+A passing run exits 0 and prints fifteen rows. The format query records
+one `Q` call, result 0, decision 1 and a 4,096-byte resource limit.
+The final three rows trace end (`E`), submit (`S`) and blocking finish
+(`ESI`). The original eleven-entry C executable from job `322c325f`
+also ran unchanged and reproduced all twelve of its original rows.
 
-## Hardware readback
+## Twelve-entry hardware check
+
+On the RTX 3090 with NVIDIA 565.57.01, the retained Tower caller resolved
+the query, image and bound-view helpers to one `libtower_graphics.so`.
+It retained five textures through sixteen reads. All 103,158,144 guarded
+bytes matched the frozen raw SDK capture. A request 4,294,967,295 texels
+wide exceeded the reported limit of 32,768 and exited before any image
+creation or device-memory allocation. The job packet includes the prior
+two-library comparison, runtime bindings, descriptor and lifetime traces.
+[Measurements and sanitizer results](../../../../docs/temporal-opcode-research-journal.md#package-the-image-format-preflight-with-the-linux-vulkan-c-entries)
+
+## Historical eleven-entry hardware readback
 
 Vulkan selected an RTX 3090, API 1.3.289, NVIDIA 565.57.01, for the
 worker's synthetic texture test. The ELF loader bound six entries to the
@@ -101,12 +115,13 @@ Ownership remains unresolved. Both GPU ThreadSanitizer processes exited
 66 before completing. The recording boundary separately completed its
 four-thread checks. Draw's shipping application has separate adoption tests.
 
-## Draw constructor checks with the shared library
+## Draw constructor checks with the eleven-entry library
 
 Draw `2f38b19c8218fef304993df5708a7458fa16776b` independently built Tower
 `bef3026fc41d02334a2fd3f88f18b8d6e9392abe` with the pinned `a580e70a`
 bootstrap and GNU ld 2.44. The resulting 14,816-byte DSO reproduced the
-SHA-256 above, its eleven exports, SONAME and sole loader dependency.
+original SHA-256 `d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715`,
+its eleven exports, SONAME and sole loader dependency.
 From the Draw checkout, with `tower_root` set to that Tower checkout
 and the built library in its `out` directory, run:
 

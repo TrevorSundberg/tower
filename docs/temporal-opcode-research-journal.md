@@ -125541,3 +125541,98 @@ source and SDK header come verbatim from b68b1835, introduced at 745336fa.
 The common package uses the existing readback_abi owner at 8edf50ba.
 Its declarations already cover the query and limits. The Linux builder
 adds one ordinary Tower unit to its existing link.
+
+Two fresh bootstrap builds and an independent ten-object map link produced
+the same 14,976-byte ELF, SHA-256
+`652949ebd1103e806b1e55ad5528a7b7b07bb0d338091bf0f62cec6254496ed6`.
+SONAME is `libtower_graphics.so`. Its sole dependency is `libvulkan.so.1`.
+The exact export set is the frozen eleven plus
+`tower_vk_image_format_preflight_v1`. The new loader import is
+`vkGetPhysicalDeviceImageFormatProperties`. The 1,192-byte preflight object
+matched the original standalone object, SHA-256
+`37b926d98ee6c2dd66785e7f9e4c0d005990690bc235257df5fdf2895f3f1ebf`.
+A fresh standalone build from b68b1835 matched the same object. The base
+retains VkSubmitTag and its own Vulkan function declarations.
+
+**External Linux clients.** The original C executable resolved eleven
+functions to the new ELF and reproduced its original twelve rows. The
+updated SDK C executable linked with one `-ltower_graphics`, called and
+resolved all twelve, and checked fifteen rows. The first direct GNU ld
+test link used PIC for the executable's thread-local recording state and
+failed on __tls_get_addr. Compiling the executable's C object as PIE
+resolved the link. The raw SDK, eleven-plus-standalone and twelve-in-one
+recorders passed all 32 cases, including a private driver clobber with
+−11, −1, −2 and +1. Both guarded public outputs survived each failure.
+The SDK C hardware client also matched raw output for four descriptors
+and one zero-width refusal. Its binding trace shows the DSO calling the
+SDK's libvulkan.so.1 directly.
+
+**Retained device fixture.** Built the existing caller and verifiers from
+b68b1835 with their own import closure. The two links used the identical
+device.o, frozen SDK transport, runtime and observation probes. The old
+link resolved preflight to libtower_preflight.so and four graphics entries
+to the 14,816-byte bef3026f build. The new link resolved all five to the
+14,976-byte DSO. The query probe forwarded to libvulkan.so.1. Creation
+passed through the image probe, and view creation through the lifetime
+and view probes to that loader. The packet includes both link maps,
+DT_NEEDED, binding paths, binary and input digests.
+
+Vulkan selected physical index 0, discrete RTX 3090, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, Vulkan 1.3.289, NVIDIA 565.57.01,
+graphics family 0 and queue 0. The verifier correlated one admission
+query and ten image queries with SDK fields on the same physical device.
+For the 2D sRGB texture (format 43, optimal tiling, usage 7, flags 0)
+the maximum extent was 32768×32768×1, with 16 mips, 2048 layers, sample
+mask 15 and maxResourceSize 1099511627776. Width 4294967295 produced the
+capacity diagnostic, exit 1 and zero image creates, view creates, uploads
+or device-memory allocations. A forwarding link wrapper observed the
+caller's vkAllocateMemory sizes in each lane, including 20 calls on
+success. Query −11, downstream create −2 and view −2 also exited 1
+with the expected diagnostic and cleanup. Every ordinary run counted
+zero validation warnings/errors.
+
+Each success reproduced the raw SDK control's entire 103,158,144-byte
+capture, SHA-256 `140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+The lifetime checker verified 189 ordered events, retirement before staging
+release and survival of five source images/views through sixteen sampled
+reads. The original 2×2 contract's oracle and row-copy blobs still match
+3dd5f11f on the a580e70a lineage. Draw owns its shipping workload and timing.
+
+**Cost.** Same EPYC 7282 (16 cores, 32 hardware threads, affinity 0–31,
+quota 15.36 CPUs), checked-in Linux x64 bootstrap at jobs 1, GNU ld 2.40,
+Clang/LLVM 19.1.7, one caller and one queue. Three fresh processes per lane,
+warm files, alternated old/new, new/old, old/new. Each timed device run
+used the same validation, probes and output checks as the trace warmup.
+Times cover the complete retained fixture.
+
+| Device link | Wall s | User s | System s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Eleven + standalone | 2.013 / 2.295 / 2.267 | .635 / .704 / .686 | 1.378 / 1.592 / 1.582 | 116352 / 116352 / 116096 |
+| Twelve in one | 2.088 / 2.315 / 2.014 | .626 / .688 / .644 | 1.462 / 1.627 / 1.370 | 116328 / 116320 / 116224 |
+
+With a recording query, each process checked two consecutive two-million-call
+batches. Median first/second ns per call were 12.23/10.38 for the old link
+and 12.19/10.42 for the aggregate. The provider uses stack storage and
+imports only the query. The timings include the C transport and recorder.
+These samples do not resolve a packaging cost. No frame timing was taken.
+
+**Sanitizers.** Recompiled all ten provider units and the device/recording
+Tower callers with LLVM address or thread instrumentation. The C controls
+also used UBSan. Each recording link completed 4 × 32 queries on libc
+pthreads with ASan and TSan. Four TSan startup failures preceded the
+aggregate recording pass. Address-only device success and oversized
+refusal passed for the raw and aggregate query routes. With full LSan and
+Khronos synchronization validation, both routes exited 1 with 4,187 bytes
+in 15 allocations. A private replay disabling synchronization validation
+alone passed the aggregate leak, pixel and lifetime checks. Attribution
+remains open. Both first GPU TSan attempts exited 139 during the runtime
+personality check. The aggregate also hit that startup failure on all 16
+retries. The raw route reached a nested TSan SEGV (exit 66) on retry 16,
+before recording an image. The packet keeps the statuses, diagnostics,
+instrumentation excerpts and link maps. The
+driver, GPU, validation layer and frozen observation probes are outside
+the compilation instrumentation.
+
+The eleven-entry remote advanced to 51a50ee8 during validation with a new
+Draw receipt in graphics_so_linux.md. This job's bundle uses the requested
+8edf50ba base. The manager can carry the new receipt forward independently.
