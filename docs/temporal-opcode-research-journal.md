@@ -123345,3 +123345,40 @@ page. Each 128-command native batch took 0.07 s with matching stdout.
 The packet includes user/system CPU, peak RSS and checked output by sample.
 These timings include host startup. Guest allocator grant counts and broad
 compiler or parallel execution scaling were outside the measured paths.
+
+### Vulkan RGBA8 readback on the selected RTX 3090
+
+Reviewed worker `e17b0c4f-54db-49ed-a60c-368b9584bac6` at
+`26c55f4773e5d17ece4cff88f37a9463914797dc`, based on
+`a580e70af42e67d5309c4121737fa9e21652a9dd`. The manager verified the Git
+bundle, every member in the evidence manifest and the build input hashes
+against the commit. The archived active and guarded output files matched an
+independent reconstruction for both adapters. Evidence archive SHA-256 is
+`9c2be2e7cb12d268e6847c349db988c260abd75eef8e00e72abca5d28a3881a1`.
+The [fixture record](../scaffolding/library/graphics/vulkan/readback_v1.md)
+includes the build, device selection and replay commands.
+
+In the hardware run the application selected the discrete NVIDIA GeForce RTX
+3090, Vulkan 1.3.289, driver 565.57.01. Queue 0 in family 0 submitted one
+clear/store and copy. Its fence signaled before mapping coherent staging.
+The two returned rows each contained `112233ff112233ff`; other bytes in the
+32-byte caller array stayed `a5`. The process exited 0 and the Khronos
+synchronization validation callback counted zero warnings or errors. A separate
+llvmpipe run reproduced the bytes. The CPU row marker and all three invalid
+copy cases passed. This fixture measures correctness only.
+
+The successful loan spanned 20 bytes at offset 4 and pitch 12. Draw's C oracle
+lends 24 at that offset. The active SHA-256 matches the Draw CPU receipt,
+`f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88`;
+full cross-project acceptance needs the specified 24-byte run. The matched
+32-byte guarded SHA-256 is
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+
+Address-only ASan completed. Unfiltered LeakSanitizer exited 1 with 3511 bytes
+in eight allocations whose recorded stacks include the validation layer.
+Attribution remains open. TSan exited 139 before main when the container denied
+its ASLR request. Host-visible noncoherent memory and device loss were
+unexercised. The synchronous helper aborts if both fence wait and its
+device-idle recovery fail without establishing retirement or device loss.
+This branch supplies a hardware reference for the next worker. Review for
+main and the general-purpose library remains open.

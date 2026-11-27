@@ -6,7 +6,15 @@ fixture at `f6b850ab`. This slice belongs to Tower rendering. Draw owns its
 C implementation. Its source revision was unavailable to this Tower-only
 worker and remains a dependency for a cross-project comparison.
 
-## Byte and execution contract
+The rendering review verified this synchronous Linux x64 reference on an RTX
+3090 with a 20-byte destination span. Draw's C oracle at
+`36f61b4b312e41846742985bab4884f99f2c62ed` lends 24 bytes from the same
+offset. Both layouts have the same 16 active bytes and the same guarded
+32-byte result. A hardware replay with the 24-byte loan is pending. The
+planned common submission handle and recoverable completion errors also
+require separate implementation and tests.
+
+## Byte layout exercised by this fixture
 
 Clear one 2×2, single-sample, single-layer `R8G8B8A8_UNORM` attachment
 with linear values (17/255, 34/255, 51/255, 1). Store the attachment.
