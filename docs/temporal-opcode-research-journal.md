@@ -124196,3 +124196,15 @@ and checks application output and actual Vulkan call order. The C consumer
 and fixture build at `7a7cec7c` repeated byte for byte in another checkout.
 Native Windows, the full Draw process, displayed WSI, real device loss and
 noncoherent GPU memory remain untested.
+
+### Win64 packaged counted-record header
+
+The Win64 distribution takes `indexed_draw_c.h` byte for byte from
+`rendering/vulkan-counted-osd-42aaa217` at
+`be7796368bd6a3b6bff187842d6c9acdafd8b421`. The caller binds the index
+type consumed by the draw. Removing the header's single block comment and
+comparing the remaining bytes with `c40dae39` verified the C declaration
+and preprocessor directives. The release DLL, import library, 38-case
+recording inputs and GPU receipts retain their build identity at the
+frozen Win64 handoff. Runtime timing and memory measurements apply to
+that build. This packaging change edits only the header comment.
