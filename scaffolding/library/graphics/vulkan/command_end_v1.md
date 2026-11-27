@@ -187,3 +187,37 @@ Across the three revisions, 40 processes terminated with SIGSEGV and
 guarded-clear cleanup and assigned job
 `a57404fc-b450-480f-af18-7c07a67bbe8f` on the same device. Tower's
 separate reset-fault observation retains its own evidence and open cause.
+
+### Guarded-clear cleanup after command-end failure
+
+Draw's guarded-clear owner now receives the failed end result and releases
+its local resources before global teardown. Draw verified source
+`a35e4be9e7a788a8866a6eb72dc026ff731a6313` with tests
+`e8785dfcfb0677b025d80f364f83281122fe2f6c` in job `a57404fc`.
+Its manager verified 329 indexed entries, archive SHA-256
+`95efe4d821f158e3345c16c132874fd772898b276a8b5852a4cac8b7a42d1248`.
+
+The selected RTX 5060 Ti (PCI 10de:2d04) ran Vulkan 1.4.303 with
+NVIDIA 570.169. Draw used this invocation for each executable.
+
+```sh
+LD_PRELOAD=observer.so:failure.so FAIL_OP=end \
+    "$draw_exe" --offscreen --validate --rgba8-check --no-nuclear
+```
+
+| Executable | Pre-driver end injections | Exit 1 on repaired source | SIGSEGV at prior `6b6c4cfc` |
+| --- | ---: | ---: | ---: |
+| `build/draw-linked` | 40 | 40 | 11 of 40 |
+| `build/draw-c` | 12 | 12 | 2 of 12 |
+
+Every repaired trial diagnosed signed −4 and exited normally with status
+1. The fault prevented driver end, frame-fence reset, submit and wait.
+Separate submit/wait failure controls showed a successful device drain
+before frees. Both healthy captures contained four `112233ff` pixels.
+The linked healthy process exited 0. The C healthy process exited 2
+with the expected missing-repack condition.
+
+These results close the guarded-clear end-injection check for the tested
+Draw revision and device. The cause of the earlier SIGSEGV remains
+unlocalized. Draw's staged buffer upload repair has its own job,
+`97562fd0`.

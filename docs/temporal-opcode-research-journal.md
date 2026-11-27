@@ -123811,3 +123811,13 @@ checked the arithmetic and reviewed the existing end provider: it writes
 the borrowed submit descriptor only after a successful end. Draw owns
 the application recovery change. This documentation update carries no
 new GPU execution or change to the provider.
+
+### Draw guarded-clear owner handles a failed command end
+
+At repaired Draw `a35e4be9` all 40 linked and 12 raw pre-driver end
+injections returned the signed diagnostic and process status 1 on the
+RTX 5060 Ti. The previous source had 11/40 and 2/12 SIGSEGV results,
+respectively. Rendering reran its independent CPU recording check and
+reconstructed the healthy 16-byte clear digest. Draw reviewed the
+hardware archive. No Tower runtime changes or new GPU timings entered
+this receipt. [Revision, invocation, counts and controls](../scaffolding/library/graphics/vulkan/command_end_v1.md#guarded-clear-cleanup-after-command-end-failure)
