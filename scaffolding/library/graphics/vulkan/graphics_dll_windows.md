@@ -784,3 +784,21 @@ Draw's result covers cross-compilation and linking. Its slot 9 job
 `304c4244-b69d-42fe-afc8-f2903aedd622` owns execution of the release
 checker and the shipping packed HUD comparison after ordinal-12 job
 `a1fbfaac-7f89-4011-8648-dadada799ec8`.
+
+## Device memory allocation and zero-offset binding
+
+Include `image_memory.h` and link the matching `tower_graphics.lib`.
+Ordinal 14, `tower_vk_allocate_memory_v1`, borrows the caller's
+`VkMemoryAllocateInfo`, including its extension chain. Supply a separate,
+initially null memory slot. On `VK_SUCCESS` the caller owns the returned
+memory and accounts the full `allocationSize`. On any other result the
+slot retains its original bytes.
+
+Ordinal 15, `tower_vk_bind_image_memory_zero_v1`, takes the device, the
+original image and the acquired memory. It returns the signed Vulkan result
+from binding at offset zero. A failed bind leaves the allocation and its
+accounting with the caller. Create the view after a successful bind and
+retire GPU work before destroying views, destroying images and freeing
+bound memory. The two entries share the standalone Tower implementation.
+The [external C qualification](osd_checks/image_memory/README.md#qualify-the-combined-release-from-source)
+checks both link forms and runs the existing planner callers with the combined DLL.

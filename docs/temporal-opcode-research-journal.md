@@ -125854,3 +125854,108 @@ provider and public header from 397a659f (tested at 69c3209e), and the
 external C recorder, SDK control and device owner from 0b2b80cf.
 Build the standalone AMD64 COFF first, check its published digest and
 run the COFF caller before testing the combined DLL with the same inputs.
+
+Release change 32387cf adds one Tower object, two exports and their two
+Vulkan loader imports to the existing Win64 DLL. The provider source and
+header are byte-identical to 397a659f. The negative link used the same
+external caller COFF as the header-checked release link (SHA-256
+`bb2f8bf15db522bd998b1af34d133acfd1cee01a4246524e41fe06b3eea0aca9`).
+The old library returned linker exit 1 and named both missing functions.
+The prior published ordinal bindings and the Draw receipt at 403dcefb
+remain in the release documentation.
+
+The [qualification recipe](../scaffolding/library/graphics/vulkan/osd_checks/image_memory/README.md#qualify-the-combined-release-from-source)
+ran at code commit `2cc3b82d15a2743085cb6279cad748ccb67d180e` with the
+Linux x64 packaged bootstrap, one compile worker, LLVM/LLD 19.1.7,
+x86_64-w64-windows-gnu, MinGW x64, Vulkan SDK headers 1.3.239 and Wine 8.
+The first standalone invocation lacked libLLVM.so.19.1 on the host search
+path. Using the prepared SDK's library directory resolved it. The first
+full comparison found a temporary checkout path in the fixture's local
+readback helper symbol and PE build ID. Giving that private COFF symbol a
+stable file identity produced identical SDK control PEs across the object
+and DLL replays. The release DLL and library also matched the initial build.
+
+| Tested artifact | SHA-256 |
+| --- | --- |
+| Standalone AMD64 COFF (754 bytes) | `288c5360fd28fe3701ec32ca9b163f6bbab88618901a104531070478c55c6aed` |
+| tower_graphics.dll (7,168 bytes) | `e0e69bfb058eac4007f7f3405c8bbe69499254b5855c9c7ea55261f461e46b46` |
+| tower_graphics.lib (5,692 bytes) | `95a262d40b48a70b22fc66728f631580a3b22a98173db154944012753acf7eb0` |
+| SDK recording / device PE | `57c9a72ae0145729dc53d3ad319e4a8b748193e4dcf07c780affdedd74a8533c` / `1e9b67dbc176fbc160dee1b4bcdab7cbc7fea45428206d9b630a941688629058` |
+| COFF recording / device PE | `58a49260bdfec39cae7775853ff6da3d040aae64e2a7e0b45e403c30915b81a3` / `0e6362e9f2112bc5c5f3717437a20aa696f1c5de2d90d6427cc3e841025d79ba` |
+| DLL recording / device PE | `ee0fa7ea18ae5bea5f538a363e731198b8382ec5e05723f5819d8c36314069ea` / `bff121d7e2bed7adebce80bd930726182df54e2056a7334e8cb1e06107f21709` |
+| DLL device PE with three SDK observers | `610756b5e8a73f1124185fd067f1d44828c5ca77e2c551a1a4bc43593091d116` |
+
+The link map resolves ordinals 14 and 15 to image_memory.obj. Its two AMD64
+relocations target vkAllocateMemory and vkBindImageMemory. Both external
+C PEs import the new names and the ordinal-13 planner from tower_graphics.dll.
+The release imports all three corresponding SDK functions from vulkan-1.dll.
+The frozen ordinal-13 recording and device executables ran with this DLL.
+The frozen and rebuilt planner cases reproduced all ten sealed SDK rows
+(`7d2ec8866e0d943a56f7ee6eeebbe30f01312ae82cf8401df1c352fe2a11aeeb`).
+The old planner recorder reserves SDK allocation and bind as forbidden
+calls. Its forwarding list now excludes both names when the DLL imports
+them for other exports.
+
+The direct SDK, COFF and release recording cases passed at 16,384 and
+4,294,983,680 bytes with index 31. The SDK double checked the original
+descriptor and dedicated-image chain addresses, null allocator, intact type
+array and the guarded output. On allocation −2 or +1 with a clobber, the
+direct slot held badc0ffe1357abcd. Both Tower callers kept the public slot
+null, with zero live bytes and no bind. Bind −2 and −7 preserved handle
+1234567887654321, 16,384 live bytes and count one. The bind double observed
+the original device, image, acquired memory and zero VkDeviceSize offset.
+Successful cases retired the allocation and returned to zero bytes and count.
+Injected statuses belong to the CPU recorder.
+
+The ordinary Wine device PEs ran against the system Vulkan loader. A
+separate release PE exported the existing SDK observation functions for the
+requirements query, allocation and bind. The observing loader forwarded
+those three release imports through the PE to winevulkan.dll. The Tower
+trace reader compared the actual requirements and borrowed physical table,
+descriptor address and fields, returned handle, image, device, offset and
+signed results with the sealed SDK expectations. The selected Quadro RTX
+6000 was physical device 0, UUID 26f60f6cead65faf0253a959b2e93a2d, driver
+615.71.10, Vulkan 1.4.351, queue family/index 0/0. For all five uploads
+the memory mask was 3, alignment 1,024 and first eligible type 1. Their
+allocation sizes were 25,165,824, 569,856, 569,856, 1,572,864 and 32,768.
+The owner peaked at 25,165,824 live source bytes and returned to zero
+after each free. The lifetime reader checked ten completed submits, ten
+source views and view/image/memory retirement. All 256 sampled texels,
+15 guards and 27,542,768 stream bytes matched the SDK oracle, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+Host synchronization validation loaded and reported zero warnings/errors.
+
+Win64 trapping UBSan exercised the C recording and hardware boundaries.
+Native Linux ASan with leak detection exercised the instrumented Tower
+allocation stores and the same C owner and recorder, matching every Win64
+row, diagnostic and exit for SDK and provider. The Linux TSan build used
+the provider's published per-thread recorder and four pthreads for 96
+checked cases. Two launches failed during TSan startup at ADDR_NO_RANDOMIZE.
+The third completed with no reported races. The packet includes disassembly,
+link maps, dynamic dependencies and individual logs. The Win64 SDK lacks the
+ASan runtime and Clang rejects TSan for Win64. Physical Windows and shipping
+Draw execution remain separate acceptance work.
+
+Performance samples used dual Xeon E5-2699 v4, affinity 0–87, a 10.56-CPU
+cgroup quota, one caller, one graphics queue and the same Quadro. Each arm
+ran a fresh PE on a warm Wine server. Each timed device capture passed the
+full byte comparison. The CPU-only sample ran the wide recording case and
+compared its stdout and exit. Time includes process startup and, on the
+device path, tracing, allocation, transfer, sampling and readback.
+
+| Final build, three samples | Wall seconds | User + system seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| SDK control in COFF replay | 1.39 / 1.37 / 1.11 | 1.28 / 1.21 / 1.08 | 191656 / 190388 / 191068 |
+| COFF caller | 1.36 / 1.39 / 1.46 | 1.22 / 1.33 / 1.33 | 191624 / 192600 / 192348 |
+| SDK control in DLL replay | 1.09 / 1.48 / 1.09 | 1.05 / 1.21 / 1.03 | 191736 / 192240 / 192640 |
+| DLL caller | 1.33 / 1.54 / 1.15 | 1.25 / 1.11 / 1.12 | 191976 / 192036 / 192268 |
+
+The wide recording case took 0.06–0.09 seconds across all arms, with peak
+RSS 11,272–12,728 KiB. Six further alternating pairs on the same binaries
+followed one untimed-for-comparison warmup pair. Median device wall times
+were 1.245 seconds SDK and 1.275 seconds DLL, ranges 1.11–1.30 and
+1.16–1.67 seconds. The slowest DLL sample used 1.40 seconds of CPU. All
+six pairs returned the same guarded bytes. These process measurements do
+not resolve per-call overhead. Both new entries allocate zero heap objects.
+Device source allocation count, maximum live bytes and retirement were the
+same in the SDK, COFF and release runs.

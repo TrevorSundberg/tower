@@ -1,7 +1,7 @@
 # Win64 SDK caller for image allocation and binding
 
 The two C translation units implement the call sites for
-[draw-tower-image-memory/v1](../../image_memory_v1.md). Both include the real
+[draw-tower-image-memory/v1](https://github.com/TrevorSundberg/tower/blob/397a659f4e1cfedf9d44dd96eeee61c477f52284/scaffolding/library/graphics/vulkan/image_memory_v1.md). Both include the real
 Vulkan SDK types. The raw control passes the owner's output slot straight to
 `vkAllocateMemory`. The external caller references the two public names and
 can type-check them against the released header. Neither object defines a
@@ -39,8 +39,8 @@ input hashes and checks the defining object against the map or the import
 names against the DLL. The old planner import library must fail the new link
 on both names.
 
-The recorder exercises two successful sizes, two allocation failures (one
-writes through the driver's output pointer), and a bind failure. Each starts a
+The recorder exercises two successful sizes, allocation results −2 and +1,
+a clobbered output, and bind results −2 and −7. Each case starts a
 new process, gets an actual plan from index 31, and adds a live dedicated-image
 descriptor to its extension chain. The SDK recorder observes the input
 pointers, allocator, memory, offset, operation order and the caller's counters.
@@ -59,4 +59,32 @@ Vulkan loader. The recording-only loader redirects SDK calls to the recording
 PE. The packet carries stdout, stderr, exits, loaded modules, COFFs, PEs,
 maps, captures, and per-run measurements.
 
-[Observed SDK results and remaining provider checks](../../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-caller-for-separate-image-allocation-and-binding)
+## Qualify the combined release from source
+
+Set the three environment variables above. The reader must also contain
+the portable recorder at `397a659f`. From the repository root, give the
+script a new output directory. The two Win64 replays each create their
+own build, Wine prefix and X server.
+
+```bash
+v=scaffolding/library/graphics/vulkan
+bash "$v/osd_checks/image_memory/qualify.sh" "$PWD/../win64-image-memory-results"
+```
+
+The script verifies the standalone COFF and header digests and runs the
+COFF-linked PE first. It then rebuilds the release, checks its fifteen
+ordinals and Vulkan imports, and links the regular and trapping-UBSan
+C callers against its import library. The direct SDK PE is byte-identical
+across the two builds. Each run compares the complete captured stream to
+the ordinal-13 packet. An additional device PE uses the fixture's existing
+three SDK observers. They call Wine Vulkan, then record the actual query,
+allocation and bind values. The independent Tower trace reader checks the
+five source plans against the sealed SDK results.
+
+The release also runs the frozen ordinal-13 recorder and hardware PEs,
+and rebuilds its ten-row planner oracle. The SDK doubles for allocation
+and bind remain active during the planner checks. Native Linux ASan/leak
+checks the serial C owner and Tower provider. Native TSan uses four pthreads
+and the published portable recorder's per-thread devices. Per-run stdout,
+stderr, exits, maps, captures and measurements are under the paths in
+`object.log` and `dll.log`. See the [host 11 results](../../../../../../docs/temporal-opcode-research-journal.md#win64-external-image-memory-caller-on-host-11).
