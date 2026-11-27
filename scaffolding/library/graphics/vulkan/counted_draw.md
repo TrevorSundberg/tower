@@ -37,6 +37,54 @@ availability of `multiDrawIndirect`. The logical device enables no base
 feature bits. This command has its own feature and count limit. See the
 [Khronos command reference](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDrawIndexedIndirectCount.html).
 
+## Creating a module from an in-memory shader
+
+Import `library.graphics.vulkan.shader_module`. Pass a live device, the
+first aligned `u32*` of a readable, validated, device-compatible SPIR-V
+asset, its **word count** and the address of a distinct, initialized null
+`VkShaderModuleHandle*`. The operation checks alignment, the minimum
+five-word header size, byte-length multiplication, address wrap, output
+overlap and an occupied slot before calling Vulkan. The caller supplies
+the actual extent, lifetime and shader validity of the borrowed array.
+
+`vk_create_shader_module(device, words, word_count, &module)` returns
+`VkShaderModuleResult`. Check `called` first. A false value means local
+argument rejection. If true, `result` is the exact signed VkResult.
+Only `called && result == 0` transfers a module into the slot. Both failure
+paths preserve its contents. The caller owns the words throughout and may
+release them on return. After the last pipeline creation that uses a module
+has returned, destroy it once with `vkDestroyShaderModule(device, module, null)`
+while the device lives. The resulting pipelines have their own lifetimes.
+
+The counted fixture opens, hashes and frees its Linux files and buffers as
+before. Compute, vertex and fragment now pass through the same library
+operation. Offline glslang and spirv-val commands, accepted digests and the
+hardware and software pixel oracles below apply to the extracted path.
+The runner from implementation `255836f8` has SHA-256
+`7a2f69dc05f7a2e6cd1e362d18435816a39de09beb46a3f4a203eb3cd190adc1`.
+
+After the Linux build below, run the isolated output-ownership checks
+from the same shell. The test executable supplies its own synchronous
+create/destroy symbols and exits 0 on success.
+
+```bash
+"$cc" "$v/shader_module_checks.tower" --library --jobs 1 \
+    --foundation "$s/foundation.tower" -o "$out/checks.o"
+"$cc" --link-executable "$out/checks.o" --link "$out/runtime.o" \
+    --sysroot "$sdk" -o "$out/checks"
+"$out/checks"
+```
+
+The slot 12 packet for assignment `6ad78267-230b-41f5-98a7-603d93965ba3`
+also contains `focused.sh`. It links a copy of the counted object with a
+test-only allocator probe at its single shader-create relocation. Using the
+validated compute asset on llvmpipe, the driver returned
+`VK_ERROR_OUT_OF_HOST_MEMORY` (−1). The fixture printed that value and exited 1
+before submission with zero validation warnings/errors. The allocator
+callbacks carry no mutable state and always deny allocations. The probe
+destroys an unexpected successful handle with the same allocator and fails
+the test. Normal runs use the loader directly and pass a null allocator.
+
 ## Recording and lifetime
 
 One compute invocation writes record zero as `(3,1,0,0,0)` on each pass.
@@ -112,7 +160,7 @@ SPIR-V each failed before submission with their own diagnostics.
 | Validation warnings or errors / exit | 0 / 0 | 0 / 0 |
 
 The separate [shaderless v1 fixture](readback_v1.md) also passed on the
-hardware with its original `112233ff` oracle. The counted runner SHA-256
+hardware with its original `112233ff` oracle. The original counted runner at `fb49e797` has SHA-256
 is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 
 | Stage | GLSL source SHA-256 | SPIR-V SHA-256 (Vulkan 1.1 target) |

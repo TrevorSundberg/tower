@@ -123451,3 +123451,97 @@ Git bundle based on `cf53212c`, runner and shader bytes, reproduction scripts,
 raw GPU/negative logs, timings, instrumentation receipts and checksums.
 The next cross-project check needs an authorized Draw source and shader ref
 and a device that satisfies its complete profile.
+
+### Host 12 shader modules from borrowed SPIR-V words
+
+Assignment 6ad78267-230b-41f5-98a7-603d93965ba3 starts at `fb49e797`.
+The authorized counted-raster ref at `4bd67941` contains this revision.
+A separate pinned checkout reproduced the baseline runner and all three
+offline shader hashes in counted_draw.md. Both adapters passed before edits.
+The counted fixture is the sole creation caller. Its temporary allocation
+owns aligned words and its zeroed module array owns the three output slots.
+
+The shared library/platform.tower only writes output streams. The host
+driver and POSIX tool file readers return growable byte buffers using
+tower_reallocate. The counted executable links an exact-size allocation
+runtime subset. Keep its file opening, digest policy and Linux LP64 stdio
+declarations local to the fixture. The library borrows words directly.
+
+Implementation `255836f8` moved the existing header-239 shader handle,
+descriptor and create/destroy declarations into shader_module.tower. All
+three stages now call the same operation. It passes a private handle slot
+to Vulkan, copies it out only on success and performs no Tower heap
+allocation. The [module contract and focused build](../scaffolding/library/graphics/vulkan/counted_draw.md#creating-a-module-from-an-in-memory-shader)
+cover the word count, aligned disjoint storage, result and retirement.
+No loader, indexed-command or compiler source changed.
+
+At `04f593cd` a standalone Tower provider exercised null inputs, zero and
+short counts, the first overflowing product, wrapping addresses, alignment,
+overlap and an occupied output. Its error path wrote a candidate handle
+and returned −2. The caller's slot stayed null. The next create succeeded,
+a second create into its occupied slot was refused, and destruction
+retired it once. Only tower_trap is undefined in the check object.
+A separate software test supplied stateless deny-all allocation callbacks
+only to the real shader create call, via a test link. The validated
+compute shader reached llvmpipe and produced VkResult −1, exit 1, zero
+warnings/errors and no submit. The callback descriptor lived until
+return, including destruction on unexpected success. The normal module
+has no callback hook or test dispatch.
+
+The smallest module compiled first, followed by the counted pipeline
+object and the documented Linux fixture link. The public compiler and
+host runtime hashes match the previous run. On NVIDIA and separately on
+Mesa the complete logs matched the pinned baseline. Each run used
+device/family/queue 0/0/0, submitted once, signaled one fence and returned
+0 with zero validation warnings/errors. The producer returned counts 0
+and 1 with record (3,1,0,0,0) twice. The guarded 32-byte arrays matched
+the prior binary captures, including all four 112233ff or 4080bfff
+pixels. The missing fragment and the valid fragment passed in the vertex
+slot both exited 1 before submission. The strict Draw 1.4 probe refused
+the selected NVIDIA 1.3.289 device as before.
+
+Host 12 used Linux x86-64, AMD EPYC 7282, 32 visible logical CPUs,
+15.36 CPU quota, LLVM 19.1.7, RTX 3090 driver 565.57.01 and Khronos
+synchronization validation. The software control was Mesa 22.3.6 with
+LLVM 15.0.6. The three offline inputs remained 1752, 1092 and 380 bytes
+(compute, vertex and fragment). Five warm-input fresh hardware processes
+per version alternated order after checking pixels. Median elapsed / CPU
+seconds / peak KiB RSS were 0.31 / 0.31 / 94588 before and
+0.31 / 0.30 / 94668 after. These process samples include driver startup.
+Three source-warm builds per width used the same compiler and shaders.
+At jobs 1, medians were 0.77 / 0.76 / 126900 and 0.78 / 0.78 / 128336.
+At jobs 4 they were 0.87 / 1.00 / 132580 and 0.90 / 1.06 / 133300.
+Each width reproduced its revision's object bytes. These small builds
+favored serial execution. Driver-internal allocations and per-module GPU
+timing were not measured.
+
+LLVM instrumentation covered the changed operation and pinned runtime
+through the ordinary counted entry. Link maps identify the host allocator
+backed by libc, Vulkan loader and libatomic validation counter. The
+hardware address-only run matched its original log. Unfiltered LSan
+again reported **4075 bytes in 14 allocations** (exit 1), the same as the
+previous hardware baseline. The standalone ownership checks passed ASan
+with leak detection enabled. The unfiltered hardware missing-fragment
+run printed only the expected refusal. On software, all three instrumented
+allocator-denial runs returned −1 with zero validation messages, then
+reported 512 bytes in one allocation. The same 512 bytes appeared under
+the strict profile before device creation and with a missing fragment.
+Keeping the layer and ICD resident removed that leak report. Its exact
+owner remains open. Address-only denial matched the normal control.
+
+TSan on the candidate hardware runner aborted with a nested SEGV reading
+0x1048 on another thread (exit 66). A line-buffered baseline replay also
+ended at that address after printing device features and before printing
+a shader path. Other full-run retries and the isolated checks hit the
+container-denied ADDR_NO_RANDOMIZE personality request at startup (139).
+Neither failure supplies a completed race check. The repository instrumenter
+supports address and thread passes. Tower source-level UBSan and Windows
+execution were untested. The slot 12 archive contains input hashes, maps,
+raw logs, exit codes and the incremental HEAD bundle for manager replay.
+
+An initial empty-repository replay could not pack an older promised object
+from the local partial clone. Fetching the counted ref to depth two with
+the team reader supplied the exact prerequisite; bundle verification, a
+fresh build, runner and shader hash checks and both adapter replays then
+passed. The module documentation sits before the recording section so
+the manager's subsequent review at the counted branch tip can be retained.
