@@ -1,0 +1,73 @@
+import tower;
+import .readback_abi;
+import image_trace;
+import view_trace;
+
+extern fn fixture_sdk_images(first: VkImageCreateInfo**): usize;
+extern fn fixture_issue_image(device: VkDeviceHandle*, info: VkImageCreateInfo*, out: VkImageHandle**): i32;
+extern fn memcmp(a: void*, b: void*, size: usize): i32;
+extern fn memcpy(dst: void*, src: void*, size: usize): void*;
+struct FormatList { sType: u32; pNext: void*; count: u32; formats: u32*; }
+struct GuardedImage { before: u64; slot: VkImageHandle*; after: u64; }
+struct Recording {
+    device: VkDeviceHandle*; info: VkImageCreateInfo*; original: VkImageCreateInfo; list: FormatList;
+    families: u32[2]; formats: u32[2]; out: GuardedImage; handle: u8; calls: usize; result: i32;
+}
+
+fn check_borrow(s: Recording*, info: VkImageCreateInfo*): void {
+    view_check(info == s.info, "descriptor address changed");
+    view_check(memcmp(bits(void*, info), bits(void*, &s.original), sizeof(VkImageCreateInfo)) == 0, "descriptor bytes changed");
+    if info.pNext == null { return; }
+    var list = bits(FormatList*, info.pNext);
+    view_check(memcmp(info.pNext, bits(void*, &s.list), sizeof(FormatList)) == 0 &&
+        memcmp(bits(void*, list.formats), bits(void*, &s.formats[0]), sizeof(decltype(s.formats))) == 0 &&
+        memcmp(bits(void*, info.pQueueFamilyIndices), bits(void*, &s.families[0]), sizeof(decltype(s.families))) == 0, "referenced storage changed");
+}
+export fn vkCreateImage(device: VkDeviceHandle*, info: VkImageCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageHandle**): i32 {
+    var s = bits(Recording*, device);
+    view_check(s.device == device, "device identity");
+    check_borrow(s, info);
+    view_check(allocator == null && slot != null && slot != &s.out.slot && *slot == null && s.out.slot == null, "allocator or initial private slot");
+    *slot = bits(VkImageHandle*, &s.handle);
+    view_check(s.out.slot == null, "published during driver call");
+    s.calls++;
+    record_image(device, info, allocator, slot, s.result);
+    return s.result;
+}
+export fn main(): i32 {
+    var images: VkImageCreateInfo*;
+    var count = fixture_sdk_images(&images);
+    view_check(count == 4, "expected four SDK recording shapes");
+    var results: i32[4] = {0, -1, -2, 1};
+    var guard: u64 = 1234605616436508552;
+    var state: Recording = default;
+    state.device = bits(VkDeviceHandle*, &state);
+    state.out.before = guard; state.out.after = ~guard;
+    var compound_cases: usize = 0;
+    for (var i: usize = 0; i < count; i++) {
+        var info = &images[i]; state.info = info;
+        memcpy(bits(void*, &state.original), bits(void*, info), sizeof(VkImageCreateInfo));
+        if info.pNext != null {
+            compound_cases++;
+            var list = bits(FormatList*, info.pNext);
+            view_check(convert(usize, list.count) == sizeof(decltype(state.formats)) / sizeof(u32) && list.formats != null &&
+                convert(usize, info.queueFamilyIndexCount) == sizeof(decltype(state.families)) / sizeof(u32) && info.pQueueFamilyIndices != null,
+                "SDK nested storage lengths");
+            memcpy(bits(void*, &state.list), info.pNext, sizeof(FormatList));
+            memcpy(bits(void*, &state.formats[0]), bits(void*, list.formats), sizeof(decltype(state.formats)));
+            memcpy(bits(void*, &state.families[0]), bits(void*, info.pQueueFamilyIndices), sizeof(decltype(state.families)));
+        }
+        for (var j: usize = 0; j < sizeof(decltype(results)) / sizeof(i32); j++) {
+            state.out.slot = null; state.result = results[j]; var before = state.calls;
+            var result = fixture_issue_image(state.device, info, &state.out.slot);
+            view_check(result == state.result && state.calls == before + 1, "signed result or call count");
+            var wanted: VkImageHandle* = null;
+            if result == 0 { wanted = bits(VkImageHandle*, &state.handle); }
+            view_check(state.out.slot == wanted && state.out.before == guard && state.out.after == ~guard, "publication or guards");
+            check_borrow(&state, info);
+        }
+    }
+    view_check(compound_cases == 1, "missing configured pointer transport");
+    puts("4 SDK descriptors x 4 results: borrowed addresses and bytes, private null slot, clobber and guarded publication passed");
+    return 0;
+}
