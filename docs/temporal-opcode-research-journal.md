@@ -124215,3 +124215,14 @@ final TSan recording/GPU attempts exited 139 at the container personality
 check before main. One earlier external recording-only TSan run completed.
 Source-level Tower UBSan and GPU-driver instrumentation were unavailable.
 The receipt preserves original status codes and the recorder IR/link maps.
+
+The first packet replay stopped before the recording harness because its
+results directory had previously been created by the hardware sampler.
+The standalone recording script now creates that directory. A fresh local
+main initialized from the complete 44f2cdf6 objects and the source bundle
+replayed the documented 050b68dca tree with exit 0. Its object and DSO,
+all short captures, losslessly compressed large captures, independent
+control digests and signed finish log matched the frozen references.
+The packet preserves the prior calibration receipt and the failed replay
+log. Application integration and review remain with the Draw and Tower
+rendering owners.
