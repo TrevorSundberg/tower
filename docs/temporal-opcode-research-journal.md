@@ -124966,3 +124966,15 @@ The manager's reviewed slot-12 source/header/ref is the dependency for
 the ordinary ordinal-nine link, full failure suite, paired device
 execution and retirement. Physical Windows and Draw assets/app execution
 remain unverified here. All changes are local to this worker.
+
+### Win64 tight color region builder at ordinal 9
+
+Host 11 job 6b525080-f381-4ba2-9972-1e21298e1e9e resumes the frozen
+8f807648 SDK control. The Tower reader fetched the reviewed dependency
+0e385907c24e0d465aaf5aeccb98ddeb7f4b8871. Its header and implementation
+match tested 36c01243c5b975a7b352eee7f30304e289eb05d6. The public
+ordinal-eight release at 0d0f117b07b48a48c3897efc8559646ed928f9a6
+retains the same build inputs as 67345e19. The Win64 change adds the
+reviewed builder object to the existing DLL and passes the fixture's
+caller-owned array through the new C import. The separate SDK packer
+and independently placed readback regions remain the controls.

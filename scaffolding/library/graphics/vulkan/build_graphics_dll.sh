@@ -10,7 +10,7 @@ root=$(cd "$v/../../../.." && pwd)
 mkdir -p "$1"
 cd "$1"
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
-for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record; do
+for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record tight_color_regions; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
         -o "$unit.obj"
@@ -24,8 +24,9 @@ lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_command_begin_v1,@4 /export:tower_vk_command_end_for_submit_v1,@5 \
     /export:tower_vk_command_finish_v1,@6 /export:tower_vk_buffer_upload_record_v1,@7 \
     /export:tower_vk_osd_texture_upload_record_v1,@8 \
+    /export:tower_vk_build_tight_color_regions_v1,@9 \
     /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
-    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj graphics_loader.lib
+    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj tight_color_regions.obj graphics_loader.lib
 
 if [[ ${2:-} == --with-consumer ]]; then
     : "${MINGW_SYSROOT:?absolute path to the x86_64-w64-mingw32 sysroot}"

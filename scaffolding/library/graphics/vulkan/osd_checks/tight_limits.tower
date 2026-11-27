@@ -1,0 +1,45 @@
+import tower;
+import .readback_abi;
+
+extern fn tower_vk_build_tight_color_regions_v1(out: VkBufferImageCopy*, capacity: u32,
+    width: u32, height: u32, layers: u32, mips: u32, texel_bytes: u32, span: u64): u32;
+extern fn puts(text: u8*): i32;
+
+export fn main(): i32 {
+    var regions: VkBufferImageCopy[33];
+    var slots = convert(u32, sizeof(decltype(regions)) / sizeof(VkBufferImageCopy));
+    var mips = convert(u32, sizeof(u32) * 8);
+    var side: u32 = 1 << (mips - 1);
+    var max_span: u64 = 18446744073709551615;
+    var bytes = bits(u8*, &regions[0]);
+    var size = sizeof(decltype(regions));
+    var poison: u8 = 165;
+    for (var i: usize = 0; i < size; i++) { bytes[i] = poison; }
+    if tower_vk_build_tight_color_regions_v1(&regions[0], slots, side, side, 1, mips + 1, 1, max_span) != 0
+        || tower_vk_build_tight_color_regions_v1(&regions[0], slots, side, side, 1, mips, 3, max_span - 1) != 0 {
+        puts("accepted oversized shift or short maximal chain"); return 1;
+    }
+    for (var i: usize = 0; i < size; i++) {
+        if bytes[i] != poison { puts("refusal changed output"); return 1; }
+    }
+    if tower_vk_build_tight_color_regions_v1(&regions[0], slots, side, side, 1, mips, 3, max_span) != mips {
+        puts("refused maximal chain"); return 1;
+    }
+    // Walk backwards from the exclusive end. The final three-byte mip is 1x1.
+    var end: u64 = max_span;
+    var extent: u64 = 1;
+    for (var i: u32 = mips; i > 0; i--) {
+        var r = &regions[i - 1];
+        end -= extent * extent * 3;
+        if r.bufferOffset != end || r.imageSubresource.mipLevel != i - 1
+            || convert(u64, r.imageExtent.width) != extent || convert(u64, r.imageExtent.height) != extent {
+            puts("maximal chain extent or offset"); return 1;
+        }
+        extent *= 2;
+    }
+    for (var i = size - sizeof(VkBufferImageCopy); i < size; i++) {
+        if bytes[i] != poison { puts("maximal chain changed extra slot"); return 1; }
+    }
+    if end != 0 { puts("maximal chain origin"); return 1; }
+    puts("32 mips at UINT64_MAX checked, 33 mips and UINT64_MAX-1 refused before writing"); return 0;
+}
