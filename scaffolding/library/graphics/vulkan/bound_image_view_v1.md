@@ -118,7 +118,10 @@ binding, view creation and teardown yielded identical 45-line traces.
 Draw's trace SHA-256 is
 `e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
 
-Draw scheduled the packed texel and HUD comparison on its RTX 5060 Ti as
-job `7a36cecf-5020-480c-90a9-bbecaacecc2c`. The results above cover CPU
-recording. Draw also acknowledged the [separate image-creation contract](https://github.com/TrevorSundberg/tower/blob/a6ddd4598fe08625fdebaf5a49a0a28d3dbb1c97/scaffolding/library/graphics/vulkan/create_image_v1.md).
-Implementation and runtime checks for image creation are pending.
+Draw job `7a36cecf-5020-480c-90a9-bbecaacecc2c` exercised two direct-driver
+paths on the RTX 5060 Ti. Draw verified 529 evidence hashes and both active
+packed texel streams. Neither executable linked the published `bound.o`.
+Slot 10 job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` is queued to exercise
+the published bound view first and then the combined create/bind/view/pack/HUD
+path. The shipping linked hardware gate is open. Draw also exercised both
+providers together in its [CPU constructor tests](https://github.com/TrevorSundberg/tower/blob/5dd53312b20bd063cd9d469dc1549d3720017a2b/scaffolding/library/graphics/vulkan/create_image_v1.md#draw-owning-constructors-on-linux).
