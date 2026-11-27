@@ -123345,3 +123345,46 @@ page. Each 128-command native batch took 0.07 s with matching stdout.
 The packet includes user/system CPU, peak RSS and checked output by sample.
 These timings include host startup. Guest allocator grant counts and broad
 compiler or parallel execution scaling were outside the measured paths.
+
+### 2026-11-27 — Indexed indirect argument layout and range checks
+
+The graphics library models Draw's indexed indirect command as five 32-bit
+fields. The signed base vertex is at offset 12. The two spans can refer to
+one device allocation. The count word must fit at its aligned offset. Command
+validation accounts for the stride and the last 20-byte record without mapping
+device memory. For 16384 commands at byte 4 and stride 20, the minimum buffer
+is 327684 bytes. For two commands at byte 4 and stride 32, it is 56 bytes.
+Both one-byte-short buffers were rejected.
+
+Worker commit `62323bbe30d9674495563e7396a5f8bc22745151` adds two files on
+Tower `a580e70af42e67d5309c4121737fa9e21652a9dd`. On Debian 12 with LLVM
+19.1 and the pinned Tower driver (SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`),
+the ordinary owner selection executed four declarations containing 30
+assertions. Each invocation exited 0 with empty guest stdout and a four-test
+summary on stderr. Run from the repository root with the driver's LLVM
+dependency available.
+
+```bash
+set -eu
+s="$PWD/scaffolding"
+for j in 1 4; do
+  bootstrap/linux-x64/towerc --test "$s/library/graphics/indexed_indirect.tower" \
+    --jobs "$j" --test-details --foundation "$s/foundation.tower"
+done
+```
+
+An independent control with eight boundary assertions passed at both widths.
+For three source-warm samples on the dual Xeon E5-2699 v4 worker, median
+wall/CPU seconds and peak RSS were 0.48/0.47 and 78076 KiB at one job, and
+0.69/0.79 and 86388 KiB at four. The source-cold wall/CPU measurements were
+0.51/0.50 and 0.65/0.74 seconds respectively. These times cover the selected
+compiler invocation and guest checks. Native ASan with leak detection completed
+all four assertion bodies. TSan exited 139 before guest startup because the
+container denied its ASLR request. This base lacks Tower source-level UBSan.
+Device submission, visibility and pixels require separate backend runs.
+
+Rendering verified the bundle parent, source bytes, expected stderr, exit
+statuses and raw evidence archive SHA-256
+`a8346281f3d469db565903c03b7863218e33e85c882706b73bb4dd8c0339df4d`
+from worker receipt `378278af-e2d6-4b04-82f7-a83d9e370bee`.
