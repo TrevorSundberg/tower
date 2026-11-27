@@ -124208,3 +124208,14 @@ and preprocessor directives. The release DLL, import library, 38-case
 recording inputs and GPU receipts retain their build identity at the
 frozen Win64 handoff. Runtime timing and memory measurements apply to
 that build. This packaging change edits only the header comment.
+
+### Blocking upload finish in the Windows x64 graphics DLL
+
+Host 11 started from the tested five-export tree `c40dae39` and its separate
+header correction `208ebc4d`. The blocking finish source and C declaration
+come from `rendering/vulkan-command-finish-d1f468c3` at `4b1f0af2`
+(implementation `d1f468c3`). The finish module imports end and frame submit.
+The ordinary COFF build therefore replaces the end object with the aggregate
+finish object. The outward C link command remains the same. The release
+adds ordinal 6 and imports queue idle from the Vulkan loader. The fixture
+retains ownership of reset, copy, barriers, queue synchronization and cleanup.
