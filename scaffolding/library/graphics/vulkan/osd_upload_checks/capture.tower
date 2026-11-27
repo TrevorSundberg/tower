@@ -1,0 +1,85 @@
+import tower;
+import .readback_abi;
+import .synchronization2_abi;
+import .readback_output;
+import pack;
+
+extern fn exit(status: i32): void;
+struct Capture { shape: Shape; offsets: u64*; list: VkBufferImageCopy*; calls: u32; source: u8; destination: u8; }
+fn require(value: bool, why: u8*): void { if !value { puts(why); exit(3); } }
+
+export fn vkCmdPipelineBarrier2(cmd: VkCommandBufferHandle*, dep: VkDependencyInfo*): void {
+    var c = bits(Capture*, cmd);
+    require(dep != null && dep.sType == 1000314003 && dep.pNext == null && dep.dependencyFlags == 0
+        && dep.memoryBarrierCount == 0 && dep.pMemoryBarriers == null && dep.bufferMemoryBarrierCount == 0
+        && dep.pBufferMemoryBarriers == null && dep.imageMemoryBarrierCount == 1 && dep.pImageMemoryBarriers != null,
+        "dependency fields mismatch");
+    var b = dep.pImageMemoryBarriers;
+    require(b.sType == 1000314002 && b.pNext == null && bits(u8*, b.image) == &c.destination
+        && b.srcQueueFamilyIndex == ~convert(u32, 0) && b.dstQueueFamilyIndex == ~convert(u32, 0),
+        "barrier header or image mismatch");
+    var layer = c.calls;
+    if layer < c.shape.layers {
+        require(b.oldLayout == 0 && b.newLayout == 7 && b.srcStageMask == 0 && b.srcAccessMask == 0
+            && b.dstStageMask == 4096 && b.dstAccessMask == 4096, "initial layout or scope mismatch");
+    } else {
+        require(c.calls > c.shape.layers && c.calls <= 2 * c.shape.layers, "barrier order mismatch");
+        layer -= c.shape.layers + 1;
+        require(b.oldLayout == 7 && b.newLayout == 5 && b.srcStageMask == 4096 && b.srcAccessMask == 4096
+            && b.dstStageMask == 128 && b.dstAccessMask == 4294967296, "sample layout or scope mismatch");
+    }
+    var range = b.subresourceRange;
+    require(range.aspectMask == 1 && range.baseMipLevel == 0 && range.levelCount == c.shape.mips
+        && range.baseArrayLayer == layer && range.layerCount == 1, "barrier range mismatch");
+    c.calls++;
+}
+
+export fn vkCmdCopyBufferToImage(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layout: u32, count: u32, regions: VkBufferImageCopy*): void {
+    var c = bits(Capture*, cmd);
+    require(c.calls == c.shape.layers && bits(u8*, staging) == &c.source && bits(u8*, image) == &c.destination
+        && layout == 7 && count == c.shape.layers * c.shape.mips && regions == c.list, "copy order or arguments mismatch");
+    for (var i: u32 = 0; i < count; i++) {
+        var r = regions[i];
+        var mip = i % c.shape.mips;
+        require(r.bufferOffset == c.offsets[i] && r.bufferRowLength == 0 && r.bufferImageHeight == 0,
+            "buffer region mismatch");
+        require(r.imageSubresource.aspectMask == 1 && r.imageSubresource.mipLevel == mip
+            && r.imageSubresource.baseArrayLayer == i / c.shape.mips && r.imageSubresource.layerCount == 1,
+            "copy subresource mismatch");
+        require(r.imageOffset.x == 0 && r.imageOffset.y == 0 && r.imageOffset.z == 0 && r.imageExtent.depth == 1
+            && r.imageExtent.width == c.shape.width >> mip && r.imageExtent.height == c.shape.height >> mip,
+            "copy extent mismatch");
+    }
+    c.calls++;
+}
+
+fn observe(name: u8*, shape: Shape, offsets: u64*, expected_count: usize): void {
+    var count = shape.layers * shape.mips;
+    require(convert(usize, count) == expected_count, "unexpected region count");
+    var list = alloc(VkBufferImageCopy, expected_count);
+    require(list != null, "cannot allocate fixture regions");
+    defer free(list);
+    var size = pack_regions(shape, list);
+    var c: Capture = { shape: shape, offsets: offsets, list: list, ..default };
+    fixture_record(bits(VkCommandBufferHandle*, &c), bits(VkBufferHandle*, &c.source), bits(VkImageHandle*, &c.destination),
+        shape.layers, shape.mips, count, list);
+    require(c.calls == shape.layers * 2 + 1, "incomplete recording");
+    puts(name); readback_number("barriers", c.calls - 1); readback_number("copy_regions", count);
+    readback_label("payload_bytes"); readback_decimal(size);
+}
+
+export fn main(): i32 {
+    var fonts: u64[6] = {0, 4194304, 8388608, 12582912, 16777216, 20971520};
+    var bitmap: u64[2] = {0, 360448};
+    var firmware: u64[4] = {0, 360448, 720896, 1081344};
+    var images: u64[2] = {0, 16384};
+    observe("fonts", {width: 2048, height: 2048, layers: 6, mips: 1, texel_bytes: 1}, &fonts[0], sizeof(decltype(fonts)) / sizeof(u64));
+    var shape: Shape = {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4};
+    observe("bitmap", shape, &bitmap[0], sizeof(decltype(bitmap)) / sizeof(u64));
+    observe("inverted", shape, &bitmap[0], sizeof(decltype(bitmap)) / sizeof(u64));
+    shape.layers = 4; shape.mips = 1;
+    observe("firmware", shape, &firmware[0], sizeof(decltype(firmware)) / sizeof(u64));
+    observe("images", {width: 64, height: 64, layers: 2, mips: 1, texel_bytes: 4}, &images[0], sizeof(decltype(images)) / sizeof(u64));
+    return 0;
+}

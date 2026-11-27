@@ -1,0 +1,21 @@
+import tower;
+import .readback_abi;
+
+struct Shape { width: u32; height: u32; layers: u32; mips: u32; texel_bytes: u32; }
+extern fn fixture_record(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void;
+
+// Fixture shapes have nonzero shifted dimensions and exactly layers*mips region slots.
+fn pack_regions(shape: Shape, regions: VkBufferImageCopy*): u64 {
+    var offset: u64 = 0;
+    for (var layer: u32 = 0; layer < shape.layers; layer++) {
+        for (var mip: u32 = 0; mip < shape.mips; mip++) {
+            var width = shape.width >> mip; var height = shape.height >> mip;
+            regions[layer * shape.mips + mip] = { bufferOffset: offset,
+                imageSubresource: { aspectMask: VkColorAspect, mipLevel: mip, baseArrayLayer: layer, layerCount: 1 },
+                imageExtent: { width: width, height: height, depth: 1 }, ..default };
+            offset += convert(u64, width) * convert(u64, height) * convert(u64, shape.texel_bytes);
+        }
+    }
+    return offset;
+}
