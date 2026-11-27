@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# Linux x86-64 host, Windows x64 target. Run with LLVM's COFF tools on PATH.
+set -euo pipefail
+if (( $# < 1 || $# > 2 )) || [[ $# == 2 && $2 != --with-consumer ]]; then
+    echo "usage: $0 OUTPUT_DIRECTORY [--with-consumer]" >&2
+    exit 2
+fi
+v=$(cd "$(dirname "$0")" && pwd)
+root=$(cd "$v/../../../.." && pwd)
+mkdir -p "$1"
+cd "$1"
+(cd "$root/bootstrap/linux-x64" && sha256sum --check --status SHA256SUMS)
+for unit in shader_module_c frame_submit; do
+    "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
+        --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
+        -o "$unit.obj"
+done
+# These are the complete loader dependencies of the two Tower objects.
+printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkQueueSubmit\n' > graphics_loader.def
+llvm-dlltool -m i386:x86-64 -d graphics_loader.def -l graphics_loader.lib
+lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
+    /export:tower_vk_try_create_shader_module /export:tower_vk_queue_submit_one_v1 \
+    /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
+    shader_module_c.obj frame_submit.obj graphics_loader.lib
+
+if [[ ${2:-} == --with-consumer ]]; then
+    : "${MINGW_SYSROOT:?absolute path to the x86_64-w64-mingw32 sysroot}"
+    : "${MINGW_GCC_LIB:?absolute path to the target directory containing libgcc.a}"
+    : "${VULKAN_INCLUDE:?absolute path to the parent of vulkan/vulkan.h}"
+    : "${VULKAN_IMPORT_LIB:?absolute path to the full x64 Vulkan loader import library}"
+    glslangValidator -V --target-env vulkan1.1 --vn color_frag \
+        "$v/counted_shaders/color.frag" -o color_frag.h
+    target=(--target=x86_64-w64-windows-gnu --sysroot="$MINGW_SYSROOT")
+    clang "${target[@]}" -idirafter "$VULKAN_INCLUDE" -I. -I"$v" \
+        -std=c11 -O2 -Wall -Wextra -Werror -c "$v/graphics_consumer.c" -o graphics_consumer.obj
+    clang "${target[@]}" -fuse-ld=lld -L"$MINGW_GCC_LIB" \
+        -Wl,--no-insert-timestamp,-Map,graphics_consumer.map -o graphics_consumer.exe \
+        graphics_consumer.obj tower_graphics.lib "$VULKAN_IMPORT_LIB"
+fi
