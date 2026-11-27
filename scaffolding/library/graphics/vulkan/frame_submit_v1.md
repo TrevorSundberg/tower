@@ -113,6 +113,32 @@ has exactly that one import and one export. Tower uses `VkQueueHandle*`,
 retirement policy. Draw's measured caller locations are `draw.c:6898`
 (`render_frame`) and `draw.c:1862/1874` (command end and submit).
 
+### Link from Draw on Linux x86-64
+
+From the Tower root, compile the source with the pinned Linux bootstrap.
+The resulting object can join the application's existing C link with
+`-lvulkan`. To reproduce the standalone library, set `vulkan_loader` to
+the full path to the Linux x64 SDK's `libvulkan.so.1`. Use the same GNU
+linker and SDK as the host 12 receipt for a byte-for-byte comparison.
+
+```sh
+v=scaffolding/library/graphics/vulkan
+bootstrap/linux-x64/towerc "$v/frame_submit.tower" --library --jobs 1 -o frame_submit.o
+x86_64-linux-gnu-ld -shared -z defs frame_submit.o "${vulkan_loader:?}" \
+    -soname libtower_frame_submit.so -o libtower_frame_submit.so
+```
+
+At the tested submit-only revision `08a30b04`, the worker object SHA-256 was
+`8f95a079c561f3ea7b3111f3beffbc3a037ef976ef6f2cd4c145d664813008cd`,
+and the DSO SHA-256 was
+`3362adc9b78c69490f73799ceb5442d211d68ba2739be434b8d668c99337f951`.
+Include `frame_submit.h` at the C call site and pass the prepared descriptor
+and original fence. A return of `VK_SUCCESS` means submission succeeded.
+Use the fence separately at the caller's read or reuse point.
+
+For a single object exporting both command end and queue submit, use the
+[combined Linux link procedure](command_end_v1.md#link-both-entries-on-linux-x86-64).
+
 Receipt `1c0ecea2-1128-48e2-ad91-065fce8a468d` includes `replay.sh`,
 a focused Git bundle based on `163976c1`, and hashed inputs and captures.
 With the extracted receipt as the working directory and the registered Tower

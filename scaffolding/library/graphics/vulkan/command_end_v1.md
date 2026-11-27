@@ -62,10 +62,31 @@ VkResult finish_frame(VkQueue queue, const VkCommandBuffer *commands, VkFence fe
 
 Draw resets its render fence before command recording. Its guarded-clear
 path resets the fence between successful prepare and submit. Draw reported
-31 CPU cases in each of two configurations against the verified submit
-object and Vulkan 1.4 linked frame parity on Draw slot 10. Those results
-cover the earlier submit integration. This five-argument Tower end export
-was exercised on Tower host 12.
+31 CPU cases in each of two configurations against the earlier submit
+object. Draw assigned the linked Vulkan 1.4 frame test to slot 10. The
+observations below cover the five-argument end export on Tower host 12.
+
+### Link both entries on Linux x86-64
+
+From the Tower repository root, build the end entry with its imported submit
+entry. Set `vulkan_loader` to the SDK's absolute path to `libvulkan.so.1`.
+
+```sh
+v=scaffolding/library/graphics/vulkan
+bootstrap/linux-x64/towerc "$v/command_end.tower" --library --jobs 1 -o frame_submit.o
+x86_64-linux-gnu-ld -shared -z defs frame_submit.o "${vulkan_loader:?}" \
+    -soname libtower_frame_submit.so -o libtower_frame_submit.so
+```
+
+Include `frame_submit.h` in the application and link the resulting object
+once with the Vulkan loader, or link the shared library. The same object
+provides both public functions. The five-argument header and binary must
+match. With the Linux bootstrap SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`,
+the host 12 object was 1,240 bytes and hashed to
+`e6cb394beffaf44bce041603f58af6c29bf934e0edd8d408d56cd16857a9c5d1`.
+The shared library hashed to
+`8e50d661fdd73ccf243fa09800a79bc171d777500a3dbf997c5858b0d12662bd`.
 
 ## Shaderless and counted Tower callers
 

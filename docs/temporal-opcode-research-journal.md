@@ -123755,8 +123755,8 @@ signaled fence. The complete allocations and count words matched the
 accepted bytes, with zero validation warnings/errors. The end/submit OOM/
 failed wait/terminal controls exited 1/1/1/134 for each ordinary caller.
 Draw separately reported 31 CPU cases in each of two configurations
-against the earlier verified submit object, and Vulkan 1.4 linked frame
-parity on its slot 10. This worker ran the end export on the Tower fixture.
+against the earlier verified submit object. Draw assigned linked Vulkan 1.4
+frame parity to its slot 10. This worker ran the end export on the Tower fixture.
 
 The EPYC 7282 host, RTX 3090, selected driver, worker counts, sampling
 method and checked outputs match the preceding experiment. Fresh samples
