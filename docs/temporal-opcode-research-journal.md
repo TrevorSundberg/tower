@@ -125846,3 +125846,11 @@ includes function disassembly, link maps and individual startup logs.
 The prepared Win64 SDK lacks the ASan runtime and Clang rejects Win64
 TSan. Physical Windows and shipping Draw execution remain open. The worker
 hands the local commits and evidence to rendering for publication.
+
+### Win64 external image memory caller on host 11
+
+Assignment b805c1a9 uses the ordinal-13 DLL at 403dcefb, the portable
+provider and public header from 397a659f (tested at 69c3209e), and the
+external C recorder, SDK control and device owner from 0b2b80cf.
+Build the standalone AMD64 COFF first, check its published digest and
+run the COFF caller before testing the combined DLL with the same inputs.

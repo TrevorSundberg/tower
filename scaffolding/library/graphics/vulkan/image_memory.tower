@@ -1,0 +1,13 @@
+import tower;
+import readback_abi;
+
+export fn tower_vk_allocate_memory_v1(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, out: VkDeviceMemoryHandle**): i32 {
+    var memory: VkDeviceMemoryHandle* = null;
+    var result = vkAllocateMemory(device, info, null, &memory);
+    if result == 0 { *out = memory; }
+    return result;
+}
+
+export fn tower_vk_bind_image_memory_zero_v1(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32 {
+    return vkBindImageMemory(device, image, memory, 0);
+}
