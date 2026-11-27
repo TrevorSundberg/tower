@@ -123978,3 +123978,26 @@ hardware fault cases exited 1. The [C link guide and teardown evidence](../scaff
 identify the original injected-command-reset process and the distinct raw C
 ASan processes. This review used existing evidence. It changes documentation
 only. The later `ba98cc4a` paired-executable supplement has its own receipt.
+
+### Frame library ELF hash style and Draw's upload finish contract
+
+Draw independently reproduced the Linux begin/end/submit DSO at Tower
+`960c855a0a34475bb6228bdb4b810fbd600c4687` (tested code `06d47a5d`).
+With the same objects and loader, GNU ld 2.44 produced the host 12 digest
+`289df8122bdf427a0be737c8da5f4d38772767dc03a0ece38b237affe867dd2c`
+when explicitly passed `--hash-style=both`. Selecting GNU-only hashing
+reproduced Draw's earlier `6d686099` digest. Rendering inspected the
+retained DSO's dynamic tags against its .hash and .gnu.hash sections and
+confirmed DT_NEEDED libvulkan.so.1 and DT_SONAME libtower_frame_submit.so.
+Draw verified dynamic resolution to the 289df812 DSO and reran the C caller:
+31/31 recording cases, six signed begin cases and nine signed cases on
+Draw's existing finish. The [build recipe](../scaffolding/library/graphics/vulkan/command_begin_v1.md)
+now sets the hash style explicitly. This change only affects the documented
+link command and coverage record.
+
+Draw also confirmed the [blocking finish contract](../scaffolding/library/graphics/vulkan/command_finish_v1.md)
+at Draw 30b66f59 and runtime 94f2d31e. Queue and primary handles are
+borrowed by value in that order. End, one unfenced submit and idle on the
+same queue stop at the first nonzero signed result. Staged uploads retire
+staging only after success. Draw's control result is a baseline for Tower
+job b820dd37. Its implementation and hardware receipts remain pending.
