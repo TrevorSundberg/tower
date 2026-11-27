@@ -1,32 +1,41 @@
 #include "frame_submit.h"
 
-/* Independent Vulkan-header transport and scalar reference for the fixture. */
-VkResult begin_from_c(VkCommandBuffer command, VkCommandBufferResetFlags flags,
-                      VkCommandBufferUsageFlags usage, uint32_t *step)
+/* The fatal-check build exercises Draw's C call sites on the offscreen fixture. */
+#ifdef TOWER_TEST_DRAW_VK_CHECK
+#include <stdio.h>
+#include <stdlib.h>
+static VkResult draw_check(VkResult result, int line, const char *operation)
 {
-    return tower_vk_command_reset_begin_v1(command, flags, usage, step);
-}
-
-VkResult begin_raw(VkCommandBuffer command, VkCommandBufferResetFlags flags,
-                   VkCommandBufferUsageFlags usage, uint32_t *step)
-{
-    VkResult result = vkResetCommandBuffer(command, flags);
     if (result != VK_SUCCESS) {
-        *step = TOWER_VK_COMMAND_STEP_RESET;
-        return result;
+        fprintf(stderr, "Vulkan error %d at line %d: %s\n", (int)result, line, operation);
+        exit(1);
     }
-    VkCommandBufferBeginInfo info = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                      .flags = usage };
-    result = vkBeginCommandBuffer(command, &info);
-    *step = result == VK_SUCCESS ? TOWER_VK_COMMAND_STEP_OK : TOWER_VK_COMMAND_STEP_BEGIN;
     return result;
 }
+#define CHECK(call) draw_check((call), __LINE__, #call)
+#else
+#define CHECK(call) (call)
+#endif
 
-int begin_info_matches(const VkCommandBufferBeginInfo *info, size_t size,
-                       VkCommandBufferUsageFlags usage)
+VkResult begin_from_c(VkCommandBuffer cmd)
 {
-    return size == sizeof(*info) && info->sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
-        && info->pNext == NULL && info->flags == usage && info->pInheritanceInfo == NULL;
+    return CHECK(tower_vk_command_begin_v1(cmd));
+}
+
+VkResult begin_raw(VkCommandBuffer cmd)
+{
+    VkResult result = CHECK(vkResetCommandBuffer(cmd, 0));
+    if (result != VK_SUCCESS)
+        return result;
+    VkCommandBufferBeginInfo info = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                      .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT };
+    return CHECK(vkBeginCommandBuffer(cmd, &info));
+}
+
+int begin_info_matches(const VkCommandBufferBeginInfo *info)
+{
+    return info->sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO && info->pNext == NULL
+        && info->flags == VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT && info->pInheritanceInfo == NULL;
 }
 
 int begin_layout_matches(const VkCommandBufferBeginInfo *info, size_t size,
