@@ -154,3 +154,36 @@ The retained `fixtures/fail-linked-end` case injected −4 before the end
 call reached the driver and the process exited 139. Its cause remains open.
 Draw tracked the reset/begin and guarded-submit injections separately.
 Collecting these files added no GPU run.
+
+### Draw frame and guarded-clear fault results
+
+Draw reviewed job `7bf8bda2` on the RTX 5060 Ti, NVIDIA 570.169, Vulkan
+1.4.303. It verified 1,286 archive members and both source bundles.
+The archive SHA-256 was
+`465880339ab186a9aacbe3e74b77d8f5be534d88afe58651db401007c888f5dd`.
+
+For a failed frame command-buffer reset or begin, Draw change
+`6b6c4cfcdc6c1e1b26701b6cab4ee02f6dfe685d` drains the device and
+releases the renderer once retirement is established. At tested tip
+`f2da74f0fc4ad18a31f7688ca9cc738c974faf98`, all 42 injected frame
+failures exited normally with status 1. Draw reported exit 0 for its
+canonical and core controls.
+
+Draw's guarded-clear caller bypasses that frame recovery path. In the
+following trials, command-buffer reset and begin succeeded. The injector
+returned −4 at end before forwarding the call to the driver. No queue
+submission or fence wait followed. Draw inspected the process status and
+stderr for all 156 trials. Each fraction is the number of processes that
+terminated with SIGSEGV divided by the number tested.
+
+| Draw revision | Tower-linked caller | Raw Vulkan C caller |
+| --- | ---: | ---: |
+| `070268fe` (Tower end provider `2477ba66`) | 9/40 | 5/12 |
+| `c37b27c7` | 10/40 | 3/12 |
+| `6b6c4cfc` | 11/40 | 2/12 |
+
+Across the three revisions, 40 processes terminated with SIGSEGV and
+116 exited with status 1. The crash cause remains unresolved. Draw owns
+guarded-clear cleanup and assigned job
+`a57404fc-b450-480f-af18-7c07a67bbe8f` on the same device. Tower's
+separate reset-fault observation retains its own evidence and open cause.

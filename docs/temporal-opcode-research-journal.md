@@ -123797,3 +123797,17 @@ observed completed frame rates. Draw's separate pre-driver end −4 case
 exited 139. No cause was established. The previously reviewed `e80a74ce`
 packet and later reset/begin observations have separate provenance. This
 documentation update records recovery of prior runs.
+
+### Draw frame-failure cleanup and guarded-clear end-fault series
+
+Draw's manager verified the archive and both source bundles for job
+`7bf8bda2` and reported the outcomes for two callers. The changed frame
+handler had 42 expected status-1 exits at `f2da74f0`. The guarded-clear
+end-fault series on the same RTX 5060 Ti still produced SIGSEGV on each
+revision in both linked and raw C processes. The
+[per-revision fault record](../scaffolding/library/graphics/vulkan/command_end_v1.md#draw-frame-and-guarded-clear-fault-results)
+gives counts, fault site and next Draw assignment. The rendering manager
+checked the arithmetic and reviewed the existing end provider: it writes
+the borrowed submit descriptor only after a successful end. Draw owns
+the application recovery change. This documentation update carries no
+new GPU execution or change to the provider.
