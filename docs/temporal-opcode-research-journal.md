@@ -123545,3 +123545,17 @@ Three additional attempts per candidate did the same. There is no completed GPU
 TSan or Tower source UBSan result. The link maps, function IR, stdout/stderr,
 status files, binary captures and replay scripts accompany the HEAD bundle in
 packet c6689824-b5c5-42c0-a0c5-edcc01f9bddd.
+
+### Borrowed asynchronous submit for the Draw frame loop
+
+Draw and rendering acknowledged `draw-tower-frame-submit/v1` at Draw
+`30b66f597b33c6f88964779f0ab1b87e847dc839` against Tower's synchronous
+reference `2bf097e076107ad57d04cb307462fa45258132a6`. The library scope
+is a single asynchronous submit of a borrowed descriptor with an exact
+VkResult return. Draw already has a local forwarding export and retains
+its frame and presentation policy. Draw reported separate offscreen,
+semaphore, acquire-injection and guarded-clear fault runs. The contract
+records the tested boundaries and what remains for Tower's worker.
+This revision changes documentation only. Runtime measurements apply
+to the forthcoming implementation.
+[Frame submit contract and acceptance checks](../scaffolding/library/graphics/vulkan/frame_submit_v1.md)
