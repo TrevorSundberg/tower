@@ -802,3 +802,20 @@ retire GPU work before destroying views, destroying images and freeing
 bound memory. The two entries share the standalone Tower implementation.
 The [external C qualification](osd_checks/image_memory/README.md#qualify-the-combined-release-from-source)
 checks both link forms and runs the existing planner callers with the combined DLL.
+
+Rendering independently rebuilt the release from worker revision
+`2aac8a3e110332cbc2b353386f5a4ff53826bb83`. SHA-256 for the DLL was
+`e0e69bfb058eac4007f7f3405c8bbe69499254b5855c9c7ea55261f461e46b46`;
+for the import library it was
+`95a262d40b48a70b22fc66728f631580a3b22a98173db154944012753acf7eb0`.
+The import table names both Vulkan loader calls. The first thirteen export
+ordinals matched the earlier release. The actual linked device PE in
+`dll/memory/linked-regular/device/program.exe` imports both new entries.
+Its SHA-256 was `bff121d7e2bed7adebce80bd930726182df54e2056a7334e8cb1e06107f21709`.
+
+Rendering checked fourteen raw and DLL recording rows and exits, including
+the clobbered allocation slot and the live allocation after bind failure.
+The worker's Quadro RTX 6000 run under Wine 8 matched the 27,542,768-byte
+guarded reference, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+Shipping Draw and physical Windows execution remain open for these entries.
