@@ -124616,3 +124616,26 @@ Rendering independently streamed the 73-byte sequence and 64 MiB fill
 through SHA-256, then repeated each with the two destination guards.
 All four lengths and all four digests matched. Draw verified the four
 retained staged captures. [Byte formulas and binary spans](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits)
+
+### Native C port of the OSD texture recorder
+
+Slot 12 tested worker tip `75476dcd` against an independent raw C
+implementation on the selected RTX 3090, Vulkan 1.3.289, NVIDIA
+565.57.01. Both paths reproduced all 103,158,144 guarded sampled bytes
+and returned 0 with zero synchronization-validation messages. Three
+alternating fresh-process measurements per arm gave median wall times
+of 2260.88 ms raw and 2237.70 ms external, with peak RSS medians of
+116032 and 115824 KiB. The workload includes device creation, validation
+and readback. Address-only GPU checks passed. Both full leak checks
+reported 4187 bytes in 15 allocations and TSan failed at startup.
+
+The manager verified 487 manifest entries, the named bundle on
+`aa520bf5`, both decompressed captures and the object and DSO. The
+generic fetch expected HEAD. The archive's named ref restored the
+tested history. Both loader traces matched the five Draw shapes,
+including all 13 fields in every region. Five staging allocations
+retired before release in each 189-event trace. The review incorporates
+the published upload and finish records. Draw provided a 20-case
+recording reference for the next pure region builder, assigned to
+slot 12. The existing recorder passes its region pointer through.
+[OSD recording, link command and builder contract](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md)

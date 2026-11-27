@@ -53,17 +53,16 @@ Frame submission retains its independent asynchronous fence contract.
 
 ## Build and verify
 
-With the pinned host 12 SDK and Tower tree, build the callable object
-and shared library from the repository root.
+From the repository root, use the Linux x64 bootstrap with LLVM 19.
+Set `VULKAN_LOADER` to the full path of the Linux x64 Vulkan loader.
 
 ```bash
-source /tmp/tower12/env
 v=scaffolding/library/graphics/vulkan
 out=$(mktemp -d)
-bootstrap/linux-x64/towerc "$v/osd_texture_upload_record.tower" --library --jobs 1 \
+bootstrap/linux-x64/towerc "$v/osd_texture_upload_record.tower" --foundation scaffolding/foundation.tower --library --jobs 1 \
     -o "$out/osd_texture_upload_record.o"
 x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$out/osd_texture_upload_record.o" \
-    /tmp/tower12/sysroot/usr/lib/x86_64-linux-gnu/libvulkan.so.1 \
+    "${VULKAN_LOADER:?Set VULKAN_LOADER to the full path of libvulkan.so.1}" \
     -soname libtower_osd_upload.so -o "$out/libtower_osd_upload.so"
 ```
 
@@ -165,3 +164,58 @@ Both Linux lanes exited 0 with zero synchronization-validation warnings
 or errors. In the packet, inventory.sh and inventory_trace.sh reproduce
 these results from the built source. The original Draw dump and packed
 texels were not accessed on host 12.
+
+## Draw region-builder contract
+
+At Draw `3b0c80e4d0e4352ac50498cdec0723ddc0fc6d5b`, `osd_create`
+reads the OST1 header and validates five whitelisted texture records.
+Each record has a 32-byte header immediately followed by its payload.
+The packed file is 27,541,680 bytes, including the 16-byte file header.
+The two bitmap records encode zero layers and Draw passes one actual
+layer. The other records encode their array layer counts. Draw starts at
+offset zero for each texture and derives each next offset by adding the
+current mip's width × height × bytes per texel. Its eight-slot local
+array holds 6, 2, 2, 4 and 2 regions for the five successive copies.
+
+Draw reported 20/20 CPU cases using the original reader and a recording
+callback. Bad headers, truncation and trailing data reproduced their
+diagnostics and preceding copy counts. The reader accepted changes to
+ignored words and texel data. Draw checked all thirteen scalar fields
+of each canonical region. Its textual trace SHA-256 was
+`f1e549d9291d7604185e267952e5a0f203c714711a6db4d0567c8e44d4da6dee`.
+The source block SHA-256 was
+`c4074cad66dad564a41d31430fc7ea89513959ffc7e4bc6ae99e46623b30c0b5`.
+
+The proposed companion C entry constructs tightly packed color regions
+for the recorder. The following signature is the contract for the
+follow-on implementation.
+
+```c
+uint32_t tower_vk_build_tight_color_regions_v1(VkBufferImageCopy *out,
+    uint32_t capacity, uint32_t width, uint32_t height,
+    uint32_t actual_layers, uint32_t mip_count, uint32_t bytes_per_texel,
+    VkDeviceSize available_bytes);
+```
+
+Success returns the number written and preserves unused slots. Refusal
+returns zero before writing any output, including for insufficient
+capacity or payload span, zero extents and arithmetic overflow.
+A capacity of five for fonts and a 450,559-byte span for a bitmap must
+refuse. Draw owns serialized header validation. Its streaming uploader
+continues to supply explicit staging offsets and destination coordinates.
+
+## Rendering review
+
+The worker tested `75476dcd1013af214d518084c5883c41f0bc815b`. Rendering
+verified 487 archive manifest entries, both compressed GPU readbacks
+after decompression, and the Linux object and DSO hashes. Across each
+loader trace, all 208 region fields and 28 barriers matched the Draw
+layout above. Each independent 189-event lifetime trace contains five
+retirements before staging release and sixteen draws. The archive SHA-256
+is `c95cefbb2ed5e2c7d63a9ec329017845cf75dbfc709e38949514092abacb3461`.
+
+The worker's address-only GPU checks passed. Full leak checking with
+synchronization validation reported 4,187 bytes in 15 allocations in
+each arm. Ownership remains unresolved. TSan stopped before main.
+Draw application execution of this recorder and Win64 DLL qualification
+remain separate checks.
