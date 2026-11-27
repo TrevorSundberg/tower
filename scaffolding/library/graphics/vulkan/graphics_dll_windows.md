@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports image-format preflight, image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [preflight](image_format_preflight.h), [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles nine Tower objects for
+The entry verifies the checked-in bootstrap, compiles ten Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -688,3 +688,32 @@ execution belongs to slot 9 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`
 after the ordinal-10 bound-view job `966e83dc-85c9-4fd1-bd67-2ab72fa6f796`.
 The separate Linux provider test is assigned to
 `447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.
+
+## Image-format preflight at ordinal 12
+
+Include `image_format_preflight.h` and use the import library from the
+same build. The caller passes the creating physical device and the image
+descriptor before attempting creation. Provide separate writable
+`VkImageFormatProperties` and `VkBool32` outputs. On success use the
+capacity decision to admit or reject the descriptor. A failed Vulkan query
+returns its signed result and preserves every byte of both outputs.
+
+Win64 build e2874d33 uses the unchanged provider and header from portable
+ref b68b1835. The build command above produced these SHA-256 digests.
+
+| Product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| image_format_preflight.obj | 879 | `7eb57e6f9b5715d93c9255d773f3e24f8ed064cb64c35a38964ec47e4231fd61` |
+| tower_graphics.dll | 6656 | `66117872f626339ab74f235e7e2e5806aab98a0548574cd83ea7555ab3d500c9` |
+| tower_graphics.lib | 4824 | `8032146558ee27d86b7fa8144e4ca9a8fb7d14ef4d2bc913872603d720a82c1b` |
+
+The prior eleven names and ordinals retain their bindings. The new object's
+only undefined symbol is the SDK query. The DLL link map resolves the new
+export to that object. The release library reproduced the two frozen external
+caller PEs byte for byte. The recording caller returned all 28 SDK rows.
+The hardware caller issued five preflight queries before source creation
+on Quadro RTX 6000, NVIDIA 615.71.10 under Wine 8. All 27,542,768 retired
+bytes matched the guarded SDK capture. A zero-width input stopped the
+caller on each of two outcomes, success with insufficient capacity and
+an injected query error of −11. The packet replay command and additional
+compatibility results are in the project journal.

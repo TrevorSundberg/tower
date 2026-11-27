@@ -125583,3 +125583,47 @@ SDK and provider definitions, the C client's undefined public symbol,
 and the physical query definition in the driver. Concurrent review
 `3b94687b` added the Linux SDK comparison to the README. Reconciliation
 preserved that receipt and all eleven production entries.
+
+### Qualify the real Win64 preflight provider at ordinal 12
+
+Host 11, assignment 5994bd8f, independent release line from 45944492.
+Linux preflight ref b68b1835 became available during the allocation work.
+Win64 build e2874d33 includes its two unchanged blobs. The native object
+matched the published 1,192-byte Linux object digest. The Win64 object
+imports only vkGetPhysicalDeviceImageFormatProperties. Clang compiling
+the existing C consumer against the delivered header reproduced the
+frozen COFF. LLD 19.1.7 linked both frozen PEs identically with the actual
+release import library. The map and tables connect the name to ordinal 12
+and its implementation. All ten pre-existing release binaries or
+objects checked by the compatibility build recipe matched their frozen bytes
+(including the original nine provider objects and graphics_consumer.exe).
+
+Under Wine 8 on the Quadro RTX 6000, driver 615.71.10, a direct object link
+and a release DLL link both passed the prior SDK's 28 rows, including
+signed results and guarded outputs. All five actual preflight results and
+limits matched. Ten submits completed before freeing bound memory and the
+27,542,768-byte checked capture matched the published digest 5b950be5…
+4c811. Both application rejection tests exited 3 before creation. The real
+driver returned limits and false for zero width. The other loader wrote
+private properties and returned −11 on that same request. The old eleven-
+and ten-entry clients, prior image/OSD captures, smoke, field checker,
+counted draw and small/large uploads passed with the new DLL.
+
+Three alternating warm pairs ran the original SDK PE and the release PE on
+this single-caller Xeon E5-2699 v4 machine with the same driver, validation
+settings and frozen output. SDK wall seconds were 1.28/1.23/1.30, Tower
+1.34/1.40/1.14. User+system seconds were 1.16/1.20/1.24 and
+1.20/1.31/1.07 respectively. Peak process RSS was 190796–192396 KiB.
+These capture costs include Wine, submission and readback. The planner and
+allocator are outside this change. The preflight provider has one local
+properties object and makes no heap allocation.
+
+Trapping Win64 UBSan exercised the C caller on both device outcomes.
+On Linux the instrumented Tower provider and SDK recorder passed 448 rows
+each under ASan/leak and TSan with four pthreads. An initial TSan process
+failed at startup on ADDR_NO_RANDOMIZE. The following invocation passed.
+The packaged Win64 toolchain lacks the ASan runtime and TSan target.
+The host validation layer was loaded and the debug callback counted zero.
+The explicit guest layer is unavailable (−6). Physical Windows and linked
+shipping Draw execution remain open. In the job archive run
+`TOWER_CHECKOUT=/path/to/tower PREPARED_SDK=/path/to/sdk bash replay.sh`.
