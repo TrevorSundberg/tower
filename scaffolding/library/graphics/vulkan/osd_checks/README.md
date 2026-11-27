@@ -97,3 +97,29 @@ the private slot. The two bitmap probes separately create a 2D-array view of
 mip 1 on an image with exactly one actual layer. The full-range array probe also holds the same bitmap, format and range as
 its sampled 2D view. The font probe starts at
 layer 2. See the [Win64 release measurements](../../../../../docs/temporal-opcode-research-journal.md#win64-ordinal-10-for-an-already-bound-osd-image).
+
+## SDK control for Draw image creation
+
+Tower contract `a6ddd459` pins Draw `852d5de3`. Compile `image_sdk.c`
+for the independent Vulkan SDK reference and `image_client.c` for the
+external C caller. Define `OSD_IMAGE_PROVIDER_HEADER` to the quoted path
+of the reviewed provider header on delivery and compare that caller object
+with the frozen one.
+
+The slot 11 recipe redirects the frozen fixture object's `vkCreateImage`
+relocation to `image_gpu.c`. Only the five source images enter the selected
+arm. The readback atlas keeps the original SDK call. The same fixture owns
+format checks, memory allocation/binding, submission and destruction. The
+view, region and upload calls use DLL ordinals 10, 9 and 8.
+
+The recording PE checks descriptor identity, object representation, queue
+families, chained format list and its format array. Each call starts with
+a separate private null slot. A clobber followed by either signed error
+must leave the public output null and the guards intact. The fault loader
+also exercises the full PE through its first image creation.
+
+In packet `68f080cc-b791-465e-89cf-77c50607a0fb`, run `bash replay.sh`
+with a fresh absolute `D`, `TOWER_READER` and `PREPARED_SDK`. The packet
+provides the exact build, loader selection, device, trace and sanitizer
+commands. The link-only import description allows freezing the external PE
+before provider delivery. [Device and timing results](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-draw-image-creation)

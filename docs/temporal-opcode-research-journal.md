@@ -125265,3 +125265,69 @@ driver and GPU were uninstrumented. Physical Windows and the shipping Draw
 application remain open. The assignment packet includes the original SDK
 baseline intact, exact commands, release pair, object and PE maps, both
 loader traces, guarded capture, timing samples and sanitizer startup logs.
+
+### Win64 SDK control for Draw image creation
+
+Slot 11 started from ten-export release 4bcb7244 and the Draw 852d5de3
+contract at Tower a6ddd459. The retained ordinal-ten external PE reproduced
+the original five-shape guarded stream before any caller change. The
+independent SDK lane will change source image creation only. The existing
+fixture owns format checks, memory selection and binding, views, queue
+completion and release. Slot 12 owns the portable provider.
+
+**SDK recording.** One null-allocator call received the original descriptor
+and device for each of seven descriptors and results 0, −1 and −2. The
+observer checked all bytes of the SDK descriptor, padding, nested data
+and guards. Its private output and the caller's output were distinct and
+initially null. Every error clobbered the private slot while leaving the
+caller slot null. The five OSD cases also ran on the device. Recording-only
+cases added a 128×128 cube-compatible mutable 2D image with six layers,
+two allowed view formats and three queue families in concurrent sharing
+mode, and a 37×23×11 single-layer 3D R16 storage/transfer-source image.
+
+**Hardware.** The original ten-export PE and new SDK reference reproduced
+the archived 27,542,768 bytes, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The independent Tower verifier checked 256 RGBA samples and 240 guard
+bytes. Wine 8 selected the discrete Quadro RTX 6000, index 0, NVIDIA
+615.71.10, API 1.4.351, UUID `26f60f6cead65faf0253a959b2e93a2d`,
+queue 0/0. All five returned source images matched their bindings and
+views. Ten source views retired after completion of the corresponding
+queue work and before release of their images and memory. The capture
+had ten submit/wait pairs. Explicit guest validation returned −6.
+Host-inserted synchronization validation ran with zero guest warnings
+or errors. A separate recording loader forwarded setup to the Quadro,
+then wrote a private poison handle on the first source create and
+returned −2. The ordinary fixture reported a null output and exited 3
+before any image requirements, allocation, bind, view, submit or destruction.
+
+**Cost.** Frozen fixtures, Clang 19.1.7 Win64 GNU −O2, warm Wine prefix,
+host validation, Xeon E5-2699 v4, affinity 0–87, quota 10.56 CPUs, one
+caller, one queue. Three interleaved and byte-checked ten-export runs took
+1.26/1.53/1.21 s wall, 0.75/0.74/0.71 s user, 0.48/0.55/0.47 s system
+and 191928/192292/191880 KiB peak process RSS. The SDK runs took
+1.28/1.50/1.36 s wall, 0.72/0.83/0.71 s user, 0.52/0.53/0.51 s system
+and 190428/192988/192924 KiB RSS. The 15 successful source image calls
+through the SDK reference had median 22.7 µs, range 17.9–74.0 µs,
+including the driver and validation. The SDK reference uses one private
+automatic handle. The fixture requests the same GPU resources in both
+arms. Driver allocation counts and ordinal-11 overhead are unmeasured.
+
+**Instrumentation.** Win64 trapping UBSan covered the SDK reference,
+observer and C capture boundary. Native ASan with leak detection and
+native TSan each exercised 336 recorded calls across four libc pthreads.
+Three TSan launches failed during address-space initialization before the
+fourth completed. Win64 ASan lacked its runtime and Clang rejected Win64
+TSan. The retained Tower DLL, Wine and GPU driver were uninstrumented.
+
+**Handoff.** Slot 11 packet `68f080cc-b791-465e-89cf-77c50607a0fb`
+contains the guarded stream, original execution logs, object/PE maps,
+input and product hashes, commands and bounded Git bundle. The ten-entry
+library rejects the C caller with one missing symbol,
+`tower_vk_create_image_v1`. The external capture PE imports that name
+with hint 11 through a link-only import description. The original DLL
+and import library retain their release hashes. On receipt of the tested
+portable source, build it verbatim, check the reviewed header against
+the frozen caller and repeat the recording, positive/fault device,
+old-client and timing checks using the eleven-entry DLL. Physical Windows
+and the shipping Draw application remain open.
