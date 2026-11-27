@@ -124252,3 +124252,57 @@ The test preparation uses independent C and Tower calls to compare native
 region and handle transport. Its image format, pitches, barriers and
 ownership are fixture choices. The public signature and production
 acceptance depend on the Draw source contract for this call site.
+
+Commit aa86815b2 adds a private copy calibration. A raw Vulkan-header C
+caller and an external C caller linked against the Tower fixture DSO each
+submit two regions in one vkCmdCopyBufferToImage. The recording-only
+observer checks the primary/staging/image identities, destination layout,
+count, buffer offsets, pitches, subresources, signed offsets and extents
+of both regions. Offsets 4 and 4294967308 passed. Changing only the
+second pitch stopped the recording test with exit 3.
+
+The hardware owner stages a changing 5×3 RGBA8_UNORM image with row 0
+stored after rows 1 and 2. It reads to another allocation with 32 bytes
+per row and 4-byte outer guards. The upload has a fixture transition to
+TRANSFER_DST_OPTIMAL. The owner finishes the upload, begins a second
+recording, transitions to TRANSFER_SRC_OPTIMAL, copies out and establishes
+TRANSFER_WRITE to HOST_READ visibility. Both recordings retire before
+reusing the staging mapping, device-local image and primary. All barriers
+here belong to the fixture. There is no sampled consumer in this test.
+
+Host 12 selected discrete RTX 3090 cd3d9791fe794e0b3ec29fc16b74d31c,
+NVIDIA 565.57.01, Vulkan 1.3.289, queue family/index 0/0. The raw and
+external loader bindings and ICD are captured. The external C object
+imports fixture_tower_copy. The fixture DSO imports vkCmdCopyBufferToImage.
+Each path retired 32 images with zero validation warnings/errors. The
+complete 3328 bytes match a separate linear Tower oracle and SHA-256
+0904793d9a79db33349d798f1009120b710896f7e593d87249a933731df34c71.
+
+Five alternating fresh processes per lane on the EPYC 7282 used the same
+warm inputs, one calling thread, one graphics queue and validation. Raw
+and external median first/second copy recording times were 60.15/11.39
+and 67.20/11.49 µs. The per-process mean over 32 calls had respective
+medians of 11.02 and 11.38 µs. Median wall/CPU were 313.62/312.12 and
+311.73/309.90 ms, peak RSS 91232 and 91256 KiB. The fixture recorder
+constructs two stack regions, with zero heap allocations or worker jobs.
+These measurements cover the calibration and its device setup/readback.
+
+The earlier buffer packet replayed from its local base with exit 0 and
+identical checked captures at 73 bytes and 64 MiB. The signed finish
+checks and raw/external pending-fence checks passed. Address-instrumented
+Tower and ASan/UBSan C passed CPU capture and address-only device checks.
+With synchronization validation and LSan enabled both GPU lanes exited 1
+with 3432 bytes in seven allocations. At fixed inputs, omitting only sync
+validation from the validation-layer request gave leak-check exit 0 for
+both. Allocation ownership remains unresolved. All four TSan launches
+exited 139 during the container personality check before main. Source-level
+UBSan for Tower and driver instrumentation are unavailable.
+
+Development runs exposed an incorrect two-dot relative import, a missing
+explicit Foundation root for a library import, and a checked narrowing in
+the independent oracle at trial 16. The final commands use one dot for
+the parent, pass the Foundation root, and mask the seed before narrowing.
+The evidence packet contains build.sh, exercise.sh, negative.sh, buffer.sh,
+sanitize.sh and replay.sh with link maps, exit codes and guarded bytes.
+Production work requires Draw's pinned image-upload body, signature,
+formats, regions, complete transition dependencies and post-upload use.
