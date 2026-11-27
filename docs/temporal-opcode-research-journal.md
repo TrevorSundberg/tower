@@ -123345,3 +123345,58 @@ page. Each 128-command native batch took 0.07 s with matching stdout.
 The packet includes user/system CPU, peak RSS and checked output by sample.
 These timings include host startup. Guest allocator grant counts and broad
 compiler or parallel execution scaling were outside the measured paths.
+
+### WebGPU RGBA8 reference on SwiftShader
+
+The browser exercised the Tower v1 fixture at
+`9560c6599553e0037d909ad9b50505d9e03c5694`, based on
+`a580e70af42e67d5309c4121737fa9e21652a9dd`. On Vast 11, Chromium
+156.0.8078.108 selected Google SwiftShader Device (Subzero), driver 5.0.0,
+Vulkan backend, CPU type and `isFallbackAdapter=true`. The same run completed
+one queue submission, mapped 264 bytes and read `112233ff112233ff` at
+both offsets 0 and 256. It unmapped staging and reported clean validation.
+The destination was 32 bytes with offset 4, span 24 and pitch 12.
+The 16 active bytes matched SHA-256
+`f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88`;
+the 32 guarded bytes matched
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The CPU marker reached the second row. Each of the three short-input
+controls preserved every sentinel.
+
+From the checkout root, with the pinned Linux x64 compiler, LLVM/Clang 19,
+the locked playground dependencies and Chromium available, run on a browser
+worker. Set CHROMIUM to its executable and VK_DRIVER_FILES to the intended ICD.
+
+```sh
+set -eu
+mkdir -p build
+bootstrap/linux-x64/towerc scaffolding/library/graphics/webgpu_rgba8_fixture.tower \
+  --jobs 1 --bedrock scaffolding/bedrock.tower --foundation scaffolding/foundation.tower \
+  --cc clang-19 --target wasm32-unknown-unknown --depfile build/webgpu_rgba8.d -o build/webgpu_rgba8.wasm
+npm ci --prefix playground --ignore-scripts --no-audit --no-fund
+timeout 60 node scaffolding/library/graphics/webgpu_rgba8_run.mjs software
+```
+
+The one- and four-job builds produced identical Wasm with SHA-256
+`73a492a045156754cd4dfd796deb9df510b2d5d4eaf1a733d0af642950eb0f87`.
+One warm build per width measured 1.24 and 1.34 seconds wall, 1.23 and
+1.46 seconds CPU, and 95836 and 104172 KiB peak RSS, respectively. No GPU
+performance measurement or Wasm sanitizer result was collected.
+
+The separate hardware request returned no WebGPU adapter. The NVIDIA ICD
+probe failed at instance creation with ERROR_INCOMPATIBLE_DRIVER. The
+host inventory lists a Quadro RTX 6000. Hardware acceptance requires a
+same-run positive adapter identification, completion and guarded readback.
+The current runner can proceed when adapter classification fields are absent;
+a zero exit alone is insufficient for hardware acceptance.
+
+For worker receipt `b680dfc3-caa3-4c42-a76e-a560d54f12c3`, the coordinator
+recorded the registered checkout's indexed-indirect commit `62323bbe`.
+The worker used another checkout for WebGPU. The coordinator's fetch command
+verified the bundle, then failed because it requested HEAD. Rendering fetched
+the advertised refs/heads/main from the checksummed archive into a private
+review ref and verified its sole parent and four changed files. Archive SHA-256
+is `fd76de21f987309932111fb2a8b29f3c4d77c0a7031e1c9c2e9c516ee61c9b55`.
+Rendering checked the archive manifest, Git-backed inputs, Wasm digest,
+raw browser log and binary snapshots. The original compiler-manager CPU
+fixture remains a separate dependency.
