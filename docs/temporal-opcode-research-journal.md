@@ -125527,3 +125527,59 @@ loader copies the pointer representation to the SDK PFN and forwards the
 readback selection query to Wine. An early run against the prior recording
 loader stopped at that selection query. The final packet preserves the
 failed checks alongside the corrected runs and the replay command.
+
+### Clean-checkout Win64 image-format recording consumer
+
+Host 11, job `24c4d39f-e28e-4e49-8b5e-8a17d61327bd`, starts from
+`8c55c0bc7ed7d4a155a4a03bb91536ee6bde3bed`. The source for job
+`2b729d40` was `cc43665c`. The published SDK control already contained
+the Tower cases, C observer, recording driver and two C call paths. Its
+documented replay required a separate archive with prepared objects.
+The new `osd_checks/check_preflight.sh` uses the existing Win64 GNU
+target and flags from `build_graphics_dll.sh`. It compiles the matrix
+with the checksummed checkout bootstrap and builds the three C units
+and loader import library in an empty output directory. See the
+[consumer commands](../scaffolding/library/graphics/vulkan/osd_checks/README.md#run-the-28-case-c-recording-check-from-source).
+
+In the SDK arm both imported calls resolve to the local recording
+`vulkan-1.dll`. In the external arm the PE imports the C entry from
+`preflight_provider.dll`; that DLL imports the query, while the PE
+imports observer registration from the same loader. The source check
+audits each PE import under its owning DLL. The callback checks all
+query inputs and the private output address, then writes the temporary
+even on an error. The C observer compares the complete descriptor,
+referenced arrays, public outputs and adjacent guards before emitting
+each row.
+
+On this Debian 12 host (Xeon E5-2699 v4), Clang/LLD 19.1.7, MinGW-w64
+x64, Wine 8 and the pinned Linux bootstrap ran one Tower compiler worker
+and one recording caller. A first Wine prefix initialization missed
+the packaged MinGW zlib1.dll and exited 53 before any rows. Provisioning
+that Wine dependency in a fresh prefix let both arms run. For the
+external transport check the supplied translation unit included the
+existing SDK control with its function renamed to the public C entry.
+Both recording PEs exited 0 with 28 rows and the same stdout SHA-256
+`4dae8702be561d826041176fcd6996c0285bf6304843799d561d83c5a7564419`.
+The production release still has eleven entries. This run qualifies the
+recording ABI. The reviewed portable source, release link, on-device
+comparison, production costs and sanitizer checks belong to the ordinal-12
+qualification. Build transport timing and peak memory were outside this
+check. No compiler, predicate, driver or matrix source changed.
+
+A separate shallow checkout rebuilt both arms with file access traced.
+Its build and run trace contains no previous packet or evidence paths.
+After freezing the objects, PEs, DLLs, import libraries, exit files and
+row streams by SHA-256, we extracted just the original and clean SDK
+logs and exit files from the prior archive (SHA-256
+`d27e2abbc249dcbbc24a5460304a5403b43f0c892e66fa6bab9d5457a7fcd9f3`).
+All four passed their manifest checks. Both previous runs matched the
+new SDK's 5,277 stdout bytes and exit file directly, including CRLF.
+A fault control made the external C function swallow the signed result.
+The SDK arm still passed. The external arm checked the first two rows,
+then the zero-width −11 case detected the altered result and the command
+propagated the PE's exit 4. The Wine logs identify the two native test
+DLLs in the build directory. Object symbols and link maps identify the
+SDK and provider definitions, the C client's undefined public symbol,
+and the physical query definition in the driver. Concurrent review
+`3b94687b` added the Linux SDK comparison to the README. Reconciliation
+preserved that receipt and all eleven production entries.

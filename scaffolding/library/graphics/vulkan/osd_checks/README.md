@@ -134,9 +134,53 @@ successful query with sufficient capacity. It retains the independent
 optimal-tiling feature check. The RGBA8 readback targets use their original
 SDK path. The physical device and descriptor are borrowed for each source.
 
+### Run the 28-case C recording check from source
+
+From the repository root on Linux x64 with LLVM 19 (Clang, LLD and
+llvm-readobj), the MinGW-w64 x64 CRT and libgcc, Vulkan SDK headers and a
+working 64-bit Wine prefix, run the following. These example paths are
+for a system-installed Debian toolchain. Set `WINE64` to the Wine
+executable if it has a different name or path.
+
+```bash
+export PATH="/usr/lib/llvm-19/bin:/usr/lib/wine:$PATH"
+export MINGW_SYSROOT=/usr/x86_64-w64-mingw32
+export MINGW_GCC_LIB="$(dirname "$(x86_64-w64-mingw32-gcc -print-libgcc-file-name)")"
+export VULKAN_INCLUDE=/usr/include
+check=scaffolding/library/graphics/vulkan/osd_checks/check_preflight.sh
+"$check" "$(mktemp -d)/sdk"
+```
+
+The command verifies the pinned Linux bootstrap, compiles
+`preflight_cases.tower` to Win64 COFF, builds the SDK control and C
+observer, and links the recording driver as a local `vulkan-1.dll`.
+Wine loads that DLL for this process. Its registration export and the
+physical-device query share the same thread-local observer. Expect exit
+0 and 28 rows, each with one query and intact canaries. The output directory
+retains the PE import/export tables, maps, Wine load logs, stdout and exit
+status. This check runs without a GPU.
+
+To compare an external C implementation, pass one source file defining
+`tower_vk_image_format_preflight_v1` with the confirmed C signature. Put
+any local headers alongside that file. Use a fresh output directory.
+
+```bash
+"$check" "$(mktemp -d)/compare" /absolute/path/to/provider.c
+```
+
+This also builds `preflight_client.c` against the import library generated
+for the test's `preflight_provider.dll`. The check verifies the external
+PE imports the provider entry and the observer registration, and that the
+provider DLL imports the physical-device query from the recording loader.
+Both arms use the same matrix, observer and driver. The command compares
+their complete stdout byte for byte, including row order, signed results,
+all 64 resource-size bits and both error-output canaries.
+
+### Replay the archived device qualification
+
 The slot 11 packet `2b729d40-a8cc-4f8e-881c-f67d3f77f538` carries the
-full capture, exact commands, PE images, recording loader, checksums and Git
-bundle. From the extracted packet on the prepared Linux NVIDIA host, run
+full capture, PE images, checksums and Git bundle. From the extracted
+packet on the prepared Linux NVIDIA host, run
 
 ```bash
 TOWER_CHECKOUT=/path/to/tower PREPARED_SDK=/path/to/sdk \
