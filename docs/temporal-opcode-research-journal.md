@@ -124896,3 +124896,27 @@ used a relative test-script path after changing directory. The first
 native wrapper matched the wrong wording for the missing Win64 ASan
 import libraries. The clean replay used an absolute path and checked
 LLD's actual diagnostic. The logs preserve both initial failures.
+### Five-export Win64 Draw application receipt
+
+Draw verified 433 digests for job `97a65c6b`. Its shipping PE at
+`87d4e8d0` imported four entries from the five-export Tower DLL at
+`32e6f52b`. The functional Wine 11 run on the RTX 3060 retired three
+frames and preserved the descriptor on an end failure. Draw also matched
+its count, raster and resize controls. Stock validated assets/core
+exited 1. Rendering independently rehashed the original DLL and import
+library. This receipt adds documentation.
+[Command, results and remaining coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-application-using-the-five-export-dll)
+
+### Rendering review of the eighth Win64 Vulkan export
+
+The manager verified 466 manifest entries from `9821d998`, its retained
+control and sampling supplement, and the clean fourteen-product replay.
+The provider and C header match the reviewed Linux sources. Rendering
+parsed the release and consumer PE tables and checked the three
+27,542,768-byte readbacks with the retained Tower capture verifier. All
+256 sampled RGBA values and guards matched; a trailing byte was rejected.
+The three intentional faults had the expected first mismatches and exit 3.
+The scope is a synthetic Win64 C consumer on Wine and the Quadro.
+The prior Draw five-export frame receipt remains separate. Slot 11's
+next assignment is the checked region-builder C/DLL boundary.
+[Hashes, acceptance and coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#ordinal-8-release-verification)
