@@ -124463,3 +124463,24 @@ Before editing, the old linked device-external completed on the same RTX
 capture, SHA-256 140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b.
 Whole-process wall/CPU were 2307.66/2308.32 ms, peak RSS 116084 KiB.
 The retained recorder object and DSO rebuilt byte-identically.
+
+Three single-field SDK mutations (byte offset, array-layer order and row
+length) each failed the byte comparison with exit 3. The order mutation
+passed the original five textures and failed the mixed fixture. On the
+same EPYC 7282 (affinity 0–31, 15.36 CPU quota), three fresh processes per
+version alternated while repeatedly checking the same five inventories
+20,000 times on one calling thread. Output was byte-identical, 5,520,000
+bytes per sample. Median wall/CPU/peak RSS were 86.35 ms / 86.09 ms /
+2068 KiB for the retained test and 94.06 ms / 93.80 ms / 1824 KiB with
+the C materialization, byte and guard checks. Each inventory now allocates
+a second transient descriptor array per texture. This timing includes log
+formatting, allocations and recording checks. No new GPU timing is
+attributed to the oracle. LLVM ASan on Tower plus C ASan/UBSan and leak
+checking completed the six-case CPU path. The instrumented TSan binary
+exited 139 at the container personality check before main. The recorder
+and GPU driver remain outside Tower source-level UBSan coverage.
+
+The job's base-bounded bundle and checksummed packet are local. A public
+bulk signature, a real caller of that signature and its device comparison
+await the application owner's account of the offset source, record and
+payload lengths, region loop and failure behavior.
