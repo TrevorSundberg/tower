@@ -1,0 +1,156 @@
+import tower;
+import readback_device;
+import readback_abi;
+import readback_rows;
+
+var VkImageCreateTag: u32 = 14;
+var VkImageViewCreateTag: u32 = 15;
+var VkBufferCreateTag: u32 = 12;
+var VkAllocateTag: u32 = 5;
+var VkCommandPoolTag: u32 = 39;
+var VkCommandAllocateTag: u32 = 40;
+var VkCommandBeginTag: u32 = 42;
+var VkImageBarrierTag: u32 = 45;
+var VkBufferBarrierTag: u32 = 44;
+var VkRenderingTag: u32 = 1000044000;
+var VkAttachmentTag: u32 = 1000044001;
+var VkFenceTag: u32 = 8;
+var VkSubmitTag: u32 = 4;
+var VkMappedRangeTag: u32 = 6;
+var VkColorAspect: u32 = 1;
+var VkColorLayout: u32 = 2;
+var VkCopyLayout: u32 = 6;
+var VkColorWrite: u32 = 256;
+var VkTransferRead: u32 = 2048;
+var VkTransferWrite: u32 = 4096;
+var VkHostRead: u32 = 8192;
+var VkStageTop: u32 = 1;
+var VkStageColor: u32 = 1024;
+var VkStageTransfer: u32 = 4096;
+var VkStageHost: u32 = 16384;
+var VkClearOp: u32 = 1;
+var VkStoreOp: u32 = 0;
+var VkTransferDstUsage: u32 = 2;
+var VkHostVisible: u32 = 2;
+var VkHostCoherent: u32 = 4;
+var VkView2D: u32 = 1;
+var VkWholeSize: u64 = ~convert(u64, 0);
+var VkDeviceLost: i32 = -4;
+extern fn abort(): void;
+extern fn fflush(stream: void*): i32;
+
+fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, required: u32,
+    allocation: VkDeviceMemoryHandle**, flags: u32*): bool {
+    for (var i: u32 = 0; i < ctx.memory.memoryTypeCount; i++) {
+        var properties = ctx.memory.memoryTypes[i].propertyFlags;
+        if (req.memoryTypeBits & (convert(u32, 1) << i)) == 0 || (properties & required) != required { continue; }
+        var info: VkMemoryAllocateInfo = { sType: VkAllocateTag, allocationSize: req.size, memoryTypeIndex: i, ..default };
+        var memory: VkDeviceMemoryHandle*;
+        if !vk_ok("vkAllocateMemory", vkAllocateMemory(ctx.device, &info, null, &memory)) { return false; }
+        *allocation = memory; *flags = properties; return true;
+    }
+    return vk_failure("No compatible Vulkan memory type");
+}
+
+fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
+    buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
+    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
+    var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout,
+        dstAccessMask: VkColorWrite, ..default };
+    vkCmdPipelineBarrier(cmd, VkStageTop, VkStageColor, 0, 0, null, 0, null, 1, &transition);
+    var attachment: VkRenderingAttachmentInfo = { sType: VkAttachmentTag, imageView: view, imageLayout: VkColorLayout,
+        loadOp: VkClearOp, storeOp: VkStoreOp, ..default };
+    var maximum: f32 = 255.0;
+    attachment.clearValue.float32[0] = convert(f32, 17) / maximum;
+    attachment.clearValue.float32[1] = convert(f32, 34) / maximum;
+    attachment.clearValue.float32[2] = convert(f32, 51) / maximum;
+    attachment.clearValue.float32[3] = 1.0;
+    var rendering: VkRenderingInfo = { sType: VkRenderingTag, layerCount: 1, colorAttachmentCount: 1,
+        pColorAttachments: &attachment, renderArea: { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default }, ..default };
+    vkCmdBeginRendering(cmd, &rendering);
+    vkCmdEndRendering(cmd);
+    transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
+    transition.srcAccessMask = VkColorWrite; transition.dstAccessMask = VkTransferRead;
+    vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
+    var region: VkBufferImageCopy = { imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
+        imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
+    vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
+    var host: VkBufferMemoryBarrier = { sType: VkBufferBarrierTag, buffer: buffer, size: VkWholeSize,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
+        srcAccessMask: VkTransferWrite, dstAccessMask: VkHostRead, ..default };
+    vkCmdPipelineBarrier(cmd, VkStageTransfer, VkStageHost, 0, 0, null, 1, &host, 0, null);
+    return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+}
+
+// The device and its queue stay live and exclusively available to this caller.
+// Caller-owned destination bytes are touched only after completion and visibility.
+fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
+    if !readback_destination_valid(dst) { return vk_failure("Invalid destination for RGBA8 readback"); }
+    var device = ctx.device;
+    var image_memory: VkDeviceMemoryHandle* = null;
+    var stage_memory: VkDeviceMemoryHandle* = null;
+    defer {
+        if stage_memory != null { vkFreeMemory(device, stage_memory, null); }
+        if image_memory != null { vkFreeMemory(device, image_memory, null); }
+    }
+    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
+        extent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, mipLevels: 1, arrayLayers: 1,
+        samples: VkSample1, usage: VkColorAttachmentUsage | VkTransferSrcUsage, ..default };
+    var image: VkImageHandle*;
+    if !vk_ok("vkCreateImage", vkCreateImage(device, &info, null, &image)) { return false; }
+    defer vkDestroyImage(device, image, null);
+    var req: VkMemoryRequirements; var flags: u32;
+    vkGetImageMemoryRequirements(device, image, &req);
+    if !vk_readback_allocate(ctx, &req, 0, &image_memory, &flags)
+        || !vk_ok("vkBindImageMemory", vkBindImageMemory(device, image, image_memory, 0)) { return false; }
+    var range: VkImageSubresourceRange = { aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default };
+    var view_info: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: VkView2D,
+        format: VkRgba8Unorm, subresourceRange: range, ..default };
+    var view: VkImageViewHandle*;
+    if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
+    defer vkDestroyImageView(device, view, null);
+    var stage_bytes = ReadbackRowBytes * convert(usize, ReadbackHeight);
+    var buffer_info: VkBufferCreateInfo = { sType: VkBufferCreateTag, size: convert(u64, stage_bytes), usage: VkTransferDstUsage, ..default };
+    var buffer: VkBufferHandle*;
+    if !vk_ok("vkCreateBuffer", vkCreateBuffer(device, &buffer_info, null, &buffer)) { return false; }
+    defer vkDestroyBuffer(device, buffer, null);
+    vkGetBufferMemoryRequirements(device, buffer, &req);
+    if !vk_readback_allocate(ctx, &req, VkHostVisible, &stage_memory, &flags)
+        || !vk_ok("vkBindBufferMemory", vkBindBufferMemory(device, buffer, stage_memory, 0)) { return false; }
+    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(device, pool, null);
+    var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
+    if !vk_record_clear(cmd, image, view, buffer, range) { return false; }
+    var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
+    var fence: VkFenceHandle*;
+    if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
+    defer vkDestroyFence(device, fence, null);
+    var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
+    if !vk_ok("vkQueueSubmit", vkQueueSubmit(ctx.queue, 1, &submit, fence)) { return false; }
+    puts("submitted=1 clear/store -> image-to-buffer -> host-read barrier");
+    var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
+    if !vk_ok("vkWaitForFences", wait) {
+        var idle = vkDeviceWaitIdle(device);
+        if !vk_ok("vkDeviceWaitIdle after failed fence", idle) && idle != VkDeviceLost {
+            puts("Cannot establish retirement; terminating with resources live"); fflush(null); abort();
+        }
+        return false;
+    }
+    puts("fence=signaled");
+    var mapped: void*;
+    if !vk_ok("vkMapMemory", vkMapMemory(device, stage_memory, 0, VkWholeSize, 0, &mapped)) { return false; }
+    defer vkUnmapMemory(device, stage_memory);
+    readback_number("staging_memory_flags", flags);
+    if (flags & VkHostCoherent) == 0 {
+        var mapped_range: VkMappedMemoryRange = { sType: VkMappedRangeTag, memory: stage_memory, size: VkWholeSize, ..default };
+        if !vk_ok("vkInvalidateMappedMemoryRanges", vkInvalidateMappedMemoryRanges(device, 1, &mapped_range)) { return false; }
+        puts("visibility=whole mapped allocation invalidated");
+    } else { puts("visibility=host coherent"); }
+    return readback_two_rows(dst, bits(u8*, mapped), stage_bytes, ReadbackRowBytes);
+}

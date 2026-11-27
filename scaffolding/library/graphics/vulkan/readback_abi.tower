@@ -1,0 +1,573 @@
+import tower;
+
+// Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+// Linux x86-64 Vulkan ABI subset from Khronos vulkan_core.h (header 239).
+// Handles are opaque. This slice uses the float32 member of VkClearValue.
+struct VkClearValue { float32: f32[4]; }
+
+struct VkApplicationInfo {
+    sType: u32;
+    pNext: void*;
+    pApplicationName: u8*;
+    applicationVersion: u32;
+    pEngineName: u8*;
+    engineVersion: u32;
+    apiVersion: u32;
+}
+
+struct VkInstanceCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    pApplicationInfo: VkApplicationInfo*;
+    enabledLayerCount: u32;
+    ppEnabledLayerNames: u8**;
+    enabledExtensionCount: u32;
+    ppEnabledExtensionNames: u8**;
+}
+
+struct VkAllocationCallbacks {}
+
+struct VkInstanceHandle {}
+
+struct VkPhysicalDeviceHandle {}
+
+struct VkPhysicalDeviceLimits {
+    maxImageDimension1D: u32;
+    maxImageDimension2D: u32;
+    maxImageDimension3D: u32;
+    maxImageDimensionCube: u32;
+    maxImageArrayLayers: u32;
+    maxTexelBufferElements: u32;
+    maxUniformBufferRange: u32;
+    maxStorageBufferRange: u32;
+    maxPushConstantsSize: u32;
+    maxMemoryAllocationCount: u32;
+    maxSamplerAllocationCount: u32;
+    bufferImageGranularity: u64;
+    sparseAddressSpaceSize: u64;
+    maxBoundDescriptorSets: u32;
+    maxPerStageDescriptorSamplers: u32;
+    maxPerStageDescriptorUniformBuffers: u32;
+    maxPerStageDescriptorStorageBuffers: u32;
+    maxPerStageDescriptorSampledImages: u32;
+    maxPerStageDescriptorStorageImages: u32;
+    maxPerStageDescriptorInputAttachments: u32;
+    maxPerStageResources: u32;
+    maxDescriptorSetSamplers: u32;
+    maxDescriptorSetUniformBuffers: u32;
+    maxDescriptorSetUniformBuffersDynamic: u32;
+    maxDescriptorSetStorageBuffers: u32;
+    maxDescriptorSetStorageBuffersDynamic: u32;
+    maxDescriptorSetSampledImages: u32;
+    maxDescriptorSetStorageImages: u32;
+    maxDescriptorSetInputAttachments: u32;
+    maxVertexInputAttributes: u32;
+    maxVertexInputBindings: u32;
+    maxVertexInputAttributeOffset: u32;
+    maxVertexInputBindingStride: u32;
+    maxVertexOutputComponents: u32;
+    maxTessellationGenerationLevel: u32;
+    maxTessellationPatchSize: u32;
+    maxTessellationControlPerVertexInputComponents: u32;
+    maxTessellationControlPerVertexOutputComponents: u32;
+    maxTessellationControlPerPatchOutputComponents: u32;
+    maxTessellationControlTotalOutputComponents: u32;
+    maxTessellationEvaluationInputComponents: u32;
+    maxTessellationEvaluationOutputComponents: u32;
+    maxGeometryShaderInvocations: u32;
+    maxGeometryInputComponents: u32;
+    maxGeometryOutputComponents: u32;
+    maxGeometryOutputVertices: u32;
+    maxGeometryTotalOutputComponents: u32;
+    maxFragmentInputComponents: u32;
+    maxFragmentOutputAttachments: u32;
+    maxFragmentDualSrcAttachments: u32;
+    maxFragmentCombinedOutputResources: u32;
+    maxComputeSharedMemorySize: u32;
+    maxComputeWorkGroupCount: u32[3];
+    maxComputeWorkGroupInvocations: u32;
+    maxComputeWorkGroupSize: u32[3];
+    subPixelPrecisionBits: u32;
+    subTexelPrecisionBits: u32;
+    mipmapPrecisionBits: u32;
+    maxDrawIndexedIndexValue: u32;
+    maxDrawIndirectCount: u32;
+    maxSamplerLodBias: f32;
+    maxSamplerAnisotropy: f32;
+    maxViewports: u32;
+    maxViewportDimensions: u32[2];
+    viewportBoundsRange: f32[2];
+    viewportSubPixelBits: u32;
+    minMemoryMapAlignment: usize;
+    minTexelBufferOffsetAlignment: u64;
+    minUniformBufferOffsetAlignment: u64;
+    minStorageBufferOffsetAlignment: u64;
+    minTexelOffset: i32;
+    maxTexelOffset: u32;
+    minTexelGatherOffset: i32;
+    maxTexelGatherOffset: u32;
+    minInterpolationOffset: f32;
+    maxInterpolationOffset: f32;
+    subPixelInterpolationOffsetBits: u32;
+    maxFramebufferWidth: u32;
+    maxFramebufferHeight: u32;
+    maxFramebufferLayers: u32;
+    framebufferColorSampleCounts: u32;
+    framebufferDepthSampleCounts: u32;
+    framebufferStencilSampleCounts: u32;
+    framebufferNoAttachmentsSampleCounts: u32;
+    maxColorAttachments: u32;
+    sampledImageColorSampleCounts: u32;
+    sampledImageIntegerSampleCounts: u32;
+    sampledImageDepthSampleCounts: u32;
+    sampledImageStencilSampleCounts: u32;
+    storageImageSampleCounts: u32;
+    maxSampleMaskWords: u32;
+    timestampComputeAndGraphics: u32;
+    timestampPeriod: f32;
+    maxClipDistances: u32;
+    maxCullDistances: u32;
+    maxCombinedClipAndCullDistances: u32;
+    discreteQueuePriorities: u32;
+    pointSizeRange: f32[2];
+    lineWidthRange: f32[2];
+    pointSizeGranularity: f32;
+    lineWidthGranularity: f32;
+    strictLines: u32;
+    standardSampleLocations: u32;
+    optimalBufferCopyOffsetAlignment: u64;
+    optimalBufferCopyRowPitchAlignment: u64;
+    nonCoherentAtomSize: u64;
+}
+
+struct VkPhysicalDeviceSparseProperties {
+    residencyStandard2DBlockShape: u32;
+    residencyStandard2DMultisampleBlockShape: u32;
+    residencyStandard3DBlockShape: u32;
+    residencyAlignedMipSize: u32;
+    residencyNonResidentStrict: u32;
+}
+
+struct VkPhysicalDeviceProperties {
+    apiVersion: u32;
+    driverVersion: u32;
+    vendorID: u32;
+    deviceID: u32;
+    deviceType: u32;
+    deviceName: u8[256];
+    pipelineCacheUUID: u8[16];
+    limits: VkPhysicalDeviceLimits;
+    sparseProperties: VkPhysicalDeviceSparseProperties;
+}
+
+struct VkPhysicalDeviceProperties2 {
+    sType: u32;
+    pNext: void*;
+    properties: VkPhysicalDeviceProperties;
+}
+
+struct VkPhysicalDeviceFeatures {
+    robustBufferAccess: u32;
+    fullDrawIndexUint32: u32;
+    imageCubeArray: u32;
+    independentBlend: u32;
+    geometryShader: u32;
+    tessellationShader: u32;
+    sampleRateShading: u32;
+    dualSrcBlend: u32;
+    logicOp: u32;
+    multiDrawIndirect: u32;
+    drawIndirectFirstInstance: u32;
+    depthClamp: u32;
+    depthBiasClamp: u32;
+    fillModeNonSolid: u32;
+    depthBounds: u32;
+    wideLines: u32;
+    largePoints: u32;
+    alphaToOne: u32;
+    multiViewport: u32;
+    samplerAnisotropy: u32;
+    textureCompressionETC2: u32;
+    textureCompressionASTC_LDR: u32;
+    textureCompressionBC: u32;
+    occlusionQueryPrecise: u32;
+    pipelineStatisticsQuery: u32;
+    vertexPipelineStoresAndAtomics: u32;
+    fragmentStoresAndAtomics: u32;
+    shaderTessellationAndGeometryPointSize: u32;
+    shaderImageGatherExtended: u32;
+    shaderStorageImageExtendedFormats: u32;
+    shaderStorageImageMultisample: u32;
+    shaderStorageImageReadWithoutFormat: u32;
+    shaderStorageImageWriteWithoutFormat: u32;
+    shaderUniformBufferArrayDynamicIndexing: u32;
+    shaderSampledImageArrayDynamicIndexing: u32;
+    shaderStorageBufferArrayDynamicIndexing: u32;
+    shaderStorageImageArrayDynamicIndexing: u32;
+    shaderClipDistance: u32;
+    shaderCullDistance: u32;
+    shaderFloat64: u32;
+    shaderInt64: u32;
+    shaderInt16: u32;
+    shaderResourceResidency: u32;
+    shaderResourceMinLod: u32;
+    sparseBinding: u32;
+    sparseResidencyBuffer: u32;
+    sparseResidencyImage2D: u32;
+    sparseResidencyImage3D: u32;
+    sparseResidency2Samples: u32;
+    sparseResidency4Samples: u32;
+    sparseResidency8Samples: u32;
+    sparseResidency16Samples: u32;
+    sparseResidencyAliased: u32;
+    variableMultisampleRate: u32;
+    inheritedQueries: u32;
+}
+
+struct VkPhysicalDeviceFeatures2 {
+    sType: u32;
+    pNext: void*;
+    features: VkPhysicalDeviceFeatures;
+}
+
+struct VkExtent3D {
+    width: u32;
+    height: u32;
+    depth: u32;
+}
+
+struct VkQueueFamilyProperties {
+    queueFlags: u32;
+    queueCount: u32;
+    timestampValidBits: u32;
+    minImageTransferGranularity: VkExtent3D;
+}
+
+struct VkMemoryType {
+    propertyFlags: u32;
+    heapIndex: u32;
+}
+
+struct VkMemoryHeap {
+    size: u64;
+    flags: u32;
+}
+
+struct VkPhysicalDeviceMemoryProperties {
+    memoryTypeCount: u32;
+    memoryTypes: VkMemoryType[32];
+    memoryHeapCount: u32;
+    memoryHeaps: VkMemoryHeap[16];
+}
+
+struct VkDeviceQueueCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    queueFamilyIndex: u32;
+    queueCount: u32;
+    pQueuePriorities: f32*;
+}
+
+struct VkDeviceCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    queueCreateInfoCount: u32;
+    pQueueCreateInfos: VkDeviceQueueCreateInfo*;
+    enabledLayerCount: u32;
+    ppEnabledLayerNames: u8**;
+    enabledExtensionCount: u32;
+    ppEnabledExtensionNames: u8**;
+    pEnabledFeatures: VkPhysicalDeviceFeatures*;
+}
+
+struct VkDeviceHandle {}
+
+struct VkQueueHandle {}
+
+struct VkImageCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    imageType: u32;
+    format: u32;
+    extent: VkExtent3D;
+    mipLevels: u32;
+    arrayLayers: u32;
+    samples: u32;
+    tiling: u32;
+    usage: u32;
+    sharingMode: u32;
+    queueFamilyIndexCount: u32;
+    pQueueFamilyIndices: u32*;
+    initialLayout: u32;
+}
+
+struct VkImageHandle {}
+
+struct VkMemoryRequirements {
+    size: u64;
+    alignment: u64;
+    memoryTypeBits: u32;
+}
+
+struct VkMemoryAllocateInfo {
+    sType: u32;
+    pNext: void*;
+    allocationSize: u64;
+    memoryTypeIndex: u32;
+}
+
+struct VkDeviceMemoryHandle {}
+
+struct VkComponentMapping {
+    r: u32;
+    g: u32;
+    b: u32;
+    a: u32;
+}
+
+struct VkImageSubresourceRange {
+    aspectMask: u32;
+    baseMipLevel: u32;
+    levelCount: u32;
+    baseArrayLayer: u32;
+    layerCount: u32;
+}
+
+struct VkImageViewCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    image: VkImageHandle*;
+    viewType: u32;
+    format: u32;
+    components: VkComponentMapping;
+    subresourceRange: VkImageSubresourceRange;
+}
+
+struct VkImageViewHandle {}
+
+struct VkBufferCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    size: u64;
+    usage: u32;
+    sharingMode: u32;
+    queueFamilyIndexCount: u32;
+    pQueueFamilyIndices: u32*;
+}
+
+struct VkBufferHandle {}
+
+struct VkCommandPoolCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    queueFamilyIndex: u32;
+}
+
+struct VkCommandPoolHandle {}
+
+struct VkCommandBufferAllocateInfo {
+    sType: u32;
+    pNext: void*;
+    commandPool: VkCommandPoolHandle*;
+    level: u32;
+    commandBufferCount: u32;
+}
+
+struct VkCommandBufferHandle {}
+
+struct VkCommandBufferInheritanceInfo {}
+
+struct VkCommandBufferBeginInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    pInheritanceInfo: VkCommandBufferInheritanceInfo*;
+}
+
+struct VkOffset2D {
+    x: i32;
+    y: i32;
+}
+
+struct VkExtent2D {
+    width: u32;
+    height: u32;
+}
+
+struct VkRect2D {
+    offset: VkOffset2D;
+    extent: VkExtent2D;
+}
+
+struct VkRenderingAttachmentInfo {
+    sType: u32;
+    pNext: void*;
+    imageView: VkImageViewHandle*;
+    imageLayout: u32;
+    resolveMode: u32;
+    resolveImageView: VkImageViewHandle*;
+    resolveImageLayout: u32;
+    loadOp: u32;
+    storeOp: u32;
+    clearValue: VkClearValue;
+}
+
+struct VkRenderingInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    renderArea: VkRect2D;
+    layerCount: u32;
+    viewMask: u32;
+    colorAttachmentCount: u32;
+    pColorAttachments: VkRenderingAttachmentInfo*;
+    pDepthAttachment: VkRenderingAttachmentInfo*;
+    pStencilAttachment: VkRenderingAttachmentInfo*;
+}
+
+struct VkMemoryBarrier {}
+
+struct VkBufferMemoryBarrier {
+    sType: u32;
+    pNext: void*;
+    srcAccessMask: u32;
+    dstAccessMask: u32;
+    srcQueueFamilyIndex: u32;
+    dstQueueFamilyIndex: u32;
+    buffer: VkBufferHandle*;
+    offset: u64;
+    size: u64;
+}
+
+struct VkImageMemoryBarrier {
+    sType: u32;
+    pNext: void*;
+    srcAccessMask: u32;
+    dstAccessMask: u32;
+    oldLayout: u32;
+    newLayout: u32;
+    srcQueueFamilyIndex: u32;
+    dstQueueFamilyIndex: u32;
+    image: VkImageHandle*;
+    subresourceRange: VkImageSubresourceRange;
+}
+
+struct VkImageSubresourceLayers {
+    aspectMask: u32;
+    mipLevel: u32;
+    baseArrayLayer: u32;
+    layerCount: u32;
+}
+
+struct VkOffset3D {
+    x: i32;
+    y: i32;
+    z: i32;
+}
+
+struct VkBufferImageCopy {
+    bufferOffset: u64;
+    bufferRowLength: u32;
+    bufferImageHeight: u32;
+    imageSubresource: VkImageSubresourceLayers;
+    imageOffset: VkOffset3D;
+    imageExtent: VkExtent3D;
+}
+
+struct VkFenceCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+}
+
+struct VkFenceHandle {}
+
+struct VkSemaphoreHandle {}
+
+struct VkSubmitInfo {
+    sType: u32;
+    pNext: void*;
+    waitSemaphoreCount: u32;
+    pWaitSemaphores: VkSemaphoreHandle**;
+    pWaitDstStageMask: u32*;
+    commandBufferCount: u32;
+    pCommandBuffers: VkCommandBufferHandle**;
+    signalSemaphoreCount: u32;
+    pSignalSemaphores: VkSemaphoreHandle**;
+}
+
+struct VkMappedMemoryRange {
+    sType: u32;
+    pNext: void*;
+    memory: VkDeviceMemoryHandle*;
+    offset: u64;
+    size: u64;
+}
+
+extern fn vkCreateInstance(pCreateInfo: VkInstanceCreateInfo*, pAllocator: VkAllocationCallbacks*, pInstance: VkInstanceHandle**): i32;
+extern fn vkDestroyInstance(instance: VkInstanceHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkEnumeratePhysicalDevices(instance: VkInstanceHandle*, pPhysicalDeviceCount: u32*, pPhysicalDevices: VkPhysicalDeviceHandle**): i32;
+extern fn vkGetPhysicalDeviceProperties(physicalDevice: VkPhysicalDeviceHandle*, pProperties: VkPhysicalDeviceProperties*): void;
+extern fn vkGetPhysicalDeviceProperties2(physicalDevice: VkPhysicalDeviceHandle*, pProperties: VkPhysicalDeviceProperties2*): void;
+extern fn vkGetPhysicalDeviceFeatures2(physicalDevice: VkPhysicalDeviceHandle*, pFeatures: VkPhysicalDeviceFeatures2*): void;
+extern fn vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice: VkPhysicalDeviceHandle*, pQueueFamilyPropertyCount: u32*, pQueueFamilyProperties: VkQueueFamilyProperties*): void;
+extern fn vkGetPhysicalDeviceMemoryProperties(physicalDevice: VkPhysicalDeviceHandle*, pMemoryProperties: VkPhysicalDeviceMemoryProperties*): void;
+extern fn vkCreateDevice(physicalDevice: VkPhysicalDeviceHandle*, pCreateInfo: VkDeviceCreateInfo*, pAllocator: VkAllocationCallbacks*, pDevice: VkDeviceHandle**): i32;
+extern fn vkDestroyDevice(device: VkDeviceHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkGetDeviceQueue(device: VkDeviceHandle*, queueFamilyIndex: u32, queueIndex: u32, pQueue: VkQueueHandle**): void;
+extern fn vkCreateImage(device: VkDeviceHandle*, pCreateInfo: VkImageCreateInfo*, pAllocator: VkAllocationCallbacks*, pImage: VkImageHandle**): i32;
+extern fn vkDestroyImage(device: VkDeviceHandle*, image: VkImageHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkGetImageMemoryRequirements(device: VkDeviceHandle*, image: VkImageHandle*, pMemoryRequirements: VkMemoryRequirements*): void;
+extern fn vkAllocateMemory(device: VkDeviceHandle*, pAllocateInfo: VkMemoryAllocateInfo*, pAllocator: VkAllocationCallbacks*, pMemory: VkDeviceMemoryHandle**): i32;
+extern fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkBindImageMemory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, memoryOffset: u64): i32;
+extern fn vkCreateImageView(device: VkDeviceHandle*, pCreateInfo: VkImageViewCreateInfo*, pAllocator: VkAllocationCallbacks*, pView: VkImageViewHandle**): i32;
+extern fn vkDestroyImageView(device: VkDeviceHandle*, imageView: VkImageViewHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkCreateBuffer(device: VkDeviceHandle*, pCreateInfo: VkBufferCreateInfo*, pAllocator: VkAllocationCallbacks*, pBuffer: VkBufferHandle**): i32;
+extern fn vkDestroyBuffer(device: VkDeviceHandle*, buffer: VkBufferHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkGetBufferMemoryRequirements(device: VkDeviceHandle*, buffer: VkBufferHandle*, pMemoryRequirements: VkMemoryRequirements*): void;
+extern fn vkBindBufferMemory(device: VkDeviceHandle*, buffer: VkBufferHandle*, memory: VkDeviceMemoryHandle*, memoryOffset: u64): i32;
+extern fn vkCreateCommandPool(device: VkDeviceHandle*, pCreateInfo: VkCommandPoolCreateInfo*, pAllocator: VkAllocationCallbacks*, pCommandPool: VkCommandPoolHandle**): i32;
+extern fn vkDestroyCommandPool(device: VkDeviceHandle*, commandPool: VkCommandPoolHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkAllocateCommandBuffers(device: VkDeviceHandle*, pAllocateInfo: VkCommandBufferAllocateInfo*, pCommandBuffers: VkCommandBufferHandle**): i32;
+extern fn vkBeginCommandBuffer(commandBuffer: VkCommandBufferHandle*, pBeginInfo: VkCommandBufferBeginInfo*): i32;
+extern fn vkEndCommandBuffer(commandBuffer: VkCommandBufferHandle*): i32;
+extern fn vkCmdBeginRendering(commandBuffer: VkCommandBufferHandle*, pRenderingInfo: VkRenderingInfo*): void;
+extern fn vkCmdEndRendering(commandBuffer: VkCommandBufferHandle*): void;
+extern fn vkCmdPipelineBarrier(commandBuffer: VkCommandBufferHandle*, srcStageMask: u32, dstStageMask: u32, dependencyFlags: u32, memoryBarrierCount: u32, pMemoryBarriers: VkMemoryBarrier*, bufferMemoryBarrierCount: u32, pBufferMemoryBarriers: VkBufferMemoryBarrier*, imageMemoryBarrierCount: u32, pImageMemoryBarriers: VkImageMemoryBarrier*): void;
+extern fn vkCmdCopyImageToBuffer(commandBuffer: VkCommandBufferHandle*, srcImage: VkImageHandle*, srcImageLayout: u32, dstBuffer: VkBufferHandle*, regionCount: u32, pRegions: VkBufferImageCopy*): void;
+extern fn vkCreateFence(device: VkDeviceHandle*, pCreateInfo: VkFenceCreateInfo*, pAllocator: VkAllocationCallbacks*, pFence: VkFenceHandle**): i32;
+extern fn vkDestroyFence(device: VkDeviceHandle*, fence: VkFenceHandle*, pAllocator: VkAllocationCallbacks*): void;
+extern fn vkQueueSubmit(queue: VkQueueHandle*, submitCount: u32, pSubmits: VkSubmitInfo*, fence: VkFenceHandle*): i32;
+extern fn vkWaitForFences(device: VkDeviceHandle*, fenceCount: u32, pFences: VkFenceHandle**, waitAll: u32, timeout: u64): i32;
+extern fn vkDeviceWaitIdle(device: VkDeviceHandle*): i32;
+extern fn vkMapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, offset: u64, size: u64, flags: u32, ppData: void**): i32;
+extern fn vkInvalidateMappedMemoryRanges(device: VkDeviceHandle*, memoryRangeCount: u32, pMemoryRanges: VkMappedMemoryRange*): i32;
+extern fn vkUnmapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*): void;
+
+struct VkPhysicalDeviceDynamicRenderingFeatures {
+    sType: u32; pNext: void*; dynamicRendering: u32;
+}
+struct VkPhysicalDeviceDriverProperties {
+    sType: u32; pNext: void*; driverID: u32;
+    driverName: u8[256]; driverInfo: u8[256]; conformanceVersion: u8[4];
+}
+struct VkImageFormatProperties {
+    maxExtent: VkExtent3D; maxMipLevels: u32; maxArrayLayers: u32;
+    sampleCounts: u32; maxResourceSize: u64;
+}
+extern fn vkGetPhysicalDeviceImageFormatProperties(physicalDevice: VkPhysicalDeviceHandle*, format: u32,
+    imageType: u32, tiling: u32, usage: u32, flags: u32, properties: VkImageFormatProperties*): i32;
+
+struct VkPhysicalDeviceIDProperties {
+    sType: u32; pNext: void*; deviceUUID: u8[16]; driverUUID: u8[16];
+    deviceLUID: u8[8]; deviceNodeMask: u32; deviceLUIDValid: u32;
+}
