@@ -124066,3 +124066,10 @@ shader paths. Running with the original relative arguments reproduced
 the entire log. The original diagnostics and final commands are in
 job b820dd37-38b4-4fae-8a65-01effba2cd0f. Next integration check is
 Draw's own staged upload/prewarm on its supported application profile.
+
+The first clean replay selected the shared checkout as its only local
+object source. It had the reviewed documentation commit but lacked
+rendering blobs (including frame_submit_test_types.tower). The replay
+now checks out the complete worker-owned 06d47a5d tree and applies the
+bundle containing the documentation parent and this change. It requires
+no historical lazy fetch or external repository access.

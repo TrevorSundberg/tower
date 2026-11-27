@@ -78,7 +78,7 @@ with finish, end and submit. It replaces the end object in that form.
 Assignment `b820dd37-38b4-4fae-8a65-01effba2cd0f` contains the bundle,
 header, objects, paired callers, observer and logs. From the unpacked packet,
 run `REPLAY=$(mktemp -d) LOCAL_TOWER=/path/to/local/Tower bash replay.sh`.
-The local Git objects must include the documentation tip `960c855a` and
+The local Git objects must include the tested tree `06d47a5d` and
 the host must have the pinned SDK and NVIDIA ICD.
 
 Raw C and C through the DSO each performed 64 eight-byte transfers to
