@@ -123785,3 +123785,15 @@ No source-level Tower UBSan, displayed WSI or Draw build using this end
 export was exercised on host 12. The registered job packet retains the
 ABI header, source and ELF hashes, maps, raw logs, exits, timings and
 local-only replay command.
+
+### Draw manager verifies retained combined end and submit evidence
+
+Draw packaging job `43424190` supplied the previously outstanding slot 10
+supplement. Draw's manager checked both inner archives and reconstructed
+the two source revisions from deployed `7be8d020`. Its
+[Linux application receipt](../scaffolding/library/graphics/vulkan/command_end_v1.md#draw-vulkan-application-receipt)
+records fence behavior, guarded end failures, RGB parity and the two
+observed completed frame rates. Draw's separate pre-driver end −4 case
+exited 139. No cause was established. The previously reviewed `e80a74ce`
+packet and later reset/begin observations have separate provenance. This
+documentation update records recovery of prior runs.

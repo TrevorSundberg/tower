@@ -63,8 +63,8 @@ VkResult finish_frame(VkQueue queue, const VkCommandBuffer *commands, VkFence fe
 Draw resets its render fence before command recording. Its guarded-clear
 path resets the fence between successful prepare and submit. Draw reported
 31 CPU cases in each of two configurations against the earlier submit
-object. Draw assigned the linked Vulkan 1.4 frame test to slot 10. The
-observations below cover the five-argument end export on Tower host 12.
+object. Slot 10 subsequently exercised the combined exports through Draw.
+The host 12 fixture and the Draw application receipts are described below.
 
 ### Link both entries on Linux x86-64
 
@@ -129,7 +129,28 @@ timeout -k 2 15 ./gate shared
 | Binary semaphores | Raw and shared end/submit lanes returned with the subject fence pending. Host release of the timeline gate allowed the subject and binary consumer fences to signal. Both observed the GPU event and zero validation warnings/errors. |
 | Injected failures | In both ordinary callers, end −4 exited 1 before fence creation or submit. Submit OOM exited 1. Injected wait failure after a real submit drained the queue and exited 1 without mapping. Synthetic terminal drain failure aborted with resources live (134). The standalone synchronous matrix exited 0 and its terminal control 134. |
 
-Draw linked against this library, displayed WSI, real device loss, other ABIs
-and noncoherent visibility remain open. Hardware timings in the journal cover
+Displayed WSI, real device loss, other ABIs and noncoherent visibility
+remain open for this fixture. Hardware timings in the journal cover
 independent offscreen processes after byte validation. This fixture has no
 measured frame loop.
+
+
+## Draw Vulkan application receipt
+
+Draw recovered revisions `bf0daf3a` and
+`070268feb3db189045313bae71753d8fa2703439` from deployed base
+`7be8d020b07454789195427588712c72ee465637`. Its manager verified 597 and
+400 members in the two inner archives collected by job `43424190`. These
+are the retained slot 10 runs of the combined end and submit provider at
+Tower `2477ba669536173b407fdee6c4a8324c2d058f37`.
+
+On an RTX 5060 Ti with NVIDIA 570.169, three fenced submissions returned
+with pending work, then completed with the expected bytes and guards.
+Draw verified both 47-case suites, including 24 protected end failures
+per arm. The profile runs produced identical RGB. Draw reported 105.67
+completed frames/s for C and 104.32 for the linked path in that workload.
+
+The retained `fixtures/fail-linked-end` case injected −4 before the end
+call reached the driver and the process exited 139. Its cause remains open.
+Draw tracked the reset/begin and guarded-submit injections separately.
+Collecting these files added no GPU run.
