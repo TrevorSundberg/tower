@@ -718,3 +718,53 @@ trial the first image, view and allocation were still live at fatal exit.
 Both stock validated Wine suites exited 1 with the existing registry and
 loader diagnostics. Physical Windows remains untested. Draw owns the
 application runs and archive verification.
+
+#### Reproduce the healthy and injected Win64 outcomes
+
+Draw provided the nine invocations retained in archive
+`6807e38e245458d6b996148bac7d95d6d7edf99bdedaebc81fd93de9f251e5c5`.
+Use the staged executables and matching observers prepared by its
+`repro/stage_base.py` and `repro/observe.py`. This Bash transcription
+uses the archived working directory and preserves the arguments to each
+child. The signed-status wrapper records the Win32 child exit as well
+as the outer Wine status.
+
+```bash
+cd /tmp/draw-3a6e478a/work
+root='Z:\tmp\draw-3a6e478a'
+node='Z:/tmp/draw-54200/win/tooling/node-v24.12.0-win-x64/node.exe'
+logs=$root'\evidence\logs\'
+frames=$root'\evidence\frames\'
+stages=$root'\stage\'
+run() {
+    local tag=$1 stage=$2
+    shift 2
+    wine "$node" "$root"'\evidence\repro\signed.cjs' \
+        "$logs$tag.win32.json" "$stages$stage"'\draw.exe' "$@" \
+        --offscreen --osd-test assets/osd/state.bin --fixed-time 0 \
+        --frames 1 --size 1280 800 --capture "$frames$tag.rgba"
+}
+
+WINEDEBUG=+loaddll run eleven-production eleven-production
+WINEDEBUG=+loaddll DRAW_OSD_REGION_STREAM="$root"'\evidence\trace\eleven.regions' \
+    run eleven-trace eleven-trace
+WINEDEBUG=+loaddll DRAW_OSD_READBACK="$root"'\evidence\readback\eleven.guarded' \
+    run eleven-read eleven-read
+WINEDEBUG=+loaddll run c-owner c-owner
+
+DRAW_TEST_IMAGE_FAIL_AT=1 run eleven-fail1 eleven-fail1
+DRAW_TEST_IMAGE_FAIL_AT=2 run eleven-fail2 eleven-fail2
+DRAW_TEST_IMAGE_FAIL_AT=1 run c-owner-fail1 c-owner-fail1
+DRAW_TEST_IMAGE_FAIL_AT=2 run c-owner-fail2 c-owner-fail2
+run eleven-strict eleven-production --validate
+```
+
+| Runs | Wine exit | Signed child exit | Observation |
+| --- | ---: | ---: | --- |
+| Production, trace, guarded readback and C owner | 0 | 0 | The healthy trace recorded nine successful creations and nine retirements. |
+| First or second create failure in each owner | 1 | 1 | The observer returned −2 from the selected create. At the second failure the first bound image and view remained live. |
+| Strict validation with the production executable | 1 | 1 | Wine emitted the registry and loader diagnostics. |
+
+All nine records reported a null signal. The archive contains the paired
+`logs/<tag>.json` and `logs/<tag>.win32.json` files. These results come
+from the original Draw runs.
