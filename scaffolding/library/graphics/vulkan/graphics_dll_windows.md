@@ -746,3 +746,66 @@ This was a link-only test with diagnostic stubs. Draw assigned shipping
 Win64 execution to its existing slot 9 job
 `a1fbfaac-7f89-4011-8648-dadada799ec8` after the ordinal-11 application
 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`.
+
+### Draw shipping image-format preflight on Wine 11
+
+Draw tested runtime `8094014de58f34ca292414e25a25666770ef5827` and tests
+`bc161bc36da4eead9b5fcd9799ba433d31474868`, tree
+`623b21e3aab15e5ec8030077e099e99e421dbff0`, with Tower
+`752a872f700803d62dead0375728a1692605c2d3`. Draw verified 897
+payload entries and three Git bundles in job
+`a1fbfaac-7f89-4011-8648-dadada799ec8`, archive SHA-256
+`66f5fbd6f48bcb66cff4c62540c0e37b732427bb4acf87473f2d04ef4d103d1d`.
+Its shipping PE had SHA-256
+`3bb278266a720892b06e800e40b3914eca247450d28b205325ca4e5aef8e1458`.
+Wine 11 selected the RTX 3060 (10de:2503), Vulkan 1.4.329, NVIDIA
+595.99.02. Draw matched the release DLL and import-library hashes above.
+
+Both Draw owners traced the ordinal and name to the released provider.
+Rendering independently decoded the same DLL. Ordinal 12 starts at RVA
+`0x1ba0`. The call at `0x1bd8` returns at `0x1bdd` and targets thunk
+`0x1d20`, which uses IAT slot `0x2318` for
+`vulkan-1.dll!vkGetPhysicalDeviceImageFormatProperties`.
+
+Draw observed nine queries and nine image creations including all five OSD
+textures. The 16 subresources matched ordinal 11. The 27,541,504 active
+bytes had SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including padding and guards, the 27,632,640 bytes had SHA-256
+`3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97`.
+Both resize traces retired 382 views and completed 285 submissions.
+Normal, resized and frozen displayed RGB, layers and camera matched.
+
+The following Bash commands reconstruct Draw's reported argument vectors
+using the staged PEs and observers from its archive. The healthy shipping
+command returned signed Win32/Wine status 0/0. Each of the six rejection
+examples returned 1/1 with a null signal.
+
+```bash
+cd /tmp/draw-a1fbfaac/work
+root='Z:\tmp\draw-a1fbfaac'
+stage=$root'\stage\'
+frames=$root'\evidence\frames\'
+osd() {
+    wine "$1" --offscreen --osd-test assets/osd/state.bin --fixed-time 0 \
+        --frames 1 --size 1280 800 --capture "$frames$2.rgba"
+}
+
+WINEDEBUG=+loaddll osd "$root"'\work\build\draw.exe' shipping
+DRAW_TEST_QUERY_RESULT=5 osd "$stage"'c-trace\draw.exe' c-query-5
+DRAW_TEST_QUERY_RESULT=-11 osd "$stage"'twelve-trace\draw.exe' twelve-query--11
+DRAW_TEST_QUERY_RESULT=-1000001004 osd "$stage"'twelve-trace\draw.exe' twelve-query--1000001004
+wine "$stage"'c-refusal\draw.exe' real-format
+wine "$stage"'c-refusal\draw.exe' zero-width
+DRAW_TEST_QUERY_RESULT=-11 wine "$stage"'c-refusal\draw.exe' zero-width
+```
+
+Draw reported that both owners stopped before image creation and allocation
+on injected +5, −11 and −1000001004. A successful zero-width query produced
+the capacity diagnostic. The real unsupported query and a clobbering −11
+with zero width produced the format diagnostic. The 28 SDK/client recording
+rows matched digest `c5a4f4aee3da06792977fb78b71737a219de63c12190f22114bd7ad231d7ca3e`.
+Separately, the injected second-create −2 left the first bound image live at
+fatal exit in this Draw revision. Stock render and core exited 1 under Wine
+with the recorded registry/loader diagnostics and 0 on Linux. Physical
+Windows remains open. Draw's ordinal-13 shipping job is `304c4244`.
