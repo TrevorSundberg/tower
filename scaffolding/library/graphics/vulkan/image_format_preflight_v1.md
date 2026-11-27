@@ -135,3 +135,26 @@ Job `098ed838-0613-4ba0-9e4a-ee201427aeea` contains the ELF files, link maps,
 original captures, SDK client and replay scripts. On the assigned Linux
 host run `bash replay.sh /path/to/authorized/tower /new/replay-directory`
 from the extracted packet. Draw's linked application run remains with Draw.
+
+## Linking with the accepted Linux graphics library
+
+Draw can keep its reviewed eleven-entry `libtower_graphics.so` and link the
+separate `preflight.o` or `libtower_preflight.so` for the new query. Slot 12
+rebuilt the graphics library from Tower
+`bef3026fc41d02334a2fd3f88f18b8d6e9392abe` and compared all 14,816 bytes
+with the accepted artifact. SHA-256 before and after the tests was
+`d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715`.
+
+With the combined graphics library supplying creation and bound-view creation,
+the SDK recording controls passed 16 image calls and 36 view calls. Each of
+the raw SDK, C/shared and ordinary Tower preflight callers reproduced the
+reference pixels on the RTX 3090. Loader traces identify the two constructor
+symbols in the accepted library and the preflight entry in its own DSO for
+the two provider routes. Each caller also passed the oversized descriptor,
+query error and later create/view failure controls. The job's
+`accepted-package.sh` replays these links and verifies the package digest.
+
+Draw's separately reported CPU constructor parity and bindings at Draw
+`2f38b19c8218fef304993df5708a7458fa16776b` are recorded on the
+[Linux package ref](https://github.com/TrevorSundberg/tower/blob/8edf50ba4dd8902c4ae6a8de23c5c987776873d3/scaffolding/library/graphics/vulkan/graphics_so_linux.md#draw-constructor-checks-with-the-shared-library).
+Draw owns the shipping application check for the new preflight entry.

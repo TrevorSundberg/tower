@@ -125326,3 +125326,39 @@ Runtime and driver internals remain outside this instrumentation. The
 packet preserves the maps, instrumented function, failed exits and logs.
 Draw's independent shipping binary, original source and pack were outside
 this Tower-only checkout. Its published ACK pins both constructor sites.
+
+### Link the preflight caller with Draw's accepted eleven-entry Linux DSO
+
+Rendering slot 12 followed up its 6d9ac7ea preflight handoff after the
+graphics library was published at bef3026f. The package ref had advanced
+to 8edf50ba by the fetch. The only intervening change was documentation
+of Draw's CPU adoption of the create and bound-view entries. The assigned
+bef3026f builder in a clean checkout reproduced the accepted DSO byte for
+byte, SHA-256 d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715.
+The eleven symbols and sole libvulkan.so.1 dependency matched. The
+standalone preflight DSO retained its original digest and export.
+
+Recompiled the SDK recording controls from the portable source checkout.
+They passed all 16 create and 36 bound-view calls using the packaged
+symbols. Relinked the same device objects for raw SDK, C/shared, and
+ordinary Tower calls to preflight with the packaged create, view, region
+and upload entries. The initial test assertion expected the package to
+resolve vkCreateImageView directly to the view probe. The loader trace
+showed the lifetime probe ahead of the view probe in LD_PRELOAD. The
+corrected check follows all three links through both probes to Vulkan.
+The failed assertion, trace and status are retained.
+
+Each link reproduced the 103158144 guarded bytes on device UUID
+cd3d9791fe794e0b3ec29fc16b74d31c, NVIDIA 565.57.01, with 189 verified
+lifetime events and zero validation warnings/errors. The oversized
+descriptor reached zero creates. Injected query −11 and downstream image
+and view −2 errors retained the earlier cleanup behavior. The original
+standalone-provider performance and sanitizer receipts remain in the
+packet. This documentation-only change records a different external link
+for existing binaries. The three new trace runs on the EPYC 7282 used
+one caller and one GPU queue, warm files and a fresh device per process.
+Wall ms / CPU ms / peak RSS KiB were 2364.28 / 2358.20 / 116100 raw,
+2099.51 / 2100.56 / 116112 C/shared and 2070.48 / 2070.63 / 116132 Tower.
+These single-sample costs include loader binding diagnostics. The new
+package pairing has ordinary device and recording coverage. Sanitizer
+results belong to the configurations identified in the preceding entry.
