@@ -124026,3 +124026,29 @@ use indexed_draw_c.h. The assignment's matrix supplement includes the exact
 host commands, both executables, validation logs, provider hashes and a Git
 bundle. Draw retains ownership of application adoption. The original host
 packet remains available at its deposited checksum.
+
+### Draw OSD encoder, both passes with a 1088-byte logical buffer
+
+Draw reports both production calls in the optional Tower encoder at
+`3d03167c` (local Draw `94f2d31e`, tests `e6c42eb6`). The earlier Tower
+matrix at `d4e694e5` exercised pass 1 with 48 and 47 bytes. The external
+C proof now uses the same primary and the same VkBuffer for both roles in
+both 1088-byte calls. Each uses maximum 1 and stride 20. Pass 0 forwarded
+command/count offsets 0/20, and pass 1 forwarded 24/44. Each returned 1
+and the recording PFN checked all seven arguments and ran once. The
+48-byte exact fit still called once and the 47-byte short count still
+refused with zero calls.
+[External C control](../scaffolding/library/graphics/vulkan/indexed_draw_c_checks.c)
+
+Host 11 built the external C consumer with Clang 19 and linked the native
+Linux x86-64 ELF object and Windows x64 DLL import library separately.
+Both release executables passed 38 cases and emitted matching receipts.
+The C trapping UBSan run under Wine and the Linux ASan/LSan and TSan
+runs matched the release receipt. Two TSan launches failed at startup
+when the container denied ADDR_NO_RANDOMIZE before the identical executable
+completed. Rebuilding the Linux object, DLL and import library reproduced
+the original provider bytes. The provider checks caller-supplied sizes and
+offsets and passes the handles to the resolved function without mapping or
+reading a GPU count. Only C proof inputs changed. Runtime performance and
+GPU retirement evidence are the prior frozen measurements. This OSD receipt
+covers recording. Draw owns application integration and execution.

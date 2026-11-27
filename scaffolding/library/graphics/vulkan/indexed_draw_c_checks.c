@@ -69,12 +69,14 @@ static void check_draw_layouts(Inputs draw, VkBuffer scene_count)
     nuclear.command_bytes--;
     check("nuclear separate count, short command span", nuclear, record, 0);
 
-    const uint32_t pass = 1;
+    const VkDeviceSize osd_bytes = 1088;
     Inputs osd = draw;
-    osd.command_offset = (VkDeviceSize)pass * 24;
-    osd.count_offset = osd.command_offset + 20;
-    osd.max_draws = 1;
-    check_shared("OSD pass 1", osd, 48, 1);
+    osd.max_draws = 1; osd.stride = 20;
+    osd.command_offset = 0; osd.count_offset = 20;
+    check_shared("OSD encoder pass 0", osd, osd_bytes, 1);
+    osd.command_offset = 24; osd.count_offset = 44;
+    check_shared("OSD encoder pass 1", osd, osd_bytes, 1);
+    check_shared("OSD pass 1 exact fit", osd, 48, 1);
     check_shared("OSD count short", osd, 47, 0);
 
     const uint32_t pool_chunk_count = 3;
