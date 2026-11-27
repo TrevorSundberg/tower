@@ -1,17 +1,18 @@
 import tower;
 import counted_abi;
+import shader_module;
 import readback_abi;
 import readback_device;
 import readback_oracle;
-import library.sha256;
+import ..sha256;
 
+// Linux LP64 fixture I/O. The library entry point only borrows in-memory words.
 extern fn fopen(path: u8*, mode: u8*): void*;
 extern fn fclose(file: void*): i32;
 extern fn fseek(file: void*, offset: i64, origin: i32): i32;
 extern fn ftell(file: void*): i64;
 extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
 
-var VkShaderModuleTag: u32 = 16;
 var VkShaderStageTag: u32 = 18;
 var VkVertexInputTag: u32 = 19;
 var VkAssemblyTag: u32 = 20;
@@ -57,7 +58,7 @@ fn counted_shader(device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShader
     defer fclose(file);
     if fseek(file, 0, 2) != 0 { return vk_failure("Cannot seek SPIR-V"); }
     var length = ftell(file);
-    if length <= 0 || length % 4 != 0 || fseek(file, 0, 0) != 0 { return vk_failure("Invalid SPIR-V length"); }
+    if length <= 0 || length % convert(i64, sizeof(u32)) != 0 || fseek(file, 0, 0) != 0 { return vk_failure("Invalid SPIR-V length"); }
     var size = convert(usize, length);
     var words = alloc(u32, size / sizeof(u32));
     if words == null { return vk_failure("Cannot allocate shader words"); }
@@ -69,10 +70,9 @@ fn counted_shader(device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShader
     var hex: u8[65]; sha256_hex(&digest, &hex[0]);
     puts(path); puts(&hex[0]);
     if strcmp(wanted, &hex[0]) != 0 { return vk_failure("Unrecognized control shader digest"); }
-    var info: VkShaderModuleCreateInfo = { sType: VkShaderModuleTag, codeSize: size, pCode: words, ..default };
-    var module: VkShaderModuleHandle*;
-    if !vk_ok("vkCreateShaderModule", vkCreateShaderModule(device, &info, null, &module)) { return false; }
-    *out = module; return true;
+    var created = vk_create_shader_module(device, words, size / sizeof(u32), out);
+    if !created.called { return vk_failure("Invalid shader module arguments"); }
+    return vk_ok("vkCreateShaderModule", created.result);
 }
 
 fn counted_descriptors(device: VkDeviceHandle*, p: CountedPipelines*, buffer: VkBufferHandle*, size: u64): bool {

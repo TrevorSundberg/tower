@@ -123545,3 +123545,51 @@ Three additional attempts per candidate did the same. There is no completed GPU
 TSan or Tower source UBSan result. The link maps, function IR, stdout/stderr,
 status files, binary captures and replay scripts accompany the HEAD bundle in
 packet c6689824-b5c5-42c0-a0c5-edcc01f9bddd.
+
+### Combining strict Vulkan selection, shader ownership and queue retirement on slot 11
+
+Assignment 9a7312ab-4069-446d-893c-9f76a778dc66 started from queue review
+2bf097e076107ad57d04cb307462fa45258132a6 on main base
+a580e70af42e67d5309c4121737fa9e21652a9dd. Before edits the checksummed
+strict runner from 4cb0a9d6 reopened the NVIDIA ICD on the Quadro RTX 6000.
+Its two GPU headers and two guarded buffers matched the independent 112-byte
+oracle. The installed system lacked the previous private SDK. We restored
+its checksummed Debian packages and the original 1.4.313 loader/layer from
+that packet in job-owned storage.
+
+The registered Tower SSH reader fetched the queue, gate, shader and loader
+refs into a private main checkout. The integrated device and CLI follow
+70f0137fc0f656eba2e3c2b731859fed6af8a7a0. The shader creation types, helper,
+probes and pipeline follow d779b775ddf6434b976e6214670507446a707f13.
+counted_abi retains the gate's feature structs and imports the shader
+owner's module types. The queue branch supplies the counted capture, 24-byte
+readback contract and retirement operation unchanged. indexed_draw matches
+88821d95b29ecf1fd4d757e64572bf90d7fa060f. The counted record and gate
+likewise resolve indexed_indirect in their parent graphics module.
+
+The documented argv from the build directory ran unchanged. Optimized strict
+stdout matched the previous runner byte-for-byte. Both strict runs and the
+core13 run matched the same independent count, 20-byte record, 16 pixel
+bytes and 32-byte caller expectations per pass. The separate shaderless clear
+matched its 32-byte caller and both 8-byte rows. The 1.3.239 loader refused
+strict before submission. Missing and swapped shader assets failed as expected.
+Mesa llvmpipe separately refused a real shader allocation with VkResult=-1.
+The standalone shader ownership and nine queue return/retirement cases passed.
+The terminal queue case logged the failed wait and drain and aborted (134).
+All 15 gate and four layout tests passed at one and four jobs. The stack
+traces and destination arguments are in trace.log in the assignment packet.
+
+Slot 11 used Debian x86-64, Xeon E5-2699 v4, affinity 88 CPUs, 10.56 CPU
+quota, pinned Linux towerc and LLVM 19.1.7. Three interleaved warm-file
+fresh processes per revision ran after pixel validation. Median wall /
+summed CPU seconds / peak RSS KiB were 0.40 / 0.32 / 110968 (strict
+baseline) and 0.33 / 0.31 / 111632 (integrated). These include startup.
+The same source-warm compile comparison gave 0.91 / 0.90 / 130040 and
+1.01 / 1.00 / 131436 at jobs 1, 0.99 / 1.12 / 133024 and 1.06 / 1.20 /
+135184 at jobs 4. The small fixture favored serial compilation, and each
+revision reproduced its object at both widths. The resource contract stays
+at one 327684-byte stream, an 8-byte index buffer, 80 staging bytes and a
+2×2 attachment. GPU timestamps, driver allocation totals and per-thread idle
+time were unmeasured. ASan with leak detection passed the integrated strict
+entry and pinned host allocator. TSan aborted at the denied personality call
+before main (139). Tower source UBSan is unavailable in this instrumenter.

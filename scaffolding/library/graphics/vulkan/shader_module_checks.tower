@@ -1,0 +1,68 @@
+import library.testing;
+import shader_module;
+import readback_abi;
+
+// Standalone Linux executable. These synchronous test symbols replace the
+// loader. Each invocation owns its state through the device argument.
+struct ShaderProbe {
+    words: u32*;
+    size: usize;
+    result: i32;
+    creates: u32;
+    live: bool;
+    handle: VkShaderModuleHandle*;
+}
+
+export fn vkCreateShaderModule(device: VkDeviceHandle*, info: VkShaderModuleCreateInfo*,
+        allocator: VkAllocationCallbacks*, out: VkShaderModuleHandle**): i32 {
+    var probe = bits(ShaderProbe*, device);
+    assert(device != null && info != null && allocator == null && out != null);
+    assert(info.sType == VkShaderModuleTag && info.pNext == null && info.flags == 0);
+    assert(info.pCode == probe.words && info.codeSize == probe.size);
+    assert(!probe.live);
+    probe.creates++;
+    // A driver may overwrite its output even on failure.
+    *out = probe.handle;
+    probe.live = probe.result == 0;
+    return probe.result;
+}
+export fn vkDestroyShaderModule(device: VkDeviceHandle*, module: VkShaderModuleHandle*, allocator: VkAllocationCallbacks*): void {
+    var probe = bits(ShaderProbe*, device);
+    assert(probe.live && module == probe.handle && allocator == null);
+    probe.live = false;
+}
+
+export fn main(): i32 {
+    var words: u32[6] = default;
+    var handle: VkShaderModuleHandle;
+    var probe: ShaderProbe = { words: &words[0], size: sizeof(decltype(words)), handle: &handle, ..default };
+    var device = bits(VkDeviceHandle*, &probe);
+    var out: VkShaderModuleHandle* = null;
+    var count = sizeof(decltype(words)) / sizeof(u32);
+    var maximum = ~convert(usize, 0);
+    assert(!vk_create_shader_module(null, probe.words, count, &out).called);
+    assert(!vk_create_shader_module(device, null, count, &out).called);
+    assert(!vk_create_shader_module(device, probe.words, count, null).called);
+    assert(!vk_create_shader_module(device, probe.words, 0, &out).called);
+    assert(!vk_create_shader_module(device, probe.words, SpirvHeaderWords - 1, &out).called);
+    assert(!vk_create_shader_module(device, probe.words, maximum / sizeof(u32) + 1, &out).called);
+    assert(!vk_create_shader_module(device, bits(u32*, maximum - (sizeof(u32) - 1)), count, &out).called);
+    assert(!vk_create_shader_module(device, bits(u32*, bits(u8*, probe.words) + 1), count, &out).called);
+    assert(!vk_create_shader_module(device, probe.words, count, bits(VkShaderModuleHandle**, bits(u8*, &out) + 1)).called);
+    assert(!vk_create_shader_module(device, bits(u32*, &out), count, &out).called);
+    assert(out == null && probe.creates == 0);
+
+    probe.result = -2; // VK_ERROR_OUT_OF_DEVICE_MEMORY
+    var failure = vk_create_shader_module(device, probe.words, count, &out);
+    assert(failure.called && failure.result == probe.result && probe.creates == 1);
+    assert(out == null && !probe.live);
+    probe.result = 0;
+    var success = vk_create_shader_module(device, probe.words, count, &out);
+    assert(success.called && success.result == 0 && probe.creates == 2);
+    assert(out == probe.handle && probe.live);
+    assert(!vk_create_shader_module(device, probe.words, count, &out).called);
+    assert(out == probe.handle && probe.creates == 2);
+    vkDestroyShaderModule(device, out, null);
+    assert(!probe.live);
+    return 0;
+}
