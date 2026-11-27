@@ -70,7 +70,8 @@ For hardware acceptance, capture the actual selected API device and driver,
 each source image's requirements and table, the returned plan, and the
 allocation and zero-offset bind that consume it. Compare the five uploads,
 sampled readback and retirement with the raw caller on the same adapter.
-The portable provider and its linked Draw execution await testing.
+The Linux standalone provider has the fixture coverage below. Draw's shipping
+constructor has its own adoption check.
 
 ## Linux standalone provider and checks
 
@@ -79,6 +80,21 @@ implement this contract. The caller must supply its physical device's table
 with at most 32 entries. The provider keeps the requirements on the stack,
 advances an unsigned eligibility bit once per entry and writes the output
 only at the first match.
+
+From the Tower root, build the Linux x86-64 object for a C application with
+the pinned bootstrap. Add the resulting object to the application's normal
+Vulkan loader link and include `image_allocation_plan.h` at the call site.
+
+```sh
+bootstrap/linux-x64/towerc --foundation scaffolding/foundation.tower --library --jobs 1 \
+    scaffolding/library/graphics/vulkan/image_allocation_plan.tower -o plan.o
+```
+
+Rendering independently rebuilt the 1,088-byte object, SHA-256
+`2884c8ad19d32dfd05dcb60e3be560599de85e8b724cff1742f54e5246d3ad80`,
+and ran the external C recorder. Its nine rows matched the worker's
+rows byte for byte, SHA-256
+`ed6ced81bad6a066292e87b29a78d55630920d2fa4594d69870ffc202ad303e2`.
 
 On host 12, from the root of this revision with the worker SDK environment
 loaded, the following builds the standalone object and runs the external C
