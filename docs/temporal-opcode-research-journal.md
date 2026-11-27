@@ -125090,3 +125090,21 @@ the ownership boundary, explicit view/range selection and success-only
 publication rule. Slot 12 received this acknowledgement. This updates
 the contract status; provider validation remains pending.
 [Native peer acknowledgement](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-acknowledgement)
+
+### Freeze the unbound image creation control
+
+Slot 12 job 793660b1-3055-4f07-b4d3-f382be98e200 starts from published
+6b39d552. The bound-view receipt at Draw bd203f60 identifies Draw's owning
+constructor. Its image creation fields and error contract require a separate
+consumer receipt. The reference here is Tower's retained OSD workload.
+
+The ten calls share bind_new_image in osd_upload_checks/device_cases.tower.
+It creates the handle, clears it on a driver error, then queries requirements,
+selects device-local memory and binds at offset zero. The source's later
+view type is independently selected in retained.tower. The five readback
+attachments take make_image's existing view path. counted_capture.tower
+and readback_clear.tower use single-level single-layer RGBA8_UNORM color
+attachments and request no required memory flags. image_copy_checks/device.tower
+uses transfer-only usage and device-local memory. Each caller owns its
+allocation and cleanup. The candidate boundary is descriptor construction
+and one vkCreateImage call, subject to Draw's actual inputs and output rule.

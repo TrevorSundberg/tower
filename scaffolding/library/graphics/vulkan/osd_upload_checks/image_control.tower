@@ -1,0 +1,28 @@
+import tower;
+import .readback_abi;
+import image_trace;
+import view_trace;
+
+extern fn fixture_sdk_create_image(row: u32, device: VkDeviceHandle*, slot: VkImageHandle**): i32;
+struct ImageDouble { calls: u32; result: i32; handle: u8; slot: VkImageHandle*; }
+export fn vkCreateImage(device: VkDeviceHandle*, info: VkImageCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageHandle**): i32 {
+    var state = bits(ImageDouble*, device);
+    view_check(info != null && allocator == null && slot == &state.slot, "raw SDK arguments");
+    state.calls++;
+    *slot = bits(VkImageHandle*, &state.handle);
+    record_image(device, info, allocator, slot, state.result);
+    return state.result;
+}
+export fn main(): i32 {
+    var state: ImageDouble = default;
+    var device = bits(VkDeviceHandle*, &state);
+    var shapes: u32 = 10;
+    for (var i: u32 = 0; i <= shapes; i++) {
+        var row = i;
+        if i == shapes { row = 1; state.result = DeviceOOM; }
+        state.slot = null;
+        var result = fixture_sdk_create_image(row, device, &state.slot);
+        view_check(result == state.result && state.calls == i + 1 && state.slot == bits(VkImageHandle*, &state.handle), "raw SDK result, output or call count");
+    }
+    puts("ten raw SDK image descriptors and a clobbering signed device OOM"); return 0;
+}
