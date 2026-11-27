@@ -6,6 +6,8 @@ extern fn tower_vk_command_reset_begin_v1(cmd: VkCommandBufferHandle*, flags: u3
 extern fn begin_from_c(cmd: VkCommandBufferHandle*, flags: u32, usage: u32, step: u32*): i32;
 extern fn begin_raw(cmd: VkCommandBufferHandle*, flags: u32, usage: u32, step: u32*): i32;
 extern fn begin_info_matches(info: VkCommandBufferBeginInfo*, size: usize, usage: u32): i32;
+extern fn begin_layout_matches(info: VkCommandBufferBeginInfo*, size: usize, tag: void*, next: void*,
+    flags: void*, inheritance: void*): i32;
 extern fn exit(status: i32): void;
 
 struct Recording {
@@ -56,6 +58,10 @@ fn check(call: Begin): void {
     }
 }
 export fn main(): i32 {
+    var info: VkCommandBufferBeginInfo;
+    require(begin_layout_matches(&info, sizeof(VkCommandBufferBeginInfo), bits(void*, &info.sType),
+        bits(void*, &info.pNext), bits(void*, &info.flags), bits(void*, &info.pInheritanceInfo)) == 1,
+        "VkCommandBufferBeginInfo field offsets differ from the native header");
     check(begin_raw); puts("raw reset/begin matrix passed");
     check(tower_vk_command_reset_begin_v1); puts("external Tower reset/begin matrix passed");
     check(begin_from_c); puts("Vulkan-header C reset/begin matrix passed");

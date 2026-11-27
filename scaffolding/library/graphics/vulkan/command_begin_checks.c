@@ -28,3 +28,11 @@ int begin_info_matches(const VkCommandBufferBeginInfo *info, size_t size,
     return size == sizeof(*info) && info->sType == VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
         && info->pNext == NULL && info->flags == usage && info->pInheritanceInfo == NULL;
 }
+
+int begin_layout_matches(const VkCommandBufferBeginInfo *info, size_t size,
+                         const void *tag, const void *next, const void *flags,
+                         const void *inheritance)
+{
+    return sizeof(*info) == size && &info->sType == tag && &info->pNext == next
+        && &info->flags == flags && &info->pInheritanceInfo == inheritance;
+}
