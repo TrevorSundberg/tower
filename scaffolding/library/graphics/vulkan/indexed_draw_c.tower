@@ -1,0 +1,13 @@
+import tower;
+import readback_abi;
+import indexed_draw;
+import .indexed_indirect;
+
+export fn tower_vk_record_indexed_indirect_count_v1(draw: VkCmdDrawIndexedIndirectCountProc,
+    cmd: VkCommandBufferHandle*, commands: VkBufferHandle*, command_bytes: u64, command_offset: u64,
+    count: VkBufferHandle*, count_bytes: u64, count_offset: u64, max_draws: u32, stride: u32): u32 {
+    var records: VulkanIndirectBuffer = { handle: commands, byte_size: command_bytes };
+    var range: IndexedIndirectRange = { command_offset: command_offset, max_draws: max_draws, stride: stride };
+    var counter: VulkanIndirectBuffer = { handle: count, byte_size: count_bytes };
+    return vk_record_indexed_indirect_count(draw, cmd, records, range, counter, count_offset) ? 1 : 0;
+}

@@ -123849,3 +123849,17 @@ incremental bundle against edb8c333 and reproduced the DLL, import library,
 consumer PE, counted PE, gate and control outputs. Packet `replay.sh`
 contains the exact checks. Source publication belongs to the rendering
 coordinator. The packet includes no Draw or presentation implementation.
+
+## Counted indexed recording through the external graphics ABI
+
+Host 11 assignment a2c7f8e1 started at the published combined DLL
+`1db528e8`. The counted capture resolves a typed device function once.
+Its two recording sites (successive executions of counted_case) borrow the
+primary, the same storage/indirect buffer twice, and its full byte size.
+The shared range checker already handles a zero maximum, alignment, stride
+and subtraction-based span checks. The new entry constructs its three Tower
+values and delegates to that operation. Its result reports whether it called
+the PFN. The caller still owns the feature gate, barriers, render state,
+queue, fence and retirement. The source fixture for Draw 7be8d020 line 8093
+is the manager-supplied call contract. This checkout contains the Tower
+reader and the published paired fixture at 4e4959be.

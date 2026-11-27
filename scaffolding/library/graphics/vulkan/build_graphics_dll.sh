@@ -10,18 +10,19 @@ root=$(cd "$v/../../../.." && pwd)
 mkdir -p "$1"
 cd "$1"
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
-for unit in shader_module_c frame_submit; do
+for unit in shader_module_c frame_submit indexed_draw_c; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
         -o "$unit.obj"
 done
-# These are the complete loader dependencies of the two Tower objects.
+# These are the complete loader dependencies of the graphics DLL.
 printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkQueueSubmit\n' > graphics_loader.def
 llvm-dlltool -m i386:x86-64 -d graphics_loader.def -l graphics_loader.lib
 lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_try_create_shader_module /export:tower_vk_queue_submit_one_v1 \
+    /export:tower_vk_record_indexed_indirect_count_v1 \
     /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
-    shader_module_c.obj frame_submit.obj graphics_loader.lib
+    shader_module_c.obj frame_submit.obj indexed_draw_c.obj graphics_loader.lib
 
 if [[ ${2:-} == --with-consumer ]]; then
     : "${MINGW_SYSROOT:?absolute path to the x86_64-w64-mingw32 sysroot}"
