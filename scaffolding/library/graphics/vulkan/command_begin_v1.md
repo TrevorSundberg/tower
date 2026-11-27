@@ -59,7 +59,7 @@ end/submit object can reuse it.
 v=scaffolding/library/graphics/vulkan
 bootstrap/linux-x64/towerc "$v/command_begin.tower" --library --jobs 1 -o command_begin.o
 bootstrap/linux-x64/towerc "$v/command_end.tower" --library --jobs 1 -o command_end.o
-x86_64-linux-gnu-ld -shared -z defs command_begin.o command_end.o "${vulkan_loader:?}" \
+x86_64-linux-gnu-ld --hash-style=both -shared -z defs command_begin.o command_end.o "${vulkan_loader:?}" \
     -soname libtower_frame_submit.so -o libtower_frame_submit.so
 ```
 
@@ -72,9 +72,17 @@ x86_64-linux-gnu-ld -shared -z defs command_begin.o command_end.o "${vulkan_load
 The begin object defines `tower_vk_command_begin_v1` and imports
 `vkResetCommandBuffer` and `vkBeginCommandBuffer`. The DSO also defines
 `tower_vk_command_end_for_submit_v1` and `tower_vk_queue_submit_one_v1`
-and imports `vkEndCommandBuffer` and `vkQueueSubmit`. Draw independently
-reproduced the previous combined end/submit object and passed 31/31 CPU
-checks for those two entries. Slot 10 subsequently reported linked Vulkan
+and imports `vkEndCommandBuffer` and `vkQueueSubmit`. Draw reproduced both object hashes and the DSO hash above on GNU ld
+2.44. With these inputs, `--hash-style=both` produced both ELF symbol hash
+tables. With `--hash-style=gnu`, the DSO SHA-256 was
+`6d6860991e9e83b02f8f3918c46833b3773881f071ee1f5b89131fc0a9e06341`.
+Rendering verified both hash tables and the loader dependency
+`libvulkan.so.1` in the retained host 12 DSO.
+
+Draw verified dynamic resolution to the byte-matched DSO and passed 31/31
+recording cases, six signed begin injections and nine injections through
+Draw's existing blocking finish. The latter establish the [finish contract](command_finish_v1.md)
+for the next Tower entry. Slot 10 subsequently reported linked Vulkan
 end/submit runs; Draw requested the matching archive. Draw's application
 run against this begin provider is pending.
 
@@ -161,3 +169,36 @@ destruction of that library's link map. Its build ID was
 and address arithmetic in `shutdown-libraries/` and `shutdown-location.txt`.
 The immediate-exit cause remains unresolved. Draw's guarded-clear failure
 injected −4 at queue submit in a separate application run.
+
+## Frozen raw and linked baseline comparison
+
+The two host 12 executables were built from Tower
+`06d47a5d287d4f44e71b5b61a15841f18938b113`. The baseline uses
+`begin_raw` from `command_begin_checks.c`. The candidate uses
+`begin_from_c` from the same file, which calls the exported
+`tower_vk_command_begin_v1` in the adjacent shared library. Both link
+the same counted fixture with its local begin definition removed.
+
+| Receipt-relative path | Role |
+| --- | --- |
+| `pair/bin/raw` | Raw Vulkan C baseline executable |
+| `pair/bin/shared` | C caller of the externally linked Tower candidate |
+| `pair/bin/libtower_frame_submit.so` | DSO loaded by that caller |
+| `bin/command_begin.o` | Standalone C-linkable Tower begin object |
+| `pair/run/raw.log`, `pair/run/shared.log` | Same-process device identity, Vulkan trace, guarded bytes and validation for each lane |
+| `pair/run/signed.log` | Observed signed results and R/RB traces using the recording loader |
+
+From the extracted receipt, repeat the frozen pair on host 12 with:
+
+```sh
+PAIR_RESULTS=$(mktemp -d) bash pair/repeat.sh
+```
+
+The command hashes the raw result before launching the candidate and
+rechecks it afterwards. Each trace must retain the same handles within
+its process. Comparing across processes normalizes only the handle
+values. The 12 count and guarded-buffer records are also compared
+verbatim. The observed bytes had the same SHA-256 in both runs,
+`ecabdc019adb56baf35e5cb30b8f787d22e735ace137710bb762ba0bb9d2e3da`
+for the three-frame text extract. Each process reported zero validation
+warnings or errors.

@@ -53,17 +53,16 @@ Frame submission retains its independent asynchronous fence contract.
 
 ## Build and verify
 
-With the pinned host 12 SDK and Tower tree, build the callable object
-and shared library from the repository root.
+From the repository root, use the Linux x64 bootstrap with LLVM 19.
+Set `VULKAN_LOADER` to the full path of the Linux x64 Vulkan loader.
 
 ```bash
-source /tmp/tower12/env
 v=scaffolding/library/graphics/vulkan
 out=$(mktemp -d)
-bootstrap/linux-x64/towerc "$v/osd_texture_upload_record.tower" --library --jobs 1 \
+bootstrap/linux-x64/towerc "$v/osd_texture_upload_record.tower" --foundation scaffolding/foundation.tower --library --jobs 1 \
     -o "$out/osd_texture_upload_record.o"
 x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$out/osd_texture_upload_record.o" \
-    /tmp/tower12/sysroot/usr/lib/x86_64-linux-gnu/libvulkan.so.1 \
+    "${VULKAN_LOADER:?Set VULKAN_LOADER to the full path of libvulkan.so.1}" \
     -soname libtower_osd_upload.so -o "$out/libtower_osd_upload.so"
 ```
 
@@ -106,8 +105,8 @@ small cases. Synchronization validation reported zero warnings/errors.
 Forcing layer zero in the read consumer produced the first mismatch at
 byte 240. Each small hardware trace also compared the owner's expected
 calls and handles with the live descriptors forwarded to the Vulkan
-loader. Draw execution, sampling with its application shaders, and
-validation of the actual packed payload remain with Draw.
+loader. Draw's CPU recording result with the real pack is recorded below.
+Its device readback and application shader checks remain open.
 
 The evidence packet for aea4af39-d255-46e1-bbfc-60a23127eaa7 includes
 the C-link build and test scripts, pinned vertex SPIR-V, raw GPU bytes,
@@ -166,6 +165,27 @@ or errors. In the packet, inventory.sh and inventory_trace.sh reproduce
 these results from the built source. The original Draw dump and packed
 texels were not accessed on host 12.
 
+## Draw region-builder contract
+
+At Draw `3b0c80e4d0e4352ac50498cdec0723ddc0fc6d5b`, `osd_create`
+reads the OST1 header and validates five whitelisted texture records.
+Each record has a 32-byte header immediately followed by its payload.
+The packed file is 27,541,680 bytes, including the 16-byte file header.
+The two bitmap records encode zero layers and Draw passes one actual
+layer. The other records encode their array layer counts. Draw starts at
+offset zero for each texture and derives each next offset by adding the
+current mip's width × height × bytes per texel. Its eight-slot local
+array holds 6, 2, 2, 4 and 2 regions for the five successive copies.
+
+Draw reported 20/20 CPU cases using the original reader and a recording
+callback. Bad headers, truncation and trailing data reproduced their
+diagnostics and preceding copy counts. The reader accepted changes to
+ignored words and texel data. Draw checked all thirteen scalar fields
+of each canonical region. Its textual trace SHA-256 was
+`f1e549d9291d7604185e267952e5a0f203c714711a6db4d0567c8e44d4da6dee`.
+The source block SHA-256 was
+`c4074cad66dad564a41d31430fc7ea89513959ffc7e4bc6ae99e46623b30c0b5`.
+
 ## Build the tight region list before recording
 
 Draw confirmed the loop in osd_create at 3b0c80e4d0e4352ac50498cdec0723ddc0fc6d5b,
@@ -190,7 +210,7 @@ result is the number of records written. Zero means refusal before any
 write. A null destination, zero dimension/count/texel size, shift outside
 the 32-bit dimension width, zero shifted extent, insufficient output or
 payload, or an unrepresentable count, size or cumulative offset all refuse.
-The builder allocates nothing, retains no pointer and accepts any positive
+The builder uses caller storage and accepts any positive
 bytes_per_texel that fits the payload arithmetic.
 
 On success, index `layer * mip_count + mip` contains COLOR/mip/layer/1,
@@ -216,10 +236,9 @@ if (count == 0) {
 tower_vk_osd_texture_upload_record_v1(cmd, staging, image, layers, mips, count, copies);
 ```
 
-Build the new object independently with the pinned host 12 tools.
+From the Tower root with the Linux x64 bootstrap, LLVM 19 and GNU ld, run the following commands.
 
 ```bash
-source /tmp/tower12/env
 v=scaffolding/library/graphics/vulkan
 out=$(mktemp -d)
 bootstrap/linux-x64/towerc "$v/tight_color_regions.tower" --library --jobs 1 -o "$out/tight.o"
@@ -252,29 +271,86 @@ export LOCAL_TOWER=/tmp/osd-aea4af39/retained-clean/src
 REPLAY=$(mktemp -d) bash replay.sh
 ```
 
-### Draw’s file-reader and region reference
+The manager loaded the Linux DSO and checked the 896 canonical bytes
+against both the native SDK records and an independent calculation.
+The worker's GPU-tested source was `36c01243c5b975a7b352eee7f30304e289eb05d6`.
+The linked C caller produced the same 103,158,144 guarded bytes as the
+previous recorder on the selected RTX 3090 (Vulkan 1.3.289, NVIDIA
+565.57.01). The five uploads retired on the submitting queue before
+staging release. Sixteen fragment reads completed while the images and
+views were live. Both clean and initial traces passed synchronization
+validation. Draw's application run with this builder and the Win64
+C/DLL checks remain pending.
 
-Draw reports 20/20 CPU cases at `3b0c80e4` using its verbatim packed-texture
-loop and `read_exact`, with an independent field-by-field comparison. The
-canonical input file is 27,541,680 bytes. Draw reports SHA-256
-`c4074cad66dad564a41d31430fc7ea89513959ffc7e4bc6ae99e46623b30c0b5`
-for the source block and
-`f1e549d9291d7604185e267952e5a0f203c714711a6db4d0567c8e44d4da6dee`
-for its textual field trace.
+## Rendering review
 
-On host 12, decoding the retained builder and Vulkan SDK arrays gave
-the confirmed values for all 13 scalar fields in each of the 6 font,
-2 bitmap, 2 inverted, 4 firmware and 2 images regions (208 comparisons
-per array). The check reads bufferOffset as u64, imageOffset.x/y/z as
-i32 and the other fields as u32. The literal rows in the packet's
-`draw-fields/confirmed-fields.txt` come from the confirmed layout
-contract. Draw supplied its text digest; its raw trace was unavailable
-on host 12 for a direct parse or independent hash.
 
-Draw’s file gate rejects a raw bitmap layer count of one. Its accepted
-raw zero becomes one actual layer for the builder. Draw’s reader accepted
-nonzero ignored words and changes to texel contents. Draw also tested
-diagnostics and copy counts for bad fields, truncation and trailing data.
-The external builder has its own failure contract: a refusal returns
-zero before any destination byte is written, including when the byte
-span is one short. The host 12 guarded-array tests exercise this property.
+The worker tested `75476dcd1013af214d518084c5883c41f0bc815b`. Rendering
+verified 487 archive manifest entries, both compressed GPU readbacks
+after decompression, and the Linux object and DSO hashes. Across each
+loader trace, all 208 region fields and 28 barriers matched the Draw
+layout above. Each independent 189-event lifetime trace contains five
+retirements before staging release and sixteen draws. The archive SHA-256
+is `c95cefbb2ed5e2c7d63a9ec329017845cf75dbfc709e38949514092abacb3461`.
+
+The worker's address-only GPU checks passed. Full leak checking with
+synchronization validation reported 4,187 bytes in 15 allocations in
+each arm. Ownership remains unresolved. TSan stopped before main.
+
+## Draw CPU recording with the shipped texture pack
+
+Draw fetched Tower `846176abc06dfa3ac6dbb939f3f683e9380cd99e`,
+rebuilt the recorder object and integrated it into `osd_create` at
+local Draw commit `e850df53415536c06e03f180b7568c83a3e3f013`.
+Rendering rehashed its retained 1,528-byte Linux object and matched
+Draw's rebuilt SHA-256, `b2cd884a14b66be6454083455e7e89eb18df5b4af79eae9dc6c2a722d3118d95`.
+
+Draw ran the extracted production loop twice with recording Vulkan
+callbacks, once through raw C and once with the Tower object linked.
+Both read the 27,541,680-byte `assets/osd/textures.bin`, SHA-256
+`0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9`,
+and exited 0. Draw checked five copies, all 208 fields in the 16 regions,
+28 per-layer dependencies with their 64-bit access masks, and begin/finish
+order against its independent oracle. Each run produced a 64-line trace
+with SHA-256 `1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
+Device readback of these packed texels and rendered OSD parity are pending
+on Draw's reserved hardware.
+
+### Replaying the Draw test
+
+The test source is local Draw commit `4524eebe12ddd1310cbfab50a62600543039a4d9`.
+From that checkout, set `DRAW_TOWER_OSD_TEXTURE_UPLOAD_ROOT` to the path of
+the Tower checkout at `846176abc06dfa3ac6dbb939f3f683e9380cd99e` and run:
+
+```sh
+python3 tests/verify-osd-texture-record.py "$DRAW_TOWER_OSD_TEXTURE_UPLOAD_ROOT"
+```
+
+Draw recorded the following invocation with its local compiler, SDK headers
+and output directory. Raw C and linked Tower both returned 0 and produced
+the 64-line trace recorded above.
+
+```sh
+CC=/tmp/draw-contract.6364VolT/check-cc \
+LD_LIBRARY_PATH=/tmp/draw-contract.6364VolT/deps/usr/lib/x86_64-linux-gnu \
+TOWERC=/tmp/draw-contract.6364VolT/bootstrap/linux-x64/towerc \
+CPPFLAGS="-I$PWD/build/tower-port/manager/receipt-144/sdk/usr/include" \
+python3 tests/verify-osd-texture-record.py \
+    build/tower-port/manager/receipt-145/provider \
+    --out build/tower-port/manager/receipt-146/cpu
+```
+
+### Expected device readback of the shipped texels
+
+Draw concatenated the 16 logical subresources in file texture order,
+then layer order, then mip order within each layer. The resulting
+27,541,504 packed texel bytes have file-derived SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Rendering verified the individual spans of 25,165,824, 450,560, 450,560,
+1,441,792 and 32,768 bytes against both retained Tower loader traces.
+The 16-byte file header and five 32-byte record headers account for the
+remaining 176 bytes in the full pack.
+
+Draw queued job `a07d1af8` for the device comparison. Its hardware
+invocation, selected device, observed texel digest and rendered HUD
+digest remain outstanding.
