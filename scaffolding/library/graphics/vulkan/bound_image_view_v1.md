@@ -125,3 +125,13 @@ Slot 10 job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` is queued to exercise
 the published bound view first and then the combined create/bind/view/pack/HUD
 path. The shipping linked hardware gate is open. Draw also exercised both
 providers together in its [CPU constructor tests](https://github.com/TrevorSundberg/tower/blob/5dd53312b20bd063cd9d469dc1549d3720017a2b/scaffolding/library/graphics/vulkan/create_image_v1.md#draw-owning-constructors-on-linux).
+
+In receipt `fc4f1553`, Draw recovered the published Linux `bound.o` and
+reported two CPU view-refusal checks. Rendering compared its original
+1,040-byte object with the copy retained for the combined Linux library.
+Both have SHA-256
+`61fdd20166c5844906dfb3320bab3d7b36222268015c546de29a21bc312d0418`.
+Job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` owns the on-device binding
+check for this object. Job `7c22503e-5491-4462-a6da-c1efdc38c3d3`
+owns the subsequent shipping application run with the combined library.
+[Draw constructor checks with the shared library](https://github.com/TrevorSundberg/tower/blob/8edf50ba4dd8902c4ae6a8de23c5c987776873d3/scaffolding/library/graphics/vulkan/graphics_so_linux.md#draw-constructor-checks-with-the-shared-library)
