@@ -124571,22 +124571,6 @@ header. Runtime, memory and timing evidence still belongs to the archived
 seven-entry build. The original job-ID archive and bundle verified against
 their deposited SHA-256 manifest.
 
-### Win64 raw control for initial OSD texture uploads
-
-Host 11 starts from seven-entry d1a8df2a, including the public six-entry
-documentation receipts. Assignment 6cd74574-f678-4bbe-9de0-701de63065af
-uses Draw's confirmed layout at 752f55c1280a1c737eedeaa46285af2a199aa37d,
-draw.c blob 7b6ee8f42bbde29790364d3de73a5d75216cbf1d, lines
-2079–2096 and 5339–5357 and tools/bake-osd.mjs lines 78–85. The manager
-identified textures.bin by SHA-256
-0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9.
-Only the Tower reader and synthetic bytes are used on this host. Draw's
-external API dump 144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383
-is a supplied observation (five copies, 16 regions, 28 image barriers,
-process exit 1), without a pixel check. Slot 12 owns the library operation.
-The SDK C recorder here is the independent test control. The experiment
-separates initial upload, retired staging, actual fragment sampling,
-test-only transfer readback, and final view/image retirement.
 ### Rendering review of the seventh Win64 Vulkan export
 
 Slot 11 receipt `55b94649` delivered the source bundle at `1512cb96`
@@ -124619,3 +124603,124 @@ dependency. Rendering compared the recorder and header with `dadf38c0`
 and rehashed its retained DLL and import library against the clean
 replay manifest. Both matched Draw's reported digests. This is a
 documentation update. There was no new device execution.
+
+### Win64 raw control for initial OSD texture uploads
+
+Host 11 starts from seven-entry d1a8df2a, including the public six-entry
+documentation receipts. Assignment 6cd74574-f678-4bbe-9de0-701de63065af
+uses Draw's confirmed layout at 752f55c1280a1c737eedeaa46285af2a199aa37d,
+draw.c blob 7b6ee8f42bbde29790364d3de73a5d75216cbf1d, lines
+2079–2096 and 5339–5357 and tools/bake-osd.mjs lines 78–85. The manager
+identified textures.bin by SHA-256
+0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9.
+Only the Tower reader and synthetic bytes are used on this host. Draw's
+external API dump 144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383
+is a supplied observation (five copies, 16 regions, 28 image barriers,
+process exit 1), without a pixel check. Slot 12 owns the library operation.
+The SDK C recorder here is the independent test control. The experiment
+separates initial upload, retired staging, actual fragment sampling,
+test-only transfer readback, and final view/image retirement.
+
+Source 6dd8fe67 introduced only the control and qualification sources.
+Merge 97e30ba2 reconciled the published seven-entry branch 4d40a3b0.
+The Win64 guide matches that public revision byte for byte. Its new
+seven-name link receipt was the only conflicted hunk. The local seven-entry
+base records a separate six-entry receipt in this journal.
+
+The external recording PE linked the SDK C object against a separate test
+vulkan-1.dll. The Tower observer checks both original resource handles,
+the command buffer, pointer identity of the borrowed list, call order and
+all public fields in the dependency, image barrier and copy regions.
+An initial transition covers one layer and every mip with NONE/0 to
+TRANSFER/TRANSFER_WRITE. A final transition uses TRANSFER/TRANSFER_WRITE
+to FRAGMENT_SHADER/SHADER_SAMPLED_READ (0x100000000). Both use ignored
+queue families. Passing a short or long synthetic payload length or
+one fewer region slot to the caller's layout builder failed for all five
+shapes. Deliberately truncating the final access mask in the SDK C
+control made the recording test exit 3 at the first final barrier.
+
+| Texture | Raw / actual layers | Mip extents | Staging offsets in bytes | Checked transfer bytes | Checked fragment RGBA bytes |
+| --- | ---: | --- | --- | ---: | ---: |
+| Fonts, R8 UNORM | 6 / 6 | 2048×2048 | 0, 4194304, 8388608, 12582912, 16777216, 20971520 | 25165824 | 384 |
+| Bitmap, RGBA8 sRGB | 0 / 1 | 256×352, 128×176 | 0, 360448 | 450560 | 128 |
+| Inverted, RGBA8 sRGB | 0 / 1 | 256×352, 128×176 | 0, 360448 | 450560 | 128 |
+| Firmware, RGBA8 sRGB | 4 / 4 | 256×352 | 0, 360448, 720896, 1081344 | 1441792 | 256 |
+| Images, RGBA8 sRGB | 2 / 2 | 64×64 | 0, 16384 | 32768 | 128 |
+
+The PE with the Wine system32 loader submitted on queue 0 in graphics
+family 0 of the discrete Quadro RTX 6000 (10de:1e78, UUID
+26f60f6cead65faf0253a959b2e93a2d). Wine 8, Linux 6.8, driver 615.71.10,
+device API 1.4.351. The guest requested core 1.3, queried and enabled
+synchronization2 and dynamic rendering. The core vkCmdPipelineBarrier2
+was a direct import. Each tested optimal format supported the exact image
+usage, extents, mip/array counts and sample count. Reported optimal flags
+were 0x1dd83 for R8 and RGBA8 UNORM and 0x1dd81 for RGBA8 sRGB.
+Required flags were 0xc001 for upload and 0x4080 for the render target.
+The explicit guest Khronos-layer probe returned −6. Successful runs
+requested host synchronization validation, recorded Khronos instance
+and device insertion, and observed zero debug-utils warnings/errors.
+
+For each new image the caller recorded the raw transaction (initial
+barriers, one all-regions copy, final barriers), then ended, submitted
+and waited on the same queue. It destroyed coherent staging only after
+that wait returned success. In a second recording on the same primary a
+fullscreen triangle sampled the still-live source view in final layout.
+The fragment shader used nearest explicit LOD and four independent x and
+y coordinates including the extremes, for every layer/mip. Tower checked
+all four linear output channels using numerical sRGB-to-linear UNORM8
+pairs, the original alpha or R8's (R,0,0,1) expansion. Test-only barriers
+made the attachment and sampled source transfer-readable and the copied
+buffers host-readable. Every original encoded byte and all three 16-byte
+guards per texture passed. Both images and views were destroyed after
+the second successful retirement. The CPU time measurements cover
+recording with the validation layer. The raw object's only undefined
+symbols were the two recording calls. The Wine owner trace shows exactly
+ten end/submit/queue-idle sequences in the five transactions and consumers.
+The recording-only driver supplies the descriptor evidence.
+
+The compressed capture expands to 27,542,768 bytes, SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811.
+It holds 27,541,504 transfer bytes, 1,024 fragment bytes and 240 guard
+bytes. Its per-texture transfer and sampling hashes are in the packet.
+The seven-entry DLL and import library regenerated with the hashes in
+the Win64 guide. The previous raw and linked guarded 73-byte and 64 MiB
+uploads and the previous counted executable (336 guarded bytes) passed.
+The full guarded streams matched their frozen hashes.
+
+The host was a two-socket Xeon E5-2699 v4, 88 logical CPUs, 10.56 CPU
+quota. Three warm-cache fresh Wine processes, a single test thread and
+one graphics queue ran sequentially after the pixel check. Initial raw
+median wall and user+system seconds were 1.34 and 1.19 with median peak
+RSS 190968 KiB. The clean replay medians were 1.08 and 1.03 seconds and
+192088 KiB. At 10 MHz QPC the initial median recording intervals for
+fonts/bitmap/inverted/firmware/images were 369.6/103.9/50.6/107.0/65.9
+microseconds. The packet retains each sample. GPU timestamps, allocator
+counts and native Windows scheduling were unmeasured. These are raw
+caller baselines for the future linked comparison.
+
+Win64 trapping C UBSan passed the descriptor observer and the full GPU
+case. The x64 MinGW ASan import libraries were unavailable and Clang
+rejected Win64 TSan. On Linux x64 the instrumented raw C and Tower
+descriptor observer passed ASan and TSan with four real pthread workers
+and four repetitions per worker. The initial sanitizer invocations
+completed directly. Three TSan starts in the clean replay failed at
+ADDR_NO_RANDOMIZE before a fourth completed with empty stderr. The
+packet retains link maps, recorder disassembly and exit records. The
+PE Tower code and graphics driver were outside that instrumentation.
+
+The initial library build rejected a top-level aggregate initializer,
+an imported module retained a public symbol outside the recorder test,
+and the first GPU fixture build rejected a reserved local name and
+implicit u8 diagnostic conversion. The corrected test keeps aggregate
+tables in ordinary functions, restricts test-build exports, names its
+local explicitly, and types its diagnostics. Clean replay reconstructed
+12 frozen build products, ran the same tests and reproduced the guarded
+capture. The host's partial-clone upload-pack rejected two local fetches
+for unavailable objects. A separate reader fetched the three-deep
+published Tower branch directly and imported the incremental bundle.
+
+The raw caller and test recipe are frozen for the rendering manager.
+Slot 12's reviewed source/header and an ordinary DLL link at ordinal 8
+are the remaining dependency for paired Win64 qualification. Physical
+Windows, actual Draw pack/application use and device-loss recovery
+remain outside this receipt.
