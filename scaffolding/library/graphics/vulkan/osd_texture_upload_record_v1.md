@@ -310,9 +310,50 @@ Rendering independently called the released builder on the five shapes,
 checked both short-input cases and the success guards, and matched the
 1,472-byte object and 896 SDK bytes to Draw's digests.
 
-Draw's combined device comparison is queued on slot 9 as
-`f7150463-6202-461b-902b-4773433aa964`. It requires the real-pack
-recorder device receipt from `a07d1af8`.
+## Draw shipping Linux builder and recorder
+
+Draw accepted the combined builder and recorder in slot 9 job
+`f7150463-6202-461b-902b-4773433aa964`, using worker source
+`951da47f77a9be3de64873754bd09fc6bb51e38c` and tests
+`6df2fb1da1c53aabdf13ed587946591e3f0cfb51`. The worker independently
+reconstructed the packed-texture loop from the Draw manager's
+`ff8da985` integration. Draw compared the compiled loop test objects
+byte for byte and reported that the two pre-allocation refusal controls
+passed at `d0fbde2`. Tower supplied the builder at `0e385907` and the
+recorder at `846176ab`.
+
+Draw selected an RTX 3060 under Linux, Vulkan 1.4.329, NVIDIA 595.99.02.
+Its optimized shipping ELF had SHA-256
+`b266512bff22b0522e70701fce3f6c560e9c6f5a249ad3c089693b990259c294`.
+From the Draw checkout, run that executable with the following arguments.
+
+```sh
+"$DRAW_ELF" --offscreen --validate --osd-test assets/osd/state.bin \
+  --fixed-time 0 --frames 1 --size 1280 800 \
+  --capture /tmp/draw-f7150463/check/frame.rgba
+```
+
+Draw verified all 263 members of archive `13038a54…`. The shipping run
+exited 0 with zero validation warnings or errors. Five copies contained
+6, 2, 2, 4 and 2 regions. Draw checked all 208 fields, 28 barriers and
+queue completion before staging destruction. The following SHA-256
+prefixes identify the outputs in Draw's receipt.
+
+| Output | Bytes | SHA-256 prefix |
+| --- | ---: | --- |
+| Active packed texels | 27,541,504 | `df148817` |
+| Readback including 91,136 guard and padding bytes | 27,632,640 | `3946dbc8` |
+| Visible HUD | | `cb466e6d` |
+| Resized HUD | | `26bcbccf` |
+| Full RGBA diagnostic | | `c71de7d3` |
+
+The frozen PPMs and camera outputs matched across raw C, recorder-only
+and combined runs. The packed readback and both HUD digests agree with
+the [recorder-only Linux run](https://github.com/TrevorSundberg/tower/blob/1ba6a79b9f513a3c9b8c2da7fe352d88102faead/scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-linux-hardware-acceptance-on-the-shipped-osd-pack).
+Rendering replayed the five shapes against its released Linux builder,
+matched the 896 SDK bytes above and verified that all ten short-capacity
+or short-payload inputs left the guarded output untouched. Draw's Win64
+ordinal-9 application run remains with job `53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`.
 
 ## Rendering review
 
@@ -345,8 +386,8 @@ and exited 0. Draw checked five copies, all 208 fields in the 16 regions,
 28 per-layer dependencies with their 64-bit access masks, and begin/finish
 order against its independent oracle. Each run produced a 64-line trace
 with SHA-256 `1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
-Device readback of these packed texels and rendered OSD parity are pending
-on Draw's reserved hardware.
+The subsequent Linux hardware comparisons covered the recorder alone and
+then the combined builder and recorder.
 
 ### Replaying the Draw test
 
@@ -383,6 +424,5 @@ Rendering verified the individual spans of 25,165,824, 450,560, 450,560,
 The 16-byte file header and five 32-byte record headers account for the
 remaining 176 bytes in the full pack.
 
-Draw queued job `a07d1af8` for the device comparison. Its hardware
-invocation, selected device, observed texel digest and rendered HUD
-digest remain outstanding.
+Draw verified this expected digest in the [recorder-only hardware comparison](https://github.com/TrevorSundberg/tower/blob/1ba6a79b9f513a3c9b8c2da7fe352d88102faead/scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-linux-hardware-acceptance-on-the-shipped-osd-pack).
+The subsequent combined run is recorded above.
