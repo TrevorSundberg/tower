@@ -1,4 +1,5 @@
 import tower;
+import frame_submit;
 import readback_abi;
 import readback_device;
 
@@ -16,7 +17,7 @@ extern fn abort(): void;
 fn vk_submit_and_wait(device: VkDeviceHandle*, queue: VkQueueHandle*, cmd: VkCommandBufferHandle*,
     fence: VkFenceHandle*, submitted_message: u8*): bool {
     var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
-    var result = vkQueueSubmit(queue, 1, &submit, fence);
+    var result = tower_vk_queue_submit_one_v1(queue, &submit, fence);
     if vk_ok("vkQueueSubmit", result) {
         puts(submitted_message);
         var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
