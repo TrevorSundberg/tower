@@ -76,17 +76,16 @@ Draw acknowledged `draw-tower-bound-image-view/v1` at Tower
 The Win64 release used for this control is `3b739bb6` with nine exports.
 
 Compile `view_sdk.c` as a separate object for the raw SDK reference.
-Compile `view_client.c` for the external DLL path. When a reviewed header is
-available, define `TOWER_REVIEWED_VIEW_HEADER` to its quoted filename. The C11
-assertion checks the function pointer type. Both objects supply the same test
-entry. Neither implements a production export.
+Compile `view_client.c` for the external DLL path. It includes the published
+`bound_image_view.h` and checks its function pointer type at compile time.
+Both objects supply the same test entry.
 
 The recording PE links `view_cases.c` with one of these objects. Its local
 test loader exports `vkCreateImageView` and the PFN registration in
 `view_driver.c`. The hardware PE links the same selected object with
 `view_gpu.c` and the ordinal-nine capture fixture. Redirect only its
 `gpu.obj` references to `vkCreateImageView` and `vkDestroyImageView`. The
-adapter leaves the readback target on its original SDK path, retains three
+adapter leaves the readback target on its original SDK path, retains five
 additional subresource views through completion, and logs returned handles
 for comparison with the Wine retirement trace. Sampling uses the original
 five full views. Build, execution and replay commands are in the packet for
@@ -95,5 +94,6 @@ five full views. Build, execution and replay commands are in the packet for
 The numeric result and output guard checks exercise the published valid-input
 contract. The recording driver deliberately returns an error after writing
 the private slot. The two bitmap probes separately create a 2D-array view of
-mip 1 on an image with exactly one actual layer. The font probe starts at
-layer 2. See the [Win64 measurements and open link](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-the-bound-osd-image-view).
+mip 1 on an image with exactly one actual layer. The full-range array probe also holds the same bitmap, format and range as
+its sampled 2D view. The font probe starts at
+layer 2. See the [Win64 release measurements](../../../../../docs/temporal-opcode-research-journal.md#win64-ordinal-10-for-an-already-bound-osd-image).

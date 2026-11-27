@@ -125202,3 +125202,66 @@ Win64 control at 4d8673d7 and its nine-export release each reproduced the
 entire frozen stream on this host before integration. The ordinal-nine
 branch had advanced to 8c6f9fe6 with Draw's cross-link receipt. The worker
 merged that documentation before adding ordinal 10.
+
+**Release and linkage.** The 744-byte provider COFF imports only
+vkCreateImageView, SHA-256
+`e6e4fbadc7b33c19d0d5c3acc4220b6974e2709cb94edfbe6031e7a8d64d0b5e`.
+The native object built from these sources matched slot 12's 1,040-byte
+object. The original seven Win64 objects and the shader consumer PE remained
+byte-identical. The external C client compiled against the reviewed header
+to the frozen COFF digest `938562f8…`. Its hardware PE imports the builder,
+new view entry and recorder from tower_graphics.dll with hints 9, 10 and 8.
+The DLL export directory supplies all ten ordinal/name pairs. The old
+shader, counted draw, small/large buffer upload, ordinal-eight OSD capture
+and ordinal-nine checked region and capture clients also passed on this DLL.
+The [Win64 build page](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#creating-a-view-of-a-bound-image-at-ordinal-10)
+gives release digests and C usage.
+
+**Recording double.** Win64 SDK, direct provider object and import-library
+clients produced the same 27 rows. The original 24 matched the archived
+control. Replaying the bitmap with only its type changed kept the device,
+image, format, full one-layer range and caller slot fixed. For each type the
+observer inspected the complete descriptor including its chain, flags,
+identity swizzles and five range fields. It wrote a private slot once with
+a null allocator on the same device. Success published the handle. Signed
+results −1 and −2 preserved the caller slot, range and guards after clobber.
+
+**Quadro evidence.** Physical-device index 0, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, Quadro RTX 6000, Vulkan 1.4.351,
+NVIDIA 615.71.10. A single graphics queue completed ten submissions per
+capture. All five full source views were sampled across 16 subresources.
+Five extra views exercised the font layer slice and the full-range array
+and mip-one array for each bitmap. Returning handles, bound memory and
+Wine trace events established that every live source view was distinct
+and retired on its creating device after completion and before image and
+memory destruction. The trace verifier rejected a premature destruction.
+Release SDK C, C linked to the DLL and the trapping C UBSan client reproduced
+27,542,768 bytes, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The independent verifier checked 256 sampled texels and all 240 guard bytes.
+Host-inserted Khronos synchronization validation reported zero guest
+warnings/errors. Explicit guest layer selection still returned −6.
+
+**Same-host cost.** Xeon E5-2699 v4, affinity 0–87, quota 10.56 CPUs,
+one caller and one queue. Three interleaved warm-prefix runs per lane used
+the same optimized fixture objects, ten-view DLL, textures and checked
+outputs. Clang 19.1.7, Win64 GNU, −O2, Wine 8. SDK wall times were
+1.79/1.20/1.44 s, user 0.81/0.61/0.65 s, system 0.59/0.49/0.52 s and
+peak process RSS 190228/192596/191900 KiB. DLL wall times were
+1.31/1.29/1.44 s, user 0.72/0.74/0.75 s, system 0.55/0.51/0.52 s
+and RSS 190984/192260/190936 KiB. Thirty QPC intervals per lane gave
+median 12.4 µs SDK and 12.7 µs DLL (ranges 4.8–69.0 and 4.7–72.7 µs).
+The measured intervals include the validated driver. This sample does not
+resolve a DLL overhead. The provider's descriptor and private handle use
+automatic storage. Driver allocations were outside allocation instrumentation.
+
+**Sanitizers and scope.** Native ASan with leak detection and native TSan
+instrumented the Tower provider and C caller/double. Each completed 432
+calls on four libc pthreads. Two TSan launches failed during address-space
+setup before the successful third launch. Win64 trapping UBSan covered the
+external C consumer, observer and GPU test boundary. Win64 ASan lacks its
+target runtime and Clang rejected Win64 TSan. Production Tower COFF, Wine,
+driver and GPU were uninstrumented. Physical Windows and the shipping Draw
+application remain open. The assignment packet includes the original SDK
+baseline intact, exact commands, release pair, object and PE maps, both
+loader traces, guarded capture, timing samples and sanitizer startup logs.

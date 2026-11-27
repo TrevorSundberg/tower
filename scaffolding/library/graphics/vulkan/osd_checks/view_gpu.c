@@ -9,7 +9,7 @@
 
 static struct {
     VkDevice device;
-    VkImageView sampled, subresource;
+    VkImageView sampled, subresource, full_array;
 } active;
 
 static void require(int condition, const char *message) {
@@ -53,7 +53,14 @@ VKAPI_ATTR VkResult VKAPI_CALL osd_fixture_create_view(VkDevice device, const Vk
         else { range.baseArrayLayer = 2; range.layerCount = 3; }
         result = checked_call(device, info->image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, info->format,
                               range, &active.subresource);
+        if (result == VK_SUCCESS && info->subresourceRange.levelCount == 2) {
+            /* Same bitmap, format and full range as the sampled 2D view. */
+            result = checked_call(device, info->image, VK_IMAGE_VIEW_TYPE_2D_ARRAY, info->format,
+                                  info->subresourceRange, &active.full_array);
+        }
         if (result != VK_SUCCESS) {
+            if (active.subresource) vkDestroyImageView(device, active.subresource, NULL);
+            active.subresource = VK_NULL_HANDLE;
             vkDestroyImageView(device, active.sampled, NULL);
             active.sampled = *out = VK_NULL_HANDLE;
         }
@@ -65,8 +72,9 @@ VKAPI_ATTR void VKAPI_CALL osd_fixture_destroy_view(VkDevice device, VkImageView
         const VkAllocationCallbacks *allocator) {
     if (view == active.sampled) {
         require(device == active.device && allocator == NULL, "source retirement device or allocator");
+        if (active.full_array) vkDestroyImageView(device, active.full_array, NULL);
         if (active.subresource) vkDestroyImageView(device, active.subresource, NULL);
-        active.sampled = active.subresource = VK_NULL_HANDLE;
+        active.sampled = active.subresource = active.full_array = VK_NULL_HANDLE;
     }
     vkDestroyImageView(device, view, allocator);
 }

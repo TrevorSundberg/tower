@@ -10,9 +10,10 @@ typedef struct {
     VkFormat format;
     VkImageSubresourceRange range;
 } Case;
+enum { Bitmap = 1 };
 static const Case cases[] = {
     {VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8_UNORM,        {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,6}},
-    {VK_IMAGE_VIEW_TYPE_2D,       VK_FORMAT_R8G8B8A8_SRGB, {VK_IMAGE_ASPECT_COLOR_BIT,0,2,0,1}},
+    [Bitmap] = {VK_IMAGE_VIEW_TYPE_2D,       VK_FORMAT_R8G8B8A8_SRGB, {VK_IMAGE_ASPECT_COLOR_BIT,0,2,0,1}},
     {VK_IMAGE_VIEW_TYPE_2D,       VK_FORMAT_R8G8B8A8_SRGB, {VK_IMAGE_ASPECT_COLOR_BIT,0,2,0,1}},
     {VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_SRGB, {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,4}},
     {VK_IMAGE_VIEW_TYPE_2D_ARRAY, VK_FORMAT_R8G8B8A8_SRGB, {VK_IMAGE_ASPECT_COLOR_BIT,0,1,0,2}},
@@ -49,17 +50,23 @@ static VKAPI_ATTR VkResult VKAPI_CALL record(VkDevice device, const VkImageViewC
 int osd_view_suite(void) {
     const VkResult results[] = {VK_SUCCESS, VK_ERROR_OUT_OF_HOST_MEMORY, VK_ERROR_OUT_OF_DEVICE_MEMORY};
     const uint64_t fence = UINT64_C(0x5ad4398e63c10fb2);
+    struct { uint32_t left; VkImageSubresourceRange value; uint32_t right; } input = {0x35ed1c08, {0}, 0x6a7b5413};
+    struct { uint64_t left; VkImageView value; uint64_t right; } output = {fence, VK_NULL_HANDLE, ~fence};
+    const unsigned count = sizeof cases / sizeof cases[0];
     osd_observe_view(record);
-    for (unsigned i = 0; i < sizeof cases / sizeof cases[0]; ++i) {
-        const Case *c = &cases[i];
+    for (unsigned i = 0; i <= count; ++i) {
+        /* Replay the bitmap at the same addresses with only its requested type changed. */
+        unsigned image_id = i == count ? Bitmap : i;
+        Case selected = cases[image_id];
+        if (i == count) selected.type = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+        const Case *c = &selected;
         for (unsigned j = 0; j < sizeof results / sizeof results[0]; ++j) {
-            struct { uint32_t left; VkImageSubresourceRange value; uint32_t right; }
-                input = {0x35ed1c08, c->range, 0x6a7b5413};
-            struct { uint64_t left; VkImageView value; uint64_t right; } output = {fence, VK_NULL_HANDLE, ~fence};
+            input.value = c->range;
+            output.value = VK_NULL_HANDLE;
             expected.test = c;
-            expected.device = (VkDevice)(uintptr_t)(0x100 + i);
-            expected.image = (VkImage)(uintptr_t)(0x200 + i);
-            expected.handle = (VkImageView)(uintptr_t)(0x300 + i);
+            expected.device = (VkDevice)(uintptr_t)(0x100 + image_id);
+            expected.image = (VkImage)(uintptr_t)(0x200 + image_id);
+            expected.handle = (VkImageView)(uintptr_t)(0x300 + image_id);
             expected.caller = &output.value;
             expected.result = results[j];
             expected.calls = 0;

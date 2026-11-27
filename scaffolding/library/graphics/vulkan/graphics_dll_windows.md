@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles seven Tower objects for
+The entry verifies the checked-in bootstrap, compiles eight Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -536,3 +536,32 @@ Draw queued the shipping Win64 application on slot 9 as
 evidence from `4ff01175-385e-4039-bc8e-28e4465856f6`. That run must
 compare the shipped pack's GPU texel readback and frozen HUD output.
 Physical Windows execution also remains open.
+
+## Creating a view of a bound image at ordinal 10
+
+Include `bound_image_view.h` and use the existing `tower_graphics.lib` link.
+After the image is bound, pass its creating device and the caller's compatible
+format, explicit view type and complete subresource range.
+
+```c
+VkImageView view = VK_NULL_HANDLE;
+VkResult result = tower_vk_create_bound_image_view_v1(
+    device, image, view_type, format, &range, &view);
+```
+
+On success the caller owns the returned view. On a driver failure the caller
+receives its original null slot and the exact signed result. The view operation
+makes one null-allocator call. Destroy the view on its creating device after
+its last submitted use completes, then destroy the image and free its memory.
+The [public contract](https://github.com/TrevorSundberg/tower/blob/6b39d552b312a4d79436b49337cf3fff20b9b5cc/scaffolding/library/graphics/vulkan/bound_image_view_v1.md)
+identifies Draw's caller and the portable Linux evidence.
+
+The Win64 SDK control and the external C consumer sampled all 16 subresources
+on Wine 8 and the Quadro RTX 6000. On each bitmap the device created both a
+2D view and a 2D-array view with the same image, format and full two-mip,
+one-layer range. The guarded stream matched the nine-entry release.
+The 6,656-byte DLL has SHA-256
+`6c926154af173dc92ece47f2c4b5c3d2bfa278904d69167172521f8eef1f7940`.
+The 4,270-byte import library has SHA-256
+`39821cb5d83086f665346451b9825ea80d5430daa96f6897ecc3d47075d33afd`.
+See the [per-path recording, timing and lifetime results](../../../../docs/temporal-opcode-research-journal.md#win64-ordinal-10-for-an-already-bound-osd-image).
