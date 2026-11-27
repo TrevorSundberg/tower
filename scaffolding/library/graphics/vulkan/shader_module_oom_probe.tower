@@ -1,0 +1,35 @@
+import library.testing;
+import readback_abi;
+import shader_module;
+
+// Test-only link provider. Redirect only the counted object's shader creation
+// relocation here. All other allocation and all SPIR-V bytes stay unchanged.
+// VkAllocationCallbacks from vulkan_core.h (see readback_abi_license.txt).
+struct ShaderDenialCallbacks {
+    user: void*;
+    allocate: function(void*, void*, usize, usize, u32);
+    reallocate: function(void*, void*, void*, usize, usize, u32);
+    release: function(void, void*, void*);
+    internal_allocate: function(void, void*, usize, u32, u32);
+    internal_free: function(void, void*, usize, u32, u32);
+}
+fn shader_deny(user: void*, size: usize, alignment: usize, scope: u32): void* { return null; }
+fn shader_deny_realloc(user: void*, old: void*, size: usize, alignment: usize, scope: u32): void* {
+    assert(old == null);
+    return null;
+}
+fn shader_deny_free(user: void*, memory: void*): void { assert(memory == null); }
+
+export fn shader_create_with_denial(device: VkDeviceHandle*, info: VkShaderModuleCreateInfo*,
+        allocator: VkAllocationCallbacks*, out: VkShaderModuleHandle**): i32 {
+    assert(allocator == null);
+    var callbacks: ShaderDenialCallbacks = { allocate: shader_deny, reallocate: shader_deny_realloc,
+        release: shader_deny_free, ..default };
+    var deny = bits(VkAllocationCallbacks*, &callbacks);
+    var status = vkCreateShaderModule(device, info, deny, out);
+    // Some implementations may create a module without allocating. Retire it
+    // with the same allocator before reporting that denial was not exercised.
+    if status == 0 { vkDestroyShaderModule(device, *out, deny); }
+    assert(status == -1, "Expected VK_ERROR_OUT_OF_HOST_MEMORY from vkCreateShaderModule");
+    return status;
+}
