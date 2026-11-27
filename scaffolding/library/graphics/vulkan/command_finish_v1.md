@@ -1,11 +1,14 @@
-# Blocking Vulkan command finish
+# draw-tower-command-finish/v1
 
 Draw's staged `buffer_upload` at `30b66f597b33c6f88964779f0ab1b87e847dc839`,
 draw.c:1892, copies host bytes to staging, records a buffer copy and a
 TRANSFER/TRANSFER_WRITE to ALL_COMMANDS/MEMORY_READ barrier, then finishes
 the primary and releases staging after success. The directly mapped path
-bypasses finish. The manager confirmed the same finish contract for texture
-upload/prewarm. Tower's tested implementation is `d1f468c33`. Include
+bypasses finish. Draw also uses finish after recording OSD texture uploads. At Draw
+`41d8b9badce3e6520d43b798c44cbb7e19b6d57c`, the staged buffer caller
+is in draw.c:1970–1979. It records a zero-offset copy followed by one
+global `VkMemoryBarrier2` through `vkCmdPipelineBarrier2`. That recorder
+is a separate port. Tower's tested finish implementation is `d1f468c33`. Include
 `frame_submit.h` and use the Linux x86-64 Vulkan C ABI.
 
 ```c
@@ -37,7 +40,9 @@ and the guarded readback retain their separate fence contracts.
 
 ## Standalone objects and C link
 
-Run in Bash from the Tower root on the host 12 Linux SDK. The receipt
+Run in Bash from the Tower root with LLVM 19 tools, GNU ld and the Linux
+x64 Vulkan loader. Set `VULKAN_LOADER` to the full path to libvulkan.so.1.
+The receipt
 pins the LLVM 19 tools, GNU ld, Vulkan headers/loader (1.3.239), bootstrap
 resources and the compiler (SHA-256
 `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`).
@@ -45,10 +50,9 @@ This recipe selects the new entry before optimization so it calls the
 two public functions in the byte-identical, previously tested end object.
 
 ```bash
-source /tmp/tower12/env
 v=scaffolding/library/graphics/vulkan
 c=bootstrap/linux-x64/towerc
-loader=/tmp/tower12/sysroot/usr/lib/x86_64-linux-gnu/libvulkan.so.1
+loader=${VULKAN_LOADER:?Set VULKAN_LOADER to the Linux x64 libvulkan.so.1}
 out=$(mktemp -d)
 "$c" "$v/command_begin.tower" --library --jobs 1 -o "$out/command_begin.o"
 "$c" "$v/command_end.tower" --library --jobs 1 -o "$out/command_end.o"
@@ -83,8 +87,9 @@ the host must have the pinned SDK and NVIDIA ICD.
 
 Raw C and C through the DSO each performed 64 eight-byte transfers to
 offset 4 of a coherent 16-byte destination, resetting one primary only
-after the previous finish. A fixture-only transfer-to-host barrier makes
-host visibility explicit. The entire destination alternated between
+after the previous finish. The fixture uses buffer-specific barriers for the test destination and
+coherent host readback. Draw uses a global synchronization2 barrier in
+its production copy path. The comparison exercises the finish entry. The entire destination alternated between
 `a5a5a5a53031323334353637a5a5a5a5` and
 `a5a5a5a56162636465666768a5a5a5a5`. Each caller exited 0 with zero
 Khronos synchronization validation warnings/errors. Trace checks verified
@@ -104,3 +109,37 @@ device. The async gate returned with VK_NOT_READY before host release,
 then signaled both fences and the GPU event. Guarded clear and counted
 raster reproduced the frozen bytes. Draw application execution, WSI and
 real device loss remain unchecked.
+
+The rendering manager verified all 382 archive entries, inspected the
+additive object's three imports and the DSO's four public symbols, and
+checked the 64 guarded results in each raw, DSO and direct-object run
+in both the original and clean replay. The local CPU recording replay
+matched the worker stdout SHA-256
+`8494c46f47a4a660ceb4af42048ae7ca446233fcfda3a7a9376d7851d47cc3c9`.
+All 18 fatal recording cases reproduced their exact diagnostics and exit 1.
+
+Address-only GPU checks passed. With synchronization validation enabled,
+LSan reported 3,432 bytes in seven allocations in both lanes. TSan did
+not complete. Draw's application upload and physical Windows execution of
+the finish entry remain open.
+
+## Draw staged upload through the public entry
+
+Draw reported rebuilding the aggregate, additive and four-export shared
+library at Tower `4b1f0af2bcfcbb9d8d7d86eae7fa885ffb1ed8e4`.
+The three hashes matched the products listed above. Its CPU recording
+test compiled the actual `buffer_upload`, `memory_barrier` and
+`command_finish` bodies from
+`41d8b9badce3e6520d43b798c44cbb7e19b6d57c`. The raw Vulkan control,
+aggregate object, additive object plus end, and DSO each passed all
+11 cases. Each produced stdout SHA-256
+`c635b7f5959a162d027d0362aa1d28b67fcba1cb5827138afbc573cd8e4b5112`.
+
+The direct-mapped case unmapped without recording or submitting. Staged
+success recorded a 73-byte copy and a global memory barrier, then ended,
+submitted and waited on the queue before destroying staging. The payload
+and guards matched. Draw injected −4, −1 and +1 at each of the three
+finish steps. Each failure propagated the first signed result and kept
+staging live. A failed idle after accepted mock submission left work
+pending. Draw assigned the 73-byte and 64 MiB device tests to slot 10
+job `00d4d868-4cb6-4141-9212-8fb128a0ed04`.
