@@ -124495,3 +124495,31 @@ instrumentation covers CPU descriptors and callbacks. PE Tower machine
 code and the graphics driver were outside the sanitizer coverage.
 Physical Windows, actual device loss and use in a Draw process remain
 open. The manager owns publication.
+
+**Clean replay.** A fresh Git reader fetched the registered five-entry
+history through 3720ea50. The standalone job-ID bundle supplied the
+candidate as HEAD and a separate replay-input tag. On the first attempt
+the release matched, but the two test PEs differed across build paths.
+A third path-qualified private diagnostic symbol in the fixture COFF
+caused the difference. The test build now assigns it a module-relative
+name as well. The code, data, TLS, unwind and relocation sections of
+both original measured callers match the distributed callers.
+
+From a repository containing that base, set BUNDLE to the absolute
+bundle path and D to a new absolute build directory. The replay
+creates its own X display and Wine prefix and uses the prepared host SDK.
+
+```bash
+git bundle verify "$BUNDLE"
+git fetch "$BUNDLE" HEAD refs/tags/upload-replay-55b94649:refs/tags/upload-replay-55b94649
+git checkout --detach FETCH_HEAD
+git show refs/tags/upload-replay-55b94649:replay.sh > "${TMPDIR:-/tmp}/upload-replay.sh"
+D="$D" PREPARED_SDK=/tmp/finish-cce07bd9/sdk bash "${TMPDIR:-/tmp}/upload-replay.sh"
+```
+
+The clean run at eaa582c2 reproduced all six frozen build products by
+SHA-256. It then passed recording, both capture sizes, gate, signed
+finish, checked timing and available sanitizer tests. The release build
+and link use the public commands in graphics_dll_windows.md. The worker
+packet retains raw PE tables, C sources and objects, the expanded compiler
+and linker commands, all guarded captures, errors and timing samples.
