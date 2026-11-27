@@ -1,12 +1,6 @@
 #include "view_check.h"
 
-#ifdef TOWER_REVIEWED_VIEW_HEADER
-#include TOWER_REVIEWED_VIEW_HEADER
-#else
-/* Compile the acknowledged C contract before the provider header is published. */
-VkResult tower_vk_create_bound_image_view_v1(VkDevice, VkImage, VkImageViewType,
-    VkFormat, const VkImageSubresourceRange *, VkImageView *);
-#endif
+#include "../bound_image_view.h"
 
 typedef VkResult (*BoundView)(VkDevice, VkImage, VkImageViewType, VkFormat,
     const VkImageSubresourceRange *, VkImageView *);

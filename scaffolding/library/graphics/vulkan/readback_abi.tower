@@ -338,6 +338,8 @@ struct VkImageSubresourceRange {
     layerCount: u32;
 }
 
+var VkImageViewCreateTag: u32 = 15;
+
 struct VkImageViewCreateInfo {
     sType: u32;
     pNext: void*;

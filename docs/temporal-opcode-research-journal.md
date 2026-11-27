@@ -125191,3 +125191,14 @@ ordinals and new import, repeat both consumers with the frozen objects and
 compare guarded bytes, traces and timings. Physical Windows and Draw remain
 open. Job 01f5b8d5 contains the bounded source bundle, recipe, manifests and
 recording/device logs.
+
+### Win64 ordinal 10 for an already-bound OSD image
+
+Slot 11 fetched the published Linux provider at 6b39d552. Its header and
+Tower source have identical Git blobs at tested revision 69d838e7. The Win64
+port moves VkImageViewCreateTag into readback_abi alongside its descriptor
+and adds the loader import and ordinal to the existing DLL build. The earlier
+Win64 control at 4d8673d7 and its nine-export release each reproduced the
+entire frozen stream on this host before integration. The ordinal-nine
+branch had advanced to 8c6f9fe6 with Draw's cross-link receipt. The worker
+merged that documentation before adding ordinal 10.
