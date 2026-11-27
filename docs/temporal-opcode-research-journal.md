@@ -123564,3 +123564,19 @@ by the frozen input contract and preserves the digest and module checks.
 The compiler driver and CLI stream helper import compiler or tool support;
 the fixture needs only the common CRT stream calls. Linux and GNU Windows
 use the same 64-bit size_t. No new feature structure is required.
+
+Wine 8 refused a named guest layer with VK_ERROR_LAYER_NOT_PRESENT before
+device selection. Its debug trace says winevulkan cannot load explicit
+layers. The opt-in --external-layer form retains the warning/error debug
+messenger and leaves layer selection to the loader outside the guest.
+It prints layer_status=unverified. An external capture must establish
+layer insertion and settings separately. The ordinary core13 and draw14
+invocations still require the guest-visible Khronos layer and sync feature.
+
+In the slot 11 run the Linux loader inserted Khronos validation at both
+instance and device and enabled synchronization validation. Removing the
+compute-to-consumer barrier in a private control copy elicited six
+SYNC-HAZARD-READ-AFTER-WRITE messages in the PE callback. The same
+control with sync disabled received zero. Both controls stopped after
+recording, before queue submission. With the published recording intact
+the PE completed one submission and one fence with zero callback messages.
