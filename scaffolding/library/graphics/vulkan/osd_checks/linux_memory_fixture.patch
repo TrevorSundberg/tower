@@ -1,0 +1,24 @@
+--- a/scaffolding/library/graphics/vulkan/osd_upload_checks/plan_gpu.tower
++++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/plan_gpu.tower
+@@ -2,6 +2,8 @@
+ import .readback_abi;
+ import .readback_device;
+
++extern fn osd_allocate_memory(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, out: VkDeviceMemoryHandle**): i32;
++extern fn osd_bind_memory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32;
+ extern fn osd_plan(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+     count: u32, required: u32, out: VkMemoryAllocateInfo*): u32;
+ extern fn osd_watch(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+@@ -23,10 +25,8 @@
+     var match_result = osd_plan(ctx.device, image, types, count, required, &plan);
+     osd_observe(match_result);
+     if match_result == 0 { return vk_failure("No compatible source image memory type"); }
+-    var memory: VkDeviceMemoryHandle*;
+-    if !vk_ok("source allocation", vkAllocateMemory(ctx.device, &plan, null, &memory)) { return false; }
+-    *owned = memory;
++    if !vk_ok("source allocation", osd_allocate_memory(ctx.device, &plan, owned)) { return false; }
+     osd_account(plan.allocationSize);
+     *flags = types[plan.memoryTypeIndex].propertyFlags;
+-    return vk_ok("source bind", vkBindImageMemory(ctx.device, image, memory, 0));
++    return vk_ok("source bind", osd_bind_memory(ctx.device, image, *owned));
+ }

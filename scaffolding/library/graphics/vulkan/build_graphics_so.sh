@@ -22,7 +22,7 @@ objects=()
 # command_finish emits the public end and submit entries via its imports.
 for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record \
             osd_texture_upload_record tight_color_regions bound_image_view create_image image_format_preflight \
-            image_allocation_plan; do
+            image_allocation_plan image_memory; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --foundation "$root/scaffolding/foundation.tower" -o "$unit.o"
     objects+=("$unit.o")

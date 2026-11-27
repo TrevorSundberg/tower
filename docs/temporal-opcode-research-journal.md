@@ -125750,3 +125750,14 @@ tree exposed the lost text. Rebasing the job commit onto the published
 rendering history restored the merge and incorporated two subsequent Draw
 documentation commits. The resulting delta from the tested implementation
 contains the concurrent receipt and this journal correction only.
+
+### Linux graphics library allocation and zero-offset bind on host 12
+
+The packaging parent is 7aab14d463c09ddcce739c83bfd062056ef74200.
+The portable unit, SDK header, CPU recorder and owner patch come from
+397a659f4e1cfedf9d44dd96eeee61c477f52284, tested standalone at 69c3209e.
+This link keeps the two calls separate. The caller charges the allocation
+before passing the acquired handle to bind. Host 12 has the original
+release objects, client executables, device probes and guarded captures.
+The shared main checkout had an existing edit, so the worker used an
+isolated main at the requested packaging parent.

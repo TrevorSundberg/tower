@@ -1,0 +1,51 @@
+import tower;
+import .readback_abi;
+
+struct MemoryLedger { allocation_bytes: u64; live: u64; peak: u64; count: u64; }
+extern fn osd_allocate_memory(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, out: VkDeviceMemoryHandle**): i32;
+extern fn osd_bind_memory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32;
+extern fn osd_completed(): void;
+
+// Model the caller's two stopping points. Only the successful path retires here.
+export fn memory_owner(device: VkDeviceHandle*, image: VkImageHandle*, info: VkMemoryAllocateInfo*,
+    out: VkDeviceMemoryHandle**, ledger: MemoryLedger*): i32 {
+    var result = osd_allocate_memory(device, info, out);
+    if result != 0 { return result; }
+    ledger.allocation_bytes = info.allocationSize;
+    ledger.live += ledger.allocation_bytes;
+    if ledger.live > ledger.peak { ledger.peak = ledger.live; }
+    ledger.count++;
+    result = osd_bind_memory(device, image, *out);
+    if result != 0 { return result; }
+    var view_info: VkImageViewCreateInfo = default;
+    view_info.image = image;
+    var view: VkImageViewHandle* = null;
+    result = vkCreateImageView(device, &view_info, null, &view);
+    if result != 0 { return result; }
+    osd_completed();
+    vkDestroyImageView(device, view, null);
+    vkDestroyImage(device, image, null);
+    vkFreeMemory(device, *out, null);
+    ledger.live -= ledger.allocation_bytes;
+    ledger.allocation_bytes = 0;
+    ledger.count--;
+    *out = null;
+    return 0;
+}
+
+extern fn osd_memory_case(size: u64, allocation_result: i32, bind_result: i32, verbose: i32): i32;
+extern fn getenv(name: u8*): u8*;
+export fn main(): i32 {
+    var repeats: u32 = 1;
+    if getenv("OSD_MEMORY_BENCH") != null { repeats = 100000; }
+    for (var i: u32 = 0; i < repeats; i++) {
+        var verbose = convert(i32, i == 0);
+        if osd_memory_case(16384, 0, 0, verbose) == 0
+            || osd_memory_case(4294983680, 0, 0, verbose) == 0
+            || osd_memory_case(16384, -2, 0, verbose) == 0
+            || osd_memory_case(16384, 0, -2, verbose) == 0
+            || osd_memory_case(4294983680, 1, 0, verbose) == 0
+            || osd_memory_case(4294983680, 0, -7, verbose) == 0 { return 1; }
+    }
+    return 0;
+}
