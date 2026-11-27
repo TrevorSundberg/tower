@@ -85,6 +85,8 @@ callbacks carry no mutable state and always deny allocations. The probe
 destroys an unexpected successful handle with the same allocator and fails
 the test. Normal runs use the loader directly and pass a null allocator.
 
+The same C entry is available as a [Windows x64 DLL](shader_module_windows.md).
+
 ### Calling from C on Linux x86-64
 
 Use `shader_module_c.h` with the Vulkan SDK and SysV LP64 calling convention.

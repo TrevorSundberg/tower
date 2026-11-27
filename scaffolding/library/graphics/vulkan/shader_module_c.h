@@ -9,7 +9,7 @@
 extern "C" {
 #endif
 
-/* Linux x86-64 SysV ABI. Borrow a live logical device and word_count
+/* Linux x86-64 SysV and Windows x64 ABIs. Borrow a live device and word_count
  * aligned, readable, device-valid SPIR-V words. Initialize *out to
  * VK_NULL_HANDLE and provide an initialized int32_t for vk_result.
  * Both slots must be aligned, writable, distinct from all other live
