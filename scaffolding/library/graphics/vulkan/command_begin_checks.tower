@@ -8,6 +8,7 @@ extern fn begin_raw(cmd: VkCommandBufferHandle*): i32;
 extern fn begin_info_matches(info: VkCommandBufferBeginInfo*): i32;
 extern fn begin_layout_matches(info: VkCommandBufferBeginInfo*, size: usize, tag: void*, next: void*,
     flags: void*, inheritance: void*): i32;
+extern fn strcmp(lhs: u8*, rhs: u8*): i32;
 extern fn exit(status: i32): void;
 
 struct Recording {
@@ -18,6 +19,7 @@ fn require(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
 export fn vkResetCommandBuffer(cmd: VkCommandBufferHandle*, flags: u32): i32 {
     var trace = bits(Recording*, cmd);
     require(trace.calls == 0 && flags == 0, "unexpected reset or flags");
+    puts("vkResetCommandBuffer");
     trace.calls++;
     return trace.reset_result;
 }
@@ -25,6 +27,7 @@ export fn vkBeginCommandBuffer(cmd: VkCommandBufferHandle*, info: VkCommandBuffe
     var trace = bits(Recording*, cmd);
     require(trace.calls == 1 && trace.reset_result == 0, "unexpected begin");
     require(begin_info_matches(info) == 1, "native begin info mismatch");
+    puts("vkBeginCommandBuffer");
     trace.calls++;
     return trace.begin_result;
 }
@@ -47,7 +50,17 @@ fn check(call: Begin): void {
     run(call, -4, -1);
     run(call, 0, -4);
 }
-export fn main(): i32 {
+export fn main(argc: i32, argv: u8**): i32 {
+    // The fatal-check C transport must terminate in the failing check.
+    if argc != 1 {
+        if argc != 3 { return 2; }
+        var call: Begin = begin_raw;
+        if strcmp(argv[1], "shared") == 0 { call = begin_from_c; }
+        else { if strcmp(argv[1], "raw") != 0 { return 2; } }
+        if strcmp(argv[2], "reset") == 0 { run(call, -1, -4); }
+        else { if strcmp(argv[2], "begin") != 0 { return 2; } run(call, 0, -1); }
+        puts("expected a fatal C diagnostic"); return 3;
+    }
     var info: VkCommandBufferBeginInfo;
     require(begin_layout_matches(&info, sizeof(VkCommandBufferBeginInfo), bits(void*, &info.sType),
         bits(void*, &info.pNext), bits(void*, &info.flags), bits(void*, &info.pInheritanceInfo)) == 1,
