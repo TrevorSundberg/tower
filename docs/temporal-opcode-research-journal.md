@@ -124639,3 +124639,13 @@ the published upload and finish records. Draw provided a 20-case
 recording reference for the next pure region builder, assigned to
 slot 12. The existing recorder passes its region pointer through.
 [OSD recording, link command and builder contract](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md)
+
+### Draw links the Tower recorder in its packed-texture upload loop
+
+At local Draw `e850df53`, the extracted `osd_create` loop read the
+shipped pack through both raw C and the linked `846176ab` Tower recorder.
+Draw reported exit 0 in both cases and identical 64-line callback traces.
+Rendering verified the object size and digest against its reviewed
+Linux artifact. Draw owns the two trace files and the pending real-asset
+device readback and rendered OSD comparison. This documentation records
+the CPU receipt. [Inputs, checks and trace digest](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-cpu-recording-with-the-shipped-texture-pack)

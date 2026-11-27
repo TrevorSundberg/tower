@@ -105,8 +105,8 @@ small cases. Synchronization validation reported zero warnings/errors.
 Forcing layer zero in the read consumer produced the first mismatch at
 byte 240. Each small hardware trace also compared the owner's expected
 calls and handles with the live descriptors forwarded to the Vulkan
-loader. Draw execution, sampling with its application shaders, and
-validation of the actual packed payload remain with Draw.
+loader. Draw's CPU recording result with the real pack is recorded below.
+Its device readback and application shader checks remain open.
 
 The evidence packet for aea4af39-d255-46e1-bbfc-60a23127eaa7 includes
 the C-link build and test scripts, pinned vertex SPIR-V, raw GPU bytes,
@@ -217,5 +217,22 @@ is `c95cefbb2ed5e2c7d63a9ec329017845cf75dbfc709e38949514092abacb3461`.
 The worker's address-only GPU checks passed. Full leak checking with
 synchronization validation reported 4,187 bytes in 15 allocations in
 each arm. Ownership remains unresolved. TSan stopped before main.
-Draw application execution of this recorder and Win64 DLL qualification
-remain separate checks.
+
+## Draw CPU recording with the shipped texture pack
+
+Draw fetched Tower `846176abc06dfa3ac6dbb939f3f683e9380cd99e`,
+rebuilt the recorder object and integrated it into `osd_create` at
+local Draw commit `e850df53415536c06e03f180b7568c83a3e3f013`.
+Rendering rehashed its retained 1,528-byte Linux object and matched
+Draw's rebuilt SHA-256, `b2cd884a14b66be6454083455e7e89eb18df5b4af79eae9dc6c2a722d3118d95`.
+
+Draw ran the extracted production loop twice with recording Vulkan
+callbacks, once through raw C and once with the Tower object linked.
+Both read the 27,541,680-byte `assets/osd/textures.bin`, SHA-256
+`0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9`,
+and exited 0. Draw checked five copies, all 208 fields in the 16 regions,
+28 per-layer dependencies with their 64-bit access masks, and begin/finish
+order against its independent oracle. Each run produced a 64-line trace
+with SHA-256 `1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
+Device readback of these packed texels and rendered OSD parity are pending
+on Draw's reserved hardware.
