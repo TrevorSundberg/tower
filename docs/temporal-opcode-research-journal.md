@@ -124320,3 +124320,54 @@ layer of a new image, issue one copy with that list, then transition each
 layer for fragment sampled reads. Allocation, mapping, image/view lifetime,
 begin, finish and staging retirement stay with the caller. All tests use
 reconstructed descriptors and synthetic bytes. The pack was not read.
+
+Implementation 2dfb3fd47 uses one local image barrier and a borrowed
+region list, preserving each layer's individual command. It completes the
+sync2 image layout in a shared ABI module. Commit d009b3995 supplies an
+independent Vulkan-header C control and recording-only assertions for the
+five production shapes. Commit 638dfa915 adds a real fragment texelFetch
+consumer on the RTX 3090. Commit 4f39c28d6 adds the Vulkan SDK's own
+array-stride/field reader and intermediate sRGB codes. The shared raster
+builder also reproduced the earlier counted GPU fixture's checked outputs.
+The [native OSD entry](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md)
+records the contract, build, allocation/retirement boundary and sampled
+byte hashes. The first attempt at the offsets array used square brackets;
+braced initializers compile on the pinned bootstrap.
+
+The raw C, external C/DSO and direct-object lanes covered 16 copy
+regions and 28 image dependencies per five-texture capture. Deliberately
+dropping the high sampled-read bit, resetting the barrier layer, or
+truncating the region count each exited 3 in the recording fixture.
+A live-loader trace on the 7×5 array fixture captured the exact ordered
+arguments on each primary, including list-pointer identity. Its 13184
+bytes per lane matched the independently expected trace in that process.
+The hardware small lanes checked 64 sampled layer/mip outputs (16 new
+images). The two real bitmap-shaped synthetic images added four sampled
+outputs. A wrong-layer consumer produced byte 0 instead of 53 at offset
+240 with zero validation warnings, while all positive runs passed. No
+pack bytes or Draw application were used.
+
+Five alternating raw C and external Tower process samples ran on the
+EPYC 7282 with affinity 0–31, quota 15.36 cores, one calling thread,
+one graphics queue, warm files and fresh devices. Each process checked
+the complete guarded output. CPU time sums user and system. The first
+and second small recording samples below are for R8. Mean recording
+time covers both formats in the small case. These measurements include
+the validation layer and exclude begin and finish from the recorder
+timer. Whole-process times include setup, draws, waits and byte capture.
+
+| Median over 5 | Small raw | Small external | Bitmap raw | Bitmap external |
+| --- | ---: | ---: | ---: | ---: |
+| First / second record, µs | 150.83 / 52.52 | 156.85 / 52.61 | 134.71 / 37.83 | 149.24 / 38.25 |
+| Mean record per new image, µs | 57.31 | 58.03 | 86.46 | 93.75 |
+| Process wall / CPU, ms | 323.99 / 322.70 | 328.80 / 328.05 | 324.27 / 323.91 | 328.01 / 328.08 |
+| Peak RSS, KiB | 94604 | 94572 | 95536 | 95536 |
+
+Address-instrumented Tower and ASan/UBSan C passed both recording checks
+and address-only GPU runs. Full leak checks with sync validation exited
+1 in each GPU path with 8322 bytes in 28 allocations. Both passed with
+the Khronos layer present and only the sync validation feature omitted.
+Allocation ownership remains unresolved. TSan exited 139 at the container
+personality check before main in both CPU and GPU lanes. The packet
+includes instrumented IR and native link maps. The application and driver
+are outside source-level Tower UBSan and race coverage.
