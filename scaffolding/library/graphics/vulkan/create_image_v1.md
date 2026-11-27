@@ -137,3 +137,36 @@ the full GPU leak check reported 4,187 bytes in 15 allocations on both
 baseline and candidate. Ownership remains unresolved. The CPU recording
 paths each completed a TSan run. GPU TSan did not complete. Draw's shipping
 application and Win64 DLL have separate acceptance runs.
+
+## Draw owning constructors on Linux
+
+Draw adopted the image-create entry at
+`c026f0fd1539187538b4b8ceec41687587ea835c` using the provider at Tower
+`07587159dbc5606b3e24d85fa6e3babfc2f9b6fe`. Draw independently rebuilt
+the 952-byte object and reproduced its digest above. From the Draw root
+with the pinned checkouts, Draw ran the following CPU test.
+
+```sh
+TOWERC="$bootstrap_checkout/bootstrap/linux-x64/towerc" \
+DRAW_TOWER_CREATE_IMAGE_ROOT="$create_checkout" \
+DRAW_TOWER_BOUND_VIEW_ROOT="$view_checkout" \
+bash tests/vulkan-image.sh
+```
+
+The bootstrap was from `a580e70a`, create from `07587159`, and bound view
+from `6b39d552`. Draw reported 200/200 expected exits and traces in the
+optimized recording matrix, plus two view-failure controls. Both owning
+constructors forwarded the borrowed image descriptor and nested storage.
+When the create driver wrote a handle and returned −2, the linked owner
+stayed empty and stopped before allocation. All eight combinations produced
+the same 45 events for the five shipped texture headers. The trace SHA-256
+was `e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+On an RTX 5060 Ti, Draw job `7a36cecf-5020-480c-90a9-bbecaacecc2c`
+ran two direct-driver paths. Draw verified 529 evidence hashes and both
+active texel streams against
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Those executables did not exercise the published bound-view object.
+Draw queued job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e` to exercise
+the published bound-view provider first, then image creation, binding,
+view creation, packed texel readback and HUD comparison with matched inputs.
