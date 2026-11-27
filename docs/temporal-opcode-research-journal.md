@@ -124371,3 +124371,17 @@ Allocation ownership remains unresolved. TSan exited 139 at the container
 personality check before main in both CPU and GPU lanes. The packet
 includes instrumented IR and native link maps. The application and driver
 are outside source-level Tower UBSan and race coverage.
+
+### Cross-check of the five OSD staging retirements
+
+Draw reports an application-side raw C receipt for runtime d1060797,
+manager 41d8b9ba, Wine Win64, RTX 3060 and NVIDIA 595.99.02. Its parsed
+API dump first.log has reported SHA-256
+144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383.
+Draw observed 5 copies, 16 regions, 28 transitions, matching handles,
+scopes and ranges, and five unfenced same-queue retirements before each
+staging unmap/destroy/free. All five images survived. The original
+process exited 1 with reported Wine loader diagnostics. Draw reports
+neither per-texel readback nor use of a new provider in that receipt.
+Host 12 did not read the API dump. The following independent Tower test
+will use the confirmed shapes with generated texture contents.

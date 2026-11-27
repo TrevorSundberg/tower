@@ -1,0 +1,204 @@
+import tower;
+import pack;
+import sampling;
+import .readback_abi;
+import .readback_device;
+import .readback_clear;
+import .readback_oracle;
+import .counted_abi;
+import .counted_pipeline;
+import .counted_capture;
+import .counted_record;
+import .command_begin;
+import .command_finish;
+import .upload_test_device;
+import .readback_output as output;
+
+extern fn getenv(name: u8*): u8*;
+extern fn write(fd: i32, data: u8*, count: usize): i64;
+extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
+var R8Unorm: u32 = 9;
+var Rgba8Srgb: u32 = 43;
+var SampledUsage: u32 = 4;
+var DeviceLocal: u32 = 1;
+var OuterGuard: usize = 4;
+var PaddingTexels: u32 = 2;
+struct Pixel { r: u8; g: u8; b: u8; a: u8; }
+struct Image { handle: VkImageHandle*; memory: VkDeviceMemoryHandle*; view: VkImageViewHandle*; flags: u32; }
+
+fn release_image(device: VkDeviceHandle*, im: Image*): void {
+    vkDestroyImageView(device, im.view, null);
+    vkDestroyImage(device, im.handle, null);
+    vkFreeMemory(device, im.memory, null);
+}
+fn make_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: Image*): bool {
+    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: format,
+        extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: s.layers,
+        samples: VkSample1, usage: usage, ..default };
+    if !vk_ok("create image", vkCreateImage(ctx.device, &info, null, &out.handle)) { out.handle = null; return false; }
+    var req: VkMemoryRequirements;
+    vkGetImageMemoryRequirements(ctx.device, out.handle, &req);
+    if !vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
+        || !vk_ok("bind image", vkBindImageMemory(ctx.device, out.handle, out.memory, 0)) { return false; }
+    var view: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: out.handle, viewType: VkView2D, format: format,
+        subresourceRange: { aspectMask: VkColorAspect, levelCount: s.mips, layerCount: s.layers, ..default }, ..default };
+    if s.layers > 1 { view.viewType = View2DArray; }
+    if !vk_ok("create view", vkCreateImageView(ctx.device, &view, null, &out.view)) { out.view = null; return false; }
+    return true;
+}
+fn retire(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): bool {
+    if vk_ok("owner finish", tower_vk_command_finish_v1(queue, cmd)) { return true; }
+    if !vk_ok("owner recovery drain", vkQueueWaitIdle(queue)) { exit(3); }
+    return false;
+}
+fn color(s: Shape, trial: u32, layer: u32, mip: u32, x: u32, y: u32): Pixel {
+    var value = convert(u8, (trial * 17 + layer * 53 + mip * 83 + x * 7 + y * 19) & 255);
+    if s.texel_bytes == 1 { return {r: value, a: 255, ..default}; }
+    // The sRGB inputs include intermediate red and green codes. Alpha is linear.
+    return { r: convert(u8, ((x + trial) & 1) * 128), g: convert(u8, 64 + ((y + layer) & 1) * 191),
+        b: convert(u8, ((x + y + mip) & 1) * 255), a: value };
+}
+fn read_size(width: u32, height: u32): usize {
+    return 2 * OuterGuard + convert(usize, width + PaddingTexels) * convert(usize, height) * sizeof(Pixel);
+}
+
+struct Owner {
+    ctx: ReadbackDevice*; cmd: VkCommandBufferHandle*; pipeline: CountedPipelines*; target: Image*;
+    stage: VkBufferHandle*; host: VkBufferHandle*; input: u8*; mapped: u8*; wanted: u8*;
+    shape: Shape; count: u32; list: VkBufferImageCopy*; stage_bytes: usize; host_bytes: usize;
+    target_used: bool; total_ns: u64;
+}
+
+fn fill_trial(o: Owner*, trial: u32): bool {
+    fill(o.wanted, ReadbackGuard, o.host_bytes);
+    fill(o.mapped, ReadbackGuard, o.host_bytes);
+    var source_at: usize = 0; var dst: usize = 0;
+    var s = o.shape;
+    for (var layer: u32 = 0; layer < s.layers; layer++) {
+        for (var mip: u32 = 0; mip < s.mips; mip++) {
+            var width = s.width >> mip; var height = s.height >> mip;
+            for (var y: u32 = 0; y < height; y++) {
+                for (var x: u32 = 0; x < width; x++) {
+                    var p = color(s, trial, layer, mip, x, y);
+                    copy(o.input + source_at, bits(u8*, &p), convert(usize, s.texel_bytes));
+                    source_at += convert(usize, s.texel_bytes);
+                    if s.texel_bytes == 4 {
+                        // Rounded 8-bit linear values of the two nonlinear codes.
+                        if p.r == 128 { p.r = 55; }
+                        if p.g == 64 { p.g = 13; }
+                    }
+                    var at = convert(usize, y * (width + PaddingTexels) + x) * sizeof(Pixel);
+                    copy(o.wanted + dst + OuterGuard + at, bits(u8*, &p), sizeof(Pixel));
+                }
+            }
+            dst += read_size(width, height);
+        }
+    }
+    return source_at == o.stage_bytes && dst == o.host_bytes;
+}
+
+fn record_samples(o: Owner*): void {
+    var dst: usize = 0;
+    for (var i: u32 = 0; i < o.count; i++) {
+        var region = o.list[i];
+        var extent: VkExtent2D = { width: region.imageExtent.width, height: region.imageExtent.height };
+        // Only the fixture's output attachment transitions here. The new source stays shader-read-only.
+        var barrier: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: o.target.handle,
+            subresourceRange: {aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default},
+            srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout, dstAccessMask: VkColorWrite, ..default };
+        var before = VkStageTop;
+        if o.target_used { before = VkStageTransfer; barrier.oldLayout = VkCopyLayout; barrier.srcAccessMask = VkTransferRead; }
+        vkCmdPipelineBarrier(o.cmd, before, VkStageColor, 0, 0, null, 0, null, 1, &barrier);
+        sample_to_attachment(o.cmd, o.pipeline, o.target.view, extent,
+            {layer: convert(i32, region.imageSubresource.baseArrayLayer), mip: convert(i32, region.imageSubresource.mipLevel)});
+        barrier.oldLayout = VkColorLayout; barrier.newLayout = VkCopyLayout;
+        barrier.srcAccessMask = VkColorWrite; barrier.dstAccessMask = VkTransferRead;
+        vkCmdPipelineBarrier(o.cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &barrier);
+        var copy_region: VkBufferImageCopy = { bufferOffset: convert(u64, dst + OuterGuard),
+            bufferRowLength: extent.width + PaddingTexels, imageExtent: region.imageExtent,
+            imageSubresource: {aspectMask: VkColorAspect, layerCount: 1, ..default}, ..default };
+        vkCmdCopyImageToBuffer(o.cmd, o.target.handle, VkCopyLayout, o.host, 1, &copy_region);
+        o.target_used = true; dst += read_size(extent.width, extent.height);
+    }
+    counted_buffer_barrier(o.cmd, o.host, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
+}
+
+fn exercise_image(o: Owner*, trial: u32): bool {
+    var s = o.shape; var format = Rgba8Srgb; if s.texel_bytes == 1 { format = R8Unorm; }
+    var image: Image = default; defer release_image(o.ctx.device, &image);
+    if !make_image(o.ctx, s, format, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage, &image) { return false; }
+    if trial == 0 { output.readback_number("image_format", format); output.readback_number("image_memory_flags", image.flags); }
+    if !fill_trial(o, trial) { return vk_failure("fixture payload length mismatch"); }
+    if !vk_ok("begin new image", tower_vk_command_begin_v1(o.cmd)) { return false; }
+    var start = now();
+    fixture_record(o.cmd, o.stage, image.handle, s.layers, s.mips, o.count, o.list);
+    var elapsed = now() - start;
+    o.total_ns += elapsed;
+    if trial < 2 { output.readback_label("record_ns"); output.readback_decimal(elapsed); }
+    if !retire(o.ctx.queue, o.cmd) { return false; }
+    set_sample_image(o.ctx.device, o.pipeline.set, image.view);
+    if !vk_ok("begin fragment read", tower_vk_command_begin_v1(o.cmd)) { return false; }
+    record_samples(o);
+    if !retire(o.ctx.queue, o.cmd) { return false; }
+    if memcmp(o.mapped, o.wanted, o.host_bytes) != 0 {
+        for (var i: usize = 0; i < o.host_bytes; i++) {
+            if o.mapped[i] != o.wanted[i] {
+                output.readback_number("trial", trial); output.readback_size("mismatch_at", i);
+                output.readback_number("expected", convert(u32, o.wanted[i])); output.readback_number("actual", convert(u32, o.mapped[i]));
+                return false;
+            }
+        }
+    }
+    if getenv("CAPTURE_IMAGE_BYTES") != null && write(4, o.mapped, o.host_bytes) != convert(i64, o.host_bytes) {
+        return vk_failure("capture write failed");
+    }
+    return true;
+}
+
+fn exercise_shape(ctx: ReadbackDevice*, s: Shape, trials: u32): bool {
+    var count = s.layers * s.mips; var list = alloc(VkBufferImageCopy, convert(usize, count));
+    if list == null { return vk_failure("allocate region list"); } defer free(list);
+    var stage_bytes = pack_regions(s, list); var host_bytes: usize = 0;
+    for (var i: u32 = 0; i < count; i++) { host_bytes += read_size(list[i].imageExtent.width, list[i].imageExtent.height); }
+    var want = alloc(u8, host_bytes); if want == null { return vk_failure("allocate guarded reference"); } defer free(want);
+    var stage: CountedBuffer = default; var host: CountedBuffer = default;
+    defer counted_release_buffer(ctx.device, &stage); defer counted_release_buffer(ctx.device, &host);
+    var coherent = VkHostVisible | VkHostCoherent;
+    if !counted_buffer(ctx, &stage, stage_bytes, VkTransferSrcUsage, coherent)
+        || !counted_buffer(ctx, &host, convert(u64, host_bytes), VkTransferDstUsage, coherent) { return false; }
+    var input: void*; var result: void*;
+    if !vk_ok("map staging", vkMapMemory(ctx.device, stage.memory, 0, VkWholeSize, 0, &input)) { return false; }
+    defer vkUnmapMemory(ctx.device, stage.memory);
+    if !vk_ok("map readback", vkMapMemory(ctx.device, host.memory, 0, VkWholeSize, 0, &result)) { return false; }
+    defer vkUnmapMemory(ctx.device, host.memory);
+    var target: Image = default; defer release_image(ctx.device, &target);
+    if !make_image(ctx, {width: s.width, height: s.height, layers: 1, mips: 1, texel_bytes: 4},
+        VkRgba8Unorm, VkColorAttachmentUsage | VkTransferSrcUsage, &target) { return false; }
+    var pipe: CountedPipelines = default; defer counted_destroy_pipelines(ctx.device, &pipe);
+    var vertex = getenv("OSD_VERTEX_SPV"); if vertex == null { return vk_failure("OSD_VERTEX_SPV is required"); }
+    var arrayed: u32 = 0; if s.layers > 1 { arrayed = 1; }
+    if !open_sampler_pipeline(ctx.device, &pipe, {width: s.width, height: s.height}, arrayed, vertex) { return false; }
+    var info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer, queueFamilyIndex: ctx.family, ..default };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create pool", vkCreateCommandPool(ctx.device, &info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(ctx.device, pool, null);
+    var allocation: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate primary", vkAllocateCommandBuffers(ctx.device, &allocation, &cmd)) { return false; }
+    var o: Owner = {ctx: ctx, cmd: cmd, pipeline: &pipe, target: &target, stage: stage.handle, host: host.handle,
+        shape: s, count: count, list: list, input: bits(u8*, input), mapped: bits(u8*, result), wanted: want,
+        stage_bytes: convert(usize, stage_bytes), host_bytes: host_bytes, ..default};
+    output.readback_label("staged_bytes"); output.readback_decimal(stage_bytes); output.readback_size("guarded_bytes", host_bytes);
+    output.readback_number("staging_memory_flags", stage.flags); output.readback_number("readback_memory_flags", host.flags);
+    for (var trial: u32 = 0; trial < trials; trial++) { if !exercise_image(&o, trial) { return false; } }
+    output.readback_label("total_record_ns"); output.readback_decimal(o.total_ns);
+    output.readback_number("retired_images", trials); output.readback_number("sampled_subresources", trials * count);
+    return true;
+}
+fn run(ctx: ReadbackDevice*): bool {
+    if getenv("LARGE_OSD") != null { return exercise_shape(ctx, {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4}, 2); }
+    var shape: Shape = {width: 7, height: 5, layers: 2, mips: 2, texel_bytes: 1};
+    if !exercise_shape(ctx, shape, 8) { return false; }
+    shape.texel_bytes = 4;
+    return exercise_shape(ctx, shape, 8);
+}

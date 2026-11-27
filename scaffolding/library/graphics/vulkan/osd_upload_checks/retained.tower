@@ -1,0 +1,149 @@
+import tower;
+import device_cases;
+import pack;
+import sampling;
+import .readback_abi;
+import .readback_device;
+import .readback_clear;
+import .readback_oracle;
+import .counted_abi;
+import .counted_capture;
+import .counted_pipeline;
+import .counted_record;
+import .command_begin;
+import .upload_test_device;
+import .readback_output as output;
+
+// Upload from one mapped allocation. The caller owns the new image across return.
+fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, seed: u32, image: Image*): bool {
+    var count = shape.layers * shape.mips;
+    var regions = alloc(VkBufferImageCopy, convert(usize, count));
+    if regions == null { return vk_failure("allocate upload regions"); } defer free(regions);
+    var bytes = pack_regions(shape, regions);
+    var staging: CountedBuffer = default; defer counted_release_buffer(ctx.device, &staging);
+    if !counted_buffer(ctx, &staging, bytes, VkTransferSrcUsage, VkHostVisible | VkHostCoherent) { return false; }
+    var mapped: void*;
+    if !vk_ok("map retained upload", vkMapMemory(ctx.device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
+    defer vkUnmapMemory(ctx.device, staging.memory);
+    var pixels = bits(u8*, mapped); var offset: usize = 0;
+    for (var layer: u32 = 0; layer < shape.layers; layer++) {
+        for (var mip: u32 = 0; mip < shape.mips; mip++) {
+            for (var y: u32 = 0; y < shape.height >> mip; y++) {
+                for (var x: u32 = 0; x < shape.width >> mip; x++) {
+                    var p = color(shape, seed, layer, mip, x, y);
+                    copy(pixels + offset, bits(u8*, &p), convert(usize, shape.texel_bytes)); offset += convert(usize, shape.texel_bytes);
+                }
+            }
+        }
+    }
+    if convert(u64, offset) != bytes { return vk_failure("staging size mismatch"); }
+    var format = Rgba8Srgb; if shape.texel_bytes == 1 { format = R8Unorm; }
+    if !make_image(ctx, shape, format, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage, image) { return false; }
+    output.readback_number("texture", seed); output.readback_label("staged_bytes"); output.readback_decimal(bytes);
+    output.readback_number("image_format", format); output.readback_number("image_memory_flags", image.flags);
+    output.readback_number("staging_memory_flags", staging.flags);
+    if getenv("OSD_LIFETIME_TRACE") != null {
+        output.readback_size("owner_primary", bits(usize, cmd)); output.readback_size("owner_queue", bits(usize, ctx.queue));
+        output.readback_size("owner_staging", bits(usize, staging.handle)); output.readback_size("owner_allocation", bits(usize, staging.memory));
+        output.readback_size("owner_image", bits(usize, image.handle)); output.readback_size("owner_view", bits(usize, image.view));
+        output.readback_size("owner_image_memory", bits(usize, image.memory));
+        puts("upload_begin");
+    }
+    if !vk_ok("begin retained upload", tower_vk_command_begin_v1(cmd)) { return false; }
+    var start = now();
+    fixture_record(cmd, staging.handle, image.handle, shape.layers, shape.mips, count, regions);
+    output.readback_label("record_ns"); output.readback_decimal(now() - start);
+    return retire(ctx.queue, cmd);
+}
+
+fn check_retained_pixels(shape: Shape, seed: u32, region: VkBufferImageCopy*, data: u8*, size: usize): bool {
+    var guard: u8[4]; fill(&guard[0], ReadbackGuard, sizeof(decltype(guard)));
+    if memcmp(data, &guard[0], OuterGuard) != 0 || memcmp(data + size - OuterGuard, &guard[0], OuterGuard) != 0 {
+        return vk_failure("outer readback guard changed");
+    }
+    var sub = region.imageSubresource; var width = region.imageExtent.width;
+    var pitch = convert(usize, width + PaddingTexels) * sizeof(Pixel);
+    var row = alloc(u8, pitch); if row == null { return vk_failure("allocate expected row"); } defer free(row);
+    fill(row, ReadbackGuard, pitch);
+    for (var y: u32 = 0; y < region.imageExtent.height; y++) {
+        for (var x: u32 = 0; x < width; x++) {
+            var p = color(shape, seed, sub.baseArrayLayer, sub.mipLevel, x, y);
+            if shape.texel_bytes == 4 {
+                if p.r == 128 { p.r = 55; }
+                if p.g == 64 { p.g = 13; }
+            }
+            bits(Pixel*, row)[x] = p;
+        }
+        if memcmp(data + OuterGuard + convert(usize, y) * pitch, row, pitch) != 0 {
+            output.readback_number("texture_mismatch", seed); output.readback_number("layer", sub.baseArrayLayer);
+            output.readback_number("mip", sub.mipLevel); output.readback_number("row", y);
+            return vk_failure("sampled texels or padding mismatch");
+        }
+    }
+    return true;
+}
+
+// Read one subresource at a time so the font does not require six simultaneous readback allocations.
+fn sample_retained(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, s: Shape, seed: u32, image: Image*): bool {
+    var target: Image = default; defer release_image(ctx.device, &target);
+    if !make_image(ctx, {width: s.width, height: s.height, layers: 1, mips: 1, texel_bytes: 4},
+        VkRgba8Unorm, VkColorAttachmentUsage | VkTransferSrcUsage, &target) { return false; }
+    var pipe: CountedPipelines = default; defer counted_destroy_pipelines(ctx.device, &pipe);
+    var arrayed: u32 = 0; if s.layers > 1 { arrayed = 1; }
+    var vertex = getenv("OSD_VERTEX_SPV"); if vertex == null { return vk_failure("OSD_VERTEX_SPV is required"); }
+    if !open_sampler_pipeline(ctx.device, &pipe, {width: s.width, height: s.height}, arrayed, vertex) { return false; }
+    set_sample_image(ctx.device, pipe.set, image.view);
+    var capacity = read_size(s.width, s.height);
+    var host: CountedBuffer = default; defer counted_release_buffer(ctx.device, &host);
+    if !counted_buffer(ctx, &host, convert(u64, capacity), VkTransferDstUsage, VkHostVisible | VkHostCoherent) { return false; }
+    var mapped: void*;
+    if !vk_ok("map retained readback", vkMapMemory(ctx.device, host.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
+    defer vkUnmapMemory(ctx.device, host.memory);
+    var count = s.layers * s.mips; var regions = alloc(VkBufferImageCopy, convert(usize, count));
+    if regions == null { return vk_failure("allocate sampling regions"); } defer free(regions);
+    pack_regions(s, regions);
+    var o: Owner = {ctx: ctx, cmd: cmd, pipeline: &pipe, target: &target, host: host.handle, count: 1, ..default};
+    var capture = getenv("CAPTURE_IMAGE_BYTES") != null;
+    for (var i: u32 = 0; i < count; i++) {
+        var region = &regions[i]; var bytes = read_size(region.imageExtent.width, region.imageExtent.height);
+        fill(bits(u8*, mapped), ReadbackGuard, bytes);
+        if !vk_ok("begin retained sample", tower_vk_command_begin_v1(cmd)) { return false; }
+        o.list = region; record_samples(&o);
+        if !retire(ctx.queue, cmd) || !check_retained_pixels(s, seed, region, bits(u8*, mapped), bytes) { return false; }
+        if capture && write(4, bits(u8*, mapped), bytes) != convert(i64, bytes) { return vk_failure("write retained pixels"); }
+        output.readback_size("sampled_bytes", bytes);
+    }
+    return true;
+}
+
+fn retained_inventory(ctx: ReadbackDevice*): bool {
+    var shapes: Shape[5] = {
+        {width: 2048, height: 2048, layers: 6, mips: 1, texel_bytes: 1},
+        {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4},
+        {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4},
+        {width: 256, height: 352, layers: 4, mips: 1, texel_bytes: 4},
+        {width: 64, height: 64, layers: 2, mips: 1, texel_bytes: 4}
+    };
+    var count = sizeof(decltype(shapes)) / sizeof(Shape);
+    var images = alloc(Image, count); if images == null { return vk_failure("allocate retained image owners"); }
+    defer free(images); var live: usize = 0;
+    defer { for (var i: usize = 0; i < live; i++) { release_image(ctx.device, &images[i]); } }
+    var info: VkCommandPoolCreateInfo = {sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer, queueFamilyIndex: ctx.family, ..default};
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create inventory pool", vkCreateCommandPool(ctx.device, &info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(ctx.device, pool, null);
+    var allocation: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate inventory primary", vkAllocateCommandBuffers(ctx.device, &allocation, &cmd)) { return false; }
+    for (var i: usize = 0; i < count; i++) {
+        images[i] = default; live++;
+        if !upload_one(ctx, cmd, shapes[i], convert(u32, i), &images[i]) { return false; }
+        puts("staging_released");
+    }
+    output.readback_size("retained_images", live);
+    for (var i: usize = 0; i < count; i++) {
+        if !sample_retained(ctx, cmd, shapes[i], convert(u32, i), &images[i]) { return false; }
+    }
+    puts("all_samples_retired");
+    return true;
+}
