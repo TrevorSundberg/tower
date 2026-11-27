@@ -124,3 +124,28 @@ is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 The controls initialize and execute at most one record. Full-capacity
 execution, noncoherent invalidation, device loss, true Draw-profile execution
 and other graphics backends remain unverified for this path.
+
+## Rendering review for Draw
+
+Rendering accepted the Linux `counted-core13` operation at Tower
+`fb49e79732e41a69a8080acbc39f4a34077d6e53` against the counted draw
+layout and pixel oracle reported for Draw `7be8d020b07454789195427588712c72ee465637`.
+For each count, the review compared the captured count and five command fields,
+all 16 active bytes and all 32 caller bytes with independently constructed
+expectations. The tight raster SHA-256 was
+`048402e9c4d980772355b55651974f77b1eca456a62116b54bfce1871d725ff1`.
+Each adapter's replay log matched its original byte for byte. The ELF imports
+`vkGetDeviceProcAddr` and has a direct dependency on `libvulkan.so.1`.
+Worker archive SHA-256 was `a32c55677b93b047d6d8e688fed2e9ab1a3807b7ed03b65ef16ac95e997cf10e`.
+
+The reported Draw gate includes Vulkan 1.4, `multiDrawIndirect`,
+`drawIndirectFirstInstance`, `drawIndirectCount`, `shaderDrawParameters` and
+capacity for at least 16384 draws. The strict fixture currently refuses every
+device, including devices reporting 1.4, pending implementation and comparison
+with Draw's pinned C and original shaders. Full-profile acceptance needs those
+inputs and matching guarded captures from a qualifying device.
+
+The next Tower library change will let a caller create a Vulkan shader module
+from borrowed SPIR-V words. The counted pipeline will use it for compute,
+vertex and fragment stages. Offline compilation, fixture hashes and file I/O
+stay at the call site. This gives Draw's asset loader an in-memory entry point.
