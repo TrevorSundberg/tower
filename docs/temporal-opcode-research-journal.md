@@ -125562,3 +125562,78 @@ stripping. The initial Tower compile rejected an unbraced else-if and
 a missing direct import of readback_device. The first device run passed
 the default capture but the old argc guard rejected the optional short
 mode before recording. Each diagnostic is retained in the packet.
+
+The [Linux counted raster recipe](../scaffolding/library/graphics/vulkan/counted_draw.md#linux-core13-raster-through-the-eleven-entry-shared-library)
+reproduces all three hardware comparisons. From a fresh package checkout
+the documented bootstrap and GNU ld 2.40 reproduced the 14816-byte
+`libtower_graphics.so`, SHA-256
+`d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715`.
+The loader bound the CPU client's eleven entries and the raster client's
+single counted import to the rebuilt provider at
+`/tmp/counted-dso-12f356f1/out/libtower_graphics.so`. The raw link imports
+the Vulkan loader directly. Clang 19.1.7, SDK header 239, checked-in
+Linux x64 Tower development compiler with LLVM 19.1.7. The frozen CPU
+client, documented build and explicit CRT link agreed on all twelve rows.
+Rebuilding with the original static header and CRT link also reproduced
+the unstripped frozen CPU executable (`9869693d2e244e9d45a7de50f988a9ac12d434fd6795fb21a9924a93fbe5a5ad`).
+
+The original hardware control at the package pin and the separate core13
+profile at 4e4959be ran on device 0, vendor/device 10de:2204, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, queue 0/0. The latter queried
+multiDrawIndirect, drawIndirectFirstInstance, shaderDrawParameters,
+drawIndirectCount and dynamicRendering all available. Only the last
+two were enabled. Both reported maximum indirect count and storage range
+4294967295. The strict gate in the package fixture separately refused
+device API 1.3.289. All three shader source/validated SPIR-V pairs are
+frozen across both revisions. The earlier 1.4 pair ran on a Quadro.
+This core13 fixture used additive blending and two initialized records
+on the RTX without changing its creation features or running Draw.
+
+After submission and fence completion, the complete record+guarded-image
+SHA-256 values were:
+
+| Capture | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Default 0/1 | 112 | a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6 |
+| Pair 1/2 | 152 | 985872ef06325cdd21b0e0151690f8c9dd262cbdaee999ee48df0d3502bd9a6e |
+| Short 0/1, final draw refused | 112 | 9d9541d989b15ae92d43eae70b32743be9d15949df48b84d185113d3b6840494 |
+
+The layer reported zero warnings/errors on every ordinary run. The SDK
+and raw transports used one identical Tower object. They compared every
+forward's command buffer, both handles and offsets, maximum and stride.
+The saved lookup address matched each forwarded PFN. Zero draws executed
+for the refused command with count one. Default and pair matched the
+prior full-output hashes. The short capture matched independently assembled
+frozen headers and clear images. No public provider source or ABI changed.
+
+**Host process measurements.** AMD EPYC 7282, affinity 0–31, quota 15.36
+CPUs, one application thread and one graphics/compute queue. Three
+source-warm compiles per width, matched objects within each revision.
+Medians below are wall seconds / user+system seconds / peak RSS KiB.
+Single-job direct fixture builds at bef3026f and f812c46a measured
+0.791 / 0.790 / 128096 and 0.834 / 0.834 / 131016. Four-job builds
+measured 0.887 / 1.045 / 133512 and 0.929 / 1.092 / 135640.
+The extended caller compiles the second-record, blend and capture paths.
+After checked pixels, three fresh processes per link on warm host caches
+measured original direct 0.316 / 0.315 / 94644, extended direct
+0.327 / 0.326 / 94876, raw 0.313 / 0.313 / 94648 and shared
+0.316 / 0.316 / 94796. Each output passed the complete default oracle.
+These startup-inclusive numbers leave per-draw and GPU time unresolved.
+The default/short streams use 8 index and 80 staging bytes; the pair
+uses 12 and 120. Each link owns the same 2×2 attachment. Physical driver
+allocation totals were unmeasured.
+
+**Instrumentation.** SDK transport instrumented with ASan and trapping
+UBSan, production DSO, host malloc/free runtime and device dispatch.
+Raw and DSO pair and short passed with leak detection disabled. The
+unfiltered full-device pair in both links exited 1 at 4075 bytes in
+14 allocations, also seen in the original host-12 counted control.
+Keeping the validation layer resident for stack identification reported
+4023 bytes in 12 allocations in both links, with allocation sites in
+the Khronos layer and libstdc++. Cleanup of all driver/layer host
+allocations remains open. TSan failed before entry at the denied
+personality syscall (139) on raw and DSO. Link maps and disassembly
+identify C instrumentation. Tower caller and release provider ran as
+ordinary objects. The packet preserves the negative statuses alongside
+the completed checks. Draw application integration, strict shader parity
+and GPU timing have separate evidence.

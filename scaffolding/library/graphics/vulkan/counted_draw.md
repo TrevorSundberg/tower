@@ -352,3 +352,64 @@ at `ea062c4b`. Draw subsequently linked its `94f2d31e` OSD render object
 through the public entry with a CPU recording shim. Draw assigned its
 strict raster and HUD GPU checks to job `5d1c45b6`.
 [External C link and run instructions](graphics_dll_windows.md#external-link-and-recording-controls)
+
+## Linux core13 raster through the eleven-entry shared library
+
+The direct fixture and the SDK probe share the Tower device selection,
+producer, render scope, submission, fence, readback and whole-buffer oracle.
+The probe resolves the command on the live logical device. Its SDK callback
+compares all seven draw arguments, counts forwards, then calls that PFN.
+The raw control links the same Tower caller object and forwards the expected
+draws directly. In its refusal control it omits only the draw.
+
+Use the Linux recipe above to produce the validated SPIR-V and runtime
+object. Build the [eleven-entry DSO](graphics_so_linux.md) into the same
+output directory. These commands use the system C compiler and Vulkan SDK
+on Linux x86-64. The host-12 packet includes the exact equivalents for
+Clang 19 and GNU ld against an unpacked SDK.
+
+```bash
+"$cc" "$v/linux_checks/counted_link.tower" --library --jobs 1 \
+    --foundation "$s/foundation.tower" -o "$out/observed.o"
+for lane in raw dso; do
+    flags=(); libs=()
+    if [[ $lane == raw ]]; then flags=(-DCOUNTED_RAW_CONTROL)
+    else libs=(-L"$out" -ltower_graphics '-Wl,-rpath,$ORIGIN'); fi
+    cc -std=c11 -O2 "${flags[@]}" -c "$v/linux_checks/counted_pfn.c" -o "$out/$lane.o"
+    cc "$out/observed.o" "$out/$lane.o" "$out/runtime.o" -Wl,--wrap=vkGetDeviceProcAddr \
+        "${libs[@]}" -lvulkan -latomic -o "$out/$lane"
+done
+shaders=("$out/produce.comp.spv" "$out/triangle.vert.spv" "$out/color.frag.spv")
+for mode in '' pair short; do
+    args=(); if [[ -n $mode ]]; then args=("$mode"); fi
+    for lane in raw dso; do
+        LD_DEBUG=bindings LD_DEBUG_OUTPUT="$out/$lane.${mode:-single}.loader" \
+            "$out/$lane" counted-core13 "${shaders[@]}" "${args[@]}" \
+            >"$out/$lane.${mode:-single}.stdout" 2>"$out/$lane.${mode:-single}.pfn"
+    done
+    cmp "$out/raw.${mode:-single}.stdout" "$out/dso.${mode:-single}.stdout"
+done
+```
+
+Host 12 selected discrete RTX 3090, Vulkan 1.3.289, NVIDIA 565.57.01,
+device 0, queue 0/0. Each case below finished one submission, signaled
+its fence and passed synchronization validation through device teardown.
+The byte sizes are Vulkan buffer create sizes. The command and count
+handles alias, with byte offsets 4 and 0 and a 20-byte stride. Every
+accepted invocation forwarded once to the device-resolved PFN.
+
+| Mode | Bytes | Maximum per attempt | GPU counts | PFN calls | RGBA8 per pixel, first / second pass |
+| --- | ---: | --- | --- | --- | --- |
+| Default | 327684 | 16384 / 16384 | 0 / 1 | 1 / 1 | 112233ff / 4080bfff |
+| Pair | 44 | 2 / 2 | 1 / 2 | 1 / 1 | 51a2f2ff / 91ffffff |
+| Short | 327683 | 1 / 16384 | 0 / 1 | 1 / 0 | 112233ff / 112233ff |
+
+In short mode the shader writes its complete 24-byte prefix and the
+second pass loads, clears, stores and copies its attachment. The DSO
+refuses the advertised maximum because byte 327684 would be needed.
+In pair mode both records are valid. Record zero draws indices 0–2 and
+record one draws indices 3–5. The four pixels distinguish the draws.
+The 112-, 152- and 112-byte captures include count/records and every
+caller guard. Each matched the SDK raw and direct Tower controls.
+Job `12f356f1-7809-4dfe-ade6-5a01f4ef922f` retains the raw bytes, lookup
+and binding traces, complete CPU output and replay.
