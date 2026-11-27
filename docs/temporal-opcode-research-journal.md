@@ -123978,3 +123978,20 @@ hardware fault cases exited 1. The [C link guide and teardown evidence](../scaff
 identify the original injected-command-reset process and the distinct raw C
 ASan processes. This review used existing evidence. It changes documentation
 only. The later `ba98cc4a` paired-executable supplement has its own receipt.
+
+### Blocking command finish for Draw uploads on host 12
+
+The rendering manager supplied the command contract and staged buffer_upload
+site at Draw 30b66f597b33c6f88964779f0ab1b87e847dc839, draw.c:1892.
+The site records the staging copy and a TRANSFER_WRITE to MEMORY_READ
+barrier before its synchronous finish. It destroys staging on success.
+The Tower starting point is 06d47a5d with its documentation tip 960c855a.
+An unrelated unstaged edit prevented the initial pull. Work used local
+objects in a separate main checkout. A full-history fetch attempted to
+pack a missing historical blob. The local alternate and selected tree
+checked out successfully without fetching that blob.
+
+The proposed entry calls the existing end/prepare and submit helpers with
+one local handle slot and no fence or semaphores. Only an accepted submit
+can reach queue idle. Draw retains the pool, queue and referenced storage.
+The public result alone cannot distinguish equal errors at different stages.

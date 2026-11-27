@@ -1,0 +1,15 @@
+import tower;
+import readback_abi;
+import command_end;
+import frame_submit;
+
+// The descriptor borrows this handle slot until the synchronous submit call returns.
+export fn tower_vk_command_finish_v1(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32 {
+    var primary = cmd;
+    var info: VkSubmitInfo;
+    var result = tower_vk_command_end_for_submit_v1(&info, &primary, null, null, null);
+    if result != 0 { return result; }
+    result = tower_vk_queue_submit_one_v1(queue, &info, null);
+    if result != 0 { return result; }
+    return vkQueueWaitIdle(queue);
+}
