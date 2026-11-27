@@ -122,8 +122,7 @@ GPU, each injected idle result left the guarded first payload readable
 after a separate successful queue drain. The prior frame gate, counted
 pixels, staging order and C executables also passed with this DLL.
 Draw's 73-byte staged uploader was checked separately with the Linux
-library and a recording driver. Physical Windows and execution of this
-six-export DLL inside Draw remain open. [Draw Linux recording receipt](https://github.com/TrevorSundberg/tower/blob/37809215a14090a05eb6dda968f5d8ad5d8f4278/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
+library and a recording driver. [Draw Linux recording receipt](https://github.com/TrevorSundberg/tower/blob/37809215a14090a05eb6dda968f5d8ad5d8f4278/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
 [Host, build and replay evidence](../../../../docs/temporal-opcode-research-journal.md#blocking-upload-finish-in-the-windows-x64-graphics-dll)
 
 ## Draw C link against all six exports
@@ -139,11 +138,49 @@ Its PE inspection confirmed that ordinals 1–5 retained their names,
 `tower_vk_command_finish_v1` occupied ordinal 6, and the provider
 imported `vkQueueWaitIdle` from `vulkan-1.dll`.
 
-This verifies the cross-link. Draw assigned its live ordinal-6 test to
-job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`, dependent on the separate
-five-export application test `97a65c6b`. The 64 guarded copies above
-are Tower's Wine hardware runs. The 73-byte and 64 MiB Draw device
-readbacks have their own Linux assignments. Physical Windows remains open.
+### Draw Win64 ordinal 6 upload and failure results
+
+Draw verified 419 archived members for job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`.
+It tested Draw `d4462c2f82dae251731d318929007edda0296116`, tests
+`f1f7d319f1ace9f1c9a9b89b218eb5dc1ab81dfd`, and Tower
+`b0d526fc8bae5288d6d4e74660ef646f09d935b1`. The shipping PE, SHA-256
+`3ec08e95f9e96eefff7c5919808913c6c8aeb81f6a9789ecfc92bc44a4890173`,
+imports the finish entry exported at ordinal 6. The test API selected
+the RTX 3060 (PCI 10de:2503), Vulkan 1.4.329, driver 595.99.02, on Wine 11.
+
+Draw ran each combination below. All eight processes exited 0. Staged
+uploads made one unfenced submission and waited for the same queue to
+retire it before freeing staging. Under the fixture's direct coherent
+policy, the mapped path bypassed finish.
+
+```sh
+for exe in c six; do
+    for n in 73 67108864; do
+        for mode in staged direct; do
+            wine "build/finish-test/$exe.exe" "$n" "$mode" "$exe-$n-$mode.bin" || exit 1
+        done
+    done
+done
+```
+
+The logical payload begins at source offset 16, with 16 bytes of hex
+`97` on each side. Payload byte `i`, starting at zero, is
+`((23*i) ^ (i >> 16) ^ (i >> 8) ^ 0x5d) & 255`. Each hash covers
+the payload between two 16-byte readback guards filled with hex `e3`.
+Rendering independently reconstructed both complete streams and matched
+the retained DLL and import-library hashes.
+
+| Upload bytes | Guarded bytes | Guarded SHA-256 |
+| ---: | ---: | --- |
+| 73 | 105 | `367af35f3f2da11ece82b4f29250b41e038d57d8a8cd17108c640c73498ee5b4` |
+| 67,108,864 | 67,108,896 | `12eefa67c820d7dec30d4113a44ca04fc9abddfb1455bec4571f31d0ea7c8018` |
+
+Draw injected −2 at command end, −4 at submit and −1 at queue idle
+in each arm. All six processes exited 1. After idle failure the observer
+independently drained the submitting queue while two allocations were
+still live. Stock validated assets/core also exited 1 on Wine. Physical
+Windows execution remains open. Draw's ordinal-7 application check is
+tracked separately under `24a62b15`.
 
 ## Five-export validation at c40dae39
 

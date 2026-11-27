@@ -124429,3 +124429,14 @@ verified the clean binary manifest. The [six-export C link receipt](../scaffoldi
 identifies the PE and its producer, the verified ordinals and the
 dependency between Draw's five- and six-export application tests. This
 update records evidence without changing the release build or executable.
+
+### Draw tests Win64 ordinal 6 on an RTX 3060
+
+Draw verified 419 members from job `c2a6ad55` at Draw `d4462c2f`
+and Tower `b0d526fc`. Its eight raw C/linked, staged/direct, small/large
+trials exited 0 on Wine 11. Six injected-error processes exited 1.
+On idle failure the observer independently drained the queue with two
+allocations retained. Rendering rehashed the retained release artifacts
+and regenerated both Win64 guarded readback digests from Draw's formula.
+Physical Windows remains open. The checks here add evidence without
+changing executable code. [Test invocations, byte spans and outcomes](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-win64-ordinal-6-upload-and-failure-results)
