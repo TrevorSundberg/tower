@@ -52,7 +52,8 @@ export fn main(): i32 {
             var bound = take(BindImage);
             insist(bound.a != 0 && bound.b != 0 && bound.c == 0 && bound.a != sources[0].image && bound.b != sources[0].memory, "failed source binding");
             released(loan); destroyed(sources[0]);
-            destroyed({image: bound.a, memory: bound.b, view: 0});
+            insist(take(DestroyImage).a == bound.a, "failed image cleanup");
+            insist(take(FreeMemory).a == bound.b, "failed allocation cleanup");
             var extra: Event; insist(read(0, bits(void*, &extra), sizeof(Event)) == 0, "events after failure cleanup");
             puts("second view failed: staging released, first view destroyed once, both bound images freed"); return 0;
         }

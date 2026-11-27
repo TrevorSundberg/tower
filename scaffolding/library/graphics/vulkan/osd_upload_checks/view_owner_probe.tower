@@ -8,3 +8,16 @@ export fn __wrap_vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCre
     record_view(OwnerViewTrace, device, info, allocator, slot, result);
     return result;
 }
+
+extern fn __real_tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
+    format: u32, range: VkImageSubresourceRange*, slot: VkImageViewHandle**): i32;
+export fn __wrap_tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
+    format: u32, range: VkImageSubresourceRange*, slot: VkImageViewHandle**): i32 {
+    view_check(slot != null && *slot == null, "expected empty owner slot");
+    var wanted: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: view_type,
+        format: format, subresourceRange: *range, ..default };
+    var result = __real_tower_vk_create_bound_image_view_v1(device, image, view_type, format, range, slot);
+    if result != 0 { view_check(*slot == null, "failed creation modified owner slot"); }
+    record_view(OwnerViewTrace, device, &wanted, null, slot, result);
+    return result;
+}

@@ -1,0 +1,79 @@
+import tower;
+import .readback_abi;
+import view_trace;
+
+extern fn fixture_bound_view(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32, format: u32,
+    range: VkImageSubresourceRange*, out: VkImageViewHandle**): i32;
+extern fn memcmp(a: void*, b: void*, size: usize): i32;
+var View2D: u32 = 1;
+var View3D: u32 = 2;
+var ViewCube: u32 = 3;
+var ViewArray: u32 = 5;
+var R8: u32 = 9;
+var Srgb: u32 = 43;
+var D32Float: u32 = 126;
+var DepthAspect: u32 = 2;
+struct Case { view_type: u32; format: u32; range: VkImageSubresourceRange; }
+struct GuardedOutput { before: u64; slot: VkImageViewHandle*; after: u64; }
+struct Recording {
+    image: VkImageHandle*; returned: u8; caller: GuardedOutput;
+    shape: Case; borrowed: VkImageSubresourceRange*; calls: usize; result: i32;
+}
+
+export fn vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, slot: VkImageViewHandle**): i32 {
+    var s = bits(Recording*, device);
+    view_check(info != null && info.sType == VkImageViewCreateTag && info.pNext == null && info.flags == 0
+        && info.image == s.image && info.viewType == s.shape.view_type && info.format == s.shape.format && allocator == null,
+        "create header or handles");
+    var components = info.components;
+    view_check((components.r | components.g | components.b | components.a) == 0, "component mapping");
+    view_check(&info.subresourceRange != s.borrowed &&
+        memcmp(bits(void*, &info.subresourceRange), bits(void*, &s.shape.range), sizeof(VkImageSubresourceRange)) == 0, "copied range");
+    view_check(slot != null && slot != &s.caller.slot && s.caller.slot == null, "private loader output");
+    *slot = bits(VkImageViewHandle*, &s.returned);
+    view_check(s.caller.slot == null, "published while loader was running");
+    s.calls++;
+    record_view(LoaderViewTrace, device, info, allocator, slot, s.result);
+    return s.result;
+}
+
+export fn main(): i32 {
+    // Mock image geometries in order: the five OSD textures, a 2D array
+    // with >=8 layers/5 mips, a depth 2D, a cube-compatible square 2D
+    // array with 12 layers, and a color 3D image with >=4 mip levels.
+    var cases: Case[9] = {
+        {ViewArray, R8, {VkColorAspect, 0, 1, 0, 6}},
+        {View2D, Srgb, {VkColorAspect, 0, 2, 0, 1}},
+        {View2D, Srgb, {VkColorAspect, 0, 2, 0, 1}},
+        {ViewArray, Srgb, {VkColorAspect, 0, 1, 0, 4}},
+        {ViewArray, Srgb, {VkColorAspect, 0, 1, 0, 2}},
+        {ViewArray, R8, {VkColorAspect, 3, 2, 7, 1}},
+        {View2D, D32Float, {DepthAspect, 1, 1, 0, 1}},
+        {ViewCube, Srgb, {VkColorAspect, 0, 1, 6, 6}},
+        {View3D, R8, {VkColorAspect, 2, 2, 0, 1}}
+    };
+    // A positive nonzero value exercises exact success discrimination.
+    var results: i32[4] = {0, -1, -2, 1};
+    var s: Recording = default;
+    var guard: u64 = 1234605616436508552;
+    s.caller.before = guard; s.caller.after = ~guard;
+    var device = bits(VkDeviceHandle*, &s);
+    for (var i: usize = 0; i < sizeof(decltype(cases)) / sizeof(Case); i++) {
+        var shape = cases[i];
+        s.image = bits(VkImageHandle*, &cases[i]); s.shape = shape;
+        var borrowed = shape.range; s.borrowed = &borrowed;
+        for (var j: usize = 0; j < sizeof(decltype(results)) / sizeof(i32); j++) {
+            var result = results[j];
+            s.caller.slot = null; s.result = result;
+            var before = s.calls;
+            var actual = fixture_bound_view(device, s.image, shape.view_type, shape.format, &borrowed, &s.caller.slot);
+            view_check(actual == result && s.calls == before + 1, "result or call count");
+            var wanted: VkImageViewHandle* = null;
+            if result == 0 { wanted = bits(VkImageViewHandle*, &s.returned); }
+            view_check(s.caller.slot == wanted && s.caller.before == guard && s.caller.after == ~guard, "publication or output guards");
+            view_check(memcmp(bits(void*, &borrowed), bits(void*, &shape.range), sizeof(VkImageSubresourceRange)) == 0, "modified caller range");
+        }
+    }
+    puts("nine image shapes x four VkResults: all fields, separate temporary, caller slot and guards passed");
+    return 0;
+}

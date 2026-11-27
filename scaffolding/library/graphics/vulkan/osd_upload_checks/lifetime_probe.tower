@@ -70,19 +70,19 @@ export fn vkDestroyBuffer(device: VkDeviceHandle*, buffer: VkBufferHandle*, allo
 export fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, allocator: VkAllocationCallbacks*): void {
     var call = bits(function(void, VkDeviceHandle*, VkDeviceMemoryHandle*, VkAllocationCallbacks*), life_next("vkFreeMemory"));
     call(device, memory, allocator);
-    log_event(FreeMemory, bits(u64, memory), 0, 0);
+    log_event(FreeMemory, bits(u64, memory), bits(u64, device), bits(u64, allocator));
 }
 
 export fn vkDestroyImageView(device: VkDeviceHandle*, view: VkImageViewHandle*, allocator: VkAllocationCallbacks*): void {
     var call = bits(function(void, VkDeviceHandle*, VkImageViewHandle*, VkAllocationCallbacks*), life_next("vkDestroyImageView"));
     call(device, view, allocator);
-    log_event(DestroyView, bits(u64, view), 0, 0);
+    log_event(DestroyView, bits(u64, view), bits(u64, device), bits(u64, allocator));
 }
 
 export fn vkDestroyImage(device: VkDeviceHandle*, image: VkImageHandle*, allocator: VkAllocationCallbacks*): void {
     var call = bits(function(void, VkDeviceHandle*, VkImageHandle*, VkAllocationCallbacks*), life_next("vkDestroyImage"));
     call(device, image, allocator);
-    log_event(DestroyImage, bits(u64, image), 0, 0);
+    log_event(DestroyImage, bits(u64, image), bits(u64, device), bits(u64, allocator));
 }
 
 export fn vkUpdateDescriptorSets(device: VkDeviceHandle*, n: u32, items: VkWriteDescriptorSet*, copies: u32, list: VkCopyDescriptorSet*): void {

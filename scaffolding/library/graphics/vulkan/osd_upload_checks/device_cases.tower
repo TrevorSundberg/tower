@@ -27,7 +27,7 @@ struct Pixel { r: u8; g: u8; b: u8; a: u8; }
 struct Image { handle: VkImageHandle*; memory: VkDeviceMemoryHandle*; view: VkImageViewHandle*; flags: u32; }
 
 fn release_image(device: VkDeviceHandle*, im: Image*): void {
-    vkDestroyImageView(device, im.view, null);
+    if im.view != null { vkDestroyImageView(device, im.view, null); }
     vkDestroyImage(device, im.handle, null);
     vkFreeMemory(device, im.memory, null);
 }

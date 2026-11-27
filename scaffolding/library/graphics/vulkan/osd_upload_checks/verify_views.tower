@@ -3,6 +3,7 @@ import .readback_abi;
 import view_trace;
 import lifetime_events;
 
+extern fn getenv(name: u8*): u8*;
 struct Sample { call: ViewCall; info: VkImageViewCreateInfo; }
 fn read_sample(fd: i32): Sample {
     var sample: Sample;
@@ -21,25 +22,52 @@ fn end_of_file(fd: i32): void {
     var extra: u8;
     view_check(read(fd, bits(void*, &extra), 1) == 0, "unexpected trailing bytes");
 }
+fn read_life(e: Event*, device: VkDeviceHandle*): bool {
+    var bytes = read(5, bits(void*, e), sizeof(Event));
+    if bytes == 0 { return false; }
+    view_check(bytes == convert(i64, sizeof(Event)), "truncated lifetime event");
+    if e.kind == DestroyView || e.kind == DestroyImage || e.kind == FreeMemory {
+        view_check(e.b == bits(u64, device) && e.c == 0, "destroy device or allocator mismatch");
+    }
+    return true;
+}
+fn drain_life(device: VkDeviceHandle*): void {
+    var event: Event; while read_life(&event, device) {}
+}
 export fn main(): i32 {
     var device: VkDeviceHandle* = null;
     var sdk: Sample;
-    for (var i: u32 = 0; i < 10; i++) {
+    var failing = getenv("OSD_FAIL_SRGB_VIEW") != null;
+    var creations: u32 = 10;
+    if failing { creations = 2; }
+    for (var i: u32 = 0; i < creations; i++) {
         if i <= 5 { sdk = read_sample(3); }
         var live = read_sample(4);
+        var owner = read_sample(6);
+        if i == 0 { device = live.call.device; }
+        view_check(device != null && live.call.device == device && owner.call.device == device &&
+            live.call.slot != null && owner.call.slot != null && live.call.info != null && live.call.allocator == null, "loader call header mismatch");
+        view_check(same_configuration(&sdk.info, &live.info), "SDK/loader view fields differ");
+        view_check(same_configuration(&owner.info, &live.info) && owner.info.image == live.info.image &&
+            owner.call.created == live.call.created && owner.call.result == live.call.result, "owner/loader call mismatch");
+        if i < 5 { view_check(owner.call.slot != live.call.slot, "public slot passed to loader"); }
+        else { view_check(owner.call.slot == live.call.slot && owner.call.info == live.call.info, "attachment call identity"); }
         var e: Event;
         loop {
-            view_check(read(5, bits(void*, &e), sizeof(Event)) == convert(i64, sizeof(Event)), "missing lifetime create event");
-            if e.kind == CreateView { break; }
+            view_check(read_life(&e, device), "missing lifetime image bind");
+            if e.kind == BindImage { break; }
         }
-        if i == 0 { device = live.call.device; }
-        view_check(device != null && live.call.device == device && live.call.slot != null && live.call.info != null &&
-            live.call.result == 0 && live.call.allocator == null, "loader call header mismatch");
-        view_check(same_configuration(&sdk.info, &live.info), "SDK/loader view fields differ");
+        view_check(e.a == bits(u64, live.info.image), "view references a different bound image");
+        if failing && i == 1 {
+            view_check(live.call.result == -2 && live.call.created == null, "failure result or output");
+            drain_life(device); end_of_file(4); end_of_file(6); puts("failed second bound view preserved owner slot"); return 0;
+        }
+        view_check(live.call.result == 0 && live.call.created != null, "successful view result or output");
+        view_check(read_life(&e, device) && e.kind == CreateView, "missing successful create");
         view_check(e.a == bits(u64, live.info.image) && e.b == bits(u64, live.call.created) &&
             e.c == convert(u64, live.info.viewType), "view call and lifetime event disagree");
     }
-    end_of_file(4);
+    drain_life(device); end_of_file(4); end_of_file(6);
     var configured = read_sample(3); var failure = read_sample(3);
     var info = configured.info; var range = info.subresourceRange;
     view_check(configured.call.result == 0 && configured.call.created != null && info.sType == 15 && info.pNext == null &&
