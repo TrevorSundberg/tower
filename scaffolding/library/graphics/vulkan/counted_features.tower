@@ -1,0 +1,77 @@
+import tower;
+import readback_device;
+import readback_abi;
+import counted_abi;
+import library.graphics.indexed_indirect;
+
+enum CountedProfile: u32 { Core13, Draw14 }
+var DrawMinDrawCount: u32 = 16384;
+var VkCore14: u32 = 4210688;
+var VkComputeQueue: u32 = 2;
+
+fn counted_stream_bytes(capacity: u32): u64 {
+    return convert(u64, sizeof(u32)) + convert(u64, capacity) * convert(u64, sizeof(IndexedIndirectArguments));
+}
+
+fn counted_api(profile: CountedProfile): u32 {
+    return profile == CountedProfile.Draw14 ? VkCore14 : VkApi13;
+}
+
+fn counted_queue(flags: u32, count: u32): bool {
+    var required = VkGraphicsQueue | VkComputeQueue;
+    return count != 0 && (flags & required) == required;
+}
+
+// Inputs from the selected physical device. The image query uses the exact
+// format, tiling and usage passed to vkCreateImage by the counted caller.
+struct CountedCapabilities {
+    device_api: u32;
+    multiDrawIndirect: u32;
+    drawIndirectFirstInstance: u32;
+    shaderDrawParameters: u32;
+    drawIndirectCount: u32;
+    dynamicRendering: u32;
+    maxDrawIndirectCount: u32;
+    maxStorageBufferRange: u32;
+    rgba8_supported: bool;
+    image: VkImageFormatProperties;
+    family: u32;
+}
+
+fn counted_loader_refusal(profile: CountedProfile, api: u32): u8* {
+    if api < counted_api(profile) { return "loader API below requested profile"; }
+    return null;
+}
+
+fn counted_device_refusal(profile: CountedProfile, caps: CountedCapabilities*): u8* {
+    if caps.device_api < counted_api(profile) { return "physical device API below requested profile"; }
+    if profile == CountedProfile.Draw14 {
+        if caps.multiDrawIndirect == 0 { return "multiDrawIndirect unavailable"; }
+        if caps.drawIndirectFirstInstance == 0 { return "drawIndirectFirstInstance unavailable"; }
+        if caps.shaderDrawParameters == 0 { return "shaderDrawParameters unavailable"; }
+    }
+    if caps.drawIndirectCount == 0 { return "drawIndirectCount unavailable"; }
+    if caps.dynamicRendering == 0 { return "dynamicRendering unavailable"; }
+    if caps.maxDrawIndirectCount < DrawMinDrawCount { return "maxDrawIndirectCount below command capacity"; }
+    if convert(u64, caps.maxStorageBufferRange) < counted_stream_bytes(DrawMinDrawCount) { return "maxStorageBufferRange below indirect buffer size"; }
+    if !caps.rgba8_supported { return "RGBA8 color attachment with transfer source usage unsupported"; }
+    if caps.image.maxExtent.width < ReadbackWidth || caps.image.maxExtent.height < ReadbackHeight {
+        return "RGBA8 attachment extent too small";
+    }
+    if (caps.image.sampleCounts & VkSample1) == 0 { return "RGBA8 single-sample attachment unavailable"; }
+    if caps.family == VkNoFamily { return "no combined graphics/compute queue"; }
+    return null;
+}
+
+fn counted_query_features(physical: VkPhysicalDeviceHandle*, caps: CountedCapabilities*): void {
+    var parameters: VkPhysicalDeviceShaderDrawParametersFeatures = { sType: VkShaderDrawParametersTag, ..default };
+    var v12: VkPhysicalDeviceVulkan12Features = { sType: VkCore12FeaturesTag, pNext: bits(void*, &parameters), ..default };
+    var dynamic: VkPhysicalDeviceDynamicRenderingFeatures = { sType: VkDynamicRenderingTag, pNext: bits(void*, &v12), ..default };
+    var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic), ..default };
+    vkGetPhysicalDeviceFeatures2(physical, &features);
+    caps.multiDrawIndirect = features.features.multiDrawIndirect;
+    caps.drawIndirectFirstInstance = features.features.drawIndirectFirstInstance;
+    caps.shaderDrawParameters = parameters.shaderDrawParameters;
+    caps.drawIndirectCount = v12.drawIndirectCount;
+    caps.dynamicRendering = dynamic.dynamicRendering;
+}

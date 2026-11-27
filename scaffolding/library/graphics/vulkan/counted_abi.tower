@@ -321,3 +321,13 @@ extern fn vkCmdDispatch(commandBuffer: VkCommandBufferHandle*, groupCountX: u32,
 extern fn vkCmdCopyBuffer(commandBuffer: VkCommandBufferHandle*, srcBuffer: VkBufferHandle*, dstBuffer: VkBufferHandle*, regionCount: u32, pRegions: VkBufferCopy*): void;
 extern fn vkCmdUpdateBuffer(commandBuffer: VkCommandBufferHandle*, dstBuffer: VkBufferHandle*, dstOffset: u64, dataSize: u64, pData: void*): void;
 extern fn vkCmdPushConstants(commandBuffer: VkCommandBufferHandle*, layout: VkPipelineLayoutHandle*, stageFlags: u32, offset: u32, size: u32, pValues: void*): void;
+
+struct VkPhysicalDeviceShaderDrawParametersFeatures {
+    sType: u32;
+    pNext: void*;
+    shaderDrawParameters: u32;
+}
+var VkShaderDrawParametersTag: u32 = 1000063000;
+var VkCore12FeaturesTag: u32 = 51;
+var VkFormatNotSupported: i32 = -11;
+var EnumerateInstanceVersion: type = function(i32, u32*);

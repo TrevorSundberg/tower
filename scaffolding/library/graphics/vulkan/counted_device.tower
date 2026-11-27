@@ -2,18 +2,25 @@ import tower;
 import readback_abi;
 import readback_device;
 import counted_abi;
-import library.graphics.indexed_indirect;
+import counted_features;
+import readback_validation;
 
-var CountedCapacity: u32 = 16384;
-var VkCore14: u32 = 4210688;
-var VkCore12FeaturesTag: u32 = 51;
-var VkComputeQueue: u32 = 2;
+var CountedCapacity: u32 = DrawMinDrawCount;
+var VkApi10: u32 = 4194304;
 
-fn counted_bytes(): u64 {
-    return convert(u64, sizeof(u32)) + convert(u64, CountedCapacity) * convert(u64, sizeof(IndexedIndirectArguments));
+fn counted_bytes(): u64 { return counted_stream_bytes(CountedCapacity); }
+
+fn counted_check_loader(profile: CountedProfile): bool {
+    var loader = VkApi10;
+    var enumerate = bits(EnumerateInstanceVersion, vkGetInstanceProcAddr(null, "vkEnumerateInstanceVersion"));
+    if enumerate != null && !vk_ok("vkEnumerateInstanceVersion", enumerate(&loader)) { return false; }
+    readback_number("loader_api", loader);
+    var refused = counted_loader_refusal(profile, loader);
+    if refused != null { return vk_failure(refused); }
+    return true;
 }
 
-fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackDevice*): bool {
+fn counted_open_device(instance: VkInstanceHandle*, profile: CountedProfile, out: ReadbackDevice*): bool {
     var index: u32 = 0;
     var count: u32 = 0;
     if !vk_ok("vkEnumeratePhysicalDevices/count", vkEnumeratePhysicalDevices(instance, &count, null)) { return false; }
@@ -30,7 +37,9 @@ fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackD
     readback_number("physical_device_index", index); readback_number("api_version", core.apiVersion);
     readback_number("vendor_id", core.vendorID); readback_number("device_id", core.deviceID);
     readback_number("driver_version", core.driverVersion);
-    if core.apiVersion < VkApi13 { return vk_failure("Core Vulkan 1.3 required"); }
+    var caps: CountedCapabilities = { device_api: core.apiVersion, family: VkNoFamily, ..default };
+    // Pre-1.3 devices cannot supply the full core feature chain below.
+    if core.apiVersion < VkApi13 { return vk_failure(counted_device_refusal(profile, &caps)); }
     var id: VkPhysicalDeviceIDProperties = { sType: VkDeviceIDTag, ..default };
     var driver: VkPhysicalDeviceDriverProperties = { sType: VkDriverPropertiesTag, pNext: bits(void*, &id), ..default };
     var props: VkPhysicalDeviceProperties2 = { sType: VkProperties2Tag, pNext: bits(void*, &driver), ..default };
@@ -44,54 +53,66 @@ fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackD
     }
     puts("");
     readback_number("driver_id", driver.driverID); puts(&driver.driverName[0]); puts(&driver.driverInfo[0]);
-    if strict {
-        if core.apiVersion < VkCore14 { return vk_failure("strict Draw profile refused: device API below Vulkan 1.4"); }
-        return vk_failure("strict Draw predicate requires original feature inventory; unsupported by this control");
-    }
-    var format: VkImageFormatProperties;
+    caps.maxDrawIndirectCount = core.limits.maxDrawIndirectCount;
+    caps.maxStorageBufferRange = core.limits.maxStorageBufferRange;
     var usage = VkColorAttachmentUsage | VkTransferSrcUsage;
-    if !vk_ok("vkGetPhysicalDeviceImageFormatProperties", vkGetPhysicalDeviceImageFormatProperties(
-        physical, VkRgba8Unorm, VkImage2D, 0, usage, 0, &format)) { return false; }
-    if format.maxExtent.width < ReadbackWidth || format.maxExtent.height < ReadbackHeight
-        || (format.sampleCounts & VkSample1) == 0 { return vk_failure("Unsupported RGBA8 extent/sample count"); }
-    var dynamic: VkPhysicalDeviceDynamicRenderingFeatures = { sType: VkDynamicRenderingTag, ..default };
-    var v12: VkPhysicalDeviceVulkan12Features = { sType: VkCore12FeaturesTag, ..default };
-    dynamic.pNext = bits(void*, &v12);
-    var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic), ..default };
-    vkGetPhysicalDeviceFeatures2(physical, &features);
-    readback_number("drawIndirectCount", v12.drawIndirectCount);
-    readback_number("available_multiDrawIndirect", features.features.multiDrawIndirect);
-    readback_number("dynamicRendering", dynamic.dynamicRendering);
-    readback_number("maxDrawIndirectCount", core.limits.maxDrawIndirectCount);
-    readback_number("maxStorageBufferRange", core.limits.maxStorageBufferRange);
-    if v12.drawIndirectCount == 0
-        || core.limits.maxDrawIndirectCount < CountedCapacity
-        || convert(u64, core.limits.maxStorageBufferRange) < counted_bytes() {
-        return vk_failure("counted-core13 requires the counted draw feature and advertised ranges");
-    }
-    var enable12: VkPhysicalDeviceVulkan12Features = { sType: VkCore12FeaturesTag, drawIndirectCount: 1, ..default };
-    dynamic.pNext = bits(void*, &enable12);
-    if dynamic.dynamicRendering == 0 { return vk_failure("Dynamic rendering unavailable"); }
+    var result = vkGetPhysicalDeviceImageFormatProperties(physical, VkRgba8Unorm, VkImage2D, 0, usage, 0, &caps.image);
+    if result != VkFormatNotSupported && !vk_ok("vkGetPhysicalDeviceImageFormatProperties", result) { return false; }
+    caps.rgba8_supported = result == 0;
+
+    counted_query_features(physical, &caps);
+
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
-    if count == 0 { return vk_failure("No queue families"); }
-    var queues = alloc(VkQueueFamilyProperties, convert(usize, count));
-    if queues == null { return vk_failure("Cannot allocate queue family list"); }
-    defer free(queues);
-    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, queues);
-    var required = VkGraphicsQueue | VkComputeQueue;
-    for (var family: u32 = 0; family < count; family++) {
-        if (queues[family].queueFlags & required) != required || queues[family].queueCount == 0 { continue; }
-        var priority: f32 = 1.0;
-        var queue_info: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: family,
-            queueCount: 1, pQueuePriorities: &priority, ..default };
-        var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
-            pQueueCreateInfos: &queue_info, pNext: bits(void*, &dynamic), ..default };
-        if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
-        out.family = family;
-        vkGetDeviceQueue(out.device, family, 0, &out.queue);
-        vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);
-        readback_number("graphics_queue_family", family); puts("queue_index=0");
-        return true;
+    if count != 0 {
+        var queues = alloc(VkQueueFamilyProperties, convert(usize, count));
+        if queues == null { return vk_failure("Cannot allocate queue family list"); }
+        defer free(queues);
+        vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, queues);
+        for (var family: u32 = 0; family < count; family++) {
+            readback_number("query_queue_family", family);
+            readback_number("queueFlags", queues[family].queueFlags);
+            readback_number("queueCount", queues[family].queueCount);
+            if counted_queue(queues[family].queueFlags, queues[family].queueCount) { caps.family = family; break; }
+        }
     }
-    return vk_failure("No combined graphics/compute queue for the selected device");
+    readback_number("available_multiDrawIndirect", caps.multiDrawIndirect);
+    readback_number("available_drawIndirectFirstInstance", caps.drawIndirectFirstInstance);
+    readback_number("available_shaderDrawParameters", caps.shaderDrawParameters);
+    readback_number("available_drawIndirectCount", caps.drawIndirectCount);
+    readback_number("available_dynamicRendering", caps.dynamicRendering);
+    readback_number("maxDrawIndirectCount", caps.maxDrawIndirectCount);
+    readback_number("maxStorageBufferRange", caps.maxStorageBufferRange);
+    readback_number("rgba8_color_transfer_src", convert(u32, caps.rgba8_supported));
+    if caps.rgba8_supported {
+        readback_number("rgba8_max_width", caps.image.maxExtent.width);
+        readback_number("rgba8_max_height", caps.image.maxExtent.height);
+        readback_number("rgba8_sample_counts", caps.image.sampleCounts);
+    }
+    var refused = counted_device_refusal(profile, &caps);
+    if refused != null { return vk_failure(refused); }
+
+    // Fresh create chain: only the requested bits survive from discovery.
+    var strict_bit = convert(u32, profile == CountedProfile.Draw14);
+    var parameters: VkPhysicalDeviceShaderDrawParametersFeatures = { sType: VkShaderDrawParametersTag, shaderDrawParameters: strict_bit, ..default };
+    var v12: VkPhysicalDeviceVulkan12Features = { sType: VkCore12FeaturesTag, pNext: bits(void*, &parameters), drawIndirectCount: 1, ..default };
+    var dynamic: VkPhysicalDeviceDynamicRenderingFeatures = { sType: VkDynamicRenderingTag, pNext: bits(void*, &v12), dynamicRendering: 1, ..default };
+    var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic),
+        features: { multiDrawIndirect: strict_bit, drawIndirectFirstInstance: strict_bit, ..default }, ..default };
+    var priority: f32 = 1.0;
+    var queue_info: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: caps.family,
+        queueCount: 1, pQueuePriorities: &priority, ..default };
+    var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
+        pQueueCreateInfos: &queue_info, pNext: bits(void*, &features), ..default };
+    if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
+    if profile == CountedProfile.Draw14 { puts("selected_profile=draw14"); } else { puts("selected_profile=counted-core13"); }
+    readback_number("enabled_multiDrawIndirect", features.features.multiDrawIndirect);
+    readback_number("enabled_drawIndirectFirstInstance", features.features.drawIndirectFirstInstance);
+    readback_number("enabled_shaderDrawParameters", parameters.shaderDrawParameters);
+    readback_number("enabled_drawIndirectCount", v12.drawIndirectCount);
+    readback_number("enabled_dynamicRendering", dynamic.dynamicRendering);
+    out.family = caps.family;
+    vkGetDeviceQueue(out.device, out.family, 0, &out.queue);
+    vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);
+    readback_number("graphics_queue_family", out.family); puts("queue_index=0");
+    return true;
 }

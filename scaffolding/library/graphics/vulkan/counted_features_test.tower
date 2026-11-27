@@ -1,0 +1,122 @@
+import library.testing;
+import counted_features;
+import readback_device;
+
+fn counted_minimum(): CountedCapabilities {
+    return { device_api: VkCore14, multiDrawIndirect: 1, drawIndirectFirstInstance: 1,
+        shaderDrawParameters: 1, drawIndirectCount: 1, dynamicRendering: 1, maxDrawIndirectCount: 16384,
+        maxStorageBufferRange: 327684, rgba8_supported: true, family: 0,
+        image: { maxExtent: { width: 2, height: 2, depth: 1 }, sampleCounts: 1, ..default } };
+}
+
+test() {
+    assert(counted_loader_refusal(CountedProfile.Draw14, VkCore14) == null);
+    assert(counted_loader_refusal(CountedProfile.Draw14, VkCore14 - 1) != null);
+    assert(counted_loader_refusal(CountedProfile.Core13, VkApi13) == null);
+    assert(counted_loader_refusal(CountedProfile.Core13, VkApi13 - 1) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) == null);
+    caps.device_api = VkApi13;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    caps.multiDrawIndirect = 0;
+    caps.drawIndirectFirstInstance = 0;
+    caps.shaderDrawParameters = 0;
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) == null);
+    caps.device_api--;
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.multiDrawIndirect = 0;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) == null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.drawIndirectFirstInstance = 0;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) == null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.shaderDrawParameters = 0;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) == null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.drawIndirectCount = 0;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.dynamicRendering = 0;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.maxDrawIndirectCount--;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.maxStorageBufferRange--;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.rgba8_supported = false;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.image.maxExtent.width--;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.image.maxExtent.height--;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.image.sampleCounts = 2;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var caps = counted_minimum();
+    caps.family = VkNoFamily;
+    assert(counted_device_refusal(CountedProfile.Draw14, &caps) != null);
+    assert(counted_device_refusal(CountedProfile.Core13, &caps) != null);
+}
+
+test() {
+    var both = VkComputeQueue | VkGraphicsQueue;
+    assert(counted_queue(both, 1));
+    assert(!counted_queue(both, 0));
+    assert(!counted_queue(VkGraphicsQueue, 1));
+    assert(!counted_queue(VkComputeQueue, 1));
+}
