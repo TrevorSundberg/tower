@@ -124419,3 +124419,13 @@ The [Win64 link guide](../scaffolding/library/graphics/vulkan/graphics_dll_windo
 identifies the DLL, import library, C caller, validation scope and open
 application coverage. This review adds documentation without changing
 the tested code or build inputs.
+
+### Independent six-export C cross-link on Draw
+
+At `98c81d98`, Draw independently reproduced the six-export Windows
+DLL at Tower `b0d526fc` and linked an external C PE against all six
+names. Rendering rehashed the retained DLL and import library and
+verified the clean binary manifest. The [six-export C link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-c-link-against-all-six-exports)
+identifies the PE and its producer, the verified ordinals and the
+dependency between Draw's five- and six-export application tests. This
+update records evidence without changing the release build or executable.

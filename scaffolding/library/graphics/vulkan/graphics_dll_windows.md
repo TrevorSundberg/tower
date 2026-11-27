@@ -126,6 +126,25 @@ library and a recording driver. Physical Windows and execution of this
 six-export DLL inside Draw remain open. [Draw Linux recording receipt](https://github.com/TrevorSundberg/tower/blob/37809215a14090a05eb6dda968f5d8ad5d8f4278/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
 [Host, build and replay evidence](../../../../docs/temporal-opcode-research-journal.md#blocking-upload-finish-in-the-windows-x64-graphics-dll)
 
+## Draw C link against all six exports
+
+At Draw `98c81d98e2dc017baee86ef7a24c017028ffd968`, the Draw manager
+fetched Tower `b0d526fc8bae5288d6d4e74660ef646f09d935b1` and rebuilt
+the DLL with the published script and LLVM 19. Both the DLL and import
+library matched the hashes above. Draw then linked a separate x64 C
+consumer against all six entries using the released headers. Draw
+reported executable SHA-256
+`d1080b337f72ab589a3ed2fc25aad59ce42b7db7782c433339dec2efc074b865`.
+Its PE inspection confirmed that ordinals 1–5 retained their names,
+`tower_vk_command_finish_v1` occupied ordinal 6, and the provider
+imported `vkQueueWaitIdle` from `vulkan-1.dll`.
+
+This verifies the cross-link. Draw assigned its live ordinal-6 test to
+job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`, dependent on the separate
+five-export application test `97a65c6b`. The 64 guarded copies above
+are Tower's Wine hardware runs. The 73-byte and 64 MiB Draw device
+readbacks have their own Linux assignments. Physical Windows remains open.
+
 ## Five-export validation at c40dae39
 
 The C example created a shader and retired the same event-setting primary
