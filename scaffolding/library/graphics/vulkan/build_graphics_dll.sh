@@ -19,8 +19,8 @@ done
 printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkQueueSubmit\n' > graphics_loader.def
 llvm-dlltool -m i386:x86-64 -d graphics_loader.def -l graphics_loader.lib
 lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
-    /export:tower_vk_try_create_shader_module /export:tower_vk_queue_submit_one_v1 \
-    /export:tower_vk_record_indexed_indirect_count_v1 \
+    /export:tower_vk_try_create_shader_module,@2 /export:tower_vk_queue_submit_one_v1,@1 \
+    /export:tower_vk_record_indexed_indirect_count_v1,@3 \
     /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
     shader_module_c.obj frame_submit.obj indexed_draw_c.obj graphics_loader.lib
 
