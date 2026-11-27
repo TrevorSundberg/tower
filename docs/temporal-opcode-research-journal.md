@@ -124249,3 +124249,14 @@ The gated control first returned VK_NOT_READY, then reported completion of
 both fences and a set GPU event. The hardware evidence is Wine 8 on a
 Quadro RTX 6000, NVIDIA 615.71.10. The host loader inserted the Khronos
 layer. Physical Windows and the five-entry Draw application remain open.
+
+### Draw independently links the five-export Win64 release
+
+Draw reproduced the DLL and import library at `32e6f52b` and linked a
+minimal C PE against all three public headers. Its five-entry import table
+and matching provider ordinals are recorded in the
+[Win64 link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#independent-c-link-on-draw).
+Rendering rehashed the retained DLL and import library and checked the clean
+replay manifest with `(cd bin && sha256sum -c ../clean/pe.sha256)`, exit 0.
+The C PE identity and inspection are Draw's observations. This update
+adds documentation only. The live Draw application test has its own job.
