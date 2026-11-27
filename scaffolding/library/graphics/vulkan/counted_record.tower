@@ -7,7 +7,7 @@ import counted_abi;
 import counted_device;
 import counted_pipeline;
 import indexed_draw;
-import library.graphics.indexed_indirect;
+import .indexed_indirect;
 
 var VkStageDrawIndirect: u32 = 2;
 var VkStageVertexInput: u32 = 4;

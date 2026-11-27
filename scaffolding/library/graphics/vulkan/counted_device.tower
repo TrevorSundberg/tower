@@ -2,7 +2,7 @@ import tower;
 import readback_abi;
 import readback_device;
 import counted_abi;
-import library.graphics.indexed_indirect;
+import .indexed_indirect;
 
 var CountedCapacity: u32 = 16384;
 var VkCore14: u32 = 4210688;

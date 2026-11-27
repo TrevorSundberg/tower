@@ -123545,3 +123545,22 @@ the team reader supplied the exact prerequisite; bundle verification, a
 fresh build, runner and shader hash checks and both adapter replays then
 passed. The module documentation sits before the recording section so
 the manager's subsequent review at the counted branch tip can be retained.
+
+### Windows x64 counted raster on the slot 11 Wine bridge
+
+Assignment b73e2ea3 starts at d779b775. The loader reference 88821d95
+supplies the parent-relative indexed_indirect import and the previously
+qualified GNU-target link. The ordinary parent PE build stopped at
+counted_device's indexed_indirect import. With source Foundation the parent
+linked, but its shader reader declared C long as i64 in fseek and ftell.
+That matches Linux LP64 and mismatches Windows LLP64. No Windows shader
+execution with those declarations qualifies as a baseline.
+
+The counted caller and wrapper now resolve the same parent module directly.
+For these externally built assets only, fread reads the pinned byte length
+into an aligned word allocation and probes one byte for trailing input.
+It checks the stream error indicator after each read. This bounds allocation
+by the frozen input contract and preserves the digest and module checks.
+The compiler driver and CLI stream helper import compiler or tool support;
+the fixture needs only the common CRT stream calls. Linux and GNU Windows
+use the same 64-bit size_t. No new feature structure is required.
