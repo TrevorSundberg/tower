@@ -203,8 +203,7 @@ runs, which reported zero callback warnings or errors.
 Both streams match the [Linux recorder fixture](https://github.com/TrevorSundberg/tower/blob/dadf38c072c6757277d4043cb358e3310af0d6a1/scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md#hardware-evidence).
 The Windows recording control also preserved the 64-bit byte count
 4,294,967,369. The previous five-import counted PE retained its guarded
-output with the new DLL. Draw application execution through ordinal 7
-and physical Windows execution remain open.
+output with the new DLL. Draw subsequently exercised ordinal 7 in its shipping Win64 executable, as recorded below.
 [Host 11 checks and replay](../../../../docs/temporal-opcode-research-journal.md#draw-staged-buffer-recording-in-the-win64-dll)
 
 ### Draw C cross-link for the seven-export DLL
@@ -224,6 +223,41 @@ This receipt covers the independent C link. Draw assigned execution in
 the staged uploader to slot 9 job `24a62b15-b781-40c8-a3fc-d38bf0710359`,
 dependent on six-export job `c2a6ad55-2db3-49ad-a666-f72249d77cf2`.
 The guarded upload captures above came from Tower's Wine fixture.
+
+### Draw shipping Win64 staged-buffer recorder
+
+Draw verified 666 payload hashes in slot 9 archive
+`95dbd0314b2b738c4a0c05a2a168f675a9f0e6723f58bfd1a1c4d7bc3967979a`
+for job `24a62b15-b781-40c8-a3fc-d38bf0710359`. Draw tested
+`cfed146d95cfd3141bcf4a8ea712d4c492b3c7a4` with tests
+`004838470ade47e6d7b9f7496f82edfb4f5a4102` and counted integration
+`13c993581eff1cf19d80e37ea8c8bd1e9f8382e7`. The shipping PE SHA-256 was
+`c1484c8c2fb463e19c9e912076d32b5297fb44b3daee71fc67d1543e5ff4defa`.
+
+Wine 11 selected the RTX 3060, Vulkan 1.4.329, NVIDIA 595.99.02. Draw ran
+the following command with the seven-export Tower DLL from `207f5d07`.
+
+```sh
+draw.exe --offscreen --gpu-check --no-nuclear --frames 3 --staged-uploads --capture shipping-origin.ppm
+```
+
+The shipping run exited 0. Draw observed six 64 MiB staged uploads with exact
+bytes and traced the DLL copy call to return RVA `0x146e`. The blocking
+finish completed on the submitting queue before Draw released staging.
+The direct-mapped control bypassed the recorder. Separate injections at
+command end, queue submit and queue idle produced process exit 1.
+
+| Checked output | SHA-256 |
+| --- | --- |
+| 73-byte payload plus two 16-byte guards | `367af35f3f2da11ece82b4f29250b41e038d57d8a8cd17108c640c73498ee5b4` |
+| 64 MiB payload plus two 16-byte guards | `12eefa67c820d7dec30d4113a44ca04fc9abddfb1455bec4571f31d0ea7c8018` |
+| Raw, shipping and combined raster PPM | `42c6fe3a6e638e17551cb10c267d48451b1d8ef0f9fb2835df85a2b3a606f57b` |
+
+Tower rendering independently reconstructed the two guarded hashes and the
+PPM hash, rehashed its DLL and import library, and decoded the call returning
+at `0x146e` in that DLL. Draw reviewed the executable, captures and driver
+trace. Both strict Wine assets/core checks exited 1 with the registry and
+ICD diagnostics. Physical Windows execution remains open.
 
 ## Five-export validation at c40dae39
 
