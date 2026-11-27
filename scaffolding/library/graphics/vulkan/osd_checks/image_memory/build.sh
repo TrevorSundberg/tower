@@ -16,8 +16,11 @@ llvm-objdump -dr external.obj >external.relocations
 for symbol in tower_vk_allocate_memory_v1 tower_vk_bind_image_memory_zero_v1; do
     rg "IMAGE_REL_AMD64_REL32[[:space:]]+$symbol$" external.relocations
 done
+# The fixture compiler qualifies its local readback helper with the temporary source path.
+source_file=scaffolding/library/graphics/vulkan/readback_device.tower
 llvm-objcopy --redefine-sym osd_check_allocation=memory_plan_source \
     --redefine-sym osd_trace_allocate=memory_allocate_source --redefine-sym osd_trace_bind=memory_bind_source \
+    --redefine-sym "tower.fn.readback_number@$D/fixture/$source_file=tower.fn.readback_number@$source_file" \
     --redefine-sym vkFreeMemory=memory_free_source "$E/bin/planned.obj" fixture.obj
 arms=(sdk)
 kind=sdk

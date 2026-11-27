@@ -5,7 +5,8 @@ if (( $# != 1 )); then echo "usage: $0 EMPTY_OUTPUT_DIRECTORY" >&2; exit 2; fi
 here=$(cd "$(dirname "$0")" && pwd)
 v=$(cd "$here/../.." && pwd)
 root=$(cd "$v/../../../.." && pwd)
-export PREPARED_SDK=$(realpath -e "${PREPARED_SDK:?LLVM19, MinGW x64, Vulkan SDK and Wine 8}")
+PREPARED_SDK=$(realpath -e "${PREPARED_SDK:?LLVM19, MinGW x64, Vulkan SDK and Wine 8}")
+export PREPARED_SDK
 : "${ORDINAL13_PACKET:?sealed 84bd5154 archive}" "${TOWER_READER:?authorized reader for Tower pins}"
 out=$(realpath -m "$1")
 mkdir "$out"
@@ -38,3 +39,22 @@ object_run=$(sed -n 's/^results //p' "$out/object.log")
 (cat "$object_run/prior/evidence/clean/exports"; printf '14 tower_vk_allocate_memory_v1\n15 tower_vk_bind_image_memory_zero_v1\n') | diff -u - ordinals
 sha256sum tower_graphics.dll tower_graphics.lib image_memory.obj >release.sha256
 PROVIDER_DLL=$PWD/tower_graphics.dll PROVIDER_LIB=$PWD/tower_graphics.lib bash "$here/replay.sh" | tee "$out/dll.log"
+export D
+D=$(sed -n 's/^results //p' "$out/dll.log")
+export P=$D/prior/control
+cmp "$object_run/memory/fixture.obj" "$D/memory/fixture.obj"
+for path in record device; do
+    cmp "$object_run/memory/sdk-regular/$path/program.exe" "$D/memory/sdk-regular/$path/program.exe"
+done
+# Rebuild the ordinal-13 SDK oracle too, retaining its forbidden-call sentinels.
+(
+    source "$D/e/env.sh"
+    source "$E/package-env.sh"
+    bash "$E/session.sh" "$here/../check_allocation.sh" "$D/planner" --release "$out/release"
+    cmp "$D/planner/external.rows" "$P/sealed/sdk.rows"
+    for name in vkAllocateMemory vkBindImageMemory; do
+        rg -x "$name" "$D/planner/loader.def"
+        if rg "^$name=" "$D/planner/loader.def"; then echo "Planner sentinel forwarded: $name" >&2; exit 1; fi
+    done
+) >"$out/planner.log" 2>&1
+bash "$here/native_threads.sh" >"$out/native-threads.log" 2>&1

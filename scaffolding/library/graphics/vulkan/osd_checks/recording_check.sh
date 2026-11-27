@@ -55,9 +55,11 @@ for unit in driver record sdk; do
 done
 { printf 'LIBRARY vulkan-1.dll\nEXPORTS\n'; printf '%s\n' "$query" "${observers[@]}" "${blocked[@]}"; } > loader.def
 if [[ -n $release ]]; then
-    # Resolve the release's other Vulkan imports through Wine.
-    awk -v query="$query" '$1 == "Name:" { owner = $2 }
-        owner == "vulkan-1.dll" && $1 == "Symbol:" && $2 != query {print $2 "=winevulkan." $2}' \
+    # Keep the query and forbidden planner calls bound to the recording driver.
+    awk -v local_symbols="$query ${blocked[*]}" 'BEGIN {
+            n = split(local_symbols, names); for (i = 1; i <= n; i++) reserved[names[i]] = 1
+        } $1 == "Name:" { owner = $2 }
+        owner == "vulkan-1.dll" && $1 == "Symbol:" && !($2 in reserved) {print $2 "=winevulkan." $2}' \
         "$dll.imports" >> loader.def
 fi
 "${link[@]}" -shared driver.obj loader.def -Wl,--out-implib,loader.lib,-Map,loader.map -o vulkan-1.dll
