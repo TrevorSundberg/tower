@@ -116,12 +116,7 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**, reuse: bool): bool {
             if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
         } else {
             if !vk_ok("vkResetFences", vkResetFences(device, 1, &fence)) { return false; }
-            var step: u32;
-            var result = tower_vk_command_reset_begin_v1(cmd, 0, 0, &step);
-            if result != 0 {
-                if step == VkCommandStepReset { return vk_ok("vkResetCommandBuffer", result); }
-                return vk_ok("vkBeginCommandBuffer", result);
-            }
+            if !vk_ok("tower_vk_command_begin_v1", tower_vk_command_begin_v1(cmd)) { return false; }
         }
         var submit: VkSubmitInfo;
         if !counted_record(&cmd, &submit, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,

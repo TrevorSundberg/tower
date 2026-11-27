@@ -123872,3 +123872,19 @@ before the instrumented DSO. All three were corrected and rerun. Source,
 maps, exact commands, stdout, bounded samples and exits accompany the
 local bundle. Draw verification is pending its manager's exact caller
 signature, step discrimination and flag choices at 30b66f59.
+
+### Confirmed Draw command begin, 30b66f59
+
+Draw's manager confirmed the public C signature at draw.c:1841. A single
+primary handle is passed by value. Reset flags are zero. Successful reset
+allows a one-time-submit begin on the same handle with null extension
+and inheritance pointers. Either call can return the same signed error.
+The raw C caller checks the Vulkan expressions separately. The Tower-enabled
+Draw caller checks the helper expression once. This supersedes the
+provisional flag arguments and failed-step output in 129e7029.
+
+Host 12 rebuilt that provisional revision from local objects. Both original
+one-shot fixtures and its three-frame reuse output matched their previous
+logs. The change keeps the fresh-buffer begin paths and the caller's fence
+ordering. The count reversal and guarded capture on the middle frame remain
+the test for stale command or staging contents.
