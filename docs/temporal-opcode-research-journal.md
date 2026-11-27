@@ -124136,3 +124136,17 @@ ABI removes that utility dependency. Clean offline replay from 44f2cdf6
 reproduced both binaries checked by the DSO hash comparison, the private
 Tower object and both raw captures. The raw control, external transport
 and replay all exited 0. Production acceptance awaits Draw's contract.
+
+### Confirmed Draw staged upload recording contract
+
+The rendering manager forwarded the Draw team's source-level contract at
+41d8b9badce3e6520d43b798c44cbb7e19b6d57c, draw.c blob
+7b6ee8f42bbde29790364d3de73a5d75216cbf1d. Lines 1943–1952 specify a
+global VkMemoryBarrier2 in VkDependencyInfo. Lines 1954 and 1970–1979
+specify the staged branch, a single copy from zero to zero with the
+logical byte size passed unchanged, then vkCmdPipelineBarrier2. The
+recorder has four by-value inputs and a void return. Calibration above
+used a different barrier. The prior copy ABI is reusable. An offline
+search found no synchronization2 provider or declarations in this tree.
+The native Linux C entry and raw C oracle will be compared with
+synchronization2 explicitly queried and enabled on the selected device.
