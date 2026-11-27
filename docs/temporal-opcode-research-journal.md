@@ -124260,3 +124260,14 @@ Rendering rehashed the retained DLL and import library and checked the clean
 replay manifest with `(cd bin && sha256sum -c ../clean/pe.sha256)`, exit 0.
 The C PE identity and inspection are Draw's observations. This update
 adds documentation only. The live Draw application test has its own job.
+
+### Five-export Win64 Draw application receipt
+
+Draw verified 433 digests for job `97a65c6b`. Its shipping PE at
+`87d4e8d0` imported four entries from the five-export Tower DLL at
+`32e6f52b`. The functional Wine 11 run on the RTX 3060 retired three
+frames and preserved the descriptor on an end failure. Draw also matched
+its count, raster and resize controls. Stock validated assets/core
+exited 1. Rendering independently rehashed the original DLL and import
+library. This receipt adds documentation.
+[Command, results and remaining coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-application-using-the-five-export-dll)

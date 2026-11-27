@@ -98,7 +98,7 @@ The release DLL exports submit, shader creation and counted recording at
 ordinals 1, 2 and 3. Begin is 4 and end/prepare is 5. The end object
 supplies the single definition of submit. Recorded C controls cover signed
 reset, begin, end and submit results, all optional descriptor slots,
-failure preservation and call order. Full Draw, displayed WSI and native
+failure preservation and call order. Displayed WSI and native
 Windows driver execution remain open. [Host 11 evidence](../../../../docs/temporal-opcode-research-journal.md#win64-frame-operations-in-the-counted-graphics-dll)
 
 The release DLL (3,584 bytes) has SHA-256
@@ -121,8 +121,30 @@ and linked it against that import library. It reported PE SHA-256
 `9b3e010ffc5ad9bb0fcc21b044e3c2594ec2841b2ca99af81d52717b6226a2d8`.
 Its import table contained all five operations, and Draw confirmed provider
 ordinals 1 through 5. This receipt covers cross-compilation and inspection.
-Draw assigned execution through its application to job `4c9c47bb`.
-Physical Windows and displayed WSI coverage remain open.
+
+### Draw application using the five-export DLL
+
+Draw job `97a65c6b` used application `87d4e8d094572c13c0c9beba369577b9cdf59e0d`,
+tests `0a59710fafc6db481bd4e76f694679e76e5ad482` and Tower
+`32e6f52b2d60953c7bad1678fb7bc1786bfccc2a`. Draw verified 433 hashes
+in archive `9784a81737a60194c55488f28b803918f38da4a43e451ee477088893cda543b1`.
+The shipping PE, SHA-256 `bdd9c146cd84d9594a39c946ab3e896d5c2d1381f01e47d9a6cfb4bd63743a73`,
+imported the entries at ordinals 1, 2, 4 and 5. Rendering independently
+rehashed the matching release DLL and import library.
+
+The offscreen functional trial on Wine 11 selected the RTX 3060,
+Vulkan 1.4.329, NVIDIA 595.99.02. Draw reported frame arguments
+`--osd assets/osd/state.bin --no-hud --day-hour 12 --fixed-time 0 --size 320 180 --frames 3 --benchmark-motion --fixed-step 0.016666667`.
+It exited 0. In each of the three frames, end/prepare and submit used
+the same borrowed command slot and descriptor. A zero-time fence wait
+returned 2 (`VK_TIMEOUT`) before later retirement and reuse. On a failed
+end the 72-byte descriptor and all 32 guard bytes were preserved.
+
+Draw checked counts of 16,384 and all 1,024,000 RGBA pixels against
+each original and corrected raster control. The resized HUD layer
+matched its retained digest (`26bcbccf…`). The stock validated asset
+and core runs exited 1 with three registry diagnostics and a loader
+warning. Physical Windows and displayed WSI remain open.
 
 ## Recording indexed draws from C
 
