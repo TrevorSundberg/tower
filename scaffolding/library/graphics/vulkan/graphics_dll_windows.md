@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles eight Tower objects for
+The entry verifies the checked-in bootstrap, compiles nine Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -443,9 +443,9 @@ all 256 sampled texels and every guard.
 The host loader inserted Khronos synchronization validation. Healthy
 guest callbacks reported zero warnings or errors. Explicit guest layer
 creation returned −6 and exited 1. Win64 C UBSan and native threaded
-ASan/TSan completed. Win64 ASan/TSan, physical Windows and execution of
-ordinal 8 inside Draw remain open. Draw's five-export Wine 11 receipt
-above covers its earlier shipping frame path.
+ASan/TSan completed. Win64 ASan/TSan and physical Windows remain open.
+Draw subsequently exercised ordinal 8 in its shipping Win64 application
+under Wine 11.
 
 Rendering verified the archive's 466 manifest entries, its two previous
 packets and the 170-entry sampling supplement at `c2bafc6f`. Clean replay
@@ -469,10 +469,11 @@ ordinals, the caller relocation for the OSD recorder and its two Vulkan
 loader calls. Rendering independently rehashed the retained DLL and
 import library.
 
-Draw's shipping application run, packed texture readback and final HUD
-comparison are queued on slot 9 under
-`4ff01175-385e-4039-bc8e-28e4465856f6`. That run depends on the
-seven-export Windows and Linux real-pack OSD results.
+Draw completed its shipping application comparison in slot 9 job
+`4ff01175-385e-4039-bc8e-28e4465856f6`. On the RTX 3060 under Wine 11,
+the linked recorder returned from five DLL copy calls. The active texels
+and guarded readback matched Linux, and the frozen normal and resized
+HUDs matched their controls. [Win64 device, command and readback](https://github.com/TrevorSundberg/tower/blob/6fdd5ad973cbaa8495de012c4f2fbbf2bcad18b3/scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-shipping-osd-recorder-on-win64)
 
 ## Building OSD copy regions at ordinal 9
 
@@ -611,3 +612,79 @@ This was a host cross-link. Draw slot 9 job
 texel and HUD comparison. It requires the ordinal-9 application artifact
 from `53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`. Draw's separate Linux
 application job is `7a36cecf-5020-480c-90a9-bbecaacecc2c`.
+
+## Creating an unbound image at ordinal 11
+
+Include `create_image.h` and link the external C application with the
+release `tower_graphics.lib`. Pass a live device, the original SDK
+descriptor and a separate, initially null image slot.
+
+```c
+VkImage image = VK_NULL_HANDLE;
+VkResult result = tower_vk_create_image_v1(device, &info, &image);
+```
+
+Keep the descriptor, including its chain and queue-family array, live
+through return. On success the caller owns the image, queries requirements,
+allocates and binds memory, and may then create a view. Retire submitted
+uses before destroying the views, image and bound memory in order. An
+error preserves the caller slot and returns the driver's signed result.
+
+Build with the clean-checkout command above. The following SHA-256 digests
+identify the products built with the checked-in Linux x64 bootstrap and
+LLVM 19.1.7 at `d79cc78b193340ec0376ea226b2e2ca7a35ec212`.
+
+| Product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `create_image.obj` | 641 | `ebe5a75947f64a847b8de4bccc3ba678f57b672a60204a0e91b62d12b0fda405` |
+| `tower_graphics.dll` | 6656 | `e7524e2b14f148a37e79eb4912f9aa07bfc6e252dfd1fd45be211cd5914b7e6c` |
+| `tower_graphics.lib` | 4522 | `3662deaaf18aaaf028f0653a516ecaa8f5e171a49cac48cea625eb3e5b4ae246` |
+| External capture PE | 305152 | `19505a2530855043833d1f053772054171de01904d8941d6ba00b20b496274e7` |
+
+Ordinals 1–10 retain their names. The new export imports only
+`vkCreateImage`. The DLL link map identifies `create_image.obj` as its
+definition. The release-linked PE imports ordinals 8–11 by name with
+matching hints. The original expected.lib and the release import library
+have different digests and produce identical capture executables.
+The job packet contains both original controls and the release link map.
+
+### Win64 device execution through ordinal 11
+
+Wine 8 loaded the release DLL in the external C capture process. Vulkan
+selected the Quadro RTX 6000, API 1.4.351, NVIDIA 615.71.10, queue 0/0.
+The fixture called ordinal 11 for the five sampled source images and used
+its raw SDK call for the five readback targets. Rendering decoded the PE
+export and import tables and checked ten create, requirements, allocate and
+bind sequences across the two groups. All ten submissions completed on
+the same queue, and each source view was destroyed before its image and
+bound memory. The 27,542,768-byte capture matched the raw SDK control byte
+for byte, including 256 sampled texels and 240 guard bytes. SHA-256 was
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+
+Raw SDK, direct-object and DLL C callers each passed 21 recording cases.
+When the fault loader wrote the private output and returned signed −2 at
+the first source, the caller's output stayed null. The fixture exited 3
+before memory requirements, allocation, binding, view creation or submit.
+Win64 trapping UBSan passed at the C boundary. The worker reported
+overlapping device timings, unavailable Win64 ASan runtime and unsupported
+Win64 TSan. Physical Windows and Draw's shipping Win64 caller remain open.
+
+### Draw Win64 cross-link for image creation
+
+Draw independently rebuilt Tower `a639a49e0c9709117d990331361a8801ee41746a`
+and matched the DLL and import-library digests above. The portable header
+and source match Linux `07587159dbc5606b3e24d85fa6e3babfc2f9b6fe`.
+Draw compiled the shipping C bodies of `image_create_checked` and
+`draw_vk_create_unbound_image` at `c026f0fd1539187538b4b8ceec41687587ea835c`
+and cross-linked them into a Win64 PE with SHA-256
+`ff28fc30643410aaf2087745e794367bcd380508ce9c57c4b3d589f3c70b5141`.
+Draw checked eleven named consumer imports, DLL export ordinals 1–11 and
+the AMD64 REL32 relocation for the helper's call to `tower_vk_create_image_v1`.
+Rendering rehashed the retained release binaries and checked the portable
+source and header against the Linux tree.
+
+The Draw evidence for this PE is static inspection. Shipping Win64
+execution belongs to slot 9 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`
+after the ordinal-10 bound-view job `966e83dc-85c9-4fd1-bd67-2ab72fa6f796`.
+The separate Linux provider test is assigned to
+`447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.

@@ -10,13 +10,13 @@ root=$(cd "$v/../../../.." && pwd)
 mkdir -p "$1"
 cd "$1"
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
-for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record tight_color_regions bound_image_view; do
+for unit in shader_module_c command_begin command_finish indexed_draw_c buffer_upload_record osd_texture_upload_record tight_color_regions bound_image_view create_image; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
         -o "$unit.obj"
 done
 # These are the complete loader dependencies of the graphics DLL.
-printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkResetCommandBuffer\n  vkBeginCommandBuffer\n  vkEndCommandBuffer\n  vkQueueSubmit\n  vkQueueWaitIdle\n  vkCmdCopyBuffer\n  vkCmdCopyBufferToImage\n  vkCmdPipelineBarrier2\n  vkCreateImageView\n' > graphics_loader.def
+printf 'LIBRARY vulkan-1.dll\nEXPORTS\n  vkCreateShaderModule\n  vkResetCommandBuffer\n  vkBeginCommandBuffer\n  vkEndCommandBuffer\n  vkQueueSubmit\n  vkQueueWaitIdle\n  vkCmdCopyBuffer\n  vkCmdCopyBufferToImage\n  vkCmdPipelineBarrier2\n  vkCreateImageView\n  vkCreateImage\n' > graphics_loader.def
 llvm-dlltool -m i386:x86-64 -d graphics_loader.def -l graphics_loader.lib
 lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_try_create_shader_module,@2 /export:tower_vk_queue_submit_one_v1,@1 \
@@ -25,8 +25,9 @@ lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 \
     /export:tower_vk_command_finish_v1,@6 /export:tower_vk_buffer_upload_record_v1,@7 \
     /export:tower_vk_osd_texture_upload_record_v1,@8 \
     /export:tower_vk_build_tight_color_regions_v1,@9 /export:tower_vk_create_bound_image_view_v1,@10 \
+    /export:tower_vk_create_image_v1,@11 \
     /out:tower_graphics.dll /implib:tower_graphics.lib /map:tower_graphics.map \
-    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj tight_color_regions.obj bound_image_view.obj graphics_loader.lib
+    shader_module_c.obj command_begin.obj command_finish.obj indexed_draw_c.obj buffer_upload_record.obj osd_texture_upload_record.obj tight_color_regions.obj bound_image_view.obj create_image.obj graphics_loader.lib
 
 if [[ ${2:-} == --with-consumer ]]; then
     : "${MINGW_SYSROOT:?absolute path to the x86_64-w64-mingw32 sysroot}"

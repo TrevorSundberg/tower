@@ -1,0 +1,97 @@
+import tower;
+// Read the filtered Wine calls in order and correlate them with the successful
+// application's device/image/view triples. All storage belongs to this process.
+struct File {}
+extern fn fopen(path: u8*, mode: u8*): File*;
+extern fn fgets(line: u8*, size: i32, file: File*): u8*;
+extern fn fclose(file: File*): i32;
+extern fn feof(file: File*): i32;
+extern fn ferror(file: File*): i32;
+extern fn strtok(s: u8*, delim: u8*): u8*;
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn strtoull(text: u8*, end: u8**, radix: i32): u64;
+extern fn puts(message: u8*): i32;
+extern fn exit(status: i32): void;
+fn check(ok: bool, message: u8*): void { if !ok { puts(message); exit(3); } }
+fn value(s: u8*): u64 {
+    check(s != null, "short trace");
+    if strcmp(s, "(nil)") == 0 { return 0; }
+    var end: u8*; var n = strtoull(s, &end, 16);
+    check(end != s && *end == 0, "invalid hex handle"); return n;
+}
+struct Row { a: u64; b: u64; c: u64; d: u64; }
+fn next(file: File*, name: u8*, fields: u32): Row {
+    var line: u8[512];
+    check(fgets(&line[0], convert(i32, sizeof(decltype(line))), file) != null, name);
+    var delimiters = " ,\t\r\n"; var word = strtok(&line[0], delimiters);
+    check(word != null && strcmp(word, name) == 0, name);
+    var row: Row = default;
+    row.a = value(strtok(null, delimiters));
+    if fields >= 2 { row.b = value(strtok(null, delimiters)); }
+    if fields >= 3 { row.c = value(strtok(null, delimiters)); }
+    if fields >= 4 { row.d = value(strtok(null, delimiters)); }
+    check(strtok(null, delimiters) == null, "unexpected extra field"); return row;
+}
+fn end(file: File*): bool {
+    var buf: u8[2]; return fgets(&buf[0], 2, file) == null && feof(file) != 0 && ferror(file) == 0;
+}
+fn allocation(file: File*, device: u64): void {
+    var call = next(file, "AllocateMemory", 4);
+    check(call.a == device && call.b != 0 && call.c == 0 && call.d != 0, "allocation device/allocator/slots");
+}
+fn image_binding(file: File*): Row {
+    var create = next(file, "CreateImage", 4);
+    check(create.a != 0 && create.b != 0 && create.c == 0 && create.d != 0, "image creation device/allocator/slots");
+    var req = next(file, "GetImageMemoryRequirements", 3);
+    check(req.a == create.a && req.b != 0 && req.c != 0, "image requirements");
+    allocation(file, create.a);
+    var bind = next(file, "BindImageMemory", 4);
+    check(bind.a == create.a && bind.b == req.b && bind.c != 0 && bind.d == 0, "image binding");
+    return bind;
+}
+fn created(file: File*, device: u64): void {
+    var call = next(file, "CreateImageView", 4);
+    check(call.a == device && call.b != 0 && call.c == 0 && call.d != 0, "creation device/allocator/slots");
+}
+fn finished(file: File*, queue: u64*): void {
+    var submit = next(file, "QueueSubmit", 4);
+    if *queue == 0 { *queue = submit.a; }
+    check(submit.a == *queue && submit.a != 0 && submit.b == 1 && submit.c != 0 && submit.d == 0, "submit");
+    check(next(file, "QueueWaitIdle", 1).a == *queue, "queue did not finish");
+}
+fn release(file: File*, op: u8*, device: u64, handle: u64): void {
+    var call = next(file, op, 3);
+    check(call.a == device && call.b != 0 && (handle == 0 || call.b == handle) && call.c == 0, op);
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    check(argc == 3, "usage: image_lifetime CALLS VIEW_HANDLES");
+    var calls = fopen(argv[1], "r"); var handles = fopen(argv[2], "r");
+    check(calls != null && handles != null, "open trace");
+    defer fclose(calls); defer fclose(handles);
+    var queue: u64 = 0;
+    var source_counts: u32[5] = {2,3,3,1,1};
+    foreach (var count in &source_counts) {
+        var bind = image_binding(calls); var device = bind.a;
+        var views: u64[3];
+        for (var i: u32 = 0; i < count; i++) {
+            created(calls, device);
+            var handle = next(handles, "view", 3);
+            check(handle.a == device && handle.b == bind.b && handle.c != 0, "source view identity");
+            for (var j: u32 = 0; j < i; j++) { check(views[j] != handle.c, "aliased live views"); }
+            views[i] = handle.c;
+        }
+        allocation(calls, device);
+        finished(calls, &queue); release(calls, "FreeMemory", device, 0);
+        var target = image_binding(calls);
+        check(target.a == device && target.b != bind.b && target.c != bind.c, "target binding");
+        created(calls, device);
+        allocation(calls, device);
+        finished(calls, &queue); release(calls, "FreeMemory", device, 0);
+        release(calls, "DestroyImageView", device, 0);
+        release(calls, "DestroyImage", device, target.b); release(calls, "FreeMemory", device, target.c);
+        while count != 0 { count--; release(calls, "DestroyImageView", device, views[count]); }
+        release(calls, "DestroyImage", device, bind.b); release(calls, "FreeMemory", device, bind.c);
+    }
+    check(end(calls) && end(handles), "unexpected trailing events");
+    puts("10 image requirements/allocation/bind sequences, 10 source views, 10 completed submits, views then images then bound memory"); return 0;
+}
