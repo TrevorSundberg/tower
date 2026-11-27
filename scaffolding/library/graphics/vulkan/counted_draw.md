@@ -146,7 +146,8 @@ device, including devices reporting 1.4, pending implementation and comparison
 with Draw's pinned C and original shaders. Full-profile acceptance needs those
 inputs and matching guarded captures from a qualifying device.
 
-The next Tower library change will let a caller create a Vulkan shader module
-from borrowed SPIR-V words. The counted pipeline will use it for compute,
-vertex and fragment stages. Offline compilation, fixture hashes and file I/O
-stay at the call site. This gives Draw's asset loader an in-memory entry point.
+The in-memory shader module API and the Vulkan 1.4 feature gate are
+available on separate reviewed rendering refs. The shader API accepts borrowed
+SPIR-V words. The strict gate ran the counted controls on the Quadro RTX 6000.
+The queue-completion runs described here used the core 1.3 executable.
+[Shader module review](https://github.com/TrevorSundberg/tower/commit/d779b775ddf6434b976e6214670507446a707f13) · [Vulkan 1.4 review](https://github.com/TrevorSundberg/tower/commit/70f0137fc0f656eba2e3c2b731859fed6af8a7a0)
