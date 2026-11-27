@@ -124649,3 +124649,13 @@ Rendering verified the object size and digest against its reviewed
 Linux artifact. Draw owns the two trace files and the pending real-asset
 device readback and rendered OSD comparison. This documentation records
 the CPU receipt. [Inputs, checks and trace digest](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-cpu-recording-with-the-shipped-texture-pack)
+
+### Draw OSD CPU replay and expected shipped texels
+
+Draw pinned the replay at `4524eebe` and supplied its exact command.
+Both CPU traces matched at `1ca1ad20`. Draw computed the expected
+packed-texel digest from the shipped file. Rendering checked the 16
+extents and offsets against both retained Tower loader traces and
+confirmed that the logical texels and 176 header bytes account for the
+whole pack. Device comparison belongs to Draw job `a07d1af8`.
+[Replay command and expected input bytes](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#replaying-the-draw-test)

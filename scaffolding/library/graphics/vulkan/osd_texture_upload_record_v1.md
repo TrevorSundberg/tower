@@ -236,3 +236,42 @@ order against its independent oracle. Each run produced a 64-line trace
 with SHA-256 `1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
 Device readback of these packed texels and rendered OSD parity are pending
 on Draw's reserved hardware.
+
+### Replaying the Draw test
+
+The test source is local Draw commit `4524eebe12ddd1310cbfab50a62600543039a4d9`.
+From that checkout, set `DRAW_TOWER_OSD_TEXTURE_UPLOAD_ROOT` to the path of
+the Tower checkout at `846176abc06dfa3ac6dbb939f3f683e9380cd99e` and run:
+
+```sh
+python3 tests/verify-osd-texture-record.py "$DRAW_TOWER_OSD_TEXTURE_UPLOAD_ROOT"
+```
+
+Draw recorded the following invocation with its local compiler, SDK headers
+and output directory. Raw C and linked Tower both returned 0 and produced
+the 64-line trace recorded above.
+
+```sh
+CC=/tmp/draw-contract.6364VolT/check-cc \
+LD_LIBRARY_PATH=/tmp/draw-contract.6364VolT/deps/usr/lib/x86_64-linux-gnu \
+TOWERC=/tmp/draw-contract.6364VolT/bootstrap/linux-x64/towerc \
+CPPFLAGS="-I$PWD/build/tower-port/manager/receipt-144/sdk/usr/include" \
+python3 tests/verify-osd-texture-record.py \
+    build/tower-port/manager/receipt-145/provider \
+    --out build/tower-port/manager/receipt-146/cpu
+```
+
+### Expected device readback of the shipped texels
+
+Draw concatenated the 16 logical subresources in file texture order,
+then layer order, then mip order within each layer. The resulting
+27,541,504 packed texel bytes have file-derived SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Rendering verified the individual spans of 25,165,824, 450,560, 450,560,
+1,441,792 and 32,768 bytes against both retained Tower loader traces.
+The 16-byte file header and five 32-byte record headers account for the
+remaining 176 bytes in the full pack.
+
+Draw queued job `a07d1af8` for the device comparison. Its hardware
+invocation, selected device, observed texel digest and rendered HUD
+digest remain outstanding.
