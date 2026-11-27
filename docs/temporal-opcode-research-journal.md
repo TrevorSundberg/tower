@@ -124383,3 +124383,16 @@ configuration and the combined GPU job. Rendering rehashed the retained
 object and DSO and reran its SDK-header external C and raw controls, exit 0.
 Those controls measure command recording. Draw's application readbacks are
 pending. This update adds evidence and changes documentation only.
+
+### Combined Draw buffer upload on Linux hardware
+
+Draw `78f3ce01` completed all 16 staged/mapped readbacks with recorder
+`dadf38c0` and finish `4b1f0af2`. The four shipping builds passed on
+the RTX 5060 Ti. Draw reviewed the archive and compared the guards,
+payloads, queue retirement and fault exits. Both configurations using
+Tower finish exited 1 for each injected error in this series. The raw
+finish configurations each exhibited exit 139. Draw's fatal-exit repair
+is open. Rendering reproduced the two guarded SHA-256 values and the
+PPM digest and reran its local recorder and finish recording checks.
+This entry adds evidence without changing executable inputs.
+[Commands, device, status matrix and archive digest](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md#draw-hardware-results-for-the-combined-upload)

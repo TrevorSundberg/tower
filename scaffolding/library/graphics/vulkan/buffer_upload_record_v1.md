@@ -103,8 +103,8 @@ Tower byte stream reproduced every byte. Raw and shared hardware runs
 exited 0 with zero Khronos synchronization-validation warnings/errors.
 The 73-byte direct-object consumer passed the same checks. Recording-only
 checks additionally observed VkDeviceSize 4294967369 across the native
-C boundary using borrowed stand-in handles. An application run on Draw's
-full device profile remains an integration check.
+C boundary using borrowed stand-in handles. Draw's application used its
+Vulkan 1.4 device profile in the [combined upload runs](#draw-hardware-results-for-the-combined-upload).
 
 The rendering manager rebuilt the DSO from the retained object, using GNU
 ld 2.44 and the Debian Vulkan loader. The resulting DSO matched the
@@ -129,6 +129,55 @@ the first signed error, and staging retention when retirement was unknown.
 Draw's combined test ELF had SHA-256
 `d22b6de3125a9311a8db633a0e69c47cf16cf43a86a4f077896914b13f9f5693`.
 
-Draw assigned hardware reads of 73 bytes and 64 MiB through the combined
-caller to job `3c86f4a7-4792-49b1-8548-bee768a5ec13`. Its earlier
-finish-only hardware assignment is `00d4d868-4cb6-4141-9212-8fb128a0ed04`.
+## Draw hardware results for the combined upload
+
+Draw tested `78f3ce01689a95d8f6d4b903b8487caaa52c0cf2` with tests
+`600f45da0b9df446bde74dd59765b6459d3c6329`, Tower recorder
+`dadf38c072c6757277d4043cb358e3310af0d6a1` and blocking finish
+`4b1f0af2bcfcbb9d8d7d86eae7fa885ffb1ed8e4`. Draw verified 703 file
+digests for slot 10 job `3c86f4a7-4792-49b1-8548-bee768a5ec13`.
+The archive SHA-256 was `85a5ac5771e0dd9ea998f7a85dcac7a576f86e81d77deeff57edcfe723da04cd`.
+The tested Vulkan device was an RTX 5060 Ti, Vulkan 1.4.303, NVIDIA 570.169.
+
+Draw checked 16 guarded readbacks across four recorder/finish combinations,
+two payload sizes and two upload paths. The mapped path bypassed the
+recorder. Staged uploads released staging after a successful wait-idle on
+the submitting queue. The 73-byte payload used `(37*i+11) mod 256`. The
+64 MiB payload was filled with hex `5a`. Each logical readback had 16
+bytes of `c7` at either end.
+
+| Guarded bytes | SHA-256 |
+| ---: | --- |
+| 105 | `6f83b083f799c51fa51ad8b60061eaefa615edb15ac1baeb5b055fa22c0d8335` |
+| 67,108,896 | `b36df9bbdb0b7c344b42d721ead2b068c2d19537438273073d574a78db138968` |
+
+Draw ran each of its four shipping executables with these arguments.
+Each exited 0 and produced PPM SHA-256
+`42c6fe3a6e638e17551cb10c267d48451b1d8ef0f9fb2835df85a2b3a606f57b`.
+
+```sh
+"$draw_exe" --gpu-check --offscreen --staged-uploads --validate --no-nuclear \
+    --frames 3 --size 1280 800 --capture OUT.ppm
+```
+
+**Injected failures.** The cells below are OS process statuses.
+Each column names the Vulkan call and its injected signed result.
+The required fatal exit was 1 in every case.
+
+| Recorder | Finish | Command end (−1) | Queue submit (−2) | Queue idle (−1) |
+| --- | --- | ---: | ---: | ---: |
+| Raw C | Raw C | 1 | 1 | 139 |
+| Tower | Raw C | 139 | 1 | 139 |
+| Raw C | Tower | 1 | 1 | 1 |
+| Tower | Tower | 1 | 1 | 1 |
+
+After each injected idle failure following an accepted submit, staging
+remained live through a separate successful drain on the same queue.
+Strict fatal-exit acceptance remains open in Draw repair `97562fd0`.
+The intermittent SIGSEGV has no established cause.
+
+Rendering rehashed the retained recorder and finish objects, reproduced
+both guarded digests and the shipping PPM digest from expected bytes,
+and reran its local CPU recording checks. Draw verified the device
+captures and process statuses. The earlier finish-only trial has its
+own [Linux device and fault evidence](https://github.com/TrevorSundberg/tower/blob/e02ada10a19bb2ddeefc916e388f9cce63dee68f/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits).
