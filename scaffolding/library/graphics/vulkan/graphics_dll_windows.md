@@ -443,9 +443,9 @@ all 256 sampled texels and every guard.
 The host loader inserted Khronos synchronization validation. Healthy
 guest callbacks reported zero warnings or errors. Explicit guest layer
 creation returned −6 and exited 1. Win64 C UBSan and native threaded
-ASan/TSan completed. Win64 ASan/TSan, physical Windows and execution of
-ordinal 8 inside Draw remain open. Draw's five-export Wine 11 receipt
-above covers its earlier shipping frame path.
+ASan/TSan completed. Win64 ASan/TSan and physical Windows remain open.
+Draw subsequently exercised ordinal 8 in its shipping Win64 application
+under Wine 11.
 
 Rendering verified the archive's 466 manifest entries, its two previous
 packets and the 170-entry sampling supplement at `c2bafc6f`. Clean replay
@@ -469,10 +469,11 @@ ordinals, the caller relocation for the OSD recorder and its two Vulkan
 loader calls. Rendering independently rehashed the retained DLL and
 import library.
 
-Draw's shipping application run, packed texture readback and final HUD
-comparison are queued on slot 9 under
-`4ff01175-385e-4039-bc8e-28e4465856f6`. That run depends on the
-seven-export Windows and Linux real-pack OSD results.
+Draw completed its shipping application comparison in slot 9 job
+`4ff01175-385e-4039-bc8e-28e4465856f6`. On the RTX 3060 under Wine 11,
+the linked recorder returned from five DLL copy calls. The active texels
+and guarded readback matched Linux, and the frozen normal and resized
+HUDs matched their controls. [Win64 device, command and readback](https://github.com/TrevorSundberg/tower/blob/6fdd5ad973cbaa8495de012c4f2fbbf2bcad18b3/scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-shipping-osd-recorder-on-win64)
 
 ## Building OSD copy regions at ordinal 9
 
@@ -667,3 +668,23 @@ before memory requirements, allocation, binding, view creation or submit.
 Win64 trapping UBSan passed at the C boundary. The worker reported
 overlapping device timings, unavailable Win64 ASan runtime and unsupported
 Win64 TSan. Physical Windows and Draw's shipping Win64 caller remain open.
+
+### Draw Win64 cross-link for image creation
+
+Draw independently rebuilt Tower `a639a49e0c9709117d990331361a8801ee41746a`
+and matched the DLL and import-library digests above. The portable header
+and source match Linux `07587159dbc5606b3e24d85fa6e3babfc2f9b6fe`.
+Draw compiled the shipping C bodies of `image_create_checked` and
+`draw_vk_create_unbound_image` at `c026f0fd1539187538b4b8ceec41687587ea835c`
+and cross-linked them into a Win64 PE with SHA-256
+`ff28fc30643410aaf2087745e794367bcd380508ce9c57c4b3d589f3c70b5141`.
+Draw checked eleven named consumer imports, DLL export ordinals 1–11 and
+the AMD64 REL32 relocation for the helper's call to `tower_vk_create_image_v1`.
+Rendering rehashed the retained release binaries and checked the portable
+source and header against the Linux tree.
+
+The Draw evidence for this PE is static inspection. Shipping Win64
+execution belongs to slot 9 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`
+after the ordinal-10 bound-view job `966e83dc-85c9-4fd1-bd67-2ab72fa6f796`.
+The separate Linux provider test is assigned to
+`447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.
