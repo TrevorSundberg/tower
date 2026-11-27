@@ -125596,3 +125596,98 @@ recorder. The measured child needs an absolute executable path. All
 original failures and successful commands are retained in the packet.
 The [provider record](../scaffolding/library/graphics/vulkan/image_allocation_plan_v1.md#linux-standalone-provider-and-checks)
 contains the device table, object build, fixture pin and capture hash.
+
+### Win64 SDK caller for separate image allocation and binding
+
+Assignment a82cef30 on host 11 starts from Tower
+`21e0d03be39e256504d74702b4d75ad0416c8fb5`. Draw
+`51d4785e6456353b9a65f49d311cb0c6925ee42d` acknowledged the two calls
+and ownership sequence. Tower recorded the acknowledgement at `edae3cf7`.
+Planner input 84bd5154, source `61ebea41` over `a2b0899a`, was preserved.
+Its packet SHA-256 is
+`3d38e8877a39da809658ce7274f050fa8e24ca05ea9e2ef7e583cce209dfbcfc`.
+Its ordinal-13 DLL and COFF import library were verified against the sealed
+release manifest. The clean recipe fetches both input bases through the
+worker's Tower reader. An early shared clone lacked several promised blobs.
+Fetching the pinned contract from the reader restored those inputs.
+
+The [external C caller and replay](../scaffolding/library/graphics/vulkan/osd_checks/image_memory/README.md)
+use separate translation units for direct SDK and linked allocation/binding.
+The recording PE and device PE both import the real planner at ordinal 13.
+The SDK call sites import vkAllocateMemory and vkBindImageMemory. The compiled
+external COFF has AMD64 REL32 relocations to both new public names. The old
+release import library failed to link it with two undefined symbols. A supplied
+released COFF or DLL pair can enter the same recorder and device fixture.
+The production unit belongs to slot 12.
+
+The Win64 SDK recording process checked the original descriptor and chained
+dedicated-image descriptor addresses, object bytes, null allocator, device,
+image, type index 31, exact handle, zero offset and both public-slot guards.
+At success the driver observed live bytes and one allocation at bind. Both
+positive cases created a view, destroyed the view and image, freed the memory
+and cleared the slot and counters. The peak survived retirement.
+
+| Injected recording case | Bytes | Result | Public slot on return | Bind/view calls | Live bytes at failure or after retirement |
+| --- | ---: | ---: | --- | --- | ---: |
+| Small success | 16,384 | 0 | Acquired | 1/1 | 0 |
+| Wide success | 4,294,983,680 | 0 | Acquired | 1/1 | 0 |
+| Allocation error | 16,384 | −2 | Null | 0/0 | 0 |
+| Clobber during allocation error | 16,384 | −2 | badc0ffe1357abcd | 0/0 | 0 |
+| Bind error | 16,384 | −2 | 1234567887654321 | 1/0 | 16,384 |
+
+Each failed process exited 1. The allocation diagnostic was
+`source image allocate failed (-2)`. The bind diagnostic was
+`source image bind failed (-2)`. The replay checks stdout state and stderr
+independently. The external arm requires a private driver output on every
+allocation and a null public slot after clobber. That arm needs the release.
+On the first fresh-prefix replay Wine emitted its WoW64 configuration message
+on the first process's stderr. The exact diagnostic check failed. The recipe
+now initializes the prefix before recording and retains its separate log.
+
+**Wine Win64 on Linux.** Clang/LLD 19.1.7 targeted x86_64-w64-windows-gnu
+with MinGW x64, Vulkan headers 1.3.239, C11 and -O2. Wine 8 selected physical
+device 0, discrete NVIDIA Quadro RTX 6000, PCI 10de:1e78,
+UUID 26f60f6cead65faf0253a959b2e93a2d, driver 615.71.10, API 1.4.351,
+graphics family/queue 0/0. With synchronization validation the real device
+returned success for all ten source allocation/bind calls. The owner passed
+each actual planner descriptor at type index 1, charged the full size and
+bound the acquired handle at offset zero.
+
+| Case | Extent, actual layers, mips | Allocation bytes | Transfer bytes | Sample bytes | Guarded bytes |
+| --- | --- | ---: | ---: | ---: | ---: |
+| 0 | 2048×2048, 6, 1 | 25,165,824 | 25,165,824 | 384 | 25,166,256 |
+| 1 | 256×352, 1, 2 | 569,856 | 450,560 | 128 | 450,736 |
+| 2 | 256×352, 1, 2 | 569,856 | 450,560 | 128 | 450,736 |
+| 3 | 256×352, 4, 1 | 1,572,864 | 1,441,792 | 256 | 1,442,096 |
+| 4 | 64×64, 2, 1 | 32,768 | 32,768 | 128 | 32,944 |
+
+The 27,542,768-byte capture matched the retained stream byte for byte,
+SHA-256 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The independent verifier checked 256 sampled RGBA texels and fifteen 16-byte
+guards. The lifetime reader matched ten queue-submit/wait pairs, ten source
+views and five source and five target image/memory releases. Live source
+bytes and count returned to zero after each free. Peak was 25,165,824 bytes.
+Validation reported zero warnings/errors.
+
+Three fresh processes per arm alternated on one warm Wine server, on the same
+Xeon E5-2699 v4, affinity 0–87, quota 10.56 CPUs, one serial caller, one
+queue and the same guarded input. Timings include startup, tracing, driver
+work and readback. Each timed capture passed the complete byte comparison.
+The baseline is the rebuilt retained planner fixture. The SDK arm adds caller
+accounting and changes the trace records. These ranges do not isolate the
+cost of either Vulkan call.
+
+| Arm | Wall seconds | User seconds | System seconds | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Retained planner fixture | 1.46 / 1.29 / 1.13 | 0.83 / 0.67 / 0.59 | 0.52 / 0.52 / 0.46 | 191008 / 192416 / 192020 |
+| SDK caller | 1.30 / 1.35 / 1.15 | 0.66 / 0.65 / 0.58 | 0.53 / 0.50 / 0.46 | 191816 / 191876 / 192424 |
+
+Win64 trapping UBSan exercised the C caller, owner and recording boundary
+and passed the entire device capture. Native Linux ASan with leak detection
+and trapping UBSan ran the five SDK recording cases and matched the Win64
+rows, exits and diagnostics. The native run linked the retained Linux planner
+object. Its instrumentation covered the new C recording path. Win64 ASan
+lacked its target runtime, and Clang rejected Win64 TSan. The fixture has a
+serial owner. Physical Windows, shipping Draw, and linked private-slot and
+GPU comparisons remain open. The published contract ref at edae3cf7 contains
+the acknowledgement. The host had no supplied release for either new export.
