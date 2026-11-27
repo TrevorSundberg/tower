@@ -125869,3 +125869,14 @@ open. Each GPU TSan arm had five restricted-personality startup failures
 Driver, loader, layer and retained binary probes kept their original
 instrumentation. Shipping Draw adoption and publication belong to the
 respective managers.
+
+### Linux Vulkan C library, post-completion image retirement on slot 12
+
+Job e9a55c1c uses the published fifteen-entry package at 6e94f10f and
+the retirement contract at 6aa610c9 (implementation 5dea5876). The
+registered Tower reader fetched both tips into an isolated checkout.
+The original checkout's opening pull refused its existing readback edit.
+The five imported files match their provider Git blobs. The earlier packet
+supplies the archived five-image owner, recording probes and guarded oracle.
+The selected integration point follows the last successful sample check.
+The early-exit cleanup still owns partially built or failed inventory.

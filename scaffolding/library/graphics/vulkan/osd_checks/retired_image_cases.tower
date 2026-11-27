@@ -1,0 +1,53 @@
+import tower;
+
+// In this recording driver the device points to the trace. Each child handle
+// points to a different field, so a call with the wrong handle fails.
+struct RetirementTrace {
+    view: u32;
+    image: u32;
+    memory: u32;
+    seen: u32;
+    last: u32;
+    invalid: bool;
+}
+
+var ViewBit: u32 = 1;
+var ImageBit: u32 = 2;
+var MemoryBit: u32 = 4;
+
+extern fn osd_destroy_retired_image(device: RetirementTrace*, view: u32*, image: u32*, memory: u32*): void;
+
+fn record(trace: RetirementTrace*, kind: u32, handle: u32*, expected_handle: u32*, allocator: void*): void {
+    if handle != expected_handle || allocator != null || trace.last >= kind { trace.invalid = true; }
+    trace.seen |= kind;
+    trace.last = kind;
+}
+
+export fn vkDestroyImageView(device: RetirementTrace*, view: u32*, allocator: void*): void {
+    record(device, ViewBit, view, &device.view, allocator);
+}
+
+export fn vkDestroyImage(device: RetirementTrace*, image: u32*, allocator: void*): void {
+    record(device, ImageBit, image, &device.image, allocator);
+}
+
+export fn vkFreeMemory(device: RetirementTrace*, memory: u32*, allocator: void*): void {
+    record(device, MemoryBit, memory, &device.memory, allocator);
+}
+
+export fn main(): i32 {
+    for (var mask: u32 = 0; mask <= (ViewBit | ImageBit | MemoryBit); mask++) {
+        var trace: RetirementTrace = default;
+        var view: u32* = null;
+        var image: u32* = null;
+        var memory: u32* = null;
+        if (mask & ViewBit) != 0 { view = &trace.view; }
+        if (mask & ImageBit) != 0 { image = &trace.image; }
+        if (mask & MemoryBit) != 0 { memory = &trace.memory; }
+        osd_destroy_retired_image(&trace, view, image, memory);
+        if trace.invalid || trace.seen != mask { return convert(i32, mask + 1); }
+        osd_destroy_retired_image(&trace, null, null, null);
+        if trace.invalid || trace.seen != mask { return convert(i32, mask + 1); }
+    }
+    return 0;
+}
