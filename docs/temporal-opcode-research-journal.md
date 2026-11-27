@@ -124073,3 +124073,26 @@ rendering blobs (including frame_submit_test_types.tower). The replay
 now checks out the complete worker-owned 06d47a5d tree and applies the
 bundle containing the documentation parent and this change. It requires
 no historical lazy fetch or external repository access.
+
+### Staged buffer recording fixture on host 12
+
+Job `02f6d984-af93-43f1-ac69-b7eea816b045` starts at the complete offline
+`44f2cdf6` tree. The prior finish fixture maps its destination and uses a
+whole-buffer barrier. Its data qualify the finish operation only. The existing
+library declares both recording commands, the three handles, VkBufferCopy and
+a placeholder VkMemoryBarrier. There is no copy-and-depend provider in this
+tree. Wait for Draw's source-level arguments before selecting the production
+barrier, offset policy or public C prototype.
+
+The new test borrows the reviewed fixture's validated device setup and
+blocking finish. A diagnostic C control writes eight staging bytes to a
+never-mapped, device-local destination. A dependent transfer reads all
+16 destination bytes into the middle of a 24-byte coherent host buffer.
+The caller adds transfer-write to host-read visibility for that last buffer
+and checks the entire mapping after retirement. Distinct 3c and a5 sentinels
+identify the untouched destination suffix and both readback guards. The
+calibration barrier is private to this setup. The initial Tower compile
+rejected the reserved local name expected. The corrected raw calibration
+completed 64 alternating payloads with zero Khronos synchronization
+validation warnings/errors on the discrete RTX 3090, Vulkan 1.3.289,
+driver 565.57.01. Memory flags were 6/1/6 for staging/destination/readback.
