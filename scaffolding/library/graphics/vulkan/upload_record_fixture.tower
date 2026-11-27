@@ -18,7 +18,9 @@ extern fn getenv(name: u8*): u8*;
 extern fn write(fd: i32, data: u8*, size: usize): i64;
 var CaptureFd: i32 = 4;
 var VkDeviceLocal: u32 = 1;
-var Trials: usize = 64;
+var DestinationGuard: u8 = 60;
+var ShortUploadBytes: usize = 73;
+var LargeUploadBytes: usize = 64 * 1024 * 1024;
 
 fn retire(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*): bool {
     var result = tower_vk_command_finish_v1(ctx.queue, cmd);
@@ -35,9 +37,12 @@ fn exercise(ctx: ReadbackDevice*): bool {
     defer counted_release_buffer(ctx.device, &src);
     defer counted_release_buffer(ctx.device, &dst);
     defer counted_release_buffer(ctx.device, &host);
-    var initial: u8[16];
-    var dest_bytes = sizeof(decltype(initial));
-    var payload_bytes: usize = 8;
+    var suffix: u8[8];
+    var payload_bytes = ShortUploadBytes;
+    var trials: usize = 64;
+    if getenv("UPLOAD_LARGE") != null { payload_bytes = LargeUploadBytes; trials = 2; }
+    var suffix_offset = payload_bytes / sizeof(u32) * sizeof(u32);
+    var dest_bytes = suffix_offset + sizeof(decltype(suffix));
     var guard: usize = 4;
     var read_bytes = dest_bytes + 2 * guard;
     var coherent = VkHostVisible | VkHostCoherent;
@@ -62,45 +67,70 @@ fn exercise(ctx: ReadbackDevice*): bool {
         commandBufferCount: 1, ..default };
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("allocate primary", vkAllocateCommandBuffers(ctx.device, &info, &cmd)) { return false; }
-    fill(&initial[0], 60, dest_bytes);
+    fill(&suffix[0], DestinationGuard, sizeof(decltype(suffix)));
     if !vk_ok("begin initialization", tower_vk_command_begin_v1(cmd)) { return false; }
-    vkCmdUpdateBuffer(cmd, dst.handle, 0, convert(u64, dest_bytes), bits(void*, &initial[0]));
+    vkCmdUpdateBuffer(cmd, dst.handle, convert(u64, suffix_offset), convert(u64, sizeof(decltype(suffix))), bits(void*, &suffix[0]));
     counted_buffer_barrier(cmd, dst.handle, VkStageTransfer, VkStageTransfer, VkTransferWrite, VkTransferRead | VkTransferWrite);
     if !retire(ctx, cmd) { return false; }
 
     var capture: VkBufferCopy = { dstOffset: convert(u64, guard), size: convert(u64, dest_bytes), ..default };
     var capture_bytes = getenv("CAPTURE_UPLOAD_BYTES") != null;
+    output.readback_size("payload_bytes", payload_bytes);
+    output.readback_size("guarded_bytes", read_bytes);
+    var trace = getenv("TRACE_UPLOAD") != null;
+    if trace {
+        output.readback_size("owner_cmd", bits(usize, cmd)); output.readback_size("owner_staging", bits(usize, src.handle));
+        output.readback_size("owner_dst", bits(usize, dst.handle)); output.readback_size("owner_host", bits(usize, host.handle));
+    }
     var total: u64 = 0;
-    for (var trial: usize = 0; trial < Trials; trial++) {
-        var payload = "01234567";
-        var wanted = "a5a5a5a530313233343536373c3c3c3c3c3c3c3ca5a5a5a5";
-        if trial % 2 != 0 {
-            payload = "abcdefgh"; wanted = "a5a5a5a561626364656667683c3c3c3c3c3c3c3ca5a5a5a5";
-        }
-        copy(bits(u8*, input), payload, payload_bytes);
+    for (var trial: usize = 0; trial < trials; trial++) {
+        var seed: usize = 2;
+        if trial % 2 != 0 { seed = 151; }
+        var staging = bits(u8*, input);
+        for (var i: usize = 0; i < payload_bytes; i++) { staging[i] = convert(u8, (i * 3 + seed) & 255); }
         fill(mapped, ReadbackGuard, read_bytes);
         if !vk_ok("begin upload", tower_vk_command_begin_v1(cmd)) { return false; }
+        if trace { puts("record_enter"); }
         var start = now();
         fixture_record(cmd, src.handle, dst.handle, convert(u64, payload_bytes));
         var duration = now() - start;
-        // The destination-to-readback copy consumes the recorded write. Only the readback buffer gets host visibility.
+        if trace { puts("record_return"); }
+        if !retire(ctx, cmd) { return false; }
+        // A new recording consumes the upload. Only its host readback needs transfer-to-host visibility.
+        if !vk_ok("begin readback", tower_vk_command_begin_v1(cmd)) { return false; }
         vkCmdCopyBuffer(cmd, dst.handle, host.handle, 1, &capture);
         counted_buffer_barrier(cmd, host.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
-        if !retire(ctx, cmd) || !readback_compare("guarded readback", mapped, read_bytes, wanted) { return false; }
+        if !retire(ctx, cmd) { return false; }
+        var next = convert(u8, seed);
+        for (var i: usize = 0; i < read_bytes; i++) {
+            var wanted = ReadbackGuard;
+            if i >= guard && i < guard + payload_bytes {
+                wanted = next; next += 3;
+            }
+            if i >= guard + payload_bytes && i < guard + dest_bytes {
+                wanted = DestinationGuard;
+            }
+            if mapped[i] != wanted {
+                output.readback_size("mismatch_at", i);
+                output.readback_number("wanted", convert(u32, wanted));
+                output.readback_number("actual", convert(u32, mapped[i]));
+                return false;
+            }
+        }
         if capture_bytes && write(CaptureFd, mapped, read_bytes) != convert(i64, read_bytes) {
             return vk_failure("guarded capture write failed");
         }
         if trial < 2 { output.readback_label("record_ns"); output.readback_decimal(duration); }
         total += duration;
     }
-    output.readback_size("checked_copies", Trials);
+    output.readback_size("checked_copies", trials);
     output.readback_label("total_record_ns"); output.readback_decimal(total);
     return true;
 }
 
 export fn main(): i32 {
     var messages: u32 = 0;
-    var ok = validated_upload(&messages, exercise);
+    var ok = validated_upload(&messages, true, exercise);
     readback_number("validation_warnings_errors", messages);
     if !ok || messages != 0 { return 1; }
     return 0;
