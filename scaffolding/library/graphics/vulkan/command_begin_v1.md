@@ -125,3 +125,36 @@ replay checks the diagnostic,
 the recorded operations and the actual process exit independently.
 Displayed WSI, real device loss, noncoherent readback and Draw execution
 of this begin object remain unverified.
+
+## Frozen raw and linked baseline comparison
+
+The two host 12 executables were built from Tower
+`06d47a5d287d4f44e71b5b61a15841f18938b113`. The baseline uses
+`begin_raw` from `command_begin_checks.c`. The candidate uses
+`begin_from_c` from the same file, which calls the exported
+`tower_vk_command_begin_v1` in the adjacent shared library. Both link
+the same counted fixture with its local begin definition removed.
+
+| Receipt-relative path | Role |
+| --- | --- |
+| `pair/bin/raw` | Raw Vulkan C baseline executable |
+| `pair/bin/shared` | C caller of the externally linked Tower candidate |
+| `pair/bin/libtower_frame_submit.so` | DSO loaded by that caller |
+| `bin/command_begin.o` | Standalone C-linkable Tower begin object |
+| `pair/run/raw.log`, `pair/run/shared.log` | Same-process device identity, Vulkan trace, guarded bytes and validation for each lane |
+| `pair/run/signed.log` | Observed signed results and R/RB traces using the recording loader |
+
+From the extracted receipt, repeat the frozen pair on host 12 with:
+
+```sh
+PAIR_RESULTS=$(mktemp -d) bash pair/repeat.sh
+```
+
+The command hashes the raw result before launching the candidate and
+rechecks it afterwards. Each trace must retain the same handles within
+its process. Comparing across processes normalizes only the handle
+values. The 12 count and guarded-buffer records are also compared
+verbatim. The observed bytes had the same SHA-256 in both runs,
+`ecabdc019adb56baf35e5cb30b8f787d22e735ace137710bb762ba0bb9d2e3da`
+for the three-frame text extract. Each process reported zero validation
+warnings or errors.

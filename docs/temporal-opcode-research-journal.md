@@ -123960,3 +123960,36 @@ library's link-map destruction. These observations localize one shutdown
 fault. They do not prove a driver race or explain Draw's earlier exit 139.
 The packet keeps immediate-exit trials distinct from exact returned
 VkResults, instrumented Tower accesses, and normal owner cleanup.
+
+### Frozen raw and externally linked command-begin evidence
+
+The rendering manager reconfirmed Draw 30b66f59's single-handle ABI.
+Host 12 reconstructed the raw Vulkan C and C-through-DSO executables
+from clean Tower commit 06d47a5d287d4f44e71b5b61a15841f18938b113.
+The ELF dependencies and link maps show which implementation each uses.
+The standalone begin object, end/submit object and combined DSO matched
+the preceding receipt byte for byte. Its SDK and frozen shaders were
+reused on the existing RTX 3090.
+
+The receipt now contains the actual executables at pair/bin/raw and
+pair/bin/shared. The raw SHA-256 is
+49907ed0c5aa9104a5df278ddeec2057267d46199d521d0d1dafe48b61318efa.
+The linked candidate hashes to
+331001c9b96cb3aecd7e5eeda804fcbe48a43989f593b4646fd2dfb8d3092e0a.
+The raw trace, exit, normalized trace and frame bytes were hashed and made
+read-only before starting the candidate. Both processes selected the
+discrete RTX 3090, Vulkan 1.3.289 and driver 565.57.01. Each used one
+primary, one reset-enabled pool and one fence for three submissions.
+Each later command reset followed retirement. Begin flags were 0, 1, 1.
+Count-zero and count-one fields and guarded RGBA8 bytes matched in each
+frame, including the frame with reversed staging positions. Both process
+exits and both validation warning/error tallies were zero.
+
+Two Tower test-only link wrappers reported the actual signed values
+returned by the raw C and C-through-DSO recording controls. Both observed
+0/RB, −1/R, −1/RB, −4/R, −4/RB. Production flags, signatures and
+binaries match the prior receipt. This turn added evidence and documentation
+only. The previous bounded performance and instrumentation results still
+describe those sources. The separate live-device immediate-exit finding
+and pending Draw slot 10 run remain open. [Bundle paths and repeat
+command](../scaffolding/library/graphics/vulkan/command_begin_v1.md#frozen-raw-and-linked-baseline-comparison)
