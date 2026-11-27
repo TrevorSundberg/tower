@@ -123979,6 +123979,60 @@ identify the original injected-command-reset process and the distinct raw C
 ASan processes. This review used existing evidence. It changes documentation
 only. The later `ba98cc4a` paired-executable supplement has its own receipt.
 
+### Frame library ELF hash style and Draw's upload finish contract
+
+Draw independently reproduced the Linux begin/end/submit DSO at Tower
+`960c855a0a34475bb6228bdb4b810fbd600c4687` (tested code `06d47a5d`).
+With the same objects and loader, GNU ld 2.44 produced the host 12 digest
+`289df8122bdf427a0be737c8da5f4d38772767dc03a0ece38b237affe867dd2c`
+when explicitly passed `--hash-style=both`. Selecting GNU-only hashing
+reproduced Draw's earlier `6d686099` digest. Rendering inspected the
+retained DSO's dynamic tags against its .hash and .gnu.hash sections and
+confirmed DT_NEEDED libvulkan.so.1 and DT_SONAME libtower_frame_submit.so.
+Draw verified dynamic resolution to the 289df812 DSO and reran the C caller:
+31/31 recording cases, six signed begin cases and nine signed cases on
+Draw's existing finish. The [build recipe](../scaffolding/library/graphics/vulkan/command_begin_v1.md)
+now sets the hash style explicitly. This change only affects the documented
+link command and coverage record.
+
+Draw also confirmed the [blocking finish contract](../scaffolding/library/graphics/vulkan/command_finish_v1.md)
+at Draw 30b66f59 and runtime 94f2d31e. Queue and primary handles are
+borrowed by value in that order. End, one unfenced submit and idle on the
+same queue stop at the first nonzero signed result. Staged uploads retire
+staging only after success. Draw's control result is a baseline for Tower
+job b820dd37. Its implementation and hardware receipts remain pending.
+### Frozen raw and externally linked command-begin evidence
+
+The rendering manager reconfirmed Draw 30b66f59's single-handle ABI.
+Host 12 reconstructed the raw Vulkan C and C-through-DSO executables
+from clean Tower commit 06d47a5d287d4f44e71b5b61a15841f18938b113.
+The ELF dependencies and link maps show which implementation each uses.
+The standalone begin object, end/submit object and combined DSO matched
+the preceding receipt byte for byte. Its SDK and frozen shaders were
+reused on the existing RTX 3090.
+
+The receipt now contains the actual executables at pair/bin/raw and
+pair/bin/shared. The raw SHA-256 is
+49907ed0c5aa9104a5df278ddeec2057267d46199d521d0d1dafe48b61318efa.
+The linked candidate hashes to
+331001c9b96cb3aecd7e5eeda804fcbe48a43989f593b4646fd2dfb8d3092e0a.
+The raw trace, exit, normalized trace and frame bytes were hashed and made
+read-only before starting the candidate. Both processes selected the
+discrete RTX 3090, Vulkan 1.3.289 and driver 565.57.01. Each used one
+primary, one reset-enabled pool and one fence for three submissions.
+Each later command reset followed retirement. Begin flags were 0, 1, 1.
+Count-zero and count-one fields and guarded RGBA8 bytes matched in each
+frame, including the frame with reversed staging positions. Both process
+exits and both validation warning/error tallies were zero.
+
+Two Tower test-only link wrappers reported the actual signed values
+returned by the raw C and C-through-DSO recording controls. Both observed
+0/RB, −1/R, −1/RB, −4/R, −4/RB. Production flags, signatures and
+binaries match the prior receipt. This turn added evidence and documentation
+only. The previous bounded performance and instrumentation results still
+describe those sources. The separate live-device immediate-exit finding
+and pending Draw slot 10 run remain open. [Bundle paths and repeat
+command](../scaffolding/library/graphics/vulkan/command_begin_v1.md#frozen-raw-and-linked-baseline-comparison)
 ### Blocking command finish for Draw uploads on host 12
 
 The rendering manager supplied the command contract and staged buffer_upload
@@ -124074,6 +124128,38 @@ now checks out the complete worker-owned 06d47a5d tree and applies the
 bundle containing the documentation parent and this change. It requires
 no historical lazy fetch or external repository access.
 
+### Rendering review of the external blocking finish entry
+
+Rendering integrated source `d1f468c33a81f22769fae235fdb151438bbc331f`
+and evidence tip `44f2cdf6d29e20f00b8d0ead7c1bfec721c46933` with the
+existing begin pair and finish contract. Worker receipt `b820dd37` archive
+SHA-256 is `47e7937760ac2c7a4e81dfd9c899919f41d1a24a4a9c57b032c2d387ff9e5585`.
+Both bundle bases, all 382 files and the seven source hashes verified. On
+the control host the raw and linked recording matrix and 18 fatal processes
+matched the retained logs, including each exit status. Rendering checked
+the 16-byte destination at every iteration of the raw, shared and direct
+Linux runs in both hardware captures, reconfirmed queue and primary identity,
+and compared the frozen object symbol table and DSO exports.
+
+Draw confirmed at `41d8b9badce3e6520d43b798c44cbb7e19b6d57c` that
+the actual staged upload uses a single global synchronization2 memory
+barrier. The finish fixture used a buffer-specific dependency and an
+extra host-read barrier. It establishes completion for an actual transfer
+through the public finish entry. Application-level parity requires running
+the Draw caller. Rendering slot 12 job `02f6d984` takes the separately
+scoped copy and global-barrier recording port.
+
+### Draw recording receipt for blocking finish
+
+At Draw `41d8b9ba`, the manager reproduced all three Linux link products
+from `4b1f0af2` and linked the actual upload bodies to the published
+entry. All four link variants matched the same stdout for eleven cases.
+[Draw staged upload receipt](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
+records the borrowed staging lifetime, exact copy and global barrier,
+signed fault injections and the pending 73-byte and 64 MiB device tests.
+This evidence addition changes documentation only. On the rendering
+manager the existing raw/DSO recording executable again matched its
+worker log. The two recording suites have distinct workloads and digests.
 ### Staged buffer recording fixture on host 12
 
 Job `02f6d984-af93-43f1-ac69-b7eea816b045` starts at the complete offline
@@ -124819,3 +124905,188 @@ five-image RTX 3090 capture, timing and sanitizer results retain their
 original build identity. There was no new production path to profile.
 Draw has confirmed the ABI; application adoption and an application
 device run remain with Draw.
+### Native C staged recorder review and downstream acceptance
+
+Slot 12 receipt `02f6d984` supplied archive
+`f2ef3c74b37ebe51fc9257005ebe724583ad6f7f7390de6745fd583307ee22be`.
+The standalone bundle endpoint returned HTTP 404. The archive contained
+the source bundle with SHA-256
+`55a6c697a1a31126f9c49b9a7fff40781816573d39787d20fe48b59ddeb7c2ae`.
+All 238 manifest entries verified, as did the bundle prerequisite
+`44f2cdf6` and replay tip `aa520bf5c1a479bfe34fdf341a647558487701c9`.
+The production source is `2ebc7ab2fc75d831fe58c1bbc9433f666c8373a5`.
+
+Rendering inspected the ELF symbols and reproduced the shared library
+from the worker object. A fresh Vulkan-header C recording double checked
+four sizes, including one beyond 32 bits, through the raw and external
+C callers. Rendering checked every traced recording interval for the exact
+Draw copy and global synchronization2 dependency and reconstructed each
+short and large captured stream. The destination suffix and both readback
+guards matched throughout. The [C link and hardware receipt](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md)
+documents scope and independent results. LeakSanitizer on the GPU with
+synchronization validation reported 3,408 bytes in seven allocations for
+both paths. The final TSan runs stopped before main. The worker's clean
+offline replay exited 0. Draw's application use of this new entry remains
+a separate test from its already linked blocking finish.
+
+### Draw OSD texture upload v1 control
+
+Draw confirmed `osd_create` and `image_layer_barrier` at
+`752f55c1280a1c737eedeaa46285af2a199aa37d`, draw.c blob
+`7b6ee8f42bbde29790364d3de73a5d75216cbf1d`. The asset pack
+`assets/osd/textures.bin` hashes to
+`0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9`.
+One transaction per new texture transitions each actual layer in ascending
+order from UNDEFINED to TRANSFER_DST_OPTIMAL, copies all tightly packed
+layer-major, mip-minor regions with one vkCmdCopyBufferToImage, then
+transitions each layer to SHADER_READ_ONLY_OPTIMAL. The initial scope is
+NONE/0 to TRANSFER/TRANSFER_WRITE. The final scope is TRANSFER/TRANSFER_WRITE
+to FRAGMENT_SHADER/SHADER_SAMPLED_READ. Each VkDependencyInfo
+points to one image barrier, with ignored queue families and a color range
+covering all mips of that single layer. Memory and buffer barrier counts
+are zero. All copies and transitions use the same recording primary.
+
+| Canonical texture | Format | Base extent | Actual layers | Mips | Staging offsets in bytes |
+| --- | --- | --- | ---: | ---: | --- |
+| Fonts | R8_UNORM | 2048 × 2048 | 6 | 1 | 0, 4194304, 8388608, 12582912, 16777216, 20971520 |
+| Bitmap and inverted, per texture | R8G8B8A8_SRGB | 256 × 352 | 1 | 2 | 0, 360448 |
+| Firmware | R8G8B8A8_SRGB | 256 × 352 | 4 | 1 | 0, 360448, 720896, 1081344 |
+| Images | R8G8B8A8_SRGB | 64 × 64 | 2 | 1 | 0, 16384 |
+
+Draw reviewed its raw Vulkan control on Wine x64, RTX 3060 / NVIDIA
+595.99.02, runtime `d1060797` at manager revision `41d8b9ba`. Its API
+dump SHA-256 was `144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383`.
+Draw observed 5 copies, 16 regions and 28 transitions. All five unfenced
+single-command submits and same-queue waits succeeded before Draw unmapped
+staging memory, destroyed its buffer and freed the memory. All five
+images outlived staging. The process exited 1 with Wine loader diagnostics.
+The trace provides command and lifetime evidence. It did not read back
+individual texels. Rendering job `aea4af39` owns the new recorder and its
+independent device checks. Draw retains ownership of the application.
+
+### Combined Draw recorder and finish adopted locally
+
+Draw independently matched the Linux recorder object at `dadf38c0` and
+verified all four combinations of raw and published recording and finish
+through actual caller excerpts from its local adoption. The
+[caller receipt](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md#draw-caller-with-both-published-entries)
+records the two code identities, linked executable, 11 checks per
+configuration and the combined GPU job. Rendering rehashed the retained
+object and DSO and reran its SDK-header external C and raw controls, exit 0.
+Those controls measure command recording. Draw's application readbacks are
+pending. This update adds evidence and changes documentation only.
+
+### Draw verifies Linux staged upload and reports fatal exit failures
+
+Draw verified both guarded upload sizes and the shipping three-frame
+capture on the RTX 5060 Ti at `d78139ec`, with Tower finish from
+`4b1f0af2`. Its implementation still used Draw's existing buffer
+recorder. Both implementations reported the expected signed errors.
+In one series both exited 139 on injected idle failure after accepted
+submit. In the ICD-instrumented series both exited 139 on injected
+end failure before driver end. The observer established retirement for
+the idle fault with its own drain. Draw owns the application repair
+and the combined recorder/finish trial. [Linux commands, guarded
+digests and exit statuses](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits)
+
+Rendering rehashed the two retained aggregate objects and reran
+`bin/command_finish_checks` with the packet DSO and loader. Exit 0 and
+stdout SHA-256 `8494c46f47a4a660ceb4af42048ae7ca446233fcfda3a7a9376d7851d47cc3c9`
+matched the earlier recording run. The expected P6 header and 1,024,000
+RGB pixels of 40 80 bf reproduced Draw's shipping image digest. Draw
+owns the guard and payload comparisons against its device captures.
+This receipt changes documentation only. Runtime and memory profiles
+are unchanged inputs from the prior implementation.
+
+### Guarded bytes in the Draw finish capture
+
+Draw supplied the source and readback layout for slot 10 job `00d4d868`.
+Rendering independently streamed the 73-byte sequence and 64 MiB fill
+through SHA-256, then repeated each with the two destination guards.
+All four lengths and all four digests matched. Draw verified the four
+retained staged captures. [Byte formulas and binary spans](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits)
+
+### Native C port of the OSD texture recorder
+
+Slot 12 tested worker tip `75476dcd` against an independent raw C
+implementation on the selected RTX 3090, Vulkan 1.3.289, NVIDIA
+565.57.01. Both paths reproduced all 103,158,144 guarded sampled bytes
+and returned 0 with zero synchronization-validation messages. Three
+alternating fresh-process measurements per arm gave median wall times
+of 2260.88 ms raw and 2237.70 ms external, with peak RSS medians of
+116032 and 115824 KiB. The workload includes device creation, validation
+and readback. Address-only GPU checks passed. Both full leak checks
+reported 4187 bytes in 15 allocations and TSan failed at startup.
+
+The manager verified 487 manifest entries, the named bundle on
+`aa520bf5`, both decompressed captures and the object and DSO. The
+generic fetch expected HEAD. The archive's named ref restored the
+tested history. Both loader traces matched the five Draw shapes,
+including all 13 fields in every region. Five staging allocations
+retired before release in each 189-event trace. The review incorporates
+the published upload and finish records. Draw provided a 20-case
+recording reference for the next pure region builder, assigned to
+slot 12. The existing recorder passes its region pointer through.
+[OSD recording, link command and builder contract](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md)
+
+### Draw links the Tower recorder in its packed-texture upload loop
+
+At local Draw `e850df53`, the extracted `osd_create` loop read the
+shipped pack through both raw C and the linked `846176ab` Tower recorder.
+Draw reported exit 0 in both cases and identical 64-line callback traces.
+Rendering verified the object size and digest against its reviewed
+Linux artifact. Draw owns the two trace files and the pending real-asset
+device readback and rendered OSD comparison. This documentation records
+the CPU receipt. [Inputs, checks and trace digest](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-cpu-recording-with-the-shipped-texture-pack)
+
+### Draw OSD CPU replay and expected shipped texels
+
+Draw pinned the replay at `4524eebe` and supplied its exact command.
+Both CPU traces matched at `1ca1ad20`. Draw computed the expected
+packed-texel digest from the shipped file. Rendering checked the 16
+extents and offsets against both retained Tower loader traces and
+confirmed that the logical texels and 176 header bytes account for the
+whole pack. Device comparison belongs to Draw job `a07d1af8`.
+[Replay command and expected input bytes](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#replaying-the-draw-test)
+
+### Linux C region builder reviewed for Draw's OSD textures
+
+Rendering verified worker packet `1ef1efe6` with 212 manifest entries
+and SHA-256 `ca1f5118f1d17172388357018adbd5a75e2f1dc1dc51c9ed75b977a3d9396c20`.
+The generic HEAD fetch could not resolve the named bundle. Rendering
+imported the verified ref on prerequisite `75476dcd`, tested code
+`36c01243`, worker tip `a6123328`. Before any output write, the
+implementation widens the count and the layer/texel-size product to
+u64, checks the last legal shift and budgets the complete mip chain
+against available bytes. The manager called the released DSO, compared
+all 896 canonical bytes, and checked canaries, spare slots, null input,
+short ranges, large offsets, shifts and 512 additional boundary
+combinations against independently computed results. The C consumer's
+103,158,144-byte GPU capture matched the previous full sampled stream
+byte for byte. The manager also compared owner and loader traces and
+verified the reordered retirement control's exit 3.
+
+The worker's second-batch inventory medians were 15.03 ns per call for
+the former packer and 19.40 ns for the checked builder. The 1,024-record
+case measured 5339.54 and 5365.03 ns respectively. CPU ASan and the C
+UBSan checks passed. GPU LSan with sync validation reported 4,187 bytes
+in 15 allocations, also seen with the earlier caller, and TSan stopped
+before main. The region-builder and recorder objects were checked
+separately. [C signature, layout, link command and replay](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#build-the-tight-region-list-before-recording)
+
+### Draw confirms the native bound-image view construction boundary
+
+Draw `bd203f60` identified its owning constructor and the narrower view
+creation step. The proposed C library entry borrows an already-bound
+image and explicit type/format/range. Slot 12 received the five real OSD
+shapes, one-layer array distinction and exact signed-result/temporary-slot
+proposal for the first implementation. The proposal adds documentation.
+[Source pin and proposed ABI](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md)
+
+### Draw acknowledges bound-image view v1
+
+Draw compared `37eb17b4` against its source at `bd203f60` and confirmed
+the ownership boundary, explicit view/range selection and success-only
+publication rule. Slot 12 received this acknowledgement. This updates
+the contract status; provider validation remains pending.
+[Native peer acknowledgement](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-acknowledgement)

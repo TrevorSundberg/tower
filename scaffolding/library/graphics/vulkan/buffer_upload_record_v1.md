@@ -42,17 +42,17 @@ failure policy. The asynchronous frame path has its own fence. [Finish contract]
 
 ## Build and link
 
-From the complete Tower tree with the pinned host 12 Linux SDK:
+From the Tower root on Linux x86-64, use the checked-in bootstrap and GNU ld.
+Set `VULKAN_LOADER` to the full path to the target libvulkan.so.1.
 
 ```bash
-source /tmp/tower12/env
 v=scaffolding/library/graphics/vulkan
-l=/tmp/tower12/sysroot/usr/lib/x86_64-linux-gnu
+loader=${VULKAN_LOADER:?Set VULKAN_LOADER to the Linux x64 libvulkan.so.1}
 out=$(mktemp -d)
 bootstrap/linux-x64/towerc "$v/buffer_upload_record.tower" --library --jobs 1 \
     -o "$out/buffer_upload_record.o"
 x86_64-linux-gnu-ld -shared --hash-style=both -z defs "$out/buffer_upload_record.o" \
-    "$l/libvulkan.so.1" -soname libtower_buffer_upload.so -o "$out/libtower_buffer_upload.so"
+    "$loader" -soname libtower_buffer_upload.so -o "$out/libtower_buffer_upload.so"
 ```
 
 Link the C consumer with the object and Vulkan loader, or use
@@ -105,3 +105,30 @@ The 73-byte direct-object consumer passed the same checks. Recording-only
 checks additionally observed VkDeviceSize 4294967369 across the native
 C boundary using borrowed stand-in handles. An application run on Draw's
 full device profile remains an integration check.
+
+The rendering manager rebuilt the DSO from the retained object, using GNU
+ld 2.44 and the Debian Vulkan loader. The resulting DSO matched the
+worker digest above. In a local SDK-header recording test the raw C and
+dynamically linked C callers each forwarded sizes 1, 73, 67,108,864 and
+4,294,967,369 with the expected handle identities, offsets, order and global
+dependency. The manager compared the two compressed 64 MiB trial streams
+and the small captured streams byte for byte with an independent repeating
+payload and guard sequence.
+
+## Draw caller with both published entries
+
+Draw reported local staged `buffer_upload` adoption at
+`98c81d98e2dc017baee86ef7a24c017028ffd968`. It independently fetched
+Tower `dadf38c072c6757277d4043cb358e3310af0d6a1` and rebuilt the
+1,152-byte recorder object with the SHA-256 listed above. Using actual
+Draw caller excerpts, it tested both recorder choices (raw C and Tower)
+with both finish choices (raw C and the published Tower blocking finish).
+Each of the four configurations passed the same 11 recording-loader cases.
+Those covered the 73-byte copy and barrier masks, direct-mapped bypass,
+the first signed error, and staging retention when retirement was unknown.
+Draw's combined test ELF had SHA-256
+`d22b6de3125a9311a8db633a0e69c47cf16cf43a86a4f077896914b13f9f5693`.
+
+Draw assigned hardware reads of 73 bytes and 64 MiB through the combined
+caller to job `3c86f4a7-4792-49b1-8548-bee768a5ec13`. Its earlier
+finish-only hardware assignment is `00d4d868-4cb6-4141-9212-8fb128a0ed04`.
