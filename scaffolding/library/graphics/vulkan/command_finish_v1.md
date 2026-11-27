@@ -122,3 +122,24 @@ Address-only GPU checks passed. With synchronization validation enabled,
 LSan reported 3,432 bytes in seven allocations in both lanes. TSan did
 not complete. Draw's application upload and physical Windows execution of
 the finish entry remain open.
+
+## Draw staged upload through the public entry
+
+Draw reported rebuilding the aggregate, additive and four-export shared
+library at Tower `4b1f0af2bcfcbb9d8d7d86eae7fa885ffb1ed8e4`.
+The three hashes matched the products listed above. Its CPU recording
+test compiled the actual `buffer_upload`, `memory_barrier` and
+`command_finish` bodies from
+`41d8b9badce3e6520d43b798c44cbb7e19b6d57c`. The raw Vulkan control,
+aggregate object, additive object plus end, and DSO each passed all
+11 cases. Each produced stdout SHA-256
+`c635b7f5959a162d027d0362aa1d28b67fcba1cb5827138afbc573cd8e4b5112`.
+
+The direct-mapped case unmapped without recording or submitting. Staged
+success recorded a 73-byte copy and a global memory barrier, then ended,
+submitted and waited on the queue before destroying staging. The payload
+and guards matched. Draw injected −4, −1 and +1 at each of the three
+finish steps. Each failure propagated the first signed result and kept
+staging live. A failed idle after accepted mock submission left work
+pending. Draw assigned the 73-byte and 64 MiB device tests to slot 10
+job `00d4d868-4cb6-4141-9212-8fb128a0ed04`.

@@ -124148,3 +124148,15 @@ extra host-read barrier. It establishes completion for an actual transfer
 through the public finish entry. Application-level parity requires running
 the Draw caller. Rendering slot 12 job `02f6d984` takes the separately
 scoped copy and global-barrier recording port.
+
+### Draw recording receipt for blocking finish
+
+At Draw `41d8b9ba`, the manager reproduced all three Linux link products
+from `4b1f0af2` and linked the actual upload bodies to the published
+entry. All four link variants matched the same stdout for eleven cases.
+[Draw staged upload receipt](../scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-staged-upload-through-the-public-entry)
+records the borrowed staging lifetime, exact copy and global barrier,
+signed fault injections and the pending 73-byte and 64 MiB device tests.
+This evidence addition changes documentation only. On the rendering
+manager the existing raw/DSO recording executable again matched its
+worker log. The two recording suites have distinct workloads and digests.
