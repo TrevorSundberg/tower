@@ -47,3 +47,27 @@ int fixture_sdk_region(const VkBufferImageCopy *regions, uint32_t i, VkDeviceSiz
            r->imageOffset.z == 0 && r->imageExtent.width == width &&
            r->imageExtent.height == height && r->imageExtent.depth == 1;
 }
+
+/* Independent native representation for the confirmed inventories. A VkDeviceSize
+ * and twelve 32-bit fields occupy the whole SDK record on the tested target. */
+_Static_assert(sizeof(VkBufferImageCopy) == sizeof(VkDeviceSize) + 12 * sizeof(uint32_t),
+               "byte comparison requires the padding-free Vulkan region ABI");
+
+int fixture_sdk_inventory(uint32_t width, uint32_t height, uint32_t raw_layers, uint32_t mips,
+                          const VkDeviceSize *expected_offsets, size_t count,
+                          VkBufferImageCopy *out, size_t capacity)
+{
+    uint32_t layers = raw_layers ? raw_layers : 1;
+    if ((uint64_t)layers * mips != count || count > capacity)
+        return 0;
+    for (size_t i = 0; i < count; ++i) {
+        uint32_t mip = (uint32_t)(i % mips);
+        uint32_t divisor = UINT32_C(1) << mip; /* fixed fixture mips are 0 and 1 */
+        out[i] = (VkBufferImageCopy){
+            .bufferOffset = expected_offsets[i],
+            .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, mip, (uint32_t)(i / mips), 1},
+            .imageExtent = {width / divisor, height / divisor, 1}
+        };
+    }
+    return 1;
+}

@@ -124430,3 +124430,36 @@ pixel bytes. Ownership of the reported allocations remains unresolved.
 All four TSan launches failed before main at the container personality
 check, exit 139. These are host 12 results. Draw's original process exit
 1 and its diagnostics remain attached to its independent receipt.
+
+### Native SDK oracle for OSD region construction on host 12
+
+Assignment 1ef1efe6-95c6-47f5-90ef-68af5b35e6d5 starts at the retained
+75476dcd1013af214d518084c5883c41f0bc815b. Draw's 752f55c1 receipt
+identifies the five completed layouts. The offset tables in capture.tower
+are the oracle inputs. pack.tower privately computes contiguous synthetic
+staging offsets. readback_abi.tower defines the native record, and the
+released seven-argument recorder consumes a borrowed, already populated
+array. Neither the recorder header nor the fixture establishes the
+application's inputs or error policy for a reusable constructor.
+
+The SDK control in osd_upload_checks/control.c materializes each native
+record from the explicit reference offsets. A static size assertion checks
+that the SDK record has room for exactly one 64-bit and twelve 32-bit
+fields, with no padding on this ABI. Independent loops, division and the
+SDK types supply the subresource and extents. The Tower fixture compares
+every record byte, checks the C field reader and observes the original
+commands, handles and region pointer. It tests exact capacity with a
+record-sized guard at each end, all bytes after a one-record-short SDK
+refusal, and Draw's zero-to-one layer convention. A 7×5, two-layer,
+two-mip example (offsets 0, 140, 164, 304) distinguishes layer-major
+order. The prior private Tower packer has no capacity argument.
+
+On the existing host 12 pinned toolchain, the first compile diagnosed a
+missing explicit conversion to void* at memcmp. After correction,
+the prior packet's build.sh and capture-{raw,external,direct} all passed,
+with 16 production regions and four mixed-axis regions per invocation.
+Before editing, the old linked device-external completed on the same RTX
+3090 (565.57.01), one caller and queue, and matched the retained sampled
+capture, SHA-256 140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b.
+Whole-process wall/CPU were 2307.66/2308.32 ms, peak RSS 116084 KiB.
+The retained recorder object and DSO rebuilt byte-identically.

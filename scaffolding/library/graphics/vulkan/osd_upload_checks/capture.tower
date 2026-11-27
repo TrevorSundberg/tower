@@ -5,6 +5,9 @@ import .readback_output;
 import pack;
 
 extern fn fixture_sdk_region(regions: VkBufferImageCopy*, i: u32, offset: u64, layer: u32, mip: u32, width: u32, height: u32): i32;
+extern fn fixture_sdk_inventory(width: u32, height: u32, raw_layers: u32, mips: u32, offsets: u64*, count: usize,
+    out: VkBufferImageCopy*, capacity: usize): i32;
+extern fn memcmp(left: void*, right: void*, count: usize): i32;
 extern fn exit(status: i32): void;
 struct Capture { shape: Shape; offsets: u64*; list: VkBufferImageCopy*; calls: u32; source: u8; destination: u8; }
 fn require(value: bool, why: u8*): void { if !value { puts(why); exit(3); } }
@@ -49,12 +52,27 @@ export fn vkCmdCopyBufferToImage(cmd: VkCommandBufferHandle*, staging: VkBufferH
 }
 
 fn observe(name: u8*, shape: Shape, offsets: u64*, expected_count: usize): void {
+    var raw_layers = shape.layers;
+    if shape.layers == 0 { shape.layers = 1; }
     var count = shape.layers * shape.mips;
     require(convert(usize, count) == expected_count, "unexpected region count");
-    var list = alloc(VkBufferImageCopy, expected_count);
-    require(list != null, "cannot allocate fixture regions");
-    defer free(list);
+    var slots = expected_count + 2;
+    var guarded = alloc(VkBufferImageCopy, slots);
+    require(guarded != null, "cannot allocate fixture regions"); defer free(guarded);
+    var sdk = alloc(VkBufferImageCopy, slots);
+    require(sdk != null, "cannot allocate SDK control"); defer free(sdk);
+    var bytes = slots * sizeof(VkBufferImageCopy);
+    fill(bits(u8*, guarded), 165, bytes); fill(bits(u8*, sdk), 165, bytes);
+    require(fixture_sdk_inventory(shape.width, shape.height, raw_layers, shape.mips, offsets, expected_count,
+        &sdk[1], expected_count - 1) == 0 && memcmp(bits(void*, guarded), bits(void*, sdk), bytes) == 0, "short SDK output modified");
+    require(fixture_sdk_inventory(shape.width, shape.height, raw_layers, shape.mips, offsets, expected_count,
+        &sdk[1], expected_count) == 1, "SDK inventory refused exact capacity");
+    var guard: VkBufferImageCopy; fill(bits(u8*, &guard), 165, sizeof(VkBufferImageCopy));
+    var list = &guarded[1];
     var size = pack_regions(shape, list);
+    require(memcmp(bits(void*, guarded), bits(void*, sdk), bytes) == 0, "guarded SDK and Tower region bytes differ");
+    require(memcmp(bits(void*, guarded), bits(void*, &guard), sizeof(VkBufferImageCopy)) == 0
+        && memcmp(bits(void*, &guarded[slots - 1]), bits(void*, &guard), sizeof(VkBufferImageCopy)) == 0, "region guard changed");
     var c: Capture = { shape: shape, offsets: offsets, list: list, ..default };
     fixture_record(bits(VkCommandBufferHandle*, &c), bits(VkBufferHandle*, &c.source), bits(VkImageHandle*, &c.destination),
         shape.layers, shape.mips, count, list);
@@ -69,11 +87,15 @@ export fn main(): i32 {
     var firmware: u64[4] = {0, 360448, 720896, 1081344};
     var images: u64[2] = {0, 16384};
     observe("fonts", {width: 2048, height: 2048, layers: 6, mips: 1, texel_bytes: 1}, &fonts[0], sizeof(decltype(fonts)) / sizeof(u64));
-    var shape: Shape = {width: 256, height: 352, layers: 1, mips: 2, texel_bytes: 4};
+    var shape: Shape = {width: 256, height: 352, layers: 0, mips: 2, texel_bytes: 4};
     observe("bitmap", shape, &bitmap[0], sizeof(decltype(bitmap)) / sizeof(u64));
     observe("inverted", shape, &bitmap[0], sizeof(decltype(bitmap)) / sizeof(u64));
     shape.layers = 4; shape.mips = 1;
     observe("firmware", shape, &firmware[0], sizeof(decltype(firmware)) / sizeof(u64));
     observe("images", {width: 64, height: 64, layers: 2, mips: 1, texel_bytes: 4}, &images[0], sizeof(decltype(images)) / sizeof(u64));
+    // Both axes vary here. Each Draw inventory varies only one axis.
+    var mixed: u64[4] = {0, 140, 164, 304};
+    observe("mixed-order control", {width: 7, height: 5, layers: 2, mips: 2, texel_bytes: 4},
+        &mixed[0], sizeof(decltype(mixed)) / sizeof(u64));
     return 0;
 }
