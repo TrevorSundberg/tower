@@ -125772,3 +125772,77 @@ Linux object 2884c8ad…3ad80 on host 11. Its Win64 COFF is 758 bytes.
 Add the object as the only implementation of ordinal 13 and import the
 single requirements query from Vulkan. Reuse the allocation fixture from
 5994bd8f and compare the real DLL with its sealed guarded SDK capture.
+
+Release change 2bd4fd0d links the provider object. Recorder b1718199 accepts
+the release directory, checks ordinal 13 and compiles the external C client
+with the public SDK declaration. The [checkout commands](../scaffolding/library/graphics/vulkan/osd_checks/README.md#post-create-allocation-plan-on-win64)
+use LLVM 19.1.7, MinGW x64, Vulkan headers 1.3.239 and Wine 8. The COFF
+link map resolves the export to image_allocation_plan.obj. Its sole undefined
+symbol is vkGetImageMemoryRequirements. The DLL imports that query from
+vulkan-1.dll. The external COFF has an AMD64 REL32 relocation to the public
+function and both the recording and hardware PEs import it from tower_graphics.dll.
+
+| Product | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Planner COFF | 758 | `492cc02564ee26a754327128c78da98bbe7d62257dc625ec8859f807d609a948` |
+| DLL | 6656 | `3d6fd8e03868b072fb55d16ba963f4fa2880e0d4e0c8092694c1670fa08ce30b` |
+| Import library | 5122 | `ed9a0e67ff7de692509398880aa68b090335f84d241e7f451e26654127e96479` |
+
+The SDK and release recorder each produced ten rows, SHA-256
+`7d2ec8866e0d943a56f7ee6eeebbe30f01312ae82cf8401df1c352fe2a11aeeb`.
+Each queried once. Index 31 succeeded with 4,294,983,687 bytes. All four
+no-match cases retained the output including padding. The release-12
+library failed the external link on the planner symbol. The old DLL failed
+on that call before the first row. An initial negative run opened Wine's
+debugger and needed termination. The replay disables that debugger.
+The twelve preceding export names retained their ordinals and the frozen
+preflight PE passed its 28 prior rows. In the recording owner double with
+the real planner, injected allocation −2 left zero accounted bytes and
+skipped the bind. Injected bind −2 followed successful allocation and
+accounting of 16,384 bytes. These observations concern the fixture owner.
+
+The ordinary hardware PE (73a24883…5234c) used the system Wine Vulkan
+loader. A second PE used the same release DLL and an observing loader.
+Only the latter forwards the requirements import through the fixture's
+existing C observation function, which calls Wine for the actual result.
+The other Vulkan calls forward directly. A first forwarder-only link emitted
+only an import library. An empty COFF translation unit makes LLD emit the
+requested test DLL. The independent Tower trace reader compared the returned
+table, mask, size and first eligible index with the sealed raw SDK run.
+It checked the caller's written descriptor address at real SDK allocation
+and the returned memory, original image and zero offset at the real bind.
+
+The selected Quadro RTX 6000 had UUID 26f60f6cead65faf0253a959b2e93a2d,
+driver 615.71.10, Vulkan 1.4.351, queue family/index 0/0. On each source
+the physical table in index order was (flags,heap) (0,1), (1,0), (1,0),
+(6,1), (14,1), (7,0). Each mask was 3, alignment 1024 and selected index 1.
+In upload order the five full sizes were 25165824, 569856, 569856, 1572864
+and 32768. All five actual allocations and binds succeeded. Ten submits
+completed and the independent lifetime check passed. The 27,542,768 retired
+bytes matched the sealed stream, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The oracle checked 256 sampled texels and the guards. Host synchronization
+validation loaded and the debug callback reported zero warnings/errors.
+
+Three alternating warm pairs used the sealed SDK planner PE and the
+observed release PE on the same dual Xeon E5-2699 v4 host, with one
+caller, one GPU queue and one compile worker. Both traced the same fields
+and every timed capture passed the full comparison. Wall seconds were
+1.17/1.46/1.41 before and 1.30/1.28/1.25 after. User plus system seconds
+were 1.13/1.24/1.38 and 1.27/1.21/1.21. Peak RSS was 190956–191608 KiB
+and 189464–192924 KiB. Both paths consumed five source allocations. The
+provider uses stack requirements and caller output with no heap retention.
+The small ten-row private/release Wine PEs took 0.05/0.05/0.05 and
+0.08/0.07/0.06 seconds. Their peak RSS ranges were 5652–6344 and
+10592–12676 KiB. The release path loads Wine Vulkan forwarders. These
+times include process and transport costs.
+
+Win64 trapping UBSan passed across the external C recording and device
+boundaries. The native Linux build instrumented the production Tower
+planner and C boundaries and completed 160 rows each under ASan/leak and
+TSan using four pthreads. Four initial TSan launches hit the host
+ADDR_NO_RANDOMIZE restriction before the fifth completed. The packet
+includes function disassembly, link maps and individual startup logs.
+The prepared Win64 SDK lacks the ASan runtime and Clang rejects Win64
+TSan. Physical Windows and shipping Draw execution remain open. The worker
+hands the local commits and evidence to rendering for publication.
