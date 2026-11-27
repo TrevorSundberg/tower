@@ -124262,6 +124262,17 @@ both fences and a set GPU event. The hardware evidence is Wine 8 on a
 Quadro RTX 6000, NVIDIA 615.71.10. The host loader inserted the Khronos
 layer. Physical Windows and the five-entry Draw application remain open.
 
+### Draw independently links the five-export Win64 release
+
+Draw reproduced the DLL and import library at `32e6f52b` and linked a
+minimal C PE against all three public headers. Its five-entry import table
+and matching provider ordinals are recorded in the
+[Win64 link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#independent-c-link-on-draw).
+Rendering rehashed the retained DLL and import library and checked the clean
+replay manifest with `(cd bin && sha256sum -c ../clean/pe.sha256)`, exit 0.
+The C PE identity and inspection are Draw's observations. This update
+adds documentation only. The live Draw application test has its own job.
+
 ### Blocking upload finish in the Windows x64 graphics DLL
 
 Host 11 started from the tested five-export tree `c40dae39` and its separate
@@ -124275,7 +124286,8 @@ retains ownership of reset, copy, barriers, queue synchronization and cleanup.
 
 The source history includes the manager's five-export integration
 `32e6f52b2d60953c7bad1678fb7bc1786bfccc2a` and the independently
-verifiable header commit `208ebc4d`. The packet preserves both original
+verifiable header commit `208ebc4d`. The final tree also preserves Draw’s five-import link receipt at
+`3720ea50`. The packet preserves both original
 receipts. The final source keeps the 38-case C/HUD input from the reviewed
 branch. The release used the checked-in Linux x64 bootstrap, LLVM 19 and
 the preceding worker's checksummed SDK lock on host 11. Commands from a
@@ -124364,13 +124376,3 @@ sanitizer tool initially requested libc from the extracted cross-SDK. An
 explicit native CRT/libc link built the tool on the same host. All raw
 logs, source, manifests and replay commands are in worker packet
 `cce07bd9-4039-4a29-87d6-7d955443b83f`.
-### Draw independently links the five-export Win64 release
-
-Draw reproduced the DLL and import library at `32e6f52b` and linked a
-minimal C PE against all three public headers. Its five-entry import table
-and matching provider ordinals are recorded in the
-[Win64 link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#independent-c-link-on-draw).
-Rendering rehashed the retained DLL and import library and checked the clean
-replay manifest with `(cd bin && sha256sum -c ../clean/pe.sha256)`, exit 0.
-The C PE identity and inspection are Draw's observations. This update
-adds documentation only. The live Draw application test has its own job.
