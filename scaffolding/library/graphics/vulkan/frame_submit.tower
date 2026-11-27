@@ -1,6 +1,15 @@
 import tower;
 import readback_abi;
 
+fn vk_one_command_submit_info(commands: VkCommandBufferHandle**, wait: VkSemaphoreHandle**,
+    stage: u32*, signal: VkSemaphoreHandle**): VkSubmitInfo {
+    var info: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: commands,
+        pWaitSemaphores: wait, pWaitDstStageMask: stage, pSignalSemaphores: signal, ..default };
+    if wait != null { info.waitSemaphoreCount = 1; }
+    if signal != null { info.signalSemaphoreCount = 1; }
+    return info;
+}
+
 // Borrow the caller's descriptor and arrays through the loader call.
 export fn tower_vk_queue_submit_one_v1(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
     return vkQueueSubmit(queue, 1, info, fence);

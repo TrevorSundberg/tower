@@ -59,6 +59,7 @@ int main(void)
     VkEvent event;
     check("vkCreateEvent", vkCreateEvent(device, &event_info, NULL, &event));
     VkCommandPoolCreateInfo pool_info = { .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .queueFamilyIndex = queue_info.queueFamilyIndex };
     VkCommandPool pool;
     check("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, NULL, &pool));
@@ -66,28 +67,35 @@ int main(void)
         .commandPool = pool, .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY, .commandBufferCount = 1 };
     VkCommandBuffer command;
     check("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &allocate, &command));
-    VkCommandBufferBeginInfo begin = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    check("vkBeginCommandBuffer", vkBeginCommandBuffer(command, &begin));
-    vkCmdSetEvent(command, event, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-    check("vkEndCommandBuffer", vkEndCommandBuffer(command));
-
     VkFenceCreateInfo fence_info = { .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
     VkFence fence;
     check("vkCreateFence", vkCreateFence(device, &fence_info, NULL, &fence));
-    VkSubmitInfo batch = { .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .commandBufferCount = 1, .pCommandBuffers = &command };
-    check("tower_vk_queue_submit_one_v1", tower_vk_queue_submit_one_v1(queue, &batch, fence));
-    check("vkWaitForFences", vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000ULL));
-    result = vkGetEventStatus(device, event);
-    if (result != VK_EVENT_SET) {
-        fprintf(stderr, "Expected a set GPU event, got %d\n", (int)result);
-        return EXIT_FAILURE;
+    for (unsigned frame = 0; frame < 3; ++frame) {
+        if (frame == 0) {
+            VkCommandBufferBeginInfo begin = { .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
+            check("vkBeginCommandBuffer", vkBeginCommandBuffer(command, &begin));
+        } else {
+            check("vkResetFences", vkResetFences(device, 1, &fence));
+            check("vkResetEvent", vkResetEvent(device, event));
+            check("tower_vk_command_begin_v1", tower_vk_command_begin_v1(command));
+        }
+        vkCmdSetEvent(command, event, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+        VkSubmitInfo batch;
+        check("tower_vk_command_end_for_submit_v1",
+            tower_vk_command_end_for_submit_v1(&batch, &command, NULL, NULL, NULL));
+        check("tower_vk_queue_submit_one_v1", tower_vk_queue_submit_one_v1(queue, &batch, fence));
+        check("vkWaitForFences", vkWaitForFences(device, 1, &fence, VK_TRUE, 5000000000ULL));
+        result = vkGetEventStatus(device, event);
+        if (result != VK_EVENT_SET) {
+            fprintf(stderr, "Frame %u expected a set GPU event, got %d\n", frame, (int)result);
+            return EXIT_FAILURE;
+        }
     }
     vkDestroyCommandPool(device, pool, NULL);
     vkDestroyEvent(device, event, NULL);
     vkDestroyFence(device, fence, NULL);
     vkDestroyDevice(device, NULL);
     vkDestroyInstance(instance, NULL);
-    puts("shader created and destroyed; GPU event set after fence retirement");
+    puts("shader created and destroyed; GPU event set after each of three fence retirements");
     return EXIT_SUCCESS;
 }

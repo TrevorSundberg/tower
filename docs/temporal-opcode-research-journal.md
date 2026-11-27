@@ -124113,3 +124113,139 @@ ownership. The public declaration, provider inputs and test logic are
 identical to the verified revision. Draw assigned application adoption,
 original/corrected strict raster and HUD readback to slot 9 job
 `5d1c45b6-537f-4e64-a898-a8a8a1929de9`.
+### Win64 frame operations in the counted graphics DLL
+
+Host 11 job `a7c423bf-a745-48b0-86ee-734279f112b0` starts at the
+counted-C publication `7f7bf7df` (provider `ea062c4b`). The registered
+`5ffd24e7-3172-4404-a96c-d262f31142ac` bundle identifies OSD supplement
+`42aaa2170bbbfab4ed70da269b0f251ac07c2ea5`. Its 38 recording cases
+and header are retained via a merge. Both sets of Draw link notes survive
+the documentation conflict.
+
+The DLL links the begin and end implementations from `960c855a` (tested
+`06d47a5d`). End imports the module that defines submit. The link recipe
+uses its object once and assigns begin/end ordinals 4/5. One-shot and
+reusable callers share the begin/submit structure tags in the ABI module.
+
+**Win64 release and C linkage.** The documented build command with
+`--with-consumer` used the checked-in Linux x64 bootstrap, one compiler
+job, LLVM 19.1.7, MinGW-w64 10 and Vulkan headers 1.3.239. The 3,584-byte
+DLL SHA-256 is `89fd77ce3213b9144994097b37560fdf7cb4487d00c9c2e5c25967b2b9f94bb6`.
+Its import library is `797dcd7d654df8d55e4156f12c359b0d810f0422759acc5b2fbd91b4fd604a7d`.
+The map and PE tables show one definition per advertised entry and only
+five Vulkan imports. The PE links with no CRT or Tower runtime. The
+application fixture separately links the pinned Windows runtime subset,
+MinGW CRT and libatomic. The pre-change C consumer ran against the new DLL.
+The shader and counted objects matched the pre-change build byte for byte.
+The accepted 38 C recording cases, including both OSD passes, reproduced
+the frozen log. The fresh counted and clear entry points also compiled.
+
+**GPU and foreign-call evidence.** Two ordinary PE links shared the same
+offscreen workload object. One C transport called Vulkan directly. The
+other imported all five Tower entries from the release DLL. The consumer
+used the Wine-capable fixture at `ea6ce027` with the three-frame reuse
+loop from `960c855a`. Its CPU oracle and row-copy sources match their blobs
+at `3dd5f11f` (after the compiler base `a580e70a`). Its guarded GPU
+destination has capacity 32, offset 4, pitch 12 and loan 24. The selected
+discrete Quadro RTX 6000 was device 10de:1e78, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, NVIDIA 615.71.10, graphics family
+0, device API 1.4.351. Wine 8 exposed the core 1.3 workload. Driver
+identity, loader/layer build IDs and SPIR-V hashes are in the packet.
+
+Each PE submitted three frames, waited each fence and compared 336
+bytes of count, indexed fields, pixels and guards. Both hashes were
+`746d13068c71f1dc42559ec75d25c697c923e4095f7d3e3784c8bcac023dcb3b`.
+An additional read of the physical staging allocation matched an independent
+240-byte oracle (0/1, 1/0, 0/1) at
+`06d7ba3cb63a5de630e7c0e43ea3b2629d5bee69d26ee124185539e2d90a79b2`.
+The loader traced a single PFN lookup, one fresh begin, two flags-zero resets
+of the same primary after retirement, and three end/submit/wait/map sequences.
+The separate gated test observed VK_NOT_READY before host signal, then two
+completed fences and the set GPU event. Neither successful trace entered an
+idle call. Host synchronization validation was requested and layer insertion
+verified. Counted and gated callbacks recorded zero warnings or errors.
+
+The isolated recording Vulkan DLL exercised the reviewed Tower matrices
+and Vulkan-header C transports on LLP64. The begin-info native size is
+32, submit-info 72, VkResult/stage flags 4 and handles/host pointers 8.
+Reset, begin, end and submit each returned −4, −1 and +1 unchanged.
+Reset failure stopped at R. Every attempted begin followed one successful
+reset (RB). End failure preserved the entire poisoned descriptor and guards.
+Success exercised independent wait/signal, null and nonnull fence, and
+a nonnull ignored stage pointer. The recorder checked original slot
+addresses and values at submit. The successful E/P/S/R trace covers end,
+an application timestamp, separate submit and host release.
+
+**Measurements.** Xeon E5-2699 v4, 88 logical CPUs, 10.56 CPU quota, same
+Quadro and validation configuration. Five fresh processes per release arm
+ran in alternating order with warm inputs, one application recording thread.
+Each sample matched the 336 bytes before timing was accepted.
+
+| Three frames | Median wall / process CPU, s | Median peak RSS, KiB |
+| --- | ---: | ---: |
+| Direct PE | 0.35 / 0.31 | 118408 |
+| DLL-linked PE | 0.36 / 0.31 | 118060 |
+
+A second caller sampled QPC (10 MHz) around each operation, with the same
+release DLL. Across three runs the direct/linked median durations in µs
+were 21.3/27.9 then 17.3/17.8 for reusable begin. End took 6.4/7.1,
+3.6/3.7 and 3.4/3.8. Submit took 209.2/245.1, 21.2/26.6 and 20.2/20.6.
+These host intervals include validation and driver work. GPU time and
+driver allocations were unmeasured. The helpers use stack descriptors or
+borrowed slots. Three warm compiles produced identical objects at jobs
+1 and 4. Median wall/CPU/peak KiB for end were 0.38/0.38/91308 and
+0.45/0.49/95704. The full counted caller used 0.90/0.89/130080 and
+0.96/1.10/133292. The release build keeps one job.
+
+**Instrumentation and replay.** Trapping Clang UBSan on the Win64 C
+transport and recording controls passed against the release DLL. Win64
+ASan lacked a runtime and Clang rejected TSan for the target. Native
+Linux ASan and TSan instrumented the shared Tower providers and used libc
+pthreads on four disjoint application/recorder stacks, four complete begin
+and end/submit suites per thread. Both completed with empty sanitizer stderr.
+TSan failed to start five times on the container's ADDR_NO_RANDOMIZE
+restriction before the same binary completed. Packet logs distinguish
+those startup exits from the completed check. There is no PE Tower or GPU
+driver sanitizer coverage.
+
+During fixture preparation the compiler diagnosed misordered imports, then
+the integrated link exposed its libatomic requirement. The recording link
+also needed the selected Tower trap runtime. The first trace inherited a
+disabled Wine channel; explicitly propagating WINEDEBUG produced the loader
+calls. A hexadecimal bound in the optional timer failed to parse; the
+successful check derives the limit from u32. A full-history clone tried
+to repack unavailable promisor history, so replay uses a fresh shared Git
+object checkout and an empty build directory. No prebuilt PE enters the
+replay. It verifies bootstrap and shader hashes, builds the DLL, import
+library, C examples, fault driver, gated test and both integrated executables,
+and checks application output and actual Vulkan call order. The C consumer
+and fixture build at `7a7cec7c` repeated byte for byte in another checkout.
+Native Windows, the full Draw process, displayed WSI, real device loss and
+noncoherent GPU memory remain untested.
+
+### Review of Win64 frame command reuse through the Tower DLL
+
+Rendering verified the bare-ID package for `a7c423bf`, SHA-256
+`0f2a09229a6ae15ab3642b203877355fc12762d68a69aceb6fd5114fa29aa930`.
+All 359 manifest entries verified, as did the two bundle prerequisites
+and tested tip `c40dae39ead5aa316d917010ce2ab2220999a39d`.
+The coordinator served that packet. The worker separately reported a
+header-comment supplement at `208ebc4d`. This integration takes the
+already reviewed public header directly from `be779636`. Its declaration
+matches the tested header after removing comments. All other build and
+test sources match the tested tree.
+
+Rendering inspected the supplied PE images. The linked counted executable
+imports all five entries from tower_graphics.dll. Its raw control imports
+Vulkan directly. The DLL imports five commands from vulkan-1.dll.
+Rendering verified the original exports at ordinals 1–3, the new begin and
+end/prepare at 4–5, and the release and replay binary hashes. Independent
+reconstruction from the count word, 20-byte record, two RGBA values and
+guard layout matched both captured byte streams. The 336 logical bytes
+include all three frames. The 240 staging bytes confirm the physical order
+0/1, 1/0, 0/1. Both traces contain three submits to one queue, three fence
+waits before mapping, and two resets of the same retired primary.
+The gated control first returned VK_NOT_READY, then reported completion of
+both fences and a set GPU event. The hardware evidence is Wine 8 on a
+Quadro RTX 6000, NVIDIA 615.71.10. The host loader inserted the Khronos
+layer. Physical Windows and the five-entry Draw application remain open.

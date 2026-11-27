@@ -1,12 +1,12 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports the shader-module constructor, counted indexed recording and the asynchronous
+`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
 Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h) and [counted recording](indexed_draw_c.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports exactly `vkCreateShaderModule` and
-`vkQueueSubmit` from `vulkan-1.dll`.
+calls. At runtime the Tower DLL imports `vkCreateShaderModule`, `vkResetCommandBuffer`,
+`vkBeginCommandBuffer`, `vkEndCommandBuffer` and `vkQueueSubmit` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
 
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles the three Tower objects for
+The entry verifies the checked-in bootstrap, compiles four Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -49,7 +49,7 @@ PE executable. Run `out\graphics_consumer.exe` with a Vulkan 1.1-capable
 first adapter and a graphics queue in family zero. The observed exit was 0:
 
 ```text
-shader created and destroyed; GPU event set after fence retirement
+shader created and destroyed; GPU event set after each of three fence retirements
 ```
 
 ## C caller ownership
@@ -60,10 +60,21 @@ shader created and destroyed; GPU event set after fence retirement
   Only 1 with `VK_SUCCESS` transfers a module. The caller may release the
   words on return. Destroy the module once on its creating device with a
   null allocator after its last use in pipeline creation.
+- Use direct begin on a fresh primary. For reuse, establish retirement and
+  synchronize host access to the primary and its individually resettable pool.
+  Pass the handle by value to `tower_vk_command_begin_v1`. It resets with flags
+  zero, then begins with ONE_TIME_SUBMIT. Any nonzero reset result stops the
+  sequence. The signed result identifies success or failure.
+- To end a recording primary, pass a writable `VkSubmitInfo` and the address of
+  its command handle to `tower_vk_command_end_for_submit_v1`. Supply a wait
+  semaphore and its stage mask together for a wait. The signal slot is optional
+  independently. A nonzero end result preserves every byte of the descriptor.
+  Success stores the original command, wait, stage and signal pointers. Keep
+  their slots live and stable until the separate submit returns.
 - Externally synchronize the queue. Pass the original prepared
   `const VkSubmitInfo *` and fence. The library borrows the descriptor and its
   host arrays until return, calls `vkQueueSubmit(queue, 1, info, fence)` once
-  and returns its signed `VkResult` unchanged. Recording, reset, submission
+  and returns its signed `VkResult` unchanged. Fence reset, frame history, swapchain operations, submission
   failure policy and waits belong to the caller. Success admits the work.
   Keep submitted device objects live until retirement and establish memory
   visibility before reading staging. A failed submit supplies no fence
@@ -71,21 +82,34 @@ shader created and destroyed; GPU event set after fence retirement
 
 ## Host 11 validation
 
-The checked C example creates a shader and submits a GPU event-setting
-command through the same DLL. The larger counted PE imported both entries
-through C and used them for compute, vertex and fragment creation and a
-single real draw submission. With Wine 8, host Khronos synchronization
-validation and the Quadro RTX 6000, counts 0 and 1 respectively produced
-four `112233ff` and four `4080bfff` pixels. The command bytes, row padding
-and guards matched the direct executable after caller fence retirement.
-Both the raw and DLL semaphore tests returned with work pending and passed
-after host release. All counted and gated callbacks recorded zero warnings
-or errors. The negative −4 submit came from a separate recording loader.
+The C example created a shader and retired the same event-setting primary
+three times. The separate counted C-linked executable imported all five
+entries from one DLL. On Wine 8 with the Quadro RTX 6000 and NVIDIA
+615.71.10 it matched the direct Vulkan PE on all 336 checked bytes.
+Frames 0 and 2 stored count zero before count one. Frame 1 reversed the
+positions. Each count-zero image contained four `112233ff` pixels and
+each count-one image contained four `4080bfff` pixels. The trace shows two
+command resets on the retired primary. In the gated binary-semaphore test,
+the subject fence returned VK_NOT_READY before host release. Both fences
+then completed and the GPU event was set. The counted and gated callbacks
+reported zero warnings or errors with host synchronization validation.
 
-Native Windows drivers and Draw's WSI/presentation integration require
-separate runs. Artifact identities, exact link inspection, hardware details
-and per-call timing are in the
-[project journal](../../../../docs/temporal-opcode-research-journal.md#windows-x64-combined-vulkan-library).
+The release DLL exports submit, shader creation and counted recording at
+ordinals 1, 2 and 3. Begin is 4 and end/prepare is 5. The end object
+supplies the single definition of submit. Recorded C controls cover signed
+reset, begin, end and submit results, all optional descriptor slots,
+failure preservation and call order. Full Draw, displayed WSI and native
+Windows driver execution remain open. [Host 11 evidence](../../../../docs/temporal-opcode-research-journal.md#win64-frame-operations-in-the-counted-graphics-dll)
+
+The release DLL (3,584 bytes) has SHA-256
+`89fd77ce3213b9144994097b37560fdf7cb4487d00c9c2e5c25967b2b9f94bb6`.
+The direct C control and C application linked through all five exports
+produced identical 336-byte guarded output. An independent capture of the
+240 bytes in GPU staging verified that the two results changed positions
+on the second frame. The test requested the core 1.3 profile on Wine.
+The selected device reported Vulkan 1.4.351. The host Vulkan loader
+inserted the Khronos validation layer. Physical Windows and the Draw
+application using this five-entry DLL still require their own runs.
 
 ## Recording indexed draws from C
 

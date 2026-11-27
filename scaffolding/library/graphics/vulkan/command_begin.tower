@@ -1,0 +1,12 @@
+import tower;
+import readback_abi;
+
+var VkCommandOneTimeSubmit: u32 = 1;
+
+// Borrow a non-pending primary from an externally synchronized, individually resettable pool.
+export fn tower_vk_command_begin_v1(cmd: VkCommandBufferHandle*): i32 {
+    var result = vkResetCommandBuffer(cmd, 0);
+    if result != 0 { return result; }
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, flags: VkCommandOneTimeSubmit, ..default };
+    return vkBeginCommandBuffer(cmd, &begin);
+}
