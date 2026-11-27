@@ -173,7 +173,7 @@ The required fatal exit was 1 in every case.
 
 After each injected idle failure following an accepted submit, staging
 remained live through a separate successful drain on the same queue.
-Strict fatal-exit acceptance remains open in Draw repair `97562fd0`.
+These exits prompted Draw repair `97562fd0`, tested below.
 The intermittent SIGSEGV has no established cause.
 
 Rendering rehashed the retained recorder and finish objects, reproduced
@@ -181,3 +181,35 @@ both guarded digests and the shipping PPM digest from expected bytes,
 and reran its local CPU recording checks. Draw verified the device
 captures and process statuses. The earlier finish-only trial has its
 own [Linux device and fault evidence](https://github.com/TrevorSundberg/tower/blob/e02ada10a19bb2ddeefc916e388f9cce63dee68f/scaffolding/library/graphics/vulkan/command_finish_v1.md#draw-linux-hardware-upload-and-fatal-exits).
+
+## Draw Linux staged-upload recovery
+
+Draw accepted the shipping staged-upload failure path at
+`6a575cb85929d432932d7ecd61f1e57e0addae26`, tests
+`f053a281d92f01b323d5d47c621f5b6777f9ac05`, with the Tower recorder and
+finish providers identified above. Draw verified 1,237 archive entries and
+the raw waitpid statuses for job `97562fd0-fd7d-418d-8dab-7995188b9079`.
+The archive SHA-256 is `01e827037f7495252c4ccc3ed622be72e55d327ad733bc19b3be948f3468c3d7`.
+Vulkan selected an RTX 5060 Ti (10de:2d04), API 1.4.303, NVIDIA 570.169.
+
+Draw ran the shipping invocation above with an injected error at command
+end (−1), queue submit (−2), or queue idle (−1). With capture enabled, 34
+trials per failure across the four C/Tower recorder and finish combinations
+gave 408 processes. Another 204 ran the C recorder without capture. All
+612 emitted the expected signed error and exited normally with status 1
+(raw wait word `0x0100`). Zero processes were signaled.
+
+In the traced idle-failure case, NVIDIA accepted the unfenced submission.
+Draw then waited again on the same queue. That recovery wait succeeded
+before it unmapped or freed resources or destroyed the pool and device.
+The independent single-fault injector had no exit hook. A CPU double covered
+the case where both queue and device retirement remain unknown. Draw retained
+both buffers and the context in that case. Real device loss remains untested.
+
+Draw also checked eight guarded readbacks at 73 bytes and 64 MiB, both
+raster PPMs against the `42c6fe3a` digest above, and both frozen scene and
+camera pairs. The canonical render and core checks exited 0. Tower rendering
+independently reconstructed both guarded reference digests and checked the
+trial totals. Draw owns the device captures and waitpid evidence. This
+acceptance covers the repaired Linux staged-upload caller. General scene
+startup failures and Windows recovery require separate evidence.
