@@ -83,6 +83,22 @@ client to one DSO. The retained raw and shared five-image runs on the RTX
 captures, loader traces, exit statuses and sanitizer logs. Draw's
 thirteen-entry uptake is recorded below. [Device checks and coverage](../../../../docs/temporal-opcode-research-journal.md#linux-graphics-library-allocation-and-zero-offset-bind-on-host-12)
 
+Rendering independently rebuilt the 15,352-byte release at worker revision
+`c5e3df6b2274cd0776bfe418710db1bc59f00364`. Its SHA-256 was
+`1296b5b49762c4807d343c69afda5bfca52ee35621d86c0142b27e8bed2e2104`.
+Both existing SDK recording executables and the prior planner executable
+reproduced their stored rows on the new library. The new memory recording
+client reproduced its case results and pointer relationships after accounting
+for address randomization. Eager loading with the thirteen-entry library
+exited 127 on the missing zero-offset bind entry.
+
+The separate `sdk-new` executable queries the selected device. Its
+compatibility receipt belongs to the worker's RTX 3090 run. Rendering
+rehash-checked the worker's packed guarded streams from the raw, shared and
+clean shared replay paths against its retained SDK reference. Each digest
+was `140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+Draw's shipping constructor and GPU acceptance have their own revisions.
+
 ## Link the image planner
 
 The thirteen-entry DSO is 15,120 bytes with SHA-256
