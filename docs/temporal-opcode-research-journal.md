@@ -125251,3 +125251,18 @@ then the probe resolving vkCreateImage to libvulkan. With loader binding
 diagnostics and the full trace enabled, one successful process per route
 used 2150.80/2151.81 ms/139676 KiB raw and 2053.28/2052.66 ms/139516 KiB
 shared (wall/CPU/peak RSS). These are diagnostic runs.
+
+### Query Draw image format support before creation
+
+Slot 12 started from the confirmed rendering contract at 7e2683c2, including
+the 596fda73 proposal and reviewed Linux create provider 07587159. Draw
+confirmed both constructor locations at b15f6edd. Its query failure takes
+precedence even on a zero extent. The driver writes private properties.
+Only a successful query publishes limits and a separate VkBool32 decision.
+
+The existing readback and counted device-open checks select a fixed RGBA8
+2D attachment with transfer-source usage. They check width, height and one
+sample during adapter admission. The new call consumes a complete per-image
+descriptor after device selection. Creation, allocation, binding and
+diagnostics continue at the caller. The retained OSD fixture and standalone
+SDK links are the device and ABI acceptance paths on Linux x64.
