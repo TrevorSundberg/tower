@@ -36,6 +36,7 @@ var ReadbackWidth: u32 = 2;
 var ReadbackHeight: u32 = 2;
 
 struct ReadbackDevice {
+    physical: VkPhysicalDeviceHandle*;
     device: VkDeviceHandle*; queue: VkQueueHandle*;
     family: u32; memory: VkPhysicalDeviceMemoryProperties;
 }
@@ -116,6 +117,7 @@ fn readback_open_device_for_upload(instance: VkInstanceHandle*, index: u32, out:
             pQueueCreateInfos: &queue_info, pNext: bits(void*, &dynamic), ..default };
         if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
         if need_sync2 { readback_number("enabled_synchronization2", sync.synchronization2); }
+        out.physical = physical;
         out.family = family;
         vkGetDeviceQueue(out.device, family, 0, &out.queue);
         vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);

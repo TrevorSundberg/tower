@@ -1,0 +1,7 @@
+import tower;
+import .readback_abi;
+struct FormatQuery {
+    physical: VkPhysicalDeviceHandle*; format: u32; kind: u32; tiling: u32;
+    usage: u32; flags: u32; result: i32; limits: VkImageFormatProperties;
+}
+var QueryTraceFD: i32 = 11;

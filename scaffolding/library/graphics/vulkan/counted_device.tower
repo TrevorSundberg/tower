@@ -87,6 +87,7 @@ fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackD
         var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
             pQueueCreateInfos: &queue_info, pNext: bits(void*, &dynamic), ..default };
         if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
+        out.physical = physical;
         out.family = family;
         vkGetDeviceQueue(out.device, family, 0, &out.queue);
         vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);

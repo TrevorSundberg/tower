@@ -1,0 +1,26 @@
+import tower;
+import .readback_abi;
+import view_trace;
+import image_format_trace;
+
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn getenv(name: u8*): u8*;
+export fn vkGetPhysicalDeviceImageFormatProperties(physical: VkPhysicalDeviceHandle*, format: u32,
+        kind: u32, tiling: u32, usage: u32, flags: u32, out: VkImageFormatProperties*): i32 {
+    var row: FormatQuery = {physical: physical, format: format, kind: kind, tiling: tiling,
+        usage: usage, flags: flags, ..default};
+    var srgb: u32 = 43;
+    if format == srgb && getenv("OSD_FAIL_SRGB_QUERY") != null {
+        var format_not_supported: i32 = -11;
+        *out = {maxMipLevels: 123, maxResourceSize: 98765, ..default};
+        row.result = format_not_supported;
+    } else {
+        var next = dlsym(bits(void*, ~convert(usize, 0)), "vkGetPhysicalDeviceImageFormatProperties");
+        view_check(next != null, "missing downstream image format query");
+        var query = bits(function(i32, VkPhysicalDeviceHandle*, u32, u32, u32, u32, u32, VkImageFormatProperties*), next);
+        row.result = query(physical, format, kind, tiling, usage, flags, out);
+        if row.result == 0 { row.limits = *out; }
+    }
+    view_check(write(QueryTraceFD, bits(void*, &row), sizeof(FormatQuery)) == convert(i64, sizeof(FormatQuery)), "write format query");
+    return row.result;
+}

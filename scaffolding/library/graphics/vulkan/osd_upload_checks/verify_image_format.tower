@@ -1,0 +1,46 @@
+import tower;
+import image_format_trace;
+import image_trace;
+import view_trace;
+import .readback_abi;
+import .readback_output as output;
+
+extern fn getenv(name: u8*): u8*;
+fn next_query(): FormatQuery {
+    var row: FormatQuery;
+    view_check(read(0, bits(void*, &row), sizeof(FormatQuery)) == convert(i64, sizeof(FormatQuery)), "missing query");
+    return row;
+}
+fn compare(row: FormatQuery*, physical: VkPhysicalDeviceHandle*, info: VkImageCreateInfo*, result: i32): void {
+    view_check(row.physical == physical && row.format == info.format && row.kind == info.imageType &&
+        row.tiling == info.tiling && row.usage == info.usage && row.flags == info.flags && row.result == result,
+        "device, result or query fields differ from SDK");
+    if result != 0 { return; }
+    var p = row.limits;
+    output.readback_number("format", row.format); output.readback_number("usage", row.usage);
+    output.readback_number("width_limit", p.maxExtent.width); output.readback_number("height_limit", p.maxExtent.height);
+    output.readback_number("depth_limit", p.maxExtent.depth); output.readback_number("mip_limit", p.maxMipLevels);
+    output.readback_number("layer_limit", p.maxArrayLayers); output.readback_number("sample_mask", p.sampleCounts);
+    output.readback_label("resource_size"); output.readback_decimal(p.maxResourceSize);
+}
+export fn main(): i32 {
+    var admission = next_query();
+    var attachment: VkImageCreateInfo = {format: 37, imageType: 1, usage: 17, ..default};
+    view_check(admission.physical != null, "null selected physical");
+    compare(&admission, admission.physical, &attachment, 0);
+    var query_error = getenv("OSD_FAIL_SRGB_QUERY") != null;
+    var oversize = getenv("OSD_OVERSIZE_IMAGE") != null;
+    var shortened = query_error || getenv("OSD_FAIL_SRGB_IMAGE") != null || getenv("OSD_FAIL_SRGB_VIEW") != null;
+    var images: u32 = 10; if shortened || oversize { images = 2; }
+    for (var i: u32 = 0; i < images; i++) {
+        var sdk: ImageCall;
+        view_check(read(3, bits(void*, &sdk), sizeof(ImageCall)) == convert(i64, sizeof(ImageCall)), "missing SDK image");
+        if oversize && i == 0 { continue; }
+        var row = next_query();
+        var result: i32 = 0; if query_error && i == 1 { result = -11; }
+        compare(&row, admission.physical, &sdk.info, result);
+        if oversize { view_check(row.limits.maxExtent.width < ~convert(u32, 0), "oversize control fits"); }
+    }
+    var extra: u8; view_check(read(0, bits(void*, &extra), 1) == 0, "extra format query");
+    return 0;
+}

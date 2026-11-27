@@ -14,6 +14,8 @@ import .command_finish;
 import .upload_test_device;
 import .readback_output as output;
 
+extern fn tower_vk_image_format_preflight_v1(physical: VkPhysicalDeviceHandle*, info: VkImageCreateInfo*,
+    properties: VkImageFormatProperties*, supported: u32*): i32;
 extern fn tower_vk_create_image_v1(device: VkDeviceHandle*, info: VkImageCreateInfo*, out: VkImageHandle**): i32;
 extern fn getenv(name: u8*): u8*;
 extern fn write(fd: i32, data: u8*, count: usize): i64;
@@ -36,6 +38,28 @@ fn bind_new_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: 
     var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: format,
         extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: s.layers,
         samples: VkSample1, usage: usage, ..default };
+    var limits: VkImageFormatProperties; var supported: u32;
+    var result = tower_vk_image_format_preflight_v1(ctx.physical, &info, &limits, &supported);
+    if result != 0 {
+        output.readback_number("requested_format", info.format);
+        output.readback_number("requested_type", info.imageType);
+        output.readback_number("requested_usage", info.usage);
+        return vk_ok("query image format", result);
+    }
+    if supported == 0 {
+        output.readback_number("requested_format", info.format);
+        output.readback_number("requested_width", info.extent.width);
+        output.readback_number("requested_height", info.extent.height);
+        output.readback_number("requested_depth", info.extent.depth);
+        output.readback_number("requested_layers", info.arrayLayers);
+        output.readback_number("requested_mips", info.mipLevels);
+        output.readback_number("maximum_width", limits.maxExtent.width);
+        output.readback_number("maximum_height", limits.maxExtent.height);
+        output.readback_number("maximum_depth", limits.maxExtent.depth);
+        output.readback_number("maximum_layers", limits.maxArrayLayers);
+        output.readback_number("maximum_mips", limits.maxMipLevels);
+        return vk_failure("unsupported image shape");
+    }
     if !vk_ok("create image", tower_vk_create_image_v1(ctx.device, &info, &out.handle)) { return false; }
     var req: VkMemoryRequirements;
     vkGetImageMemoryRequirements(ctx.device, out.handle, &req);

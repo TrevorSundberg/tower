@@ -1,11 +1,18 @@
 import tower;
 import device_cases;
+import pack;
 import retained;
 import .readback_device;
+import .readback_clear;
 import .upload_test_device;
 import .readback_output as output;
 
 fn run_selected(ctx: ReadbackDevice*): bool {
+    if getenv("OSD_OVERSIZE_IMAGE") != null {
+        var image: Image = default; defer release_image(ctx.device, &image);
+        return bind_new_image(ctx, {width: ~convert(u32, 0), height: 352, layers: 1, mips: 2, texel_bytes: 4},
+            Rgba8Srgb, SampledUsage | VkTransferSrcUsage | VkTransferDstUsage, &image);
+    }
     if getenv("RETAINED_OSD") != null { return retained_inventory(ctx); }
     return run(ctx);
 }
