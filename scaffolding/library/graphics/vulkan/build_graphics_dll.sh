@@ -9,7 +9,7 @@ v=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$v/../../../.." && pwd)
 mkdir -p "$1"
 cd "$1"
-(cd "$root/bootstrap/linux-x64" && sha256sum --check --status SHA256SUMS)
+(cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
 for unit in shader_module_c frame_submit; do
     "$root/bootstrap/linux-x64/towerc" "$v/$unit.tower" --library --jobs 1 \
         --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" \
