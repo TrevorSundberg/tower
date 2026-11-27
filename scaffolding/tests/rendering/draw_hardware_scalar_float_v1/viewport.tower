@@ -1,0 +1,9 @@
+import tower;
+import ...library.float_bits;
+
+// Keep the explicit viewport conversion in its own translation unit so the
+// caller and fixture inputs cannot specialize either dynamic export.
+export fn viewport_from_integer(value: u32): f32 {
+    var encoded = tower_float_from_integer(convert(u64, value), Float32Width, false, Float32Width);
+    return bits(f32, convert(u32, encoded));
+}

@@ -1,0 +1,64 @@
+import tower;
+
+extern fn strcmp(left: u8*, right: u8*): i32;
+extern fn check_updates(): void;
+extern fn check_ops32(): void;
+extern fn check_ops64(): void;
+extern fn check_widths(): void;
+extern fn nan_to_i32(): i32;
+extern fn infinity_to_i64(): i64;
+extern fn negative_to_u32(): u32;
+extern fn negative_to_u64(): u64;
+extern fn above_i32(): i32;
+extern fn below_i32(): i32;
+extern fn above_u32(): u32;
+extern fn above_i64(): i64;
+extern fn above_u64(): u64;
+extern fn u32_to_f32(value: u32): f32;
+extern fn viewport_from_integer(value: u32): f32;
+
+fn check_viewport(value: u32, wanted: u32): void {
+    var ordinary = bits(u32, u32_to_f32(value));
+    var explicit_bits = bits(u32, viewport_from_integer(value));
+    print(value);
+    print(ordinary);
+    print(explicit_bits);
+    if ordinary != wanted { trap("ordinary viewport bits", 0); }
+    if explicit_bits != wanted { trap("explicit viewport bits", 0); }
+}
+
+// Each invocation selects just one case. A conversion which should trap
+// must never return to the caller, even if its low byte looks like success.
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 { trap("expected one case name", 0); }
+    var name = argv[1];
+    if strcmp(name, "check_updates") == 0 { check_updates(); return 0; }
+    if strcmp(name, "check_ops32") == 0 { check_ops32(); return 0; }
+    if strcmp(name, "check_ops64") == 0 { check_ops64(); return 0; }
+    if strcmp(name, "check_widths") == 0 { check_widths(); return 0; }
+    if strcmp(name, "viewport") == 0 {
+        check_viewport(0, 0);
+        check_viewport(1, 1065353216);
+        check_viewport(640, 1142947840);
+        check_viewport(1280, 1151336448);
+        check_viewport(2048, 1157627904);
+        check_viewport(16777215, 1266679807);
+        check_viewport(16777216, 1266679808);
+        check_viewport(16777217, 1266679808);
+        check_viewport(16777218, 1266679809);
+        check_viewport(16777219, 1266679810);
+        check_viewport(4294967295, 1333788672);
+        return 0;
+    }
+    if strcmp(name, "nan_to_i32") == 0 { nan_to_i32(); }
+    if strcmp(name, "infinity_to_i64") == 0 { infinity_to_i64(); }
+    if strcmp(name, "negative_to_u32") == 0 { negative_to_u32(); }
+    if strcmp(name, "negative_to_u64") == 0 { negative_to_u64(); }
+    if strcmp(name, "above_i32") == 0 { above_i32(); }
+    if strcmp(name, "below_i32") == 0 { below_i32(); }
+    if strcmp(name, "above_u32") == 0 { above_u32(); }
+    if strcmp(name, "above_i64") == 0 { above_i64(); }
+    if strcmp(name, "above_u64") == 0 { above_u64(); }
+    trap("unknown case or out-of-range conversion returned", 0);
+    return 1;
+}
