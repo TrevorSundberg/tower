@@ -1,0 +1,21 @@
+import tower;
+
+// draw-tower-rgba8/v1. Spans describe disjoint live allocations. The
+// destination span starts at data + offset and excludes the leading guard.
+struct ReadbackDestination { data: u8*; capacity: usize; offset: usize; span: usize; pitch: usize; }
+var ReadbackRowBytes: usize = 8;
+
+fn readback_destination_valid(dst: ReadbackDestination*): bool {
+    return dst != null && dst.data != null && dst.offset <= dst.capacity
+        && dst.span <= dst.capacity - dst.offset && dst.pitch >= ReadbackRowBytes
+        && dst.span >= dst.pitch && dst.span - dst.pitch >= ReadbackRowBytes;
+}
+
+fn readback_two_rows(dst: ReadbackDestination*, src: u8*, size: usize, pitch: usize): bool {
+    if !readback_destination_valid(dst) || src == null || pitch < ReadbackRowBytes
+        || size < pitch || size - pitch < ReadbackRowBytes { return false; }
+    var start = dst.data + dst.offset;
+    copy(start, src, ReadbackRowBytes);
+    copy(start + dst.pitch, src + pitch, ReadbackRowBytes);
+    return true;
+}

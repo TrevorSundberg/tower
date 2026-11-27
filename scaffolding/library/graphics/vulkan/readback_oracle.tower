@@ -1,0 +1,55 @@
+import readback_rows;
+import tower;
+
+extern fn puts(text: u8*): i32;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+var ReadbackGuard: u8 = 165;
+
+// Literal whole-buffer oracles. These do not use pitches, copy offsets or clear values.
+fn readback_guard_hex(): u8* {
+    return "a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5a5";
+}
+fn readback_gpu_hex(): u8* {
+    return "a5a5a5a5112233ff112233ffa5a5a5a5112233ff112233ffa5a5a5a5a5a5a5a5";
+}
+fn readback_marker_hex(): u8* {
+    return "a5a5a5a53031323334353637a5a5a5a56162636465666768a5a5a5a5a5a5a5a5";
+}
+
+fn readback_compare(label: u8*, data: u8*, size: usize, wanted: u8*): bool {
+    var hex: u8[65];
+    if size > (sizeof(decltype(hex)) - 1) / 2 { return false; }
+    var digits = "0123456789abcdef";
+    for (var at: usize = 0; at < size; at++) {
+        var byte = data[at];
+        hex[2 * at] = digits[convert(usize, byte >> 4)];
+        hex[2 * at + 1] = digits[convert(usize, byte & 15)];
+    }
+    hex[2 * size] = 0;
+    puts(label); puts("expected"); puts(wanted); puts("actual"); puts(&hex[0]);
+    return strcmp(wanted, &hex[0]) == 0;
+}
+
+fn readback_controls(): bool {
+    var stage: u8[264]; var guard: u8[32];
+    var pitch: usize = 256;
+    var source_size = sizeof(decltype(stage));
+    var capacity = sizeof(decltype(guard));
+    fill(&stage[0], ReadbackGuard, source_size);
+    copy(&stage[0], "01234567", ReadbackRowBytes);
+    copy(&stage[pitch], "abcdefgh", ReadbackRowBytes);
+    fill(&guard[0], ReadbackGuard, capacity);
+    var dst: ReadbackDestination = { data: &guard[0], capacity: capacity, pitch: 12, span: 20, offset: 4 };
+    dst.pitch = 7;
+    if readback_two_rows(&dst, &stage[0], source_size, pitch)
+        || !readback_compare("CPU pitch 7 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
+    dst.pitch = 12; dst.span = 19;
+    if readback_two_rows(&dst, &stage[0], source_size, pitch)
+        || !readback_compare("CPU span 19 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
+    dst.span = 20;
+    if readback_two_rows(&dst, &stage[0], source_size - 1, pitch)
+        || !readback_compare("CPU source 263 rejected", dst.data, capacity, readback_guard_hex()) { return false; }
+    return readback_two_rows(&dst, &stage[0], source_size, pitch)
+        && readback_compare("CPU marker, source pitch 256", dst.data, capacity, readback_marker_hex());
+}
