@@ -124966,3 +124966,50 @@ The manager's reviewed slot-12 source/header/ref is the dependency for
 the ordinary ordinal-nine link, full failure suite, paired device
 execution and retirement. Physical Windows and Draw assets/app execution
 remain unverified here. All changes are local to this worker.
+### Five-export Win64 Draw application receipt
+
+Draw verified 433 digests for job `97a65c6b`. Its shipping PE at
+`87d4e8d0` imported four entries from the five-export Tower DLL at
+`32e6f52b`. The functional Wine 11 run on the RTX 3060 retired three
+frames and preserved the descriptor on an end failure. Draw also matched
+its count, raster and resize controls. Stock validated assets/core
+exited 1. Rendering independently rehashed the original DLL and import
+library. This receipt adds documentation.
+[Command, results and remaining coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-application-using-the-five-export-dll)
+
+### Rendering review of the eighth Win64 Vulkan export
+
+The manager verified 466 manifest entries from `9821d998`, its retained
+control and sampling supplement, and the clean fourteen-product replay.
+The provider and C header match the reviewed Linux sources. Rendering
+parsed the release and consumer PE tables and checked the three
+27,542,768-byte readbacks with the retained Tower capture verifier. All
+256 sampled RGBA values and guards matched; a trailing byte was rejected.
+The three intentional faults had the expected first mismatches and exit 3.
+The scope is a synthetic Win64 C consumer on Wine and the Quadro.
+The prior Draw five-export frame receipt remains separate. Slot 11's
+next assignment is the checked region-builder C/DLL boundary.
+[Hashes, acceptance and coverage](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#ordinal-8-release-verification)
+
+### Draw cross-links ordinal 8
+
+Draw rebuilt the eight-entry release and used its actual OSD caller
+loop in a freestanding C cross-link at `bd203f60`. Its PE imports the
+eight names and its caller references the recorder. The manager matched
+the retained release hashes. The cross-link did not exercise the
+shipping application or a device. Draw tracks both under `4ff01175`.
+[PE digest and prerequisites](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-cross-link-of-the-ordinal-8-recorder)
+
+### Win64 SDK baseline compared with the released Linux tight-region builder
+
+Rendering verified the 222-entry packet for slot 11 job `12a29d40`,
+the SDK test at `dfdb7a9d` and replay tip `8f807648`. All 208 canonical
+fields in the saved Win64 SDK rows matched the Linux builder's 896
+output bytes. The second wide offset was 4,295,032,832. The original
+raw helper's short-span mutation was caught at output byte zero.
+Rendering matched the guarded Win64 stream byte for byte with the
+ordinal-8 capture and reran its 256-sample verifier. The packet's client
+object requested the recorder and the builder. Only the latter symbol
+was unresolved against the eight-entry import library. Slot 11 job
+`6b525080` now has [the reviewed Linux builder](https://github.com/TrevorSundberg/tower/blob/0e385907c24e0d465aaf5aeccb98ddeb7f4b8871/scaffolding/library/graphics/vulkan/tight_color_regions.tower)
+for its production Win64 link and on-device comparisons.
