@@ -565,3 +565,33 @@ The 6,656-byte DLL has SHA-256
 The 4,270-byte import library has SHA-256
 `39821cb5d83086f665346451b9825ea80d5430daa96f6897ecc3d47075d33afd`.
 See the [per-path recording, timing and lifetime results](../../../../docs/temporal-opcode-research-journal.md#win64-ordinal-10-for-an-already-bound-osd-image).
+
+### Win64 external C and device verification
+
+Build from the Tower checkout with
+`scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"`.
+Include `bound_image_view.h` from the Vulkan library directory and link the
+C executable with `out/tower_graphics.lib`. Place the matching
+`tower_graphics.dll` beside the executable.
+
+In slot 11 job `01f5b8d5-c2f6-4a88-b80c-a248fd127cea`, the linked GPU PE
+had SHA-256 `f91f8340569257e5aca768dc934bbb867e1cec05075a4ff51be38a24f4ea31df`.
+Rendering decoded the DLL's ten exports and the executable's import of
+`tower_vk_create_bound_image_view_v1`. The same function and header are in
+the [reviewed Linux implementation](https://github.com/TrevorSundberg/tower/blob/6b39d552b312a4d79436b49337cf3fff20b9b5cc/scaffolding/library/graphics/vulkan/bound_image_view_v1.md).
+An SDK recording driver returned success, −1 and −2 on nine cases. Each of
+the raw SDK, direct object and DLL callers recorded exactly one driver call
+per case and an empty public slot on failure.
+
+Wine 8 selected the Quadro RTX 6000, Vulkan 1.4.351, NVIDIA 615.71.10.
+The five full source views were sampled across 16 subresources. Five extra
+views exercised alternate ranges or types. All ten were destroyed on their
+creating device after queue retirement and before their images and memory.
+The complete 27,542,768-byte synthetic capture matched the raw SDK reference,
+SHA-256 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+
+Host synchronization validation ran, and the guest callback reported zero
+warnings or errors. Explicit guest layer creation returned −6. Win64 C
+trapping UBSan passed. ASan and TSan completed on the native Linux provider.
+Win64 ASan/TSan, physical Windows and the shipping Draw Win64 caller remain
+open. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
