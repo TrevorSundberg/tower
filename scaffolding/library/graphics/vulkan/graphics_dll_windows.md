@@ -443,9 +443,8 @@ all 256 sampled texels and every guard.
 The host loader inserted Khronos synchronization validation. Healthy
 guest callbacks reported zero warnings or errors. Explicit guest layer
 creation returned −6 and exited 1. Win64 C UBSan and native threaded
-ASan/TSan completed. Win64 ASan/TSan, physical Windows and execution of
-ordinal 8 inside Draw remain open. Draw's five-export Wine 11 receipt
-above covers its earlier shipping frame path.
+ASan/TSan completed. Win64 ASan/TSan and physical Windows remain open.
+The shipping Draw Wine 11 result appears below.
 
 Rendering verified the archive's 466 manifest entries, its two previous
 packets and the 170-entry sampling supplement at `c2bafc6f`. Clean replay
@@ -469,7 +468,44 @@ ordinals, the caller relocation for the OSD recorder and its two Vulkan
 loader calls. Rendering independently rehashed the retained DLL and
 import library.
 
-Draw's shipping application run, packed texture readback and final HUD
-comparison are queued on slot 9 under
-`4ff01175-385e-4039-bc8e-28e4465856f6`. That run depends on the
-seven-export Windows and Linux real-pack OSD results.
+### Draw shipping OSD recorder on Win64
+
+Draw reviewed slot 9 job `4ff01175-385e-4039-bc8e-28e4465856f6` at
+source `f723de0753df181044e41adf628a3162535f0d1e`, tests
+`488c0ae2c13a6b1a0f769ca242713ceed69146dc`, and Tower `0d0f117b`.
+The shipping PE SHA-256 was
+`fb95b3af59eadb19ce6919a4ee58ac15d40f0937ec36cbe54625bd7b99ec8348`.
+Draw verified archive
+`b5559266c5988d464d696b8910050148c4daf1cb20b8cd776c8c5b32e7fdb209`.
+Under Wine 11, Draw selected an RTX 3060 (10de:2503), Vulkan 1.4.329,
+NVIDIA 595.99.02. From the worker's Draw checkout, the trace command
+below exited 0. The capture argument names the output file.
+
+```sh
+cd /tmp/draw-4ff01175/work
+wine /tmp/draw-4ff01175/stage/trace-linked/draw.exe \
+  --offscreen --osd-test assets/osd/state.bin --fixed-time 0 \
+  --frames 1 --size 1280 800 --capture linked-trace.rgba
+```
+
+Draw compared the raw and linked calls. The five uploads kept the caller's
+region pointers and their respective counts of 6, 2, 2, 4 and 2. All 208
+region fields, 28 barriers and the staging retirement order matched.
+The live trace recorded five returns inside the DLL at RVA `0x164c`.
+Rendering rehashed the retained release DLL and import library and decoded
+the call at `0x1647` immediately before that return. It targets the
+`vkCmdCopyBufferToImage` thunk at `0x1740` inside the release image.
+
+Draw's separate mapped-readback executable exited 0. The two SHA-256
+digests also match the Linux run on the same shipped texture pack.
+
+| Readback | Bytes | SHA-256 |
+| --- | ---: | --- |
+| Active texels | 27,541,504 | `df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4` |
+| Texels, guards and padding | 27,632,640 | `3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97` |
+
+The frozen HUD, scene and camera outputs matched at normal and resized
+extents. In the unfrozen 952×606 window-system run, 36 pixels differed in
+the FPS digits at x=143–148 and y=15–23. Both stock validation gates
+exited 1 under Wine with registry and ICD diagnostics. Physical Windows
+remains untested. [Linux packed readback](https://github.com/TrevorSundberg/tower/blob/1ba6a79b9f513a3c9b8c2da7fe352d88102faead/scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-linux-hardware-acceptance-on-the-shipped-osd-pack)
