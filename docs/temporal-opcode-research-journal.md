@@ -123345,3 +123345,68 @@ page. Each 128-command native batch took 0.07 s with matching stdout.
 The packet includes user/system CPU, peak RSS and checked output by sample.
 These timings include host startup. Guest allocator grant counts and broad
 compiler or parallel execution scaling were outside the measured paths.
+
+### Draw camera scalar arithmetic in the published strict compiler
+
+Rendering receipt `e1ca307d-3e3b-46a6-bffe-11cf04cbe8a4` tests
+`draw-hardware-scalar-float/v1`. Draw reported its host camera/frame/temporal
+caller at `dddf6f20b3bcd49b825f0cd480f8ca5da5c52b45` and an explicit
+float_bits caller in the residency fade at `26655a915820c757ae0b227a6c7dc739e02ac7eb`.
+The Tower test source is `3253cbf407fe4367dcc818e8a48b7b1c5f81c203` on
+`a580e70af42e67d5309c4121737fa9e21652a9dd`. The pinned Linux bootstrap
+SHA-256 was `7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+Slot 11 found only the documented strict software mode on the authorized refs.
+Draw's previous C/Tower timings apply to its complete caller. This run measured
+no new camera, fade or GPU timing. [Scalar semantics](floating-point.md)
+
+From the Tower root with LLVM 19 tools on PATH, emit the dynamic update
+and extended operation IR, then inspect the target instructions and relocations.
+
+```sh
+set -eu
+out=$(mktemp -d)
+src=scaffolding/tests/rendering/draw_hardware_scalar_float_v1
+for t in x86_64-unknown-linux-gnu x86_64-pc-windows-msvc wasm32-unknown-unknown; do
+    for unit in update operations; do
+        bootstrap/linux-x64/towerc "$src/$unit.tower" --library --target "$t" --emit llvm-optimized -o "$out/$unit-$t.ll"
+        bootstrap/linux-x64/towerc "$src/$unit.tower" --library --target "$t" --emit object -o "$out/$unit-$t.o"
+        llvm-objdump -dr "$out/$unit-$t.o"
+    done
+done
+```
+
+On each target the two update exports called tower_strict_float_binary,
+tower_strict_float_from_integer and tower_strict_float_binary in that order,
+including for finite inputs. Each update object's six relocations identify
+the same three callees per precision. Unary negation used sign-bit operations
+on x64 and f32.neg/f64.neg on Wasm. Hardware arithmetic for the camera's
+ordinary add/convert/divide expression remains an open compiler dependency.
+
+The linked Linux x64 and Node 24.22.3 Wasm fixtures each returned successfully
+from four groups containing 57 Tower assertions. Nine conversions ran in
+separate processes per target and produced the exact out-of-range diagnostic
+and exit 1. Cases cover subnormals, signed zeros, NaNs, infinities, midpoint
+rounding and integer conversion limits. Windows x64 evidence ends at the COFF
+instructions and relocations. Windows runtime behavior and browser JIT code
+were unmeasured. When a compiler revision exposes a hardware mode, rerun the
+two exports, exceptional inputs and extended operations before Draw retests
+the camera and its explicit float_bits callers.
+
+Rendering verified 1,146 manifest entries, all four Git source hashes,
+the optimized update bodies, object relocation listings and all 52 original
+and replay process outcomes. The worker compared nine IR files, nine objects
+and both linked host modules byte for byte across a fresh bundle checkout.
+On Linux the single-thread native positive fixtures passed with ASan and TSan.
+The first TSan link needed libgcc_s for unwind. Tower source UBSan was
+unavailable. Two warm compiler process samples per width gave the same Linux
+IR. Update compilation took 0.39/0.35 s at one job and 0.45/0.54 s at four.
+Across update and harness samples, peak RSS ranged from 87,104 to 92,892 KiB.
+Sanitizer preparation overlapped sampling. These are compiler measurements.
+
+Worker archive SHA-256 was
+`48cc6245777a2ee52fc5cb0048f1aff3c632a10830f3de862b1a699bf3ff5df3`.
+The source bundle SHA-256 was
+`435dcc7db96591005e000a97dc8e144395d6b746a97549ef378e856c81d0cfbe`.
+Its evidence/README.md gives the fresh checkout replay using the archived
+compile.sh, link.sh and test.sh. Each process's argv, output, status and
+disassembly are retained with the receipt.
