@@ -1,0 +1,32 @@
+import tower;
+import readback_abi;
+import library.graphics.indexed_indirect;
+
+// Vulkan's returned PFN_vkVoidFunction takes its real signature at lookup.
+extern fn vkGetDeviceProcAddr(device: VkDeviceHandle*, name: u8*): function(void);
+
+var VkCmdDrawIndexedIndirectCountProc: type = function(void, VkCommandBufferHandle*,
+    VkBufferHandle*, u64, VkBufferHandle*, u64, u32, u32);
+
+struct VulkanIndirectBuffer {
+    handle: VkBufferHandle*;
+    byte_size: u64;
+}
+
+// Resolve once for the live logical device that enabled drawIndirectCount.
+fn vk_load_indexed_indirect_count(device: VkDeviceHandle*): VkCmdDrawIndexedIndirectCountProc {
+    if device == null { return null; }
+    return bits(VkCmdDrawIndexedIndirectCountProc, vkGetDeviceProcAddr(device, "vkCmdDrawIndexedIndirectCount"));
+}
+
+// The caller owns the active rendering scope, pipeline, index buffer, producer
+// barrier and feature checks. Both input handles and cmd belong to the device
+// used for lookup. Keep them live through completion of the submitted work.
+fn vk_record_indexed_indirect_count(draw: VkCmdDrawIndexedIndirectCountProc, cmd: VkCommandBufferHandle*,
+    commands: VulkanIndirectBuffer, range: IndexedIndirectRange, count: VulkanIndirectBuffer, count_offset: u64): bool {
+    if draw == null || cmd == null || commands.handle == null || count.handle == null
+        || !indexed_indirect_commands_fit(commands.byte_size, range)
+        || !indexed_indirect_count_fits(count.byte_size, count_offset) { return false; }
+    draw(cmd, commands.handle, range.command_offset, count.handle, count_offset, range.max_draws, range.stride);
+    return true;
+}
