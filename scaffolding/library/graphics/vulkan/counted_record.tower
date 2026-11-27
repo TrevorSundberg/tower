@@ -1,0 +1,102 @@
+import tower;
+import readback_abi;
+import readback_clear;
+import readback_device;
+import readback_rows;
+import counted_abi;
+import counted_device;
+import counted_pipeline;
+import indexed_draw;
+import library.graphics.indexed_indirect;
+
+var VkStageDrawIndirect: u32 = 2;
+var VkStageVertexInput: u32 = 4;
+var VkStageCompute: u32 = 2048;
+var VkIndirectRead: u32 = 1;
+var VkIndexRead: u32 = 2;
+var VkShaderWrite: u32 = 64;
+var VkUint16Index: u32 = 0;
+var VkGraphicsBindPoint: u32 = 0;
+var VkComputeBindPoint: u32 = 1;
+
+fn counted_prefix_bytes(): u64 {
+    return convert(u64, sizeof(u32) + sizeof(IndexedIndirectArguments));
+}
+
+fn counted_sample_bytes(): u64 {
+    return counted_prefix_bytes() + convert(u64, ReadbackRowBytes) * convert(u64, ReadbackHeight);
+}
+
+fn counted_buffer_barrier(cmd: VkCommandBufferHandle*, buffer: VkBufferHandle*,
+    before: u32, after: u32, before_access: u32, needed: u32): void {
+    var barrier: VkBufferMemoryBarrier = { sType: VkBufferBarrierTag, buffer: buffer, size: VkWholeSize,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
+        srcAccessMask: before_access, dstAccessMask: needed, ..default };
+    vkCmdPipelineBarrier(cmd, before, after, 0, 0, null, 1, &barrier, 0, null);
+}
+
+// The two fixed cases use the same pipelines, attachment, index data and command stream.
+// Copy the shader's actual count/record and all four stored texels before reuse.
+fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
+    stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
+    range: VkImageSubresourceRange, buffer: VkBufferHandle*, requested: u32, capture_offset: u64): bool {
+    var consumers = VkStageDrawIndirect | VkStageTransfer;
+    var reads = VkIndirectRead | VkTransferRead;
+    if capture_offset != 0 {
+        counted_buffer_barrier(cmd, stream.handle, consumers, VkStageCompute, reads, VkShaderWrite);
+    }
+    vkCmdBindPipeline(cmd, VkComputeBindPoint, p.compute);
+    vkCmdBindDescriptorSets(cmd, VkComputeBindPoint, p.layout, 0, 1, &p.set, 0, null);
+    vkCmdPushConstants(cmd, p.layout, VkComputeShader, 0, convert(u32, sizeof(u32)), bits(void*, &requested));
+    vkCmdDispatch(cmd, 1, 1, 1);
+    counted_buffer_barrier(cmd, stream.handle, VkStageCompute, consumers, VkShaderWrite, reads);
+    var prefix: VkBufferCopy = { dstOffset: capture_offset, size: counted_prefix_bytes(), ..default };
+    vkCmdCopyBuffer(cmd, stream.handle, buffer, 1, &prefix);
+    var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout,
+        dstAccessMask: VkColorWrite, ..default };
+    var previous = VkStageTop;
+    if capture_offset != 0 {
+        previous = VkStageTransfer; transition.oldLayout = VkCopyLayout; transition.srcAccessMask = VkTransferRead;
+    }
+    vkCmdPipelineBarrier(cmd, previous, VkStageColor, 0, 0, null, 0, null, 1, &transition);
+    var attachment: VkRenderingAttachmentInfo = { sType: VkAttachmentTag, imageView: view, imageLayout: VkColorLayout,
+        loadOp: VkClearOp, storeOp: VkStoreOp, ..default };
+    var maximum: f32 = 255.0;
+    attachment.clearValue.float32[0] = convert(f32, 17) / maximum;
+    attachment.clearValue.float32[1] = convert(f32, 34) / maximum;
+    attachment.clearValue.float32[2] = convert(f32, 51) / maximum;
+    attachment.clearValue.float32[3] = 1.0;
+    var rendering: VkRenderingInfo = { sType: VkRenderingTag, layerCount: 1, colorAttachmentCount: 1,
+        pColorAttachments: &attachment, renderArea: { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default }, ..default };
+    vkCmdBeginRendering(cmd, &rendering);
+    vkCmdBindPipeline(cmd, VkGraphicsBindPoint, p.raster);
+    vkCmdBindIndexBuffer(cmd, index_buffer, 0, VkUint16Index);
+    var commands: IndexedIndirectRange = { command_offset: convert(u64, sizeof(u32)), max_draws: CountedCapacity,
+        stride: convert(u32, sizeof(IndexedIndirectArguments)) };
+    var recorded = vk_record_indexed_indirect_count(draw, cmd, stream, commands, stream, 0);
+    vkCmdEndRendering(cmd);
+    if !recorded { return vk_failure("Counted draw rejected the frozen stream"); }
+    transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
+    transition.srcAccessMask = VkColorWrite; transition.dstAccessMask = VkTransferRead;
+    vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
+    var region: VkBufferImageCopy = { bufferOffset: capture_offset + counted_prefix_bytes(), imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
+        imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
+    vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
+    return true;
+}
+
+fn counted_record(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
+    stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, indices: u16*, index_bytes: u64,
+    image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*): bool {
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
+    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
+    vkCmdUpdateBuffer(cmd, index_buffer, 0, index_bytes, bits(void*, indices));
+    counted_buffer_barrier(cmd, index_buffer, VkStageTransfer, VkStageVertexInput, VkTransferWrite, VkIndexRead);
+    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 0, 0)
+        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 1, counted_sample_bytes()) {
+        return false;
+    }
+    counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
+    return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+}
