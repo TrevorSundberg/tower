@@ -125341,3 +125341,17 @@ A fresh upstream reader replay at 838ab5c7 reproduced all 16 checked
 product hashes and passed the recording, positive/fault device and native
 sanitizer runs. An earlier attempt to serve the base through a local
 partial checkout stopped at upload-pack's missing promisor object.
+
+### Win64 image creation through ordinal 11
+
+Slot 11 job `7c91ce1f-c91a-47a6-a118-78c62e288f79` started from frozen
+SDK control `7f1d8263554b648248476e045f6fb0b639c0a65c`. Before editing,
+its original SDK PE and ten-entry DLL reproduced the 27,542,768-byte
+capture on the Quadro. The independent verifier passed 256 sampled texels
+and all guards. The Tower reader supplied the published provider at
+`07587159dbc5606b3e24d85fa6e3babfc2f9b6fe`. The two files match
+implementation `60b74c561c50ac30b649f99c52f763ad2b57867b` verbatim.
+The build adds the object, loader import and ordinal 11 to the existing DLL.
+The external C caller now includes the published declaration. Its frozen
+COFF, the independent SDK control and the original link-only library are
+retained in the baseline archive for comparison.
