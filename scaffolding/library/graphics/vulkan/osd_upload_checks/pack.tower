@@ -5,6 +5,13 @@ struct Shape { width: u32; height: u32; layers: u32; mips: u32; texel_bytes: u32
 extern fn fixture_record(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
     layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void;
 
+extern fn fixture_build_regions(out: VkBufferImageCopy*, capacity: u32, width: u32, height: u32,
+    layers: u32, mips: u32, bytes_per_texel: u32, available_bytes: u64): u32;
+
+fn build_texture_regions(shape: Shape, out: VkBufferImageCopy*, capacity: u32, bytes: u64): u32 {
+    return fixture_build_regions(out, capacity, shape.width, shape.height, shape.layers, shape.mips, shape.texel_bytes, bytes);
+}
+
 // Fixture shapes have nonzero shifted dimensions and exactly layers*mips region slots.
 fn pack_regions(shape: Shape, regions: VkBufferImageCopy*): u64 {
     var offset: u64 = 0;

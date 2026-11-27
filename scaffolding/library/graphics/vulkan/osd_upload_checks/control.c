@@ -1,4 +1,5 @@
 #include "../osd_texture_upload_record.h"
+#include "../tight_color_regions.h"
 
 #ifndef EXTERNAL_TOWER
 static void image_layer_barrier(VkCommandBuffer cmd, VkImage image, uint32_t layer, uint32_t mips,
@@ -70,4 +71,13 @@ int fixture_sdk_inventory(uint32_t width, uint32_t height, uint32_t raw_layers, 
         };
     }
     return 1;
+}
+
+/* Exercise the public header and symbol from an independently linked C caller. */
+uint32_t fixture_build_regions(VkBufferImageCopy *out, uint32_t capacity, uint32_t width,
+                               uint32_t height, uint32_t layers, uint32_t mips,
+                               uint32_t bytes_per_texel, VkDeviceSize available_bytes)
+{
+    return tower_vk_build_tight_color_regions_v1(out, capacity, width, height, layers, mips,
+                                                 bytes_per_texel, available_bytes);
 }
