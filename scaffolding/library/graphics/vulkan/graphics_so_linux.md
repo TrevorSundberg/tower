@@ -260,3 +260,55 @@ These Draw tests used a recording Vulkan driver. Draw assigned the shipping
 GPU comparison to slot 10 job `b6f28d59-681f-44bd-b19e-6922d03bf357`
 using the standalone preflight result from `dff82eda`. The planner has
 its own shipping test in `7e3234ce`.
+
+## Draw constructor checks with the thirteen-entry library
+
+Draw integrated the library in both image constructors at local commit
+`51365ca81c6a3267cadfb14fdc69b7b29fd3450c`, tree
+`dee4c19c163391d479112c3bb4ca8e30d684c7a5`. Draw rebuilt Tower
+`2b7a733c4cc4e199f4f104b67b0eb9a3bd66fc7d` and matched the 15,120-byte
+release, SHA-256
+`6816c2282148a963f832409a8a2553663e48d7fc748b3f6a7877c59d97e40bca`.
+Its exports include the previous twelve entries and the planner. Its only
+required shared library is `libvulkan.so.1`.
+
+From the pinned Draw checkout, set `TOWER_ROOT` to the absolute Tower
+checkout path and `TOWER_OUT` to the absolute directory containing the built
+library. Use the same file for all three shared-library selectors.
+
+```sh
+export DRAW_TOWER_CREATE_IMAGE_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_BOUND_VIEW_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_IMAGE_PREFLIGHT_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_IMAGE_ALLOCATION_PLAN_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_GRAPHICS_SO="$TOWER_OUT/libtower_graphics.so"
+export DRAW_TOWER_IMAGE_PREFLIGHT_SO="$DRAW_TOWER_GRAPHICS_SO"
+export DRAW_TOWER_IMAGE_ALLOCATION_PLAN_SO="$DRAW_TOWER_GRAPHICS_SO"
+export LD_LIBRARY_PATH="$TOWER_OUT${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+bash tests/vulkan-image.sh
+```
+
+Draw matched exit statuses and traces for 29 scenarios across twelve
+configurations (348 comparisons), plus two clobbered-output checks.
+In the `osd-pack` case, `LD_DEBUG=bindings` showed both the C and Tower
+constructor executables resolving preflight, image creation, allocation
+planning and bound-view creation to the same file. Each produced the
+45-event trace with SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+Both owners preserved the full 4,294,983,680-byte size and memory type 31.
+Allocation failure stopped before accounting. At bind failure the owner
+had already recorded 16,384 bytes and one live allocation.
+
+Draw reproduced the nine external C planner rows
+(`ed6ced81bad6a066292e87b29a78d55630920d2fa4594d69870ffc202ad303e2`)
+and the 28-row preflight result from its unchanged twelve-entry-linked
+client (`c5a4f4aee3da06792977fb78b71737a219de63c12190f22114bd7ad231d7ca3e`).
+Rendering replayed its separate nine-row planner and fifteen-row previous
+SDK client against the same release and matched its retained results.
+
+These Draw runs used a recording driver. Draw assigned the shipping
+RTX 5060 Ti comparison to slot 10 job
+`b6ef1857-bd89-44b4-910d-2d2349bb20c9`. Its inputs are the twelve-entry
+shared-library job `b6f28d59-681f-44bd-b19e-6922d03bf357` and the
+standalone planner job `7e3234ce-f5ca-4d1a-807a-086d3a68d274`.
+In this release Draw still calls Vulkan to allocate and bind memory.
