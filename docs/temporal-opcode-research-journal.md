@@ -125274,3 +125274,85 @@ native link uses nine ordinary bootstrap objects. The command_finish
 unit also emits the end and submit entries. Its two helper objects must
 therefore be omitted from this link. The Vulkan loader is an explicit
 input. The Windows build and compiler have no changes in this job.
+
+**Source and ELF audit.** The nine inputs built with the checked-in compiler
+`7430bdb3…` matched the earlier Linux objects byte for byte, including the
+aggregate command_finish object. The release baseline had linked begin, an
+end/submit aggregate and an extracted finish-only object. The Linux counted
+object was rebuilt from eb5622c4. Its 38-case C recorder and the indexed
+Tower units match the Win64 release. Their public header differs in a comment
+about the caller-selected index type. The shader units match 5e649360, whose
+header comment named only the Linux ABI. In the 07587159 Linux tree,
+counted_abi owns the shader handle and creation declarations, and defines the
+descriptor-image payload. In a0475562 it imports shader_module and uses an
+opaque descriptor-image type. The Win64 release puts VkSubmitTag in readback_abi
+where the older Linux unit put it in frame_submit. The ABI files also differ
+in unused device-idle and fence-reset declarations. Keeping the reviewed
+Win64 source closure and adding only the Linux image source/header preserved
+all nine native objects. No source incompatibility occurred. Two clean native
+builds and a separate link-map build agreed byte for byte.
+
+**Device comparison.** Linux x64, Debian Clang 19.1.7, GNU ld 2.40, Vulkan
+SDK header 239, physical index 0, discrete RTX 3090, device UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, Vulkan 1.3.289, NVIDIA 565.57.01,
+graphics family 0, queue 0. A single SDK C recording executable imported
+all eleven symbols. Each returned the same result and produced the same
+driver calls as its prior Linux DSO or direct counted object. In a separate
+real-device C executable a shader module and three fenced event frames passed.
+The retained texture fixture uses Tower ownership code and SDK C transports.
+Its frozen Linux pre-optimization IR contained local command helpers.
+Removing their four definitions before optimization preserved the call sites.
+The separate and combined device links then used identical caller objects.
+LD_DEBUG proved that image, bound view, builder, recorder, begin and finish
+resolved to the exact combined DSO. Loader probes observed the actual Vulkan
+commands. The 189 ordered lifetime events matched the frozen SDK control's
+event kinds. The Tower verifier checked the relationships between handles
+within each process. Five uploads each retired before staging release. All
+five source views survived sixteen sampled reads. The views were destroyed
+before their images and memory. Each success reproduced all 103,158,144 bytes
+of the frozen raw SDK capture, SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+The injected second-image failure returned −2 after a private-slot clobber.
+The caller exited 1 before binding that image, released the first retired
+source and staging, and produced zero capture bytes. Both paths reported
+zero Khronos synchronization validation warnings/errors.
+
+**Checked cost.** EPYC 7282, 16 cores/32 threads, affinity 0–31, quota
+15.36 CPUs, one caller and one queue. After one checked trace warmup per lane,
+three paired runs alternated order. Each run created a fresh process/device,
+used warmed host file caches and identical probes, and passed the full byte
+and lifetime checks. Times include fixture startup, validation and readback.
+
+| Link | Wall s | User s | System s | Peak process KiB |
+| --- | --- | --- | --- | --- |
+| Prior Linux DSOs | 2.337 / 2.285 / 2.280 | 0.702 / 0.689 / 0.694 | 1.636 / 1.597 / 1.586 | 116152 / 116128 / 116120 |
+| Combined | 2.023 / 2.035 / 2.257 | 0.640 / 0.629 / 0.696 | 1.383 / 1.403 / 1.562 | 116104 / 116116 / 116308 |
+
+The 15 timed upload-record intervals per lane had medians of 111.6 µs
+separate and 111.3 µs combined. Driver and validation work are inside
+those intervals. This sample does not resolve the cost of the ELF call.
+The provider has no allocator import. Driver allocation totals were
+unmeasured. All operations retain the previous owner and threading contracts.
+
+**Instrumentation.** Recompiled all nine units with the repository's LLVM
+instrumentation tool. With the address-instrumented DSO, the recording
+suites passed, and the RTX success and injected-failure paths passed their
+byte/lifetime checks with leak detection disabled. With leaks enabled, the
+prior and combined full GPU processes both exited 1 and reported 4,187 bytes
+in 15 allocations. Ownership is unresolved. The instrumented bound-view
+entry and ASan/trapping C UBSan SDK boundary completed 108 calls over four
+libc pthreads. The TSan equivalent completed 108 after three runtime
+address-space startup failures. The CUDA/Vulkan driver, validation layer and
+GPU instructions were outside compiler instrumentation. The TSan run covers
+the host recording boundary. Draw's shipping application, physical Windows,
+WebGPU and actual device loss have separate acceptance requirements.
+
+**Replay and diagnostics.** The job's bounded bundle is based on a0475562.
+The archive preserves the frozen separate release objects/DSOs, raw compressed
+bytes and lifetime trace, exact fixture IR and SDK callers, native-tool/SDK
+hashes, maps, scripts and logs. The first counted-object audit omitted the
+parent indexed_indirect module from its extracted reference tree. Adding that
+module restored the original import closure. The single-client Tower checker
+initially used a reserved identifier and then unsupported module-level mutable
+storage. The final checker borrows a stack-owned trace for the call. See the
+[build command, SDK link and per-entry results](../scaffolding/library/graphics/vulkan/graphics_so_linux.md).
