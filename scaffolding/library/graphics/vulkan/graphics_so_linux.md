@@ -100,3 +100,36 @@ LeakSanitizer reported 4,187 bytes in 15 allocations in each link form.
 Ownership remains unresolved. Both GPU ThreadSanitizer processes exited
 66 before completing. The recording boundary separately completed its
 four-thread checks. Draw's shipping application has separate adoption tests.
+
+## Draw constructor checks with the shared library
+
+Draw `2f38b19c8218fef304993df5708a7458fa16776b` independently built Tower
+`bef3026fc41d02334a2fd3f88f18b8d6e9392abe` with the pinned `a580e70a`
+bootstrap and GNU ld 2.44. The resulting 14,816-byte DSO reproduced the
+SHA-256 above, its eleven exports, SONAME and sole loader dependency.
+From the Draw checkout, with `tower_root` set to that Tower checkout
+and the built library in its `out` directory, run:
+
+```sh
+TOWERC="$tower_root/bootstrap/linux-x64/towerc" \
+DRAW_TOWER_GRAPHICS_SO="$tower_root/out/libtower_graphics.so" \
+DRAW_TOWER_CREATE_IMAGE_ROOT="$tower_root" DRAW_TOWER_BOUND_VIEW_ROOT="$tower_root" \
+bash tests/vulkan-image.sh
+```
+
+Draw reported exit 0. All eight configurations across 25 scenarios
+matched the individual-object results for traces, diagnostics and exit
+status. Two additional view-failure controls passed. For the five shipped
+texture headers, the 45-event trace SHA-256 was
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+With `LD_DEBUG=bindings` on the `osd-pack` case, both Draw's C and Tower
+owning constructors resolved `tower_vk_create_image_v1` and
+`tower_vk_create_bound_image_view_v1` to the checksum-matched DSO.
+The recording ELFs had SHA-256
+`367a6286429c3bd8ca82ff993cd0b3641ca6a5e8aeb41687ceff3b9f91418b44`
+and `9a9159988539986689c2eb57bdf2c939e3590f3e1d7ddbb5aca5f82180a82158`.
+
+These calls used CPU recording drivers. Draw slot 10 job
+`7c22503e-5491-4462-a6da-c1efdc38c3d3` is assigned the shipping DSO
+driver bindings, packed GPU readback and HUD comparison after the
+individual-provider job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.
