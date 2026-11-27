@@ -106,3 +106,10 @@ validation warnings or errors. Draw owns the shipped application check.
 Slot 12 job `793660b1-3055-4f07-b4d3-f382be98e200` includes the original
 commits, bounded bundle and replay script. The [project journal](../../../../docs/temporal-opcode-research-journal.md#forward-the-callers-image-descriptor-before-allocation)
 records measurements and sanitizer limits.
+
+Two additional Linux device links ran the same retained fixture through
+the SDK C caller. The test link redirected the image creation call site
+to `fixture_issue_image`, compiled once against raw Vulkan and once
+against the public shared library. Both C routes reproduced all
+103,158,144 bytes and passed the binding, view and retirement checks.
+The second-image clobbering OOM also passed on each route.

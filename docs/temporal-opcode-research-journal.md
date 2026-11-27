@@ -125240,3 +125240,14 @@ and provider stopped at the personality check (139). GPU race coverage
 remains open. The job records exits, link maps, function instrumentation
 and diagnostics. The driver and validation layer were outside compiler
 instrumentation. These runs exercise one caller and one queue.
+
+The raw C and C/shared callers also ran on the real device. The test link
+redirected only the compiled device object's reference to the provider
+to fixture_issue_image. Both routes passed the ten descriptor comparisons,
+16 sampled readbacks, all guards and 189 lifetime events. Both reported
+the original -2 and passed all 21 cleanup events when creation failed.
+Bindings for the shared lane show C resolving to the actual provider,
+then the probe resolving vkCreateImage to libvulkan. With loader binding
+diagnostics and the full trace enabled, one successful process per route
+used 2150.80/2151.81 ms/139676 KiB raw and 2053.28/2052.66 ms/139516 KiB
+shared (wall/CPU/peak RSS). These are diagnostic runs.
