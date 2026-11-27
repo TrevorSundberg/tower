@@ -195,3 +195,15 @@ Rendering decoded the PE import tables and confirmed the released DLL's
 eleven exports. Linking the external caller against that release stopped
 at the unresolved `tower_vk_image_format_preflight_v1`. Running the two
 prospective callers requires a DLL exporting that entry.
+
+### Draw Linux replay of the SDK control
+
+At Draw `2f38b19c8218fef304993df5708a7458fa16776b`, Draw independently
+rebuilt the SDK recording suite from Tower `8c55c0bc` on Linux x64
+with the pinned Tower case driver. All 28 cases issued one query each.
+The guards remained intact and the signed results +5, −11 and
+−1000001004 matched. The executable exited 0. Its stdout SHA-256 was
+`c5a4f4aee3da06792977fb78b71737a219de63c12190f22114bd7ad231d7ca3e`.
+Rendering reproduced that digest from the retained Win64 SDK output
+with CRLF converted to LF. The check exercises the independent SDK
+control. Portable provider acceptance requires a separate linked run.
