@@ -118,3 +118,16 @@ DEFS
         lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 /def:loader.def /out:vulkan-1.dll forward.obj
     done
 done
+cd "$out/sdk-regular"
+for san in address thread; do
+    rc=0
+    "${link[@]}" -fsanitize="$san" "$here/recorder.c" "$here/sdk.c" "$D/release/tower_graphics.lib" \
+        "$I/vulkan-1.lib" -o "$out/probe-$san.exe" >"$out/probe-$san.log" 2>&1 || rc=$?
+    echo "$rc" >"$out/probe-$san.exit"
+    if (( rc )); then
+        case $san in
+          address) rg 'could not open .*clang_rt.asan.*No such file or directory' "$out/probe-$san.log" ;;
+          thread) rg "unsupported option.*fsanitize=thread" "$out/probe-$san.log" ;;
+        esac
+    fi
+done

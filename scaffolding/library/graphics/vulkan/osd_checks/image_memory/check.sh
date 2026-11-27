@@ -3,6 +3,8 @@ set -euo pipefail
 source "$D/e/env.sh"
 export VK_LOADER_DEBUG=layer VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT
 out=$D/memory
+# Initialize Wine before collecting the owner's stderr in a fresh prefix.
+WINEDEBUG=-all timeout -k 2 45 wine64 cmd /c ver >"$E/prefix.out" 2>"$E/prefix.err"
 I=$P/inputs
 arms=(sdk)
 if [[ -n ${PROVIDER_DLL:-} || -n ${PROVIDER_OBJ:-} ]]; then arms+=(linked); fi
