@@ -124856,3 +124856,12 @@ UBSan checks passed. GPU LSan with sync validation reported 4,187 bytes
 in 15 allocations, also seen with the earlier caller, and TSan stopped
 before main. The region-builder and recorder objects were checked
 separately. [C signature, layout, link command and replay](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#build-the-tight-region-list-before-recording)
+
+### Draw CPU comparison of both region builders and recorders
+
+Draw reported four successful comparisons of the 16 SDK records and
+64-line trace through the packed reader with Tower builder `0e385907`.
+The exact application revision, malformed-file results and device
+assignment are pending from Draw. Rendering rechecked the four released
+object/shared-library hashes and the binary region reference.
+[Packed-reader CPU result](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#draw-packed-reader-cpu-comparison)

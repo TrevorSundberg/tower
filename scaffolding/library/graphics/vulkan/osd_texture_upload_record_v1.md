@@ -279,8 +279,18 @@ previous recorder on the selected RTX 3090 (Vulkan 1.3.289, NVIDIA
 565.57.01). The five uploads retired on the submitting queue before
 staging release. Sixteen fragment reads completed while the images and
 views were live. Both clean and initial traces passed synchronization
-validation. Draw's application run with this builder and the Win64
-C/DLL checks remain pending.
+validation.
+
+### Draw packed-reader CPU comparison
+
+Draw linked Tower builder `0e385907c24e0d465aaf5aeccb98ddeb7f4b8871`
+into the packed-texture reader. It ran the raw C and Tower builders
+with each recorder (raw C and linked Tower). Draw reported matching
+16 SDK records and a matching 64-line command trace in all four runs.
+Rendering rechecked the released objects and the 896-byte reference
+record stream above. Draw will supply the exact test revision,
+malformed-file results and device assignment with its full receipt.
+Device execution through Draw's combined builder and recorder remains open.
 
 ## Rendering review
 
