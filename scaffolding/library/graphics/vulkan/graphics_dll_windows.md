@@ -717,3 +717,32 @@ bytes matched the guarded SDK capture. A zero-width input stopped the
 caller on each of two outcomes, success with insufficient capacity and
 an injected query error of −11. The packet replay command and additional
 compatibility results are in the project journal.
+
+### Draw production caller cross-link
+
+Draw independently rebuilt Tower `752a872f700803d62dead0375728a1692605c2d3`
+with the pinned bootstrap and LLVM 19. Its DLL and import library matched
+the two release digests above. The portable source and public header match
+Linux `b68b1835c9c24171222eab85a695a77835c23e54` byte for byte.
+
+From Draw `07d50aba02d3685e644cca16a122f5f041dd7b7a`, Draw compiled the
+production `draw_vk_create_checked_image` and `image_create_checked` code
+and the unbound-image creation excerpt against the SDK headers. It used
+`clang --target=x86_64-w64-windows-gnu -O2 -fno-inline -ffreestanding`
+and linked its existing consumer with
+`lld-link /machine:x64 /nodefaultlib /entry:entry /subsystem:console`
+and the release import library.
+
+Draw reported PE SHA-256
+`7dce042582cc080b7cfd678839711757c508eccbc4409a97d5b89fa1a4eb5e8f`.
+It checked all twelve named imports and the AMD64 REL32 relocations for
+the production calls to preflight and image creation. Repeating the link
+against the eleven-entry release failed on the unresolved
+`tower_vk_image_format_preflight_v1` symbol. Rendering independently
+checked the release hashes and both DLL export tables. Ordinals 1–11
+match across releases and ordinal 12 names the preflight entry.
+
+This was a link-only test with diagnostic stubs. Draw assigned shipping
+Win64 execution to its existing slot 9 job
+`a1fbfaac-7f89-4011-8648-dadada799ec8` after the ordinal-11 application
+job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`.
