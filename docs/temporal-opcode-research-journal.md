@@ -123451,3 +123451,32 @@ Git bundle based on `cf53212c`, runner and shader bytes, reproduction scripts,
 raw GPU/negative logs, timings, instrumentation receipts and checksums.
 The next cross-project check needs an authorized Draw source and shader ref
 and a device that satisfies its complete profile.
+
+### Queue-scoped retirement in both native readbacks (host 12)
+
+The Tower reader supplied counted 4bd67941 and span 04cacddc. Applying only
+f0183813 and 9d4f7286 yielded c7e7783. The shaderless entry passed on the RTX
+3090. The counted build failed in counted_device.tower with unknown function
+`puts`. The span change moved the diagnostic routines into readback_output.
+Tower imports expose only declarations owned by the imported module. Both
+the counted device and shader-module callers use readback_device's earlier
+interface. The baseline repair in d817e45 forwards the two formatting calls
+to the shared formatter and restores its compatible libc extern declarations.
+The feature gate and pipeline sources are byte-identical to the pinned counted
+base. Both ordinary programs then built and passed with their original,
+separate readback oracles. The shaderless raw output also matched c7e7783.
+
+The previous wait-error path called vkDeviceWaitIdle while the operation's
+caller owned exclusive access to one ordinary queue. The new operation takes
+that queue, its device, one recorded command buffer and the caller's unsignaled
+fence. Submit OOM leaves the referenced state unaffected. Submit device loss
+can leave commands pending for lifetime accounting, so the operation establishes
+queue retirement before returning. A lost-device fence wait or queue drain
+allows caller destruction. Data is usable only after successful submit and
+successful fence wait. Any other failed wait or ambiguous submit goes through
+the submitted queue. An indeterminate drain logs both results, flushes and
+aborts with caller defers still pending. See the Khronos references for
+[submit](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueSubmit.html),
+[device loss](https://docs.vulkan.org/spec/latest/chapters/devsandqueues.html#devsandqueues-lost-device),
+[queue idle](https://docs.vulkan.org/refpages/latest/refpages/source/vkQueueWaitIdle.html)
+and [device idle](https://docs.vulkan.org/refpages/latest/refpages/source/vkDeviceWaitIdle.html).

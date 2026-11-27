@@ -548,7 +548,7 @@ extern fn vkCreateFence(device: VkDeviceHandle*, pCreateInfo: VkFenceCreateInfo*
 extern fn vkDestroyFence(device: VkDeviceHandle*, fence: VkFenceHandle*, pAllocator: VkAllocationCallbacks*): void;
 extern fn vkQueueSubmit(queue: VkQueueHandle*, submitCount: u32, pSubmits: VkSubmitInfo*, fence: VkFenceHandle*): i32;
 extern fn vkWaitForFences(device: VkDeviceHandle*, fenceCount: u32, pFences: VkFenceHandle**, waitAll: u32, timeout: u64): i32;
-extern fn vkDeviceWaitIdle(device: VkDeviceHandle*): i32;
+extern fn vkQueueWaitIdle(queue: VkQueueHandle*): i32;
 extern fn vkMapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, offset: u64, size: u64, flags: u32, ppData: void**): i32;
 extern fn vkInvalidateMappedMemoryRanges(device: VkDeviceHandle*, memoryRangeCount: u32, pMemoryRanges: VkMappedMemoryRange*): i32;
 extern fn vkUnmapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*): void;

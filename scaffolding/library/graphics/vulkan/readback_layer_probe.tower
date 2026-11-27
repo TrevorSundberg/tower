@@ -4,6 +4,7 @@ import readback_clear;
 import readback_device;
 import readback_oracle;
 import readback_validation;
+extern fn fflush(stream: void*): i32;
 
 // Host 12 lifetime diagnostic. Pin the ICD exposing one device, with queue family 0.
 // Both variants destroy the pool, device and instance. Neither submits work.

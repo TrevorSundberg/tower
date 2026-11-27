@@ -1,0 +1,41 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+var VkSubmitTag: u32 = 4;
+var VkOutOfHostMemory: i32 = -1;
+var VkOutOfDeviceMemory: i32 = -2;
+var VkDeviceLost: i32 = -4;
+
+extern fn fflush(stream: void*): i32;
+extern fn abort(): void;
+
+// Borrow one externally synchronized queue, one executable primary command buffer,
+// and a fresh unsignaled fence from the same device. Their owner keeps every
+// referenced object live until return. Only true permits consuming the result.
+fn vk_submit_and_wait(device: VkDeviceHandle*, queue: VkQueueHandle*, cmd: VkCommandBufferHandle*,
+    fence: VkFenceHandle*, submitted_message: u8*): bool {
+    var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
+    var result = vkQueueSubmit(queue, 1, &submit, fence);
+    if vk_ok("vkQueueSubmit", result) {
+        puts(submitted_message);
+        var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
+        if vk_ok("vkWaitForFences", wait) { puts("fence=signaled"); return true; }
+        // A lost-device wait retires the resources for lifetime purposes only.
+        if wait == VkDeviceLost { return false; }
+    } else {
+        // Vulkan guarantees an out-of-memory submit leaves referenced resources unaffected.
+        if result == VkOutOfHostMemory || result == VkOutOfDeviceMemory { return false; }
+        // A lost-device submit counts as a submit for pending-state purposes.
+        // An indeterminate submit may also have work on this queue. Avoid its fence.
+    }
+    var idle = vkQueueWaitIdle(queue);
+    if vk_ok("vkQueueWaitIdle after submission failure or failed fence", idle) {
+        puts("recovery=submitted queue idle");
+    } else {
+        if idle != VkDeviceLost {
+            puts("Cannot establish retirement; terminating with resources live"); fflush(null); abort();
+        }
+    }
+    return false;
+}
