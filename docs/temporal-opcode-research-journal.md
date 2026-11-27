@@ -124865,3 +124865,11 @@ image and explicit type/format/range. Slot 12 received the five real OSD
 shapes, one-layer array distinction and exact signed-result/temporary-slot
 proposal for the first implementation. The proposal adds documentation.
 [Source pin and proposed ABI](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md)
+
+### Draw acknowledges bound-image view v1
+
+Draw compared `37eb17b4` against its source at `bd203f60` and confirmed
+the ownership boundary, explicit view/range selection and success-only
+publication rule. Slot 12 received this acknowledgement. This updates
+the contract status; provider validation remains pending.
+[Native peer acknowledgement](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-acknowledgement)
