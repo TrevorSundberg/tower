@@ -35,46 +35,55 @@ fn counted_release_buffer(device: VkDeviceHandle*, buffer: CountedBuffer*): void
     vkFreeMemory(device, buffer.memory, null);
 }
 
-fn counted_compare_sample(sample: u8*, prefix: u8*, pixels: u8*): bool {
-    var header = convert(usize, counted_prefix_bytes());
-    var command_ok = readback_compare("GPU count word and first command (LE)", sample, header, prefix);
+fn counted_compare_sample(sample: u8*, prefix: u8*, pixels: u8*, records: u32): bool {
+    var header = convert(usize, counted_prefix_bytes(records));
+    var first_bytes = convert(usize, counted_prefix_bytes(1));
+    var command_ok = readback_compare("GPU count word and first command (LE)", sample, first_bytes, prefix);
+    if records == CountedPairRecords {
+        command_ok = readback_compare("GPU second command (LE)", sample + first_bytes, header - first_bytes,
+            "0300000001000000030000000000000000000000") && command_ok;
+    }
     var caller: u8[32];
     var size = sizeof(decltype(caller));
     fill(&caller[0], ReadbackGuard, size);
     var dst: ReadbackDestination = { data: &caller[0], capacity: size, offset: 4, pitch: 12, span: 24 };
-    if !readback_two_rows(&dst, sample + header, convert(usize, counted_sample_bytes()) - header, ReadbackRowBytes) {
+    if !readback_two_rows(&dst, sample + header, convert(usize, counted_sample_bytes(records)) - header, ReadbackRowBytes) {
         return vk_failure("Could not copy the stored attachment");
     }
     var image_ok = readback_compare("2x2 RGBA8, guarded caller", &caller[0], size, pixels);
     return command_ok && image_ok;
 }
 
-fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
+fn counted_capture(ctx: ReadbackDevice*, paths: u8**, pair: bool): bool {
     var device = ctx.device;
     var draw = vk_load_indexed_indirect_count(device);
     if draw == null { return vk_failure("Core vkCmdDrawIndexedIndirectCount unavailable"); }
     var indirect: CountedBuffer = default;
     defer counted_release_buffer(device, &indirect);
-    if !counted_buffer(ctx, &indirect, counted_bytes(), VkStorageBufferUsage | VkIndirectUsage | VkTransferSrcUsage, 0) {
+    var usage = VkStorageBufferUsage | VkIndirectUsage | VkTransferSrcUsage;
+    if pair { usage |= VkTransferDstUsage; }
+    if !counted_buffer(ctx, &indirect, counted_bytes(), usage, 0) {
         return false;
     }
     var stream: VulkanIndirectBuffer = { handle: indirect.handle, byte_size: counted_bytes() };
     readback_number("indirect_bytes", convert(u32, stream.byte_size));
-    readback_number("max_draws", CountedCapacity);
-    // vkCmdUpdateBuffer requires a multiple of four bytes. Only the first three indices are drawn.
-    var indices: u16[4] = default;
+    var records: u32 = pair ? CountedPairRecords : 1;
+    readback_number("max_draws", pair ? records : CountedCapacity);
+    // Two three-index ranges. The original upload ends at the first padding element.
+    var indices: u16[6] = default;
     indices[1] = 1; indices[2] = 2;
-    var index_bytes = convert(u64, sizeof(decltype(indices)));
+    indices[4] = 1; indices[5] = 2;
+    var index_bytes = convert(u64, pair ? sizeof(decltype(indices)) : sizeof(u16[4]));
     var indices_buffer: CountedBuffer = default;
     defer counted_release_buffer(device, &indices_buffer);
     if !counted_buffer(ctx, &indices_buffer, index_bytes, VkIndexUsage | VkTransferDstUsage, 0) { return false; }
     var pipelines: CountedPipelines = default;
     defer counted_destroy_pipelines(device, &pipelines);
     if !counted_descriptors(device, &pipelines, indirect.handle, stream.byte_size)
-        || !counted_pipelines(device, &pipelines, paths) { return false; }
+        || !counted_pipelines(device, &pipelines, paths, pair) { return false; }
     var staging: CountedBuffer = default;
     defer counted_release_buffer(device, &staging);
-    if !counted_buffer(ctx, &staging, 2 * counted_sample_bytes(), VkTransferDstUsage, VkHostVisible) { return false; }
+    if !counted_buffer(ctx, &staging, 2 * counted_sample_bytes(records), VkTransferDstUsage, VkHostVisible) { return false; }
     var image_memory: VkDeviceMemoryHandle* = null;
     defer vkFreeMemory(device, image_memory, null);
     var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
@@ -101,13 +110,14 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
     if !counted_record(cmd, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
-        image, view, range, staging.handle) { return false; }
+        image, view, range, staging.handle, records) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    if !vk_submit_and_wait(device, ctx.queue, cmd, fence,
-        "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy") { return false; }
+    var submission = pair ? "submitted=1 compute+transfer/count=1 -> raster/store/copy -> compute+transfer/count=2 -> raster/store/copy"
+        : "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy";
+    if !vk_submit_and_wait(device, ctx.queue, cmd, fence, submission) { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
     defer vkUnmapMemory(device, staging.memory);
@@ -118,11 +128,21 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
         puts("visibility=whole mapped allocation invalidated");
     } else { puts("visibility=host coherent"); }
     var data = bits(u8*, mapped);
+    if pair {
+        puts("pair count=1 expected_pixel=51a2f2ff");
+        var first = counted_compare_sample(data,
+            "010000000300000001000000000000000000000000000000",
+            "a5a5a5a551a2f2ff51a2f2ffa5a5a5a551a2f2ff51a2f2ffa5a5a5a5a5a5a5a5", records);
+        puts("pair count=2 expected_pixel=91ffffff");
+        return counted_compare_sample(data + convert(usize, counted_sample_bytes(records)),
+            "020000000300000001000000000000000000000000000000",
+            "a5a5a5a591ffffff91ffffffa5a5a5a591ffffff91ffffffa5a5a5a5a5a5a5a5", records) && first;
+    }
     puts("control requested_count=0 expected_pixel=112233ff");
-    var zero = counted_compare_sample(data, "000000000300000001000000000000000000000000000000", readback_gpu_hex());
+    var zero = counted_compare_sample(data, "000000000300000001000000000000000000000000000000", readback_gpu_hex(), records);
     puts("raster requested_count=1 expected_pixel=4080bfff");
-    var one = counted_compare_sample(data + convert(usize, counted_sample_bytes()),
+    var one = counted_compare_sample(data + convert(usize, counted_sample_bytes(records)),
         "010000000300000001000000000000000000000000000000",
-        "a5a5a5a54080bfff4080bfffa5a5a5a54080bfff4080bfffa5a5a5a5a5a5a5a5");
+        "a5a5a5a54080bfff4080bfffa5a5a5a54080bfff4080bfffa5a5a5a5a5a5a5a5", records);
     return zero && one;
 }

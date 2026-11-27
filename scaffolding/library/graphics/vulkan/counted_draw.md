@@ -177,7 +177,7 @@ is `1458ab3b6fe0e8358e876c98f694791c1e586af8e56d29f602a19d261187bf0b`.
 | Vertex | `0ebf23b85463780449812c8f5c415725894a9048f481f984b97745c8bf71c80f` | `7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999` |
 | Fragment | `17e5f3481060bae1ae4f77e73146424a5c67b2aad4724dfcd754d72c9dc12e00` | `2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517` |
 
-The controls initialize and execute at most one record. Full-capacity
+The original zero/one controls initialize and execute at most one record. Full-capacity
 execution, noncoherent invalidation, device loss, Draw’s shipped shaders
 and other graphics backends remain unverified for this path.
 
@@ -206,6 +206,7 @@ on the strict run and its replay. Worker archive SHA-256 was
 `c24dae6e35a7ce8f7ea1d4276d8a72d3b281bf2fa159c31c9272f9b7d4540223`.
 These fixtures use independent shaders. Running Draw’s shipped assets through
 Tower’s shader-module operation remains a separate integration check.
+
 Rendering verified the in-memory shader-module operation in all three counted
 stages at Tower `39e33fd4816c73c612b9747b5c0fedbb65694daf`. Each adapter's
 baseline, candidate and clean replay logs were byte-identical. For counts
@@ -244,3 +245,37 @@ a signaled fence, coherent staging and zero warnings/errors. Their complete
 the separate guarded v1 oracle. With the 1.3.239 loader the strict request
 returned 1 with selected_profile=none before submission. See slot 11 packet
 `9a7312ab-4069-446d-893c-9f76a778dc66` for raw bytes and commands.
+
+## Two-record differential on slot 11
+
+```bash
+./counted_fixture draw14 shaders/produce.comp.spv shaders/triangle.vert.spv shaders/color.frag.spv pair
+```
+
+The optional final argument selects two initialized records and additive
+color blending. It uses the same three fixture SPIR-V files. Compute writes
+the first record. Tower records transfer updates for the second record and
+the count, with compute-to-transfer and producer-to-consumer barriers.
+Both passes call the same resolved `vkCmdDrawIndexedIndirectCount` with
+count offset 0, command offset 4, stride 20 and maximum 2. The six uploaded
+uint16 indices are 0, 1, 2, 0, 1, 2. The commands cover elements [0,3)
+and [3,6), respectively, with base vertex and first instance zero.
+
+| Field | First capture | Second capture |
+| --- | --- | --- |
+| LE count | `01000000` | `02000000` |
+| LE record 0 | `0300000001000000000000000000000000000000` | same |
+| LE record 1 | `0300000001000000030000000000000000000000` | same |
+| Four tightly packed RGBA8 pixels | `51a2f2ff51a2f2ff51a2f2ff51a2f2ff` | `91ffffff91ffffff91ffffff91ffffff` |
+| Complete 32-byte caller | `a5a5a5a551a2f2ff51a2f2ffa5a5a5a551a2f2ff51a2f2ffa5a5a5a5a5a5a5a5` | `a5a5a5a591ffffff91ffffffa5a5a5a591ffffff91ffffffa5a5a5a5a5a5a5a5` |
+
+Each triangle adds (64,128,191) to the RGB channels, starting at (17,34,51)
+and saturating at 255. All four pixels therefore distinguish one triangle
+from two. The observed counts, records and both guarded images matched the
+table before and after replay. Their concatenated 152 bytes have SHA-256
+`985872ef06325cdd21b0e0151690f8c9dd262cbdaee999ee48df0d3502bd9a6e`.
+A debugger control forced the maximum argument to one at the actual Vulkan
+function pointer. The second count remained two and both records matched,
+but its four pixels reverted to `51a2f2ff`. The fixture returned 1 with
+zero validation warnings/errors. This differential exercises two commands.
+Compute-only production of two commands and 16384-command execution are open.

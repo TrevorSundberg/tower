@@ -123593,3 +123593,46 @@ at one 327684-byte stream, an 8-byte index buffer, 80 staging bytes and a
 time were unmeasured. ASan with leak detection passed the integrated strict
 entry and pinned host allocator. TSan aborted at the denied personality call
 before main (139). Tower source UBSan is unavailable in this instrumenter.
+
+### Count one versus two in the integrated hardware fixture
+
+After verifying 4958e8245487a115072faf137861fea74f7d81e3, we added a
+strict-only trailing `pair` option. Additive RGBA8 blending keeps the same
+three shader bytes while making each triangle observable. Two transfer
+updates after compute supply the known second record and final count.
+The [capture contract](../scaffolding/library/graphics/vulkan/counted_draw.md#two-record-differential-on-slot-11)
+gives exact bytes. The original 0/1 and shaderless controls keep their argv,
+shader hashes and expected bytes.
+
+The first compile rejected implicit usize-to-u64 Vulkan byte counts. Explicit
+conversions fixed the ABI calls. The first hardware run had the expected
+images, exit 1 and no header lines. readback_compare formats up to 32 bytes,
+so a 44-byte two-record prefix exceeded its output buffer. The counted caller
+now compares the original 24-byte header and the additional 20-byte record
+separately. Its next run and replay matched all 152 independent bytes.
+Both records use three valid indices. GDB at the optimized executable's
+vkCmdUpdateBuffer call observed the twelve uploaded bytes. Breakpoints at
+the returned draw procedure saw two calls with offsets 4/0, stride 20,
+identical command/count buffer handles and maximum 2. Forcing the real
+maximum argument to one kept the second count word at two and all command
+fields intact. All four second-pass pixels then changed from 91ffffff to
+51a2f2ff. That control exited 1; normal strict, pair and core13 exited 0.
+All used Khronos synchronization validation. The 327684-byte stream
+advertises capacity; this experiment dispatched at most two records.
+
+On the same Quadro and CPU, three source-warm matched samples of the integrated
+and extended fixture compiled at jobs 1 in median wall / summed CPU seconds /
+peak RSS KiB of 0.96 / 0.96 / 131172 and 1.01 / 1.00 / 132608. At jobs 4
+the medians were 1.11 / 1.26 / 135028 and 1.12 / 1.28 / 135916. Each
+width reproduced its ordinary object. Strict fresh-process medians were
+0.43 / 0.31 / 110964 before and 0.31 / 0.30 / 110988 after. A separate
+three-sample run of the final binary gave 0.39 / 0.28 / 111680 for 0/1,
+0.26 / 0.25 / 110976 for 1/2. These startup-inclusive samples do not time
+GPU execution. The pair uses 120 staging bytes and 12 index bytes. Its ASan
+and leak-enabled run passed with the instrumented host allocator. GPU TSan
+again failed startup at the personality syscall, exit 139. With both
+ordinary callers the injected submit OOM, wait OOM and terminal drain OOM
+gave exits 1, 1, 134. Only recoverable paths destroyed the fence; none mapped.
+The first log assertion expected the counted fixture's validation label in
+the shaderless error path. Checking its actual failure-callback label
+confirmed zero callbacks and allowed the remaining controls to run.
