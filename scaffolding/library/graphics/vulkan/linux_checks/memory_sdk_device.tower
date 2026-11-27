@@ -1,0 +1,20 @@
+import tower;
+import .readback_abi;
+import .readback_device;
+import .upload_test_device;
+import .readback_output as output;
+
+extern fn construct_sdk_image(physical: VkPhysicalDeviceHandle*, device: VkDeviceHandle*,
+    types: VkMemoryType*, count: u32): i32;
+
+fn run_client(ctx: ReadbackDevice*): bool {
+    return construct_sdk_image(ctx.physical, ctx.device, &ctx.memory.memoryTypes[0], ctx.memory.memoryTypeCount) == 0;
+}
+
+export fn with_selected_device(): i32 {
+    var warnings: u32 = 0;
+    var ok = validated_upload(&warnings, true, run_client);
+    output.readback_number("validation_warnings_errors", warnings);
+    if !ok || warnings != 0 { return 1; }
+    return 0;
+}
