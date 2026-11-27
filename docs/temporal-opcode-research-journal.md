@@ -124226,3 +124226,29 @@ control digests and signed finish log matched the frozen references.
 The packet preserves the prior calibration receipt and the failed replay
 log. Application integration and review remain with the Draw and Tower
 rendering owners.
+
+### OSD texture upload recording audit on host 12
+
+Rendering assignment aea4af39-d255-46e1-bbfc-60a23127eaa7 starts from
+the worker-local aa520bf5c1a479bfe34fdf341a647558487701c9. Its finish
+ancestor 44f2cdf6d supplies the signed blocking finish and the asynchronous
+pending-fence control. The Draw handoff in the finish evidence identifies
+transitions, vkCmdCopyBufferToImage and staging retirement after a successful
+finish. The pin and descriptors confirmed for the buffer uploader in the
+preceding entry apply to that buffer operation.
+
+The native Vulkan readback ABI defines the dispatchable handles, image
+range and layers, signed offset, extent, VkBufferImageCopy array element
+and legacy image barrier. counted_capture provides bound buffers,
+readback_clear provides memory selection and counted_record provides a
+transfer-to-host barrier. The existing image copy records image to buffer.
+buffer_upload_record defines VkDependencyInfo and a complete global
+VkMemoryBarrier2. Its VkImageMemoryBarrier2 is opaque and only appears as
+the type of a null pointer. No existing entry in this revision records a
+buffer-to-image upload. The imports can use the SDK command signature and
+the existing buffer-image region without a new compiler feature.
+
+The test preparation uses independent C and Tower calls to compare native
+region and handle transport. Its image format, pitches, barriers and
+ownership are fixture choices. The public signature and production
+acceptance depend on the Draw source contract for this call site.

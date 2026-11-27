@@ -546,6 +546,7 @@ extern fn vkEndCommandBuffer(commandBuffer: VkCommandBufferHandle*): i32;
 extern fn vkCmdBeginRendering(commandBuffer: VkCommandBufferHandle*, pRenderingInfo: VkRenderingInfo*): void;
 extern fn vkCmdEndRendering(commandBuffer: VkCommandBufferHandle*): void;
 extern fn vkCmdPipelineBarrier(commandBuffer: VkCommandBufferHandle*, srcStageMask: u32, dstStageMask: u32, dependencyFlags: u32, memoryBarrierCount: u32, pMemoryBarriers: VkMemoryBarrier*, bufferMemoryBarrierCount: u32, pBufferMemoryBarriers: VkBufferMemoryBarrier*, imageMemoryBarrierCount: u32, pImageMemoryBarriers: VkImageMemoryBarrier*): void;
+extern fn vkCmdCopyBufferToImage(commandBuffer: VkCommandBufferHandle*, srcBuffer: VkBufferHandle*, dstImage: VkImageHandle*, dstImageLayout: u32, regionCount: u32, pRegions: VkBufferImageCopy*): void;
 extern fn vkCmdCopyImageToBuffer(commandBuffer: VkCommandBufferHandle*, srcImage: VkImageHandle*, srcImageLayout: u32, dstBuffer: VkBufferHandle*, regionCount: u32, pRegions: VkBufferImageCopy*): void;
 extern fn vkCreateFence(device: VkDeviceHandle*, pCreateInfo: VkFenceCreateInfo*, pAllocator: VkAllocationCallbacks*, pFence: VkFenceHandle**): i32;
 extern fn vkDestroyFence(device: VkDeviceHandle*, fence: VkFenceHandle*, pAllocator: VkAllocationCallbacks*): void;
