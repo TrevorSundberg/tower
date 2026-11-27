@@ -1,0 +1,44 @@
+import tower;
+import library.sha256;
+import readback_device;
+import readback_rows;
+import readback_oracle;
+import readback_validation;
+
+export fn main(argc: i32, argv: u8**): i32 {
+    var index: u32 = 0;
+    if argc == 2 {
+        var value = argv[1];
+        if value[0] == 0 { puts("Expected decimal physical device index"); return 2; }
+        while value[0] != 0 {
+            if value[0] < 48 || value[0] > 57 { puts("Expected decimal physical device index"); return 2; }
+            var digit = convert(u32, value[0] - 48);
+            if index > (~convert(u32, 0) - digit) / 10 { puts("Physical device index overflow"); return 2; }
+            index = index * 10 + digit; value++;
+        }
+    } else { if argc != 1 { puts("usage: readback_fixture [physical-device-index]"); return 2; } }
+    if !readback_controls() { puts("CPU oracle failed"); return 1; }
+    var data: u8[32];
+    var capacity = sizeof(decltype(data));
+    fill(&data[0], ReadbackGuard, capacity);
+    var dst: ReadbackDestination = { data: &data[0], capacity: capacity, offset: 4, span: 20, pitch: 12 };
+    if !readback_compare("Vulkan caller before", dst.data, capacity, readback_guard_hex()) { return 1; }
+    var messages: u32 = 0;
+    var completed = readback_validated(index, &messages, &dst);
+    if !completed { readback_number("warning_error_callbacks_before_failure", messages); return 1; }
+    readback_number("validation_warnings_errors", messages);
+    if messages != 0 { return 1; }
+    var row = "112233ff112233ff";
+    var ok = readback_compare("Vulkan caller after", dst.data, capacity,
+        "a5a5a5a5112233ff112233ffa5a5a5a5112233ff112233ffa5a5a5a5a5a5a5a5");
+    var first = &data[4]; var second = &data[16];
+    var row0 = readback_compare("Vulkan row 0", first, ReadbackRowBytes, row);
+    var row1 = readback_compare("Vulkan row 1", second, ReadbackRowBytes, row);
+    var hash: Sha256; sha256_init(&hash);
+    if !sha256_update(&hash, first, ReadbackRowBytes) || !sha256_update(&hash, second, ReadbackRowBytes) { return 1; }
+    var digest = sha256_finish(&hash);
+    var hex: u8[65]; sha256_hex(&digest, &hex[0]);
+    puts("tight active bytes SHA-256"); puts(&hex[0]);
+    if !ok || !row0 || !row1 || strcmp(&hex[0], "f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88") != 0 { return 1; }
+    puts("draw-tower-rgba8/v1 passed"); return 0;
+}
