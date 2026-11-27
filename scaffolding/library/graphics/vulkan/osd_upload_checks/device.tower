@@ -54,8 +54,8 @@ fn retire(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): bool {
 fn color(s: Shape, trial: u32, layer: u32, mip: u32, x: u32, y: u32): Pixel {
     var value = convert(u8, (trial * 17 + layer * 53 + mip * 83 + x * 7 + y * 19) & 255);
     if s.texel_bytes == 1 { return {r: value, a: 255, ..default}; }
-    // Endpoints survive sRGB decode exactly. Alpha carries arbitrary byte values.
-    return { r: convert(u8, ((x + trial) & 1) * 255), g: convert(u8, ((y + layer) & 1) * 255),
+    // The sRGB inputs include intermediate red and green codes. Alpha is linear.
+    return { r: convert(u8, ((x + trial) & 1) * 128), g: convert(u8, 64 + ((y + layer) & 1) * 191),
         b: convert(u8, ((x + y + mip) & 1) * 255), a: value };
 }
 fn read_size(width: u32, height: u32): usize {
@@ -82,6 +82,11 @@ fn fill_trial(o: Owner*, trial: u32): bool {
                     var p = color(s, trial, layer, mip, x, y);
                     copy(o.input + source_at, bits(u8*, &p), convert(usize, s.texel_bytes));
                     source_at += convert(usize, s.texel_bytes);
+                    if s.texel_bytes == 4 {
+                        // Rounded 8-bit linear values of the two nonlinear codes.
+                        if p.r == 128 { p.r = 55; }
+                        if p.g == 64 { p.g = 13; }
+                    }
                     var at = convert(usize, y * (width + PaddingTexels) + x) * sizeof(Pixel);
                     copy(o.wanted + dst + OuterGuard + at, bits(u8*, &p), sizeof(Pixel));
                 }

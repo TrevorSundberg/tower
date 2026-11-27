@@ -34,3 +34,16 @@ void fixture_record(VkCommandBuffer cmd, VkBuffer staging, VkImage image, uint32
                             VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT, VK_ACCESS_2_SHADER_SAMPLED_READ_BIT);
 #endif
 }
+
+/* Read the caller's borrowed array with the SDK's stride and field types. */
+int fixture_sdk_region(const VkBufferImageCopy *regions, uint32_t i, VkDeviceSize offset,
+                       uint32_t layer, uint32_t mip, uint32_t width, uint32_t height)
+{
+    const VkBufferImageCopy *r = &regions[i];
+    return r->bufferOffset == offset && r->bufferRowLength == 0 && r->bufferImageHeight == 0 &&
+           r->imageSubresource.aspectMask == VK_IMAGE_ASPECT_COLOR_BIT &&
+           r->imageSubresource.mipLevel == mip && r->imageSubresource.baseArrayLayer == layer &&
+           r->imageSubresource.layerCount == 1 && r->imageOffset.x == 0 && r->imageOffset.y == 0 &&
+           r->imageOffset.z == 0 && r->imageExtent.width == width &&
+           r->imageExtent.height == height && r->imageExtent.depth == 1;
+}

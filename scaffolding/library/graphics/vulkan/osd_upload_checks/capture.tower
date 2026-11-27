@@ -4,6 +4,7 @@ import .synchronization2_abi;
 import .readback_output;
 import pack;
 
+extern fn fixture_sdk_region(regions: VkBufferImageCopy*, i: u32, offset: u64, layer: u32, mip: u32, width: u32, height: u32): i32;
 extern fn exit(status: i32): void;
 struct Capture { shape: Shape; offsets: u64*; list: VkBufferImageCopy*; calls: u32; source: u8; destination: u8; }
 fn require(value: bool, why: u8*): void { if !value { puts(why); exit(3); } }
@@ -40,16 +41,9 @@ export fn vkCmdCopyBufferToImage(cmd: VkCommandBufferHandle*, staging: VkBufferH
     require(c.calls == c.shape.layers && bits(u8*, staging) == &c.source && bits(u8*, image) == &c.destination
         && layout == 7 && count == c.shape.layers * c.shape.mips && regions == c.list, "copy order or arguments mismatch");
     for (var i: u32 = 0; i < count; i++) {
-        var r = regions[i];
         var mip = i % c.shape.mips;
-        require(r.bufferOffset == c.offsets[i] && r.bufferRowLength == 0 && r.bufferImageHeight == 0,
-            "buffer region mismatch");
-        require(r.imageSubresource.aspectMask == 1 && r.imageSubresource.mipLevel == mip
-            && r.imageSubresource.baseArrayLayer == i / c.shape.mips && r.imageSubresource.layerCount == 1,
-            "copy subresource mismatch");
-        require(r.imageOffset.x == 0 && r.imageOffset.y == 0 && r.imageOffset.z == 0 && r.imageExtent.depth == 1
-            && r.imageExtent.width == c.shape.width >> mip && r.imageExtent.height == c.shape.height >> mip,
-            "copy extent mismatch");
+        require(fixture_sdk_region(regions, i, c.offsets[i], i / c.shape.mips, mip, c.shape.width >> mip,
+            c.shape.height >> mip) == 1, "SDK copy region mismatch");
     }
     c.calls++;
 }
