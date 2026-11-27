@@ -124364,3 +124364,13 @@ sanitizer tool initially requested libc from the extracted cross-SDK. An
 explicit native CRT/libc link built the tool on the same host. All raw
 logs, source, manifests and replay commands are in worker packet
 `cce07bd9-4039-4a29-87d6-7d955443b83f`.
+### Draw independently links the five-export Win64 release
+
+Draw reproduced the DLL and import library at `32e6f52b` and linked a
+minimal C PE against all three public headers. Its five-entry import table
+and matching provider ordinals are recorded in the
+[Win64 link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#independent-c-link-on-draw).
+Rendering rehashed the retained DLL and import library and checked the clean
+replay manifest with `(cd bin && sha256sum -c ../clean/pe.sha256)`, exit 0.
+The C PE identity and inspection are Draw's observations. This update
+adds documentation only. The live Draw application test has its own job.

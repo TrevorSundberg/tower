@@ -146,6 +146,19 @@ The selected device reported Vulkan 1.4.351. The host Vulkan loader
 inserted the Khronos validation layer. Physical Windows and the Draw
 application using this five-entry DLL still require their own runs.
 
+## Independent C link on Draw
+
+Draw independently fetched Tower `32e6f52b2d60953c7bad1678fb7bc1786bfccc2a`
+and reproduced the release DLL and its import library. The import library's
+SHA-256 was `797dcd7d654df8d55e4156f12c359b0d810f0422759acc5b2fbd91b4fd604a7d`.
+Draw included all three public headers in a minimal Windows x64 C executable
+and linked it against that import library. It reported PE SHA-256
+`9b3e010ffc5ad9bb0fcc21b044e3c2594ec2841b2ca99af81d52717b6226a2d8`.
+Its import table contained all five operations, and Draw confirmed provider
+ordinals 1 through 5. This receipt covers cross-compilation and inspection.
+Draw assigned execution through its application to job `4c9c47bb`.
+Physical Windows and displayed WSI coverage remain open.
+
 ## Recording indexed draws from C
 
 On Windows x64 and Linux x86-64, include `indexed_draw_c.h`. During device
