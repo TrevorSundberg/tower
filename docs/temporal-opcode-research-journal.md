@@ -125171,3 +125171,18 @@ trace.sh, views.sh and create-control.sh contain the exact invocations.
 The manager's Draw receipt for creation inputs, error publication and
 ownership remains outstanding. The fixture freezes the current Tower
 control without introducing a production signature or changing Draw.
+
+### Forward the caller's image descriptor before allocation
+
+Draw confirmed draw-tower-create-image/v1 at 852d5de3736848ceed696bf617312f75f6dba488.
+The [pinned contract](../scaffolding/library/graphics/vulkan/create_image_v1.md)
+is Tower a6ddd4598fe08625fdebaf5a49a0a28d3dbb1c97. The original
+five-image baseline commits 6de70379 and 8f640072 remain in the history.
+The 4096eba0 update to the preceding view receipt changes documentation only.
+
+The provider forwards the original borrowed info address, device and null
+allocator. Vulkan receives a private, initially null image slot. Only zero
+publishes the result. The existing bind_new_image caller still constructs
+the descriptor, reports errors, queries requirements, allocates and binds.
+This one call serves the five sampled images and five readback attachments.
+The counted and clear controls retain their separate construction paths.

@@ -1,0 +1,9 @@
+import tower;
+import readback_abi;
+
+export fn tower_vk_create_image_v1(device: VkDeviceHandle*, info: VkImageCreateInfo*, out: VkImageHandle**): i32 {
+    var image: VkImageHandle* = null;
+    var result = vkCreateImage(device, info, null, &image);
+    if result == 0 { *out = image; }
+    return result;
+}

@@ -14,6 +14,7 @@ import .command_finish;
 import .upload_test_device;
 import .readback_output as output;
 
+extern fn tower_vk_create_image_v1(device: VkDeviceHandle*, info: VkImageCreateInfo*, out: VkImageHandle**): i32;
 extern fn getenv(name: u8*): u8*;
 extern fn write(fd: i32, data: u8*, count: usize): i64;
 extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
@@ -35,7 +36,7 @@ fn bind_new_image(ctx: ReadbackDevice*, s: Shape, format: u32, usage: u32, out: 
     var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: format,
         extent: {width: s.width, height: s.height, depth: 1}, mipLevels: s.mips, arrayLayers: s.layers,
         samples: VkSample1, usage: usage, ..default };
-    if !vk_ok("create image", vkCreateImage(ctx.device, &info, null, &out.handle)) { out.handle = null; return false; }
+    if !vk_ok("create image", tower_vk_create_image_v1(ctx.device, &info, &out.handle)) { return false; }
     var req: VkMemoryRequirements;
     vkGetImageMemoryRequirements(ctx.device, out.handle, &req);
     return vk_readback_allocate(ctx, &req, DeviceLocal, &out.memory, &out.flags)
