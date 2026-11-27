@@ -1,0 +1,33 @@
+import tower;
+import readback_abi;
+// Vulkan 1.3 core ABI, from vulkan_core.h. See readback_abi_license.txt.
+struct VkMemoryBarrier2 {
+    sType: u32; pNext: void*;
+    srcStageMask: u64; srcAccessMask: u64; dstStageMask: u64; dstAccessMask: u64;
+}
+struct VkBufferMemoryBarrier2 {}
+struct VkImageMemoryBarrier2 {
+    sType: u32; pNext: void*;
+    srcStageMask: u64; srcAccessMask: u64; dstStageMask: u64; dstAccessMask: u64;
+    oldLayout: u32; newLayout: u32; srcQueueFamilyIndex: u32; dstQueueFamilyIndex: u32;
+    image: VkImageHandle*; subresourceRange: VkImageSubresourceRange;
+}
+struct VkDependencyInfo {
+    sType: u32; pNext: void*; dependencyFlags: u32;
+    memoryBarrierCount: u32; pMemoryBarriers: VkMemoryBarrier2*;
+    bufferMemoryBarrierCount: u32; pBufferMemoryBarriers: VkBufferMemoryBarrier2*;
+    imageMemoryBarrierCount: u32; pImageMemoryBarriers: VkImageMemoryBarrier2*;
+}
+extern fn vkCmdPipelineBarrier2(cmd: VkCommandBufferHandle*, dependency: VkDependencyInfo*): void;
+
+var VkMemoryBarrier2Tag: u32 = 1000314000;
+var VkDependencyInfoTag: u32 = 1000314003;
+var VkStage2Transfer: u64 = 4096;
+var VkAccess2TransferWrite: u64 = 4096;
+var VkStage2AllCommands: u64 = 65536;
+var VkAccess2MemoryRead: u64 = 32768;
+var VkImageMemoryBarrier2Tag: u32 = 1000314002;
+var VkStage2FragmentShader: u64 = 128;
+var VkAccess2ShaderSampledRead: u64 = convert(u64, 1) << 32;
+var VkTransferDstOptimal: u32 = 7;
+var VkShaderReadOnlyOptimal: u32 = 5;

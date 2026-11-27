@@ -1,12 +1,12 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, staged buffer recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports shader creation, counted indexed recording, reusable primary begin, end/prepare, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h) and [buffer uploads](buffer_upload_record.h).
+Use the public headers for [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
 calls. At runtime the Tower DLL imports `vkCreateShaderModule`, `vkResetCommandBuffer`,
-`vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
+`vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
 
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles five Tower objects for
+The entry verifies the checked-in bootstrap, compiles six Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and

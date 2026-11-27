@@ -33,7 +33,6 @@ fn vk_failure(reason: u8*): bool { puts(reason); return false; }
 
 var VkApi13: u32 = 4206592;
 var VkGraphicsQueue: u32 = 1;
-var VkNoFamily: u32 = ~convert(u32, 0);
 var VkDriverPropertiesTag: u32 = 1000196000;
 var VkDeviceIDTag: u32 = 1000071004;
 var VkProperties2Tag: u32 = 1000059001;

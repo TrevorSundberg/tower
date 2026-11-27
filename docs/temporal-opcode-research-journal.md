@@ -124780,3 +124780,17 @@ malformed-file checks and ASan. It records the per-run exit, CPU/wall
 and peak memory observations beside the raw stdout/stderr files. Slot
 12's reviewed production entry/header and the paired ordinal-8 link
 remain open.
+
+### Win64 OSD recorder through the external graphics DLL
+
+Host 11 job 9821d998-31d1-4665-8369-27063d5d5d84 starts at the
+c2bafc6f sampling supplement on 82882580, descending from the Windows
+release 207f5d07 and Draw receipt 4d40a3b0. The registered reader
+resolved rendering/vulkan-osd-texture-75476dcd to 846176ab (code 75476dcd).
+The proposed change adopts the reviewed header, recorder, sync2 declarations
+and shared buffer recorder verbatim. The readback ABI keeps its Windows
+declarations and takes the reviewed image-copy declaration and shared
+constants. The test C boundary forwards the caller-owned array to the DLL.
+The original raw control, region generator and three shader controls supply
+the comparison. The pre-change raw capture on this host matched the
+27,542,768-byte frozen stream. Verification below uses synthetic textures.
