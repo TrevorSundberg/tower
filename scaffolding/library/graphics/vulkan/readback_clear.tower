@@ -80,7 +80,7 @@ fn vk_record_clear(command: VkCommandBufferHandle**, submit: VkSubmitInfo*, imag
         srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
         srcAccessMask: VkTransferWrite, dstAccessMask: VkHostRead, ..default };
     vkCmdPipelineBarrier(cmd, VkStageTransfer, VkStageHost, 0, 0, null, 1, &host, 0, null);
-    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(command, submit));
+    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(submit, command, null, null, null));
 }
 
 // The device and its queue stay live and exclusively available to this caller.

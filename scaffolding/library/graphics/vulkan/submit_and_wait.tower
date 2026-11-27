@@ -15,7 +15,7 @@ extern fn abort(): void;
 // referenced object live until return. Only true permits consuming the result.
 fn vk_submit_and_wait(device: VkDeviceHandle*, queue: VkQueueHandle*, cmd: VkCommandBufferHandle*,
     fence: VkFenceHandle*, submitted_message: u8*): bool {
-    var submit = vk_one_command_submit_info(&cmd);
+    var submit = vk_one_command_submit_info(&cmd, null, null, null);
     return vk_submit_prepared_and_wait(device, queue, &submit, fence, submitted_message);
 }
 

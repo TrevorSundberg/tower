@@ -3,8 +3,12 @@ import readback_abi;
 
 var VkSubmitTag: u32 = 4;
 
-fn vk_one_command_submit_info(command: VkCommandBufferHandle**): VkSubmitInfo {
-    var info: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: command, ..default };
+fn vk_one_command_submit_info(commands: VkCommandBufferHandle**, wait: VkSemaphoreHandle**,
+    stage: u32*, signal: VkSemaphoreHandle**): VkSubmitInfo {
+    var info: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: commands,
+        pWaitSemaphores: wait, pWaitDstStageMask: stage, pSignalSemaphores: signal, ..default };
+    if wait != null { info.waitSemaphoreCount = 1; }
+    if signal != null { info.signalSemaphoreCount = 1; }
     return info;
 }
 

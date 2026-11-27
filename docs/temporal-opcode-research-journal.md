@@ -123718,3 +123718,18 @@ container personality restriction (139). The lane exit files retain every
 attempt. There is no completed hardware TSan or source-level Tower UBSan
 result. An initial extraction script searched for the old helper name in
 optimized IR. The final pass records the new entry and both transports.
+
+### Confirmed Draw command-end arguments
+
+Draw's manager confirmed the five arguments at Draw `30b66f59` after
+Tower's provisional two-argument handoff at `f2d1b939`. Draw passes out,
+the address of its persistent command handle, and the original wait, stage
+and signal addresses in that order. This supersedes the earlier assumption
+that the frame loop patched semaphore fields after end. Only the wait and
+signal addresses determine their respective counts. Forward the stage
+address independently. Queue and fence belong to the later submit.
+
+Host 12 started a separate local checkout and rebuilt the `08a30b04`
+offscreen controls. Both logged the accepted guarded outputs. The updated
+shaderless and counted callers pass three null pointers. Their first
+rebuilds matched both full reference logs with synchronization validation.

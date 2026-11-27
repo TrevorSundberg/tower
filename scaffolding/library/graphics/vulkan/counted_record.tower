@@ -100,5 +100,5 @@ fn counted_record(command: VkCommandBufferHandle**, submit: VkSubmitInfo*, draw:
         return false;
     }
     counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
-    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(command, submit));
+    return vk_ok("vkEndCommandBuffer", tower_vk_command_end_for_submit_v1(submit, command, null, null, null));
 }
