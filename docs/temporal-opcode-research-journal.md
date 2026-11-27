@@ -124695,3 +124695,95 @@ The clean replay initially exceeded Git's nested local alternate limit.
 Cloning the authorized local base with --local preserved its existing
 object-store depth; the bundle, hashes, three CPU lanes, negative
 controls and both device outcomes then replayed at a clean checkout.
+
+### Port the final bound image-view operation
+
+Draw confirmed its owning constructor at bd203f60b00954acd3b0405720e40a24e94ef430,
+draw.c blob c3e7800ae7e7431a3106e2503f7cda1d1a3c6bd2 (2060–2065)
+and tower/vulkan_image.tower blob 6cda46b30b78cd2fc7a6a16cb532b90e78443972
+(107–116). The chain osd_create → image_create_layers → image_create_view
+→ image_allocate stays with Draw. The confirmed operation constructs the
+final view descriptor and calls Vulkan on a bound image. This receipt
+came from Draw via the rendering manager. Host 12 used Tower sources only.
+
+c5d609550 implements the [header and link contract](../scaffolding/library/graphics/vulkan/bound_image_view.md).
+It copies aspectMask/baseMipLevel/levelCount/baseArrayLayer/layerCount;
+flags, pNext, components and allocator are zero. Its sole imported symbol
+is vkCreateImageView. Only VK_SUCCESS transfers the private output to the
+caller. Format and view type are explicit inputs. a1e7379f6 uses the
+library for the five retained uploads. The owner binds the image and
+chooses the view type for both descriptor creation and sampler selection.
+The five readback attachments follow their independent existing path.
+
+At 69d838e7d the raw SDK, shared-library C caller and directly linked C
+caller each passed 36 calls with identical scalar records at the loader.
+Nine shapes include the five inventory entries, a one-layer array with
+base layer 7 and levels 3–4, a D32 depth view, a cube on layers 6–11,
+and a 3D view over levels 2–3. Every shape tested results 0, -1, -2
+and synthetic +1. The recorder asserted all header fields, both handles,
+null allocator, all swizzles, the range's distinct address and contents,
+and exactly one call. It overwrote the private slot every time and
+verified that the caller slot remained null during the call. The caller
+checked signed status, publication, range immutability and guards.
+Four mutated Tower objects (direct output, accepting positive status,
+inferring 2D from one layer, zeroing base layer) each exited 3 for the
+corresponding assertion. The earlier asymmetric-swizzle SDK case remains
+a recorder control outside this ABI.
+
+On the discrete NVIDIA RTX 3090 cd3d9791fe794e0b3ec29fc16b74d31c, driver
+565.57.01, Vulkan 1.3.289, family/index 0/0, the retained caller resolved
+the new entry in libtower_bound_view.so. Binding logs follow its Vulkan
+call through the probes to the pinned libvulkan.so.1. All five owner slots
+differed from the loader's temporary. Each returned view matched its own
+bound image, descriptor binding and final destroy, and every destroy/free
+used the creating device and null allocator. The 6048-byte trace passed
+the five same-queue retirement and sixteen read checks. All 103158144
+guarded bytes matched the frozen independent oracle (SHA-256
+140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b).
+The 4408-byte upload traces matched, and the released region-builder
+and recorder objects and DSOs matched all four original binary hashes.
+The three upload CPU link lanes ran again.
+
+Injecting device OOM at the second source clobbered only the private
+temporary. The caller logged -2, exited 1 and produced zero pixels.
+All 22 lifetime events matched. The earlier source completed its upload
+and released its staging. Both bound images and allocations were
+released, with exactly one view destroy (the earlier success). The
+fixture now skips its old null-handle view destroy on partial cleanup.
+Both GPU runs reported zero validation warnings/errors.
+
+On the same EPYC 7282 with affinity 0–31, CPU quota 15.36, warm files,
+one caller and one queue, three checked whole-process runs gave median
+wall/CPU 2093.55/2084.45 ms and peak RSS 116096 KiB. The frozen pre-port
+samples gave 2270.84/2270.65 ms and 115820 KiB. This includes validation,
+setup, uploading, draws, readback and file output. The wall samples overlap.
+
+A CPU recording benchmark ran two batches of two million calls per
+process, all five shapes, three alternating raw/shared processes.
+Each call checked the create fields and published handle. Median first /
+second batch was 8.47 / 6.12 ns per call through the raw C fixture and
+13.79 / 11.92 ns through C and the shared helper. Median full-process
+wall/CPU/RSS was 30.86 ms / 30.65 ms / 1032 KiB raw and 53.69 ms /
+53.41 ms / 2064 KiB shared. These include the recording loader and ABI
+crossings. Neither lane makes per-view heap allocations or retains state.
+
+LLVM ASan instrumented the helper, integrated caller and Tower checks,
+with C ASan/UBSan at the SDK boundary. CPU checks passed. With
+synchronization validation, the address-only success and injected-error
+device runs passed their trace checks (and all pixels for success).
+Full GPU LSan again reported 4187 bytes in 15 allocations, exit 1.
+Changing only the validation feature request to omit synchronization
+validation yielded a clean full leak check and identical output.
+Attribution remains unresolved. Five TSan launches including the
+instrumented helper/SDK caller and real device executable exited 139
+at the container personality check before main. Source-level Tower
+UBSan and driver instrumentation were unavailable.
+
+The initial CPU test used an unsupported hex spelling and attempted
+borrowed iteration over raw arrays. The corrected fixture indexes the
+arrays by their element counts. A first sanitizer link put the ASan DSO
+after the helper for the CPU executable and omitted the TSan unwind
+runtime from the shared helper. Linking the sanitizer first and adding
+libgcc_s to the instrumented helper resolved those build/startup errors.
+The packet preserves the separate diagnostics, instrumented functions,
+link maps, actual test exits and reproducible commands.

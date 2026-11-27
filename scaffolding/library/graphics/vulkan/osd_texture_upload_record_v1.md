@@ -120,6 +120,7 @@ LOCAL_TOWER=/tmp/buffer-upload-02f6d984/src REPLAY="$(mktemp -d)" bash replay.sh
 ```
 
 ## Five retained images
+The retained source images now use the [bound image-view helper](bound_image_view.md) after binding.
 
 Draw reports a separate raw application control at runtime `d1060797`,
 manager `41d8b9ba`, on Wine Win64, RTX 3060, NVIDIA 595.99.02. Draw
