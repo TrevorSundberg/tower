@@ -7,6 +7,7 @@
 #include "tight_color_regions.h"
 #include "bound_image_view.h"
 #include "create_image.h"
+#include "image_format_preflight.h"
 #include "color_frag.h"
 
 extern void record_driver(void *state, uint8_t code);
@@ -17,6 +18,14 @@ static _Thread_local void *trace;
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateShaderModule(VkDevice d, const VkShaderModuleCreateInfo *i,
     const VkAllocationCallbacks *a, VkShaderModule *out) {
     record_driver(trace, 'M'); *out = (VkShaderModule)d; return VK_SUCCESS;
+}
+VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysicalDevice d,
+    VkFormat format, VkImageType type, VkImageTiling tiling, VkImageUsageFlags usage,
+    VkImageCreateFlags flags, VkImageFormatProperties *out) {
+    record_driver(trace, 'Q');
+    *out = (VkImageFormatProperties){.maxExtent={1,1,1}, .maxMipLevels=1,
+        .maxArrayLayers=1, .sampleCounts=VK_SAMPLE_COUNT_1_BIT, .maxResourceSize=4096};
+    return VK_SUCCESS;
 }
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateImage(VkDevice d, const VkImageCreateInfo *i,
     const VkAllocationCallbacks *a, VkImage *out) {
@@ -53,7 +62,7 @@ static VKAPI_ATTR void VKAPI_CALL draw(VkCommandBuffer c, VkBuffer b, VkDeviceSi
 int main(void) { return check_sdk(); }
 void exercise_api(void *state) {
     trace = state;
-    uintptr_t handles[5];
+    uintptr_t handles[6];
     VkDevice device = (VkDevice)&handles[0];
     VkQueue queue = (VkQueue)&handles[1];
     VkCommandBuffer cmd = (VkCommandBuffer)&handles[2];
@@ -66,6 +75,11 @@ void exercise_api(void *state) {
     VkImageCreateInfo info = {.sType=VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, .imageType=VK_IMAGE_TYPE_2D,
         .format=VK_FORMAT_R8G8B8A8_UNORM, .extent={1,1,1}, .mipLevels=1, .arrayLayers=1,
         .samples=VK_SAMPLE_COUNT_1_BIT, .usage=VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT};
+    VkImageFormatProperties limits = {0};
+    VkBool32 supported = VK_FALSE;
+    record_result(trace, tower_vk_image_format_preflight_v1((VkPhysicalDevice)&handles[5], &info, &limits, &supported));
+    record_result(trace, supported);
+    record_result(trace, (int32_t)limits.maxResourceSize);
     VkImage image = VK_NULL_HANDLE;
     record_result(trace, tower_vk_create_image_v1(device, &info, &image));
     VkImageSubresourceRange range = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};

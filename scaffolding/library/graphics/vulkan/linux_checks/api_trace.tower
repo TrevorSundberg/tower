@@ -23,8 +23,9 @@ export fn record_result(state: Trace*, result: i32): void {
     state.used = 0;
 }
 export fn check_sdk(): i32 {
-    var rows: Row[12] = {
+    var rows: Row[15] = {
         {"shader called", 1, "M"}, {"shader VkResult", 0, ""},
+        {"format query", 0, "Q"}, {"format supported", 1, ""}, {"format resource limit", 4096, ""},
         {"create image", 0, "C"}, {"bound view", 0, "V"}, {"begin", 0, "RB"},
         {"region count", 1, ""}, {"OSD upload (void)", 0, "PUP"}, {"buffer upload (void)", 0, "TP"},
         {"counted draw", 1, "D"}, {"end", 0, "E"}, {"submit", 0, "S"}, {"finish", 0, "ESI"}
