@@ -596,6 +596,22 @@ trapping UBSan passed. ASan and TSan completed on the native Linux provider.
 Win64 ASan/TSan, physical Windows and the shipping Draw Win64 caller remain
 open. Draw's Linux owning constructors have a separate [CPU acceptance record](https://github.com/TrevorSundberg/tower/blob/4096eba0f8fa217a702c9af3a34fa411aa7f2727/scaffolding/library/graphics/vulkan/bound_image_view_v1.md#draw-constructor-adoption-on-linux).
 
+### Draw Win64 post-bind view cross-link
+
+Draw independently rebuilt Tower `4bcb724436879c5b2447ac9617100c989992f8be`
+and reproduced the DLL and import-library sizes and hashes above. Draw linked
+its post-bind helper at `a0ee83752c68f3fcff54f0128a71d8bcdc753b4b` into
+the existing nine-import C probe. The resulting optimized Win64 PE SHA-256
+was `20352d826d0f36b94a2568a8ff54b36e10e0dca7a3a8b46d448a139f911cd41a`.
+Draw verified all ten named imports, matched the provider ordinals and found
+the AMD64 REL32 relocation for the bound-view call in its actual helper.
+
+This was a host cross-link. Draw slot 9 job
+`966e83dc-85c9-4fd1-bd67-2ab72fa6f796` owns the shipping Win64 packed
+texel and HUD comparison. It requires the ordinal-9 application artifact
+from `53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`. Draw's separate Linux
+application job is `7a36cecf-5020-480c-90a9-bbecaacecc2c`.
+
 ## Creating an unbound image at ordinal 11
 
 Include `create_image.h` and link the external C application with the
@@ -630,3 +646,24 @@ definition. The release-linked PE imports ordinals 8–11 by name with
 matching hints. The original expected.lib and the release import library
 have different digests and produce identical capture executables.
 The job packet contains both original controls and the release link map.
+
+### Win64 device execution through ordinal 11
+
+Wine 8 loaded the release DLL in the external C capture process. Vulkan
+selected the Quadro RTX 6000, API 1.4.351, NVIDIA 615.71.10, queue 0/0.
+The fixture called ordinal 11 for the five sampled source images and used
+its raw SDK call for the five readback targets. Rendering decoded the PE
+export and import tables and checked ten create, requirements, allocate and
+bind sequences across the two groups. All ten submissions completed on
+the same queue, and each source view was destroyed before its image and
+bound memory. The 27,542,768-byte capture matched the raw SDK control byte
+for byte, including 256 sampled texels and 240 guard bytes. SHA-256 was
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+
+Raw SDK, direct-object and DLL C callers each passed 21 recording cases.
+When the fault loader wrote the private output and returned signed −2 at
+the first source, the caller's output stayed null. The fixture exited 3
+before memory requirements, allocation, binding, view creation or submit.
+Win64 trapping UBSan passed at the C boundary. The worker reported
+overlapping device timings, unavailable Win64 ASan runtime and unsupported
+Win64 TSan. Physical Windows and Draw's shipping Win64 caller remain open.
