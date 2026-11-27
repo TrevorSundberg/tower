@@ -10,8 +10,8 @@ extern "C" {
 /* Linux x86-64 and Windows x64. Resolve draw once on the live device with
  * drawIndirectCount enabled. Record into its recording primary command buffer,
  * inside a compatible render scope with the graphics pipeline and index buffer
- * bound. Draw uses uint16 indices. The caller checks device features/limits,
- * indirect buffer usage and synchronization with producers.
+ * bound. The draw uses the index type bound by the caller. The caller checks
+ * device features/limits, indirect buffer usage and synchronization with producers.
  *
  * Pass each VkBuffer's logical byte size (VkBufferCreateInfo.size, Draw's
  * Buffer.size) and an offset from its start. Exclude backing allocation padding.
