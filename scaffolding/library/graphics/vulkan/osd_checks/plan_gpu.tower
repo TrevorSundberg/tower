@@ -1,0 +1,32 @@
+import tower;
+import .readback_abi;
+import .readback_device;
+
+extern fn osd_plan(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+    count: u32, required: u32, out: VkMemoryAllocateInfo*): u32;
+extern fn osd_watch(device: VkDeviceHandle*, image: VkImageHandle*, types: VkMemoryType*,
+    count: u32, required: u32, out: VkMemoryAllocateInfo*): void;
+extern fn osd_observe(result: u32): void;
+extern fn osd_account(bytes: u64): void;
+extern fn osd_end_watch(): void;
+extern fn getenv(name: u8*): u8*;
+
+// Linux fixture owner, entered immediately after source image creation.
+fn plan_bind_source(ctx: ReadbackDevice*, image: VkImageHandle*, required: u32,
+    owned: VkDeviceMemoryHandle**, flags: u32*): bool {
+    var types = &ctx.memory.memoryTypes[0];
+    var count = ctx.memory.memoryTypeCount;
+    if getenv("OSD_EMPTY_PLAN") != null { count = 0; }
+    var plan: VkMemoryAllocateInfo = default;
+    osd_watch(ctx.device, image, types, count, required, &plan);
+    defer osd_end_watch();
+    var match_result = osd_plan(ctx.device, image, types, count, required, &plan);
+    osd_observe(match_result);
+    if match_result == 0 { return vk_failure("No compatible source image memory type"); }
+    var memory: VkDeviceMemoryHandle*;
+    if !vk_ok("source allocation", vkAllocateMemory(ctx.device, &plan, null, &memory)) { return false; }
+    *owned = memory;
+    osd_account(plan.allocationSize);
+    *flags = types[plan.memoryTypeIndex].propertyFlags;
+    return vk_ok("source bind", vkBindImageMemory(ctx.device, image, memory, 0));
+}
