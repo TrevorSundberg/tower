@@ -139,6 +139,38 @@ no Tower runtime object. Alternatively link the same object as a shared
 library with `cc -shared -nostdlib -Wl,-z,defs shader_module_c.o -lvulkan -o libtower_shader_module.so`.
 Place the resulting library on the application's loader search path.
 
+The external C smoke test below checks for a local refusal. Save it as
+`smoke.c` and build it with the same Vulkan headers used by the application.
+
+```c
+#include "shader_module_c.h"
+#include <assert.h>
+
+int main(void) {
+    VkShaderModule module = VK_NULL_HANDLE;
+    int32_t result = -99;
+    uint32_t called = tower_vk_try_create_shader_module(VK_NULL_HANDLE, NULL, 0, &module, &result);
+    assert(called == 0 && result == 0 && module == VK_NULL_HANDLE);
+    return 0;
+}
+```
+
+Starting with the Tower object and shared library built above, run both forms.
+
+```sh
+cc -I"$v" smoke.c shader_module_c.o -lvulkan -o smoke-object
+./smoke-object
+cc -I"$v" smoke.c -L. -ltower_shader_module -Wl,-rpath,'$ORIGIN' -o smoke-shared
+./smoke-shared
+```
+
+On Linux x64 both C executables exited 0. The shader object was 1,360 bytes,
+SHA-256 `a5b21cb8757eaffbedb0217cf12dc97aacf8a62059ebe6f8eb955b2f1098a381`.
+In the counted driver test, a C call site passed three independent control
+modules of 438, 273 and 95 words to the same entry. The RTX 3090 run returned
+the guarded count-zero and count-one images. A separate llvmpipe run forced
+an allocation refusal and returned called=1, result=-1, with an empty slot.
+
 Slot 12 assignment `31e3de36-8175-4013-b2d6-368435dfb3d6` exercised C
 calls into this object for all three independent control shaders. The
 packet includes the C consumer, counted-fixture overlay, link commands,
