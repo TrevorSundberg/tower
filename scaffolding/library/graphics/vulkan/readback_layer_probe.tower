@@ -1,0 +1,54 @@
+import tower;
+import readback_abi;
+import readback_clear;
+import readback_device;
+import readback_oracle;
+import readback_output;
+import readback_validation;
+
+// Host 12 lifetime diagnostic. Pin the ICD exposing one device, with queue family 0.
+// Both variants destroy the pool, device and instance. Neither submits work.
+fn probe_layer(allocate_buffer: bool): bool {
+    var feature = VkSyncValidation;
+    var validation: VkValidationFeatures = { sType: VkValidationFeaturesTag, enabledCount: 1, enabled: &feature, ..default };
+    var layer = "VK_LAYER_KHRONOS_validation";
+    var extension = "VK_EXT_validation_features";
+    var app: VkApplicationInfo = { sType: VkApplicationTag, apiVersion: VkApi13, ..default };
+    var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
+        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 1, ppEnabledExtensionNames: &extension, ..default };
+    var instance: VkInstanceHandle*;
+    if !vk_ok("vkCreateInstance", vkCreateInstance(&info, null, &instance)) { return false; }
+    defer vkDestroyInstance(instance, null);
+    var physical: VkPhysicalDeviceHandle*;
+    var count: u32 = 1;
+    if !vk_ok("vkEnumeratePhysicalDevices", vkEnumeratePhysicalDevices(instance, &count, &physical))
+        || count != 1 { return vk_failure("Pin the host 12 single-device ICD"); }
+    var props: VkPhysicalDeviceProperties;
+    vkGetPhysicalDeviceProperties(physical, &props); puts(&props.deviceName[0]);
+    readback_number("driver_version", props.driverVersion);
+    var priority: f32 = 1.0;
+    var queue_info: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: 0,
+        queueCount: 1, pQueuePriorities: &priority, ..default };
+    var device_info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
+        pQueueCreateInfos: &queue_info, ..default };
+    var device: VkDeviceHandle*;
+    if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &device_info, null, &device)) { return false; }
+    defer vkDestroyDevice(device, null);
+    var pool: VkCommandPoolHandle*;
+    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, queueFamilyIndex: queue_info.queueFamilyIndex, ..default };
+    if !vk_ok("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(device, pool, null);
+    if !allocate_buffer { return true; }
+    var cmd: VkCommandBufferHandle*;
+    var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
+    return vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd));
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc != 2 || (strcmp(argv[1], "pool") != 0 && strcmp(argv[1], "allocate") != 0) {
+        puts("usage: readback_layer_probe pool|allocate"); return 2;
+    }
+    puts(argv[1]);
+    if !probe_layer(strcmp(argv[1], "allocate") == 0) { return 1; }
+    puts("destroyed pool, device and instance"); fflush(null); return 0;
+}
