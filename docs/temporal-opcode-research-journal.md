@@ -123814,3 +123814,61 @@ compares identities across the trace and arms a process-local begin fault
 only after the command reset. Both injected OOMs (-1) exited 1 at the
 proper Vulkan label. Only the first frame submitted in either fault run.
 The replay checks stage events, handle identities, and complete pixels.
+
+The three local changes were replayed on the published documentation tip
+2477ba66 using local Git objects. The rebased code matched the tested
+pre-rebase sources. An additional C layout check compared the address of
+every member of VkCommandBufferBeginInfo, including the two null pointer
+members. The combined end/submit object stayed byte-identical to the prior
+receipt. The standalone begin object has two loader references and no
+allocator or synchronization calls. The probe confirmed the actual pool
+and primary at allocation, every command operation on that primary, and
+the same subject fence on submit, wait/status and fence reset.
+
+Host 12 ran one validated process at a time on the AMD EPYC 7282 (affinity
+0–31, cgroup CPU quota 15.36) and discrete RTX 3090, Vulkan 1.3.289,
+NVIDIA 565.57.01. Five paired warm-filesystem process samples compared
+accepted stdout, with fresh device initialization in every process. The
+three-frame raw-C and C-through-DSO controls share one compiled caller
+with its begin entry bound at link time. Three same-path compiler samples
+at each width compared their objects against the single-worker reference.
+
+| Median wall s / child CPU s / peak KiB | Before or raw | After or C through Tower DSO |
+| --- | --- | --- |
+| One counted frame, full process | 0.3143 / 0.3135 / 94628 | 0.3098 / 0.3096 / 94648 |
+| Three captures, including two reuses | 0.3144 / 0.3145 / 94556 | 0.3159 / 0.3159 / 94616 |
+| Counted fixture compile, 1 worker | 0.8052 / 0.8046 / 129272 | 0.8295 / 0.8291 / 130444 |
+| Counted fixture compile, 4 workers | 0.9099 / 1.0726 / 134704 | 0.9443 / 1.1082 / 136060 |
+
+The expanded fixture compiled about 24 ms slower at one worker and 34 ms
+slower at four. Four workers cost more wall and CPU time for this small
+unit. The two reuse process medians differ by 1.5 ms including validation,
+device startup and readback. No GPU timing, per-call speedup or driver
+allocation measurement follows from these samples.
+
+The existing raw/shared async gate still returned pending, released its
+timeline gate, and observed the subject fence, binary-consumer fence and
+GPU event. The ordinary end, submit OOM, failed wait and terminal recovery
+controls returned 1/1/1/134 per caller. CPU copy bounds and guards matched
+the earlier complete log. The local f0183813 rendering oracle and row copy
+matched the current files by bytes. a580e70a is the compiler base. A
+checksum for the original compiler-manager fixture is still unavailable.
+
+The pinned LLVM instrumentation produced ASan and TSan accesses in the
+new entry. The instrumented runtime objects and sanitizer DSOs appear in
+the link maps. C transport included Clang UBSan. The final recording run
+passed ASan+LSan. Tower and raw GPU reuse passed address-only. Both leak
+runs exited 1 with 4,075 bytes in 14 allocations, also present in the
+prior counted control. These runs do not identify the owner of each leak.
+Recording and hardware TSan at the final layout-test revision exited 139
+on all three attempts per lane at the container personality check. One
+earlier recording revision completed TSan on retry. Tower source-level
+UBSan coverage and a completed hardware race check remain open.
+
+The receipt preserves failed intermediate checks. Shell tracing initially
+entered a stdout comparison. A native TSan link required libgcc_s for
+unwind symbols. The ASan recording link required the matching runtime
+before the instrumented DSO. All three were corrected and rerun. Source,
+maps, exact commands, stdout, bounded samples and exits accompany the
+local bundle. Draw verification is pending its manager's exact caller
+signature, step discrimination and flag choices at 30b66f59.
