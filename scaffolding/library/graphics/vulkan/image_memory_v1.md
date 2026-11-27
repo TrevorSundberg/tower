@@ -83,3 +83,15 @@ guarded pixels and sampling, queue completion and view/image/memory
 destruction. Keep injected return values and real driver results separately
 attributed. Draw's production caller and any shipping error recovery have
 their own acceptance runs.
+
+## Draw compatibility acknowledgement
+
+Draw fetched Tower `21e0d03be39e256504d74702b4d75ad0416c8fb5` and
+confirmed both SDK signatures against Draw
+`51d4785e6456353b9a65f49d311cb0c6925ee42d`. Both constructors can pass
+the original allocation descriptor and its extension chain. Their empty
+owner slot accepts the handle on success. The existing Draw accounting
+runs before the bind call and the two diagnostics retain their separate
+operation names. This acknowledgement covers the interface and ownership
+sequence. The portable provider and the device runs have separate
+implementation and test receipts.
