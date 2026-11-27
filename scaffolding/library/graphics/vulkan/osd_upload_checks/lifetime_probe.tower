@@ -1,0 +1,110 @@
+import tower;
+import library.graphics.vulkan.readback_abi;
+import library.graphics.vulkan.counted_abi;
+import lifetime_events;
+extern fn dlsym(handle: void*, name: u8*): void*;
+extern fn exit(code: i32): void;
+extern fn write(fd: i32, data: void*, size: usize): i64;
+fn life_next(name: u8*): void* {
+    var p = dlsym(bits(void*, ~convert(usize, 0)), name); if p == null { exit(3); } return p;
+}
+fn log_event(kind: u64, a: u64, b: u64, c: u64): void {
+    var event: Event = {kind: kind, a: a, b: b, c: c};
+    if write(7, bits(void*, &event), sizeof(Event)) != convert(i64, sizeof(Event)) { exit(3); }
+}
+
+export fn vkBindBufferMemory(device: VkDeviceHandle*, buffer: VkBufferHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
+    var call = bits(function(i32, VkDeviceHandle*, VkBufferHandle*, VkDeviceMemoryHandle*, u64), life_next("vkBindBufferMemory"));
+    var result = call(device, buffer, memory, offset);
+    if result == 0 { log_event(BindBuffer, bits(u64, buffer), bits(u64, memory), offset); }
+    return result;
+}
+
+export fn vkBindImageMemory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
+    var call = bits(function(i32, VkDeviceHandle*, VkImageHandle*, VkDeviceMemoryHandle*, u64), life_next("vkBindImageMemory"));
+    var result = call(device, image, memory, offset);
+    if result == 0 { log_event(BindImage, bits(u64, image), bits(u64, memory), offset); }
+    return result;
+}
+
+export fn vkMapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, offset: u64, size: u64, flags: u32, data: void**): i32 {
+    var call = bits(function(i32, VkDeviceHandle*, VkDeviceMemoryHandle*, u64, u64, u32, void**), life_next("vkMapMemory"));
+    var result = call(device, memory, offset, size, flags, data);
+    if result == 0 { log_event(MapMemory, bits(u64, memory), bits(u64, *data), offset); }
+    return result;
+}
+
+export fn vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*, view: VkImageViewHandle**): i32 {
+    var call = bits(function(i32, VkDeviceHandle*, VkImageViewCreateInfo*, VkAllocationCallbacks*, VkImageViewHandle**), life_next("vkCreateImageView"));
+    var result = call(device, info, allocator, view);
+    if result == 0 { log_event(CreateView, bits(u64, info.image), bits(u64, *view), convert(u64, info.viewType)); }
+    return result;
+}
+
+export fn vkEndCommandBuffer(cmd: VkCommandBufferHandle*): i32 {
+    var call = bits(function(i32, VkCommandBufferHandle*), life_next("vkEndCommandBuffer"));
+    var result = call(cmd);
+    if result == 0 { log_event(EndCmd, bits(u64, cmd), 0, 0); }
+    return result;
+}
+
+export fn vkQueueWaitIdle(queue: VkQueueHandle*): i32 {
+    var call = bits(function(i32, VkQueueHandle*), life_next("vkQueueWaitIdle"));
+    var result = call(queue);
+    if result == 0 { log_event(Idle, bits(u64, queue), 0, 0); }
+    return result;
+}
+
+export fn vkUnmapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*): void {
+    var call = bits(function(void, VkDeviceHandle*, VkDeviceMemoryHandle*), life_next("vkUnmapMemory"));
+    call(device, memory);
+    log_event(UnmapMemory, bits(u64, memory), 0, 0);
+}
+
+export fn vkDestroyBuffer(device: VkDeviceHandle*, buffer: VkBufferHandle*, allocator: VkAllocationCallbacks*): void {
+    var call = bits(function(void, VkDeviceHandle*, VkBufferHandle*, VkAllocationCallbacks*), life_next("vkDestroyBuffer"));
+    call(device, buffer, allocator);
+    log_event(DestroyBuffer, bits(u64, buffer), 0, 0);
+}
+
+export fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, allocator: VkAllocationCallbacks*): void {
+    var call = bits(function(void, VkDeviceHandle*, VkDeviceMemoryHandle*, VkAllocationCallbacks*), life_next("vkFreeMemory"));
+    call(device, memory, allocator);
+    log_event(FreeMemory, bits(u64, memory), 0, 0);
+}
+
+export fn vkDestroyImageView(device: VkDeviceHandle*, view: VkImageViewHandle*, allocator: VkAllocationCallbacks*): void {
+    var call = bits(function(void, VkDeviceHandle*, VkImageViewHandle*, VkAllocationCallbacks*), life_next("vkDestroyImageView"));
+    call(device, view, allocator);
+    log_event(DestroyView, bits(u64, view), 0, 0);
+}
+
+export fn vkDestroyImage(device: VkDeviceHandle*, image: VkImageHandle*, allocator: VkAllocationCallbacks*): void {
+    var call = bits(function(void, VkDeviceHandle*, VkImageHandle*, VkAllocationCallbacks*), life_next("vkDestroyImage"));
+    call(device, image, allocator);
+    log_event(DestroyImage, bits(u64, image), 0, 0);
+}
+
+export fn vkUpdateDescriptorSets(device: VkDeviceHandle*, n: u32, items: VkWriteDescriptorSet*, copies: u32, list: VkCopyDescriptorSet*): void {
+    var call = bits(function(void, VkDeviceHandle*, u32, VkWriteDescriptorSet*, u32, VkCopyDescriptorSet*), life_next("vkUpdateDescriptorSets"));
+    call(device, n, items, copies, list);
+    if n != 1 || items == null || items.pImageInfo == null || copies != 0 { exit(3); }
+    log_event(BindView, bits(u64, items.pImageInfo.imageView), bits(u64, items.dstSet), convert(u64, items.pImageInfo.imageLayout));
+}
+
+export fn vkCmdDraw(cmd: VkCommandBufferHandle*, vertices: u32, instances: u32, first: u32, first_instance: u32): void {
+    var call = bits(function(void, VkCommandBufferHandle*, u32, u32, u32, u32), life_next("vkCmdDraw"));
+    call(cmd, vertices, instances, first, first_instance);
+    log_event(Draw, bits(u64, cmd), convert(u64, vertices), convert(u64, instances));
+}
+
+export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    var call = bits(function(i32, VkQueueHandle*, u32, VkSubmitInfo*, VkFenceHandle*), life_next("vkQueueSubmit"));
+    var result = call(queue, count, info, fence);
+    if result == 0 {
+        if count != 1 || info == null || info.commandBufferCount != 1 || info.pCommandBuffers == null
+            || info.waitSemaphoreCount != 0 || info.signalSemaphoreCount != 0 { exit(3); }
+        log_event(Submit, bits(u64, queue), bits(u64, *info.pCommandBuffers), bits(u64, fence));
+    }
+    return result;
+}

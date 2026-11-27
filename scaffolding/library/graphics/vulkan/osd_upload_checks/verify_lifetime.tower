@@ -1,0 +1,72 @@
+import tower;
+import lifetime_events;
+import library.graphics.vulkan.readback_output;
+extern fn read(fd: i32, data: void*, size: usize): i64;
+extern fn exit(status: i32): void;
+fn insist(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
+fn take(kind: u64): Event {
+    var e: Event;
+    insist(read(0, bits(void*, &e), sizeof(Event)) == convert(i64, sizeof(Event)), "truncated event stream");
+    if e.kind != kind { readback_label("expected_event"); readback_decimal(kind); readback_label("actual_event"); readback_decimal(e.kind); exit(3); }
+    return e;
+}
+struct Loan { handle: u64; memory: u64; }
+struct Texture { image: u64; view: u64; memory: u64; }
+
+fn mapped_buffer(): Loan {
+    var bind = take(BindBuffer); var map = take(MapMemory);
+    insist(bind.a != 0 && bind.b != 0 && bind.c == 0 && map.a == bind.b && map.b != 0 && map.c == 0, "buffer, memory or mapping mismatch");
+    return {handle: bind.a, memory: bind.b};
+}
+fn released(loan: Loan): void {
+    insist(take(UnmapMemory).a == loan.memory, "unmapped a different allocation");
+    insist(take(DestroyBuffer).a == loan.handle, "destroyed a different buffer");
+    insist(take(FreeMemory).a == loan.memory, "freed a different allocation");
+}
+fn texture(view_type: u64): Texture {
+    var bind = take(BindImage); var view = take(CreateView);
+    insist(bind.a != 0 && bind.b != 0 && bind.c == 0 && view.a == bind.a && view.b != 0 && view.c == view_type, "image binding or view mismatch");
+    return {image: bind.a, memory: bind.b, view: view.b};
+}
+fn destroyed(t: Texture): void {
+    insist(take(DestroyView).a == t.view, "destroyed a different view");
+    insist(take(DestroyImage).a == t.image, "destroyed a different image");
+    insist(take(FreeMemory).a == t.memory, "freed a different image allocation");
+}
+fn finished(cmd: u64, queue: u64*): void {
+    insist(take(EndCmd).a == cmd, "ended a different primary");
+    var submit = take(Submit);
+    if *queue == 0 { *queue = submit.a; }
+    insist(submit.a != 0 && submit.a == *queue && submit.b == cmd && submit.c == 0, "queue, primary or null fence mismatch");
+    insist(take(Idle).a == *queue, "idle succeeded on a different queue");
+}
+export fn main(): i32 {
+    var views: u64[5] = {5,1,1,5,5};
+    var counts: u32[5] = {6,2,2,4,2};
+    var sources: Texture[5]; var cmd: u64 = 0; var queue: u64 = 0;
+    var count = sizeof(decltype(sources)) / sizeof(Texture);
+    for (var i: usize = 0; i < count; i++) {
+        var loan = mapped_buffer(); var t = texture(views[i]); sources[i] = t;
+        for (var j: usize = 0; j < i; j++) {
+            insist(t.image != sources[j].image && t.view != sources[j].view && t.memory != sources[j].memory, "live image ownership collision");
+        }
+        var copy = take(TextureCopy);
+        if i == 0 { cmd = copy.a; }
+        insist(cmd != 0 && copy.a == cmd && copy.b == loan.handle && copy.c == t.image, "upload primary, staging or image mismatch");
+        finished(cmd, &queue); released(loan);
+    }
+    puts("five unfenced same-queue uploads retired before staging unmap/destroy/free");
+    for (var i: usize = 0; i < count; i++) {
+        var target = texture(1); var desc = take(BindView);
+        insist(desc.a == sources[i].view && desc.b != 0 && desc.c == 5, "wrong retained view or sampled layout");
+        var host = mapped_buffer();
+        for (var n: u32 = 0; n < counts[i]; n++) {
+            var draw = take(Draw); insist(draw.a == cmd && draw.b == 3 && draw.c == 1, "unexpected fragment draw");
+            finished(cmd, &queue);
+        }
+        released(host); destroyed(target);
+    }
+    for (var i: usize = 0; i < count; i++) { destroyed(sources[i]); }
+    var end: Event; insist(read(0, bits(void*, &end), sizeof(Event)) == 0, "unexpected trailing event");
+    puts("all five images and views survived all sixteen sampled reads"); return 0;
+}

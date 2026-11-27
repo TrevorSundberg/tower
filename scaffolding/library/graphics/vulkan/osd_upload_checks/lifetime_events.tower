@@ -1,0 +1,17 @@
+import tower;
+struct Event { kind: u64; a: u64; b: u64; c: u64; }
+var BindBuffer: u64 = 1;
+var BindImage: u64 = 2;
+var MapMemory: u64 = 3;
+var CreateView: u64 = 4;
+var EndCmd: u64 = 5;
+var Idle: u64 = 6;
+var UnmapMemory: u64 = 7;
+var DestroyBuffer: u64 = 8;
+var FreeMemory: u64 = 9;
+var DestroyView: u64 = 10;
+var DestroyImage: u64 = 11;
+var BindView: u64 = 12;
+var Draw: u64 = 13;
+var TextureCopy: u64 = 14;
+var Submit: u64 = 15;
