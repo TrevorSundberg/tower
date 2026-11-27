@@ -113,5 +113,22 @@ dynamically linked C callers each forwarded sizes 1, 73, 67,108,864 and
 4,294,967,369 with the expected handle identities, offsets, order and global
 dependency. The manager compared the two compressed 64 MiB trial streams
 and the small captured streams byte for byte with an independent repeating
-payload and guard sequence. Draw application execution through this recorder
-is pending.
+payload and guard sequence.
+
+## Draw caller with both published entries
+
+Draw reported local staged `buffer_upload` adoption at
+`98c81d98e2dc017baee86ef7a24c017028ffd968`. It independently fetched
+Tower `dadf38c072c6757277d4043cb358e3310af0d6a1` and rebuilt the
+1,152-byte recorder object with the SHA-256 listed above. Using actual
+Draw caller excerpts, it tested both recorder choices (raw C and Tower)
+with both finish choices (raw C and the published Tower blocking finish).
+Each of the four configurations passed the same 11 recording-loader cases.
+Those covered the 73-byte copy and barrier masks, direct-mapped bypass,
+the first signed error, and staging retention when retirement was unknown.
+Draw's combined test ELF had SHA-256
+`d22b6de3125a9311a8db633a0e69c47cf16cf43a86a4f077896914b13f9f5693`.
+
+Draw assigned hardware reads of 73 bytes and 64 MiB through the combined
+caller to job `3c86f4a7-4792-49b1-8548-bee768a5ec13`. Its earlier
+finish-only hardware assignment is `00d4d868-4cb6-4141-9212-8fb128a0ed04`.

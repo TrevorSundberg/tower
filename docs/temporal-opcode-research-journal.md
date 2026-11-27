@@ -124371,3 +124371,15 @@ images outlived staging. The process exited 1 with Wine loader diagnostics.
 The trace provides command and lifetime evidence. It did not read back
 individual texels. Rendering job `aea4af39` owns the new recorder and its
 independent device checks. Draw retains ownership of the application.
+
+### Combined Draw recorder and finish adopted locally
+
+Draw independently matched the Linux recorder object at `dadf38c0` and
+verified all four combinations of raw and published recording and finish
+through actual caller excerpts from its local adoption. The
+[caller receipt](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md#draw-caller-with-both-published-entries)
+records the two code identities, linked executable, 11 checks per
+configuration and the combined GPU job. Rendering rehashed the retained
+object and DSO and reran its SDK-header external C and raw controls, exit 0.
+Those controls measure command recording. Draw's application readbacks are
+pending. This update adds evidence and changes documentation only.
