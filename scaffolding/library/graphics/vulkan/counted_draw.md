@@ -56,9 +56,10 @@ release them on return. After the last pipeline creation that uses a module
 has returned, destroy it once with `vkDestroyShaderModule(device, module, null)`
 while the device lives. The resulting pipelines have their own lifetimes.
 
-The counted fixture opens, hashes and frees its Linux files and buffers as
-before. Compute, vertex and fragment now pass through the same library
-operation. Offline glslang and spirv-val commands, accepted digests and the
+The counted fixture opens binary streams and reads exactly 1752, 1092 and
+380 bytes for compute, vertex and fragment. It rejects I/O errors, early
+EOF, trailing bytes and digest mismatches before creating that module.
+All three stages pass aligned words through the same library operation. Offline glslang and spirv-val commands, accepted digests and the
 hardware and software pixel oracles below apply to the extracted path.
 The runner from implementation `255836f8` has SHA-256
 `7a2f69dc05f7a2e6cd1e362d18435816a39de09beb46a3f4a203eb3cd190adc1`.
@@ -202,7 +203,68 @@ allocation refusal reached the caller as `VkResult=-1` before submission.
 The receipt archive SHA-256 is
 `221c6384881c40c9bdcbd2e47c886016e599330579407a00b060d0188e12b8c5`.
 
-These execution results cover Linux x64. The asset loader can release its
-word buffer when the call returns. The fixture still owns Linux-specific
-file I/O. Qualification through a Windows executable requires a Windows-safe
-asset-loading path and a completed render and readback in that executable.
+Those review receipts cover Linux x64. The asset loader releases its word
+buffer when the module call returns.
+
+## Windows x64 executable on Wine
+
+Slot 11 exercised the Vulkan 1.3 counted operation in a Tower-generated
+AMD64 PE. Use the Linux section above to set the shell paths and build
+the three pinned SPIR-V assets. The Windows link uses LLVM 19, MinGW-w64,
+the Tower Windows x64 runtime and the Khronos Vulkan-Loader v1.3.239
+export definition. Set `def` to the packet's `vulkan-1.def`.
+
+```bash
+w="$sdk/usr/x86_64-w64-mingw32/lib"
+g="$sdk/usr/lib/gcc/x86_64-w64-mingw32/12-posix"
+echo "166014c0b24e6d6b728a05fed1ea4b6a123ed2ac5d98f63f3a176da4e93ed75d  $def" | sha256sum -c -
+llvm-dlltool -m i386:x86-64 -d "$def" -l "$out/vulkan-1.lib"
+"$cc" "$v/counted_fixture.tower" --library --jobs 1 --foundation "$s/foundation.tower" \
+    --target x86_64-w64-windows-gnu -o "$out/counted.obj"
+opt -passes=internalize,globaldce \
+    -internalize-public-api-list=tower_allocate,tower_deallocate,tower_strict_float_binary,tower_strict_float_from_integer,tower_trap \
+    bootstrap/linux-x64/share/tower/runtime-windows-x64.ll -o "$out/win.bc"
+llc -filetype=obj -relocation-model=pic "$out/win.bc" -o "$out/winrt.o"
+ld.lld -m i386pep --no-insert-timestamp --subsystem console --Map="$out/counted.map" \
+    -o "$out/counted.exe" "$w/crt2.o" "$out/counted.obj" "$out/winrt.o" "$out/vulkan-1.lib" \
+    -L"$w" -L"$g" -lmingw32 -lgcc -lmingwex -lmsvcrt -lkernel32 "$g/libatomic.a"
+llvm-readobj --file-headers --coff-imports "$out/counted.exe"
+```
+
+On the worker, Wine 8's explicit layer request returned
+`VK_ERROR_LAYER_NOT_PRESENT` (−6), exit 1 before device creation.
+With the Quadro ICD, private x64 Wine prefix, X display and host
+`VK_LAYER_PATH` configured, run the external-layer diagnostic explicitly.
+
+```bash
+(cd "$out" && VK_LOADER_DEBUG=layer \
+    VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation \
+    VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+    wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer)
+```
+
+This mode requires a live debug-utils messenger. Its zero exit certifies
+the fixture's byte comparisons and zero observed warning/error callbacks.
+To qualify external synchronization validation, check the host loader's
+instance and device layer insertion and replay the packet's recording-only
+barrier control. On slot 11 the control generated six read-after-write
+errors in the PE with synchronization validation enabled and zero with it
+disabled. The loader separately logged two configuration warnings about
+the environment forcing the layer on.
+
+| Observed on slot 11 | Native Linux and GNU-target PE on Wine |
+| --- | --- |
+| Selected hardware | Quadro RTX 6000, 10de:1e78, UUID `26f60f6cead65faf0253a959b2e93a2d`, NVIDIA 615.71.10, device API 1.4.351 |
+| Core 1.3 features and limits | drawIndirectCount and dynamicRendering enabled, multiDrawIndirect available, maxDrawIndirectCount and maxStorageBufferRange both 4294967295 |
+| Queue and completion | Device 0, graphics+compute family 0, queue 0, one submit, one signaled fence, coherent staging |
+| Count and indexed record | 0 then 1, each followed by (3, 1, 0, 0, 0) |
+| Guarded 2×2 output | Four `112233ff` texels then four `4080bfff` texels. All 16 guard and padding bytes per capture remained `a5` at offset 4, pitch 12, span 24. |
+| Validation callbacks / exit | 0 / 0 for each production run |
+
+Packet `b73e2ea3-4b84-40b7-9469-6293e810088b` retains the link map,
+DLL/import identities, shader digests, binary captures, control scripts and
+stdout/stderr. The PE SHA-256 is
+`9a32fe8ca314f4789c1dfcdcbcd856f28fb213843ab6b92d05ac1afd2cd0eceb`.
+Native Windows execution and validation layers on the Windows side of
+the bridge remain unverified. Strict Draw 1.4 qualification belongs to
+the separate gate.

@@ -123578,5 +123578,60 @@ instance and device and enabled synchronization validation. Removing the
 compute-to-consumer barrier in a private control copy elicited six
 SYNC-HAZARD-READ-AFTER-WRITE messages in the PE callback. The same
 control with sync disabled received zero. Both controls stopped after
-recording, before queue submission. With the published recording intact
+recording, before queue submission. With the production recording intact
 the PE completed one submission and one fence with zero callback messages.
+
+The PE built by 02aeb81c imported KERNEL32.dll, msvcrt.dll and vulkan-1.dll.
+The counted object referenced fread and ferror and neither seek nor tell.
+The timestamp-free MinGW link used the header-239 import library, the
+five-function closure of the pinned Windows runtime and static libatomic.a
+(fadd_4_.o for the message counter). HeapAlloc/HeapFree service the Windows
+runtime. The PE's loader trace records Wine's built-in vulkan-1.dll and
+winevulkan.dll and the host's NVIDIA ICD. The original and repaired Linux
+fixtures used the same source Foundation and produced byte-identical stdout.
+The repaired PE also built with packaged Foundation and at jobs 4 with
+identical object bytes. The source and packaged SHA-256 modules matched.
+
+Both final processes picked Quadro RTX 6000 PCI 10de:1e78, device 0,
+UUID 26f60f6cead65faf0253a959b2e93a2d, API 1.4.351 and driver 615.71.10,
+using the ordinary counted 1.3 profile. The four GPU values and every
+padding byte per pass matched the 112-byte combined oracle (two headers
+and two full caller arrays), SHA-256
+a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6.
+Missing fragment, same-length bad digest, wrong stage, truncated file
+and trailing byte each exited 1 before submission on both systems.
+Reading a directory on Linux exercised ferror. The shaderless v1 Linux
+fixture passed its CPU pitch, short-span and short-source refusals and
+hardware clear. The pinned main tree has no named RGBA/readback fixture;
+the rendering branch's readback_oracle.tower matches its documented digest.
+Draw's revision and byte contract here come from the existing Tower review.
+The original Draw shaders were unavailable through this reader.
+
+Host 11, Debian x64, Xeon E5-2699 v4, affinity 0–87, quota 10.56 CPUs,
+LLVM 19.1.7, three source-warm fresh-process samples per variant. Median
+wall seconds / user+system seconds / peak KiB for Linux compiles were
+0.92 / 0.91 / 127496 before and 0.87 / 0.86 / 127960 after at jobs 1,
+1.03 / 1.16 / 130948 and 0.96 / 1.09 / 130240 at jobs 4. Each build
+matched its qualified object. At execution the corresponding Linux medians
+were 0.29 / 0.28 / 103476 and 0.30 / 0.30 / 102764. The warm-prefix PE
+median was 0.56 / 0.39 / 116900, including process start and validation.
+Each process checked its pixels. The single-queue fixture has no application
+worker pool. Process accounting excludes background Wine services. The
+shader reader performs one word allocation per asset (1752, 1092 and
+380 bytes), freed after each module call. Driver allocation counts and
+device-only time were unmeasured.
+
+LLVM's address and thread passes instrumented counted_shader and the
+Linux runtime. Link maps identify the libc-backed allocator, libvulkan and
+libatomic. Address-only ASan on the hardware entry passed. Unfiltered LSan
+reported the same 4075 bytes in 14 allocations on parent and candidate,
+exit 1. Preloading the layer ahead of the loader failed at instance
+creation. With the loader first and the layer and ICD resident, pixels
+passed and LSan reported 4023 bytes in 12 allocations, including stacks
+in libVkLayer_khronos_validation.so. Attribution of the full unfiltered
+finding remains open. TSan failed before main on the container's denied
+ADDR_NO_RANDOMIZE request (139). Source-level Tower UBSan and Windows
+sanitizer coverage are unavailable here. The new execution receipt covers
+Wine and native Linux; native Windows and Draw's independent 1.4 gate
+remain separate. Reproduction and device results are in
+[counted raster](../scaffolding/library/graphics/vulkan/counted_draw.md#windows-x64-executable-on-wine).
