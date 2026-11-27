@@ -13,7 +13,8 @@ extern "C" {
  * bound. Draw uses uint16 indices. The caller checks device features/limits,
  * indirect buffer usage and synchronization with producers.
  *
- * Pass each VkBuffer's full size in bytes and an offset from its start.
+ * Pass each VkBuffer's logical byte size (VkBufferCreateInfo.size, Draw's
+ * Buffer.size) and an offset from its start. Exclude backing allocation padding.
  * The handles may be identical. Even with max_draws == 0, count_offset must
  * address a complete aligned count word, command_offset must be aligned and
  * at most command_bytes, and stride must be a multiple of four and >= 20.

@@ -123975,3 +123975,54 @@ Wine instance creation with −3. A private foreground Xvfb server stayed
 live through the verified replay. The existing four indexed_indirect tests
 also passed at compiler jobs 1 and 4, including the 20-byte record, the
 signed −2 vertex offset and the original zero-maximum contract.
+
+### External C controls for Draw's five counted layouts
+
+Draw reports 24 call sites at `be2fb42065dacdb49c476efdde892ab649cfe772`,
+draw.c blob prefix `84ce1a58`. The rendering manager recorded the inventory
+at Tower `1556ec5b`. Host 11 extended the external C recorder on top of the
+frozen candidate `ea062c4b`. The new header comment names the caller's
+logical bound, `Buffer.size`. Only Draw knows the logical size behind an
+opaque VkBuffer. Its backing `allocationBytes` can include unused space.
+[Caller matrix](https://github.com/TrevorSundberg/tower/blob/1556ec5bec47f3d7da1d623f1122585c2942affe/scaffolding/library/graphics/vulkan/counted_draw.md#draw-counted-record-c-contract-v1)
+
+| Caller | Observed at the external entry |
+| --- | --- |
+| GPU check | Shared 327684 bytes, offsets 4/0, maximum 16384, stride 20. With the same 327936-byte backing extent, logical size 327683 refused. |
+| Nuclear particles | Shared 3624 bytes, offsets 2560/3584, maximum 32, stride 32. A shared span of 3588 passed and 3587 refused. A separate-count control isolated the command end at 3572 and refused at 3571. |
+| OSD | Pass 1 gave offsets 24/44, maximum 1, stride 20. Shared logical size 48 passed and 47 refused. |
+| Scene | Bucket 23, maximum 16384, stride 20, distinct command/count handles. Count offset 124 ends at 128. Shortening either logical size by one refused. A synthetic frame capacity of 268435456 gave command offset 123480309760. The exact end passed and one byte short refused. |
+| Water | Shared offsets 1032/4 with stride 20. Three chunks fitted 1092 bytes and refused at 1091. With zero chunks, 1032 bytes still called the PFN once with zero, and 1031 refused. |
+
+All 36 controls passed against the native Linux object and the Win64 DLL
+under Wine. Eleven accepted cases forwarded the original seven arguments
+once. The other 25 returned zero without a PFN call. The recording driver
+checks the original primary and both handles even for aliased buffers. The
+log gives each logical size, offset, maximum, stride and call count. A
+deliberate substitution of allocationBytes at the C caller made the short
+GPU check call once and the harness exit 1. Narrowing the first product in
+the scene caller made its short high-offset control fail the same way.
+
+The rebuilt provider object, DLL, import library and both earlier COFF units
+matched their frozen hashes. The externally linked C controls have SHA-256
+`9c7f951cb5f4005e1d02269452bf7355b86b2138ab348d9122d06b87bae06c71`
+(ELF) and `9fa3e677e97b7e94f0bc516c20d326f57d36bdbc162e901d7d0068e18576a8fc`
+(PE). The linked ELF ASan/LSan and TSan controls and Win64 C trapping UBSan
+control passed. Three TSan launches failed during startup on the container
+personality restriction before a completed invocation of the same executable.
+
+The frozen direct/external GPU consumers reran on Quadro RTX 6000,
+PCI 10de:1e78, NVIDIA 615.71.10, device API 1.4.351. The Linux strict
+draw14 and Wine counted-core13 outputs matched the 112-byte oracle, and
+the Linux pair matched the 152-byte oracle after fence retirement. Each
+callback reported zero validation warnings/errors. The original shader
+and submit example also passed with the rebuilt DLL. The additional Draw
+layouts use a recording stub. Their execution by Draw and physical Windows
+remain open. The identical runtime binaries retain the earlier timing and
+memory evidence. The matrix changes test workload only.
+
+The [package build and external C link recipes](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#external-link-and-recording-controls)
+use indexed_draw_c.h. The assignment's matrix supplement includes the exact
+host commands, both executables, validation logs, provider hashes and a Git
+bundle. Draw retains ownership of application adoption. The original host
+packet remains available at its deposited checksum.

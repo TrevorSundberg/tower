@@ -110,8 +110,10 @@ uint32_t called = tower_vk_record_indexed_indirect_count_v1(
 if (called == 0) return false;
 ```
 
-The full stream size is 327684 bytes. Independent buffers can use different
-sizes and offsets. Both sizes and offsets use 64-bit `VkDeviceSize` on LP64
+Here `stream_bytes` is Draw's `Buffer.size`, 327684 bytes in the GPU check.
+Pass each buffer's logical size even when its backing `allocationBytes`
+includes padding. Independent buffers can use different sizes and offsets.
+Both sizes and offsets use 64-bit `VkDeviceSize` on LP64
 and LLP64. A one means that the supplied function ran synchronously once.
 A zero leaves the command buffer untouched. The count must always fit, even
 when the maximum is zero. See the [header](indexed_draw_c.h) for zero-maximum
@@ -120,6 +122,14 @@ producer barriers, recording primary, active rendering scope, bound pipeline
 and index buffer. It submits separately and keeps resources live until
 retirement. The library borrows the handles for the call and never maps the
 GPU count.
+
+Draw identified 24 sites at `be2fb42065dacdb49c476efdde892ab649cfe772`
+(draw.c blob prefix `84ce1a58`). The external C recording controls cover
+the GPU check, nuclear particles, OSD, scene buckets and water. For a
+scene bucket, widen the bucket to `VkDeviceSize` before multiplying by
+`frame->info[0]` and 20. The separate count buffer has 128 logical bytes.
+For water, pass `poolChunkCount` unchanged, including zero. The rendering
+manager published the full [Draw caller matrix](https://github.com/TrevorSundberg/tower/blob/1556ec5bec47f3d7da1d623f1122585c2942affe/scaffolding/library/graphics/vulkan/counted_draw.md#draw-counted-record-c-contract-v1).
 
 ### External link and recording controls
 
