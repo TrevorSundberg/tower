@@ -274,14 +274,23 @@ control. Portable provider acceptance requires a separate linked run.
 
 ## Post-create allocation plan on Win64
 
-With the Win64 toolchain and Wine environment above, run the recording
-check from the checkout root.
+With the Win64 toolchain and Wine environment above, build the production
+DLL and run the recording check from a clean checkout root.
 
 ```bash
-scaffolding/library/graphics/vulkan/osd_checks/check_allocation.sh "$(mktemp -d)/allocation"
+out=$(mktemp -d)
+v=scaffolding/library/graphics/vulkan
+"$v/build_graphics_dll.sh" "$out/graphics"
+"$v/osd_checks/check_allocation.sh" "$out/allocation" --release "$out/graphics"
 ```
 
-The default builds ten Tower cases, an SDK reference PE, and a separate
+The external PE imports `tower_vk_plan_image_allocation_v1` from
+`tower_graphics.dll`. The script checks its export at ordinal 13 and compares
+ten rows with the SDK control. Each caller queries the same recorded
+requirements once. The index-31 and 64-bit size cases check the published
+fields. Every refusal checks all output bytes including padding.
+
+Omitting `--release` builds ten Tower cases, an SDK reference PE, and a separate
 C consumer PE calling the same SDK control across a private DLL boundary.
 The script saves the caller's COFF relocation, PE imports, rows and exit
 status. To test another provider, append its C source or standalone Win64
@@ -295,7 +304,7 @@ original caller first. The comparison fixture selects `allocation_memory`
 for source images and passes the returned descriptor directly to
 `vkAllocateMemory`. The existing bind and atlas path stay in the fixture.
 The C call site resolves to the SDK control under the agreed external
-symbol. Supply the portable provider for its own qualification when available.
+symbol. The ordinal-13 run uses the release mode above and the same five-image fixture.
 
 `allocation_trace.tower` reconstructs the first allowed type from the raw
 requirements and physical table. It checks the device and image, borrowed

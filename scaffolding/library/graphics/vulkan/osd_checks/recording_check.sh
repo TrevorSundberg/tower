@@ -7,21 +7,21 @@ here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../../../.." && pwd)
 case "$suite" in
     preflight)
-        rows=28; entry=tower_vk_image_format_preflight_v1; query=vkGetPhysicalDeviceImageFormatProperties
+        ordinal=12; rows=28; entry=tower_vk_image_format_preflight_v1; query=vkGetPhysicalDeviceImageFormatProperties
         observers=(osd_observe_query); blocked=() ;;
     allocation)
-        rows=10; entry=tower_vk_plan_image_allocation_v1; query=vkGetImageMemoryRequirements
+        ordinal=13; rows=10; entry=tower_vk_plan_image_allocation_v1; query=vkGetImageMemoryRequirements
         observers=(osd_begin_query osd_query_count); blocked=(vkAllocateMemory vkBindImageMemory) ;;
     *) echo "unknown recording suite $suite" >&2; exit 2 ;;
 esac
 provider= release=
-if [[ $# == 3 && $2 == --release && $suite == preflight ]]; then
+if [[ $# == 3 && $2 == --release ]]; then
     release=$(realpath -e -- "$3")
 elif [[ $# == 2 && $2 != --release ]]; then
     provider=$(realpath -e -- "$2")
 elif (( $# != 1 )); then
     echo "usage: $0 $suite NEW_OUTPUT_DIRECTORY [PROVIDER.c_OR_obj]" >&2
-    if [[ $suite == preflight ]]; then echo "       or append --release GRAPHICS_BUILD_DIRECTORY" >&2; fi
+    echo "       or append --release GRAPHICS_BUILD_DIRECTORY" >&2
     exit 2
 fi
 : "${MINGW_SYSROOT:?path to the x86_64-w64-mingw32 sysroot}"
@@ -39,7 +39,9 @@ if [[ -n $release ]]; then
     cp -- "$release/$dll" "$release/$implib" .
     sha256sum "$dll" "$implib" > release.sha256
     imports "$dll"
-    client_flags=(-I"$here/.." '-DOSD_PREFLIGHT_PROVIDER_HEADER="image_format_preflight.h"')
+    if [[ $suite == preflight ]]; then
+        client_flags=(-I"$here/.." '-DOSD_PREFLIGHT_PROVIDER_HEADER="image_format_preflight.h"')
+    fi
 fi
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
 "$root/bootstrap/linux-x64/towerc" "$here/${suite}_cases.tower" --library --jobs 1 \
@@ -53,7 +55,7 @@ for unit in driver record sdk; do
 done
 { printf 'LIBRARY vulkan-1.dll\nEXPORTS\n'; printf '%s\n' "$query" "${observers[@]}" "${blocked[@]}"; } > loader.def
 if [[ -n $release ]]; then
-    # Resolve the release's other Vulkan imports as in the ordinal-12 Wine replay.
+    # Resolve the release's other Vulkan imports through Wine.
     awk -v query="$query" '$1 == "Name:" { owner = $2 }
         owner == "vulkan-1.dll" && $1 == "Symbol:" && $2 != query {print $2 "=winevulkan." $2}' \
         "$dll.imports" >> loader.def
@@ -112,10 +114,10 @@ if [[ -n $release || -n $provider || $suite == allocation ]]; then
     llvm-readobj --coff-exports "$dll" > provider.exports
     imports external.exe
     if [[ -n $release ]]; then
-        awk -v entry="$entry" '$1 == "Ordinal:" { ord = $2 }
-            $1 == "Name:" && $2 == entry && ord == 12 { found++ }
+        awk -v entry="$entry" -v ordinal="$ordinal" '$1 == "Ordinal:" { ord = $2 }
+            $1 == "Name:" && $2 == entry && ord == ordinal { found++ }
             END { exit found != 1 }' provider.exports || {
-            echo "expected $dll to export $entry at ordinal 12" >&2; exit 1;
+            echo "expected $dll to export $entry at ordinal $ordinal" >&2; exit 1;
         }
     else
         imports "$dll"

@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports image-format preflight, image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports image allocation planning, image-format preflight, image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [preflight](image_format_preflight.h), [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [allocation planning](image_allocation_plan.h), [preflight](image_format_preflight.h), [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkGetImageMemoryRequirements`, `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles ten Tower objects for
+The entry verifies the checked-in bootstrap, compiles eleven Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -746,3 +746,19 @@ This was a link-only test with diagnostic stubs. Draw assigned shipping
 Win64 execution to its existing slot 9 job
 `a1fbfaac-7f89-4011-8648-dadada799ec8` after the ordinal-11 application
 job `3a6e478a-93ad-42c5-a9b1-82317fb70b48`.
+
+## Image allocation planning at ordinal 13
+
+Include `image_allocation_plan.h` and link the matching `tower_graphics.lib`.
+After image creation and before binding, pass the device, image and up to
+`VK_MAX_MEMORY_TYPES` entries from the creating physical device. Supply
+separate writable `VkMemoryAllocateInfo` storage. The planner queries the
+image once and selects the lowest eligible type with all required flags.
+On `VK_FALSE`, the entire output retains its original bytes. On `VK_TRUE`,
+pass the written descriptor to `vkAllocateMemory`. Account its full
+`allocationSize` after success. Bind the returned memory to the same image
+at offset zero and handle the signed bind result separately. The caller
+owns the allocation and retires GPU use before releasing the resources.
+
+The [Win64 allocation recorder](osd_checks/README.md#post-create-allocation-plan-on-win64)
+builds a separate C consumer against the public header and release library.
