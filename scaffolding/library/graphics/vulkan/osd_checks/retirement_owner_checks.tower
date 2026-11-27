@@ -1,0 +1,83 @@
+import tower;
+
+struct Owner {
+    view: u64*; image: u64*; memory: u64*; size: u64; metadata: u64[4];
+}
+struct Totals { bytes: u64; count: u64; peak_bytes: u64; peak_count: u64; }
+struct Recording {
+    owner: Owner; totals: Totals; initial: Totals;
+    children: u64[3]; mask: u32; remaining: u32; rows: bool;
+}
+var View: u32 = 1;
+var Image: u32 = 2;
+var Memory: u32 = 4;
+var AllocationBytes: u64 = 4294983680;
+extern fn set_recording(trace: Recording*): void;
+extern fn get_recording(): Recording*;
+extern fn retire_test_owner(device: Recording*, owner: Owner*, totals: Totals*): void;
+extern fn putchar(character: i32): i32;
+extern fn puts(text: u8*): i32;
+extern fn exit(status: i32): void;
+extern fn getenv(name: u8*): u8*;
+extern fn memcmp(a: void*, b: void*, bytes: usize): i32;
+
+fn require(ok: bool, msg: u8*): void {
+    if !ok {
+        puts(msg);
+        exit(convert(i32, get_recording().mask + 1));
+    }
+}
+fn record(device: Recording*, kind: u32, child: u64*, slot: usize, allocator: void*): void {
+    var t = get_recording();
+    require(device == t, "unexpected device");
+    require(allocator == null, "unexpected allocator");
+    require(child == &t.children[slot], "unexpected child");
+    require((t.remaining & kind) != 0 && (t.remaining & (kind - 1)) == 0, "unexpected retirement call or order");
+    require(memcmp(bits(void*, &t.totals), bits(void*, &t.initial), sizeof(Totals)) == 0, "charge or peak changed during release");
+    if t.rows {
+        var operations = "vif";
+        putchar(convert(i32, operations[slot]));
+    }
+    t.remaining ^= kind;
+}
+export fn vkDestroyImageView(d: Recording*, v: u64*, a: void*): void { record(d, View, v, 0, a); }
+export fn vkDestroyImage(d: Recording*, i: u64*, a: void*): void { record(d, Image, i, 1, a); }
+export fn vkFreeMemory(d: Recording*, m: u64*, a: void*): void { record(d, Memory, m, 2, a); }
+
+fn subset(mask: u32, rows: bool): void {
+    var t: Recording = {mask: mask, remaining: mask, rows: rows, ..default};
+    set_recording(&t);
+    if rows { putchar(convert(i32, *"0") + convert(i32, mask)); putchar(convert(i32, *" ")); }
+    t.totals = {bytes: 8192, count: 1, peak_bytes: AllocationBytes * 2, peak_count: 4};
+    var after_release = t.totals;
+    t.owner.size = AllocationBytes;
+    for (var i: usize = 0; i < sizeof(decltype(t.owner.metadata)) / sizeof(u64); i++) {
+        t.owner.metadata[i] = ~convert(u64, i);
+    }
+    if (mask & View) != 0 { t.owner.view = &t.children[0]; }
+    if (mask & Image) != 0 { t.owner.image = &t.children[1]; }
+    if (mask & Memory) != 0 {
+        t.owner.memory = &t.children[2]; t.totals.bytes += AllocationBytes; t.totals.count++;
+    }
+    var cleared: Owner = default;
+    for (var call: usize = 0; call < 2; call++) {
+        if rows && call == 1 { putchar(convert(i32, *"|")); }
+        t.initial = t.totals;
+        retire_test_owner(&t, &t.owner, &t.totals);
+        require(t.remaining == 0, "missing retirement call");
+        require(memcmp(bits(void*, &t.owner), bits(void*, &cleared), sizeof(Owner)) == 0, "owner still populated");
+        require(memcmp(bits(void*, &t.totals), bits(void*, &after_release), sizeof(Totals)) == 0, "incorrect charge or peak after release");
+    }
+    if rows { puts(""); }
+    set_recording(null);
+}
+export fn main(): i32 {
+    var rows = getenv("OSD_RETIREMENT_ROWS") != null;
+    var repeats: usize = 1;
+    if getenv("OSD_RETIREMENT_BENCH") != null { repeats = 50000; }
+    for (var i: usize = 0; i < repeats; i++) {
+        for (var mask: u32 = 0; mask <= (View | Image | Memory); mask++) { subset(mask, rows); }
+    }
+    puts("eight owners and their cleared second calls passed");
+    return 0;
+}

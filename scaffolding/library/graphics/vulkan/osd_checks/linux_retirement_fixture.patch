@@ -1,0 +1,68 @@
+--- a/scaffolding/library/graphics/vulkan/osd_upload_checks/retained.tower
++++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/retained.tower
+@@ -2,6 +2,7 @@
+ import device_cases;
+ import pack;
+ import sampling;
++import lifetime_events;
+ import .readback_abi;
+ import .readback_device;
+ import .readback_clear;
+@@ -34,6 +35,13 @@
+ extern fn tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
+     format: u32, range: VkImageSubresourceRange*, out: VkImageViewHandle**): i32;
+ 
++extern fn osd_destroy_retired_image(device: VkDeviceHandle*, view: VkImageViewHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): void;
++
++fn mark_retirement(kind: u64, device: VkDeviceHandle*, image: Image*): void {
++    var event: Event = {kind: kind, a: bits(u64, device), b: bits(u64, image.handle), c: bits(u64, image.memory)};
++    if write(7, bits(u8*, &event), sizeof(Event)) != convert(i64, sizeof(Event)) { exit(3); }
++}
++
+ struct TextureRecord { shape: Shape; payload_bytes: u64; view_type: u32; }
+ 
+ // Upload from one mapped allocation. The caller owns the new image across return.
+@@ -171,5 +179,14 @@
+         if !sample_retained(ctx, cmd, records[i], convert(u32, i), &images[i]) { return false; }
+     }
+     puts("all_samples_retired");
++    var tracing = getenv("OSD_LIFETIME_TRACE") != null;
++    for (var i: usize = 0; i < live; i++) {
++        var image = &images[i];
++        if tracing { mark_retirement(BeginRetirement, ctx.device, image); }
++        osd_destroy_retired_image(ctx.device, image.view, image.handle, image.memory);
++        if tracing { mark_retirement(EndRetirement, ctx.device, image); }
++        *image = default;
++    }
++    live = 0;
+     return true;
+ }
+--- a/scaffolding/library/graphics/vulkan/osd_upload_checks/verify_lifetime.tower
++++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/verify_lifetime.tower
+@@ -84,7 +84,17 @@
+         }
+         released(host); destroyed(target);
+     }
+-    for (var i: usize = 0; i < count; i++) { destroyed(sources[i]); }
++    for (var i: usize = 0; i < count; i++) {
++        var t = sources[i];
++        var entry = take(BeginRetirement);
++        insist(entry.a != 0 && entry.b == t.image && entry.c == t.memory, "retired owner mismatch");
++        var view = take(DestroyView); var image = take(DestroyImage); var memory = take(FreeMemory);
++        insist(view.a == t.view && image.a == t.image && memory.a == t.memory, "retired children mismatch");
++        insist(view.b == entry.a && image.b == entry.a && memory.b == entry.a, "retired device mismatch");
++        insist(view.c == 0 && image.c == 0 && memory.c == 0, "retired allocator mismatch");
++        var leave = take(EndRetirement);
++        insist(leave.a == entry.a && leave.b == entry.b && leave.c == entry.c, "retirement return mismatch");
++    }
+     var end: Event; insist(read(0, bits(void*, &end), sizeof(Event)) == 0, "unexpected trailing event");
+     puts("all five images and views survived all sixteen sampled reads"); return 0;
+ }
+--- a/scaffolding/library/graphics/vulkan/osd_upload_checks/lifetime_events.tower
++++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/lifetime_events.tower
+@@ -15,3 +15,5 @@
+ var Draw: u64 = 13;
+ var TextureCopy: u64 = 14;
+ var Submit: u64 = 15;
++var BeginRetirement: u64 = 16;
++var EndRetirement: u64 = 17;
