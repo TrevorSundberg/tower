@@ -123636,3 +123636,23 @@ gave exits 1, 1, 134. Only recoverable paths destroyed the fence; none mapped.
 The first log assertion expected the counted fixture's validation label in
 the shaderless error path. Checking its actual failure-callback label
 confirmed zero callbacks and allowed the remaining controls to run.
+
+A clean main checkout containing only the declared queue prerequisite
+verified and fetched the two implementation commits from their bundle. A
+build under a different absolute source path reproduced stripped ELFs and
+all four process logs. The unstripped ELF comparison initially failed at
+byte 41. llvm-nm and llvm-strings identified the absolute module path in
+the disambiguated readback_number symbol. Placing the fresh checkout at
+the original source pathname reproduced the exact counted object, both
+ELFs and three SPIR-V files. Strict, core13, pair and shaderless raw captures
+matched again. A separate evidence-only Tower reader decoded each little-endian
+field and computed every pixel and guard byte. It accepted the successful
+captures and refused the one-draw clamp. The archived failure controls check
+the counted and shaderless entries. The previously published two-live-queue
+experiment remains host 12 evidence.
+
+The assigned Tower refs and the separate C ABI review identify the independent
+control shader hashes and Draw's different word counts. The worker's registered
+reader has no Draw reference. Draw's exact asset hashes and its corrected
+pixel receipt remain manager-supplied comparison inputs. This run establishes
+the Tower control pixels only.

@@ -279,3 +279,11 @@ function pointer. The second count remained two and both records matched,
 but its four pixels reverted to `51a2f2ff`. The fixture returned 1 with
 zero validation warnings/errors. This differential exercises two commands.
 Compute-only production of two commands and 16384-command execution are open.
+
+Draw comparison provenance is separate. The Tower shader ABI review identifies
+Draw's original compute, vertex and fragment assets as 292, 285 and 84 words.
+This fixture ran 438, 273 and 95 words with the SPIR-V hashes in the table
+above. The registered slot 11 reader supplied Tower only. Draw's exact
+three hashes and corrected pixel receipt were unavailable in the assigned
+refs. All Quadro pixel results on this page refer to the Tower controls.
+[Tower shader ABI review](https://github.com/TrevorSundberg/tower/commit/5e649360258171d66e924a1f1281080147cf957b)
