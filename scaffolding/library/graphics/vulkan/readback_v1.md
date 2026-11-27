@@ -53,7 +53,11 @@ caller span, unmaps, destroys the objects and releases their memory. A failed
 wait takes the device-idle recovery path before cleanup. An undrainable
 device other than device loss terminates the process with a diagnostic and
 the resources still live. The caller must keep its destination writable
-and its queue exclusively available through the synchronous return.
+and its queue exclusively available through the synchronous return. The tested
+device has one queue. On a device with several ordinary queues, the current
+`vkDeviceWaitIdle` recovery also requires external synchronization of host
+access to all of them. [Vulkan host synchronization for device-idle waits](https://docs.vulkan.org/refpages/latest/refpages/source/vkDeviceWaitIdle.html)
+
 Asynchronous submission handles and recoverable retirement remain design work.
 
 ## Build and run
