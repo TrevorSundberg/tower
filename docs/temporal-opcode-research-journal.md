@@ -124392,3 +124392,15 @@ The packet checks the prepared SDK, inspects the just-built DLL and starts
 its private server before the first PE. An independent reader fetched the
 reviewed manager base and reconstructed the worker checkout from the
 incremental bundle. All tracked regular files matched their SHA-256 list.
+
+## Draw staged buffer recording in the Win64 DLL
+
+Host 11 assignment 55b94649-bba9-4cf7-a4e5-0ebf63060a78 starts from the
+complete six-export ed308ca0 tree. The baseline public build reproduced
+the previous DLL byte for byte. The reviewed Linux module and public C
+header from 2ebc7ab2 are unchanged at dadf38c0. The existing counted and
+readback ABI already declare all their dependencies on this tree.
+The public cross-build adds the module as a separate object and exports
+its by-value entry at ordinal 7. An isolated compilation with the
+checked-in bootstrap and LLVM 19 produced one public COFF symbol with
+only vkCmdCopyBuffer and core vkCmdPipelineBarrier2 unresolved.
