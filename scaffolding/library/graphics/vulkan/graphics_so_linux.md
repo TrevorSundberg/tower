@@ -211,9 +211,6 @@ ELF with the release digest above. In the Draw checkout, select the
 release headers and the same absolute shared object for both selectors.
 
 ```sh
-export DRAW_TOWER_IMAGE_PREFLIGHT_ROOT="$TOWER_ROOT"
-export DRAW_TOWER_CREATE_IMAGE_ROOT="$TOWER_ROOT"
-export DRAW_TOWER_BOUND_VIEW_ROOT="$TOWER_ROOT"
 export DRAW_TOWER_GRAPHICS_SO="$TOWER_OUT/libtower_graphics.so"
 export DRAW_TOWER_IMAGE_PREFLIGHT_SO="$DRAW_TOWER_GRAPHICS_SO"
 bash tests/vulkan-image.sh
