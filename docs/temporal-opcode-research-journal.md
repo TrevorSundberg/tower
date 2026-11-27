@@ -124393,6 +124393,43 @@ its private server before the first PE. An independent reader fetched the
 reviewed manager base and reconstructed the worker checkout from the
 incremental bundle. All tracked regular files matched their SHA-256 list.
 
+### Six-export Win64 DLL review
+
+Rendering accepted the slot 11 `cce07bd9` bundle ending at
+`ed308ca01fd18935ada9340faa4ec7559288a659`. The archive SHA-256 was
+`69fbd67bf2838ce98abdb771d88ee0ad4c758bbf472a424e382a50abb80f1bd4`.
+The manager verified all 838 manifest entries, the standalone bundle and
+its three prerequisites, all 3,638 regular source-file digests and the
+clean replay product hashes. The prior five-entry packet and header-only
+supplement were also available in this archive. The manager verified
+their respective 359 and 361 inner manifest entries. The public indexed
+header matches `be779636`. The finish implementation and declaration
+match the reviewed Linux files at `37809215`.
+
+Inspection of the supplied PE binaries confirmed ordinals 1–6, six loader
+imports, the external C caller's finish import and the raw Vulkan control's
+independent link. In both original and clean captures the manager checked
+the 64 alternating guarded results, the same primary on each reset, and
+one unfenced submit followed by a wait on its own queue before reuse.
+It independently checked that injected idle errors propagated and that
+pool destruction and unmapping followed the owner's successful drain.
+The earlier counted captures, 240 staging bytes and asynchronous pending
+fence also matched the previous oracle with the new DLL loaded.
+The [Win64 link guide](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#blocking-staged-uploads)
+identifies the DLL, import library, C caller, validation scope and open
+application coverage. This review adds documentation without changing
+the tested code or build inputs.
+
+### Independent six-export C cross-link on Draw
+
+At `98c81d98`, Draw independently reproduced the six-export Windows
+DLL at Tower `b0d526fc` and linked an external C PE against all six
+names. Rendering rehashed the retained DLL and import library and
+verified the clean binary manifest. The [six-export C link receipt](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md#draw-c-link-against-all-six-exports)
+identifies the PE and its producer, the verified ordinals and the
+dependency between Draw's five- and six-export application tests. This
+update records evidence without changing the release build or executable.
+
 ## Draw staged buffer recording in the Win64 DLL
 
 Host 11 assignment 55b94649-bba9-4cf7-a4e5-0ebf63060a78 starts from the
@@ -124523,3 +124560,13 @@ finish, checked timing and available sanitizer tests. The release build
 and link use the public commands in graphics_dll_windows.md. The worker
 packet retains raw PE tables, C sources and objects, the expanded compiler
 and linker commands, all guarded captures, errors and timing samples.
+
+The next packaging input includes the public six-entry review at
+`b0d526fc` and its documentation-only successor `f4494a9e`, which records
+Draw's independent six-name C link. The Win64 guide preserves that receipt
+beside the six-entry DLL hashes. Compared with the delivered seven-entry
+tip `1512cb96`, only this journal and the guide changed. Git blob
+comparisons against `dadf38c0` verified both the pinned recorder and its
+header. Runtime, memory and timing evidence still belongs to the archived
+seven-entry build. The original job-ID archive and bundle verified against
+their deposited SHA-256 manifest.
