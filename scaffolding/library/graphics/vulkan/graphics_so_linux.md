@@ -200,3 +200,44 @@ attachment. The hardware query returned the expected format rejection
 (−11). The first process exited 139. On a full repeat both C and Tower
 refusals exited 1. The cause of the signal remains open. Draw's shipping
 preflight job `dff82eda` uses this shared-library run as its prerequisite.
+
+## Draw constructor checks with the twelve-entry library
+
+At Draw `51d4785e6456353b9a65f49d311cb0c6925ee42d`, the C and Tower
+image constructors can use one shared library for format preflight, image
+creation and bound-view creation. Draw independently fetched Tower
+`73f499791fcdb6b69bdc16fd7e0a34a847668053` and rebuilt the 14,976-byte
+ELF with the release digest above. In the Draw checkout, select the
+release headers and the same absolute shared object for both selectors.
+
+```sh
+export DRAW_TOWER_IMAGE_PREFLIGHT_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_CREATE_IMAGE_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_BOUND_VIEW_ROOT="$TOWER_ROOT"
+export DRAW_TOWER_GRAPHICS_SO="$TOWER_OUT/libtower_graphics.so"
+export DRAW_TOWER_IMAGE_PREFLIGHT_SO="$DRAW_TOWER_GRAPHICS_SO"
+bash tests/vulkan-image.sh
+```
+
+Draw reported 290 matching scenarios across ten recording configurations
+and two additional clobbered-view checks. Both final configurations
+reproduced all 29 traces, diagnostics and exits of the split-library check.
+With the five shipping OSD headers, the 45-event trace had SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+The separate 28-row SDK reference had SHA-256
+`c5a4f4aee3da06792977fb78b71737a219de63c12190f22114bd7ad231d7ca3e`.
+
+Each recording executable had one Tower library dependency. Draw traced all
+three symbols to the rebuilt library with `LD_DEBUG`. The C executable had
+SHA-256 `c4ae00b8be510cfc2d1de656f5657becf54e69319e4a19771d48db8b8ba0ca01`
+and the Tower executable had SHA-256
+`ac69616d5ddc9a89a6a3822fc9c67f4fff26e061beb0f84a8c14c97a3e681144`.
+The eleven-entry Draw recording executable also ran unchanged against this
+release. Draw checked the builder's library selection across four builds.
+The split configuration loaded two Tower libraries, the single-library
+build and its cached repeat loaded one, and the object build loaded zero.
+
+These Draw tests used a recording Vulkan driver. Draw assigned the shipping
+GPU comparison to slot 10 job `b6f28d59-681f-44bd-b19e-6922d03bf357`
+using the standalone preflight result from `dff82eda`. The planner has
+its own shipping test in `7e3234ce`.
