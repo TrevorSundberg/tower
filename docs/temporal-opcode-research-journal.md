@@ -123796,3 +123796,21 @@ and re-recording. Start with raw API calls, then compare a library entry on
 the same device and inputs. Draw caller details await manager confirmation.
 The initial base build with bootstrap/linux-x64/towerc and the previous
 receiver's hashed SDK and SPIR-V matched both accepted complete logs.
+
+The raw Vulkan-header, external Tower and C-through-DSO controls passed
+on host 12. Each checked individual reset flags 0/1, begin usages 0/1/4,
+command identity, ABI layout, guarded stage output, signed errors and
+first-error order. The new reuse-core13 fixture used one pool (flags 2)
+and one primary for three counted submissions. Each wait succeeded. Both
+subsequent fence resets preceded command reset and begin. Alternating the
+positions of count-zero and count-one outputs makes stale copies visible.
+The native control and C-through-DSO GPU logs matched the ordinary Tower
+caller byte for byte. Its synchronization-validation messenger stayed at
+zero. The original one-shot fixtures reproduced their complete logs.
+
+The first audit tried mutable module state in a Tower library. The
+compiler rejected that source. The working probe logs the actual handles,
+compares identities across the trace and arms a process-local begin fault
+only after the command reset. Both injected OOMs (-1) exited 1 at the
+proper Vulkan label. Only the first frame submitted in either fault run.
+The replay checks stage events, handle identities, and complete pixels.

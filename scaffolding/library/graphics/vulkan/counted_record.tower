@@ -89,14 +89,12 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
 
 fn counted_record(command: VkCommandBufferHandle**, submit: VkSubmitInfo*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, indices: u16*, index_bytes: u64,
-    image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*): bool {
+    image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*, first_count: u32): bool {
     var cmd = *command;
-    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
-    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
     vkCmdUpdateBuffer(cmd, index_buffer, 0, index_bytes, bits(void*, indices));
     counted_buffer_barrier(cmd, index_buffer, VkStageTransfer, VkStageVertexInput, VkTransferWrite, VkIndexRead);
-    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 0, 0)
-        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 1, counted_sample_bytes()) {
+    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, first_count, 0)
+        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 1 - first_count, counted_sample_bytes()) {
         return false;
     }
     counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);

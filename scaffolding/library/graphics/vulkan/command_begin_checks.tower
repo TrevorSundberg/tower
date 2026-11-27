@@ -1,0 +1,63 @@
+import tower;
+import readback_abi;
+import readback_output;
+
+extern fn tower_vk_command_reset_begin_v1(cmd: VkCommandBufferHandle*, flags: u32, usage: u32, step: u32*): i32;
+extern fn begin_from_c(cmd: VkCommandBufferHandle*, flags: u32, usage: u32, step: u32*): i32;
+extern fn begin_raw(cmd: VkCommandBufferHandle*, flags: u32, usage: u32, step: u32*): i32;
+extern fn begin_info_matches(info: VkCommandBufferBeginInfo*, size: usize, usage: u32): i32;
+extern fn exit(status: i32): void;
+
+struct Recording {
+    reset_flags: u32; usage: u32; reset_result: i32; begin_result: i32; calls: u32;
+}
+fn require(ok: bool, msg: u8*): void { if !ok { puts(msg); exit(3); } }
+
+export fn vkResetCommandBuffer(cmd: VkCommandBufferHandle*, flags: u32): i32 {
+    var trace = bits(Recording*, cmd);
+    require(trace.calls == 0 && flags == trace.reset_flags, "unexpected reset or flags");
+    trace.calls++;
+    return trace.reset_result;
+}
+export fn vkBeginCommandBuffer(cmd: VkCommandBufferHandle*, info: VkCommandBufferBeginInfo*): i32 {
+    var trace = bits(Recording*, cmd);
+    require(trace.calls == 1 && trace.reset_result == 0, "unexpected begin");
+    require(begin_info_matches(info, sizeof(VkCommandBufferBeginInfo), trace.usage) == 1, "native begin info mismatch");
+    trace.calls++;
+    return trace.begin_result;
+}
+var Begin: type = function(i32, VkCommandBufferHandle*, u32, u32, u32*);
+var ReleaseResources: u32 = 1;
+var OneTimeSubmit: u32 = 1;
+var SimultaneousUse: u32 = 4;
+fn run(call: Begin, flags: u32, usage: u32, reset: i32, begin: i32): void {
+    var trace: Recording = { reset_flags: flags, usage: usage, reset_result: reset, begin_result: begin, ..default };
+    var slots: u32[3];
+    slots[0] = 42; slots[1] = 42; slots[2] = 42;
+    var result = call(bits(VkCommandBufferHandle*, &trace), flags, usage, &slots[1]);
+    require(slots[0] == 42 && slots[2] == 42, "overwrote failed-step slot bounds");
+    if reset != 0 {
+        require(trace.calls == 1 && result == reset && slots[1] == 1, "reset failure");
+    } else {
+        require(trace.calls == 2 && result == begin, "begin result");
+        if begin == 0 { require(slots[1] == 0, "success step"); }
+        else { require(slots[1] == 2, "begin failure"); }
+    }
+}
+fn check(call: Begin): void {
+    for (var flags: u32 = 0; flags <= ReleaseResources; flags++) {
+        run(call, flags, 0, 0, 0);
+        run(call, flags, OneTimeSubmit, 0, 0);
+        run(call, flags, SimultaneousUse, 0, 0);
+        // Same signed fault in either operation must remain distinguishable.
+        run(call, flags, OneTimeSubmit, -1, -4);
+        run(call, flags, OneTimeSubmit, 0, -1);
+        run(call, flags, SimultaneousUse, 0, -4);
+    }
+}
+export fn main(): i32 {
+    check(begin_raw); puts("raw reset/begin matrix passed");
+    check(tower_vk_command_reset_begin_v1); puts("external Tower reset/begin matrix passed");
+    check(begin_from_c); puts("Vulkan-header C reset/begin matrix passed");
+    return 0;
+}
