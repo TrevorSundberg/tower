@@ -1,0 +1,133 @@
+import tower;
+
+// Link the unchanged library objects as separate translation units.
+extern fn update32(a: f32, b: f32, span: u32): f32;
+extern fn update64(a: f64, b: f64, span: u32): f64;
+extern fn sub32(a: f32, b: f32): f32;
+extern fn mul32(a: f32, b: f32): f32;
+extern fn eq32(a: f32, b: f32): bool;
+extern fn ne32(a: f32, b: f32): bool;
+extern fn lt32(a: f32, b: f32): bool;
+extern fn le32(a: f32, b: f32): bool;
+extern fn gt32(a: f32, b: f32): bool;
+extern fn ge32(a: f32, b: f32): bool;
+extern fn i32_to_f32(a: i32): f32;
+extern fn f32_to_i32(a: f32): i32;
+extern fn u32_to_f32(a: u32): f32;
+extern fn f32_to_u32(a: f32): u32;
+extern fn i64_to_f32(a: i64): f32;
+extern fn f32_to_i64(a: f32): i64;
+extern fn u64_to_f32(a: u64): f32;
+extern fn f32_to_u64(a: f32): u64;
+extern fn copy32(a: f32): f32;
+extern fn neg32(a: f32): f32;
+extern fn numeric32(a: f32): f32;
+extern fn sub64(a: f64, b: f64): f64;
+extern fn mul64(a: f64, b: f64): f64;
+extern fn eq64(a: f64, b: f64): bool;
+extern fn ne64(a: f64, b: f64): bool;
+extern fn lt64(a: f64, b: f64): bool;
+extern fn le64(a: f64, b: f64): bool;
+extern fn gt64(a: f64, b: f64): bool;
+extern fn ge64(a: f64, b: f64): bool;
+extern fn i32_to_f64(a: i32): f64;
+extern fn f64_to_i32(a: f64): i32;
+extern fn u32_to_f64(a: u32): f64;
+extern fn f64_to_u32(a: f64): u32;
+extern fn i64_to_f64(a: i64): f64;
+extern fn f64_to_i64(a: f64): i64;
+extern fn u64_to_f64(a: u64): f64;
+extern fn f64_to_u64(a: f64): u64;
+extern fn copy64(a: f64): f64;
+extern fn neg64(a: f64): f64;
+extern fn numeric64(a: f64): f64;
+extern fn widen(a: f32): f64;
+extern fn narrow(a: f64): f32;
+
+fn expect(ok: bool, message: u8*): void {
+    if !ok { trap(message, 0); }
+}
+
+// Expected encodings include the midpoint and gradual-underflow cases in
+// scaffolding/library/float_bits_test.tower. Keep NaNs in Tower across the ABI.
+export fn check_updates(): void {
+    expect(bits(u32, update32(1.0, bits(f32, 864026624), 1)) == 1065353216, "f32 lower even midpoint");
+    expect(bits(u32, update32(bits(f32, 1065353217), bits(f32, 864026624), 1)) == 1065353218, "f32 upper even midpoint");
+    expect(bits(u64, update64(1.0, bits(f64, 4368491638549381120), 1)) == 4607182418800017408, "f64 lower even midpoint");
+    expect(bits(u64, update64(bits(f64, 4607182418800017409), bits(f64, 4368491638549381120), 1)) == 4607182418800017410, "f64 upper even midpoint");
+    expect(bits(u32, update32(bits(f32, 3), 0.0, 2)) == 2, "f32 subnormal division tie");
+    expect(bits(u64, update64(bits(f64, 1), bits(f64, 1), 2)) == 1, "f64 smallest subnormal");
+    expect(bits(u32, update32(-0.0, -0.0, 1)) == 2147483648, "f32 negative zero");
+    expect(bits(u64, update64(-0.0, 0.0, 1)) == 0, "f64 mixed zeros");
+    expect(bits(u32, update32(-1.0, 0.0, 0)) == 4286578688, "f32 negative infinity");
+    expect(bits(u64, update64(1.0, 0.0, 0)) == 9218868437227405312, "f64 positive infinity");
+    expect(bits(u32, update32(0.0, 0.0, 0)) == 2143289344, "f32 canonical invalid division");
+    expect(bits(u64, update64(bits(f64, 18444492273895866434), 1.0, 2)) == 9221120237041090560, "f64 canonical payload on add");
+    expect(update32(16777216.0, 0.0, 16777217) == 1.0, "f32 span rounds before division");
+    expect(update64(4294967295.0, 0.0, 4294967295) == 1.0, "f64 unsigned span");
+}
+
+export fn check_ops32(): void {
+    var payload = bits(f32, 4290773058);
+    expect(bits(u32, copy32(payload)) == 4290773058, "f32 copy preserves NaN payload and sign");
+    expect(bits(u32, neg32(payload)) == 2143289410, "f32 negation toggles only the sign");
+    expect(bits(u32, neg32(0.0)) == 2147483648, "f32 negate zero");
+    expect(bits(u32, numeric32(payload)) == 2143289344, "f32 same-width conversion canonicalizes");
+    expect(bits(u32, sub32(payload, 1.0)) == 2143289344, "f32 subtract canonicalizes");
+    expect(bits(u32, mul32(bits(f32, 3), 0.5)) == 2, "f32 multiply tie preserves gradual underflow");
+    expect(sub32(1.0, 4.0) == -3.0 && mul32(-1.5, 2.0) == -3.0, "f32 finite arithmetic");
+    expect(eq32(-0.0, 0.0) && !ne32(-0.0, 0.0), "f32 zero comparison");
+    expect(!eq32(payload, payload) && ne32(payload, payload), "f32 unordered equality");
+    expect(!lt32(payload, 0.0) && !le32(0.0, payload) && !gt32(0.0, payload) && !ge32(payload, 0.0), "f32 unordered relational");
+    expect(lt32(-2.0, -1.0) && le32(1.0, 1.0) && gt32(1.0, -1.0) && ge32(-0.0, 0.0), "f32 finite relational");
+    expect(i32_to_f32(-2147483648) == -2147483648.0 && f32_to_i32(-2147483648.0) == -2147483648, "f32 signed i32 minimum");
+    expect(u32_to_f32(4294967295) == 4294967296.0, "f32 u32 maximum to float");
+    expect(i64_to_f32(-9223372036854775808) == -9223372036854775808.0 && f32_to_i64(-9223372036854775808.0) == -9223372036854775808, "f32 signed i64 minimum");
+    expect(u64_to_f32(18446744073709551615) == 18446744073709551616.0, "f32 u64 maximum rounds to power of two");
+    expect(f32_to_u32(-0.75) == 0 && f32_to_u64(-0.5) == 0, "f32 negative fractions to unsigned");
+    expect(f32_to_i32(-3.75) == -3 && f32_to_i64(3.75) == 3, "f32 truncation toward zero");
+    expect(f32_to_u32(4294967040.0) == 4294967040, "f32 upper in-range u32");
+    expect(f32_to_u64(18446742974197923840.0) == 18446742974197923840, "f32 upper in-range u64");
+}
+
+export fn check_ops64(): void {
+    var payload = bits(f64, 18444492273895866434);
+    expect(bits(u64, copy64(payload)) == 18444492273895866434, "f64 copy preserves NaN payload and sign");
+    expect(bits(u64, neg64(payload)) == 9221120237041090626, "f64 negation toggles only the sign");
+    expect(bits(u64, neg64(0.0)) == 9223372036854775808, "f64 negate zero");
+    expect(bits(u64, numeric64(payload)) == 9221120237041090560, "f64 same-width conversion canonicalizes");
+    expect(bits(u64, sub64(payload, 1.0)) == 9221120237041090560, "f64 subtract canonicalizes");
+    expect(bits(u64, mul64(bits(f64, 3), 0.5)) == 2, "f64 multiply tie preserves gradual underflow");
+    expect(sub64(1.0, 4.0) == -3.0 && mul64(-1.5, 2.0) == -3.0, "f64 finite arithmetic");
+    expect(eq64(-0.0, 0.0) && !ne64(-0.0, 0.0), "f64 zero comparison");
+    expect(!eq64(payload, payload) && ne64(payload, payload), "f64 unordered equality");
+    expect(!lt64(payload, 0.0) && !le64(0.0, payload) && !gt64(0.0, payload) && !ge64(payload, 0.0), "f64 unordered relational");
+    expect(lt64(-2.0, -1.0) && le64(1.0, 1.0) && gt64(1.0, -1.0) && ge64(-0.0, 0.0), "f64 finite relational");
+    expect(i32_to_f64(-2147483648) == -2147483648.0 && f64_to_i32(-2147483648.0) == -2147483648, "f64 signed i32 minimum");
+    expect(u32_to_f64(4294967295) == 4294967295.0, "f64 u32 maximum to float");
+    expect(i64_to_f64(-9223372036854775808) == -9223372036854775808.0 && f64_to_i64(-9223372036854775808.0) == -9223372036854775808, "f64 signed i64 minimum");
+    expect(u64_to_f64(18446744073709551615) == 18446744073709551616.0, "f64 u64 maximum rounds to power of two");
+    expect(f64_to_u32(-0.75) == 0 && f64_to_u64(-0.5) == 0, "f64 negative fractions to unsigned");
+    expect(f64_to_i32(-3.75) == -3 && f64_to_i64(3.75) == 3, "f64 truncation toward zero");
+    expect(f64_to_u32(4294967295.0) == 4294967295, "f64 upper in-range u32");
+    expect(f64_to_u64(18446744073709549568.0) == 18446744073709549568, "f64 upper in-range u64");
+}
+
+export fn check_widths(): void {
+    expect(bits(u32, narrow(1.000000059604644775390625)) == 1065353216, "f64 to f32 midpoint");
+    expect(bits(u64, widen(bits(f32, 1))) == 3936146074321813504, "widen minimum subnormal");
+    expect(bits(u32, narrow(1.0e300)) == 2139095040, "narrow overflow to infinity");
+    expect(bits(u64, widen(bits(f32, 4290773058))) == 9221120237041090560, "widen NaN");
+    expect(bits(u32, narrow(bits(f64, 18444492273895866434))) == 2143289344, "narrow NaN");
+}
+
+// Each export is a separate process invocation. Returning any value fails the case.
+export fn nan_to_i32(): i32 { return f32_to_i32(bits(f32, 2139095041)); }
+export fn infinity_to_i64(): i64 { return f64_to_i64(bits(f64, 9218868437227405312)); }
+export fn negative_to_u32(): u32 { return f32_to_u32(-1.0); }
+export fn negative_to_u64(): u64 { return f64_to_u64(-1.0); }
+export fn above_i32(): i32 { return f32_to_i32(2147483648.0); }
+export fn below_i32(): i32 { return f64_to_i32(-2147483649.0); }
+export fn above_u32(): u32 { return f64_to_u32(4294967296.0); }
+export fn above_i64(): i64 { return f64_to_i64(9223372036854775808.0); }
+export fn above_u64(): u64 { return f32_to_u64(18446744073709551616.0); }

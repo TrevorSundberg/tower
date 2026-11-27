@@ -1,0 +1,3 @@
+import tower;
+export fn update32(a: f32, b: f32, span: u32): f32 { return (a + b) / convert(f32, span); }
+export fn update64(a: f64, b: f64, span: u32): f64 { return (a + b) / convert(f64, span); }

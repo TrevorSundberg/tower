@@ -1,0 +1,44 @@
+import tower;
+
+export fn sub32(a: f32, b: f32): f32 { return a - b; }
+export fn mul32(a: f32, b: f32): f32 { return a * b; }
+export fn eq32(a: f32, b: f32): bool { return a == b; }
+export fn ne32(a: f32, b: f32): bool { return a != b; }
+export fn lt32(a: f32, b: f32): bool { return a < b; }
+export fn le32(a: f32, b: f32): bool { return a <= b; }
+export fn gt32(a: f32, b: f32): bool { return a > b; }
+export fn ge32(a: f32, b: f32): bool { return a >= b; }
+export fn i32_to_f32(a: i32): f32 { return convert(f32, a); }
+export fn f32_to_i32(a: f32): i32 { return convert(i32, a); }
+export fn u32_to_f32(a: u32): f32 { return convert(f32, a); }
+export fn f32_to_u32(a: f32): u32 { return convert(u32, a); }
+export fn i64_to_f32(a: i64): f32 { return convert(f32, a); }
+export fn f32_to_i64(a: f32): i64 { return convert(i64, a); }
+export fn u64_to_f32(a: u64): f32 { return convert(f32, a); }
+export fn f32_to_u64(a: f32): u64 { return convert(u64, a); }
+export fn copy32(a: f32): f32 { return a; }
+export fn neg32(a: f32): f32 { return -a; }
+export fn numeric32(a: f32): f32 { return convert(f32, a); }
+
+export fn sub64(a: f64, b: f64): f64 { return a - b; }
+export fn mul64(a: f64, b: f64): f64 { return a * b; }
+export fn eq64(a: f64, b: f64): bool { return a == b; }
+export fn ne64(a: f64, b: f64): bool { return a != b; }
+export fn lt64(a: f64, b: f64): bool { return a < b; }
+export fn le64(a: f64, b: f64): bool { return a <= b; }
+export fn gt64(a: f64, b: f64): bool { return a > b; }
+export fn ge64(a: f64, b: f64): bool { return a >= b; }
+export fn i32_to_f64(a: i32): f64 { return convert(f64, a); }
+export fn f64_to_i32(a: f64): i32 { return convert(i32, a); }
+export fn u32_to_f64(a: u32): f64 { return convert(f64, a); }
+export fn f64_to_u32(a: f64): u32 { return convert(u32, a); }
+export fn i64_to_f64(a: i64): f64 { return convert(f64, a); }
+export fn f64_to_i64(a: f64): i64 { return convert(i64, a); }
+export fn u64_to_f64(a: u64): f64 { return convert(f64, a); }
+export fn f64_to_u64(a: f64): u64 { return convert(u64, a); }
+export fn copy64(a: f64): f64 { return a; }
+export fn neg64(a: f64): f64 { return -a; }
+export fn numeric64(a: f64): f64 { return convert(f64, a); }
+
+export fn widen(a: f32): f64 { return convert(f64, a); }
+export fn narrow(a: f64): f32 { return convert(f32, a); }

@@ -1,0 +1,16 @@
+import tower;
+
+extern fn check_updates(): void;
+extern fn check_ops32(): void;
+extern fn check_ops64(): void;
+extern fn check_widths(): void;
+
+// Native executable entry for the same checks run through Wasm exports.
+// Link against acceptance, operations and update as separate objects.
+export fn main(): i32 {
+    check_updates();
+    check_ops32();
+    check_ops64();
+    check_widths();
+    return 0;
+}
