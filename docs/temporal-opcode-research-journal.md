@@ -123628,3 +123628,96 @@ retries per binary gave the same startup denial on all focused tests and
 two hardware invocations. The other hardware retry aborted with TSan's
 nested SEGV at 0x1048 (exit 66), also seen in the prior shader-module
 investigation. No TSan invocation completed.
+
+## Windows x64 shader-module DLL through Wine
+
+Assignment `ae126103-8417-471b-a3df-eba172943df8`, host 11. The rendering
+reader supplied `5e649360258171d66e924a1f1281080147cf957b`, directly on
+the tested Linux C source `c41428c4de27a8a135370b008a8b61c8885168dc`.
+The Windows loader reference was `88821d95b29ecf1fd4d757e64572bf90d7fa060f`.
+The counted application input was the separately retained
+`ea6ce0274d2de4166d526e2460f56868581b6937`. Its exact-size fread path and
+host-selected Wine validation mode were available in local Git objects.
+All application changes for this experiment live in the packet overlay.
+
+The published Tower bootstrap compiled the existing C entry for
+`x86_64-w64-windows-gnu`. An explicit linker export sufficed. The
+[DLL recipe](../scaffolding/library/graphics/vulkan/shader_module_windows.md)
+records the ordinary C declaration, type widths and standalone smoke build.
+The header needed only its platform comment updated. Both Clang and Tower
+emitted `i32 (ptr, ptr, i64, ptr, ptr)`. The C static assertions and live
+Tower layout check covered the input structure and its five offsets. The
+DLL is 2,560 bytes and its only import is `vkCreateShaderModule` from
+`vulkan-1.dll`. The caller supplies exclusive buffers. The wrapper borrows
+them until return and uses stack storage for Vulkan's candidate handle.
+
+| Host 11 artifact | SHA-256 |
+| --- | --- |
+| Tower AMD64 COFF | `d566ec5a7ca307c8d8f6c7215587a6a8f22488078a053fe2fb50176e14da8e7f` |
+| Tower AMD64 DLL | `a975b422f932e01b722803e1cd4f8062a50d7c68d9d6f459196f63a9722e532b` |
+| Tower import library | `8eb7bfc73e72ae67e2cc31f60588fa2f27ded416dd052b31c7d76f7454ea0919` |
+| Import-linked live PE | `1dc254a2f95178cd3a1c19e7a62a4af860459e773baf66ba575835921ca66a5c` |
+| Runtime-resolved live PE | `f38693c088c2d24194c49cafee8f2e3fa81c0a72ee6dc4750a54695d8a42c6ce` |
+| Import-linked counted PE | `75912335722ba1cb6d6113a309f117a4fbecc29dbe2936a7130340b0e9dc5ee3` |
+
+Both live PEs created the checked 95-word fragment on the Quadro RTX 6000
+through Wine 8. The linked program imports the public Tower name. The
+explicit loader recorded the DLL path for each resolved call. Each program
+observed called=1, result=0 and a non-null module, released the word
+allocation on return from the checked loader and destroyed the retained
+module once on the same logical device with a null allocator. Zero and
+four words both produced called=0/result=0 and an empty slot. Repeating
+the valid input with its slot occupied preserved the original handle.
+
+In a separate directory the production DLL loaded a Tower-built simulated
+Vulkan DLL. The original C-entry assertions ran across both DLL boundaries.
+A driver that wrote a candidate and returned −2 was called once. The signed
+error reached the caller and the output slot stayed empty. The null,
+misaligned and overlapping result-pointer checks, including the last word
+and both halves of the handle, passed. The simulated success and subsequent
+occupied-slot check also passed. The loaded-module log identifies the
+simulated DLL. The live run used Wine's system vulkan-1 and winevulkan DLLs,
+the Linux NVIDIA ICD and the Quadro RTX 6000, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, driver 615.71.10, device/family/queue
+0/0/0.
+
+The counted PE called through the C import for 438, 273 and 95 words after
+the retained SHA-256 checks. The unchanged Tower cleanup released each
+allocation before pipeline creation. Host synchronization validation was
+enabled and the trace shows device-layer insertion. One submit and signaled
+fence preceded the host read. Both requested counts, the two commands,
+four pixels per pass and all caller guard bytes matched the independent
+112-byte oracle. Complete stdout matched the direct-call PE byte for byte.
+The missing-fragment control exited 1 before submission, with zero callback
+messages. The standalone C, live, simulated and counted successes exited 0.
+Qualification covers Wine on Linux NVIDIA hardware. Native Windows and
+Draw's integrated draw14 path require separate evidence.
+
+Three fresh, warm-input processes per arm alternated execution order on
+the Xeon E5-2699 v4 with 88 visible logical CPUs and a 10.56-CPU quota.
+Direct vs DLL median elapsed seconds / user+system seconds / peak KiB were
+0.36 / 0.33 / 118224 and 0.37 / 0.33 / 118016. Direct elapsed spanned
+0.33–0.99 s. Every timed stdout matched the validated capture. Three wrapper
+compiles each at jobs 1 and 4 reproduced the COFF, with medians
+0.43 / 0.43 / 91992 and 0.50 / 0.55 / 94472. These measurements include
+process startup. Shader-only time, GPU time, internal driver allocations
+and worker idle time were unmeasured.
+
+Linux x64 reproduced the 1,360-byte Linux control object byte for byte.
+The ordinary object and DSO C smoke tests, focused Tower alias/refusal
+checks and instrumented ASan/LSan test exited 0. Disassembly confirms
+instrumentation in the exported symbol. Linux TSan failed at startup when
+the container denied ADDR_NO_RANDOMIZE, exit 139. The PE C dynamic consumer
+passed with Clang's trapping undefined-behavior instrumentation. Tower's
+instrumentation tool currently accepts Linux x64 IR. PE Tower sanitizer
+execution and native Windows driver testing remain open.
+
+The first Wine baseline lacked a live X server and failed instance
+creation with −3. A persistent private Xvfb session restored the driver.
+Clang rejected a direct FARPROC cast under the consumer's strict warning
+settings. Copying the checked Win64 function address into the
+size-asserted, header-compatible pointer compiled and ran. A fresh checkout
+verified the incremental bundle on the pinned prerequisite and reproduced
+the COFF, DLL, import library, C consumers, simulated driver and guarded PE.
+The packet contains full command traces, module paths, exit codes and raw
+bytes for replay.
