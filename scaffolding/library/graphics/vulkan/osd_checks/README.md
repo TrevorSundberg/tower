@@ -251,3 +251,20 @@ The guards remained intact and the signed results +5, −11 and
 Rendering reproduced that digest from the retained Win64 SDK output
 with CRLF converted to LF. The check exercises the independent SDK
 control. Portable provider acceptance requires a separate linked run.
+
+## Post-create allocation plan on Win64
+
+With the Win64 toolchain and Wine environment above, run the recording
+check from the checkout root.
+
+```bash
+scaffolding/library/graphics/vulkan/osd_checks/check_allocation.sh "$(mktemp -d)/allocation"
+```
+
+The default builds ten Tower cases, an SDK reference PE, and a separate
+C consumer PE calling the same SDK control across a private DLL boundary.
+The script saves the caller's COFF relocation, PE imports, rows and exit
+status. To test another provider, append its C source or standalone Win64
+COFF object. Both arms must match. A missing query, in-planner allocation
+or bind, wrong status or output, and changed guard bytes fail the check.
+The public graphics DLL is independent of these test links.

@@ -125583,3 +125583,15 @@ SDK and provider definitions, the C client's undefined public symbol,
 and the physical query definition in the driver. Concurrent review
 `3b94687b` added the Linux SDK comparison to the README. Reconciliation
 preserved that receipt and all eleven production entries.
+
+### Host 11 Win64 post-create allocation control
+
+Assignment 5994bd8f starts with Win64 control 45944492, contract 9840659b
+and Draw 2f38b19c. The frozen eleven-entry fixture returned the prior
+27,542,768-byte guarded capture on the Quadro before changing the allocation
+test. The SDK control and its private test DLL now share the existing PE
+recording transport. Ten Tower cases check both unsigned mask endpoints,
+tie and truncated counts, partial and zero flags, empty inputs, full size
+and padding-preserving refusal. The COFF C client contains a REL32 jump to
+the agreed function. Both paths returned identical rows. This first check
+uses an SDK provider double. Portable source belongs to slot 12.
