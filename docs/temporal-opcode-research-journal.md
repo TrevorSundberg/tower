@@ -123734,3 +123734,118 @@ Git blob IDs match the donor, respectively
 between the two readback ABI files is the declaration of device versus
 queue idle. The queue, fence, submit descriptor and loader signature match.
 The shader base retains its own readback ABI and synchronous callers.
+
+The [build entry and external C example](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md)
+link two independently compiled COFF objects using LLVM 19.1.7. The import
+library only participates in the C link. The GPU needs the DLL at runtime.
+The package has no private compiler or runtime object dependency. The example
+first used an empty batch. At `af5c5d13` it records a GPU event, submits its
+command buffer with a fresh fence and verifies the event after retirement.
+
+| Release artifact | SHA-256 |
+| --- | --- |
+| tower_graphics.dll (2,560 bytes) | `d29a2d9345e7dae3c8894f5c6db4058f68d4c59fb26357c57b1470f7e96359e4` |
+| tower_graphics.lib | `b26ac6c4963afc421b1b33cb071ff8f6b5caae16a365937b98d399ec75221fbd` |
+| graphics_consumer.exe from the checked-in build | `68454db46a63f2996fc2fae9d2241075a095b183c7bb7099e10735b48279b539` |
+| Counted C-import PE | `bdf780b453a49b1b5341910556e2cfb029043280e50607edcba88009af132d47` |
+| Direct counted PE reproduced from ea6ce027 | `9a32fe8ca314f4789c1dfcdcbcd856f28fb213843ab6b92d05ac1afd2cd0eceb` |
+
+The map assigns shader creation to RVA 0x1000 and async submit to 0x11a0.
+The latter moves the incoming fence to R9, descriptor to R8, loads EDX
+with 1 and tail-jumps to the loader thunk at RVA 0x11c0. RCX remains the
+queue. The thunk jumps through the vkQueueSubmit IAT slot at RVA 0x20d8.
+The driver's EAX returns directly to the external caller. The only other
+import is vkCreateShaderModule. The C header check covers the 72-byte,
+8-aligned submit structure, all nine offsets and signed VkResult.
+The standalone shader DLL and import library reproduced the ae126103 hashes.
+
+**Device runs.** Wine 8 on Linux selected the discrete Quadro RTX 6000,
+PCI 10de:1e78, UUID `26f60f6cead65faf0253a959b2e93a2d`, NVIDIA 615.71.10.
+The counted instance requested 1.3, device API was 1.4.351, and device,
+family and queue indices were 0/0/0. The Wine module log identifies
+`Z:\tmp\windows_graphics_b0757601\e\bin\tower_graphics.dll`, system32's
+vulkan-1 and winevulkan DLLs, the NVIDIA ICD and the inserted host Khronos
+layer. The counted EXE imports both public names and has no imports of
+vkCreateShaderModule or vkQueueSubmit. Its C relocations resolve through
+tower_graphics.lib. The Vulkan call trace shows three shader creates on one
+device, three destroys with null allocators, one submit with count 1,
+then the application's fence wait and staging map. The three hashed shaders
+were the 438/273/95-word controls of ae126103. The live shader test also
+observed called=1/result=0, word release, occupied-slot preservation and
+one destruction by the original owner. The simulated candidate on error
+−2 remained private.
+
+The complete direct and C-import stdout matched. The 112 expected command,
+guard and pixel bytes had SHA-256
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+Count zero preserved the clear at all four pixels (112233ff), count one drew
+4080bfff at all four. Pitch was 12, caller offset 4, allocation 32 bytes.
+Both commands had fields (3,1,0,0,0). Both validated runs exited 0 with zero
+callback warnings/errors. Missing fragment exited 1 before submission.
+
+The donor's gated fixture used the host-selected layer and the existing
+debug callback. A producer awaited a host timeline value and signaled a
+binary semaphore. The subject waited on it at ALL_COMMANDS, set a GPU event
+and signaled another binary semaphore. Its initially unsignaled fence was
+still VK_NOT_READY after return. Only then did the caller enqueue the binary
+consumer, signal the timeline and wait for both fences before reading the
+event and releasing resources. Raw and C-import modes observed VK_EVENT_SET,
+zero validation warnings/errors and exit 0. No fallback was needed.
+
+**Recorded failure.** In an isolated Wine directory the identical DLL used
+a recording Vulkan DLL. Direct, external Tower and external C callers each
+exercised zero and one wait/signal with results 0 and −4. For each invocation
+the recorder counted one call with the original queue, descriptor, nested
+pointer bytes and fence. The caller compared all descriptor/extension,
+handle, stage and value storage again after return. The recording loader's
+wait, reset, end and drain traps stayed silent (exit 0). An independent
+deliberate wait following recorded −4 tripped the guard (exit 9). This
+injection bypassed the driver. Actual device loss and Draw WSI are open.
+
+**Measurements.** Host Xeon E5-2699 v4, CPUs 0–87, cgroup quota 10.56 CPUs.
+The timed fixture used the same shaders, device, validation and draw path,
+one host submission thread, five fresh warm-input processes per arm in
+alternating order. A 10 MHz performance counter enclosed each create and
+the submit through host return. QPC output was removed before comparing
+each complete capture to the direct result.
+
+| Median | Direct | DLL through C |
+| --- | ---: | ---: |
+| Compute / vertex / fragment create (µs) | 88.9 / 35.8 / 20.4 | 97.3 / 33.8 / 18.4 |
+| Submit through return (µs) | 238.5 | 236.9 |
+| Launch through exit, wall / user+system (s) | 0.43 / 0.34 | 0.39 / 0.34 |
+| Process peak RSS (KiB) | 117768 | 117876 |
+
+Submit ranges were 186.1–273.4 and 228.2–286.0 µs. Driver work and validation
+are inside these intervals. They do not resolve the cost of a DLL jump.
+GPU timestamps, driver-internal allocations and thread idle time were
+unmeasured. Each provider uses caller-owned inputs and retains no heap
+storage. Three warm job-1/job-4 compiles per object reproduced identical
+COFF. Shader wall/CPU/peak KiB medians were 0.41/0.40/92048 and
+0.48/0.53/95084. Submit medians were 0.35/0.35/87076 and
+0.47/0.52/90728. The build uses one compiler job per unit.
+
+**Compatibility and instrumentation.** The standalone Linux shader and
+submit ELF objects reproduced their published SHA-256 hashes. C links
+with each object and each standalone DSO passed. The submit DSO's sole
+undefined function was vkQueueSubmit. Shader refusal/ownership and
+standalone submit recording passed under Linux ASan/LSan, with trapping
+UBSan on the recording C transport. The submit function forwards pointers
+without dereferencing them. ASan checked the recording harness's memory
+accesses. PE C trapping UBSan passed the standalone GPU event example.
+PE ASan linking lacked the x64 MinGW runtime and Clang rejected PE TSan
+(both exit 1). Both Linux TSan builds failed at startup when the container
+denied ADDR_NO_RANDOMIZE (139). Native Windows driver execution, instrumented
+PE Tower and completed thread sanitization remain open.
+
+The first counted overlay put an extern declaration between imports. Moving
+it below the last import fixed compilation. The timed overlay required the
+same ordering correction. ASan initially refused the submit test's library
+order. Linking the sanitizer runtime before the DSO fixed startup. The
+TSan DSO also required libgcc_s for its instrumented unwind reference.
+A shallow upload-pack from the local partial reader failed on an unmaterialized
+object. A fresh, clean shared clone of that registered reader verified the
+incremental bundle against edb8c333 and reproduced the DLL, import library,
+consumer PE, counted PE, gate and control outputs. Packet `replay.sh`
+contains the exact checks. Source publication belongs to the rendering
+coordinator. The packet includes no Draw or presentation implementation.
