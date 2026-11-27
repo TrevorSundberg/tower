@@ -1,0 +1,47 @@
+import tower;
+
+// One indexed-indirect record consumed by Vulkan or WebGPU.
+// The producer may be a compute shader. Checking its span never maps the buffer.
+struct IndexedIndirectArguments {
+    index_count: u32;
+    instance_count: u32;
+    first_index: u32;
+    base_vertex: i32;
+    first_instance: u32;
+}
+
+fn indexed_indirect_fits(buffer_bytes: u64, offset_bytes: u64): bool {
+    return offset_bytes % convert(u64, sizeof(u32)) == 0
+        && offset_bytes <= buffer_bytes
+        && convert(u64, sizeof(IndexedIndirectArguments)) <= buffer_bytes - offset_bytes;
+}
+
+// The count may be in the same allocation as the commands, or a separate one.
+fn indexed_indirect_count_fits(buffer_bytes: u64, count_offset: u64): bool {
+    var word_bytes = convert(u64, sizeof(u32));
+    return count_offset % word_bytes == 0 && count_offset <= buffer_bytes
+        && word_bytes <= buffer_bytes - count_offset;
+}
+
+struct IndexedIndirectRange {
+    command_offset: u64;
+    max_draws: u32;
+    stride: u32;
+}
+
+fn indexed_indirect_commands_fit(buffer_bytes: u64, range: IndexedIndirectRange): bool {
+    if range.stride < convert(u32, sizeof(IndexedIndirectArguments))
+        || range.stride % convert(u32, sizeof(u32)) != 0 {
+        return false;
+    }
+    if range.max_draws == 0 {
+        return range.command_offset <= buffer_bytes
+            && range.command_offset % convert(u64, sizeof(u32)) == 0;
+    }
+    if !indexed_indirect_fits(buffer_bytes, range.command_offset) {
+        return false;
+    }
+    // Both factors are at most 32 bits. Compare in the space left after record zero.
+    var last_delta = convert(u64, range.max_draws - 1) * convert(u64, range.stride);
+    return last_delta <= buffer_bytes - range.command_offset - convert(u64, sizeof(IndexedIndirectArguments));
+}
