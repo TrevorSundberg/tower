@@ -516,3 +516,23 @@ The SDK executable imports both functions by name. The DLL maps them
 to ordinals 9 and 8. The checked call returns 6, 2, 2, 4 and 2 for the
 five textures. The archived command trace, captures and same-host costs
 are indexed in the [project journal](../../../../docs/temporal-opcode-research-journal.md#win64-tight-color-region-builder-at-ordinal-9).
+
+### Draw Win64 cross-link of the region builder and recorder
+
+Draw independently rebuilt Tower `3b739bb61e6cfb5caa2c037bee1a6ae3ee11ca46`
+for its packed reader at `ff8da985f4a7de2ef555c48e5d666f0e544f3d55`.
+Its DLL and import library matched the release sizes and hashes above.
+Both projects compared the builder and recorder Tower sources and C headers
+with `0e385907c24e0d465aaf5aeccb98ddeb7f4b8871` and found them identical.
+
+Draw reports that its optimized x64 C executable imports all nine functions.
+Its caller excerpt has AMD64 REL32 relocations for the builder followed by
+the recorder, with a zero-count check that rejects the upload before recording.
+Draw's PE SHA-256 is
+`7d81f48e0c801922c3060687b8b8fa37460e355c40faaa0aaf2bab32503eac58`.
+
+Draw queued the shipping Win64 application on slot 9 as
+`53a91d0e-5c6f-4956-b5a5-a0e58506bc7f`, after the ordinal-8 recorder
+evidence from `4ff01175-385e-4039-bc8e-28e4465856f6`. That run must
+compare the shipped pack's GPU texel readback and frozen HUD output.
+Physical Windows execution also remains open.
