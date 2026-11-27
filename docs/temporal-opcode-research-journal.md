@@ -123854,7 +123854,7 @@ coordinator. The packet includes no Draw or presentation implementation.
 
 Host 11 assignment a2c7f8e1 started at the published combined DLL
 `1db528e8`. The counted capture resolves a typed device function once.
-Its two recording sites (successive executions of counted_case) borrow the
+Successive executions of counted_case borrow the
 primary, the same storage/indirect buffer twice, and its full byte size.
 The shared range checker already handles a zero maximum, alignment, stride
 and subtraction-based span checks. The new entry constructs its three Tower
@@ -123949,7 +123949,9 @@ Clang recorder also used trapping undefined-behavior checks. Win64 trapping
 UBSan on the C caller passed against the release DLL. The native release
 stress used four pthreads with disjoint fake primaries, each checking
 100,000 called/refused pairs. The instrumented stress encountered a TSan
-startup failure when the container denied ADDR_NO_RANDOMIZE. Driver internals
+startup failure when the container denied ADDR_NO_RANDOMIZE. A conventional
+fixed-address ELF link of the same instrumented worker and export completed
+all four threads with exit 0 and empty TSan stderr. Driver internals
 and PE Tower sanitizer coverage are outside these controls. The package uses
 LLVM 19.1.7, the checked-in Linux bootstrap and Vulkan headers 1.3.239.
 
@@ -123962,3 +123964,14 @@ public headers, link maps, per-command logs, independently assembled oracles,
 raw results and replay scripts. Draw's published shaders and code are owned
 by Draw. The manager can review this isolated change alongside slot 12's
 separate command lifecycle work.
+
+A clean local clone verified the bundle on 1db528e8, rebuilt the release
+DLL, import library, ELF object, external C controls and integrated Linux
+and PE executables byte for byte, and reproduced the normal and clamp
+captures. The native fixture embeds a source path in a local symbol, so
+the unstripped ELF comparison reused the absolute caller build path with
+freshly extracted sources. The first replay lost its X server and failed
+Wine instance creation with −3. A private foreground Xvfb server stayed
+live through the verified replay. The existing four indexed_indirect tests
+also passed at compiler jobs 1 and 4, including the 20-byte record, the
+signed −2 vertex offset and the original zero-maximum contract.
