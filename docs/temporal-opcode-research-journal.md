@@ -124856,3 +124856,12 @@ UBSan checks passed. GPU LSan with sync validation reported 4,187 bytes
 in 15 allocations, also seen with the earlier caller, and TSan stopped
 before main. The region-builder and recorder objects were checked
 separately. [C signature, layout, link command and replay](../scaffolding/library/graphics/vulkan/osd_texture_upload_record_v1.md#build-the-tight-region-list-before-recording)
+
+### Draw confirms the native bound-image view construction boundary
+
+Draw `bd203f60` identified its owning constructor and the narrower view
+creation step. The proposed C library entry borrows an already-bound
+image and explicit type/format/range. Slot 12 received the five real OSD
+shapes, one-layer array distinction and exact signed-result/temporary-slot
+proposal for the first implementation. The proposal adds documentation.
+[Source pin and proposed ABI](../scaffolding/library/graphics/vulkan/bound_image_view_v1.md)
