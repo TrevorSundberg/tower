@@ -49,6 +49,9 @@ for arm in "${arms[@]}"; do
             "${cc[@]}" "${flags[@]}" -c "$here/sdk.c" -o calls.obj
         else
             release=("${PROVIDER_OBJ:-${PROVIDER_LIB:-}}" "${release[@]}")
+            if [[ $kind == dll && $(basename "$PROVIDER_DLL") == tower_graphics.dll ]]; then
+                release=("$PROVIDER_LIB")
+            fi
             "${cc[@]}" "${flags[@]}" "-DIMAGE_MEMORY_PROVIDER_HEADER=\"$PROVIDER_HEADER\"" -c "$here/client.c" -o calls.obj
         fi
         for src in recorder device; do "${cc[@]}" "${flags[@]}" -c "$here/$src.c" -o "$src.obj"; done
@@ -56,9 +59,37 @@ for arm in "${arms[@]}"; do
             cp "$D/release/tower_graphics.dll" "$path/"
             if [[ $arm == linked && $kind == dll ]]; then cp "$PROVIDER_DLL" "$path/"; fi
         done
-        "${link[@]}" "$out/fixture.obj" device.obj calls.obj "$E/bin/hardware-trace.obj" "$E/bin/view.obj" \
-            "$I/"{sample.obj,image_gpu-raw.obj,image_client.obj,view_client-linked.obj,caller-release.obj,linked.obj,raw_finish.obj,winrt.o} \
-            "${release[@]}" "$I/vulkan-1.lib" "$G/libatomic.a" -Wl,-Map,device/program.map -o device/program.exe
+        device_inputs=("$out/fixture.obj" device.obj calls.obj "$E/bin/hardware-trace.obj" "$E/bin/view.obj"
+            "$I/"{sample.obj,image_gpu-raw.obj,image_client.obj,view_client-linked.obj,caller-release.obj,linked.obj,raw_finish.obj,winrt.o}
+            "${release[@]}")
+        "${link[@]}" "${device_inputs[@]}" "$I/vulkan-1.lib" "$G/libatomic.a" -Wl,-Map,device/program.map -o device/program.exe
+        if [[ $arm == linked && $kind == dll && $flavor == regular && $(basename "$PROVIDER_DLL") == tower_graphics.dll ]]; then
+            mkdir observed
+            cp "$PROVIDER_DLL" observed/
+            (
+                cd observed
+                printf 'LIBRARY winevulkan.dll\nEXPORTS\nvkGetImageMemoryRequirements\nvkAllocateMemory\nvkBindImageMemory\n' > direct.def
+                llvm-dlltool -m i386:x86-64 -d direct.def -l direct.lib
+                printf 'EXPORTS\nosd_trace_requirements\nosd_trace_allocate\nosd_trace_bind\n' > observer.def
+            )
+            "${link[@]}" "${device_inputs[@]}" observed/observer.def observed/direct.lib "$I/vulkan-1.lib" "$G/libatomic.a" \
+                -Wl,-Map,observed/program.map -o observed/program.exe
+            (
+                cd observed
+                llvm-readobj --coff-imports program.exe >program.imports
+                { printf 'LIBRARY vulkan-1.dll\nEXPORTS\n'
+                  llvm-readobj --coff-imports program.exe tower_graphics.dll | awk '$1=="Name:"{dll=$2}
+                    dll=="vulkan-1.dll" && $1=="Symbol:" {print $2}' | sort -u |
+                  awk '{target="winevulkan."$1}
+                    $1=="vkGetImageMemoryRequirements"{target="program.exe.osd_trace_requirements"}
+                    $1=="vkAllocateMemory"{target="program.exe.osd_trace_allocate"}
+                    $1=="vkBindImageMemory"{target="program.exe.osd_trace_bind"}
+                    {print $1 "=" target}'
+                } >loader.def
+                "${cc[@]}" -x c -c /dev/null -o forward.obj
+                lld-link /dll /noentry /nodefaultlib /machine:x64 /timestamp:0 /def:loader.def /out:vulkan-1.dll forward.obj
+            )
+        fi
         cat >record/program.def <<'DEFS'
 EXPORTS
 record_allocate

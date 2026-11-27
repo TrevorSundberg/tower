@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-enum Case { Small, Wide, AllocationError, Clobber, BindError };
+enum Case { Small, Wide, AllocationError, Clobber, BindError, PositiveAllocation, OtherBindError };
 static enum Case scenario;
 static int linked;
 static unsigned queries, allocs, binds, views, destroyed;
@@ -39,9 +39,11 @@ VKAPI_ATTR VkResult VKAPI_CALL record_allocate(VkDevice d, const VkMemoryAllocat
             a->pNext == &dedicated && dedicated.sType == VK_STRUCTURE_TYPE_MEMORY_DEDICATED_ALLOCATE_INFO &&
             !dedicated.pNext && dedicated.image == image && !dedicated.buffer &&
             a->allocationSize == size && a->memoryTypeIndex == 31 && !cb, "allocate descriptor");
-    require(out && !slot.memory && (out != &slot.memory) == linked, "public/private output identity");
-    if (scenario == Clobber) *out = scribble;
+    require(out && !*out && !slot.memory && (out != &slot.memory) == linked, "public/private output identity");
+    if (scenario == Clobber || scenario == PositiveAllocation) *out = scribble;
     else if (scenario != AllocationError) *out = acquired;
+    if (linked) require(!slot.memory, "private write visible in owner");
+    if (scenario == PositiveAllocation) return VK_NOT_READY;
     return scenario == AllocationError || scenario == Clobber ? VK_ERROR_OUT_OF_DEVICE_MEMORY : VK_SUCCESS;
 }
 
@@ -50,6 +52,7 @@ VKAPI_ATTR VkResult VKAPI_CALL record_bind(VkDevice d, VkImage i, VkDeviceMemory
             m == acquired && slot.memory == acquired && !offset, "bind identity/order/offset");
     require(account.allocation_bytes == size && account.live == size && account.peak == size &&
             account.count == 1, "account before bind");
+    if (scenario == OtherBindError) return VK_ERROR_EXTENSION_NOT_PRESENT;
     return scenario == BindError ? VK_ERROR_OUT_OF_DEVICE_MEMORY : VK_SUCCESS;
 }
 
@@ -74,16 +77,18 @@ VKAPI_ATTR void VKAPI_CALL record_free(VkDevice d, VkDeviceMemory m, const VkAll
 }
 
 int main(int argc, char **argv) {
-    const char *names[] = {"small", "wide", "allocate-error", "clobber", "bind-error"};
+    const char *names[] = {"small", "wide", "allocate-error", "clobber", "bind-error", "allocate-positive", "bind-other"};
     if (argc != 3) return 2;
-    for (scenario = Small; scenario <= BindError; ++scenario)
+    for (scenario = Small; scenario <= OtherBindError; ++scenario)
         if (!strcmp(argv[2], names[scenario])) break;
-    if (scenario > BindError) return 2;
+    if (scenario > OtherBindError) return 2;
     linked = !strcmp(argv[1], "linked");
     if (!linked && strcmp(argv[1], "sdk")) return 2;
     size = scenario == Wide ? (UINT64_C(1) << 32) + 16384 : 16384;
     VkMemoryType types[VK_MAX_MEMORY_TYPES] = {0};
     types[31].propertyFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    unsigned char types_before[sizeof types];
+    memcpy(types_before, types, sizeof types);
     slot.left = slot.right = guard;
     require(tower_vk_plan_image_allocation_v1(device, image, types, VK_MAX_MEMORY_TYPES,
             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &plan) == VK_TRUE && !plan.pNext, "planner result");
@@ -106,12 +111,17 @@ int main(int argc, char **argv) {
             result = vkCreateImageView(device, &info, NULL, &view);
         }
     }
-    require(!memcmp(info_before, &plan, sizeof plan) && !memcmp(next_before, &dedicated, sizeof dedicated) &&
+    require(!memcmp(types_before, types, sizeof types) && !memcmp(info_before, &plan, sizeof plan) &&
+            !memcmp(next_before, &dedicated, sizeof dedicated) &&
             slot.left == guard && slot.right == guard, "guard or borrowed descriptor modified");
-    int allocated = scenario != AllocationError && scenario != Clobber;
+    int clobbered = scenario == Clobber || scenario == PositiveAllocation;
+    int allocated = scenario != AllocationError && !clobbered;
     int success = scenario <= Wide;
-    VkDeviceMemory expected = allocated ? acquired : scenario == Clobber && !linked ? scribble : VK_NULL_HANDLE;
-    require(result == (success ? VK_SUCCESS : VK_ERROR_OUT_OF_DEVICE_MEMORY) &&
+    VkDeviceMemory expected = allocated ? acquired : clobbered && !linked ? scribble : VK_NULL_HANDLE;
+    VkResult expected_result = success ? VK_SUCCESS : VK_ERROR_OUT_OF_DEVICE_MEMORY;
+    if (scenario == PositiveAllocation) expected_result = VK_NOT_READY;
+    if (scenario == OtherBindError) expected_result = VK_ERROR_EXTENSION_NOT_PRESENT;
+    require(result == expected_result &&
             slot.memory == expected && allocs == 1 && binds == (unsigned)allocated &&
             views == (unsigned)success && !!view == success && account.live == (allocated ? size : 0) &&
             account.peak == account.live && account.allocation_bytes == account.live &&
