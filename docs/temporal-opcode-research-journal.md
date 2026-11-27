@@ -123410,3 +123410,40 @@ The source bundle SHA-256 was
 Its evidence/README.md gives the fresh checkout replay using the archived
 compile.sh, link.sh and test.sh. Each process's argv, output, status and
 disassembly are retained with the receipt.
+
+### Draw tree viewports and the strict scalar conversion
+
+Draw reported native worker revision
+`cb8c04f77d52863cb811327d94544d2385085aa9` and local integration
+`0e65342677563ec5a39ee15aa73d423c74d5e92c` for
+`draw-hardware-scalar-float/v1`. In `tower/vulkan_tree.tower`,
+`tree_raster` sets viewports for both its shadow and color passes using
+`pixels_as_float(u32)`. This helper explicitly calls
+`tower_float_from_integer` and reinterprets the resulting bits as an
+`f32`. The OSD recorder already uses the same helper for its viewport.
+
+On an RTX 5060 Ti, Draw reported whole-frame medians of 9.486 ms with
+the C tree recorder and 9.501 ms with the Tower recorder. The recorded GPU
+commands and frozen frame matched. The isolated cost of converting a
+viewport dimension remains unmeasured.
+
+Rendering checked the retained optimized IR for the ordinary
+`u32_to_f32` probe built with Tower
+`a580e70af42e67d5309c4121737fa9e21652a9dd`. The Linux x64, Windows
+x64 and wasm32 objects' IR all zero-extends the input and calls
+`tower_strict_float_from_integer` with unsigned 32-bit input and 32-bit
+output. Draw's explicit helper and the ordinary conversion are separate
+source paths to retest when a hardware-lowering revision is identified.
+
+Draw also reported that sharing the `CameraFrame` type shifted source
+locations passed to `tower_trap` in the relocatable native and Wasm code.
+Both Draw trap handlers ignore that argument. After normalizing those
+locations, the optimized Wasm IR matched. Draw's camera comparison matched
+all 89 words in each of 1,032 frames and all 51,250 jitter pairs. The
+previous exceptional zero-width projection comparison retains its own
+receipt. Draw used the existing compiler and numeric mode.
+
+Rendering slot 11 job `e792b5c8-59f7-407f-9e7b-8108e7ba633c`
+will run the strict Win64 fixture under Wine and compare the dynamic
+ordinary and explicit u32 viewport conversions at binary32 rounding
+boundaries. Draw's whole-frame timings remain attributed to Draw.
