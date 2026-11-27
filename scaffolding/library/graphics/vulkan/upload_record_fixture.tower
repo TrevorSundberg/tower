@@ -14,6 +14,9 @@ import readback_output as output;
 
 // Private linkage point for the two native C callers.
 extern fn fixture_record(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkBufferHandle*, size: u64): void;
+extern fn getenv(name: u8*): u8*;
+extern fn write(fd: i32, data: u8*, size: usize): i64;
+var CaptureFd: i32 = 4;
 var VkDeviceLocal: u32 = 1;
 var Trials: usize = 64;
 
@@ -66,6 +69,7 @@ fn exercise(ctx: ReadbackDevice*): bool {
     if !retire(ctx, cmd) { return false; }
 
     var capture: VkBufferCopy = { dstOffset: convert(u64, guard), size: convert(u64, dest_bytes), ..default };
+    var capture_bytes = getenv("CAPTURE_UPLOAD_BYTES") != null;
     var total: u64 = 0;
     for (var trial: usize = 0; trial < Trials; trial++) {
         var payload = "01234567";
@@ -83,6 +87,9 @@ fn exercise(ctx: ReadbackDevice*): bool {
         vkCmdCopyBuffer(cmd, dst.handle, host.handle, 1, &capture);
         counted_buffer_barrier(cmd, host.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
         if !retire(ctx, cmd) || !readback_compare("guarded readback", mapped, read_bytes, wanted) { return false; }
+        if capture_bytes && write(CaptureFd, mapped, read_bytes) != convert(i64, read_bytes) {
+            return vk_failure("guarded capture write failed");
+        }
         if trial < 2 { output.readback_label("record_ns"); output.readback_decimal(duration); }
         total += duration;
     }
