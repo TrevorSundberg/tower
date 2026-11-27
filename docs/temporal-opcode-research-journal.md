@@ -123733,3 +123733,55 @@ Host 12 started a separate local checkout and rebuilt the `08a30b04`
 offscreen controls. Both logged the accepted guarded outputs. The updated
 shaderless and counted callers pass three null pointers. Their first
 rebuilds matched both full reference logs with synchronization validation.
+
+The implementation at `42ffa848` initializes a local descriptor only
+after end succeeds. The output assignment never needs its old contents.
+`9b29596a` exercised the native raw reference, external Tower and
+C-through-DSO callers. Each ran 17 end cases: every wait/signal/fence
+combination with success and −4, plus a non-null stage with no wait.
+The recording end stub compared the entire original guarded payload on
+entry. Failure returned after event E. Success observed end, a monotonic
+clock sample, separate submit and host-scope release in order. The native
+header check compared all fields against the original slots. The submit
+stub compared every payload byte and dereferenced the active handle and
+stage slots. One initial compile rejected the reserved parameter name
+`expected`; the corrected test uses `letter`.
+
+On host 12 the raw and C-through-DSO hardware lanes used the prepared
+descriptor untouched. Both observed a pending subject, then subject and
+binary-consumer completion and the GPU event. The shaderless and counted
+captures verified one end and one submit with the same command and a
+signaled fence. The complete allocations and count words matched the
+accepted bytes, with zero validation warnings/errors. The end/submit OOM/
+failed wait/terminal controls exited 1/1/1/134 for each ordinary caller.
+Draw separately reported 31 CPU cases in each of two configurations
+against the earlier verified submit object, and Vulkan 1.4 linked frame
+parity on its slot 10. This worker ran the end export on the Tower fixture.
+
+The EPYC 7282 host, RTX 3090, selected driver, worker counts, sampling
+method and checked outputs match the preceding experiment. Fresh samples
+compare the original raw-end integration with the confirmed ABI. The table
+gives median wall seconds / summed CPU seconds / peak KiB.
+
+| Fixture | 08a30b04 | 9b29596a |
+| --- | --- | --- |
+| Clear, five processes | 0.303 / 0.303 / 91592 | 0.306 / 0.307 / 91584 |
+| Counted, five processes | 0.309 / 0.309 / 94880 | 0.313 / 0.312 / 94888 |
+| Clear compile, three at 1 worker | 0.669 / 0.669 / 110920 | 0.673 / 0.672 / 111916 |
+| Clear compile, three at 4 workers | 0.784 / 0.879 / 115824 | 0.791 / 0.894 / 117188 |
+| Counted compile, three at 1 worker | 0.791 / 0.791 / 128268 | 0.800 / 0.799 / 129292 |
+| Counted compile, three at 4 workers | 0.894 / 1.066 / 133200 | 0.912 / 1.071 / 134960 |
+
+The helper uses caller-owned slots and a local struct, with no dynamic
+allocation or persistent host state. These process samples do not isolate
+end-call latency. The corrected recording matrix and synchronous matrix
+passed ASan+LSan. The C transport included Clang UBSan. Address-only GPU
+clear, counted and shared gate passed. Under synchronization validation
+LSan again reported 3511 bytes/8 allocations for clear, 4075/14 for counted,
+and 3560/11 for both gate modes. All TSan attempts on the five-argument
+build failed the container's personality check at startup (139). The
+prior two-argument recording TSan pass does not validate this revision.
+No source-level Tower UBSan, displayed WSI or Draw build using this end
+export was exercised on host 12. The registered job packet retains the
+ABI header, source and ELF hashes, maps, raw logs, exits, timings and
+local-only replay command.
