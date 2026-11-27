@@ -129,7 +129,57 @@ The recording ELFs had SHA-256
 `367a6286429c3bd8ca82ff993cd0b3641ca6a5e8aeb41687ceff3b9f91418b44`
 and `9a9159988539986689c2eb57bdf2c939e3590f3e1d7ddbb5aca5f82180a82158`.
 
-These calls used CPU recording drivers. Draw slot 10 job
-`7c22503e-5491-4462-a6da-c1efdc38c3d3` is assigned the shipping DSO
-driver bindings, packed GPU readback and HUD comparison after the
-individual-provider job `447eb373-d35d-4ab3-8fa2-5ee2b481f96e`.
+These constructor checks used CPU recording drivers. Draw subsequently
+ran the separately linked application on hardware.
+
+## Draw shipping renderer on Linux
+
+Draw job `7c22503e-5491-4462-a6da-c1efdc38c3d3` used the eleven-entry
+Tower library at `bef3026fc41d02334a2fd3f88f18b8d6e9392abe`. The Draw
+worker tested runtime `05c09e1d87414bb02cf0dcd03f7a1e71872c8d0b`
+and fixtures `643863eeb15d33d0c62e3a4034e4ed61590a4fcd` on base
+`258877b947cde3eb082051e38f13f90778b1077d`. The earlier Draw manager
+revision `2f38b19c` was unavailable on that worker. Draw verified
+2,745 entries in archive
+`8e1011c14566a86d3f035a0a93970fb5c44844996743eee05e1e551045ef7248`.
+Rendering rehashed the retained 14,816-byte library and matched Draw's
+`d926aabb989ac25ac3a5aa79dd00b5f557124c39a04855018ac7f678d5efe715`.
+
+The shared executable imported six Tower operations. While `osd_create`
+ran, debugger and loader traces placed eight command begins, two finishes,
+eight image creations and eight bound-view creations in `out/libtower_graphics.so`.
+The optimized shared executable had SHA-256
+`f734f317546bc900a37b71c6460ee6d54f8bff3729acc566f094e21f540c54e8`.
+The object-linked executable had SHA-256
+`73c295323a62c7cba5ac3a5a10a98a0f0dd4284d1700bd33ba3effbe2536c61a`.
+
+Vulkan selected an RTX 5060 Ti (10de:2d04), device API 1.4.303, NVIDIA
+570.169, with the 1.4.328 SDK loader. Draw reported exit 0 for this run.
+
+```sh
+"$shared" --offscreen --validate --fixed-time 0 --day-hour 12 \
+    --size 1280 800 --frames 4 --osd assets/osd/state.bin \
+    --resize-test --no-hud --capture hud-shared.ppm
+```
+
+Draw compared both C and Tower constructors with each link form against
+the shipping pack. All four captures matched across 16 subresources.
+The 27,541,504 active bytes had SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including 364,544 guard and padding bytes, the digest was
+`bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+Normal and resized RGB, HUD and camera outputs matched the earlier run.
+Across 120 matched completed-frame intervals, Draw reported medians
+of 9.388 ms with object linkage and 9.428 ms with shared linkage.
+
+Draw injected −2 before forwarding the second image creation. Six
+object-linked runs and three ordinary shared runs exited 1. Of three
+validated shared runs, two received SIGSEGV and one exited 1. The failed
+image never reached requirements or bind. The first atlas had no recorded
+explicit teardown. Draw owns recovery under `f6abd0c0`.
+
+Separately, the stock C constructor requested `R8_UNORM` for a depth/stencil
+attachment. The hardware query returned the expected format rejection
+(−11). The first process exited 139. On a full repeat both C and Tower
+refusals exited 1. The cause of the signal remains open. Draw's shipping
+preflight job `dff82eda` uses this shared-library run as its prerequisite.
