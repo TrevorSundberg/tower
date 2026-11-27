@@ -124096,3 +124096,43 @@ rejected the reserved local name expected. The corrected raw calibration
 completed 64 alternating payloads with zero Khronos synchronization
 validation warnings/errors on the discrete RTX 3090, Vulkan 1.3.289,
 driver 565.57.01. Memory flags were 6/1/6 for staging/destination/readback.
+
+The first local code commit is `fc5df9a2e`. Commit `8e5bb851c` adds the
+binary capture from the retired mapping on fd 4. The private calibration
+DSO forwards one copy in the external lane. The same C control owns a
+fixture-only TRANSFER_WRITE to TRANSFER_READ buffer barrier in both lanes.
+The production source contract is still outstanding. The fixture imposes
+no requirements on the future public signature. It uses offsets 0/0 for
+the eight-byte calibration copy. Its independent readback copies all 16
+device bytes to offset 4. The job packet's raw and external captures match
+at SHA-256 `82c8d4dcba7eaafc8dba55a1a2f0f539fcfbaf11b719991c463421bc8cc8d9a7`.
+The probe traces both copies, both barriers and the initial preparation
+barrier, with the handle values, counts, masks, pointer values and ranges
+observed on each call. No descriptor pointer survives that call. The owner
+keeps buffers, bindings, pool, primary and mappings live through queue
+retirement before updating staging or reading the capture.
+
+Five alternating, sequential fresh-device processes per lane on the same
+EPYC 7282 and RTX 3090 followed the guarded correctness checks. At one
+caller thread and one queue, median process wall time and peak RSS were
+312.09 ms and 91,220 KiB raw, 309.50 ms and 91,256 KiB through the private
+DSO. The median first / second host recording calls took 34.66 / 10.94 µs
+raw and 36.23 / 11.26 µs external, including the calibration barrier and
+validation. No production timing follows from this result. The packet
+contains user and system CPU by trial and exact SDK input digests.
+
+Raw and linked signed finish checks matched the previous fixture log.
+Both async gate cases observed VK_NOT_READY before release and completed
+afterward. The previously verified four-export DSO reproduced byte for
+byte. Address-only runs with C UBSan exited 0 and returned the same
+captured bytes. Full leak checks each exited 1 with 3,432 bytes in seven
+allocations, with unsymbolized allocation sites. Both TSan runs exited
+139 at the container personality check before main. The private Tower
+forwarder passes four arguments without dereferencing the region.
+Instrumented owner IR and link maps document sanitizer coverage.
+Initial attempts to convert text output with xxd and declare isize failed.
+Capturing the actual mapped bytes through the existing Linux i64 write
+ABI removes that utility dependency. Clean offline replay from 44f2cdf6
+reproduced both binaries checked by the DSO hash comparison, the private
+Tower object and both raw captures. The raw control, external transport
+and replay all exited 0. Production acceptance awaits Draw's contract.
