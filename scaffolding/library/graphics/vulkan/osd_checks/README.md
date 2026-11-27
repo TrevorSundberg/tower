@@ -123,3 +123,36 @@ with a fresh absolute `D`, `TOWER_READER` and `PREPARED_SDK`. The packet
 provides the exact build, loader selection, device, trace and sanitizer
 commands. The link-only import description allows freezing the external PE
 before provider delivery. [Device and timing results](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-draw-image-creation)
+
+## Win64 image-format preflight control
+
+The reviewed contract at Tower `7e2683c248404957a7e6caaced23f74ba95e839a`
+pins the two Draw constructors at `b15f6edd305d2234362f3ca863656f2a7487e21e`.
+The SDK control calls the physical-device query before inspecting any shape
+limit. Its caller enters the existing ordinal-11 create path only on a
+successful query with sufficient capacity. It retains the independent
+optimal-tiling feature check. The RGBA8 readback targets use their original
+SDK path. The physical device and descriptor are borrowed for each source.
+
+The slot 11 packet `2b729d40-a8cc-4f8e-881c-f67d3f77f538` carries the
+full capture, exact commands, PE images, recording loader, checksums and Git
+bundle. From the extracted packet on the prepared Linux NVIDIA host, run
+
+```bash
+TOWER_CHECKOUT=/path/to/tower PREPARED_SDK=/path/to/sdk \
+  D="$(mktemp -d)/run" bash replay.sh
+```
+
+The checkout must contain the release base `a639a49e`. The replay first runs
+the two frozen executables with its eleven-entry DLL. It then builds and
+runs the recording and hardware SDK controls. Expect 28 checked recording
+rows, five supported source queries, ten completed submissions and a
+27,542,768-byte stream. Each zero-width application probe exits 3 before
+create. The PE under `products/contract/device.exe` imports
+`tower_vk_image_format_preflight_v1` by name with hint 12. Its recording
+companion is `products/contract/cases.exe`. The matching import description
+is a link fixture. Both PEs await a released provider. When that arrives,
+compile `preflight_client.c` with `OSD_PREFLIGHT_PROVIDER_HEADER` set to its
+quoted header, link with the release import library and repeat both device
+outcomes, the recording rows, complete captures and timing pairs. See the
+[device and ABI results](../../../../../docs/temporal-opcode-research-journal.md#win64-sdk-control-for-image-format-preflight).

@@ -125430,3 +125430,100 @@ C device probe on success and injected failure. The Win64 ASan link lacked
 its target runtime and Clang rejected Win64 TSan. The production COFF, Wine,
 validation layer and driver ran without compiler sanitizer instrumentation.
 Physical Windows and Draw's shipping application remain separate open checks.
+
+### Win64 SDK control for image-format preflight
+
+Host 11, assignment `2b729d40-a8cc-4f8e-881c-f67d3f77f538`. The supplied
+Win64 release at `a639a49e0c9709117d990331361a8801ee41746a` and contract
+at `7e2683c248404957a7e6caaced23f74ba95e839a` identify the eleven-entry DLL
+and the two Draw constructors at `b15f6edd305d2234362f3ca863656f2a7487e21e`.
+The two Tower refs supplied no portable preflight provider. This handoff
+covers the independent SDK control, external C caller and prospective PE
+link. Draw owns the shipping application, subsequent create and bound-view
+replays. The rendering-owned RGBA8 CPU oracle and row-copy blobs at
+`3dd5f11f` match this Win64 release. They postdate compiler base `a580e70a`.
+
+Before edits, the archived SDK-create and ordinal-11 application executables
+ran with release DLL SHA-256
+`e7524e2b14f148a37e79eb4912f9aa07bfc6e252dfd1fd45be211cd5914b7e6c`.
+Both reproduced the entire stored capture. The new test keeps the same
+fixture COFF, SDK headers, view, region, upload, image-create and retirement
+paths. Two redirected relocations carry the selected physical device to the
+source's actual create descriptor. The SDK first queries into an automatic
+32-byte VkImageFormatProperties. A successful query publishes every property
+and a four-byte boolean. On a nonzero result the caller diagnoses using the
+original format, type, usage and signed return. It leaves both outputs
+untouched. The independent recording loader compares all six arguments and
+writes the temporary even on an injected error. The C observer compares the
+outputs, guards, descriptor, chain, format array and queue family array by
+object representation. The 88-byte x64 VkImageCreateInfo has its extent at
+28 and queue-family pointer at 72. The 64-bit resource limit starts at 24
+in the property record.
+
+The SDK and trapping-UBSan recording PEs each passed 28 cases with one
+query per case. The Tower matrix separately tests exact, zero and one-over
+for width, height, depth, mips and layers, mixed/disjoint/zero sample masks,
+high unsigned extent limits, resource-only changes through UINT64_MAX, and
+returns +5, −11 and −1000001004. The paired zero-width hardware PE reported
+unsupported width on the real successful query and a signed format-query
+failure on the clobbering loader. Each exited 3 after one source query with
+zero creates, allocations, binds, views or submits. The extra RGBA8 query
+during device selection is visible separately in the trace.
+
+Wine 8 selected the discrete Quadro RTX 6000, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, API 1.4.351, NVIDIA 615.71.10,
+queue 0/0. The font (2048×2048, six layers), both 256×352 two-mip bitmaps,
+the four-layer 256×352 image and the two-layer 64×64 image all passed.
+Each returned maxExtent 32768×32768×1, 16 mips, 2048 layers, sample mask
+15 and maxResourceSize 1099511627776. Wine traced five source and five atlas
+creates, ten image requirements and binds, twenty total memory allocations
+and frees, fifteen views and ten submit/wait pairs. The trace verifier
+followed each image's bound memory through view and image destruction.
+The retired synthetic stream matched all 27,542,768 bytes, SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The separate Tower oracle checked 256 sampled texels across sixteen
+subresources and 240 guard bytes. Host synchronization validation ran with
+zero guest callback warnings/errors. Explicit guest layer creation returned −6.
+
+LLVM 19.1.7 preserved the release export/import table. The actual import
+library rejected the new C caller with exactly one undefined symbol. A
+link-only import library built the recording and device PEs. The device PE
+retains named imports with hints 8–11 and adds the preflight name with hint
+12. Its SHA-256 is
+`f391ba3776188cb243bcf5fb56485518022bf352274e3eec6167b34586083268`.
+Release and contract library hashes, caller COFF, disassembly, PE tables
+and maps are in the packet. Public ordinal 12 awaits release of the
+reviewed portable object.
+
+Three interleaved process pairs ran after verified pixel readback, one
+caller and one graphics queue, on a warm Wine prefix, Xeon E5-2699 v4,
+affinity 0–87 and 10.56 CPU quota, Clang Win64 GNU −O2. Each run checked
+the complete stream. The original release already checked image-format
+properties. The new SDK arm records the additional decision and diagnostics.
+
+| Arm | Wall s | User s | System s | Peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Frozen ordinal-11 application | 1.27 / 1.14 / 1.25 | .62 / .62 / .72 | .52 / .49 / .49 | 192072 / 192576 / 190960 |
+| SDK preflight with ordinal-11 create | 1.58 / 1.25 / 1.20 | .81 / .63 / .64 | .52 / .51 / .52 | 191240 / 192088 / 192260 |
+
+The 15 SDK query/predicate calls had QPC median 2.8 µs, range 1.7–4.9 µs,
+including the driver. The arms have overlapping end-to-end ranges.
+Preflight uses stack outputs and retains no allocations. Driver-internal
+allocation and production ordinal-12 costs are unmeasured.
+
+Win64 trapping UBSan covered the C SDK, preflight gate, recording loader
+and C observer. Native Linux ASan with leak detection and TSan each passed
+448 C SDK/recording calls on four pthreads. Three TSan starts failed its
+address-layout check before the completed run. Maps, runtime dependencies,
+instrumented function disassembly and individual exits are retained.
+The toolchain lacks the Win64 ASan runtime and rejects Win64 TSan. The
+released Tower code, Wine and GPU stack ran without instrumentation.
+Physical Windows and the shipping Draw caller remain open.
+
+During bring-up the bootstrap rejected a hexadecimal integer literal.
+Using decimal literals preserved the intended numeric tests. Clang rejected
+a direct cast from GetProcAddress's generic result. The final recording
+loader copies the pointer representation to the SDK PFN and forwards the
+readback selection query to Wine. An early run against the prior recording
+loader stopped at that selection query. The final packet preserves the
+failed checks alongside the corrected runs and the replay command.
