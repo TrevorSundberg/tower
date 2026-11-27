@@ -14,6 +14,23 @@ import .command_begin;
 import .upload_test_device;
 import .readback_output as output;
 
+// Label each 256-texel block so distant rows or blocks of the font cannot alias the short color pattern.
+fn retained_color(shape: Shape, texture: u32, layer: u32, mip: u32, x: u32, y: u32): Pixel {
+    var p = color(shape, texture, layer, mip, x, y);
+    var tag: u32;
+    match x & 255 {
+        0 => { tag = y & 255; }
+        1 => { tag = y >> 8; }
+        2 => { tag = layer; }
+        3 => { tag = mip; }
+        4 => { tag = texture; }
+        5 => { tag = x >> 8; }
+        _ => { return p; }
+    }
+    if shape.texel_bytes == 1 { p.r = convert(u8, tag); } else { p.a = convert(u8, tag); }
+    return p;
+}
+
 // Upload from one mapped allocation. The caller owns the new image across return.
 fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, seed: u32, image: Image*): bool {
     var count = shape.layers * shape.mips;
@@ -30,7 +47,7 @@ fn upload_one(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*, shape: Shape, s
         for (var mip: u32 = 0; mip < shape.mips; mip++) {
             for (var y: u32 = 0; y < shape.height >> mip; y++) {
                 for (var x: u32 = 0; x < shape.width >> mip; x++) {
-                    var p = color(shape, seed, layer, mip, x, y);
+                    var p = retained_color(shape, seed, layer, mip, x, y);
                     copy(pixels + offset, bits(u8*, &p), convert(usize, shape.texel_bytes)); offset += convert(usize, shape.texel_bytes);
                 }
             }
@@ -67,7 +84,7 @@ fn check_retained_pixels(shape: Shape, seed: u32, region: VkBufferImageCopy*, da
     fill(row, ReadbackGuard, pitch);
     for (var y: u32 = 0; y < region.imageExtent.height; y++) {
         for (var x: u32 = 0; x < width; x++) {
-            var p = color(shape, seed, sub.baseArrayLayer, sub.mipLevel, x, y);
+            var p = retained_color(shape, seed, sub.baseArrayLayer, sub.mipLevel, x, y);
             if shape.texel_bytes == 4 {
                 if p.r == 128 { p.r = 55; }
                 if p.g == 64 { p.g = 13; }
