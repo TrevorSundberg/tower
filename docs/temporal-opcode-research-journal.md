@@ -124160,3 +124160,214 @@ signed fault injections and the pending 73-byte and 64 MiB device tests.
 This evidence addition changes documentation only. On the rendering
 manager the existing raw/DSO recording executable again matched its
 worker log. The two recording suites have distinct workloads and digests.
+### Staged buffer recording fixture on host 12
+
+Job `02f6d984-af93-43f1-ac69-b7eea816b045` starts at the complete offline
+`44f2cdf6` tree. The prior finish fixture maps its destination and uses a
+whole-buffer barrier. Its data qualify the finish operation only. The existing
+library declares both recording commands, the three handles, VkBufferCopy and
+a placeholder VkMemoryBarrier. There is no copy-and-depend provider in this
+tree. Wait for Draw's source-level arguments before selecting the production
+barrier, offset policy or public C prototype.
+
+The new test borrows the reviewed fixture's validated device setup and
+blocking finish. A diagnostic C control writes eight staging bytes to a
+never-mapped, device-local destination. A dependent transfer reads all
+16 destination bytes into the middle of a 24-byte coherent host buffer.
+The caller adds transfer-write to host-read visibility for that last buffer
+and checks the entire mapping after retirement. Distinct 3c and a5 sentinels
+identify the untouched destination suffix and both readback guards. The
+calibration barrier is private to this setup. The initial Tower compile
+rejected the reserved local name expected. The corrected raw calibration
+completed 64 alternating payloads with zero Khronos synchronization
+validation warnings/errors on the discrete RTX 3090, Vulkan 1.3.289,
+driver 565.57.01. Memory flags were 6/1/6 for staging/destination/readback.
+
+The first local code commit is `fc5df9a2e`. Commit `8e5bb851c` adds the
+binary capture from the retired mapping on fd 4. The private calibration
+DSO forwards one copy in the external lane. The same C control owns a
+fixture-only TRANSFER_WRITE to TRANSFER_READ buffer barrier in both lanes.
+The production source contract is still outstanding. The fixture imposes
+no requirements on the future public signature. It uses offsets 0/0 for
+the eight-byte calibration copy. Its independent readback copies all 16
+device bytes to offset 4. The job packet's raw and external captures match
+at SHA-256 `82c8d4dcba7eaafc8dba55a1a2f0f539fcfbaf11b719991c463421bc8cc8d9a7`.
+The probe traces both copies, both barriers and the initial preparation
+barrier, with the handle values, counts, masks, pointer values and ranges
+observed on each call. No descriptor pointer survives that call. The owner
+keeps buffers, bindings, pool, primary and mappings live through queue
+retirement before updating staging or reading the capture.
+
+Five alternating, sequential fresh-device processes per lane on the same
+EPYC 7282 and RTX 3090 followed the guarded correctness checks. At one
+caller thread and one queue, median process wall time and peak RSS were
+312.09 ms and 91,220 KiB raw, 309.50 ms and 91,256 KiB through the private
+DSO. The median first / second host recording calls took 34.66 / 10.94 µs
+raw and 36.23 / 11.26 µs external, including the calibration barrier and
+validation. No production timing follows from this result. The packet
+contains user and system CPU by trial and exact SDK input digests.
+
+Raw and linked signed finish checks matched the previous fixture log.
+Both async gate cases observed VK_NOT_READY before release and completed
+afterward. The previously verified four-export DSO reproduced byte for
+byte. Address-only runs with C UBSan exited 0 and returned the same
+captured bytes. Full leak checks each exited 1 with 3,432 bytes in seven
+allocations, with unsymbolized allocation sites. Both TSan runs exited
+139 at the container personality check before main. The private Tower
+forwarder passes four arguments without dereferencing the region.
+Instrumented owner IR and link maps document sanitizer coverage.
+Initial attempts to convert text output with xxd and declare isize failed.
+Capturing the actual mapped bytes through the existing Linux i64 write
+ABI removes that utility dependency. Clean offline replay from 44f2cdf6
+reproduced both binaries checked by the DSO hash comparison, the private
+Tower object and both raw captures. The raw control, external transport
+and replay all exited 0. Production acceptance awaits Draw's contract.
+
+### Confirmed Draw staged upload recording contract
+
+The rendering manager forwarded the Draw team's source-level contract at
+41d8b9badce3e6520d43b798c44cbb7e19b6d57c, draw.c blob
+7b6ee8f42bbde29790364d3de73a5d75216cbf1d. Lines 1943–1952 specify a
+global VkMemoryBarrier2 in VkDependencyInfo. Lines 1954 and 1970–1979
+specify the staged branch, a single copy from zero to zero with the
+logical byte size passed unchanged, then vkCmdPipelineBarrier2. The
+recorder has four by-value inputs and a void return. Calibration above
+used a different barrier. The prior copy ABI is reusable. An offline
+search found no synchronization2 provider or declarations in this tree.
+The native Linux C entry and raw C oracle will be compared with
+synchronization2 explicitly queried and enabled on the selected device.
+
+Implementation `2ebc7ab2f` exports one Linux C function. Its object has
+exactly the two Vulkan imports. The inputs are the original primary,
+staging buffer, destination buffer and 64-bit count. It uses a stack
+VkBufferCopy, then a stack dependency referencing one stack memory barrier.
+All pointees are used only during their recording calls. The fixture at
+`01660fcd0` retires the upload before beginning a second recording for
+readback. Both production copies start at zero. The readback guard offset
+is four. The [recording contract and checks](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md)
+give the fields, handles, valid ranges, build/link commands, device
+identity, lifetime, signed finish behavior and capture hashes.
+
+On host 12 both native Vulkan C and C through the Tower DSO completed all
+64 odd-sized copies and two 64 MiB copies. The direct-object lane also
+passed the short case. Each run had zero Khronos synchronization validation
+warnings/errors. The traces match both calls in order on the original
+primary, followed by return, end, unfenced submit and same-queue idle.
+The next recording copies the destination to a separate host allocation
+and uses the transfer-to-host barrier there. The probe DSO exposes no
+recorder override. The recording-only test `917eb4696` also covers a
+count above 32 bits. Independent mutations to copy size and destination
+access each exited 3 at the corresponding assertion, before sending any
+commands to a driver. The existing finish tests reproduced the signed
+−4, −1 and +1 at end, submit and idle in each raw/linked recording lane.
+The async gate observed VK_NOT_READY before release and signaled both
+fences afterward. The earlier four-export DSO was byte-identical.
+
+The original short/large payload verification read the complete mapped
+result byte by byte. Two large trials including capture took 18.15/18.28 s
+raw/linked. Commit `94f6767f8` prepares host data for the coherent staging
+memcpy and compares the whole retired mapping in bulk, retaining exact
+first-mismatch diagnostics. The same captures then took 2.69/2.74 s.
+Peak process RSS increased from 222064/222376 to 287824/287580 KiB for
+the 64 MiB host reference. A separately written Tower stream oracle uses
+byte recurrence with wraparound and fixed test layout to check both final
+raw captures. It matched the first implementation's checked bytes.
+
+On the EPYC 7282, affinity 0–31, cgroup quota 15.36 CPUs, five alternating
+warm-file, fresh-device processes per short lane used one calling thread
+and one queue. Each checked 64 retired transfers. Per-process medians:
+
+| Measurement | Raw C | External C with Tower DSO |
+| --- | ---: | ---: |
+| First / second host record call, µs | 39.36 / 12.21 | 41.15 / 11.81 |
+| Mean host record call, µs | 10.95 | 11.10 |
+| Process wall / user+system CPU, ms | 317.35 / 314.02 | 317.93 / 313.51 |
+| Process peak RSS, KiB | 91196 | 91240 |
+
+Record-call samples include the validation layer and exclude begin and
+finish. Process samples include device setup, copies, retirement and
+checks. Enumeration, synchronization2 feature selection and actual memory
+flags are in the packet. The recorder adds stack descriptors and no heap
+allocation or worker. There is no Draw frame or full-application benchmark.
+
+The initial compiler rejected hexadecimal constants and an unbraced else-if.
+Decimal Vulkan values and two plain guard tests built on the pinned
+bootstrap. LLVM-instrumented Tower and the C ASan/UBSan boundary passed
+the two recording controls and both address-only device runs. LSan with
+sync validation exited 1 in both device runs, 3408 bytes in seven allocations.
+LSan with the Khronos layer and just the sync validation feature omitted
+passed both byte checks. Allocation sites remain unsymbolized. All four
+final TSan recording/GPU attempts exited 139 at the container personality
+check before main. One earlier external recording-only TSan run completed.
+Source-level Tower UBSan and GPU-driver instrumentation were unavailable.
+The receipt preserves original status codes and the recorder IR/link maps.
+
+The first packet replay stopped before the recording harness because its
+results directory had previously been created by the hardware sampler.
+The standalone recording script now creates that directory. A fresh local
+main initialized from the complete 44f2cdf6 objects and the source bundle
+replayed the documented 050b68dca tree with exit 0. Its object and DSO,
+all short captures, losslessly compressed large captures, independent
+control digests and signed finish log matched the frozen references.
+The packet preserves the prior calibration receipt and the failed replay
+log. Application integration and review remain with the Draw and Tower
+rendering owners.
+
+### Native C staged recorder review and downstream acceptance
+
+Slot 12 receipt `02f6d984` supplied archive
+`f2ef3c74b37ebe51fc9257005ebe724583ad6f7f7390de6745fd583307ee22be`.
+The standalone bundle endpoint returned HTTP 404. The archive contained
+the source bundle with SHA-256
+`55a6c697a1a31126f9c49b9a7fff40781816573d39787d20fe48b59ddeb7c2ae`.
+All 238 manifest entries verified, as did the bundle prerequisite
+`44f2cdf6` and replay tip `aa520bf5c1a479bfe34fdf341a647558487701c9`.
+The production source is `2ebc7ab2fc75d831fe58c1bbc9433f666c8373a5`.
+
+Rendering inspected the ELF symbols and reproduced the shared library
+from the worker object. A fresh Vulkan-header C recording double checked
+four sizes, including one beyond 32 bits, through the raw and external
+C callers. Rendering checked every traced recording interval for the exact
+Draw copy and global synchronization2 dependency and reconstructed each
+short and large captured stream. The destination suffix and both readback
+guards matched throughout. The [C link and hardware receipt](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md)
+documents scope and independent results. LeakSanitizer on the GPU with
+synchronization validation reported 3,408 bytes in seven allocations for
+both paths. The final TSan runs stopped before main. The worker's clean
+offline replay exited 0. Draw's application use of this new entry remains
+a separate test from its already linked blocking finish.
+
+### Draw OSD texture upload v1 control
+
+Draw confirmed `osd_create` and `image_layer_barrier` at
+`752f55c1280a1c737eedeaa46285af2a199aa37d`, draw.c blob
+`7b6ee8f42bbde29790364d3de73a5d75216cbf1d`. The asset pack
+`assets/osd/textures.bin` hashes to
+`0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9`.
+One transaction per new texture transitions each actual layer in ascending
+order from UNDEFINED to TRANSFER_DST_OPTIMAL, copies all tightly packed
+layer-major, mip-minor regions with one vkCmdCopyBufferToImage, then
+transitions each layer to SHADER_READ_ONLY_OPTIMAL. The initial scope is
+NONE/0 to TRANSFER/TRANSFER_WRITE. The final scope is TRANSFER/TRANSFER_WRITE
+to FRAGMENT_SHADER/SHADER_SAMPLED_READ. Each VkDependencyInfo
+points to one image barrier, with ignored queue families and a color range
+covering all mips of that single layer. Memory and buffer barrier counts
+are zero. All copies and transitions use the same recording primary.
+
+| Canonical texture | Format | Base extent | Actual layers | Mips | Staging offsets in bytes |
+| --- | --- | --- | ---: | ---: | --- |
+| Fonts | R8_UNORM | 2048 × 2048 | 6 | 1 | 0, 4194304, 8388608, 12582912, 16777216, 20971520 |
+| Bitmap and inverted, per texture | R8G8B8A8_SRGB | 256 × 352 | 1 | 2 | 0, 360448 |
+| Firmware | R8G8B8A8_SRGB | 256 × 352 | 4 | 1 | 0, 360448, 720896, 1081344 |
+| Images | R8G8B8A8_SRGB | 64 × 64 | 2 | 1 | 0, 16384 |
+
+Draw reviewed its raw Vulkan control on Wine x64, RTX 3060 / NVIDIA
+595.99.02, runtime `d1060797` at manager revision `41d8b9ba`. Its API
+dump SHA-256 was `144f9c66cba64f08ceadf793d701a3315e5ca7556358f606fd54ed35f7bff383`.
+Draw observed 5 copies, 16 regions and 28 transitions. All five unfenced
+single-command submits and same-queue waits succeeded before Draw unmapped
+staging memory, destroyed its buffer and freed the memory. All five
+images outlived staging. The process exited 1 with Wine loader diagnostics.
+The trace provides command and lifetime evidence. It did not read back
+individual texels. Rendering job `aea4af39` owns the new recorder and its
+independent device checks. Draw retains ownership of the application.

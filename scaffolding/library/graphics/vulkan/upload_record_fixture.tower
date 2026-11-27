@@ -1,0 +1,139 @@
+import tower;
+import counted_abi;
+import counted_capture;
+import counted_record;
+import readback_abi;
+import readback_clear;
+import readback_device;
+import readback_oracle;
+import readback_rows;
+import command_begin;
+import command_finish;
+import upload_test_device;
+import readback_output as output;
+
+// Private linkage point for the two native C callers.
+extern fn fixture_record(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkBufferHandle*, size: u64): void;
+extern fn getenv(name: u8*): u8*;
+extern fn write(fd: i32, data: u8*, size: usize): i64;
+extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
+var CaptureFd: i32 = 4;
+var VkDeviceLocal: u32 = 1;
+var DestinationGuard: u8 = 60;
+var ShortUploadBytes: usize = 73;
+var LargeUploadBytes: usize = 64 * 1024 * 1024;
+
+fn retire(ctx: ReadbackDevice*, cmd: VkCommandBufferHandle*): bool {
+    var result = tower_vk_command_finish_v1(ctx.queue, cmd);
+    if vk_ok("owner finish", result) { return true; }
+    if !vk_ok("owner recovery drain", vkQueueWaitIdle(ctx.queue)) {
+        puts("retirement unknown; leaving Vulkan owners live");
+        exit(3);
+    }
+    return false;
+}
+
+fn exercise(ctx: ReadbackDevice*): bool {
+    var src: CountedBuffer = default; var dst: CountedBuffer = default; var host: CountedBuffer = default;
+    defer counted_release_buffer(ctx.device, &src);
+    defer counted_release_buffer(ctx.device, &dst);
+    defer counted_release_buffer(ctx.device, &host);
+    var suffix: u8[8];
+    var payload_bytes = ShortUploadBytes;
+    var trials: usize = 64;
+    if getenv("UPLOAD_LARGE") != null { payload_bytes = LargeUploadBytes; trials = 2; }
+    var suffix_offset = payload_bytes / sizeof(u32) * sizeof(u32);
+    var dest_bytes = suffix_offset + sizeof(decltype(suffix));
+    var guard: usize = 4;
+    var read_bytes = dest_bytes + 2 * guard;
+    // Construct the caller bytes in ordinary host memory before the coherent staging memcpy.
+    var wanted = alloc(u8, read_bytes);
+    if wanted == null { return vk_failure("cannot allocate host upload and guard reference"); }
+    defer free(wanted);
+    fill(wanted, ReadbackGuard, read_bytes);
+    fill(wanted + guard + payload_bytes, DestinationGuard, dest_bytes - payload_bytes);
+    var payload = wanted + guard;
+    var coherent = VkHostVisible | VkHostCoherent;
+    if !counted_buffer(ctx, &src, convert(u64, payload_bytes), VkTransferSrcUsage, coherent)
+        || !counted_buffer(ctx, &dst, convert(u64, dest_bytes), VkTransferDstUsage | VkTransferSrcUsage, VkDeviceLocal)
+        || !counted_buffer(ctx, &host, convert(u64, read_bytes), VkTransferDstUsage, coherent) { return false; }
+    readback_number("staging_memory_flags", src.flags);
+    readback_number("destination_memory_flags", dst.flags);
+    readback_number("readback_memory_flags", host.flags);
+    var input: void*; var output_mapping: void*;
+    if !vk_ok("map staging", vkMapMemory(ctx.device, src.memory, 0, VkWholeSize, 0, &input)) { return false; }
+    defer vkUnmapMemory(ctx.device, src.memory);
+    if !vk_ok("map readback", vkMapMemory(ctx.device, host.memory, 0, VkWholeSize, 0, &output_mapping)) { return false; }
+    defer vkUnmapMemory(ctx.device, host.memory);
+    var mapped = bits(u8*, output_mapping);
+    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkPoolResetCommandBuffer,
+        queueFamilyIndex: ctx.family, ..default };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create pool", vkCreateCommandPool(ctx.device, &pool_info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(ctx.device, pool, null);
+    var info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool,
+        commandBufferCount: 1, ..default };
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate primary", vkAllocateCommandBuffers(ctx.device, &info, &cmd)) { return false; }
+    fill(&suffix[0], DestinationGuard, sizeof(decltype(suffix)));
+    if !vk_ok("begin initialization", tower_vk_command_begin_v1(cmd)) { return false; }
+    vkCmdUpdateBuffer(cmd, dst.handle, convert(u64, suffix_offset), convert(u64, sizeof(decltype(suffix))), bits(void*, &suffix[0]));
+    counted_buffer_barrier(cmd, dst.handle, VkStageTransfer, VkStageTransfer, VkTransferWrite, VkTransferRead | VkTransferWrite);
+    if !retire(ctx, cmd) { return false; }
+
+    var capture: VkBufferCopy = { dstOffset: convert(u64, guard), size: convert(u64, dest_bytes), ..default };
+    var capture_bytes = getenv("CAPTURE_UPLOAD_BYTES") != null;
+    output.readback_size("payload_bytes", payload_bytes);
+    output.readback_size("guarded_bytes", read_bytes);
+    var trace = getenv("TRACE_UPLOAD") != null;
+    if trace {
+        output.readback_size("owner_cmd", bits(usize, cmd)); output.readback_size("owner_staging", bits(usize, src.handle));
+        output.readback_size("owner_dst", bits(usize, dst.handle)); output.readback_size("owner_host", bits(usize, host.handle));
+    }
+    var total: u64 = 0;
+    for (var trial: usize = 0; trial < trials; trial++) {
+        var seed: usize = 2;
+        if trial % 2 != 0 { seed = 151; }
+        for (var i: usize = 0; i < payload_bytes; i++) { payload[i] = convert(u8, (i * 3 + seed) & 255); }
+        copy(bits(u8*, input), payload, payload_bytes);
+        fill(mapped, ReadbackGuard, read_bytes);
+        if !vk_ok("begin upload", tower_vk_command_begin_v1(cmd)) { return false; }
+        if trace { puts("record_enter"); }
+        var start = now();
+        fixture_record(cmd, src.handle, dst.handle, convert(u64, payload_bytes));
+        var duration = now() - start;
+        if trace { puts("record_return"); }
+        if !retire(ctx, cmd) { return false; }
+        // A new recording consumes the upload. Only its host readback needs transfer-to-host visibility.
+        if !vk_ok("begin readback", tower_vk_command_begin_v1(cmd)) { return false; }
+        vkCmdCopyBuffer(cmd, dst.handle, host.handle, 1, &capture);
+        counted_buffer_barrier(cmd, host.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
+        if !retire(ctx, cmd) { return false; }
+        if memcmp(mapped, wanted, read_bytes) != 0 {
+            for (var i: usize = 0; i < read_bytes; i++) {
+                if mapped[i] == wanted[i] { continue; }
+                output.readback_size("mismatch_at", i);
+                output.readback_number("wanted", convert(u32, wanted[i]));
+                output.readback_number("actual", convert(u32, mapped[i]));
+                break;
+            }
+            return false;
+        }
+        if capture_bytes && write(CaptureFd, mapped, read_bytes) != convert(i64, read_bytes) {
+            return vk_failure("guarded capture write failed");
+        }
+        if trial < 2 { output.readback_label("record_ns"); output.readback_decimal(duration); }
+        total += duration;
+    }
+    output.readback_size("checked_copies", trials);
+    output.readback_label("total_record_ns"); output.readback_decimal(total);
+    return true;
+}
+
+export fn main(): i32 {
+    var messages: u32 = 0;
+    var ok = validated_upload(&messages, true, exercise);
+    readback_number("validation_warnings_errors", messages);
+    if !ok || messages != 0 { return 1; }
+    return 0;
+}

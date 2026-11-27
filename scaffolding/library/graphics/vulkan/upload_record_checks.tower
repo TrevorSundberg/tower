@@ -1,0 +1,47 @@
+import tower;
+import readback_abi;
+import counted_abi;
+import buffer_upload_record;
+import readback_output;
+
+extern fn fixture_record(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, dst: VkBufferHandle*, size: u64): void;
+extern fn exit(status: i32): void;
+struct Observation { size: u64; calls: u32; staging: u8; destination: u8; }
+
+fn require(ok: bool, message: u8*): void { if !ok { puts(message); exit(3); } }
+
+export fn vkCmdCopyBuffer(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkBufferHandle*, count: u32, region: VkBufferCopy*): void {
+    var seen = bits(Observation*, cmd);
+    require(seen.calls == 0 && src == bits(VkBufferHandle*, &seen.staging)
+        && dst == bits(VkBufferHandle*, &seen.destination), "copy order or handle mismatch");
+    require(count == 1 && region != null && region.srcOffset == 0 && region.dstOffset == 0
+        && region.size == seen.size, "copy region mismatch");
+    seen.calls++;
+}
+export fn vkCmdPipelineBarrier2(cmd: VkCommandBufferHandle*, dependency: VkDependencyInfo*): void {
+    var seen = bits(Observation*, cmd);
+    require(seen.calls == 1 && dependency != null, "dependency order or pointer mismatch");
+    require(dependency.sType == VkDependencyInfoTag && dependency.pNext == null && dependency.dependencyFlags == 0
+        && dependency.memoryBarrierCount == 1 && dependency.pMemoryBarriers != null
+        && dependency.bufferMemoryBarrierCount == 0 && dependency.pBufferMemoryBarriers == null
+        && dependency.imageMemoryBarrierCount == 0 && dependency.pImageMemoryBarriers == null, "dependency fields mismatch");
+    var memory = dependency.pMemoryBarriers;
+    require(memory.sType == VkMemoryBarrier2Tag && memory.pNext == null && memory.srcStageMask == VkStage2Transfer
+        && memory.srcAccessMask == VkAccess2TransferWrite && memory.dstStageMask == VkStage2AllCommands
+        && memory.dstAccessMask == VkAccess2MemoryRead, "global memory barrier mismatch");
+    seen.calls++;
+}
+
+fn observe(size: u64): void {
+    var seen: Observation = { size: size, ..default };
+    fixture_record(bits(VkCommandBufferHandle*, &seen), bits(VkBufferHandle*, &seen.staging),
+        bits(VkBufferHandle*, &seen.destination), size);
+    require(seen.calls == 2, "recorder returned before both commands");
+    readback_label("observed_size"); readback_decimal(size);
+}
+export fn main(): i32 {
+    observe(1); observe(73); observe(64 * 1024 * 1024);
+    // Observe 64-bit transport without an allocation of this size.
+    observe((convert(u64, 1) << 32) + 73);
+    return 0;
+}

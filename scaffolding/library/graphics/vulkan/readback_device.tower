@@ -53,6 +53,13 @@ fn vk_device_kind(kind: u32): u8* {
 
 // The caller owns the instance. On success it also owns out.device.
 fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDevice*): bool {
+    return readback_open_device_for_upload(instance, index, out, false);
+}
+
+struct VkPhysicalDeviceSynchronization2Features { sType: u32; pNext: void*; synchronization2: u32; }
+var VkSynchronization2FeaturesTag: u32 = 1000314007;
+
+fn readback_open_device_for_upload(instance: VkInstanceHandle*, index: u32, out: ReadbackDevice*, need_sync2: bool): bool {
     var count: u32 = 0;
     if !vk_ok("vkEnumeratePhysicalDevices/count", vkEnumeratePhysicalDevices(instance, &count, null)) { return false; }
     if index >= count { return vk_failure("Requested Vulkan physical device index unavailable"); }
@@ -89,8 +96,11 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     if format.maxExtent.width < ReadbackWidth || format.maxExtent.height < ReadbackHeight
         || (format.sampleCounts & VkSample1) == 0 { return vk_failure("Unsupported RGBA8 extent/sample count"); }
     var dynamic: VkPhysicalDeviceDynamicRenderingFeatures = { sType: VkDynamicRenderingTag, ..default };
+    var sync: VkPhysicalDeviceSynchronization2Features = { sType: VkSynchronization2FeaturesTag, ..default };
+    if need_sync2 { dynamic.pNext = bits(void*, &sync); }
     var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic), ..default };
     vkGetPhysicalDeviceFeatures2(physical, &features);
+    if need_sync2 && sync.synchronization2 == 0 { return vk_failure("synchronization2 unavailable"); }
     if dynamic.dynamicRendering == 0 { return vk_failure("Dynamic rendering unavailable"); }
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
     if count == 0 { return vk_failure("No queue families"); }
@@ -106,6 +116,7 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
         var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
             pQueueCreateInfos: &queue_info, pNext: bits(void*, &dynamic), ..default };
         if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
+        if need_sync2 { readback_number("enabled_synchronization2", sync.synchronization2); }
         out.family = family;
         vkGetDeviceQueue(out.device, family, 0, &out.queue);
         vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);
