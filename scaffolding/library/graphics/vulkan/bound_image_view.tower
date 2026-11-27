@@ -1,0 +1,12 @@
+import tower;
+import readback_abi;
+
+export fn tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
+    format: u32, range: VkImageSubresourceRange*, out: VkImageViewHandle**): i32 {
+    var info: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: view_type,
+        format: format, subresourceRange: *range, ..default };
+    var view: VkImageViewHandle* = null;
+    var result = vkCreateImageView(device, &info, null, &view);
+    if result == 0 { *out = view; }
+    return result;
+}

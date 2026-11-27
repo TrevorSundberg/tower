@@ -6,7 +6,6 @@ import command_end;
 import readback_rows;
 
 var VkImageCreateTag: u32 = 14;
-var VkImageViewCreateTag: u32 = 15;
 var VkBufferCreateTag: u32 = 12;
 var VkAllocateTag: u32 = 5;
 var VkCommandPoolTag: u32 = 39;
