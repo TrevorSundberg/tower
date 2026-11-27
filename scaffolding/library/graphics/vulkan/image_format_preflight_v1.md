@@ -162,3 +162,37 @@ Draw's separately reported CPU constructor parity and bindings at Draw
 `2f38b19c8218fef304993df5708a7458fa16776b` are recorded on the
 [Linux package ref](https://github.com/TrevorSundberg/tower/blob/8edf50ba4dd8902c4ae6a8de23c5c987776873d3/scaffolding/library/graphics/vulkan/graphics_so_linux.md#draw-constructor-checks-with-the-shared-library).
 Draw owns the shipping application check for the new preflight entry.
+
+## Draw constructor adoption on Linux
+
+Both owning constructors in Draw `07d50aba02d3685e644cca16a122f5f041dd7b7a`
+(tree `f71f2753a395efc28cf9e3a73cddd8754b105c79`) call the public
+preflight when selected. Draw rebuilt Tower `b68b1835c9c24171222eab85a695a77835c23e54`
+and reproduced the object and shared-library hashes above.
+
+Draw compared four paths against the same 28 cases: raw C, its private
+Tower implementation, the public object and the public shared library.
+All four row streams had SHA-256
+`c5a4f4aee3da06792977fb78b71737a219de63c12190f22114bd7ad231d7ca3e`.
+When a driver wrote its temporary properties and returned +5, −11 or
+−1000001004, each path preserved both caller outputs and returned the
+signed result. A successful query for a zero-width descriptor published
+the limits and set the support flag to false.
+
+Draw ran `bash tests/vulkan-image.sh` with its object and shared-library
+selections and reported two sets of 108 and 270 constructor scenarios.
+The query-error diagnostic retained the original status. The capacity
+diagnostic reported the returned limits. Both failures stopped before
+image creation. On the `osd-pack` case, `LD_DEBUG=bindings` showed
+both owning constructors calling `tower_vk_image_format_preflight_v1`
+in `libtower_preflight.so`, with image and bound-view creation in the
+eleven-entry `libtower_graphics.so`. The C and Tower test executables
+had SHA-256 `0288862f9ec3f19b824d71c516f6bf74a4d2d8060e88cbccaebd8277bd6ae639`
+and `b47fb27b806bd71b6ed93d30bc0139e632c478ad433ac8df237206756a169fec`.
+Both produced the same 45-event trace,
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+These constructor tests used recording Vulkan drivers. Draw's slot 10
+job `dff82eda-6276-4978-981e-3cd535d64819` owns the shipping preflight
+device, packed texture and HUD comparison. Its prerequisite is the
+eleven-entry DSO run `7c22503e-5491-4462-a6da-c1efdc38c3d3`.
