@@ -124787,3 +124787,35 @@ runtime from the shared helper. Linking the sanitizer first and adding
 libgcc_s to the instrumented helper resolved those build/startup errors.
 The packet preserves the separate diagnostics, instrumented functions,
 link maps, actual test exits and reproducible commands.
+
+### Draw ACK of draw-tower-bound-image-view/v1
+
+The rendering manager relayed Draw's independent fetch and ACK of the
+contract at Tower 37eb17b43c6c8c152c43fd429b9f3cfee54af2d9 against
+Draw bd203f60b00954acd3b0405720e40a24e94ef430. Host 12 independently
+read the pinned bound_image_view_v1.md from Tower Git and verified its
+blob 9ac986f8967e389bc73a0ef619c8face8df21da9. Draw confirmed the
+explicit view type, signed status, identity mapping, null allocator,
+private driver output, one call, success-only publication, and caller
+ownership of allocation, diagnostics and destruction.
+
+Draw maps serialized zero and one to different view types with the same
+one-layer range. Host 12 compiled the exact declaration from the pinned
+document alongside the shipping SDK header with Clang 19 and -Werror.
+Using the retained libtower_bound_view.so from code revision 69d838e7d,
+a fresh Tower recording test held the mock device, bound image, sRGB
+format, COLOR range (two mips and one layer) and caller output address
+fixed. Only the explicit type changed within each success/failure pair.
+Both 2D and 2D_ARRAY made one driver call with the requested type.
+The recorder wrote its private slot in all cases. Both the raw SDK and
+independently linked Tower lanes published the successful handle and
+returned -2 with the caller slot still null on failure. Their four
+field/result records matched. The assignment packet includes both raw
+traces and ack/check.sh, runnable from the source root with an empty
+output directory.
+
+This ACK updates documentation. The implementation's clean replay,
+five-image RTX 3090 capture, timing and sanitizer results retain their
+original build identity. There was no new production path to profile.
+Draw has confirmed the ABI; application adoption and an application
+device run remain with Draw.

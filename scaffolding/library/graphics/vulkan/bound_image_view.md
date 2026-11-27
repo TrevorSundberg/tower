@@ -55,6 +55,19 @@ binding, and its fatal error handling. Its owning constructor can pass
 its selected type, format and range to this entry and handle the result
 before transferring ownership to its caller.
 
+Draw independently fetched and acknowledged `draw-tower-bound-image-view/v1`
+at Tower revision `37eb17b43c6c8c152c43fd429b9f3cfee54af2d9` against
+its source revision above. Draw selects 2D for a serialized layer count
+of zero and 2D_ARRAY for a serialized count of one. Both ranges contain
+one actual layer. Pass the selected type through unchanged.
+
+Host 12 compiled the acknowledged C declaration alongside the public
+header. A paired recording test kept the device, image, format, range
+and output address fixed while switching only the requested view type.
+For both 2D and 2D_ARRAY, the raw SDK and C-linked Tower library each
+made one driver call, published the successful handle, and preserved
+the caller slot on signed device OOM after the driver wrote its temporary.
+
 Host 12 linked the public header from C and compared a raw SDK control,
 the shared library and the direct object. Each lane checked all 36 calls,
 covering the five OSD sources, a single-layer 2D array with nonzero bases,
