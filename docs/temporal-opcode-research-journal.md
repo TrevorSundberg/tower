@@ -124896,3 +124896,15 @@ used a relative test-script path after changing directory. The first
 native wrapper matched the wrong wording for the missing Win64 ASan
 import libraries. The clean replay used an absolute path and checked
 LLD's actual diagnostic. The logs preserve both initial failures.
+
+### Win64 SDK oracle for the tight color region builder
+
+Host 11 job 12a29d40-8cc7-4451-aa44-701ca62cb66e uses the ordinal-eight
+tree 67345e19570c3a1bda12dbbc3938e47dafcb5156. Draw 752f55c1 supplies
+the five shapes and 3b0c80e4 confirms the scalar builder ABI. The Tower
+reader's 76995d1c retains the contract and the real-pack CPU receipt.
+The existing 9821d998 packet passed its SHA256SUMS check. Its SDK C raw
+control and recorder remain the frozen inputs. The raw helper can write a
+prefix before rejecting a bitmap span. The new SDK test uses a fixed
+expected region table and an independent whole-buffer sentinel check.
+The reviewed portable implementation belongs to slot 12.
