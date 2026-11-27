@@ -1,0 +1,18 @@
+import tower;
+import readback_abi;
+
+var VkCommandStepOk: u32 = 0;
+var VkCommandStepReset: u32 = 1;
+var VkCommandStepBegin: u32 = 2;
+
+// The caller owns a retired primary and externally synchronizes its reset-enabled pool.
+export fn tower_vk_command_reset_begin_v1(command: VkCommandBufferHandle*, reset_flags: u32,
+    usage: u32, failed_step: u32*): i32 {
+    var result = vkResetCommandBuffer(command, reset_flags);
+    if result != 0 { *failed_step = VkCommandStepReset; return result; }
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, flags: usage, ..default };
+    result = vkBeginCommandBuffer(command, &begin);
+    if result != 0 { *failed_step = VkCommandStepBegin; return result; }
+    *failed_step = VkCommandStepOk;
+    return result;
+}

@@ -123785,3 +123785,14 @@ No source-level Tower UBSan, displayed WSI or Draw build using this end
 export was exercised on host 12. The registered job packet retains the
 ABI header, source and ELF hashes, maps, raw logs, exits, timings and
 local-only replay command.
+
+### Reusable primary command buffer, host 12
+
+Local base 09769704, with the prior two Vulkan exports and the published
+documentation delta at 2477ba66 inspected separately. The existing counted
+and shaderless cases allocate from a pool with flags zero. Keep their initial
+begin and use a separate reset-enabled fixture mode to exercise retirement
+and re-recording. Start with raw API calls, then compare a library entry on
+the same device and inputs. Draw caller details await manager confirmation.
+The initial base build with bootstrap/linux-x64/towerc and the previous
+receiver's hashed SDK and SPIR-V matched both accepted complete logs.

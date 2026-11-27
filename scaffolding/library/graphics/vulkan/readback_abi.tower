@@ -385,6 +385,8 @@ struct VkCommandBufferHandle {}
 
 struct VkCommandBufferInheritanceInfo {}
 
+var VkCommandBeginTag: u32 = 42;
+
 struct VkCommandBufferBeginInfo {
     sType: u32;
     pNext: void*;
@@ -538,6 +540,7 @@ extern fn vkBindBufferMemory(device: VkDeviceHandle*, buffer: VkBufferHandle*, m
 extern fn vkCreateCommandPool(device: VkDeviceHandle*, pCreateInfo: VkCommandPoolCreateInfo*, pAllocator: VkAllocationCallbacks*, pCommandPool: VkCommandPoolHandle**): i32;
 extern fn vkDestroyCommandPool(device: VkDeviceHandle*, commandPool: VkCommandPoolHandle*, pAllocator: VkAllocationCallbacks*): void;
 extern fn vkAllocateCommandBuffers(device: VkDeviceHandle*, pAllocateInfo: VkCommandBufferAllocateInfo*, pCommandBuffers: VkCommandBufferHandle**): i32;
+extern fn vkResetCommandBuffer(commandBuffer: VkCommandBufferHandle*, flags: u32): i32;
 extern fn vkBeginCommandBuffer(commandBuffer: VkCommandBufferHandle*, pBeginInfo: VkCommandBufferBeginInfo*): i32;
 extern fn vkEndCommandBuffer(commandBuffer: VkCommandBufferHandle*): i32;
 extern fn vkCmdBeginRendering(commandBuffer: VkCommandBufferHandle*, pRenderingInfo: VkRenderingInfo*): void;
