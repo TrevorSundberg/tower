@@ -1,0 +1,19 @@
+#version 450
+layout(local_size_x = 1) in;
+struct IndexedCommand {
+    uint indexCount;
+    uint instanceCount;
+    uint firstIndex;
+    int vertexOffset;
+    uint firstInstance;
+};
+layout(std430, set = 0, binding = 0) writeonly buffer Stream {
+    uint count;
+    IndexedCommand commands[];
+} stream;
+layout(push_constant) uniform Control { uint requested; } control;
+void main() {
+    // One invocation writes one initialized record, including for the zero control.
+    stream.commands[0] = IndexedCommand(3, 1, 0, 0, 0);
+    stream.count = min(control.requested, 1u);
+}

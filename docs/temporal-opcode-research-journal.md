@@ -123382,3 +123382,15 @@ unexercised. The synchronous helper aborts if both fence wait and its
 device-idle recovery fail without establishing retirement or device loss.
 This branch supplies a hardware reference for the next worker. Review for
 main and the general-purpose library remains open.
+
+### Host 12 counted indexed Vulkan draw
+
+The frozen integration starts at `cf53212c` and cherry-picks the two source
+files from `62323bbe`. Adding the supplied wrapper produced tree
+`a05f4082884a9dcc5475b05eb601a447ae04d4ec`. The first wrapper build failed
+to resolve the new library from the installed resources. Pointing
+`--foundation` at this checkout's `scaffolding/foundation.tower` compiled
+the original bytes. The shaderless hardware baseline passed before changes.
+The configured reader has Tower only. The assignment supplies the Draw
+contract at `7be8d020b07454789195427588712c72ee465637`. The compute,
+vertex and fragment controls here are independent fixture assets.
