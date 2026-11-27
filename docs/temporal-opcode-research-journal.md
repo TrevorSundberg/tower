@@ -125186,3 +125186,57 @@ publishes the result. The existing bind_new_image caller still constructs
 the descriptor, reports errors, queries requirements, allocates and binds.
 This one call serves the five sampled images and five readback attachments.
 The counted and clear controls retain their separate construction paths.
+
+Implementation 60b74c56 uses one local handle and one external call. The
+optimized LLVM shows the null initialization, unchanged arguments and an
+i32 equality-to-zero branch before the only store to the public slot.
+The SDK C declaration compiled alongside the published contract. At
+6b66294b the raw SDK, C/shared and C/direct object lanes each passed the
+four configured shapes at 0, -1, -2 and synthetic +1. For each return
+the driver wrote its private slot while observing the public slot still
+null. The caller checked guards, result, publication and all borrowed
+storage. Four independent mutated helpers copied the descriptor, used
+the caller slot, accepted positive status, or initialized the temporary
+to a nonnull handle. Each failed its corresponding check with exit 3.
+The first test compile required an explicit usize conversion for SDK u32
+counts. The corrected comparison and the original diagnostic are retained.
+
+The loader trace resolves the Tower caller to libtower_create_image.so,
+then its vkCreateImage to the test probe and the actual Vulkan loader.
+All ten device descriptors matched the raw SDK reference. The five bound
+OSD sources produced five uploads and sixteen guarded sampled reads
+on the same RTX 3090, NVIDIA 565.57.01, Vulkan 1.3.289, family/index 0/0.
+Every byte of the 103158144-byte reference matched. The success trace
+passed all 189 lifetime events, with five distinct surviving bindings.
+The pre-binding -2 injection returned 1 with 21 events and zero pixels.
+Only the earlier completed image/view required destruction. The ordinary
+later view fault also passed. Validation counted zero warnings/errors.
+
+Fresh-process comparisons alternated three baseline and three provider
+runs on the same EPYC 7282, affinity 0–31, quota 15.36 CPU cores, warm
+files, one caller, one queue and synchronization validation. Median
+wall/CPU/RSS was 2034.76/2034.69 ms/115844 KiB before and
+2030.62/2030.63 ms/116112 KiB after. The measured wall ranges overlap.
+Three alternating raw and DSO recording processes each ran two batches of
+two million calls over the same four SDK descriptors. The median first
+and second batches were 5.92 and 3.93 ns/call raw, 7.81 and 5.62 ns/call
+through the shared library. The measurement includes the caller and
+checking double. The provider has no heap allocation or retained state.
+
+Clang ASan/UBSan covered the C boundary. LLVM ASan covered the provider,
+Tower checks and ordinary device caller. Both CPU lanes passed. Address-only
+hardware passed the complete success capture and injected failure cleanup.
+Full hardware LSan with sync validation reported 4187 bytes in 15
+allocations, matching the pre-port report; disabling only sync validation
+in a private diagnostic caller produced a clean full leak check with
+identical pixels. Allocation ownership remains unresolved.
+
+LLVM TSan instrumented the provider, checks and caller. Both raw and
+shared single-caller recording checks completed in separate processes
+when startup succeeded. Other CPU launches hit the container personality
+restriction. The initial GPU TSan process exited 66 with a nested SEGV
+and no image records. Three paired GPU retries for each of the baseline
+and provider stopped at the personality check (139). GPU race coverage
+remains open. The job records exits, link maps, function instrumentation
+and diagnostics. The driver and validation layer were outside compiler
+instrumentation. These runs exercise one caller and one queue.
