@@ -3,7 +3,6 @@ import readback_abi;
 import readback_clear;
 import readback_device;
 import readback_oracle;
-import readback_output;
 import readback_validation;
 
 // Host 12 lifetime diagnostic. Pin the ICD exposing one device, with queue family 0.
