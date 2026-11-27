@@ -16,8 +16,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetPhysicalDeviceImageFormatProperties(VkPhysic
 #ifdef _WIN32
     /* Device selection also queries its RGBA8 readback target. */
     if (format == VK_FORMAT_R8G8B8A8_UNORM) {
-        PFN_vkGetPhysicalDeviceImageFormatProperties next = (PFN_vkGetPhysicalDeviceImageFormatProperties)
-            GetProcAddress(GetModuleHandleW(L"winevulkan.dll"), "vkGetPhysicalDeviceImageFormatProperties");
+        FARPROC symbol = GetProcAddress(GetModuleHandleW(L"winevulkan.dll"), "vkGetPhysicalDeviceImageFormatProperties");
+        PFN_vkGetPhysicalDeviceImageFormatProperties next;
+        _Static_assert(sizeof next == sizeof symbol, "Win64 function pointer");
+        memcpy(&next, &symbol, sizeof next);
         if (!next) exit(4);
         return next(physical, format, type, tiling, usage, flags, caps);
     }

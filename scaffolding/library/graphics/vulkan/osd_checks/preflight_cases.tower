@@ -28,9 +28,15 @@ export fn record_suite(): i32 {
     record_preflight("disjoint", &max, &max, 10, resource, 0, 0);
     record_preflight("empty", &max, &max, 0, resource, 0, 0);
     record_preflight("resource", &max, &max, 6, 0, 0, 1);
+    record_preflight("high-word", &max, &max, 6, 4294967296, 0, 1);
     record_preflight("resource", &max, &max, 6, 18446744073709551615, 0, 1);
     record_preflight("resource", &max, &max, 10, 18446744073709551615, 0, 0);
     record_preflight("positive", &max, &max, 1, resource, 5, 0);
     record_preflight("negative", &max, &max, 1, resource, -1000001004, 0);
+    var wide: Limits = {4294967295, 2147483648, 13, 7, 23};
+    record_preflight("unsigned-exact", &wide, &wide, 1, resource, 0, 1);
+    var over = wide;
+    over.height += 1;
+    record_preflight("unsigned-over", &wide, &over, 1, resource, 0, 0);
     return 0;
 }
