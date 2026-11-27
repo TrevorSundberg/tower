@@ -16,6 +16,7 @@ import readback_output as output;
 extern fn fixture_record(cmd: VkCommandBufferHandle*, src: VkBufferHandle*, dst: VkBufferHandle*, size: u64): void;
 extern fn getenv(name: u8*): u8*;
 extern fn write(fd: i32, data: u8*, size: usize): i64;
+extern fn memcmp(a: u8*, b: u8*, size: usize): i32;
 var CaptureFd: i32 = 4;
 var VkDeviceLocal: u32 = 1;
 var DestinationGuard: u8 = 60;
@@ -45,6 +46,13 @@ fn exercise(ctx: ReadbackDevice*): bool {
     var dest_bytes = suffix_offset + sizeof(decltype(suffix));
     var guard: usize = 4;
     var read_bytes = dest_bytes + 2 * guard;
+    // Construct the caller bytes in ordinary host memory before the coherent staging memcpy.
+    var wanted = alloc(u8, read_bytes);
+    if wanted == null { return vk_failure("cannot allocate host upload and guard reference"); }
+    defer free(wanted);
+    fill(wanted, ReadbackGuard, read_bytes);
+    fill(wanted + guard + payload_bytes, DestinationGuard, dest_bytes - payload_bytes);
+    var payload = wanted + guard;
     var coherent = VkHostVisible | VkHostCoherent;
     if !counted_buffer(ctx, &src, convert(u64, payload_bytes), VkTransferSrcUsage, coherent)
         || !counted_buffer(ctx, &dst, convert(u64, dest_bytes), VkTransferDstUsage | VkTransferSrcUsage, VkDeviceLocal)
@@ -86,8 +94,8 @@ fn exercise(ctx: ReadbackDevice*): bool {
     for (var trial: usize = 0; trial < trials; trial++) {
         var seed: usize = 2;
         if trial % 2 != 0 { seed = 151; }
-        var staging = bits(u8*, input);
-        for (var i: usize = 0; i < payload_bytes; i++) { staging[i] = convert(u8, (i * 3 + seed) & 255); }
+        for (var i: usize = 0; i < payload_bytes; i++) { payload[i] = convert(u8, (i * 3 + seed) & 255); }
+        copy(bits(u8*, input), payload, payload_bytes);
         fill(mapped, ReadbackGuard, read_bytes);
         if !vk_ok("begin upload", tower_vk_command_begin_v1(cmd)) { return false; }
         if trace { puts("record_enter"); }
@@ -101,21 +109,15 @@ fn exercise(ctx: ReadbackDevice*): bool {
         vkCmdCopyBuffer(cmd, dst.handle, host.handle, 1, &capture);
         counted_buffer_barrier(cmd, host.handle, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
         if !retire(ctx, cmd) { return false; }
-        var next = convert(u8, seed);
-        for (var i: usize = 0; i < read_bytes; i++) {
-            var wanted = ReadbackGuard;
-            if i >= guard && i < guard + payload_bytes {
-                wanted = next; next += 3;
-            }
-            if i >= guard + payload_bytes && i < guard + dest_bytes {
-                wanted = DestinationGuard;
-            }
-            if mapped[i] != wanted {
+        if memcmp(mapped, wanted, read_bytes) != 0 {
+            for (var i: usize = 0; i < read_bytes; i++) {
+                if mapped[i] == wanted[i] { continue; }
                 output.readback_size("mismatch_at", i);
-                output.readback_number("wanted", convert(u32, wanted));
+                output.readback_number("wanted", convert(u32, wanted[i]));
                 output.readback_number("actual", convert(u32, mapped[i]));
-                return false;
+                break;
             }
+            return false;
         }
         if capture_bytes && write(CaptureFd, mapped, read_bytes) != convert(i64, read_bytes) {
             return vk_failure("guarded capture write failed");
