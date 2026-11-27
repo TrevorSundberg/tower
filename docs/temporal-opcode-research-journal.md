@@ -123394,3 +123394,60 @@ the original bytes. The shaderless hardware baseline passed before changes.
 The configured reader has Tower only. The assignment supplies the Draw
 contract at `7be8d020b07454789195427588712c72ee465637`. The compute,
 vertex and fragment controls here are independent fixture assets.
+
+The [counted fixture contract and build](../scaffolding/library/graphics/vulkan/counted_draw.md)
+cover the Linux x86-64 command path at `b4c2fb1c`. No previous v1 file
+changed. The new ABI declarations follow Khronos header 239. The checked
+helper has SHA-256
+`89aa51cad4e2cf3b529c6b1cbd577accb624e370bdb4957e029d2256c9481ce8`.
+Both its device lookup and indirect function call compiled with the public
+bootstrap. The first GPU experiment also enabled multiDrawIndirect. Review
+of the installed registry identified VUIDs 04445 and 02717 for the counted
+call. The final device requests drawIndirectCount and dynamicRendering only.
+The driver reports the separate base multiDrawIndirect bit as available.
+A draft pipeline unit failed parsing because a parameter used the reserved
+word `expected`. Renaming the local parameter fixed the build.
+
+The GLSL compiler emitted a storage-array stride of 20, block member offsets
+0 and 4, one compute invocation and an unsigned minimum with one. Host 12
+read back counts 0 and 1 plus the same valid first record twice. Each stored
+image matched all four oracle texels and every caller guard. The same live
+queue submitted once and its fence signaled. Khronos validation 1.3.239
+reported zero warnings/errors for the RTX 3090 and, separately, llvmpipe.
+The draw14 probe exited 1 on device API 1.3.289. Two negative runs rejected
+a missing fragment and a wrong digest after loading earlier modules. The four
+layout/range tests from the imported dependency passed at jobs 1 and 4.
+
+Host 12 uses Debian bookworm amd64 on AMD EPYC 7282 with 32 visible CPUs
+and a 15.36 CPU cgroup quota. Three source-warm compiles with the pinned
+compiler produced identical objects at one and four jobs. Median wall,
+user+system seconds and peak RSS were 0.76 / 0.75 / 127032 KiB at one and
+0.88 / 1.02 / 132940 KiB at four. The small fixture favored one job.
+Five alternating fresh processes per executable followed successful on-device
+pixel checks with the same hardware, ICD and validation configuration.
+Median wall/CPU was 0.30 / 0.29 s for the v1 clear and 0.30 / 0.30 s for
+the two counted draws. Median peak RSS was 91556 and 94648 KiB respectively.
+These samples include instance/device/layer startup and differ in GPU work.
+The counted fixture requests a 327684-byte stream, 8-byte index buffer,
+80-byte staging buffer and 2×2 attachment. Driver allocation granularity,
+GPU timestamps, hardware throughput, host allocator grant counts and
+scaling in a Draw scene were not measured.
+
+LLVM 19.1.7 instrumented both the Tower input and the selected public host
+runtime. Execution uses the ordinary native entry point and Vulkan transport.
+Address-only instrumentation passed the hardware pixel and callback checks.
+Unfiltered ASan+LSan exited 1 with 4075 bytes in 14 allocations. Keeping
+the validation DSO resident gave 4023 bytes in 12 allocations with stacks
+in the validation layer, including a libstdc++ string allocation. The
+pre-command-buffer missing-fragment control exited 1 for the missing input
+with no leak report. The remaining 52-byte difference is unattributed.
+TSan failed before main at the container-denied personality request (139).
+Tower source-level UBSan is unavailable on this base. The archive retains
+both link maps and the sanitizer logs. Leak-free process shutdown and race
+coverage remain open.
+
+Review packet `03fb9339-f3ab-4142-9fb2-ce706b94d307` contains an incremental
+Git bundle based on `cf53212c`, runner and shader bytes, reproduction scripts,
+raw GPU/negative logs, timings, instrumentation receipts and checksums.
+The next cross-project check needs an authorized Draw source and shader ref
+and a device that satisfies its complete profile.
