@@ -124376,3 +124376,19 @@ sanitizer tool initially requested libc from the extracted cross-SDK. An
 explicit native CRT/libc link built the tool on the same host. All raw
 logs, source, manifests and replay commands are in worker packet
 `cce07bd9-4039-4a29-87d6-7d955443b83f`.
+
+A clean replay from the complete tracked source snapshot at `70362ccb`
+also rebuilt the import library, consumer, raw/linked upload PEs and test
+loaders byte for byte. The fixture compiler qualified two same-named
+private diagnostic functions with the absolute source path. Giving those
+two local COFF symbols module-relative names made the test products
+reproducible in different directories. The original timed executable
+sections for code, initialized data, unwind, TLS and relocations match
+the distributed callers. The replay repeated the positive and negative
+GPU runs, CPU recording matrices, prior regressions and available
+sanitizers. Earlier replay attempts exposed a self-referential SDK path,
+a missing PE inspection step, and a Wine server still live after warmup.
+The packet checks the prepared SDK, inspects the just-built DLL and starts
+its private server before the first PE. An independent reader fetched the
+reviewed manager base and reconstructed the worker checkout from the
+incremental bundle. All tracked regular files matched their SHA-256 list.
