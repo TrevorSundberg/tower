@@ -123721,3 +123721,55 @@ verified the incremental bundle on the pinned prerequisite and reproduced
 the COFF, DLL, import library, C consumers, simulated driver and guarded PE.
 The packet contains full command traces, module paths, exit codes and raw
 bytes for replay.
+
+### Draw production shader module C ABI v1 archive acceptance
+
+The Draw manager reviewed job `b8d46875-20c3-4148-b2d0-82693f6037a1`
+and verified all 298 indexed files and 274 prior payloads in the collected
+archive, SHA-256
+`7782015f7bd1d3281927b79e52c94534959d2e5897c4b7a1dc50b50cacdf604d`.
+Draw imported the named Git bundle and integrated the provider locally at
+`be2fb42065dacdb49c476efdde892ab649cfe772`. All 17 shader file and ABI
+controls passed on the merged Draw source. Hardware receipts cover the
+earlier tested production caller `f3356f2c377ec29c7aa6ad1d06fcecbcff81bada`
+with the Tower provider at `5e649360258171d66e924a1f1281080147cf957b`.
+
+Draw checked that the production shader loader called the Tower export and
+that the export called `vkCreateShaderModule`. Initial production ELF
+`8fcfed20237a0b4bf6301c9a7ae4dfeb933e344a8263736930bd5e93ecfa26ab`
+and revision-replay ELF
+`c8aa74912531f221807c7735d94704e34d8e166c037777f29a1f598674361906`
+have their own real-driver observer builds. Draw checked both observers and
+the six SPIR-V inputs. Each compute, vertex and fragment creation returned
+called=1, signed result=0 and a published handle on each shader set. The
+canonical scene trace recorded 91 modules created, 91 destroyed and nine shared.
+
+The selected RTX 3060 ran NVIDIA 595.99.02 and Vulkan 1.4.329. This was
+the revision-replay production invocation, with `kind` naming the original
+or corrected shader directory. The observer supplied the raw RGBA stream.
+
+```sh
+root=/tmp/draw-b8d46875/revision-replay
+(cd "$root/$kind" && "$root/draw" --gpu-check --offscreen --no-nuclear --frames 3 \
+  --validate --capture "$root/evidence/$kind-production.ppm")
+```
+
+| Draw shader set | GPU count | Observed RGBA at every pixel | Raw SHA-256 | Production exit |
+| --- | ---: | --- | --- | ---: |
+| Original, `7be8d020` | 16,384 | 407fbfff | 7e15d42a1802f81d9b79852d3ef53a2d3ba805fc984100eecdf14e145c92fce6 | 1 |
+| Corrected, `40e70982` | 16,384 | 4080bfff | 4ba73bd5a93480f6cff23e23bab97956f86ee9e83ce0231ed64cb7b85d8124a1 | 0 |
+
+The pixel oracle was 4080bfff. Rendering independently reconstructed both
+4,096,000-byte pixel digests from the reported uniform colors and the
+1,024,000-pixel dimensions. The reconstructed corrected RGB P6 digest also
+matched `42c6fe3a6e638e17551cb10c267d48451b1d8ef0f9fb2835df85a2b3a606f57b`.
+This update records Draw's archive review of existing runs.
+
+Draw independently fetched Tower `edb8c3336e0026821422142c3bd66afb631996cc`
+and reproduced its 2,560-byte Windows x64 shader DLL. Rendering rehashed
+its retained binary and matched Draw's
+`a975b422f932e01b722803e1cd4f8062a50d7c68d9d6f459196f63a9722e532b`.
+Both teams identified the export `tower_vk_try_create_shader_module` and
+the import `vkCreateShaderModule` from `vulkan-1.dll`. Draw queued its
+Windows C consumer and combined renderer test on its own slot 9, job
+`8ac4310b-c9a0-44ab-8dfb-481c170872d9`. Physical Windows remains open.

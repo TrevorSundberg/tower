@@ -94,3 +94,9 @@ Assignment `ae126103-8417-471b-a3df-eba172943df8` contains the external
 consumer, Tower fixtures, build and load commands, import tables, link maps,
 raw captures and per-process results. The [project journal](../../../../docs/temporal-opcode-research-journal.md#windows-x64-shader-module-dll-through-wine)
 records the revisions, binary identities, measurements and instrumentation limits.
+
+Draw independently reproduced the 2,560-byte DLL from Tower `edb8c333` and
+verified its export and Vulkan import. Its production C caller passed the
+corrected counted raster on Linux with this Tower shader ABI. Draw's Windows
+renderer integration and physical Windows driver execution remain open.
+[Draw revisions, commands, pixels and checksums](../../../../docs/temporal-opcode-research-journal.md#draw-production-shader-module-c-abi-v1-archive-acceptance)
