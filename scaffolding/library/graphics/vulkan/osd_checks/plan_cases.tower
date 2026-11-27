@@ -1,0 +1,25 @@
+import tower;
+
+// SDK observation uses its native layouts, padding, loader entry and VkBool32.
+extern fn osd_check_plan(name: u8*, mask: u32, count: u32, required: u32, low_flags: u32,
+    high_flags: u32, size: u64, wanted_index: i32, verbose: i32): i32;
+extern fn getenv(name: u8*): u8*;
+
+export fn main(): i32 {
+    var repeats: u32 = 1;
+    if getenv("OSD_PLAN_BENCH") != null { repeats = 100000; }
+    var verbose: i32 = 1;
+    for (var i: u32 = 0; i < repeats; i++) {
+        if osd_check_plan("bit31", 2147483649, 32, 1, 0, 1, 16384, 31, verbose) == 0
+            || osd_check_plan("tie", 2147483649, 32, 1, 1, 1, 16384, 0, verbose) == 0
+            || osd_check_plan("truncated", 2147483648, 31, 1, 0, 1, 16384, -1, verbose) == 0
+            || osd_check_plan("no_bits", 0, 32, 1, 1, 1, 16384, -1, verbose) == 0
+            || osd_check_plan("empty", 2147483649, 0, 1, 1, 1, 16384, -1, verbose) == 0
+            || osd_check_plan("partial_flags", 2147483649, 32, 3, 1, 2, 16384, -1, verbose) == 0
+            || osd_check_plan("all_flags", 2147483649, 32, 3, 2, 7, 16384, 31, verbose) == 0
+            || osd_check_plan("zero_required", 2147483656, 32, 0, 0, 0, 16384, 3, verbose) == 0
+            || osd_check_plan("wide_size", 1, 1, 1, 1, 0, 4294983680, 0, verbose) == 0 { return 1; }
+        verbose = 0;
+    }
+    return 0;
+}

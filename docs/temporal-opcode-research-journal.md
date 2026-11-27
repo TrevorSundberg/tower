@@ -125636,3 +125636,117 @@ the compilation instrumentation.
 The eleven-entry remote advanced to 51a50ee8 during validation with a new
 Draw receipt in graphics_so_linux.md. This job's bundle uses the requested
 8edf50ba base. The manager can carry the new receipt forward independently.
+
+### Linux graphics library image allocation planner on host 12
+
+The twelve-entry package at 92f70929f26712511a0485a7c0a977c850b1871f
+is the tested base of this change. Its preflight object SHA-256 is
+`37b926d98ee6c2dd66785e7f9e4c0d005990690bc235257df5fdf2895f3f1ebf` and
+its shared library SHA-256 is
+`652949ebd1103e806b1e55ad5528a7b7b07bb0d338091bf0f62cec6254496ed6`.
+Job 89f3c727 takes the provider, declaration and retained planner checks from
+26efb7bb7d06da8ccd6748c283a8e5eae07c40e4, whose tested implementation
+is 0647ddc086ab7dd0636c23593e63cabc8745e54e. Both earlier receipts keep
+their own revision and device measurements. The shared checkout refused its
+initial rebase because it contains an unstaged readback_v1.md edit.
+Work proceeded on main in a local clone of the previous package. Fetching
+the planner's whole history from the partial shared reader failed at a missing
+promisor blob. Reading the exact files by commit recovered the tested inputs.
+
+**Build and provenance.** The published twelve-entry tip 73f49979 adds the
+eleven-entry Draw shipping receipt to 92f70929. Its descendant 3650b90c adds Draw's twelve-entry constructor checks and is the integration
+parent. The standalone Draw recording receipt from 552485ac is included with
+its own attribution. Both updates are documentation only. Host 12 rebuilt
+the original DSO byte for byte. Independent compilation matched all ten old
+object digests and the 1,088-byte standalone planner object
+`2884c8ad19d32dfd05dcb60e3be560599de85e8b724cff1742f54e5246d3ad80`.
+It imports only vkGetImageMemoryRequirements. The normal release build and
+a second link with a map both produced the 15,120-byte libtower_graphics.so
+`6816c2282148a963f832409a8a2553663e48d7fc748b3f6a7877c59d97e40bca`.
+ELF checks found the twelve previous names plus tower_vk_plan_image_allocation_v1,
+SONAME libtower_graphics.so and sole DT_NEEDED libvulkan.so.1.
+
+**Call and result.** The SDK translation units include the public headers.
+Clang 19.1.7 and GNU ld 2.40 linked them with the same retained Tower owner
+from b68b1835 and the same allocation observer for each comparison. The
+controls select either the SDK first-match loop or the standalone planner
+object alongside the twelve-entry library. The new link imports the four
+constructor operations from the thirteen-entry DSO. The loader bindings
+identify the actual ELF and the observation path to libvulkan.so.1. GNU ld
+--wrap alone cannot observe a PLT reference made inside an already linked
+DSO. The test executable exports the existing requirements observer and
+forwards its void query to the next dynamic definition. The table, query
+handles, count and allocation descriptor pointer are checked in that scope.
+
+The five sources on RTX 3090 device 0 (UUID cd3d9791fe794e0b3ec29fc16b74d31c,
+Vulkan 1.3.289, driver 565.57.01, graphics family 0 queue 0) each made one
+requirements query. Mask 3, alignment 1,024 and six memory types selected
+index 1. In order the caller allocated and accounted 25,165,824, 569,856,
+569,856, 1,572,864 and 32,768 bytes, then bound each at offset zero. All
+ordinary device results had zero validation warnings/errors. Each route
+reproduced all 103,158,144 bytes of the frozen capture, including row padding
+and guards, SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+The retained Tower verifier checked 189 events, five staging retirements,
+all sixteen reads and final destruction. On an empty table the first query
+still ran. Injected allocation −2 preceded accounting and bind. Injected
+bind −2 followed successful accounting of 25,165,824 bytes. Each process
+exited 1. An additional Tower reader matched staging, image, device and
+allocation release to the recorded handles on all nine fault traces.
+
+The earlier SDK executables (sdk-all, sdk-all-clang-driver and sdk-new) ran
+unchanged against both libraries. The earlier retained-device executable
+reproduced the raw guarded capture on the new library. Linking the new SDK
+planner client against the predecessor exited 1. Loading the correct client
+with the predecessor and LD_BIND_NOW exited 127. Both named the missing
+planner symbol. The nine CPU rows, including bit 31, inclusive eligibility,
+unmodified failure outputs, guards and full size 4,294,983,680, matched the
+standalone/raw result
+`ed6ced81bad6a066292e87b29a78d55630920d2fa4594d69870ffc202ad303e2`.
+The original 2×2 oracle and row-copy blobs matched the 3dd5f11f receipt on the
+a580e70a lineage. That earlier CPU/GPU execution has its original identity.
+
+**Cost.** AMD EPYC 7282, 16 cores/32 threads, CPU quota 15.36. The pinned
+Linux x64 bootstrap used jobs 1. Each ordinary process used one caller and
+one Vulkan queue. Three warm-file fresh processes per route followed the
+checked trace warmup, rotating the order. Each CPU sample checked 100,000
+repetitions of all nine rows. Each device sample finished its pixel and
+retirement checks. Hardware process timings include observation and byte
+capture. They do not establish a Draw frame-time difference.
+
+| Link | Device wall seconds (three samples) | Device user / system seconds (ranges) | Device peak KiB (range) | CPU recorder wall ms (three samples) |
+| --- | --- | --- | --- | --- |
+| SDK + twelve | 2.248, 2.201, 2.050 | .638–.668 / 1.414–1.580 | 116096–116124 | 55.61, 54.74, 53.21 |
+| Standalone + twelve | 2.349, 2.058, 2.064 | .629–.713 / 1.427–1.637 | 116116–116140 | 49.96, 50.01, 50.76 |
+| Thirteen | 2.087, 2.282, 2.072 | .623–.703 / 1.443–1.580 | 115900–116140 | 51.04, 52.39, 51.23 |
+
+The aggregate planner uses one automatic requirements slot. All device
+allocation calls belonged to the owner. Driver-private allocations are
+unmeasured. The packet includes per-sample wall, user, system and peak RSS
+for builds, CPU and GPU runs. The initial build timer required an absolute
+executable path. The first loader-binding filter expected an opening
+apostrophe where glibc prints a backtick. The first offline cleanup verifier
+needed explicit void-pointer conversions at the POSIX read boundary.
+The corrected runs passed.
+
+**Instrumentation.** All eleven provider units and Tower owner were
+instrumented via LLVM. The C boundaries used Clang ASan or TSan with UBSan.
+Link maps identify the runtimes, and the packet retains hooks in the planner
+body. Four pthreads each passed all nine CPU cases under both sanitizers.
+CPU TSan passed on attempt 14 after thirteen restricted-personality starts.
+GPU ASan passed with leak detection disabled. Full LSan with synchronization
+validation reported 4,187 bytes in 15 allocations (exit 1). Disabling only
+the layer's synchronization validation yielded a clean leak-enabled run with
+matching pixels and retirement. Allocation ownership remains unresolved.
+GPU TSan had 21 startup failures, then a nested sanitizer SEGV on attempt
+22 (exit 66) before device verification. Driver, validation layer, GPU and
+the retained binary observers were outside the compiler instrumentation.
+Draw owns shipping adoption and performance checks. The rendering manager
+owns publication of the bounded bundle.
+
+During handoff, a rebase against the local twelve-entry input flattened the
+published documentation merge. Comparing the resulting tree with the tested
+tree exposed the lost text. Rebasing the job commit onto the published
+rendering history restored the merge and incorporated two subsequent Draw
+documentation commits. The resulting delta from the tested implementation
+contains the concurrent receipt and this journal correction only.

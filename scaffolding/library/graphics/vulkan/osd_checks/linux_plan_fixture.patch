@@ -1,0 +1,26 @@
+--- a/scaffolding/library/graphics/vulkan/osd_upload_checks/device_cases.tower
++++ b/scaffolding/library/graphics/vulkan/osd_upload_checks/device_cases.tower
+@@ -3,2 +3,3 @@
+ import sampling;
++import plan_gpu;
+ import .readback_abi;
+@@ -39,2 +40,3 @@
+     if !vk_ok("create image", tower_vk_create_image_v1(ctx.device, &info, &out.handle)) { return false; }
++    if (usage & SampledUsage) != 0 { return plan_bind_source(ctx, out.handle, DeviceLocal, &out.memory, &out.flags); }
+     var req: VkMemoryRequirements;
+--- a/scaffolding/library/graphics/vulkan/readback_device.tower
++++ b/scaffolding/library/graphics/vulkan/readback_device.tower
+@@ -3,2 +3,3 @@
+ import readback_output as output;
++extern fn strcmp(left: u8*, right: u8*): i32;
+
+@@ -69,2 +70,9 @@
+     if index >= count { return vk_failure("Requested physical device disappeared"); }
++    for (index = 0; index < count; index++) {
++        var candidate: VkPhysicalDeviceProperties;
++        vkGetPhysicalDeviceProperties(physicals[index], &candidate);
++        if candidate.vendorID == 4318 && candidate.deviceType == 2
++            && strcmp(&candidate.deviceName[0], "NVIDIA GeForce RTX 3090") == 0 { break; }
++    }
++    if index == count { return vk_failure("RTX 3090 unavailable"); }
+     var physical = physicals[index];

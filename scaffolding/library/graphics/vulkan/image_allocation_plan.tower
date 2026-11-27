@@ -1,0 +1,18 @@
+import tower;
+import readback_abi;
+import readback_clear;
+
+export fn tower_vk_plan_image_allocation_v1(device: VkDeviceHandle*, created: VkImageHandle*,
+    types: VkMemoryType*, count: u32, required: u32, out: VkMemoryAllocateInfo*): u32 {
+    var requirements: VkMemoryRequirements;
+    vkGetImageMemoryRequirements(device, created, &requirements);
+    var bit: u32 = 1;
+    for (var i: u32 = 0; i < count; i++) {
+        if (requirements.memoryTypeBits & bit) != 0 && (types[i].propertyFlags & required) == required {
+            *out = {sType: VkAllocateTag, allocationSize: requirements.size, memoryTypeIndex: i, ..default};
+            return 1;
+        }
+        bit <<= 1;
+    }
+    return 0;
+}

@@ -1,6 +1,6 @@
 # Linux x86-64 Vulkan C library
 
-Build the twelve functions from the Tower checkout. The host needs the
+Build the thirteen functions from the Tower checkout. The host needs the
 checked-in Linux x64 bootstrap's LLVM 19.1 shared library, Bash, coreutils and
 GNU x86-64 binutils. Supply the absolute path to the target's Vulkan loader.
 
@@ -43,6 +43,7 @@ twelve-entry build is 14,976 bytes, SHA-256
 | bound_image_view.h | tower_vk_create_bound_image_view_v1 | Nine Linux cases × four results checked the descriptor, private handle slot and guarded output. The GPU fixture sampled all five retained views. |
 | create_image.h | tower_vk_create_image_v1 | Four SDK descriptors × four results (0, −1, −2, +1) checked borrowed pointers, driver clobber and success-only publication. The device check correlated ten created images with their views. |
 | image_format_preflight.h | tower_vk_image_format_preflight_v1 | 32 raw SDK and linked recording cases checked query fields, signed results, output guards and driver clobber. The retained device caller used the same DSO for preflight, create and view. |
+| image_allocation_plan.h | tower_vk_plan_image_allocation_v1 | Nine external C recording cases and five RTX source allocations, including guarded readback and injected allocation and bind failures. |
 
 Include `image_format_preflight.h` and link with `-ltower_graphics`.
 Pass the selected physical device and the descriptor you intend to create.
@@ -57,6 +58,27 @@ Creation leaves binding to the caller. Upload recording returns before
 submission. Keep staging live through retirement, and keep a sampled view,
 its image and memory live through the final read. A failed idle after a
 successful submit requires recovery before freeing pending resources.
+
+## Link the image planner
+
+The thirteen-entry DSO is 15,120 bytes with SHA-256
+`6816c2282148a963f832409a8a2553663e48d7fc748b3f6a7877c59d97e40bca`.
+Include `image_allocation_plan.h` and link with `-ltower_graphics`. After
+preflight and successful image creation, pass the live device, the unbound
+image and its physical device's memory-type table. On `VK_TRUE`, pass the
+returned descriptor to `vkAllocateMemory`. Account its full size after
+success, bind at offset zero, then create the view. On `VK_FALSE`, the
+output slot retains its original bytes. The caller owns failure cleanup and
+retirement. [Planner contract and standalone checks](image_allocation_plan_v1.md)
+
+On Linux, [build_plan_clients.sh](linux_checks/build_plan_clients.sh) links
+the same retained Tower owner with the raw SDK selector, the standalone
+object or the shared entry. It compiles the SDK call sites with Clang and
+uses the same device for planning, allocation, binding and view creation.
+The CPU recorder, live loader bindings, fault runs, timings and replay
+commands are in the indexed packet for job
+`89f3c727-312d-485b-839f-4f8670138806`.
+[Linux shared planner results](../../../../docs/temporal-opcode-research-journal.md#linux-graphics-library-image-allocation-planner-on-host-12)
 
 ## Run the twelve-entry C recording check
 
