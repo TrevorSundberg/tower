@@ -124150,3 +124150,68 @@ used a different barrier. The prior copy ABI is reusable. An offline
 search found no synchronization2 provider or declarations in this tree.
 The native Linux C entry and raw C oracle will be compared with
 synchronization2 explicitly queried and enabled on the selected device.
+
+Implementation `2ebc7ab2f` exports one Linux C function. Its object has
+exactly the two Vulkan imports. The inputs are the original primary,
+staging buffer, destination buffer and 64-bit count. It uses a stack
+VkBufferCopy, then a stack dependency referencing one stack memory barrier.
+All pointees are used only during their recording calls. The fixture at
+`01660fcd0` retires the upload before beginning a second recording for
+readback. Both production copies start at zero. The readback guard offset
+is four. The [recording contract and checks](../scaffolding/library/graphics/vulkan/buffer_upload_record_v1.md)
+give the fields, handles, valid ranges, build/link commands, device
+identity, lifetime, signed finish behavior and capture hashes.
+
+On host 12 both native Vulkan C and C through the Tower DSO completed all
+64 odd-sized copies and two 64 MiB copies. The direct-object lane also
+passed the short case. Each run had zero Khronos synchronization validation
+warnings/errors. The traces match both calls in order on the original
+primary, followed by return, end, unfenced submit and same-queue idle.
+The next recording copies the destination to a separate host allocation
+and uses the transfer-to-host barrier there. The probe DSO exposes no
+recorder override. The recording-only test `917eb4696` also covers a
+count above 32 bits. Independent mutations to copy size and destination
+access each exited 3 at the corresponding assertion, before sending any
+commands to a driver. The existing finish tests reproduced the signed
+−4, −1 and +1 at end, submit and idle in each raw/linked recording lane.
+The async gate observed VK_NOT_READY before release and signaled both
+fences afterward. The earlier four-export DSO was byte-identical.
+
+The original short/large payload verification read the complete mapped
+result byte by byte. Two large trials including capture took 18.15/18.28 s
+raw/linked. Commit `94f6767f8` prepares host data for the coherent staging
+memcpy and compares the whole retired mapping in bulk, retaining exact
+first-mismatch diagnostics. The same captures then took 2.69/2.74 s.
+Peak process RSS increased from 222064/222376 to 287824/287580 KiB for
+the 64 MiB host reference. A separately written Tower stream oracle uses
+byte recurrence with wraparound and fixed test layout to check both final
+raw captures. It matched the first implementation's checked bytes.
+
+On the EPYC 7282, affinity 0–31, cgroup quota 15.36 CPUs, five alternating
+warm-file, fresh-device processes per short lane used one calling thread
+and one queue. Each checked 64 retired transfers. Per-process medians:
+
+| Measurement | Raw C | External C with Tower DSO |
+| --- | ---: | ---: |
+| First / second host record call, µs | 39.36 / 12.21 | 41.15 / 11.81 |
+| Mean host record call, µs | 10.95 | 11.10 |
+| Process wall / user+system CPU, ms | 317.35 / 314.02 | 317.93 / 313.51 |
+| Process peak RSS, KiB | 91196 | 91240 |
+
+Record-call samples include the validation layer and exclude begin and
+finish. Process samples include device setup, copies, retirement and
+checks. Enumeration, synchronization2 feature selection and actual memory
+flags are in the packet. The recorder adds stack descriptors and no heap
+allocation or worker. There is no Draw frame or full-application benchmark.
+
+The initial compiler rejected hexadecimal constants and an unbraced else-if.
+Decimal Vulkan values and two plain guard tests built on the pinned
+bootstrap. LLVM-instrumented Tower and the C ASan/UBSan boundary passed
+the two recording controls and both address-only device runs. LSan with
+sync validation exited 1 in both device runs, 3408 bytes in seven allocations.
+LSan with the Khronos layer and just the sync validation feature omitted
+passed both byte checks. Allocation sites remain unsymbolized. All four
+final TSan recording/GPU attempts exited 139 at the container personality
+check before main. One earlier external recording-only TSan run completed.
+Source-level Tower UBSan and GPU-driver instrumentation were unavailable.
+The receipt preserves original status codes and the recorder IR/link maps.
