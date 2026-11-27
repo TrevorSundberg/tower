@@ -54,7 +54,7 @@ For the subsequent bound-view call, Draw independently rebuilt rendering
 revision `6b39d552b312a4d79436b49337cf3fff20b9b5cc` and reproduced the
 1,040-byte Linux object, SHA-256
 `61fdd20166c5844906dfb3320bab3d7b36222268015c546de29a21bc312d0418`.
-Draw's shipping view integration and hardware acceptance remain pending.
+Draw's two owning constructors subsequently passed their CPU recording tests for bound views. Draw tracks the shipping application hardware run separately.
 [Bound-image view build and device evidence](bound_image_view_v1.md#linux-provider-and-hardware-acceptance)
 
 ## Linux provider and external C link
@@ -113,3 +113,27 @@ to `fixture_issue_image`, compiled once against raw Vulkan and once
 against the public shared library. Both C routes reproduced all
 103,158,144 bytes and passed the binding, view and retirement checks.
 The second-image clobbering OOM also passed on each route.
+
+### Linux release verification
+
+Rendering verified the worker bundle, 573 manifest entries and the object
+and shared-library digests above. The optimized provider passes the original
+device and descriptor directly to the Vulkan loader. The raw Vulkan C,
+C/object and C/shared-library recording paths exercised 16 calls each.
+The worker's four deliberate changes to the pointer, private slot or result
+handling all failed their respective checks.
+
+In both C device traces, the ten handles returned on success matched the
+ten handles subsequently bound by the caller. Five were sampled source
+images and five were temporary readback attachments. All five source views
+were destroyed on the creating device after the last queue retirement,
+followed by their images and bound memory. Rendering compared the full
+guarded capture byte for byte against the earlier OSD reference. On injected
+failure at the second source, only the first source reached binding, and
+the process returned status 1. No real device loss was exercised.
+
+The host address-only checks passed. With synchronization validation enabled,
+the full GPU leak check reported 4,187 bytes in 15 allocations on both
+baseline and candidate. Ownership remains unresolved. The CPU recording
+paths each completed a TSan run. GPU TSan did not complete. Draw's shipping
+application and Win64 DLL have separate acceptance runs.
