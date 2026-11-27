@@ -132,8 +132,9 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**, reuse: bool): bool {
             if !vk_ok("vkCreateFence", vkCreateFence(device, &info, null, &created)) { return false; }
             fence = created;
         }
-        if !vk_submit_prepared_and_wait(device, ctx.queue, &submit, fence,
-            "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy") { return false; }
+        var order = "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy";
+        if first_count == 1 { order = "submitted=1 compute/count=1 -> raster/store/copy -> compute/count=0 -> raster/store/copy"; }
+        if !vk_submit_prepared_and_wait(device, ctx.queue, &submit, fence, order) { return false; }
         if !counted_read_capture(device, &staging, first_count) { return false; }
     }
     return true;
