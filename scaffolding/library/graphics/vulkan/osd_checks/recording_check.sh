@@ -3,13 +3,6 @@
 set -euo pipefail
 suite=$1
 shift
-if (( $# < 1 || $# > 2 )); then
-    echo "usage: $0 NEW_OUTPUT_DIRECTORY [EXTERNAL_PROVIDER.c_OR_obj]" >&2
-    exit 2
-fi
-: "${MINGW_SYSROOT:?path to the x86_64-w64-mingw32 sysroot}"
-: "${MINGW_GCC_LIB:?path to the target directory containing libgcc.a}"
-: "${VULKAN_INCLUDE:?path to the parent of vulkan/vulkan.h}"
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(cd "$here/../../../../.." && pwd)
 case "$suite" in
@@ -21,10 +14,33 @@ case "$suite" in
         observers=(osd_begin_query osd_query_count); blocked=(vkAllocateMemory vkBindImageMemory) ;;
     *) echo "unknown recording suite $suite" >&2; exit 2 ;;
 esac
-provider=
-if (( $# == 2 )); then provider=$(realpath -e -- "$2"); fi
+provider= release=
+if [[ $# == 3 && $2 == --release && $suite == preflight ]]; then
+    release=$(realpath -e -- "$3")
+elif [[ $# == 2 && $2 != --release ]]; then
+    provider=$(realpath -e -- "$2")
+elif (( $# != 1 )); then
+    echo "usage: $0 $suite NEW_OUTPUT_DIRECTORY [PROVIDER.c_OR_obj]" >&2
+    if [[ $suite == preflight ]]; then echo "       or append --release GRAPHICS_BUILD_DIRECTORY" >&2; fi
+    exit 2
+fi
+: "${MINGW_SYSROOT:?path to the x86_64-w64-mingw32 sysroot}"
+: "${MINGW_GCC_LIB:?path to the target directory containing libgcc.a}"
+: "${VULKAN_INCLUDE:?path to the parent of vulkan/vulkan.h}"
 mkdir -- "$1"
 cd -- "$1"
+dll=${suite}_provider.dll
+implib=provider.lib
+client_flags=()
+imports() { llvm-readobj --coff-imports "$1" > "$1.imports"; }
+if [[ -n $release ]]; then
+    dll=tower_graphics.dll
+    implib=tower_graphics.lib
+    cp -- "$release/$dll" "$release/$implib" .
+    sha256sum "$dll" "$implib" > release.sha256
+    imports "$dll"
+    client_flags=(-I"$here/.." '-DOSD_PREFLIGHT_PROVIDER_HEADER="image_format_preflight.h"')
+fi
 (cd "$root/bootstrap/linux-x64" && sha256sum --check --quiet SHA256SUMS)
 "$root/bootstrap/linux-x64/towerc" "$here/${suite}_cases.tower" --library --jobs 1 \
     --target x86_64-w64-windows-gnu --foundation "$root/scaffolding/foundation.tower" -o cases.obj
@@ -36,11 +52,16 @@ for unit in driver record sdk; do
     "${cc[@]}" -c "$here/${suite}_$unit.c" -o "$unit.obj"
 done
 { printf 'LIBRARY vulkan-1.dll\nEXPORTS\n'; printf '%s\n' "$query" "${observers[@]}" "${blocked[@]}"; } > loader.def
+if [[ -n $release ]]; then
+    # Resolve the release's other Vulkan imports as in the ordinal-12 Wine replay.
+    awk -v query="$query" '$1 == "Name:" { owner = $2 }
+        owner == "vulkan-1.dll" && $1 == "Symbol:" && $2 != query {print $2 "=winevulkan." $2}' \
+        "$dll.imports" >> loader.def
+fi
 "${link[@]}" -shared driver.obj loader.def -Wl,--out-implib,loader.lib,-Map,loader.map -o vulkan-1.dll
 "${link[@]}" cases.obj record.obj sdk.obj loader.lib -Wl,-Map,sdk.map -o sdk.exe
 
 # Keep the PE tables and check each symbol under its owning image.
-imports() { llvm-readobj --coff-imports "$1" > "$1.imports"; }
 require_import() {
     awk -v owner="$2" -v symbol="$3" '
         /^Import \{/ { dll = "" }
@@ -70,7 +91,7 @@ run_matrix() {
 }
 run_matrix sdk
 
-if [[ -n $provider || $suite == allocation ]]; then
+if [[ -z $release && ( -n $provider || $suite == allocation ) ]]; then
     if [[ -z $provider ]]; then
         # Test-only DLL exposing the SDK control through the agreed C name.
         "${cc[@]}" "-Dosd_check_allocation=$entry" -c "$here/allocation_sdk.c" -o provider.obj
@@ -79,17 +100,26 @@ if [[ -n $provider || $suite == allocation ]]; then
     else
         "${cc[@]}" -c "$provider" -o provider.obj
     fi
-    dll=${suite}_provider.dll
     printf 'LIBRARY %s\nEXPORTS\n%s\n' "$dll" "$entry" > provider.def
     "${link[@]}" -shared provider.obj provider.def loader.lib \
         -Wl,--out-implib,provider.lib,-Map,provider.map -o "$dll"
-    "${cc[@]}" -c "$here/${suite}_client.c" -o client.obj
+fi
+if [[ -n $release || -n $provider || $suite == allocation ]]; then
+    "${cc[@]}" "${client_flags[@]}" -c "$here/${suite}_client.c" -o client.obj
     llvm-objdump -dr client.obj > client.asm
     grep -E "IMAGE_REL_AMD64_REL32[[:space:]]+$entry$" client.asm
-    "${link[@]}" cases.obj record.obj client.obj provider.lib loader.lib -Wl,-Map,external.map -o external.exe
+    "${link[@]}" cases.obj record.obj client.obj "$implib" loader.lib -Wl,-Map,external.map -o external.exe
     llvm-readobj --coff-exports "$dll" > provider.exports
     imports external.exe
-    imports "$dll"
+    if [[ -n $release ]]; then
+        awk -v entry="$entry" '$1 == "Ordinal:" { ord = $2 }
+            $1 == "Name:" && $2 == entry && ord == 12 { found++ }
+            END { exit found != 1 }' provider.exports || {
+            echo "expected $dll to export $entry at ordinal 12" >&2; exit 1;
+        }
+    else
+        imports "$dll"
+    fi
     require_import external.exe "$dll" "$entry"
     for observer in "${observers[@]}"; do require_import external.exe vulkan-1.dll "$observer"; done
     require_import "$dll" vulkan-1.dll "$query"

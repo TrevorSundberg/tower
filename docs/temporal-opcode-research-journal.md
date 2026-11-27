@@ -125700,3 +125700,65 @@ printer through its import of the cases. Sharing only the observer interface
 removed that dependency. All corrected invocations and original failures
 are distinguished in the packet. The allocation line retains the verified
 eleven-entry release hash e7524e2b…14b7e6c.
+
+### Run the external Win64 preflight recorder against the release from a checkout
+
+Host 11, assignment 32c83ebe. Merge 9e0182c2 preserves release 752a872f
+and SDK allocation control ad8d8d41, including the concurrent Draw cross-link
+receipt e1351881. The original shared checkout contains
+an unpublished commit, so this work used a separate local main. A local
+fetch initially failed because the source clone lacked a promised blob.
+Using its object store and the authorized Tower origin resolved the checkout.
+
+The shared recording script previously always built a private provider DLL.
+Its release option now takes a directory containing the actual DLL and import
+library. The external C client compiles against the public preflight header.
+The recording loader intercepts the one physical-device query and forwards
+the remaining Vulkan imports in the selected PE to Wine. The original Tower
+matrix and its SDK observer still own the cases. Run the [two checkout
+commands](../scaffolding/library/graphics/vulkan/osd_checks/README.md#run-the-28-case-c-recording-check-from-source)
+in the documented LLVM/MinGW/Wine environment.
+
+A build from the reconciled tree reproduced the published DLL and library
+digests 66117872…500c9 and 80321465…82c1b. Ordinals 1–11 matched the prior
+list. The public header produced the frozen client COFF. Its REL32
+relocation, the consumer's named import with hint 12, the DLL export, its
+link map, and Wine's loaded module path identify the implementation. The
+new external PE (d9c7ed3a…52761) and the frozen ordinal-12 recording PE
+(382fe35e…9c8f9) each returned 0. Both streams matched the sealed SDK's
+5,277 bytes, SHA-256 4dae8702be561d826041176fcd6996c0285bf6304843799d561d83c5a7564419.
+All 28 rows had one query and intact guards. The SDK-only and private
+preflight modes also passed. The allocation SDK and its private DLL each
+passed their ten existing rows.
+
+The eleven-entry pair passed the SDK arm and failed the external link
+with exit 1 and undefined symbol tower_vk_image_format_preflight_v1.
+The new library paired with the old DLL linked but failed the script's
+ordinal-12 export check, exit 1. Running the good PE with the eleven-entry
+DLL made Wine report the unimplemented preflight function and exit 1
+before the first row.
+
+The frozen ordinal-12 GPU caller (f391ba37…083268) loaded the rebuilt
+DLL on the Quadro RTX 6000, NVIDIA 615.71.10, API 1.4.351 under Wine 8,
+queue family/index 0/0. Five source preflights succeeded and ten submits
+retired. The lifetime checker passed. The full 27,542,768-byte stream
+matched the sealed control, SHA-256
+5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811.
+The oracle checked 256 sampled texels and the guards. Host synchronization
+validation loaded. The callback counted zero warnings or errors.
+
+Three alternating warm pairs ran the private and release PEs on the same
+Xeon E5-2699 v4, one caller at a time, with the pinned Tower bootstrap,
+one compile worker and LLVM 19.1.7. Private/release wall seconds were
+0.05/0.07, 0.06/0.10 and 0.05/0.09. User plus system seconds were
+0.04/0.05, 0.03/0.07 and 0.03/0.07. Peak RSS was 5640–5648 KiB private
+and 11300–12000 KiB release. These are fresh Wine process costs. The
+release loader also resolves Wine Vulkan forwarders. The runtime source,
+provider allocations and scheduling are unchanged. Win64 trapping UBSan
+passed all rows for the C recording boundary. Win64 ASan linking lacked
+the target runtime, and Clang rejected TSan for this target.
+
+Contract 9840659b specifies the allocation ABI. At verification its
+rendering ref contained the contract alone. Production ordinal 13 and its
+five-image, fault and accounting runs need slot 12's reviewed provider
+source and public header from assignment a66f0252.

@@ -160,6 +160,26 @@ physical-device query share the same thread-local observer. Expect exit
 retains the PE import/export tables, maps, Wine load logs, stdout and exit
 status. This check runs without a GPU.
 
+To run the same matrix through the released graphics DLL, build the DLL and
+its import library together and pass their directory explicitly.
+
+```bash
+out=$(mktemp -d)
+scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$out/graphics"
+"$check" "$out/record" --release "$out/graphics"
+```
+
+The external C caller includes the checkout's `image_format_preflight.h`
+and links with the supplied `tower_graphics.lib`. The command copies that
+library and `tower_graphics.dll` into the fresh recording directory and saves
+their hashes in `release.sha256`. The loader records the preflight query
+and forwards the release's other Vulkan imports to Wine. Check
+`provider.exports` for ordinal 12, `external.exe.imports` for its named
+import under `tower_graphics.dll`, and `external.wine.log` for the loaded
+paths. The SDK and external row streams must match byte for byte.
+With the eleven-entry release pair, the SDK arm passes and the external
+link fails at `tower_vk_image_format_preflight_v1`.
+
 To compare an external C implementation, pass one source file defining
 `tower_vk_image_format_preflight_v1` with the confirmed C signature. Put
 any local headers alongside that file. Use a fresh output directory.
