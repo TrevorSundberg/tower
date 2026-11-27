@@ -125530,3 +125530,35 @@ C device probe on success and injected failure. The Win64 ASan link lacked
 its target runtime and Clang rejected Win64 TSan. The production COFF, Wine,
 validation layer and driver ran without compiler sanitizer instrumentation.
 Physical Windows and Draw's shipping application remain separate open checks.
+
+### Linux counted raster through the eleven-entry graphics library
+
+Host 12 assignment `12f356f1-7809-4dfe-ade6-5a01f4ef922f` follows
+the portable preflight's completed clean replay. The shared main checkout
+had a prior readback document edit. Pull refused to rebase it. A fresh
+local main at the assigned `bef3026fc41d02334a2fd3f88f18b8d6e9392abe`
+preserves that checkout. The next published commit `8edf50ba` adds Draw
+constructor evidence to the Linux package document. The device comparison
+uses the pinned build and public header.
+
+At `4e4959beff137f27183ee6a4dd07ef2c89ea0627` the separate feature
+suite (15) and indexed layout/range suite (4) passed at jobs 1 and 4.
+Its original core13 executable ran on the same RTX 3090. Its strict pair
+command refused loader API 1.3.239 before selection. The new core13 pair
+uses that fixture's two transfer updates, index ranges, additive blend and
+readback oracle. The package's device creation and fence code stay shared
+with the original direct caller. Each link uses one physical indirect
+buffer whose create size, storage descriptor range and two API byte sizes
+agree. A short buffer still holds the complete shader output and both
+transfers. Only the full-capacity draw is refused.
+
+The initial shader build lacked glslangValidator. Extracting Debian
+glslang-tools 12.0.0-2 and spirv-tools 2023.1-2 into private host tools
+enabled generation and validation. A fresh documented eleven-entry build
+matched the frozen DSO. glslang's header declares a global const color_frag;
+the prior handwritten header used static const. The explicit CRT link
+matched after stripping, and all twelve output rows matched before
+stripping. The initial Tower compile rejected an unbraced else-if and
+a missing direct import of readback_device. The first device run passed
+the default capture but the old argc guard rejected the optional short
+mode before recording. Each diagnostic is retained in the packet.

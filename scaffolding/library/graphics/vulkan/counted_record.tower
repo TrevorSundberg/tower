@@ -7,7 +7,7 @@ import counted_abi;
 import counted_device;
 import counted_pipeline;
 import indexed_draw;
-import library.graphics.indexed_indirect;
+import .indexed_indirect;
 
 var VkStageDrawIndirect: u32 = 2;
 var VkStageVertexInput: u32 = 4;
@@ -19,12 +19,23 @@ var VkUint16Index: u32 = 0;
 var VkGraphicsBindPoint: u32 = 0;
 var VkComputeBindPoint: u32 = 1;
 
-fn counted_prefix_bytes(): u64 {
-    return convert(u64, sizeof(u32) + sizeof(IndexedIndirectArguments));
+var CountedPairRecords: u32 = 2;
+var VkColorAttachmentRead: u32 = 128;
+
+enum CountedMode: u32 { Single, Pair, Short }
+var CountedRecorder: type = function(bool, VkCmdDrawIndexedIndirectCountProc,
+    VkCommandBufferHandle*, VulkanIndirectBuffer, IndexedIndirectRange, bool);
+struct CountedRun {
+    mode: CountedMode;
+    record: CountedRecorder;
 }
 
-fn counted_sample_bytes(): u64 {
-    return counted_prefix_bytes() + convert(u64, ReadbackRowBytes) * convert(u64, ReadbackHeight);
+fn counted_prefix_bytes(records: u32): u64 {
+    return convert(u64, sizeof(u32)) + convert(u64, records) * convert(u64, sizeof(IndexedIndirectArguments));
+}
+
+fn counted_sample_bytes(records: u32): u64 {
+    return counted_prefix_bytes(records) + convert(u64, ReadbackRowBytes) * convert(u64, ReadbackHeight);
 }
 
 fn counted_buffer_barrier(cmd: VkCommandBufferHandle*, buffer: VkBufferHandle*,
@@ -36,10 +47,10 @@ fn counted_buffer_barrier(cmd: VkCommandBufferHandle*, buffer: VkBufferHandle*,
 }
 
 // The two fixed cases use the same pipelines, attachment, index data and command stream.
-// Copy the shader's actual count/record and all four stored texels before reuse.
+// Copy the initialized command prefix and all four stored texels before reuse.
 fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
-    range: VkImageSubresourceRange, buffer: VkBufferHandle*, requested: u32, capture_offset: u64): bool {
+    range: VkImageSubresourceRange, buffer: VkBufferHandle*, requested: u32, records: u32, capture_offset: u64, run: CountedRun): bool {
     var consumers = VkStageDrawIndirect | VkStageTransfer;
     var reads = VkIndirectRead | VkTransferRead;
     if capture_offset != 0 {
@@ -49,12 +60,24 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
     vkCmdBindDescriptorSets(cmd, VkComputeBindPoint, p.layout, 0, 1, &p.set, 0, null);
     vkCmdPushConstants(cmd, p.layout, VkComputeShader, 0, convert(u32, sizeof(u32)), bits(void*, &requested));
     vkCmdDispatch(cmd, 1, 1, 1);
-    counted_buffer_barrier(cmd, stream.handle, VkStageCompute, consumers, VkShaderWrite, reads);
-    var prefix: VkBufferCopy = { dstOffset: capture_offset, size: counted_prefix_bytes(), ..default };
+    var writers = VkStageCompute;
+    var writes = VkShaderWrite;
+    if records == CountedPairRecords {
+        // The compute shader owns record zero. Supply the extra record and count on the transfer stage.
+        var second: IndexedIndirectArguments = { index_count: 3, first_index: 3, instance_count: 1, ..default };
+        counted_buffer_barrier(cmd, stream.handle, VkStageCompute, VkStageTransfer, VkShaderWrite, VkTransferWrite);
+        vkCmdUpdateBuffer(cmd, stream.handle, counted_prefix_bytes(1), convert(u64, sizeof(decltype(second))), bits(void*, &second));
+        vkCmdUpdateBuffer(cmd, stream.handle, 0, convert(u64, sizeof(decltype(requested))), bits(void*, &requested));
+        writers |= VkStageTransfer;
+        writes |= VkTransferWrite;
+    }
+    counted_buffer_barrier(cmd, stream.handle, writers, consumers, writes, reads);
+    var prefix: VkBufferCopy = { dstOffset: capture_offset, size: counted_prefix_bytes(records), ..default };
     vkCmdCopyBuffer(cmd, stream.handle, buffer, 1, &prefix);
     var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
         srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout,
         dstAccessMask: VkColorWrite, ..default };
+    if records == CountedPairRecords { transition.dstAccessMask |= VkColorAttachmentRead; }
     var previous = VkStageTop;
     if capture_offset != 0 {
         previous = VkStageTransfer; transition.oldLayout = VkCopyLayout; transition.srcAccessMask = VkTransferRead;
@@ -72,15 +95,19 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
     vkCmdBeginRendering(cmd, &rendering);
     vkCmdBindPipeline(cmd, VkGraphicsBindPoint, p.raster);
     vkCmdBindIndexBuffer(cmd, index_buffer, 0, VkUint16Index);
-    var commands: IndexedIndirectRange = { command_offset: convert(u64, sizeof(u32)), max_draws: CountedCapacity,
+    var commands: IndexedIndirectRange = { command_offset: convert(u64, sizeof(u32)), max_draws: records == CountedPairRecords ? records : CountedCapacity,
         stride: convert(u32, sizeof(IndexedIndirectArguments)) };
-    var recorded = vk_record_indexed_indirect_count(draw, cmd, stream, commands, stream, 0);
+    // In the short run only the final attempt asks for the full 16384-record range.
+    var short_stream = run.mode == CountedMode.Short;
+    if short_stream && capture_offset == 0 { commands.max_draws = 1; }
+    var accept = !(short_stream && capture_offset != 0);
+    var matched = run.record(draw, cmd, stream, commands, accept);
     vkCmdEndRendering(cmd);
-    if !recorded { return vk_failure("Counted draw rejected the frozen stream"); }
+    if !matched { return vk_failure("Unexpected counted command result or forwarding"); }
     transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
     transition.srcAccessMask = VkColorWrite; transition.dstAccessMask = VkTransferRead;
     vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
-    var region: VkBufferImageCopy = { bufferOffset: capture_offset + counted_prefix_bytes(), imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
+    var region: VkBufferImageCopy = { bufferOffset: capture_offset + counted_prefix_bytes(records), imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
         imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
     vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
     return true;
@@ -88,13 +115,13 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
 
 fn counted_record(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, indices: u16*, index_bytes: u64,
-    image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*): bool {
+    image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*, records: u32, run: CountedRun): bool {
     var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
     if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
     vkCmdUpdateBuffer(cmd, index_buffer, 0, index_bytes, bits(void*, indices));
     counted_buffer_barrier(cmd, index_buffer, VkStageTransfer, VkStageVertexInput, VkTransferWrite, VkIndexRead);
-    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 0, 0)
-        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 1, counted_sample_bytes()) {
+    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, records - 1, records, 0, run)
+        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, records, records, counted_sample_bytes(records), run) {
         return false;
     }
     counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);

@@ -1,0 +1,30 @@
+import tower;
+import .counted_run;
+import .indexed_draw;
+import .readback_abi;
+import .readback_device;
+import ..indexed_indirect;
+
+// SDK recording transport, synchronous on the fixture thread. The raw control
+// issues only the commands that the independent case oracle expects to record.
+extern fn counted_sdk_attempt(draw: VkCmdDrawIndexedIndirectCountProc, cmd: VkCommandBufferHandle*,
+    commands: VkBufferHandle*, command_bytes: u64, command_offset: u64, count: VkBufferHandle*,
+    count_bytes: u64, count_offset: u64, maximum: u32, stride: u32, accept: u32,
+    forwards: u32*, matches: u32*): u32;
+
+fn counted_observed(draw: VkCmdDrawIndexedIndirectCountProc, cmd: VkCommandBufferHandle*,
+    stream: VulkanIndirectBuffer, range: IndexedIndirectRange, accept: bool): bool {
+    var forwards: u32 = 0;
+    var matches: u32 = 0;
+    var required = convert(u32, accept);
+    var result = counted_sdk_attempt(draw, cmd, stream.handle, stream.byte_size, range.command_offset,
+        stream.handle, stream.byte_size, 0, range.max_draws, range.stride, required, &forwards, &matches);
+    readback_number("record_result", result);
+    readback_number("pfn_forwards", forwards);
+    readback_number("matching_forward_arguments", matches);
+    return result == required && forwards == required && matches == required;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    return counted_main(argc, argv, counted_observed);
+}

@@ -1,53 +1,14 @@
 import tower;
-import counted_device;
-import counted_capture;
+import counted_run;
+import indexed_draw;
 import readback_abi;
-import readback_device;
-import readback_oracle;
-import readback_validation;
+import .indexed_indirect;
 
-fn counted_validated(strict: bool, messages: u32*, paths: u8**): bool {
-    var debug: VkMessengerInfo = { sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
-        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default };
-    var enable = VkSyncValidation;
-    var validation: VkValidationFeatures = { sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
-        enabledCount: 1, enabled: &enable, ..default };
-    var app: VkApplicationInfo = { sType: VkApplicationTag, pApplicationName: "Tower counted raster control", apiVersion: VkApi13, ..default };
-    var layer = "VK_LAYER_KHRONOS_validation";
-    var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
-    var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
-        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &extensions[0], ..default };
-    var instance: VkInstanceHandle*;
-    if !vk_ok("vkCreateInstance (validation required)", vkCreateInstance(&info, null, &instance)) { return false; }
-    defer vkDestroyInstance(instance, null);
-    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-    if create == null || destroy == null { return vk_failure("Debug messenger functions unavailable"); }
-    var messenger: VkMessenger*;
-    if !vk_ok("vkCreateDebugUtilsMessengerEXT", create(instance, &debug, null, &messenger)) { return false; }
-    defer destroy(instance, messenger, null);
-    puts("backend=Vulkan requested_api=1.3 validation=Khronos+sync severity=warning,error");
-    var ctx: ReadbackDevice = default;
-    if !counted_open_device(instance, strict, &ctx) { return false; }
-    defer vkDestroyDevice(ctx.device, null);
-    return counted_capture(&ctx, paths);
+fn counted_direct(draw: VkCmdDrawIndexedIndirectCountProc, cmd: VkCommandBufferHandle*,
+    stream: VulkanIndirectBuffer, commands: IndexedIndirectRange, accept: bool): bool {
+    return vk_record_indexed_indirect_count(draw, cmd, stream, commands, stream, 0) == accept;
 }
 
 export fn main(argc: i32, argv: u8**): i32 {
-    if argc < 2 { puts("usage: counted_fixture draw14 | counted-core13 compute.spv vertex.spv fragment.spv"); return 2; }
-    var strict = strcmp(argv[1], "draw14") == 0;
-    if strict {
-        if argc != 2 { puts("draw14 takes no shader paths"); return 2; }
-    } else {
-        if strcmp(argv[1], "counted-core13") != 0 || argc != 5 {
-            puts("expected counted-core13 compute.spv vertex.spv fragment.spv"); return 2;
-        }
-    }
-    readback_label("requested_profile"); puts(argv[1]);
-    var messages: u32 = 0;
-    var completed = counted_validated(strict, &messages, argv + 2);
-    readback_number("validation_warnings_errors", messages);
-    if !completed || messages != 0 { return 1; }
-    puts("counted-core13 pixel and producer checks passed");
-    return 0;
+    return counted_main(argc, argv, counted_direct);
 }

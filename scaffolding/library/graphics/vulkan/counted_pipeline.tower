@@ -4,7 +4,7 @@ import shader_module;
 import readback_abi;
 import readback_device;
 import readback_oracle;
-import library.sha256;
+import ..sha256;
 
 // Linux LP64 fixture I/O. The library entry point only borrows in-memory words.
 extern fn fopen(path: u8*, mode: u8*): void*;
@@ -33,6 +33,7 @@ var VkFragmentShader: u32 = 16;
 var VkComputeShader: u32 = 32;
 var VkDescriptorStorageBuffer: u32 = 7;
 var VkTriangleList: u32 = 3;
+var VkBlendOne: u32 = 1;
 var VkWriteRGBA: u32 = 15;
 
 struct CountedPipelines {
@@ -97,7 +98,7 @@ fn counted_descriptors(device: VkDeviceHandle*, p: CountedPipelines*, buffer: Vk
     return true;
 }
 
-fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**): bool {
+fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**, additive: bool): bool {
     var modules: VkShaderModuleHandle*[3] = default;
     defer {
         for (var i: usize = 0; i < sizeof(decltype(modules)) / sizeof(VkShaderModuleHandle*); i++) {
@@ -123,6 +124,12 @@ fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**)
     var raster: VkPipelineRasterizationStateCreateInfo = { sType: VkRasterTag, lineWidth: 1.0, ..default };
     var ms: VkPipelineMultisampleStateCreateInfo = { sType: VkMultisampleTag, rasterizationSamples: VkSample1, ..default };
     var channels: VkPipelineColorBlendAttachmentState = { colorWriteMask: VkWriteRGBA, ..default };
+    if additive {
+        channels.blendEnable = 1;
+        channels.srcColorBlendFactor = VkBlendOne;
+        channels.dstColorBlendFactor = VkBlendOne;
+        channels.srcAlphaBlendFactor = VkBlendOne;
+    }
     var blend: VkPipelineColorBlendStateCreateInfo = { sType: VkColorBlendTag, attachmentCount: 1, pAttachments: &channels, ..default };
     var format = VkRgba8Unorm;
     var render: VkPipelineRenderingCreateInfo = { sType: VkPipelineRenderingTag, colorAttachmentCount: 1,
