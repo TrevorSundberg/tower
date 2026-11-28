@@ -126229,3 +126229,133 @@ covered the retained C boundary. Win64 ASan import libraries were absent
 and the Win64 Clang target rejected TSan. This qualification uses Tower’s
 representative private record. The Draw source and physical Windows
 execution remain outside the worker's evidence.
+
+### Typed command submission on host 11
+
+Rendering assignment `b80c042b-013b-419b-bce9-b76a534cde74` starts at
+`e42a7e438536cab25e2e1248babfb32e507e92c6`. The four provider bodies
+already implement `frame_submit.h`. The missing surface was the Tower
+application import for reset/begin (4), end/prepare (5), asynchronous
+submit (1) and blocking finish (6). Draw's C offscreen application at
+`87d4e8d094572c13c0c9beba369577b9cdf59e0d` and six-entry C link at
+`98c81d98e2dc017baee86ef7a24c017028ffd968` have separate receipts.
+This change belongs to the rendering library.
+[Draw receipts](../scaffolding/library/graphics/vulkan/graphics_dll_windows.md)
+
+The provider ABI and public declarations import the same four nominal
+handles and 72-byte x64 submit descriptor. The frame client's ELF and
+COFF depfiles each contain eight sources, including five language files.
+Each object has exactly four unresolved packaged commands. The private
+owner declares SDK-typed `vkGetFenceStatus` and `vkQueueWaitIdle`
+alongside both public modules. The combined application has twelve
+sources and seven undefined symbols, including image retirement.
+Deliberately importing the provider ABI reproduces an incompatible
+foreign `vkQueueWaitIdle` declaration. Passing a fence as the finish
+command buffer fails nominal type checking on both targets.
+
+The packaged Linux x64 towerc compiled external application files with
+`--library --jobs 1 --foundation` for both target triples. The 13 provider
+COFF objects, loader import library, release DLL and graphics import
+library rebuilt byte-identically. The ELF begin and aggregate finish
+provider objects matched the preceding source. Device PEs linked the
+sealed import library (`2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`)
+and loaded the sealed DLL (`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`).
+The sixteen-entry retirement and image-lifecycle packets contain identical
+release bytes. The preceding lifecycle PE also ran against them and matched
+all 27,542,768 bytes of its original guard/pixel oracle.
+
+**Device evidence.** Wine 8 selected the discrete Quadro RTX 6000,
+PCI 0000:89:00.0, UUID `26f60f6cead65faf0253a959b2e93a2d`, NVIDIA
+615.71.10, device API 1.4.351, family 0 queue 0. Each SDK/Tower pair
+used the same workload object, LLVM 19.1.7, a single application thread
+and queue, and the same DLL. The SDK arm calls Vulkan through C header
+declarations. The other arm's command relocations originate in the
+ordinary Tower COFF. The packet includes full maps and import tables
+for all six device PEs. Every import name was matched with a Wine
+binding, including all 18 driver imports on the DLL.
+
+* On three counted frames, both arms retired the fence before mapping.
+  All 336 logical bytes (two 2×2 RGBA8 captures per frame, counts,
+  record fields and guards) matched SHA-256
+  `746d13068c71f1dc42559ec75d25c697c923e4095f7d3e3784c8bcac023dcb3b`.
+  The 240 physical staging bytes in alternating count order matched
+  `06d7ba3cb63a5de630e7c0e43ea3b2629d5bee69d26ee124185539e2d90a79b2`.
+  The first frame begins a fresh primary directly. Frames two and three
+  use reset/begin. Both arms use the DLL's shader/count helpers. Only
+  three external callback names changed in the sealed fixture object.
+  Its machine-code section matched. The CPU oracle and row copy originate
+  at `3dd5f11f`, after compiler base `a580e70a`. Their Git bytes match
+  the rendering checkout. The original pitch-12 marker and short-source,
+  short-pitch and short-span rejections reproduced the prior CPU output.
+* The timeline gate acquired the subject fence signaled, checked it,
+  reset it, and acquired the consumer fence unsignaled. Submit returned
+  success while the subject fence reported `VK_NOT_READY`. The host
+  then released the producer. Both fences completed and the GPU event
+  was set before teardown. The private owner polled the fences using
+  its SDK aliases. Its image handles were null in this gate. The preceding
+  lifecycle PE exercised populated images on the same device.
+* In the upload test each arm copied eight bytes between four-byte guards
+  and checked the entire 16-byte destination after each finish, for 64
+  alternating payloads. Result SHA-256 was
+  `32f66ce71bf4794dc7980addb43d927c79933d646853fb210662e84bdce27929`.
+  Wine relay return PCs for all 64 reset/begin/end/submit/idle sequences
+  were in the SDK executable or the production DLL according to the arm.
+  The asynchronous DLL submit ends with a tail jump, so its Vulkan return
+  PC is in the application. The Tower relocation, linked instructions
+  and ordinal-1 binding identify that call. The gate itself submits the
+  producer and consumer and drains its queue after both fences complete.
+* Recording loaders supplied 0, −4, −1 or +1 on the first selected
+  reset, begin, end, submit or idle call. These are synthetic values.
+  Failed reset stopped before begin. Failed end preserved the whole
+  poisoned descriptor, guards and inputs. Success preserved the exact
+  descriptor and command/semaphore/stage slot addresses through the
+  profiling step and later submit callback. The finish recorder verified
+  E, ES or ESI, first result, null fence, zero semaphore counts and
+  ownership after a failed idle. A separate live fault arm submitted a
+  real copy and replaced the first queue-idle call before driver dispatch
+  with +1, −1 or −4. Each process returned failure from the upload,
+  retained its mappings, buffers, memory and primary through an independent
+  device-PFN drain, then read `a5a5a5a53031323334353637a5a5a5a5`.
+  All hardware calls used live, valid handles.
+
+**Measurements.** Xeon E5-2699 v4, 88 logical CPUs, cgroup quota
+10.56 cores. The compile comparison used the same four application
+bodies with the old provider ABI and private externs or the new public
+import. All COFF outputs matched. Each series excludes one warmup and
+uses three alternating same-host samples. Times are seconds, CPU is
+user plus system, RSS is maximum process KiB.
+
+| Compile or device process | Wall | CPU | Peak RSS |
+| --- | --- | --- | --- |
+| Old import control, jobs 1 | .38/.39/.42 | .38/.38/.42 | 87796/87160/87132 |
+| Public import, jobs 1 | .35/.36/.36 | .34/.35/.36 | 86100/85124/85688 |
+| Old import control, jobs 4 | .46/.51/.44 | .49/.56/.48 | 91660/90220/88792 |
+| Public import, jobs 4 | .52/.43/.44 | .55/.46/.47 | 90092/90888/91268 |
+| 64 transfers, raw SDK | .34/.34/.34 | .31/.31/.30 | 115348/116052/116132 |
+| 64 transfers, typed Tower | .45/.40/.33 | .32/.31/.29 | 116252/115372/117128 |
+
+Device timing started after both arms passed guarded output checks,
+with a warm Wine server, tracing off and validation enabled. These
+process times include setup and disposal. The import adds no runtime
+allocation or worker dispatch.
+
+**Coverage and reproduction.** Native ELF recording suites passed
+normally, under ASan with leak checks and a trapping UBSan SDK layout
+boundary, and under TSan with four pthreads × four independent repetitions
+per suite. The packet has maps, instrumented objects, startup errors
+and completed exits. An initial ASan link placed the runtime too late in
+the dependency list. Moving it first allowed execution. Two TSan processes
+failed during startup at ADDR_NO_RANDOMIZE before successful retries.
+Win64 trapping UBSan covered the C descriptor check. This SDK lacks the
+Win64 ASan import libraries and Clang rejects Win64 TSan. Wine used the
+host Khronos layer with synchronization validation and reported zero
+warning/error callbacks. The earlier guest-side explicit layer probe
+returned −6. Physical Windows, displayed WSI, Draw's shipping binary
+using the Tower import, and additional backends remain untested here.
+
+The initial gate fixture came from a different snapshot than its
+support types. Using the support snapshot's submit tag and explicit
+device-lost value repaired compilation. The source-only link recipe
+uses a dedicated PE entry to avoid the MinGW startup dependency emitted
+for `main`. The packet retains failed diagnostics. Build and device
+commands are in the [application recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#calling-the-frame-and-upload-commands).

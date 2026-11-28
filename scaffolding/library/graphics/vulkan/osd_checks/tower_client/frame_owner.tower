@@ -1,0 +1,23 @@
+import tower;
+import library.graphics.vulkan.command_submission;
+import library.graphics.vulkan.image_lifecycle;
+
+// Existing SDK declarations private to this application.
+struct SdkQueue {}
+struct SdkDevice {}
+struct SdkFence {}
+extern fn vkQueueWaitIdle(queue: SdkQueue*): i32;
+extern fn vkGetFenceStatus(device: SdkDevice*, fence: SdkFence*): i32;
+
+// The fence covers the final use. The caller clears its image slots on success.
+export fn frame_try_retire(device: VkDeviceHandle*, fence: VkFenceHandle*, view: VkImageViewHandle*,
+    image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32 {
+    var status = vkGetFenceStatus(bits(SdkDevice*, device), bits(SdkFence*, fence));
+    if status != 0 { return status; }
+    tower_vk_destroy_retired_image_v1(device, view, image, memory);
+    return 0;
+}
+
+export fn frame_owner_drain(queue: VkQueueHandle*): i32 {
+    return vkQueueWaitIdle(bits(SdkQueue*, queue));
+}

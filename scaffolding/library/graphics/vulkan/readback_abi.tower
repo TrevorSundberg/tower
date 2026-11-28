@@ -1,6 +1,7 @@
 import tower;
 import image_lifecycle_types;
 import image_driver_types;
+import command_submission_types;
 
 // Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
 // SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
@@ -271,8 +272,6 @@ struct VkDeviceCreateInfo {
     pEnabledFeatures: VkPhysicalDeviceFeatures*;
 }
 
-struct VkQueueHandle {}
-
 var VkImageViewCreateTag: u32 = 15;
 
 struct VkBufferCreateInfo {
@@ -304,8 +303,6 @@ struct VkCommandBufferAllocateInfo {
     level: u32;
     commandBufferCount: u32;
 }
-
-struct VkCommandBufferHandle {}
 
 struct VkCommandBufferInheritanceInfo {}
 
@@ -414,23 +411,7 @@ struct VkFenceCreateInfo {
     flags: u32;
 }
 
-struct VkFenceHandle {}
-
-struct VkSemaphoreHandle {}
-
 var VkSubmitTag: u32 = 4;
-
-struct VkSubmitInfo {
-    sType: u32;
-    pNext: void*;
-    waitSemaphoreCount: u32;
-    pWaitSemaphores: VkSemaphoreHandle**;
-    pWaitDstStageMask: u32*;
-    commandBufferCount: u32;
-    pCommandBuffers: VkCommandBufferHandle**;
-    signalSemaphoreCount: u32;
-    pSignalSemaphores: VkSemaphoreHandle**;
-}
 
 struct VkMappedMemoryRange {
     sType: u32;

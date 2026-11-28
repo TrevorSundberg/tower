@@ -911,3 +911,7 @@ of Draw's partial-owner cleanup has its own worker revision.
 Ordinary Tower modules can import the seven image lifecycle entries by name.
 The [two-module caller and standalone ELF/COFF build](osd_checks/tower_client/README.md)
 use the declarations shared with the Win64 device example.
+
+The four `frame_submit.h` functions also have a declarations-only Tower
+import. Their Win64 names and ordinals are shared with the C callers.
+[Application contract and build recipe](osd_checks/tower_client/README.md#calling-the-frame-and-upload-commands)
