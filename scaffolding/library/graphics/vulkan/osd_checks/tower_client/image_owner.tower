@@ -1,0 +1,33 @@
+import tower;
+import library.graphics.vulkan.image_lifecycle;
+
+struct ImageOwner {
+    image: VkImageHandle*;
+    memory: VkDeviceMemoryHandle*;
+    view: VkImageViewHandle*;
+    bytes: u64;
+}
+
+struct ImageAccount { live: u64; peak: u64; count: u32; }
+
+// Called with a created image and a successful allocation plan. On bind failure
+// the owner still holds the allocation and its charge.
+fn bind_owner(device: VkDeviceHandle*, owner: ImageOwner*, account: ImageAccount*, plan: VkMemoryAllocateInfo*): i32 {
+    var result = tower_vk_allocate_memory_v1(device, plan, &owner.memory);
+    if result != 0 { return result; }
+    owner.bytes = plan.allocationSize;
+    account.live += owner.bytes;
+    account.count++;
+    if account.live > account.peak { account.peak = account.live; }
+    return tower_vk_bind_image_memory_zero_v1(device, owner.image, owner.memory);
+}
+
+// Requires completed use of every owned handle, or an owner never submitted.
+export fn osd_retire_image_owner(device: VkDeviceHandle*, owner: ImageOwner*, account: ImageAccount*): void {
+    tower_vk_destroy_retired_image_v1(device, owner.view, owner.image, owner.memory);
+    if owner.memory != null {
+        account.live -= owner.bytes;
+        account.count--;
+    }
+    *owner = default;
+}

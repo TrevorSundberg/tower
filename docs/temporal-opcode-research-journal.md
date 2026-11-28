@@ -126050,3 +126050,13 @@ and native sanitizers. Its export check applies to the fifteen ordinals it
 owns. The retirement qualification checks the complete sixteen-entry table.
 The portable remote ref advanced during this run. The source and checks
 remain pinned to the reviewed 6aa610c9 inputs.
+
+### Typed application imports for the Win64 image lifecycle
+
+Host 11 began at release 8ac14905. Its last qualification used separate C
+call sites. The provider modules import implementation code and the canonical
+x64 SDK handles live in readback_abi. The client needs one shared set of
+external declarations. The first two-importer compile emitted an empty object
+because its entry functions were private and unused. Giving the example two
+application entry symbols retained the owner path and all seven undefined
+references on both targets. The release package is an input to the link.

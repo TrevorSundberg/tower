@@ -907,3 +907,7 @@ execution through ordinal 16 to slot 9 job
 `feb0c2ae-4467-44d8-b331-d0e5bc425a5f` after allocation and bind job
 `83bebca9-c966-43cc-851b-868708c7d4aa`. The Linux device qualification
 of Draw's partial-owner cleanup has its own worker revision.
+
+Ordinary Tower modules can import the seven image lifecycle entries by name.
+The [two-module caller and standalone ELF/COFF build](osd_checks/tower_client/README.md)
+use the declarations shared with the Win64 device example.

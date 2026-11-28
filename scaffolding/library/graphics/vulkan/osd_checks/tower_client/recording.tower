@@ -1,0 +1,144 @@
+import tower;
+import library.graphics.vulkan.image_lifecycle;
+import image_owner;
+import sampled_image;
+
+extern fn puts(message: u8*): i32;
+extern fn exit(status: i32): void;
+
+var Charge: u64 = 4294983680;
+var Guard: u32 = 1515870810;
+struct Probe {
+    info: VkImageCreateInfo;
+    owner: ImageOwner;
+    account: ImageAccount;
+    query_result: i32;
+    allocation_result: i32;
+    bind_result: i32;
+    sdk: bool;
+    stage: u32;
+    released: u32;
+    public_caps: VkImageFormatProperties*;
+    expected_plan: VkMemoryAllocateInfo*;
+}
+
+fn check(condition: bool, message: u8*): void {
+    if !condition { puts(message); exit(3); }
+}
+fn image_id(p: Probe*): VkImageHandle* { return bits(VkImageHandle*, &p.info); }
+fn memory_id(p: Probe*): VkDeviceMemoryHandle* { return bits(VkDeviceMemoryHandle*, &p.account); }
+fn view_id(p: Probe*): VkImageViewHandle* { return bits(VkImageViewHandle*, &p.stage); }
+
+export fn record_query(physical: VkPhysicalDeviceHandle*, format: u32, kind: u32, tiling: u32, usage: u32,
+    flags: u32, caps: VkImageFormatProperties*): i32 {
+    var p = bits(Probe*, physical);
+    check(p.stage == 0 && format == p.info.format && kind == p.info.imageType && tiling == p.info.tiling &&
+        usage == p.info.usage && flags == p.info.flags && caps != p.public_caps, "query inputs");
+    *caps = {maxExtent: p.info.extent, maxMipLevels: p.info.mipLevels, maxArrayLayers: p.info.arrayLayers,
+        sampleCounts: p.info.samples, maxResourceSize: Charge};
+    p.stage++;
+    return p.query_result;
+}
+export fn record_create(device: Probe*, info: VkImageCreateInfo*, cb: VkAllocationCallbacks*, out: VkImageHandle**): i32 {
+    check(device.stage == 1 && info == &device.info && cb == null && out != &device.owner.image && *out == null,
+        "original descriptor or private create output");
+    *out = image_id(device);
+    device.stage++;
+    return 0;
+}
+export fn record_requirements(device: Probe*, image: VkImageHandle*, out: VkMemoryRequirements*): void {
+    check(device.stage == 2 && image == image_id(device) && image == device.owner.image, "requirements image");
+    *out = {size: Charge, alignment: 1024, memoryTypeBits: 2};
+    device.stage++;
+}
+export fn record_allocate(device: Probe*, plan: VkMemoryAllocateInfo*, cb: VkAllocationCallbacks*, out: VkDeviceMemoryHandle**): i32 {
+    check(device.expected_plan == null || device.expected_plan == plan, "allocation descriptor address");
+    check(device.stage == 3 && plan.sType == 5 && plan.allocationSize == Charge && plan.memoryTypeIndex == 1 &&
+        plan.pNext == null && cb == null && (out == &device.owner.memory) == device.sdk &&
+        *out == null && device.account.count == 0, "plan or allocation output");
+    *out = memory_id(device); // A non-successful driver call can still clobber its slot.
+    device.stage++;
+    return device.allocation_result;
+}
+export fn record_bind(device: Probe*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
+    check(device.stage == 4 && image == image_id(device) && memory == memory_id(device) &&
+        memory == device.owner.memory && offset == 0 && device.account.live == Charge &&
+        device.account.count == 1 && device.owner.bytes == Charge && device.account.peak == Charge, "account before bind");
+    device.stage++;
+    return device.bind_result;
+}
+export fn record_view(device: Probe*, info: VkImageViewCreateInfo*, cb: VkAllocationCallbacks*, out: VkImageViewHandle**): i32 {
+    check(device.stage == 5 && device.bind_result == 0 && info.image == device.owner.image &&
+        info.viewType == 5 && info.format == device.info.format && cb == null && out != &device.owner.view &&
+        info.subresourceRange.baseArrayLayer == 2 && *out == null, "view before successful bind or wrong view");
+    *out = view_id(device);
+    device.stage++;
+    return 0;
+}
+export fn release_view(p: Probe*, view: VkImageViewHandle*, cb: VkAllocationCallbacks*): void {
+    check(p.released == 0 && view == p.owner.view && view == view_id(p) && cb == null, "retire view");
+    p.released++;
+}
+export fn release_image(p: Probe*, image: VkImageHandle*, cb: VkAllocationCallbacks*): void {
+    check(p.released == (p.owner.view == null ? 0 : 1) && image == p.owner.image && image == image_id(p) &&
+        cb == null, "retire image");
+    p.released++;
+}
+export fn release_memory(p: Probe*, memory: VkDeviceMemoryHandle*, cb: VkAllocationCallbacks*): void {
+    check(p.released == (p.owner.view == null ? 1 : 2) && memory == memory_id(p) && memory == p.owner.memory &&
+        p.account.count == 1 && p.account.live == Charge && cb == null, "retire memory and charge");
+    p.released++;
+}
+fn exercise(sdk: bool, query: i32, allocate: i32, bind: i32, stage: u32, releases: u32): void {
+    var p: Probe = {sdk: sdk, query_result: query, allocation_result: allocate, bind_result: bind, ..default};
+    p.info = {sType: 14, flags: 8, imageType: 1, format: 43, extent: {width: 64, height: 32, depth: 1},
+        mipLevels: 2, arrayLayers: 4, samples: 1, usage: 7, ..default};
+    var physical = bits(VkPhysicalDeviceHandle*, &p);
+    var device = bits(VkDeviceHandle*, &p);
+    var types: VkMemoryType[2] = {{propertyFlags: 0, ..default}, {propertyFlags: 1, ..default}};
+    var range: VkImageSubresourceRange = {aspectMask: 1, levelCount: 2, baseArrayLayer: 2, layerCount: 1, ..default};
+    if query != 0 {
+        var caps: VkImageFormatProperties;
+        fill(bits(u8*, &caps), 90, sizeof(VkImageFormatProperties));
+        p.public_caps = &caps;
+        var supported = Guard;
+        check(tower_vk_image_format_preflight_v1(physical, &p.info, &caps, &supported) == query &&
+            supported == Guard, "query result or support output");
+        for (var i: usize = 0; i < sizeof(VkImageFormatProperties); i++) {
+            check(bits(u8*, &caps)[i] == 90, "query clobbered caller limits");
+        }
+        p.stage = 0;
+        p.public_caps = null;
+    }
+    var result = osd_open_sampled_image(physical, device, &p.info, &types[0],
+        convert(u32, sizeof(decltype(types)) / sizeof(VkMemoryType)), 1, 5, &range, &p.owner, &p.account);
+    check(result == query + allocate + bind && p.stage == stage, "wrong signed result or subsequent call");
+    if allocate != 0 {
+        check((p.owner.memory != null) == sdk && p.account.live == 0 && p.account.peak == 0, "failed allocation published");
+        // The SDK writes through the public slot even on failure. Discard the test driver's scribble.
+        p.owner.memory = null;
+    }
+    osd_retire_image_owner(device, &p.owner, &p.account);
+    osd_retire_image_owner(device, &p.owner, &p.account);
+    check(p.released == releases && p.account.live == 0 && p.account.count == 0 &&
+        p.owner.memory == null && p.owner.image == null && p.owner.view == null && p.owner.bytes == 0,
+        "retirement count, charge or owner clear");
+}
+fn suite(sdk: bool): i32 {
+    var plan: VkMemoryAllocateInfo = {sType: 5, allocationSize: Charge, memoryTypeIndex: 1, ..default};
+    var p: Probe = {sdk: sdk, stage: 3, expected_plan: &plan, ..default};
+    p.owner.image = image_id(&p);
+    var device = bits(VkDeviceHandle*, &p);
+    check(bind_owner(device, &p.owner, &p.account, &plan) == 0 && p.stage == 5, "original plan and slots");
+    osd_retire_image_owner(device, &p.owner, &p.account);
+    exercise(sdk, 0, 0, 0, 6, 3);
+    exercise(sdk, -1000001004, 0, 0, 1, 0);
+    exercise(sdk, 5, 0, 0, 1, 0);
+    exercise(sdk, 0, -2, 0, 4, 1);
+    exercise(sdk, 0, 1, 0, 4, 1);
+    exercise(sdk, 0, 0, -7, 5, 2);
+    puts("healthy, two clobbering query results, two clobbering allocation results, failed bind without view");
+    return 0;
+}
+export fn record_suite(): i32 { return suite(false); }
+export fn main(argc: i32, argv: u8**): i32 { return suite(argc == 2); }
