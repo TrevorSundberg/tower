@@ -128500,3 +128500,71 @@ for each application. Whole-process medians were 0.30–0.31 seconds.
 Address checks passed. Full-process raw-clear LSan reported 3,511 bytes
 in eight allocations on both revisions. TSan stopped before main.
 Noncoherent memory and real device loss remain outside this hardware run.
+
+### Win64 counted buffer acquisition and retirement on slot 11
+
+Assignment `357afd0e-554b-47b7-8cba-624d5b97f092` rebuilt the two
+`9c61c1c3` and two `a4369920` applications from separate Git exports with
+the published compiler and `counted_win64/build.sh`. All four reproduced
+the [reviewed PE hashes](#sdk-review-of-vulkan-buffer-acquisition-and-retirement).
+For each ordinary and CRT entry, both the resolved depfile and a debugger
+stop in the counted caller identify the compiled buffer constructor. Shader
+creation and both draws entered the release DLL. The two-import controls
+executed begin, prepare and submit in the PE, and the five-import callers
+entered the three named DLL exports. The archive retains each import table,
+caller PC, load trace, link map and raw capture.
+
+All four passed on the discrete Quadro RTX 6000, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, driver 615.71.10, Vulkan 1.4.351,
+queue 0/0. Wine 8 loaded the adjacent graphics DLL (`8fc64f24`), built-in
+Vulkan loader (`f7d151a8`) and system32 winevulkan (`25a432c7`). The host
+loader inserted the Khronos device layer with synchronization validation
+requested. Each submit and fence wait returned 0. Mapping the staging
+allocation after the wait produced counts 0/1, both 20-byte commands and
+all eight expected RGBA8 pixels with intact pitch and guards. Both 56-byte
+captures matched the independent 112-byte oracle (`a49420a8`). Each process
+reported zero validation warning/error callbacks.
+
+| Buffer | Logical bytes / usage | Required allocation bytes | Type / heap / flags |
+| --- | --- | ---: | --- |
+| Indirect | 327684 / 289 | 327696 | 0 / 1 / 0 |
+| Index | 8 / 66 | 16 | 0 / 1 / 0 |
+| Staging | 80 / 2 | 80 | 3 / 1 / 0x6 |
+
+All three requirements reported alignment 16 and mask 0x3b. Every bind
+used offset zero. Probes on the NVIDIA ICD's returned device procedures
+matched the native handles through wait, map, unmap and release. The
+creating device destroyed the image, staging, index and indirect resources
+before freeing each matching allocation.
+
+Each PE ran four injected constructor failures at each of the three
+positions. A clobbering create −1 released nothing. An incompatible type
+and a clobbering allocation −2 each released only the created buffer.
+After a successful allocation, bind −4 destroyed the buffer before freeing
+its memory. The debugger used the real Win64 output addresses. Each failed
+owner returned empty. In 48 additional runs, hardware watchpoints observed
+no change to the caller-owned handle, allocation or flags. Read watchpoints
+on the 24 poisoned private output slots observed no read before the
+constructor returned. Index rejection released the earlier indirect pair.
+Staging rejection released the partial staging resource, when acquired,
+then retired the pipeline owners and the two earlier pairs. All 48 cases
+retained their original diagnostic and exited 1 before fence creation,
+submit, map or capture. The Win64 CPU recorder separately passed the wide
+sizes, clobbering callbacks and repeat release.
+
+The reset, begin, end, submit, wait, drain and map controls reproduced the
+[previous hardware packet](#host-11-qualification-of-the-five-win64-imports-on-shared-staging).
+A failed wait after real submit released buffers only after a successful
+drain on the submitting queue. A rejected drain left all four allocations
+live and exited 3. No real device loss was induced.
+
+The packet includes a second offline build and Wine replay, raw driver and
+guest traces, SHA-256 manifests, source exports and replay scripts. A fresh
+native Linux ASan/LSan run of the instrumented recording helper passed.
+Full Win64 application sanitization, physical Windows and physically
+noncoherent staging remain open. The two prior/current PE pairs per entry
+used one Wine process at a time on the same slot, one warmup and seven
+samples with checked pixels. Median wall seconds for previous → current
+were 0.40 → 0.41 and 0.36 → 0.38 for five-import ordinary and CRT,
+and 0.52 → 0.41 and 0.40 → 0.38 for the two-import controls. Each pair's
+ranges overlapped. Raw CPU, RSS and all individual samples are in the packet.

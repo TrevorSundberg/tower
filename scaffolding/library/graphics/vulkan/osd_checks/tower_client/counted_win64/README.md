@@ -105,6 +105,10 @@ records the four cross-linked PE hashes. For the earlier buffer ownership
 comparison, export `9c61c1c3` for two imports and `a2d79120` for five.
 The [buffer ownership review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
 identifies those binaries.
+Host 11 rebuilt the same five-import callers from `a4369920` and both
+`9c61c1c3` controls, checked the guarded captures and traced each buffer
+from acquisition through retirement on the Quadro RTX 6000.
+[Win64 buffer device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-buffer-acquisition-and-retirement-on-slot-11)
 
 For the shared staging visibility comparison, export `53c0d291` for two
 imports and `49a7e06f` for five. Host 11 reproduced the four PE hashes,
