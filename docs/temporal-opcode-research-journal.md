@@ -130203,3 +130203,44 @@ returned PE hashes. Replay with `bash commands/replay.sh TOWER_READER
 NEW_DIRECTORY ACCEPTED_AD26BC7B_ARCHIVE` from the unpacked evidence.
 The separate measurement and instrumentation commands are in
 `commands/measure.sh`. Rendering owns publication of the reviewed source.
+
+### Rendering review of queue-family selection and logical-device ownership
+
+Slot 12 recovered the implementation in job
+`621e9941-f584-4ea0-a659-8a687095645a`. Source `42a5e483` descends
+directly from the published recovery journal at `1c8b1e52`. Rendering
+verified the bounded Git bundle and all 508 entries in archive
+`4058baa219e12e34996a00b676500b7b6e65ed59f7b6dc887f1918ccb39fb38d`.
+The clear and counted callers share selection of the first nonempty family
+that supplies their requested flags. The helper publishes the device only
+after a successful create. In the recorder a driver wrote a handle and
+returned −7. The old implementation exposed that handle and failed the
+ownership assertion with exit 3. The candidate kept the owner empty and
+made no queue lookup or device destruction. Clear selected family 2 and
+counted selected family 3 in the recorder.
+
+Using the pinned bootstrap, LLVM 19, one compiler job and Debian 12 startup
+objects, rendering independently rebuilt all six packaged Linux executables
+byte for byte. The initial Debian 13 startup object placed the ABI note
+in a different ELF section order. The rebuilt recorder reproduced the
+worker transcript. Both clear paths, both counted paths and the counted
+argument fixture ran under Mesa llvmpipe. Each signaled its fence, produced
+the expected guarded bytes and reported zero validation warnings or errors.
+Raw device index 1 and both strict-profile requests exited 1.
+
+The worker used family 0, queue 0 on the RTX 3090, driver 565.57.01.
+Rendering reconstructed the 32-byte clear and 112-byte counted streams and
+compared them with the original and clean-replay hardware logs and the
+sealed physical-selection baseline. Across both runs, all 20 injected
+family-list allocation and device-create failures released the installed
+messenger and its instance in order and exited 1. In the 20 matched trials
+where device creation succeeded, device destruction preceded both releases.
+Recounting the allocator traces gave peak live Tower bytes of 144 for
+clear and 1,752 for counted. All entries returned to zero.
+
+The four Win64 binaries retain the expected two or five named SDK imports.
+This packet covers cross-linking. The isolated recorder passed ASan and
+threaded TSan. Full-driver TSan faulted on both revisions, full-process raw
+leak checks reported 3,511 bytes in eight allocations on both, and Tower
+source-level UBSan was unavailable. Details of the worker runs, timings
+and reproduction commands appear in the preceding journal entry.
