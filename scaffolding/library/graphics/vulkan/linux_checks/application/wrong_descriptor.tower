@@ -1,0 +1,7 @@
+import tower;
+import private_shapes;
+import application_imports;
+
+export fn unchecked(device: VkDeviceHandle*, info: AppImageInfo*, slot: VkImageHandle**): i32 {
+    return tower_vk_create_image_v1(device, info, slot);
+}

@@ -8,6 +8,17 @@ import recording;
 import layout;
 
 extern fn puts(message: u8*): i32;
+extern fn getenv(key: u8*): u8*;
+extern fn write(fd: i32, data: void*, size: usize): i64;
+
+struct CaseRecord {
+    fault: u32; status: i32; fits: u32; info: AppImageInfo*; next: void*; plan: AppAllocation*; seen: Seen; events: u64;
+}
+fn report(s: Recording*, status: i32, fits: u32): void {
+    if getenv("TOWER_RECORD_CASES") == null { return; }
+    var row: CaseRecord = {fault: s.fault, status: status, fits: fits, info: s.info, next: s.chain, plan: s.plan, seen: s.seen, events: s.events};
+    assert(write(3, bits(void*, &row), sizeof(CaseRecord)) == convert(i64, sizeof(CaseRecord)), "recording output failed");
+}
 
 fn check(fault: u32): void {
     var owner: AppOwner = default;
@@ -23,6 +34,7 @@ fn check(fault: u32): void {
     var properties: AppLimits = {maxResourceSize: 17, ..default};
     var fits: u32 = 19;
     var r = sdk_preflight(device, &info, &properties, &fits);
+    defer report(&s, r, fits);
     assert(s.events == 1);
     if fault == QueryFailure {
         assert(r == -11 && fits == 19 && properties.maxResourceSize == 17 && properties.maxExtent.width == 0);
@@ -31,9 +43,14 @@ fn check(fault: u32): void {
     assert(r == 0 && properties.maxResourceSize == WideBytes && properties.maxExtent.width == 5);
     if fault == ShortExtent { assert(fits == 0); return; }
     assert(fits == 1);
+    // An existing private value must survive failure. The public output slot
+    // is a separate, initially null local in each application client.
+    var prior: void* = null;
+    if getenv("TOWER_OWNER_CANARY") != null { prior = bits(void*, &chain); }
+    if fault == CreateFailure { owner.image = prior; }
     r = sdk_create(device, &info, &owner.image);
     assert(s.events == 12);
-    if fault == CreateFailure { assert(r == -2 && owner.image == null); return; }
+    if fault == CreateFailure { assert(r == -2 && owner.image == prior); return; }
     assert(r == 0 && owner.image == bits(void*, &s.image_token));
     var types: AppType[2];
     types[0] = default;
@@ -47,9 +64,13 @@ fn check(fault: u32): void {
     } else {
         assert(matched == 1 && plan.sType == 5 && plan.pNext == null && plan.allocationSize == WideBytes && plan.memoryTypeIndex == 1);
         plan.pNext = info.pNext;
+        if fault == AllocationFailure { owner.memory = prior; }
         r = osd_allocate_memory(device, &plan, &owner.memory);
         assert(s.events == 1234);
-        if fault == AllocationFailure { assert(r == -2 && owner.memory == null && owner.bytes == 0); }
+        if fault == AllocationFailure {
+            assert(r == -2 && owner.memory == prior && owner.bytes == 0);
+            owner.memory = null;
+        }
         else {
             assert(r == 0 && owner.memory == bits(void*, &s.memory_token));
             owner.bytes = plan.allocationSize;
@@ -59,9 +80,13 @@ fn check(fault: u32): void {
             else {
                 assert(r == 0);
                 var range: AppRange = {aspectMask: 1, levelCount: 2, layerCount: 1, ..default};
+                if fault == ViewFailure { owner.view = prior; }
                 r = sdk_view(device, owner.image, 1, info.format, &range, &owner.view);
                 assert(s.events == 123456);
-                if fault == ViewFailure { assert(r == -2 && owner.view == null); }
+                if fault == ViewFailure {
+                    assert(r == -2 && owner.view == prior);
+                    owner.view = null;
+                }
                 else { assert(r == 0 && owner.view == bits(void*, &s.view_token)); }
             }
         }
@@ -80,7 +105,11 @@ fn check(fault: u32): void {
 
 export fn main(): i32 {
     check_layout();
-    for (var fault: u32 = 0; fault <= ViewFailure; fault++) { check(fault); }
+    var repeats: u32 = 1;
+    if getenv("TOWER_CASE_BENCH") != null { repeats = 20000; }
+    for (var i: u32 = 0; i < repeats; i++) {
+        for (var fault: u32 = 0; fault <= ViewFailure; fault++) { check(fault); }
+    }
     puts("seven direct entries; eight recording cases passed");
     return 0;
 }

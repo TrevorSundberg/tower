@@ -24,6 +24,7 @@ export fn vkGetPhysicalDeviceImageFormatProperties(s: Recording*, format: u32, k
 
 export fn vkCreateImage(s: Recording*, info: AppImageInfo*, allocator: void*, out: void**): i32 {
     event(s, 2);
+    s.seen.image_info = info; s.seen.image_next = info.pNext;
     assert(info == s.info && info.pNext == s.chain && allocator == null && *out == null);
     *out = bits(void*, &s.image_token);
     if s.fault == CreateFailure { return -2; }
@@ -36,6 +37,7 @@ export fn vkGetImageMemoryRequirements(s: Recording*, image: void*, out: Require
 }
 export fn vkAllocateMemory(s: Recording*, info: AppAllocation*, allocator: void*, out: void**): i32 {
     event(s, 4);
+    s.seen.allocation = info; s.seen.allocation_next = info.pNext; s.seen.bytes = info.allocationSize;
     assert(info == s.plan && info.pNext == s.chain && info.allocationSize == WideBytes
         && info.memoryTypeIndex == 1 && allocator == null && *out == null && *s.charged == 0);
     *out = bits(void*, &s.memory_token);
@@ -44,6 +46,7 @@ export fn vkAllocateMemory(s: Recording*, info: AppAllocation*, allocator: void*
 }
 export fn vkBindImageMemory(s: Recording*, image: void*, memory: void*, offset: u64): i32 {
     event(s, 5);
+    s.seen.at_bind = *s.charged;
     assert(image == bits(void*, &s.image_token) && memory == bits(void*, &s.memory_token)
         && *s.charged == WideBytes && offset == 0);
     if s.fault == BindFailure { return -7; }

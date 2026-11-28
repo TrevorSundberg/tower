@@ -126004,3 +126004,11 @@ stages the supplied module by its full path and uses decimal event numbers.
 The CPU-only driver overwrites output handles on injected failures. Eight
 cases passed against the pinned DSO using a private binding outside Git.
 The provider types and the application declarations belong to slot 11.
+
+Both Tower caller objects linked to the frozen retained owner.o. Its SDK view
+probe moved to the private sdk_view entry so the packaged relocation resolves
+directly to the DSO. The independent C executable stayed byte-identical.
+The first execve trace truncated the long argv[0] in strace's display. The
+replay records up to 4096 characters and asserts the application has its
+original single-element argument vector. The CPU command also passed with
+the input packet absent, rebuilding the same DSO from the base sources.

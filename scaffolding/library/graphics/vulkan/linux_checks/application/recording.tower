@@ -10,8 +10,11 @@ var BindFailure: u32 = 6;
 var ViewFailure: u32 = 7;
 var WideBytes: u64 = 4294983680;
 
+struct Seen { image_info: AppImageInfo*; image_next: void*; allocation: AppAllocation*; allocation_next: void*; bytes: u64; at_bind: u64; }
+
 struct Recording {
     fault: u32; events: u64;
+    seen: Seen;
     image_token: u32; view_token: u32; memory_token: u32;
     info: AppImageInfo*; plan: AppAllocation*; chain: void*;
     charged: u64*; complete: bool*;
