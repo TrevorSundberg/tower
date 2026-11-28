@@ -62,3 +62,45 @@ pthread harness, with fatal UBSan checks on the C layout oracle. The device
 ASan check instruments the new Tower clients against the original DSO and
 enables synchronization validation with leak checking disabled. The packet's
 separate device diagnostics retain leak and TSan outcomes.
+
+## First hardware run with test declarations
+
+Worker source `f52d72850740d8244adfe701b5e2a3cd99c31481` used a
+declarations file and shared type definitions supplied by the evidence
+packet. Their SHA-256 digests were
+`e63931e2f3b902aa6e4bde46f3839babdd9f1c6a871d8f7f2fdd0dec95b801d3`
+and `98ea6f9bf0d44916d4552dee62231cd558f9dd2e822dcd32dd74db1509acaf36`.
+These are test inputs. Qualification of the public Tower imports requires
+a replay with their reviewed source revision. The private owner in this
+fixture models handle publication and bookkeeping using three handles,
+a byte count and a completion flag. Draw separately tests its actual
+64-byte owner layout.
+
+Rendering replayed the retained CPU executable with its recording driver,
+including a pass with `TOWER_OWNER_CANARY=1`. Both passed eight cases.
+The loader bound all seven application calls to the released sixteen-entry
+DSO. The binary case records preserved the original descriptor and
+extension addresses and recorded 4,294,983,680 bytes charged at bind.
+Removing the success check from image publication caused the worker's
+canary control to exit 1.
+
+On the selected RTX 3090 (10de:2204, Vulkan 1.3.289, NVIDIA 565.57.01)
+the application ELF had SHA-256
+`d74d83ab33d91301a9716bb5ab87a1f63265c5f819d2f0d484531e70836e0306`.
+Both the C and Tower runs recorded zero validation warnings or errors.
+Rendering replayed both lifetime traces and compared each guarded
+capture byte-for-byte with the frozen reference. All 103,158,144 bytes
+matched SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+The sixteen reads completed before the five image owners released their
+view, image and memory. Device ASan with leak detection reported 4,187
+bytes in 15 allocations. Device TSan exited 66 before verified execution.
+
+The archived worker invocation can be repeated from evidence packet
+`f4f703cb-c8cc-43ad-aabc-f974522c9ebe`, SHA-256
+`1ed5e76c853b07b4f89db6e32aea7700b24fab70f7f15fe60e2df95383debc39`.
+Use the package root as the working directory and a fresh output path.
+
+```sh
+bash ./replay.sh "$TOWER_CHECKOUT" "$PWD/private_binding/imports.tower" "$OUTPUT"
+```
