@@ -130072,3 +130072,27 @@ nine pre-main failures before a passing run. The seven-pair whole-process
 timing ranges overlapped for each configuration. Explicit guest-layer
 success on hardware, native Windows/WDDM and full-PE sanitizer coverage
 remain open. This publication records the tested binaries.
+
+### Interrupted Vulkan queue-family selection review
+
+Slot 12 job `0dd7618b-6f23-46c9-b7f3-32be0d716354` returned a recovery
+checkpoint after an interruption. Rendering retrieved the 29,128-byte Git
+bundle, SHA-256 `5c9221dc50a0b470c09306ffbc604ddfc6e59145d5e655e1cbd3af52f773259d`.
+The default fetch verified the bundle and then failed because it expected
+a ref named `HEAD`. Fetching the advertised
+`refs/kinmen/checkpoints/10468840-100e-482f-bcee-79bdf9a6846c`
+resolved to `fdb3bf2a0e11d0eb5eb7155213c88ca6f47bb2f4`.
+
+The checkpoint differs from its first parent `9d4f7286` only in
+`readback_v1.md`. That edit describes the earlier 24-byte readback fixture
+and validation-layer allocation investigation. The bundle contains no change
+to a Tower unit or test for queue-family selection. The evidence endpoint
+returned HTTP 404. These artifacts cannot establish a queue-family change,
+its GPU behavior or a performance measurement.
+
+Rendering retained the checkpoint and marked the receipt as needing repair.
+On the reviewed SDK at `576d0221`, clear and counted still perform their
+own queue-family searches and logical-device creation. Slot 12 recovery
+job `621e9941-f584-4ea0-a659-8a687095645a` will check for saved work from
+the interrupted run and return the candidate source and qualification
+evidence against the accepted physical-device selection baseline.
