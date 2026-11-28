@@ -433,3 +433,40 @@ library. The driver observed a query error of −11 with untouched outputs,
 and a later create error of −2 with an empty image. That feasibility test
 and the C/device results above precede qualification of the public Tower
 consumer module.
+
+### Draw links both image owners to the sixteen-entry Linux library
+
+Draw independently rebuilt Tower `f2d6df4b5604b5a66ea58f8772ddf8764ea883d4`
+and reproduced the 15,576-byte library and digest above. In its recording
+driver test at Draw `ad18ef06908ea1ffbd74d2a45a96f36a652794b9`, both the C
+and Tower image owners resolved all seven lifecycle calls to that one library.
+Those calls query format support, create the image, plan and allocate memory,
+bind at offset zero, create the bound view and release the retired resources.
+
+From the Draw checkout, with the sixteen-entry library selected, Draw ran
+`bash tests/vulkan-image.sh`. All 32 cases across 16 configurations matched
+the expected statuses and traces. Two additional checks exercised a driver
+overwriting its private result slot during failed view creation. The five
+shipped texture headers produced the same 45 events as the previous
+split-library configuration, with trace SHA-256
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+| Draw recording executable | SHA-256 |
+| --- | --- |
+| C image owner | `198bb23ae55a01b30c6d632869ff93ae9aca8fa3fdbb98bc3a5afccd489b6097` |
+| Tower image owner | `556df1a0d1f4bd838e8932ff861144f81eba3a0af281e17cc0b79d8acb3ed5c7` |
+
+Draw also linked a two-module Tower client using its own declarations.
+For this executable, SHA-256
+`46e0e8af880d5f6e14b9a42f2fb232e3f304b7c3391f8119e6350b7ee98c056a`,
+`LD_DEBUG=bindings` identified all seven imports in the released library.
+The successful sequence was `QCPABVvim/0` (construction followed by
+view, image and memory release). The format-query error `Q/-11` preserved
+the caller outputs. The create error `QC/-2` left the image slot empty.
+Two previously linked Draw constructor executables also ran unchanged and
+resolved their six construction imports in the new library.
+
+These are Draw's Linux CPU and dynamic-link results. The public Tower
+declarations module is under qualification. Draw assigned the optimized
+GPU comparison of packed texture bytes, retirement and rendered HUD to
+`181cf92c-0bad-426e-b184-edecb5de8005` on slot 10 after `8a97ee7a`.
