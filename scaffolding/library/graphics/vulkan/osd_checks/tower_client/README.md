@@ -268,3 +268,73 @@ Expect the three upload symbols and blocking finish. Use the
 `libtower_graphics.so` on Linux or `tower_graphics.lib` and its matching
 `tower_graphics.dll` for Win64. The [host 11 qualification](../../../../../../docs/temporal-opcode-research-journal.md#typed-vulkan-upload-imports-on-host-11)
 records the SDK controls, hardware readbacks, failure controls and packet.
+
+## Creating a shader module through the SDK
+
+Import `library.graphics.vulkan.shader_module_creation`. The signature uses
+the same nominal device as the image lifecycle and the same nominal module
+as the provider. The only function it declares is the existing shader create
+entry (Win64 ordinal 2). The [external caller](shader_client.tower) keeps its
+own declaration for destruction.
+
+Borrow aligned `u32` words from an externally compiled, validated SPIR-V
+asset. Pass the **word count**. Keep the words readable and the two output
+slots aligned, disjoint and exclusive until the call returns. For example,
+with a live device and the verified shader input in scope:
+
+```tower
+var owner: AppShader = { device: device, ..default };
+var status: i32 = 0;
+var called = app_load_shader(&owner, words, word_count, &status);
+if called == 0 { return vk_failure("Invalid shader module arguments"); }
+if !vk_ok("vkCreateShaderModule", status) { return false; }
+defer app_release_shader(&owner);
+// Create the pipeline using owner.module before this scope exits.
+```
+
+The example uses the counted fixture's error reporters. The driver ends
+its borrow of the words when creation returns. The caller
+retains ownership of their storage. Local refusal returns zero and writes
+zero to a valid separate result slot. A null, misaligned or aliased result
+receives no write. A driver return produces one and its exact signed result.
+Only driver success publishes the module. An occupied slot is preserved.
+Destroy a successful module after its last pipeline creation on the same
+live device with the null allocator. [C contract](../../shader_module_c.h)
+
+To compile and link the shader, image and command examples together, run
+from the SDK root on Linux x64 with LLVM 19 tools and the Vulkan loader.
+
+```bash
+set -euo pipefail
+root=$PWD
+v=$root/scaffolding/library/graphics/vulkan
+work=$(mktemp -d)
+cp "$v"/osd_checks/tower_client/{shader_client,sampled_image,image_owner,frame_client}.tower "$work/"
+cd "$work"
+cat > application.tower <<'TOWER'
+import tower;
+import shader_client;
+import sampled_image;
+import frame_client;
+export fn app_entry(): i32 { return 0; }
+TOWER
+tc=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$root/scaffolding/foundation.tower")
+"${tc[@]}" application.tower --target x86_64-linux-gnu --depfile elf.d -o client.o
+"${tc[@]}" application.tower --target x86_64-w64-windows-gnu --depfile coff.d -o client.obj
+loader=${VULKAN_SO:-/usr/lib/x86_64-linux-gnu/libvulkan.so.1}
+bash "$v/build_graphics_so.sh" release "$loader"
+bash "$v/build_graphics_dll.sh" release
+ld.lld -shared -z defs client.o release/libtower_graphics.so "$loader" -o application.so
+printf 'LIBRARY vulkan-1.dll\nEXPORTS\n vkDestroyShaderModule\n' > destroy.def
+llvm-dlltool -m i386:x86-64 -d destroy.def -l destroy.lib
+lld-link /entry:app_entry /subsystem:console /nodefaultlib /timestamp:0 /out:application.exe client.obj release/tower_graphics.lib destroy.lib
+llvm-nm -u client.o client.obj
+llvm-readobj --coff-imports application.exe
+```
+
+Each caller object references twelve public functions and the application's
+private `vkDestroyShaderModule`. The [recording test](shader_recording.tower)
+runs the creation contract against the linked shared library. Its
+`vkCreateShaderModule` writes a candidate on every driver return.
+The packet's `record.sh` binds its separate destruction recorder and runs
+the test with four pthreads. [Device results and packet ID](../../../../../../docs/temporal-opcode-research-journal.md#typed-shader-module-import-on-host-12)

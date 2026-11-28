@@ -126632,3 +126632,111 @@ execution and matched measurements belong to the worker commit. The
 manager ran CPU tests and cross-link checks on the combined tree.
 Physical Windows and Draw's direct consumer of these upload declarations
 remain separate qualifications.
+
+### Typed shader-module import on host 12
+
+The combined SDK at a6a021876 already ships the two-output C entry and its
+Win64 ordinal 2. Its nominal module handle was defined beside the provider
+implementation and raw driver externs. The consumer needs the same type
+identity and only the shipped symbol. The experiment moves the empty handle
+definition and compiles the application outside the SDK on both targets.
+
+**Implementation and build.** Slot 12 moved the sole `VkShaderModuleHandle`
+declaration into `shader_module_types`. The provider imports it.
+`shader_module_creation` imports it and `image_lifecycle_types` and declares
+the reviewed C signature as a Tower extern. The external application owns
+a device/module pair and declares its own raw destructor. The packaged
+bootstrap, source Foundation, GNU ld and LLVM 19 built both release recipes
+and the application, using a separate caller directory. Cross-checks found
+sixteen public exports and the same shader provider object on each target
+before and after the type move. The 16-file ELF and COFF caller depfiles
+contain the language, four example modules, the app entry and six public
+declaration/type files. The application's sole raw import is its destructor.
+
+| Build product | SHA-256 |
+| --- | --- |
+| Linux DSO | 2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf |
+| Win64 DLL | 8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7 |
+| Win64 import library | 2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c |
+| External application ELF object | 1828c092991c6d35c5807abf616bd58582e50f17759915ca6b2a26755bbb9705 |
+| External application COFF object | c400a3210f98163c078f94d81c07e8989e492e064c1c4345cdbd466503bd5020 |
+
+**Observed hardware path.** The matched counted applications used the same
+resettable pool, one-time recording, indirect records, submit descriptor,
+fence and two readbacks. The raw fixture called the Vulkan SDK directly.
+The typed fixture linked the external ELF object above. An initial
+fixture import through a forwarding module failed to resolve the example
+function. Linking the actual external object with its application entry
+declarations exercised precisely the reviewed caller. Loader bindings and
+debugger stops located shader creation, begin, end and queue-submit in the
+rebuilt DSO. The submit entry tail-jumps to the loader. Inside the loader
+its return address belongs to the executable. The debugger separately
+stopped at the DSO entry and observed its return.
+
+Three initially null slots each returned called 1, signed status 0 and a
+distinct module. All three driver creates and matching single destroys
+used one device and null allocators. Both successful captures used
+physical index/family/queue 0/0/0 on NVIDIA GeForce RTX 3090, 10de:2204,
+UUID cd3d9791fe794e0b3ec29fc16b74d31c, API 1.3.289, driver 565.57.01.
+The submitted fence returned success before mapping coherent memory.
+Each binary matched the two independently specified 24-byte count/record
+prefixes and two 32-byte guarded outputs. Counts 0 and 1 yielded four
+112233ff and four 4080bfff texels, respectively. The concatenated 112
+bytes have SHA-256 a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6.
+Khronos synchronization validation counted zero warnings and errors.
+
+The comparison used the repository's produce.comp, triangle.vert and
+color.frag controls, compiled with glslangValidator for Vulkan 1.1 and
+checked with spirv-val and the counted fixture's pinned digests. The
+device supports drawIndirectCount and dynamicRendering. Both draw14
+invocations refused its device API before logical device creation. Draw's
+original shaders and shipping Vulkan 1.4 application were unavailable
+in this Tower assignment. The fixture uses the counted layout recorded
+against Draw 7be8d020b07454789195427588712c72ee465637. The CPU row
+copier and oracle matched Git revision 3dd5f11f, after compiler base
+a580e70a. The independent clear fixture reproduced its pitch-7, span-19
+and source-263 refusals and guarded 2×2 readback on this device.
+
+**First failures.** Missing and wrong-digest fragment inputs stopped both
+arms before submit. A debugger injected −2 after writing a false candidate
+at the second driver entry. The actual DSO returned called 1, signed −2
+and a still-empty slot. The owner released the first module exactly once.
+Separate reset, begin, end and submit injections stopped at the first
+failure with −2 and no host readback. In the CPU recorder, short input,
+misalignment and overlap declined driver dispatch. An occupied slot
+survived refusal. Clobbered driver returns of −2 and +1 preserved an empty
+owner. A successful publication and two owner releases destroyed once.
+
+**Measurement.** AMD EPYC 7282, 32 logical CPUs, CPU quota 15.36, one GPU
+queue, no competing job from this assignment. After one warm-up, three
+alternating matched process samples produced the following medians.
+CPU is user plus system per sample, RSS is peak KiB. The private extern
+control and public import compiled to identical application objects.
+
+| Work | Workers | Wall s | CPU s | RSS KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Private extern, ELF compilation | 1 | .33 | .32 | 91220 |
+| Public import, ELF compilation | 1 | .34 | .33 | 91456 |
+| Private extern, ELF compilation | 4 | .43 | .47 | 96532 |
+| Public import, ELF compilation | 4 | .44 | .48 | 96792 |
+| Raw SDK, counted process | 1 submitting thread | .32 | .31 | 94752 |
+| Typed SDK, counted process | 1 submitting thread | .32 | .31 | 94800 |
+
+The device samples include setup, driver work, validation and teardown.
+The import adds no runtime allocator or scheduling calls. Resource counts
+on success were three acquired and three released modules in each process.
+These samples do not resolve per-call overhead.
+
+**Instrumentation and replay.** Four pthreads ran 64 independent recording
+sequences each, both against the release DSO and with ASan plus leak
+detection on the caller, recorder and shader provider. The initial sanitizer
+tool link needed the print/reallocation runtime roots. The TSan link also
+needed libgcc_s. The instrumented threaded recorder then stopped before
+main on five launches because the container denied ADDR_NO_RANDOMIZE.
+Tower's instrumentation tool supports address and thread modes. Native
+Tower UBSan and Win64 execution remain open. No shader or driver behavior
+was inferred from those unexecuted checks.
+
+Assignment 7c2e71da-2b40-4166-9c91-c34abd0eb321 carries the bounded
+source bundle, inputs, binaries, symbols, maps, instruction traces, argv,
+timings and checksums. Run the external caller with the [SDK recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#creating-a-shader-module-through-the-sdk).

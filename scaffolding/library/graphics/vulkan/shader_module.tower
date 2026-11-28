@@ -1,10 +1,10 @@
 import tower;
 import readback_abi;
+import shader_module_types;
 
 // Linux x86-64 Vulkan ABI from vulkan_core.h, header 239.
 // Copyright 2015-2022 The Khronos Group Inc.
 // SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
-struct VkShaderModuleHandle {}
 struct VkShaderModuleCreateInfo {
     sType: u32;
     pNext: void*;

@@ -38,6 +38,9 @@ feature bits. This command has its own feature and count limit. See the
 [Khronos command reference](https://docs.vulkan.org/refpages/latest/refpages/source/vkCmdDrawIndexedIndirectCount.html).
 
 ## Creating a module from an in-memory shader
+For an external application linked to the combined SDK, use the
+[typed shader-module creation import](osd_checks/tower_client/README.md#creating-a-shader-module-through-the-sdk).
+
 
 Import `library.graphics.vulkan.shader_module`. Pass a live device, the
 first aligned `u32*` of a readable, validated, device-compatible SPIR-V

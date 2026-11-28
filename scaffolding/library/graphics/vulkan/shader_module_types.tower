@@ -1,0 +1,4 @@
+import tower;
+
+// Opaque VkShaderModule, shared by the SDK consumer and provider.
+struct VkShaderModuleHandle {}

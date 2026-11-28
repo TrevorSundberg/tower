@@ -1,0 +1,72 @@
+import library.testing;
+import library.graphics.vulkan.shader_module_creation;
+import shader_client;
+
+// This standalone application interposes two driver symbols at link time.
+// State is private to the test device. No Vulkan device or ICD is opened.
+struct RecordInfo { sType: u32; pNext: void*; flags: u32; codeSize: usize; pCode: u32*; }
+struct ShaderRecord {
+    words: u32*; bytes: usize; result: i32; creates: u32; destroys: u32;
+    handle: VkShaderModuleHandle;
+}
+
+export fn vkCreateShaderModule(device: VkDeviceHandle*, info: RecordInfo*, allocator: void*, candidate: VkShaderModuleHandle**): i32 {
+    var record = bits(ShaderRecord*, device);
+    var shader_module_tag: u32 = 16;
+    assert(info.sType == shader_module_tag && info.pNext == null && info.flags == 0 && allocator == null);
+    assert(info.pCode == record.words && info.codeSize == record.bytes);
+    record.creates++;
+    *candidate = &record.handle; // Clobber the driver's private slot even on failure.
+    return record.result;
+}
+
+export fn record_shader_destroy(device: VkDeviceHandle*, module: VkShaderModuleHandle*, allocator: void*): void {
+    var record = bits(ShaderRecord*, device);
+    assert(module == &record.handle && allocator == null);
+    record.destroys++;
+}
+
+export fn check_shader_import(): i32 {
+    var aligned: u64[3] = default;
+    var words = bits(u32*, &aligned[0]);
+    var count: usize = 5; // Minimum SPIR-V header extent.
+    for (var i: usize = 0; i < count; i++) { words[i] = convert(u32, i + 1); }
+    var record: ShaderRecord = { words: &words[0], bytes: count * sizeof(u32), result: -2, ..default };
+    var device = bits(VkDeviceHandle*, &record);
+    var owner: AppShader = { device: device, ..default };
+    var result: i32 = 42;
+
+    assert(app_load_shader(&owner, record.words, count, null) == 0);
+    assert(app_load_shader(&owner, record.words, count, bits(i32*, bits(u8*, &result) + 1)) == 0 && result == 42);
+    assert(app_load_shader(&owner, record.words, count, bits(i32*, &words[count - 1])) == 0 && words[count - 1] == 5);
+    assert(app_load_shader(&owner, record.words, count, bits(i32*, &owner.module)) == 0);
+    assert(app_load_shader(&owner, record.words, count, bits(i32*, &owner.module) + 1) == 0);
+    assert(owner.module == null && record.creates == 0);
+
+    assert(app_load_shader(&owner, record.words, count - 1, &result) == 0 && result == 0);
+    result = 42;
+    assert(app_load_shader(&owner, bits(u32*, bits(u8*, record.words) + 1), count, &result) == 0 && result == 0);
+    result = 42;
+    assert(tower_vk_try_create_shader_module(device, record.words, count,
+        bits(VkShaderModuleHandle**, bits(u8*, &owner.module) + 1), &result) == 0 && result == 0);
+    result = 42;
+    assert(tower_vk_try_create_shader_module(device, record.words, count,
+        bits(VkShaderModuleHandle**, record.words), &result) == 0 && result == 0);
+    assert(words[0] == 1 && owner.module == null && record.creates == 0);
+
+    assert(app_load_shader(&owner, record.words, count, &result) == 1 && result == -2);
+    assert(owner.module == null && record.creates == 1);
+    record.result = 1;
+    assert(app_load_shader(&owner, record.words, count, &result) == 1 && result == 1);
+    assert(owner.module == null && record.creates == 2);
+    record.result = 0;
+    assert(app_load_shader(&owner, record.words, count, &result) == 1 && result == 0);
+    assert(owner.module == &record.handle && record.creates == 3);
+    result = 42;
+    assert(app_load_shader(&owner, record.words, count, &result) == 0 && result == 0);
+    assert(owner.module == &record.handle && record.creates == 3);
+    app_release_shader(&owner);
+    app_release_shader(&owner);
+    assert(owner.module == null && record.destroys == 1);
+    return 0;
+}

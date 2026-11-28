@@ -1,0 +1,10 @@
+import tower;
+import image_lifecycle_types;
+import shader_module_types;
+
+// shader_module_c.h. Borrow word_count aligned SPIR-V words through return.
+// Use separate exclusive outputs and initialize *out to null. A driver call
+// returns 1 and its signed result. Local refusal returns 0 and clears a valid
+// separate result slot. Only successful creation transfers *out.
+extern fn tower_vk_try_create_shader_module(device: VkDeviceHandle*, words: u32*, word_count: usize,
+    out: VkShaderModuleHandle**, vk_result: i32*): u32;
