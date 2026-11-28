@@ -183,3 +183,80 @@ These Draw checks used a recording driver. Draw queued its shipping GPU
 comparison on the RTX 5060 Ti under job
 `7e3234ce-f5ca-4d1a-807a-086d3a68d274`, after its preflight and recovery
 inputs.
+
+## Draw shipping Linux result for the standalone planner
+
+Draw reviewed job `7e3234ce-f5ca-4d1a-807a-086d3a68d274` at worker
+source `3c97e58cf7373eee30ce38724f909403e07063ba` and tests `7e917253`,
+using Draw `bb53b12b` as the control. The worker reconstructed the adopter
+because it lacked the manager's `51d4785e` revision. Both linked shipping
+executables used the 1,088-byte planner object from Tower
+`26efb7bb7d06da8ccd6748c283a8e5eae07c40e4`. Draw checked the
+instructions and their resolved Vulkan memory-requirements query.
+Rendering rehashed its retained object and reran the nine-row C recording
+control. They matched the object and row digests above.
+
+| Linked Draw owner | Shipping ELF SHA-256 |
+| --- | --- |
+| C | `e279ac6365694b67b2541825adaca86d8c601ed3536f72ba33efe2a5a4ffdfc9` |
+| Tower | `b76fb71cc6075b674903e08f3ef46cc40b0597e41df695557fa0eb4e402444ad` |
+
+Draw selected the planner at build time with
+`DRAW_TOWER_IMAGE_ALLOCATION_PLAN_ROOT=/home/agent/work/7e3234ce/sdk-root`.
+The other operations used the eleven-entry graphics DSO and separate
+preflight DSO. The C build unset `TOWERC` and `DRAW_TOWER_FRAME_SUBMIT`.
+The following capture used an API-selected RTX 5060 Ti (10de:2d04),
+Vulkan 1.4.303 and NVIDIA 570.169.
+
+```sh
+cd /home/agent/work/7e3234ce/draw
+VK_DRIVER_FILES=/etc/vulkan/icd.d/nvidia_icd.json \
+  /home/agent/work/7e3234ce/ev/build/tower-linked \
+  --offscreen --validate --fixed-time 0 --day-hour 12 --size 1280 800 \
+  --frames 4 --osd assets/osd/state.bin --resize-test --no-hud \
+  --capture /home/agent/work/7e3234ce/ev/gates/hud-tower-linked.ppm
+```
+
+Draw's four C/Tower and control/linked configurations passed the assets
+and core checks and agreed on HUD, camera and post-completion retirement.
+All five images selected memory type 1 from mask 3 with alignment 1,024
+and bind offset zero. The requirements in pack order were 25,165,824,
+569,856, 569,856, 1,572,864 and 32,768 bytes. Rendering also checked those
+five values against its earlier RTX 3090 trace. Draw compared all 16
+subresources to the real pack. The 27,541,504 active bytes hashed to
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+The 27,906,048 bytes including guards and padding hashed to
+`bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+The reported median frame times (control, linked) were 9.666 and 9.651 ms
+for C, and 9.652 and 9.677 ms for Tower.
+
+Draw verified 2,353 archive entries, SHA-256
+`b3e9a7d4a0c7aed5a6e9beff0af9ebf2c45b801cdab150457e48834ac690bb9c`,
+and parsed the wait statuses. All ten healthy processes exited 0.
+The 42 injected trials produced the following outcomes.
+
+| Injection | Normal exit 1 | SIGSEGV |
+| --- | ---: | ---: |
+| Format preflight | 7 | 1 |
+| Second image creation | 8 | 0 |
+| No compatible memory type (zero mask) | 8 | 2 |
+| Memory allocation returned −2 | 6 | 2 |
+| Image binding returned −2 | 6 | 2 |
+| Total | 35 | 7 |
+
+Four signals occurred in controls, two in linked production executables and
+one in a linked observer. A rejected allocation stopped before accounting
+and bind. A rejected bind followed a successful, accounted 569,856-byte
+allocation. Even processes that exited 1 left incomplete owner cleanup on
+no-match, allocation failure and bind failure. The per-trial environment
+and command are in the Draw archive's `trace/*.wait.json`. The bind
+injection selected `FAULT=bind` with the following child arguments.
+
+```text
+--offscreen --osd-test assets/osd/state.bin --fixed-time 5 --size 960 540 --frames 3 --validate --capture /home/agent/work/7e3234ce/ev/gates/trace-last.rgba
+```
+
+Draw tracks those three owner cleanup paths in
+`1823ef69-56ed-451a-8b63-30333031b797` and format-preflight recovery in
+`1b416017`. The observed requirements and plan selections agree with the
+reference. The cause of the process signals remains unresolved.
