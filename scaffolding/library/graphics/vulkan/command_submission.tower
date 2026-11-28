@@ -1,0 +1,8 @@
+import tower;
+import command_submission_types;
+
+extern fn tower_vk_command_begin_v1(cmd: VkCommandBufferHandle*): i32;
+extern fn tower_vk_command_end_for_submit_v1(out: VkSubmitInfo*, commands: VkCommandBufferHandle**,
+    wait: VkSemaphoreHandle**, stage: u32*, signal: VkSemaphoreHandle**): i32;
+extern fn tower_vk_queue_submit_one_v1(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32;
+extern fn tower_vk_command_finish_v1(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32;

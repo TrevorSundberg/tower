@@ -97,3 +97,102 @@ guarded bytes (SHA-256
 Physical Windows and Draw's shipping application have separate device
 checks. The Win64 sanitizer result covers trapping UBSan at the C
 boundary. Win64 ASan and TSan coverage remains open.
+
+## Calling the frame and upload commands
+
+Import `library.graphics.vulkan.command_submission` for the four functions
+in `frame_submit.h`. The [frame caller](frame_client.tower) uses their
+signed `i32` results directly. The [private owner](frame_owner.tower)
+imports image lifecycle and command submission together and declares
+its own SDK queue, device and fence types.
+
+| Ordinal | Public entry | Contract |
+| ---: | --- | --- |
+| 4 | `tower_vk_command_begin_v1` | Externally synchronize a non-pending primary and its individually resettable pool. Reset uses flags zero. Only a successful reset starts one-time recording. |
+| 5 | `tower_vk_command_end_for_submit_v1` | End the primary in the caller's command slot. Success writes a one-command descriptor that points to the original command, optional wait, stage and signal slots. Failure preserves every destination byte. Supply a valid stage mask for a wait. |
+| 1 | `tower_vk_queue_submit_one_v1` | Borrow the descriptor, extension chain and referenced arrays through return. Submit once on the externally synchronized queue with the optional unsignaled fence. Success can leave the primary pending. Keep device resources and synchronization objects alive through their last use, including the consumer of a signaled semaphore. |
+| 6 | `tower_vk_command_finish_v1` | End, submit once with a null fence and no semaphores, then wait for queue idle. Return the first nonzero result. If submit succeeded and idle failed, keep the pool, primary and resources until separate retirement or device recovery. |
+
+Run this source-only link check from the Tower root on Linux x64 with
+LLVM 19 tools on PATH and the bootstrap's LLVM libraries installed.
+It builds both application object formats and a Win64 executable.
+The example entry returns immediately. The device tests below exercise
+the exported caller functions with live handles.
+
+```bash
+set -euo pipefail
+root=$PWD
+v=$root/scaffolding/library/graphics/vulkan
+work=$(mktemp -d)
+cp "$v"/osd_checks/tower_client/{frame_client,frame_owner}.tower "$work/"
+cd "$work"
+cat >application.tower <<'TOWER'
+import tower;
+import frame_client;
+import frame_owner;
+export fn app_entry(): i32 { return 0; }
+TOWER
+compile=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$root/scaffolding/foundation.tower")
+"${compile[@]}" application.tower --target x86_64-linux-gnu --depfile elf.d -o application.o
+"${compile[@]}" application.tower --target x86_64-w64-windows-gnu --depfile coff.d -o application.obj
+"$v/build_graphics_dll.sh" "$work/release"
+printf '%s\n' 'LIBRARY vulkan-1.dll' EXPORTS vkGetFenceStatus vkQueueWaitIdle >owner.def
+llvm-dlltool -m i386:x86-64 -d owner.def -l owner.lib
+lld-link /entry:app_entry /subsystem:console /nodefaultlib /timestamp:0 /out:application.exe \
+    application.obj release/tower_graphics.lib owner.lib
+llvm-readobj --coff-imports application.exe
+```
+
+To link the ELF application against the same sixteen-entry release, continue
+in the same shell. Set `VULKAN_SO` to the system Vulkan loader if needed.
+
+```bash
+loader=${VULKAN_SO:-/usr/lib/x86_64-linux-gnu/libvulkan.so.1}
+"$v/build_graphics_so.sh" "$work/linux" "$loader"
+ld.lld -shared -z defs -o application.so application.o "$work/linux/libtower_graphics.so" "$loader"
+```
+
+To reproduce the device qualification on prepared slot 11, run the
+following in Bash. The packet includes a bounded Git bundle, released
+DLL and import library, SDK reference callers, fixtures and byte oracles.
+Replay verifies the packet manifest, checks out its advertised commit in
+a temporary directory and uses the installed host SDK.
+
+```bash
+set -euo pipefail
+packet=/home/agent/.local/share/kinmen/evidence/2eb15084-1c7a-4d8e-ac8c-3b9653b274e8/b80c042b-013b-419b-bce9-b76a534cde74.tar.gz
+out=$(mktemp -d)
+tar -xzf "$packet" -C "$out"
+bash "$out/replay.sh"
+```
+
+On the Quadro RTX 6000 the SDK and Tower applications matched all 336
+guarded offscreen bytes and 240 physical staging bytes after three fence
+retirements. A separate timeline gate held the subject fence unsignaled
+after submit returned. The blocking transfer checked 64 guarded copies.
+The [qualification record](../../../../../../docs/temporal-opcode-research-journal.md#typed-command-submission-on-host-11)
+identifies the loaded modules, error injections, measurements and
+remaining platform coverage.
+
+### Draw command-owner adoption
+
+Draw tested the public command import from Tower
+`663437f8594f321a60bd9816db5cfb008a88bfd8` in its command owner at
+`4a981b425969d49e7db006b669088b993aef4bcf`. From the Draw root it compiled
+`tower/vulkan_command_submission.tower` with this Foundation, `--library
+--jobs 1` and a depfile. Its Linux x64 object has SHA-256
+`ea6df429120093a36f0d0ad244c3d7d6299f4ce5c1054647a80864969fe8bb43`.
+Its x64 MSVC-target COFF object has SHA-256
+`0590b0f3b41a072ed366b002aa3f137416b341e2173d56c1ee10444bce05fd21`.
+
+Draw reports 31 passing Linux ABI cases with the released shared library
+and a recording driver. Its production frame helpers preserved the
+original borrowed slots in eight successful reset/begin/end/submit
+sequences. All 32 injected failures exited 1 at the expected call.
+The staged-upload helper passed six cases, including retention of both
+buffers when a failed queue-idle call left completion unknown.
+Draw also cross-linked the command and image owners against the Win64
+import library. Its inspected PE imported commands 1, 4, 5 and 6 and
+image functions 10 through 16. Draw assigned Linux device run
+`2ccf8771-c57d-55cb-883e-0968cecadad8` and Win64 device run
+`7a4988f5-f7a8-55e5-9ab7-b62ed72accb8` to follow its image-only runs.

@@ -1,0 +1,20 @@
+import tower;
+import library.graphics.vulkan.command_submission;
+
+export fn frame_begin(cmd: VkCommandBufferHandle*): i32 {
+    return tower_vk_command_begin_v1(cmd);
+}
+
+// The frame owner keeps these slots live through frame_submit.
+export fn frame_prepare(info: VkSubmitInfo*, cmd: VkCommandBufferHandle**, acquired: VkSemaphoreHandle**,
+    stage: u32*, ready: VkSemaphoreHandle**): i32 {
+    return tower_vk_command_end_for_submit_v1(info, cmd, acquired, stage, ready);
+}
+
+export fn frame_submit(queue: VkQueueHandle*, info: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    return tower_vk_queue_submit_one_v1(queue, info, fence);
+}
+
+export fn upload_finish(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32 {
+    return tower_vk_command_finish_v1(queue, cmd);
+}

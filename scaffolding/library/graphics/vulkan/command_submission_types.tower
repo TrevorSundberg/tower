@@ -1,0 +1,24 @@
+import tower;
+
+// Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+
+struct VkQueueHandle {}
+
+struct VkCommandBufferHandle {}
+
+struct VkFenceHandle {}
+
+struct VkSemaphoreHandle {}
+
+struct VkSubmitInfo {
+    sType: u32;
+    pNext: void*;
+    waitSemaphoreCount: u32;
+    pWaitSemaphores: VkSemaphoreHandle**;
+    pWaitDstStageMask: u32*;
+    commandBufferCount: u32;
+    pCommandBuffers: VkCommandBufferHandle**;
+    signalSemaphoreCount: u32;
+    pSignalSemaphores: VkSemaphoreHandle**;
+}
