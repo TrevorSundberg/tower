@@ -127289,3 +127289,113 @@ manager rebuilt its ordinary PE and compared it byte-for-byte with the
 reviewed ee5e16f4 executable. The slot 11 source-archive task owns removing
 that historical prerequisite. The device run for the Win64 PE belongs to
 its earlier receipt.
+
+### Linux counted completion through the selected queue submitter
+
+Slot 12 compared SDK `ea88e0009af4eec24cd64db9d784f843e1413ccc`
+with the helper and typed recording matrix in
+`2bf097e076107ad57d04cb307462fa45258132a6`. The SDK's capture returned
+on every submit error and used a device-wide idle after a failed fence
+wait. The historical helper constructed its own submit and called the
+loader directly. Applying it verbatim would discard the descriptor prepared
+by the selected end callback and bypass the external application's DSO.
+
+The counted capture now passes the signed result of its existing submit to
+`vk_complete_submission`. The caller retains the device, queue, prepared
+batch, primary, fresh fence and referenced allocations. The helper borrows
+the handles for completion. Only a successful fence wait permits the map.
+The first failing Vulkan call is printed with its signed result. Both submit
+OOMs return immediately. Other submit failures skip the fence and drain
+the same queue. A fence wait reporting loss permits release. Other wait
+failures drain the same queue. Success or loss from that drain permits
+release with a failed capture. Any further error flushes both diagnostics
+and aborts while the owner's defers are still pending.
+
+**Clear ownership audit.** The raw counted and external counted entries
+share `counted_capture`. They import allocation helpers and Vulkan
+declarations from `readback_clear`, but neither executes its clear/readback
+submission. The raw clear fixture and the external `clear_and_read` have
+separate synchronous owners and independent submit/wait blocks. The Win64
+packaging recipe copies the raw clear source and uses a pinned counted
+capture. This change is confined to the Linux counted dependency path.
+Clear error retirement is a separate integration obligation. The published
+Win64 inputs and callback/DSO ABI are preserved.
+
+**Integration evidence, assignment 7199250c-13c7-44a1-865a-c5ead3bfb257.**
+The packaged Linux x64 towerc (`7430bdb3`), LLVM 19.1.7, glslangValidator
+12.0.0 and SPIRV-Tools 2023.1 rebuilt the Linux raw and external applications.
+Both baseline ELF hashes and the SDK DSO matched the preceding Linux receipt.
+Hardware device 0 was the RTX 3090, 10de:2204, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, NVIDIA 565.57.01, API 1.3.289,
+family/queue 0/0. Both new entries returned 0 with one signaled fence,
+coherent staging and zero Khronos synchronization validation warnings/errors.
+Their 112 comparison bytes matched the independent expected bytes and the
+earlier retirement reference's two prefixes and two guarded arrays
+(SHA-256 `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`).
+Debugger memory dumps confirmed all 80 staging bytes as well. Count zero
+produced four 112233ff pixels and count one four 4080bfff pixels. The
+raw draw14 probe refused API 1.3 before submitting.
+
+The dynamic loader bound the application's `tower_vk_queue_submit_one_v1`
+to `libtower_graphics.so` (SHA-256 `2d924e64…`) and bound that provider's
+`vkQueueSubmit` to `libvulkan.so.1`. Breakpoints at the selected entry
+and loader compared the same queue, descriptor and fence and a submit count
+of one. In each ordinary entry a **real submit returned 0**. The debugger
+then injected fence wait −1 before executing that wait. The real idle call
+on the recorded queue returned 0 before the first destroy. No mapped read
+or device-wide wait occurred. Both applications exited 1. Injection before
+submit covered both OOM results (immediate cleanup) and −4 and −13 (real
+same-queue drain without a fence wait). A second error at drain produced
+SIGABRT before mapping or cleanup for both a failed submit and a failed
+wait. Both first-result/second-result pairs appeared in order. Separate
+undebugged processes with only wait and drain interposed exited 134.
+
+**Controls.** The adapted typed recording matrix checked nine returning
+paths and its terminal child. Loss results were injected. Replaying the
+reference timeline-semaphore experiment twelve times through the current
+SDK submit and completion helper left queue 1 pending while queue 0's fence
+was signaled after recovery. Queue 1 signaled only after host release.
+Mesa llvmpipe 22.3.6 (LLVM 15.0.6, API 1.3.230, family/queue 0/0) separately
+passed both complete byte checks, with coherent staging and zero validation
+warnings/errors. Suppressing the second hardware draw failed the external
+pixel comparison as expected. The raw clear fixture passed its CPU short
+source, pitch and span checks. Its row copier and oracle matched Tower
+`3dd5f11f`. Historical results at `2bf097e0` informed the policy and
+control design. All measurements below are from this assignment.
+
+**Measurements.** Host 12, EPYC 7282, 16 cores/32 logical CPUs, quota
+15.36, one application at a time, one submitting thread, no overlapping
+builds. Before and after used the same DSO, driver, layer, three SPIR-V
+files and checked process output. Each process sample includes setup,
+validation, submission, comparison and teardown. Five warm samples per
+binary and three warm builds per width followed one warmup for each,
+with alternating order. Entries are median wall s / median user+system
+s / largest peak RSS KiB.
+
+| Operation | SDK parent | With counted completion |
+| --- | --- | --- |
+| Raw process | 0.31 / 0.30 / 94,868 | 0.31 / 0.30 / 94,912 |
+| Typed process | 0.31 / 0.30 / 94,884 | 0.31 / 0.31 / 94,824 |
+| Typed build, one worker | 1.25 / 1.25 / 129,840 | 1.26 / 1.25 / 129,836 |
+| Typed build, four workers | 1.37 / 1.54 / 135,824 | 1.36 / 1.52 / 135,044 |
+
+Both callers released all five observed Tower allocations (8, 144, 1752,
+1092 and 380 bytes). ASan instrumented the completion function. The
+address-only raw and typed executables passed the hardware oracle and
+returned the expected failure after an injected wait and real drain. The
+synthetic matrix passed ASan with leak detection on. Its first instrumented
+build used a three-field LLVM target triple and faulted writing ASan shadow
+memory. Regenerating its IR with the explicit x86_64-unknown-linux-gnu
+triple selected the Linux shadow mapping. On the full GPU application
+LSan reported 4,023 bytes in 12 allocations, also observed on the published
+baseline and both ordinary executables with the same interposer. Some stacks
+enter the resident validation layer. Attribution remains open. TSan failed
+before main at its ASLR personality request (139). Native Tower UBSan,
+noncoherent readback and driver-reported OOM/device loss remain unverified.
+
+The packet keeps the first unsuccessful debugger scripts and logs. A
+breakpoint command list inside a GDB conditional did not reliably record
+the drain entry. The final script checks the PC and handle registers at
+the stop itself. GDB also failed to read registers when resuming a dying
+process. The terminal traces stop on receipt of SIGABRT and independent
+undebugged launches verify the final signal status.

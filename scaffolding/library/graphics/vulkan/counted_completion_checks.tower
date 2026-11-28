@@ -1,0 +1,86 @@
+import tower;
+import readback_abi;
+import readback_device;
+import readback_clear;
+import frame_submit;
+import counted_completion;
+
+extern fn exit(status: i32): void;
+extern fn strcmp(left: u8*, right: u8*): i32;
+
+// Standalone link-time replacements for the three Vulkan calls. No driver sees
+// the synthetic handles. The letters record submit, wait, drain, consume, release.
+struct SubmitCase {
+    submit: i32; wait: i32; drain: i32; next: u8*;
+    device: VkDeviceHandle*; queue: VkQueueHandle*; cmd: VkCommandBufferHandle*; fence: VkFenceHandle*;
+    live: bool;
+}
+
+fn require(condition: bool, message: u8*): void {
+    if !condition { puts(message); exit(3); }
+}
+fn event(state: SubmitCase*, letter: u8*): void {
+    require(state.live && *letter == *state.next, "wrong operation order or released loan");
+    state.next++;
+}
+
+export fn vkQueueSubmit(queue: VkQueueHandle*, count: u32, batch: VkSubmitInfo*, fence: VkFenceHandle*): i32 {
+    var state = *bits(SubmitCase**, queue);
+    event(state, "S");
+    require(queue == state.queue && fence == state.fence && count == 1 && batch != null, "wrong submit handles");
+    require(batch.sType == VkSubmitTag && batch.pNext == null && batch.commandBufferCount == 1
+        && batch.pCommandBuffers != null && *batch.pCommandBuffers == state.cmd, "wrong command batch");
+    require(batch.waitSemaphoreCount == 0 && batch.pWaitSemaphores == null && batch.pWaitDstStageMask == null
+        && batch.signalSemaphoreCount == 0 && batch.pSignalSemaphores == null, "unexpected semaphores");
+    return state.submit;
+}
+export fn vkWaitForFences(device: VkDeviceHandle*, count: u32, fences: VkFenceHandle**, all: u32, timeout: u64): i32 {
+    var state = *bits(SubmitCase**, device);
+    event(state, "W");
+    require(device == state.device && count == 1 && fences != null && *fences == state.fence
+        && all == 1 && timeout == ~convert(u64, 0), "wrong fence wait");
+    return state.wait;
+}
+export fn vkQueueWaitIdle(queue: VkQueueHandle*): i32 {
+    var state = *bits(SubmitCase**, queue);
+    event(state, "D"); require(queue == state.queue, "drained unrelated queue");
+    return state.drain;
+}
+fn release(state: SubmitCase*): void { event(state, "R"); state.live = false; }
+fn borrow(state: SubmitCase*): bool {
+    defer release(state);
+    var info = vk_one_command_submit_info(&state.cmd, null, null, null);
+    var result = tower_vk_queue_submit_one_v1(state.queue, &info, state.fence);
+    var complete = vk_complete_submission(state.device, state.queue, state.fence, result, "submitted=1 test");
+    if complete { event(state, "C"); }
+    return complete;
+}
+fn check(submit: i32, wait: i32, drain: i32, order: u8*, usable: bool): void {
+    var state: SubmitCase;
+    var device_state = &state; var queue_state = &state;
+    var cmd: VkCommandBufferHandle; var fence: VkFenceHandle;
+    state = { submit: submit, wait: wait, drain: drain, next: order, live: true,
+        device: bits(VkDeviceHandle*, &device_state), queue: bits(VkQueueHandle*, &queue_state),
+        cmd: &cmd, fence: &fence };
+    require(borrow(&state) == usable && !state.live && *state.next == 0, "wrong completion or incomplete trace");
+    puts(order);
+}
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc == 2 && strcmp(argv[1], "terminal") == 0 {
+        check(0, VkOutOfHostMemory, VkOutOfDeviceMemory, "SWD", false);
+        return 4;
+    }
+    if argc != 1 { return 2; }
+    check(0, 0, 0, "SWCR", true);
+    check(VkOutOfHostMemory, 0, 0, "SR", false);
+    check(VkOutOfDeviceMemory, 0, 0, "SR", false);
+    check(VkDeviceLost, 0, VkDeviceLost, "SDR", false);
+    check(VkDeviceLost, 0, 0, "SDR", false);
+    // An unclassified submit failure also needs queue retirement.
+    var unknown: i32 = -13;
+    check(unknown, 0, 0, "SDR", false);
+    check(0, VkOutOfHostMemory, 0, "SWDR", false);
+    check(0, VkOutOfDeviceMemory, VkDeviceLost, "SWDR", false);
+    check(0, VkDeviceLost, 0, "SWR", false);
+    puts("submit ownership checks passed"); return 0;
+}

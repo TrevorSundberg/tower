@@ -1,0 +1,34 @@
+import tower;
+import readback_abi;
+import readback_device;
+import readback_clear;
+
+var VkOutOfHostMemory: i32 = -1;
+var VkOutOfDeviceMemory: i32 = -2;
+
+// The caller has just submitted on this externally synchronized queue. It retains
+// the batch, fresh fence and resources through return. Only true permits mapping.
+fn vk_complete_submission(device: VkDeviceHandle*, queue: VkQueueHandle*, fence: VkFenceHandle*,
+    result: i32, submitted_message: u8*): bool {
+    if vk_ok("vkQueueSubmit", result) {
+        puts(submitted_message);
+        var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
+        if vk_ok("vkWaitForFences", wait) { puts("fence=signaled"); return true; }
+        // A lost-device wait retires the resources for lifetime purposes only.
+        if wait == VkDeviceLost { return false; }
+    } else {
+        // Vulkan guarantees an out-of-memory submit leaves referenced resources unaffected.
+        if result == VkOutOfHostMemory || result == VkOutOfDeviceMemory { return false; }
+        // A lost-device submit counts as a submit for pending-state purposes.
+        // An indeterminate submit may also have work on this queue. Avoid its fence.
+    }
+    var idle = vkQueueWaitIdle(queue);
+    if vk_ok("vkQueueWaitIdle after submission failure or failed fence", idle) {
+        puts("recovery=submitted queue idle");
+    } else {
+        if idle != VkDeviceLost {
+            puts("Cannot establish retirement; terminating with resources live"); fflush(null); abort();
+        }
+    }
+    return false;
+}

@@ -514,3 +514,48 @@ awk '/^actual$/{getline; print}' suppressed.log
 Expect the same zero and one count words and both original commands. Both
 guarded images now contain the clear color. Only the count-one pixel
 comparison fails. A missing or mismatched shader instead stops before submit.
+
+### Synchronous retirement in the Linux counted callers
+
+Keep the submitting queue externally synchronized and the command resources,
+descriptor and fresh fence live through capture. The raw CLI and external
+application call the selected submit function exactly once. A successful
+fence wait enables readback. Each failure returns a failed capture after
+the following lifetime decision.
+
+| First failure | Action before returning |
+| --- | --- |
+| Submit reports host or device OOM | Release the unaffected resources. |
+| Submit reports device loss or an unclassified error | Skip the fence and drain the submitted queue. |
+| Fence wait reports device loss | Release the resources. |
+| Other fence wait failure | Drain the submitted queue. |
+
+Queue idle success and queue idle device loss both permit cleanup. Any other
+drain error prints its signed result after the first diagnostic, flushes
+the output and aborts with the resources live. All error paths skip mapping.
+The public SDK submit still returns the loader's signed result and borrows
+the caller's descriptor and fence. The standalone clear fixtures own
+separate completion paths.
+
+To run the typed recording matrix, use the runtime object built by the raw
+Linux recipe above. From the repository root with its `sdk`, `out` and
+`lib` paths set, run in Bash.
+
+```bash
+v=scaffolding/library/graphics/vulkan
+tc=bootstrap/linux-x64/towerc
+"$tc" "$v/counted_completion_checks.tower" --library --jobs 1 -o "$out/checks.o"
+"$tc" --link-executable "$out/checks.o" --link "$out/runtime.o" \
+    --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" --sysroot "$sdk" -o "$out/checks"
+"$out/checks"
+ulimit -c 0
+rc=0
+"$out/checks" terminal > "$out/terminal.log" 2>&1 || rc=$?
+test "$rc" -eq 134
+diff <(grep '^VkResult=' "$out/terminal.log") <(printf '%s\n' VkResult=-1 VkResult=-2)
+```
+
+The returning matrix ends with `submit ownership checks passed`. Its handles
+and failure results are synthetic. The ordinary-entry hardware runs and
+two-queue experiment are recorded in the
+[project journal](../../../../docs/temporal-opcode-research-journal.md#linux-counted-completion-through-the-selected-queue-submitter).

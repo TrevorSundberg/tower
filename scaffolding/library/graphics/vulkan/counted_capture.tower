@@ -1,6 +1,7 @@
 import tower;
 import counted_abi;
 import counted_calls;
+import counted_completion;
 import counted_device;
 import counted_pipeline;
 import counted_record;
@@ -110,17 +111,9 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    if !vk_ok("vkQueueSubmit", calls.submit(ctx.queue, &submit, fence)) { return false; }
-    puts("submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy");
-    var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
-    if !vk_ok("vkWaitForFences", wait) {
-        var idle = vkDeviceWaitIdle(device);
-        if !vk_ok("vkDeviceWaitIdle after failed fence", idle) && idle != VkDeviceLost {
-            puts("Cannot establish retirement; terminating with resources live"); fflush(null); abort();
-        }
-        return false;
-    }
-    puts("fence=signaled");
+    var result = calls.submit(ctx.queue, &submit, fence);
+    if !vk_complete_submission(device, ctx.queue, fence, result,
+        "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy") { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
     defer vkUnmapMemory(device, staging.memory);
