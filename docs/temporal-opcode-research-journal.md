@@ -128964,3 +128964,142 @@ identifies the cross-linked image-owner applications. Slot 11's
 | --- | --- | --- |
 | Ordinary Tower | `1de9ef78bf9803bf70e97e7ae62167f1b36b5e264dbd67974dded8b998198252` | `af391eb8ea467047dd07ed505845c25a077ff426dbe8d711de344afbe035c93c` |
 | MinGW CRT | `4e000ef6831f4ee0c8529f5028dae0f062a7083aa3f72323dd9f56c77c59881c` | `f3e46b7fc427fda71731fe2501a1ba6b3a4250f715fd22a3b815cc24010b56f0` |
+### Win64 fence constructor on the counted application, slot 11
+
+Assignment `2fe9f493-e2db-4bdd-bf85-7abd21fee679` qualified the released
+rendering SDK at `e108476fef02ef33f356b451a61aa3088680517f`. The later
+publication `61dfff1b6a3b972988273d63285f0cab77d7e746` changes the journal
+and counted_win64 README. The bootstrap and scaffolding runtime files used
+for the builds match. Two clean SDK exports used the README command import
+substitution. The four PE hashes matched the SDK review.
+
+| Imports | Entry | SHA-256 |
+| --- | --- | --- |
+| Five | Ordinary Tower | `da86e2d179a198e1e320dc565df68d7246d4f4e87a2c7c17d243de0bab2ba3e9` |
+| Five | MinGW CRT | `e78f643cb690675c23c7ff0bc1c04c09b10f960c0f00fde4c08012e57eb68fe0` |
+| Two | Ordinary Tower | `fd399b158585cde1a72f236a493771f68cfb9afb30ca7ce297878b8352d907fe` |
+| Two | MinGW CRT | `39b1f396020575dde70571f564f462b6b932f3fc43743562df5185695237bdf9` |
+
+The matched predecessor is slot 11 job
+`c814ffcb-0f6d-4cd6-9b6d-ab52517bab6d` at `161ec5fe`, archive
+`73a502f5388d544a942d09e77a422b6fa21e8cba0cc02e687650f5f365bb16a3`.
+All 2,201 manifest entries verified. Slot 12 job
+`4e22a008-d279-4701-894a-d9cd5b4ae820` covers separate Linux binaries.
+
+All four release PEs exited 0 under Wine 8.0 on the Quadro RTX 6000,
+physical device 0, graphics family 0, queue index 0, UUID
+`26f60f6cead65faf0253a959b2e93a2d`. The guest reported NVIDIA 615.71.10
+and Vulkan 1.4.351. The host inserted the Khronos device layer with
+synchronization validation requested. The debug messenger counted zero
+warnings and errors. Counts 0 and 1, both indexed commands, both 2×2
+pitched RGBA8 images and every guard byte matched the 112-byte oracle
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The two CPU fixture files matched Git blobs at `3dd5f11f`, child of
+`a580e70a`. The short pitch, short destination and short source controls
+preserved the destination guards.
+
+Each guest probe completed the real vkEndCommandBuffer on its primary with
+result 0. At vkCreateFence the probe wrote `0xfee1deadbad0cafe` to the
+driver's temporary output and returned −2. The constructor returned false.
+The caller word kept its entry bits through return. Write and read watchpoints
+covered the caller word and the poisoned temporary, respectively. Each PE
+printed vkCreateFence and VkResult=-2, then exited 1. There was no fence
+destruction, submit, wait, drain, map or readback. Each previously acquired
+pool, image/view, staging/index/indirect buffer, bound memory allocation,
+pipeline, descriptor pool and layout retired once on its creating device.
+Wine released the primary during pool teardown.
+
+Independent stops on NVIDIA device functions matched the one primary freed
+to the physical allocation, device and pool. Driver-side acquisitions and
+bindings matched the complete release sequence on each create refusal and
+healthy run. No rejected create reached the ICD. The healthy native
+constructor returned a fence with flags 0. The same primary and fence reached
+submit, the native wait returned 0 for that fence, then the application
+mapped and retired it. The guest shader and counted routines ran in the
+adjacent SDK DLL. Begin, prepare and submit ran there in the five-import PEs
+and in application code in both controls.
+
+A focused Win64 Tower control created a real signaled caller fence and
+queried its status. A second, unsignaled creation received a poisoned
+private output and −2. The caller retained the original handle. Its second
+status query returned 0 before the creating device destroyed it once.
+The initial focused debugger run stopped before the Wine guest module
+mapped. A temporary hardware breakpoint reached its first create on retry.
+
+All four PEs matched the predecessor's signed diagnostics, process statuses
+and normalized guest and ICD queue sequences. Submit −2 exited 1 and
+retired without waiting. Wait −1 recovered with a real successful drain
+on the submitting queue, then retired without mapping and exited 1.
+Wait −1 or submit −4 followed by drain −2 retained the fence, primary and
+pool through CRT abort, exit 3. No final validation count was available
+on those aborts. Five deliberately corrupted release traces were rejected.
+
+One Wine application ran at a time on the same two-socket Xeon E5-2699 v4
+host, 88 logical CPUs and quota 10.56 CPUs. After one warmup, seven
+alternating pairs per entry included process startup, validation, readback
+and teardown. All 64 captures including warmups matched. Median wall times
+in seconds for predecessor → successor were 0.36 → 0.39 and 0.38 → 0.36
+for five-import ordinary and CRT, and 0.35 → 0.38 and 0.37 → 0.36 for
+two-import ordinary and CRT. Every pair's observed ranges overlapped.
+Individual wall, CPU and peak RSS samples are in the packet.
+
+The Win64 recording test exited 0. The native Linux build of that recorder
+instrumented vk_create_unsignaled_fence with LLVM ASan, enabled leak checking
+and exited 0 with empty sanitizer stderr. The prepared Clang runtime directory
+contains Linux runtimes only. Full PE sanitization, native Windows/WDDM,
+physically noncoherent memory and real device loss remain open.
+
+### Rendering review of the Win64 fence receipt
+
+Slot 11 returned journal commit `62891ec1` and archive
+`0ee9a64db018d60c514a65653b3ae88e680741338865c7fa6c80f78f75043b41`.
+Rendering checked all 1,805 manifest entries and compared the archived SDK
+source files to Git at `e108476f`. All four PEs matched the previously
+cross-linked binaries byte for byte. Rendering decoded the five or two
+DLL imports and the call into the fence constructor in each executable.
+The ordinary and MinGW CRT five-import callers returned at RVAs 0x4f77
+and 0x53f7. The corresponding two-import control RVAs were 0x5047 and
+0x54c7.
+
+Rendering checked eight production readbacks from the original run and
+replay against independently constructed counts, signed indirect commands,
+pitched RGBA and guards. In eight injected guest trials, the command end
+succeeded. Fence creation then overwrote a private output and returned −2.
+The caller kept its entry bits and exited 1. Both focused live-fence trials
+verified that a previously signaled fence survived the rejection. Rendering
+matched native driver handles for the primary and pool, three buffers, the
+image and view, their four allocations, the pipelines and descriptor owners.
+The healthy fence reached submit and a successful wait before mapping.
+The rejected create allowed teardown without a fence or submission. All
+32 recovery traces matched their corresponding ICD call sequences in the
+accepted predecessor archive `73a502f5`.
+
+These results cover Wine 8 on the Quadro RTX 6000 with driver 615.71.10.
+Slot 11 ran the hardware tests. The review reused the recorded performance
+measurements. Full Win64 sanitization, physical Windows and actual device
+loss remain open. The four Win64 PEs for the shared readback image at
+`39f5205b` have distinct hashes.
+[Image owner PE identities](#rendering-review-of-the-shared-readback-image)
+
+### Draw temporal resolve and final counted command
+
+Draw reports that job `85e9c2c7` used worker source
+`ee5935846641048567e04962d95023e1de477a7e` and tests
+`1edeac5afb491c34212e8d62f0d9f300c642d66c`. Draw verified 423 file
+checksums and compared six pairs of guarded RGBA16F histories, the final
+RGB and camera, and three HUD layers to C at 241×137 and after resize to
+960×640. Both stock Linux gates passed on an RTX 5060 Ti, Vulkan 1.4.303,
+NVIDIA 570.169. Three debugger captures put the final same-buffer draw
+at command/count offsets 0/20, maximum 1, stride 20. That shipping binary
+used the raw command. Draw measured median completed-frame intervals of
+9.652 ms for C and 9.668 ms for Tower across 120 fixed-workload samples.
+
+At Draw `99231c4fb0e0675d54cbab2d5e5c2017d9d13b6b`, both callers pass
+the actual post-command buffer size. Draw reports 24 CPU recording cases
+per implementation, including history parity, target selection and the
+128-byte constants. Rendering independently called the checksum-matched
+`2d924e64` Linux SDK library with a recording callback. At 24 bytes it
+forwarded both original handles, offsets 0/20, maximum 1 and stride 20
+on the original command buffer once. At 23 bytes it returned zero with
+no forward. Draw job `7d1d76b1-4804-4abb-9965-3153fb747173` owns the
+shipping Linux and Win64 checks of the integrated provider.

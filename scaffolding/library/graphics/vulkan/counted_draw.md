@@ -453,6 +453,20 @@ Both stock Win64 validators returned 1 under Wine with registry and loader
 diagnostics. Physical Windows and Draw's Linux job `5bf26347` remain open.
 [Draw shipping evidence and SDK checks](../../../../docs/temporal-opcode-research-journal.md#draw-win64-typed-counted-draw-on-the-rtx-3060)
 
+### Draw temporal resolve and final color
+
+Draw reports that its RTX 5060 Ti test at `ee593584` used the raw counted
+command for final color. The command starts at byte 0 and the count at byte
+20 of the same buffer, with maximum 1 and stride 20. Draw compared both
+history buffers and the final RGB, camera and HUD outputs to C, including
+resize. At its integration `99231c4f`, both callers pass the actual buffer
+size. Draw checked this typed path with a CPU recorder. Rendering separately
+called the released Linux library with the same layout. A 24-byte span
+forwarded all seven arguments once. A 23-byte span returned zero without a
+callback. Draw assigned shipping execution with the provider on Linux and
+Win64 to `7d1d76b1`.
+[Draw integration and evidence](../../../../docs/temporal-opcode-research-journal.md#draw-temporal-resolve-and-final-counted-command)
+
 ## Build the external Linux counted application
 
 The [ordinary application entry](osd_checks/tower_client/counted_app.tower)

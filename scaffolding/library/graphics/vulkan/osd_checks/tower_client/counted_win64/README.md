@@ -102,7 +102,13 @@ import library.graphics.vulkan.frame_submit;
 
 The [image owner review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-shared-readback-image)
 records the four PE hashes for this source. Use `e108476f` to reproduce the
-[fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences). To reproduce the preceding
+[fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences).
+Slot 11 ran those four fence-constructor PEs under Wine 8 on the Quadro
+RTX 6000. The trace follows fence creation after command recording, through
+either rejection and cleanup or a successful wait before readback.
+[Win64 fence device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-fence-constructor-on-the-counted-application-slot-11)
+
+To reproduce the preceding
 [primary command review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-command-pool-and-primary-acquisition),
 apply the same two-export recipe at `cca2a0db`. Slot 11 reproduced those four
 PEs at `161ec5fe` and checked pool ownership, failure cleanup and the guarded
