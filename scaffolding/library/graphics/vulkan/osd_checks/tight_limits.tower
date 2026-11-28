@@ -1,8 +1,6 @@
 import tower;
-import .readback_abi;
+import library.graphics.vulkan.upload;
 
-extern fn tower_vk_build_tight_color_regions_v1(out: VkBufferImageCopy*, capacity: u32,
-    width: u32, height: u32, layers: u32, mips: u32, texel_bytes: u32, span: u64): u32;
 extern fn puts(text: u8*): i32;
 
 export fn main(): i32 {

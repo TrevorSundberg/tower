@@ -1,0 +1,29 @@
+import tower;
+import image_lifecycle_types;
+
+// Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+
+struct VkBufferHandle {}
+
+struct VkImageSubresourceLayers {
+    aspectMask: u32;
+    mipLevel: u32;
+    baseArrayLayer: u32;
+    layerCount: u32;
+}
+
+struct VkOffset3D {
+    x: i32;
+    y: i32;
+    z: i32;
+}
+
+struct VkBufferImageCopy {
+    bufferOffset: u64;
+    bufferRowLength: u32;
+    bufferImageHeight: u32;
+    imageSubresource: VkImageSubresourceLayers;
+    imageOffset: VkOffset3D;
+    imageExtent: VkExtent3D;
+}

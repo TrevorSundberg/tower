@@ -1,0 +1,22 @@
+import tower;
+import library.graphics.vulkan.upload;
+import library.graphics.vulkan.command_submission;
+
+export fn record_buffer_upload(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*,
+    dst: VkBufferHandle*, bytes: u64): void {
+    tower_vk_buffer_upload_record_v1(cmd, staging, dst, bytes);
+}
+
+export fn prepare_upload_regions(out: VkBufferImageCopy*, capacity: u32, width: u32, height: u32,
+    layers: u32, mips: u32, bytes_per_texel: u32, available: u64): u32 {
+    return tower_vk_build_tight_color_regions_v1(out, capacity, width, height, layers, mips, bytes_per_texel, available);
+}
+
+export fn record_texture_upload(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void {
+    tower_vk_osd_texture_upload_record_v1(cmd, staging, image, layers, mips, count, regions);
+}
+
+export fn finish_upload(queue: VkQueueHandle*, cmd: VkCommandBufferHandle*): i32 {
+    return tower_vk_command_finish_v1(queue, cmd);
+}
