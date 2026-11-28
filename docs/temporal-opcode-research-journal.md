@@ -126740,3 +126740,14 @@ was inferred from those unexecuted checks.
 Assignment 7c2e71da-2b40-4166-9c91-c34abd0eb321 carries the bounded
 source bundle, inputs, binaries, symbols, maps, instruction traces, argv,
 timings and checksums. Run the external caller with the [SDK recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#creating-a-shader-module-through-the-sdk).
+
+During review preparation the rendering branch advanced to b52de45a
+with slot 11's upload work. Rebase resolution retained both SDK guide
+sections. From that combined source, both library builds, both external
+objects and linked applications, and both counted executables matched
+their first-build hashes. The documented example rebuilt the same four
+caller artifacts. Recording, guarded GPU checks, shader/command breakpoints,
+first failures, the clear fixture and instrumented ASan checks passed
+again. The shader patch relative to b52de45a changes eight files. The
+source bundle also carries the two intervening published commits so that
+it can be restored against the originally assigned a6a021876.
