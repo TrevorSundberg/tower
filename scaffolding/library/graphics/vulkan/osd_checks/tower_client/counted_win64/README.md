@@ -100,8 +100,14 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The [validation instance qualification](../../../../../../../docs/temporal-opcode-research-journal.md#slot-12-vulkan-validation-instance-and-debug-messenger-ownership)
-lists the four PE hashes for this source. They were cross-linked on Linux.
+The [physical-device selection review](../../../../../../../docs/temporal-opcode-research-journal.md#borrowing-the-selected-vulkan-physical-device-on-slot-12)
+lists the four cross-linked PEs at `9aaf350e`. To reproduce the preceding
+[validation-instance binaries](../../../../../../../docs/temporal-opcode-research-journal.md#slot-12-vulkan-validation-instance-and-debug-messenger-ownership),
+use `aaf4a6c8`. All four passed the guarded readback with `--external-layer`
+on the Quadro RTX 6000 under Wine 8. The explicit guest layer request
+returned `VK_ERROR_LAYER_NOT_PRESENT` (−6) before any proc lookup.
+[Win64 validation-instance device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-validation-instance-and-messenger-ownership-on-the-quadro-rtx-6000)
+
 For the preceding four PEs, use `4fa39da7` and its
 [attachment setup qualification](../../../../../../../docs/temporal-opcode-research-journal.md#beginning-the-two-readback-rendering-passes-on-slot-12).
 All four PEs passed the first-use and reuse attachment checks and both draw

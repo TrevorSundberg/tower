@@ -130011,3 +130011,64 @@ checking and threaded TSan. Full-driver TSan faulted on both revisions.
 Raw full-process leak checking reported 3,511 bytes in eight allocations
 on both revisions. Tower source-level UBSan was unavailable.
 [Source, measurements and Win64 hashes](#borrowing-the-selected-vulkan-physical-device-on-slot-12)
+
+### Win64 validation instance and messenger ownership on the Quadro RTX 6000
+
+Slot 11 ran the four counted application PEs from SDK `aaf4a6c8`
+(implementation `fcead218`) and the four preceding `4fa39da7` controls on
+the Quadro RTX 6000 under Wine 8.0, Vulkan 1.4.351 and NVIDIA 615.71.10.
+Rendering verified all 3,768 manifest entries in job
+`b906ea89-a8d2-463e-9789-c40ae0ed7646`, archive SHA-256
+`ab73d2ef87dbd532dad7fa8a443c3866679cd851a8b53b7801923f909e5c5715`.
+The source export reproduced from Git. All four candidate PEs matched the
+slot 12 cross-links byte for byte. All four controls, the three SPIR-V
+modules and the released DLL matched the preceding slot 11 packet. The
+release import library also matched. [Four candidate hashes](#slot-12-vulkan-validation-instance-and-debug-messenger-ownership)
+
+The five-import Tower startup command below ran from the directory
+containing the PE, its adjacent DLL and the three shaders. The worker
+selected the NVIDIA ICD and set the layer search path to its prepared SDK.
+
+```bash
+env VK_LOADER_DEBUG=layer VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation \
+  VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+  wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer
+```
+
+| Application request | Observed outcome for all four PEs and four controls |
+| --- | --- |
+| External layer selection | The guest supplied the debug descriptor, one debug-utils extension and zero layer names. The host loader inserted Khronos validation 1.3.239. Both passes completed, the fence signaled, the guest counted zero warning/error callbacks and the process exited 0. |
+| Explicit layer selection (omit the final flag) | The guest supplied the Khronos layer name, debug-utils and validation-features extensions, and a synchronization-validation feature chained to its debug descriptor. Wine refused the request at instance creation with `VK_ERROR_LAYER_NOT_PRESENT` (−6). The process exited 1 before any proc lookup. |
+
+Rendering decoded the call instructions and named PE import slots for both
+revisions and both startups. In the five-import Tower candidate, instance
+creation came from RVA `0x3114`, followed by the create and destroy proc
+lookups at `0x313d` and `0x3153`. The two returned procedures were called
+at `0x31d5` and `0x3756`. The guest callback's atomic counter increment
+was present in each binary. In the native traces Wine supplied a translated
+callback at `winevulkan.so+0xca60` and its own user pointer. The guest
+reused the original descriptor and counter. Each domain released its own
+messenger with its creating instance, after device destruction. The guest
+counter stayed readable after instance destruction returned.
+
+Across the original run and two fresh replays, rendering checked all 216
+guest owner cases. Failed instance creation with a clobbered output released
+nothing. Either missing proc and failed messenger creation released only
+the instance. Buffer failure after device acquisition released the device,
+messenger and instance in order. A separate injection at the NVIDIA buffer
+entry returned −2 to the guest. Controlled warning and error deliveries at
+instance destruction each incremented the live counter from zero to one.
+Each process preserved its completed readback and exited 1.
+
+Rendering rebuilt the two-pass byte oracle independently. All 48 guest
+and native mapping dumps matched the 80-byte staging reference
+`2c942741acc1bea10c77699bff5cca4caeace9305dee698a0d898db17b50b556`.
+All 216 binary caller captures matched the 112 guarded bytes
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The manager's Linux recorder reproduced the guest recorder's 22 callbacks
+and all 12 synthetic acquisition and release cases. Serial recorder ASan
+passed. The first TSan series had 13 pre-main failures. The replay had
+nine pre-main failures before a passing run. The seven-pair whole-process
+timing ranges overlapped for each configuration. Explicit guest-layer
+success on hardware, native Windows/WDDM and full-PE sanitizer coverage
+remain open. This publication records the tested binaries.
