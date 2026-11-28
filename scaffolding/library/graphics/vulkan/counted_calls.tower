@@ -1,0 +1,13 @@
+import tower;
+import indexed_draw;
+import shader_module;
+import command_submission_types;
+
+// Both entries use the same device selection, resource owners, command stream and oracle.
+struct CountedCalls {
+    create_shader: decltype(vk_create_shader_module);
+    record_draw: decltype(vk_record_indexed_indirect_count);
+    begin: function(i32, VkCommandBufferHandle*);
+    prepare: function(i32, VkSubmitInfo*, VkCommandBufferHandle**, VkSemaphoreHandle**, u32*, VkSemaphoreHandle**);
+    submit: function(i32, VkQueueHandle*, VkSubmitInfo*, VkFenceHandle*);
+}

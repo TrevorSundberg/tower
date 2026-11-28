@@ -127030,3 +127030,99 @@ eight C and eight typed recording cases, including short logical buffers
 with zero forwards. Its Win64 client cross-linked at hint 3. The pending
 Draw device jobs are 5bf26347 and ce92a8df.
 [Draw counted caller results](../scaffolding/library/graphics/vulkan/counted_draw.md#draws-typed-hud-and-gpu-check-callers)
+
+### External Linux application for the counted compute-to-raster fixture
+
+Slot 12 started from rendering SDK `8b90624980b053cb1ae5070c6f7cc733a3beceb9`.
+The previous Linux shader test assembled its application from an overlay and
+used the local counted helper. The external clear executable established the
+packaged compiler's source-to-executable link on the same host. This change
+gives the counted fixture two source entries. Both pass five typed callbacks
+to the same validation, capture and resource owners. The external application
+uses the SDK shader, begin, end, submit and counted procedures. The existing
+CLI links its local implementations and preserves its argument and device
+gates. Both record a one-time command buffer in a resettable pool. The submit
+descriptor borrows the capture function's command slot through queue submit.
+
+Before editing, the published fixture passed on the RTX 3090. Three warm runs
+took 0.31–0.34 s wall, 0.30–0.34 s CPU and at most 94,908 KiB peak RSS.
+The application uses the three validated SPIR-V files in its working directory.
+Shader destruction, pipeline creation, device procedure lookup, barriers,
+fence wait, conditional invalidation and pitched host copy use the fixture's
+existing implementations. The five callbacks borrow their inputs synchronously.
+
+**Hardware and control.** Linux x86-64, Debian 12, device 0, NVIDIA GeForce
+RTX 3090, 10de:2204, UUID cd3d9791fe794e0b3ec29fc16b74d31c, Vulkan 1.3.289,
+driver 565.57.01, family/queue 0/0. The raw and external entries returned
+identical output including a signaled fence and zero Khronos synchronization
+validation warnings/errors. Dynamic bindings placed all five external SDK
+imports in DSO `2d924e64`. The driver received 438, 273 and 95 words on the
+same logical device used for procedure lookup. Each SDK create started with
+an empty slot, returned called 1 and signed result 0, and published a distinct
+module. Each module was destroyed once on its creating device with a null
+allocator. A debugger-injected second create failure returned called 1,
+result −2 and an empty slot. Only the first live module was retired.
+A missing or mismatched fragment shader also failed before submission.
+
+Both draws reached the exact pointer returned by `vkGetDeviceProcAddr` for
+`vkCmdDrawIndexedIndirectCount`. With validation enabled the pointer entered
+the Khronos layer. Debugger stops compared the SDK entry's seven original
+arguments with those at the actual indirect call on both passes. The primary
+and stream also matched the preceding buffer copy. Both logical lengths
+were 327684, command/count offsets were 4/0, maximum 16384 and stride 20.
+The queue submitted that primary with the fence that subsequently returned
+success. Mapping coherent memory followed. The application and raw control
+produced the following captures, also checked against independent byte files.
+
+| Capture | Pass 0 | Pass 1 |
+| --- | --- | --- |
+| GPU count / first command | 0 / (3,1,0,0,0) | 1 / (3,1,0,0,0) |
+| Four RGBA8 texels | 112233ff | 4080bfff |
+| Guarded destination | Two eight-byte rows at 4 and 16, all other bytes a5 | Same layout and guards |
+
+The 80 mapped bytes hashed to `2c942741acc1bea10c77699bff5cca4caeace9305dee698a0d898db17b50b556`.
+The two 24-byte prefixes and two 32-byte caller captures hashed to
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The Tower row copier and CPU oracle matched their files at `3dd5f11f`
+on the rendering history after compiler base `a580e70a`. The CPU pitch-7,
+span-19 and short-source tests passed. A debugger return at the second
+device draw preserved all shader successes, both command prefixes, the
+fence and guards. Only the second image changed, to four clear texels.
+The pixel oracle exited 1. The old CLI also exited 1 on its Vulkan 1.4
+gate. Draw's shipping Vulkan 1.4 and physical Windows remain with their
+device jobs. This application uses the repository's three control shaders.
+
+**Cost.** EPYC 7282 with 16 cores, 32 SMT threads and 15.36 CPU quota.
+Clang/LLVM 19.1.7. Runs used one submitting thread and one GPU queue.
+After a warmup, five serialized pairs with alternating launch order were
+checked against the published baseline. Three paired warm compiler samples
+at each worker width produced identical application bytes. Wall and CPU
+(user + system) are medians in seconds. RSS is the largest sample in KiB.
+
+| Operation | Wall | CPU | Peak RSS |
+| --- | ---: | ---: | ---: |
+| Raw process, validation and teardown included | 0.31 | 0.30 | 94,924 |
+| External SDK process, validation and teardown included | 0.30 | 0.30 | 94,828 |
+| Packaged source-to-executable, 1 worker | 1.24 | 1.24 | 130,152 |
+| Packaged source-to-executable, 4 workers | 1.37 | 1.54 | 135,496 |
+
+Both device runs granted and freed five Tower buffers of 8, 144, 1752,
+1092 and 380 bytes. These process samples do not resolve draw-call cost.
+Touching a private copy of the DSO, loader, libatomic and selected runtime
+IR individually rebuilt the executable once per touch in Ninja. The object
+timestamp stayed fixed, the ELF matched after each relink, and each next
+build was clean.
+
+**Instrumentation and limits.** Address-only ASan on the application IR
+passed the same RTX oracle with the release SDK. Leak detection with the
+Khronos layer kept mapped reported 4,023 bytes in 12 allocations. The same
+report occurred with the original executable from the published parent and
+both final executables under the same interposer. Allocation stacks include
+the validation layer. Attribution of the retention is open. TSan stopped
+during startup when the container denied ADDR_NO_RANDOMIZE (exit 139).
+Native Tower UBSan, device loss and the noncoherent branch were unverified.
+An early debugger attempt read registers at the shader wrapper before the
+driver breakpoint. The corrected trace stops at each entry and both returns
+explicitly. Assignment `5977bf6c-b21c-478f-a374-f01144317a24` retains the
+commands, binary captures, link bindings, sanitizer logs and bounded bundle.
+[External application recipe and suppressed-draw control](../scaffolding/library/graphics/vulkan/counted_draw.md#build-the-external-linux-counted-application)

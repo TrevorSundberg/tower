@@ -4,6 +4,7 @@ import readback_clear;
 import readback_device;
 import readback_rows;
 import counted_abi;
+import counted_calls;
 import counted_device;
 import counted_pipeline;
 import indexed_draw;
@@ -37,7 +38,7 @@ fn counted_buffer_barrier(cmd: VkCommandBufferHandle*, buffer: VkBufferHandle*,
 
 // The two fixed cases use the same pipelines, attachment, index data and command stream.
 // Copy the shader's actual count/record and all four stored texels before reuse.
-fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
+fn counted_case(calls: CountedCalls*, cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
     range: VkImageSubresourceRange, buffer: VkBufferHandle*, requested: u32, capture_offset: u64): bool {
     var consumers = VkStageDrawIndirect | VkStageTransfer;
@@ -74,7 +75,7 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
     vkCmdBindIndexBuffer(cmd, index_buffer, 0, VkUint16Index);
     var commands: IndexedIndirectRange = { command_offset: convert(u64, sizeof(u32)), max_draws: CountedCapacity,
         stride: convert(u32, sizeof(IndexedIndirectArguments)) };
-    var recorded = vk_record_indexed_indirect_count(draw, cmd, stream, commands, stream, 0);
+    var recorded = calls.record_draw(draw, cmd, stream, commands, stream, 0);
     vkCmdEndRendering(cmd);
     if !recorded { return vk_failure("Counted draw rejected the frozen stream"); }
     transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
@@ -86,17 +87,15 @@ fn counted_case(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCount
     return true;
 }
 
-fn counted_record(cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
+fn counted_record(calls: CountedCalls*, cmd: VkCommandBufferHandle*, draw: VkCmdDrawIndexedIndirectCountProc, p: CountedPipelines*,
     stream: VulkanIndirectBuffer, index_buffer: VkBufferHandle*, indices: u16*, index_bytes: u64,
     image: VkImageHandle*, view: VkImageViewHandle*, range: VkImageSubresourceRange, staging: VkBufferHandle*): bool {
-    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
-    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
     vkCmdUpdateBuffer(cmd, index_buffer, 0, index_bytes, bits(void*, indices));
     counted_buffer_barrier(cmd, index_buffer, VkStageTransfer, VkStageVertexInput, VkTransferWrite, VkIndexRead);
-    if !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 0, 0)
-        || !counted_case(cmd, draw, p, stream, index_buffer, image, view, range, staging, 1, counted_sample_bytes()) {
+    if !counted_case(calls, cmd, draw, p, stream, index_buffer, image, view, range, staging, 0, 0)
+        || !counted_case(calls, cmd, draw, p, stream, index_buffer, image, view, range, staging, 1, counted_sample_bytes()) {
         return false;
     }
     counted_buffer_barrier(cmd, staging, VkStageTransfer, VkStageHost, VkTransferWrite, VkHostRead);
-    return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
+    return true;
 }

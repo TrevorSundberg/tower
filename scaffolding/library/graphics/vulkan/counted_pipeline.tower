@@ -1,5 +1,6 @@
 import tower;
 import counted_abi;
+import counted_calls;
 import shader_module;
 import readback_abi;
 import readback_device;
@@ -52,7 +53,7 @@ fn counted_destroy_pipelines(device: VkDeviceHandle*, p: CountedPipelines*): voi
     vkDestroyDescriptorSetLayout(device, p.bindings, null);
 }
 
-fn counted_shader(device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShaderModuleHandle**): bool {
+fn counted_shader(calls: CountedCalls*, device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShaderModuleHandle**): bool {
     var file = fopen(path, "rb");
     if file == null { puts(path); return vk_failure("Cannot open control SPIR-V"); }
     defer fclose(file);
@@ -70,7 +71,7 @@ fn counted_shader(device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShader
     var hex: u8[65]; sha256_hex(&digest, &hex[0]);
     puts(path); puts(&hex[0]);
     if strcmp(wanted, &hex[0]) != 0 { return vk_failure("Unrecognized control shader digest"); }
-    var created = vk_create_shader_module(device, words, size / sizeof(u32), out);
+    var created = calls.create_shader(device, words, size / sizeof(u32), out);
     if !created.called { return vk_failure("Invalid shader module arguments"); }
     return vk_ok("vkCreateShaderModule", created.result);
 }
@@ -97,16 +98,16 @@ fn counted_descriptors(device: VkDeviceHandle*, p: CountedPipelines*, buffer: Vk
     return true;
 }
 
-fn counted_pipelines(device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**): bool {
+fn counted_pipelines(calls: CountedCalls*, device: VkDeviceHandle*, p: CountedPipelines*, paths: u8**): bool {
     var modules: VkShaderModuleHandle*[3] = default;
     defer {
         for (var i: usize = 0; i < sizeof(decltype(modules)) / sizeof(VkShaderModuleHandle*); i++) {
             vkDestroyShaderModule(device, modules[i], null);
         }
     }
-    if !counted_shader(device, paths[0], "eec373ac834ace1f297927483269bb416255a7437c287a0e87aad32b7e654804", &modules[0])
-        || !counted_shader(device, paths[1], "7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999", &modules[1])
-        || !counted_shader(device, paths[2], "2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517", &modules[2]) { return false; }
+    if !counted_shader(calls, device, paths[0], "eec373ac834ace1f297927483269bb416255a7437c287a0e87aad32b7e654804", &modules[0])
+        || !counted_shader(calls, device, paths[1], "7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999", &modules[1])
+        || !counted_shader(calls, device, paths[2], "2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517", &modules[2]) { return false; }
     var stage: VkPipelineShaderStageCreateInfo = { sType: VkShaderStageTag, stage: VkComputeShader,
         module: modules[0], pName: "main", ..default };
     var compute: VkComputePipelineCreateInfo = { sType: VkComputePipelineTag, stage: stage, layout: p.layout, ..default };
