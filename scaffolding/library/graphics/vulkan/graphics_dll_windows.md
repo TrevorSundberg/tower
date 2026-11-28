@@ -907,3 +907,67 @@ execution through ordinal 16 to slot 9 job
 `feb0c2ae-4467-44d8-b331-d0e5bc425a5f` after allocation and bind job
 `83bebca9-c966-43cc-851b-868708c7d4aa`. The Linux device qualification
 of Draw's partial-owner cleanup has its own worker revision.
+
+### Draw shipping retirement through the Win64 DLL
+
+Draw exercised ordinal 16 with both image owners at
+`71f43735fa7f1e39e0df8f45e075eab9581bc4df`, tests
+`63607cc2a402d20cfb0d00b5a6a79a889291826a`, worker tip
+`fa658b980b8b228732bc3f830f2b923f48063cac`. Draw verified 661 manifest
+entries in archive `370d80ff9db213e2642c159b682c83c4df6a2f1a019109bc9cc7767525201c0b`
+from job `feb0c2ae-4467-44d8-b331-d0e5bc425a5f`. The selected device
+under Wine 11 was the GeForce RTX 3060 (10de:2503), Vulkan 1.4.329,
+NVIDIA 595.99.02. The Tower owner in this build calls the export through
+Draw's C bridge.
+
+| Image owner and build.cmd selection | Optimized draw.exe SHA-256 | Caller return RVA reported by Draw |
+| --- | --- | --- |
+| Tower, default | `b897ba01a98b05bc3f745f1e794fc5c1b4bec12d0414e8f1cde02682d64b3543` | `0x45128` |
+| C, `DRAW_C_IMAGE_OWNER=1` | `21dc93e19d4c15fe6168b4b21540a46eea77c00e0239c1519065069f78246740` | `0x3d768` |
+
+Each PE loaded the adjacent release DLL from Tower `8ac14905`.
+Rendering rehashed that DLL and its import library and independently
+decoded ordinal 16 from the retained release. From entry RVA `0x1d70`,
+the view and image destruction calls return to `0x1d90` and `0x1da3`.
+The final instruction at `0x1db8` jumps to the `vkFreeMemory` thunk.
+
+The worker ran the following child from `/tmp/draw-feb0c2ae/work` with
+`WINEDEBUG=+loaddll`. The C arm substituted `c-production` for
+`tower-production` in both paths.
+
+```text
+Z:/tmp/draw-feb0c2ae/stage/tower-production/draw.exe --offscreen --osd-test assets/osd/state.bin --fixed-time 0 --frames 1 --size 1280 800 --capture Z:/tmp/draw-feb0c2ae/evidence/frames/tower-production.rgba
+```
+
+Both production runs used the SDK loader and exited 0. Lifetime and
+fault runs used the forwarding observation loader. For each owner, the
+full-scene run used `--osd assets/osd/state.bin --day-hour 12 --size
+1280 800 --fixed-time 0 --offscreen --frames 4 --resize-test --no-hud`
+and captured a PPM. The injected runs set `DRAW_TEST_RETIREMENT_TRACE=1`
+and used the following create-call indices. The isolated runs also set
+`DRAW_OSD_REGION_STREAM` to the respective owner's fault trace file.
+
+| Observed path | Exit per owner | Completed submits | Retired images / buffers / allocations |
+| --- | ---: | ---: | ---: |
+| Healthy full scene with resize | 0 | 285/285 | 382 / 87 / 469 |
+| Second OSD image creation returns −2 in the full scene, `DRAW_TEST_IMAGE_FAIL_AT=103` | 1 | 187/187 | 102 / 49 / 151 |
+| Second create returns −2 in the isolated OSD run, `DRAW_TEST_IMAGE_FAIL_AT=2` | 1 | 3/3 | 1 / 7 / 8 |
+
+Draw observed no signal on these exits and no later use of the
+clobbered output from the failed create. All eight nullable ownership
+combinations and repeated retirement of a cleared record matched.
+
+Draw reconstructed the shipped input and checked both device captures.
+All 27,541,504 active bytes matched SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including 91,136 guard and padding bytes, each 27,632,640-byte file
+matched `3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97`.
+Fixed, resized and profile RGB, HUD and camera captures matched the
+predecessor.
+
+The four stock Wine checks exited 1 with registry diagnostics and
+loader interface version 4. The stock Linux render and core checks
+exited 0. Physical Windows remains open. In the separate browser check,
+the fixed canvas matched. The animated explosion differed at 205 pixels,
+151 outside the HUD, with the same package inventory. Direct Win64 Tower
+image imports have their own Draw assignment, `a187face`.
