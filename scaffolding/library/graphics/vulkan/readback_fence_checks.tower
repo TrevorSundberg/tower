@@ -1,0 +1,44 @@
+import tower;
+import readback_abi;
+import readback_completion;
+import readback_device;
+
+extern fn exit(status: i32): void;
+
+struct FenceCase {
+    result: i32;
+    calls: u32;
+    written: VkFenceHandle*;
+    caller: VkFenceHandle**;
+}
+
+fn require_fence(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(3); }
+}
+
+export fn vkCreateFence(device: VkDeviceHandle*, info: VkFenceCreateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkFenceHandle**): i32 {
+    var state = bits(FenceCase*, device);
+    require_fence(info.sType == 8 && info.pNext == null && info.flags == 0 && allocator == null, "fence fields");
+    require_fence(out != state.caller, "driver received the caller's output slot");
+    state.calls++;
+    *out = state.written;
+    return state.result;
+}
+
+fn check_fence(result: i32): void {
+    var handles: u64[2];
+    var original = bits(VkFenceHandle*, &handles[0]);
+    var fence = original;
+    var state: FenceCase = { result: result, written: bits(VkFenceHandle*, &handles[1]), caller: &fence, ..default };
+    var ok = vk_create_unsignaled_fence(bits(VkDeviceHandle*, &state), "recorded fence", &fence);
+    require_fence(state.calls == 1 && ok == (result == 0), "fence result");
+    if ok { require_fence(fence == state.written, "missing successful fence"); }
+    else { require_fence(fence == original, "clobbered caller fence"); }
+}
+
+export fn main(): i32 {
+    check_fence(-2);
+    check_fence(0);
+    return 0;
+}

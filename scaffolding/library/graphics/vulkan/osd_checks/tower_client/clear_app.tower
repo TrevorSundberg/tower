@@ -42,9 +42,8 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
         { create: "create pool", allocate: "allocate primary" }, &primary) { return false; }
     defer vk_release_primary(&primary);
     if !vk_record_clear(primary.command, owner.image, owner.view, staging.handle, range) { return false; }
-    var fence_info: VkFenceCreateInfo = {sType: VkFenceTag, ..default};
     var fence: VkFenceHandle*;
-    if !vk_ok("create fence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
+    if !vk_create_unsignaled_fence(device, "create fence", &fence) { return false; }
     defer vkDestroyFence(device, fence, null);
     var submit: VkSubmitInfo = {sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &primary.command, ..default};
     var result = tower_vk_queue_submit_one_v1(ctx.queue, &submit, fence);

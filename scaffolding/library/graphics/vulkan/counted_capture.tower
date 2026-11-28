@@ -88,9 +88,8 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
         || !counted_record(calls, primary.command, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
             image, view, range, staging.handle)
         || !vk_ok("vkEndCommandBuffer", calls.prepare(&submit, &primary.command, null, null, null)) { return false; }
-    var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
-    if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
+    if !vk_create_unsignaled_fence(device, "vkCreateFence", &fence) { return false; }
     defer vkDestroyFence(device, fence, null);
     var result = calls.submit(ctx.queue, &submit, fence);
     if !vk_complete_submission(device, ctx.queue, fence, result,

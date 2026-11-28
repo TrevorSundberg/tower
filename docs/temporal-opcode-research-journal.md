@@ -128568,3 +128568,138 @@ samples with checked pixels. Median wall seconds for previous → current
 were 0.40 → 0.41 and 0.36 → 0.38 for five-import ordinary and CRT,
 and 0.52 → 0.41 and 0.40 → 0.38 for the two-import controls. Each pair's
 ranges overlapped. Raw CPU, RSS and all individual samples are in the packet.
+### Unsignaled readback fence creation on the rendering SDK
+
+Slot 12 assignment `4e22a008-d279-4701-894a-d9cd5b4ae820` used published
+rendering SDK `cca2a0db0685889b8d84f4ce0f9efe6945608d69`. Raw clear, SDK
+clear and the common counted capture each constructed the same fence
+descriptor after recording. They passed a local output directly to Vulkan.
+All three checked the signed result before registering destruction. The
+previous RTX 3090 receipt traced the primary command through submission
+but did not refuse fence creation or identify the fence at creation.
+
+The private constructor in `readback_completion.tower` creates one unsignaled
+fence on the supplied device. It publishes the temporary output only after
+`vk_ok` accepts the result with the caller's label. Each caller still destroys
+its fence in the existing defer and submits its borrowed primary to its own
+queue through its existing raw or SDK entry. The standalone Tower recorder
+checks an initialized, non-null output on refusal and a distinct successful
+handle. Its initial compile diagnosed a missing direct import for `puts`.
+Adding the import fixed the test.
+
+The slot 12 packet includes commands, raw logs, depfiles, executable hashes
+and a one-commit source bundle. The shared checkout contained another edit.
+The tests used an isolated checkout of the advertised rendering ref, the
+pinned x64 Linux bootstrap, LLVM 19, one compiler worker and the NVIDIA ICD.
+
+Raw clear, SDK clear, raw counted and SDK counted selected physical device 0,
+family 0, queue 0 on the NVIDIA GeForce RTX 3090, driver 565.57.01, Vulkan
+1.3.289. All eight parent/candidate executions signaled their fences with
+zero validation messages and matched the previous receipt's complete stdout.
+A separate Tower oracle wrote two pixels in each of two rows with pitch 12,
+offset 4 and guard 165. It generated the clear and drawn colors and the two
+little-endian count/command records. The compared 32-byte SHA-256 was
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The 112-byte SHA-256 was
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The archived reference and CPU fixture sources at `3dd5f11f`, child of
+`a580e70a`, matched. Draw's recorded reference is `36f61b4b`.
+
+On both revisions the observer finished the real end-command call with
+result 0 before injecting a non-null fence output and returning −2. All
+four programs reported their original label and signed result. The pool,
+staging buffer and bound memory were released in order. There was no
+fence destruction, submit, wait, drain or map. Clear kept all 32 guard
+bytes and counted published zero comparisons. On success the loader trace
+matched the fence across creation, submit, wait and destruction. Submit
+−1 skipped wait and drain. Wait −1 with a successful drain of the selected
+queue released resources without mapping. An additional drain −2 reached
+SIGABRT with the fence, pool and staging owners live. The completion
+recorder also covered device-loss results and an indeterminate submit.
+
+In twelve runs per revision a second queue remained pending behind a host
+signal while the submitting queue recovered from an injected wait failure.
+On the candidate the fence constructor also refused after recording with that
+second queue's live fence as the caller sentinel. Its clobber stayed private.
+The primary fence and pool were released while the marker remained pending.
+The initial two-queue probe could not compile mutable file-scope test state
+in library mode. The working probe wraps only the injected creation and
+calls the real symbol explicitly for its two live fences.
+
+Each Win64 ordinary Tower and MinGW CRT counted caller linked with the
+documented two and five SDK imports. Both parent pairs reproduced their
+previous hashes. The shaders, 16-export Linux DSO, Win64 DLL and import
+library matched the frozen inputs. Win64 execution belongs to slot 11.
+
+One application at a time on an AMD EPYC 7282 (16 cores, 32 logical,
+15.36-CPU quota). After the pixel checks and one warmup, seven alternating
+pairs timed the constructor with CLOCK_MONOTONIC in separately instrumented
+builds. Whole-process measurements used the production executables.
+Every timed output matched the healthy capture.
+
+| Entry | Fence median µs, parent → candidate | Wall median s | CPU median s | Maximum RSS KiB |
+| --- | --- | --- | --- | --- |
+| Raw clear | 283.35 → 283.10 | 0.31 → 0.30 | 0.30 → 0.30 | 91828 → 91804 |
+| SDK clear | 286.13 → 281.37 | 0.31 → 0.30 | 0.30 → 0.30 | 91552 → 91752 |
+| Raw counted | 287.30 → 290.94 | 0.31 → 0.31 | 0.30 → 0.30 | 94976 → 94936 |
+| SDK counted | 289.97 → 292.24 | 0.31 → 0.31 | 0.30 → 0.30 | 94908 → 94840 |
+
+All four elapsed-time ranges overlapped. Both clear programs allocated
+152 Tower bytes in two calls, peak 152. Both counted programs allocated
+3376 bytes in five calls, peak 1752. All returned to zero on both versions.
+The constructor dispatches no jobs. One-worker warm rebuilds of raw clear
+and SDK counted checked binary stability on both revisions.
+
+LLVM ASan passed the recorder with leak checking and the four hardware
+applications with address checking. Full-process raw-clear leak checking
+reported 3511 bytes in eight allocations on each revision with Khronos
+validation-layer frames. The parent used the preloaded allocator on the
+original executable and the candidate used the instrumented executable.
+TSan stopped before main at the denied personality call (exit 139).
+The sanitizer command exited 1. There is no Tower UBSan frontend.
+The controls simulate allocation, wait and recovery failures. Real device
+loss and noncoherent hardware remain unexercised.
+
+### SDK review of unsignaled readback fences
+
+Rendering verified all 305 manifest entries for slot 12 job
+`4e22a008-d279-4701-894a-d9cd5b4ae820` in archive
+`f52cb327ab3259acc90d52e085a49bc2db27eb4cd7ea5ed0ef16a412ef6ffe71`.
+The bounded bundle and coordinator fetch identified `68c1e47c` on
+`cca2a0db`. Integration with `161ec5fe` reproduced the worker's tested
+tree `051425b4def5be2fb9b41eccd219aff9364430fb`.
+
+The four Linux callers and the recording test rebuilt byte for byte from
+that tree. Rendering ran the recorder and the preceding pool, buffer,
+completion and mapping checks. All four applications ran with Khronos
+validation on Mesa llvmpipe, reporting zero warnings or errors. Both clear
+callers reproduced the 32-byte pitched destination, and both counted
+callers reproduced the complete 112-byte command and pixel stream.
+
+Rendering independently verified the same guarded bytes on the worker's
+RTX 3090, Vulkan 1.3.289, NVIDIA 565.57.01. The 40 process traces
+covered both revisions and all four applications. Each injected create
+refusal followed a successful end on the recorded command. The driver
+output slot was overwritten and the injected −2 reached the caller at
+its original label. Each caller released its unsubmitted pool and staging
+allocation, with no fence destruction, submit, wait, drain or map.
+Across all twelve candidate two-queue trials, the helper preserved a live
+fence in the caller's output on rejection. The other queue stayed pending
+through recovery on the submitting queue. Failed recovery retained the
+fence and pool through SIGABRT.
+
+Rendering reran the Win64 build recipe on the integrated source, checked
+the two or five DLL imports in each PE and matched the release DLL and
+import library. These executables were cross-linked. The earlier Win64
+device coverage applies to the binaries identified in those receipts.
+
+| Entry | Two DLL imports | Five DLL imports |
+| --- | --- | --- |
+| Ordinary Tower | `fd399b158585cde1a72f236a493771f68cfb9afb30ca7ce297878b8352d907fe` | `da86e2d179a198e1e320dc565df68d7246d4f4e87a2c7c17d243de0bab2ba3e9` |
+| MinGW CRT | `39b1f396020575dde70571f564f462b6b932f3fc43743562df5185695237bdf9` | `e78f643cb690675c23c7ff0bc1c04c09b10f960c0f00fde4c08012e57eb68fe0` |
+
+Seven warm pairs per application had overlapping fence-creation time
+ranges. The worker's address checks passed. Full-process raw-clear leak
+checks reported 3,511 bytes in eight allocations on each revision. The
+parent used a preloaded allocator and the candidate used instrumentation.
+TSan exited 139 before main.

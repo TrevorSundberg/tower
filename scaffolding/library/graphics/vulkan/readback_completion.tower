@@ -2,8 +2,18 @@ import tower;
 import readback_abi;
 import readback_device;
 
+var VkFenceTag: u32 = 8;
 var VkOutOfHostMemory: i32 = -1;
 var VkOutOfDeviceMemory: i32 = -2;
+
+// Publish the handle only on success. The caller owns retirement and destruction.
+fn vk_create_unsignaled_fence(device: VkDeviceHandle*, label: u8*, out: VkFenceHandle**): bool {
+    var info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
+    var fence: VkFenceHandle*;
+    if !vk_ok(label, vkCreateFence(device, &info, null, &fence)) { return false; }
+    *out = fence;
+    return true;
+}
 
 struct SubmissionMessages {
     submit: u8*;
