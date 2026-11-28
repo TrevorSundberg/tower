@@ -29,7 +29,10 @@ echo "2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf  release/
 export LD_LIBRARY_PATH="$release:$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cc=(clang-19 --sysroot="$sysroot" -O2 -Wall -Wextra -Werror -std=c11)
 foundation=$root/scaffolding/foundation.tower
-if "$objects" && [[ -n ${TOWER_APP_FOUNDATION:-} ]]; then foundation=$(realpath -s "$TOWER_APP_FOUNDATION"); fi
+if "$objects"; then
+    foundation=$(realpath -s "${TOWER_APP_FOUNDATION:-$(dirname "$module")/../../../foundation.tower}")
+    if [[ ! -f $foundation ]]; then echo "missing SDK Foundation: $foundation" >&2; exit 2; fi
+fi
 tower=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$foundation")
 # Compile the selected module alone to audit even unused transitive imports.
 "${tower[@]}" "$module" --depfile module.d -o imports.o
@@ -51,19 +54,14 @@ fi
 sha256sum "$module" "$types" > module.sha256
 app=$out/source
 if "$objects"; then
-    if [[ -n ${TOWER_APP_FOUNDATION:-} ]]; then
-        app=$here
-    else
-        cp "$here"/*.tower "$app/"
-        ln -s "$(dirname "$module")" "$app/sdk"
-    fi
+    app=$here
 else
     # Compatibility with the original manual IR test's arbitrary module paths.
     for file in "$here"/*.tower; do
         while IFS= read -r line; do
             case "$line" in
-            'import sdk.imports;') printf 'import "%s";\n' "$module";;
-            'import sdk.shared;') if [[ $types != "$module" ]]; then printf 'import "%s";\n' "$types"; fi;;
+            'import library.graphics.vulkan.image_lifecycle;') printf 'import "%s";\n' "$module";;
+            'import library.graphics.vulkan.image_lifecycle_types;') if [[ $types != "$module" ]]; then printf 'import "%s";\n' "$types"; fi;;
             *) printf '%s\n' "$line";;
             esac
         done <"$file" >"source/$(basename "$file")"

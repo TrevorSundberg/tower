@@ -126132,3 +126132,85 @@ unavailable at control handoff. Public import, fresh hardware bindings,
 fault cleanup, guarded readback and retirement remain pending at that ref.
 The prior GPU LSan report of 4,187 bytes in 15 allocations and GPU TSan
 exit 66 before verified pixels remain open.
+
+### Reviewed Linux Vulkan application imports on slot 12
+
+The registered Tower reader supplied `rendering/vulkan-image-lifecycle-0849da80`
+at `e42a7e438536cab25e2e1248babfb32e507e92c6`. The implementation
+`9c3a7f7daf197860c90fa3a9207b6f05578331e9` and reviewed tip contain the
+same image_lifecycle and image_lifecycle_types blobs, respectively
+`1a73c7320bfe9de5252c95926e3914030896fb47` and
+`8efac66fc082116094afac2d3619b654d8cb1e4f`. Both supplied SHA-256 hashes
+passed. The SDK checkout remained clean. Slot 12 continued the application
+work from private-control commit `62f9fdcf` over the published `6bf5d79d`.
+The shared main's pre-existing edit prevented its pull. The isolated review
+main pulled the assigned base. Publication belongs to the rendering manager.
+
+Only the import spellings in the application Tower sources needed to change.
+The client bodies, initially null typed slots, raw vkDestroyImage declaration,
+SDK layout oracle and two owner representations stayed at their respective
+revisions. In the ordinary lane the compiler opens the checked-in application
+directory and resolves both dotted imports via the reviewed SDK's Foundation.
+The [application recipe](../scaffolding/library/graphics/vulkan/linux_checks/application/README.md#ordinary-objects-with-the-reviewed-image-lifecycle-module)
+gives the exact source-to-object, standalone CPU and device commands.
+
+The pinned compiler (7430bdb3…, Linux x86-64, default optimization, one job)
+emitted combined object c678f799… with seven PLT32 relocations. The two
+separate objects carried three and four. Each depfile identified the original
+public module and types, plus the application's own private owner. Both ELF
+executables had all seven jump slots. Glibc bound them to the released
+16-entry DSO (2d924e64…) in fresh CPU and GPU executions. The nine lower-level
+Vulkan calls used the recording driver on CPU and reached libvulkan.so.1 on
+hardware. The ordinary consumer, manual-IR consumer and archived private
+packet had identical normalized default and canary rows (bf088f3e…).
+The raw-ABI conflict, swapped handle, wrong output slot and private descriptor
+each produced the expected compile failure. The separate slot 11 SDK sample
+also rebuilt as 821c8208… on this host. That object has different entry points
+from the application adapters linked into the retained device workload.
+
+Using slot 12's discrete RTX 3090, PCI 0000:81:00.0, UUID
+cd3d9791fe794e0b3ec29fc16b74d31c, Vulkan 1.3.289, NVIDIA 565.57.01, queue
+0/family 0, the fresh raw C, linked C and Tower traces each matched all
+103,158,144 guarded bytes (140d8d65…). The raw C retirement executable used
+its original fifteen-entry dependency. Linked C and the new Tower executable
+117744a7… used the sixteen-entry release. For each, all five view/image/memory
+triples survived sixteen samples and retired on their creating devices. The
+verifier consumed 199 events and the validation count was zero. Both application
+arguments and the external SDK ledger were checked separately. The retained
+applications each received argv[0] alone. The SDK client charged 512 bytes
+before bind and returned to zero after release. The synthetic private owner
+covers three handles, byte count and completion. Draw's shipping 64-byte
+owner is a separate test scope.
+
+On both linked C and Tower, plan miss, allocation refusal and bind refusal
+returned 1, emitted no pixels and passed the partial-cleanup verifier. Bind
+refusal occurred with 25,165,824 bytes charged. The independent original 2×2
+oracle at device index zero checked its fence, guards, padded rows and
+short spans/pitches. Malformed and overflowing device arguments returned 2.
+
+| Three warm fresh-process samples | Linked C | Ordinary Tower |
+| --- | --- | --- |
+| GPU inventory wall seconds | 2.056, 2.266, 2.269 | 2.057, 2.017, 2.258 |
+| One CPU owner wall ms | 31.69, 27.36, 31.72 | 31.09, 30.35, 31.38 |
+| Four CPU owners wall ms | 33.59, 33.42, 34.90 | 35.16, 33.98, 33.93 |
+
+Both timed GPU arms passed the complete pixel check before sampling and on
+every timed run. CPU runs used 160,000 checked cases per owner, one or four
+pthreads, EPYC 7282 (16 cores / 32 logical CPUs, affinity 0–31, quota 15.36).
+The packet retains user/system CPU and peak RSS per process. GPU RSS ranged
+116,088–116,340 KiB and CPU RSS 1,796–2,316 KiB. Three same-source combined
+builds on LLVM 19.1.7 took 381–395 ms wall, 379–386 ms CPU and
+89,236–90,204 KiB peak RSS in the manual IR lane. Ordinary towerc took
+316–327 ms wall, 316–319 ms CPU and 89,444–89,520 KiB. Process measurements
+include startup; no per-allocation profiler was used. These samples measure
+the fixture and carry no Draw or general rendering throughput claim.
+
+Four-owner CPU ASan/LSan, fatal C-layout UBSan and CPU TSan passed.
+CPU TSan had ten personality refusals before a successful start. Linked
+instrumented client functions contain ASan/TSan hooks. The DSO, retained
+owner and proprietary driver keep their release builds. GPU ASan with leak
+checking disabled passed guarded pixels and lifetime. With leak checks enabled,
+the same executable completed readback but exited 1 with 4,187 bytes in
+15 allocations. GPU TSan had 22 personality refusals then exited 66 on a
+nested SEGV with zero captured bytes. Attribution and GPU TSan coverage remain
+open. No extra GPU worker, publication or Draw checkout was used.

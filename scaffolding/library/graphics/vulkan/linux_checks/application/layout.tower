@@ -1,8 +1,8 @@
 import tower;
 import library.testing;
 import private_shapes;
-import sdk.imports;
-import sdk.shared;
+import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.image_lifecycle_types;
 
 extern fn sdk_layout(count: usize*): usize*;
 struct LayoutCursor { next: usize; length: usize; reference: usize*; }

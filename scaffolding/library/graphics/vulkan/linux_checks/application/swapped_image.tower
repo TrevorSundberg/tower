@@ -1,6 +1,6 @@
 import tower;
-import sdk.imports;
-import sdk.shared;
+import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.image_lifecycle_types;
 export fn swapped(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32 {
     return tower_vk_bind_image_memory_zero_v1(device, memory, image);
 }

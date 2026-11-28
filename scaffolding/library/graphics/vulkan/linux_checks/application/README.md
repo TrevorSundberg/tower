@@ -70,8 +70,7 @@ declarations file and shared type definitions supplied by the evidence
 packet. Their SHA-256 digests were
 `e63931e2f3b902aa6e4bde46f3839babdd9f1c6a871d8f7f2fdd0dec95b801d3`
 and `98ea6f9bf0d44916d4552dee62231cd558f9dd2e822dcd32dd74db1509acaf36`.
-These are test inputs. Qualification of the public Tower imports requires
-a replay with their reviewed source revision. The private owner in this
+These test inputs supplied the historical comparison for the reviewed SDK run below. The private owner in this
 fixture models handle publication and bookkeeping using three handles,
 a byte count and a completion flag. Draw separately tests its actual
 64-byte owner layout.
@@ -105,60 +104,68 @@ Use the package root as the working directory and a fresh output path.
 bash ./replay.sh "$TOWER_CHECKOUT" "$PWD/private_binding/imports.tower" "$OUTPUT"
 ```
 
-## Ordinary optimized objects
+## Ordinary objects with the reviewed image lifecycle module
 
-With `--objects` and `TOWER_APP_FOUNDATION`, Tower compiles the checked-in
-application files in this directory. Supply the Foundation file at the root
-of the SDK's module search tree. Each client directly imports the extern file
-and the file declaring its nominal types. The depfile must resolve both to
-the supplied files. The initial isolated CPU control uses `sdk/imports.tower`
-and `sdk/shared.tower` under that root. Keep the two files together under their
-original names so the extern file and the caller resolve one set of types.
-
-From the Tower checkout, with the SDK, LLVM 19 and x86-64 GNU ld installed:
+The application imports `library.graphics.vulkan.image_lifecycle` and
+`library.graphics.vulkan.image_lifecycle_types`. Tower resolves the imports
+from the Foundation directory in the SDK checkout. The two clients keep their
+private owner and typed output slots. No installed copy of the graphics
+declarations is needed. With the pinned Linux bootstrap, LLVM/Clang 19,
+x86-64 GNU ld, and the Vulkan SDK available, run the following from the
+application acceptance checkout. Set `TOWER_READER` to the registered Tower
+read URL, `SDK` to a new absolute checkout path, and `OUT` to a new absolute
+output directory.
 
 ```sh
+git init -q -b main "$SDK"
+git -C "$SDK" fetch --depth=1 "$TOWER_READER" refs/heads/rendering/vulkan-image-lifecycle-0849da80
+git -C "$SDK" checkout -q -B main FETCH_HEAD
+test "$(git -C "$SDK" rev-parse HEAD)" = e42a7e438536cab25e2e1248babfb32e507e92c6
+ROOT=$PWD
+V=scaffolding/library/graphics/vulkan
+APP=$ROOT/$V/linux_checks/application
+IMPORTS=$SDK/$V/image_lifecycle.tower
+TYPES=$SDK/$V/image_lifecycle_types.tower
 export TOWER_SDK_ROOT=${TOWER_SDK_ROOT:-/}
 export PATH="$TOWER_SDK_ROOT/usr/bin:$PATH"
 export LD_LIBRARY_PATH="$TOWER_SDK_ROOT/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-export TOWER_APP_FOUNDATION="$MODULE_ROOT/foundation.tower"
-ROOT=$PWD
-APP=$ROOT/scaffolding/library/graphics/vulkan/linux_checks/application
+export TOWER_APP_FOUNDATION="$SDK/scaffolding/foundation.tower"
+mkdir "$OUT"
 (cd "$APP" && "$ROOT/bootstrap/linux-x64/towerc" --library --jobs 1 \
-    --foundation "$TOWER_APP_FOUNDATION" combined.tower --depfile "$OUT.d" -o "$OUT.o")
-env -u GRAPHICS_SO bash "$APP/check_cpu.sh" --objects "$IMPORTS" "$CPU_OUT" "$TYPES"
+    --foundation "$TOWER_APP_FOUNDATION" combined.tower --depfile "$OUT/combined.d" -o "$OUT/combined.o")
+env -u GRAPHICS_SO bash "$APP/check_cpu.sh" --objects "$IMPORTS" "$OUT/cpu" "$TYPES"
 ```
 
-Use absolute output paths and a new CPU output directory. The CPU recipe builds
-the release DSO, checks SDK layout, and records both the default and seeded
-owner cases. `*.relocations` retain the client call relocations and executable
-jump slots. `*.bindings` show the loader's actual providers. `record_rows` checks
-the caller and recorder addresses inside each record before emitting fault,
-signed result, decision, image/allocation seen flags, requested bytes, bytes
-charged at bind, and ordered event digits. Compare these columns across
-processes. The CPU packet for assignment 54eb1dbf includes the two original
-private control files and a standalone SDK setup in `CPU_REPLAY.sh`.
+The two SDK files at code commit `9c3a7f7d` have SHA-256
+`48eb97f4c33aff5667ff236d1adb75cbcb49b40383f95fbca024cc5469b2fd63` and
+`5aecf3e978b3a1309e902b07dbb6fcbb30c2d5e238da27b010b108348352d285`,
+respectively. The review tip preserves those blobs. The CPU recipe builds
+the release DSO from source. The application depfiles, object call
+relocations, executable jump slots and loader bindings are in the output
+directory. `cases.rows` and `canary.rows` contain the fault, signed result,
+decision, image/allocation seen flags, requested bytes, bytes charged at bind
+and ordered event digits. The row reader checks descriptor and extension
+identity within each process before comparing rows.
 
-For a standalone sibling pair, omitting `TOWER_APP_FOUNDATION` copies the
-unchanged application to the output folder and mounts the containing package
-directory at `source/sdk`. The historical command without `--objects`
-retains the manual LLVM IR, opt and llc comparison. The ordinary object
-invocation saves raw IR separately for the existing instrumentation and
-benchmark harness. Its release client objects come from towerc.
-
-The public slot 11 declarations were pending when the standalone control
-was tested. At handoff, record the reviewed ref and both Git blob IDs.
-Match the test clients' ordinary imports and SDK-layout field spellings to
-that checkout in a focused source adaptation. Use its complete
-`scaffolding/foundation.tower` search root and the actual shipped paths in
-`IMPORTS` and `TYPES`. Keep both module blobs unchanged. Repeat the CPU command
-above, then on slot 12 run:
+The historical commands without `--objects` retain the manual LLVM IR,
+opt and llc comparison. In the ordinary lane towerc writes optimized objects
+and saves its raw IR for the separate instrumentation and benchmark harness.
+The slot 12 device command uses the e9a55c1c retirement packet.
 
 ```sh
-bash "$APP/check_device.sh" --objects "$IMPORTS" "$RETIREMENT_PACKET" "$DEVICE_OUT" "$TYPES"
+bash "$APP/check_device.sh" --objects "$IMPORTS" "$RETIREMENT_PACKET" "$OUT/device" "$TYPES"
 ```
 
-The hardware command reuses the same release archive, C executable, guarded
-SDK reference, lifetime verifier, fault controls, and sanitizer lanes described
-above. Record a public-module result only after this replay. GPU leak checking
-and GPU TSan remain open.
+On slot 12 the ordinary combined object had SHA-256
+`c678f7998e793651f76e841e77ca021caa58fe5dafd63de3fbf79db93f221138`.
+The device executable had SHA-256
+`117744a74ae96fbb20ec1d3f0156cecb12c2a4500a9fdc400cb14c54d23cfe2a`.
+The depfiles identified both reviewed files. Glibc resolved all seven calls
+to the sixteen-entry DSO in the recording and hardware executables. The raw
+C retirement, linked C and public Tower runs each matched all 103,158,144
+reference bytes on the RTX 3090, NVIDIA 565.57.01. Each recorded sixteen
+sampled reads before five retirements and zero validation warnings/errors.
+Both sets of eight CPU rows, four rejection diagnostics, and all three
+hardware refusals matched the preceding application fixture. GPU leak
+checking again reported 4,187 bytes in 15 allocations. GPU TSan exited 66
+before readback. The journal records timings and instrumentation coverage.

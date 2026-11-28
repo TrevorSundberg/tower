@@ -1,6 +1,6 @@
 import tower;
-import sdk.imports;
-import sdk.shared;
+import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.image_lifecycle_types;
 export fn wrong(device: VkDeviceHandle*, info: VkImageCreateInfo*, memory: VkDeviceMemoryHandle**): i32 {
     return tower_vk_create_image_v1(device, info, memory);
 }

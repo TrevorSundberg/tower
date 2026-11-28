@@ -1,8 +1,8 @@
 import tower;
 import private_owner;
 import private_shapes;
-import sdk.imports;
-import sdk.shared;
+import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.image_lifecycle_types;
 
 export fn sdk_preflight(physical: void*, info: AppImageInfo*, limits: AppLimits*, supported: u32*): i32 {
     return tower_vk_image_format_preflight_v1(bits(VkPhysicalDeviceHandle*, physical),
