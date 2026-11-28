@@ -1,6 +1,5 @@
 import tower;
 import readback_abi;
-import readback_clear;
 
 export fn tower_vk_plan_image_allocation_v1(device: VkDeviceHandle*, created: VkImageHandle*,
     types: VkMemoryType*, count: u32, required: u32, out: VkMemoryAllocateInfo*): u32 {

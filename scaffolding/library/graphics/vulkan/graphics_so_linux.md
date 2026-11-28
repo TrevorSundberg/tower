@@ -27,7 +27,11 @@ The [clear application](osd_checks/tower_client/clear_app.tower) uses the
 public image and queue-submit declarations, the existing image owner, and
 the rendering fixture's clear, device-selection and row-copy helpers.
 It clears a 2×2 RGBA8 image, submits once, waits on the fence, reads two
-pitched rows and retires the image. It needs a Vulkan 1.3 graphics device
+pitched rows and retires the image. On a recoverable fence error it drains
+the submitting queue, skips mapping and retires the separately owned image,
+staging allocation, pool and fence. [Completion policy](readback_v1.md)
+
+It needs a Vulkan 1.3 graphics device
 with dynamic rendering and the Khronos validation layer.
 
 Run in Bash from the SDK checkout on Linux x64. Install Clang/LLVM 19,

@@ -205,8 +205,10 @@ The staging allocation holds two disjoint 40-byte samples. Host reads follow a
 transfer-to-host barrier and completion of the single submission. Noncoherent
 memory requires whole-allocation invalidation. Shader modules retire after
 pipeline creation. The pipelines, descriptors, buffers, backing memory, image
-and view live through fence completion. Failed fence waits take the v1
-device-idle recovery path. Failure to establish either retirement or device loss
+and view live through fence completion. The Linux callers and the single-tree
+Win64 application share the same completion helper. A fence wait reporting
+device loss permits cleanup. Other wait errors drain the submitting queue.
+If the drain cannot establish completion or device loss, the process
 terminates with the objects still live.
 
 ## Reproduce on Linux x86-64
@@ -534,8 +536,8 @@ Queue idle success and queue idle device loss both permit cleanup. Any other
 drain error prints its signed result after the first diagnostic, flushes
 the output and aborts with the resources live. All error paths skip mapping.
 The public SDK submit still returns the loader's signed result and borrows
-the caller's descriptor and fence. The standalone clear fixtures own
-separate completion paths.
+the caller's descriptor and fence. Both Linux clear callers share this
+completion policy and retain their own submit, fence and mapped readback. [Clear lifetime and layout](readback_v1.md)
 
 To run the typed recording matrix, use the runtime object built by the raw
 Linux recipe above. From the repository root with its `sdk`, `out` and
@@ -544,7 +546,7 @@ Linux recipe above. From the repository root with its `sdk`, `out` and
 ```bash
 v=scaffolding/library/graphics/vulkan
 tc=bootstrap/linux-x64/towerc
-"$tc" "$v/counted_completion_checks.tower" --library --jobs 1 -o "$out/checks.o"
+"$tc" "$v/counted_completion_checks.tower" --library --jobs 1 --foundation "$PWD/scaffolding/foundation.tower" -o "$out/checks.o"
 "$tc" --link-executable "$out/checks.o" --link "$out/runtime.o" \
     --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" --sysroot "$sdk" -o "$out/checks"
 "$out/checks"

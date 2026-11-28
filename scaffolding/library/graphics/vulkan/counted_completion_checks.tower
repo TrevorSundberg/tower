@@ -1,9 +1,8 @@
 import tower;
 import readback_abi;
 import readback_device;
-import readback_clear;
 import frame_submit;
-import counted_completion;
+import readback_completion;
 
 extern fn exit(status: i32): void;
 extern fn strcmp(left: u8*, right: u8*): i32;
@@ -51,7 +50,8 @@ fn borrow(state: SubmitCase*): bool {
     defer release(state);
     var info = vk_one_command_submit_info(&state.cmd, null, null, null);
     var result = tower_vk_queue_submit_one_v1(state.queue, &info, state.fence);
-    var complete = vk_complete_submission(state.device, state.queue, state.fence, result, "submitted=1 test");
+    var complete = vk_complete_submission(state.device, state.queue, state.fence, result,
+        { submit: "vkQueueSubmit", submitted: "submitted=1 test", wait: "vkWaitForFences", signaled: "fence=signaled" });
     if complete { event(state, "C"); }
     return complete;
 }

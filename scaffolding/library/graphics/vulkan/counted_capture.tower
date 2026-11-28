@@ -1,7 +1,7 @@
 import tower;
 import counted_abi;
 import counted_calls;
-import counted_completion;
+import readback_completion;
 import counted_device;
 import counted_pipeline;
 import counted_record;
@@ -113,7 +113,8 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     defer vkDestroyFence(device, fence, null);
     var result = calls.submit(ctx.queue, &submit, fence);
     if !vk_complete_submission(device, ctx.queue, fence, result,
-        "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy") { return false; }
+        { submit: "vkQueueSubmit", submitted: "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy",
+          wait: "vkWaitForFences", signaled: "fence=signaled" }) { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
     defer vkUnmapMemory(device, staging.memory);

@@ -3,6 +3,7 @@ import library.graphics.vulkan.command_submission;
 import library.graphics.vulkan.image_lifecycle;
 import library.graphics.vulkan.readback_abi;
 import library.graphics.vulkan.readback_clear;
+import library.graphics.vulkan.readback_completion;
 import library.graphics.vulkan.readback_device;
 import library.graphics.vulkan.readback_oracle;
 import library.graphics.vulkan.readback_rows;
@@ -53,16 +54,10 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_ok("create fence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
     var submit: VkSubmitInfo = {sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default};
-    if !vk_ok("submit clear and copy", tower_vk_queue_submit_one_v1(ctx.queue, &submit, fence)) { return false; }
-    puts("submitted clear, image copy and host barrier");
-    if !vk_ok("wait for fence", vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0))) {
-        var idle = vkDeviceWaitIdle(device);
-        if !vk_ok("drain after failed wait", idle) && idle != VkDeviceLost {
-            puts("Cannot establish retirement"); fflush(null); abort();
-        }
-        return false;
-    }
-    puts("fence signaled");
+    var result = tower_vk_queue_submit_one_v1(ctx.queue, &submit, fence);
+    if !vk_complete_submission(device, ctx.queue, fence, result,
+        { submit: "submit clear and copy", submitted: "submitted clear, image copy and host barrier",
+          wait: "wait for fence", signaled: "fence signaled" }) { return false; }
     var mapped: void*;
     if !vk_ok("map staging", vkMapMemory(device, staging, 0, VkWholeSize, 0, &mapped)) { return false; }
     defer vkUnmapMemory(device, staging);

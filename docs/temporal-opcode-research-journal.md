@@ -127587,3 +127587,147 @@ split-library trials and seven in 18 packaged trials. The cause remains
 open. Those executables used replayed link arguments on the earlier
 worker tree. Draw owns direct typed-import execution under `bcf1df80`
 and memory failure cleanup under `1823ef69`.
+
+### Same-queue retirement in the two Linux clear callers
+
+Slot 12 assignment 523ed590 uses the published rendering SDK at 19fdb086.
+The raw and SDK clear paths previously returned from an indeterminate submit
+with live command references and called vkDeviceWaitIdle on a failed fence.
+Each caller now passes its original submit result and diagnostic labels to
+the completion function used by counted capture. The submit descriptor, fresh
+fence, deferred destroys, mapped visibility and row copy remain caller-owned.
+
+An initial Win64 staging trial added the shared completion module but the
+pinned counted capture could no longer resolve VkDeviceLost. That capture
+also calls fflush and abort directly. All three now belong to readback_device,
+a private dependency of both the historical capture and the Linux helper.
+The allocation-plan provider used to import the clear implementation for the
+allocation structure tag alone. It now gets the tag from readback_abi.
+
+**Checked bytes and bindings.** The CPU row copier and literal oracle matched
+`3dd5f11f`, the rendering child of compiler base `a580e70a`. The pitch-7,
+span-19 and source-263 controls rejected the copy with all guards intact.
+The physical Vulkan runs used the RTX 3090, UUID cd3d9791fe794e0b3ec29fc16b74d31c,
+10de:2204, API 1.3.289, NVIDIA 565.57.01, family/queue 0/0. Both clear entries
+signaled the fence, mapped coherent staging and returned zero with zero validation
+warnings/errors. Each returned the exact 32-byte array from the guarded oracle
+(SHA-256 `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`).
+Direct debugger dumps before device destruction matched those bytes.
+Both Linux counted entries returned the earlier 112-byte result (`a49420a8`).
+A separate software run on llvmpipe, Mesa 22.3.6, LLVM 15.0.6, API 1.3.230,
+family/queue 0/0, passed both clear checks with zero warnings/errors.
+Healthy stdout matched the corresponding published clear on both adapters.
+Raw and external Linux build commands are in [readback v1](../scaffolding/library/graphics/vulkan/readback_v1.md#build-and-run)
+and the [SDK guide](../scaffolding/library/graphics/vulkan/graphics_so_linux.md#build-and-run-an-ordinary-tower-application-on-linux).
+
+**Ordinary-entry fault traces.** Before the change, a loader-entry injection
+of submit −13 released the fence immediately. A real submit followed by an
+injected wait −1 called device idle in both executables. In the candidate
+the external submit resolved through libtower_graphics.so to libvulkan.so.1.
+The queue, batch, primary and fresh fence observed at the loader matched
+the caller. Both real submits returned 0. After the injected wait −1, a
+real idle on that queue returned 0, then cleanup ran and the program exited 1.
+The debugger checked the original handles at fence, pool, buffer, image,
+view and both allocation releases. The external retirement call received
+only its own view, image and image memory. The device lived through cleanup.
+
+Submit results −1, −2, −4 and −13 were injected before the loader body.
+The OOM cases released immediately. The latter two drained the recorded
+queue. All skipped the fence. With injected drain −2 following either
+submit −13 or wait −1, both diagnostics survived and both entries aborted
+with all handles live. Independent launches with wait and drain interposed
+exited 134. Every traced failure preserved all 32 guards, skipped mapping
+and made zero calls to device idle. The CPU recording matrix covered the
+device-loss wait and drain branches as well. Twelve runs with two independent
+queues left the second fence pending through recovery of queue 0. Only the
+subsequent host signal allowed queue 1 to finish.
+
+**Build roots.** The external source directory has the two application files.
+Its depfile resolves completion, readback and SDK declarations through the
+explicit Foundation root and links the DSO, Vulkan loader and libatomic.
+The allocation-plan object's closure omits the clear and completion modules.
+All 32 Tower dependencies of the Win64 executable resolved inside its stage.
+The updated recipe reproduced counted.exe `ee5e16f4`, the 16-export DLL
+`8fc64f24` and the import library `2d56f882`. The 16-export Linux DSO
+reproduced `2d924e64`. The Win64 source-archive assignment f22cca24 can
+stage readback_completion alongside the current readback_clear and
+readback_device and keep the four pinned fixture modules. Win64 execution
+remains covered by its prior receipt.
+
+**Measurements.** One application process and one submitting thread on slot
+12 (Debian 12, EPYC 7282, 16 cores/32 logical, 15.36 CPU quota), packaged
+towerc `7430bdb3`, LLVM 19.1.7, x86_64-linux-gnu. Both revisions used the same
+runtime, loader, validation layer and DSO. Process times include setup,
+validation, readback and teardown. After one warmup, five hardware process
+samples alternated revision order. Three warm compile samples per width
+compared the raw object or complete external executable byte-for-byte with
+its one-worker build. Values are median wall seconds / median CPU seconds /
+largest peak RSS KiB.
+
+| Operation | Published 19fdb086 | Candidate |
+| --- | --- | --- |
+| Raw clear process | 0.30 / 0.29 / 91848 | 0.30 / 0.29 / 91836 |
+| External clear process | 0.30 / 0.29 / 91816 | 0.30 / 0.29 / 91576 |
+| Raw object, one worker | 0.63 / 0.62 / 109360 | 0.63 / 0.63 / 109964 |
+| Raw object, four workers | 0.74 / 0.82 / 113964 | 0.75 / 0.84 / 114792 |
+| External exe, one worker | 0.95 / 0.95 / 106640 | 0.96 / 0.95 / 107116 |
+| External exe, four workers | 1.06 / 1.15 / 111732 | 1.08 / 1.18 / 112012 |
+
+Both clear programs released their observed 8- and 144-byte Tower
+allocations before and after. ASan instrumentation in the completion
+function passed both healthy hardware paths and both wait-error recoveries.
+The CPU fault matrix passed ASan with leak checking enabled. In the full
+Vulkan processes, LeakSanitizer reported 3,511 bytes in eight allocations
+for each baseline and candidate. Stacks include the resident validation
+layer. Attribution remains open. TSan failed before main at the container's
+personality restriction (139). Native Tower UBSan, noncoherent staging and
+real driver-reported OOM/device loss remain unverified.
+
+The packet includes the commands, executable argv, signed diagnostics,
+debugger traces, live memory dumps and failed harness attempts. The first
+GDB condition compared uninitialized SDK registers on the raw path. A
+second attempt tested the typed destination before its guard fill. The
+final probe initializes its registers and inspects the filled destination
+at image creation. An initial timing command used an absent /usr/bin/time.
+The completed samples use the installed GNU time on the recorded PATH.
+
+### Shared submitting-queue recovery for Linux clear readback
+
+Rendering reviewed slot 12 job `523ed590-965a-4490-b8d5-9d270d263f6e`
+at `760be31474419b31dcd429f80870eb4d3384c662`. The coordinator and the
+bounded bundle identify the same tested commit on `19fdb086`. All 271
+manifest entries verified in archive
+`5c485f3562f3cb19a740f7357d8db88e0b9089ea17728baf672f50238cc22e6d`.
+
+The raw clear still calls vkQueueSubmit directly. The SDK clear submits
+through the published graphics library. Both now share the counted
+application's completion rules and preserve their caller-specific diagnostics.
+Rendering checked 16 worker traces on the RTX 3090, Vulkan 1.3.289 and
+NVIDIA 565.57.01. After an accepted submit and injected wait result −1,
+each caller drained its original queue before releasing its handles.
+Both preserved all 32 destination bytes. A failed submit skipped the
+fence. A failed recovery drain printed both signed errors and aborted
+before mapping or release. In 12 two-queue trials the other queue remained
+pending until its own host signal.
+
+The two clear executables and graphics DSO rebuilt byte for byte from
+the merged tree. Rendering ran both on Mesa llvmpipe and checked the
+four clear pixels, row gaps and outer guards against the independent
+32-byte result. Both returned status 1 after a recovered wait error and
+status 134 after a second injected drain error. The recording matrix and
+both Linux counted callers also passed. The worker's healthy median was
+0.30 s per process before and after. Address checks passed. Full-process
+LSan reported 3511 bytes in eight allocations on both revisions. TSan
+stopped before main. Real device loss and noncoherent hardware memory
+remain unverified.
+
+Slot 12 used the historical Win64 staging recipe on its parent. The
+merge keeps the newer single-tree recipe from `c74de3f0` and uses the
+shared completion source in the Win64 counted application. Rendering
+cross-linked the ordinary and CRT executables, respectively
+`a608856324e0ed0111c2931a0b2eff81d37c6976dcb117646c878c0c86a3f205` and
+`90cf0311d8573e350102e92d1e0c3b271b929ad28d4dbb2ba9301e48a83eb369`.
+Each imports shader creation and counted drawing from the same release DLL.
+The DLL and import library still match `8fc64f24` and `2d56f882`.
+The merged PE checks cover cross-linking. The earlier Wine runs cover
+the executable hashes recorded on their respective revisions.
