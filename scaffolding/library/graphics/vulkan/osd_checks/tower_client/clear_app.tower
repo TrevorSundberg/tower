@@ -1,5 +1,6 @@
 import tower;
 import library.graphics.vulkan.bound_buffer;
+import library.graphics.vulkan.primary_command;
 import library.graphics.vulkan.command_submission;
 import library.graphics.vulkan.image_lifecycle;
 import library.graphics.vulkan.readback_abi;
@@ -36,19 +37,16 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_create_bound_buffer(ctx, &staging, convert(u64, ReadbackClearBytes), VkTransferDstUsage,
         VkHostVisible, { create: "create staging buffer", bind: "bind staging" }) { return false; }
     defer vk_release_bound_buffer(device, &staging);
-    var pool_info: VkCommandPoolCreateInfo = {sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default};
-    var pool: VkCommandPoolHandle*;
-    if !vk_ok("create pool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
-    defer vkDestroyCommandPool(device, pool, null);
-    var alloc_info: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
-    var cmd: VkCommandBufferHandle*;
-    if !vk_ok("allocate primary", vkAllocateCommandBuffers(device, &alloc_info, &cmd))
-        || !vk_record_clear(cmd, owner.image, owner.view, staging.handle, range) { return false; }
+    var primary: PrimaryCommand = default;
+    if !vk_acquire_primary(device, ctx.family, 0,
+        { create: "create pool", allocate: "allocate primary" }, &primary) { return false; }
+    defer vk_release_primary(&primary);
+    if !vk_record_clear(primary.command, owner.image, owner.view, staging.handle, range) { return false; }
     var fence_info: VkFenceCreateInfo = {sType: VkFenceTag, ..default};
     var fence: VkFenceHandle*;
     if !vk_ok("create fence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    var submit: VkSubmitInfo = {sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default};
+    var submit: VkSubmitInfo = {sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &primary.command, ..default};
     var result = tower_vk_queue_submit_one_v1(ctx.queue, &submit, fence);
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "submit clear and copy", submitted: "submitted clear, image copy and host barrier",

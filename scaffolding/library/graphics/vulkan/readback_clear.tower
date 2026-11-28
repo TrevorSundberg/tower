@@ -1,5 +1,6 @@
 import tower;
 import bound_buffer;
+import primary_command;
 import readback_completion;
 import readback_mapping;
 import readback_device;
@@ -7,8 +8,6 @@ import readback_abi;
 import readback_rows;
 
 var VkImageCreateTag: u32 = 14;
-var VkCommandPoolTag: u32 = 39;
-var VkCommandAllocateTag: u32 = 40;
 var VkImageBarrierTag: u32 = 45;
 var VkBufferBarrierTag: u32 = 44;
 var VkRenderingTag: u32 = 1000044000;
@@ -95,19 +94,16 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_create_bound_buffer(ctx, &staging, convert(u64, ReadbackClearBytes), VkTransferDstUsage,
         VkHostVisible, { create: "vkCreateBuffer", bind: "vkBindBufferMemory" }) { return false; }
     defer vk_release_bound_buffer(device, &staging);
-    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default };
-    var pool: VkCommandPoolHandle*;
-    if !vk_ok("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
-    defer vkDestroyCommandPool(device, pool, null);
-    var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
-    var cmd: VkCommandBufferHandle*;
-    if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
-    if !vk_record_clear(cmd, image, view, staging.handle, range) { return false; }
+    var primary: PrimaryCommand = default;
+    if !vk_acquire_primary(device, ctx.family, 0,
+        { create: "vkCreateCommandPool", allocate: "vkAllocateCommandBuffers" }, &primary) { return false; }
+    defer vk_release_primary(&primary);
+    if !vk_record_clear(primary.command, image, view, staging.handle, range) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
+    var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &primary.command, ..default };
     var result = vkQueueSubmit(ctx.queue, 1, &submit, fence);
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "vkQueueSubmit", submitted: "submitted=1 clear/store -> image-to-buffer -> host-read barrier",
