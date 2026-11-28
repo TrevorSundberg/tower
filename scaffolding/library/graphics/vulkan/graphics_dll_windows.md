@@ -879,3 +879,31 @@ Win64 trapping UBSan and native Linux ASan/leak and TSan passed in their
 respective fixtures. Win64 ASan and TSan were unavailable. This run covers
 the Tower qualification fixture. Physical Windows and the shipping Draw
 PE with ordinal 16 have their own acceptance requirements.
+
+### Draw Win64 owner cross-link at ordinal 16
+
+Draw commit `ad18ef06908ea1ffbd74d2a45a96f36a652794b9` used the released
+Tower DLL at `8ac14905c24b806449243348591f7164e06d2d90`. Draw checked the
+retirement source and header against `6aa610c9` and reproduced the DLL and
+import library hashes recorded above. It cross-linked its actual
+`draw.c` `image_destroy` body and 64-byte `Image` definition twice, selecting
+C or Tower accounting and using link-only accounting stubs. Both compiled
+callers had an AMD64 REL32 relocation for the retirement call. Both probe
+PEs imported `tower_vk_destroy_retired_image_v1` by name from
+`tower_graphics.dll`. Draw reported these PE hashes:
+
+- `56370b73faf082e151c302f7362c702b9b3f5475b57337c28514cbbfc87ac606`
+- `482d2ed1790f7f6ae2e9c764772d20ee70d052fa553cf56708989981ec291e58`
+
+A separate Draw probe using temporary Tower declarations also cross-linked
+all seven image-lifecycle entries in one PE, SHA-256
+`b46e5c7b4e8f970d4ab2f224b31504ce1f317988dcf75150ccad394fca744674`.
+Rendering rechecked the released DLL export table. Ordinals 10–16 name
+bound-view creation, image creation, format preflight, allocation planning,
+memory allocation, zero-offset bind and retirement, respectively.
+
+This Draw evidence covers static linking. Draw assigned shipping device
+execution through ordinal 16 to slot 9 job
+`feb0c2ae-4467-44d8-b331-d0e5bc425a5f` after allocation and bind job
+`83bebca9-c966-43cc-851b-868708c7d4aa`. The Linux device qualification
+of Draw's partial-owner cleanup has its own worker revision.
