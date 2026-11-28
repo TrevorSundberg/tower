@@ -53,7 +53,8 @@ fixture selects the direct Vulkan functions. The SDK entry selects
 `shader_client` and `counted_client`, which use the same handle types as the
 renderer. The pipeline owner releases its modules after pipeline creation.
 The recorder uses the procedure resolved on the live device. [Build script](build.sh)
-\nWin64 supplies the shared `CountedCalls` table with those two SDK operations
+
+Win64 supplies the shared `CountedCalls` table with those two SDK operations
 and the raw fixture's local begin, prepare and submit functions. The Linux
 SDK entry continues to supply its five imported operations to the same
 capture and recording code.
@@ -78,4 +79,4 @@ inputs and `caller.map` for the CRT link.
 Both PEs import shader creation and counted recording from the same
 `tower_graphics.dll` at hints 2 and 3. The application imports shader destruction
 from `vulkan-1.dll`. The SDK DLL imports shader creation from that loader.
-[Host 11 device evidence](../../../../../../../docs/temporal-opcode-research-journal.md#combined-win64-counted-fixture-on-host-11)
+[Host 11 device evidence](../../../../../../../docs/temporal-opcode-research-journal.md#single-tree-win64-counted-application-with-the-published-linux-callbacks)
