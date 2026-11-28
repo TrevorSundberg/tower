@@ -129103,3 +129103,84 @@ forwarded both original handles, offsets 0/20, maximum 1 and stride 20
 on the original command buffer once. At 23 bytes it returned zero with
 no forward. Draw job `7d1d76b1-4804-4abb-9965-3153fb747173` owns the
 shipping Linux and Win64 checks of the integrated provider.
+
+### Recording a stored readback color attachment
+
+Slot 12 started from rendering SDK `39f5205b327790b68c5e9ff3fc1a51fd4a43b438`.
+The worker verified the SHA-256 and file manifest of accepted image-owner
+packet `72ee46f8a83541aafc435d7049df8503fd9cf5a0baf5f3351aa924a94167ef89`.
+Raw and SDK clear call `vk_record_clear`. Both counted entries go through
+`counted_case`. All four use the new internal `vk_record_stored_color_copy`
+after ending rendering. It records the color-write to transfer-read image
+barrier and the tightly packed copy using a caller-supplied u64 buffer
+offset. Clear supplies zero. Counted skips the count/command prefix at each
+sample. Its draw refusal still returns immediately after ending rendering.
+
+The returned packet for `5e0b2cea-38b3-4b6c-b5d1-4cb475bad959` contains
+the source bundle, replay scripts, per-call traces, oracle, binaries, depfiles,
+imports, raw timing samples, sanitizer IR extracts and link maps. The shared
+checkout's initial pull refused an existing edit. Work proceeded on local
+main in a separate checkout. The Linux x64 bootstrap used one compiler
+worker and LLVM 19. Both baseline Linux pairs, four cross-linked PEs and the
+public libraries reproduced the accepted packet's candidate bytes.
+
+The Tower recorder checked an offset of 4,294,967,360, the supplied image
+range, and every Vulkan barrier and region field. The first local build
+recipe named a nonexistent unit and the first test source lacked the puts
+declaration. The corrected recorder compiled and passed. The Linux x64
+debugger traced ordinary entries with the NVIDIA ICD and Khronos sync
+validation on RTX 3090 device 0, UUID cd3d9791fe794e0b3ec29fc16b74d31c,
+API 1.3.289, driver 565.57.01, family 0, queue 0. The eight healthy
+captures matched the parent packet and the independent Tower layout
+oracle. The 32-byte pitched clear record had SHA-256
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The two count/command prefixes plus guarded rows occupied 112 bytes,
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The original CPU row-copy and oracle matched Tower `3dd5f11f`, child of
+`a580e70a`. Draw's recorded reference is `36f61b4b312e41846742985bab4884f99f2c62ed`.
+
+The loader traces followed each allocated primary, image, view, staging
+buffer and bound memory. They checked the incoming image transition,
+indirect producer/consumer and reuse barriers, prefix copies at 0 and 40,
+end rendering, exactly one outgoing image barrier and one tight 2×2×1
+copy per successful render, host barrier, submit, signaled fence and map.
+Withholding the draw function pointer on either pass made the selected
+raw or SDK recorder refuse. Rendering ended, the failed pass emitted no
+outgoing barrier or image copy, and the pool retired without a submit or
+map. Refusing pass two left exactly the first copy in the unsubmitted
+primary. The diagnostic stayed `Counted draw rejected the frozen stream`.
+All sixteen instrumented processes reported zero validation warnings/errors.
+
+The EPYC 7282 has 16 cores, 32 logical CPUs and a 15.36-CPU quota. After
+pixel checks, one application ran at a time. One warmup preceded seven
+alternating pairs. Separate probes timestamped both commands together on
+the recording thread with CLOCK_MONOTONIC. Production binaries supplied
+wall time, user/system CPU, peak RSS and the allocation traces. Median
+recording times in microseconds follow. The two counted columns are the
+first and second invocation in the same primary.
+
+| Entry | Before | After | Median wall s, both | Peak RSS KiB, before / after |
+| --- | --- | --- | --- | --- |
+| Raw clear | 54.65 | 57.23 | 0.30 | 91856 / 91840 |
+| SDK clear | 56.00 | 51.94 | 0.30 | 91760 / 91752 |
+| Raw counted | 30.91 / 15.28 | 32.34 / 15.16 | 0.31 | 94992 / 94940 |
+| SDK counted | 30.99 / 15.04 | 32.05 / 14.83 | 0.31 | 94936 / 94860 |
+
+Recording ranges overlapped across revisions for every series. This path
+records sequentially into a single primary and dispatches no Tower jobs.
+Clear's two Tower allocations totaled 152 bytes with peak 152. Counted's
+five totaled 3376 bytes with peak 1752. All four processes ended with
+zero live Tower bytes. Three warm compilation pairs reproduced each raw
+clear object and SDK counted executable.
+
+LLVM 19 ASan passed the Tower recorder with leak checking and all four
+ordinary hardware entries with address checking. Raw-clear leak checking
+found 3511 bytes in eight allocations on each revision with validation
+layer frames. TSan startup sometimes failed at the container personality
+check. The recorder reached main and passed. In raw clear on both revisions
+TSan reached main and faulted on a driver thread in its allocator
+interceptor. Hardware TSan remains incomplete. Tower has no UBSan
+frontend. This Vulkan change had no browser entry. Slot 11 owns Win64
+device execution. Ordinary Tower and MinGW CRT PEs retained two imports
+in the control and five in the SDK fixture. The public Linux DSO, Windows
+DLL and import library retained their frozen identities.

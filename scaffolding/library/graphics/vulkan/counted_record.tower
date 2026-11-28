@@ -78,12 +78,7 @@ fn counted_case(calls: CountedCalls*, cmd: VkCommandBufferHandle*, draw: VkCmdDr
     var recorded = calls.record_draw(draw, cmd, stream, commands, stream, 0);
     vkCmdEndRendering(cmd);
     if !recorded { return vk_failure("Counted draw rejected the frozen stream"); }
-    transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
-    transition.srcAccessMask = VkColorWrite; transition.dstAccessMask = VkTransferRead;
-    vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
-    var region: VkBufferImageCopy = { bufferOffset: capture_offset + counted_prefix_bytes(), imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
-        imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
-    vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
+    vk_record_stored_color_copy(cmd, image, range, buffer, capture_offset + counted_prefix_bytes());
     return true;
 }
 

@@ -173,6 +173,16 @@ order, failure cleanup and repeated release. The successful trace ends in
 `CRABVDIF` for create, requirements, allocate, bind, view, destroy view,
 destroy image and free memory. [Recording checks](readback_image_checks.tower)
 
+After rendering ends, both clear callers and both counted callers record
+the stored color image for transfer. Clear copies to staging offset zero.
+Counted copies its 24-byte count and command prefix first, then the 16
+color bytes at offsets 24 and 64. The staging owner records its host-read
+barrier after the last copy and waits for its fence before mapping.
+
+Use the buffer-check recipe above with `readback_copy_checks.tower` to
+check the barrier, copy order and the full 64-bit offset. The expected
+output is `stored color barrier and tight copy at offset 4294967360`.
+
 To exercise pool and primary acquisition, use the same build with
 `primary_command_checks.tower` as the sole entry. Its driver recorder checks
 a clobbered create failure (`C`), allocation failure with pool destruction

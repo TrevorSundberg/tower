@@ -1,0 +1,63 @@
+import tower;
+import readback_clear;
+import readback_abi;
+
+extern fn puts(text: u8*): i32;
+extern fn exit(status: i32): void;
+
+enum CopyStep: u32 { Barrier, Copy, Complete }
+
+struct CopyCheck {
+    step: CopyStep;
+    image: VkImageHandle*;
+    buffer: VkBufferHandle*;
+    offset: u64;
+}
+
+fn require_copy(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(1); }
+}
+
+export fn vkCmdPipelineBarrier(cmd: VkCommandBufferHandle*, src: u32, dst: u32, flags: u32,
+    memories: u32, memory: VkMemoryBarrier*, buffers: u32, buffer: VkBufferMemoryBarrier*,
+    images: u32, barrier: VkImageMemoryBarrier*): void {
+    var state = bits(CopyCheck*, cmd);
+    require_copy(state.step == CopyStep.Barrier && src == 1024 && dst == 4096 && flags == 0
+        && memories == 0 && memory == null && buffers == 0 && buffer == null
+        && images == 1 && barrier != null, "barrier call");
+    require_copy(barrier.sType == 45 && barrier.pNext == null && barrier.image == state.image
+        && barrier.srcAccessMask == 256 && barrier.dstAccessMask == 2048
+        && barrier.oldLayout == 2 && barrier.newLayout == 6
+        && barrier.srcQueueFamilyIndex == ~convert(u32, 0) && barrier.dstQueueFamilyIndex == ~convert(u32, 0),
+        "color to transfer visibility");
+    var range = barrier.subresourceRange;
+    require_copy(range.aspectMask == 1 && range.baseMipLevel == 0 && range.levelCount == 3
+        && range.baseArrayLayer == 0 && range.layerCount == 5, "supplied image range");
+    state.step = CopyStep.Copy;
+}
+
+export fn vkCmdCopyImageToBuffer(cmd: VkCommandBufferHandle*, image: VkImageHandle*, layout: u32,
+    buffer: VkBufferHandle*, count: u32, region: VkBufferImageCopy*): void {
+    var state = bits(CopyCheck*, cmd);
+    require_copy(state.step == CopyStep.Copy && image == state.image && layout == 6
+        && buffer == state.buffer && count == 1 && region != null, "image copy call");
+    require_copy(region.bufferOffset == state.offset && region.bufferRowLength == 0
+        && region.bufferImageHeight == 0, "tight staging offset and pitch");
+    var layers = region.imageSubresource;
+    require_copy(layers.aspectMask == 1 && layers.mipLevel == 0 && layers.baseArrayLayer == 0
+        && layers.layerCount == 1 && region.imageOffset.x == 0 && region.imageOffset.y == 0
+        && region.imageOffset.z == 0 && region.imageExtent.width == 2 && region.imageExtent.height == 2
+        && region.imageExtent.depth == 1, "copied color subresource");
+    state.step = CopyStep.Complete;
+}
+
+export fn main(): i32 {
+    var handles: u64[2];
+    var state: CopyCheck = { step: CopyStep.Barrier, image: bits(VkImageHandle*, &handles[0]),
+        buffer: bits(VkBufferHandle*, &handles[1]), offset: 4294967360 };
+    vk_record_stored_color_copy(bits(VkCommandBufferHandle*, &state), state.image,
+        { aspectMask: 1, levelCount: 3, layerCount: 5, ..default }, state.buffer, state.offset);
+    require_copy(state.step == CopyStep.Complete, "missing copy");
+    puts("stored color barrier and tight copy at offset 4294967360");
+    return 0;
+}

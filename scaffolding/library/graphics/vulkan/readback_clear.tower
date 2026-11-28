@@ -27,6 +27,19 @@ var VkStoreOp: u32 = 0;
 var VkTransferDstUsage: u32 = 2;
 var VkHostVisible: u32 = 2;
 
+// Rendering has ended with the 2x2 color attachment stored. The caller owns
+// the resources, the final host barrier and completion of the command buffer.
+fn vk_record_stored_color_copy(cmd: VkCommandBufferHandle*, image: VkImageHandle*, range: VkImageSubresourceRange,
+    buffer: VkBufferHandle*, staging_offset: u64): void {
+    var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
+        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, oldLayout: VkColorLayout, newLayout: VkCopyLayout,
+        srcAccessMask: VkColorWrite, dstAccessMask: VkTransferRead, ..default };
+    vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
+    var region: VkBufferImageCopy = { bufferOffset: staging_offset, imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
+        imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
+    vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
+}
+
 fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
     buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
     var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
@@ -46,12 +59,7 @@ fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkI
         pColorAttachments: &attachment, renderArea: { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default }, ..default };
     vkCmdBeginRendering(cmd, &rendering);
     vkCmdEndRendering(cmd);
-    transition.oldLayout = VkColorLayout; transition.newLayout = VkCopyLayout;
-    transition.srcAccessMask = VkColorWrite; transition.dstAccessMask = VkTransferRead;
-    vkCmdPipelineBarrier(cmd, VkStageColor, VkStageTransfer, 0, 0, null, 0, null, 1, &transition);
-    var region: VkBufferImageCopy = { imageSubresource: { aspectMask: VkColorAspect, layerCount: 1, ..default },
-        imageExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, ..default };
-    vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
+    vk_record_stored_color_copy(cmd, image, range, buffer, 0);
     var host: VkBufferMemoryBarrier = { sType: VkBufferBarrierTag, buffer: buffer, size: VkWholeSize,
         srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily,
         srcAccessMask: VkTransferWrite, dstAccessMask: VkHostRead, ..default };
