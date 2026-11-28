@@ -1,0 +1,12 @@
+import tower;
+import command_submission_types;
+import upload_types;
+
+// vkGetDeviceProcAddr supplies this procedure for the caller's live device.
+var PFN_vkCmdDrawIndexedIndirectCount: type = function(void, VkCommandBufferHandle*,
+    VkBufferHandle*, u64, VkBufferHandle*, u64, u32, u32);
+
+// Sizes are logical buffer bytes. Return 1 after one call to draw, or 0 on refusal.
+extern fn tower_vk_record_indexed_indirect_count_v1(draw: PFN_vkCmdDrawIndexedIndirectCount,
+    cmd: VkCommandBufferHandle*, commands: VkBufferHandle*, command_bytes: u64, command_offset: u64,
+    count: VkBufferHandle*, count_bytes: u64, count_offset: u64, max_draws: u32, stride: u32): u32;

@@ -1,0 +1,9 @@
+import tower;
+import library.graphics.vulkan.counted_draw;
+
+export fn record_counted(draw: PFN_vkCmdDrawIndexedIndirectCount, cmd: VkCommandBufferHandle*,
+    commands: VkBufferHandle*, command_bytes: u64, command_offset: u64,
+    count: VkBufferHandle*, count_bytes: u64, count_offset: u64, max_draws: u32, stride: u32): u32 {
+    return tower_vk_record_indexed_indirect_count_v1(draw, cmd, commands, command_bytes, command_offset,
+        count, count_bytes, count_offset, max_draws, stride);
+}
