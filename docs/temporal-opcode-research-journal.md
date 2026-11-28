@@ -126159,3 +126159,73 @@ targets at line 4 with “Incompatible declarations of foreign symbol
 'vkDestroyImage'”. The pinned executable is the same Git blob as at
 a580e70a. An object-only symbol inventory missed the error because unused
 externs participate in foreign declaration checking before code generation.
+
+Implementation `9c3a7f7d` moves the eleven existing declarations verbatim
+to image_lifecycle_types. Both the seven externs and the provider ABI import
+that unit. Four additional SDK types used by the recording driver moved to
+image_driver_types so that the recorder can run in the same translation unit
+as the legacy owner. The public client never imports that second unit.
+
+The ELF and COFF depfiles identified the exact nine files parsed for the
+typed application. Scanning those sources found all seven public externs,
+zero raw Vulkan declarations and zero provider bodies. Each object defined
+the two application entries and had just the seven named undefined symbols.
+The integrated fixture had twelve source files, with the one intentional
+three-void-pointer vkDestroyImage declaration in legacy_owner. The recorder
+made a live call through that declaration. Both targets rejected swapping
+image and memory in the bind call and passing a void** to the allocation
+output. On Win64 the rebuilt 13 provider COFFs each matched their sealed
+object. The 16-entry DLL and import library matched the published bytes.
+All six lifecycle provider ELF objects also matched separate builds from the
+previous source tree. The two ordinary consumer objects kept their hashes.
+
+The example’s private record has 8-byte alignment, 64 bytes total, handle
+offsets 0/8/16, byte charge at 24 and metadata at 32. Only the legacy
+boundary converts individual handle values. Its initially null typed locals
+receive the outputs. Driver, SDK and retained C recording arms checked the
+original descriptor and pNext addresses, query failure versus a successful
+capacity refusal, plan refusal, signed failures, and clobbered creation,
+allocation and view slots. Each owner charged the wide allocation before
+bind. A failed bind made zero view calls. Retirement preserved the charge
+during free, then reversed it and cleared the owner. The test checked all
+64 bytes and a second retirement. The SDK allocation reference wrote into
+its output even on failure. The legacy owner kept the scribble in its local
+slot. The test-only raw-destroy control also reached the recorder.
+
+On the same host 11 Quadro, the clean standalone typed COFF and a separate
+private-owner COFF both ran through the sealed release DLL. To exercise the
+private owner, the hardware harness took its two application-level functions
+as externs. The test COFF compiled their actual bodies along with both typed
+callers and the legacy SDK declaration. The PE's map identified that object.
+Its SHA-256 is `29a74975540a327c2db13851361f86744d80c4d4a86f93d113aa6f4431e67d19`
+and the observed PE’s is
+`9ccd2825841dc0433570b768bdb393f567e8e9a9d3d07c9e0b851f3b9671e075`.
+The Quadro RTX 6000 at PCI 0000:89:00.0, driver 615.71.10, API 1.4.351,
+completed two finishes before each source retirement. The lifetime checker
+matched the ten views and five source bindings. Every capture matched all
+27,542,768 sealed bytes, including the sampled pixels and guards.
+Synchronization validation reported zero warnings or errors.
+
+For a before/after compile comparison, the exact same external caller files
+were compiled with old and new import trees and the public bootstrap,
+one worker, one warmup followed by three alternating pairs. Both produced
+the same COFF each time. Old wall times were 0.44/0.47/0.44 s and user plus
+system 0.43/0.47/0.44 s, peak RSS 91336/92368/92068 KiB. New times were
+0.46/0.41/0.39 s and CPU 0.46/0.40/0.38 s, peak RSS 89904/90988/89964
+KiB. No speedup inference is needed for the import compatibility result.
+The matched device runs used the five frozen shapes, one caller/queue,
+a warm Wine server and one warmup plus three measured samples.
+
+| Arm | Wall seconds | User + system seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| SDK reference | 1.63 / 1.67 / 1.27 | 1.36 / 1.43 / 1.24 | 189480 / 192348 / 192736 |
+| C caller to DLL | 1.51 / 1.68 / 1.55 | 1.29 / 1.42 / 1.43 | 192876 / 191456 / 191112 |
+| Typed Tower to DLL | 1.38 / 1.59 / 1.39 | 1.34 / 1.38 / 1.30 | 191704 / 191248 / 192060 |
+
+The ELF combined owner/driver recorder completed under ASan with leak
+detection and on four pthreads under TSan. TSan had three ADDR_NO_RANDOMIZE
+startup failures before the completed 16-suite run. Win64 trapping UBSan
+covered the retained C boundary. Win64 ASan import libraries were absent
+and the Win64 Clang target rejected TSan. This qualification uses Tower’s
+representative private record. The Draw source and physical Windows
+execution remain outside the worker's evidence.
