@@ -36,6 +36,9 @@ in the same application. Both library builds above also provide the four
 For staged buffers and packed textures, import `library.graphics.vulkan.upload`.
 Its [three upload entries](osd_checks/tower_client/README.md#staged-buffers-and-packed-osd-uploads)
 use the same command and image handles as the other two modules.
+For externally compiled SPIR-V, import `library.graphics.vulkan.shader_module_creation`.
+The [shader caller](osd_checks/tower_client/README.md#creating-a-shader-module-through-the-sdk)
+checks whether the driver was called and the signed Vulkan result before taking ownership.
 
 ```bash
 app=$(mktemp -d "$(dirname "$root")/image_app.XXXXXXXX")

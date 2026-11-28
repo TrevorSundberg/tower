@@ -269,6 +269,40 @@ Expect the three upload symbols and blocking finish. Use the
 `tower_graphics.dll` for Win64. The [host 11 qualification](../../../../../../docs/temporal-opcode-research-journal.md#typed-vulkan-upload-imports-on-host-11)
 records the SDK controls, hardware readbacks, failure controls and packet.
 
+### Draw's typed upload callers
+
+Draw enabled the three upload calls in `try_buffer_upload` and `osd_create`
+at `01eabb2fe4ac526961cbb9acd3b9aa3f06054ae1` with
+`DRAW_TOWER_UPLOAD_FOUNDATION` selecting the Foundation from SDK
+`b52de45a4360db19dc6c8dad91e9f1e66d0ff028`. Draw ran this command from
+its source root with the SDK headers and the packaged compiler:
+
+```sh
+python3 tests/verify-osd-texture-record.py "$TOWER" --graphics-so "$GRAPHICS/libtower_graphics.so"
+```
+
+Draw reports identical results across the typed caller, raw caller and three
+previous object combinations. The real pack produced 6/2/2/4/2 copy regions
+and 28 barriers. The 896 bytes of SDK records matched SHA-256
+`afffaf85ebb9fa1d5a84d583eded1c95a4d797435778fa7c9a3ce21e65f3eb93`,
+and the 64-line recording trace matched
+`1ca1ad200e2e418ad72035c4b5021a5f48ba2e79844fdd93d15253acda94a581`.
+All 20 pack-file cases passed. Draw also checked rejection before allocation,
+untouched output on short capacity or span, and cleanup after a second-image
+failure. Its staged buffer caller matched the 73-byte payload
+and guards, bypassed recording for mapped memory, and retained resources
+through recovery on injected end, submit and idle errors.
+
+Draw traced the three upload calls to the released Linux DSO in those CPU
+fixtures. Its adapter objects were
+`8350b1939c0af226e40d2ad612c16c59c980cf78a1701bbed45afd1d0197eba5`
+(ELF) and `e2ff57a445c89bfd4f393876e471958d70280311637cba7a3456190c11a4eb63`
+(MSVC-target COFF). Its combined Win64 link probe imported ordinals 1 and
+4 through 16 and had SHA-256
+`8a56713563a190fbf23f15880fa1a762eb06307c19c748bf6df20785bbcafd30`.
+Draw's direct-upload application device jobs are `61e2d4ae` on Linux and
+`cbaac550` on Win64.
+
 ## Creating a shader module through the SDK
 
 Import `library.graphics.vulkan.shader_module_creation`. The signature uses
@@ -338,3 +372,15 @@ runs the creation contract against the linked shared library. Its
 `vkCreateShaderModule` writes a candidate on every driver return.
 The packet's `record.sh` binds its separate destruction recorder and runs
 the test with four pthreads. [Device results and packet ID](../../../../../../docs/temporal-opcode-research-journal.md#typed-shader-module-import-on-host-12)
+
+The RTX 3090 device test used the repository's
+[counted fixture shaders](../../counted_shaders). It compiled the compute,
+vertex and fragment GLSL inputs with `glslangValidator -V --target-env vulkan1.1`
+and checked the SPIR-V with `spirv-val --target-env vulkan1.1` before the
+Tower caller borrowed their 438, 273 and 95 words, respectively. All three
+calls returned `called=1` and `VkResult=0`. Each resulting module was
+destroyed once on its creating device after pipeline creation. The count-zero
+frame retained `112233ff` at all four pixels. The single-draw frame produced
+`4080bfff` at all four. The typed and raw SDK paths matched the 112-byte
+guarded reference. This run used Vulkan 1.3.289 and NVIDIA 565.57.01.
+Draw's Vulkan 1.4 shipping profile and its own SPIR-V have separate device tests.

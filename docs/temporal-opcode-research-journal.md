@@ -126751,3 +126751,32 @@ first failures, the clear fixture and instrumented ASan checks passed
 again. The shader patch relative to b52de45a changes eight files. The
 source bundle also carries the two intervening published commits so that
 it can be restored against the originally assigned a6a021876.
+
+### Combined SDK shader caller review
+
+The reviewed implementation ff81b83fcbb3622e24e5c48c867ff66077657e38
+already descends from the public typed upload package b52de45a.
+Rendering restored the embedded bundle from the checksummed worker
+archive. The manager reproduced both caller objects, the shared library,
+DLL and import library. The worker's four-thread recording executable
+ran with ICD discovery disabled against the manager-built shared
+library. Each thread completed 64 independent ownership and refusal
+checks. The direct shader caller and the existing upload, command and
+image samples linked into one application with 15 public imports on
+both platforms, including shader creation at Win64 ordinal 2. The ELF
+probe SHA-256 was 579f4d32814b75ab0498f1b0c8d28c82e774755b749372c209cfe038b8070717
+and the PE probe was 773c76c1da8ed316b26c6cfb0f7265ef46349894ce92308259a2e1797a8622a0.
+
+Rendering reconstructed the two 24-byte command/count prefixes and
+two 32-byte guarded pixel spans independently. Both selected-device
+captures matched all 112 bytes, SHA-256
+a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6.
+The worker traces locate shader and command entry in the production
+DSO, three successful creates, same-device destruction and a successful
+fence wait before mapping. The separate clobber injection showed
+called=1 and result=-2 with the caller slot still empty. The device
+evidence belongs to the Linux RTX 3090, the repository control SPIR-V
+and the Vulkan 1.3 fixture. Windows binaries were cross-linked.
+Draw reported accepting the preceding typed uploads in CPU tests of
+its actual production owners and in a Win64 link probe. Draw's selected
+device checks for that direct uptake remain pending.
