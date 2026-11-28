@@ -286,6 +286,10 @@ struct VkBufferCreateInfo {
     pQueueFamilyIndices: u32*;
 }
 
+var VkCommandPoolTag: u32 = 39;
+var VkCommandAllocateTag: u32 = 40;
+var VkPrimaryCommandLevel: u32 = 0;
+
 struct VkCommandPoolCreateInfo {
     sType: u32;
     pNext: void*;

@@ -1,0 +1,83 @@
+import tower;
+import primary_command;
+import readback_abi;
+import readback_device;
+
+extern fn exit(status: i32): void;
+
+struct PrimaryCase {
+    events: u8*;
+    flags: u32;
+    create_result: i32;
+    allocate_result: i32;
+    pool: VkCommandPoolHandle*;
+    command: VkCommandBufferHandle*;
+}
+
+var PrimaryTestFamily: u32 = 13;
+var PrimaryTestReset: u32 = 2;
+
+fn require_primary(ok: bool, label: u8*): void {
+    if !ok { puts(label); exit(3); }
+}
+
+fn primary_event(device: VkDeviceHandle*, label: u8*): PrimaryCase* {
+    var state = bits(PrimaryCase*, device);
+    require_primary(*state.events == *label, label);
+    state.events++;
+    return state;
+}
+
+export fn vkCreateCommandPool(device: VkDeviceHandle*, info: VkCommandPoolCreateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkCommandPoolHandle**): i32 {
+    var state = primary_event(device, "Create");
+    require_primary(info.sType == 39 && info.pNext == null && info.flags == state.flags
+        && info.queueFamilyIndex == PrimaryTestFamily && allocator == null, "pool fields");
+    *out = state.pool; // Also clobber the driver's output on failure.
+    return state.create_result;
+}
+
+export fn vkAllocateCommandBuffers(device: VkDeviceHandle*, info: VkCommandBufferAllocateInfo*,
+        out: VkCommandBufferHandle**): i32 {
+    var state = primary_event(device, "Allocate");
+    require_primary(info.sType == 40 && info.pNext == null && info.commandPool == state.pool
+        && info.level == 0 && info.commandBufferCount == 1, "allocation fields");
+    *out = state.command;
+    return state.allocate_result;
+}
+
+export fn vkDestroyCommandPool(device: VkDeviceHandle*, pool: VkCommandPoolHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = primary_event(device, "Destroy");
+    require_primary(pool == state.pool && allocator == null, "destroy pool");
+}
+
+fn check_primary(events: u8*, flags: u32, create: i32, allocate: i32): void {
+    var handles: u64[2];
+    var state: PrimaryCase = { events: events, flags: flags, create_result: create, allocate_result: allocate,
+        pool: bits(VkCommandPoolHandle*, &handles[0]), command: bits(VkCommandBufferHandle*, &handles[1]) };
+    var device = bits(VkDeviceHandle*, &state);
+    var owner: PrimaryCommand = default;
+    var ok = vk_acquire_primary(device, PrimaryTestFamily, flags,
+        { create: "recorded pool", allocate: "recorded primary" }, &owner);
+    require_primary(ok == (create == 0 && allocate == 0), "acquisition result");
+    if ok {
+        require_primary(owner.device == device && owner.pool == state.pool && owner.command == state.command,
+            "transferred device, pool and primary");
+        primary_event(device, "Owner");
+    } else {
+        require_primary(owner.device == null && owner.pool == null && owner.command == null, "failed transfer");
+    }
+    vk_release_primary(&owner);
+    require_primary(owner.device == null && owner.pool == null && owner.command == null, "retained owner");
+    vk_release_primary(&owner);
+    require_primary(*state.events == 0, "missing operation");
+    puts(events);
+}
+
+export fn main(): i32 {
+    check_primary("C", 0, -1, 0);
+    check_primary("CAD", PrimaryTestReset, 0, -2);
+    check_primary("CAOD", 0, 0, 0);
+    check_primary("CAOD", PrimaryTestReset, 0, 0);
+    return 0;
+}

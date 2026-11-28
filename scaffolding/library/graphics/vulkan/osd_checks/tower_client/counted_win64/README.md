@@ -87,13 +87,12 @@ that loader.
 
 ## Reproduce the two-import control
 
-Export revision `9c61c1c36054716a4ba354dfde03db490343628a` and run the same
-build and Wine commands above with the same inputs. Its two PEs use the same
-five-field callback table. The command functions are linked into those PEs.
-The DLL, import library and three shader binaries must match across builds.
-An already exported SDK can reproduce the control offline by replacing the
-single `command_submission` import in `sdk_fixture.tower` with the following
-three imports before building in a fresh output directory.
+Export the current SDK tree twice. Build the five-import application from the
+first export. In the second, replace the single `command_submission` import in
+`sdk_fixture.tower` with the three imports below and build in a fresh output
+directory. This links the command functions into the control PE. Both
+applications use the same primary command acquisition code, five-field callback
+table, DLL, import library and three shader binaries.
 
 ```tower
 import library.graphics.vulkan.command_begin;
@@ -101,11 +100,11 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The matched control and this release use `bound_buffer.tower` for buffer
-acquisition, `readback_completion.tower` for queue retirement and
-`readback_mapping.tower` for staging visibility. The [buffer ownership
-review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
-identifies the four rebuilt PEs.
+The [primary command review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-command-pool-and-primary-acquisition)
+records the four cross-linked PE hashes. For the earlier buffer ownership
+comparison, export `9c61c1c3` for two imports and `a2d79120` for five.
+The [buffer ownership review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
+identifies those binaries.
 
 For the shared staging visibility comparison, export `53c0d291` for two
 imports and `49a7e06f` for five. Host 11 reproduced the four PE hashes,

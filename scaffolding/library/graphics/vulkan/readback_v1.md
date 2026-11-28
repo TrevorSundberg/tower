@@ -44,6 +44,16 @@ The caller of `vk_readback_clear` owns the live device and exclusive use of
 the queue. The backend creates the image, memory, view, staging buffer,
 command pool and fence per invocation.
 
+The two clear callers and counted capture each pass an empty `PrimaryCommand`
+to `vk_acquire_primary` with their device and queue family. Clear uses zero
+pool flags. Counted requests individual command-buffer reset for its
+reset-and-begin operation. The helper publishes the device, pool and one
+primary after allocation succeeds. A failed allocation destroys the acquired
+pool. The caller keeps the owner live through recording, submission and the
+completion decision below. Once use retires, `vk_release_primary` destroys
+the pool on its creating device and clears all three fields. Vulkan releases
+the primary with its pool. [Primary command owner](primary_command.tower)
+
 One primary command buffer transitions the image from undefined to
 color-attachment optimal, begins and ends rendering with CLEAR/STORE, then
 transitions to transfer-source optimal with a color-write to transfer-read
@@ -149,6 +159,12 @@ allocate, bind, owner handoff, destroy and free. [Recording checks](bound_buffer
 "$out/buffer_checks"
 ```
 
+To exercise pool and primary acquisition, use the same build with
+`primary_command_checks.tower` as the sole entry. Its driver recorder checks
+a clobbered create failure (`C`), allocation failure with pool destruction
+(`CAD`), and ownership transfer followed by destruction (`CAOD`) for each
+pool flag choice. [Recording checks](primary_command_checks.tower)
+
 For the two counted SDK targets, use the [Linux build](counted_draw.md#build-the-external-linux-counted-application)
 and [Win64 build](osd_checks/tower_client/counted_win64/README.md) from a
 single exported source revision. Check the resolved owner in the Linux
@@ -159,6 +175,7 @@ application depfile and both Win64 depfiles after linking. With absolute
 set -euo pipefail
 for dep in "$app/counted_app.d" "$win/counted.d" "$win/caller.d"; do
     tr ' ' '\n' < "$dep" | grep -Fx "$v/bound_buffer.tower"
+    tr ' ' '\n' < "$dep" | grep -Fx "$v/primary_command.tower"
 done
 ```
 

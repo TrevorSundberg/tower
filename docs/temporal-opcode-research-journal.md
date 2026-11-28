@@ -128353,3 +128353,150 @@ During handoff the rendering branch advanced to a2d79120. Its buffer
 acquisition changes produce a later set of PEs. This receipt identifies
 the 49a7e06f and 53c0d291 executables in the shared staging table above.
 The README retains the later build selection and names each hardware pair.
+
+### Vulkan primary command ownership on slot 12
+
+Rendering assignment `b6d43b6e-508b-470d-8d2f-75b19b39a323` uses the
+published SDK at `a2d79120f068fe7f57dceb656b1c0d427a81ae1a`. The raw
+and SDK clear entries built identical zero-flag pools. The raw and SDK
+counted applications share one capture implementation whose begin operation
+resets its primary. Its pool requires RESET_COMMAND_BUFFER (2).
+
+All three acquisition sites now lend the caller's device, queue family,
+flags and diagnostic labels to a Tower helper. The only published owner
+contains the successful pool, its primary and the creating device. Creation
+failure returns before allocation or destruction. Allocation failure
+destroys only the successful pool. Begin, recording, end/submit preparation,
+fence creation, submission, completion and mapping remain at their original
+sites. The command slot lent to prepare/submit lives in the owner until
+retirement. Destruction of its pool releases the primary. The Win64 OSD
+fixture has a separate historical source recipe. [Ownership and build
+instructions](../scaffolding/library/graphics/vulkan/readback_v1.md)
+
+#### Hardware and injected results
+
+Both revisions used the checked-in Linux x64 bootstrap (SHA-256 prefix
+`7430bdb3`), LLVM 19.1.7, one compiler worker and identical SPIR-V inputs.
+NVIDIA GeForce RTX 3090, Vulkan 1.3.289, NVIDIA 565.57.01, physical device
+0, graphics family 0, queue 0. Each of the four ordinary applications
+matched its parent stdout, signaled the submitted fence and reported zero
+Khronos synchronization validation warnings/errors. Both clear results
+matched all 32 guarded bytes (SHA-256 `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`).
+Both counted results matched both commands and guarded images (112 bytes,
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`).
+The oracle files matched the reviewed dc3364af packet. The Tower CPU fixture
+sources matched `3dd5f11f`, the direct child of `a580e70a`.
+
+The standalone Tower recorder checked family 13, zero and reset-capable
+pool flags, null allocator, both descriptor tags, primary level and count
+one. Both injected errors wrote a non-null handle into the driver's output.
+On create −1 the initialized owner stayed empty. On allocate −2 only the
+created pool was destroyed, once. Success transferred the expected pair.
+A second release made no call in any case. At each of the four application
+boundaries on each revision, the same injected errors printed their original
+labels and signed results, skipped recording and submission, and preserved
+all clear guards or skipped counted comparisons.
+
+Nine debugger traces per application and revision followed the actual pool,
+command, queue, fence, staging buffer and memory. The allocated primary
+reached begin, end and submit. Counted also reset that same command. Healthy
+runs waited, mapped and unmapped, then destroyed the fence, destroyed the
+matched pool, destroyed the staging buffer and freed its allocation.
+A forced noncoherent flag exercised real invalidation on coherent memory.
+Map −5, invalidate −2, submit −1 and wait −1 were injected. After a failed
+wait the real submitting queue drained. With a second injected drain failure
+(−2), the process reached SIGABRT with the pool and fence live. A separate
+timeline test on each revision released the pool after queue 0 recovered
+while queue 1's fence was still pending. Only the host signal let queue 1
+finish, in all 12 runs per revision. The first debugger script stopped at
+the wrong location in the forced-memory control (exit 70). Explicit stops
+at device-queue selection and memory-property lookup fixed the observer.
+
+The Linux DSO, Windows DLL and import library were byte-identical across the
+pair. The candidate ordinary and CRT five-import Win64 PE hashes were
+`76d15cd36ea87b58387dc4c9411eec699a4f5da533335e1cc446ecf5a5c36e15` and
+`dcc04df8e90ea0c7b917d2e18dab0e95620701ab14a4505bb9a2560f6186abdb`.
+Both resolved the new owner from the selected source tree. Both documented
+two-import controls also built. Slot 11 owns Win64 device execution.
+
+#### Acquisition and process cost
+
+EPYC 7282 (16 cores, 32 logical CPUs, 15.36 CPU quota), one application and
+submission thread at a time. After verifying pixels, one warmup and seven
+alternating paired runs compared ordinary process wall/user/system time and
+peak RSS. Separate builds measured pool construction through successful
+primary allocation with CLOCK_MONOTONIC at the caller. All timed stdout
+matched. Entries below show parent → candidate. Acquisition ranges overlapped
+for every pair.
+
+| Entry | Acquisition median µs | Wall median s | CPU median s | Largest peak RSS KiB |
+| --- | --- | --- | --- | --- |
+| Raw clear | 39.95 → 41.88 | 0.30 → 0.30 | 0.30 → 0.29 | 91872 → 91784 |
+| SDK clear | 42.43 → 43.28 | 0.30 → 0.30 | 0.30 → 0.29 | 91736 → 91564 |
+| Raw counted | 32.74 → 33.87 | 0.31 → 0.31 | 0.30 → 0.30 | 94908 → 94944 |
+| SDK counted | 33.25 → 30.42 | 0.30 → 0.31 | 0.30 → 0.30 | 94904 → 94836 |
+
+Both clears made two Tower allocations totaling 152 bytes, peak 152.
+Both counted applications made five totaling 3376, peak 1752. All
+returned at exit on each revision. Three warm one-worker rebuilds reproduced
+the measured artifacts. Median wall seconds were 0.65 → 0.67 for raw clear
+and 1.36 → 1.36 for SDK counted. This change adds no worker dispatch.
+
+LLVM ASan passed the recorder with leak detection and the four healthy
+application paths with address checking. The link maps identify the Linux
+Tower runtime, libc and sanitizer runtimes. The optimized clear paths inline
+the helper. The instrumented IR contains the real create/allocate calls.
+Full-process LSan reported 3511 bytes in eight allocations with validation
+layer frames on both revisions. SDK-clear TSan exited 139 before main at the
+container's denied personality call. The bootstrap provides no Tower UBSan
+frontend. Actual hardware allocation failure, device loss and noncoherent
+memory remain unexercised. The packet includes exact serial build, replay,
+fault, two-queue, profile, Win64 and sanitizer commands and raw results.
+
+### SDK review of command pool and primary acquisition
+
+Rendering verified all 325 manifest entries in slot 12 packet
+`b6d43b6e-508b-470d-8d2f-75b19b39a323`, archive SHA-256
+`08f6938a7b320dd4d4fec55f92c602725d5afad08c6132318937dd8bf35e8647`.
+The fetched worker commit is `f56b272a` on `a2d79120`.
+Integrating it with `a4369920` reproduced the worker's compatibility
+tree `57097dbda5cb9433849e33919fd96f6018b3daf4`.
+
+Both clear callers request pool flags zero. Counted capture requests a
+reset-capable pool. Each acquires one primary from the selected family.
+The recorder on family 13 verified success-only publication of the device,
+pool and command. An injected create result of −1 left the owner empty.
+Allocation returning −2 destroyed the newly created pool once, even when
+the driver wrote a non-null output. A repeated release of the cleared
+owner issued zero calls.
+
+Rendering rebuilt all four Linux executables, the shared library and
+the three shaders. The executables matched the submitted binaries.
+On Mesa llvmpipe each exited 0 with zero Vulkan validation messages.
+Rendering reconstructed the expected 32- and 112-byte streams from
+the pixels, count, signed command record and guards. All four local runs
+and the eight before/after RTX 3090 captures matched.
+
+Rendering checked the recorded device, flags, primary, submit and pool
+destruction in 72 before/after traces on the worker's RTX 3090
+(Vulkan 1.3.289, NVIDIA 565.57.01). Across the sixteen acquisition
+rejections, no application began recording or submitted a command.
+In the failure of both wait and recovery, both signed errors were
+reported and execution stopped with the fence and pool live.
+Across 24 two-queue trials the submitting queue's fence signaled
+while the other queue's submission remained pending.
+
+Rendering rebuilt the following Win64 executables and inspected their
+import tables. The DLL and import library matched the sixteen-entry
+release. Device execution of these four specific binaries remains open.
+
+| Entry | Two DLL imports | Five DLL imports |
+| --- | --- | --- |
+| Ordinary Tower | `e01026b6d0e62648ab685ec9ab243a9a8829797795ead96135de0feb4bb03548` | `76d15cd36ea87b58387dc4c9411eec699a4f5da533335e1cc446ecf5a5c36e15` |
+| MinGW CRT | `eda43b18efb476f3e4455956831520393e91b868374c310639e4bc77c0bdd925` | `dcc04df8e90ea0c7b917d2e18dab0e95620701ab14a4505bb9a2560f6186abdb` |
+
+Seven warm paired worker measurements had overlapping acquisition-time ranges
+for each application. Whole-process medians were 0.30–0.31 seconds.
+Address checks passed. Full-process raw-clear LSan reported 3,511 bytes
+in eight allocations on both revisions. TSan stopped before main.
+Noncoherent memory and real device loss remain outside this hardware run.

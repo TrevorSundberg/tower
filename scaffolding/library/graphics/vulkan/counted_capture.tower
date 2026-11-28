@@ -1,5 +1,6 @@
 import tower;
 import bound_buffer;
+import primary_command;
 import counted_abi;
 import counted_calls;
 import readback_completion;
@@ -78,18 +79,15 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var view: VkImageViewHandle*;
     if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
     defer vkDestroyImageView(device, view, null);
-    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkCountedResetCommandBuffer, queueFamilyIndex: ctx.family, ..default };
-    var pool: VkCommandPoolHandle*;
-    if !vk_ok("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
-    defer vkDestroyCommandPool(device, pool, null);
-    var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
-    var cmd: VkCommandBufferHandle*;
-    if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
+    var primary: PrimaryCommand = default;
+    if !vk_acquire_primary(device, ctx.family, VkCountedResetCommandBuffer,
+        { create: "vkCreateCommandPool", allocate: "vkAllocateCommandBuffers" }, &primary) { return false; }
+    defer vk_release_primary(&primary);
     var submit: VkSubmitInfo;
-    if !vk_ok("reset and begin command buffer", calls.begin(cmd))
-        || !counted_record(calls, cmd, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
+    if !vk_ok("reset and begin command buffer", calls.begin(primary.command))
+        || !counted_record(calls, primary.command, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
             image, view, range, staging.handle)
-        || !vk_ok("vkEndCommandBuffer", calls.prepare(&submit, &cmd, null, null, null)) { return false; }
+        || !vk_ok("vkEndCommandBuffer", calls.prepare(&submit, &primary.command, null, null, null)) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }

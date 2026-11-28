@@ -1,0 +1,37 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+struct PrimaryCommand {
+    device: VkDeviceHandle*;
+    pool: VkCommandPoolHandle*;
+    command: VkCommandBufferHandle*;
+}
+
+struct PrimaryCommandOperations { create: u8*; allocate: u8*; }
+
+// After submitted use retires, destroying the pool also releases its primary.
+fn vk_release_primary(owner: PrimaryCommand*): void {
+    if owner.pool != null { vkDestroyCommandPool(owner.device, owner.pool, null); }
+    *owner = default;
+}
+
+// The caller supplies an empty owner. Transfer both handles together on success.
+fn vk_acquire_primary(device: VkDeviceHandle*, family: u32, flags: u32, operations: PrimaryCommandOperations,
+        out: PrimaryCommand*): bool {
+    var pool_info: VkCommandPoolCreateInfo = {
+        sType: VkCommandPoolTag, queueFamilyIndex: family, flags: flags, ..default
+    };
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok(operations.create, vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
+    var info: VkCommandBufferAllocateInfo = {
+        sType: VkCommandAllocateTag, commandPool: pool, level: VkPrimaryCommandLevel, commandBufferCount: 1, ..default
+    };
+    var command: VkCommandBufferHandle*;
+    if !vk_ok(operations.allocate, vkAllocateCommandBuffers(device, &info, &command)) {
+        vkDestroyCommandPool(device, pool, null);
+        return false;
+    }
+    *out = { device: device, pool: pool, command: command };
+    return true;
+}
