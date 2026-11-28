@@ -175,8 +175,9 @@ destroy image and free memory. [Recording checks](readback_image_checks.tower)
 
 After rendering ends, both clear callers and both counted callers record
 the stored color image for transfer. Clear copies to staging offset zero.
-Counted copies its 24-byte count and command prefix first, then the 16
-color bytes at offsets 24 and 64. The staging owner records its host-read
+The two counted passes write their 24-byte count and command prefixes at
+offsets 0 and 40, then copy their 16 color bytes to offsets 24 and 64,
+respectively. The staging owner records its host-read
 barrier after the last copy and waits for its fence before mapping.
 
 Use the buffer-check recipe above with `readback_copy_checks.tower` to

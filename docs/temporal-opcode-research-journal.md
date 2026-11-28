@@ -129184,3 +129184,55 @@ frontend. This Vulkan change had no browser entry. Slot 11 owns Win64
 device execution. Ordinary Tower and MinGW CRT PEs retained two imports
 in the control and five in the SDK fixture. The public Linux DSO, Windows
 DLL and import library retained their frozen identities.
+
+### Rendering review of the stored color copy
+
+Rendering accepted slot 12 job `5e0b2cea-38b3-4b6c-b5d1-4cb475bad959`.
+The worker implemented the shared recording call at `1b59a588` on the
+image-owner release and replayed it at `96ff154e` on `25662b74`. The two
+tested trees have identical Tower sources. Rendering verified both bounded
+bundles and all 303 manifest entries in archive
+`9763d969a4f5ec2471942f49b77a5af9307149f79405de1d91c2379ef868090c`.
+The before executables and packaged libraries match the accepted image-owner
+archive. The existing raw and SDK entry points share the private helper
+through their clear and counted recorders.
+
+Using the pinned bootstrap with one compiler worker and LLVM 19, rendering
+reproduced all four Linux executables and the recording test byte for byte.
+The test forwarded a staging offset of 4,294,967,360. The four applications
+also ran with Khronos validation on Mesa llvmpipe 25.0.7. Their complete
+guarded outputs matched an independent reconstruction from the two expected
+pixels, the indexed command fields and the caller's pitches and guards.
+
+Rendering checked eight healthy RTX 3090 traces across both revisions and
+all four applications. Each of the twelve passes ended rendering, transitioned
+the same image from color-attachment write to transfer read, and copied it
+to the original staging buffer on the same primary. Clear used offset zero.
+Counted wrote a 24-byte prefix at offsets 0 and 40 and copied its 16 bytes of
+pixels at 24 and 64. A host-read barrier followed the last copy. A successful
+fence wait preceded mapping the matching allocation. The 32-byte guarded
+clear result was `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The 112-byte guarded counted result was
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+All eight injected refusals exited 1 after ending the selected pass. Each
+first-pass refusal recorded zero image copies. Each second-pass refusal
+recorded the first copy only. None reached submission or mapping.
+
+Slot 12 used NVIDIA 565.57.01 and Vulkan 1.3.289. Median process times
+remained 0.30 s for clear and 0.31 s for counted across seven paired
+samples. Host recording-time ranges overlapped. The isolated recorder
+passed address, leak and thread checks. Both full raw-clear leak checks
+reported 3,511 bytes in eight allocations. The full driver thread checks
+could not complete. The worker entry above records the instrumentation
+and failure locations.
+
+Rendering verified these four cross-linked PEs by hash and decoded their
+named SDK imports. Device execution of these particular Win64 binaries is
+outstanding.
+
+| Win64 startup | Public SDK imports | PE SHA-256 |
+| --- | ---: | --- |
+| Ordinary Tower | 2 | `2720dd578df24e8ac32227b3cfb3dd1ed999310b45af98c80966a758a5e2efaa` |
+| Ordinary Tower | 5 | `281b6d2e7ee571fcf1dc5535670b9657fefa6be1d9a90b488d30c21f6b3efdea` |
+| MinGW CRT | 2 | `2d8ea1ebc93f0d3195d616e92fe1d72fea19794be761e1a7d9fbab8940a0e0b8` |
+| MinGW CRT | 5 | `872929b6bcb964ade083411b5cd412d7effe1cb5d836a12fe396578098fcc445` |
