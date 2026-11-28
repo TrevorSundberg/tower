@@ -129962,3 +129962,52 @@ The first link attempt lacked the unprefixed objcopy tool. LLVM 19
 llvm-objcopy supplied by the checksummed SDK renamed the recorder entry
 for the test driver. The packet retains that failed command and the
 successful links and runs.
+
+### Rendering review of Vulkan physical-device selection
+
+The clear and counted applications now share physical-device enumeration
+and identity reporting. The selected handle belongs to the instance. The
+temporary enumeration list is freed before format and queue queries. The
+counted caller retains the core properties from the first query to check
+the indirect draw and storage limits. Raw clear honors the requested
+index. Counted selects index zero.
+
+Rendering verified all 349 manifest entries in the slot 12 archive
+`cacb66d02ad64be027d1578fd226ce0a99a5ab4cc9ab7daa93b0f95dab546a0e`
+and both bounded Git bundles. Reviewed source `1da5ecaf` has the same
+Tower and bootstrap inputs as measured source `a692a9ae` and preserves
+the preceding Win64 attachment review. The Linux shared library, Windows
+DLL and import library matched the preceding release byte for byte.
+
+Using the pinned Linux x64 bootstrap, LLVM 19, the Debian 12 startup
+objects and one compiler job, rendering reproduced the six packaged ELFs.
+The rebuilt recorder reproduced the 14-case transcript, including signed
+enumeration failures and the two diagnostics for an unavailable index and
+a device disappearing between calls. Both clear applications and both
+counted applications signaled their fences under Mesa llvmpipe with zero
+validation warnings or errors. The counted argument fixture passed with
+explicit and implicit validation. Forced layer enable produced the two
+expected warnings and exit 1. Raw index 1 failed on the single adapter.
+The strict counted calls printed identity and refused as expected on both
+the worker's Vulkan 1.3 adapter and the manager's Vulkan 1.4 software device.
+
+Rendering reconstructed the 32-byte guarded clear and the 112-byte counted
+stream from their layout and compared them to the Mesa output, the worker's
+raw RTX 3090 transcripts and the sealed predecessor. Their SHA-256 values
+were `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`
+and `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The hardware UUID was `cd3d9791fe794e0b3ec29fc16b74d31c`, driver 565.57.01.
+In ten allocation-refusal traces the installed messenger and instance
+were released before exit 1. Another ten traces covered successful rendering
+and failure after logical-device creation. In each, the device was released
+before the messenger and instance. Recounting allocation addresses gave
+ten allocations and ten frees in the recorder. Clear peak live Tower bytes
+fell from 152 to 144. Counted remained at 1,752.
+
+The four Win64 PEs have the expected two or five SDK imports across both
+startup variants. This review checked their import tables. Device execution
+remains open for those hashes. The isolated recorder passed ASan with leak
+checking and threaded TSan. Full-driver TSan faulted on both revisions.
+Raw full-process leak checking reported 3,511 bytes in eight allocations
+on both revisions. Tower source-level UBSan was unavailable.
+[Source, measurements and Win64 hashes](#borrowing-the-selected-vulkan-physical-device-on-slot-12)

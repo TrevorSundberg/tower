@@ -219,6 +219,14 @@ selection to the host and still installs the application's debug messenger.
 Run the buffer-check recipe above with `validation_instance_checks.tower`
 to exercise both paths and partial cleanup. [Recording checks](validation_instance_checks.tower)
 
+Raw clear takes a zero-based physical-device index. Counted selects index
+zero. Both print the selected device's UUID and driver before testing
+their rendering requirements. To exercise a second index, a shrinking
+device list, enumeration errors, and a device below Vulkan 1.3, run the
+buffer-check recipe with `physical_selection_checks.tower` as its entry.
+The recorder checks the two devices and their properties without requiring
+a second GPU. [Selection checks](physical_selection_checks.tower)
+
 ## Host 12 evidence
 
 The executable produced the following results on the assigned host. Each run
