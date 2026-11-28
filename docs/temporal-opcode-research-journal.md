@@ -126149,3 +126149,13 @@ debugger produced the missing-name exit. ASan initially rejected runtime
 load order, then ran after putting its runtime first. The packet preserves
 the failed checks. A final documentation-only rebase preserved the Draw
 receipt and all tested compiler, caller and provider sources.
+
+### Isolating image lifecycle types from driver declarations
+
+The first application import pulled every raw Vulkan declaration through
+readback_abi. A local reproduction importing image_lifecycle and declaring
+vkDestroyImage with the legacy owner's three void pointers failed on both
+targets at line 4 with “Incompatible declarations of foreign symbol
+'vkDestroyImage'”. The pinned executable is the same Git blob as at
+a580e70a. An object-only symbol inventory missed the error because unused
+externs participate in foreign declaration checking before code generation.

@@ -1,4 +1,6 @@
 import tower;
+import image_lifecycle_types;
+import image_driver_types;
 
 // Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
 // SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
@@ -27,11 +29,7 @@ struct VkInstanceCreateInfo {
     ppEnabledExtensionNames: u8**;
 }
 
-struct VkAllocationCallbacks {}
-
 struct VkInstanceHandle {}
-
-struct VkPhysicalDeviceHandle {}
 
 struct VkPhysicalDeviceLimits {
     maxImageDimension1D: u32;
@@ -232,22 +230,11 @@ struct VkPhysicalDeviceFeatures2 {
     features: VkPhysicalDeviceFeatures;
 }
 
-struct VkExtent3D {
-    width: u32;
-    height: u32;
-    depth: u32;
-}
-
 struct VkQueueFamilyProperties {
     queueFlags: u32;
     queueCount: u32;
     timestampValidBits: u32;
     minImageTransferGranularity: VkExtent3D;
-}
-
-struct VkMemoryType {
-    propertyFlags: u32;
-    heapIndex: u32;
 }
 
 struct VkMemoryHeap {
@@ -284,74 +271,9 @@ struct VkDeviceCreateInfo {
     pEnabledFeatures: VkPhysicalDeviceFeatures*;
 }
 
-struct VkDeviceHandle {}
-
 struct VkQueueHandle {}
 
-struct VkImageCreateInfo {
-    sType: u32;
-    pNext: void*;
-    flags: u32;
-    imageType: u32;
-    format: u32;
-    extent: VkExtent3D;
-    mipLevels: u32;
-    arrayLayers: u32;
-    samples: u32;
-    tiling: u32;
-    usage: u32;
-    sharingMode: u32;
-    queueFamilyIndexCount: u32;
-    pQueueFamilyIndices: u32*;
-    initialLayout: u32;
-}
-
-struct VkImageHandle {}
-
-struct VkMemoryRequirements {
-    size: u64;
-    alignment: u64;
-    memoryTypeBits: u32;
-}
-
-struct VkMemoryAllocateInfo {
-    sType: u32;
-    pNext: void*;
-    allocationSize: u64;
-    memoryTypeIndex: u32;
-}
-
-struct VkDeviceMemoryHandle {}
-
-struct VkComponentMapping {
-    r: u32;
-    g: u32;
-    b: u32;
-    a: u32;
-}
-
-struct VkImageSubresourceRange {
-    aspectMask: u32;
-    baseMipLevel: u32;
-    levelCount: u32;
-    baseArrayLayer: u32;
-    layerCount: u32;
-}
-
 var VkImageViewCreateTag: u32 = 15;
-
-struct VkImageViewCreateInfo {
-    sType: u32;
-    pNext: void*;
-    flags: u32;
-    image: VkImageHandle*;
-    viewType: u32;
-    format: u32;
-    components: VkComponentMapping;
-    subresourceRange: VkImageSubresourceRange;
-}
-
-struct VkImageViewHandle {}
 
 struct VkBufferCreateInfo {
     sType: u32;
@@ -568,10 +490,6 @@ struct VkPhysicalDeviceDynamicRenderingFeatures {
 struct VkPhysicalDeviceDriverProperties {
     sType: u32; pNext: void*; driverID: u32;
     driverName: u8[256]; driverInfo: u8[256]; conformanceVersion: u8[4];
-}
-struct VkImageFormatProperties {
-    maxExtent: VkExtent3D; maxMipLevels: u32; maxArrayLayers: u32;
-    sampleCounts: u32; maxResourceSize: u64;
 }
 extern fn vkGetPhysicalDeviceImageFormatProperties(physicalDevice: VkPhysicalDeviceHandle*, format: u32,
     imageType: u32, tiling: u32, usage: u32, flags: u32, properties: VkImageFormatProperties*): i32;

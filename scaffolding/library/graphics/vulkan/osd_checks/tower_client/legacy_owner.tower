@@ -1,0 +1,66 @@
+import tower;
+import library.graphics.vulkan.image_lifecycle;
+import image_owner;
+import sampled_image;
+
+// Private x64 SDK record used by this example's existing raw caller.
+struct LegacyImage {
+    image: void*;
+    view: void*;
+    memory: void*;
+    bytes: u64;
+    metadata: u8[32];
+}
+extern fn vkDestroyImage(device: void*, image: void*, allocator: void*): void;
+extern fn abort(): void;
+
+fn require_legacy_layout(owner: LegacyImage*): void {
+    var base = bits(usize, owner);
+    if sizeof(LegacyImage) != 64 || alignof(LegacyImage) != 8 || sizeof(void*) != 8 ||
+        sizeof(VkImageHandle*) != 8 || sizeof(VkImageViewHandle*) != 8 || sizeof(VkDeviceMemoryHandle*) != 8 ||
+        bits(usize, &owner.image) != base || bits(usize, &owner.view) - base != 8 ||
+        bits(usize, &owner.memory) - base != 16 || bits(usize, &owner.bytes) - base != 24 ||
+        bits(usize, &owner.metadata[0]) - base != 32 { abort(); }
+}
+
+// Start with an empty owner. Publish each successful acquisition separately
+// so the caller can retire a partial owner on any later failure.
+fn open_legacy_image(physical: VkPhysicalDeviceHandle*, device: VkDeviceHandle*, info: VkImageCreateInfo*,
+    types: VkMemoryType*, count: u32, required: u32, view_type: u32, range: VkImageSubresourceRange*,
+    owner: LegacyImage*, account: ImageAccount*): i32 {
+    require_legacy_layout(owner);
+    var image: VkImageHandle* = null;
+    var result = create_supported_image(physical, device, info, &image);
+    if result != 0 { return result; }
+    owner.image = bits(void*, image);
+    var plan: VkMemoryAllocateInfo;
+    if tower_vk_plan_image_allocation_v1(device, image, types, count, required, &plan) == 0 {
+        return FeatureNotPresent;
+    }
+    var memory: VkDeviceMemoryHandle* = null;
+    result = tower_vk_allocate_memory_v1(device, &plan, &memory);
+    if result != 0 { return result; }
+    owner.memory = bits(void*, memory);
+    owner.bytes = plan.allocationSize;
+    charge_image(account, owner.bytes);
+    result = tower_vk_bind_image_memory_zero_v1(device, image, memory);
+    if result != 0 { return result; }
+    var view: VkImageViewHandle* = null;
+    result = tower_vk_create_bound_image_view_v1(device, image, view_type, info.format, range, &view);
+    if result == 0 { owner.view = bits(void*, view); }
+    return result;
+}
+
+// Read individual SDK handles only after checking the private record layout.
+// The private record owns them until retire_legacy_image consumes it.
+fn legacy_handles(owner: LegacyImage*): ImageOwner {
+    require_legacy_layout(owner);
+    return {image: bits(VkImageHandle*, owner.image), view: bits(VkImageViewHandle*, owner.view),
+        memory: bits(VkDeviceMemoryHandle*, owner.memory), bytes: owner.bytes};
+}
+
+fn retire_legacy_image(device: VkDeviceHandle*, owner: LegacyImage*, account: ImageAccount*): void {
+    var handles = legacy_handles(owner);
+    osd_retire_image_owner(device, &handles, account);
+    *owner = default;
+}

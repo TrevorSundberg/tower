@@ -1,5 +1,5 @@
 import tower;
-import readback_abi;
+import image_lifecycle_types;
 
 extern fn tower_vk_image_format_preflight_v1(physical: VkPhysicalDeviceHandle*, info: VkImageCreateInfo*,
     properties: VkImageFormatProperties*, supported: u32*): i32;

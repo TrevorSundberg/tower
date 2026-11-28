@@ -5,17 +5,22 @@ import image_owner;
 var FormatNotSupported: i32 = -11;
 var FeatureNotPresent: i32 = -8;
 
-// Start with an empty owner. On failure the caller can retire its acquired
-// handles immediately. On success the caller retires it after GPU completion.
-export fn osd_open_sampled_image(physical: VkPhysicalDeviceHandle*, device: VkDeviceHandle*, info: VkImageCreateInfo*,
-    types: VkMemoryType*, count: u32, required: u32, view_type: u32, range: VkImageSubresourceRange*,
-    owner: ImageOwner*, account: ImageAccount*): i32 {
+fn create_supported_image(physical: VkPhysicalDeviceHandle*, device: VkDeviceHandle*, info: VkImageCreateInfo*,
+    out: VkImageHandle**): i32 {
     var caps: VkImageFormatProperties;
     var supported: u32;
     var result = tower_vk_image_format_preflight_v1(physical, info, &caps, &supported);
     if result != 0 { return result; }
     if supported == 0 { return FormatNotSupported; }
-    result = tower_vk_create_image_v1(device, info, &owner.image);
+    return tower_vk_create_image_v1(device, info, out);
+}
+
+// Start with an empty owner. On failure the caller can retire its acquired
+// handles immediately. On success the caller retires it after GPU completion.
+export fn osd_open_sampled_image(physical: VkPhysicalDeviceHandle*, device: VkDeviceHandle*, info: VkImageCreateInfo*,
+    types: VkMemoryType*, count: u32, required: u32, view_type: u32, range: VkImageSubresourceRange*,
+    owner: ImageOwner*, account: ImageAccount*): i32 {
+    var result = create_supported_image(physical, device, info, &owner.image);
     if result != 0 { return result; }
     var plan: VkMemoryAllocateInfo;
     if tower_vk_plan_image_allocation_v1(device, owner.image, types, count, required, &plan) == 0 {

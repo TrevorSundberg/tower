@@ -1,0 +1,63 @@
+import tower;
+
+// Adapted from vulkan_core.h, Copyright 2015-2022 The Khronos Group Inc.
+// SPDX-License-Identifier: Apache-2.0 (see readback_abi_license.txt).
+
+struct VkPhysicalDeviceHandle {}
+
+struct VkDeviceHandle {}
+
+struct VkImageHandle {}
+
+struct VkDeviceMemoryHandle {}
+
+struct VkImageViewHandle {}
+
+struct VkExtent3D {
+    width: u32;
+    height: u32;
+    depth: u32;
+}
+
+struct VkImageCreateInfo {
+    sType: u32;
+    pNext: void*;
+    flags: u32;
+    imageType: u32;
+    format: u32;
+    extent: VkExtent3D;
+    mipLevels: u32;
+    arrayLayers: u32;
+    samples: u32;
+    tiling: u32;
+    usage: u32;
+    sharingMode: u32;
+    queueFamilyIndexCount: u32;
+    pQueueFamilyIndices: u32*;
+    initialLayout: u32;
+}
+
+struct VkImageFormatProperties {
+    maxExtent: VkExtent3D; maxMipLevels: u32; maxArrayLayers: u32;
+    sampleCounts: u32; maxResourceSize: u64;
+}
+
+struct VkMemoryType {
+    propertyFlags: u32;
+    heapIndex: u32;
+}
+
+struct VkMemoryAllocateInfo {
+    sType: u32;
+    pNext: void*;
+    allocationSize: u64;
+    memoryTypeIndex: u32;
+}
+
+struct VkImageSubresourceRange {
+    aspectMask: u32;
+    baseMipLevel: u32;
+    levelCount: u32;
+    baseArrayLayer: u32;
+    layerCount: u32;
+}

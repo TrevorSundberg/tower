@@ -7,7 +7,7 @@ import tower;
 import library.graphics.vulkan.image_lifecycle;
 ```
 
-The [declaration module](../../image_lifecycle.tower) imports the x64 handle and descriptor types from [readback_abi](../../readback_abi.tower). Every caller in the application can use the same import. The seven externs refer to named functions in the graphics library. The Win64 release at `8ac14905` already supplies them.
+The [declaration module](../../image_lifecycle.tower) has seven externs. Its only Vulkan dependency is [image_lifecycle_types](../../image_lifecycle_types.tower), which defines the five nominal handle types, five descriptors and their nested extent. The [provider ABI](../../readback_abi.tower) imports those same types and owns the driver declarations. The Win64 release at `8ac14905` supplies all seven functions.
 
 [Sampled image construction](sampled_image.tower) passes the caller's create descriptor through preflight and creation, plans against the selected physical device's memory types, then hands that plan and its live image owner to [the allocation and retirement caller](image_owner.tower). Both modules import the lifecycle declarations directly. On a successful bind, construction passes the caller's subresource range and owner view slot to view creation. The example maps an unsupported capacity decision to `-11` and a missing suitable memory type to `-8`. Driver failures retain their signed result.
 
@@ -35,8 +35,8 @@ app=$(mktemp -d)
 cp scaffolding/library/graphics/vulkan/osd_checks/tower_client/{sampled_image,image_owner}.tower "$app/"
 cd "$app"
 compiler=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$root/scaffolding/foundation.tower")
-"${compiler[@]}" sampled_image.tower --target x86_64-linux-gnu -o sampled_image.o
-"${compiler[@]}" sampled_image.tower --target x86_64-w64-windows-gnu -o sampled_image.obj
+"${compiler[@]}" sampled_image.tower --target x86_64-linux-gnu --depfile elf.d -o sampled_image.o
+"${compiler[@]}" sampled_image.tower --target x86_64-w64-windows-gnu --depfile coff.d -o sampled_image.obj
 sha256sum sampled_image.o sampled_image.obj
 ```
 
@@ -47,6 +47,15 @@ sha256sum sampled_image.o sampled_image.obj
 
 The two object entry points are `osd_open_sampled_image` and `osd_retire_image_owner`. Run `llvm-objdump-19 -dr sampled_image.o sampled_image.obj` to inspect the seven external calls. At executable link time use the matching target provider. The Win64 fixture links the existing sixteen-entry `tower_graphics.lib` and loads the released `tower_graphics.dll` beside its executable.
 
-Draw's receipt identifies C and Tower owners at `76099faa552ee9ab17ef94d73cc70be579a6e4a1` using the C boundary. This example type-checks against Tower’s canonical handles. A separate empty handle struct is nominally distinct. Direct source adoption by either Draw owner still requires checking its actual declarations and call sites. [Draw receipt](https://github.com/TrevorSundberg/tower/blob/de7e792d2eab23587494cbf637185024383d259b/scaffolding/library/graphics/vulkan/image_retirement_v1.md#draw-adoption-with-the-fifteen-entry-graphics-library)
+Draw reported a conflict at `ad18ef06` when its raw owner imported the previous declaration surface. The pinned compiler reproduced the conflict on both targets. The [legacy caller](legacy_owner.tower) keeps its own three-void-pointer `vkDestroyImage` declaration. It checks the size, alignment and field offsets of its private 64-byte record before converting individual handle values. The constructor passes the original create descriptor and allocation plan through by address. It publishes an initially null, typed image, memory or view local to its corresponding private slot only on success. A failed bind leaves the acquired memory charged for retirement. The private record is a Tower fixture. Compiling Draw itself at `ad18ef06` remains a separate check. [Draw owner cross-link](../../graphics_dll_windows.md#draw-win64-owner-cross-link-at-ordinal-16)
 
-The [recording fixture](recording.tower) exercises the same owner across success, clobbering queries and allocations, and a failed bind. Host 11 also ran the ordinary and observed Win64 callers on the Quadro, plus the standalone COFF linked into a separate fixture. See the [journal](../../../../../../docs/temporal-opcode-research-journal.md#typed-application-imports-for-the-win64-image-lifecycle) for device results, matched measurements and instrumentation scope.
+To build both callers, the private owner and their [recording checks](recording.tower) together, continue in the temporary application directory. The recorder also needs four driver-side descriptor types. It imports their [type declarations](../../image_driver_types.tower) without pulling in driver functions.
+
+```bash
+cp "$root"/scaffolding/library/graphics/vulkan/osd_checks/tower_client/{legacy_owner,recording}.tower .
+for target in x86_64-linux-gnu x86_64-w64-windows-gnu; do
+    "${compiler[@]}" recording.tower --target "$target" --depfile "$target.d" -o "$target.o"
+done
+```
+
+The two application depfiles (`elf.d`, `coff.d`) each list nine sources. The combined check lists twelve. In each graph the sole public lifecycle declarations come from image_lifecycle and there are no provider bodies or imports of readback_abi. The raw declaration appears only in the legacy caller. The recorder calls it once with a synthetic handle. Both owners also run signed query failures, successful query with insufficient capacity, no compatible memory type, clobbered outputs, accounting at bind, and ordered retirement followed by a second release. The [journal](../../../../../../docs/temporal-opcode-research-journal.md#isolating-image-lifecycle-types-from-driver-declarations) records the provider byte comparisons and both device runs.

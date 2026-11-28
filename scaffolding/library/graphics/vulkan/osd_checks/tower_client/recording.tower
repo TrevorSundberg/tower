@@ -1,20 +1,30 @@
 import tower;
 import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.image_driver_types;
 import image_owner;
 import sampled_image;
+import legacy_owner;
 
 extern fn puts(message: u8*): i32;
 extern fn exit(status: i32): void;
 
 var Charge: u64 = 4294983680;
 var Guard: u32 = 1515870810;
+enum Scenario: u32 { Healthy, Query, Capacity, Create, NoType, Allocate, Bind, View }
+var FormatListTag: u32 = 1000147000;
+var DedicatedTag: u32 = 1000127001;
+struct FormatList { tag: u32; next: void*; count: u32; formats: u32*; }
+struct Dedicated { tag: u32; next: void*; image: VkImageHandle*; buffer: void*; }
 struct Probe {
+    formats: FormatList;
+    dedicated: Dedicated;
     info: VkImageCreateInfo;
     owner: ImageOwner;
     account: ImageAccount;
-    query_result: i32;
-    allocation_result: i32;
-    bind_result: i32;
+    scenario: Scenario;
+    result: i32;
+    legacy: bool;
+    raw: LegacyImage;
     sdk: bool;
     stage: u32;
     released: u32;
@@ -24,6 +34,10 @@ struct Probe {
 
 fn check(condition: bool, message: u8*): void {
     if !condition { puts(message); exit(3); }
+}
+fn live(p: Probe*): ImageOwner {
+    if p.legacy { return legacy_handles(&p.raw); }
+    return p.owner;
 }
 fn image_id(p: Probe*): VkImageHandle* { return bits(VkImageHandle*, &p.info); }
 fn memory_id(p: Probe*): VkDeviceMemoryHandle* { return bits(VkDeviceMemoryHandle*, &p.account); }
@@ -37,107 +51,154 @@ export fn record_query(physical: VkPhysicalDeviceHandle*, format: u32, kind: u32
     *caps = {maxExtent: p.info.extent, maxMipLevels: p.info.mipLevels, maxArrayLayers: p.info.arrayLayers,
         sampleCounts: p.info.samples, maxResourceSize: Charge};
     p.stage++;
-    return p.query_result;
+    if p.scenario == Scenario.Capacity { caps.maxArrayLayers = 0; }
+    return p.scenario == Scenario.Query ? p.result : 0;
 }
 export fn record_create(device: Probe*, info: VkImageCreateInfo*, cb: VkAllocationCallbacks*, out: VkImageHandle**): i32 {
-    check(device.stage == 1 && info == &device.info && cb == null && out != &device.owner.image && *out == null,
+    check(device.stage == 1 && info == &device.info && info.pNext == bits(void*, &device.formats) &&
+        device.formats.tag == FormatListTag && device.formats.formats == &device.info.format && cb == null && out != &device.owner.image &&
+        bits(usize, out) != bits(usize, &device.raw.image) && *out == null,
         "original descriptor or private create output");
     *out = image_id(device);
     device.stage++;
-    return 0;
+    return device.scenario == Scenario.Create ? device.result : 0;
 }
 export fn record_requirements(device: Probe*, image: VkImageHandle*, out: VkMemoryRequirements*): void {
-    check(device.stage == 2 && image == image_id(device) && image == device.owner.image, "requirements image");
+    check(device.stage == 2 && image == image_id(device) && image == live(device).image, "requirements image");
     *out = {size: Charge, alignment: 1024, memoryTypeBits: 2};
+    if device.scenario == Scenario.NoType { out.memoryTypeBits = 0; }
     device.stage++;
 }
 export fn record_allocate(device: Probe*, plan: VkMemoryAllocateInfo*, cb: VkAllocationCallbacks*, out: VkDeviceMemoryHandle**): i32 {
-    check(device.expected_plan == null || device.expected_plan == plan, "allocation descriptor address");
+    if device.expected_plan != null {
+        check(device.expected_plan == plan && plan.pNext == bits(void*, &device.dedicated) &&
+            device.dedicated.tag == DedicatedTag && device.dedicated.image == image_id(device), "allocation descriptor and chain");
+    } else { check(plan.pNext == null, "unexpected allocation chain"); }
     check(device.stage == 3 && plan.sType == 5 && plan.allocationSize == Charge && plan.memoryTypeIndex == 1 &&
-        plan.pNext == null && cb == null && (out == &device.owner.memory) == device.sdk &&
-        *out == null && device.account.count == 0, "plan or allocation output");
+        cb == null && bits(usize, out) != bits(usize, &device.raw.memory) &&
+         (out == &device.owner.memory) == (device.sdk && !device.legacy) &&
+        *out == null && live(device).memory == null && device.account.count == 0, "plan or allocation output");
     *out = memory_id(device); // A non-successful driver call can still clobber its slot.
     device.stage++;
-    return device.allocation_result;
+    return device.scenario == Scenario.Allocate ? device.result : 0;
 }
 export fn record_bind(device: Probe*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
     check(device.stage == 4 && image == image_id(device) && memory == memory_id(device) &&
-        memory == device.owner.memory && offset == 0 && device.account.live == Charge &&
-        device.account.count == 1 && device.owner.bytes == Charge && device.account.peak == Charge, "account before bind");
+        memory == live(device).memory && offset == 0 && device.account.live == Charge &&
+        device.account.count == 1 && live(device).bytes == Charge && device.account.peak == Charge, "account before bind");
     device.stage++;
-    return device.bind_result;
+    return device.scenario == Scenario.Bind ? device.result : 0;
 }
 export fn record_view(device: Probe*, info: VkImageViewCreateInfo*, cb: VkAllocationCallbacks*, out: VkImageViewHandle**): i32 {
-    check(device.stage == 5 && device.bind_result == 0 && info.image == device.owner.image &&
+    check(device.stage == 5 && device.scenario != Scenario.Bind && info.image == live(device).image &&
         info.viewType == 5 && info.format == device.info.format && cb == null && out != &device.owner.view &&
-        info.subresourceRange.baseArrayLayer == 2 && *out == null, "view before successful bind or wrong view");
+        bits(usize, out) != bits(usize, &device.raw.view) && info.subresourceRange.baseArrayLayer == 2 && *out == null, "view before successful bind or wrong view");
     *out = view_id(device);
     device.stage++;
-    return 0;
+    return device.scenario == Scenario.View ? device.result : 0;
 }
 export fn release_view(p: Probe*, view: VkImageViewHandle*, cb: VkAllocationCallbacks*): void {
-    check(p.released == 0 && view == p.owner.view && view == view_id(p) && cb == null, "retire view");
+    check(p.released == 0 && view == live(p).view && view == view_id(p) && cb == null, "retire view");
     p.released++;
 }
 export fn release_image(p: Probe*, image: VkImageHandle*, cb: VkAllocationCallbacks*): void {
-    check(p.released == (p.owner.view == null ? 0 : 1) && image == p.owner.image && image == image_id(p) &&
+    check(p.released == (live(p).view == null ? 0 : 1) && image == live(p).image && image == image_id(p) &&
         cb == null, "retire image");
     p.released++;
 }
 export fn release_memory(p: Probe*, memory: VkDeviceMemoryHandle*, cb: VkAllocationCallbacks*): void {
-    check(p.released == (p.owner.view == null ? 1 : 2) && memory == memory_id(p) && memory == p.owner.memory &&
+    check(p.released == (live(p).view == null ? 1 : 2) && memory == memory_id(p) && memory == live(p).memory &&
         p.account.count == 1 && p.account.live == Charge && cb == null, "retire memory and charge");
     p.released++;
 }
-fn exercise(sdk: bool, query: i32, allocate: i32, bind: i32, stage: u32, releases: u32): void {
-    var p: Probe = {sdk: sdk, query_result: query, allocation_result: allocate, bind_result: bind, ..default};
-    p.info = {sType: 14, flags: 8, imageType: 1, format: 43, extent: {width: 64, height: 32, depth: 1},
+fn exercise(sdk: bool, legacy: bool, scenario: Scenario, status: i32, calls: u32, releases: u32): void {
+    var p: Probe = {sdk: sdk, legacy: legacy, scenario: scenario, result: status, ..default};
+    p.formats = {tag: FormatListTag, count: 1, formats: &p.info.format, ..default};
+    p.info = {sType: 14, pNext: bits(void*, &p.formats), flags: 8, imageType: 1, format: 43, extent: {width: 64, height: 32, depth: 1},
         mipLevels: 2, arrayLayers: 4, samples: 1, usage: 7, ..default};
     var physical = bits(VkPhysicalDeviceHandle*, &p);
     var device = bits(VkDeviceHandle*, &p);
     var types: VkMemoryType[2] = {{propertyFlags: 0, ..default}, {propertyFlags: 1, ..default}};
+    var count = convert(u32, sizeof(decltype(types)) / sizeof(VkMemoryType));
     var range: VkImageSubresourceRange = {aspectMask: 1, levelCount: 2, baseArrayLayer: 2, layerCount: 1, ..default};
-    if query != 0 {
+    if scenario == Scenario.Query || scenario == Scenario.Capacity {
         var caps: VkImageFormatProperties;
         fill(bits(u8*, &caps), 90, sizeof(VkImageFormatProperties));
         p.public_caps = &caps;
         var supported = Guard;
-        check(tower_vk_image_format_preflight_v1(physical, &p.info, &caps, &supported) == query &&
-            supported == Guard, "query result or support output");
-        for (var i: usize = 0; i < sizeof(VkImageFormatProperties); i++) {
-            check(bits(u8*, &caps)[i] == 90, "query clobbered caller limits");
+        var query = tower_vk_image_format_preflight_v1(physical, &p.info, &caps, &supported);
+        if scenario == Scenario.Query {
+            check(query == status && supported == Guard, "query result or support output");
+            for (var i: usize = 0; i < sizeof(VkImageFormatProperties); i++) {
+                check(bits(u8*, &caps)[i] == 90, "query clobbered caller limits");
+            }
+        } else {
+            check(query == 0 && supported == 0 && caps.maxResourceSize == Charge, "successful query, insufficient capacity");
         }
         p.stage = 0;
         p.public_caps = null;
     }
-    var result = osd_open_sampled_image(physical, device, &p.info, &types[0],
-        convert(u32, sizeof(decltype(types)) / sizeof(VkMemoryType)), 1, 5, &range, &p.owner, &p.account);
-    check(result == query + allocate + bind && p.stage == stage, "wrong signed result or subsequent call");
-    if allocate != 0 {
-        check((p.owner.memory != null) == sdk && p.account.live == 0 && p.account.peak == 0, "failed allocation published");
-        // The SDK writes through the public slot even on failure. Discard the test driver's scribble.
+    var result: i32;
+    if legacy {
+        fill(&p.raw.metadata[0], 165, sizeof(decltype(p.raw.metadata)));
+        result = open_legacy_image(physical, device, &p.info, &types[0], count, 1, 5, &range, &p.raw, &p.account);
+    } else {
+        result = osd_open_sampled_image(physical, device, &p.info, &types[0], count, 1, 5, &range, &p.owner, &p.account);
+    }
+    check(result == status && p.stage == calls && p.info.pNext == bits(void*, &p.formats), "status, chain or subsequent call");
+    if scenario == Scenario.Allocate {
+        check((live(&p).memory != null) == (sdk && !legacy) && p.account.live == 0 && p.account.peak == 0,
+            "failed allocation publication");
+        // The raw SDK reference wrote directly into the typed owner's public slot.
         p.owner.memory = null;
     }
-    osd_retire_image_owner(device, &p.owner, &p.account);
-    osd_retire_image_owner(device, &p.owner, &p.account);
+    if scenario == Scenario.Create { check(live(&p).image == null, "failed image publication"); }
+    if scenario == Scenario.View { check(live(&p).view == null, "failed view publication"); }
+    for (var pass: u32 = 0; pass < 2; pass++) {
+        if legacy { retire_legacy_image(device, &p.raw, &p.account); }
+        else { osd_retire_image_owner(device, &p.owner, &p.account); }
+    }
+    var after = live(&p);
     check(p.released == releases && p.account.live == 0 && p.account.count == 0 &&
-        p.owner.memory == null && p.owner.image == null && p.owner.view == null && p.owner.bytes == 0,
+        after.memory == null && after.image == null && after.view == null && after.bytes == 0,
         "retirement count, charge or owner clear");
+    if legacy {
+        for (var i: usize = 0; i < sizeof(LegacyImage); i++) {
+            check(bits(u8*, &p.raw)[i] == 0, "legacy owner reset");
+        }
+    }
+}
+fn raw_destroy_control(): void {
+    var p: Probe = {legacy: true, ..default};
+    require_legacy_layout(&p.raw);
+    p.raw.image = bits(void*, image_id(&p));
+    vkDestroyImage(bits(void*, &p), p.raw.image, null);
+    check(p.released == 1, "legacy raw destroy declaration");
 }
 fn suite(sdk: bool): i32 {
+    raw_destroy_control();
     var plan: VkMemoryAllocateInfo = {sType: 5, allocationSize: Charge, memoryTypeIndex: 1, ..default};
     var p: Probe = {sdk: sdk, stage: 3, expected_plan: &plan, ..default};
+    p.dedicated = {tag: DedicatedTag, image: image_id(&p), ..default};
+    plan.pNext = bits(void*, &p.dedicated);
     p.owner.image = image_id(&p);
     var device = bits(VkDeviceHandle*, &p);
-    check(bind_owner(device, &p.owner, &p.account, &plan) == 0 && p.stage == 5, "original plan and slots");
+    check(bind_owner(device, &p.owner, &p.account, &plan) == 0 && p.stage == 5, "original plan, pNext and slots");
     osd_retire_image_owner(device, &p.owner, &p.account);
-    exercise(sdk, 0, 0, 0, 6, 3);
-    exercise(sdk, -1000001004, 0, 0, 1, 0);
-    exercise(sdk, 5, 0, 0, 1, 0);
-    exercise(sdk, 0, -2, 0, 4, 1);
-    exercise(sdk, 0, 1, 0, 4, 1);
-    exercise(sdk, 0, 0, -7, 5, 2);
-    puts("healthy, two clobbering query results, two clobbering allocation results, failed bind without view");
+    for (var i: u32 = 0; i < 2; i++) {
+        var legacy = i != 0;
+        exercise(sdk, legacy, Scenario.Healthy, 0, 6, 3);
+        exercise(sdk, legacy, Scenario.Query, -1000001004, 1, 0);
+        exercise(sdk, legacy, Scenario.Query, 5, 1, 0);
+        exercise(sdk, legacy, Scenario.Capacity, FormatNotSupported, 1, 0);
+        exercise(sdk, legacy, Scenario.Create, -3, 2, 0);
+        exercise(sdk, legacy, Scenario.NoType, FeatureNotPresent, 3, 1);
+        exercise(sdk, legacy, Scenario.Allocate, -2, 4, 1);
+        exercise(sdk, legacy, Scenario.Allocate, 1, 4, 1);
+        exercise(sdk, legacy, Scenario.Bind, -7, 5, 2);
+        exercise(sdk, legacy, Scenario.View, -9, 6, 2);
+    }
+    puts("healthy, two clobbering query and allocation results, capacity, create, plan, bind and view failures in both owners");
     return 0;
 }
 export fn record_suite(): i32 { return suite(false); }
