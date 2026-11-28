@@ -421,3 +421,8 @@ imports all sixteen public functions plus its private shader destruction
 call. The Linux entry checks local refusal of a missing draw procedure.
 See the counted-draw guide for the device callback, bounds and readback.
 [Counted-draw build and hardware checks](../../counted_draw.md#calling-from-ordinary-tower)
+
+Host 11 ran both published clients inside the same Win64 counted fixture,
+including shader file validation, both pipelines, device PFN lookup and guarded
+readback. The recipe provides the ordinary Tower driver entry and the explicit
+COFF-to-SDK link. [Build and run the Win64 application](counted_win64/README.md)

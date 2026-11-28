@@ -1,0 +1,13 @@
+import tower;
+import counted_fixture;
+
+// Tower's Win64 executable runtime enters tower_main without CRT arguments.
+extern fn __getmainargs(argc: i32*, argv: u8***, env: u8***, expand_wildcards: i32, startup_info: i32*): i32;
+extern fn exit(status: i32): void;
+
+var argc: i32 = 0;
+var argv: u8** = null;
+var environment: u8** = null;
+var startup_info: i32 = 0;
+if __getmainargs(&argc, &argv, &environment, 0, &startup_info) != 0 { exit(2); }
+exit(main(argc, argv));

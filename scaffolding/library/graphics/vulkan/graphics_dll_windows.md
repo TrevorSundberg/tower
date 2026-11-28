@@ -10,6 +10,10 @@ calls. At runtime the Tower DLL imports `vkDestroyImageView`, `vkDestroyImage`, 
 
 See the [external Tower image application](graphics_so_linux.md) for a two-target build, Win64 executable link and Linux CPU recording check.
 
+An ordinary Tower executable can create compute and graphics pipelines and record
+counted draws through the same DLL. The Win64 example includes the shader
+tool versions and the expected fenced readback. [Build and run the counted application](osd_checks/tower_client/counted_win64/README.md)
+
 ## Build from a clean checkout
 
 From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
