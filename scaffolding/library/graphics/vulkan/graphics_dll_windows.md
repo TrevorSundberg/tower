@@ -840,3 +840,42 @@ resolve through `vulkan-1.dll`. A second PE traced all five source retirements
 through those DLL imports after ten successful queue completions. The
 [qualification instructions and results](osd_checks/retirement/README.md)
 identify the binaries and replay command.
+
+Rendering rebuilt worker revision `8a7a10105e0d9d96bbb6ed0d6a990e3b0f7d4a84`
+using the packaged Linux x64 bootstrap and LLVM 19.1.7. The release
+recipe is `bash scaffolding/library/graphics/vulkan/build_graphics_dll.sh OUT`.
+The reproduced DLL SHA-256 is
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`
+and its import library is
+`2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`.
+All fifteen previous export names kept their ordinals. Ordinal 16 starts at
+RVA `0x1d70`. Rendering decoded the final PE's two calls and tail jump.
+
+| Operation | Instruction RVA | Thunk RVA | IAT RVA in vulkan-1.dll import table |
+| --- | ---: | ---: | ---: |
+| vkDestroyImageView | 0x1d8b | 0x1e70 | 0x2400 |
+| vkDestroyImage | 0x1d9e | 0x1e60 | 0x23f8 |
+| vkFreeMemory | 0x1db8 | 0x1e90 | 0x2410 |
+
+The release-linked device PE had SHA-256
+`5fc83d0291c11507ee5b4b07470514896697bcc288d608b647a08b19a812c1a3`.
+The separate observer PE had SHA-256
+`abbd3b0be63126ed0d802c795b268cabd284067cdd47ab7ca6d46314c1f71de2`.
+Both import the public retirement function from the packaged DLL.
+Rendering compared the observer's five sets of returned view, image and
+bound memory handles with the driver calls. Each set used the creating
+device and a null allocator, after two successful finishes on the same
+queue. Live source bytes and allocation count returned to zero after each
+set.
+
+The worker selected a Quadro RTX 6000, Vulkan 1.4.351, NVIDIA 615.71.10,
+through Wine 8. Rendering compared all 27,542,768 guarded bytes with
+the archived fifteen-entry reference. SHA-256 was
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+The worker verified 256 sampled texels, 15 guards and zero validation
+warnings or errors. The older DLL failed to resolve the new name, and
+the deliberately reversed order failed at mask 3 (process exit 4).
+Win64 trapping UBSan and native Linux ASan/leak and TSan passed in their
+respective fixtures. Win64 ASan and TSan were unavailable. This run covers
+the Tower qualification fixture. Physical Windows and the shipping Draw
+PE with ordinal 16 have their own acceptance requirements.
