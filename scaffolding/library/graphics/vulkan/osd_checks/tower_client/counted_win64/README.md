@@ -105,10 +105,16 @@ The matched control and this release use `bound_buffer.tower` for buffer
 acquisition, `readback_completion.tower` for queue retirement and
 `readback_mapping.tower` for staging visibility. The [buffer ownership
 review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
-identifies the four rebuilt PEs. Use `53c0d291` and `49a7e06f` to reproduce
-the earlier pair with shared staging visibility. For the hardware-tested comparison on the
-Quadro RTX 6000, build the control at `b1db999a` and the five-import caller
-at `e81e4c25`. Those executables used the previous staging map implementation.
-The earlier control at `c74de3f0840248a679c4b8d4efa5244566392b67` uses
-`counted_completion.tower`. The [integration results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-caller-on-the-shared-completion-sdk)
-identify the actual PEs for comparison.
+identifies the four rebuilt PEs.
+
+For the shared staging visibility comparison, export `53c0d291` for two
+imports and `49a7e06f` for five. Host 11 reproduced the four PE hashes,
+ran both pairs on the Quadro RTX 6000 and matched all 112 guarded bytes.
+The journal records command rejections, signed queue recovery paths, staging
+flags, rejected mapping and sanitizer results for these revisions.
+[Host 11 qualification on shared staging](../../../../../../../docs/temporal-opcode-research-journal.md#host-11-qualification-of-the-five-win64-imports-on-shared-staging)
+
+The earlier hardware comparison on `b1db999a` and `e81e4c25` used the
+previous staging map implementation. The control at
+`c74de3f0840248a679c4b8d4efa5244566392b67` uses `counted_completion.tower`.
+[Earlier command comparison](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-caller-on-the-shared-completion-sdk)

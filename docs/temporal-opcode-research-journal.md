@@ -128266,3 +128266,90 @@ Seven warm paired worker samples had whole-process medians of 0.30–0.31 s.
 Acquisition timing ranges overlapped for all four applications. Address
 checks passed. Full-process raw-clear LSan reported 3,511 bytes in eight
 allocations before and after. TSan stopped before main.
+### Host 11 qualification of the five Win64 imports on shared staging
+
+Assignment 0ae93a6e uses the published 49a7e06f SDK and the 53c0d291 control.
+Each build starts with a Git-free export, the same frozen MinGW inputs, the
+published Linux x64 compiler and the counted_win64 README entry. The host
+11 plan compares both PE entry forms, traces successful completion through
+staging visibility, and isolates command, queue and mapping failures.
+
+**Hardware and inputs.** The one-tree builds reproduced all four full PE
+hashes in [the integration table](#five-win64-dll-imports-with-shared-staging-visibility).
+Wine 8 loaded the adjacent graphics DLL (`8fc64f24`) and Vulkan loader
+(`f7d151a8`), then Wine's system32 winevulkan.dll (`25a432c7`). The host
+loader inserted Khronos synchronization validation. Device 0 was the
+discrete Quadro RTX 6000, NVIDIA 615.71.10, Vulkan 1.4.351,
+UUID `26f60f6cead65faf0253a959b2e93a2d`, queue family/index 0/0.
+Both five-import PEs entered the graphics DLL at RVAs 0x1000 for the three
+shader creates, 0x1300 for both counted draws, and 0x11a0/0x1200/0x11f0
+for begin/prepare/submit. The two-import controls entered the same shader
+and draw exports. Their command RVAs were 0x2b20/0x2b80/0x2b70 in the
+ordinary PE and 0x2fa0/0x3000/0x2ff0 in the CRT PE.
+
+All four healthy processes exited 0 with zero warning/error callbacks.
+The real submit and infinite wait on its fence each returned 0. The mapped
+allocation matched the handle bound to staging at offset zero. The device
+reported type 3, heap 1, flags 0x6 (host-visible and coherent). Each run
+mapped the whole allocation, entered the consumer once and unmapped once.
+Both counts, both commands, four clear and four raster pixels, pitch and
+guards matched the independent 112-byte oracle
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+
+**Command rejections.** Each row ran separately on all four PEs. GDB returned
+the signed value at the guest Wine Vulkan entry. Independent breakpoints
+on functions returned by the NVIDIA ICD's device procedure lookup observed
+the following calls on the primary before cleanup.
+
+| Rejected operation | First application diagnostic | Forwarded to the ICD before rejection | Exit |
+| --- | --- | --- | ---: |
+| Reset, −1 | `reset and begin command buffer` | No reset, begin or recording call | 1 |
+| Begin, −2 | `reset and begin command buffer` | One reset | 1 |
+| End, −4 | `vkEndCommandBuffer` | Reset, begin, then 32 recording calls in order, including the two indexed-count draws | 1 |
+
+Each application printed the indicated signed result. None created a fence,
+submitted, waited, mapped or drained. Each retired its primary with its
+pool, destroyed the bound image and three buffers, and freed their four
+matching allocations. In a separate ordinary five-import process the
+debugger initialized all 72 bytes of the SDK's output at export entry.
+After the rejected end returned −4 every byte still matched the canary.
+The production error runs inspected only the output address.
+
+**Completion and mapping.** All four callers reproduced the signed queue
+paths from 22928275. Real submit followed by injected wait −1 drained the
+submitting queue successfully, freed four allocations and exited 1.
+Injected submit −2 skipped wait and drain, freed four and exited 1.
+Injected wait −1 after real submit, or injected submit −4, each followed by
+injected drain −2, printed both diagnostics in order and exited 3 with
+fence, pool and allocations live. None mapped. In a separate run a real
+submit and successful wait preceded injected map −5. Each caller printed
+`vkMapMemory`, skipped the consumer, invalidate and unmap, retired all
+four allocations and exited 1. The same consumer breakpoint fired once
+in the paired healthy run. Every host-visible type on this device was
+coherent. The existing Tower recording test exercised noncoherent
+invalidation, rejected map/invalidate and rejected pitch with guarded bytes.
+
+**Coverage and handoff.** Native Linux ASan/LSan callers in both arms matched
+the oracle and exited 0 with validation disabled. With validation enabled
+both matched the oracle and LSan reported 4,023 bytes in 12 allocations,
+including validation-layer stacks. TSan failed before main at the container
+personality check for the control (139) and faulted on a secondary thread
+for the candidate (66). The Win64 C recorder's trapping UBSan build covers
+the harness. Physical Windows, hardware noncoherent memory, real device
+loss and full Win64 application sanitization remain open.
+
+Assignment `0ae93a6e-1247-4d63-83a0-936eefe7071c` retains the Git-free SDK,
+frozen linker inputs, all four PEs, adjacent libraries, three shaders,
+driver call sequences, statuses and replay commands. A first mapping probe
+selected two Wine load events during prefix startup. The corrected probe
+used the final application mapping. A first debugger script stopped at the
+consumer while expecting the fence destructor. Explicit foreground stops
+verified each separately. The native recorder used the prepared SDK's start
+objects and the host libc because the extracted sysroot lacked libc.so.6.
+These tests required documentation changes only. Runtime performance and
+memory-use comparisons do not apply to this revision.
+
+During handoff the rendering branch advanced to a2d79120. Its buffer
+acquisition changes produce a later set of PEs. This receipt identifies
+the 49a7e06f and 53c0d291 executables in the shared staging table above.
+The README retains the later build selection and names each hardware pair.
