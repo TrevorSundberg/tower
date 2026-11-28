@@ -917,3 +917,7 @@ use the declarations shared with the Win64 device example.
 The four `frame_submit.h` functions also have a declarations-only Tower
 import. Their Win64 names and ordinals are shared with the C callers.
 [Application contract and build recipe](osd_checks/tower_client/README.md#calling-the-frame-and-upload-commands)
+
+Tower applications can import the three upload entries at ordinals 7–9 via
+`library.graphics.vulkan.upload`. The [usage and external build recipe](osd_checks/tower_client/README.md#staged-buffers-and-packed-osd-uploads)
+uses the same nominal handles and copy regions as the provider.

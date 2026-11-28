@@ -33,6 +33,9 @@ build the executable entry with those same client modules.
 For command buffers and queues, import `library.graphics.vulkan.command_submission`
 in the same application. Both library builds above also provide the four
 [command entries and their caller examples](osd_checks/tower_client/README.md#calling-the-frame-and-upload-commands).
+For staged buffers and packed textures, import `library.graphics.vulkan.upload`.
+Its [three upload entries](osd_checks/tower_client/README.md#staged-buffers-and-packed-osd-uploads)
+use the same command and image handles as the other two modules.
 
 ```bash
 app=$(mktemp -d "$(dirname "$root")/image_app.XXXXXXXX")

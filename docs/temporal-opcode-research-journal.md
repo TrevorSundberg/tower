@@ -126462,3 +126462,173 @@ the outstanding owner after a failed wait. The device run on the RTX
 bytes match the combined build. GPU and performance attribution stays
 with that revision. Draw's actual command owner has its own CPU and
 link evidence and two assigned hardware tests.
+### Typed Vulkan upload imports on host 11
+
+Assignment `587de97d-b762-49fc-9969-16f40b8cb30a` starts at
+`663437f8594f321a60bd9816db5cfb008a88bfd8`. Draw's staged buffer upload and
+packed OSD constructor already have Win64 providers at ordinals 7–9. Their
+region record and buffer handle were declared alongside raw Vulkan imports.
+The rendering library now exposes the three reviewed signatures in
+`upload.tower`; its provider and caller import the same buffer handle,
+subresource layers, signed offset and buffer/image copy record. The command
+and image handles and unsigned extent retain their existing nominal owners.
+The headers, export table and provider bodies retain their original bytes.
+
+The pre-change control compiled the same application operations from an
+external directory with the original provider ABI and hand-declared externs.
+The independent C SDK device controls from jobs 55b94649 (buffer) and
+6cd74574 (images) reproduced their guarded captures on this host before
+compiling the new import. The OSD shapes correspond to Draw 752f55c1.
+The byte patterns originate in the Tower test generators.
+
+**ABI and build.** The headers and exported function definitions match
+the reviews at `dadf38c0` (buffer), `846176ab` (image) and `0e385907`
+(regions). The buffer provider already imports its synchronization2
+structs from a shared module at the pinned base. The public import
+adds no driver declarations. The external sample's 11-source depfiles
+on both targets contain only language, public declarations and caller
+code. Its four unresolved symbols are ordinals 7, 8, 9 and 6. The ELF
+object is `39ceff42f2208a0f0b7cf03527de5c1c65a6ecf68d94c08320ba51fe1182e6e1`
+and the COFF is `28716f3cc7dae2aa942137d059d0ac039d783f420a306215854893b83790df5e`.
+An image passed where a buffer is required produces a nominal-type error
+on both targets. The existing maximal-span test now uses the public import.
+
+The ordinary Linux x64 bootstrap compiled the external caller at jobs 1
+and the final ELF link resolved all imports against the production units
+and Vulkan loader. All three ELF provider objects match the pre-change
+build. The 13 Win64 provider objects, both import libraries and DLL match
+the sealed b80c042b packet. All device runs that used the DLL loaded the
+original 7,680-byte release, SHA-256
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`.
+Its graphics import library is
+`2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`.
+
+**Retirement and output.** Wine 8 selected physical device 0, discrete
+Quadro RTX 6000, vendor/device 10de:1e78, device UUID
+`26f60f6cead65faf0253a959b2e93a2d`, Vulkan 1.4.351 and NVIDIA 615.71.10.
+The fixture enabled synchronization2 and used graphics family 0, queue 0.
+The loader inserted the host Khronos layer with synchronization validation
+requested. Healthy device processes exited zero with zero warning/error
+callbacks. The raw SDK recorder, C caller of the DLL and directly importing
+Tower caller used the same frozen workloads. The only changes in the
+workload objects for the direct arm were external callback names. Their
+machine-code sections matched.
+
+* The 73-byte staging pattern alternated over 64 copies. Each of the
+  88-byte results contained four leading host guards, the 73 active bytes,
+  seven unchanged destination bytes and four trailing host guards. Each
+  upload finished before its readback command began, and that command
+  finished before the mapped host comparison. The trace contains 129
+  successful end/submit/idle triples including initialization. All 5,632
+  captured bytes matched `464400b39d3b85b232fc092a41fa409846d7ad845e6383f5b69752514b98cdbe`.
+  Recording-only lengths 1, 73, 67108864 and 4294967369 arrived intact.
+* Fonts, bitmap, inverted bitmap, firmware and images produced 6/2/2/4/2
+  tight records. Each recorder call performed one initial barrier per
+  actual layer covering every mip, one copy with the original array
+  address and one final barrier per layer. The 28 barriers and all 208
+  SDK fields matched the independent observer. Readback used independent
+  destination regions. Five upload waits preceded staging release and
+  five sample/readback waits preceded comparison and teardown. All
+  27,542,768 bytes matched `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`,
+  including 256 sampled RGBA pixels and 240 outer/intermediate guard bytes.
+* A second paired fixture read each mip into rows with four spare texels
+  and one extra untouched row per region. It checked every active byte,
+  every row suffix, the extra rows, sample atlas and guards. The 27,653,544
+  physical bytes matched `89e87368acaace29464c46274a6532aa0593061a23d5c506dfa7f0cac466b75a`.
+  Its Tower application also imported image creation (11) and command
+  begin (4). All ten creates and begins on this path originated in the DLL.
+* Wine relay PCs for the direct buffer upload's 64 copies and barriers
+  were in the DLL. The 64 following readback copies were in the PE.
+  All five image upload copies and their 14 initial and 14 final barriers
+  came from the DLL. The other twenty image barriers came from the
+  sampling/readback PE. The SDK control's corresponding calls came from
+  its PE. The CPU builder makes no driver call. Its Tower relocation, PE
+  binding to ordinal 9 and checked returned records identify its use.
+  The packet retains imports, maps, module load addresses and relay returns.
+
+**Sensitivity.** The SDK layout check establishes 56-byte stride,
+8-byte alignment and offsets of all 13 fields. It called the builder
+and recorder through the Tower object. A null destination, one slot
+short and one byte short all returned zero before writing. Leading,
+trailing and unused records remained poisoned, including for an extra
+successful slot and a surplus span. Wide offset 4295032832, mixed
+layers/mips and the 32-mip UINT64_MAX span passed. The original SDK
+packer exposed a partial write at bitmap byte span 450559 (exit 1).
+Truncating the sampled-read mask failed the final barrier (exit 3).
+Shortening the real 73-byte copy to 72 failed on byte 76 (218 expected,
+60 observed, exit 1). Spoiling the first retired row's padding failed
+the padded comparison (exit 3).
+
+The CPU RGBA8 control reproduced the guarded 2×2 (17,34,51,255) output
+with pitch 12, plus the distinct-row marker and short-source, pitch and
+span rejections. The row copy and literal oracles match `3dd5f11f` on
+compiler base `a580e70a`. The five OSD texture payloads are synthetic.
+The shipping pack digest reported by Draw is
+`0b5ef89a0be71e8429e6fca5d84a59d36779dc2b0e6510afb87a51bacd8db3a9`.
+Physical Windows, the shipping Draw application using these Tower imports,
+and other backends require separate qualification.
+
+**Measurements.** Xeon E5-2699 v4, 88 logical CPUs, 10.56-core cgroup
+quota, LLVM 19.1.7. Jobs 1 and 4 compiled the same four application bodies
+to identical COFF bytes on the old and public declaration surfaces.
+Device samples used one application thread and queue with a warm Wine
+server, synchronization validation and tracing off. Each row gives three
+paired process samples after a warmup. CPU is user plus system in seconds,
+RSS is process peak KiB. These elapsed times include setup and teardown.
+The public call sites compile to direct tail jumps with no allocation.
+
+| Process | Wall seconds | CPU seconds | RSS KiB |
+| --- | --- | --- | --- |
+| Old compile, jobs 1 | .37/.36/.39 | .37/.35/.38 | 87800/87212/87020 |
+| Public compile, jobs 1 | .34/.36/.39 | .34/.35/.39 | 87124/87296/87804 |
+| Old compile, jobs 4 | .50/.48/.50 | .55/.52/.54 | 91036/91528/91436 |
+| Public compile, jobs 4 | .46/.46/.49 | .49/.49/.52 | 91652/90120/91188 |
+| 64 buffers, SDK | .39/.38/.36 | .34/.35/.33 | 116752/116836/116132 |
+| 64 buffers, Tower | .37/.53/.48 | .33/.38/.34 | 116856/115632/115608 |
+| Five images, SDK | 1.19/1.01/1.22 | 1.08/.97/1.08 | 190648/191440/192308 |
+| Five images, Tower | 1.18/1.01/1.12 | 1.07/.98/.99 | 191588/192584/191220 |
+
+The Win64 checked and recording clients ran with trapping UBSan on the
+C SDK boundary. Native ASan with leak detection and TSan each completed
+16 maximal-span and refusal suites on four pthreads using instrumented
+builder and Tower callers. TSan had four ADDR_NO_RANDOMIZE startup
+failures before the completed run. Win64 ASan runtime libraries were
+absent and the Clang Win64 target rejected TSan. GPU driver internals
+were outside instrumentation. The first shell launch could not locate
+xvfb-run. The retained private Xvfb/Wine session script worked. The
+negative type check initially matched the wrong diagnostic wording.
+Both compiler exits and the corrected exact-type diagnostic are retained.
+
+The [public build recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#staged-buffers-and-packed-osd-uploads)
+uses the pinned compiler from an external application directory. The
+assignment packet contains the bounded Git bundle, release, raw fixture
+inputs, checked bytes, maps, exact commands, return codes and replay.
+
+### Staged upload imports in the combined SDK
+
+Rendering integrated worker 2e32f1ee on the combined SDK a6a02187.
+The three declarations in library.graphics.vulkan.upload use the
+same SDK record and nominal handles as the providers. The example in
+the public guide and the external caller compiled with the packaged
+bootstrap. The upload caller's ELF and Win64 COFF hashes match
+39ceff42 and 28716f3c. A single external application using image,
+command and upload imports linked fourteen existing functions on
+each platform. Its ELF shared object had SHA-256
+3aced2d0c72954ee20a5827d8277e9b7b8e5fede2bf869e276496f20ffec7f30,
+and its PE had c7013c3a6e7f55a19ae5f6161d2fea682ea0e55ac238ed7a6262de6ed20831a4.
+The platform release products still match DSO 2d924e64, DLL 8fc64f24
+and import library 2d56f882. The manager ran the 32-mip maximal-span
+test through the rebuilt Linux DSO and checked the field and callback
+records against the prior SDK controls.
+
+The 707-entry worker archive was b409ad8df40a4b4e161ed9e8d19aa15efca1a16fb2390a9f536b24b9c4a7cbc4.
+Rendering compared every byte of the 5,632-byte staged buffer capture
+and 27,542,768-byte synthetic image capture with the retained raw-arm
+inputs, and reran the independent sampling verifier. A separate Tower
+check compared the 27,653,544-byte padded capture row by row with the
+verified tight capture, including all 110,776 additional bytes, and
+detected a deliberately changed first row suffix. The Quadro RTX 6000
+execution and matched measurements belong to the worker commit. The
+manager ran CPU tests and cross-link checks on the combined tree.
+Physical Windows and Draw's direct consumer of these upload declarations
+remain separate qualifications.

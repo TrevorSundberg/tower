@@ -1,0 +1,16 @@
+import tower;
+import command_submission_types;
+import upload_types;
+
+// Record [0, size) on each buffer. The owner submits and retires both resources.
+extern fn tower_vk_buffer_upload_record_v1(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*,
+    dst: VkBufferHandle*, size: u64): void;
+
+// Borrow the caller's initialized region array read-only through return.
+extern fn tower_vk_osd_texture_upload_record_v1(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    layers: u32, mips: u32, count: u32, regions: VkBufferImageCopy*): void;
+
+// A zero result preserves every output byte. A positive count initializes only that prefix.
+extern fn tower_vk_build_tight_color_regions_v1(out: VkBufferImageCopy*, capacity: u32,
+    width: u32, height: u32, actual_layers: u32, mip_count: u32, bytes_per_texel: u32,
+    available_bytes: u64): u32;

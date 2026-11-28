@@ -196,3 +196,75 @@ import library. Its inspected PE imported commands 1, 4, 5 and 6 and
 image functions 10 through 16. Draw assigned Linux device run
 `2ccf8771-c57d-55cb-883e-0968cecadad8` and Win64 device run
 `7a4988f5-f7a8-55e5-9ab7-b62ed72accb8` to follow its image-only runs.
+
+## Staged buffers and packed OSD uploads
+
+Import `library.graphics.vulkan.upload` alongside `command_submission` and
+`image_lifecycle`. An image returned by `tower_vk_create_image_v1` and a
+primary passed to `tower_vk_command_begin_v1` have the handle types the upload
+recorder expects. The device needs synchronization2. Begin recording outside
+a render pass and check the signed begin result before recording.
+
+* For a staged buffer, call `tower_vk_buffer_upload_record_v1(cmd, staging,
+  dst, bytes)` on a transfer-capable primary. The buffers must cover the
+  positive `u64` length at offset zero, have the corresponding transfer usages
+  and refer to non-overlapping ranges. The call records the copy and its
+  transfer-write to memory-read barrier.
+* For an OSD texture, use a recording graphics primary, coherent staging
+  and a new bound color image in undefined layout. Convert the pack's zero
+  layer field to one actual layer before both calls. For the five recorded
+  shapes the largest region list has six entries. Size storage to the actual
+  caller's needs. This example returns false on builder rejection and true
+  after recording the copy and transitions.
+
+```tower
+import tower;
+import library.graphics.vulkan.upload;
+
+fn record_packed(cmd: VkCommandBufferHandle*, staging: VkBufferHandle*, image: VkImageHandle*,
+    width: u32, height: u32, layers: u32, mips: u32, texel_bytes: u32, span: u64,
+    regions: VkBufferImageCopy*, capacity: u32): bool {
+    var n = tower_vk_build_tight_color_regions_v1(regions, capacity, width, height,
+        layers, mips, texel_bytes, span);
+    if n == 0 { return false; }
+    tower_vk_osd_texture_upload_record_v1(cmd, staging, image, layers, mips, n, regions);
+    return true;
+}
+```
+
+Capacity counts writable SDK records. A null output, short capacity or
+short byte span returns zero and preserves all destination bytes. Surplus
+span and spare entries are allowed. Each successful entry describes a
+layer-major, tightly packed mip with a `u64` byte offset from this texture's
+staging base. The recorder borrows the array read-only until return and
+leaves the image in shader-read-only layout. The primary remains recording.
+To finish either upload synchronously, call
+`tower_vk_command_finish_v1(queue, cmd)` and check its signed `i32` result.
+Retain staging through completion and destination resources through their
+last use. If submission succeeded and the queue wait failed, keep in-flight
+resources live until an independent drain or device recovery establishes
+retirement. Read host-visible results after the
+readback submission and its host visibility barrier complete.
+
+Build the [application caller](upload_client.tower) from an external directory
+on Linux x64. LLVM 19 supplies the bootstrap dependencies and inspection tools.
+
+```bash
+set -euo pipefail
+root=$PWD
+(cd "$root/bootstrap/linux-x64" && sha256sum --quiet -c SHA256SUMS)
+work=$(mktemp -d)
+cp "$root/scaffolding/library/graphics/vulkan/osd_checks/tower_client/upload_client.tower" "$work/"
+cd "$work"
+for target in x86_64-linux-gnu x86_64-w64-windows-gnu; do
+    "$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$root/scaffolding/foundation.tower" \
+        --target "$target" upload_client.tower --depfile "$target.d" -o "$target.o"
+    llvm-nm -u "$target.o"
+done
+```
+
+Expect the three upload symbols and blocking finish. Use the
+[single-checkout build](../../graphics_so_linux.md) to produce
+`libtower_graphics.so` on Linux or `tower_graphics.lib` and its matching
+`tower_graphics.dll` for Win64. The [host 11 qualification](../../../../../../docs/temporal-opcode-research-journal.md#typed-vulkan-upload-imports-on-host-11)
+records the SDK controls, hardware readbacks, failure controls and packet.
