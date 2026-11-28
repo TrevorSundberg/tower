@@ -375,3 +375,61 @@ RTX 5060 Ti comparison to slot 10 job
 shared-library job `b6f28d59-681f-44bd-b19e-6922d03bf357` and the
 standalone planner job `7e3234ce-f5ca-4d1a-807a-086d3a68d274`.
 In this release Draw still calls Vulkan to allocate and bind memory.
+
+## Independent verification of the sixteen-entry release
+
+Rendering rebuilt worker tip `f5836de37ed168cb481271da9a5b724cc4f59bd0`
+with the pinned bootstrap and GNU ld 2.44. Run the package command from
+the Tower checkout with an absolute path to the host Vulkan loader.
+
+```sh
+bash scaffolding/library/graphics/vulkan/build_graphics_so.sh OUT /absolute/path/to/libvulkan.so.1
+```
+
+The resulting 15,576-byte library had SHA-256
+`2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`,
+SONAME `libtower_graphics.so`, and a single dependency on `libvulkan.so.1`.
+The raw and linked recording clients both passed all eight handle subsets
+and cleared second calls. The four-thread linked client passed. With the
+fifteen-entry library, eager loading of the new client exited 127 on the
+missing retirement symbol.
+
+Rendering replayed the lifetime verifier on the two retained 199-event
+device traces and compared all 103,158,144 guarded bytes in both captures
+with the previous SDK reference. Each trace ended with five marked
+retirements. The three calls inside each marker destroyed exactly the
+view, image and memory using the creating device and a null allocator.
+All sixteen sampled reads had completed before those retirements.
+The selected device was an RTX 3090 (10de:2204) running Vulkan 1.3.289
+on NVIDIA 565.57.01 with zero validation warnings or errors. Both raw and
+linked routes reported 4,187 bytes in 15 allocations in the GPU
+synchronization-validation leak check. GPU TSan exited 66 before verified
+device execution.
+
+### Import boundary for a Tower application
+
+Draw's image owner at `ad18ef06908ea1ffbd74d2a45a96f36a652794b9`
+already declares raw Vulkan functions for its private handle types. On
+compiler `a580e70af42e67d5309c4121737fa9e21652a9dd`, Draw reported an
+incompatible declaration of `vkDestroyImage` when importing the existing
+`readback_abi` alongside this owner. Rendering independently reproduced
+the same diagnostic with a minimal private caller and the actual
+`readback_abi.tower` on Linux x64 and the Windows x64 MSVC target.
+
+The agreed application interface will expose seven packaged externs in
+one declarations-only module, backed by shared handle and descriptor
+types. Its import graph must exclude raw driver declarations and provider
+implementations. The adopter can explicitly cast a layout-checked
+private descriptor at the boundary, preserving its address and extension
+chain. For an output handle it passes a separate, initially null typed
+slot and publishes that handle to its owner only on success. Distinct
+image and memory handle types, signed driver results, 32-bit decisions
+and 64-bit allocation sizes must survive the boundary. The application
+keeps diagnostics, accounting, completion and owner reset.
+
+Draw reported a temporary two-module CPU caller with six bindings to the
+fifteen-entry graphics library and a seventh to the standalone retirement
+library. The driver observed a query error of −11 with untouched outputs,
+and a later create error of −2 with an empty image. That feasibility test
+and the C/device results above precede qualification of the public Tower
+consumer module.

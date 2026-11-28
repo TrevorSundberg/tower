@@ -79,7 +79,11 @@ subsets, then called each again on the cleared owner. Its recording driver
 observed the accounting change after the free and all 64 bytes cleared.
 Draw reported the full-call trace SHA-256
 `fd488c43641dff81ef9b18969b6fbf3c6b434a1f0ecfdd6b10113efad285bfea`.
-These subsets exercise CPU call policy. Real-device tests require valid
-ownership, known retirement and the selected driver. Draw application
-adoption, device execution and Win64 DLL execution are outstanding for this
-release.
+These subsets exercise CPU call policy. Draw later checked the standalone provider from both Linux image owners.
+[Draw recording and construction result](https://github.com/TrevorSundberg/tower/blob/de7e792d2eab23587494cbf637185024383d259b/scaffolding/library/graphics/vulkan/image_retirement_v1.md#draw-adoption-with-the-fifteen-entry-graphics-library)
+
+The packaged Linux entry was tested on an RTX 3090 and Win64 ordinal 16 on
+a Quadro RTX 6000 under Wine. Shipping Draw qualification of these packages
+and physical Windows execution have their own acceptance checks.
+[Linux package](graphics_so_linux.md)
+[Win64 package](https://github.com/TrevorSundberg/tower/blob/8ac14905c24b806449243348591f7164e06d2d90/scaffolding/library/graphics/vulkan/graphics_dll_windows.md#retiring-an-owned-image-at-ordinal-16)
