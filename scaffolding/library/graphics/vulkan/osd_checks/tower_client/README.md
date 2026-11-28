@@ -59,3 +59,39 @@ done
 ```
 
 The two application depfiles (`elf.d`, `coff.d`) each list nine sources. The combined check lists twelve. In each graph the sole public lifecycle declarations come from image_lifecycle and there are no provider bodies or imports of readback_abi. The raw declaration appears only in the legacy caller. The recorder calls it once with a synthetic handle. Both owners also run signed query failures, successful query with insufficient capacity, no compatible memory type, clobbered outputs, accounting at bind, and ordered retirement followed by a second release. The [journal](../../../../../../docs/temporal-opcode-research-journal.md#isolating-image-lifecycle-types-from-driver-declarations) records the provider byte comparisons and both device runs.
+
+## Linked application checks
+
+Rendering rebuilt the two modules from a temporary application directory
+with the ordinary bootstrap compiler at `a3805474e56ebe0ec25c4f2127e5df7aec06c212`.
+Both objects matched the digests above. Their only unresolved symbols
+are the seven packaged functions. The declaration module's depfile lists
+five language files followed by `image_lifecycle_types.tower` and
+`image_lifecycle.tower`. Importing a second application module preserves
+the nominal identity of an image or memory handle across both callers.
+
+On Linux, the recording executable linked against the 15,576-byte
+`libtower_graphics.so` from `f2d6df4b` (SHA-256
+`2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`).
+Rendering verified dynamic resolution of all seven functions to that file
+and reran all ten recording scenarios for each of the two owner types.
+The actual driver calls in this check resolve to CPU recording functions.
+[Linux library build and verification](https://github.com/TrevorSundberg/tower/blob/f2d6df4b5604b5a66ea58f8772ddf8764ea883d4/scaffolding/library/graphics/vulkan/graphics_so_linux.md#independent-verification-of-the-sixteen-entry-release)
+
+On Wine 8, the selected Quadro RTX 6000 (10de:1e78, Vulkan 1.4.351,
+NVIDIA 615.71.10) exercised the actual Win64 DLL. The hardware test
+PE containing the standalone typed caller had SHA-256
+`6272c31877735449ffb860c5e888f17945d0472d8e8da89e816b6ef11f34b254`.
+The separate private-owner PE had SHA-256
+`9ccd2825841dc0433570b768bdb393f567e8e9a9d3d07c9e0b851f3b9671e075`.
+Rendering verified both executables' seven imports and the DLL hash
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`.
+Each device trace shows two successful queue completions per texture
+before the owner releases its view, image and memory. The private-owner
+capture matched the preceding C fixture byte-for-byte across 27,542,768
+guarded bytes (SHA-256
+`5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`).
+
+Physical Windows and Draw's shipping application have separate device
+checks. The Win64 sanitizer result covers trapping UBSan at the C
+boundary. Win64 ASan and TSan coverage remains open.
