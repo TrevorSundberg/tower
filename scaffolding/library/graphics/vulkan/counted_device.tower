@@ -14,36 +14,9 @@ fn counted_bytes(): u64 {
 }
 
 fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackDevice*): bool {
-    var index: u32 = 0;
-    var count: u32 = 0;
-    if !vk_ok("vkEnumeratePhysicalDevices/count", vkEnumeratePhysicalDevices(instance, &count, null)) { return false; }
-    if index >= count { return vk_failure("Requested Vulkan physical device index unavailable"); }
-    var physicals = alloc(VkPhysicalDeviceHandle*, convert(usize, count));
-    if physicals == null { return vk_failure("Cannot allocate physical device list"); }
-    defer free(physicals);
-    if !vk_ok("vkEnumeratePhysicalDevices/list", vkEnumeratePhysicalDevices(instance, &count, physicals)) { return false; }
-    if index >= count { return vk_failure("Requested physical device disappeared"); }
-    var physical = physicals[index];
+    var physical: VkPhysicalDeviceHandle*;
     var core: VkPhysicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(physical, &core);
-    puts("Vulkan selected physical device"); puts(&core.deviceName[0]); puts(vk_device_kind(core.deviceType));
-    readback_number("physical_device_index", index); readback_number("api_version", core.apiVersion);
-    readback_number("vendor_id", core.vendorID); readback_number("device_id", core.deviceID);
-    readback_number("driver_version", core.driverVersion);
-    if core.apiVersion < VkApi13 { return vk_failure("Core Vulkan 1.3 required"); }
-    var id: VkPhysicalDeviceIDProperties = { sType: VkDeviceIDTag, ..default };
-    var driver: VkPhysicalDeviceDriverProperties = { sType: VkDriverPropertiesTag, pNext: bits(void*, &id), ..default };
-    var props: VkPhysicalDeviceProperties2 = { sType: VkProperties2Tag, pNext: bits(void*, &driver), ..default };
-    vkGetPhysicalDeviceProperties2(physical, &props);
-    readback_label("device_uuid");
-    var digits = "0123456789abcdef";
-    for (var at: usize = 0; at < sizeof(decltype(id.deviceUUID)); at++) {
-        var byte = id.deviceUUID[at];
-        putchar(convert(i32, digits[convert(usize, byte >> 4)]));
-        putchar(convert(i32, digits[convert(usize, byte & 15)]));
-    }
-    puts("");
-    readback_number("driver_id", driver.driverID); puts(&driver.driverName[0]); puts(&driver.driverInfo[0]);
+    if !readback_select_physical(instance, 0, &core, &physical) { return false; }
     if strict {
         if core.apiVersion < VkCore14 { return vk_failure("strict Draw profile refused: device API below Vulkan 1.4"); }
         return vk_failure("strict Draw predicate requires original feature inventory; unsupported by this control");
@@ -72,6 +45,7 @@ fn counted_open_device(instance: VkInstanceHandle*, strict: bool, out: ReadbackD
     var enable12: VkPhysicalDeviceVulkan12Features = { sType: VkCore12FeaturesTag, drawIndirectCount: 1, ..default };
     dynamic.pNext = bits(void*, &enable12);
     if dynamic.dynamicRendering == 0 { return vk_failure("Dynamic rendering unavailable"); }
+    var count: u32 = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
     if count == 0 { return vk_failure("No queue families"); }
     var queues = alloc(VkQueueFamilyProperties, convert(usize, count));

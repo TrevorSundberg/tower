@@ -129822,3 +129822,143 @@ Wine and passed Linux ASan with leak checking. Its Linux TSan run passed
 after ten pre-main failures. The seven paired whole-process timing ranges
 overlapped for every PE configuration. Native Windows/WDDM and full-PE
 sanitization remain open. This publication documents existing binaries.
+
+### Borrowing the selected Vulkan physical device on slot 12
+
+Assignment `ad26bc7b-3981-4c55-98c8-b25c10068a45` started on SDK
+`aaf4a6c8e17941978a6f28a2cc906d19879fa5be`, which publishes the
+validation-instance source at `fcead218ae8c205e9d751a328392602a68f53f17`.
+Slot 12 verified predecessor packet `531a3f73-4131-4753-a2bc-46a0a976215f`,
+SHA-256 `64a1154cb93d683a2e0f7252223e934590c6da4c849870932a3fb64dd13167b6`,
+including its 427 manifest entries. Its after executables, toolchain
+identities, guarded byte references and instance-lifetime traces provide
+the baseline. The fixture files match Git revision `3dd5f11f`, parent
+`a580e70a`. The shared checkout had seven local commits and a working
+edit to readback_v1.md. The initial pull refused that edit. An independent
+local main contains this review.
+
+Both open-device functions enumerated into a temporary list, then held it
+until the entire logical-device setup returned. The driver owns the physical
+device for the lifetime of its instance. The list contains copies of handles.
+The core-properties query writes into caller storage. Counted reads its API
+version for strict mode and its limits after the features query. The second
+properties query has its own driver and device-ID chain. None of those
+descriptors are retained. The shared `readback_select_physical` publishes
+the borrowed handle after identity reporting and frees its list on every exit
+following allocation. Raw clear passes its requested index. Counted passes
+zero. Each caller owns its format, feature, queue and device operations.
+The validation instance encloses those calls and device teardown.
+
+**Recorded driver calls.** Fourteen cases in
+[physical_selection_checks.tower](../scaffolding/library/graphics/vulkan/physical_selection_checks.tower)
+exercise both open-device functions and the shared selection result.
+Two distinct handles identify devices A and B. The recorder checks the
+capacity and count-slot identity on enumeration, selection for all later
+queries, core output address, the properties2 → driver → ID chain, and the
+sequence of queries at each refusal. Cases include zero devices, an invalid
+initial index, a shortened list with an index that disappears or survives,
+positive 5 and negative −3/−4 enumeration results. Below 1.3 stops before
+the chained query. At 1.3 the output UUID is
+`00112233445566778899aabbccddeeff` despite different driver UUID bytes.
+The strict caller prints identity before refusing either 1.3 or 1.4.
+The counted feature path reports the first core query's distinctive limits
+123 and 456789 and refuses the requested indirect count. The recorder's
+ten allocations totaled 160 bytes and left zero live. Its stdout is checked
+against the packet's expected transcript.
+
+**Linux hardware.** All four optimized source entries and the argument-parsing
+counted SDK fixture used the discrete NVIDIA GeForce RTX 3090, device 0,
+UUID `cd3d9791fe794e0b3ec29fc16b74d31c`, Vulkan 1.3.289, NVIDIA 565.57.01,
+queue family/index 0/0. All four healthy stdout transcripts matched the
+frozen revision, with a signaled fence, coherent flags 6, and zero warning
+or error callbacks. Both clear paths matched all 32 bytes (SHA-256
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`).
+Both counted paths matched all 112 bytes
+(`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`).
+The four count-zero pixels were 112233ff and the four count-one pixels
+4080bfff. Both GPU command records and all guard bytes matched.
+The SDK external-layer argument installed the messenger and returned the
+same pixels with zero warnings. Loader logs identified the instance and
+device validation layer. Forced enable produced two warnings and exit 1
+on both revisions. Raw index 1 returned the original unavailable-index
+diagnostic and exit 1. Both counted argument entries refused draw14 after
+the RTX identity and exited 1.
+
+Ten live application traces cover five entries with healthy work and an
+injected image-creation failure. Acquired device, messenger and instance
+handles matched their releases in that order. Ten separate before/after
+traces denied the exact eight-byte handle-list allocation after the real
+count query. Each reported the allocation refusal, released messenger
+and instance, and exited 1 without reaching a second enumeration,
+properties, format, features, queue-family query or device creation.
+Multiple devices and enumeration errors were simulated on this single-GPU
+host. No hardware timing uses a simulated result.
+
+**Measurements.** AMD EPYC 7282, 32 visible logical CPUs, cgroup quota
+15.36 CPUs. The released Linux x64 Tower bootstrap, LLVM 19 and the packet
+sysroot produced the optimized Linux entries with one compiler worker.
+Each application ran in a separate process, one at a time. Alternating
+before/after measurements checked stdout against the validated output.
+The table uses seven pairs after a warm-up pair, median wall/user/system
+seconds and peak RSS in KiB. A separate build timed successful selection
+from the first enumeration through identity reporting, including the
+earlier list release on the new source.
+
+| Entry | Before wall/user/sys, RSS | After wall/user/sys, RSS | Selection before/after (ms) |
+| --- | --- | --- | --- |
+| Raw clear | .31/.02/.28, 91772 | .30/.02/.27, 91684 | 1.583 / 1.575 |
+| SDK clear | .30/.03/.27, 91544 | .30/.03/.27, 91556 | 1.646 / 1.549 |
+| Raw counted | .31/.03/.27, 94676 | .31/.02/.28, 94876 | 1.615 / 1.568 |
+| SDK counted | .31/.02/.28, 94828 | .31/.03/.28, 94628 | 1.644 / 1.637 |
+
+Each clear process requested two Tower allocations totaling 152 bytes.
+Earlier list release reduced their peak live bytes from 152 to 144.
+Counted requested five totaling 3376 bytes on each revision, with 1752
+peak live bytes. All four finished with zero outstanding. Compiler wall,
+CPU and peak RSS samples at one and four jobs are in profile/compile*.tsv.
+These small compilations finished sooner at one job. The selection adds
+no worker dispatch.
+
+**Instrumentation and cross-link.** ASan passed the recorder with leak
+checking and the four hardware entries with leak checking disabled. Raw
+full-process leak checking exited 1 on each revision with 3511 bytes in
+eight allocations and validation-layer stacks. TSan passed the isolated
+recorder. Some launches failed the container personality check before
+main. Under GDB the raw before/after executables both reached main and then
+faulted in the threaded NVIDIA run. The packet retains link maps,
+instrumented selection code, debugger logs, exit statuses and leak reports.
+Tower source-level UBSan was unavailable. These runs establish no general
+driver race-freedom claim.
+
+Both Win64 starts cross-linked from this source. The packet contains the
+PEs and import inventories. The Linux DSO, Win64 DLL and import library
+match the frozen bytes, including the sixteen Linux public exports.
+
+| Win64 PE | SDK imports | SHA-256 |
+| --- | ---: | --- |
+| Tower startup, counted.exe | 5 | `6c248915a98f7face386446531c7d6dcdf2f3af7c27474c52542aa6a1826e216` |
+| CRT startup, caller.exe | 5 | `a8b093e35053b37eae18fa3bd0c40295ca2377ffcfef80a34cb24296973a9fd0` |
+| Tower startup, counted.exe | 2 | `6091e3169b6f0e2fd67d238067b07704683717644ca1c10a28d9e7f9bedd3c96` |
+| CRT startup, caller.exe | 2 | `3f0df273dba4f54b2097fd2a1bddf23eda77fe421c5ce4df8058f16dadc0f0b8` |
+
+Win64 execution of these four binaries remains open. Slot 11's independent
+attachment qualification belongs to its earlier source. The rendering
+manager owns review and publication. The assignment packet's
+`commands/replay.sh TOWER_GIT_READER NEW_DIRECTORY ACCEPTED_531A3F73_ARCHIVE`
+applies the bounded bundle, runs the recorder and normal Linux entries,
+checks the two reference buffers, external layer and teardown, rebuilds the
+four PEs, and compares the binary hashes. Use the slot tool paths recorded
+in commands/env.sh and build/tools.sha256.
+
+During qualification the SDK advanced to slot 11's documentation commit
+`f1b1c29a3177b277a3c4b51e9f39108c08d0b4b7`. The review source preserves
+that journal entry and the Win64 README. All Tower and bootstrap inputs
+match measured commit `a692a9aeeaced8e47581a97d280169233d73d68b`.
+
+Four pthreads each ran the fourteen selection cases eight times (448 cases
+per executable). Both native and TSan runs joined all four and returned
+zero. Each thread used private instance, handle and output storage.
+The first link attempt lacked the unprefixed objcopy tool. LLVM 19
+llvm-objcopy supplied by the checksummed SDK renamed the recorder entry
+for the test driver. The packet retains that failed command and the
+successful links and runs.

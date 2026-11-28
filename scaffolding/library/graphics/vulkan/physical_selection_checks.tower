@@ -1,0 +1,152 @@
+import tower;
+import counted_device;
+import readback_device;
+import readback_abi;
+import counted_abi;
+
+extern fn exit(status: i32): void;
+
+enum SelectionEntry: u32 { Select, Clear, Counted, Strict }
+
+struct SelectionCheck {
+    events: u8*;
+    index: u32;
+    count: u32;
+    listed: u32;
+    countResult: i32;
+    listResult: i32;
+    api: u32;
+    countSlot: u32*;
+    coreSlot: VkPhysicalDeviceProperties*;
+    devices: SelectionCheck*[2];
+}
+
+fn require_selection(ok: bool, reason: u8*): void {
+    if !ok { puts(reason); exit(3); }
+}
+
+fn selection_event(state: SelectionCheck*, name: u8*): void {
+    require_selection(*state.events == *name, name);
+    state.events++;
+}
+
+export fn vkEnumeratePhysicalDevices(instance: VkInstanceHandle*, count: u32*, list: VkPhysicalDeviceHandle**): i32 {
+    var state = bits(SelectionCheck*, instance);
+    require_selection(count != null, "missing count slot");
+    if list == null {
+        selection_event(state, "Count");
+        state.countSlot = count;
+        *count = state.count;
+        return state.countResult;
+    }
+    selection_event(state, "List");
+    require_selection(count == state.countSlot && *count == state.count && state.listed <= *count, "list capacity");
+    for (var i: u32 = 0; i < state.listed; i++) {
+        list[i] = bits(VkPhysicalDeviceHandle*, &state.devices[i]);
+    }
+    *count = state.listed;
+    return state.listResult;
+}
+
+fn selected_event(handle: VkPhysicalDeviceHandle*, name: u8*): SelectionCheck* {
+    var slot = bits(SelectionCheck**, handle);
+    var state = *slot;
+    require_selection(slot == &state.devices[state.index], "wrong selected device");
+    selection_event(state, name);
+    return state;
+}
+
+export fn vkGetPhysicalDeviceProperties(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceProperties*): void {
+    var state = selected_event(handle, "Properties");
+    require_selection(out != null && (state.coreSlot == null || state.coreSlot == out), "core properties storage");
+    *out = default;
+    out.apiVersion = state.api;
+    out.vendorID = 9029;
+    out.deviceID = 200 + state.index;
+    out.deviceType = 2;
+    out.driverVersion = 932;
+    out.deviceName[0] = *"A" + convert(u8, state.index);
+    out.limits.maxDrawIndirectCount = 123;
+    out.limits.maxStorageBufferRange = 456789;
+}
+
+export fn vkGetPhysicalDeviceProperties2(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceProperties2*): void {
+    selected_event(handle, "Identity");
+    require_selection(out != null && out.sType == VkProperties2Tag && out.pNext != null, "properties2 header");
+    var driver = bits(VkPhysicalDeviceDriverProperties*, out.pNext);
+    require_selection(driver.sType == VkDriverPropertiesTag && driver.pNext != null, "driver header");
+    var id = bits(VkPhysicalDeviceIDProperties*, driver.pNext);
+    require_selection(id.sType == VkDeviceIDTag && id.pNext == null, "ID header");
+    driver.driverID = 77;
+    driver.driverName[0] = *"D";
+    driver.driverInfo[0] = *"I";
+    for (var i: usize = 0; i < sizeof(decltype(id.deviceUUID)); i++) {
+        id.deviceUUID[i] = convert(u8, i * 17);
+        id.driverUUID[i] = convert(u8, 255 - i);
+    }
+    out.properties = default;
+}
+
+export fn vkGetPhysicalDeviceImageFormatProperties(handle: VkPhysicalDeviceHandle*, format: u32, kind: u32,
+    tiling: u32, usage: u32, flags: u32, out: VkImageFormatProperties*): i32 {
+    selected_event(handle, "Format");
+    require_selection(format == VkRgba8Unorm && kind == VkImage2D && tiling == 0
+        && usage == (VkColorAttachmentUsage | VkTransferSrcUsage) && flags == 0 && out != null, "format arguments");
+    *out = { maxExtent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, sampleCounts: VkSample1, ..default };
+    return 0;
+}
+
+export fn vkGetPhysicalDeviceFeatures2(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceFeatures2*): void {
+    selected_event(handle, "Extensions");
+    require_selection(out.sType == VkFeatures2Tag && out.pNext != null, "feature header");
+    var dynamic = bits(VkPhysicalDeviceDynamicRenderingFeatures*, out.pNext);
+    require_selection(dynamic.sType == VkDynamicRenderingTag, "dynamic features");
+    if dynamic.pNext != null {
+        var v12 = bits(VkPhysicalDeviceVulkan12Features*, dynamic.pNext);
+        require_selection(v12.sType == VkCore12FeaturesTag && v12.pNext == null, "counted features");
+        v12.drawIndirectCount = 1;
+        dynamic.dynamicRendering = 1;
+    }
+}
+
+fn check_selection(entry: SelectionEntry, index: u32, count: u32, listed: u32, countResult: i32,
+    listResult: i32, api: u32, events: u8*): void {
+    var state: SelectionCheck = { index: index, count: count, listed: listed, countResult: countResult,
+        listResult: listResult, api: api, events: events, ..default };
+    state.devices[0] = &state;
+    state.devices[1] = &state;
+    var instance = bits(VkInstanceHandle*, &state);
+    var device: ReadbackDevice = default;
+    if entry == SelectionEntry.Select {
+        var core: VkPhysicalDeviceProperties;
+        var physical: VkPhysicalDeviceHandle* = null;
+        state.coreSlot = &core;
+        require_selection(readback_select_physical(instance, index, &core, &physical), "selection failed");
+        require_selection(physical == bits(VkPhysicalDeviceHandle*, &state.devices[index])
+            && core.limits.maxDrawIndirectCount == 123 && core.limits.maxStorageBufferRange == 456789, "selected outputs");
+    } else {
+        var ok = entry == SelectionEntry.Clear ? readback_open_device(instance, index, &device)
+            : counted_open_device(instance, entry == SelectionEntry.Strict, &device);
+        require_selection(!ok && device.device == null && device.queue == null, "refusal published device");
+    }
+    require_selection(*state.events == 0, "missing query");
+    puts(events);
+}
+
+export fn main(): i32 {
+    check_selection(SelectionEntry.Clear, 0, 0, 0, 0, 0, VkApi13, "C");
+    check_selection(SelectionEntry.Clear, 2, 2, 2, 0, 0, VkApi13, "C");
+    check_selection(SelectionEntry.Clear, 1, 2, 1, 0, 0, VkApi13, "CL");
+    check_selection(SelectionEntry.Clear, 1, 2, 2, -3, 0, VkApi13, "C");
+    check_selection(SelectionEntry.Counted, 0, 2, 2, 0, -4, VkApi13, "CL");
+    check_selection(SelectionEntry.Clear, 1, 2, 1, 0, 5, VkApi13, "CL");
+    check_selection(SelectionEntry.Counted, 0, 2, 2, 5, 0, VkApi13, "C");
+    check_selection(SelectionEntry.Clear, 1, 2, 2, 0, 0, VkApi13 - 1, "CLP");
+    check_selection(SelectionEntry.Select, 0, 2, 1, 0, 0, VkApi13, "CLPI");
+    check_selection(SelectionEntry.Select, 1, 2, 2, 0, 0, VkApi13, "CLPI");
+    check_selection(SelectionEntry.Clear, 1, 2, 2, 0, 0, VkApi13, "CLPIFE");
+    check_selection(SelectionEntry.Strict, 0, 2, 2, 0, 0, VkApi13, "CLPI");
+    check_selection(SelectionEntry.Strict, 0, 2, 2, 0, 0, VkCore14, "CLPI");
+    check_selection(SelectionEntry.Counted, 0, 2, 2, 0, 0, VkApi13, "CLPIFE");
+    return 0;
+}

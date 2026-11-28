@@ -69,8 +69,9 @@ fn vk_device_kind(kind: u32): u8* {
     }
 }
 
-// The caller owns the instance. On success it also owns out.device.
-fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDevice*): bool {
+// The list is temporary. The selected handle is borrowed from the live instance.
+fn readback_select_physical(instance: VkInstanceHandle*, index: u32, core: VkPhysicalDeviceProperties*,
+    selected: VkPhysicalDeviceHandle**): bool {
     var count: u32 = 0;
     if !vk_ok("vkEnumeratePhysicalDevices/count", vkEnumeratePhysicalDevices(instance, &count, null)) { return false; }
     if index >= count { return vk_failure("Requested Vulkan physical device index unavailable"); }
@@ -80,8 +81,7 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     if !vk_ok("vkEnumeratePhysicalDevices/list", vkEnumeratePhysicalDevices(instance, &count, physicals)) { return false; }
     if index >= count { return vk_failure("Requested physical device disappeared"); }
     var physical = physicals[index];
-    var core: VkPhysicalDeviceProperties;
-    vkGetPhysicalDeviceProperties(physical, &core);
+    vkGetPhysicalDeviceProperties(physical, core);
     puts("Vulkan selected physical device"); puts(&core.deviceName[0]); puts(vk_device_kind(core.deviceType));
     readback_number("physical_device_index", index); readback_number("api_version", core.apiVersion);
     readback_number("vendor_id", core.vendorID); readback_number("device_id", core.deviceID);
@@ -100,6 +100,15 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     }
     puts("");
     readback_number("driver_id", driver.driverID); puts(&driver.driverName[0]); puts(&driver.driverInfo[0]);
+    *selected = physical;
+    return true;
+}
+
+// The caller owns the instance. On success it also owns out.device.
+fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDevice*): bool {
+    var physical: VkPhysicalDeviceHandle*;
+    var core: VkPhysicalDeviceProperties;
+    if !readback_select_physical(instance, index, &core, &physical) { return false; }
     var format: VkImageFormatProperties;
     var usage = VkColorAttachmentUsage | VkTransferSrcUsage;
     if !vk_ok("vkGetPhysicalDeviceImageFormatProperties", vkGetPhysicalDeviceImageFormatProperties(
@@ -110,6 +119,7 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic), ..default };
     vkGetPhysicalDeviceFeatures2(physical, &features);
     if dynamic.dynamicRendering == 0 { return vk_failure("Dynamic rendering unavailable"); }
+    var count: u32 = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
     if count == 0 { return vk_failure("No queue families"); }
     var queues = alloc(VkQueueFamilyProperties, convert(usize, count));
