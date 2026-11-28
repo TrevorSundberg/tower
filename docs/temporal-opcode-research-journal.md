@@ -126780,3 +126780,92 @@ and the Vulkan 1.3 fixture. Windows binaries were cross-linked.
 Draw reported accepting the preceding typed uploads in CPU tests of
 its actual production owners and in a Win64 link probe. Draw's selected
 device checks for that direct uptake remain pending.
+
+### External Tower source to a Linux Vulkan executable on slot 12
+
+The published rendering SDK parent was `851e26d8aa6f3b6e492668f4b9c5655184ca2c85`.
+The packaged compiler (`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`)
+and its adjacent Linux runtime (`84a9621b33d5b610f427d3a3e4ebd0f1018df3e7d3805c78c21781ac3e9776c9`)
+built the [external clear application](../scaffolding/library/graphics/vulkan/graphics_so_linux.md#build-and-run-an-ordinary-tower-application-on-linux).
+The application owns the image, view, memory, fence and queue synchronization.
+It reuses the published clear recorder and CPU row oracle. The shaderless clear
+needs no shader assets or device-function-pointer import. The original row and
+oracle blobs from `3dd5f11f`, a direct child of `a580e70a`, matched this SDK byte for byte.
+
+**Driver and binding.** The existing image smoke's exported main collided with
+the bundled runtime's main in source-to-executable mode, including with
+`--library`. The original source compiled with `--library --emit object`.
+`towerc --link-executable` then linked it with the SDK and loader alone and it
+matched the retained cc-linked smoke's successful output. Adding the full runtime
+object to that link reproduced the duplicate symbol. Renaming the copied smoke
+entry and calling it from the top level also worked. The ordinary clear entry
+uses top-level statements. One `towerc --emit exe` invocation compiled its
+source and linked the SDK, loader and libatomic on `x86_64-linux-gnu`.
+The exec trace contains Clang compiling the shipped runtime IR. Tower linked
+the PIE. Its SHA-256 was `6a33bb255a2690dc18fa106c2cfe3ad397e6f1977d331162d6545694457f05a0`.
+The loader bound all seven application SDK imports to the rebuilt sixteen-entry
+`libtower_graphics.so` (`2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`).
+An absent explicit SDK path returned 1 at build time. Removing the runtime
+search path gave loader exit 127.
+
+**Device evidence.** Slot 12 selected the RTX 3090, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, Vulkan 1.3.289, NVIDIA 565.57.01,
+physical device/family/queue 0/0/0. A second run of the same ELF selected
+llvmpipe, Vulkan 1.3.230, Mesa 22.3.6, LLVM 15.0.6. Each Khronos plus sync
+validation count was zero after teardown. Both traces showed SDK submit
+returning zero, a successful wait on that fence, map and unmap, followed by
+SDK retirement of the same view, image and memory in order before device
+destruction. The debugger dumped the mapped 16 bytes at unmap and the 32 caller
+bytes at device destruction. Four RGBA texels (17,34,51,255), placed at offsets
+4 and 16 in two 8-byte rows with A5 guards, independently reproduced both
+dumps on both devices. The guarded hash was
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The ordinary source and split Tower links produced different ELFs and identical
+checked output on each device. The CPU pitch-7, span-19 and short-source cases
+preserved all guards.
+
+**Incremental build.** The SDK's library script and direct compiler invocations
+run unconditionally. The native project's CMake custom commands pass compiler
+depfiles to the generator, for example the object rule in
+`cmake/TowerRuntime.cmake:tower_runtime_object`. A separate external Ninja
+graph consumed the actual clear executable and object depfiles with only the
+source declared statically. Touching the disposable SDK, loader, libatomic or
+the relocated compiler's selected runtime IR individually rebuilt just the
+executable once. Touching a separate explicit shader-client object in a second
+graph did the same. Each subsequent real build was clean, the executable bytes
+and device output matched their respective baseline and the object stamp stayed
+fixed. Directly invoking towerc again rewrote the executable. The object-link
+command rejected a depfile option.
+
+**Cost.** Debian 12, EPYC 7282, 16 cores/32 threads visible, quota 15.36 CPUs,
+LLVM 19.1.7. Each cell used one warmup and three timed samples, one compilation
+or application at a time with warm files. Each split build included ordinary
+source-to-object, Clang's runtime compile with the driver's arguments and
+Tower's object link. Every build matched its route's reference ELF and every
+timed device process matched the previously checked RTX output. Values are mean
+wall/CPU seconds and maximum per-process RSS in KiB from GNU time.
+
+| Build route | Compiler jobs | Build wall / CPU / RSS | Device process wall / CPU / RSS |
+| --- | ---: | --- | --- |
+| Direct | 1 | 0.977 / 0.963 / 106380 | 0.323 / 0.320 / 91516 |
+| Split | 1 | 0.990 / 0.977 / 106404 | 0.327 / 0.323 / 91824 |
+| Direct | 4 | 1.077 / 1.170 / 111588 | 0.320 / 0.310 / 91524 |
+| Split | 4 | 1.093 / 1.187 / 111524 | 0.323 / 0.320 / 91776 |
+
+One submitting thread ran the clear. Timings include driver setup, validation
+and teardown. The Tower runtime granted 8 and 144 bytes for device and queue
+enumeration on the RTX run and both pointers were released.
+
+**Instrumentation.** Address-only ASan on the application IR passed both device
+oracles against the release DSO. The hosted linker rejected LLVM's default ASan
+object and TSan exception tables. For the instrumented builds the packet uses
+the full LLVM Linux triple, ASan's explicit global table, or TSan's C-compatible
+mode, and init/fini-array references to the sanitizer hooks. An earlier short
+triple selected an incompatible ASan shadow offset. Unfiltered LeakSanitizer
+returned 1 with 3,511 bytes in eight allocations. Keeping Khronos validation
+mapped resolved allocation frames inside its DSO, consistent with the original
+clear fixture. Attribution of the retention remains open. TSan returned 139 at
+startup on all five launches when the container denied its ASLR personality request. Native Tower
+UBSan, device loss and noncoherent invalidation remain untested here.
+Assignment `de888912-9eda-4313-81fc-8ae243cbee02` retains the base-relative
+bundle, command logs, binary bindings, raw captures and sanitizer diagnostics.
