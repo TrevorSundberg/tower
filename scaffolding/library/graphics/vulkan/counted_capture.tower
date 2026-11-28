@@ -1,4 +1,5 @@
 import tower;
+import bound_buffer;
 import counted_abi;
 import counted_calls;
 import readback_completion;
@@ -18,26 +19,6 @@ var VkIndexUsage: u32 = 64;
 var VkIndirectUsage: u32 = 256;
 var VkCountedResetCommandBuffer: u32 = 2;
 
-struct CountedBuffer {
-    handle: VkBufferHandle*;
-    memory: VkDeviceMemoryHandle*;
-    flags: u32;
-}
-
-fn counted_buffer(ctx: ReadbackDevice*, buffer: CountedBuffer*, size: u64, usage: u32, required: u32): bool {
-    var info: VkBufferCreateInfo = { sType: VkBufferCreateTag, size: size, usage: usage, ..default };
-    if !vk_ok("vkCreateBuffer", vkCreateBuffer(ctx.device, &info, null, &buffer.handle)) { buffer.handle = null; return false; }
-    var req: VkMemoryRequirements;
-    vkGetBufferMemoryRequirements(ctx.device, buffer.handle, &req);
-    return vk_readback_allocate(ctx, &req, required, &buffer.memory, &buffer.flags)
-        && vk_ok("vkBindBufferMemory", vkBindBufferMemory(ctx.device, buffer.handle, buffer.memory, 0));
-}
-
-fn counted_release_buffer(device: VkDeviceHandle*, buffer: CountedBuffer*): void {
-    vkDestroyBuffer(device, buffer.handle, null);
-    vkFreeMemory(device, buffer.memory, null);
-}
-
 fn counted_compare_sample(sample: u8*, prefix: u8*, pixels: u8*): bool {
     var header = convert(usize, counted_prefix_bytes());
     var command_ok = readback_compare("GPU count word and first command (LE)", sample, header, prefix);
@@ -56,11 +37,12 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var device = ctx.device;
     var draw = vk_load_indexed_indirect_count(device);
     if draw == null { return vk_failure("Core vkCmdDrawIndexedIndirectCount unavailable"); }
-    var indirect: CountedBuffer = default;
-    defer counted_release_buffer(device, &indirect);
-    if !counted_buffer(ctx, &indirect, counted_bytes(), VkStorageBufferUsage | VkIndirectUsage | VkTransferSrcUsage, 0) {
+    var operations: BufferOperations = { create: "vkCreateBuffer", bind: "vkBindBufferMemory" };
+    var indirect: BoundBuffer = default;
+    if !vk_create_bound_buffer(ctx, &indirect, counted_bytes(), VkStorageBufferUsage | VkIndirectUsage | VkTransferSrcUsage, 0, operations) {
         return false;
     }
+    defer vk_release_bound_buffer(device, &indirect);
     var stream: VulkanIndirectBuffer = { handle: indirect.handle, byte_size: counted_bytes() };
     readback_number("indirect_bytes", convert(u32, stream.byte_size));
     readback_number("max_draws", CountedCapacity);
@@ -68,16 +50,16 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var indices: u16[4] = default;
     indices[1] = 1; indices[2] = 2;
     var index_bytes = convert(u64, sizeof(decltype(indices)));
-    var indices_buffer: CountedBuffer = default;
-    defer counted_release_buffer(device, &indices_buffer);
-    if !counted_buffer(ctx, &indices_buffer, index_bytes, VkIndexUsage | VkTransferDstUsage, 0) { return false; }
+    var indices_buffer: BoundBuffer = default;
+    if !vk_create_bound_buffer(ctx, &indices_buffer, index_bytes, VkIndexUsage | VkTransferDstUsage, 0, operations) { return false; }
+    defer vk_release_bound_buffer(device, &indices_buffer);
     var pipelines: CountedPipelines = default;
     defer counted_destroy_pipelines(device, &pipelines);
     if !counted_descriptors(device, &pipelines, indirect.handle, stream.byte_size)
         || !counted_pipelines(calls, device, &pipelines, paths) { return false; }
-    var staging: CountedBuffer = default;
-    defer counted_release_buffer(device, &staging);
-    if !counted_buffer(ctx, &staging, 2 * counted_sample_bytes(), VkTransferDstUsage, VkHostVisible) { return false; }
+    var staging: BoundBuffer = default;
+    if !vk_create_bound_buffer(ctx, &staging, 2 * counted_sample_bytes(), VkTransferDstUsage, VkHostVisible, operations) { return false; }
+    defer vk_release_bound_buffer(device, &staging);
     var image_memory: VkDeviceMemoryHandle* = null;
     defer vkFreeMemory(device, image_memory, null);
     var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,

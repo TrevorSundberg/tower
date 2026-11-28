@@ -74,6 +74,15 @@ the consumer returns. The owner then retires the buffer and its allocation.
 A map error returns immediately. An invalidate error skips the consumer and
 unmaps once. [Shared mapping operation](readback_mapping.tower)
 
+Both clear callers and counted capture acquire their buffers through
+`vk_create_bound_buffer`. Pass an empty `BoundBuffer`, the logical byte
+count, usage mask and required memory flags. The helper selects the first
+allowed memory type with the required properties, allocates the full
+driver-reported size, binds at zero and returns the selected flags with
+the buffer and allocation. A failed call leaves the owner empty. After
+retiring submitted work, the caller releases the buffer, then its memory,
+through `vk_release_bound_buffer`. [Buffer owner](bound_buffer.tower)
+
 ## Build and run
 
 Use the pinned Linux x64 compiler and its adjacent resources. On a Debian
@@ -124,6 +133,33 @@ v=scaffolding/library/graphics/vulkan
 "$compiler" --link-executable "$out/mapping_checks.o" --link "$out/runtime.o" \
   --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" --sysroot "$sdk" -o "$out/mapping_checks"
 "$out/mapping_checks"
+```
+
+The buffer construction control uses the same compiler and link inputs. Its
+recorded driver checks create and requirement sizes above 4 GiB, clobbers
+the create and allocate outputs on error, and checks the exact releases on
+every path. A successful run ends with `CRABODF` for create, requirements,
+allocate, bind, owner handoff, destroy and free. [Recording checks](bound_buffer_checks.tower)
+
+```bash
+"$compiler" "$v/bound_buffer_checks.tower" --library --jobs 1 \
+  --foundation "$PWD/scaffolding/foundation.tower" -o "$out/buffer_checks.o"
+"$compiler" --link-executable "$out/buffer_checks.o" --link "$out/runtime.o" \
+  --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" --sysroot "$sdk" -o "$out/buffer_checks"
+"$out/buffer_checks"
+```
+
+For the two counted SDK targets, use the [Linux build](counted_draw.md#build-the-external-linux-counted-application)
+and [Win64 build](osd_checks/tower_client/counted_win64/README.md) from a
+single exported source revision. Check the resolved owner in the Linux
+application depfile and both Win64 depfiles after linking. With absolute
+`v`, `app` and `win` paths from those builds, run the following in Bash.
+
+```bash
+set -euo pipefail
+for dep in "$app/counted_app.d" "$win/counted.d" "$win/caller.d"; do
+    tr ' ' '\n' < "$dep" | grep -Fx "$v/bound_buffer.tower"
+done
 ```
 
 ## Host 12 evidence

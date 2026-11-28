@@ -1,4 +1,5 @@
 import tower;
+import library.graphics.vulkan.bound_buffer;
 import library.graphics.vulkan.command_submission;
 import library.graphics.vulkan.image_lifecycle;
 import library.graphics.vulkan.readback_abi;
@@ -31,16 +32,10 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_ok("create view", tower_vk_create_bound_image_view_v1(device, owner.image, VkView2D,
         info.format, &range, &owner.view)) { return false; }
 
-    var staging: VkDeviceMemoryHandle* = null;
-    defer { if staging != null { vkFreeMemory(device, staging, null); } }
-    var buf_info: VkBufferCreateInfo = {sType: VkBufferCreateTag, size: convert(u64, ReadbackClearBytes), usage: VkTransferDstUsage, ..default};
-    var buf: VkBufferHandle*;
-    if !vk_ok("create staging buffer", vkCreateBuffer(device, &buf_info, null, &buf)) { return false; }
-    defer vkDestroyBuffer(device, buf, null);
-    var req: VkMemoryRequirements; var flags: u32;
-    vkGetBufferMemoryRequirements(device, buf, &req);
-    if !vk_readback_allocate(ctx, &req, VkHostVisible, &staging, &flags)
-        || !vk_ok("bind staging", vkBindBufferMemory(device, buf, staging, 0)) { return false; }
+    var staging: BoundBuffer = default;
+    if !vk_create_bound_buffer(ctx, &staging, convert(u64, ReadbackClearBytes), VkTransferDstUsage,
+        VkHostVisible, { create: "create staging buffer", bind: "bind staging" }) { return false; }
+    defer vk_release_bound_buffer(device, &staging);
     var pool_info: VkCommandPoolCreateInfo = {sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default};
     var pool: VkCommandPoolHandle*;
     if !vk_ok("create pool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
@@ -48,7 +43,7 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     var alloc_info: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("allocate primary", vkAllocateCommandBuffers(device, &alloc_info, &cmd))
-        || !vk_record_clear(cmd, owner.image, owner.view, buf, range) { return false; }
+        || !vk_record_clear(cmd, owner.image, owner.view, staging.handle, range) { return false; }
     var fence_info: VkFenceCreateInfo = {sType: VkFenceTag, ..default};
     var fence: VkFenceHandle*;
     if !vk_ok("create fence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
@@ -58,7 +53,7 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "submit clear and copy", submitted: "submitted clear, image copy and host barrier",
           wait: "wait for fence", signaled: "fence signaled" }) { return false; }
-    return vk_read_mapped(device, staging, flags,
+    return vk_read_mapped(device, staging.memory, staging.flags,
         { map: "map staging", invalidate: "invalidate staging", report_visibility: false }, dst, readback_clear_rows);
 }
 

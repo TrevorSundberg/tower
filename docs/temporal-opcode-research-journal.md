@@ -127853,3 +127853,119 @@ the range constants and both roots compile. Initial instrumentation needed
 an explicit Linux i64 ssize_t, an observer for the inlined recording helper
 and foreground debugger stops before checking the exit status. The final
 packet retains the failed attempts and the successful replays.
+
+### Buffer construction for Vulkan captures on slot 12
+
+Assignment dc3364af starts at published rendering SDK 53c0d291. Raw and SDK
+clear request a transfer destination for 16 tightly packed bytes. Counted
+capture requests two packed samples, plus separate buffers for the indirect
+stream and indices. Only staging requires host visibility. The Win64 OSD
+control stages older helpers from its own fixture packet. The two current
+counted target builds resolve their dependencies from the exported SDK.
+The proposed owner retains the buffer, its memory and the selected flags.
+Construction must never adopt a driver output until the call succeeds.
+
+The shared operation publishes both typed handles and the selected properties
+after binding. A failed create returns directly. Allocation copies a private
+driver output only on success. If allocation or binding fails, construction
+destroys the acquired buffer before freeing any acquired memory. Each caller
+registers its release after successful construction. The memory selector
+moved intact to the device module, where buffer and image callers can both
+use it. The raw Vulkan labels and the SDK clear's labels are retained.
+
+#### Slot 12 device and fault checks
+
+The parent and candidate ran from distinct SDK roots on Linux x64, physical
+device 0, NVIDIA GeForce RTX 3090, API 1.3.289, driver 565.57.01, graphics
+family 0, queue 0. Breakpoints on the ordinary driver calls observed these
+requests and grants on both revisions. Each bind used offset zero.
+
+| Caller buffer | Logical bytes | Usage mask | Required properties | Requirement bytes | Selected type |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Both clear staging buffers | 16 | 2 | HOST_VISIBLE | 16 | 3 |
+| Counted indirect stream | 327684 | 289 | 0 | 327696 | 0 |
+| Counted indices | 8 | 66 | 0 | 8 | 0 |
+| Counted staging | 80 | 2 | HOST_VISIBLE | 80 | 3 |
+
+All four unmodified application entries signaled their fence and reproduced
+their parent's complete stdout with zero validation warnings/errors. The
+selected staging type reported flags 6. The complete clear destination's
+32 bytes hashed to `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The two counted prefixes and guarded destinations totaled 112 bytes and
+hashed to `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The CPU oracle and row-copy source match 3dd5f11f, the direct child of
+a580e70a. The completion traces matched each allocation to its buffer,
+waited on the submitted fence, then observed buffer destruction followed
+by the release of that allocation. Counted released staging, indices and
+the stream in that order.
+
+The Tower recording driver checked a logical size of 4294967315 and
+requirements of 8589938688, different live handle addresses, the selected
+memory type and its complete flags. A failed create returned −1 after
+writing the output and produced zero releases. No compatible type, or
+allocation returning −2 after writing its output, destroyed only the
+buffer. A bind returning −4 destroyed the buffer then freed the memory.
+Healthy release followed ownership handoff. A second release of the
+empty owner made zero driver calls. The smallest library unit compiled
+first. The packaged compiler rejected an initial aggregate global label
+initializer and hexadecimal test literals. The final labels are local and
+the recording sizes use decimal literals.
+
+Independently, four debugger-injected staging failures on each of the four
+ordinary executables stopped before submission or mapping. Both clear
+destinations retained all 32 guard bytes. Neither counted caller entered
+a comparison. Create and allocation controls wrote non-null output values
+on failure. The bind refusal used a real, successfully allocated pair.
+The application emitted its signed result or its no-type diagnostic.
+Raw clear calls its failure counter `warning_error_callbacks_before_failure`.
+The first trace harness expected the healthy label and was corrected.
+
+Seven further traces per executable per revision checked the healthy
+fence/map/unmap path, reported-noncoherent invalidation, map −5,
+invalidate −2, wait −1 with submitting-queue drain, submit −1, and
+wait −1 followed by drain −2. The last case aborted with staging still
+live. Twelve two-queue trials on the candidate left the second queue
+pending until separately signaled. Real hardware faults and a physically
+noncoherent staging type remain unverified.
+
+All four Linux depfiles and the Win64 ordinary executable and CRT object's
+depfiles resolved the owner inside the selected SDK root. The external
+Linux entry and its application helpers were copied from that revision.
+The ELF import sets and both PE import tables match the parent. The
+16-export DSO, DLL and import library are byte-identical to their parent
+(hashes beginning 2d924e64, 8fc64f24 and 2d56f882). Slot 11 owns current
+Win64 device qualification. The [recording and closure checks](../scaffolding/library/graphics/vulkan/readback_v1.md#build-and-run)
+and the assignment packet contain the reproduction commands.
+
+#### Equivalent-input measurements
+
+Slot 12 used bootstrap 7430bdb3, LLVM 19.1.7, EPYC 7282 (16 cores, 32 logical,
+15.36 CPU quota). After checking the pixels, one warmup and seven alternating
+paired samples ran one application process and submission thread at a time.
+Each timed output matched the frozen reference. Separate probe builds timed
+the caller's staging construction through successful bind and return.
+
+| Entry | Median process wall s, parent → candidate | Median CPU s | Largest peak RSS KiB | Median construction µs |
+| --- | --- | --- | --- | --- |
+| Raw clear | 0.30 → 0.31 | 0.30 → 0.31 | 91836 → 91872 | 356.17 → 359.63 |
+| SDK clear | 0.30 → 0.30 | 0.30 → 0.30 | 91756 → 91820 | 349.70 → 352.86 |
+| Raw counted | 0.31 → 0.31 | 0.30 → 0.30 | 94972 → 94888 | 343.22 → 340.72 |
+| SDK counted | 0.31 → 0.30 | 0.30 → 0.30 | 94908 → 94864 | 339.38 → 341.79 |
+
+The observed construction ranges overlap for each pair. On each revision,
+the Tower allocator made two grants totaling 152 bytes for each clear and
+five totaling 3376 bytes for each counted run. Peaks were 152 and 1752
+live bytes. All returned at exit. Three warm compile samples per worker
+count checked each artifact against its one-worker build. Median raw
+compile wall/CPU seconds were 0.66/0.66 → 0.66/0.66 at one and
+0.76/0.85 → 0.78/0.88 at four workers. SDK counted took
+1.33/1.33 → 1.33/1.32 and 1.46/1.64 → 1.46/1.62 respectively.
+The largest candidate compiler RSS for each was 110456, 115860,
+131484 and 137040 KiB.
+
+ASan-instrumented Tower code passed the recorder with leak detection and
+all four healthy device paths with leak detection disabled. Separate full
+raw-clear leak checks reported 3511 bytes in eight allocations on both
+revisions, with validation-layer frames. The TSan SDK clear failed before
+main at the denied container personality call (exit 139). The packet
+retains the failing results and link maps. Native Tower UBSan is unavailable.
