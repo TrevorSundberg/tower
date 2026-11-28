@@ -436,3 +436,81 @@ The Linux test ELF `266a03b3` resolved the entry in DSO `2d924e64`.
 Draw cross-linked the Win64 PE `1ffeebcc` with the named counted import at
 hint 3. Draw assigned the direct-import shipping device runs to `5bf26347`
 on Linux and `ce92a8df` on Win64 after its shader runs.
+
+## Build the external Linux counted application
+
+The [ordinary application entry](osd_checks/tower_client/counted_app.tower)
+runs the two `counted-core13` passes. It creates the three shader modules
+through the SDK and passes the live device's draw procedure to
+[`record_counted`](osd_checks/tower_client/counted_client.tower). The SDK
+also begins the primary, ends it into the caller's submit descriptor and
+submits it with the caller's fence. The shared fixture owns device selection,
+pipelines, resources, barriers, shader retirement and guarded readback.
+
+Run from a fresh Tower checkout in Bash on Linux x64. Use Clang/LLVM 19
+(`clang` on PATH), GNU binutils, glibc development files, libatomic,
+the Vulkan loader, Khronos validation and an ICD supporting the
+[counted profile](#source-contract-and-profiles). Install glslangValidator
+12.0.0 and SPIRV-Tools 2023.1 to reproduce the fixture's pinned shader
+bytes. On multi-ICD hosts set `VK_ICD_FILENAMES` to the intended ICD
+manifest. For an extracted sysroot also set `TOWER_SDK_ROOT`, tool and
+library search paths, and `VK_LAYER_PATH`.
+
+```bash
+set -euo pipefail
+root=$PWD
+v=$root/scaffolding/library/graphics/vulkan
+app=$(mktemp -d)
+sdk=${TOWER_SDK_ROOT:-/}
+lib=${sdk%/}/usr/lib/x86_64-linux-gnu
+loader=${VULKAN_SO:-$lib/libvulkan.so.1}
+"$v/build_graphics_so.sh" "$app/lib" "$loader"
+cp "$v"/osd_checks/tower_client/{counted_app,counted_client}.tower "$app/"
+cd "$app"
+for stage in produce.comp triangle.vert color.frag; do
+    glslangValidator -V --target-env vulkan1.1 "$v/counted_shaders/$stage" -o "$stage.spv"
+    spirv-val --target-env vulkan1.1 "$stage.spv"
+done
+"$root/bootstrap/linux-x64/towerc" counted_app.tower --emit exe \
+    --target x86_64-linux-gnu --jobs 1 --foundation "$root/scaffolding/foundation.tower" \
+    --sysroot "$sdk" --link "$app/lib/libtower_graphics.so" --link "$loader" \
+    --link "$lib/libatomic.so.1" --depfile counted_app.d -o counted_app
+export LD_LIBRARY_PATH="$app/lib:$(dirname "$loader"):$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+./counted_app
+```
+
+Run the application without arguments from the directory containing the three
+SPIR-V files. It checks their digests before pipeline creation. A passing run
+prints `fence=signaled`, the actual GPU count and first command for each pass,
+`validation_warnings_errors=0`, and exits 0. The command is (3,1,0,0,0) in
+both passes. The four pixels are `112233ff` at count zero and `4080bfff` at
+count one. The CPU rows start at bytes 4 and 16 of each 32-byte destination.
+Every other byte must be `a5`.
+
+For the matched raw comparison and the separate `draw14` gate, use the
+[exported-main object and Tower link recipe](#reproduce-on-linux-x86-64).
+That control resolves the Vulkan loader directly and runs local shader, draw
+and command helpers. Both entries record into a resettable command pool.
+The [RTX 3090 results](../../../../docs/temporal-opcode-research-journal.md#external-linux-application-for-the-counted-compute-to-raster-fixture)
+include a second-pass suppressed-draw control.
+
+To exercise the pixel oracle with GDB on Linux x86-64, continue in the same
+application directory. The first SysV argument to the public counted entry
+is the device procedure. Return from that procedure on its second invocation,
+before it records the draw.
+
+```bash
+rc=0
+gdb -nx -batch ./counted_app -ex 'set confirm off' -ex 'set disable-randomization off' \
+    -ex 'start' -ex 'break *tower_vk_record_indexed_indirect_count_v1' \
+    -ex 'ignore $bpnum 1' -ex 'continue' -ex 'tbreak *$rdi' -ex 'continue' \
+    -ex 'return (void)0' -ex 'continue' -ex 'quit $_exitcode' > suppressed.log 2>&1 || rc=$?
+test "$rc" = 1
+grep -Fx 'fence=signaled' suppressed.log
+grep -Fx 'validation_warnings_errors=0' suppressed.log
+awk '/^actual$/{getline; print}' suppressed.log
+```
+
+Expect the same zero and one count words and both original commands. Both
+guarded images now contain the clear color. Only the count-one pixel
+comparison fails. A missing or mismatched shader instead stops before submit.

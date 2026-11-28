@@ -23,10 +23,10 @@ mkdir -p "$app"
 cp "$root/scaffolding/"{bedrock,foundation,foundation_syntax,types,tower}.tower "$src/"
 cp "$root/scaffolding/library/sha256.tower" "$src/library/"
 cp "$v/../indexed_indirect.tower" "$src/library/graphics/"
-cp "$v/"{counted_abi,counted_capture,counted_device,counted_record,counted_draw,readback_abi,readback_clear,readback_device,readback_oracle,readback_rows,readback_validation}.tower "$app/"
+cp "$v/"{counted_abi,counted_device,counted_draw,readback_abi,readback_clear,readback_device,readback_oracle,readback_rows,readback_validation}.tower "$app/"
 cp "$v/"{command_submission_types,image_driver_types,image_lifecycle_types,shader_module_creation,shader_module_types,upload_types}.tower "$app/"
 cp "$here/../"{shader_client,counted_client}.tower "$here/"{indexed_draw,shader_module,application}.tower "$app/"
-for unit in counted_fixture counted_pipeline; do
+for unit in counted_fixture counted_pipeline counted_capture counted_record; do
     git -C "$root" show "$fixture:scaffolding/library/graphics/vulkan/$unit.tower" >"$app/$unit.tower"
 done
 

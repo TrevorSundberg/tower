@@ -1,5 +1,6 @@
 import tower;
 import counted_abi;
+import counted_calls;
 import counted_device;
 import counted_pipeline;
 import counted_record;
@@ -13,6 +14,7 @@ import readback_rows;
 var VkStorageBufferUsage: u32 = 32;
 var VkIndexUsage: u32 = 64;
 var VkIndirectUsage: u32 = 256;
+var VkCountedResetCommandBuffer: u32 = 2;
 
 struct CountedBuffer {
     handle: VkBufferHandle*;
@@ -48,7 +50,7 @@ fn counted_compare_sample(sample: u8*, prefix: u8*, pixels: u8*): bool {
     return command_ok && image_ok;
 }
 
-fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
+fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): bool {
     var device = ctx.device;
     var draw = vk_load_indexed_indirect_count(device);
     if draw == null { return vk_failure("Core vkCmdDrawIndexedIndirectCount unavailable"); }
@@ -70,7 +72,7 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
     var pipelines: CountedPipelines = default;
     defer counted_destroy_pipelines(device, &pipelines);
     if !counted_descriptors(device, &pipelines, indirect.handle, stream.byte_size)
-        || !counted_pipelines(device, &pipelines, paths) { return false; }
+        || !counted_pipelines(calls, device, &pipelines, paths) { return false; }
     var staging: CountedBuffer = default;
     defer counted_release_buffer(device, &staging);
     if !counted_buffer(ctx, &staging, 2 * counted_sample_bytes(), VkTransferDstUsage, VkHostVisible) { return false; }
@@ -92,21 +94,23 @@ fn counted_capture(ctx: ReadbackDevice*, paths: u8**): bool {
     var view: VkImageViewHandle*;
     if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
     defer vkDestroyImageView(device, view, null);
-    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default };
+    var pool_info: VkCommandPoolCreateInfo = { sType: VkCommandPoolTag, flags: VkCountedResetCommandBuffer, queueFamilyIndex: ctx.family, ..default };
     var pool: VkCommandPoolHandle*;
     if !vk_ok("vkCreateCommandPool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
     defer vkDestroyCommandPool(device, pool, null);
     var cmd_info: VkCommandBufferAllocateInfo = { sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default };
     var cmd: VkCommandBufferHandle*;
     if !vk_ok("vkAllocateCommandBuffers", vkAllocateCommandBuffers(device, &cmd_info, &cmd)) { return false; }
-    if !counted_record(cmd, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
-        image, view, range, staging.handle) { return false; }
+    var submit: VkSubmitInfo;
+    if !vk_ok("reset and begin command buffer", calls.begin(cmd))
+        || !counted_record(calls, cmd, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
+            image, view, range, staging.handle)
+        || !vk_ok("vkEndCommandBuffer", calls.prepare(&submit, &cmd, null, null, null)) { return false; }
     var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
-    var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
-    if !vk_ok("vkQueueSubmit", vkQueueSubmit(ctx.queue, 1, &submit, fence)) { return false; }
+    if !vk_ok("vkQueueSubmit", calls.submit(ctx.queue, &submit, fence)) { return false; }
     puts("submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy");
     var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
     if !vk_ok("vkWaitForFences", wait) {

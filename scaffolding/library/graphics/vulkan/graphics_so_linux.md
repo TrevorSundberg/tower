@@ -95,6 +95,9 @@ after combining the example with the sixteen-import SDK.
 [Run evidence and instrumentation limits](../../../../docs/temporal-opcode-research-journal.md#external-tower-source-to-a-linux-vulkan-executable-on-slot-12)
 [Linux byte linker](../../../../docs/tower-linkers.md#cli-and-build-boundaries)
 
+For an application that creates compute and graphics shader modules and issues
+a counted indexed draw, use the [external counted application recipe](counted_draw.md#build-the-external-linux-counted-application).
+
 ## Build the application outside Tower
 
 Keep the application's source imports as shipped. Its `import image_owner;`

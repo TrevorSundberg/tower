@@ -1,0 +1,32 @@
+import tower;
+import library.graphics.indexed_indirect;
+import library.graphics.vulkan.command_submission;
+import library.graphics.vulkan.counted_calls;
+import library.graphics.vulkan.counted_draw;
+import library.graphics.vulkan.counted_run;
+import library.graphics.vulkan.indexed_draw;
+import library.graphics.vulkan.shader_module;
+import library.graphics.vulkan.shader_module_creation;
+import counted_client;
+
+extern fn exit(code: i32): void;
+
+fn create_shader(device: VkDeviceHandle*, words: u32*, count: usize, out: VkShaderModuleHandle**): VkShaderModuleResult {
+    var result: i32 = 0;
+    var called = tower_vk_try_create_shader_module(device, words, count, out, &result);
+    return { called: called == 1, result: result };
+}
+
+fn record_stream(draw: PFN_vkCmdDrawIndexedIndirectCount, cmd: VkCommandBufferHandle*, commands: VulkanIndirectBuffer,
+    range: IndexedIndirectRange, count: VulkanIndirectBuffer, count_offset: u64): bool {
+    return record_counted(draw, cmd, commands.handle, commands.byte_size, range.command_offset,
+        count.handle, count.byte_size, count_offset, range.max_draws, range.stride) == 1;
+}
+
+var calls: CountedCalls = { create_shader: create_shader, record_draw: record_stream, begin: tower_vk_command_begin_v1,
+    prepare: tower_vk_command_end_for_submit_v1, submit: tower_vk_queue_submit_one_v1 };
+var shaders: u8*[3];
+shaders[0] = "produce.comp.spv";
+shaders[1] = "triangle.vert.spv";
+shaders[2] = "color.frag.spv";
+exit(counted_run(&calls, false, &shaders[0]));

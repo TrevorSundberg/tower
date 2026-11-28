@@ -49,7 +49,8 @@ RGBA8 pixels in the first capture are `112233ff`. All four in the second are
 The accepted hash is `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
 
 The build copies only the application's import closure into a new directory.
-The Win64 file loader and entry come from `ea6ce027`. Each shader passes
+The Win64 entry, file loader, capture and recording modules come from the same
+fixture revision, `ea6ce027`. Each shader passes
 the file length and digest checks before the local adapter calls the shipped
 `shader_client`. Its result must indicate both dispatch and Vulkan success.
 The pipeline owner retains its original deferred destruction loop. Inside each
