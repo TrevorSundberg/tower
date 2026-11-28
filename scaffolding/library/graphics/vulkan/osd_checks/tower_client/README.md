@@ -61,6 +61,7 @@ done
 The two application depfiles (`elf.d`, `coff.d`) each list nine sources. The combined check lists twelve. In each graph the sole public lifecycle declarations come from image_lifecycle and there are no provider bodies or imports of readback_abi. The raw declaration appears only in the legacy caller. The recorder calls it once with a synthetic handle. Both owners also run signed query failures, successful query with insufficient capacity, no compatible memory type, clobbered outputs, accounting at bind, and ordered retirement followed by a second release. The [journal](../../../../../../docs/temporal-opcode-research-journal.md#isolating-image-lifecycle-types-from-driver-declarations) records the provider byte comparisons and both device runs.
 
 ## Linked application checks
+
 For a single-checkout build of both libraries, executable links and the CPU lifecycle test, follow the [Linux and Win64 application recipe](../../graphics_so_linux.md).
 
 Rendering rebuilt the two modules from a temporary application directory

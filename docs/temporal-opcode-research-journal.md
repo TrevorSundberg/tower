@@ -126240,3 +126240,70 @@ the sampled_image and image_owner modules. This port takes just the
 Linux build script from that topic. The new application entry uses the
 shipped clients. The recording recipe maps the existing Tower recorder's
 callbacks to the ELF Vulkan symbols. No provider or compiler edit is needed.
+
+**Observed on host 12.** A git archive of implementation be6a07a0, the
+packaged towerc (SHA-256 7430bdb3…1b896), Linux x64, LLVM/Clang/LLD
+19.1.7, GNU ld 2.40, the Debian Vulkan 1.3.239 loader, and MinGW-w64
+10.0 with GCC 12 POSIX were the production build inputs. The x64 SDK
+loader import library for the PE application came from Khronos's
+v1.3.239 vulkan-1.def (SHA-256 166014c0…ed75d). The two library and
+two application build commands and host paths are in the
+[build instructions](../scaffolding/library/graphics/vulkan/graphics_so_linux.md)
+and the assignment's clean_build.sh, env.sh and clean/build.log.
+Each standalone caller depfile contains five language files, the two
+SDK modules in the export and the two external application sources.
+
+The three libraries matched the release fingerprints in the build
+instructions. Both ELF and COFF standalone clients retained their published
+hashes (821c8208…1c52b and d9f9686a…7ff0a). The ELF SONAME and sole needed
+library are libtower_graphics.so and libvulkan.so.1. The ELF names equal
+the 16 PE exports. The PE ordinal sequence remains submit, shader, draw,
+begin, end, finish, buffer upload, OSD upload, tight regions, view, image,
+preflight, plan, allocate, bind, retire. The linked PE imports the seven
+image names from tower_graphics.dll and six device-management calls from
+vulkan-1.dll. The unchanged --with-consumer recipe cross-linked the C
+consumer as well. Neither Wine nor a physical Windows host ran here.
+
+The Linux CPU suite completed ten scenarios for each owner with the ICD
+disabled. glibc bound the seven image calls to the new DSO and nine driver
+functions to the recorder. The new native smoke opened and retired a real
+2×2 image and released its charge. The previous SDK executable charged
+512 bytes before bind and reached zero after release. In the previous
+ordinary Tower executable (117744a7…fe2a), glibc bound all seven calls to
+the new DSO. The recording probes forwarded the driver calls to the system
+loader. Its RTX 3090 at 0000:81:00.0, 10de:2204, Vulkan 1.3.289, driver
+565.57.01, physical index 0, queue/family 0/0 completed five uploads
+and sixteen sampled reads before five retirements. The no-argument
+executable, its SPIR-V input, raw SDK reference and observation tools
+are checksummed separately from the production builds. All 103,158,144
+guarded bytes matched SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+Khronos synchronization validation reported zero warnings or errors.
+
+The independent readback_fixture executable used argv argument 0. The
+rows and oracle source blobs match the public rendering ref cf53212c.
+The a580e70a base precedes those files. On the same device, the pitch-7,
+span-19 and short-source CPU controls passed, the fence signaled, the
+pitch-12 destination preserved its guards, and both RGBA8 rows were
+112233ff112233ff. The tight pixel hash was f02bfdb4…aeb88.
+
+The EPYC 7282 has 16 cores and 32 hardware threads. Each Tower compilation
+used one worker. A single clean packaging run took 4.44 s wall, 4.43 s
+user+system, 97,876 KiB peak RSS for ELF, and 4.50 s, 4.50 s and
+97,348 KiB for COFF. Allocation counts were unmeasured. After one warmup,
+three same-host runs of the same recorder took 2.45–2.71 ms with the old
+DSO and 2.19–2.74 ms with the new one, including process startup. The
+products are byte-identical. We did not repeat GPU performance matrices.
+
+Linux address instrumentation of the new application and the existing
+recorder passed with leak detection. The provider and NVIDIA driver
+retain their production binaries. The native Tower UBSan profile is
+unavailable. Instrumented smoke TSan startup failed at the denied
+ADDR_NO_RANDOMIZE personality call (exit 139 on twelve attempts). An
+initial ASan hook check looked inside the recorder's delegating main;
+checking its active record_create callback confirmed the instrumentation.
+An initial inspection of the offscreen trace expected the DSO to call the
+loader directly. Its nine hooks run through observers; the untraced-device
+smoke's loader bindings and the observed calls' forwarding were checked
+separately. The first trial compile also required an explicit readback_abi
+import at the smoke entry for its raw instance and device operations.

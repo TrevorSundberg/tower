@@ -31,7 +31,7 @@ the tree. The first two compilations build the client alone. The next two
 build the executable entry with those same client modules.
 
 ```bash
-app=$(mktemp -d)
+app=$(mktemp -d "$(dirname "$root")/image_app.XXXXXXXX")
 example=$v/osd_checks/tower_client
 cp "$example"/{sampled_image,image_owner,image_smoke}.tower "$app/"
 cd "$app"
@@ -90,3 +90,15 @@ retirement. For call origins, run `LD_DEBUG=bindings "$out/linux/recording"`
 and inspect the `tower_vk_` and driver bindings. The [typed client
 contract](osd_checks/tower_client/README.md) describes each call and the
 expected standalone object digests.
+
+## Release fingerprints
+
+With the packaged compiler, GNU ld 2.40, Vulkan loader 1.3.239 and LLVM
+19.1.7, `sha256sum "$out/linux/libtower_graphics.so" "$out/win64"/tower_graphics.{dll,lib}`
+gives these SHA-256 values in order.
+
+| Library | SHA-256 |
+| --- | --- |
+| Linux shared object | `2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf` |
+| Windows DLL | `8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7` |
+| Windows import library | `2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c` |
