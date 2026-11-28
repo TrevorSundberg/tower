@@ -127289,3 +127289,28 @@ manager rebuilt its ordinary PE and compared it byte-for-byte with the
 reviewed ee5e16f4 executable. The slot 11 source-archive task owns removing
 that historical prerequisite. The device run for the Win64 PE belongs to
 its earlier receipt.
+
+### Single-tree Win64 counted application with the published Linux callbacks
+
+Slot 11 compared the recipes at `447be31a` and `ea88e000`. The latter
+staged four historical files from `ea6ce027` to preserve the Win64
+binary while Linux adopted `CountedCalls`. Both old recipes reproduced
+the same DLL, import library, ordinary PE, CRT PE and caller object.
+The first single-tree experiment on `447be31a` used a separate callback
+type. Its results and bundle are retained with assignment `f22cca24`.
+
+The integrated implementation starts at `ea88e000`. Win64 passes its
+two SDK clients and the raw fixture's local begin, prepare and submit
+functions in the published five-field table. The Linux entry still
+passes its five SDK operations. The capture and record files are identical
+to the published Linux versions. The portable shader reader uses the
+exact length and hash of each frozen SPIR-V file before calling
+`calls.create_shader`. Its EOF and error probes avoid the LP64/LLP64
+difference in the CRT seek interface. The Win64 argv entry selects guest
+or host validation explicitly. The existing three-argument `counted_run`
+continues to request the guest layer for both Linux entries.
+
+The old Win64 adapter and raw shader module had different Tower declarations
+of the same destroy function. The ordinary shader client now uses the same
+nominal allocator type. The original pipeline owner still destroys the
+modules after creating the pipelines.
