@@ -1,11 +1,11 @@
 # Tower Vulkan library for Windows x64
 
-`tower_graphics.dll` exports image allocation planning, image-format preflight, image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
+`tower_graphics.dll` exports retirement of owned image handles, allocation and zero-offset binding, image allocation planning, image-format preflight, image, bound-image view and shader creation, counted indexed recording, reusable primary begin, end/prepare, tight color region construction, staged buffer and OSD texture recording, blocking upload finish and asynchronous
 one-descriptor queue submit. Link a Windows x64 C application with
 `tower_graphics.lib` and put the matching DLL beside the executable.
-Use the public headers for [allocation planning](image_allocation_plan.h), [preflight](image_format_preflight.h), [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
+Use the public headers for [retirement](image_retirement.h), [allocation and binding](image_memory.h), [allocation planning](image_allocation_plan.h), [preflight](image_format_preflight.h), [image creation](create_image.h), [bound-image views](bound_image_view.h), [shaders](shader_module_c.h), [submission](frame_submit.h), [counted recording](indexed_draw_c.h), [buffer uploads](buffer_upload_record.h) and [OSD texture uploads](osd_texture_upload_record.h).
 The application also links the Vulkan SDK import library for its own Vulkan
-calls. At runtime the Tower DLL imports `vkGetImageMemoryRequirements`, `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
+calls. At runtime the Tower DLL imports `vkDestroyImageView`, `vkDestroyImage`, `vkFreeMemory`, `vkAllocateMemory`, `vkBindImageMemory`, `vkGetImageMemoryRequirements`, `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
 ## Build from a clean checkout
@@ -17,7 +17,7 @@ From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19
 scaffolding/library/graphics/vulkan/build_graphics_dll.sh "$PWD/out"
 ```
 
-The entry verifies the checked-in bootstrap, compiles eleven Tower objects for
+The entry verifies the checked-in bootstrap, compiles the Tower objects for
 `x86_64-w64-windows-gnu`, and links the DLL and import library. The output
 directory also contains the loader definition, intermediate objects and
 `tower_graphics.map`. The DLL has a zero PE timestamp, zero entry point and
@@ -819,3 +819,24 @@ The worker's Quadro RTX 6000 run under Wine 8 matched the 27,542,768-byte
 guarded reference, SHA-256
 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
 Shipping Draw and physical Windows execution remain open for these entries.
+
+## Retiring an owned image at ordinal 16
+
+Include `image_retirement.h` and link the matching `tower_graphics.lib`.
+Pass a live creating device and the owned view, image and memory handles after
+all submitted uses have completed successfully. Release additional dependent
+views first. The entry skips each null child independently, destroys the view
+then image, and frees the allocation with a null allocator. The caller
+accounts the released memory and clears its record after return. The caller
+also owns swapchain and borrowed-handle policy and recovery after a failed wait.
+See the [portable contract](image_retirement_v1.md).
+
+On host 11, the retained fifteen-entry device PE and the new external C PE
+both ran with the sixteen-entry DLL under Wine 8. Both validated all 256
+sampled texels and 15 guards on the physical Quadro RTX 6000. The new PE
+imports `tower_vk_destroy_retired_image_v1` from `tower_graphics.dll`.
+The link map binds that export to `image_retirement.obj`. Its three calls
+resolve through `vulkan-1.dll`. A second PE traced all five source retirements
+through those DLL imports after ten successful queue completions. The
+[qualification instructions and results](osd_checks/retirement/README.md)
+identify the binaries and replay command.

@@ -125968,3 +125968,85 @@ eight-mask Tower fixture and C call site come from 5dea5876, reviewed at
 build with the packaged bootstrap, one worker and x86_64-w64-windows-gnu
 matched the published bf3fa4e1 COFF. The sealed ordinal-15 device client
 and full guarded capture are the compatibility and hardware controls.
+
+Implementation 099b2ccd and checks 74599bd2 use one reviewed COFF for both
+link forms. The public header, Tower source, portable checks and contract
+match 6aa610c9 byte for byte. The AMD64 export uses the four pointer-sized
+SDK handles in RCX/RDX/R8/R9. The object calls vkDestroyImageView and
+vkDestroyImage and tail-calls vkFreeMemory. For each loader call it moves
+the original device and selected child into RCX/RDX and zeroes R8.
+The SDK signature check, disassembly, export table, map, external PE import
+table and loader callbacks were checked independently. The release has
+7,680 DLL bytes and a 5,990-byte import library.
+[Artifact hashes and replay commands](../scaffolding/library/graphics/vulkan/osd_checks/retirement/README.md)
+
+The object and DLL exercised the original eight-mask recording test behind
+the published C client. A second fixture checked a dirty 64-byte owner,
+a 4,294,983,680-byte charge, unrelated live allocations, peak preservation
+and two releases per subset. Live counts and contents were observed during
+the callbacks, with the clear and charge reversal verified after return.
+SDK and linked rows matched. The mask probes used synthetic handles. An
+image-before-view mutation failed on mask 3 (exit 4). The ordinal-15 import
+library rejected the C consumer on the new name (exit 1). The old DLL loaded,
+resolved ordinal 15's name, and returned Win32 error 127 for the new name
+(probe exit 16). The new name and ordinal 16 resolved to the same address.
+
+The sealed SDK and linked PEs ran again with their archived DLLs. The
+unmodified ordinal-15 recording and device PEs then ran with the
+sixteen-entry DLL. The newly built SDK, COFF, DLL, trapping-UBSan C and
+observed device PEs ran on physical device 0, discrete Quadro RTX 6000,
+vendor/device 4318/7800, UUID 26f60f6cead65faf0253a959b2e93a2d,
+NVIDIA 615.71.10, device API 1.4.351, requested 1.3 and graphics queue
+0/0. Synchronization validation loaded and reported zero warnings/errors.
+Five source images kept the sealed allocations (index 1, offset zero).
+The source ledger peaked at 25,165,824 bytes and returned to zero after
+each free. All 256 sampled RGBA texels, 15 guards and 27,542,768 bytes
+matched the sealed stream. The two successful finish calls per source
+covered upload and sampling before its first owned view was destroyed.
+The lifetime checker matched the ten source view handles, image and memory
+identities, call order, counts, device and null allocator against Wine's
+driver calls. The observed PE recorded exactly 15 calls attributable to
+the release DLL. Auxiliary views and the target still had separate owners.
+
+Host 11 used Debian x64, LLVM/LLD 19.1.7, GNU Win64 with MinGW, SDK
+headers 1.3.239, Wine 8 and the packaged bootstrap with one compile
+worker. The two Xeon E5-2699 v4 CPUs exposed affinity 0–87 with a
+10.56-CPU quota. Each arm used one PE caller and one graphics queue.
+The timed sample started a fresh process on the same warm Wine server,
+with one warmup pair and three alternating pairs, full validation and
+capture verification on each device sample.
+
+| Timed arm, warmup excluded | Wall seconds | User + system seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| SDK, upload and sample | 1.19 / 1.21 / 1.13 | 1.16 / 1.06 / 1.10 | 191848 / 192536 / 192776 |
+| DLL, upload and sample | 1.38 / 1.14 / 1.24 | 1.31 / 1.11 / 1.15 | 191264 / 192324 / 192312 |
+| SDK, eight CPU masks | .05 / .04 / .05 | .04 / .02 / .03 | 6340 / 6348 / 6352 |
+| DLL, eight CPU masks | .09 / .07 / .09 | .06 / .04 / .06 | 11992 / 11980 / 11308 |
+
+Process timings include PE and loader startup. The CPU recording PE using
+the SDK loads its three doubles directly through the local loader. The
+DLL-linked recording PE additionally loads the graphics DLL and resolves
+its broader import set. These samples do not isolate per-call overhead.
+The production entry has no heap allocation or retained state.
+
+Win64 trapping UBSan exercised the C caller and changed fixture boundaries.
+Win64 ASan could not link the missing target runtime. Clang rejected TSan
+for Win64. Native Linux ASan/leak and trapping C UBSan ran the SDK and
+linked owners. Native TSan ran four pthreads with private owners, four
+suites per thread and eight masks per suite (128 checked rows per arm).
+The SDK run had six ADDR_NO_RANDOMIZE startup failures before completing.
+The provider completed on its first launch. Instrumented Tower IR, the
+recorder and provider disassembly, link maps, native dependencies and each
+startup status are in the evidence packet. Physical Windows and shipping
+Draw execution remain open. This release covers known-retired owned handles
+only. Recovery and swapchain ownership stay with the caller.
+
+As a separate runtime negative, the exact new published-mask PE ran beside
+the ordinal-15 DLL with its recording loader. Wine named the unimplemented
+tower_graphics.dll.tower_vk_destroy_retired_image_v1 and exited 1. The
+previous image-memory qualification also completed from source on the new
+release, including its standalone and DLL lanes, ten-row planner oracle
+and native sanitizers. Its export check applies to the fifteen ordinals it
+owns. The retirement qualification checks the complete sixteen-entry table.
+The portable remote ref advanced during this run. The source and checks
+remain pinned to the reviewed 6aa610c9 inputs.
