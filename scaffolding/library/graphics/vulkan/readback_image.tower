@@ -1,0 +1,48 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+struct ReadbackImage {
+    device: VkDeviceHandle*;
+    image: VkImageHandle*;
+    memory: VkDeviceMemoryHandle*;
+    view: VkImageViewHandle*;
+    range: VkImageSubresourceRange;
+}
+
+// The creating device must be live and all submitted use must have retired.
+fn vk_release_readback_image(owner: ReadbackImage*): void {
+    if owner.view != null { vkDestroyImageView(owner.device, owner.view, null); }
+    if owner.image != null { vkDestroyImage(owner.device, owner.image, null); }
+    if owner.memory != null { vkFreeMemory(owner.device, owner.memory, null); }
+    *owner = default;
+}
+
+// Transfer to the caller's empty owner only after the view exists.
+fn vk_acquire_readback_image(ctx: ReadbackDevice*, out: ReadbackImage*): bool {
+    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
+        extent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, mipLevels: 1, arrayLayers: 1,
+        samples: VkSample1, usage: VkColorAttachmentUsage | VkTransferSrcUsage, ..default };
+    var image: VkImageHandle*;
+    if !vk_ok("vkCreateImage", vkCreateImage(ctx.device, &info, null, &image)) { return false; }
+    var owner: ReadbackImage = { device: ctx.device, image: image,
+        range: { aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default }, ..default };
+    var requirements: VkMemoryRequirements;
+    var flags: u32;
+    vkGetImageMemoryRequirements(owner.device, image, &requirements);
+    if !vk_readback_allocate(ctx, &requirements, 0, &owner.memory, &flags)
+        || !vk_ok("vkBindImageMemory", vkBindImageMemory(owner.device, image, owner.memory, 0)) {
+        vk_release_readback_image(&owner);
+        return false;
+    }
+    var view_info: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: VkView2D,
+        format: info.format, subresourceRange: owner.range, ..default };
+    var view: VkImageViewHandle*;
+    if !vk_ok("vkCreateImageView", vkCreateImageView(owner.device, &view_info, null, &view)) {
+        vk_release_readback_image(&owner);
+        return false;
+    }
+    owner.view = view;
+    *out = owner;
+    return true;
+}

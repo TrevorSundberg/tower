@@ -1,13 +1,13 @@
 import tower;
 import bound_buffer;
 import primary_command;
+import readback_image;
 import readback_completion;
 import readback_mapping;
 import readback_device;
 import readback_abi;
 import readback_rows;
 
-var VkImageCreateTag: u32 = 14;
 var VkImageBarrierTag: u32 = 45;
 var VkBufferBarrierTag: u32 = 44;
 var VkRenderingTag: u32 = 1000044000;
@@ -26,7 +26,6 @@ var VkClearOp: u32 = 1;
 var VkStoreOp: u32 = 0;
 var VkTransferDstUsage: u32 = 2;
 var VkHostVisible: u32 = 2;
-var VkView2D: u32 = 1;
 
 fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
     buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
@@ -71,24 +70,9 @@ fn readback_clear_rows(dst: ReadbackDestination*, data: u8*): bool {
 fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !readback_destination_valid(dst) { return vk_failure("Invalid destination for RGBA8 readback"); }
     var device = ctx.device;
-    var image_memory: VkDeviceMemoryHandle* = null;
-    defer { if image_memory != null { vkFreeMemory(device, image_memory, null); } }
-    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
-        extent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, mipLevels: 1, arrayLayers: 1,
-        samples: VkSample1, usage: VkColorAttachmentUsage | VkTransferSrcUsage, ..default };
-    var image: VkImageHandle*;
-    if !vk_ok("vkCreateImage", vkCreateImage(device, &info, null, &image)) { return false; }
-    defer vkDestroyImage(device, image, null);
-    var req: VkMemoryRequirements; var flags: u32;
-    vkGetImageMemoryRequirements(device, image, &req);
-    if !vk_readback_allocate(ctx, &req, 0, &image_memory, &flags)
-        || !vk_ok("vkBindImageMemory", vkBindImageMemory(device, image, image_memory, 0)) { return false; }
-    var range: VkImageSubresourceRange = { aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default };
-    var view_info: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: VkView2D,
-        format: VkRgba8Unorm, subresourceRange: range, ..default };
-    var view: VkImageViewHandle*;
-    if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
-    defer vkDestroyImageView(device, view, null);
+    var target: ReadbackImage = default;
+    if !vk_acquire_readback_image(ctx, &target) { return false; }
+    defer vk_release_readback_image(&target);
     var staging: BoundBuffer = default;
     if !vk_create_bound_buffer(ctx, &staging, convert(u64, ReadbackClearBytes), VkTransferDstUsage,
         VkHostVisible, { create: "vkCreateBuffer", bind: "vkBindBufferMemory" }) { return false; }
@@ -97,7 +81,7 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_acquire_primary(device, ctx.family, 0,
         { create: "vkCreateCommandPool", allocate: "vkAllocateCommandBuffers" }, &primary) { return false; }
     defer vk_release_primary(&primary);
-    if !vk_record_clear(primary.command, image, view, staging.handle, range) { return false; }
+    if !vk_record_clear(primary.command, target.image, target.view, staging.handle, target.range) { return false; }
     var fence: VkFenceHandle*;
     if !vk_create_unsignaled_fence(device, "vkCreateFence", &fence) { return false; }
     defer vkDestroyFence(device, fence, null);

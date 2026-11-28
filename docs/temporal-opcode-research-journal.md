@@ -128812,3 +128812,112 @@ and `4ba73bd5a93480f6cff23e23bab97956f86ee9e83ce0231ed64cb7b85d8124a1`.
 Draw compared its actual captures and recorded guest exit 1 for the original
 and 0 for the corrected shaders. The Linux shipping receipt remains with
 Draw job `5bf26347`. This documentation update reuses the measured binaries.
+### Raw readback color image ownership on slot 12
+
+The SDK at `e108476f` constructs the same single-level, single-layer
+2×2 RGBA8 image in raw clear and common counted capture. Clear creates
+it before staging. Counted creates it after both draw buffers, the
+descriptors and pipelines, and staging. SDK clear exercises the public
+lifecycle operations independently. The proposed internal owner takes
+the view, image, allocation, creating device and subresource range
+together only after a successful view creation. Teardown requires that
+any submitted use has retired.
+
+The implementation in `readback_image.tower` uses the existing memory
+type selection and allocation helper. Failed image and view creations
+can scribble on their local output slots. Only a successful call transfers
+the corresponding handle. The SDK clear client's dynamic bindings
+still enter all six public image lifecycle operations. Both counted
+entries reach the common capture. The SDK DSO, DLL and import library
+matched the frozen packet byte for byte.
+
+On slot 12, 36 loader traces per revision covered the three raw-driver
+callers and the independent SDK clear client. A separate Tower recorder
+checked descriptor fields, an allocation size above 4 GiB, publication
+timing, range, creating device, release order, and a second release.
+The three raw-driver callers produced the following first errors. Each
+output-producing refusal wrote a non-null value before returning.
+
+| Refusal | First diagnostic | Live image resources released |
+| --- | --- | --- |
+| Create image | `vkCreateImage`, −1 | None |
+| No allowed memory type | `No compatible Vulkan memory type` | Image |
+| Allocate | `vkAllocateMemory`, −2 | Image |
+| Bind at zero | `vkBindImageMemory`, −3 | Image, memory |
+| Create view | `vkCreateImageView`, −5 | Image, memory |
+
+SDK clear retained its public operation labels for all five refusals.
+Each refusal stopped before command acquisition, recording, submission
+or mapping. Clear retained all 32 guard bytes. Counted emitted zero
+capture comparisons. The observer matched staging and both draw buffer
+allocations, both pipelines, the descriptor pool and its set, pipeline
+layout and set layout to the creating device. The set retired with its
+pool. On the first three refusals each previous counted entry also
+called `vkFreeMemory(device, null, null)`. That call had no live
+allocation. The new release omits it.
+
+Healthy traces matched the image and single-color range at both layout
+transitions, the view at rendering and the image at each copy. Each
+application waited on its submitted fence before mapping and unmapping
+staging, then released the view, image and allocation once in order.
+The failed submit control released unsubmitted resources. A failed
+wait drained the submitting queue. A failed drain reached SIGABRT
+with all three image resources live. The frozen fence controls also
+passed 12 two-queue trials on each revision.
+
+All eight healthy processes selected physical device 0, NVIDIA GeForce
+RTX 3090, Vulkan 1.3.289, driver 565.57.01, queue family/index 0/0,
+UUID `cd3d9791fe794e0b3ec29fc16b74d31c`. Each reported zero Khronos
+validation warnings/errors. Full stdout and all 32 clear or 112 counted
+bytes matched fence packet `4e22a008-d279-4701-894a-d9cd5b4ae820`
+(SHA-256 `f52cb327ab3259acc90d52e085a49bc2db27eb4cd7ea5ed0ef16a412ef6ffe71`).
+The layout oracle regenerated both records. The CPU fixture sources
+matched Tower `3dd5f11f`, child of `a580e70a`. Draw's previously
+recorded reference is `36f61b4b`.
+
+One process at a time on the EPYC 7282 (16 cores, 32 threads,
+15.36-CPU quota), Linux x64, published Linux bootstrap, one compiler
+worker. After the pixel checks and a warmup, seven alternating pairs
+timed caller entry into image construction through successful view
+acquisition with CLOCK_MONOTONIC. The wall, user/system CPU and RSS
+samples used uninstrumented production applications.
+
+| Entry | Image median µs, parent → candidate | Process wall median s | CPU median s | Maximum RSS KiB |
+| --- | --- | --- | --- | --- |
+| Raw clear | 794.99 → 788.49 | 0.30 → 0.30 | 0.29 → 0.30 | 91888 → 91864 |
+| SDK clear | 786.79 → 793.62 | 0.30 → 0.30 | 0.29 → 0.30 | 91764 → 91796 |
+| Raw counted | 668.69 → 674.79 | 0.31 → 0.31 | 0.31 → 0.30 | 94928 → 94912 |
+| SDK counted | 672.51 → 671.97 | 0.31 → 0.31 | 0.30 → 0.30 | 94888 → 94804 |
+
+The acquisition ranges overlapped in every pair of series. Clear
+allocated 152 Tower bytes (peak 152), counted 3376 (peak 1752), with
+zero live bytes at exit in both versions. The driver required 512
+bytes for the image on this device. Construction adds no worker jobs.
+Three warm rebuilds per revision reproduced raw clear's object and the
+SDK counted executable. Ordinary Tower and MinGW CRT Win64 links each
+retained two SDK imports in the control and five in the SDK fixture.
+PE execution belongs to slot 11.
+
+LLVM 19 ASan passed the recorder with leak detection and all four
+hardware apps with address checking. Full-process leak checks on
+instrumented raw clear found 3511 bytes in eight allocations on each
+revision, with validation-layer frames. Several TSan starts stopped at a
+denied personality call (139). The recorder completed all six cases under
+TSan on a later attempt. In both instrumented raw clear revisions, a
+run reaching main faulted inside TSan from the calloc interceptor on
+an NVIDIA driver thread. Link maps and both debugger backtraces are in
+the return. Hardware TSan coverage remains open. Tower provides no UBSan frontend.
+Physical out-of-memory, actual device loss and noncoherent hardware
+were not exercised.
+
+The shared checkout's initial pull refused its existing unstaged
+readback document. A local shallow fetch also refused a missing
+promisor blob. A bounded fetch of the assigned rendering SDK supplied
+the isolated working tree. The first recorder compile caught a missing
+enum representation type. The trace harness initially expected the
+healthy validation counter label on raw failure. The final checks use
+the application's failure label. The return for job
+`8d187362-5f93-49c2-b912-7b88e4838f2f` includes the one-commit bundle,
+exact build and replay commands, compiler and driver hashes, individual
+loader traces, guard records, profiles and sanitizer logs. Rendering
+owns the change and its publication review.

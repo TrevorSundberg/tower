@@ -1,0 +1,140 @@
+import tower;
+import readback_image;
+import readback_device;
+import readback_abi;
+
+extern fn exit(status: i32): void;
+
+enum ImageStep: u32 { Healthy, Create, Type, Allocate, Bind, View }
+var RecordedImageSize: u64 = 8589938688;
+
+struct ImageCase {
+    next: u8*;
+    refusal: ImageStep;
+    output: ReadbackImage*;
+    image: VkImageHandle*;
+    memory: VkDeviceMemoryHandle*;
+    view: VkImageViewHandle*;
+}
+
+fn require_image(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(3); }
+}
+
+fn color_range(range: VkImageSubresourceRange): bool {
+    return range.aspectMask == 1 && range.baseMipLevel == 0 && range.levelCount == 1
+        && range.baseArrayLayer == 0 && range.layerCount == 1;
+}
+
+fn empty_image(owner: ReadbackImage*): bool {
+    return owner.device == null && owner.image == null && owner.memory == null && owner.view == null
+        && owner.range.aspectMask == 0 && owner.range.baseMipLevel == 0 && owner.range.levelCount == 0
+        && owner.range.baseArrayLayer == 0 && owner.range.layerCount == 0;
+}
+
+fn image_event(device: VkDeviceHandle*, event: u8*): ImageCase* {
+    var state = bits(ImageCase*, device);
+    require_image(*state.next == *event, event);
+    state.next++;
+    if state.output != null { require_image(empty_image(state.output), "published incomplete image"); }
+    return state;
+}
+
+export fn vkCreateImage(device: VkDeviceHandle*, info: VkImageCreateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkImageHandle**): i32 {
+    var state = image_event(device, "Create");
+    require_image(info.sType == 14 && info.pNext == null && info.flags == 0 && info.imageType == 1
+        && info.format == 37 && info.extent.width == 2 && info.extent.height == 2 && info.extent.depth == 1
+        && info.mipLevels == 1 && info.arrayLayers == 1 && info.samples == 1 && info.tiling == 0
+        && info.usage == 17 && info.sharingMode == 0 && info.queueFamilyIndexCount == 0
+        && info.pQueueFamilyIndices == null && info.initialLayout == 0 && allocator == null, "image descriptor");
+    *out = state.image;
+    require_image(empty_image(state.output), "driver wrote into caller owner");
+    if state.refusal == ImageStep.Create { return -1; }
+    return 0;
+}
+
+export fn vkGetImageMemoryRequirements(device: VkDeviceHandle*, image: VkImageHandle*, out: VkMemoryRequirements*): void {
+    var state = image_event(device, "Requirements");
+    require_image(image == state.image, "requirements image");
+    *out = { size: RecordedImageSize, alignment: 4096, memoryTypeBits: 4 };
+    if state.refusal == ImageStep.Type { out.memoryTypeBits = 8; }
+}
+
+export fn vkAllocateMemory(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkDeviceMemoryHandle**): i32 {
+    var state = image_event(device, "Allocate");
+    require_image(info.sType == 5 && info.pNext == null && info.memoryTypeIndex == 2
+        && info.allocationSize == RecordedImageSize && allocator == null, "allocation descriptor");
+    *out = state.memory;
+    require_image(empty_image(state.output), "driver wrote into caller owner");
+    if state.refusal == ImageStep.Allocate { return -2; }
+    return 0;
+}
+
+export fn vkBindImageMemory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
+    var state = image_event(device, "Bind");
+    require_image(image == state.image && memory == state.memory && offset == 0, "bound pair");
+    if state.refusal == ImageStep.Bind { return -3; }
+    return 0;
+}
+
+export fn vkCreateImageView(device: VkDeviceHandle*, info: VkImageViewCreateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkImageViewHandle**): i32 {
+    var state = image_event(device, "View");
+    require_image(info.sType == 15 && info.pNext == null && info.flags == 0 && info.image == state.image
+        && info.viewType == 1 && info.format == 37 && color_range(info.subresourceRange) && allocator == null
+        && info.components.r == 0 && info.components.g == 0 && info.components.b == 0 && info.components.a == 0,
+        "color view descriptor");
+    *out = state.view;
+    require_image(empty_image(state.output), "driver wrote into caller owner");
+    if state.refusal == ImageStep.View { return -5; }
+    return 0;
+}
+
+export fn vkDestroyImageView(device: VkDeviceHandle*, view: VkImageViewHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = image_event(device, "Drop view");
+    require_image(view == state.view && allocator == null, "destroy view");
+}
+
+export fn vkDestroyImage(device: VkDeviceHandle*, image: VkImageHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = image_event(device, "Image destruction");
+    require_image(image == state.image && allocator == null, "destroy image");
+}
+
+export fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = image_event(device, "Free");
+    require_image(memory == state.memory && allocator == null, "free allocation");
+}
+
+fn check_image(refusal: ImageStep, events: u8*): void {
+    var owner: ReadbackImage = default;
+    var handles: u64[3];
+    var state: ImageCase = { next: events, refusal: refusal, output: &owner,
+        image: bits(VkImageHandle*, &handles[0]), memory: bits(VkDeviceMemoryHandle*, &handles[1]),
+        view: bits(VkImageViewHandle*, &handles[2]) };
+    var ctx: ReadbackDevice = { device: bits(VkDeviceHandle*, &state), ..default };
+    ctx.memory.memoryTypeCount = 3;
+    var ok = vk_acquire_readback_image(&ctx, &owner);
+    require_image(ok == (refusal == ImageStep.Healthy), "acquire result");
+    if ok {
+        require_image(owner.device == ctx.device && owner.image == state.image && owner.memory == state.memory
+            && owner.view == state.view && color_range(owner.range), "incomplete image owner");
+        state.output = null;
+    } else { require_image(empty_image(&owner), "failed acquisition published"); }
+    vk_release_readback_image(&owner);
+    require_image(empty_image(&owner), "retired owner");
+    vk_release_readback_image(&owner);
+    require_image(*state.next == 0, "missing driver operation");
+    puts(events);
+}
+
+export fn main(): i32 {
+    check_image(ImageStep.Create, "C");
+    check_image(ImageStep.Type, "CRI");
+    check_image(ImageStep.Allocate, "CRAI");
+    check_image(ImageStep.Bind, "CRABIF");
+    check_image(ImageStep.View, "CRABVIF");
+    check_image(ImageStep.Healthy, "CRABVDIF");
+    return 0;
+}

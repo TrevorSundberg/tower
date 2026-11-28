@@ -1,6 +1,7 @@
 import tower;
 import bound_buffer;
 import primary_command;
+import readback_image;
 import counted_abi;
 import counted_calls;
 import readback_completion;
@@ -61,24 +62,9 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var staging: BoundBuffer = default;
     if !vk_create_bound_buffer(ctx, &staging, 2 * counted_sample_bytes(), VkTransferDstUsage, VkHostVisible, operations) { return false; }
     defer vk_release_bound_buffer(device, &staging);
-    var image_memory: VkDeviceMemoryHandle* = null;
-    defer vkFreeMemory(device, image_memory, null);
-    var info: VkImageCreateInfo = { sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
-        extent: { width: ReadbackWidth, height: ReadbackHeight, depth: 1 }, mipLevels: 1, arrayLayers: 1,
-        samples: VkSample1, usage: VkColorAttachmentUsage | VkTransferSrcUsage, ..default };
-    var image: VkImageHandle*;
-    if !vk_ok("vkCreateImage", vkCreateImage(device, &info, null, &image)) { return false; }
-    defer vkDestroyImage(device, image, null);
-    var req: VkMemoryRequirements; var flags: u32;
-    vkGetImageMemoryRequirements(device, image, &req);
-    if !vk_readback_allocate(ctx, &req, 0, &image_memory, &flags)
-        || !vk_ok("vkBindImageMemory", vkBindImageMemory(device, image, image_memory, 0)) { return false; }
-    var range: VkImageSubresourceRange = { aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default };
-    var view_info: VkImageViewCreateInfo = { sType: VkImageViewCreateTag, image: image, viewType: VkView2D,
-        format: VkRgba8Unorm, subresourceRange: range, ..default };
-    var view: VkImageViewHandle*;
-    if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
-    defer vkDestroyImageView(device, view, null);
+    var target: ReadbackImage = default;
+    if !vk_acquire_readback_image(ctx, &target) { return false; }
+    defer vk_release_readback_image(&target);
     var primary: PrimaryCommand = default;
     if !vk_acquire_primary(device, ctx.family, VkCountedResetCommandBuffer,
         { create: "vkCreateCommandPool", allocate: "vkAllocateCommandBuffers" }, &primary) { return false; }
@@ -86,7 +72,7 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     var submit: VkSubmitInfo;
     if !vk_ok("reset and begin command buffer", calls.begin(primary.command))
         || !counted_record(calls, primary.command, draw, &pipelines, stream, indices_buffer.handle, &indices[0], index_bytes,
-            image, view, range, staging.handle)
+            target.image, target.view, target.range, staging.handle)
         || !vk_ok("vkEndCommandBuffer", calls.prepare(&submit, &primary.command, null, null, null)) { return false; }
     var fence: VkFenceHandle*;
     if !vk_create_unsignaled_fence(device, "vkCreateFence", &fence) { return false; }
