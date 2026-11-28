@@ -1,0 +1,81 @@
+import tower;
+import readback_clear;
+import readback_abi;
+
+extern fn puts(text: u8*): i32;
+extern fn exit(status: i32): void;
+
+enum RenderingStep: u32 { Transition, Begin, Done }
+
+struct RenderingCheck {
+    step: RenderingStep;
+    image: VkImageHandle*;
+    view: VkImageViewHandle*;
+    range: VkImageSubresourceRange;
+    prior_stage: u32;
+    prior_access: u32;
+    prior_layout: u32;
+}
+
+fn require_rendering(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(1); }
+}
+
+export fn vkCmdPipelineBarrier(cmd: VkCommandBufferHandle*, src: u32, dst: u32, flags: u32,
+    memories: u32, memory: VkMemoryBarrier*, buffers: u32, buffer: VkBufferMemoryBarrier*,
+    images: u32, barrier: VkImageMemoryBarrier*): void {
+    var state = bits(RenderingCheck*, cmd);
+    require_rendering(state.step == RenderingStep.Transition && src == state.prior_stage && dst == 1024
+        && flags == 0 && memories == 0 && memory == null && buffers == 0 && buffer == null
+        && images == 1 && barrier != null, "incoming image barrier call");
+    require_rendering(barrier.sType == 45 && barrier.pNext == null && barrier.image == state.image
+        && barrier.srcAccessMask == state.prior_access && barrier.dstAccessMask == 256
+        && barrier.oldLayout == state.prior_layout && barrier.newLayout == 2
+        && barrier.srcQueueFamilyIndex == ~convert(u32, 0) && barrier.dstQueueFamilyIndex == ~convert(u32, 0),
+        "incoming image barrier fields");
+    var r = barrier.subresourceRange;
+    require_rendering(r.aspectMask == state.range.aspectMask && r.baseMipLevel == state.range.baseMipLevel
+        && r.levelCount == state.range.levelCount && r.baseArrayLayer == state.range.baseArrayLayer
+        && r.layerCount == state.range.layerCount, "supplied subresource range");
+    state.step = RenderingStep.Begin;
+}
+
+export fn vkCmdBeginRendering(cmd: VkCommandBufferHandle*, info: VkRenderingInfo*): void {
+    var state = bits(RenderingCheck*, cmd);
+    require_rendering(state.step == RenderingStep.Begin && info != null && info.sType == 1000044000
+        && info.pNext == null && info.flags == 0 && info.layerCount == 1 && info.viewMask == 0
+        && info.colorAttachmentCount == 1 && info.pDepthAttachment == null && info.pStencilAttachment == null,
+        "rendering fields");
+    var area = info.renderArea;
+    require_rendering(area.offset.x == 0 && area.offset.y == 0 && area.extent.width == 2 && area.extent.height == 2,
+        "render area");
+    var a = info.pColorAttachments;
+    require_rendering(a != null && a.sType == 1000044001 && a.pNext == null && a.imageView == state.view
+        && a.imageLayout == 2 && a.resolveMode == 0 && a.resolveImageView == null && a.resolveImageLayout == 0
+        && a.loadOp == 1 && a.storeOp == 0, "color attachment");
+    require_rendering(bits(u32, a.clearValue.float32[0]) == 1032358025 && bits(u32, a.clearValue.float32[1]) == 1040746633
+        && bits(u32, a.clearValue.float32[2]) == 1045220557 && bits(u32, a.clearValue.float32[3]) == 1065353216,
+        "strict RGBA clear words");
+    state.step = RenderingStep.Done;
+}
+
+fn check_begin(state: RenderingCheck*, prior: ReadbackColorUse): void {
+    vk_begin_readback_rendering(bits(VkCommandBufferHandle*, state), state.image, state.view, state.range, prior);
+    require_rendering(state.step == RenderingStep.Done, "missing begin-rendering");
+}
+
+export fn main(): i32 {
+    var handles: u64[2];
+    var state: RenderingCheck = { step: RenderingStep.Transition, image: bits(VkImageHandle*, &handles[0]),
+        view: bits(VkImageViewHandle*, &handles[1]), prior_stage: 1,
+        range: { aspectMask: 1, baseMipLevel: 2, levelCount: 3, baseArrayLayer: 4, layerCount: 5 }, ..default };
+    check_begin(&state, ReadbackColorUse.FirstUse);
+    state.step = RenderingStep.Transition;
+    state.prior_stage = 4096;
+    state.prior_access = 2048;
+    state.prior_layout = 6;
+    state.range = { aspectMask: 7, baseMipLevel: 6, levelCount: 5, baseArrayLayer: 4, layerCount: 3 };
+    check_begin(&state, ReadbackColorUse.TransferRead);
+    puts("first-use and transfer-read barriers, supplied ranges, attachment and strict clear words passed");
+    return 0;
+}

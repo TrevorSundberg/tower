@@ -40,14 +40,20 @@ fn vk_record_stored_color_copy(cmd: VkCommandBufferHandle*, image: VkImageHandle
     vkCmdCopyImageToBuffer(cmd, image, VkCopyLayout, buffer, 1, &region);
 }
 
-fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
-    buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
-    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
-    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
+enum ReadbackColorUse: u32 { FirstUse, TransferRead }
+
+fn vk_begin_readback_rendering(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
+    range: VkImageSubresourceRange, prior: ReadbackColorUse): void {
     var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
         srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout,
         dstAccessMask: VkColorWrite, ..default };
-    vkCmdPipelineBarrier(cmd, VkStageTop, VkStageColor, 0, 0, null, 0, null, 1, &transition);
+    var previous = VkStageTop;
+    if prior == ReadbackColorUse.TransferRead {
+        previous = VkStageTransfer;
+        transition.oldLayout = VkCopyLayout;
+        transition.srcAccessMask = VkTransferRead;
+    }
+    vkCmdPipelineBarrier(cmd, previous, VkStageColor, 0, 0, null, 0, null, 1, &transition);
     var attachment: VkRenderingAttachmentInfo = { sType: VkAttachmentTag, imageView: view, imageLayout: VkColorLayout,
         loadOp: VkClearOp, storeOp: VkStoreOp, ..default };
     var maximum: f32 = 255.0;
@@ -58,6 +64,13 @@ fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkI
     var rendering: VkRenderingInfo = { sType: VkRenderingTag, layerCount: 1, colorAttachmentCount: 1,
         pColorAttachments: &attachment, renderArea: { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default }, ..default };
     vkCmdBeginRendering(cmd, &rendering);
+}
+
+fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkImageViewHandle*,
+    buffer: VkBufferHandle*, range: VkImageSubresourceRange): bool {
+    var begin: VkCommandBufferBeginInfo = { sType: VkCommandBeginTag, ..default };
+    if !vk_ok("vkBeginCommandBuffer", vkBeginCommandBuffer(cmd, &begin)) { return false; }
+    vk_begin_readback_rendering(cmd, image, view, range, ReadbackColorUse.FirstUse);
     vkCmdEndRendering(cmd);
     vk_record_stored_color_copy(cmd, image, range, buffer, 0);
     var host: VkBufferMemoryBarrier = { sType: VkBufferBarrierTag, buffer: buffer, size: VkWholeSize,

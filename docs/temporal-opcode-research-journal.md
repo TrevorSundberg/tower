@@ -129302,3 +129302,143 @@ before main at the container's personality check. Full PE sanitization
 and native Windows/WDDM remain open. This qualification covers the
 image-owner revision. The subsequent stored-color copy has distinct PEs.
 [Stored color copy hashes](#rendering-review-of-the-stored-color-copy)
+### Beginning the two readback rendering passes on slot 12
+
+The raw and SDK fixtures reach the same pair of internal recorders.
+At the published SDK revision `28165019f1abad9828c7de8e1b02ae2f859bc8c4`,
+both built the incoming image barrier, attachment and rendering info.
+The counted recorder alone chose transfer-read visibility for its second
+pass. The scope of job `9ec19d2c-fe9b-4374-b8ba-23f5522d9b36` is the
+recording sequence from this barrier through Vulkan 1.3 begin-rendering.
+The creating image owner, prefix copy, bind/draw, end, refusal, outgoing
+copy, submission and readback stay with their existing callers.
+
+Both callers now pass the original command buffer, image, view and
+subresource range to `vk_begin_readback_rendering`. A nominal prior-use
+argument selects one of the two source scopes. Only counted consults its
+capture offset. The helper constructs stack descriptors and returns with
+rendering active. It allocates no resources and submits no jobs. The
+published DSO, DLL and import library reproduced their baseline hashes.
+
+The input archive for `5e0b2cea` had SHA-256
+`9763d969a4f5ec2471942f49b77a5af9307149f79405de1d91c2379ef868090c`.
+We checked its manifest, its before binaries against the accepted
+image-owner archive and its after binaries against the source build of
+this job's parent. Checks covered four native callers, four Win64 PEs and
+three SDK library files. The Draw reference recorded by the input packet
+is `36f61b4b312e41846742985bab4884f99f2c62ed`. Slot 12 verified the two
+CPU fixture source files at `3dd5f11fabb4b08cce2a12f2ef8109a277b35380`,
+child of `a580e70af42e67d5309c4121737fa9e21652a9dd`. The separate Tower
+byte oracle rebuilt the 32- and 112-byte expected caller records.
+
+**Recording and bytes.** The Tower test intercepts the actual barrier and
+begin entry points, follows the color attachment pointer, and checks each
+field of both descriptors and the image barrier. It passes distinct
+five-field synthetic ranges through first use and reuse. The pinned
+compiler rejected the test's initial hexadecimal literals. Decimal bit
+patterns now check the same four u32 words. To reproduce the focused test,
+use the raw readback recipe's Linux sysroot, library and runtime object:
+
+```bash
+v=scaffolding/library/graphics/vulkan
+tc=bootstrap/linux-x64/towerc
+"$tc" "$v/readback_rendering_checks.tower" --library --jobs 1 --foundation "$PWD/scaffolding/foundation.tower" -o "$out/checks.o"
+"$tc" --link-executable "$out/checks.o" --link "$out/runtime.o" --sysroot "$sdk" --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" -o "$out/checks"
+"$out/checks"
+```
+
+The test printed `first-use and transfer-read barriers, supplied ranges,
+attachment and strict clear words passed`. On device, debugger checks
+followed the allocated primary, the created image/view and the range passed
+to view creation. First use recorded stages 1 to 1024, access 0 to 256,
+layouts 0 to 2. Counted reuse recorded 4096 to 1024, 2048 to 256, 6 to 2.
+Both used ignored families, one color mip/layer, zero flags and empty unused
+lists. Vulkan 1.3 received the original view in the sole color descriptor,
+zero-origin 2×2 area, one layer, zero view mask, CLEAR/STORE, no resolve,
+null chains and null depth/stencil pointers. The four actual words were
+`3d888889 3e088889 3e4ccccd 3f800000` on every observed pass.
+
+All four ordinary callers ran before and after with Khronos validation
+and synchronization validation on physical device 0, NVIDIA GeForce
+RTX 3090, Vulkan 1.3.289, NVIDIA 565.57.01, device UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, queue 0 of family 0. Counted kept
+its compute binds, push, dispatch, stream barrier, prefix copy, rendering,
+graphics/index binds, draw, end and outgoing copy order. Prefixes retained
+count 0 or 1 and the five command words (3,1,0,0,0). Prefix offsets were
+0/40 and image copy offsets were 24/64. Clear copied to offset 0.
+The host barrier followed the final copy and a successful wait on the
+submitted fence preceded mapping the bound coherent staging memory.
+
+Four clear pixels were `112233ff`. Counted returned those pixels for count
+zero and four `4080bfff` pixels for count one. Staging hashes (16 and 80
+bytes) were `f02bfdb41309299de61af6a7613ead6e48ee54f0a5bcdab58078f87cf5baeb88`
+and `2c942741acc1bea10c77699bff5cca4caeace9305dee698a0d898db17b50b556`.
+Complete caller hashes, including pitch-12 rows, the 0xa5 guards and both
+counted prefixes, were
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`
+and `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+All eight healthy process outputs matched the accepted packet. The raw
+and SDK counted entries also ran with the draw PFN withheld on pass one
+or two on each revision. Each refused pass ended rendering and emitted the
+existing diagnostic. Pool retirement and exit 1 followed, with zero or one
+prior image copies respectively, and no submission or mapping. Every
+healthy and refused run reported zero validation warnings/errors.
+
+**Time and instrumentation.** One process at a time on an EPYC 7282
+(16 cores, 32 logical CPUs, quota 15.36), one primary recording thread.
+One warmup preceded seven alternating pairs per entry. The host probe
+timed the incoming transition construction through return from Vulkan
+begin-rendering. Each probe's stdout matched the production binary.
+The second counted invocation reused the same primary. Production process
+timing used GNU time. First/second recording and wall/CPU are medians.
+RSS is the largest of the seven process peaks.
+
+| Entry | First µs before / after | Second µs before / after | Wall s both | User+sys s before / after | RSS KiB before / after |
+| --- | ---: | ---: | ---: | --- | ---: |
+| Raw clear | 179.83 / 182.37 | — | 0.30 | .02+.27 / .03+.27 | 91872 / 91832 |
+| SDK clear | 173.14 / 171.16 | — | 0.30 | .03+.27 / .02+.28 | 91740 / 91804 |
+| Raw counted | 63.24 / 63.64 | 22.94 / 23.10 | 0.31 | .02+.28 / .03+.28 | 94928 / 94892 |
+| SDK counted | 53.87 / 54.52 | 18.39 / 18.83 | 0.31 | .03+.27 / .03+.28 | 94908 / 94816 |
+
+Each pair of recording-time ranges overlapped. Clear had two Tower
+allocations, 152 total and peak bytes. Counted had five, 3376 total and
+1752 peak. All ended with zero live Tower bytes. Three warm build pairs
+at one compiler worker reproduced the raw object and SDK counted executable.
+The callers record serially into one primary. These are host timings.
+
+LLVM 19 ASan instrumented the functions containing the actual begin call
+in all four hardware apps. Address checks and byte comparisons passed.
+The isolated recorder passed ASan including leak detection and passed TSan.
+Full raw-clear leak runs exited 1 with 3511 bytes in eight allocations and
+validation-layer frames on both revisions. Some TSan runs failed the
+container personality check before main. On each revision a raw run that
+entered main faulted in libclang_rt.tsan on an NVIDIA thread in the calloc
+interceptor. Hardware TSan remains incomplete. The link maps identify the
+Tower runtime allocator and the Vulkan loader. Tower has no native UBSan
+frontend. This task ran no noncoherent memory or Windows device checks.
+
+| Counted Win64 startup | SDK imports | PE SHA-256 |
+| --- | ---: | --- |
+| Ordinary Tower | 2 | `8a6a260c9db8bfe659c5d99ea99a8adda7f30e47321778db985748e1ffb8e6a1` |
+| Ordinary Tower | 5 | `9670cddadb872da732c73aa169a4908ed522b6c8b3575b53e3b48e2da945c85b` |
+| MinGW CRT | 2 | `2cb0d6fbfcc99b53b938682d3e909c0229d7826ab15fa843bff1a2de3d0a88a4` |
+| MinGW CRT | 5 | `cd4daa6ae2f8e7ab257d2355b6c707154d6d50e5b6452510fd3ef90458b02000` |
+
+The evidence packet contains a one-commit bundle, executable and input
+hashes, the actual Linux and PE binaries, loader and SDK import records,
+traces, mapped data, profile samples and sanitizer logs. With the packet
+extracted, `bash commands/replay.sh "$TOWER_READER" "$NEW_PATH" "$PRIOR_ARCHIVE"`
+rebuilds both revisions using the released bootstrap, runs the Linux apps
+and compares the binaries. Slot 11's image-owner device qualification
+remains separate. The shared main checkout's existing readback_v1.md edit
+prevented its initial pull. The worker used an isolated local main based
+on the published SDK and leaves publication to the rendering manager.
+
+The first source replay from the worker's shared partial clone stopped when
+Git upload-pack could not supply a promised object. Fetching the exact
+published parent from the authorized Tower remote allowed a clean replay of
+the measured commit `79f1f8ee651337d1cdfb3b96d61533393424530b`. Slot 11
+then published image-owner documentation at `03d1dd4a05c3decd45a4a6d08258b2aa88ceaca7`.
+The review commit keeps its Win64 handoff and full journal entry. Both
+candidate trees have identical code and build inputs. The packet retains
+the pinned bundle alongside the reconciled bundle.

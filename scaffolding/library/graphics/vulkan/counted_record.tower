@@ -53,24 +53,8 @@ fn counted_case(calls: CountedCalls*, cmd: VkCommandBufferHandle*, draw: VkCmdDr
     counted_buffer_barrier(cmd, stream.handle, VkStageCompute, consumers, VkShaderWrite, reads);
     var prefix: VkBufferCopy = { dstOffset: capture_offset, size: counted_prefix_bytes(), ..default };
     vkCmdCopyBuffer(cmd, stream.handle, buffer, 1, &prefix);
-    var transition: VkImageMemoryBarrier = { sType: VkImageBarrierTag, image: image, subresourceRange: range,
-        srcQueueFamilyIndex: VkNoFamily, dstQueueFamilyIndex: VkNoFamily, newLayout: VkColorLayout,
-        dstAccessMask: VkColorWrite, ..default };
-    var previous = VkStageTop;
-    if capture_offset != 0 {
-        previous = VkStageTransfer; transition.oldLayout = VkCopyLayout; transition.srcAccessMask = VkTransferRead;
-    }
-    vkCmdPipelineBarrier(cmd, previous, VkStageColor, 0, 0, null, 0, null, 1, &transition);
-    var attachment: VkRenderingAttachmentInfo = { sType: VkAttachmentTag, imageView: view, imageLayout: VkColorLayout,
-        loadOp: VkClearOp, storeOp: VkStoreOp, ..default };
-    var maximum: f32 = 255.0;
-    attachment.clearValue.float32[0] = convert(f32, 17) / maximum;
-    attachment.clearValue.float32[1] = convert(f32, 34) / maximum;
-    attachment.clearValue.float32[2] = convert(f32, 51) / maximum;
-    attachment.clearValue.float32[3] = 1.0;
-    var rendering: VkRenderingInfo = { sType: VkRenderingTag, layerCount: 1, colorAttachmentCount: 1,
-        pColorAttachments: &attachment, renderArea: { extent: { width: ReadbackWidth, height: ReadbackHeight }, ..default }, ..default };
-    vkCmdBeginRendering(cmd, &rendering);
+    var prior = capture_offset == 0 ? ReadbackColorUse.FirstUse : ReadbackColorUse.TransferRead;
+    vk_begin_readback_rendering(cmd, image, view, range, prior);
     vkCmdBindPipeline(cmd, VkGraphicsBindPoint, p.raster);
     vkCmdBindIndexBuffer(cmd, index_buffer, 0, VkUint16Index);
     var commands: IndexedIndirectRange = { command_offset: convert(u64, sizeof(u32)), max_draws: CountedCapacity,
