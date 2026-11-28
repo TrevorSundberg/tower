@@ -130096,3 +130096,110 @@ own queue-family searches and logical-device creation. Slot 12 recovery
 job `621e9941-f584-4ea0-a659-8a687095645a` will check for saved work from
 the interrupted run and return the candidate source and qualification
 evidence against the accepted physical-device selection baseline.
+
+### Single-queue logical-device creation on slot 12
+
+Assignment `0dd7618b-6f23-46c9-b7f3-32be0d716354` starts at published SDK
+`9aaf350ec8d7b364e2e31e49a7d7b7cbe9237016`. The ad26bc7b predecessor
+archive matched SHA-256 `cacb66d02ad64be027d1578fd226ce0a99a5ab4cc9ab7daa93b0f95dab546a0e`
+and its internal manifest. The assigned shared checkout had seven local
+commits and a modified readback_v1.md. Its initial pull stopped. Review
+work used an independent local main at the published SDK.
+
+Both openers passed the owner's device slot directly to vkCreateDevice.
+An error can therefore expose a value written by the driver without a
+successful acquisition. The shared operation will receive the original
+physical handle, family requirements, refusal text and the caller's live
+dynamic-rendering enable descriptor. Only success can publish a device.
+The enclosing validation callback already owns the successful teardown.
+
+Recovery assignment `621e9941-f584-4ea0-a659-8a687095645a` found the
+implementation and test as three uncommitted Tower files in
+`/tmp/queue-0dd7618b/src`, together with executables, process transcripts,
+inputs and profiles in the adjacent evidence directory. The retained
+coordinator checkpoint contains only the earlier readback guide edit.
+The return uses the public SDK at `1c8b1e52586459b05c98d44600ceae283ea03929`,
+including the Win64 documentation at `576d0221` and the recovery record.
+The only SDK changes since `9aaf350e` were documentation. The three
+recovered Tower files were copied byte for byte to an independent local
+main. The interrupted checkout and shared checkout were preserved.
+
+Clear passes the graphics mask to `readback_create_device`. Counted passes
+graphics and compute together. Each caller checks its format and features
+and supplies its own live enable chain. The helper iterates the count
+returned by the fill call, selects the first nonempty match, and requests
+queue zero at priority 1.0. The driver writes to a temporary device handle.
+After a successful create the caller receives the handle, actual family,
+queue zero and physical memory properties. The temporary family list is
+freed on either outcome.
+
+The optimized Tower recorder exercised both openers. With separate compute
+and graphics families, a zero-queue combined family and two later combined
+families, clear chose family 2 and counted chose family 3. The callbacks
+checked the original physical handle, queue priority and index, the live
+dynamic-rendering chain, counted feature bits, memory table and teardown.
+A shorter list that excluded the combined family refused. The recorder
+also checked an empty list, a fill returning no rows and a create writing
+a non-null handle while returning -7. The same recorder against the
+assigned predecessor exited 3 on that last case and printed
+`refusal published device`. The candidate exited 0. A separate allocation
+denial after the physical list was freed emitted the exact family allocation
+diagnostic. The normal recorder had 23 grants totaling 992 bytes, a
+120-byte peak and zero outstanding. The first recorder compile rejected a
+u32/usize comparison. The recovered test explicitly converts the count.
+
+On the slot 12 RTX 3090 (UUID `cd3d9791fe794e0b3ec29fc16b74d31c`,
+driver 565.57.01, Vulkan 1.3.289), raw clear, SDK clear, counted core13
+and SDK counted signaled their fences on family 0, queue 0 and exited 0
+with zero validation warnings or errors. Before and after transcripts
+match the sealed predecessor. SHA-256 of the full 32-byte guarded clear
+buffer was `19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The 112-byte counted stream was
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+A Tower layout oracle reconstructed both. The counted argument fixture
+passed with explicit and external validation. Forced layer enable returned
+the expected two warnings and exit 1. Raw index 1 and both strict Draw
+requests returned 1. Application transcripts and argv are in the packet.
+
+For each of the five entries, debugger traces matched successful and
+post-create refusal cleanup to the predecessor. Injecting family allocation
+refusal and injecting a -7 create result after writing 0xBAD produced ten
+exit-1 traces. Each released its messenger and instance without looking
+up a queue, reading the memory table or destroying a device. These are
+injected failures. The hardware successfully supplied family 0.
+
+The host was an AMD EPYC 7282, 32 logical CPUs, cgroup quota 15.36 CPUs.
+The pinned Linux x64 Tower bootstrap and LLVM 19 built optimized Linux
+x64 entries with one job. Each process submitted a single queue.
+`profile/process.tsv` and `profile/routes.tsv` record wall, user and system
+seconds and peak KiB for one initial pair and seven alternating-order
+warm pairs, with checked stdout. Median wall seconds before/after were
+0.31/0.30 raw, 0.31/0.30 SDK clear, 0.31/0.31 counted and 0.31/0.31 SDK
+counted. The argument fixture had 0.31/0.31 in both successful modes.
+The separate family-count-through-queue-report probe had medians in ms
+of 108.92/110.10, 109.56/109.57, 109.78/110.14 and 110.18/109.73 in the
+same four-entry order. Each pair's ranges overlap. Clear used two Tower
+grants, 152 cumulative bytes and 144 peak live. Counted, including the
+argument fixture, used five grants, 3,376 cumulative and 1,752 peak live.
+Before and after each retained zero. Raw/SDK-counted compiler measurements
+at one and four jobs are in `profile/compile.tsv` and `profile/compile4.tsv`.
+
+LLVM ASan reproduced the recorder transcript with leak checks enabled and
+the physical outputs with leak checks disabled. The checksummed runtime
+and link maps identify the allocator and loader. Full-process raw leak
+checks exited 1 on both revisions with 3,511 bytes in eight allocations
+and validation-layer stacks. Raw full-driver TSan faulted on both revisions
+after entering main. Some attempts also failed before main at the
+container personality check. The isolated recorder completed under TSan,
+including four threads running eight 21-case iterations each. Tower
+source-level UBSan was unavailable. Aggregate sanitizer statuses and
+individual outputs are retained.
+
+The normal Win64 link produced Tower-startup and CRT-startup PEs for both
+the five-import SDK configuration and the two-import control. Linux SO,
+Windows DLL, import library and public export/import lists matched the
+accepted packet. Slot 11 owns Windows execution qualification for the
+returned PE hashes. Replay with `bash commands/replay.sh TOWER_READER
+NEW_DIRECTORY ACCEPTED_AD26BC7B_ARCHIVE` from the unpacked evidence.
+The separate measurement and instrumentation commands are in
+`commands/measure.sh`. Rendering owns publication of the reviewed source.

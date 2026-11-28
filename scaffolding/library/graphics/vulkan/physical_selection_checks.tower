@@ -5,10 +5,22 @@ import readback_abi;
 import counted_abi;
 
 extern fn exit(status: i32): void;
+extern fn strcmp(left: u8*, right: u8*): i32;
 
 enum SelectionEntry: u32 { Select, Clear, Counted, Strict }
 
+struct QueueCheck {
+    available: u32;
+    listed: u32;
+    winner: u32;
+    counted: bool;
+    createResult: i32;
+    dynamic: VkPhysicalDeviceDynamicRenderingFeatures*;
+    liveDevice: bool;
+}
+
 struct SelectionCheck {
+    queueCheck: QueueCheck*;
     events: u8*;
     index: u32;
     count: u32;
@@ -68,6 +80,7 @@ export fn vkGetPhysicalDeviceProperties(handle: VkPhysicalDeviceHandle*, out: Vk
     out.deviceName[0] = *"A" + convert(u8, state.index);
     out.limits.maxDrawIndirectCount = 123;
     out.limits.maxStorageBufferRange = 456789;
+    if state.queueCheck != null { out.limits.maxDrawIndirectCount = CountedCapacity; }
 }
 
 export fn vkGetPhysicalDeviceProperties2(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceProperties2*): void {
@@ -97,14 +110,20 @@ export fn vkGetPhysicalDeviceImageFormatProperties(handle: VkPhysicalDeviceHandl
 }
 
 export fn vkGetPhysicalDeviceFeatures2(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceFeatures2*): void {
-    selected_event(handle, "Extensions");
+    var state = selected_event(handle, "Extensions");
     require_selection(out.sType == VkFeatures2Tag && out.pNext != null, "feature header");
     var dynamic = bits(VkPhysicalDeviceDynamicRenderingFeatures*, out.pNext);
     require_selection(dynamic.sType == VkDynamicRenderingTag, "dynamic features");
+    if state.queueCheck != null {
+        state.queueCheck.dynamic = dynamic;
+        dynamic.dynamicRendering = 1;
+        require_selection((dynamic.pNext != null) == state.queueCheck.counted, "feature query chain");
+    }
     if dynamic.pNext != null {
         var v12 = bits(VkPhysicalDeviceVulkan12Features*, dynamic.pNext);
         require_selection(v12.sType == VkCore12FeaturesTag && v12.pNext == null, "counted features");
         v12.drawIndirectCount = 1;
+        v12.timelineSemaphore = 1;
         dynamic.dynamicRendering = 1;
     }
 }
@@ -133,7 +152,96 @@ fn check_selection(entry: SelectionEntry, index: u32, count: u32, listed: u32, c
     puts(events);
 }
 
-export fn main(): i32 {
+export fn vkGetPhysicalDeviceQueueFamilyProperties(handle: VkPhysicalDeviceHandle*, count: u32*, list: VkQueueFamilyProperties*): void {
+    var state = selected_event(handle, list == null ? "Families" : "Rows");
+    var check = state.queueCheck;
+    if list == null { *count = check.available; return; }
+    require_selection(*count == check.available && check.listed <= *count, "family capacity");
+    var combined = VkGraphicsQueue | VkComputeQueue;
+    var flags: u32[5] = { combined, VkComputeQueue, VkGraphicsQueue, combined, combined };
+    require_selection(convert(usize, check.listed) <= sizeof(decltype(flags)) / sizeof(u32), "fixture capacity");
+    for (var i: u32 = 0; i < check.listed; i++) {
+        list[i] = { queueFlags: flags[i], queueCount: i == 0 ? 0 : 2, ..default };
+    }
+    *count = check.listed;
+}
+
+export fn vkCreateDevice(handle: VkPhysicalDeviceHandle*, info: VkDeviceCreateInfo*, allocator: VkAllocationCallbacks*,
+    output: VkDeviceHandle**): i32 {
+    var state = selected_event(handle, "Device");
+    var check = state.queueCheck;
+    require_selection(allocator == null && output != null && info.sType == VkDeviceCreateTag && info.flags == 0
+        && info.queueCreateInfoCount == 1 && info.enabledLayerCount == 0 && info.enabledExtensionCount == 0
+        && info.pEnabledFeatures == null, "device arguments");
+    var queue = info.pQueueCreateInfos;
+    require_selection(queue != null && queue.sType == VkQueueCreateTag && queue.pNext == null && queue.flags == 0
+        && queue.queueCount == 1 && queue.queueFamilyIndex == check.winner && queue.pQueuePriorities != null
+        && *queue.pQueuePriorities == 1.0, "queue creation arguments");
+    var dynamic = check.dynamic;
+    require_selection(info.pNext == bits(void*, dynamic) && dynamic.sType == VkDynamicRenderingTag
+        && dynamic.dynamicRendering == 1 && (dynamic.pNext != null) == check.counted, "enable chain");
+    if check.counted {
+        var enable = bits(VkPhysicalDeviceVulkan12Features*, dynamic.pNext);
+        require_selection(enable.sType == VkCore12FeaturesTag && enable.pNext == null && enable.drawIndirectCount == 1
+            && enable.timelineSemaphore == 0, "counted enabled unrequested features");
+    }
+    // Write even on error. Only a successful create transfers ownership.
+    *output = bits(VkDeviceHandle*, state);
+    check.liveDevice = check.createResult == 0;
+    return check.createResult;
+}
+
+export fn vkGetDeviceQueue(device: VkDeviceHandle*, family: u32, index: u32, output: VkQueueHandle**): void {
+    var state = bits(SelectionCheck*, device);
+    selection_event(state, "Queue");
+    require_selection(state.queueCheck.liveDevice && family == state.queueCheck.winner && index == 0, "queue lookup");
+    *output = bits(VkQueueHandle*, state.queueCheck);
+}
+
+export fn vkGetPhysicalDeviceMemoryProperties(handle: VkPhysicalDeviceHandle*, out: VkPhysicalDeviceMemoryProperties*): void {
+    var state = selected_event(handle, "Memory");
+    require_selection(state.queueCheck.liveDevice, "memory lookup without device");
+    *out = { memoryTypeCount: 2, memoryHeapCount: 1, ..default };
+    out.memoryTypes[1].propertyFlags = 6;
+    out.memoryHeaps[0].size = 987654;
+}
+
+export fn vkDestroyDevice(device: VkDeviceHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = bits(SelectionCheck*, device);
+    selection_event(state, "Teardown");
+    require_selection(allocator == null && state.queueCheck.liveDevice, "destroy without device");
+    state.queueCheck.liveDevice = false;
+}
+
+fn check_queue(counted: bool, available: u32, listed: u32, result: i32, success: bool, events: u8*): void {
+    var check: QueueCheck = { counted: counted, available: available, listed: listed,
+        createResult: result, winner: counted ? 3 : 2, ..default };
+    var state: SelectionCheck = { count: 2, listed: 2, api: VkApi13, index: counted ? 0 : 1,
+        events: events, queueCheck: &check, ..default };
+    state.devices[state.index] = &state;
+    var instance = bits(VkInstanceHandle*, &state);
+    var out: ReadbackDevice = default;
+    var ok = counted ? counted_open_device(instance, false, &out) : readback_open_device(instance, state.index, &out);
+    require_selection(ok == success, "open result");
+    if ok {
+        require_selection(out.device == bits(VkDeviceHandle*, &state) && out.queue == bits(VkQueueHandle*, &check)
+            && out.family == check.winner && out.memory.memoryTypeCount == 2 && out.memory.memoryTypes[1].propertyFlags == 6
+            && out.memory.memoryHeapCount == 1 && out.memory.memoryHeaps[0].size == 987654, "logical device outputs");
+        vkDestroyDevice(out.device, null);
+    } else {
+        require_selection(out.device == null && out.queue == null && out.memory.memoryTypeCount == 0, "refusal published device");
+    }
+    require_selection(*state.events == 0 && !check.liveDevice, "unfinished device case");
+    puts(events);
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    // The allocation-denial run interposes on the family list after the count query.
+    if argc != 1 {
+        require_selection(argc == 2 && strcmp(argv[1], "--deny-family-list") == 0, "expected --deny-family-list");
+        check_queue(true, 5, 5, 0, false, "CLPIFEF");
+        return 0;
+    }
     check_selection(SelectionEntry.Clear, 0, 0, 0, 0, 0, VkApi13, "C");
     check_selection(SelectionEntry.Clear, 2, 2, 2, 0, 0, VkApi13, "C");
     check_selection(SelectionEntry.Clear, 1, 2, 1, 0, 0, VkApi13, "CL");
@@ -148,5 +256,12 @@ export fn main(): i32 {
     check_selection(SelectionEntry.Strict, 0, 2, 2, 0, 0, VkApi13, "CLPI");
     check_selection(SelectionEntry.Strict, 0, 2, 2, 0, 0, VkCore14, "CLPI");
     check_selection(SelectionEntry.Counted, 0, 2, 2, 0, 0, VkApi13, "CLPIFE");
+    check_queue(false, 5, 5, 0, true, "CLPIFEFRDQMT");
+    check_queue(true, 5, 5, 0, true, "CLPIFEFRDQMT");
+    check_queue(true, 5, 3, 0, false, "CLPIFEFR");
+    check_queue(false, 5, 2, 0, false, "CLPIFEFR");
+    check_queue(false, 0, 0, 0, false, "CLPIFEF");
+    check_queue(true, 5, 0, 0, false, "CLPIFEFR");
+    check_queue(true, 5, 4, -7, false, "CLPIFEFRD");
     return 0;
 }

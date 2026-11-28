@@ -104,6 +104,35 @@ fn readback_select_physical(instance: VkInstanceHandle*, index: u32, core: VkPhy
     return true;
 }
 
+fn readback_create_device(physical: VkPhysicalDeviceHandle*, required: u32, noFamily: u8*,
+    enable: VkPhysicalDeviceDynamicRenderingFeatures*, out: ReadbackDevice*): bool {
+    var count: u32 = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
+    if count == 0 { return vk_failure("No queue families"); }
+    var queues = alloc(VkQueueFamilyProperties, convert(usize, count));
+    if queues == null { return vk_failure("Cannot allocate queue family list"); }
+    defer free(queues);
+    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, queues);
+    for (var family: u32 = 0; family < count; family++) {
+        if (queues[family].queueFlags & required) != required || queues[family].queueCount == 0 { continue; }
+        var priority: f32 = 1.0;
+        var queue_info: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: family,
+            queueCount: 1, pQueuePriorities: &priority, ..default };
+        var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
+            pQueueCreateInfos: &queue_info, pNext: bits(void*, enable), ..default };
+        // A failed create can overwrite its output. Publish only an acquired handle.
+        var device: VkDeviceHandle*;
+        if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &device)) { return false; }
+        out.device = device;
+        out.family = family;
+        vkGetDeviceQueue(out.device, family, 0, &out.queue);
+        vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);
+        readback_number("graphics_queue_family", family); puts("queue_index=0");
+        return true;
+    }
+    return vk_failure(noFamily);
+}
+
 // The caller owns the instance. On success it also owns out.device.
 fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDevice*): bool {
     var physical: VkPhysicalDeviceHandle*;
@@ -119,28 +148,7 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     var features: VkPhysicalDeviceFeatures2 = { sType: VkFeatures2Tag, pNext: bits(void*, &dynamic), ..default };
     vkGetPhysicalDeviceFeatures2(physical, &features);
     if dynamic.dynamicRendering == 0 { return vk_failure("Dynamic rendering unavailable"); }
-    var count: u32 = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, null);
-    if count == 0 { return vk_failure("No queue families"); }
-    var queues = alloc(VkQueueFamilyProperties, convert(usize, count));
-    if queues == null { return vk_failure("Cannot allocate queue family list"); }
-    defer free(queues);
-    vkGetPhysicalDeviceQueueFamilyProperties(physical, &count, queues);
-    for (var family: u32 = 0; family < count; family++) {
-        if (queues[family].queueFlags & VkGraphicsQueue) == 0 || queues[family].queueCount == 0 { continue; }
-        var priority: f32 = 1.0;
-        var queue_info: VkDeviceQueueCreateInfo = { sType: VkQueueCreateTag, queueFamilyIndex: family,
-            queueCount: 1, pQueuePriorities: &priority, ..default };
-        var info: VkDeviceCreateInfo = { sType: VkDeviceCreateTag, queueCreateInfoCount: 1,
-            pQueueCreateInfos: &queue_info, pNext: bits(void*, &dynamic), ..default };
-        if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &info, null, &out.device)) { return false; }
-        out.family = family;
-        vkGetDeviceQueue(out.device, family, 0, &out.queue);
-        vkGetPhysicalDeviceMemoryProperties(physical, &out.memory);
-        readback_number("graphics_queue_family", family); puts("queue_index=0");
-        return true;
-    }
-    return vk_failure("No graphics queue for the selected device");
+    return readback_create_device(physical, VkGraphicsQueue, "No graphics queue for the selected device", &dynamic, out);
 }
 
 fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, required: u32,
