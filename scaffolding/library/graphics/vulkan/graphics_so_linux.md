@@ -260,3 +260,56 @@ These Draw tests used a recording Vulkan driver. Draw assigned the shipping
 GPU comparison to slot 10 job `b6f28d59-681f-44bd-b19e-6922d03bf357`
 using the standalone preflight result from `dff82eda`. The planner has
 its own shipping test in `7e3234ce`.
+
+### Draw shipping image owners with the thirteen-entry Linux library
+
+Draw verified its shipping C and Tower image owners at
+`91ce16505b4d5a0aae1e361ce378d563bda51712` in job
+`b6ef1857-bd89-44b4-910d-2d2349bb20c9`. Both used the 15,120-byte
+`libtower_graphics.so` from Tower `2b7a733c4cc4e199f4f104b67b0eb9a3bd66fc7d`.
+Rendering rehashed the retained library as
+`6816c2282148a963f832409a8a2553663e48d7fc748b3f6a7877c59d97e40bca`.
+Draw verified the two optimized executables against its archive.
+
+| Draw image owner | Shipping executable SHA-256 |
+| --- | --- |
+| C | `8fd869a6110bcc79774c8ede191c5cfa1c7230365c2ac3416b8cabb96c7c72c4` |
+| Tower | `5490afbfc59e56b5b064dc5e81d258bd2d1d71e1ba06db036d06a43b92fed187` |
+
+Draw set `DRAW_TOWER_GRAPHICS_SO`, `DRAW_TOWER_IMAGE_PREFLIGHT_SO` and
+`DRAW_TOWER_IMAGE_ALLOCATION_PLAN_SO` to the same library. Its C invocation
+from the Draw checkout was
+
+```sh
+/home/agent/work/b6ef1857/ev/build/c-linked --offscreen --osd-test assets/osd/state.bin \
+    --fixed-time 5 --size 960 540 --frames 3 \
+    --capture /home/agent/work/b6ef1857/ev/gates/plain-c-linked.rgba
+```
+
+The Tower arm ran `tower-linked` with the corresponding capture path.
+Vulkan selected the GeForce RTX 5060 Ti (10de:2d04), API 1.4.303,
+NVIDIA 570.169. Each owner called preflight, create, plan and view nine
+times through the shared library. The five packed OSD images used
+25,165,824, 569,856, 569,856, 1,572,864 and 32,768 bytes. Draw observed
+memory type 1, accounting for each allocation, and an offset-zero bind
+using the returned memory handle. Both executables exited 127 when only
+the older library was available.
+
+Draw compared all four split/combined and C/Tower combinations with the
+committed pack. All 27,541,504 active bytes matched SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+Including padding and guards, the 27,906,048-byte readback matched
+`bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+Frozen and resized HUD, RGB and camera data matched. All four passed
+the stock canonical and core checks. The completed-frame medians at
+1920×1080 were 9.660/9.682 ms with the C owner and 9.670/9.684 ms
+with the Tower owner, in split/combined order.
+
+Healthy readback and fatal cleanup have separate results. Ten controls
+exited 0. All eight injected second-create failures exited 1. Eight
+other injected processes received SIGSEGV, three in preflight, two on
+missing memory type, two on allocation and one on bind. Of sixteen
+separate driver format or width rejections, fifteen exited 1 and one
+C split control received SIGSEGV after the driver returned −11.
+Draw is investigating cleanup in jobs `1b416017` and `1823ef69`.
+These results leave the cause of the signals open.
