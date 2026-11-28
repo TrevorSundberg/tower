@@ -127731,3 +127731,11 @@ Each imports shader creation and counted drawing from the same release DLL.
 The DLL and import library still match `8fc64f24` and `2d56f882`.
 The merged PE checks cover cross-linking. The earlier Wine runs cover
 the executable hashes recorded on their respective revisions.
+### Win64 counted command callbacks on slot 11
+
+Assignment 22928275 starts from the single-tree SDK at c74de3f0. The
+control builds that SDK from its own Git-free export. The changed caller
+imports the shared command declarations in place of the three provider
+modules. The existing callback initializers, CRT and ordinary entries,
+recorder, borrowed slots and queue retirement policy are identical.
+The experiment compares both PE forms with the same provider and device.

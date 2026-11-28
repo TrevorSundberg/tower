@@ -1,4 +1,4 @@
-# Run both Vulkan imports in the Win64 counted fixture
+# Run five Vulkan SDK imports in the Win64 counted fixture
 
 The application runs a compute, vertex and fragment shader from the repository
 and records two indexed indirect count passes. Its Win64 entry reads the actual
@@ -55,7 +55,9 @@ renderer. The pipeline owner releases its modules after pipeline creation.
 The recorder uses the procedure resolved on the live device. [Build script](build.sh)
 
 Win64 supplies the shared `CountedCalls` table with those two SDK operations
-and the raw fixture's local begin, prepare and submit functions. The Linux
+and three typed functions from `command_submission.tower`. The owner lends
+its command slot and submit descriptor to the DLL. It keeps the submitted
+queue, fence and resources live through completion or recovery. The Linux
 SDK entry continues to supply its five imported operations to the same
 capture and recording code.
 
@@ -76,7 +78,24 @@ Use the same Wine command above with `caller.exe`. Inspect `counted.d`
 for the ordinary executable dependencies, `caller.d` for the Tower object
 inputs and `caller.map` for the CRT link.
 
-Both PEs import shader creation and counted recording from the same
-`tower_graphics.dll` at hints 2 and 3. The application imports shader destruction
+Both PEs import queue submit, shader creation, counted recording, command
+begin and end-for-submit from the same `tower_graphics.dll` at hints 1–5. The application imports shader destruction
 from `vulkan-1.dll`. The SDK DLL imports shader creation from that loader.
 [Host 11 device evidence](../../../../../../../docs/temporal-opcode-research-journal.md#single-tree-win64-counted-application-with-the-published-linux-callbacks)
+
+
+## Reproduce the two-import control
+
+Export revision `c74de3f0840248a679c4b8d4efa5244566392b67` and run the same
+build and Wine commands above with the same inputs. Its two PEs use the same
+five-field callback table. The command functions are linked into those PEs.
+The DLL, import library and three shader binaries must match across builds.
+An already exported SDK can reproduce the control offline by replacing the
+single `command_submission` import in `sdk_fixture.tower` with the following
+three imports before building in a fresh output directory.
+
+```tower
+import library.graphics.vulkan.command_begin;
+import library.graphics.vulkan.command_end;
+import library.graphics.vulkan.frame_submit;
+```
