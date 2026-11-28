@@ -128773,3 +128773,42 @@ Rendering verified the 2,201 entries in the current archive, SHA-256
 and matched the exported SDK sources to `161ec5fe`. Each original and replay
 production capture matched the 112-byte oracle, SHA-256
 `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+
+### Draw Win64 typed counted draw on the RTX 3060
+
+Draw reports hardware job `ce92a8df` on source
+`a2169a32dabc5ffd62752d88407f75353d5b030f`, tests
+`c9fdbe63d6f34238737d8184df6bd4cbaa1199f9`, SDK `99999a8a`.
+Draw verified 495 archive entries in
+`ec297b45e50d53ac4f32e393aa1fce4469b3076b4ef0a5bafe98991be2514212`.
+Its optimized typed and C PEs were
+`4f7173316f503dab706410242bea1b0dc84ef91bcde710c8646c165c44258ed3` and
+`b667a3e713903fb6960b4a50ff72774f62229c244ece6e694fd3efdb7ebc0ffb`.
+Draw reproduced the worker wrapper's COFF bytes from its current integration.
+The device run used the worker source under Wine 11 on an RTX 3060
+(10de:2503, Vulkan 1.4.329, NVIDIA 595.99.02).
+
+Draw traced the shipping call at RVA 0x3c7ea into its wrapper at 0x4cc20
+and the return from the DLL to 0x4cc66. For each 1,088-byte HUD buffer,
+the 0/20 and 24/44 command/count offsets each produced one driver call,
+max count 1 and stride 20. Both short-input controls exited 1 before the
+rejected call reached the driver. The two PEs matched the full command and
+pixel readbacks. Draw measured median completed-frame intervals of 9.274 ms
+(typed) and 9.277 ms (C). Both stock Wine validators returned 1 with the
+registry GUID and loader-interface diagnostics. The production PE used
+C background copies. A separate PE exercised Tower background copies.
+Draw assigned the combined frame to `46194a88`.
+
+Rendering inspected its retained release DLL `8fc64f24`. The export table
+maps the counted name to ordinal 3 at RVA 0x1300, and the indirect call
+returns at 0x1419. The retained 38-case native C ABI suite exited 0 and
+reproduced stdout SHA-256 `36fe022774de58d3c5154512243ef834ff95770cef5bb8408ca4589e46ec0498`.
+Rendering reconstructed the count prefix and 16,384 little-endian records
+(6, 1, 0, 0, i), SHA-256
+`39f8e7dfd0486aa494cb9b38cf0931414e346b865b71a7a47317e55ac99fbf9a`.
+Repeating the original and corrected four-byte pixels 1,024,000 times
+gave `7e15d42a1802f81d9b79852d3ef53a2d3ba805fc984100eecdf14e145c92fce6`
+and `4ba73bd5a93480f6cff23e23bab97956f86ee9e83ce0231ed64cb7b85d8124a1`.
+Draw compared its actual captures and recorded guest exit 1 for the original
+and 0 for the corrected shaders. The Linux shipping receipt remains with
+Draw job `5bf26347`. This documentation update reuses the measured binaries.

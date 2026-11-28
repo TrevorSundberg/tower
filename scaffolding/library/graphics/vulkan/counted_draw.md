@@ -439,6 +439,20 @@ Draw cross-linked the Win64 PE `1ffeebcc` with the named counted import at
 hint 3. Draw assigned the direct-import shipping device runs to `5bf26347`
 on Linux and `ce92a8df` on Win64 after its shader runs.
 
+Draw completed Win64 job `ce92a8df` on Wine 11 with an RTX 3060, Vulkan
+1.4.329 and NVIDIA 595.99.02. Its optimized PE `4f717331` used Draw source
+`a2169a32` and tests `c9fdbe63`. Draw rebuilt the same typed caller object
+from its manager wrapper. In both HUD passes, ordinal 3 of the released
+DLL forwarded the cached device procedure once. The 47-byte HUD and
+327,683-byte GPU-check inputs each stopped before the driver call and exited
+1. The original and corrected renders both produced 16,384 draws on each
+PE. The original returned 1 with all 1,024,000 pixels equal to `407fbfff`.
+The corrected render returned 0 with every pixel equal to `4080bfff`.
+
+Both stock Win64 validators returned 1 under Wine with registry and loader
+diagnostics. Physical Windows and Draw's Linux job `5bf26347` remain open.
+[Draw shipping evidence and SDK checks](../../../../docs/temporal-opcode-research-journal.md#draw-win64-typed-counted-draw-on-the-rtx-3060)
+
 ## Build the external Linux counted application
 
 The [ordinary application entry](osd_checks/tower_client/counted_app.tower)
