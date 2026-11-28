@@ -102,7 +102,12 @@ import library.graphics.vulkan.frame_submit;
 
 The [attachment setup qualification](../../../../../../../docs/temporal-opcode-research-journal.md#beginning-the-two-readback-rendering-passes-on-slot-12)
 gives the four PE hashes for this source. At `28165019`, the [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
-records the preceding four PE hashes. Use `39f5205b` for the preceding
+records the preceding four PE hashes. All four ran under Wine 8 on the
+Quadro RTX 6000. Both the mapped staging data and the guarded caller output
+matched, and either refused draw exited before submission.
+[Win64 stored-copy device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-stored-color-copy-on-the-quadro-rtx-6000)
+
+Use `39f5205b` for the preceding
 [image owner review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-shared-readback-image)
 and its [Win64 device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-shared-readback-image-on-the-quadro-rtx-6000).
 All four image-owner PEs passed the guarded capture, construction refusal

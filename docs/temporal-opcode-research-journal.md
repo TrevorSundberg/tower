@@ -129484,3 +129484,69 @@ on both revisions, and full-driver TSan did not complete. The four Win64
 binaries listed in the preceding worker entry were cross-linked. Rendering
 decoded their two- and five-function SDK import tables. Win64 device
 execution of these particular binaries remains open.
+
+### Win64 stored color copy on the Quadro RTX 6000
+
+Slot 11 ran all four Win64 counted executables from SDK `28165019`
+(stored-copy implementation `96ff154e`) and the four controls from
+`39f5205b`. Both ordinary Tower startup and MinGW CRT startup covered
+two and five SDK imports. Hardware was a Quadro RTX 6000, PCI 10de:1e78,
+running Vulkan 1.4.351 with NVIDIA 615.71.10 under Wine 8. From the
+directory containing each PE, its release DLL and shaders, the device
+command for the ordinary five-import application was:
+
+```sh
+env VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation VK_LOADER_DEBUG=layer \
+  VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+  wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer
+```
+
+Rendering verified all 1,951 manifest entries in packet
+`6aee7b30-f174-468f-aeb2-8673f610f863`, archive SHA-256
+`11031836cf4b2cde0be12c18e6df0a167bbca04d57e36ffab2490fe823943138`.
+The archived source export reproduced from Git. The candidate PEs matched
+the four binaries in slot 12 packet `5e0b2cea` byte for byte. The four
+predecessor PEs and twelve baseline trace files matched slot 11 packet
+`df34ce20`. The [build review](#rendering-review-of-the-stored-color-copy)
+identifies the candidate binaries. The release DLL hash is
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`.
+
+Rendering decoded the end-rendering, barrier and image-copy calls through
+the Win64 import tables. The candidate instruction RVAs were
+`264b/272a/27ad` for ordinary startup and `2acb/2baa/2c2d` for CRT
+(hex). Guest return PCs followed those instructions. Native entry PCs
+mapped to the NVIDIA driver and their immediate returns to Khronos
+validation. The original and freshly rebuilt runs supplied 96 traced
+processes across the eight binaries and two probes. Each trace showed
+the validation layer loaded and zero reported validation warnings or errors.
+
+| Draw callback | Recorded draws | Recorded image copies | Submits | Maps | Exit |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Both passes forwarded | 2 | 2 | 1 | 1 | 0 |
+| Withheld on pass one | 0 | 0 | 0 | 0 | 1 |
+| Withheld on pass two | 1 | 1 | 0 | 0 | 1 |
+
+Each healthy pass copied its 24-byte prefix to offset 0 or 40. End
+rendering preceded the color-attachment-write to transfer-read barrier
+on the acquired image, with both queue families ignored. A tight 2×2×1
+copy followed at offset 24 or 64 in the same staging buffer. The final
+transfer-write to host-read barrier and successful fence wait preceded
+mapping. The per-pass counts were 0 and 1. All captured 80-byte mappings
+matched SHA-256 `2c942741acc1bea10c77699bff5cca4caeace9305dee698a0d898db17b50b556`.
+All 112 bytes of pitched output, including guards, matched
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+
+On each refusal the SDK recorder returned zero. Both traces reached
+end rendering before the diagnostic. On second-pass refusal the first
+pass's commands remained in the unsubmitted primary. Rendering matched
+the guest and native release sequences to the handles acquired by each
+device, including retirement of the primary with its pool.
+
+The 4,294,967,360-byte offset was exercised by the isolated recorder.
+Its Linux ASan run with leak checking passed. Linux TSan reached and
+passed the serial test on retry seven after seven pre-main failures.
+Seven alternating pairs per variant gave overlapping process-time ranges.
+Median wall times for ordinary two/five imports were 0.35/0.38 s and
+for CRT two/five imports 0.39/0.36 s on the candidate. These measurements
+include process startup. Physical Windows/WDDM and full-PE sanitizer
+coverage remain open. This publication documents existing binaries.
