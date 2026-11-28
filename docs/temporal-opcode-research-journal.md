@@ -128568,3 +128568,65 @@ samples with checked pixels. Median wall seconds for previous → current
 were 0.40 → 0.41 and 0.36 → 0.38 for five-import ordinary and CRT,
 and 0.52 → 0.41 and 0.40 → 0.38 for the two-import controls. Each pair's
 ranges overlapped. Raw CPU, RSS and all individual samples are in the packet.
+
+### Win64 counted primary command acquisition and retirement on slot 11
+
+Assignment `c814ffcb-0f6d-4cd6-9b6d-ab52517bab6d` built the four
+[reviewed PEs](#sdk-review-of-command-pool-and-primary-acquisition) from two
+exports of public SDK `161ec5fe`. Only the documented three-import substitution
+was applied in the control export. Both ordinary and MinGW CRT pairs matched
+all four reviewed hashes. The actual BoundBuffer predecessor was slot 11 packet
+`357afd0e-554b-47b7-8cba-624d5b97f092`, SHA-256
+`e8ebeb5cf0e11fcb495715855c92b354ed7b7c3b4b258b5ad50da22efb49ee57`.
+All 2,733 manifest entries verified. Its two-import PEs remain the historical
+buffer controls. Both current two-import PEs include the shared primary owner.
+
+The four release processes ran under Wine 8 on the discrete Quadro RTX 6000,
+UUID `26f60f6cead65faf0253a959b2e93a2d`, NVIDIA 615.71.10, Vulkan 1.4.351.
+Khronos device validation was active with synchronization validation requested.
+All four reported zero warning/error callbacks, exited 0 and matched all 112
+independently constructed count, indexed-command, RGBA8, pitch and guard bytes
+(`a49420a8`). The entries and return PCs identify begin, prepare and submit
+in the SDK DLL for the five-import PEs and in the application for both controls.
+The counted caller returned from primary acquisition at RVAs 4ded and 526d
+for the five-import ordinary and CRT PEs, and 4ebd and 533d for two imports.
+
+The pool used graphics family 0 and flags 2. The creating device allocated
+one primary from that pool. After successful allocation, the owner published
+the device, pool and command. Prepare borrowed the owner's command field
+and the submit descriptor kept that address. Independent guest and NVIDIA
+traces followed the same primary within each boundary through reset, begin,
+32 recording operations, end and submission. The successful wait used the
+submitted fence. The caller destroyed the pool once on its creating device.
+Wine freed its one primary during pool destruction.
+
+Each PE received a poisoned private output and signed −1 at the actual
+Win64 vkCreateCommandPool entry, then in a separate run a poisoned output
+and −2 at vkAllocateCommandBuffers after a real successful create. Three
+hardware write watchpoints covered the empty owner. A read watchpoint
+covered the poisoned slot until return. All eight returned false without
+changing the owner or reading the poison. Both cases exited 1 with their
+original signed diagnostic. Create failure released no pool. Allocation
+failure destroyed exactly its acquired pool on the creating device.
+All prior bound resources, pipelines, layouts and the view retired against
+their observed handles. Independent ICD traces saw no recording, fence
+creation, submit, wait or map after rejection.
+
+After a real submit, wait −1 followed by successful same-queue recovery
+retired the fence and pool. Wait −1 or submit −4 followed by drain −2
+left the original owner and fence fields live at the actual CRT abort entry
+and exited 3. The command and queue controls reproduced the checked
+predecessor's normalized outcomes. The Win64 CPU recorder separately
+passed C, CAD, CAOD and CAOD on family 13, including repeated release.
+Linux ASan/LSan on the instrumented CPU recorder exited 0.
+
+Same-host paired measurements used one Wine process at a time, one warmup
+and seven samples per PE and revision. All measured bytes passed. Median
+prior → current whole-process wall seconds were 0.37 → 0.36 and
+0.36 → 0.35 for five-import ordinary and CRT, and 0.35 → 0.34 and
+0.34 → 0.35 for the two controls. Every pair's ranges overlapped.
+The packet includes individual CPU, wall and RSS data, source exports,
+raw child and driver transcripts, and offline build and replay commands.
+Physical Windows/WDDM, physically noncoherent staging, real device loss,
+full Win64 process sanitizers and the successor fence constructor remain
+outside this qualification.
