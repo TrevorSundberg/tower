@@ -126060,3 +126060,92 @@ external declarations. The first two-importer compile emitted an empty object
 because its entry functions were private and unused. Giving the example two
 application entry symbols retained the owner path and all seven undefined
 references on both targets. The release package is an input to the link.
+
+At implementation `ecc1d496`, the two application modules both use
+`import library.graphics.vulkan.image_lifecycle;`. Moving them outside the
+checkout requires no source edits. The depfiles have one readback_abi,
+one lifecycle declaration module, both callers and the ordinary language
+prelude. Each object defines only two application functions and references
+seven named library symbols. The [clean CLI recipe and signature audit](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md)
+give the target flags and object hashes. A distinct empty OtherDevice in
+a separate application failed at the call argument with
+`Expected VkDeviceHandle*, got OtherDevice*; use an explicit conversion`.
+The concurrent receipt at `6aac29dc` describes Draw `ad18ef06` cross-linking
+its destruction body and a separate temporary seven-declaration probe. The
+registered reader supplied Tower refs. Draw's local source at `76099faa`
+was unavailable for a source-level compatibility check.
+
+The unchanged DLL and import library matched their release hashes
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7` and
+`2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`.
+The PE imports all seven names with hints 10–16. Upload recording and region
+construction remain separate imports. The standalone COFF device PE
+`db41505488484f664cf53665a4c83f7b663bebfcad8e8c0e6e6b40d7bcd9b67f`
+linked the exact 1,427-byte consumer object. For this extra check LLVM
+removed the two application bodies from the checked fixture's IR before
+inlining. Its map and undefined references locate both entries in the
+standalone object. The ordinary source-import device PE was
+`4c68463b3c84a542e640168e68f2a4925af732c6fcbe4e63d9f14066dd2a13a8`.
+The other arms redirected the same seven caller relocations to the existing
+SDK reference routines or to the retained C callers of the same release DLL.
+
+The Tower recorder checked create and allocation descriptor addresses and
+the caller's actual handle slots. A driver write on query results
+−1000001004 and +5 preserved both outputs. On allocation results −2 and +1
+the DLL isolated the driver's write. The direct SDK control wrote through
+the public slot. Successful allocation charged 4,294,983,680 bytes before
+bind. Bind −7 stopped before view creation and retained the charge until
+the last free. The second retirement saw a cleared owner. Link against the
+ordinal-15 library failed on the missing name. The exact new recording PE
+with the older DLL exited 1 on that same name.
+
+Host 11 used its existing Linux x64 Quadro RTX 6000 at PCI 0000:89:00.0
+(10de:1e78, UUID 26f60f6c-ead6-5faf-0253-a959b2e93a2d), NVIDIA 615.71.10,
+device API 1.4.351, requested 1.3, device 0, family 0 and queue 0. Wine 8
+loaded the local released graphics DLL and the builtin Vulkan loader on
+ordinary runs. The observed runs used the retained local Vulkan forwarder,
+which sent the DLL's three destruction calls to observers and then to
+winevulkan. Driver traces matched the device, all ten views, five bound
+source images and memory handles, and the null allocators. Upload and sample
+both finished successfully before each source retirement. The retained
+Tower readers checked 256 sampled texels and 15 guards. Every device and
+timed capture equalled the 27,542,768-byte sealed input byte for byte,
+SHA-256 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
+Validation reported zero warnings/errors.
+
+All three arms used the same five shapes, capture, release DLL for the
+existing upload helpers, one caller, one queue, synchronization validation
+and a warm Wine server. One warmup round preceded three rounds alternating
+traversal direction with a 45-second timeout per process. The host exposed
+88 logical CPUs on two Xeon E5-2699 v4 sockets and a 10.56-CPU quota. The
+published bootstrap used one compiler worker, LLVM 19.1.7 and GNU Win64.
+These are whole-process samples, including driver and Wine startup.
+
+| Arm | Wall seconds | User + system seconds | Peak RSS KiB |
+| --- | --- | --- | --- |
+| SDK reference | 1.15 / 1.19 / 1.12 | 1.09 / 1.12 / 1.08 | 192540 / 191148 / 192488 |
+| Retained external C to DLL | 1.53 / 1.63 / 1.26 | 1.42 / 1.37 / 1.10 | 192324 / 193000 / 192236 |
+| Direct Tower to DLL | 1.28 / 1.32 / 1.11 | 1.24 / 1.17 / 1.07 | 191188 / 192380 / 191644 |
+
+Per-shape source charges were 25165824, 569856, 569856, 1572864 and
+32768 bytes and returned to zero. The new declarations do no allocation.
+Native LLVM ASan with leak detection exercised the caller, the recorder
+and a purpose-built instrumented provider DSO. Native TSan exercised those
+paths on four pthreads with private owners and four suites apiece.
+The maps identify libc/pthread transport and the sanitizer runtimes.
+Win64 trapping UBSan exercised the retained C boundary. Win64 Clang rejected
+TSan and the SDK lacked its ASan import libraries. The unchanged Win64
+provider, Vulkan driver and PE application machine code had no sanitizer
+instrumentation. Physical Windows and Draw device adoption remain open.
+
+The first fixture overlay mixed duplicate constants from the archived and
+current ABI sources, then lacked a direct view declaration import. The
+recorded build uses the canonical ABI once and gives the frozen fixture
+the necessary explicit imports. The first handle comparison treated upper
+and lower case hex as different. The lifetime reader already agreed on
+the handle values. The corrected text check canonicalizes case. The old-DLL
+negative first waited for Wine's debugger until timeout. Disabling the
+debugger produced the missing-name exit. ASan initially rejected runtime
+load order, then ran after putting its runtime first. The packet preserves
+the failed checks. A final documentation-only rebase preserved the Draw
+receipt and all tested compiler, caller and provider sources.
