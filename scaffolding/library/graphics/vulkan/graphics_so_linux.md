@@ -1,6 +1,6 @@
 # Linux x86-64 Vulkan C library
 
-Build the fifteen functions from the Tower checkout. The host needs the
+Build the sixteen functions from the Tower checkout. The host needs the
 checked-in Linux x64 bootstrap's LLVM 19.1 shared library, Bash, coreutils and
 GNU x86-64 binutils. Supply the absolute path to the target's Vulkan loader.
 
@@ -26,6 +26,8 @@ For an application making its own Vulkan calls, use the same link with
 `-lvulkan` after `-ltower_graphics`. Install the loader in the host library
 search path and configure the intended ICD. The library's SONAME is
 `libtower_graphics.so`. Its sole DT_NEEDED entry is `libvulkan.so.1`. The
+sixteen-entry build is 15,576 bytes, SHA-256
+`2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`. The
 fifteen-entry build is 15,352 bytes, SHA-256
 `1296b5b49762c4807d343c69afda5bfca52ee35621d86c0142b27e8bed2e2104`.
 The earlier twelve-entry build was 14,976 bytes, SHA-256
@@ -48,6 +50,7 @@ The earlier twelve-entry build was 14,976 bytes, SHA-256
 | image_allocation_plan.h | tower_vk_plan_image_allocation_v1 | Nine external C recording cases and five RTX source allocations, including guarded readback and injected allocation and bind failures. |
 | image_memory.h | tower_vk_allocate_memory_v1 | Original descriptor and extension chain, null allocator, full-width size and success-only handle publication through a private slot. |
 | image_memory.h | tower_vk_bind_image_memory_zero_v1 | The recorder checked the acquired memory handle, image, zero offset and caller accounting at bind. |
+| image_retirement.h | tower_vk_destroy_retired_image_v1 | Eight recorded handle subsets and cleared second calls. Five real source owners released after all sampled reads. |
 
 Include `image_format_preflight.h` and link with `-ltower_graphics`.
 Pass the selected physical device and the descriptor you intend to create.
@@ -62,6 +65,26 @@ Creation leaves binding to the caller. Upload recording returns before
 submission. Keep staging live through retirement, and keep a sampled view,
 its image and memory live through the final read. A failed idle after a
 successful submit requires recovery before freeing pending resources.
+
+## Destroy an image after its last completed use
+
+Include `image_retirement.h` and link the C caller with
+`-ltower_graphics`. After successful completion of every use, release
+any other views of the image. Pass its owned view, image and exclusively
+releasable memory to `tower_vk_destroy_retired_image_v1` on the live
+creating device. The entry skips each null child and uses a null allocator.
+Keep the memory charged through the call, reverse its charge once on return
+and clear the owner. Swapchain images and borrowed aliases stay with their
+owners. A failed wait leaves recovery with the caller.
+[Retirement contract and standalone checks](image_retirement_v1.md)
+
+Job `e9a55c1c-b6be-4c00-ad4d-7786b0cebbe9` exercised the external C
+caller in the five-image OSD fixture on the slot 12 RTX 3090. Five uploads
+and sixteen sampled reads completed before the source owners were released.
+Both the raw SDK and linked callers matched the full guarded capture.
+The packet includes the bounded source bundle, loader bindings, owner and
+driver events, CPU mutation, timings and sanitizer exits.
+[Slot 12 results](../../../../docs/temporal-opcode-research-journal.md#linux-vulkan-c-library-post-completion-image-retirement-on-slot-12)
 
 ## Allocate and bind through the fifteen-entry library
 

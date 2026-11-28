@@ -11,7 +11,7 @@
 @@ -34,6 +35,13 @@
  extern fn tower_vk_create_bound_image_view_v1(device: VkDeviceHandle*, image: VkImageHandle*, view_type: u32,
      format: u32, range: VkImageSubresourceRange*, out: VkImageViewHandle**): i32;
- 
+
 +extern fn osd_destroy_retired_image(device: VkDeviceHandle*, view: VkImageViewHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): void;
 +
 +fn mark_retirement(kind: u64, device: VkDeviceHandle*, image: Image*): void {
@@ -20,7 +20,7 @@
 +}
 +
  struct TextureRecord { shape: Shape; payload_bytes: u64; view_type: u32; }
- 
+
  // Upload from one mapped allocation. The caller owns the new image across return.
 @@ -171,5 +179,14 @@
          if !sample_retained(ctx, cmd, records[i], convert(u32, i), &images[i]) { return false; }

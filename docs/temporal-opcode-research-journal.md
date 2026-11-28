@@ -125880,3 +125880,111 @@ The five imported files match their provider Git blobs. The earlier packet
 supplies the archived five-image owner, recording probes and guarded oracle.
 The selected integration point follows the last successful sample check.
 The early-exit cleanup still owns partially built or failed inventory.
+
+Implementation commits 865c3c23 and 494f00b6 add the provider to the Linux
+builder and exercise it through a separately compiled SDK translation unit.
+Both branches use the same readback ABI blob, 0db588ff. The five consumed
+files match the provider tip byte for byte. The package retains the other
+fifteen functions. Each of the thirteen Tower objects was built from source
+with the pinned x64 bootstrap and one compiler job. Relinking the retained
+twelve objects plus the new object reproduced the complete ELF. The only
+new exported name is `tower_vk_destroy_retired_image_v1`. Its object imports
+`vkDestroyImageView`, `vkDestroyImage` and `vkFreeMemory`. The ELF SONAME is
+`libtower_graphics.so` and its sole dependency is `libvulkan.so.1`.
+
+The published object and standalone shared recording checks both exited 0.
+The object, LLD 19 standalone DSO and cross-compiled Win64 object matched
+all three published hashes. The new SDK-facing test owns a 64-byte record.
+Each callback checks the exact device against thread-local fixture state
+before using it, the child pointer, allocator, pending order and unchanged
+counters. Each return checks all owner bytes, the unrelated live allocation
+and both peak counters. The memory cases used a 4,294,983,680-byte charge.
+All eight raw and linked rows matched. After each row, calling the cleared
+owner produced no callbacks. A private Tower mutant destroyed the image
+first. Both the published fixture and the new checker returned 4 for the
+first view-plus-image case. Linking the linked client against fifteen
+failed at the missing name (1), as did eager loading (127). Unmodified
+SDK, planner, memory and device callers ran on sixteen. The union of their
+observed bindings covers all fifteen earlier entries.
+
+The device fixture uses the archived b68b1835 owner from the previous
+packet. Its newly compiled C translation unit either calls the three SDK
+functions or calls the public retirement entry. All other source, probes,
+shader inputs, capture checks and link inputs are shared across arms,
+apart from selection of the fifteen- or sixteen-entry DSO. The recording
+ledger belongs to the CPU test owner. The archived GPU image record has
+handles and flags. Its existing allocation probe observes the charge at
+bind. The normal release clears the GPU owner, and the partial-inventory
+defer still handles earlier exits. Five Vulkan images each had one owned
+source view and a separate allocation. The fixture never gives swapchain
+images, aliases, attachment targets or failed submissions to the entry.
+
+The raw and linked processes requested physical index 0 under the NVIDIA
+ICD. Both reported discrete RTX 3090, PCI 10de:2204, GPU UUID
+cd3d9791fe794e0b3ec29fc16b74d31c (bus 0000:81:00.0), Vulkan 1.3.289,
+driver 565.57.01, graphics family/queue 0/0, synchronization2 and Khronos
+synchronization validation. Each completed five uploads and sixteen sampled
+reads. The independent readback, descriptor and lifetime verifiers checked
+all 103,158,144 guarded bytes against the retained SDK capture (SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`).
+The 199 events include ten new entry/return markers. Each pair encloses
+exactly the three corresponding destroy/free events on the original device
+with null allocators. The verifier consumes the whole stream including
+every successful end, submit and queue idle. The view verifier also compares
+the destruction device with the device that created the views. Loader logs
+resolve the external entry to sixteen, its three imports to the recording
+probe and the probe to the actual Vulkan loader. Validation counted zero
+warnings or errors in all ordinary runs. The unchanged fifteen-linked GPU
+executable also passed against both libraries.
+
+The original 2×2 RGBA8 oracle and row copy at 3dd5f11f descend from Tower
+base a580e70a. Their source hashes matched the previous manifest. Running
+the separate original fixture checked pitch 7, short span 19, short source
+263 and the padded CPU marker. The selected RTX completed its fence and
+returned 112233ff twice in each row at pitch 12, with intact guards and
+zero validation warnings/errors. These checks use the 20-byte loan.
+
+Host 12 has an AMD EPYC 7282, 16 cores / 32 threads, affinity 0–31 and
+a 15.36-CPU quota. Clang 19.1.7 compiled the SDK transport at -O2. Three
+fresh processes per arm used warm files after one checked trace. The arms
+alternated order across pairs. One or four CPU owners each exercised
+400,000 subsets, including a second clear-owner call per subset. The GPU
+exercise used one graphics queue. Times include the entire process.
+
+| Arm | One CPU owner wall ms | Four pthread owners wall ms | GPU wall s | GPU user / system s | GPU peak RSS KiB |
+| --- | --- | --- | --- | --- | --- |
+| Raw SDK + fifteen | 25.77, 27.88, 27.67 | 28.80, 29.05, 28.51 | 2.285, 2.335, 2.074 | .624–.691 / 1.448–1.645 | 116100–116284 |
+| Linked sixteen | 27.93, 28.04, 27.57 | 29.10, 28.86, 30.14 | 2.330, 2.293, 2.048 | .645–.700 / 1.402–1.632 | 116088–116340 |
+
+The release helper takes four scalar handles and allocates no memory.
+Serial CPU peak RSS ranged from 2,056 to 2,076 KiB, and four-owner peak
+RSS from 1,804 to 2,320 KiB. Individual
+wall, user, system and RSS samples are in the packet. Driver allocation,
+scheduling contention and shipping frame latency were unmeasured.
+
+Four pthread owners passed ASan with leak detection, fatal C UBSan and
+TSan in both arms. The instrumented paths include the Tower recorder,
+success-path GPU owner, C caller and C ledger. The helper has no memory
+access for ASan to instrument. The TSan IR contains function entry/exit
+hooks around the Vulkan imports. Link maps identify the pthread transport,
+sanitizer runtime, host runtime and libc. The retained probes, other
+provider objects, loader, validation and driver retain their original
+instrumentation. Raw and linked GPU ASan with synchronization validation
+and leak detection disabled passed pixels and lifetime verification. With
+leak detection enabled, both returned 1 with 4,187 bytes in 15 allocations,
+as in the fifteen-entry packet. The linked core-validation control returned
+0 with leak detection enabled. Attribution remains open. CPU TSan reached
+a passing run after one raw and seven linked restricted-personality starts.
+GPU TSan had twelve raw and five linked starts with status 139, followed
+on each arm by a nested sanitizer SEGV (66). GPU race coverage remains open.
+
+During fixture construction the bootstrap rejected a reserved local name,
+an undeclared puts and implicit pointer conversions. The CPU link then
+exposed a missing tower_trap runtime input. The first timing harness used a
+relative env path with the retained execv launcher. The final build and
+commands fix these errors. The packet retains the initial logs, individual
+failed statuses and final results. Client hashes, maps, full trace captures,
+toolchain manifests and commands accompany the bounded review bundle. The
+eight nullable subsets model recording behavior. The five owned triples
+describe device coverage. Shipping Draw, additional dependent views,
+other backends and GPU fault recovery remain outside this check.
