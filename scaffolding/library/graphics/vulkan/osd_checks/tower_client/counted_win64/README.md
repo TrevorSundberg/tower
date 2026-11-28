@@ -87,7 +87,7 @@ that loader.
 
 ## Reproduce the two-import control
 
-Export revision `c74de3f0840248a679c4b8d4efa5244566392b67` and run the same
+Export revision `b1db999ae7b5d77e9ec261a1f5d0b6f822db6b4b` and run the same
 build and Wine commands above with the same inputs. Its two PEs use the same
 five-field callback table. The command functions are linked into those PEs.
 The DLL, import library and three shader binaries must match across builds.
@@ -100,3 +100,8 @@ import library.graphics.vulkan.command_begin;
 import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
+
+Both arms on this revision use the shared `readback_completion.tower`.
+The earlier control at `c74de3f0840248a679c4b8d4efa5244566392b67` uses
+`counted_completion.tower`. The [integration results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-caller-on-the-shared-completion-sdk)
+identify the actual PEs for comparison.

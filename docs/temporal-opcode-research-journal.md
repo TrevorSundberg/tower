@@ -127854,3 +127854,77 @@ Clang rejects TSan for its Win64 GNU target. No full Tower UBSan or
 physical Windows result was obtained. Slot 11's bounded bundle and
 checksummed raw and normalized packet are under assignment
 `22928275-029d-49dc-b62c-c2c991c676b6` for manager review.
+
+### Win64 counted caller on the shared completion SDK
+
+The rendering manager supplied two control PE digests at `b1db999a`.
+Slot 11 exported that revision and the existing three-import selection
+change independently with git archive. Both pairs of ordinary and CRT
+depfiles list the same shared `readback_completion.tower`. The build
+script, application argv entry and five-field callback table are
+identical across arms. The prior packet on `c74de3f0` remains the
+record of the earlier completion implementation.
+
+| Git-free build on b1db999a | Two-import control SHA-256 | Five-import caller SHA-256 |
+| --- | --- | --- |
+| Ordinary Tower PE | `a608856324e0ed0111c2931a0b2eff81d37c6976dcb117646c878c0c86a3f205` | `0351d864f12acb21d1130103f3745359331df67c4ab8d611a39c40730a953881` |
+| MinGW CRT PE | `90cf0311d8573e350102e92d1e0c3b271b929ad28d4dbb2ba9301e48a83eb369` | `e390a1d8903e9b145f47ba9545ce3801384d6d65c710d4aea78d070d0e880296` |
+
+Both control hashes match the manager's cross-link. Both five-import
+PEs match slot 11's previous concurrent-tip replay. The common DLL,
+import library and three SPIR-V binaries reproduce their published digests.
+
+On the same Quadro RTX 6000 (NVIDIA 615.71.10, UUID
+`26f60f6cead65faf0253a959b2e93a2d`, family/queue 0/0), all four
+PEs exited 0 with host Khronos synchronization validation and zero
+warning/error callbacks. Every capture matched the independent 112-byte
+oracle `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The ordinary two-import PE entered begin/end/submit in its image at RVAs
+4e40/4ea0/4e90. The CRT control used 52c0/5320/5310. Both combined PEs
+entered the released DLL at RVAs 11a0/1200/11f0. All four passed the live
+device's draw PFN twice and the same verified shader inputs. The submit
+retained the owner’s command slot, one command, no semaphore or extension
+chain, and the fresh fence on the selected queue. The real wait returned
+zero before the first map.
+
+Each of the four PEs ran five separate traced processes. A real submit,
+synthetic wait −1 and real same-queue drain returned process status 1
+and freed all four bound allocations without mapping. A synthetic submit
+−2 skipped wait and drain, exited 1 and freed the same four. Real submit
+followed by synthetic wait −1 and drain −2 printed both diagnostics in
+order and exited 3. Synthetic submit −4 and drain −2 likewise printed
+both and exited 3. Both terminal cases kept the fence, pool and all
+allocations live through termination, with zero guest map/destroy/free
+calls after the submit attempt. The normalized post-create-fence event
+lists and signed diagnostics matched each paired control in all modes.
+The driver returned success on the real submit, wait and recovery calls.
+No real OOM or device loss was observed.
+
+Dual Xeon E5-2699 v4, 88 logical CPUs, 10.56 CPU quota. Three warm
+offline builds per arm used fresh output directories and one Tower job.
+Eight warm Wine processes per arm and entry were timed at the same
+on-disk executable name, alternating arm order and checking full stdout.
+Values are median wall seconds / median CPU seconds / largest peak RSS
+KiB. Each CRT process released its five observed Tower allocations
+(8, 120, 1752, 1092 and 380 bytes).
+
+| Merged-source comparison | Two imports | Five imports |
+| --- | --- | --- |
+| Complete build | 8.550 / 8.600 / 132176 | 8.910 / 8.960 / 131100 |
+| Ordinary process | 0.415 / 0.335 / 118372 | 0.355 / 0.325 / 118184 |
+| CRT process | 0.470 / 0.340 / 118012 | 0.360 / 0.330 / 118940 |
+
+Process measurements include driver startup, submission, readback and
+teardown. Their ranges overlap. The assignment packet includes the raw
+samples and all twenty traces; per-command GPU time was unmeasured.
+
+All eight independent link-input touches rebuilt the ordinary PE once
+and left the object and subsequent build clean. The caller object built
+with one and four jobs reproduced its respective release bytes. On the
+merged fixture, both native Linux ASan/LSan callers matched the hardware
+oracle and exited 0 with validation off. With validation on, both matched
+the oracle and reported 4,023 bytes in 12 allocations, including
+validation-layer stacks. Full-device TSan again failed. Some launches
+stopped at the personality check (139); both arms also faulted on a
+secondary thread (66). Physical Windows and full Win64 application
+sanitization remain unverified.
