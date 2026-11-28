@@ -220,3 +220,47 @@ received SIGSEGV. The fault occurred with Tower creation enabled and
 disabled. Its cause remains open with Draw repair `f6abd0c0`. This
 receipt covers object linkage. The eleven-entry shared library and
 shipping preflight have their own device runs.
+
+### Draw recovers a partially constructed OSD after second-image creation fails
+
+Draw verified device job `f6abd0c0-af2e-443e-9fd0-54cd926b88e6` on worker
+revision `f95981f817c078bf571473ab2630b83c958447aa`. It checked 3,242
+manifest entries in archive
+`ab3f06611bb2c5a8ac299ad12daea4f72e5ff16724cf514b258a7d289ee51981`.
+The selected RTX 5060 Ti (10de:2d04) ran Vulkan 1.4.303, NVIDIA 570.169.
+The observer injected signed −2 before the second 256×352 sRGB image
+creation reached the driver. At that point three uploads had completed
+their queue-idle waits. Draw owned the 25,165,824-byte first atlas and
+three OSD buffers. The second staging buffer had never been submitted.
+
+The repaired caller preserves the signed error, releases the unsubmitted
+staging and completed owners, then shuts down the device. Draw retained
+this invocation and raw wait status 256 (normal exit 1):
+
+```sh
+env DRAW_TEST_FAIL_SECOND=1 \
+  LD_PRELOAD=/home/agent/work/447eb373/evidence/build/image-trace.so \
+  /home/agent/work/f6abd0c0/ev/build/bound-control \
+  --offscreen --osd-test assets/osd/state.bin --fixed-time 5 \
+  --size 960 540 --frames 3 --validate \
+  --capture /home/agent/work/f6abd0c0/ev/fault/after/fault.rgba
+```
+
+| Draw device trial | Earlier code | Repaired code |
+| --- | --- | --- |
+| Matched 72-process series per side | 15 SIGSEGV, 57 normal exit 1 | 72 normal exit 1 |
+| Second sample, 45 processes per side | 12 SIGSEGV | 0 SIGSEGV |
+
+Both injected full-scene arms exited 1. Six healthy arms passed canonical
+and core checks and reproduced the guarded texels and HUD. Other fault
+controls on the worker lineage still signaled in 4/16 query trials,
+3/4 fenced-submit trials and 2/4 frame-reuse trials. The evidence supports
+recovery from this second-create failure. The underlying cause of those
+other process signals remains unresolved.
+
+Draw integrated the repair locally at
+`ad18ef06908ea1ffbd74d2a45a96f36a652794b9` and verified 512 owner
+comparisons, two view-failure controls and the shipping packed CPU test.
+The on-device result above belongs to `f95981f8`. Draw owns rollback,
+completion and bookkeeping. The Tower creation entry retains its original
+success-only output contract.
