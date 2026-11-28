@@ -117,10 +117,11 @@ read URL, `SDK` to a new absolute checkout path, and `OUT` to a new absolute
 output directory.
 
 ```sh
-git init -q -b main "$SDK"
-git -C "$SDK" fetch --depth=1 "$TOWER_READER" refs/heads/rendering/vulkan-image-lifecycle-0849da80
-git -C "$SDK" checkout -q -B main FETCH_HEAD
-test "$(git -C "$SDK" rev-parse HEAD)" = e42a7e438536cab25e2e1248babfb32e507e92c6
+git init -q "$SDK"
+sdk_revision=e42a7e438536cab25e2e1248babfb32e507e92c6
+git -C "$SDK" fetch --depth=1 "$TOWER_READER" "$sdk_revision"
+git -C "$SDK" checkout -q --detach FETCH_HEAD
+test "$(git -C "$SDK" rev-parse HEAD)" = "$sdk_revision"
 ROOT=$PWD
 V=scaffolding/library/graphics/vulkan
 APP=$ROOT/$V/linux_checks/application
@@ -169,3 +170,63 @@ Both sets of eight CPU rows, four rejection diagnostics, and all three
 hardware refusals matched the preceding application fixture. GPU leak
 checking again reported 4,187 bytes in 15 allocations. GPU TSan exited 66
 before readback. The journal records timings and instrumentation coverage.
+
+### Linux verification and adoption by Draw's image owner
+
+At application fixture revision `96620d2ca9e964c49d377383dca24490486f7327`,
+rendering rebuilt the two clients with the public SDK revision above.
+The image client contained three Vulkan library call relocations and the
+memory client contained four. Rendering linked the ordinary objects to the
+released Linux DSO and replayed the eight recording cases twice, once with
+canaries. Both sets of normalized rows matched the frozen reference.
+The four negative compilations produced the expected diagnostics.
+
+For the RTX 3090 run (10de:2204, Vulkan 1.3.289, NVIDIA 565.57.01),
+rendering verified all 710 entries of packet
+`46f73ab2aa213f17dbe1c75816cfb7c5f0df504a533ae43943b19d2751b8a85b`
+and replayed the lifetime verifier on the three 199-event streams.
+The raw C, linked C and ordinary Tower captures each matched all 103,158,144
+guarded bytes in the SDK reference, SHA-256
+`140d8d6511a77daee97ebd377dfc34c9c90347cf084d0dd4516e5474315d143b`.
+
+Draw separately adopted the same public import at
+`4bb5521528443028a3a1f0cc7924fea875817f32`, tree
+`3dbc1411ae36c547cd1f2442ad8b7ba8c821f3d3`. Its actual 64-byte owner
+stores image, memory and view at offsets 0, 8 and 16, and allocation bytes
+at 56. It keeps the original descriptor and extension pointers, publishes
+private output handles on success and charges the allocation before bind.
+Draw's raw Vulkan declarations compiled alongside the two SDK modules.
+
+From the Draw root, Draw built its owner with the pinned bootstrap:
+
+```sh
+"$TOWERC" --foundation "$TOWER/scaffolding/foundation.tower" --library --jobs 1 \
+    tower/vulkan_image_lifecycle.tower --target x86_64-linux-gnu --depfile owner.d -o owner.o
+```
+
+The Draw object hashed to
+`248f140d2233f970e345cdaa3a7d15d72141b6b483a0f7422a37babd8644c111`.
+Changing the target to `x86_64-pc-windows-msvc` produced
+`7106611c4c90abab7a8e85c2f1ba5a9e7a3b0c6002c9a6978c89b170d652da52`.
+The Win64 link probe
+`7e76ea5e85ce97420fe2abe82d30a69a09672e2a8e3cf2bcbce18e20d9ee6b92`
+imported all seven names at ordinals 10 through 16.
+
+Draw set `DRAW_TOWER_IMAGE_LIFECYCLE_FOUNDATION` to the SDK Foundation,
+`DRAW_TOWER_GRAPHICS_SO` to the released sixteen-entry library, and used
+the existing create, view, preflight, plan, memory and retirement selectors
+for its full matrix. Under `bash tests/vulkan-image.sh`, 32 scenarios in
+17 modes matched in status, trace and diagnostics. Three extra failed-view
+cases checked that a driver write to its output slot preserved Draw's private
+owner. With `LD_DEBUG=bindings "$OUT/tower-imports" osd-pack`, the Tower
+owner ELF `bb5c6351d528a6a0be7d16f1ece63b3244a3aadd17c392e0341960fe97b6dd1b`
+resolved the seven imports from `2d924e64`. The C owner ELF was
+`4cbb5beda30dee5312ab02f3832426088236629cb52c28b6e231693709939dd9`.
+The five packed headers yielded the expected 45-event trace
+`e5db18d01d84e0601fab1a1b0b50720219e60aa3cf003db8fda992dbeed86e89`.
+
+These Draw-owner results cover Linux CPU recording and Win64 cross-linking.
+Draw assigned direct-import device tests to Linux job
+`bcf1df80-88e5-4d7e-a1c0-a1e8feb5b4ec` and Win64 job
+`a187face-3ef0-4335-8aaf-27567e656743`, following the bridge baselines
+`181cf92c` and `feb0c2ae` respectively.
