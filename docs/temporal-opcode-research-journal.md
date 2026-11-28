@@ -126908,3 +126908,113 @@ the checker reported failure as expected. The debugger trace identified the
 returned Wine Vulkan procedure in both forwards. Draw's production shader
 loader has its own recording and pending device results.
 [Draw shader and full-link recipes](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#draws-typed-shader-file-loader)
+
+### Combined Win64 counted fixture on host 11
+
+Assignment 4c63ff5e starts at rendering SDK 99999a8a. In Win64 fixture
+ea6ce027, counted_shader checks the exact file length, trailing data and
+digest, then calls vk_create_shader_module. counted_case invokes
+vk_record_indexed_indirect_count inside each rendering scope. For the combined
+application, local Tower modules at those two imports forward through the
+published shader_client and counted_client. The same Win64 main, file loader,
+pipeline calls, deferred destruction, submission and readback remain in use.
+
+**Link investigation.** The Linux x64 package manifest passed. towerc SHA-256
+7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896 selected
+the Windows runtime. A first compile exposed the fixture's direct dependency on
+the shader destruction declaration. The application adapter now declares it
+with the client's ABI. The SDK's default PE linker rejected the GNU triple.
+A focused MSVC-target executable using both clients linked with the built-in
+linker and executed both local refusals under Wine. With the actual MSVC app
+and stock MinGW CRT object the error named crt2.o. With the argv entry, short
+CRT and Vulkan imports and unmodified static atomic library it named fadd_4_.o.
+An experimental MSVC LLD link lacked _fltused. The GNU driver with external
+LLD needed atexit, which Wine's msvcrt.dll exports. A one-name import library
+supplies that symbol for GCC startup. The explicit GNU-flavor LLD fallback
+uses the full MinGW CRT.
+
+The ordinary command uses `--emit exe --target x86_64-w64-windows-gnu
+--linker lld-link` and explicit SDK libraries. Its real argv entry calls the
+original fixture and preserves exit status. LLVM 19.1.7 lld-link wrote
+`counted.exe` (ee5e16f4fc747421e72a6f2c25308de142bfc7f0386d85df79db8156cb72e2b3).
+The SDK fallback PE is f820b00df71069374b91d177bd3ebe33e30689ec7b471cb53f5bd76be273888b.
+The prior counted-only PE is e84845ba9a5b68f18e725cb0bf3b577db1e713ed96e1ce7f2a3468e634c26a94.
+All three ran with identical DLL and SPIR-V bytes. The single-checkout DLL
+build reproduced 8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7.
+The application PE imports its two public entries and directly imports
+vkDestroyShaderModule. The repo-owned GLSL inputs match both fixture revisions.
+glslang 12 and spirv-val targeted vulkan1.1.
+
+**Device.** The actual argv after counted.exe was
+`counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer`.
+Wine 8.0 loaded its x64 vulkan-1 and winevulkan builtins, the native SDK DLL,
+host Vulkan loader 1.3.239 and the NVIDIA ICD. Device index/family/queue
+0/0/0 selected the discrete Quadro RTX 6000, UUID
+26f60f6cead65faf0253a959b2e93a2d, API 1.4.351 and driver 615.71.10.
+The requested API was 1.3. The host loader inserted Khronos validation with
+synchronization enabled. The guest messenger counted zero warnings/errors.
+An explicit guest-layer request failed at instance creation with VkResult -6.
+The host layer and guest layer have separate receipts.
+
+| Stage | SPIR-V SHA-256 | Words | Called / result | Published module |
+| --- | --- | ---: | --- | --- |
+| Compute | eec373ac834ace1f297927483269bb416255a7437c287a0e87aad32b7e654804 | 438 | 1 / 0 | 0xa000000000a |
+| Vertex | 7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999 | 273 | 1 / 0 | 0xb000000000b |
+| Fragment | 2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517 | 95 | 1 / 0 | 0xc000000000c |
+
+The debugger sampled DLL arguments and both output slots on return. Both
+pipeline creations returned 0 on device 0xfa07c0 and used these exact
+modules. Each module then received one destroy on that device with a null
+allocator. A separate run intercepted the return of the logical device's
+vkGetDeviceProcAddr. Both passes passed the selected 0x2d4ad66b0
+(winevulkan RVA 0x66b0) to the SDK DLL at 0x180001300. Both called it on
+primary 0xfa0820, commands and count buffer 0x20000000002, 327684 logical
+bytes in each view, offsets 4 and 0, maximum 16384, stride 20. The public
+returns were 1 and 1. One submission completed its fence before mapping
+coherent staging. The two counts, records, pitched rows and guards matched
+the independent 112-byte oracle (a49420a8). The SDK row/oracle sources
+matched rendering commit 3dd5f11f, whose parent is a580e70a. Native CPU
+checks exercised the short pitch, short destination span and short source.
+
+**Sensitivity.** At the DLL boundary the debugger changed only the maximum
+to zero. Both actual PFN calls saw zero. The original count-one record
+remained intact and the second image stayed clear. The guarded capture
+matched 9d9541d989b15ae92d43eae70b32743be9d15949df48b84d185113d3b6840494.
+The pixel checker exited 1 after fence completion. Separately, the debugger
+substituted a non-null driver candidate and VkResult -2 at the third create.
+The DLL reported called=1, result=-2 and a null published slot. The owner
+released the two successful modules and invoked its original null-handle
+cleanup for the third slot. No pipeline creation, counted draw, submit or map
+followed. A 376-byte fragment input also stopped before pipeline creation.
+The injected VkResult is synthetic. The counts, pixels and delayed readback
+in the positive and zero-maximum runs came from the selected GPU.
+
+**Timing and coverage.** Xeon E5-2699 v4, 88 logical CPUs, cgroup quota
+10.56 CPUs, one caller thread and queue. Five alternating warm Wine launches
+per arm after one fully checked warmup gave median wall/CPU seconds and
+peak RSS KiB of 0.45/0.32/117868 for the prior control and
+0.40/0.33/118024 for the ordinary app. A separate matched pair used the same
+argv entry, counted import, linker and 10 MHz QPC scopes around the three
+creates and two records. Only the shader adapter differed. Five checked
+samples per arm gave raw shader medians of 117.5/36.9/20.2/26.7/10.4 µs
+and combined medians of 117.0/49.3/25.9/34.3/13.7 µs in execution order.
+The last two scopes call the same draw implementation on both arms. Host
+variation is visible. These are CPU intervals including dispatch. GPU
+timestamps and driver allocation counts were unmeasured. The adapters use
+stack storage.
+
+The release DSO and a four-pthread synthetic recorder exercised the local
+adapters, short words, driver clobber, ownership and refused command spans.
+Each thread ran 1,000 sequences with disjoint state. Native ASan with leak
+detection and TSan also ran the instrumented adapters, provider and callback.
+TSan failed twice during startup at ADDR_NO_RANDOMIZE before completing.
+The Win64 SDK recorder and its trapping-UBSan C harness matched the prior
+38-row oracle with ICD discovery disabled. PE Tower code and Wine/driver
+internals were outside that sanitizer coverage. Physical Windows, the
+guest validation layer and Draw's two shipping applications remain open.
+Slot 12 owns the Linux executable linker. The newer rendering SDK tip
+8b906249 adds its separate Linux results.
+
+Assignment 4c63ff5e-750b-46e3-b1f9-b6d4eca41319 carries the review bundle,
+inputs, argv, imports, host and guest logs, debugger controls and timings.
+[Checkout-to-caller recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/counted_win64/README.md)
