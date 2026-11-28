@@ -103,8 +103,12 @@ import library.graphics.vulkan.frame_submit;
 The [fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences)
 records the four PE hashes for this source. To reproduce the preceding
 [primary command review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-command-pool-and-primary-acquisition),
-apply the same two-export recipe at `cca2a0db`. For the earlier buffer
-ownership comparison, export `9c61c1c3` for two imports and `a2d79120` for five.
+apply the same two-export recipe at `cca2a0db`. Slot 11 reproduced those four
+PEs at `161ec5fe` and checked pool ownership, failure cleanup and the guarded
+readback on the Quadro RTX 6000 under Wine 8.
+[Win64 primary command device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-primary-command-acquisition-and-retirement-on-slot-11)
+
+For the earlier buffer ownership comparison, export `9c61c1c3` for two imports and `a2d79120` for five.
 The [buffer ownership review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
 identifies those binaries.
 Host 11 rebuilt the same five-import callers from `a4369920` and both
