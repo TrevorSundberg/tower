@@ -127739,3 +127739,118 @@ imports the shared command declarations in place of the three provider
 modules. The existing callback initializers, CRT and ordinary entries,
 recorder, borrowed slots and queue retirement policy are identical.
 The experiment compares both PE forms with the same provider and device.
+
+**Reproduction and identity.** Slot 11 tested implementation `76297ca8`
+with the distributed Linux x64 compiler (`7430bdb3`), LLVM 19.1.7,
+glslang 12.0.0, SPIRV-Tools 2023.1 and the documented MinGW libraries.
+The two Git-free exports built with socket creation and connect denied.
+The source change replaces three imports with one. The ordinary executable
+and CRT object depend on the public declarations. The Win64 DLL still
+exports sixteen functions. DLL SHA-256 is
+`8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`
+and import library SHA-256 is
+`2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`
+in both arms. All three SPIR-V files matched the published hashes.
+Touching each ordinary executable link input in isolation (seven libraries
+and the Windows runtime) rebuilt the PE once, kept the object clean and
+left the next invocation clean. Both GNU CRT linker responses reproduced
+their PEs. The [SDK recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/counted_win64/README.md)
+includes the offline control source selection.
+
+| PE SHA-256 | Two imports | Five imports |
+| --- | --- | --- |
+| Ordinary Tower | `1720fc384e53229f6381180b0be03ebcd4c26349e88f9a0268d3b9e49ca1c5de` | `7df0631d1fb1043753eaf70962af056c87c21cc7a45e455986456e8d750487e0` |
+| MinGW CRT | `a8cdb2d5d700304d098a0bcfa03c0ddc2625ca1365d5345e56e7c46614e0071a` | `3e97e97fee3824ee7fff91f27f6d757705b4b03f80e658be96b5b04a3b59b04f` |
+
+**Call evidence.** Wine 8.0 ran each PE with `counted-core13
+produce.comp.spv triangle.vert.spv color.frag.spv --external-layer`.
+The host inserted the Khronos synchronization validation layer. The
+process mapped host libvulkan.so.1.3.239 (`91dd2cb1`), Wine system32
+vulkan-1.dll (`f7d151a8`) and winevulkan.dll (`25a432c7`). The
+selected Quadro RTX 6000 was discrete NVIDIA 10de:1e78, driver 615.71.10,
+API 1.4.351, UUID 26f60f6cead65faf0253a959b2e93a2d, device 0,
+queue family/index 0/0. The app loaded the graphics DLL beside its PE.
+The packet records exact paths, full hashes, command lines and mappings.
+
+Breakpoints on all four PEs traced the three shader creates, the selected
+device's indexed-count PFN, and both count calls. The control ordinary
+PE entered its own begin, end and submit at RVAs 4df0, 4e50 and 4e40.
+The CRT control used RVAs 5270, 52d0 and 52c0. Both combined callers
+entered DLL RVAs 11a0, 1200 and 11f0, matching SDK ordinals 4, 5 and 1.
+The reset used flags zero. Begin used a one-time descriptor on the same
+primary. End received the original allocated command slot. The submit
+wrapper tail-jumped to the loader with count one, the caller's descriptor
+and command slot, null extension and semaphore pointers, the queue
+returned by vkGetDeviceQueue and the newly created unsignaled fence.
+The real submit and wait both returned zero. Mapping followed the wait.
+All four PEs exited 0 with zero validation warnings/errors and matched
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`
+across both count words, indirect commands, RGBA rows, pitch and guards.
+Clamping only the draw maximum produced the retained clear-image control
+(`9d9541d9`, exit 1). The third-shader failure, short/trailing/corrupt
+shaders, guest-layer refusal and malformed option controls also passed.
+The CPU guard and pitch controls used the unchanged row and oracle blobs
+from `3dd5f11f`, child of `a580e70a`.
+
+**Signed failure controls.** GDB skipped the indicated guest loader entry
+and returned the signed value directly. Each row ran on both combined
+PEs. The real drain used the queue captured at device selection and submit.
+The loader traces identify all four memory handles at bind and release.
+
+| Submit | Fence wait | Recovery drain | Diagnostics in order | Wine exit | Guest map / free |
+| --- | --- | --- | --- | ---: | --- |
+| Real 0 | Real 0 | — | None | 0 | One map, all four freed |
+| Real 0 | Injected −1 | Real 0 | Wait −1 | 1 | Zero maps, all four freed after drain |
+| Injected −2 | — | — | Submit −2 | 1 | Zero maps, all four freed |
+| Real 0 | Injected −1 | Injected −2 | Wait −1, drain −2 | 3 | Zero maps or releases after submit |
+| Injected −4 | — | Injected −2 | Submit −4, drain −2 | 3 | Zero maps or releases after attempted submit |
+
+For both exit-3 rows the application flushed its retirement diagnostic
+and terminated with the fence, pool and resources live. The Wine inferior
+exit code is decimal 3. No driver-reported OOM or device loss was observed.
+
+**Costs.** Dual Xeon E5-2699 v4, 88 logical CPUs, cgroup quota 10.56.
+Each build or Wine process ran alone within the benchmark. Tools and file
+caches were warm. Full builds used fresh outputs and one Tower job.
+Process samples used one submission thread, the same filename, directory,
+shaders and DLL, an already running Wine server, alternating order and
+full verified stdout. Entries show median wall seconds / median user plus
+system seconds / largest process RSS KiB. The warmup is excluded.
+
+| Measurement | Control | Combined |
+| --- | --- | --- |
+| Full build, 3 samples | 9.390 / 9.450 / 132248 | 8.930 / 8.970 / 130864 |
+| Caller object, 1 job, 3 samples | 0.990 / 0.990 / 131944 | 0.960 / 0.950 / 130812 |
+| Caller object, 4 jobs, 3 samples | 1.080 / 1.240 / 135184 | 1.100 / 1.270 / 134572 |
+| Ordinary process, 8 samples | 0.355 / 0.320 / 118168 | 0.455 / 0.335 / 118872 |
+| CRT process, 8 samples | 0.410 / 0.330 / 118676 | 0.350 / 0.310 / 118636 |
+
+The ordinary process median rose 100 ms. Six further timestamped runs
+per arm placed reset through entry to map within one Wine clock tick
+(1 ms) at the median in both arms. Instance creation through queue
+selection took 261 ms and 186 ms at the respective medians in that
+separate series. These measurements include variable device setup.
+Per-command GPU time was unmeasured. Each CRT allocated and released
+five Tower buffers of 8, 120, 1752, 1092 and 380 bytes. An initial
+debugger script misclassified a release stop as an allocation. The
+final observer dispatched on the instruction pointer and matched all
+returned and released addresses in each process.
+
+**Instrumentation limits.** Replaying the ordinary and trapping-UBSan
+C recorder PEs against the current provider passed the 38-row fixture
+and command begin/submit matrices. The trap instrumentation covers the C
+harness. Native Linux builds of both SDK fixture modules used ASan/LSan
+on the caller and the uninstrumented release DSO. Both completed the
+112-byte oracle and leak check with the layer off. With resident Vulkan
+libraries and validation enabled both matched the oracle and exited 1
+with the same 4,023 bytes in 12 allocations under LSan, including
+validation-layer stacks. An initial preload put the ICD before the
+loader and aborted in vkEnumeratePhysicalDevices. The corrected run
+loaded libvulkan before the layer and ICD. Both native TSan launches
+first failed the ASLR personality check (139). Later launches reached a
+secondary-thread fault and exited 66 in each arm. Full-application
+TSan coverage remains open. The SDK lacks a Win64 ASan runtime and
+Clang rejects TSan for its Win64 GNU target. No full Tower UBSan or
+physical Windows result was obtained. Slot 11's bounded bundle and
+checksummed raw and normalized packet are under assignment
+`22928275-029d-49dc-b62c-c2c991c676b6` for manager review.

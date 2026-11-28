@@ -63,8 +63,8 @@ capture and recording code.
 
 ## Public source-to-COFF and SDK link
 
-The built-in PE linker accepts both graphics imports in an MSVC-target
-executable probe. For the whole application it rejects the GNU target profile.
+The earlier MSVC-target probe linked the shader and counted-draw imports
+with the built-in PE linker. For the whole application it rejects the GNU target profile.
 With the MSVC triple and short imports for the loader and CRT, the remaining
 diagnostic on the untouched MinGW atomic library is
 `Link failed: unsupported COFF/PE profile: fadd_4_.o`. This member implements
@@ -79,10 +79,11 @@ for the ordinary executable dependencies, `caller.d` for the Tower object
 inputs and `caller.map` for the CRT link.
 
 Both PEs import queue submit, shader creation, counted recording, command
-begin and end-for-submit from the same `tower_graphics.dll` at hints 1–5. The application imports shader destruction
-from `vulkan-1.dll`. The SDK DLL imports shader creation from that loader.
-[Host 11 device evidence](../../../../../../../docs/temporal-opcode-research-journal.md#single-tree-win64-counted-application-with-the-published-linux-callbacks)
-
+begin and end-for-submit from the same `tower_graphics.dll` at hints 1–5. The
+application imports shader destruction from `vulkan-1.dll`. The SDK DLL
+imports shader creation, command reset/begin/end and queue submission from
+that loader.
+[Host 11 device evidence](../../../../../../../docs/temporal-opcode-research-journal.md#win64-counted-command-callbacks-on-slot-11)
 
 ## Reproduce the two-import control
 
