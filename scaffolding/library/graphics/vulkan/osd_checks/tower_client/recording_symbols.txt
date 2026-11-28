@@ -1,0 +1,9 @@
+record_query vkGetPhysicalDeviceImageFormatProperties
+record_create vkCreateImage
+record_requirements vkGetImageMemoryRequirements
+record_allocate vkAllocateMemory
+record_bind vkBindImageMemory
+record_view vkCreateImageView
+release_view vkDestroyImageView
+release_image vkDestroyImage
+release_memory vkFreeMemory

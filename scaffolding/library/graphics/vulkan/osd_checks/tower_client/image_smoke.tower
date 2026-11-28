@@ -1,0 +1,48 @@
+import tower;
+import library.graphics.vulkan.readback_device;
+import library.graphics.vulkan.readback_abi;
+import library.graphics.vulkan.image_lifecycle_types;
+import image_owner;
+import sampled_image;
+
+var InstanceCreateTag: u32 = 1;
+var ImageCreateTag: u32 = 14;
+var SampledUsage: u32 = 4;
+var View2D: u32 = 1;
+var Incomplete: i32 = 5;
+
+// Use the first physical device and queue family zero. No work is submitted.
+export fn main(): i32 {
+    var instance_info: VkInstanceCreateInfo = {sType: InstanceCreateTag, ..default};
+    var instance: VkInstanceHandle*;
+    if !vk_ok("vkCreateInstance", vkCreateInstance(&instance_info, null, &instance)) { return 1; }
+    defer vkDestroyInstance(instance, null);
+    var count: u32 = 1;
+    var physical: VkPhysicalDeviceHandle*;
+    var result = vkEnumeratePhysicalDevices(instance, &count, &physical);
+    if result != Incomplete && !vk_ok("vkEnumeratePhysicalDevices", result) { return 1; }
+    if count == 0 { puts("No physical device"); return 1; }
+    var priority: f32 = 1.0;
+    var queue: VkDeviceQueueCreateInfo = {sType: VkQueueCreateTag, queueCount: 1, pQueuePriorities: &priority, ..default};
+    var device_info: VkDeviceCreateInfo = {sType: VkDeviceCreateTag, queueCreateInfoCount: 1, pQueueCreateInfos: &queue, ..default};
+    var device: VkDeviceHandle*;
+    if !vk_ok("vkCreateDevice", vkCreateDevice(physical, &device_info, null, &device)) { return 1; }
+    defer vkDestroyDevice(device, null);
+
+    var memory: VkPhysicalDeviceMemoryProperties;
+    vkGetPhysicalDeviceMemoryProperties(physical, &memory);
+    var info: VkImageCreateInfo = {sType: ImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
+        extent: {width: 2, height: 2, depth: 1}, mipLevels: 1, arrayLayers: 1, samples: VkSample1, usage: SampledUsage, ..default};
+    var range: VkImageSubresourceRange = {aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default};
+    var owner: ImageOwner = default;
+    var account: ImageAccount = default;
+    result = osd_open_sampled_image(physical, device, &info, &memory.memoryTypes[0], memory.memoryTypeCount,
+        0, View2D, &range, &owner, &account);
+    var opened = vk_ok("osd_open_sampled_image", result) && owner.image != null && owner.memory != null &&
+        owner.view != null && owner.bytes > 0 && account.live == owner.bytes && account.count == 1;
+    osd_retire_image_owner(device, &owner, &account);
+    if !opened || account.live != 0 || account.count != 0 || owner.image != null ||
+        owner.memory != null || owner.view != null || owner.bytes != 0 { puts("Image owner check failed"); return 1; }
+    puts("Created, bound and retired one 2x2 RGBA8 image and view");
+    return 0;
+}

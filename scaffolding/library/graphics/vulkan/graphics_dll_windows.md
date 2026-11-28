@@ -8,6 +8,8 @@ The application also links the Vulkan SDK import library for its own Vulkan
 calls. At runtime the Tower DLL imports `vkDestroyImageView`, `vkDestroyImage`, `vkFreeMemory`, `vkAllocateMemory`, `vkBindImageMemory`, `vkGetImageMemoryRequirements`, `vkGetPhysicalDeviceImageFormatProperties`, `vkCreateImage`, `vkCreateImageView`, `vkCreateShaderModule`, `vkResetCommandBuffer`,
 `vkBeginCommandBuffer`, `vkEndCommandBuffer`, `vkQueueSubmit`, `vkQueueWaitIdle`, `vkCmdCopyBuffer`, `vkCmdCopyBufferToImage` and core `vkCmdPipelineBarrier2` from `vulkan-1.dll`.
 
+See the [external Tower image application](graphics_so_linux.md) for a two-target build, Win64 executable link and Linux CPU recording check.
+
 ## Build from a clean checkout
 
 From the Tower root on Linux x86-64 with Bash, GNU coreutils and LLVM 19

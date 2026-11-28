@@ -126229,3 +126229,14 @@ covered the retained C boundary. Win64 ASan import libraries were absent
 and the Win64 Clang target rejected TSan. This qualification uses Tower’s
 representative private record. The Draw source and physical Windows
 execution remain outside the worker's evidence.
+
+### Single-checkout packaging for the sixteen Vulkan entries
+
+Rendering assignment 64d213b2 starts at the public SDK e42a7e43. The
+Linux topic 6bccf64d has the ELF build, but its application recipe obtains
+the public declarations from a second checkout. The SDK already has the
+13 provider units, seven typed image externs, their canonical types and
+the sampled_image and image_owner modules. This port takes just the
+Linux build script from that topic. The new application entry uses the
+shipped clients. The recording recipe maps the existing Tower recorder's
+callbacks to the ELF Vulkan symbols. No provider or compiler edit is needed.
