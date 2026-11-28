@@ -100,8 +100,10 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The [attachment setup qualification](../../../../../../../docs/temporal-opcode-research-journal.md#beginning-the-two-readback-rendering-passes-on-slot-12)
-gives the four PE hashes for this source. At `28165019`, the [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
+The [validation instance qualification](../../../../../../../docs/temporal-opcode-research-journal.md#slot-12-vulkan-validation-instance-and-debug-messenger-ownership)
+lists the four PE hashes for this source. They were cross-linked on Linux.
+For the preceding four PEs, use `4fa39da7` and its
+[attachment setup qualification](../../../../../../../docs/temporal-opcode-research-journal.md#beginning-the-two-readback-rendering-passes-on-slot-12). At `28165019`, the [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
 records the preceding four PE hashes. All four ran under Wine 8 on the
 Quadro RTX 6000. Both the mapped staging data and the guarded caller output
 matched, and either refused draw exited before submission.

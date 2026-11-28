@@ -129707,3 +129707,52 @@ The review commit preserves that publication's full journal and Win64
 README. Its Tower and bootstrap inputs match the measured source in
 `e30155e40426b80a3ea07b922ef91da09d5fb0b3` on the assigned SDK. The
 packet includes a bounded bundle for each parent.
+
+### Rendering review of Vulkan validation instance ownership
+
+Slot 12 job `531a3f73-4131-4753-a2bc-46a0a976215f` moves instance
+and debug-messenger ownership into `with_validation_instance`. The raw
+clear, SDK clear and counted callers supply their application name,
+diagnostics and a typed operation. The operation releases its device
+before returning. The outer frame then destroys the messenger and instance
+while the debug descriptor and the caller’s warning counter are still live.
+The public graphics library has the same sixteen exports.
+
+Rendering verified the 427 entries in archive
+`64a1154cb93d683a2e0f7252223e934590c6da4c849870932a3fb64dd13167b6`.
+Both one-commit source bundles verified. The RTX measurements used
+`e30155e4`. The implementation at `fcead218` has identical Tower code
+and bootstrap inputs and preserves the Win64 review at `437942c6`.
+Eleven predecessor binaries and libraries matched the earlier attachment
+packet directly.
+
+On the control host, the released Linux x64 bootstrap, LLVM 19 and
+Debian 12 startup objects reproduced the recorder, all four Linux readback
+executables and the counted argument fixture byte for byte. The recorder
+exercised six outcomes on each validation path, including a callback
+during instance destruction. The first Mesa launch reported three warnings
+and failed to create an instance because the extracted driver lacked
+`libxcb-shm.so.0`. Adding that dependency to the private test directory
+allowed the five executables to run under llvmpipe. Both clear results
+matched all 32 guarded bytes. Each counted result matched all 112 bytes.
+The explicit and externally configured paths reported zero callbacks,
+and loader logs showed the Khronos layer in the instance and device chains.
+The force-enable control completed its readback, counted two loader warnings
+and exited 1.
+
+Rendering compared the 20 RTX 3090 lifetime traces for healthy execution
+and failure during image creation. The installed and destroyed messenger
+and instance handles matched in each process. Device destruction preceded
+messenger and instance destruction. Across 32 further injected failures,
+instance creation returned −3, either missing lookup gave the caller’s
+original diagnostic, or messenger creation returned −2. Every child exited
+1. Partial cleanup destroyed the instance only after successful creation.
+The four healthy hardware runs on each revision matched the full guarded
+outputs and reported zero warnings or errors on NVIDIA 565.57.01.
+
+Median process times over seven measured pairs remained 0.30 s for clear
+and 0.31 s for counted. The isolated recorder passed ASan with leak checking
+and TSan. Four threads delivered 256 callbacks in the TSan fixture.
+Full-driver TSan failed on both revisions. Raw-clear leak checking reported
+3,511 bytes in eight allocations on each. The four new Win64 PEs cross-linked
+with the expected two or five SDK imports. Their device execution remains open.

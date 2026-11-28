@@ -211,6 +211,14 @@ for dep in "$app/counted_app.d" "$win/counted.d" "$win/caller.d"; do
 done
 ```
 
+The clear and counted applications use `with_validation_instance` to keep
+the debug callback, its counter and its descriptor chain live until instance
+destruction. Explicit mode requests Khronos validation with synchronization
+checks. On the counted argument fixture, `--external-layer` leaves layer
+selection to the host and still installs the application's debug messenger.
+Run the buffer-check recipe above with `validation_instance_checks.tower`
+to exercise both paths and partial cleanup. [Recording checks](validation_instance_checks.tower)
+
 ## Host 12 evidence
 
 The executable produced the following results on the assigned host. Each run
