@@ -129756,3 +129756,69 @@ and TSan. Four threads delivered 256 callbacks in the TSan fixture.
 Full-driver TSan failed on both revisions. Raw-clear leak checking reported
 3,511 bytes in eight allocations on each. The four new Win64 PEs cross-linked
 with the expected two or five SDK imports. Their device execution remains open.
+
+### Win64 rendering attachment setup on the Quadro RTX 6000
+
+Slot 11 qualified SDK `4fa39da798ff52e17398e22cab2f56b207aaf430`
+(implementation `3d718807`) against the preceding stored-copy SDK
+`28165019`. The hardware was a Quadro RTX 6000, PCI ID 10de:1e78,
+with Wine 8, Vulkan 1.4.351 and NVIDIA 615.71.10. The healthy five-import
+Tower entry ran from the directory containing the three SPIR-V files and
+the released DLL:
+
+```sh
+env VK_LOADER_DEBUG=layer VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation \
+  VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+  wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer
+```
+
+Rendering verified the 2,033 manifest entries of job
+`25612d15-ef32-41a2-ad5f-c04c16af97da`, archive SHA-256
+`e63f94c8da5e3b47ae527ce17c9f1c18639f16cf8588bf741f80c4cb46319af4`.
+The source export reproduced from Git. All four candidate PEs matched the
+binaries in the slot 12 attachment packet `9ec19d2c`. All four control
+PEs, the shaders and the reference command streams matched the preceding
+slot 11 packet `6aee7b30`. Each startup variant exercised two and five SDK
+imports against release DLL `8fc64f24`. [Four build identities](#beginning-the-two-readback-rendering-passes-on-slot-12)
+
+Rendering decoded the incoming barrier and begin-rendering call sites at
+RVAs `23f9/258e` for ordinary startup and `2879/2a0e` for CRT startup.
+Their import thunks and live guest return addresses matched both passes.
+Each native entry was in the NVIDIA driver, with its immediate caller in
+the Khronos validation layer. The outgoing barrier used a separate call
+site at `2727` or `2ba7`.
+
+On first use, the original primary transitioned the acquired image from
+UNDEFINED with TOP_OF_PIPE and zero source access. On reuse, it
+transitioned the same image from TRANSFER_SRC_OPTIMAL with TRANSFER_READ.
+Both transitions targeted COLOR_ATTACHMENT_OPTIMAL with COLOR_ATTACHMENT_WRITE.
+Both queue families were ignored. Begin rendering used the acquired view,
+color mip 0 and layer 0, a 2×2 area at the origin, and CLEAR/STORE.
+The four observed clear words matched the binary32 values of 17/255,
+34/255, 51/255 and 1. No depth, stencil or resolve attachment was present.
+
+| Counted draw | Passes begun and ended | Draws | Image copies | Submits | Maps | Exit |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Both forwarded | 2 | 2 | 2 | 1 | 1 | 0 |
+| First refused | 1 | 0 | 0 | 0 | 0 | 1 |
+| Second refused | 2 | 1 | 1 | 0 | 0 | 1 |
+
+Rendering checked the two revisions, four PE configurations, three outcomes
+and two probes in both the original run and fresh replay, totaling 96
+processes. Each trace recorded validation-layer insertion and zero reported
+warnings or errors. On success, the 24-byte prefixes landed at offsets 0
+and 40 and the tight image copies at 24 and 64. The host barrier and fence
+completion preceded mapping. All 32 guest/driver mapping dumps matched
+the independently reconstructed 80 bytes, SHA-256
+`2c942741acc1bea10c77699bff5cca4caeace9305dee698a0d898db17b50b556`.
+All 184 retained caller captures matched the 112 pitched and guarded bytes,
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+On refusal the active pass ended before the diagnostic. The first pass's
+commands remained unsubmitted when the second draw refused. Guest and
+native cleanup matched the acquired handles in all three outcomes.
+
+The serial recorder also forwarded two synthetic subresource ranges under
+Wine and passed Linux ASan with leak checking. Its Linux TSan run passed
+after ten pre-main failures. The seven paired whole-process timing ranges
+overlapped for every PE configuration. Native Windows/WDDM and full-PE
+sanitization remain open. This publication documents existing binaries.
