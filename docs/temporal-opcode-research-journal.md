@@ -126012,3 +126012,57 @@ The first execve trace truncated the long argv[0] in strace's display. The
 replay records up to 4096 characters and asserts the application has its
 original single-element argument vector. The CPU command also passed with
 the input packet absent, rebuilding the same DSO from the base sources.
+
+At f52d7285 the split private test binding passed four compile-time rejection
+checks and eight CPU recording cases. Removing only the image client's success
+guard made the pre-populated private owner check fail (exit 1). The driver
+saw the original image/allocate descriptor and pNext addresses. A successful
+allocation and the subsequent bind both observed 4,294,983,680 bytes. The
+query error returned −11 with the decision sentinel 19 unchanged. Successful
+query of the oversized extent returned zero with decision zero. The release C
+headers matched the retained packet. All seven undefined symbols in the
+combined Tower object also occurred in the two separately compiled objects.
+The loader bound each one from the hardware executable to the same released
+DSO. The SDK-facing trace continued through the Vulkan loader. The device
+ELF also uses the existing upload and region entries from external-c.o.
+
+On the RTX 3090, PCI 0000:81:00.0, UUID cd3d9791fe794e0b3ec29fc16b74d31c,
+NVIDIA 565.57.01, Vulkan 1.3.289, queue 0/family 0, all sixteen reads on
+both routes matched the entire retained capture. The lifetime verifier
+consumed 199 events. Five retired source triples used their original device
+after the last sampled read. Validation counted zero warnings/errors.
+Plan, allocation and bind refusal each returned 1 with empty output and
+verified partial cleanup. The external SDK image client returned its ledger
+to zero. The separate original 2×2 fixture passed pitch, short-span, guard
+and fence checks. Physical index 0 ran successfully. Its malformed and
+overflowing CLI arguments returned 2. The retained inventory executable
+takes no positional arguments on either route; execve was checked separately.
+
+Three warm fresh-process samples per arm alternated C/Tower, Tower/C,
+C/Tower. The host was an EPYC 7282, 16 cores / 32 threads, affinity 0–31,
+15.36-CPU quota. The build used the pinned Linux x64 towerc with one job,
+LLVM/Clang 19.1.7 at O2 and GNU ld 2.40. Each CPU owner ran 160,000 cases
+on stack-owned state. The production-equivalent fixture used one GPU queue.
+
+| Caller | One owner wall ms | Four owners wall ms | Retained GPU wall s |
+| --- | --- | --- | --- |
+| External C | 25.43, 29.06, 29.53 | 32.34, 30.95, 31.79 | 2.051, 2.059, 2.009 |
+| Tower | 30.19, 30.29, 29.76 | 32.38, 32.88, 32.74 | 2.068, 2.070, 2.349 |
+
+CPU process peak RSS was 2,052–2,320 KiB and GPU peak RSS was
+116,124–116,380 KiB. The packet retains user and system CPU for each sample.
+No persistent allocation is added by the adapters. The recording driver
+observes successful device allocation before bind. Full-frame allocation
+or scheduling attribution was outside these measurements. Individual GPU
+samples varied enough that these three pairs do not establish throughput.
+
+Four pthread owners passed ASan with leak detection, fatal C UBSan and
+TSan. CPU TSan had six restricted-personality startup failures before a
+passing run. The application GPU ASan check passed pixels and lifetime
+with synchronization validation and leaks disabled. The same instrumented
+device binary with leaks enabled returned 1, 4,187 bytes in 15 allocations,
+matching the earlier C result. GPU TSan had four refused starts, then a
+nested SEGV (66) before verified pixels. The client objects carry sanitizer
+hooks; the tested DSO, frozen device owner and proprietary driver retain
+release instrumentation. The canonical slot 11 declarations ref was still
+unavailable at this measurement. Requalify it with the documented command.
