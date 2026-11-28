@@ -65,6 +65,15 @@ cleanup after the error. Any further drain error flushes both signed VkResults
 and aborts before releasing the handles. Every failure skips the mapped
 read and preserves the borrowed destination. [External clear build](graphics_so_linux.md#build-and-run-an-ordinary-tower-application-on-linux)
 
+After a successful fence wait, all three callers lend their staging allocation
+to `vk_read_mapped`. Its typed consumer runs synchronously while the whole
+allocation is mapped and host-visible. Each clear passes its borrowed
+destination to `readback_clear_rows`. Counted capture passes its sample
+stride and checks both samples in place. The mapped pointer expires when
+the consumer returns. The owner then retires the buffer and its allocation.
+A map error returns immediately. An invalidate error skips the consumer and
+unmaps once. [Shared mapping operation](readback_mapping.tower)
+
 ## Build and run
 
 Use the pinned Linux x64 compiler and its adjacent resources. On a Debian
@@ -100,6 +109,22 @@ LLVM selects the required entry points and their dependencies from the pinned
 host runtime. Tower supplies the application entry and links the executable.
 The fixture exits 0 only after both CPU and Vulkan checks pass. An unavailable
 device or required validation layer exits 1. An invalid index argument exits 2.
+
+To exercise the coherent and noncoherent branches without a device, use
+the same compiler, sysroot and runtime object from the build above. The
+recording executable supplies its own map, invalidate and unmap functions.
+It verifies the handle, whole-allocation range, call order and every
+destination byte after success, map failure, invalidate failure and a
+rejected destination pitch. [Recording checks](readback_mapping_checks.tower)
+
+```bash
+v=scaffolding/library/graphics/vulkan
+"$compiler" "$v/readback_mapping_checks.tower" --library --jobs 1 \
+  --foundation "$PWD/scaffolding/foundation.tower" -o "$out/mapping_checks.o"
+"$compiler" --link-executable "$out/mapping_checks.o" --link "$out/runtime.o" \
+  --link "$lib/libvulkan.so.1" --link "$lib/libatomic.so.1" --sysroot "$sdk" -o "$out/mapping_checks"
+"$out/mapping_checks"
+```
 
 ## Host 12 evidence
 

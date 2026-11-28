@@ -2,6 +2,7 @@ import tower;
 import counted_abi;
 import counted_calls;
 import readback_completion;
+import readback_mapping;
 import counted_device;
 import counted_pipeline;
 import counted_record;
@@ -115,20 +116,16 @@ fn counted_capture(calls: CountedCalls*, ctx: ReadbackDevice*, paths: u8**): boo
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "vkQueueSubmit", submitted: "submitted=1 compute/count=0 -> raster/store/copy -> compute/count=1 -> raster/store/copy",
           wait: "vkWaitForFences", signaled: "fence=signaled" }) { return false; }
-    var mapped: void*;
-    if !vk_ok("vkMapMemory", vkMapMemory(device, staging.memory, 0, VkWholeSize, 0, &mapped)) { return false; }
-    defer vkUnmapMemory(device, staging.memory);
-    readback_number("staging_memory_flags", staging.flags);
-    if (staging.flags & VkHostCoherent) == 0 {
-        var mapped_range: VkMappedMemoryRange = { sType: VkMappedRangeTag, memory: staging.memory, size: VkWholeSize, ..default };
-        if !vk_ok("vkInvalidateMappedMemoryRanges", vkInvalidateMappedMemoryRanges(device, 1, &mapped_range)) { return false; }
-        puts("visibility=whole mapped allocation invalidated");
-    } else { puts("visibility=host coherent"); }
-    var data = bits(u8*, mapped);
+    return vk_read_mapped(device, staging.memory, staging.flags,
+        { map: "vkMapMemory", invalidate: "vkInvalidateMappedMemoryRanges", report_visibility: true },
+        convert(usize, counted_sample_bytes()), counted_compare_samples);
+}
+
+fn counted_compare_samples(stride: usize, data: u8*): bool {
     puts("control requested_count=0 expected_pixel=112233ff");
     var zero = counted_compare_sample(data, "000000000300000001000000000000000000000000000000", readback_gpu_hex());
     puts("raster requested_count=1 expected_pixel=4080bfff");
-    var one = counted_compare_sample(data + convert(usize, counted_sample_bytes()),
+    var one = counted_compare_sample(data + stride,
         "010000000300000001000000000000000000000000000000",
         "a5a5a5a54080bfff4080bfffa5a5a5a54080bfff4080bfffa5a5a5a5a5a5a5a5");
     return zero && one;

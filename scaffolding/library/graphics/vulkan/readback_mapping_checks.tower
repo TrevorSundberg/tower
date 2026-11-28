@@ -1,0 +1,84 @@
+import tower;
+import readback_abi;
+import readback_clear;
+import readback_completion;
+import readback_mapping;
+import readback_oracle;
+import readback_rows;
+
+extern fn exit(status: i32): void;
+
+// Link these replacements only into the recording executable.
+struct MappingCase {
+    memory: VkDeviceMemoryHandle*;
+    map_result: i32;
+    invalidate_result: i32;
+    next: u8*;
+    source: u8*;
+    destination: ReadbackDestination;
+}
+
+fn require_mapping(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(3); }
+}
+
+fn mapping_event(state: MappingCase*, name: u8*): void {
+    require_mapping(*state.next == *name, name);
+    state.next++;
+}
+
+export fn vkMapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, offset: u64,
+        size: u64, flags: u32, data: void**): i32 {
+    var state = bits(MappingCase*, device);
+    mapping_event(state, "Map");
+    require_mapping(memory == state.memory && offset == 0 && size == ~convert(u64, 0)
+        && flags == 0 && data != null, "incorrect map allocation or range");
+    if state.map_result == 0 { *data = bits(void*, state.source); }
+    return state.map_result;
+}
+
+export fn vkInvalidateMappedMemoryRanges(device: VkDeviceHandle*, count: u32, range: VkMappedMemoryRange*): i32 {
+    var state = bits(MappingCase*, device);
+    mapping_event(state, "Invalidate");
+    require_mapping(count == 1 && range != null && range.sType == VkMappedRangeTag
+        && range.pNext == null && range.memory == state.memory && range.offset == 0
+        && range.size == ~convert(u64, 0), "incorrect invalidate allocation or range");
+    return state.invalidate_result;
+}
+
+export fn vkUnmapMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*): void {
+    var state = bits(MappingCase*, device);
+    mapping_event(state, "Unmap");
+    require_mapping(memory == state.memory, "unmapped different allocation");
+}
+
+fn consume_rows(state: MappingCase*, data: u8*): bool {
+    mapping_event(state, "Copy");
+    require_mapping(data == state.source, "consumer received different mapping");
+    return readback_clear_rows(&state.destination, data);
+}
+
+fn check_mapping(flags: u32, map: i32, invalidate: i32, pitch: usize, order: u8*, copied: bool): void {
+    var memory: VkDeviceMemoryHandle;
+    var guard: u8[32];
+    var size = sizeof(decltype(guard));
+    fill(&guard[0], ReadbackGuard, size);
+    var state: MappingCase = { memory: &memory, map_result: map, invalidate_result: invalidate,
+        next: order, source: "01234567abcdefgh",
+        destination: { data: &guard[0], capacity: size, offset: 4, pitch: pitch, span: 20 } };
+    var result = vk_read_mapped(bits(VkDeviceHandle*, &state), state.memory, flags,
+        { map: "recorded map", invalidate: "recorded invalidate", report_visibility: true }, &state, consume_rows);
+    require_mapping(result == copied && *state.next == 0, "wrong result or incomplete trace");
+    require_mapping(readback_compare(order, &guard[0], size, copied ? readback_marker_hex() : readback_guard_hex()),
+        "unexpected destination bytes");
+}
+
+export fn main(): i32 {
+    check_mapping(VkHostVisible | VkHostCoherent, 0, 0, 12, "MCU", true);
+    check_mapping(VkHostVisible, 0, 0, 12, "MICU", true);
+    check_mapping(VkHostVisible, VkOutOfHostMemory, 0, 12, "M", false);
+    check_mapping(VkHostVisible, 0, VkOutOfDeviceMemory, 12, "MIU", false);
+    check_mapping(VkHostVisible, 0, 0, 7, "MICU", false);
+    puts("staging mapping checks passed");
+    return 0;
+}

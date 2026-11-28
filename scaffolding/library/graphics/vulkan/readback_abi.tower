@@ -390,6 +390,10 @@ struct VkFenceCreateInfo {
 
 var VkSubmitTag: u32 = 4;
 
+var VkMappedRangeTag: u32 = 6;
+var VkHostCoherent: u32 = 4;
+var VkWholeSize: u64 = ~convert(u64, 0);
+
 struct VkMappedMemoryRange {
     sType: u32;
     pNext: void*;

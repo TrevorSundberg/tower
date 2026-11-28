@@ -127731,3 +127731,125 @@ Each imports shader creation and counted drawing from the same release DLL.
 The DLL and import library still match `8fc64f24` and `2d56f882`.
 The merged PE checks cover cross-linking. The earlier Wine runs cover
 the executable hashes recorded on their respective revisions.
+
+### Scoped Vulkan staging readback on slot 12
+
+On published rendering SDK `b1db999ae7b5d77e9ec261a1f5d0b6f822db6b4b`,
+raw clear and SDK clear borrow a 32-byte pitched destination. Counted capture
+reads two count/command prefixes and checks two guarded images. All three
+perform the same whole-allocation map, conditional invalidation and unmap
+after their submit/fence helper succeeds. The application owns the staging
+allocation throughout. The proposed extraction lends mapped bytes to a
+synchronous typed consumer so each caller keeps its own layout and output.
+
+The frozen parent passed both clear and both counted entry points on the
+slot 12 RTX 3090. NVIDIA 565.57.01 exposes host-visible memory types 3, 4
+and 5 with flags 0x6, 0xe and 0x7. Each is coherent. This device can
+exercise the normal coherent copy. A recorded Vulkan boundary is required
+to exercise the other visibility branch.
+
+**Implementation and checks.** `vk_read_mapped` takes the device, memory,
+selected memory flags, diagnostic labels and a typed synchronous consumer.
+The helper owns the mapping from a successful map through lexical unmap.
+The clear consumer borrows the pitched destination. The counted consumer
+borrows the mapped bytes and consumes both records at the supplied stride.
+Neither stores the mapped address. All three sites call the helper only
+after `vk_complete_submission` returns true. Submit, queue-drain and
+destruction code stayed at their existing ownership boundaries.
+
+On the RTX 3090 (API 1.3.289, device 0, graphics family 0, queue 0), raw
+clear and the external SDK clear reproduced the 32-byte reference
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+Raw and SDK counted-core13 reproduced the 112-byte reference
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+Both revisions printed identical ordinary output and zero validation
+warnings/errors. The original rendering CPU rows and oracle match
+`3dd5f11f`, a direct child of the requested `a580e70a`. That parent
+itself has neither fixture file. The checks use the existing two-row
+oracle and the counted sample including each prefix, row gap and guard.
+
+The [recording executable](../scaffolding/library/graphics/vulkan/readback_mapping_checks.tower)
+checks map/copy/unmap for coherent memory and map/invalidate/copy/unmap
+for noncoherent memory. A refused map stops at map. A refused invalidate
+unmaps once and skips the consumer. A consumer that rejects the row pitch
+also unmaps once. All failure cases preserved every guard. Both operations
+received the same device and allocation, offset zero and VK_WHOLE_SIZE.
+
+Slot 12 captured seven debugger traces per entry on each revision. The
+boundary identified the transfer-destination-only buffer at creation and
+matched its binding against the later map, invalidate and unmap. It checked
+the submitted fence and a successful real wait before every map. Removing
+the coherent flag from the application's local copy of the memory-type
+list exercised successful invalidation on the otherwise-coherent device.
+Injected map −5 and invalidate −2 preserved each caller's signed diagnostic.
+All 32 clear bytes stayed guarded, and counted capture published zero of its
+four comparison outputs. An out-of-memory submit skipped the fence. An
+injected wait −1 drained the submitting queue. A second drain error −2
+aborted. None of the three submission failures reached map. In twelve
+two-queue trials, the second queue remained pending throughout recovery and
+completed after its own host signal. Hardware noncoherent visibility and
+real driver-reported faults remain open.
+
+The Linux raw fixtures and the two external SDK applications resolved
+the shared module from their selected Foundation root. ELF imports and both
+Win64 counted import tables matched the parent. The ordinary and CRT PEs
+still import shader creation and counted draw from the graphics DLL. The
+16-entry Linux DSO, DLL and import library reproduced hashes beginning
+`2d924e64`, `8fc64f24` and `2d56f882`. Win64 evidence covers both links.
+Slot 11 owns execution and its separate command-import qualification.
+
+**Costs.** Slot 12 used the packaged compiler `7430bdb3`, LLVM 19.1.7,
+Linux x86-64, EPYC 7282 (16 cores, 32 logical, 15.36 CPU quota) and one
+application process and submission thread at a time. After one warmup,
+seven paired samples alternated revision order. The uninstrumented processes
+include validation, device setup and retirement. A separate Tower probe
+bracketed the post-fence operation through unmap in each source revision.
+Those intervals include the caller's copying, comparisons and diagnostic
+formatting. Every sample reproduced the complete ordinary stdout.
+
+| Entry | Median wall s, parent → candidate | Median CPU s | Largest peak RSS KiB | Median post-fence µs |
+| --- | --- | --- | --- | --- |
+| Raw clear | 0.30 → 0.31 | 0.30 → 0.30 | 91864 → 91812 | 4.57 → 4.40 |
+| SDK clear | 0.30 → 0.30 | 0.29 → 0.29 | 91744 → 91800 | 3.91 → 3.95 |
+| Raw counted | 0.31 → 0.31 | 0.30 → 0.30 | 94908 → 94876 | 12.79 → 12.77 |
+| SDK counted | 0.31 → 0.31 | 0.31 → 0.31 | 94848 → 94856 | 11.46 → 11.66 |
+
+All intervals had overlapping observed ranges. The Tower allocator recorded
+two grants totaling 152 bytes per clear and five totaling 3376 bytes per
+counted process, with peaks of 152 and 1752 live bytes respectively. Every
+grant was released on both revisions. The compiler emitted direct consumer
+code for the measured entries. There is no extra staging copy or allocation.
+
+Three warm compilation samples at each worker count checked every generated
+object or executable against its revision's one-worker artifact. The raw
+object took median 0.64 → 0.65 s wall at one worker and 0.75 → 0.75 s at four.
+The external counted executable took 1.26 → 1.33 s at one and 1.38 → 1.45 s
+at four. Median CPU seconds were 0.63 → 0.64, 0.85 → 0.85, 1.26 → 1.33
+and 1.56 → 1.63 respectively. Largest peak RSS in the same order was
+109960 → 110452, 115300 → 115888, 130164 → 131464 and 135688 → 136348 KiB.
+Three additional one-worker counted builds with `--timings` located most of
+the increase in the compiler's `after` bucket (median 158.6 → 218.5 ms).
+The final link stayed near 2 ms. The phase totals do not isolate generic
+specialization from other frontend work.
+
+**Instrumentation and reproduction.** LLVM ASan-instrumented executables
+passed all four healthy device paths. The recording matrix passed with
+leak detection enabled, including both error returns. Full-process LSan on
+raw clear reported 3511 bytes in eight allocations on each revision with
+validation-layer frames. The TSan-instrumented SDK clear stopped before
+main at the container personality restriction (139). There is no native
+Tower UBSan profile. None of these runs establishes hardware behavior for
+noncoherent staging.
+
+Use the [raw build and recording check](../scaffolding/library/graphics/vulkan/readback_v1.md#build-and-run),
+[SDK clear](../scaffolding/library/graphics/vulkan/graphics_so_linux.md#build-and-run-an-ordinary-tower-application-on-linux),
+[SDK counted](../scaffolding/library/graphics/vulkan/counted_draw.md#build-the-external-linux-counted-application)
+and [Win64 build](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/counted_win64/build.sh).
+Assignment `6a147ede-e672-4290-980c-f788e80113f7` includes the bounded Git
+bundle, binaries, dependency roots, exact commands, raw samples, link maps,
+device/fault traces and checksums. An early extraction left VK_WHOLE_SIZE
+outside the counted recorder's import scope. The shared ABI now defines
+the range constants and both roots compile. Initial instrumentation needed
+an explicit Linux i64 ssize_t, an observer for the inlined recording helper
+and foreground debugger stops before checking the exit status. The final
+packet retains the failed attempts and the successful replays.

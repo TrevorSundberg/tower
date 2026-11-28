@@ -1,0 +1,24 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+struct ReadbackMapMessages { map: u8*; invalidate: u8*; report_visibility: bool; }
+
+// After successful fence completion, borrow the caller's live, unmapped allocation.
+// The consumer can read the staging buffer's initialized bytes only during this call.
+fn vk_read_mapped(T: type, device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, flags: u32,
+        messages: ReadbackMapMessages, context: T, consume: function(bool, T, u8*)): bool {
+    var mapped: void*;
+    if !vk_ok(messages.map, vkMapMemory(device, memory, 0, VkWholeSize, 0, &mapped)) { return false; }
+    defer vkUnmapMemory(device, memory);
+    if messages.report_visibility { readback_number("staging_memory_flags", flags); }
+    var coherent = (flags & VkHostCoherent) != 0;
+    if !coherent {
+        var range: VkMappedMemoryRange = { sType: VkMappedRangeTag, memory: memory, size: VkWholeSize, ..default };
+        if !vk_ok(messages.invalidate, vkInvalidateMappedMemoryRanges(device, 1, &range)) { return false; }
+    }
+    if messages.report_visibility {
+        puts(coherent ? "visibility=host coherent" : "visibility=whole mapped allocation invalidated");
+    }
+    return consume(context, bits(u8*, mapped));
+}

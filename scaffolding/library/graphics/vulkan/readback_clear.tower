@@ -1,5 +1,6 @@
 import tower;
 import readback_completion;
+import readback_mapping;
 import readback_device;
 import readback_abi;
 import readback_rows;
@@ -13,7 +14,6 @@ var VkBufferBarrierTag: u32 = 44;
 var VkRenderingTag: u32 = 1000044000;
 var VkAttachmentTag: u32 = 1000044001;
 var VkFenceTag: u32 = 8;
-var VkMappedRangeTag: u32 = 6;
 var VkColorLayout: u32 = 2;
 var VkCopyLayout: u32 = 6;
 var VkColorWrite: u32 = 256;
@@ -28,9 +28,7 @@ var VkClearOp: u32 = 1;
 var VkStoreOp: u32 = 0;
 var VkTransferDstUsage: u32 = 2;
 var VkHostVisible: u32 = 2;
-var VkHostCoherent: u32 = 4;
 var VkView2D: u32 = 1;
-var VkWholeSize: u64 = ~convert(u64, 0);
 
 fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, required: u32,
     allocation: VkDeviceMemoryHandle**, flags: u32*): bool {
@@ -77,6 +75,12 @@ fn vk_record_clear(cmd: VkCommandBufferHandle*, image: VkImageHandle*, view: VkI
     return vk_ok("vkEndCommandBuffer", vkEndCommandBuffer(cmd));
 }
 
+var ReadbackClearBytes: usize = ReadbackRowBytes * convert(usize, ReadbackHeight);
+
+fn readback_clear_rows(dst: ReadbackDestination*, data: u8*): bool {
+    return readback_two_rows(dst, data, ReadbackClearBytes, ReadbackRowBytes);
+}
+
 // The device and its queue stay live and exclusively available to this caller.
 // Caller-owned destination bytes are touched only after completion and visibility.
 fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
@@ -104,8 +108,7 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     var view: VkImageViewHandle*;
     if !vk_ok("vkCreateImageView", vkCreateImageView(device, &view_info, null, &view)) { return false; }
     defer vkDestroyImageView(device, view, null);
-    var stage_bytes = ReadbackRowBytes * convert(usize, ReadbackHeight);
-    var buffer_info: VkBufferCreateInfo = { sType: VkBufferCreateTag, size: convert(u64, stage_bytes), usage: VkTransferDstUsage, ..default };
+    var buffer_info: VkBufferCreateInfo = { sType: VkBufferCreateTag, size: convert(u64, ReadbackClearBytes), usage: VkTransferDstUsage, ..default };
     var buffer: VkBufferHandle*;
     if !vk_ok("vkCreateBuffer", vkCreateBuffer(device, &buffer_info, null, &buffer)) { return false; }
     defer vkDestroyBuffer(device, buffer, null);
@@ -129,14 +132,7 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "vkQueueSubmit", submitted: "submitted=1 clear/store -> image-to-buffer -> host-read barrier",
           wait: "vkWaitForFences", signaled: "fence=signaled" }) { return false; }
-    var mapped: void*;
-    if !vk_ok("vkMapMemory", vkMapMemory(device, stage_memory, 0, VkWholeSize, 0, &mapped)) { return false; }
-    defer vkUnmapMemory(device, stage_memory);
-    readback_number("staging_memory_flags", flags);
-    if (flags & VkHostCoherent) == 0 {
-        var mapped_range: VkMappedMemoryRange = { sType: VkMappedRangeTag, memory: stage_memory, size: VkWholeSize, ..default };
-        if !vk_ok("vkInvalidateMappedMemoryRanges", vkInvalidateMappedMemoryRanges(device, 1, &mapped_range)) { return false; }
-        puts("visibility=whole mapped allocation invalidated");
-    } else { puts("visibility=host coherent"); }
-    return readback_two_rows(dst, bits(u8*, mapped), stage_bytes, ReadbackRowBytes);
+    return vk_read_mapped(device, stage_memory, flags,
+        { map: "vkMapMemory", invalidate: "vkInvalidateMappedMemoryRanges", report_visibility: true },
+        dst, readback_clear_rows);
 }

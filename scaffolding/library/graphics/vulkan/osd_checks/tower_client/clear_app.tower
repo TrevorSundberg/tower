@@ -4,6 +4,7 @@ import library.graphics.vulkan.image_lifecycle;
 import library.graphics.vulkan.readback_abi;
 import library.graphics.vulkan.readback_clear;
 import library.graphics.vulkan.readback_completion;
+import library.graphics.vulkan.readback_mapping;
 import library.graphics.vulkan.readback_device;
 import library.graphics.vulkan.readback_oracle;
 import library.graphics.vulkan.readback_rows;
@@ -30,10 +31,9 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_ok("create view", tower_vk_create_bound_image_view_v1(device, owner.image, VkView2D,
         info.format, &range, &owner.view)) { return false; }
 
-    var size = ReadbackRowBytes * convert(usize, ReadbackHeight);
     var staging: VkDeviceMemoryHandle* = null;
     defer { if staging != null { vkFreeMemory(device, staging, null); } }
-    var buf_info: VkBufferCreateInfo = {sType: VkBufferCreateTag, size: convert(u64, size), usage: VkTransferDstUsage, ..default};
+    var buf_info: VkBufferCreateInfo = {sType: VkBufferCreateTag, size: convert(u64, ReadbackClearBytes), usage: VkTransferDstUsage, ..default};
     var buf: VkBufferHandle*;
     if !vk_ok("create staging buffer", vkCreateBuffer(device, &buf_info, null, &buf)) { return false; }
     defer vkDestroyBuffer(device, buf, null);
@@ -58,14 +58,8 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_complete_submission(device, ctx.queue, fence, result,
         { submit: "submit clear and copy", submitted: "submitted clear, image copy and host barrier",
           wait: "wait for fence", signaled: "fence signaled" }) { return false; }
-    var mapped: void*;
-    if !vk_ok("map staging", vkMapMemory(device, staging, 0, VkWholeSize, 0, &mapped)) { return false; }
-    defer vkUnmapMemory(device, staging);
-    if (flags & VkHostCoherent) == 0 {
-        var mapped_range: VkMappedMemoryRange = {sType: VkMappedRangeTag, memory: staging, size: VkWholeSize, ..default};
-        if !vk_ok("invalidate staging", vkInvalidateMappedMemoryRanges(device, 1, &mapped_range)) { return false; }
-    }
-    return readback_two_rows(dst, bits(u8*, mapped), size, ReadbackRowBytes);
+    return vk_read_mapped(device, staging, flags,
+        { map: "map staging", invalidate: "invalidate staging", report_visibility: false }, dst, readback_clear_rows);
 }
 
 fn validated_clear(messages: u32*, dst: ReadbackDestination*): bool {
