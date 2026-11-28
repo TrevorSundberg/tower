@@ -12,7 +12,6 @@ var VkImageBarrierTag: u32 = 45;
 var VkBufferBarrierTag: u32 = 44;
 var VkRenderingTag: u32 = 1000044000;
 var VkAttachmentTag: u32 = 1000044001;
-var VkFenceTag: u32 = 8;
 var VkColorLayout: u32 = 2;
 var VkCopyLayout: u32 = 6;
 var VkColorWrite: u32 = 256;
@@ -99,9 +98,8 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
         { create: "vkCreateCommandPool", allocate: "vkAllocateCommandBuffers" }, &primary) { return false; }
     defer vk_release_primary(&primary);
     if !vk_record_clear(primary.command, image, view, staging.handle, range) { return false; }
-    var fence_info: VkFenceCreateInfo = { sType: VkFenceTag, ..default };
     var fence: VkFenceHandle*;
-    if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
+    if !vk_create_unsignaled_fence(device, "vkCreateFence", &fence) { return false; }
     defer vkDestroyFence(device, fence, null);
     var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &primary.command, ..default };
     var result = vkQueueSubmit(ctx.queue, 1, &submit, fence);
