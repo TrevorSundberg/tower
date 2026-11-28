@@ -1,0 +1,110 @@
+import tower;
+import bound_buffer;
+import readback_abi;
+import readback_device;
+
+extern fn exit(status: i32): void;
+
+var TestLogicalSize: u64 = 4294967315;
+var TestAllocationSize: u64 = 8589938688;
+var TestUsage: u32 = 258;
+var TestRequired: u32 = 2;
+var TestProperties: u32 = 14;
+
+struct BufferCase {
+    next: u8*;
+    create_result: i32;
+    allocate_result: i32;
+    bind_result: i32;
+    type_bits: u32;
+    buffer: VkBufferHandle*;
+    memory: VkDeviceMemoryHandle*;
+}
+
+fn require_buffer(valid: bool, message: u8*): void {
+    if !valid { puts(message); exit(3); }
+}
+
+fn buffer_event(device: VkDeviceHandle*, name: u8*): BufferCase* {
+    var state = bits(BufferCase*, device);
+    require_buffer(*state.next == *name, name);
+    state.next++;
+    return state;
+}
+
+export fn vkCreateBuffer(device: VkDeviceHandle*, info: VkBufferCreateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkBufferHandle**): i32 {
+    var state = buffer_event(device, "Create");
+    require_buffer(info.sType == VkBufferCreateTag && info.size == TestLogicalSize && info.usage == TestUsage
+        && info.pNext == null && info.flags == 0 && info.sharingMode == 0 && info.queueFamilyIndexCount == 0
+        && info.pQueueFamilyIndices == null && allocator == null, "buffer create info");
+    *out = state.buffer; // Deliberately write a non-null handle even on error.
+    return state.create_result;
+}
+
+export fn vkGetBufferMemoryRequirements(device: VkDeviceHandle*, handle: VkBufferHandle*, out: VkMemoryRequirements*): void {
+    var state = buffer_event(device, "Requirements");
+    require_buffer(handle == state.buffer, "requirements buffer");
+    *out = {size: TestAllocationSize, alignment: 4096, memoryTypeBits: state.type_bits};
+}
+
+export fn vkAllocateMemory(device: VkDeviceHandle*, info: VkMemoryAllocateInfo*, allocator: VkAllocationCallbacks*,
+        out: VkDeviceMemoryHandle**): i32 {
+    var state = buffer_event(device, "Allocate");
+    require_buffer(info.sType == VkAllocateTag && info.pNext == null && info.allocationSize == TestAllocationSize
+        && info.memoryTypeIndex == 2 && allocator == null, "allocation size or type");
+    *out = state.memory; // The acquisition result alone decides ownership.
+    return state.allocate_result;
+}
+
+export fn vkBindBufferMemory(device: VkDeviceHandle*, buffer: VkBufferHandle*, memory: VkDeviceMemoryHandle*, offset: u64): i32 {
+    var state = buffer_event(device, "Bind");
+    require_buffer(buffer == state.buffer && memory == state.memory && offset == 0, "bound pair or offset");
+    return state.bind_result;
+}
+
+export fn vkDestroyBuffer(device: VkDeviceHandle*, buffer: VkBufferHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = buffer_event(device, "Destroy");
+    require_buffer(buffer == state.buffer && allocator == null, "destroyed buffer");
+}
+
+export fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = buffer_event(device, "Free");
+    require_buffer(memory == state.memory && allocator == null, "freed memory");
+}
+
+fn check_buffer(order: u8*, create: i32, types: u32, allocate: i32, bind: i32, success: bool): void {
+    // Separate live addresses even on targets where the opaque handle structs are empty.
+    var handles: u64[2];
+    var state: BufferCase = {next: order, create_result: create, allocate_result: allocate, bind_result: bind,
+        type_bits: types, buffer: bits(VkBufferHandle*, &handles[0]), memory: bits(VkDeviceMemoryHandle*, &handles[1])};
+    var ctx: ReadbackDevice = {device: bits(VkDeviceHandle*, &state), ..default};
+    ctx.memory.memoryTypeCount = 3;
+    ctx.memory.memoryTypes[0].propertyFlags = TestRequired; // masked out
+    ctx.memory.memoryTypes[1].propertyFlags = 1; // allowed by mask, lacks required property
+    ctx.memory.memoryTypes[2].propertyFlags = TestProperties;
+    var owner: BoundBuffer = default;
+    require_buffer(vk_create_bound_buffer(&ctx, &owner, TestLogicalSize, TestUsage, TestRequired,
+        {create: "recorded create", bind: "recorded bind"}) == success, "acquisition result");
+    if success {
+        require_buffer(owner.handle == state.buffer && owner.memory == state.memory && owner.flags == TestProperties,
+            "published buffer, memory or flags");
+        buffer_event(ctx.device, "Owner");
+    } else {
+        require_buffer(owner.handle == null && owner.memory == null && owner.flags == 0, "published failed construction");
+    }
+    vk_release_bound_buffer(ctx.device, &owner);
+    require_buffer(owner.handle == null && owner.memory == null && owner.flags == 0, "retained owner");
+    vk_release_bound_buffer(ctx.device, &owner);
+    require_buffer(*state.next == 0, "missing buffer operation");
+    puts(order);
+}
+
+export fn main(): i32 {
+    check_buffer("C", -1, 6, 0, 0, false);
+    check_buffer("CRD", 0, 2, 0, 0, false);
+    check_buffer("CRAD", 0, 6, -2, 0, false);
+    check_buffer("CRABDF", 0, 6, 0, -4, false);
+    check_buffer("CRABODF", 0, 6, 0, 0, true);
+    return 0;
+}

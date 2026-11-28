@@ -130,3 +130,16 @@ fn readback_open_device(instance: VkInstanceHandle*, index: u32, out: ReadbackDe
     }
     return vk_failure("No graphics queue for the selected device");
 }
+
+fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, required: u32,
+    allocation: VkDeviceMemoryHandle**, flags: u32*): bool {
+    for (var i: u32 = 0; i < ctx.memory.memoryTypeCount; i++) {
+        var properties = ctx.memory.memoryTypes[i].propertyFlags;
+        if (req.memoryTypeBits & (convert(u32, 1) << i)) == 0 || (properties & required) != required { continue; }
+        var info: VkMemoryAllocateInfo = { sType: VkAllocateTag, allocationSize: req.size, memoryTypeIndex: i, ..default };
+        var memory: VkDeviceMemoryHandle*;
+        if !vk_ok("vkAllocateMemory", vkAllocateMemory(ctx.device, &info, null, &memory)) { return false; }
+        *allocation = memory; *flags = properties; return true;
+    }
+    return vk_failure("No compatible Vulkan memory type");
+}

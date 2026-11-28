@@ -1,0 +1,36 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+struct BoundBuffer {
+    handle: VkBufferHandle*;
+    memory: VkDeviceMemoryHandle*;
+    flags: u32;
+}
+
+struct BufferOperations { create: u8*; bind: u8*; }
+var VkBufferCreateTag: u32 = 12;
+
+// The owner must retire any submitted use before calling this operation.
+fn vk_release_bound_buffer(device: VkDeviceHandle*, buffer: BoundBuffer*): void {
+    if buffer.handle != null { vkDestroyBuffer(device, buffer.handle, null); }
+    if buffer.memory != null { vkFreeMemory(device, buffer.memory, null); }
+    *buffer = default;
+}
+
+// Transfer a fully bound pair to an empty owner only after bind succeeds.
+fn vk_create_bound_buffer(ctx: ReadbackDevice*, out: BoundBuffer*, size: u64, usage: u32,
+        required: u32, operations: BufferOperations): bool {
+    var info: VkBufferCreateInfo = { sType: VkBufferCreateTag, size: size, usage: usage, ..default };
+    var buffer: BoundBuffer = default;
+    if !vk_ok(operations.create, vkCreateBuffer(ctx.device, &info, null, &buffer.handle)) { return false; }
+    var requirements: VkMemoryRequirements;
+    vkGetBufferMemoryRequirements(ctx.device, buffer.handle, &requirements);
+    if !vk_readback_allocate(ctx, &requirements, required, &buffer.memory, &buffer.flags)
+        || !vk_ok(operations.bind, vkBindBufferMemory(ctx.device, buffer.handle, buffer.memory, 0)) {
+        vk_release_bound_buffer(ctx.device, &buffer);
+        return false;
+    }
+    *out = buffer;
+    return true;
+}

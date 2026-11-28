@@ -87,7 +87,7 @@ that loader.
 
 ## Reproduce the two-import control
 
-Export revision `53c0d291d98a2e0f0fcfba6506cc6b726ccab86e` and run the same
+Export revision `9c61c1c36054716a4ba354dfde03db490343628a` and run the same
 build and Wine commands above with the same inputs. Its two PEs use the same
 five-field callback table. The command functions are linked into those PEs.
 The DLL, import library and three shader binaries must match across builds.
@@ -101,10 +101,12 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The matched control and this release both use `readback_completion.tower`
-for queue retirement and `readback_mapping.tower` for staging visibility.
-The [review of the integrated build](../../../../../../../docs/temporal-opcode-research-journal.md#five-win64-dll-imports-with-shared-staging-visibility)
-identifies the four rebuilt PEs. For the hardware-tested comparison on the
+The matched control and this release use `bound_buffer.tower` for buffer
+acquisition, `readback_completion.tower` for queue retirement and
+`readback_mapping.tower` for staging visibility. The [buffer ownership
+review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-vulkan-buffer-acquisition-and-retirement)
+identifies the four rebuilt PEs. Use `53c0d291` and `49a7e06f` to reproduce
+the earlier pair with shared staging visibility. For the hardware-tested comparison on the
 Quadro RTX 6000, build the control at `b1db999a` and the five-import caller
 at `e81e4c25`. Those executables used the previous staging map implementation.
 The earlier control at `c74de3f0840248a679c4b8d4efa5244566392b67` uses
