@@ -129236,3 +129236,69 @@ outstanding.
 | Ordinary Tower | 5 | `281b6d2e7ee571fcf1dc5535670b9657fefa6be1d9a90b488d30c21f6b3efdea` |
 | MinGW CRT | 2 | `2d8ea1ebc93f0d3195d616e92fe1d72fea19794be761e1a7d9fbab8940a0e0b8` |
 | MinGW CRT | 5 | `872929b6bcb964ade083411b5cd412d7effe1cb5d836a12fe396578098fcc445` |
+
+### Win64 shared readback image on the Quadro RTX 6000
+
+Slot 11 ran the four counted applications built from SDK
+`39f5205b327790b68c5e9ff3fc1a51fd4a43b438`. Each 2×2 RGBA8 image
+used one 512-byte allocation bound at offset zero. Both counted passes
+used the same view and command buffer. After the submitted fence signaled,
+the caller mapped the staging allocation and retired the view, image and
+image memory in that order, once each on the creating device.
+[Source and four executable hashes](#rendering-review-of-the-shared-readback-image)
+
+The guest selected Quadro RTX 6000, Vulkan 1.4.351, NVIDIA 615.71.10,
+graphics family 0 and queue 0 under Wine 8.0. From the directory holding
+each PE, shaders and released DLL, the worker ran the following command
+with `counted.exe`, `caller.exe` and their two-import controls.
+
+```sh
+env VK_LOADER_DEBUG=layer VK_LOADER_LAYERS_ENABLE=VK_LAYER_KHRONOS_validation \
+  VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT \
+  wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer
+```
+
+Rendering verified all 1,958 manifest entries of receipt
+`df34ce20-c928-4149-9468-f24b7f61deb3`, archive SHA-256
+`de0f0303bb5ff8db9d4611840a49c02d0589cf6309ad3f5297434826554f1c09`.
+Exporting the original bootstrap and scaffolding reproduced the source
+archive. The four PEs matched the Linux-reviewed cross-links, including
+their SDK imports. The four preceding PEs and 76 recovery reference files
+matched the earlier Win64 fence packet. Rendering reconstructed every
+count, indexed command, pixel and guard byte in all 120 archived capture
+files. Each 112-byte capture hashed to
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+Healthy runs reported zero validation warnings or errors and exit 0.
+
+Rendering matched guest and NVIDIA acquisition and release records within
+each process across 72 debugger traces. Each of the following five
+refusals ran in all four current PEs. All 20 exited 1, kept the 56-byte
+caller output empty, and released the three preceding buffers, their
+allocations and the pipeline resources. None reached command recording,
+submission or mapping.
+
+| Rejected step | First diagnostic | Image resources released |
+| --- | --- | --- |
+| Create image | `vkCreateImage` −1 | None |
+| Select memory type | No compatible Vulkan memory type | Image |
+| Allocate memory | `vkAllocateMemory` −2 | Image |
+| Bind image | `vkBindImageMemory` −3 | Image, then memory |
+| Create view | `vkCreateImageView` −5 | Image, then memory |
+
+The 20 predecessor refusals had the same live-resource behavior. Its 12
+additional null-memory frees on create, type and allocation failures
+stopped in Wine. Sixteen current queue-recovery trials matched the prior
+guest and driver sequences. After an accepted submit and failed fence wait,
+a successful drain on the submitting queue allowed release. In eight
+failed-drain trials, the process reached abort with its owners intact
+and exited 3. Separate inspections identified the live primary, pool,
+fence, image, view, memory and pipeline resources.
+
+Seven alternating whole-process pairs after warmup gave median times of
+0.36–0.38 s across the four current PEs and 0.38–0.41 s across their
+predecessors. All paired ranges overlapped. The Win64 six-case recorder
+and the native Linux recorder under ASan/LSan passed. Linux TSan stopped
+before main at the container's personality check. Full PE sanitization
+and native Windows/WDDM remain open. This qualification covers the
+image-owner revision. The subsequent stored-color copy has distinct PEs.
+[Stored color copy hashes](#rendering-review-of-the-stored-color-copy)

@@ -103,7 +103,10 @@ import library.graphics.vulkan.frame_submit;
 The [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
 records the four PE hashes for this source. Use `39f5205b` for the preceding
 [image owner review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-shared-readback-image)
-and `e108476f` to reproduce the
+and its [Win64 device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-shared-readback-image-on-the-quadro-rtx-6000).
+All four image-owner PEs passed the guarded capture, construction refusal
+and queue-recovery checks on the Quadro RTX 6000 under Wine 8.
+Use `e108476f` to reproduce the
 [fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences).
 Slot 11 ran those four fence-constructor PEs under Wine 8 on the Quadro
 RTX 6000. The trace follows fence creation after command recording, through
