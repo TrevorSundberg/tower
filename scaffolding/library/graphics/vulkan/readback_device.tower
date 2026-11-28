@@ -3,6 +3,10 @@ import readback_abi;
 
 extern fn puts(text: u8*): i32;
 extern fn putchar(character: i32): i32;
+extern fn abort(): void;
+extern fn fflush(stream: void*): i32;
+
+var VkDeviceLost: i32 = -4;
 
 fn readback_label(label: u8*): void {
     while *label != 0 { putchar(convert(i32, *label)); label++; }

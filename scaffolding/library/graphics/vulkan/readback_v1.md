@@ -10,9 +10,8 @@ The rendering review verified this synchronous Linux x64 reference on an RTX
 3090 with a 20-byte destination span. Draw's C oracle at
 `36f61b4b312e41846742985bab4884f99f2c62ed` lends 24 bytes from the same
 offset. Both layouts have the same 16 active bytes and the same guarded
-32-byte result. A hardware replay with the 24-byte loan is pending. The
-planned common submission handle and recoverable completion errors also
-require separate implementation and tests.
+32-byte result. The separate 24-byte fixture was verified at rendering
+revision `9d4f7286`. These SDK clear callers retain the 20-byte loan.
 
 ## Byte layout exercised by this fixture
 
@@ -52,9 +51,19 @@ dependency. A tightly packed image-to-buffer copy and a transfer-write to
 host-read buffer barrier follow. The backend submits once and waits on its
 fence. It maps the whole staging allocation and invalidates that whole range
 when its memory lacks HOST_COHERENT. It copies eight bytes per row into the
-caller span, unmaps, destroys the objects and releases their memory. A failed
-wait takes the device-idle recovery path before cleanup. An undrainable
-device other than device loss terminates the process with a diagnostic.
+caller span, unmaps, destroys the objects and releases their memory.
+
+Both Linux clear entry points and counted capture use the same completion
+function. The raw clear calls `vkQueueSubmit(queue, 1, &submit, fence)`.
+The external clear calls the public DSO entry
+`tower_vk_queue_submit_one_v1(queue, &submit, fence)`. Each retains its own
+fence and resources. A host or device out-of-memory submit permits immediate
+cleanup. Any other submit error skips the unsignaled fence and drains the
+submitting queue. A fence wait reporting device loss permits cleanup. Other
+fence errors drain that same queue. Queue idle success or device loss permits
+cleanup after the error. Any further drain error flushes both signed VkResults
+and aborts before releasing the handles. Every failure skips the mapped
+read and preserves the borrowed destination. [External clear build](graphics_so_linux.md#build-and-run-an-ordinary-tower-application-on-linux)
 
 ## Build and run
 
@@ -76,7 +85,7 @@ sdk=${TOWER_SDK_ROOT:-/}
 lib="$sdk/usr/lib/x86_64-linux-gnu"
 out=$(mktemp -d)
 (cd bootstrap/linux-x64 && sha256sum --check --status SHA256SUMS)
-"$compiler" "$src" --library --jobs 1 -o "$out/fixture.o"
+"$compiler" "$src" --library --jobs 1 --foundation "$PWD/scaffolding/foundation.tower" -o "$out/fixture.o"
 opt-19 -passes=internalize,globaldce \
   -internalize-public-api-list=tower_allocate,tower_deallocate,tower_strict_float_binary,tower_strict_float_from_integer,tower_trap \
   "$runtime" -o "$out/runtime.bc"

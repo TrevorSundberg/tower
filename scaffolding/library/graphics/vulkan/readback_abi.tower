@@ -412,6 +412,7 @@ extern fn vkGetDeviceQueue(device: VkDeviceHandle*, queueFamilyIndex: u32, queue
 extern fn vkCreateImage(device: VkDeviceHandle*, pCreateInfo: VkImageCreateInfo*, pAllocator: VkAllocationCallbacks*, pImage: VkImageHandle**): i32;
 extern fn vkDestroyImage(device: VkDeviceHandle*, image: VkImageHandle*, pAllocator: VkAllocationCallbacks*): void;
 extern fn vkGetImageMemoryRequirements(device: VkDeviceHandle*, image: VkImageHandle*, pMemoryRequirements: VkMemoryRequirements*): void;
+var VkAllocateTag: u32 = 5;
 extern fn vkAllocateMemory(device: VkDeviceHandle*, pAllocateInfo: VkMemoryAllocateInfo*, pAllocator: VkAllocationCallbacks*, pMemory: VkDeviceMemoryHandle**): i32;
 extern fn vkFreeMemory(device: VkDeviceHandle*, memory: VkDeviceMemoryHandle*, pAllocator: VkAllocationCallbacks*): void;
 extern fn vkBindImageMemory(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*, memoryOffset: u64): i32;

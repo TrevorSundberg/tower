@@ -1,19 +1,25 @@
 import tower;
 import readback_abi;
 import readback_device;
-import readback_clear;
 
 var VkOutOfHostMemory: i32 = -1;
 var VkOutOfDeviceMemory: i32 = -2;
 
+struct SubmissionMessages {
+    submit: u8*;
+    submitted: u8*;
+    wait: u8*;
+    signaled: u8*;
+}
+
 // The caller has just submitted on this externally synchronized queue. It retains
 // the batch, fresh fence and resources through return. Only true permits mapping.
 fn vk_complete_submission(device: VkDeviceHandle*, queue: VkQueueHandle*, fence: VkFenceHandle*,
-    result: i32, submitted_message: u8*): bool {
-    if vk_ok("vkQueueSubmit", result) {
-        puts(submitted_message);
+    result: i32, messages: SubmissionMessages): bool {
+    if vk_ok(messages.submit, result) {
+        puts(messages.submitted);
         var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
-        if vk_ok("vkWaitForFences", wait) { puts("fence=signaled"); return true; }
+        if vk_ok(messages.wait, wait) { puts(messages.signaled); return true; }
         // A lost-device wait retires the resources for lifetime purposes only.
         if wait == VkDeviceLost { return false; }
     } else {

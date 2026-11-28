@@ -50,7 +50,16 @@ The accepted hash is `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef
 
 The build copies only the application's import closure into a new directory.
 The Win64 entry, file loader, capture and recording modules come from the same
-fixture revision, `ea6ce027`. Each shader passes
+fixture revision, `ea6ce027`. Stage the SDK's current `readback_clear`,
+`readback_completion` and `readback_device` together under that same
+`source/library/graphics/vulkan` root. The pinned capture uses device loss,
+flush and abort declarations from `readback_device`. Its submit and wait
+continue to come from the pinned capture source. The archive work in
+assignment f22cca24 needs this same file selection and staged Foundation.
+The accepted ordinary PE SHA-256 is
+`ee5e16f4fc747421e72a6f2c25308de142bfc7f0386d85df79db8156cb72e2b3`.
+
+Each shader passes
 the file length and digest checks before the local adapter calls the shipped
 `shader_client`. Its result must indicate both dispatch and Vulkan success.
 The pipeline owner retains its original deferred destruction loop. Inside each

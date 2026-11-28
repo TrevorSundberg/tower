@@ -1,11 +1,11 @@
 import tower;
+import readback_completion;
 import readback_device;
 import readback_abi;
 import readback_rows;
 
 var VkImageCreateTag: u32 = 14;
 var VkBufferCreateTag: u32 = 12;
-var VkAllocateTag: u32 = 5;
 var VkCommandPoolTag: u32 = 39;
 var VkCommandAllocateTag: u32 = 40;
 var VkImageBarrierTag: u32 = 45;
@@ -31,9 +31,6 @@ var VkHostVisible: u32 = 2;
 var VkHostCoherent: u32 = 4;
 var VkView2D: u32 = 1;
 var VkWholeSize: u64 = ~convert(u64, 0);
-var VkDeviceLost: i32 = -4;
-extern fn abort(): void;
-extern fn fflush(stream: void*): i32;
 
 fn vk_readback_allocate(ctx: ReadbackDevice*, req: VkMemoryRequirements*, required: u32,
     allocation: VkDeviceMemoryHandle**, flags: u32*): bool {
@@ -128,17 +125,10 @@ fn vk_readback_clear(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
     if !vk_ok("vkCreateFence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
     defer vkDestroyFence(device, fence, null);
     var submit: VkSubmitInfo = { sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default };
-    if !vk_ok("vkQueueSubmit", vkQueueSubmit(ctx.queue, 1, &submit, fence)) { return false; }
-    puts("submitted=1 clear/store -> image-to-buffer -> host-read barrier");
-    var wait = vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0));
-    if !vk_ok("vkWaitForFences", wait) {
-        var idle = vkDeviceWaitIdle(device);
-        if !vk_ok("vkDeviceWaitIdle after failed fence", idle) && idle != VkDeviceLost {
-            puts("Cannot establish retirement; terminating with resources live"); fflush(null); abort();
-        }
-        return false;
-    }
-    puts("fence=signaled");
+    var result = vkQueueSubmit(ctx.queue, 1, &submit, fence);
+    if !vk_complete_submission(device, ctx.queue, fence, result,
+        { submit: "vkQueueSubmit", submitted: "submitted=1 clear/store -> image-to-buffer -> host-read barrier",
+          wait: "vkWaitForFences", signaled: "fence=signaled" }) { return false; }
     var mapped: void*;
     if !vk_ok("vkMapMemory", vkMapMemory(device, stage_memory, 0, VkWholeSize, 0, &mapped)) { return false; }
     defer vkUnmapMemory(device, stage_memory);
