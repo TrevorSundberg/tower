@@ -46,13 +46,7 @@ done
 
 cc image_smoke.o -L"$out/linux" -ltower_graphics "$loader" \
     -Wl,-rpath,'$ORIGIN' -o "$out/linux/image_smoke"
-"$out/linux/image_smoke"
 ```
-
-The smoke selects physical device zero, opens queue family zero, creates
-a 2×2 RGBA8 sampled image, checks all three handles and their allocation
-charge, then retires the unused image and checks the cleared owner. A
-successful run prints `Created, bound and retired one 2x2 RGBA8 image and view`.
 
 For the Windows executable, set `MINGW_SYSROOT`, `MINGW_GCC_LIB` and
 `VULKAN_IMPORT_LIB` to the [Windows SDK paths](graphics_dll_windows.md#build-and-run-the-external-c-consumer).
@@ -90,6 +84,19 @@ retirement. For call origins, run `LD_DEBUG=bindings "$out/linux/recording"`
 and inspect the `tower_vk_` and driver bindings. The [typed client
 contract](osd_checks/tower_client/README.md) describes each call and the
 expected standalone object digests.
+
+## Run the Linux device smoke
+
+On a host with a Vulkan ICD and a usable device, run the executable built
+above. It selects physical device zero, opens queue family zero, creates
+a 2×2 RGBA8 sampled image, checks the image, memory, view and allocation
+charge, then retires the unused image and checks the cleared owner.
+
+```bash
+"$out/linux/image_smoke"
+```
+
+A successful run prints `Created, bound and retired one 2x2 RGBA8 image and view`.
 
 ## Release fingerprints
 
