@@ -1,0 +1,24 @@
+import tower;
+import private_owner;
+import private_shapes;
+import application_imports;
+
+export fn sdk_preflight(physical: void*, info: AppImageInfo*, limits: AppLimits*, supported: u32*): i32 {
+    return tower_vk_image_format_preflight_v1(bits(VkPhysicalDeviceHandle*, physical),
+        bits(VkImageCreateInfo*, info), bits(VkImageFormatProperties*, limits), supported);
+}
+
+export fn sdk_create(device: void*, info: AppImageInfo*, owned: void**): i32 {
+    var image: VkImageHandle* = null;
+    var status = tower_vk_create_image_v1(bits(VkDeviceHandle*, device), bits(VkImageCreateInfo*, info), &image);
+    if status == 0 { *owned = bits(void*, image); }
+    return status;
+}
+
+export fn sdk_view(device: void*, image: void*, kind: u32, format: u32, range: AppRange*, owned: void**): i32 {
+    var view: VkImageViewHandle* = null;
+    var status = tower_vk_create_bound_image_view_v1(bits(VkDeviceHandle*, device), bits(VkImageHandle*, image),
+        kind, format, bits(VkImageSubresourceRange*, range), &view);
+    if status == 0 { *owned = bits(void*, view); }
+    return status;
+}

@@ -1,0 +1,73 @@
+import tower;
+import library.testing;
+import recording;
+import private_shapes;
+
+// CPU-only Vulkan loader boundary. The device points at one live invocation.
+fn event(s: Recording*, tag: u64): void { s.events = s.events * 10 + tag; }
+struct Requirements { size: u64; alignment: u64; mask: u32; }
+struct ViewInfo {
+    tag: u32; next: void*; flags: u32; image: void*; kind: u32; format: u32;
+    components: u32[4]; range: AppRange;
+}
+
+export fn vkGetPhysicalDeviceImageFormatProperties(s: Recording*, format: u32, kind: u32,
+    tiling: u32, usage: u32, flags: u32, limits: AppLimits*): i32 {
+    assert(format == s.info.format && kind == s.info.imageType && tiling == s.info.tiling
+        && usage == s.info.usage && flags == s.info.flags);
+    event(s, 1);
+    *limits = {maxExtent: {width: 5, height: 6, depth: 1}, maxMipLevels: 2,
+        maxArrayLayers: 1, sampleCounts: 1, maxResourceSize: WideBytes};
+    if s.fault == QueryFailure { return -11; }
+    return 0;
+}
+
+export fn vkCreateImage(s: Recording*, info: AppImageInfo*, allocator: void*, out: void**): i32 {
+    event(s, 2);
+    assert(info == s.info && info.pNext == s.chain && allocator == null && *out == null);
+    *out = bits(void*, &s.image_token);
+    if s.fault == CreateFailure { return -2; }
+    return 0;
+}
+export fn vkGetImageMemoryRequirements(s: Recording*, image: void*, out: Requirements*): void {
+    event(s, 3);
+    assert(image == bits(void*, &s.image_token));
+    *out = {size: WideBytes, alignment: 256, mask: 2};
+}
+export fn vkAllocateMemory(s: Recording*, info: AppAllocation*, allocator: void*, out: void**): i32 {
+    event(s, 4);
+    assert(info == s.plan && info.pNext == s.chain && info.allocationSize == WideBytes
+        && info.memoryTypeIndex == 1 && allocator == null && *out == null && *s.charged == 0);
+    *out = bits(void*, &s.memory_token);
+    if s.fault == AllocationFailure { return -2; }
+    return 0;
+}
+export fn vkBindImageMemory(s: Recording*, image: void*, memory: void*, offset: u64): i32 {
+    event(s, 5);
+    assert(image == bits(void*, &s.image_token) && memory == bits(void*, &s.memory_token)
+        && *s.charged == WideBytes && offset == 0);
+    if s.fault == BindFailure { return -7; }
+    return 0;
+}
+export fn vkCreateImageView(s: Recording*, info: ViewInfo*, allocator: void*, out: void**): i32 {
+    event(s, 6);
+    assert(info.image == bits(void*, &s.image_token) && info.kind == 1 && info.format == s.info.format
+        && info.range.aspectMask == 1 && info.range.levelCount == 2 && info.range.layerCount == 1
+        && allocator == null && *out == null);
+    *out = bits(void*, &s.view_token);
+    if s.fault == ViewFailure { return -2; }
+    return 0;
+}
+
+export fn vkDestroyImageView(s: Recording*, view: void*, allocator: void*): void {
+    assert(*s.complete && view == bits(void*, &s.view_token) && allocator == null);
+    event(s, 7);
+}
+export fn vkDestroyImage(s: Recording*, image: void*, allocator: void*): void {
+    assert(*s.complete && image == bits(void*, &s.image_token) && allocator == null);
+    event(s, 8);
+}
+export fn vkFreeMemory(s: Recording*, memory: void*, allocator: void*): void {
+    assert(*s.complete && memory == bits(void*, &s.memory_token) && allocator == null && *s.charged == WideBytes);
+    event(s, 9);
+}

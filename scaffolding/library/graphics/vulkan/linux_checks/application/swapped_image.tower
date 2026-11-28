@@ -1,0 +1,5 @@
+import tower;
+import application_imports;
+export fn swapped(device: VkDeviceHandle*, image: VkImageHandle*, memory: VkDeviceMemoryHandle*): i32 {
+    return tower_vk_bind_image_memory_zero_v1(device, memory, image);
+}

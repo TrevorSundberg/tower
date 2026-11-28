@@ -1,0 +1,26 @@
+import tower;
+import private_owner;
+import private_shapes;
+import application_imports;
+
+export fn osd_plan(device: void*, image: void*, types: AppType*, count: u32, required: u32, plan: AppAllocation*): u32 {
+    return tower_vk_plan_image_allocation_v1(bits(VkDeviceHandle*, device), bits(VkImageHandle*, image),
+        bits(VkMemoryType*, types), count, required, bits(VkMemoryAllocateInfo*, plan));
+}
+
+export fn osd_allocate_memory(device: void*, info: AppAllocation*, owned: void**): i32 {
+    var memory: VkDeviceMemoryHandle* = null;
+    var status = tower_vk_allocate_memory_v1(bits(VkDeviceHandle*, device), bits(VkMemoryAllocateInfo*, info), &memory);
+    if status == 0 { *owned = bits(void*, memory); }
+    return status;
+}
+
+export fn osd_bind_memory(device: void*, image: void*, memory: void*): i32 {
+    return tower_vk_bind_image_memory_zero_v1(bits(VkDeviceHandle*, device), bits(VkImageHandle*, image),
+        bits(VkDeviceMemoryHandle*, memory));
+}
+
+export fn osd_destroy_retired_image(device: void*, view: void*, image: void*, memory: void*): void {
+    tower_vk_destroy_retired_image_v1(bits(VkDeviceHandle*, device), bits(VkImageViewHandle*, view),
+        bits(VkImageHandle*, image), bits(VkDeviceMemoryHandle*, memory));
+}

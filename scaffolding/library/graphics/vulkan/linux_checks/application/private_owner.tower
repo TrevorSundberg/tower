@@ -1,0 +1,11 @@
+import tower;
+import private_shapes;
+
+extern fn vkDestroyImage(device: void*, image: void*, allocator: void*): void;
+struct AppOwner { image: void*; memory: void*; view: void*; bytes: u64; complete: bool; }
+
+// Legacy cleanup of an unsubmitted image after a partial construction.
+fn discard_unbound(device: void*, owner: AppOwner*): void {
+    if owner.image != null { vkDestroyImage(device, owner.image, null); }
+    owner.image = null;
+}

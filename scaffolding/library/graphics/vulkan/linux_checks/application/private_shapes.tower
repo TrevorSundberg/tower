@@ -1,0 +1,20 @@
+import tower;
+
+// Linux x86-64 application's own SDK-shaped storage.
+struct AppExtent { width: u32; height: u32; depth: u32; }
+struct AppImageInfo {
+    sType: u32; pNext: void*; flags: u32; imageType: u32; format: u32;
+    extent: AppExtent; mipLevels: u32; arrayLayers: u32; samples: u32;
+    tiling: u32; usage: u32; sharingMode: u32; queueFamilyIndexCount: u32;
+    pQueueFamilyIndices: u32*; initialLayout: u32;
+}
+struct AppLimits {
+    maxExtent: AppExtent; maxMipLevels: u32; maxArrayLayers: u32;
+    sampleCounts: u32; maxResourceSize: u64;
+}
+struct AppRange {
+    aspectMask: u32; baseMipLevel: u32; levelCount: u32;
+    baseArrayLayer: u32; layerCount: u32;
+}
+struct AppAllocation { sType: u32; pNext: void*; allocationSize: u64; memoryTypeIndex: u32; }
+struct AppType { propertyFlags: u32; heapIndex: u32; }

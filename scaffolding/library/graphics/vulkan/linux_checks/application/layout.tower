@@ -1,0 +1,92 @@
+import tower;
+import library.testing;
+import private_shapes;
+import application_imports;
+
+extern fn sdk_layout(count: usize*): usize*;
+struct LayoutCursor { next: usize; length: usize; reference: usize*; }
+fn item(c: LayoutCursor*, value: usize): void {
+    assert(c.next < c.length && c.reference[c.next] == value);
+    c.next++;
+}
+fn field(T: type, F: type, c: LayoutCursor*, row: T*, member: F*): void {
+    item(c, bits(usize, member) - bits(usize, row));
+    item(c, sizeof(F));
+}
+fn layout_Extent(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.width);
+    field(c, &row, &row.height);
+    field(c, &row, &row.depth);
+}
+fn layout_ImageInfo(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.sType);
+    field(c, &row, &row.pNext);
+    field(c, &row, &row.flags);
+    field(c, &row, &row.imageType);
+    field(c, &row, &row.format);
+    field(c, &row, &row.extent);
+    field(c, &row, &row.mipLevels);
+    field(c, &row, &row.arrayLayers);
+    field(c, &row, &row.samples);
+    field(c, &row, &row.tiling);
+    field(c, &row, &row.usage);
+    field(c, &row, &row.sharingMode);
+    field(c, &row, &row.queueFamilyIndexCount);
+    field(c, &row, &row.pQueueFamilyIndices);
+    field(c, &row, &row.initialLayout);
+}
+fn layout_Limits(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.maxExtent);
+    field(c, &row, &row.maxMipLevels);
+    field(c, &row, &row.maxArrayLayers);
+    field(c, &row, &row.sampleCounts);
+    field(c, &row, &row.maxResourceSize);
+}
+fn layout_Range(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.aspectMask);
+    field(c, &row, &row.baseMipLevel);
+    field(c, &row, &row.levelCount);
+    field(c, &row, &row.baseArrayLayer);
+    field(c, &row, &row.layerCount);
+}
+fn layout_Allocation(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.sType);
+    field(c, &row, &row.pNext);
+    field(c, &row, &row.allocationSize);
+    field(c, &row, &row.memoryTypeIndex);
+}
+fn layout_Type(T: type, c: LayoutCursor*): void {
+    var row: T;
+    item(c, sizeof(T)); item(c, alignof(T));
+    field(c, &row, &row.propertyFlags);
+    field(c, &row, &row.heapIndex);
+}
+fn check_layout(): void {
+    var c: LayoutCursor = default;
+    c.reference = sdk_layout(&c.length);
+    layout_Extent(AppExtent, &c);
+    layout_ImageInfo(AppImageInfo, &c);
+    layout_Limits(AppLimits, &c);
+    layout_Range(AppRange, &c);
+    layout_Allocation(AppAllocation, &c);
+    layout_Type(AppType, &c);
+    assert(c.next == c.length);
+    c.next = 0;
+    layout_Extent(VkExtent3D, &c);
+    layout_ImageInfo(VkImageCreateInfo, &c);
+    layout_Limits(VkImageFormatProperties, &c);
+    layout_Range(VkImageSubresourceRange, &c);
+    layout_Allocation(VkMemoryAllocateInfo, &c);
+    layout_Type(VkMemoryType, &c);
+    assert(c.next == c.length);
+}

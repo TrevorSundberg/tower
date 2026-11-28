@@ -125988,3 +125988,19 @@ toolchain manifests and commands accompany the bounded review bundle. The
 eight nullable subsets model recording behavior. The five owned triples
 describe device coverage. Shipping Draw, additional dependent views,
 other backends and GPU fault recovery remain outside this check.
+
+### Linux application caller against the sixteen-entry Vulkan release
+
+On host 12 the application acceptance checkout starts at f2d6df4b. The
+release packet pins the DSO at 2d924e64 and the 103,158,144-byte SDK capture
+at 140d8d65. The private owner has the legacy three-void-pointer destroy
+declaration. Importing readback_abi beside it reproduced the incompatible
+vkDestroyImage diagnostic. The two application modules explicitly convert
+borrowed SDK-shaped storage and publish typed handle slots only on success.
+The SDK headers supply the independent size, alignment, field-width and
+offset oracle. Initial builds exposed direct-import visibility, a reserved
+identifier and unsupported hexadecimal literal syntax. The replay now
+stages the supplied module by its full path and uses decimal event numbers.
+The CPU-only driver overwrites output handles on injected failures. Eight
+cases passed against the pinned DSO using a private binding outside Git.
+The provider types and the application declarations belong to slot 11.

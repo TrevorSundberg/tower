@@ -1,0 +1,18 @@
+import tower;
+import private_shapes;
+
+var QueryFailure: u32 = 1;
+var ShortExtent: u32 = 2;
+var CreateFailure: u32 = 3;
+var EmptyPlan: u32 = 4;
+var AllocationFailure: u32 = 5;
+var BindFailure: u32 = 6;
+var ViewFailure: u32 = 7;
+var WideBytes: u64 = 4294983680;
+
+struct Recording {
+    fault: u32; events: u64;
+    image_token: u32; view_token: u32; memory_token: u32;
+    info: AppImageInfo*; plan: AppAllocation*; chain: void*;
+    charged: u64*; complete: bool*;
+}
