@@ -384,3 +384,40 @@ pass retained `112233ff` at all four pixels. The single-draw pass produced
 `4080bfff` at all four. The typed and raw SDK paths matched the 112-byte
 guarded reference. This run used Vulkan 1.3.289 and NVIDIA 565.57.01.
 Draw's Vulkan 1.4 shipping profile and its own SPIR-V have separate device tests.
+
+### Draw's typed shader file loader
+
+Draw enabled the import in its ordinary file loader at
+`27d07a5dbe21ac0f647cb3559faca54f4c4999b2` against SDK `851e26d8`.
+With the shader and Vulkan Foundation selectors, the Linux graphics DSO and
+the retained compute SPIR-V, Draw ran `bash tests/vulkan-shader.sh`. Draw
+reports 7 raw C cases, 10 C-bridge cases and 10 typed cases passed. Its
+recording driver accepted all six stages across the original and corrected
+292/285/84-word sets. Each published module was destroyed once. When the
+driver wrote a candidate and returned -2, all six calls reported the error
+and left the public slot empty. Occupied and null inputs were refused
+locally, and malformed files stopped in the loader.
+
+Draw traced the Linux test ELF `f067b5f0` to the released DSO `2d924e64`.
+Its Win64 link probe `526ebacc` used the shader import at hint 2 and
+`vulkan-1.dll` for destruction. Draw assigned its shipping shader device
+tests to `36b617b9` on Linux and `dc934f13` on Win64.
+
+### Linking all sixteen public entries
+
+To extend the shader example above, copy `upload_client.tower` and
+`counted_client.tower` from the same example directory into the application.
+Add `import upload_client;` and `import counted_client;` alongside the
+other local imports and use this entry for the link check.
+
+```tower
+export fn app_entry(): i32 {
+    return record_counted(null, null, null, 0, 0, null, 0, 0, 0, 20) == 0 ? 0 : 1;
+}
+```
+
+Run the same ELF and COFF compile and link commands. Each linked client
+imports all sixteen public functions plus its private shader destruction
+call. The Linux entry checks local refusal of a missing draw procedure.
+See the counted-draw guide for the device callback, bounds and readback.
+[Counted-draw build and hardware checks](../../counted_draw.md#calling-from-ordinary-tower)

@@ -355,3 +355,63 @@ at `ea062c4b`. Draw subsequently linked its `94f2d31e` OSD render object
 through the public entry with a CPU recording shim. Draw assigned its
 strict raster and HUD GPU checks to job `5d1c45b6`.
 [External C link and run instructions](graphics_dll_windows.md#external-link-and-recording-controls)
+
+## Calling from ordinary Tower
+
+Import `library.graphics.vulkan.counted_draw`. Its
+`PFN_vkCmdDrawIndexedIndirectCount` is a Tower function value with the
+device procedure's seven parameters and void return. Pass the procedure
+your device owner resolved when it enabled `drawIndirectCount`. The module
+uses the command handle from `command_submission_types` and the buffer
+handle from `upload_types`. An application can pass its existing handles
+directly. The public entry returns a `u32`.
+
+For example, given a recording primary and the GPU-check stream from the
+table above, this call accepts the exact logical span of 327684 bytes.
+
+```tower
+import tower;
+import library.graphics.vulkan.counted_draw;
+
+fn record_gpu_check(draw: PFN_vkCmdDrawIndexedIndirectCount, cmd: VkCommandBufferHandle*,
+    stream: VkBufferHandle*, logical_bytes: u64): bool {
+    return tower_vk_record_indexed_indirect_count_v1(draw, cmd, stream, logical_bytes, 4,
+        stream, logical_bytes, 0, 16384, 20) == 1;
+}
+```
+
+Build the general [example caller](osd_checks/tower_client/counted_client.tower)
+outside the checkout. Start at the Tower root with LLVM 19, the Vulkan SDK,
+and the [released library build tools](graphics_so_linux.md).
+
+```bash
+set -euo pipefail
+root=$PWD
+v=$root/scaffolding/library/graphics/vulkan
+app=$(mktemp -d)
+cp "$v/osd_checks/tower_client/counted_client.tower" "$app/"
+cd "$app"
+cc_tower=("$root/bootstrap/linux-x64/towerc" --library --jobs 1
+          --foundation "$root/scaffolding/foundation.tower" counted_client.tower)
+"${cc_tower[@]}" --target x86_64-linux-gnu --depfile counted.d -o counted.o
+"${cc_tower[@]}" --target x86_64-w64-windows-gnu --depfile counted-pe.d -o counted.obj
+llvm-nm -u counted.o counted.obj
+```
+
+Each object imports just `tower_vk_record_indexed_indirect_count_v1`.
+Link the application's ordinary entry with `counted.o` and
+`libtower_graphics.so` on Linux, or `counted.obj` and
+`tower_graphics.lib` on Win64. Put the matching DLL beside the executable.
+To exercise the example on Linux, route the existing C SDK regression's
+call through its exported Tower function.
+
+```bash
+"$v/build_graphics_so.sh" "$app" /usr/lib/x86_64-linux-gnu/libvulkan.so.1
+cc -std=c11 -O2 -I"$v" -Dtower_vk_record_indexed_indirect_count_v1=record_counted \
+   "$v/indexed_draw_c_checks.c" counted.o -L. -ltower_graphics -Wl,-rpath,'$ORIGIN' -o check
+./check
+```
+
+Expect 38 rows, with one callback each in 13 cases and zero in 25. The
+[slot 11 qualification](../../../../docs/temporal-opcode-research-journal.md#public-tower-import-for-counted-indexed-drawing)
+records the Win64 DLL, the SDK references and the hardware readback.

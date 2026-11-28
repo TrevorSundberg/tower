@@ -126780,3 +126780,131 @@ and the Vulkan 1.3 fixture. Windows binaries were cross-linked.
 Draw reported accepting the preceding typed uploads in CPU tests of
 its actual production owners and in a Win64 link probe. Draw's selected
 device checks for that direct uptake remain pending.
+### Public Tower import for counted indexed drawing
+
+Slot 11 assignment `c18b38a8-bfcc-49c4-b7c8-2581d3eb1a70` used the
+combined rendering SDK at `b52de45a4360db19dc6c8dad91e9f1e66d0ff028`.
+The existing provider and SDK header agree on a nullable device-selected
+procedure, a primary, two buffer handles, four 64-bit logical sizes/offsets
+and two 32-bit controls. The new declaration-only module reuses the SDK
+handle definitions and represents the PFN with a matching Tower function
+type. It needs no resolver or pointer cast in the application. The sample
+exports a single forwarder. Win64 lowering emits a five-byte jump with a
+relocation to the public provider. The 20-byte indexed-indirect record layout and
+the signed base vertex at byte 12 passed the existing four layout/range
+tests at compiler widths one and four.
+
+**Consumer and release.** From an external directory the pinned Linux
+x64 bootstrap produced ELF and AMD64 COFF callers with SHA-256
+`fe51581a017d53f6e37a7b58fe4ec58397b4780ab638c4f540abb6602c11b16e`
+and `4d2902a1f0217546be86e88af5f64ddd72400b629398536037fbe98bcd378852`.
+Their single undefined symbol is the counted entry. A second executable
+imported image, command, upload and counted modules and linked all 15
+applicable entries on each target. Its depfiles list the public modules,
+SDK types and local callers. The compiler rejected a `function(void)`
+callback on both targets and printed the expected seven-argument signature.
+Both release recipes reproduced the three product digests in the Linux
+library guide, including DLL `8fc64f24` with the counted entry at 3 among
+16 names and ordinals. Shader import work belongs to slot 12.
+
+**Recording controls.** Draw layout inventory `be2fb42065dacdb49c476efdde892ab649cfe772`
+is attributed to Draw in the counted C contract. Slot 11 used the frozen
+38-case C SDK oracle on Linux and under Win64 Wine with the current
+DSO/DLL. The direct C, imported Tower and extra guarded Tower callback
+arms matched all rows. Thirteen returned 1 with a single call, including a
+zero maximum. Twenty-five returned 0 with zero calls. The recorder checked
+distinct and shared handles, both HUD passes, particles, water, scene
+offset 123480309760, independent wide offsets in both buffers, one-byte
+short spans, alignment, nulls and overflow. The guard arm also checked its
+stored input arguments, both backing words and outer sentinels on return.
+
+**Hardware comparison.** Host 11 ran the Tower counted-core13 control from
+`ea6ce0274d2de4166d526e2460f56868581b6937`, Wine 8.0 Win64, host
+Vulkan loader and synchronization-validation layer 1.3.239. One graphics
+recording thread, device/family/queue 0/0/0, selected discrete Quadro RTX
+6000, UUID 26f60f6cead65faf0253a959b2e93a2d, API 1.4.351, NVIDIA
+615.71.10. The prior fixture and its QPC version rebuilt byte for byte.
+The same fixture object and three hash-checked SPIR-V modules were linked
+three ways. The actual SDK C raw arm called the supplied PFN, the C DLL
+arm used the public header, and the ordinary Tower object used the import.
+Maps identify the individual input objects. The latter two linked PEs are
+byte-identical (`e84845ba9a5b68f18e725cb0bf3b577db1e713ed96e1ce7f2a3468e634c26a94`).
+The raw SDK PE is `4000d0cdd9885a325099c3324f407d32244602e9cbd5f201019748542461a315`.
+
+Each ran with `counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer`.
+Each exited 0 after one submission and a signaled fence with coherent host
+staging, zero warning/error callbacks and identical stdout. Both GPU counts
+(0/1), both records (3,1,0,0,0), all four clear/shaded pixels
+(112233ff/4080bfff), row gaps and outer guards matched the 112-byte oracle
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The CPU row-copy and oracle files matched rendering ref `3dd5f11f` (built
+on `a580e70a`), including pitch 7, span 19, and source length 263 rejection.
+
+Wine traced one application lookup. GDB intercepted its return from the
+live device. It matched the named winevulkan.dll export at RVA 0x66b0.
+Both hits at tower_graphics.dll RVA 0x1300 passed that address, the same
+primary, the shared buffer of 327684 logical bytes, offsets 4/0, maximum
+16384 and stride 20. Breakpoints at the returned address checked all seven
+arguments, and both provider returns were 1. For the sensitivity control
+GDB changed only the maximum to zero at the DLL entry. Both PFN hits then
+saw zero. The second GPU count stayed 1 and its record stayed intact.
+The second image stayed clear with intact guards and the original pixel
+oracle exited 1 after completion. The full observed capture matched the
+independent clamp expectation `9d9541d989b15ae92d43eae70b32743be9d15949df48b84d185113d3b6840494`.
+
+**Cost and instrumentation.** Intel Xeon E5-2699 v4, 88 logical CPUs,
+10.56 CPU quota. Five warm, interleaved fresh Wine processes per arm,
+10 MHz QPC, one GPU and one recording thread. Every timed sample passed
+the full readback. Median first/second recording microseconds, process
+wall/CPU seconds and peak KiB were 28.8/10.2, 0.36/0.33, 117500 for raw
+C, 25.5/10.3, 0.38/0.34, 118136 for C/DLL, and 32.2/14.1, 0.40/0.37,
+116788 for Tower/DLL. The C/DLL and Tower/DLL timed binaries also matched
+byte for byte. Variation includes the host, Wine and driver. The forwarder
+allocates no storage. Driver allocations and GPU timestamps were unmeasured.
+Three warm Win64 compiles per width gave standalone median wall/CPU/RSS
+of 0.35/0.35/87096 at one job and 0.45/0.49/90804 at four. The combined
+application measured 0.39/0.38/90588 and 0.47/0.50/95004 respectively.
+
+Native ASan/LSan and TSan runs instrumented the imported caller, recorder
+and provider objects, alongside a Clang trapping-UBSan SDK harness. The
+separate four-pthread test ran 100000 accepted/refused pairs per thread
+with disjoint recorder storage under each sanitizer. Win64 trapping UBSan
+covered the C SDK harness against the release DLL. PE Tower and driver
+internals were outside that instrumentation. A first guarded link needed
+the Tower trap runtime for the callback dispatch. The combined smoke uses
+an explicit status comparison and the executable CRT. Wine reported a
+USB-driver initialization warning during startup. The graphics checks and
+device-layer insertion have separate receipts.
+
+The [public recipe](../scaffolding/library/graphics/vulkan/counted_draw.md#calling-from-ordinary-tower)
+uses separate application compilation and the existing library recipes.
+This evidence covers Tower fixtures and recording callbacks for Draw's
+reported shapes. Draw owns execution in its production renderer. Physical
+Windows, other adapters and a 16384-command GPU workload remain open.
+
+### Joining the counted and shader imports in the single-checkout SDK
+
+Rendering combined the tested counted import at `995f13df` with the
+shader SDK at `851e26d8`. The archive c4ead66931ffeb3987c915abd39a76a3f7d71d1a9d5c0bc05dad411b2044f652
+passed all 635 manifest checks. Its Git bundle advertised the worker tip
+on `b52de45a`. The separate queue fetch returned HTTP 404.
+
+At the merged revision the documented caller rebuilt as ELF `fe51581a`
+and COFF `4d2902a1`. Each target rejected a callback missing the seven
+device arguments. The combined examples compiled in an external directory
+and linked all 16 SDK names. The manager observed all 16 dynamic bindings
+to the rebuilt Linux release and ran the null-callback entry. The Win64 PE
+imported the counted function at hint 3. The three release artifacts matched
+2d924e64, 8fc64f24 and 2d56f882. Rendering replayed all 38 SDK rows for
+each of the raw C, typed and guarded recording arms against the rebuilt DSO.
+The 13 accepted cases each made one call and 25 refusals made none.
+
+Rendering compared the worker's raw C, C/DLL and Tower/DLL readbacks with
+the retained independent 112-byte reference, including both runs'
+timing samples. For the zero-maximum intervention the manager changed only
+the four expected pixels of the second pass. Both negative captures matched
+9d9541d989b15ae92d43eae70b32743be9d15949df48b84d185113d3b6840494 and
+the checker reported failure as expected. The debugger trace identified the
+returned Wine Vulkan procedure in both forwards. Draw's production shader
+loader has its own recording and pending device results.
+[Draw shader and full-link recipes](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/README.md#draws-typed-shader-file-loader)

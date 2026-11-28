@@ -39,6 +39,10 @@ use the same command and image handles as the other two modules.
 For externally compiled SPIR-V, import `library.graphics.vulkan.shader_module_creation`.
 The [shader caller](osd_checks/tower_client/README.md#creating-a-shader-module-through-the-sdk)
 checks whether the driver was called and the signed Vulkan result before taking ownership.
+For counted indexed draws, import `library.graphics.vulkan.counted_draw`.
+Pass the cached function pointer from the logical device and the logical byte
+size of each buffer. The return value tells the caller whether it recorded
+the command. [Counted-draw example and SDK regression](counted_draw.md#calling-from-ordinary-tower)
 
 ```bash
 app=$(mktemp -d "$(dirname "$root")/image_app.XXXXXXXX")
