@@ -819,3 +819,52 @@ The worker's Quadro RTX 6000 run under Wine 8 matched the 27,542,768-byte
 guarded reference, SHA-256
 `5b950be5050057096468fe29f087c5a3a5186d8de1910b174f5ba233ba44c811`.
 Shipping Draw and physical Windows execution remain open for these entries.
+
+### Draw shipping allocation and bind on Wine 11
+
+Draw reviewed job `83bebca9-c966-43cc-851b-868708c7d4aa` at source
+`b97bd5a7c60fb22310fa2528d8471124e9a4d475`, tests
+`ee19a279346351c98cea5be7342b5cc11f555864`, with Tower
+`c5dfef51b37ca5ec389d86ef98753598b9585abd`. It built both optimized
+executables with `build.cmd`, `TOWERC` and `DRAW_TOWER_VULKAN_FOUNDATION`,
+setting `DRAW_C_IMAGE_OWNER=1` for the C arm. The reported executable
+SHA-256 prefixes were `abd20a9a` for Tower and `f3a35e37` for C.
+
+Rendering rehashed the retained fifteen-entry DLL and import library
+(`e0e69bfb` and `95a262d4`) and decoded its export table. Ordinals 14
+and 15 start at RVAs `0x1d30` and `0x1d60`. Draw inspected the caller
+returns at RVAs `0x4480c/0x4484a` and `0x3e18d/0x3e1eb` in the shipping
+PEs. A previous thirteen-import executable also ran with this DLL.
+
+Wine 11 selected an RTX 3060 (10de:2503, Vulkan 1.4.329, NVIDIA 595.99.02).
+From `/tmp/draw-83bebca9/work`, each healthy child exited 0 with the
+following argument pattern. Set `arm` to `c` or `fifteen`.
+
+```sh
+wine "Z:/tmp/draw-83bebca9/stage/${arm}-production/draw.exe" \
+  --offscreen --osd-test assets/osd/state.bin --fixed-time 0 --frames 1 \
+  --size 1280 800 --capture "Z:/tmp/draw-83bebca9/evidence/frames/${arm}-production.rgba"
+```
+
+Draw repeated those arguments against each `${arm}-trace` executable
+with capture `${arm}-${fault}.rgba` and `DRAW_TEST_ALLOCATION_FAULT` set
+to `clobber` or `bind`. All four children exited 1 normally and stopped
+before view creation. On a clobbering allocation failure the linked owner
+retained a null handle and zero charge. After a successful allocation
+followed by bind failure the owner retained its 4,096 bytes and one
+charge. The worker's raw SDK fallback also allocated into a private
+output slot. Draw manager revision `9fc0c9be` instead passed the owner
+slot to the raw allocator. Success-only publication on a clobbering
+driver error applies to the linked path and to the worker's private-slot
+fallback.
+
+Draw verified 1,350 checksums in archive
+`7bd822a8d56c74e1922517c04e08c4a9d82a5c10f42bf426e973f739f95ca9f8`.
+The 27,541,504 active texture bytes and 27,632,640 guarded bytes matched
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`
+and `3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97`.
+Fixed and resized HUD and camera outputs matched, 382 of 382 views retired
+and 285 of 285 submissions completed. Stock Linux render and core checks
+both exited 0. Stock Wine render and core checks both exited 1. Physical
+Windows remains open. Draw's ordinal-16 shipping job `feb0c2ae` precedes
+the direct-Tower-import job `a187face`.
