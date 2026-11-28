@@ -784,3 +784,59 @@ Draw's result covers cross-compilation and linking. Its slot 9 job
 `304c4244-b69d-42fe-afc8-f2903aedd622` owns execution of the release
 checker and the shipping packed HUD comparison after ordinal-12 job
 `a1fbfaac-7f89-4011-8648-dadada799ec8`.
+
+### Draw shipping planner on Wine 11
+
+Draw verified slot 9 job `304c4244-b69d-42fe-afc8-f2903aedd622` with
+runtime `f27cec0be20a7120d24d1ddb169f49805cf97f1d`, tests
+`655b3a13cfcd046197270697c5636f7a719792ee` and Tower
+`61ebea411f92bc8e750181aaa543aca42a955818`. Draw checked 1,366
+manifest entries in archive
+`71f1cef8249c57d4574dffaaee642c6c72caccfb2f8aae9e4350944e467b8438`.
+
+From `/tmp/draw-304c4244/work`, Draw built with `wine cmd /d /c build.cmd`.
+`TOWERC` selected `Z:\tmp\draw-304c4244\tower-launch.exe`.
+`DRAW_TOWER_VULKAN_FOUNDATION` and `DRAW_TOWER_COUNTED_FOUNDATION`
+both selected `Z:\tmp\draw-304c4244\tower\scaffolding\foundation.tower`.
+Draw set `DRAW_C_IMAGE_OWNER=1` to build the C owner and unset it for the
+Tower owner. The shipping PE SHA-256 was
+`11964cce2701ae4748c2feb1db7ce8c588af85225a22d1b4380263d4f8057e43`.
+The C-owner PE SHA-256 was
+`0d9fb3a397077d43fa76da9201435581ad0514b50389dcd9efd077e08d9951d7`.
+
+With `WINEDEBUG=+loaddll`, Draw's Windows Node harness launched this
+child from the same working directory. Wrapper and child both exited 0.
+
+```text
+Z:\tmp\draw-304c4244\stage\thirteen-production\draw.exe --offscreen --osd-test assets/osd/state.bin --fixed-time 0 --frames 1 --size 1280 800 --capture Z:\tmp\draw-304c4244\evidence\frames\thirteen-production.rgba
+```
+
+Wine 11 selected an RTX 3060 through Vulkan 1.4.329, NVIDIA 595.99.02.
+Draw observed nine requirements queries per owner inside the adjacent
+DLL. Each plan selected type 1. The owner used the returned allocation
+size and bound the image at offset zero. Rendering independently
+rehashed the DLL and import library and decoded the ordinal-13 entry
+at RVA `0x1ca0`. The call at `0x1cb1` returns at `0x1cb6` and reaches
+thunk `0x1db0`, then IAT slot `0x2348` for
+`vulkan-1.dll!vkGetImageMemoryRequirements`.
+
+Draw injected three failures at the second image in each owner. Each
+process exited 1. With no compatible memory type, the caller stopped
+before allocation. Allocation failure −2 preceded accounting. Bind
+failure −2 followed a successful 569,856-byte allocation.
+
+Draw checked both GPU captures against `assets/osd/textures.bin`.
+All 16 subresources matched. The 27,541,504 active bytes had SHA-256
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`.
+The whole guarded stream had SHA-256
+`3946dbc85c975231e31da714d607d1fbf12f00d23ff37eed8f780ec0d225ca97`.
+The lifetime trace accounted for all 382 default views retired and
+285 submissions completed. Fixed-size and resized RGB, HUD and camera
+matched the ordinal-12 baseline. Draw reported exit 0 for the Linux
+canonical and core checks. Both stock Wine checks exited 1 on the
+registry and loader diagnostics.
+
+This establishes the planner baseline for Draw's queued shipping
+allocation and bind job `83bebca9-c966-43cc-851b-868708c7d4aa`.
+That job owns Win64 ordinals 14 and 15. Physical Windows coverage
+remains open.
