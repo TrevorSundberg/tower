@@ -21,6 +21,80 @@ The ELF SONAME is `libtower_graphics.so`, with a single needed library,
 Place `tower_graphics.dll` beside the Windows executable. The existing
 [Windows build](graphics_dll_windows.md) also supports the SDK C consumer.
 
+## Build and run an ordinary Tower application on Linux
+
+The [clear application](osd_checks/tower_client/clear_app.tower) uses the
+public image and queue-submit declarations, the existing image owner, and
+the rendering fixture's clear, device-selection and row-copy helpers.
+It clears a 2×2 RGBA8 image, submits once, waits on the fence, reads two
+pitched rows and retires the image. It needs a Vulkan 1.3 graphics device
+with dynamic rendering and the Khronos validation layer.
+
+Run in Bash from the SDK checkout on Linux x64. Install Clang/LLVM 19,
+GNU binutils, glibc development startup objects, libatomic and the Vulkan
+loader. For an extracted sysroot set `TOWER_SDK_ROOT` and make its tools,
+shared libraries, validation layer and ICD discoverable. Set `VULKAN_SO` to
+select a different loader path for the same target.
+
+```bash
+set -euo pipefail
+root=$PWD
+v=$root/scaffolding/library/graphics/vulkan
+app=$(mktemp -d)
+sdk=${TOWER_SDK_ROOT:-/}
+lib=${sdk%/}/usr/lib/x86_64-linux-gnu
+loader=${VULKAN_SO:-$lib/libvulkan.so.1}
+"$v/build_graphics_so.sh" "$app/lib" "$loader"
+cp "$v"/osd_checks/tower_client/{clear_app,image_owner}.tower "$app/"
+cd "$app"
+tc=$root/bootstrap/linux-x64/towerc
+flags=(--target x86_64-linux-gnu --jobs 1 --foundation "$root/scaffolding/foundation.tower")
+"$tc" clear_app.tower "${flags[@]}" --emit exe --sysroot "$sdk" \
+    --link "$app/lib/libtower_graphics.so" --link "$loader" --link "$lib/libatomic.so.1" \
+    --depfile clear.d -o clear
+LD_LIBRARY_PATH="$app/lib:$(dirname "$loader"):$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ./clear
+```
+
+The absolute Foundation path selects the SDK declaration modules. The
+application calls the Vulkan loader for device setup, recording and readback.
+Its validation callback uses libatomic. The executable records the libraries'
+SONAMEs, so their directories must also be discoverable at run time. A passing
+run exits 0, prints the selected device, `fence signaled` and
+`validation_warnings_errors=0`, then prints the actual 32 bytes
+`a5a5a5a5112233ff112233ffa5a5a5a5112233ff112233ffa5a5a5a5a5a5a5a5`.
+
+**Existing applications with an exported main.** The bundled Linux runtime
+supplies `main` and invokes the ordinary Tower top-level statements. Feeding
+the original `image_smoke.tower` to `--emit exe` produces
+`Link failed: duplicate ELF symbol: main`. To keep that fixture's entry,
+continue in the same external application directory. Its object has no
+unresolved Tower runtime imports.
+
+```bash
+cp "$v"/osd_checks/tower_client/{sampled_image,image_smoke}.tower .
+"$tc" image_smoke.tower "${flags[@]}" --library --emit object --depfile image_smoke.o.d -o image_smoke.o
+"$tc" --link-executable image_smoke.o --target x86_64-linux-gnu --jobs 1 --sysroot "$sdk" \
+    --link "$app/lib/libtower_graphics.so" --link "$loader" -o image_smoke
+LD_LIBRARY_PATH="$app/lib:$(dirname "$loader"):$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ./image_smoke
+```
+
+`towerc` runs on each invocation. A build tool such as Ninja can consume
+`clear.d` on the executable rule. It lists the source closure, the three
+explicit library paths and the selected `runtime-host-linux-x64.ll`.
+An object-only depfile lists the source closure. For the split build,
+attach the depfile to the object rule and declare each object and library
+on the executable rule. The pinned `--link-executable` rejects `--depfile`.
+A separate touch of each linked library, an explicit object and the selected
+runtime rebuilt the source executable once in Ninja. The next build was
+clean each time and the object-only output kept its timestamp.
+
+The worker ran the direct executable on an RTX 3090 and llvmpipe.
+Both returned the guarded bytes shown above with zero validation warnings or errors.
+The manager reproduced the clear and the exported-main smoke on Mesa 25.0.7
+after combining the example with the sixteen-import SDK.
+[Run evidence and instrumentation limits](../../../../docs/temporal-opcode-research-journal.md#external-tower-source-to-a-linux-vulkan-executable-on-slot-12)
+[Linux byte linker](../../../../docs/tower-linkers.md#cli-and-build-boundaries)
+
 ## Build the application outside Tower
 
 Keep the application's source imports as shipped. Its `import image_owner;`

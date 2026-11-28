@@ -1,0 +1,111 @@
+import tower;
+import library.graphics.vulkan.command_submission;
+import library.graphics.vulkan.image_lifecycle;
+import library.graphics.vulkan.readback_abi;
+import library.graphics.vulkan.readback_clear;
+import library.graphics.vulkan.readback_device;
+import library.graphics.vulkan.readback_oracle;
+import library.graphics.vulkan.readback_rows;
+import library.graphics.vulkan.readback_validation;
+import image_owner;
+
+extern fn exit(code: i32): void;
+
+// The application owns the image, its charge, the readback allocation and the fence.
+fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
+    var device = ctx.device;
+    var owner: ImageOwner = default;
+    var account: ImageAccount = default;
+    defer osd_retire_image_owner(device, &owner, &account);
+    var info: VkImageCreateInfo = {sType: VkImageCreateTag, imageType: VkImage2D, format: VkRgba8Unorm,
+        extent: {width: ReadbackWidth, height: ReadbackHeight, depth: 1}, mipLevels: 1, arrayLayers: 1,
+        samples: VkSample1, usage: VkColorAttachmentUsage | VkTransferSrcUsage, ..default};
+    if !vk_ok("create image", tower_vk_create_image_v1(device, &info, &owner.image)) { return false; }
+    var plan: VkMemoryAllocateInfo;
+    if tower_vk_plan_image_allocation_v1(device, owner.image, &ctx.memory.memoryTypes[0],
+        ctx.memory.memoryTypeCount, 0, &plan) == 0 { return vk_failure("No compatible image memory"); }
+    if !vk_ok("allocate and bind image", bind_owner(device, &owner, &account, &plan)) { return false; }
+    var range: VkImageSubresourceRange = {aspectMask: VkColorAspect, levelCount: 1, layerCount: 1, ..default};
+    if !vk_ok("create view", tower_vk_create_bound_image_view_v1(device, owner.image, VkView2D,
+        info.format, &range, &owner.view)) { return false; }
+
+    var size = ReadbackRowBytes * convert(usize, ReadbackHeight);
+    var staging: VkDeviceMemoryHandle* = null;
+    defer { if staging != null { vkFreeMemory(device, staging, null); } }
+    var buf_info: VkBufferCreateInfo = {sType: VkBufferCreateTag, size: convert(u64, size), usage: VkTransferDstUsage, ..default};
+    var buf: VkBufferHandle*;
+    if !vk_ok("create staging buffer", vkCreateBuffer(device, &buf_info, null, &buf)) { return false; }
+    defer vkDestroyBuffer(device, buf, null);
+    var req: VkMemoryRequirements; var flags: u32;
+    vkGetBufferMemoryRequirements(device, buf, &req);
+    if !vk_readback_allocate(ctx, &req, VkHostVisible, &staging, &flags)
+        || !vk_ok("bind staging", vkBindBufferMemory(device, buf, staging, 0)) { return false; }
+    var pool_info: VkCommandPoolCreateInfo = {sType: VkCommandPoolTag, queueFamilyIndex: ctx.family, ..default};
+    var pool: VkCommandPoolHandle*;
+    if !vk_ok("create pool", vkCreateCommandPool(device, &pool_info, null, &pool)) { return false; }
+    defer vkDestroyCommandPool(device, pool, null);
+    var alloc_info: VkCommandBufferAllocateInfo = {sType: VkCommandAllocateTag, commandPool: pool, commandBufferCount: 1, ..default};
+    var cmd: VkCommandBufferHandle*;
+    if !vk_ok("allocate primary", vkAllocateCommandBuffers(device, &alloc_info, &cmd))
+        || !vk_record_clear(cmd, owner.image, owner.view, buf, range) { return false; }
+    var fence_info: VkFenceCreateInfo = {sType: VkFenceTag, ..default};
+    var fence: VkFenceHandle*;
+    if !vk_ok("create fence", vkCreateFence(device, &fence_info, null, &fence)) { return false; }
+    defer vkDestroyFence(device, fence, null);
+    var submit: VkSubmitInfo = {sType: VkSubmitTag, commandBufferCount: 1, pCommandBuffers: &cmd, ..default};
+    if !vk_ok("submit clear and copy", tower_vk_queue_submit_one_v1(ctx.queue, &submit, fence)) { return false; }
+    puts("submitted clear, image copy and host barrier");
+    if !vk_ok("wait for fence", vkWaitForFences(device, 1, &fence, 1, ~convert(u64, 0))) {
+        var idle = vkDeviceWaitIdle(device);
+        if !vk_ok("drain after failed wait", idle) && idle != VkDeviceLost {
+            puts("Cannot establish retirement"); fflush(null); abort();
+        }
+        return false;
+    }
+    puts("fence signaled");
+    var mapped: void*;
+    if !vk_ok("map staging", vkMapMemory(device, staging, 0, VkWholeSize, 0, &mapped)) { return false; }
+    defer vkUnmapMemory(device, staging);
+    if (flags & VkHostCoherent) == 0 {
+        var mapped_range: VkMappedMemoryRange = {sType: VkMappedRangeTag, memory: staging, size: VkWholeSize, ..default};
+        if !vk_ok("invalidate staging", vkInvalidateMappedMemoryRanges(device, 1, &mapped_range)) { return false; }
+    }
+    return readback_two_rows(dst, bits(u8*, mapped), size, ReadbackRowBytes);
+}
+
+fn validated_clear(messages: u32*, dst: ReadbackDestination*): bool {
+    var debug: VkMessengerInfo = {sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
+        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default};
+    var enable = VkSyncValidation;
+    var validation: VkValidationFeatures = {sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
+        enabledCount: 1, enabled: &enable, ..default};
+    var app: VkApplicationInfo = {sType: VkApplicationTag, pApplicationName: "Tower SDK clear", apiVersion: VkApi13, ..default};
+    var layer = "VK_LAYER_KHRONOS_validation";
+    var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
+    var info: VkInstanceCreateInfo = {sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
+        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &extensions[0], ..default};
+    var instance: VkInstanceHandle*;
+    if !vk_ok("create validation instance", vkCreateInstance(&info, null, &instance)) { return false; }
+    defer vkDestroyInstance(instance, null);
+    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    if create == null || destroy == null { return vk_failure("Missing debug messenger functions"); }
+    var messenger: VkMessenger*;
+    if !vk_ok("create messenger", create(instance, &debug, null, &messenger)) { return false; }
+    defer destroy(instance, messenger, null);
+    var ctx: ReadbackDevice = default;
+    if !readback_open_device(instance, 0, &ctx) { return false; }
+    defer vkDestroyDevice(ctx.device, null);
+    return clear_and_read(&ctx, dst);
+}
+
+if !readback_controls() { exit(1); }
+var bytes: u8[32];
+var capacity = sizeof(decltype(bytes));
+fill(&bytes[0], ReadbackGuard, capacity);
+var dst: ReadbackDestination = {data: &bytes[0], capacity: capacity, offset: 4, pitch: 12, span: 20};
+var messages: u32 = 0;
+var completed = validated_clear(&messages, &dst);
+readback_number("validation_warnings_errors", messages);
+if !completed || messages != 0 { exit(1); }
+if !readback_compare("retired RGBA8 readback", dst.data, capacity, readback_gpu_hex()) { exit(1); }

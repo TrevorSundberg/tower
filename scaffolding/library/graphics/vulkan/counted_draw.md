@@ -415,3 +415,24 @@ cc -std=c11 -O2 -I"$v" -Dtower_vk_record_indexed_indirect_count_v1=record_counte
 Expect 38 rows, with one callback each in 13 cases and zero in 25. The
 [slot 11 qualification](../../../../docs/temporal-opcode-research-journal.md#public-tower-import-for-counted-indexed-drawing)
 records the Win64 DLL, the SDK references and the hardware readback.
+
+### Draw's typed HUD and GPU-check callers
+
+Draw enabled `DRAW_TOWER_COUNTED_IMPORT_FOUNDATION` in its Linux and Win64
+builders at `f2c84fa095589c9bcb815c1a13133151fb58941d` using SDK `99999a8a`.
+The caller passes the procedure cached for the live device and supplies the
+buffer's logical byte length for both the command and count ranges.
+
+Draw ran `bash tests/vulkan-counted.sh --shared-cpu` with the pinned
+compiler, Foundation and Linux graphics DSO. Its C and typed paths each
+passed eight cases against a recording callback. Draw checked all seven
+forwarded arguments for the two HUD passes in a 1,088-byte buffer, the
+327,684-byte GPU-check buffer, an exact 48-byte HUD span, wide offsets and
+a zero maximum. The short 47-byte and 327,683-byte spans each made zero
+callbacks and the caller exited 1. Draw also reproduced the 38-row SDK
+reference with SHA-256 `36fe022774de58d3c5154512243ef834ff95770cef5bb8408ca4589e46ec0498`.
+
+The Linux test ELF `266a03b3` resolved the entry in DSO `2d924e64`.
+Draw cross-linked the Win64 PE `1ffeebcc` with the named counted import at
+hint 3. Draw assigned the direct-import shipping device runs to `5bf26347`
+on Linux and `ce92a8df` on Win64 after its shader runs.
