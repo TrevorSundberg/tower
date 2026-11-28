@@ -130244,3 +130244,57 @@ threaded TSan. Full-driver TSan faulted on both revisions, full-process raw
 leak checks reported 3,511 bytes in eight allocations on both, and Tower
 source-level UBSan was unavailable. Details of the worker runs, timings
 and reproduction commands appear in the preceding journal entry.
+
+### Win64 physical-device selection on the Quadro RTX 6000
+
+Slot 11 job `aa1f1c59-2ed9-4559-b550-35b995bd7039` qualified the four
+Win64 counted executables from SDK `9aaf350e`, implementation `1da5ecaf`,
+on the Quadro RTX 6000 under Wine 8.0, Vulkan 1.4.351 and NVIDIA 615.71.10.
+Rendering verified all 2,562 entries in archive
+`38800d7db775e7d0c0e02c0bb428fd92d687859f0b1d19f4faac7bb2d6c0b88e`
+and reproduced the archived SDK source export from Git. This qualification
+returned evidence only. The coordinator had no source bundle. Rendering
+compared both clean Win64 builds byte for byte to the separately retained
+slot 12 PEs and all four controls to the preceding slot 11 packet. Direct
+inspection of the PE import tables confirmed two or five named public
+entries for both Tower and CRT startup.
+
+The healthy hardware command ran from the PE directory:
+
+```sh
+wine64 ./counted.exe counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer
+```
+
+Host validation ran on the external-layer route. Across both series and all
+eight binaries, the guest count and list calls used one count slot on the
+same instance. Index zero selected UUID `26f60f6cead65faf0253a959b2e93a2d`.
+Each candidate freed its eight-byte handle list once after the chained
+properties query and before the format query. Each control freed it after
+queue acquisition. The returned physical handle remained live for device
+creation in both cases. The ICD submitted to its acquired queue at family
+zero, index zero. Four watchpoint traces placed the write of node mask 1
+in the NVIDIA driver at file offset `0xd138f3` and the write of 0 in
+`winevulkan.dll` at `0x398c`. The guest received the same UUID with LUID
+validity zero.
+
+Rendering reconstructed both producer records, the two 2×2 pixel images
+and all row guards. All 32 mapped guest and ICD dumps matched the 80-byte
+staging oracle. All 144 captured outputs and 16 direct dumps of the caller
+destination matched the 112-byte guarded oracle. The healthy processes
+signaled their fences with zero validation warnings or errors.
+
+Rendering checked 48 injected selection refusals across the original run
+and replay. Allocation refusal, count error −3 and list error −4 each
+reported the expected diagnostic, released the installed messenger before
+the instance and exited 1 before device creation. All 80 partial-owner
+controls matched the predecessor's diagnostic and Vulkan call sequences.
+Explicit guest validation and stock `draw14` returned −6 at instance
+creation and exited 1. The parser rejected `draw14 --external-layer` with
+exit 2 before a Vulkan call. Both strict selection branches ran in the
+14-case recording fixture. Rendering reran its Linux executable and matched
+the complete Win64 recording transcript.
+
+Whole-process timing ranges overlapped in all four PE configurations.
+Linux recorder ASan passed. Recorder TSan passed after eight pre-main
+startup failures. Native Windows/WDDM, physical multi-adapter selection
+and full-PE sanitizer coverage remain open.
