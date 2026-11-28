@@ -238,3 +238,47 @@ These Draw tests used a recording Vulkan driver. Draw assigned the shipping
 GPU comparison to slot 10 job `b6f28d59-681f-44bd-b19e-6922d03bf357`
 using the standalone preflight result from `dff82eda`. The planner has
 its own shipping test in `7e3234ce`.
+
+### Draw shipping replay with the twelve-entry Linux library
+
+Draw reviewed the optimized binary path in job
+`b6f28d59-681f-44bd-b19e-6922d03bf357`, worker revision
+`d451563daefc1ab7ab83a9d0227e996058ff4e94`, with Tower
+`73f499791fcdb6b69bdc16fd7e0a34a847668053`. The worker replayed the
+optimized link commands from the split-library control, substituting the
+headers and shared library paths. Build-script execution at Draw manager
+revision `51d4785e` was outside this trial.
+
+| Owner | Optimized executable SHA-256 |
+| --- | --- |
+| C | `333de296fd03af899cc981aecd10f165bbc7c3b203903a77337277dd99f7131` |
+| Tower | `0a3a34d9b9696482e26426dd5b2626ef0a54d3fabe055aec677242b47626356f` |
+
+On an API-selected RTX 5060 Ti (10de:2d04, Vulkan 1.4.303, NVIDIA
+570.169), Draw observed format preflight, image creation and view creation
+resolve lazily from both executables into
+`652949ebd1103e806b1e55ad5528a7b7b07bb0d338091bf0f62cec6254496ed6`.
+The full Tower scene used seven of the twelve exports. Rendering confirmed
+the release digest and checked that its export table adds format preflight
+to the eleven previously shipped names. Draw ran the following from the
+worker checkout with the containing library directory first on the search path.
+
+```sh
+export DRAW_TOWER_GRAPHICS_SO=/home/agent/work/b6f28d59/out/libtower_graphics.so
+export DRAW_TOWER_IMAGE_PREFLIGHT_SO="$DRAW_TOWER_GRAPHICS_SO"
+export LD_LIBRARY_PATH="/home/agent/work/b6f28d59/out${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+/home/agent/work/b6f28d59/evidence/build/tower \
+  --offscreen --osd-test assets/osd/state.bin --fixed-time 5 --size 960 540 \
+  --frames 3 --capture /home/agent/work/b6f28d59/evidence/gates/plain-tower.rgba
+```
+
+Both owners exited 0 and each recorded nine query/create/view triples.
+Selecting only the older library made both executables exit 127. Draw
+regenerated the 27,541,504 active bytes from the pack and compared the
+entire 27,906,048-byte guarded stream. Active and guarded SHA-256 were
+`df14881703119d96e6def5700eafd7927d7b83c890bf3e85f77d4db11e679ac4`
+and `bd512fc0888f77285f3fa422326f9923471e5d306b7242455fd13825d87bd76f`.
+Frozen HUD, RGB and camera outputs matched, and canonical and core checks
+exited 0. Reversing the order of the profile runs reversed the timing
+difference in both comparisons. Draw verified the 840 entries of archive
+`a90ea7b93252aaad8e9db7c59fe907b614f9710b287946187f839dd81924875e`.
