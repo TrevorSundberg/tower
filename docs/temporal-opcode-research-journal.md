@@ -127422,3 +127422,168 @@ returned -2, both preserved the ordered -1 and -2 diagnostics and terminated
 with status 134. The worker's interposer binaries used both SysV and GNU hash
 tables. Passing `--hash-style=both` to GNU ld 2.44 reproduced both interposer
 hashes on the control host. The hardware results remain those of the worker.
+### Single-tree Win64 counted application with the published Linux callbacks
+
+Slot 11 compared the recipes at `447be31a` and `ea88e000`. The latter
+staged four historical files from `ea6ce027` to preserve the Win64
+binary while Linux adopted `CountedCalls`. Both old recipes reproduced
+the same DLL, import library, ordinary PE, CRT PE and caller object.
+The first single-tree experiment on `447be31a` used a separate callback
+type. Its results and bundle are retained with assignment `f22cca24`.
+
+The integrated implementation starts at `ea88e000`. Win64 passes its
+two SDK clients and the raw fixture's local begin, prepare and submit
+functions in the published five-field table. The Linux entry still
+passes its five SDK operations. The capture and record files are identical
+to the published Linux versions. The portable shader reader uses the
+exact length and hash of each frozen SPIR-V file before calling
+`calls.create_shader`. Its EOF and error probes avoid the LP64/LLP64
+difference in the CRT seek interface. The Win64 argv entry selects guest
+or host validation explicitly. The existing three-argument `counted_run`
+continues to request the guest layer for both Linux entries.
+
+The old Win64 adapter and raw shader module had different Tower declarations
+of the same destroy function. The ordinary shader client now uses the same
+nominal allocator type. The original pipeline owner still destroys the
+modules after creating the pipelines.
+
+**Reproduction.** Implementation `1c6fb518` built from a fresh Git archive
+with no Git metadata. An inherited seccomp filter denied socket and connect
+and checked EPERM before executing the build. The host used packaged Tower
+`7430bdb3`, LLVM 19.1.7, glslang 12.0.0, SPIRV-Tools 2023.1 and the same
+x64 MinGW and Vulkan libraries as the earlier release. The [Win64 recipe](../scaffolding/library/graphics/vulkan/osd_checks/tower_client/counted_win64/README.md)
+writes both PE forms in one invocation. It stages zero Tower files. The
+ordinary PE depfile lists 36 Tower files, seven link libraries and the
+selected Windows runtime IR. The CRT caller object reads 35 Tower files.
+The 13 DLL objects use 34 unique Tower files. The combined source closure
+has 49 files. Recompiling each DLL object with a depfile reproduced its
+bytes. Touching each of the eight persistent executable link inputs in
+isolation rebuilt the PE once. The next invocation and the object target
+were clean. The GNU CRT link reproduction archive identified all inputs
+and replayed to the same PE.
+
+| Product | Both published recipes | Single-tree SDK on ea88e000 |
+| --- | --- | --- |
+| Ordinary PE | `ee5e16f4fc747421e72a6f2c25308de142bfc7f0386d85df79db8156cb72e2b3` | `812002c897e7f96e27ee97de0cf4f74515eb174e6903092dfdf0b8202c5edeab` |
+| GNU CRT PE | `f820b00df71069374b91d177bd3ebe33e30689ec7b471cb53f5bd76be273888b` | `5a10708b3c478a1701b92373b6e662f6bcde77bd82e26932e798381522d83170` |
+
+The DLL reproduced `8fc64f24fd5491d129494dc6645be46680b87067e2288ac45f3614f242096ed7`
+and its import library reproduced `2d56f882882f90a67ae8a063899841b0968dc6d35476967eaf1fa53b5d0d945c`.
+The earlier unchanged-provider 38-row recorder and UBSan harness receipts
+remain in packet `4c63ff5e`. Both new PEs name exactly shader creation
+(hint 2) and counted recording (hint 3) in the SDK import descriptor.
+
+**Device.** Wine 8.0 on the reserved Quadro RTX 6000 selected NVIDIA
+615.71.10, API 1.4.351, UUID `26f60f6cead65faf0253a959b2e93a2d`,
+physical device 0 and family/queue 0/0. Both PEs ran with
+`counted-core13 produce.comp.spv triangle.vert.spv color.frag.spv --external-layer`.
+The host loader inserted the Khronos device layer with synchronization
+validation enabled. Both exits were 0 with a signaled fence and zero
+warning/error callbacks. Both count words, two 20-byte records, four clear
+pixels `112233ff`, four drawn pixels `4080bfff` and every guard/pitch byte
+matched the 112-byte oracle `a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The debugger observed three successful SDK shader creates and releases
+on the same device. Injecting a signed −2 result on the third create
+published an empty slot and stopped before pipelines. Both count calls
+passed the selected PFN. Changing only the maximum at the DLL boundary
+to zero reached that PFN twice, preserved the count-one record and left
+four clear pixels in its capture. The oracle exited 1 and all 112 bytes
+matched `9d9541d989b15ae92d43eae70b32743be9d15949df48b84d185113d3b6840494`.
+
+For both PEs, a 376-byte fragment, a 381-byte fragment and a modified
+380-byte fragment exited 1 before pipeline creation with their respective
+short, trailing and digest diagnostics. An unknown flag exited 2.
+Omitting the flag requested the guest layer and exited 1 with VkResult −6.
+Both published Linux entries rebuilt and ran on the same Quadro against
+both trees. All four Linux captures matched the oracle, including guards,
+and stdout matched byte-for-byte across revisions. The external Linux
+application still dynamically resolved all five operations in DSO
+`2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`.
+Raw usage exited 2 and draw14 exited 1. The reconciled Linux app rejected
+missing, short, trailing and same-size corrupted shaders before submission.
+The CPU oracle and row-copy blobs matched `3dd5f11f`, a child of compiler
+base `a580e70a`. The pitch-7, span-19, short source and guarded copy controls
+passed. No compiler, provider, Linux application entry or callback table
+files changed in this reconciliation.
+
+**Host costs and limits.** Same dual Xeon E5-2699 v4, 88 logical CPUs and
+10.56 CPU quota. Three complete builds per arm used warm tools and file
+caches, fresh output directories and one Tower job. Order was old/new,
+new/old, old/new. Old/new medians were 8.49/8.94 s wall, 8.53/8.97 s CPU
+and 128624/131120 KiB peak RSS. The published arm staged 31 Tower files.
+The new executable reads five additional Tower files. Three isolated
+caller-object builds had median walls 0.94/1.12 s, with overlapping
+ranges. GPU time and driver allocations were unmeasured.
+
+The four-pthread reader test completed ASan with leak checking and TSan
+at 64 valid/short/trailing/corrupt sequences per thread. One focused TSan
+startup failed at ADDR_NO_RANDOMIZE before the completed run. A native
+build of the integrated SDK caller under ASan passed the full pixel check
+with no host layer selected. With explicit validation and resident Vulkan
+libraries, the capture matched and LeakSanitizer reported 4023 bytes in
+12 allocations including Khronos-layer stacks, matching the earlier
+baseline report. Full-device TSan faulted on another thread and exited 66.
+Win64 PE instrumentation, physical Windows and guest-layer success remain
+unverified.
+
+**Concurrent publication.** While checking `ea88e000`, the rendering ref
+advanced to `19fdb086`, which replaces the completion path in
+`counted_capture`. The Win64 source/build changes applied cleanly to a
+separate archive of that revision. Both resulting PEs built offline, kept
+their two named SDK imports and passed their full 112-byte guarded Wine
+checks. The zero-maximum and shader-failure tests above used the requested
+`ea88e000` parent. The review bundle is bounded at that parent. The evidence
+packet retains the original `447be31a` comparison and the separate newer-tip
+smoke logs. The coordinator owns publication.
+
+### Win64 counted application from a single SDK export
+
+Slot 11 returned tested tip `48e388f3d42f164f27a7ca740fbb8dfd0c7728be`
+on `ea88e000` in job `f22cca24-24d8-4369-b934-8f7359fa710f`.
+Rendering verified the bounded bundle and all 337 entries of archive
+`49d5a272285f051f7fbaeeb88af452555123d0fed3ba271ca72c6dc09409827c`.
+The build now takes its Tower inputs from one exported source tree.
+The previous recipe staged 31 files and read four from an older Git commit.
+Both Win64 programs use the published shader and counted-draw imports at
+hints 2 and 3. Their command begin, prepare and submit functions are local.
+
+Rendering built the worker revision and the merge with `19fdb086` from
+Git-free exports with socket creation and connect denied. Both ordinary
+Tower and MinGW CRT executables matched the worker bytes at each revision.
+On the merge the ordinary PE was
+`1720fc384e53229f6381180b0be03ebcd4c26349e88f9a0268d3b9e49ca1c5de`
+and the CRT PE was
+`a8cdb2d5d700304d098a0bcfa03c0ddc2625ca1365d5345e56e7c46614e0071a`.
+The 16-export DLL and import library matched `8fc64f24` and `2d56f882`.
+Touching each of seven explicit link inputs and the selected runtime on
+the merged export triggered one executable rebuild. The COFF object
+stayed clean and the next invocation did no work in all eight cases.
+One control-host replay received SIGBUS during concurrent toolchain
+extraction. The repeated build with fixed tool inputs matched both PEs.
+
+On Wine 8 with a Quadro RTX 6000 and NVIDIA 615.71.10 the worker ran
+both merged executables with host Khronos synchronization validation.
+Both exited 0 with signaled fences and zero warning/error callbacks.
+Rendering compared the captured count words, indirect records, RGBA pixels
+and guards with its independent 112-byte oracle. The max-zero control kept
+the second count at one, left its image clear and exited 1. The raw and
+SDK Linux callers also passed on control-host llvmpipe. Short, trailing
+and corrupted fragment files each produced their specific diagnostic and
+exit 1 in the SDK caller. Three worker warm-build samples per version gave
+median wall times of 8.49 s before and 8.94 s after the packaging change.
+The native four-thread reader passed focused ASan and a completed TSan run.
+Full-device TSan exited 66, and the Linux process with validation enabled
+reported 4023 bytes in 12 allocations under LSan. Native Windows execution
+and Win64 sanitizer coverage remain open.
+
+Draw independently reported its earlier Linux C-bridge device result for
+`181cf92c` on Draw `ac253241`, RTX 5060 Ti, Vulkan 1.4.303 and NVIDIA
+570.169. Both production owners resolved the seven image operations to
+the 15576-byte DSO `2d924e64`, which Rendering also rebuilt and rehashed.
+Draw matched all 27,541,504 active texture bytes, the guarded output and
+the resized HUD. The initial fault series had 14 normal exit-1 results
+and six SIGSEGVs. On repeated selected cases there was one signal in 18
+split-library trials and seven in 18 packaged trials. The cause remains
+open. Those executables used replayed link arguments on the earlier
+worker tree. Draw owns direct typed-import execution under `bcf1df80`
+and memory failure cleanup under `1823ef69`.

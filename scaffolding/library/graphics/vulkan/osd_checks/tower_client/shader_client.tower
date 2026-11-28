@@ -1,8 +1,9 @@
 import tower;
+import library.graphics.vulkan.image_driver_types;
 import library.graphics.vulkan.shader_module_creation;
 
 // This application owns destruction and its private SDK declaration.
-extern fn vkDestroyShaderModule(device: VkDeviceHandle*, module: VkShaderModuleHandle*, allocator: void*): void;
+extern fn vkDestroyShaderModule(device: VkDeviceHandle*, module: VkShaderModuleHandle*, allocator: VkAllocationCallbacks*): void;
 
 struct AppShader {
     device: VkDeviceHandle*;

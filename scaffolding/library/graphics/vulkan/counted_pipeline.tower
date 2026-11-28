@@ -7,11 +7,10 @@ import readback_device;
 import readback_oracle;
 import library.sha256;
 
-// Linux LP64 fixture I/O. The library entry point only borrows in-memory words.
+// The frozen assets have an exact size and digest. Both x64 CRTs expose size_t fread.
 extern fn fopen(path: u8*, mode: u8*): void*;
 extern fn fclose(file: void*): i32;
-extern fn fseek(file: void*, offset: i64, origin: i32): i32;
-extern fn ftell(file: void*): i64;
+extern fn ferror(file: void*): i32;
 extern fn fread(data: u8*, size: usize, count: usize, file: void*): usize;
 
 var VkShaderStageTag: u32 = 18;
@@ -53,18 +52,20 @@ fn counted_destroy_pipelines(device: VkDeviceHandle*, p: CountedPipelines*): voi
     vkDestroyDescriptorSetLayout(device, p.bindings, null);
 }
 
-fn counted_shader(calls: CountedCalls*, device: VkDeviceHandle*, path: u8*, wanted: u8*, out: VkShaderModuleHandle**): bool {
+fn counted_shader(calls: CountedCalls*, device: VkDeviceHandle*, path: u8*, size: usize, wanted: u8*, out: VkShaderModuleHandle**): bool {
     var file = fopen(path, "rb");
     if file == null { puts(path); return vk_failure("Cannot open control SPIR-V"); }
     defer fclose(file);
-    if fseek(file, 0, 2) != 0 { return vk_failure("Cannot seek SPIR-V"); }
-    var length = ftell(file);
-    if length <= 0 || length % convert(i64, sizeof(u32)) != 0 || fseek(file, 0, 0) != 0 { return vk_failure("Invalid SPIR-V length"); }
-    var size = convert(usize, length);
+    if size % sizeof(u32) != 0 || size / sizeof(u32) < SpirvHeaderWords { return vk_failure("Invalid SPIR-V length"); }
     var words = alloc(u32, size / sizeof(u32));
     if words == null { return vk_failure("Cannot allocate shader words"); }
     defer free(words);
-    if fread(bits(u8*, words), 1, size, file) != size { return vk_failure("Short SPIR-V read"); }
+    var read = fread(bits(u8*, words), 1, size, file);
+    if ferror(file) != 0 { return vk_failure("Failed SPIR-V read"); }
+    if read != size { return vk_failure("Short SPIR-V read"); }
+    var extra: u8;
+    if fread(&extra, 1, 1, file) != 0 { return vk_failure("Trailing SPIR-V data"); }
+    if ferror(file) != 0 { return vk_failure("Failed SPIR-V read"); }
     var hash: Sha256; sha256_init(&hash);
     if !sha256_update(&hash, bits(u8*, words), size) { return vk_failure("Cannot hash SPIR-V"); }
     var digest = sha256_finish(&hash);
@@ -105,9 +106,9 @@ fn counted_pipelines(calls: CountedCalls*, device: VkDeviceHandle*, p: CountedPi
             vkDestroyShaderModule(device, modules[i], null);
         }
     }
-    if !counted_shader(calls, device, paths[0], "eec373ac834ace1f297927483269bb416255a7437c287a0e87aad32b7e654804", &modules[0])
-        || !counted_shader(calls, device, paths[1], "7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999", &modules[1])
-        || !counted_shader(calls, device, paths[2], "2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517", &modules[2]) { return false; }
+    if !counted_shader(calls, device, paths[0], 1752, "eec373ac834ace1f297927483269bb416255a7437c287a0e87aad32b7e654804", &modules[0])
+        || !counted_shader(calls, device, paths[1], 1092, "7378f68edf277566a637921c002f755b56ab35fddf66ad20b45020f63e35b999", &modules[1])
+        || !counted_shader(calls, device, paths[2], 380, "2960fce4af43a503c2723f9b950890142b95bb561f67e5351941c1f9ad3a7517", &modules[2]) { return false; }
     var stage: VkPipelineShaderStageCreateInfo = { sType: VkShaderStageTag, stage: VkComputeShader,
         module: modules[0], pName: "main", ..default };
     var compute: VkComputePipelineCreateInfo = { sType: VkComputePipelineTag, stage: stage, layout: p.layout, ..default };

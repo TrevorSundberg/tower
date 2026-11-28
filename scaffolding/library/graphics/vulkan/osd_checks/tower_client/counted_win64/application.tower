@@ -1,5 +1,5 @@
 import tower;
-import counted_fixture;
+import sdk_fixture;
 
 // Tower's Win64 executable runtime enters tower_main without CRT arguments.
 extern fn __getmainargs(argc: i32*, argv: u8***, env: u8***, expand_wildcards: i32, startup_info: i32*): i32;

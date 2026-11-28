@@ -7,7 +7,7 @@ import readback_device;
 import readback_oracle;
 import readback_validation;
 
-fn counted_validated(calls: CountedCalls*, strict: bool, messages: u32*, paths: u8**): bool {
+fn counted_validated(calls: CountedCalls*, strict: bool, external_layer: bool, messages: u32*, paths: u8**): bool {
     var debug: VkMessengerInfo = { sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
         kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default };
     var enable = VkSyncValidation;
@@ -18,6 +18,13 @@ fn counted_validated(calls: CountedCalls*, strict: bool, messages: u32*, paths: 
     var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
     var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
         enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &extensions[0], ..default };
+    if external_layer {
+        // The host loader selects validation. The guest still installs its debug messenger.
+        info.pNext = bits(void*, &debug);
+        info.enabledLayerCount = 0;
+        info.ppEnabledLayerNames = null;
+        info.enabledExtensionCount = 1;
+    }
     var instance: VkInstanceHandle*;
     if !vk_ok("vkCreateInstance (validation required)", vkCreateInstance(&info, null, &instance)) { return false; }
     defer vkDestroyInstance(instance, null);
@@ -27,19 +34,27 @@ fn counted_validated(calls: CountedCalls*, strict: bool, messages: u32*, paths: 
     var messenger: VkMessenger*;
     if !vk_ok("vkCreateDebugUtilsMessengerEXT", create(instance, &debug, null, &messenger)) { return false; }
     defer destroy(instance, messenger, null);
-    puts("backend=Vulkan requested_api=1.3 validation=Khronos+sync severity=warning,error");
+    if external_layer {
+        puts("backend=Vulkan requested_api=1.3 validation=externally_configured layer_status=unverified severity=warning,error");
+    } else {
+        puts("backend=Vulkan requested_api=1.3 validation=Khronos+sync severity=warning,error");
+    }
     var ctx: ReadbackDevice = default;
     if !counted_open_device(instance, strict, &ctx) { return false; }
     defer vkDestroyDevice(ctx.device, null);
     return counted_capture(calls, &ctx, paths);
 }
 
-fn counted_run(calls: CountedCalls*, strict: bool, paths: u8**): i32 {
+fn counted_run_with_layer(calls: CountedCalls*, strict: bool, paths: u8**, external_layer: bool): i32 {
     readback_label("requested_profile"); puts(strict ? "draw14" : "counted-core13");
     var messages: u32 = 0;
-    var completed = counted_validated(calls, strict, &messages, paths);
+    var completed = counted_validated(calls, strict, external_layer, &messages, paths);
     readback_number("validation_warnings_errors", messages);
     if !completed || messages != 0 { return 1; }
     puts("counted-core13 pixel and producer checks passed");
     return 0;
+}
+
+fn counted_run(calls: CountedCalls*, strict: bool, paths: u8**): i32 {
+    return counted_run_with_layer(calls, strict, paths, false);
 }

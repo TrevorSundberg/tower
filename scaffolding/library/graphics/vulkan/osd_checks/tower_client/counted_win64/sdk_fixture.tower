@@ -1,0 +1,43 @@
+import tower;
+import .counted_client;
+import .shader_client;
+import library.graphics.vulkan.counted_calls;
+import library.graphics.vulkan.counted_run;
+import library.graphics.vulkan.command_begin;
+import library.graphics.vulkan.command_end;
+import library.graphics.vulkan.frame_submit;
+import library.graphics.vulkan.readback_oracle;
+import library.graphics.vulkan.indexed_draw;
+import library.graphics.vulkan.shader_module;
+
+// counted_shader supplies a live empty slot and already verified the shader bytes.
+fn create_shader(device: VkDeviceHandle*, words: u32*, count: usize,
+        out: VkShaderModuleHandle**): VkShaderModuleResult {
+    var owner: AppShader = { device: device, module: *out };
+    var status: i32 = 0;
+    var called = app_load_shader(&owner, words, count, &status);
+    if called == 1 && status == 0 { *out = owner.module; }
+    return { called: called == 1, result: status };
+}
+
+fn record_draw(draw: VkCmdDrawIndexedIndirectCountProc, cmd: VkCommandBufferHandle*,
+        commands: VulkanIndirectBuffer, range: IndexedIndirectRange, count: VulkanIndirectBuffer, count_offset: u64): bool {
+    return record_counted(draw, cmd, commands.handle, commands.byte_size, range.command_offset,
+        count.handle, count.byte_size, count_offset, range.max_draws, range.stride) == 1;
+}
+
+export fn main(argc: i32, argv: u8**): i32 {
+    if argc < 2 { puts("usage: counted_fixture draw14 | counted-core13 compute.spv vertex.spv fragment.spv [--external-layer]"); return 2; }
+    var strict = strcmp(argv[1], "draw14") == 0;
+    var external_layer = argc == 6 && strcmp(argv[5], "--external-layer") == 0;
+    if strict {
+        if argc != 2 { puts("draw14 takes no shader paths"); return 2; }
+    } else {
+        if strcmp(argv[1], "counted-core13") != 0 || (argc != 5 && !external_layer) {
+            puts("expected counted-core13 compute.spv vertex.spv fragment.spv [--external-layer]"); return 2;
+        }
+    }
+    var calls: CountedCalls = { create_shader: create_shader, record_draw: record_draw,
+        begin: tower_vk_command_begin_v1, prepare: tower_vk_command_end_for_submit_v1, submit: tower_vk_queue_submit_one_v1 };
+    return counted_run_with_layer(&calls, strict, argv + 2, external_layer);
+}
