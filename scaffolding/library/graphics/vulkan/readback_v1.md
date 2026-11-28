@@ -159,6 +159,20 @@ allocate, bind, owner handoff, destroy and free. [Recording checks](bound_buffer
 "$out/buffer_checks"
 ```
 
+Raw clear and both counted callers acquire the 2×2 color target through
+`vk_acquire_readback_image`. A successful call gives the caller the device,
+image, memory, view and color range. On a refusal the caller's empty owner
+stays empty. After submitted use completes, `vk_release_readback_image`
+destroys the view, destroys the image, frees its memory and clears the owner.
+The SDK clear application exercises the public image lifecycle entries.
+[Image owner](readback_image.tower)
+
+To exercise image construction, use the buffer-check recipe above with
+`readback_image_checks.tower` as the entry. Its six cases check acquisition
+order, failure cleanup and repeated release. The successful trace ends in
+`CRABVDIF` for create, requirements, allocate, bind, view, destroy view,
+destroy image and free memory. [Recording checks](readback_image_checks.tower)
+
 To exercise pool and primary acquisition, use the same build with
 `primary_command_checks.tower` as the sole entry. Its driver recorder checks
 a clobbered create failure (`C`), allocation failure with pool destruction

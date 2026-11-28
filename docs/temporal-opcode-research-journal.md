@@ -128921,3 +128921,46 @@ the application's failure label. The return for job
 exact build and replay commands, compiler and driver hashes, individual
 loader traces, guard records, profiles and sanitizer logs. Rendering
 owns the change and its publication review.
+
+### Rendering review of the shared readback image
+
+Rendering checked all 436 manifest entries in slot 12 archive
+`72ee46f8a83541aafc435d7049df8503fd9cf5a0baf5f3351aa924a94167ef89`
+and verified both bounded bundles. Source `6cc78dc4` on `e108476f` and
+its rebase `f3e9007e` on `d1d6af54` have identical runtime and test
+sources. The SDK clear caller and its executable are identical across the
+change. The counted SDK application uses the shared image owner.
+
+Using the released Linux x64 bootstrap, one compiler worker, LLVM 19 and
+the Debian 12 glibc startup files, rendering independently rebuilt the
+focused recorder and all four Linux executables byte for byte at the
+rebased revision. The six recorder cases passed. On Mesa llvmpipe, each
+application reproduced its complete guarded capture with zero validation
+warnings or errors. The raw and SDK clear captures were 32 bytes, SHA-256
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+The raw and SDK counted captures were 112 bytes, SHA-256
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+
+Rendering compared eight archived RTX 3090 captures against independently
+constructed little-endian records and pitched pixel bytes. For the 72
+original debugger traces, rendering checked object identities, destruction
+order and child outcomes across both revisions. All 40 image-construction
+refusals returned status 1 before command recording, submission or mapping.
+Every acquired image and allocation was released once on its own device.
+Counted also released its earlier buffers, allocations and pipelines. In
+all eight failed-drain trials the live view, image and memory remained
+owned at abort. The 24 two-queue controls kept queue 1 pending during
+queue 0 recovery. Slot 12 observed the RTX 3090 runs. Raw clear reported
+the same 3,511 bytes of leakage in eight allocations on both revisions.
+The recorder passed TSan. Hardware TSan faulted on an NVIDIA driver
+thread before the check completed.
+
+Rendering checked the four candidate Win64 PE import tables and hashes.
+The worker's rebased build reproduced the pinned candidate. The table
+identifies the cross-linked image-owner applications. Slot 11's
+`2fe9f493` device test uses the preceding fence-constructor binaries.
+
+| Entry | Two DLL imports | Five DLL imports |
+| --- | --- | --- |
+| Ordinary Tower | `1de9ef78bf9803bf70e97e7ae62167f1b36b5e264dbd67974dded8b998198252` | `af391eb8ea467047dd07ed505845c25a077ff426dbe8d711de344afbe035c93c` |
+| MinGW CRT | `4e000ef6831f4ee0c8529f5028dae0f062a7083aa3f72323dd9f56c77c59881c` | `f3e46b7fc427fda71731fe2501a1ba6b3a4250f715fd22a3b815cc24010b56f0` |

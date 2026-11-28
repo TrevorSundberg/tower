@@ -100,8 +100,9 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The [fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences)
-records the four PE hashes for this source. To reproduce the preceding
+The [image owner review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-shared-readback-image)
+records the four PE hashes for this source. Use `e108476f` to reproduce the
+[fence review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-unsignaled-readback-fences). To reproduce the preceding
 [primary command review](../../../../../../../docs/temporal-opcode-research-journal.md#sdk-review-of-command-pool-and-primary-acquisition),
 apply the same two-export recipe at `cca2a0db`. Slot 11 reproduced those four
 PEs at `161ec5fe` and checked pool ownership, failure cleanup and the guarded
