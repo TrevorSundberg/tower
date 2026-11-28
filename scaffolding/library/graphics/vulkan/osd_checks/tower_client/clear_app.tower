@@ -10,7 +10,7 @@ import library.graphics.vulkan.readback_mapping;
 import library.graphics.vulkan.readback_device;
 import library.graphics.vulkan.readback_oracle;
 import library.graphics.vulkan.readback_rows;
-import library.graphics.vulkan.readback_validation;
+import library.graphics.vulkan.validation_instance;
 import image_owner;
 
 extern fn exit(code: i32): void;
@@ -54,30 +54,17 @@ fn clear_and_read(ctx: ReadbackDevice*, dst: ReadbackDestination*): bool {
         { map: "map staging", invalidate: "invalidate staging", report_visibility: false }, dst, readback_clear_rows);
 }
 
-fn validated_clear(messages: u32*, dst: ReadbackDestination*): bool {
-    var debug: VkMessengerInfo = {sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
-        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default};
-    var enable = VkSyncValidation;
-    var validation: VkValidationFeatures = {sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
-        enabledCount: 1, enabled: &enable, ..default};
-    var app: VkApplicationInfo = {sType: VkApplicationTag, pApplicationName: "Tower SDK clear", apiVersion: VkApi13, ..default};
-    var layer = "VK_LAYER_KHRONOS_validation";
-    var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
-    var info: VkInstanceCreateInfo = {sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
-        enabledLayerCount: 1, ppEnabledLayerNames: &layer, enabledExtensionCount: 2, ppEnabledExtensionNames: &extensions[0], ..default};
-    var instance: VkInstanceHandle*;
-    if !vk_ok("create validation instance", vkCreateInstance(&info, null, &instance)) { return false; }
-    defer vkDestroyInstance(instance, null);
-    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
-    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
-    if create == null || destroy == null { return vk_failure("Missing debug messenger functions"); }
-    var messenger: VkMessenger*;
-    if !vk_ok("create messenger", create(instance, &debug, null, &messenger)) { return false; }
-    defer destroy(instance, messenger, null);
+fn clear_with_instance(instance: VkInstanceHandle*, dst: ReadbackDestination*): bool {
     var ctx: ReadbackDevice = default;
     if !readback_open_device(instance, 0, &ctx) { return false; }
     defer vkDestroyDevice(ctx.device, null);
     return clear_and_read(&ctx, dst);
+}
+
+fn validated_clear(messages: u32*, dst: ReadbackDestination*): bool {
+    return with_validation_instance(ReadbackDestination*, "Tower SDK clear", false, messages,
+        { instance: "create validation instance", lookup: "Missing debug messenger functions", messenger: "create messenger" },
+        dst, clear_with_instance);
 }
 
 if !readback_controls() { exit(1); }

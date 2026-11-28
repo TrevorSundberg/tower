@@ -1,0 +1,74 @@
+import tower;
+import readback_abi;
+import readback_device;
+
+struct VkValidationFeatures {
+    sType: u32; pNext: void*; enabledCount: u32; enabled: u32*; disabledCount: u32; disabled: u32*;
+}
+// The callback only borrows this prefix of VkDebugUtilsMessengerCallbackDataEXT.
+struct VkMessagePrefix { sType: u32; pNext: void*; flags: u32; idName: u8*; id: i32; message: u8*; }
+struct VkMessengerInfo {
+    sType: u32; pNext: void*; flags: u32; severity: u32; kinds: u32;
+    callback: function(u32, u32, u32, VkMessagePrefix*, void*); user: void*;
+}
+struct VkMessenger {}
+var CreateMessenger: type = function(i32, VkInstanceHandle*, VkMessengerInfo*, VkAllocationCallbacks*, VkMessenger**);
+var DestroyMessenger: type = function(void, VkInstanceHandle*, VkMessenger*, VkAllocationCallbacks*);
+extern fn vkGetInstanceProcAddr(instance: VkInstanceHandle*, name: u8*): void*;
+extern fn __atomic_fetch_add_4(address: u32*, value: u32, order: i32): u32;
+var VkDebugMessengerTag: u32 = 1000128004;
+var VkValidationFeaturesTag: u32 = 1000247000;
+var VkSyncValidation: u32 = 4;
+var VkDebugWarningsAndErrors: u32 = 4352;
+var VkDebugAllMessageTypesV1: u32 = 7;
+var VkApplicationTag: u32 = 0;
+var VkInstanceTag: u32 = 1;
+
+// The user's counter outlives instance destruction. Drivers may call from other threads.
+fn readback_message(severity: u32, kinds: u32, data: VkMessagePrefix*, user: void*): u32 {
+    __atomic_fetch_add_4(bits(u32*, user), 1, 0);
+    puts("Vulkan validation warning/error"); puts(data.message);
+    return 0;
+}
+
+struct ValidationLabels { instance: u8*; lookup: u8*; messenger: u8*; }
+
+fn readback_validation_labels(): ValidationLabels {
+    return { instance: "vkCreateInstance (validation required)", lookup: "Debug messenger functions unavailable",
+        messenger: "vkCreateDebugUtilsMessengerEXT" };
+}
+
+// Keep the create chain and callback storage live until the instance is destroyed.
+// The operation releases any device it acquires before returning the instance.
+fn with_validation_instance(T: type, app_name: u8*, external_layer: bool, messages: u32*,
+    labels: ValidationLabels, request: T, run: function(bool, VkInstanceHandle*, T)): bool {
+    var debug: VkMessengerInfo = { sType: VkDebugMessengerTag, severity: VkDebugWarningsAndErrors,
+        kinds: VkDebugAllMessageTypesV1, callback: readback_message, user: bits(void*, messages), ..default };
+    var enable = VkSyncValidation;
+    var validation: VkValidationFeatures = { sType: VkValidationFeaturesTag, pNext: bits(void*, &debug),
+        enabledCount: 1, enabled: &enable, ..default };
+    var app: VkApplicationInfo = { sType: VkApplicationTag, pApplicationName: app_name, apiVersion: VkApi13, ..default };
+    var layer = "VK_LAYER_KHRONOS_validation";
+    var extensions: u8*[2]; extensions[0] = "VK_EXT_debug_utils"; extensions[1] = "VK_EXT_validation_features";
+    var info: VkInstanceCreateInfo = { sType: VkInstanceTag, pNext: bits(void*, &validation), pApplicationInfo: &app,
+        enabledLayerCount: 1, ppEnabledLayerNames: &layer,
+        enabledExtensionCount: convert(u32, sizeof(decltype(extensions)) / sizeof(u8*)),
+        ppEnabledExtensionNames: &extensions[0], ..default };
+    if external_layer {
+        // The host loader selects validation. The guest still installs its debug messenger.
+        info.pNext = bits(void*, &debug);
+        info.enabledLayerCount = 0;
+        info.ppEnabledLayerNames = null;
+        info.enabledExtensionCount = 1;
+    }
+    var instance: VkInstanceHandle*;
+    if !vk_ok(labels.instance, vkCreateInstance(&info, null, &instance)) { return false; }
+    defer vkDestroyInstance(instance, null);
+    var create = bits(CreateMessenger, vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT"));
+    var destroy = bits(DestroyMessenger, vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT"));
+    if create == null || destroy == null { return vk_failure(labels.lookup); }
+    var messenger: VkMessenger*;
+    if !vk_ok(labels.messenger, create(instance, &debug, null, &messenger)) { return false; }
+    defer destroy(instance, messenger, null);
+    return run(instance, request);
+}

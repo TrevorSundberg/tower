@@ -129550,3 +129550,160 @@ Median wall times for ordinary two/five imports were 0.35/0.38 s and
 for CRT two/five imports 0.39/0.36 s on the candidate. These measurements
 include process startup. Physical Windows/WDDM and full-PE sanitizer
 coverage remain open. This publication documents existing binaries.
+
+### Slot 12 Vulkan validation instance and debug messenger ownership
+
+Assignment `531a3f73-4131-4753-a2bc-46a0a976215f` uses rendering SDK
+`4fa39da798ff52e17398e22cab2f56b207aaf430` and the accepted 9ec19d2c
+archive with SHA-256
+`9da89f4a47b32edf2e7c44480a56ae60996383af2ad3a1206a6720772fd20614`.
+The worker verified its manifest and executable hashes and rebuilt the
+parent with its checked-in bootstrap. The shared main checkout's existing
+readback_v1.md edit blocked its initial pull. An isolated local main
+preserves that checkout. The partial reader initially lacked two SDK
+documentation blobs. Reading both from the authorized Tower remote and
+restoring the isolated tree completed the pinned checkout.
+
+Raw clear, counted, and the external SDK clear application now run their
+device operations inside one ordinary Tower function. Each supplies its
+application name and diagnostics. A typed operation borrows the instance,
+opens the same device as before and releases it before returning. The outer
+frame retains the application, extension and layer arrays, synchronization
+feature, and debug descriptor through messenger and instance destruction.
+The outermost caller owns the atomic message counter and applies its
+original exit policy after cleanup. Creation only installs the corresponding
+defer after Vulkan succeeds. A driver that clobbers a failed output
+therefore transfers no ownership. The two proc lookups both have to succeed.
+
+The helper moved the original callback and its two foreign declarations.
+Instance and device entry points still come from readback_abi. No graphics
+SDK provider or export was added. The counted SDK application and Wine
+argument parser reach the helper through counted_run_with_layer.
+
+The released compiler rejected a top-level descriptor containing string
+initializers in a library. A function now constructs those diagnostic
+labels. The recorder then caught the inferred generic call doubling its
+application-name literal in optimized LLVM. Passing the explicit context
+type fixed the published compiler's lowering. Debugger inspection
+independently checked the exact application names in the four final
+binaries and in the SDK argument fixture.
+
+The two graphs have distinct roots. Explicit mode requests Vulkan 1.3,
+Khronos validation, debug utils and validation features, with synchronization
+validation enabled and the debug create-info at the end of the chain.
+External mode requests debug utils alone and chains the same debug info
+directly from the instance. Both install a messenger from the looked-up
+function after instance creation.
+
+The Tower recorder runs six outcomes per graph. It checks both descriptor
+lists, callback and user-data identity, clobbering failures, each missing
+entry, and success and downstream refusal. It calls the callback during
+instance creation and destruction, checks the atomic count, and reads
+the descriptor chain during teardown. The hardware debugger runs intercept
+the actual returned function pointers and track the acquired handles.
+There were 20 healthy or image-create-refused process traces across the
+four Linux entries and the SDK fixture in external mode, on both source
+revisions. Each trace saw the device destroyed first, then the installed
+messenger, then the instance. A further 32 runs forced instance creation
+to fail, returned null for either entry, or failed messenger creation.
+Each caller kept its original first diagnostic, signed result where
+applicable, callback report and exit 1. Partial cleanup reached instance
+destruction exactly after successful instance creation.
+
+The selected NVIDIA GeForce RTX 3090 was physical device 0, UUID
+`cd3d9791fe794e0b3ec29fc16b74d31c`, NVIDIA 565.57.01, Vulkan 1.3.289.
+The four unmodified Linux entry paths exited 0 with fence completion and
+zero warnings/errors. Both clears matched all 32 bytes, SHA-256
+`19e6f721a40fd19ec72a3985f0a91989fb4c3faa85f7b207088a80922303d374`.
+Both counted applications matched all 112 bytes, SHA-256
+`a49420a8cae9cf5185a8d8dc1d18556dce6b332ec223f9e22aa00eabef7436e6`.
+The source for the CPU oracle and row operations is
+`3dd5f11fabb4b08cce2a12f2ef8109a277b35380` on fixture parent
+`a580e70af42e67d5309c4121737fa9e21652a9dd`. The packet verifies both
+blobs against Git and the separate Tower layout oracle against the full
+144-byte concatenation.
+
+Slot 12 also compiled the actual Wine SDK fixture's main for Linux.
+Explicit validation and externally activated validation both completed
+the two captures, emitted identical 112 bytes and counted zero messages.
+The external report remained
+`validation=externally_configured layer_status=unverified`. Loader traces
+independently recorded insertion of libVkLayer_khronos_validation.so in
+both the instance and device chains. External mode used a temporary XDG
+implicit-layer manifest pointing at the installed library. A separate
+force-enable run used VK_LOADER_LAYERS_ENABLE. The loader reported its
+override twice while creating the instance. Both revisions counted both
+warnings, completed the fence and pixel checks, then exited 1.
+
+Slot 12 is a Linux x64 EPYC 7282 host with 16 cores/32 logical CPUs
+and a 15.36-CPU container quota. LLVM 19, the published bootstrap and
+the same shaders, loader, validation library and device were used for
+both sides. GPU runs used one process at a time, one application submit
+thread and a fresh instance per process. One warm-up pair precedes seven
+alternating measured pairs. Each sample checks the frozen standard output.
+The setup interval uses a separate Tower-instrumented build and monotonic
+time from descriptor construction through successful explicit messenger
+creation. Process times use uninstrumented builds. CPU columns are median
+user/system seconds and RSS columns are the highest process peak in KiB.
+
+| Entry | Setup ms before / after | Wall s before / after | CPU s before / after | RSS KiB before / after |
+| --- | ---: | ---: | --- | ---: |
+| Raw clear | 137.11 / 135.52 | 0.30 / 0.30 | .03+.27 / .03+.27 | 91832 / 91832 |
+| SDK clear | 135.94 / 135.96 | 0.30 / 0.30 | .02+.27 / .03+.27 | 91752 / 91572 |
+| Raw counted | 135.17 / 135.48 | 0.31 / 0.31 | .03+.27 / .03+.28 | 94948 / 94948 |
+| SDK counted | 134.37 / 137.37 | 0.31 / 0.31 | .03+.27 / .03+.28 | 94860 / 94820 |
+
+The counted SDK argument fixture had 0.31 s median wall time on each
+revision in both layer modes. The explicit route used .02+.28 / .03+.27 s
+CPU and peaked at 94780 / 94900 KiB. External implicit validation used
+.02+.28 / .02+.28 s and 94616 / 94608 KiB. For both clear programs
+the Tower allocator recorded two grants, 152 bytes cumulative and peak,
+zero retained. Counted recorded five grants, 3376 bytes cumulative,
+1752 peak and zero retained on each revision. These allocation events
+cover the Tower allocator only.
+
+Three measured compile pairs after warm-up gave serial raw-object
+medians of .68 / .72 s and SDK counted executable medians of 1.36 / 1.37 s.
+Peak RSS was 112704 / 114312 KiB and 131692 / 132496 KiB respectively.
+Four-worker outputs matched their serial binaries. Four-worker medians
+were .80 / .82 s and 1.47 / 1.50 s. These short compilations took longer
+with four compiler workers. The probes show no process-time improvement
+attributed to sharing validation setup.
+
+ASan with leaks enabled passed on the focused recorder. ASan with leak
+detection disabled reproduced all four healthy hardware outputs. Enabling
+full-process leak detection on raw clear reported 3511 bytes in eight
+allocations on both revisions, including a validation-layer stack from
+vkAllocateCommandBuffers. TSan encountered pre-main address-layout
+failures. Runs that entered main passed the isolated recorder and a
+four-pthread stress that issued 256 callbacks against a single counter.
+On both raw clear binaries TSan entered main and stopped at SIGSEGV in
+the driver process. Full-driver race coverage and source-level UBSan
+remain open. The packet includes link maps, instrumented LLVM excerpts,
+debugger transcripts, failed statuses and allocation records.
+
+Win64 GNU x64 cross-links used the same released DLL and import library.
+Ordinary Tower and MinGW CRT startup exercised the full fixture and the
+two-import control. Full Win64 device execution of these binaries remains
+open. Slot 11's stored-color-copy results cover that separate release.
+
+| Startup | SDK imports | PE SHA-256 |
+| --- | ---: | --- |
+| Tower | 2 | `a656c4a3585055001cc83fff7a8943056bff1458a4d575741b66606e38af0b8a` |
+| Tower | 5 | `856a5b4ed9d8084bbda4de2732d2e70a717d123b6eb7d166cdeba5d4341caf70` |
+| CRT | 2 | `d89a1dbd52b569aba81f76507d83c691f072645739a820d0169ce1b1336d219a` |
+| CRT | 5 | `a025c55495a6e27d2ddb8b2ecf6021ff77833f5255918e08f0a3bda0ee817d57` |
+
+With the assignment packet extracted on slot 12, run
+`bash commands/replay.sh TOWER_READER NEW_DIRECTORY ACCEPTED_9EC19D2C_ARCHIVE`.
+The script checks the baseline hashes, applies the bounded bundle, rebuilds
+the Linux and PE binaries, runs the Tower recorder and the real Linux
+paths, checks the layer log and guard bytes, decodes the SDK imports and
+compares all executable hashes. The rendering manager publishes after review.
+
+While slot 12 was measuring, rendering published slot 11's Win64
+stored-color-copy qualification in `437942c6a2575765141569836e1312addb3b6a76`.
+The review commit preserves that publication's full journal and Win64
+README. Its Tower and bootstrap inputs match the measured source in
+`e30155e40426b80a3ea07b922ef91da09d5fb0b3` on the assigned SDK. The
+packet includes a bounded bundle for each parent.

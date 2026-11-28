@@ -1,0 +1,145 @@
+import tower;
+import readback_abi;
+import readback_device;
+import validation_instance;
+
+extern fn strcmp(a: u8*, b: u8*): i32;
+extern fn exit(status: i32): void;
+
+enum InstanceCase: u32 { Healthy, CreateInstance, MissingCreate, MissingDestroy, CreateMessenger, Downstream }
+
+struct InstanceCheck {
+    messages: u32;
+    refusal: InstanceCase;
+    external: bool;
+    next: u8*;
+    info: VkInstanceCreateInfo*;
+    debug: VkMessengerInfo*;
+    messenger: VkMessenger*;
+}
+
+fn require_instance(ok: bool, message: u8*): void {
+    if !ok { puts(message); exit(3); }
+}
+
+fn event(state: InstanceCheck*, name: u8*): void {
+    require_instance(*state.next == *name, name);
+    state.next++;
+}
+
+fn check_chain(info: VkInstanceCreateInfo*): InstanceCheck* {
+    require_instance(info.sType == 1 && info.flags == 0 && info.pNext != null, "instance header");
+    var app = info.pApplicationInfo;
+    require_instance(app.sType == 0 && app.pNext == null && strcmp(app.pApplicationName, "validation recorder") == 0
+        && app.applicationVersion == 0 && app.pEngineName == null && app.engineVersion == 0
+        && app.apiVersion == 4206592, "application descriptor");
+    var debug = bits(VkMessengerInfo*, info.pNext);
+    var external = debug.sType == 1000128004;
+    require_instance(strcmp(info.ppEnabledExtensionNames[0], "VK_EXT_debug_utils") == 0, "debug extension");
+    if external {
+        require_instance(info.enabledLayerCount == 0 && info.ppEnabledLayerNames == null
+            && info.enabledExtensionCount == 1, "external layer and extension list");
+    } else {
+        var features = bits(VkValidationFeatures*, info.pNext);
+        require_instance(features.sType == 1000247000 && features.enabledCount == 1 && *features.enabled == 4
+            && features.disabledCount == 0 && features.disabled == null, "synchronization validation chain");
+        require_instance(info.enabledLayerCount == 1 && strcmp(info.ppEnabledLayerNames[0], "VK_LAYER_KHRONOS_validation") == 0
+            && info.enabledExtensionCount == 2 && strcmp(info.ppEnabledExtensionNames[1], "VK_EXT_validation_features") == 0,
+            "explicit layer and extension list");
+        debug = bits(VkMessengerInfo*, features.pNext);
+    }
+    require_instance(debug.sType == 1000128004 && debug.pNext == null && debug.flags == 0
+        && debug.severity == 4352 && debug.kinds == 7 && debug.callback == readback_message && debug.user != null,
+        "debug descriptor and callback");
+    // The test's counter is the first member, and the application owns it across destruction.
+    var state = bits(InstanceCheck*, debug.user);
+    require_instance(state.external == external && state.info == info && state.debug == debug, "borrowed identities");
+    return state;
+}
+
+fn emit_message(debug: VkMessengerInfo*): void {
+    var data: VkMessagePrefix = { message: "recorded validation callback", ..default };
+    require_instance(debug.callback(256, 2, &data, debug.user) == 0, "callback requested abort");
+}
+
+export fn vkCreateInstance(info: VkInstanceCreateInfo*, allocator: VkAllocationCallbacks*, out: VkInstanceHandle**): i32 {
+    require_instance(allocator == null, "instance allocator");
+    var debug = bits(VkMessengerInfo*, info.pNext);
+    if debug.sType == 1000247000 { debug = bits(VkMessengerInfo*, debug.pNext); }
+    var state = bits(InstanceCheck*, debug.user);
+    state.info = info;
+    state.debug = debug;
+    check_chain(info);
+    event(state, "Instance");
+    emit_message(debug);
+    *out = bits(VkInstanceHandle*, state);
+    if state.refusal == InstanceCase.CreateInstance { return -3; }
+    return 0;
+}
+
+fn record_create(instance: VkInstanceHandle*, info: VkMessengerInfo*, allocator: VkAllocationCallbacks*, out: VkMessenger**): i32 {
+    var state = bits(InstanceCheck*, instance);
+    event(state, "Messenger");
+    require_instance(allocator == null && info == state.debug && check_chain(state.info) == state, "explicit messenger identity");
+    *out = state.messenger;
+    if state.refusal == InstanceCase.CreateMessenger { return -2; }
+    return 0;
+}
+
+fn record_destroy(instance: VkInstanceHandle*, messenger: VkMessenger*, allocator: VkAllocationCallbacks*): void {
+    var state = bits(InstanceCheck*, instance);
+    event(state, "Release messenger");
+    require_instance(messenger == state.messenger && allocator == null, "destroy acquired messenger");
+}
+
+export fn vkGetInstanceProcAddr(instance: VkInstanceHandle*, name: u8*): void* {
+    var state = bits(InstanceCheck*, instance);
+    if strcmp(name, "vkCreateDebugUtilsMessengerEXT") == 0 {
+        event(state, "Create lookup");
+        if state.refusal == InstanceCase.MissingCreate { return null; }
+        return bits(void*, record_create);
+    }
+    require_instance(strcmp(name, "vkDestroyDebugUtilsMessengerEXT") == 0, "lookup name");
+    event(state, "Destroy lookup");
+    if state.refusal == InstanceCase.MissingDestroy { return null; }
+    return bits(void*, record_destroy);
+}
+
+export fn vkDestroyInstance(instance: VkInstanceHandle*, allocator: VkAllocationCallbacks*): void {
+    var state = bits(InstanceCheck*, instance);
+    require_instance(allocator == null && check_chain(state.info) == state, "instance destruction lifetime");
+    event(state, "Final instance release");
+    emit_message(state.debug);
+}
+
+fn run_with_device(instance: VkInstanceHandle*, state: InstanceCheck*): bool {
+    require_instance(bits(InstanceCheck*, instance) == state, "operation instance");
+    event(state, "Acquire device");
+    defer event(state, "Unwind device");
+    if state.refusal == InstanceCase.Downstream { return vk_failure("recorded device operation failed"); }
+    return true;
+}
+
+fn check_instance(external: bool, refusal: InstanceCase, events: u8*): void {
+    var storage: u64;
+    var state: InstanceCheck = { external: external, refusal: refusal, next: events,
+        messenger: bits(VkMessenger*, &storage), ..default };
+    var result = with_validation_instance(InstanceCheck*, "validation recorder", external, &state.messages, readback_validation_labels(),
+        &state, run_with_device);
+    require_instance(result == (refusal == InstanceCase.Healthy) && *state.next == 0, "result and release sequence");
+    require_instance(state.messages == (refusal == InstanceCase.CreateInstance ? 1 : 2), "callback counter");
+}
+
+export fn main(): i32 {
+    for (var mode: u32 = 0; mode < 2; mode++) {
+        var external = mode == 1;
+        check_instance(external, InstanceCase.Healthy, "ICDMAURF");
+        check_instance(external, InstanceCase.CreateInstance, "I");
+        check_instance(external, InstanceCase.MissingCreate, "ICDF");
+        check_instance(external, InstanceCase.MissingDestroy, "ICDF");
+        check_instance(external, InstanceCase.CreateMessenger, "ICDMF");
+        check_instance(external, InstanceCase.Downstream, "ICDMAURF");
+    }
+    puts("both validation chains and all acquisition and release cases passed");
+    return 0;
+}
