@@ -102,3 +102,32 @@ representation. Its fixed depth of 1.0 uses the Tower integer literal `106535321
 `0x3f800000`). This literal produced an immediate return with no unresolved
 symbols. Spelling the integer as `0x3f800000` in Tower source produced a
 parse error on this bootstrap. [Reproducer, object hashes and Draw caller](temporal-opcode-research-journal.md#draw-shadow-clear-depth-word-in-a-c-linked-library)
+
+## Binary32 literals in the bloom quality cutoff
+
+Draw's bloom recorder sets a quality flag when both dimensions meet the
+800×450 cutoff. These exports reproduce two ways to express its binary32
+word on the strict Linux x64 bootstrap at `a580e70a`.
+
+```tower
+import tower;
+
+export fn explicit_quality(w: u32, h: u32): u32 {
+    return bits(u32, convert(f32, w >= 800 && h >= 450 ? 1.0 : 0.0));
+}
+
+export fn typed_quality(w: u32, h: u32): u32 {
+    var q: f32 = w >= 800 && h >= 450 ? 1.0 : 0.0;
+    return bits(u32, q);
+}
+```
+
+Save this as `probe.tower` and run
+`bootstrap/linux-x64/towerc probe.tower --library --emit llvm-optimized -o probe.ll`.
+In `explicit_quality`, the conditional selects binary64 bits for 1.0 or
+0.0, then calls `tower_strict_float_convert` with widths 64 and 32.
+Linking that export requires the helper. In `typed_quality`, the declared
+`f32` supplies the literals' type. The optimized function selects the
+32-bit word `1065353216` or `0` directly. Draw uses this form. Both return
+`0x3f800000` at 800×450 and zero if either dimension is below its cutoff.
+[Object and caller checks](temporal-opcode-research-journal.md#draw-bloom-on-the-strict-scalar-baseline)

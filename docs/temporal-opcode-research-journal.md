@@ -123563,3 +123563,41 @@ at `x3f800000`. The manager inspected and linked PE controls without
 running them. This records the pinned compiler's existing strict lowering.
 The production timing and device trace belong to Draw.
 [Link requirement and two-line source](floating-point.md#linking-strict-conversions-into-a-c-application)
+
+### Draw bloom on the strict scalar baseline
+
+Draw reported two `pixels_as_float` calls per dispatched bloom mip, one for
+width and one for height, under `draw-hardware-scalar-float/v1`. Its device
+run used Draw `b4b3fbfcaee123da128218505174ea7606184318`. Its local
+integration is `8f3fc1d948c9f37a89e0422e856c3d21406db956`. On the RTX
+5060 Ti with Vulkan 1.4.303 and NVIDIA 570.169, Draw verified 114 pairs
+of byte-identical RGBA16F dispatch outputs across 11 frames, totaling
+2,242,468 texels per arm. The runs crossed the 800×450 cutoff. Draw traced
+38 driver dispatches in each resize run and matched frozen color, HUD and
+camera. Its 1920×1080 whole-frame medians were 9.657 ms for C and 9.691 ms
+for Tower. The 0.156 ms GPU query measured bloom shader time. The host cost
+of the two dimension conversions remains unmeasured. Draw queued its Win64
+application check as `dee6a33c`.
+
+Rendering independently compiled the separate quality-flag reproducer on
+Linux x64 using the released bootstrap at `a580e70a`, SHA-256
+`7430bdb39f73b285687fedb2945d370eaf51d2cc2fa289e5e0041cc15ad1b896`.
+In the combined ELF, `explicit_quality` has an `R_X86_64_PLT32` relocation
+at offset `0x2e` to `tower_strict_float_convert`. The optimized IR selects
+`4607182418800017408` or zero before calling the helper with widths 64
+and 32. The typed export selects `1065353216` or zero, with no relocation.
+The combined ELF object SHA-256 was
+`19f31b93126ce2e96896b66c61fcb7c32eb5d877b0c16f6b20ec0e36a33a16e5`.
+
+Rendering also compiled each export alone. With LLVM 19.1.7,
+`ld.lld -shared -z defs explicit.o` failed on the missing helper.
+The corresponding link with `typed.o` succeeded. For the positive control,
+rendering retained the helper from the packaged `runtime-host-linux-x64.ll`
+as in the shadow clear-depth test. Its trap path also references `write` and
+`exit`, resolved by linking libc. Via the Linux C ABI, the combined module
+and standalone typed module returned the expected words for every combination
+of widths 0, 799, 800, 801 and UINT32_MAX and heights 0, 449, 450, 451 and
+UINT32_MAX. Each export passed all 25 cases. This receipt records strict
+lowering and link behavior. Hardware-float qualification still requires
+an identified compiler revision, mode, numeric semantics and target.
+[Two-function reproducer](floating-point.md#binary32-literals-in-the-bloom-quality-cutoff)
