@@ -127399,3 +127399,26 @@ the drain entry. The final script checks the PC and handle registers at
 the stop itself. GDB also failed to read registers when resuming a dying
 process. The terminal traces stop on receipt of SIGABRT and independent
 undebugged launches verify the final signal status.
+
+Rendering verified the 284-entry archive (SHA-256
+`8827414ce6b448ee4f25df78c98b66d5b28907b4a09e9d4623e2c9dd8f1c9161`).
+The coordinator's standalone bundle endpoint returned 404. The archive's bounded
+bundle (`0f7d91917cc41b692c02b8f4ba604a1b8bb52e886d57d48ad22ba73a6dae0f0b`)
+verified against ea88e000 and supplied tested commit 3f05a9e3. The control
+host independently checked the selected and loader queue, submit descriptor
+and fence across fourteen raw and SDK fault traces. The real wait-error
+recoveries recorded a successful submit, injected wait -1, real same-queue
+drain success, then the first release. Both unknown-retirement controls
+stopped before the observed release functions. All twelve two-queue traces
+retained the other queue's pending fence until the host signaled its semaphore.
+
+With the packaged compiler, LLVM 19.1.7, Debian 12 glibc startup objects,
+glslang 12.0.0 and SPIRV-Tools 2023.1, the control host reproduced raw ELF
+`5b896428`, typed ELF `c610f6dc`, DSO `2d924e64` and all three shaders.
+Both executables and the recording matrix passed an independent replay.
+On llvmpipe (Mesa 25.0.7), raw and typed both exited 1 on wait -1 after
+successful recovery, with zero validation messages. When the drain also
+returned -2, both preserved the ordered -1 and -2 diagnostics and terminated
+with status 134. The worker's interposer binaries used both SysV and GNU hash
+tables. Passing `--hash-style=both` to GNU ld 2.44 reproduced both interposer
+hashes on the control host. The hardware results remain those of the worker.
