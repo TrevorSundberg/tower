@@ -123495,3 +123495,71 @@ remain open. Draw source execution, shaders, GPU behavior and application
 performance are outside this CPU-only fixture. The packet includes the build
 and run commands, both PEs and link maps, disassembly, signed exits, raw
 streams, SDK hashes, failures and clean-checkout replay instructions.
+
+### Draw shadow clear depth word in a C-linked library
+
+Under `draw-hardware-scalar-float/v1`, Draw reported a further explicit
+`pixels_as_float` caller for the shadow resolution and cascade x viewport.
+Its device receipt covers worker source
+`46b9652f6039c6a5ac7defb2328a7b297882ec8c` over `f8eaa0bb`.
+Draw identified its manager integration as `2658ae56e0b86237d857f9d757703845ecccae40`.
+On the RTX 3060, Wine 11, Vulkan 1.4.329 and NVIDIA 595.99.02, Draw traced
+27 atlas calls through its cached device procedure from its private
+`draw_vk_shadow_atlas_v1` in PE `c45d3c8b`. It reports five matching
+depth/RGB/HUD/camera and per-bucket record comparisons. The whole-frame
+C and Tower medians were 9.354 ms and 9.213 ms. The isolated viewport
+conversion cost remains unmeasured.
+
+The fixed clear-depth word exposes a separate consumer-link requirement.
+Rendering reproduced the two-line source in the floating-point guide from
+an external directory with `a580e70a`'s bootstrap (SHA-256 `7430bdb3`).
+Source SHA-256 was `6c0abf79f5b1318391f7f288555b9564896aea6e8861ad9131ce0f3b162a05da`.
+The following commands use `TOWER` as the checkout path.
+
+```bash
+for target in x86_64-linux-gnu x86_64-w64-windows-gnu x86_64-pc-windows-msvc; do
+  "$TOWER/bootstrap/linux-x64/towerc" clear_depth.tower --library --jobs 1 \
+    --foundation "$TOWER/scaffolding/foundation.tower" --target "$target" \
+    --emit object -o "$target.o" || exit 1
+  llvm-nm -u "$target.o" || exit 1
+done
+```
+
+Linux ELF SHA-256 was `11981aa31bf4f7754e0f3959822675973ac34a5bbbfb86718116585d8eef6135`.
+Both Win64 targets produced COFF `8f068ba9840d5a928eed7a256499196ae3c5845cc5a014ea74c0a05b7a9fc547`.
+All three optimized modules called
+`tower_strict_float_convert(i64 4607182418800017408, i32 64, i32 32)`.
+The ELF used a PLT32 relocation and the COFF an AMD64 REL32 relocation.
+A C main that returned success only for the expected 32-bit word failed
+to link with the conversion object alone, on both ELF and PE. Each linker
+named the missing helper. Draw separately observed the failure in its
+LLVM-MinGW build.
+
+For a positive Linux control we retained the conversion helper from the
+matching packaged runtime IR using LLVM 19.1.7. The C program supplied its
+own main. The following commands use the system development files.
+
+```bash
+opt -S '-passes=internalize,globaldce,default<O2>' \
+  -internalize-public-api-list=tower_strict_float_convert \
+  "$TOWER/bootstrap/linux-x64/share/tower/runtime-host-linux-x64.ll" -o strict-runtime.ll
+clang -O2 -ffreestanding -fno-builtin -fPIC -c strict-runtime.ll -o strict-runtime.o
+cat > caller.c <<'C'
+extern unsigned int clear_depth_word(void);
+int main(void) { return clear_depth_word() == 1065353216u ? 0 : 1; }
+C
+clang -O2 -c caller.c -o caller.o
+lib=/usr/lib/x86_64-linux-gnu
+ld.lld -pie --dynamic-linker /lib64/ld-linux-x86-64.so.2 "$lib/Scrt1.o" \
+  caller.o "$lib/libc.so.6" x86_64-linux-gnu.o strict-runtime.o -o check
+./check
+```
+
+The Linux process returned 0. With Draw's exact decimal word, the C main
+also returned 0 without any Tower runtime. The decimal ELF and COFF objects
+had no undefined symbols. The ELF returned the immediate `0x3f800000` in
+EAX. All three compilations of the hexadecimal Tower-source spelling failed
+at `x3f800000`. The manager inspected and linked PE controls without
+running them. This records the pinned compiler's existing strict lowering.
+The production timing and device trace belong to Draw.
+[Link requirement and two-line source](floating-point.md#linking-strict-conversions-into-a-c-application)

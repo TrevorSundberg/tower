@@ -78,3 +78,27 @@ substitute integer arithmetic or inherit another runtime's floating policy.
 Hexadecimal float literals, scalar math-library expansion, fixed vectors,
 swizzles and hardware SIMD selection remain follow-up work. See the project
 journal for the vector direction and validation/publication receipts.
+
+## Linking strict conversions into a C application
+
+With the Linux x64 bootstrap at `a580e70a`, this library export has a
+link-time dependency even though its result is constant.
+
+```tower
+import tower;
+export fn clear_depth_word(): u32 { return bits(u32, convert(f32, 1.0)); }
+```
+
+Compile it with `--library --emit object`. For both Linux x64 and Win64,
+optimized IR passes the binary64 encoding of `1.0` and the widths 64 and
+32 to `tower_strict_float_convert`. The outer `bits` preserves the resulting
+binary32 word. A C executable that links this object must also link a matching
+definition of the conversion helper. The object alone leaves the symbol
+undefined. A C caller linked with the pinned Linux runtime's conversion
+helper verified the expected word.
+
+Draw initializes the Vulkan clear-value union through its 32-bit word
+representation. Its fixed depth of 1.0 uses the Tower integer literal `1065353216` (binary32 bits
+`0x3f800000`). This literal produced an immediate return with no unresolved
+symbols. Spelling the integer as `0x3f800000` in Tower source produced a
+parse error on this bootstrap. [Reproducer, object hashes and Draw caller](temporal-opcode-research-journal.md#draw-shadow-clear-depth-word-in-a-c-linked-library)
