@@ -173,6 +173,13 @@ order, failure cleanup and repeated release. The successful trace ends in
 `CRABVDIF` for create, requirements, allocate, bind, view, destroy view,
 destroy image and free memory. [Recording checks](readback_image_checks.tower)
 
+Before each pass, `vk_begin_readback_rendering` takes the caller’s image,
+view, subresource range and prior use. The first pass starts from
+`UNDEFINED`. The second counted pass starts from `TRANSFER_SRC_OPTIMAL`
+after the preceding copy. To check both transitions, the two supplied
+ranges and the clear-value words, run the buffer-check recipe above with
+`readback_rendering_checks.tower` as its entry.
+
 After rendering ends, both clear callers and both counted callers record
 the stored color image for transfer. Clear copies to staging offset zero.
 The two counted passes write their 24-byte count and command prefixes at

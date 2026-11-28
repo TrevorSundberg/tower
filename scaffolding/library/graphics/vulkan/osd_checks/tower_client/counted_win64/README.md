@@ -100,8 +100,9 @@ import library.graphics.vulkan.command_end;
 import library.graphics.vulkan.frame_submit;
 ```
 
-The [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
-records the four PE hashes for this source. Use `39f5205b` for the preceding
+The [attachment setup qualification](../../../../../../../docs/temporal-opcode-research-journal.md#beginning-the-two-readback-rendering-passes-on-slot-12)
+gives the four PE hashes for this source. At `28165019`, the [stored color copy review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-stored-color-copy)
+records the preceding four PE hashes. Use `39f5205b` for the preceding
 [image owner review](../../../../../../../docs/temporal-opcode-research-journal.md#rendering-review-of-the-shared-readback-image)
 and its [Win64 device results](../../../../../../../docs/temporal-opcode-research-journal.md#win64-shared-readback-image-on-the-quadro-rtx-6000).
 All four image-owner PEs passed the guarded capture, construction refusal

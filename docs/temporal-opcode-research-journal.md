@@ -129442,3 +129442,45 @@ then published image-owner documentation at `03d1dd4a05c3decd45a4a6d08258b2aa88c
 The review commit keeps its Win64 handoff and full journal entry. Both
 candidate trees have identical code and build inputs. The packet retains
 the pinned bundle alongside the reconciled bundle.
+
+### Rendering review of readback attachment setup
+
+Slot 12 job `9ec19d2c-fe9b-4374-b8ba-23f5522d9b36` shares the incoming
+barrier and dynamic rendering descriptor used by raw and SDK clear and
+counted readbacks. First use transitions from an undefined layout. Reuse
+after the first counted copy transitions from a transfer-source layout
+and makes the earlier transfer read visible to the color-attachment write.
+The caller supplies the primary, view and image range, ends rendering, and
+handles draw refusal before recording a copy.
+
+Rendering verified all 304 manifest entries in archive
+`9da89f4a47b32edf2e7c44480a56ae60996383af2ad3a1206a6720772fd20614`.
+Both bounded bundles verified. Source `79f1f8ee` on the stored-color-copy
+release and `3d718807` on the subsequent Win64 documentation have the
+same Tower code. The packet's before binaries match the preceding release.
+
+Rendering rebuilt the shared module, its recording test, and all four
+Linux applications using the released bootstrap, one compiler worker,
+LLVM 19 and Debian 12 startup files. The five executables matched the
+packet byte for byte. The two recording cases used distinctive caller
+ranges. All four normal entries ran on Mesa llvmpipe with zero validation
+warnings or errors and matched the independently reconstructed 32-byte
+clear or 112-byte counted result.
+
+Rendering checked the 16 RTX 3090 process traces from the two revisions.
+Across eight healthy and eight refused runs there were 16 first uses and
+eight reuses. The barrier fields, view and command-buffer identities,
+zero-origin 2×2 render area, load/store operations, and four float words
+matched. The clear components were `3d888889 3e088889 3e4ccccd 3f800000`.
+Each successful pass copied to staging offset 0, 24 or 64. The fence
+signaled before mapping. The eight failed draws ended their rendering
+pass, skipped that pass's copy and exited 1 before submission. Slot 12
+recorded the hardware execution on NVIDIA 565.57.01, Vulkan 1.3.289.
+
+Median process times were 0.30 s for clear and 0.31 s for counted on
+both revisions. The isolated recorder passed ASan, leak checking and TSan.
+Full raw-clear leak checking reported 3,511 bytes in eight allocations
+on both revisions, and full-driver TSan did not complete. The four Win64
+binaries listed in the preceding worker entry were cross-linked. Rendering
+decoded their two- and five-function SDK import tables. Win64 device
+execution of these particular binaries remains open.
