@@ -1,0 +1,32 @@
+import tower;
+import library.testing;
+import recording;
+
+extern fn read(fd: i32, data: void*, size: usize): i64;
+extern fn dprintf(fd: i32, format: u8*, fault: u32, status: i32, fits: u32, image_seen: u32,
+    allocation_seen: u32, bytes: u64, charged: u64, events: u64): i32;
+
+// Read the regular cases file on stdin. Compare pointer identities within
+// their producing invocation before emitting process-independent columns.
+export fn main(): i32 {
+    for (var fault: u32 = 0; fault <= ViewFailure; fault++) {
+        var row: CaseRecord;
+        assert(read(0, bits(void*, &row), sizeof(CaseRecord)) == convert(i64, sizeof(CaseRecord)), "short case record");
+        assert(row.fault == fault && row.info != null && row.next != null && row.plan != null, "invalid case header");
+        var image_seen: u32 = 0;
+        if row.seen.image_info != null {
+            assert(row.seen.image_info == row.info && row.seen.image_next == row.next, "image descriptor changed");
+            image_seen = 1;
+        } else { assert(row.seen.image_next == null, "unexpected image extension"); }
+        var allocation_seen: u32 = 0;
+        if row.seen.allocation != null {
+            assert(row.seen.allocation == row.plan && row.seen.allocation_next == row.next, "allocation descriptor changed");
+            allocation_seen = 1;
+        } else { assert(row.seen.allocation_next == null, "unexpected allocation extension"); }
+        assert(dprintf(1, "%u %d %u %u %u %lu %lu %lu\n", fault, row.status, row.fits,
+            image_seen, allocation_seen, row.seen.bytes, row.seen.at_bind, row.events) > 0, "case output failed");
+    }
+    var extra: u8;
+    assert(read(0, bits(void*, &extra), sizeof(u8)) == 0, "trailing case record");
+    return 0;
+}

@@ -11,9 +11,6 @@ extern fn puts(message: u8*): i32;
 extern fn getenv(key: u8*): u8*;
 extern fn write(fd: i32, data: void*, size: usize): i64;
 
-struct CaseRecord {
-    fault: u32; status: i32; fits: u32; info: AppImageInfo*; next: void*; plan: AppAllocation*; seen: Seen; events: u64;
-}
 fn report(s: Recording*, status: i32, fits: u32): void {
     if getenv("TOWER_RECORD_CASES") == null { return; }
     var row: CaseRecord = {fault: s.fault, status: status, fits: fits, info: s.info, next: s.chain, plan: s.plan, seen: s.seen, events: s.events};

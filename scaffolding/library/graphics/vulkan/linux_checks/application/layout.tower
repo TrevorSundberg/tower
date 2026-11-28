@@ -1,7 +1,8 @@
 import tower;
 import library.testing;
 import private_shapes;
-import application_imports;
+import sdk.imports;
+import sdk.shared;
 
 extern fn sdk_layout(count: usize*): usize*;
 struct LayoutCursor { next: usize; length: usize; reference: usize*; }

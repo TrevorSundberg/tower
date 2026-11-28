@@ -1,7 +1,8 @@
 import tower;
 import private_owner;
 import private_shapes;
-import application_imports;
+import sdk.imports;
+import sdk.shared;
 
 export fn sdk_preflight(physical: void*, info: AppImageInfo*, limits: AppLimits*, supported: u32*): i32 {
     return tower_vk_image_format_preflight_v1(bits(VkPhysicalDeviceHandle*, physical),

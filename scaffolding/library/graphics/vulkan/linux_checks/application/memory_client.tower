@@ -1,7 +1,8 @@
 import tower;
 import private_owner;
 import private_shapes;
-import application_imports;
+import sdk.imports;
+import sdk.shared;
 
 export fn osd_plan(device: void*, image: void*, types: AppType*, count: u32, required: u32, plan: AppAllocation*): u32 {
     return tower_vk_plan_image_allocation_v1(bits(VkDeviceHandle*, device), bits(VkImageHandle*, image),

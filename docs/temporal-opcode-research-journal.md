@@ -126066,3 +126066,69 @@ nested SEGV (66) before verified pixels. The client objects carry sanitizer
 hooks; the tested DSO, frozen device owner and proprietary driver retain
 release instrumentation. The canonical slot 11 declarations ref was still
 unavailable at this measurement. Requalify it with the documented command.
+
+### Linux application source-to-object control on slot 12
+
+Assignment 54eb1dbf started at the published acceptance fixture
+`6bf5d79d14e62c909e3e39b6bae85f26678d9862`. Its ancestor
+`f2d6df4b5604b5a66ea58f8772ddf8764ea883d4` supplies the sixteen-entry
+graphics DSO. The shared main had seven unpublished commits and an unstaged
+readback document, so the worker fetched the reviewed ref with the registered
+reader in an isolated local main. A local partial-clone copy initially lacked
+blobs. Refetching the named ref supplied them. Publication belongs to the manager.
+
+The earlier CPU and device commands generated each positive caller object via
+opt and llc. The new `--objects` lane invokes pinned Linux x64 towerc in the
+application directory with `--library --jobs 1`, the selected Foundation root,
+a depfile and an object destination. towerc emits the optimized object directly.
+The two ordinary SDK imports preserve nominal identity, the distinct typed
+output slots, and the private caller's raw vkDestroyImage declaration. The
+README gives the consumer command and full CPU/device replay. A first custom
+SDK root failed because realpath followed its Foundation symlink out of the
+package. Preserving its lexical path let Tower find both original files. The
+private declarations and types have SHA-256 `e63931e2…` and `98ea6f9b…` and
+are supplied only in the evidence packet.
+
+The source-built DSO had SHA-256 `2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf`.
+Both clients' depfiles identified the two binding inputs and the private
+owner. The image and memory objects contained three and four x86-64 PLT32
+relocations. All seven appeared in the combined object, the executable jump
+slots and the glibc bindings to that DSO. Nine lower-level driver symbols
+bound to the CPU recorder. The SDK layout oracle, four expected diagnostics,
+and ordinary and pre-populated owner checks passed. The new row reader checks
+descriptor/extension identity locally. Its eight process-independent rows
+matched the historical private packet and fresh manual build, including
+−11 with decision 19 and 4,294,983,680 charged bytes at successful bind.
+The two modes produced different client and combined object digests.
+
+Host 12 used the EPYC 7282 (16 cores, 32 threads, affinity 0–31, quota 15.36
+CPUs), pinned compiler SHA-256 `7430bdb3…`, LLVM/Clang 19.1.7, GNU ld 2.40,
+and the Linux x86-64 SDK. Three warm-cache trials alternated fresh processes
+after a checked warmup. On the same combined application source the manual
+build took 397–399 ms wall, 390–397 ms CPU and 89,108–89,692 KiB peak RSS.
+The ordinary object build took 320–336 ms wall, 319–327 ms CPU and
+89,216–89,484 KiB. For 160,000 checked cases per owner, one-owner wall times
+were 25.0–26.3 ms manual and 23.7–24.8 ms ordinary. Four pthread owners
+took 26.3–27.3 ms manual and 26.7–28.0 ms ordinary. CPU runtime RSS was
+1,800–2,092 KiB. The synthetic owner's three handles, byte count and
+completion flag remain stack-owned. No device allocation or Draw timing
+is inferred from these CPU samples.
+
+ASan/LSan, fatal C-layout UBSan and TSan completed the private four-owner
+CPU control. The row reader also passed ASan and TSan. CPU row-reader TSan
+had eight restricted-personality startup failures before its completed run.
+The first TSan link required an explicit libgcc_s for _Unwind_Resume.
+The evidence retains commands, maps, hook checks and failures. The graphics
+DSO retained release instrumentation.
+
+The archived raw SDK, raw C, linked C and earlier private-application captures
+were compared again offline across all 103,158,144 bytes. The earlier device
+record shows sixteen completed samples, five retired triples, 199 events and
+zero validation warnings/errors on RTX 3090, PCI 0000:81:00.0, NVIDIA
+565.57.01, Vulkan 1.3.289, family/queue 0/0. The separate SDK owner returned
+its ledger from 512 to zero. Draw's shipping 64-byte owner at ad18ef06 is a
+separate team's scope. The slot 11 declarations ref for job 0849da80 was
+unavailable at control handoff. Public import, fresh hardware bindings,
+fault cleanup, guarded readback and retirement remain pending at that ref.
+The prior GPU LSan report of 4,187 bytes in 15 allocations and GPU TSan
+exit 66 before verified pixels remain open.

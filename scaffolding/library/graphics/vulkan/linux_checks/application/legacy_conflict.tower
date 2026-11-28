@@ -1,5 +1,5 @@
 import tower;
 import private_owner;
-import legacy_abi;
+import library.graphics.vulkan.readback_abi;
 
 export fn discard_partial_image(device: void*, owner: AppOwner*): void { discard_unbound(device, owner); }

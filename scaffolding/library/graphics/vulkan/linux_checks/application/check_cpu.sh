@@ -2,8 +2,10 @@
 # Link a local application against the sixteen-entry Linux DSO. The recording
 # driver is linked only into the CPU executable. Leave the ELF and logs in OUT.
 set -euo pipefail
+objects=false
+if [[ ${1:-} == --objects ]]; then objects=true; shift; fi
 if (( $# < 2 || $# > 3 )); then
-    echo "usage: $0 IMPORTS.tower NEW_OUTPUT_DIR [SHARED_TYPES.tower]" >&2
+    echo "usage: $0 [--objects] IMPORTS.tower NEW_OUTPUT_DIR [SHARED_TYPES.tower]" >&2
     exit 2
 fi
 module=$(realpath -e "$1")
@@ -26,7 +28,9 @@ cd "$out"
 echo "2d924e642e1820a8651015802bf56c332215178db373709ee80a5f5d91be76bf  release/libtower_graphics.so" | sha256sum -c
 export LD_LIBRARY_PATH="$release:$lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 cc=(clang-19 --sysroot="$sysroot" -O2 -Wall -Wextra -Werror -std=c11)
-tower=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$root/scaffolding/foundation.tower")
+foundation=$root/scaffolding/foundation.tower
+if "$objects" && [[ -n ${TOWER_APP_FOUNDATION:-} ]]; then foundation=$(realpath -s "$TOWER_APP_FOUNDATION"); fi
+tower=("$root/bootstrap/linux-x64/towerc" --library --jobs 1 --foundation "$foundation")
 # Compile the selected module alone to audit even unused transitive imports.
 "${tower[@]}" "$module" --depfile module.d -o imports.o
 cut -d: -f2- module.d | xargs -n1 realpath -e > sources.list
@@ -45,20 +49,29 @@ if (( $# == 2 )); then
     types=${definitions[0]}
 fi
 sha256sum "$module" "$types" > module.sha256
-for file in "$here"/*.tower; do
-    while IFS= read -r line; do
-        case "$line" in
-        'import application_imports;')
-            printf 'import "%s";\n' "$module"
-            if [[ $types != "$module" ]]; then printf 'import "%s";\n' "$types"; fi;;
-        'import legacy_abi;') printf 'import "%s/readback_abi.tower";\n' "$v";;
-        *) printf '%s\n' "$line";;
-        esac
-    done <"$file" >"source/$(basename "$file")"
-done
+app=$out/source
+if "$objects"; then
+    if [[ -n ${TOWER_APP_FOUNDATION:-} ]]; then
+        app=$here
+    else
+        cp "$here"/*.tower "$app/"
+        ln -s "$(dirname "$module")" "$app/sdk"
+    fi
+else
+    # Compatibility with the original manual IR test's arbitrary module paths.
+    for file in "$here"/*.tower; do
+        while IFS= read -r line; do
+            case "$line" in
+            'import sdk.imports;') printf 'import "%s";\n' "$module";;
+            'import sdk.shared;') if [[ $types != "$module" ]]; then printf 'import "%s";\n' "$types"; fi;;
+            *) printf '%s\n' "$line";;
+            esac
+        done <"$file" >"source/$(basename "$file")"
+    done
+fi
 negative() {
     local name=$1 expected=$2 rc=0
-    "${tower[@]}" "source/$name.tower" -o "$name.o" >"$name.log" 2>&1 || rc=$?
+    "${tower[@]}" "$app/$name.tower" -o "$name.o" >"$name.log" 2>&1 || rc=$?
     echo "$rc" >"$name.exit"
     if [[ $rc == 0 ]] || ! grep -F -- "$expected" "$name.log"; then
         cat "$name.log" >&2; echo "missing expected rejection for $name" >&2; exit 1
@@ -70,9 +83,24 @@ negative wrong_output 'Expected VkImageHandle**, got VkDeviceMemoryHandle**'
 negative wrong_descriptor 'Expected VkImageCreateInfo*, got AppImageInfo*'
 
 for unit in combined image_client memory_client cpu recording_driver; do
-    "${tower[@]}" "source/$unit.tower" --emit llvm -o "$unit.ll"
-    opt-19 '-passes=default<O2>' "$unit.ll" -o "$unit.bc"
-    llc-19 -filetype=obj -relocation-model=pic "$unit.bc" -o "$unit.o"
+    if "$objects"; then
+        # Save IR for the separate sanitizer/benchmark harness. towerc emits
+        # the object directly using its default optimization pipeline.
+        (cd "$app" && "${tower[@]}" "$unit.tower" --depfile "$out/$unit.d" \
+            --raw-ir "$out/$unit.ll" -o "$out/$unit.o")
+        if [[ $unit != recording_driver ]]; then
+            cut -d: -f2- "$unit.d" | xargs -n1 realpath -e > "$unit.sources"
+            for dep in "$module" "$types" "$app/private_owner.tower" "$app/$unit.tower"; do
+                grep -Fx -- "$dep" "$unit.sources" >/dev/null || {
+                    echo "$unit.d is missing $dep" >&2; exit 1;
+                }
+            done
+        fi
+    else
+        "${tower[@]}" "source/$unit.tower" --emit llvm -o "$unit.ll"
+        opt-19 '-passes=default<O2>' "$unit.ll" -o "$unit.bc"
+        llc-19 -filetype=obj -relocation-model=pic "$unit.bc" -o "$unit.o"
+    fi
 done
 cat > seven <<'NAMES'
 tower_vk_allocate_memory_v1
@@ -87,6 +115,15 @@ llvm-nm-19 -ju combined.o | sort > combined.undefined
 diff -u seven combined.undefined
 { llvm-nm-19 -ju image_client.o; llvm-nm-19 -ju memory_client.o; } | sort > separate.undefined
 diff -u seven separate.undefined
+for unit in combined image_client memory_client; do
+    llvm-readelf-19 -Wr "$unit.o" > "$unit.relocations"
+done
+for group in combined separate; do
+    files=(combined.relocations)
+    if [[ $group == separate ]]; then files=(image_client.relocations memory_client.relocations); fi
+    awk '$3 == "R_X86_64_PLT32" && $5 ~ /^tower_vk_/ {print $5}' "${files[@]}" | sort > "$group.calls"
+    diff -u seven "$group.calls"
+done
 "${cc[@]}" -c "$here/sdk_layout.c" -o sdk_layout.o
 opt-19 -passes=internalize,globaldce -internalize-public-api-list=tower_trap \
     "$root/bootstrap/linux-x64/share/tower/runtime-host-linux-x64.ll" -o runtime.bc
@@ -97,6 +134,9 @@ x86_64-linux-gnu-ld -pie --export-dynamic -z noexecstack -dynamic-linker /lib64/
 llvm-readelf-19 --dyn-syms -W cpu > cpu.elf
 awk '$7=="UND" && $8 ~ /^tower_vk_/ {print $8}' cpu.elf | sort > cpu.undefined
 diff -u seven cpu.undefined
+llvm-readelf-19 -Wr cpu > cpu.relocations
+awk '$3=="R_X86_64_JUMP_SLOT" && $5 ~ /^tower_vk_/ {print $5}' cpu.relocations | sort > cpu.slots
+diff -u seven cpu.slots
 TOWER_RECORD_CASES=1 LD_DEBUG=bindings LD_DEBUG_OUTPUT="$out/loader" "$out/cpu" 3>cases.bin > cpu.log
 grep -F "binding file $out/cpu " loader.* | grep -F "to $release/libtower_graphics.so " > cpu.bindings
 sed -nE "s/.*symbol .(tower_vk_[a-z0-9_]+)'.*/\1/p" cpu.bindings | sort -u > resolved
@@ -105,6 +145,13 @@ grep -F "binding file $release/libtower_graphics.so " loader.* | grep -F "to $ou
 for op in GetPhysicalDeviceImageFormatProperties CreateImage GetImageMemoryRequirements AllocateMemory BindImageMemory CreateImageView DestroyImageView DestroyImage FreeMemory; do
     grep -Eq "symbol .vk${op}'" driver.bindings
 done
-TOWER_OWNER_CANARY=1 "$out/cpu" > canary.log
-cat cpu.log
+TOWER_OWNER_CANARY=1 TOWER_RECORD_CASES=1 "$out/cpu" 3>canary.bin > canary.log
+grep -Fx 'seven direct entries; eight recording cases passed' cpu.log
+cmp cpu.log canary.log
 od -v -An -tx8 cases.bin > cases.hex
+"${tower[@]}" "$here/record_rows.tower" -o record_rows.o
+x86_64-linux-gnu-ld -pie -z noexecstack -dynamic-linker /lib64/ld-linux-x86-64.so.2 \
+    "$lib/Scrt1.o" "$lib/crti.o" record_rows.o runtime.o "$lib/libc.so.6" "$lib/crtn.o" -o record_rows
+./record_rows <cases.bin >cases.rows
+./record_rows <canary.bin >canary.rows
+diff -u cases.rows canary.rows

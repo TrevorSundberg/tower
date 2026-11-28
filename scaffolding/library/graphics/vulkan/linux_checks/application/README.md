@@ -104,3 +104,61 @@ Use the package root as the working directory and a fresh output path.
 ```sh
 bash ./replay.sh "$TOWER_CHECKOUT" "$PWD/private_binding/imports.tower" "$OUTPUT"
 ```
+
+## Ordinary optimized objects
+
+With `--objects` and `TOWER_APP_FOUNDATION`, Tower compiles the checked-in
+application files in this directory. Supply the Foundation file at the root
+of the SDK's module search tree. Each client directly imports the extern file
+and the file declaring its nominal types. The depfile must resolve both to
+the supplied files. The initial isolated CPU control uses `sdk/imports.tower`
+and `sdk/shared.tower` under that root. Keep the two files together under their
+original names so the extern file and the caller resolve one set of types.
+
+From the Tower checkout, with the SDK, LLVM 19 and x86-64 GNU ld installed:
+
+```sh
+export TOWER_SDK_ROOT=${TOWER_SDK_ROOT:-/}
+export PATH="$TOWER_SDK_ROOT/usr/bin:$PATH"
+export LD_LIBRARY_PATH="$TOWER_SDK_ROOT/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+export TOWER_APP_FOUNDATION="$MODULE_ROOT/foundation.tower"
+ROOT=$PWD
+APP=$ROOT/scaffolding/library/graphics/vulkan/linux_checks/application
+(cd "$APP" && "$ROOT/bootstrap/linux-x64/towerc" --library --jobs 1 \
+    --foundation "$TOWER_APP_FOUNDATION" combined.tower --depfile "$OUT.d" -o "$OUT.o")
+env -u GRAPHICS_SO bash "$APP/check_cpu.sh" --objects "$IMPORTS" "$CPU_OUT" "$TYPES"
+```
+
+Use absolute output paths and a new CPU output directory. The CPU recipe builds
+the release DSO, checks SDK layout, and records both the default and seeded
+owner cases. `*.relocations` retain the client call relocations and executable
+jump slots. `*.bindings` show the loader's actual providers. `record_rows` checks
+the caller and recorder addresses inside each record before emitting fault,
+signed result, decision, image/allocation seen flags, requested bytes, bytes
+charged at bind, and ordered event digits. Compare these columns across
+processes. The CPU packet for assignment 54eb1dbf includes the two original
+private control files and a standalone SDK setup in `CPU_REPLAY.sh`.
+
+For a standalone sibling pair, omitting `TOWER_APP_FOUNDATION` copies the
+unchanged application to the output folder and mounts the containing package
+directory at `source/sdk`. The historical command without `--objects`
+retains the manual LLVM IR, opt and llc comparison. The ordinary object
+invocation saves raw IR separately for the existing instrumentation and
+benchmark harness. Its release client objects come from towerc.
+
+The public slot 11 declarations were pending when the standalone control
+was tested. At handoff, record the reviewed ref and both Git blob IDs.
+Match the test clients' ordinary imports and SDK-layout field spellings to
+that checkout in a focused source adaptation. Use its complete
+`scaffolding/foundation.tower` search root and the actual shipped paths in
+`IMPORTS` and `TYPES`. Keep both module blobs unchanged. Repeat the CPU command
+above, then on slot 12 run:
+
+```sh
+bash "$APP/check_device.sh" --objects "$IMPORTS" "$RETIREMENT_PACKET" "$DEVICE_OUT" "$TYPES"
+```
+
+The hardware command reuses the same release archive, C executable, guarded
+SDK reference, lifetime verifier, fault controls, and sanitizer lanes described
+above. Record a public-module result only after this replay. GPU leak checking
+and GPU TSan remain open.

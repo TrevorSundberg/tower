@@ -19,3 +19,7 @@ struct Recording {
     info: AppImageInfo*; plan: AppAllocation*; chain: void*;
     charged: u64*; complete: bool*;
 }
+
+struct CaseRecord {
+    fault: u32; status: i32; fits: u32; info: AppImageInfo*; next: void*; plan: AppAllocation*; seen: Seen; events: u64;
+}

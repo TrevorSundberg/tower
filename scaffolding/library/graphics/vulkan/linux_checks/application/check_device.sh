@@ -2,8 +2,10 @@
 # Reuse host 12's verified release and observation tools. A new output directory
 # keeps the frozen executable, raw SDK capture and legacy checkout read-only.
 set -euo pipefail
+mode=()
+if [[ ${1:-} == --objects ]]; then mode=(--objects); shift; fi
 if (( $# < 3 || $# > 4 )); then
-    echo "usage: $0 IMPORTS.tower RETIREMENT_PACKET.tar.gz NEW_OUTPUT_DIR [SHARED_TYPES.tower]" >&2
+    echo "usage: $0 [--objects] IMPORTS.tower RETIREMENT_PACKET.tar.gz NEW_OUTPUT_DIR [SHARED_TYPES.tower]" >&2
     exit 2
 fi
 module=$(realpath -e "$1")
@@ -27,7 +29,7 @@ for header in image_format_preflight create_image bound_image_view image_allocat
 done
 cmp "$v/image_retirement.h" "$R/release/image_retirement.h"
 export GRAPHICS_SO=$R/release/libtower_graphics.so
-bash "$here/check_cpu.sh" "$module" "$w/cpu" "${types[@]}"
+bash "$here/check_cpu.sh" "${mode[@]}" "$module" "$w/cpu" "${types[@]}"
 cpu=$w/cpu
 release=$cpu/release
 export LD_LIBRARY_PATH="$release:$f:$l"
@@ -67,6 +69,9 @@ link_device "$b/application" "$cpu/image_client.o" "$cpu/memory_client.o"
 llvm-readelf-19 --dyn-syms -W "$b/application" > "$r/application.elf"
 awk '$7=="UND" {print $8}' "$r/application.elf" | grep -Fx -f "$cpu/seven" | sort >"$r/direct"
 diff -u "$cpu/seven" "$r/direct"
+llvm-readelf-19 -Wr "$b/application" > "$r/application.relocations"
+awk '$3=="R_X86_64_JUMP_SLOT" {print $5}' "$r/application.relocations" | grep -Fx -f "$cpu/seven" | sort > "$r/application.slots"
+diff -u "$cpu/seven" "$r/application.slots"
 "$P/release/sdk-client" > "$r/sdk-client.log"
 cmp "$r/sdk-client.log" "$R/compat/release-sdk-client.log"
 
