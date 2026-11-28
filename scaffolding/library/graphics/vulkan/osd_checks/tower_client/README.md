@@ -380,7 +380,7 @@ and checked the SPIR-V with `spirv-val --target-env vulkan1.1` before the
 Tower caller borrowed their 438, 273 and 95 words, respectively. All three
 calls returned `called=1` and `VkResult=0`. Each resulting module was
 destroyed once on its creating device after pipeline creation. The count-zero
-frame retained `112233ff` at all four pixels. The single-draw frame produced
+pass retained `112233ff` at all four pixels. The single-draw pass produced
 `4080bfff` at all four. The typed and raw SDK paths matched the 112-byte
 guarded reference. This run used Vulkan 1.3.289 and NVIDIA 565.57.01.
 Draw's Vulkan 1.4 shipping profile and its own SPIR-V have separate device tests.
